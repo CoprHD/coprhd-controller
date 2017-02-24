@@ -210,7 +210,7 @@ public class DbConsistencyCheckerHelperTest extends DbsvcTestBase {
     
     @Test
     public void testClassNameTimeSeriesIndex() throws Exception {
-        DbConsistencyCheckerHelperMock helper = new DbConsistencyCheckerHelperMock((DbClientImpl)getDbClient());
+        DbConsistencyCheckerHelperMock mockHelper = new DbConsistencyCheckerHelperMock((DbClientImpl)getDbClient());
         
         Order order = new Order();
         order.setId(URIUtil.createId(Order.class));
@@ -227,23 +227,23 @@ public class DbConsistencyCheckerHelperTest extends DbsvcTestBase {
         IndexAndCf indexAndCf = new IndexAndCf(ClassNameTimeSeriesDBIndex.class, indexCF, keyspace);
         
         CheckResult checkResult = new CheckResult();
-        helper.checkIndexingCF(indexAndCf, false, checkResult);
+        mockHelper.checkIndexingCF(indexAndCf, false, checkResult);
         assertEquals(0, checkResult.getTotal());
         
         keyspace.prepareQuery(cf).withCql(String.format("delete from \"Order\" where key='%s'", order.getId())).execute();
         checkResult = new CheckResult();
-        helper.checkIndexingCF(indexAndCf, false, checkResult);
+        mockHelper.checkIndexingCF(indexAndCf, false, checkResult);
         assertEquals(1, checkResult.getTotal());
         
-        keyspace.prepareQuery(indexCF).withCql(helper.getCleanIndexCQL()).execute();
+        keyspace.prepareQuery(indexCF).withCql(mockHelper.getCleanIndexCQL()).execute();
         checkResult = new CheckResult();
-        helper.checkIndexingCF(indexAndCf, false, checkResult);
+        mockHelper.checkIndexingCF(indexAndCf, false, checkResult);
         assertEquals(0, checkResult.getTotal());
     }
     
     @Test
     public void testTimeSeriesAlternateId() throws Exception {
-        DbConsistencyCheckerHelperMock helper = new DbConsistencyCheckerHelperMock((DbClientImpl)getDbClient());
+        DbConsistencyCheckerHelperMock mockHelper = new DbConsistencyCheckerHelperMock((DbClientImpl)getDbClient());
         
         Order order = new Order();
         order.setId(URIUtil.createId(Order.class));
@@ -261,23 +261,23 @@ public class DbConsistencyCheckerHelperTest extends DbsvcTestBase {
         IndexAndCf indexAndCf = new IndexAndCf(TimeSeriesDbIndex.class, indexCF, keyspace);
         
         CheckResult checkResult = new CheckResult();
-        helper.checkIndexingCF(indexAndCf, false, checkResult);
+        mockHelper.checkIndexingCF(indexAndCf, false, checkResult);
         assertEquals(0, checkResult.getTotal());
         
         keyspace.prepareQuery(cf).withCql(String.format("delete from \"Order\" where key='%s'", order.getId())).execute();
         checkResult = new CheckResult();
-        helper.checkIndexingCF(indexAndCf, false, checkResult);
+        mockHelper.checkIndexingCF(indexAndCf, false, checkResult);
         assertEquals(1, checkResult.getTotal());
         
-        keyspace.prepareQuery(indexCF).withCql(helper.getCleanIndexCQL()).execute();
+        keyspace.prepareQuery(indexCF).withCql(mockHelper.getCleanIndexCQL()).execute();
         checkResult = new CheckResult();
-        helper.checkIndexingCF(indexAndCf, false, checkResult);
+        mockHelper.checkIndexingCF(indexAndCf, false, checkResult);
         assertEquals(0, checkResult.getTotal());
     }
     
     @Test
     public void testCFIndexForOrder() throws Exception {
-        DbConsistencyCheckerHelperMock helper = new DbConsistencyCheckerHelperMock((DbClientImpl)getDbClient());
+        DbConsistencyCheckerHelperMock mockHelper = new DbConsistencyCheckerHelperMock((DbClientImpl)getDbClient());
         
         Order order = new Order();
         order.setId(URIUtil.createId(Order.class));
@@ -298,19 +298,19 @@ public class DbConsistencyCheckerHelperTest extends DbsvcTestBase {
         IndexAndCf indexAndCf = new IndexAndCf(TimeSeriesDbIndex.class, userToOrdersByTimeStampCF, keyspace);
         
         CheckResult checkResult = new CheckResult();
-        helper.checkCFIndices(TypeMap.getDoType(Order.class), true, checkResult);
+        mockHelper.checkCFIndices(TypeMap.getDoType(Order.class), true, checkResult);
         assertEquals(0, checkResult.getTotal());
         
         keyspace.prepareQuery(userToOrdersByTimeStampCF).withCql(String.format("delete from \"UserToOrdersByTimeStamp\" where key='%s'", order.getSubmittedByUserId())).execute();
         keyspace.prepareQuery(userToOrdersByTimeStampCF).withCql(String.format("delete from \"AllOrdersByTimeStamp\" where key='%s'", order.getTenant())).execute();
         checkResult = new CheckResult();
-        helper.checkCFIndices(TypeMap.getDoType(Order.class), true, checkResult);
+        mockHelper.checkCFIndices(TypeMap.getDoType(Order.class), true, checkResult);
         assertEquals(2, checkResult.getTotal());
     }
     
     class DbConsistencyCheckerHelperMock extends DbConsistencyCheckerHelper {
         
-        public String cleanIndexCQL = null;
+        private String cleanIndexCQL = null;
 
         public DbConsistencyCheckerHelperMock(DbClientImpl dbClient) {
             super(dbClient);

@@ -917,6 +917,7 @@ public class FilePolicyService extends TaskResourceService {
         Map<URI, List<URI>> vpoolToStorageSystemMap = new HashMap<URI, List<URI>>();
 
         List<URI> filteredVpoolURIs = new ArrayList<URI>();
+        StringBuffer vPoolWithNoStoragePools = new StringBuffer();
         for (URI vpoolURI : vpoolURIs) {
             ArgValidator.checkFieldUriType(vpoolURI, VirtualPool.class, "vpool");
             VirtualPool virtualPool = _permissionsHelper.getObjectById(vpoolURI, VirtualPool.class);
@@ -938,8 +939,19 @@ public class FilePolicyService extends TaskResourceService {
             ArgValidator.checkEntity(virtualPool, vpoolURI, false);
 
             FilePolicyServiceUtils.validateVpoolSupportPolicyType(filePolicy, virtualPool);
-            vpoolToStorageSystemMap.put(vpoolURI, getAssociatedStorageSystemsByVPool(virtualPool));
-            filteredVpoolURIs.add(vpoolURI);
+            List<URI> storageSystems = getAssociatedStorageSystemsByVPool(virtualPool);
+            if (storageSystems != null && !storageSystems.isEmpty()) {
+                vpoolToStorageSystemMap.put(vpoolURI, storageSystems);
+                filteredVpoolURIs.add(vpoolURI);
+            } else {
+                vPoolWithNoStoragePools.append(virtualPool.getLabel()).append(",");
+            }
+        }
+
+        if (filteredVpoolURIs.isEmpty()) {
+            String errorMessage = "No matching storage pools exists for given vpools ";
+            _log.error(errorMessage);
+            throw APIException.badRequests.noStoragePoolsExists(vPoolWithNoStoragePools.toString());
         }
 
         if (param.getApplyOnTargetSite() != null) {
@@ -1179,6 +1191,14 @@ public class FilePolicyService extends TaskResourceService {
             filePolicy.setApplyOnTargetSite(param.getApplyOnTargetSite());
         }
 
+        // Verify the virtual pool has storage pools!!!
+        List<URI> storageSystems = getAssociatedStorageSystemsByVPool(vpool);
+        if (storageSystems == null || storageSystems.isEmpty()) {
+            String errorMessage = "No matching storage pools exists for given vpools ";
+            _log.error(errorMessage);
+            throw APIException.badRequests.noStoragePoolsExists(vpool.getLabel());
+        }
+
         String task = UUID.randomUUID().toString();
         TaskResourceRep taskObject = createAssignFilePolicyTask(filePolicy, task);
         FileServiceApi fileServiceApi = getDefaultFileServiceApi();
@@ -1205,7 +1225,6 @@ public class FilePolicyService extends TaskResourceService {
                 updatePolicyCapabilities(_dbClient, sourceVArraysSet, vpool, filePolicy, capabilities, errorMsg);
 
                 // Replication policy has to be created on each applicable source storage system!!
-                List<URI> storageSystems = getAssociatedStorageSystemsByVPool(vpool);
                 if (storageSystems != null && !storageSystems.isEmpty()) {
                     for (Iterator<String> iterator = sourceVArraysSet.iterator(); iterator.hasNext();) {
                         String vArrayURI = iterator.next();

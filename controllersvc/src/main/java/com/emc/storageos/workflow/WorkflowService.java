@@ -2923,7 +2923,7 @@ public class WorkflowService implements WorkflowController {
 
     public static void completerStepSuspendedError(String stepId, ServiceCoded coded)
             throws WorkflowException {
-        _instance.updateStepStatus(stepId, StepState.SUSPENDED_ERROR, coded.getServiceCode(), "Step has been suspended due to an error");
+        _instance.updateStepStatus(stepId, StepState.SUSPENDED_ERROR, coded.getServiceCode(), String.format("Step has been suspended due to an error: %s", coded.getMessage()));
     }
 
     public WorkflowScrubberExecutor getScrubber() {

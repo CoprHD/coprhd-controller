@@ -860,11 +860,20 @@ public class FilePolicyService extends TaskResourceService {
                         for (FileReplicationTopology topology : dbTopologies) {
                             if (topology.getSourceVArray() != null
                                     && topology.getSourceVArray().toString().equalsIgnoreCase(topologyParam.getSourceVArray().toString())) {
-                                _log.info("Updating the existing topology");
-                                if (!topology.getTargetVArrays().containsAll(topology.getTargetVArrays())) {
-                                    topology.addTargetVArrays(topology.getTargetVArrays());
-                                    _dbClient.updateObject(topology);
+                                _log.info("Updating the existing topology...");
+
+                                if (topologyParam.getTargetVArrays() != null && !topologyParam.getTargetVArrays().isEmpty()) {
+                                    StringSet requestTargetVarraySetRequest = new StringSet();
+                                    for (Iterator<URI> iterator = topologyParam.getTargetVArrays().iterator(); iterator.hasNext();) {
+                                        URI targetVArray = iterator.next();
+                                        requestTargetVarraySetRequest.add(targetVArray.toString());
+                                    }
+                                    if (!topology.getTargetVArrays().containsAll(requestTargetVarraySetRequest)) {
+                                        topology.addTargetVArrays(requestTargetVarraySetRequest);
+                                        _dbClient.updateObject(topology);
+                                    }
                                 }
+
                                 if (filepolicy.getReplicationTopologies() == null
                                         || !filepolicy.getReplicationTopologies().contains(topology.getId().toString())) {
                                     filepolicy.addReplicationTopology(topology.getId().toString());

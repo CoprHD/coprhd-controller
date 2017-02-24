@@ -1202,7 +1202,7 @@ public class ComputeSystemService extends TaskResourceService {
                     }
                 }
             } else {
-                // VBDU TODO: COP-28450, Can compute system exist without image server?
+                // Compute system can live without an image server, such as bare metal.
                 cs.setComputeImageServer(NullColumnValueGetter.getNullURI());
             }
         }

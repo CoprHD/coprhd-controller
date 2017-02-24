@@ -7,6 +7,7 @@ package com.emc.sa.service.vipr.compute;
 import static com.emc.sa.service.ServiceParams.CLUSTER;
 
 import java.net.URI;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -20,6 +21,7 @@ import com.emc.sa.service.vipr.block.BlockStorageUtils;
 import com.emc.storageos.db.client.model.Cluster;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.model.block.BlockObjectRestRep;
+import com.emc.storageos.model.host.HostRestRep;
 import com.google.common.collect.Lists;
 
 @Service("RemoveHostFromCluster")
@@ -55,9 +57,42 @@ public class RemoveHostFromClusterService extends ViPRService {
             hostURIMap.put(hostId, host.getLabel());
         }
 
+        // Validate all of the boot volumes are still valid.
+        if (!validateBootVolumes(hostURIMap)) {
+            logError("computeutils.deactivatecluster.deactivate.bootvolumes", cluster.getLabel());
+            preCheckErrors.append("Cluster ").append(cluster.getLabel())
+                    .append(" has different boot volumes than what controller provisioned.  Cannot delete original boot volume in case it was re-purposed.");
+        }
+
         if (preCheckErrors.length() > 0) {
             throw new IllegalStateException(preCheckErrors.toString());
         }
+    }
+
+    /**
+     * Validate the boot volume associated with the hosts we wish to remove.
+     * 
+     * @param hostIdToNameMap
+     *            map of host ID to hostname. We are only using the host ID key.
+     * @return false if we can reach the host and determine the boot volume is no longer there.
+     */
+    private boolean validateBootVolumes(Map<URI, String> hostIdToNameMap) {
+        // If the cluster isn't returned properly, not found in DB, do not delete the boot volume until
+        // the references are fixed.
+        if (cluster == null || cluster.getInactive()) {
+            logError("computeutils.removebootvolumes.failure.cluster");
+            return false;
+        }
+
+        // Get all of the hosts for the cluster, create a list of hosts we are interested in removing ONLY.
+        List<HostRestRep> allClusterHosts = ComputeUtils.getHostsInCluster(clusterId);
+        List<HostRestRep> hostsToValidate = new ArrayList<>();
+        for (HostRestRep clusterHost : allClusterHosts) {
+            if (hostIdToNameMap.containsKey(clusterHost.getId())) {
+                hostsToValidate.add(clusterHost);
+            }
+        }
+        return ComputeUtils.validateBootVolumes(cluster, hostsToValidate);
     }
 
     @Override

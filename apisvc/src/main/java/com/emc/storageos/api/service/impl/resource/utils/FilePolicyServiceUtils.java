@@ -491,7 +491,7 @@ public class FilePolicyServiceUtils {
             for (String strPolicy : project.getFilePolicies()) {
                 FilePolicy policy = dbClient.queryObject(FilePolicy.class, URI.create(strPolicy));
                 if (policy.getFilePolicyType().equalsIgnoreCase(FilePolicyType.file_replication.name())
-                        && policy.getFilePolicyVpool() != null && vpoolURI != null
+                        && !NullColumnValueGetter.isNullURI(policy.getFilePolicyVpool()) && vpoolURI != null
                         && policy.getFilePolicyVpool().toString().equalsIgnoreCase(vpoolURI.toString())) {
                     _log.info("Replication policy found for vpool {} and project {}", vpoolURI.toString(), project.getLabel());
                     return true;

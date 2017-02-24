@@ -72,6 +72,13 @@ public class FilePolicyUnAssignWorkflowCompleter extends FilePolicyWorkflowCompl
                             _log.error("Not a valid policy apply level: " + applyLevel);
                     }
                 }
+                if (filePolicy.getAssignedResources() == null || filePolicy.getAssignedResources().isEmpty()) {
+                    // if no resources are attached to policy
+                    // remove the file policy vpool
+                    if (!NullColumnValueGetter.isNullURI(filePolicy.getFilePolicyVpool())) {
+                        filePolicy.setFilePolicyVpool(NullColumnValueGetter.getNullURI());
+                    }
+                }
                 dbClient.updateObject(filePolicy);
             }
             setStatus(dbClient, status, coded);

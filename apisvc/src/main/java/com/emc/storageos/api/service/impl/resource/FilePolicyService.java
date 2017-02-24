@@ -62,6 +62,7 @@ import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
+import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.fileorchestrationcontroller.FileOrchestrationController;
 import com.emc.storageos.fileorchestrationcontroller.FileOrchestrationUtils;
 import com.emc.storageos.fileorchestrationcontroller.FileStorageSystemAssociation;
@@ -1152,7 +1153,7 @@ public class FilePolicyService extends TaskResourceService {
         URI vpoolURI = param.getProjectAssignParams().getVpool();
         VirtualPool vpool = null;
 
-        if (filePolicy.getFilePolicyVpool() == null) {
+        if (NullColumnValueGetter.isNullURI(filePolicy.getFilePolicyVpool())) {
             ArgValidator.checkFieldUriType(vpoolURI, VirtualPool.class, "vpool");
             vpool = _permissionsHelper.getObjectById(vpoolURI, VirtualPool.class);
             ArgValidator.checkEntity(vpool, vpoolURI, false);
@@ -1193,7 +1194,7 @@ public class FilePolicyService extends TaskResourceService {
 
             // Verify the vpool - project has any replication policy!!!
             // only single replication policy per vpool-project combination.
-            if (FilePolicyServiceUtils.projectHasReplicationPolicy(_dbClient, projectURI, filePolicy.getFilePolicyVpool())) {
+            if (FilePolicyServiceUtils.projectHasReplicationPolicy(_dbClient, projectURI, vpool.getId())) {
                 errorMsg.append("Virtual pool " + filePolicy.getFilePolicyVpool().toString() + " project " + project.getLabel()
                         + "pair is already assigned with replication policy.");
                 _log.error(errorMsg.toString());

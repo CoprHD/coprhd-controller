@@ -981,6 +981,9 @@ public final class FileOrchestrationUtils {
         if (targetVNasURI != null) {
             VirtualNAS targetVNas = dbClient.queryObject(VirtualNAS.class, targetVNasURI);
             targetVNasVarraySet = targetVNas.getTaggedVirtualArrays();
+        } else {
+            PhysicalNAS pNAS = FileOrchestrationUtils.getSystemPhysicalNAS(dbClient, targetSystem);
+            targetVNasVarraySet = pNAS.getTaggedVirtualArrays();
         }
 
         URIQueryResultList storagePortURIs = new URIQueryResultList();

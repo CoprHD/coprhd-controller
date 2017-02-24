@@ -20,7 +20,10 @@ import com.emc.storageos.api.service.authorization.PermissionsHelper;
 import com.emc.storageos.api.service.impl.placement.FileMirrorRecommendation.Target;
 import com.emc.storageos.api.service.impl.placement.FileRecommendation.FileType;
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.model.FileReplicaPolicyTarget;
+import com.emc.storageos.db.client.model.FileReplicaPolicyTargetMap;
 import com.emc.storageos.db.client.model.FileShare;
+import com.emc.storageos.db.client.model.PolicyStorageResource;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StorageSystem;
@@ -28,6 +31,7 @@ import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.exceptions.DeviceControllerException;
+import com.emc.storageos.fileorchestrationcontroller.FileOrchestrationUtils;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.volumecontroller.AttributeMatcher;
 import com.emc.storageos.volumecontroller.AttributeMatcher.Attributes;
@@ -92,6 +96,43 @@ public class FileMirrorScheduler implements Scheduler {
 
     }
 
+    private boolean findAndUpdateMatchedPolicyStorageResource(List<PolicyStorageResource> storageSystemResources,
+            FileRecommendation sourceFileRecommendation, VirtualPoolCapabilityValuesWrapper capabilities) {
+        PolicyStorageResource matchedPolicyResource = null;
+        for (PolicyStorageResource strRes : storageSystemResources) {
+            if (sourceFileRecommendation.getSourceStorageSystem().equals(strRes.getStorageSystem())) {
+                if (sourceFileRecommendation.getvNAS() != null
+                        && sourceFileRecommendation.getvNAS().equals(strRes.getNasServer())) {
+                    capabilities.put(VirtualPoolCapabilityValuesWrapper.SOURCE_VIRTUAL_NAS_SERVER,
+                            sourceFileRecommendation.getvNAS());
+                    matchedPolicyResource = strRes;
+                    break;
+                } else if (strRes.getNasServer() != null && strRes.getNasServer().toString().contains("PhysicalNAS")) {
+                    matchedPolicyResource = strRes;
+                    break;
+                }
+            }
+        }
+        if (matchedPolicyResource != null) {
+            _log.info("Found the valid existing policy storage resource for system {} nas server {}",
+                    matchedPolicyResource.getStorageSystem(), matchedPolicyResource.getNasServer());
+            FileReplicaPolicyTargetMap targetMap = matchedPolicyResource.getFileReplicaPolicyTargetMap();
+            if (targetMap != null && !targetMap.isEmpty()) {
+                for (FileReplicaPolicyTarget target : targetMap.values()) {
+                    if (target.getNasServer() != null && target.getStorageSystem() != null) {
+                        capabilities.put(VirtualPoolCapabilityValuesWrapper.TARGET_NAS_SERVER,
+                                URI.create(target.getNasServer()));
+                        capabilities.put(VirtualPoolCapabilityValuesWrapper.TARGET_STORAGE_SYSTEM,
+                                URI.create(target.getStorageSystem()));
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
+
+    }
+
     /* local mirror related functions */
     /**
      * get list Recommendation for Local Mirror
@@ -111,6 +152,19 @@ public class FileMirrorScheduler implements Scheduler {
         // Get the source file system recommendations!!!
         capabilities.put(VirtualPoolCapabilityValuesWrapper.PERSONALITY, VirtualPoolCapabilityValuesWrapper.FILE_REPLICATION_SOURCE);
 
+        // Verify the replication policy was applied!!
+        // Get the policy storage resources for applied policy
+        // Choose the right target for the source
+        List<PolicyStorageResource> storageSystemResources = null;
+        if (!capabilities.isVpoolProjectPolicyAssign()) {
+            storageSystemResources = FileOrchestrationUtils.getFilePolicyStorageResources(_dbClient, vPool, project,
+                    null);
+            if (storageSystemResources != null && !storageSystemResources.isEmpty()) {
+                _log.info("Found replication policy for vpool and project, so get all source recommedation to match target");
+                capabilities.put(VirtualPoolCapabilityValuesWrapper.GET_ALL_SOURCE_RECOMMENDATIONS, true);
+            }
+        }
+
         List<FileRecommendation> sourceFileRecommendations = new ArrayList<FileRecommendation>();
         // For vPool change get the recommendations from source file system!!!
         if (capabilities.createMirrorExistingFileSystem()) {
@@ -123,10 +177,15 @@ public class FileMirrorScheduler implements Scheduler {
             sourceFileRecommendations = _fileScheduler.getRecommendationsForResources(vArray, project, vPool, capabilities);
             // Remove the source storage system from capabilities list
             // otherwise, try to find the remote pools from the same source system!!!
-            if (capabilities.isVpoolProjectPolicyAssign() && capabilities.getFileProtectionSourceStorageDevice() != null) {
+            if (capabilities.getFileProtectionSourceStorageDevice() != null) {
                 capabilities.removeCapabilityEntry(VirtualPoolCapabilityValuesWrapper.FILE_PROTECTION_SOURCE_STORAGE_SYSTEM);
             }
         }
+
+        if (capabilities.getAllSourceRecommnedations()) {
+            capabilities.removeCapabilityEntry(VirtualPoolCapabilityValuesWrapper.GET_ALL_SOURCE_RECOMMENDATIONS);
+        }
+
         // Process the each recommendations for targets
         for (FileRecommendation sourceFileRecommendation : sourceFileRecommendations) {
             String srcSystemType = sourceFileRecommendation.getDeviceType();
@@ -139,6 +198,20 @@ public class FileMirrorScheduler implements Scheduler {
             // This should happen for assignment of replication policy
             if (capabilities.isVpoolProjectPolicyAssign()) {
                 capabilities.put(VirtualPoolCapabilityValuesWrapper.SOURCE_VIRTUAL_NAS_SERVER, sourceFileRecommendation.getvNAS());
+            } else {
+                // Findout is there any policy was created for the source recommendations!!!
+                if (capabilities.getTargetNasServer() != null) {
+                    capabilities.removeCapabilityEntry(VirtualPoolCapabilityValuesWrapper.TARGET_NAS_SERVER);
+                }
+                if (capabilities.getTargetStorageSystem() != null) {
+                    capabilities.removeCapabilityEntry(VirtualPoolCapabilityValuesWrapper.TARGET_STORAGE_SYSTEM);
+                }
+                if (storageSystemResources != null && storageSystemResources.isEmpty()) {
+                    if (!findAndUpdateMatchedPolicyStorageResource(storageSystemResources, sourceFileRecommendation, capabilities)) {
+                        _log.info("No policy resource for this source recommendation, so skipping it");
+                        continue;
+                    }
+                }
             }
 
             for (String targetVArry : capabilities.getFileReplicationTargetVArrays()) {
@@ -155,6 +228,7 @@ public class FileMirrorScheduler implements Scheduler {
 
                 capabilities.put(VirtualPoolCapabilityValuesWrapper.PERSONALITY,
                         VirtualPoolCapabilityValuesWrapper.FILE_REPLICATION_TARGET);
+
                 // Get target recommendations!!!
                 targetFileRecommendations = _fileScheduler.placeFileShare(targetVArray, targetVPool, capabilities, project, attributeMap);
                 if (targetFileRecommendations == null || targetFileRecommendations.isEmpty()) {
@@ -172,7 +246,11 @@ public class FileMirrorScheduler implements Scheduler {
                     fileMirrorRecommendations.add(fileMirrorRecommendation);
                 }
             }
-
+            // File file system provisioning
+            // Got sufficient number of recommendations!!
+            if (!capabilities.isVpoolProjectPolicyAssign() && fileMirrorRecommendations.size() >= capabilities.getResourceCount()) {
+                break;
+            }
         }
         return fileMirrorRecommendations;
     }

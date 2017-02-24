@@ -47,6 +47,7 @@ import com.emc.storageos.model.file.ExportRule;
 import com.emc.storageos.model.file.FileNfsACLUpdateParams;
 import com.emc.storageos.model.file.NfsACE;
 import com.emc.storageos.model.file.ShareACL;
+import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.volumecontroller.FileControllerConstants;
 import com.emc.storageos.volumecontroller.FileDeviceInputOutput;
 import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
@@ -565,6 +566,42 @@ public final class FileOrchestrationUtils {
         }
 
         return replicationPolicies;
+    }
+
+    /**
+     * Get the set of file policy storage resource for given policy
+     * 
+     * @param dbClient
+     * @param policy
+     * @return
+     *
+     */
+    public static List<PolicyStorageResource> getFilePolicyStorageResources(DbClient dbClient, VirtualPool vpool, Project project,
+            FileShare fs) {
+
+        // Get the replication policies for vpool/project/fs!!
+        List<PolicyStorageResource> policyStorageResources = new ArrayList<PolicyStorageResource>();
+        List<FilePolicy> replicationPolicies = getReplicationPolices(dbClient, vpool, project, fs);
+        if (replicationPolicies != null && !replicationPolicies.isEmpty()) {
+            if (replicationPolicies.size() > 1) {
+                _log.error("More than one replication policy could not be applied accross vpool/project/fs");
+                throw APIException.badRequests.moreThanOneReplicationPolicySpecified();
+            } else {
+                FilePolicy policy = replicationPolicies.get(0);
+                for (PolicyStorageResource strRes : getFilePolicyStorageResources(dbClient, policy)) {
+                    if (strRes != null) {
+                        if (FilePolicyApplyLevel.project.name().equalsIgnoreCase(policy.getApplyAt())
+                                && strRes.getAppliedAt().toString().equals(project.getId().toString())) {
+                            policyStorageResources.add(strRes);
+                        } else if (FilePolicyApplyLevel.vpool.name().equalsIgnoreCase(policy.getApplyAt())
+                                && strRes.getAppliedAt().toString().equals(vpool.getId().toString())) {
+                            policyStorageResources.add(strRes);
+                        }
+                    }
+                }
+            }
+        }
+        return policyStorageResources;
     }
 
     /**

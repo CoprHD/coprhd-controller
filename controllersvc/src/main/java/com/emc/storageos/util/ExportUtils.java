@@ -2100,7 +2100,7 @@ public class ExportUtils {
             // To Avoid concurrent modfication exception created new set instance
             Set<String> volumeDiff = new HashSet<>(Sets.difference(exportGroupVolumes, volumesInAllMasks));
             if (!CollectionUtils.isEmpty(volumeDiff)) {
-                exportGroup.removeVolumes(volumeDiff);
+                exportGroup.removeVolumes(new HashSet<String>(volumeDiff));
                 _log.info("Stale volumes {}  removed from Export Group {}", volumeDiff, exportGroup.getId());
             }
         }

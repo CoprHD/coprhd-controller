@@ -27,16 +27,19 @@ public class FilePolicyAssignWorkflowCompleter extends FilePolicyWorkflowComplet
     private static final long serialVersionUID = 1L;
     protected static final Logger _log = LoggerFactory.getLogger(FilePolicyAssignWorkflowCompleter.class);
     private ArrayList<URI> assignToResource;
+    private URI projectVPool;
 
-    public FilePolicyAssignWorkflowCompleter(URI policyUri, Set<URI> assignToResource, String task) {
+    public FilePolicyAssignWorkflowCompleter(URI policyUri, Set<URI> assignToResource, URI projectVPool, String task) {
         super(policyUri, task);
         this.assignToResource = new ArrayList<URI>(assignToResource);
+        this.projectVPool = projectVPool;
         _log.info("Creating completer for OpId: " + getOpId());
     }
 
-    public FilePolicyAssignWorkflowCompleter(URI policyUri, List<URI> assignToResource, String taskId) {
+    public FilePolicyAssignWorkflowCompleter(URI policyUri, List<URI> assignToResource, URI projectVPool, String taskId) {
         super(policyUri, taskId);
         this.assignToResource = new ArrayList<URI>(assignToResource);
+        this.projectVPool = projectVPool;
         _log.info("Creating completer for OpId: " + getOpId());
     }
 
@@ -53,6 +56,9 @@ public class FilePolicyAssignWorkflowCompleter extends FilePolicyWorkflowComplet
                         Project project = dbClient.queryObject(Project.class, resourceURI);
                         project.addFilePolicy(filePolicy.getId());
                         dbClient.updateObject(project);
+                        if (projectVPool != null) {
+                            filePolicy.setFilePolicyVpool(projectVPool);
+                        }
                         break;
                     case vpool:
                         VirtualPool vpool = dbClient.queryObject(VirtualPool.class, resourceURI);

@@ -9,7 +9,6 @@ import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -800,6 +799,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
             String waitForFailback = _fileReplicationDeviceController.createMethod(workflow, null, null,
                     FAILBACK_FILE_SYSTEM_METHOD, failbackStep, stepDescription, systemSource.getId(), args);
 
+            // Replicate directory quota setting
             stepDescription = String.format(
                     "Replicating directory quota settings from source file system : %s to file target system : %s",
                     sourceFileShare.getId(), targetFileShare.getId());
@@ -911,16 +911,13 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
             String failoverStep = workflow.createStepId();
 
             List<URI> combined = Arrays.asList(sourceFileShare.getId(), targetFileShare.getId());
-            failoverCompleter = new MirrorFileFailoverTaskCompleter(FileShare.class, combined, failoverStep,
-                    targetFileShare.getStorageDevice());
+            failoverCompleter = new MirrorFileFailoverTaskCompleter(FileShare.class, combined, failoverStep);
             stepDescription = String.format("Failover Source File System %s to Target System.", sourceFileShare.getLabel());
-
-            stepDescription = String.format("Failover source file System : %s to target system : %s.", sourceFileShare.getName(),
-                    targetFileShare.getName());
             Object[] args = new Object[] { systemTarget.getId(), targetFileShare.getId(), failoverCompleter };
-            String waitForFailover = _fileReplicationDeviceController.createMethod(workflow, null, null,
+            String waitForFailover = _fileDeviceController.createMethod(workflow, null,
                     FAILOVER_FILE_SYSTEM_METHOD, failoverStep, stepDescription, systemTarget.getId(), args);
 
+            // Replicate quota setting
             stepDescription = String.format(
                     "Replicating directory quota settings from source file system : %s to file target system : %s",
                     sourceFileShare.getId(), targetFileShare.getId());
@@ -1847,7 +1844,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
     public void assignFileSnapshotPolicyToVirtualPools(Map<URI, List<URI>> vpoolToStorageSystemMap, URI filePolicyToAssign, String taskId)
             throws InternalException {
         FilePolicy filePolicy = s_dbClient.queryObject(FilePolicy.class, filePolicyToAssign);
-        TaskCompleter completer = new FilePolicyAssignWorkflowCompleter(filePolicyToAssign, vpoolToStorageSystemMap.keySet(), taskId);
+        TaskCompleter completer = new FilePolicyAssignWorkflowCompleter(filePolicyToAssign, vpoolToStorageSystemMap.keySet(), null, taskId);
 
         try {
             String waitFor = null;
@@ -1924,7 +1921,14 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
             URI filePolicyToAssign, String taskId) {
         FilePolicy filePolicy = s_dbClient.queryObject(FilePolicy.class, filePolicyToAssign);
         String opName = ResourceOperationTypeEnum.ASSIGN_FILE_POLICY.getName();
-        TaskCompleter completer = new FilePolicyAssignWorkflowCompleter(filePolicyToAssign, projectURIs, taskId);
+        URI projectVpool = null;
+        if (vpoolToStorageSystemMap != null && !vpoolToStorageSystemMap.isEmpty()) {
+            Set<URI> vpoolUris = vpoolToStorageSystemMap.keySet();
+            // For project assignment, there would be a single vpool!!
+            projectVpool = vpoolUris.toArray(new URI[vpoolUris.size()])[0];
+        }
+
+        TaskCompleter completer = new FilePolicyAssignWorkflowCompleter(filePolicyToAssign, projectURIs, projectVpool, taskId);
 
         try {
             String waitFor = null;
@@ -2059,7 +2063,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
             List<URI> vpoolURIs, URI filePolicyToAssign, String taskId) {
 
         FilePolicy filePolicy = s_dbClient.queryObject(FilePolicy.class, filePolicyToAssign);
-        TaskCompleter completer = new FilePolicyAssignWorkflowCompleter(filePolicyToAssign, vpoolURIs, taskId);
+        TaskCompleter completer = new FilePolicyAssignWorkflowCompleter(filePolicyToAssign, vpoolURIs, null, taskId);
 
         try {
             String waitFor = null;
@@ -2133,7 +2137,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
             URI filePolicyToAssign,
             String taskId) {
         FilePolicy filePolicy = s_dbClient.queryObject(FilePolicy.class, filePolicyToAssign);
-        TaskCompleter completer = new FilePolicyAssignWorkflowCompleter(filePolicyToAssign, projectURIs, taskId);
+        TaskCompleter completer = new FilePolicyAssignWorkflowCompleter(filePolicyToAssign, projectURIs, vpoolURI, taskId);
 
         try {
             String waitFor = null;

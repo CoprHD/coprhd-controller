@@ -1933,7 +1933,9 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
             }
             
             //Validate exporting this boot volume would in turn cause Lun violation ,when the host gets added to cluster.
+            if(ExportGroupType.Host.toString().equalsIgnoreCase(exportGroup.getType())) {
             checkForConsistentLunViolation(vplexSystem, exportGroup, initiators, volumeMap.values());
+            }
 
             findAndUpdateFreeHLUsForClusterExport(vplexSystem, exportGroup, initiators, volumeMap);
 
@@ -3383,7 +3385,9 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
             }
 
             //Validate exporting this boot volume would in turn cause Lun violation ,when the host gets added to cluster.
+            if(ExportGroupType.Host.toString().equalsIgnoreCase(exportGroup.getType())) {
             checkForConsistentLunViolation(vplexSystem, exportGroup, exportGroupInitiatorList, volumeMap.values());
+            }
             
             findAndUpdateFreeHLUsForClusterExport(vplexSystem, exportGroup, exportGroupInitiatorList, volumeMap);
 

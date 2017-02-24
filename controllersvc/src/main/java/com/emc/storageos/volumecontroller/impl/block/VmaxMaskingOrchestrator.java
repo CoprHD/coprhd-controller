@@ -899,7 +899,9 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                 initiatorHelper.getPortNameToInitiatorURI(), partialMasks);
         
         //During boot volumes export, we have to validate whether the given HLU will cause lun violation.
+        if(ExportGroupType.Host.toString().equalsIgnoreCase(exportGroup.getType())) {
         checkForConsistentLunViolation(storage, exportGroup, initiatorURIs, volumeMap.values());
+        }
 
         findAndUpdateFreeHLUsForClusterExport(storage, exportGroup, initiatorURIs, volumeMap);
 

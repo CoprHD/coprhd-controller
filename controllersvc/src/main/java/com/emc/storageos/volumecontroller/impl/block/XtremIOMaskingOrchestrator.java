@@ -24,6 +24,7 @@ import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.db.client.model.ExportGroup.ExportGroupType;
 import com.emc.storageos.db.client.util.CommonTransformerFunctions;
 import com.emc.storageos.db.client.util.StringSetUtil;
 import com.emc.storageos.exceptions.DeviceControllerException;
@@ -184,7 +185,9 @@ public class XtremIOMaskingOrchestrator extends AbstractBasicMaskingOrchestrator
                 Collection<URI> initiators = Collections2.transform(exportGroup.getInitiators(),
                         CommonTransformerFunctions.FCTN_STRING_TO_URI);
                 initiatorURIs = new ArrayList<URI>(initiators);
-                checkForConsistentLunViolation(storage, exportGroup, initiatorURIs, volumeMap.values());
+                if (ExportGroupType.Host.toString().equalsIgnoreCase(exportGroup.getType())) {
+                    checkForConsistentLunViolation(storage, exportGroup, initiatorURIs, volumeMap.values());
+                }
                 findAndUpdateFreeHLUsForClusterExport(storage, exportGroup, initiatorURIs, volumeMap);
             }
 

@@ -985,7 +985,7 @@ public final class FileOrchestrationUtils {
 
             if (port != null && !port.getInactive()) {
 
-                StringSet varraySet = port.getAssignedVirtualArrays();
+                StringSet varraySet = port.getTaggedVirtualArrays();
                 if (varraySet == null || !varraySet.contains(targetVarrayURI.toString())) {
                     continue;
                 }

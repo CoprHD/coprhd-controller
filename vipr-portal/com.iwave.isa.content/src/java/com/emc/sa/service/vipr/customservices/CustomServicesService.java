@@ -80,10 +80,10 @@ public class CustomServicesService extends ViPRService {
         // get input params from order form
         params = ExecutionUtils.currentContext().getParameters();
         final String raw = ExecutionUtils.currentContext().getOrder().getWorkflowDocument();
-        
-        if( null == raw) {
-            throw InternalServerErrorException.internalServerErrors.
-                    customServiceExecutionFailed("Invalid custom service.  Workflow document cannot be null");
+
+        if (null == raw) {
+            throw InternalServerErrorException.internalServerErrors
+                    .customServiceExecutionFailed("Invalid custom service.  Workflow document cannot be null");
         }
 
         obj = WorkflowHelper.toWorkflowDocument(raw);
@@ -118,7 +118,7 @@ public class CustomServicesService extends ViPRService {
     public void wfExecutor() throws Exception {
 
         logger.info("Parsing Workflow Definition");
-        
+
         ExecutionUtils.currentContext().logInfo("customServicesService.status", obj.getName(), obj.getDescription());
         final String orderDir = String.format("%sCS%s/", CustomServicesConstants.PATH,
                 ExecutionUtils.currentContext().getOrder().getOrderNumber());
@@ -167,7 +167,7 @@ public class CustomServicesService extends ViPRService {
                         res = ViPRExecutionUtils.execute(new RunAnsible(step, inputPerStep.get(step.getId()), params, dbClient, orderDir));
                         break;
                     case SHELL_SCRIPT:
-                        logger.info("Executing Shel Script step");
+                        logger.info("Executing Shell Script step");
                         if (!createOrderDir(orderDir)) {
                             logger.error("Failed to create Order directory:{}", orderDir);
                             throw InternalServerErrorException.internalServerErrors

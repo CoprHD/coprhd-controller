@@ -57,7 +57,7 @@ import com.emc.storageos.services.util.Exec;
 import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorException;
 
 /**
- * Runs Orchestration Shell script or Ansible Playbook.
+ * Runs User created Primitives - Shell script or Ansible Playbook.
  * It can run Ansible playbook on local node as well as on Remote node
  *
  */
@@ -92,14 +92,13 @@ public class RunAnsible extends ViPRExecutionTask<CustomServicesTaskResult> {
         ExecutionUtils.currentContext().logInfo("runShellorAnsible.statusInfo", step.getId());
         final URI scriptid = step.getOperation();
 
-
         final StepType type = StepType.fromString(step.getType());
 
         final Exec.Result result;
         try {
             switch (type) {
                 case SHELL_SCRIPT:
-                    // get the resource database
+                    // get the resource from DB
                     final CustomServicesScriptPrimitive primitive = dbClient.queryObject(CustomServicesScriptPrimitive.class, scriptid);
                     if (null == primitive) {
                         logger.error("Error retrieving the script primitive from DB. {} not found in DB", scriptid);
@@ -143,24 +142,28 @@ public class RunAnsible extends ViPRExecutionTask<CustomServicesTaskResult> {
                     final CustomServicesAnsiblePackage ansiblePackageId = dbClient.queryObject(CustomServicesAnsiblePackage.class,
                             ansiblePrimitive.getArchive());
 
-                    // get the playbook which the user has specified during primitive creation.
+                    // get the playbook which the user has specified during primitive creation from DB.
+                    // The playbook (resolved to the path in the archive) represents the playbook to execute
                     final String playbook = ansiblePrimitive.getPlaybook();
 
                     // get the archive from AnsiblePackage CF
                     final byte[] ansibleArchive = Base64.decodeBase64(ansiblePackageId.getResource());
-                    final String ansibleArchiveLocation = uncompressArchive(ansibleArchive, orderDir, playbook);
+
+                    // uncompress Ansible archive to orderDir
+                    uncompressArchive(ansibleArchive);
 
                     // TODO: Hard coded for testing. The following will be removed after completing COP-27888
                     final String hosts = "/opt/storageos/ansi_logs/hosts";
 
-                    result = executeLocal(hosts, makeExtraArg(input), String.format("%s/%s", ansibleArchiveLocation, playbook), "root");
+                    final String user = ExecutionUtils.currentContext().getOrder().getSubmittedByUserId();
+                    result = executeLocal(hosts, makeExtraArg(input), String.format("%s%s", orderDir, playbook), user);
                     break;
                 case REMOTE_ANSIBLE:
                     result = executeRemoteCmd(makeExtraArg(input));
 
                     break;
                 default:
-                    logger.error("Ansible Operation type:{} not supported", type);
+                    logger.error("Step type:{} not supported", type);
 
                     throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed("Unsupported Operation");
             }
@@ -174,19 +177,18 @@ public class RunAnsible extends ViPRExecutionTask<CustomServicesTaskResult> {
             throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed("Script/Ansible execution Failed");
         }
 
-        logger.info("Ansible Execution result:output{} error{} exitValue:{}", result.getStdOutput(), result.getStdError(),
+        logger.info("Shell/ Ansible Execution result:output{} error{} exitValue:{}", result.getStdOutput(), result.getStdError(),
                 result.getExitValue());
 
         return new CustomServicesTaskResult(parseOut(result.getStdOutput()), result.getStdError(), result.getExitValue(), null);
     }
 
-    private String uncompressArchive(final byte[] ansibleArchive, final String orderDir, final String playbook) {
+    private void uncompressArchive(final byte[] ansibleArchive) {
         try (final TarArchiveInputStream tarIn = new TarArchiveInputStream(
                 new GzipCompressorInputStream(new ByteArrayInputStream(
                         ansibleArchive)))) {
             TarArchiveEntry entry = tarIn.getNextTarEntry();
-            String root = ".";
-            while (entry != null) {// create a file with the same name as the tarEntry
+            while (entry != null) {
                 File curTarget = new File(orderDir, entry.getName());
                 if (entry.isDirectory()) {
                     curTarget.mkdirs();
@@ -195,9 +197,6 @@ public class RunAnsible extends ViPRExecutionTask<CustomServicesTaskResult> {
                     if (!parent.exists()) {
                         parent.mkdirs();
                     }
-                    if (curTarget.getName().equals(playbook)) {
-                        root = parent.getCanonicalPath();
-                    }
                     OutputStream out = new FileOutputStream(curTarget);
                     IOUtils.copy(tarIn, out);
                     out.close();
@@ -205,9 +204,6 @@ public class RunAnsible extends ViPRExecutionTask<CustomServicesTaskResult> {
                 }
                 entry = tarIn.getNextTarEntry();
             }
-
-            return root;
-
         } catch (IOException e) {
             throw InternalServerErrorException.internalServerErrors.genericApisvcError("Invalid ansible archive", e);
         }
@@ -229,7 +225,6 @@ public class RunAnsible extends ViPRExecutionTask<CustomServicesTaskResult> {
 
         return out;
     }
-
 
     // TODO: Hard coded everything for testing. The following will be removed after completing COP-27888
     // During upload of primitive, user will specify if hosts file is already present or not?

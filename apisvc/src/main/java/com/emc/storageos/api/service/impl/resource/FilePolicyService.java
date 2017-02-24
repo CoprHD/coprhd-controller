@@ -676,6 +676,8 @@ public class FilePolicyService extends TaskResourceService {
         if (!param.getSnapshotPolicyPrams().getSnapshotExpireParams().getExpireType()
                 .equalsIgnoreCase(SnapshotExpireType.NEVER.toString())) {
             fileSnapshotPolicy.setSnapshotExpireTime((long) param.getSnapshotPolicyPrams().getSnapshotExpireParams().getExpireValue());
+        } else {
+            fileSnapshotPolicy.setSnapshotExpireTime(0L);
         }
         _dbClient.createObject(fileSnapshotPolicy);
         _log.info("Snapshot policy {} created successfully", fileSnapshotPolicy);
@@ -787,6 +789,8 @@ public class FilePolicyService extends TaskResourceService {
                     fileSnapshotPolicy.setSnapshotExpireType(snapExpireParam.getExpireType());
                     if (!SnapshotExpireType.NEVER.toString().equalsIgnoreCase(snapExpireParam.getExpireType())) {
                         fileSnapshotPolicy.setSnapshotExpireTime((long) snapExpireParam.getExpireValue());
+                    } else {
+                        fileSnapshotPolicy.setSnapshotExpireTime(0L);
                     }
                 }
             }
@@ -827,6 +831,17 @@ public class FilePolicyService extends TaskResourceService {
         if (param.getPolicyDescription() != null && !param.getPolicyDescription().isEmpty()) {
             existingPolicy.setFilePolicyDescription(param.getPolicyDescription());
         }
+
+        if (param.getApplyAt() != null && !param.getApplyAt().isEmpty()
+                && !param.getApplyAt().equalsIgnoreCase(existingPolicy.getApplyAt())) {
+            if (existingPolicy.getAssignedResources() != null && !existingPolicy.getAssignedResources().isEmpty()) {
+                String errorMsg = "Policy has active resources, can not change applied at to " + param.getApplyAt();
+                _log.error(errorMsg);
+                throw APIException.badRequests.unableToProcessRequest(errorMsg);
+            }
+            existingPolicy.setApplyAt(param.getApplyAt());
+        }
+
         return true;
     }
 

@@ -1032,7 +1032,6 @@ public class FilePolicyService extends TaskResourceService {
                     throw APIException.badRequests.noFileStorageRecommendationsFound(filePolicy.getFilePolicyName());
 
                 }
-
                 taskObject = createAssignFilePolicyTask(filePolicy, task);
                 fileServiceApi.assignFileReplicationPolicyToVirtualPools(associations, validRecommendationVpools, filePolicy.getId(),
                         task);

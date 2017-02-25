@@ -38,6 +38,8 @@ import com.emc.storageos.db.client.model.SMBShareMap;
 import com.emc.storageos.db.client.model.Snapshot;
 import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageSystem;
+import com.emc.storageos.db.client.model.StringMap;
+import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.filereplicationcontroller.FileReplicationDeviceController;
@@ -2058,6 +2060,49 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
         }
     }
 
+    private boolean checkRecommendationsWithManySourceToOneTarget(List<FileStorageSystemAssociation> associations) {
+        StringSet targets = new StringSet();
+        for (FileStorageSystemAssociation association : associations) {
+            StorageSystem system = s_dbClient.queryObject(StorageSystem.class, association.getSourceSystem());
+            if (system != null && system.getSystemType().equalsIgnoreCase(Type.isilon.toString())) {
+                for (Map.Entry<URI, URI> entry : association.getTargetStorageDeviceToVNASMap().entrySet()) {
+                    StringBuffer target = new StringBuffer();
+                    if (entry.getKey() != null) {
+                        target.append(entry.getKey().toString());
+                    }
+                    if (entry.getValue() != null) {
+                        target.append(entry.getValue().toString());
+                    }
+                    if (!target.toString().isEmpty()) {
+                        if (targets.contains(target.toString())) {
+                            s_logger.info("Found same taget for different source recommendations");
+                            return true;
+                        }
+                        targets.add(target.toString());
+                    }
+                }
+            }
+        }
+        return false;
+    }
+
+    private void verifyClusterNameInPathForManyToOneRecommendations(List<FileStorageSystemAssociation> associations,
+            FilePolicy filePolicy) {
+        if (checkRecommendationsWithManySourceToOneTarget(associations)) {
+            StringMap scope = new StringMap();
+            scope.put("systemType", "isilon");
+            String customConfig = customConfigHandler.getCustomConfigValue(CustomConfigConstants.ISILON_PATH_CUSTOMIZATION,
+                    scope);
+            if (customConfig != null && !customConfig.isEmpty() && !customConfig.contains("isilon_cluster_name")) {
+                s_logger.error(
+                        "Conflicting taget path for different sources , Please configure cluster name in directory path defination");
+                throw DeviceControllerException.exceptions.assignFilePolicyFailed(filePolicy.getFilePolicyName(),
+                        filePolicy.getApplyAt(),
+                        "Conflicting taget path for different sources , Please configure cluster name in directory path defination");
+            }
+        }
+    }
+
     @Override
     public void assignFileReplicationPolicyToVirtualPools(List<FileStorageSystemAssociation> associations,
             List<URI> vpoolURIs, URI filePolicyToAssign, String taskId) {
@@ -2074,6 +2119,10 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
             String usePhysicalNASForProvisioning = customConfigHandler.getComputedCustomConfigValue(
                     CustomConfigConstants.USE_PHYSICAL_NAS_FOR_PROVISIONING, "isilon", null);
             Boolean usePhysicalNAS = Boolean.valueOf(usePhysicalNASForProvisioning);
+
+            // Verify the associations have many to one storage system relation.
+            // If so, inform the user to configure cluster name in provisioning path!!
+            verifyClusterNameInPathForManyToOneRecommendations(associations, filePolicy);
 
             s_logger.info("Generating steps for assigning file replication policy to vpool: {}.", filePolicyToAssign);
 
@@ -2147,6 +2196,10 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
             String usePhysicalNASForProvisioning = customConfigHandler.getComputedCustomConfigValue(
                     CustomConfigConstants.USE_PHYSICAL_NAS_FOR_PROVISIONING, "isilon", null);
             Boolean usePhysicalNAS = Boolean.valueOf(usePhysicalNASForProvisioning);
+
+            // Verify the associations have many to one storage system relation.
+            // If so, inform the user to configure cluster name in provisioning path!!
+            verifyClusterNameInPathForManyToOneRecommendations(associations, filePolicy);
 
             s_logger.info("Generating steps for assigning file policy {} to project.", filePolicyToAssign);
 

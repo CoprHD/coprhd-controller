@@ -160,12 +160,12 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
      * @param givenHLUs
      * @return
      */
-    private boolean canInvokeLunViolationCheck(StorageSystem storage, ExportGroup exportGroup, List<Initiator> initiators,
+    private boolean canInvokeLunViolationCheck(StorageSystem storage, ExportGroup exportGroup, Initiator initiator,
             Collection<Integer> givenHLUs) {
         return ((exportGroup.forCluster() && exportGroup.getVolumes() != null && ExportUtils
                 .systemSupportsConsistentHLUGeneration(storage)) ||
         
-        (null != initiators.get(0).getClusterName() && exportGroup.getVolumes() != null
+        (null != initiator.getClusterName() && exportGroup.getVolumes() != null
                 && ExportUtils.systemSupportsConsistentHLUGeneration(storage) && null!= givenHLUs &&
                 !givenHLUs.contains(ExportGroup.LUN_UNASSIGNED)));
         
@@ -182,17 +182,42 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
             Collection<Integer> givenHLUs) {
 
         Map<String, Integer> volumeHluPair = new HashMap<String, Integer>();
-        List<Initiator> initiators = _dbClient.queryObject(Initiator.class, newInitiatorURIs);
+        Initiator initiator = _dbClient.queryObject(Initiator.class, newInitiatorURIs.get(0));
         
         // For 'add host to cluster' operation, validate and fail beforehand if HLU conflict is detected
-        if (canInvokeLunViolationCheck(storage, exportGroup, initiators, givenHLUs)) {
-            // get HLUs from ExportGroup as these are the volumes that will be exported to new Host.
-            Collection<String> egHlus = exportGroup.getVolumes().values();
-            Collection<Integer> clusterHlus = Collections2.transform(egHlus, CommonTransformerFunctions.FCTN_STRING_TO_INTEGER);
-
+        if (canInvokeLunViolationCheck(storage, exportGroup, initiator, givenHLUs)) {
             
-            Collection<String> initiatorNames = Collections2.transform(initiators, CommonTransformerFunctions.fctnInitiatorToPortName());
-            Set<Integer> newHostUsedHlus = getDevice().findHLUsForInitiators(storage, new ArrayList<String>(initiatorNames), false);
+            URI clusterURI = ExportUtils.getClusterOfGivenInitiator(initiator, _dbClient);
+            if (null == clusterURI) {
+                _log.info("Cluster URI is null for initiator {}", initiator.getId());
+                return;
+            }
+            
+            List<URI> initiatorsInCluster = ExportUtils.getAllInitiatorsForCluster(clusterURI, _dbClient);
+            if (null == initiatorsInCluster || initiatorsInCluster.isEmpty()) {
+                _log.info("Cluster {} initiators empty", clusterURI);
+                return;
+            }
+            
+            _log.info("Initiators {} found in cluster {}", Joiner.on(";").join(initiatorsInCluster), clusterURI);
+            
+            //remove the passed initiator. During add volume or create export as this method gets invoked only for Host
+            // type we will get only the host initiators
+            initiatorsInCluster.removeAll(newInitiatorURIs);
+            
+            _log.info("Used HLUs will be found for these cluster initiators {}", Joiner.on(";").join(initiatorsInCluster));
+            
+            
+            List<Initiator> clusterinitiators = _dbClient.queryObject(Initiator.class, initiatorsInCluster);
+            
+            List<Initiator> hostinitiators = _dbClient.queryObject(Initiator.class, newInitiatorURIs);
+            
+            Collection<String> clusterInitiatorNames = Collections2.transform(clusterinitiators, CommonTransformerFunctions.fctnInitiatorToPortName());
+            Collection<String> hostInitiatorNames = Collections2.transform(hostinitiators, CommonTransformerFunctions.fctnInitiatorToPortName());
+            
+            Set<Integer> newHostUsedHlus = getDevice().findHLUsForInitiators(storage, new ArrayList<String>(hostInitiatorNames), false);
+            Set<Integer> clusterUsedHlus = getDevice().findHLUsForInitiators(storage, new ArrayList<String>(clusterInitiatorNames), false);
+           
             if(null!= givenHLUs && !givenHLUs.isEmpty() &&
                     !givenHLUs.contains(ExportGroup.LUN_UNASSIGNED)) {
                 //During VBlock export boot volume to stand alone host, we have to figure out lun violation.
@@ -200,7 +225,7 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
             }
 
             // newHostUsedHlus now will contain the intersection of the two Set of HLUs which are conflicting one's
-            newHostUsedHlus.retainAll(clusterHlus);
+            newHostUsedHlus.retainAll(clusterUsedHlus);
             if (!newHostUsedHlus.isEmpty()) {
                 _log.info("Conflicting HLUs: {}", newHostUsedHlus);
                 for (Map.Entry<String, String> entry : exportGroup.getVolumes().entrySet()) {

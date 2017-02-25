@@ -1650,6 +1650,23 @@ public class ExportUtils {
         }
         return clusterInitaitors;
     }
+    
+    /**
+     * get Cluster URI from initiator
+     * @param initiator
+     * @param dbClient
+     * @return
+     */
+    public static URI getClusterOfGivenInitiator(Initiator initiator, DbClient dbClient) {
+        URI hostURI = initiator.getHost();
+        if(null != hostURI) {
+            Host host = dbClient.queryObject(Host.class,hostURI);
+            if (null != host) {
+                return host.getCluster();
+            }
+        }
+        return null;
+    }
 
     /**
      * Returns true if the storage system implementation supports consistent HLU generation for cluster export.

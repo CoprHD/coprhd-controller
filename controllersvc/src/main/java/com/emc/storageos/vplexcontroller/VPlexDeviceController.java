@@ -3989,12 +3989,33 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
         Initiator initiator = _dbClient.queryObject(Initiator.class, newInitiatorURIs.get(0));
         // For 'add host to cluster' operation, validate and fail beforehand if HLU conflict is detected
         if (canInvokeLunViolationCheck(storage, exportGroup, initiator, givenHLUs)) {
-            // get HLUs from ExportGroup as these are the volumes that will be exported to new Host.
-            Collection<String> egHlus = exportGroup.getVolumes().values();
-            Collection<Integer> clusterHlus = Collections2.transform(egHlus, CommonTransformerFunctions.FCTN_STRING_TO_INTEGER);
+            URI clusterURI = ExportUtils.getClusterOfGivenInitiator(initiator, _dbClient);
+           
+            if (null == clusterURI) {
+                _log.info("Cluster URI is null for initiator {}", initiator.getId());
+                return;
+            }
+            
+            List<URI> initiatorsInCluster = ExportUtils.getAllInitiatorsForCluster(clusterURI, _dbClient);
+            if (null == initiatorsInCluster || initiatorsInCluster.isEmpty()) {
+                _log.info("Cluster {} initiators empty", clusterURI);
+                return;
+            }
+            
+            _log.info("Initiators {} found in cluster {}", Joiner.on(";").join(initiatorsInCluster), clusterURI);
+            //remove the passed initiator. During add volume or create export as this method gets invoked only for Host
+            // type we will get only the host initiators
+            initiatorsInCluster.removeAll(newInitiatorURIs);
+            
+            _log.info("Used HLUs will be found for these cluster initiators {}", Joiner.on(";").join(initiatorsInCluster));
+            
             Set<Integer> newHostUsedHlus;
+            Set<Integer> clusterHlus;
             try {
                 newHostUsedHlus = findHLUsForInitiators(storage, exportGroup, newInitiatorURIs, false);
+                //The new cache mechanism will make this call very quick.
+                
+                clusterHlus = findHLUsForInitiators(storage, exportGroup, initiatorsInCluster, false);
             } catch (Exception e) {
                 String errMsg = "Encountered an error when attempting to query used HLUs for initiators: " + e.getMessage();
                 _log.error(errMsg, e);

@@ -921,7 +921,7 @@ public class FilePolicyService extends TaskResourceService {
         for (URI vpoolURI : vpoolURIs) {
             ArgValidator.checkFieldUriType(vpoolURI, VirtualPool.class, "vpool");
             VirtualPool virtualPool = _permissionsHelper.getObjectById(vpoolURI, VirtualPool.class);
-
+            ArgValidator.checkEntity(virtualPool, vpoolURI, false);
             if (filePolicy.getAssignedResources() != null && filePolicy.getAssignedResources().contains(virtualPool.getId().toString())) {
                 _log.info("File policy: {} has already been assigned to vpool: {} ", filePolicy.getFilePolicyName(),
                         virtualPool.getLabel());
@@ -935,8 +935,6 @@ public class FilePolicyService extends TaskResourceService {
                 _log.error(errorMsg.toString());
                 throw APIException.badRequests.invalidFilePolicyAssignParam(filePolicy.getFilePolicyName(), errorMsg.toString());
             }
-
-            ArgValidator.checkEntity(virtualPool, vpoolURI, false);
 
             FilePolicyServiceUtils.validateVpoolSupportPolicyType(filePolicy, virtualPool);
             List<URI> storageSystems = getAssociatedStorageSystemsByVPool(virtualPool);

@@ -2998,7 +2998,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                             modifiedPolicy.setDuration(expireTime);
                             bModifyPolicy = true;
                         } else if (snapPolicyAtPath.getDuration() != null) {
-                            modifiedPolicy.setDuration(null);
+                            modifiedPolicy.setDuration(0);
                             bModifyPolicy = true;
                         }
                     }

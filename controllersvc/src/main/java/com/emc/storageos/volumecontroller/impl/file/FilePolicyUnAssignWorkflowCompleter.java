@@ -53,8 +53,9 @@ public class FilePolicyUnAssignWorkflowCompleter extends FilePolicyWorkflowCompl
             } else {
                 StringBuffer strErrorMsg = new StringBuffer();
                 Integer totalWFSteps = 0;
-                int numFailedSteps = getWorkFlowFailedSteps(dbClient, getWorkFlowId(), totalWFSteps, strErrorMsg);
+                int numFailedSteps = getWorkFlowFailedSteps(dbClient, getWorkFlowId(), strErrorMsg);
                 if (numFailedSteps > 0) {
+                    totalWFSteps = getWorkFlowSteps(dbClient, getWorkFlowId()).size();
                     int successPolicies = totalWFSteps - numFailedSteps;
                     // In case of partial success, Do not update policy assignment attributes!!
                     // as there are some more storage system policy resources!!

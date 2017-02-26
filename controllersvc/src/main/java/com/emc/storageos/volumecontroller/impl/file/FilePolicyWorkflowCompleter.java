@@ -66,7 +66,7 @@ public class FilePolicyWorkflowCompleter extends FileTaskCompleter {
         }
     }
 
-    private List<WorkflowStep> getWorkFlowSteps(DbClient dbClient, URI workFlowId) {
+    public List<WorkflowStep> getWorkFlowSteps(DbClient dbClient, URI workFlowId) {
         List<WorkflowStep> workFlowSteps = new ArrayList<WorkflowStep>();
         if (workFlowId != null) {
             URIQueryResultList stepURIs = new URIQueryResultList();
@@ -83,11 +83,10 @@ public class FilePolicyWorkflowCompleter extends FileTaskCompleter {
         return workFlowSteps;
     }
 
-    public int getWorkFlowFailedSteps(DbClient dbClient, URI workFlowId, Integer totalWFSteps, StringBuffer strErrorMsg) {
+    public int getWorkFlowFailedSteps(DbClient dbClient, URI workFlowId, StringBuffer strErrorMsg) {
         int numStepsFailed = 0;
         List<WorkflowStep> workFlowSteps = getWorkFlowSteps(dbClient, workFlowId);
         if (workFlowSteps != null && !workFlowSteps.isEmpty()) {
-            totalWFSteps = workFlowSteps.size();
             strErrorMsg.append("The following workflow step(s) failed :");
             for (WorkflowStep workFlowStep : workFlowSteps) {
                 if (workFlowStep.getState() != null && workFlowStep.getState().equalsIgnoreCase("error")) {

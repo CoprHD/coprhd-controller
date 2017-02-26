@@ -930,7 +930,8 @@ public class FilePolicyService extends TaskResourceService {
 
             // Verify the vpool has any replication policy!!!
             // only single replication policy per vpool.
-            if (FilePolicyServiceUtils.vPoolHasReplicationPolicy(_dbClient, vpoolURI)) {
+            if (filePolicy.getFilePolicyType().equalsIgnoreCase(FilePolicyType.file_replication.name())
+                    && FilePolicyServiceUtils.vPoolHasReplicationPolicy(_dbClient, vpoolURI)) {
                 errorMsg.append("Provided vpool : " + virtualPool.getLabel() + " already assigned with replication policy.");
                 _log.error(errorMsg.toString());
                 throw APIException.badRequests.invalidFilePolicyAssignParam(filePolicy.getFilePolicyName(), errorMsg.toString());
@@ -1175,7 +1176,8 @@ public class FilePolicyService extends TaskResourceService {
 
             // Verify the vpool - project has any replication policy!!!
             // only single replication policy per vpool-project combination.
-            if (FilePolicyServiceUtils.projectHasReplicationPolicy(_dbClient, projectURI, filePolicy.getFilePolicyVpool())) {
+            if (filePolicy.getFilePolicyType().equalsIgnoreCase(FilePolicyType.file_replication.name())
+                    && FilePolicyServiceUtils.projectHasReplicationPolicy(_dbClient, projectURI, filePolicy.getFilePolicyVpool())) {
                 errorMsg.append("Virtual pool " + filePolicy.getFilePolicyVpool().toString() + " project " + project.getLabel()
                         + "pair is already assigned with replication policy.");
                 _log.error(errorMsg.toString());

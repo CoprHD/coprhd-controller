@@ -1010,11 +1010,18 @@ public class VplexBackendIngestionContext {
         this._ingestionInProgress = ingestionInProgress;
     }
 
-    public static List<UnManagedVolume> findBackendUnManagedVolumes(UnManagedVolume _unmanagedVirtualVolume, DbClient dbClient) {
+    /**
+     * Find backend UnManagedVolumes for the given VPLEX UnManagedVolume.
+     * 
+     * @param unmanagedVirtualVolume the virtual volume to find backend volumes for
+     * @param dbClient a reference to the database client
+     * @return the backend volume(s) for the UnManagedVolume virtual volume
+     */
+    public static List<UnManagedVolume> findBackendUnManagedVolumes(UnManagedVolume unmanagedVirtualVolume, DbClient dbClient) {
         List<UnManagedVolume> unmanagedBackendVolumes = null;
         StringSet dbBackendVolumes = extractValuesFromStringSet(
                 SupportedVolumeInformation.VPLEX_BACKEND_VOLUMES.toString(),
-                _unmanagedVirtualVolume.getVolumeInformation());
+                unmanagedVirtualVolume.getVolumeInformation());
         if (null != dbBackendVolumes && !dbBackendVolumes.isEmpty()) {
             List<URI> umvUris = new ArrayList<URI>();
             for (String nativeId : dbBackendVolumes) {

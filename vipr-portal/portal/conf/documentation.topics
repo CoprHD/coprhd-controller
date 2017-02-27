@@ -51,6 +51,7 @@ arrays.StorageSystems.edit = EditStorageSystem
 arrays.StorageSystems.pools = StoragePools
 arrays.StorageSystems.editPool = EditStoragePool
 arrays.StorageSystems.ports = StoragePorts
+arrays.StorageDrivers = PhysicalStorageDrivers
 arrays.CustomConfigs.list = ControllerConfigurationsPage
 arrays.ApplicationSupport.list = PhysicalApplications
 arrays.ApplicationSupport.create = PhysicalApplicationsCreateEdit

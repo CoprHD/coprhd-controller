@@ -29,14 +29,31 @@ public class DeleteVmfsDatastoreAndVolumeService extends VMwareHostService {
 
     @Override
     public void precheck() throws Exception {
+        StringBuilder preCheckErrors = new StringBuilder();
+
         super.precheck();
         datastores = Maps.newHashMap();
         acquireHostLock();
         for (String datastoreName : datastoreNames) {
             Datastore datastore = vmware.getDatastore(datacenter.getLabel(), datastoreName);
+
             vmware.verifyDatastoreForRemoval(datastore);
+
             List<VolumeRestRep> volumes = vmware.findVolumesBackingDatastore(host, datastore);
+
+            // If no volume were found (or not all the volumes were found in our DB), indicate an error
+            if (volumes == null) {
+                preCheckErrors.append(
+                        ExecutionUtils.getMessage("delete.vmfs.datastore.notsamewwn", datastoreName) + " ");
+            }
+
             datastores.put(datastore, volumes);
+        }
+
+        vmware.disconnect();
+
+        if (preCheckErrors.length() > 0) {
+            throw new IllegalStateException(preCheckErrors.toString());
         }
     }
 

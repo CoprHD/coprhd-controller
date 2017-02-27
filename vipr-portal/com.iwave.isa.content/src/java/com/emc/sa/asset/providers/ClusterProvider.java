@@ -71,9 +71,9 @@ public class ClusterProvider extends BaseAssetOptionsProvider {
         Collection<ClusterRestRep> clusters = getClusters(ctx);
         List<AssetOption> options = Lists.newArrayList();
         for (ClusterRestRep value : clusters) {
-            // If Cluster has an esx host - then add it to the list
             List<HostRestRep> hostList = api(ctx).hosts().getByCluster(value.getId());
             for (HostRestRep host : hostList) {
+                // If Cluster has an esx or No-OS host and if host has a computeElement - then add it to the list
                 if ((host.getType().equalsIgnoreCase(Host.HostType.Esx.name())
                         || host.getType().equalsIgnoreCase(Host.HostType.No_OS.name()))
                         && host.getComputeElement() != null) {

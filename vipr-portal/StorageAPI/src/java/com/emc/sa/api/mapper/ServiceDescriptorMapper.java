@@ -34,6 +34,7 @@ public class ServiceDescriptorMapper {
         to.setDescription(from.getDescription());
         to.setDestructive(from.isDestructive());
         to.setUseModal(from.isUseModal());
+        to.setModalTitle(from.getModalTitle());
         to.setServiceId(from.getServiceId());
         to.setTitle(from.getTitle());
         to.setRoles(from.getRoles());
@@ -59,6 +60,7 @@ public class ServiceDescriptorMapper {
         to.setRegEx(from.getValidation().getRegEx());
         to.setRequired(from.isRequired());
         to.setOmitNone(from.isOmitNone());
+        to.setModalField(from.isModalField());
         to.setSelect(from.getSelect());
 
         for (String key : from.getOptions().keySet()) {

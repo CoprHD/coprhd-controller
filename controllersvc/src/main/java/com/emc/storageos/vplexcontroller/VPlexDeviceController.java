@@ -4782,7 +4782,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
         // What is about to happen...
         //
         // 1. if all the initiators in the storage view are getting removed
-        // and there are no existing (external) initiators or volumes in the Export Mask
+        // and there are no existing (external) initiators in the Export Mask
         // then delete the storage view
         //
         // 2. if there are other ExportGroups referencing this ExportMask
@@ -4803,7 +4803,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
         // all initiators, also remove any volumes present in the ExportGroup
 
         boolean removeAllInits = (hostInitiatorURIs.size() >= exportMask.getInitiators().size());
-        boolean canDeleteMask = removeAllInits && !exportMask.hasAnyExistingInitiators() && !exportMask.hasAnyExistingVolumes();
+        boolean canDeleteMask = removeAllInits && !exportMask.hasAnyExistingInitiators();
 
         if (canDeleteMask) {
             if (!exportMaskHasBothExclusiveAndSharedVolumes(exportGroup, otherExportGroups, exportMask)) {
@@ -9783,13 +9783,11 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
                         StorageProvider.InterfaceType.vplex.name());
         for (StorageProvider vplexMnmgtServer : vplexMnmgtServers) {
             try {
-                if (ConnectivityUtil.ping(vplexMnmgtServer.getIPAddress())) {
-                    VPlexApiClient client = getVPlexAPIClient(_vplexApiFactory,
-                            vplexMnmgtServer, _dbClient);
-                    client.verifyConnectivity();
-                    activeMgmntServers.add(vplexMnmgtServer.getId());
-                    vplexMnmgtServer.setConnectionStatus(StorageProvider.ConnectionStatus.CONNECTED.toString());
-                }
+                VPlexApiClient client = getVPlexAPIClient(_vplexApiFactory,
+                        vplexMnmgtServer, _dbClient);
+                client.verifyConnectivity();
+                activeMgmntServers.add(vplexMnmgtServer.getId());
+                vplexMnmgtServer.setConnectionStatus(StorageProvider.ConnectionStatus.CONNECTED.toString());
             } catch (Exception e) {
                 _log.warn("Can't connect to VPLEX management server {}", vplexMnmgtServer.getIPAddress());
                 vplexMnmgtServer.setConnectionStatus(StorageProvider.ConnectionStatus.NOTCONNECTED.toString());

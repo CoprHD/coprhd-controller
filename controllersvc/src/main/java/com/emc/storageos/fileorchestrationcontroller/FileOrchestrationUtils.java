@@ -44,6 +44,7 @@ import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.VirtualNAS;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
+import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.model.file.ExportRule;
 import com.emc.storageos.model.file.FileNfsACLUpdateParams;
 import com.emc.storageos.model.file.NfsACE;
@@ -423,7 +424,7 @@ public final class FileOrchestrationUtils {
         if (fileProjectPolicies != null && !fileProjectPolicies.isEmpty()) {
             for (String fileProjectPolicy : fileProjectPolicies) {
                 FilePolicy filePolicy = dbClient.queryObject(FilePolicy.class, URIUtil.uri(fileProjectPolicy));
-                if (filePolicy.getFilePolicyVpool() == null
+                if (NullColumnValueGetter.isNullURI(filePolicy.getFilePolicyVpool())
                         || !filePolicy.getFilePolicyVpool().toString().equals(vpool.getId().toString())) {
                     continue;
                 }
@@ -529,7 +530,7 @@ public final class FileOrchestrationUtils {
         if (project.getFilePolicies() != null && !project.getFilePolicies().isEmpty()) {
             for (String strPolicy : project.getFilePolicies()) {
                 FilePolicy policy = dbClient.queryObject(FilePolicy.class, URI.create(strPolicy));
-                if (policy.getFilePolicyVpool() != null
+                if (!NullColumnValueGetter.isNullURI(policy.getFilePolicyVpool())
                         && policy.getFilePolicyVpool().toString().equalsIgnoreCase(vpool.getId().toString())) {
                     filePolicies.add(policy.getId().toString());
                 }
@@ -540,7 +541,7 @@ public final class FileOrchestrationUtils {
         if (fs != null && fs.getFilePolicies() != null && !fs.getFilePolicies().isEmpty()) {
             for (String strPolicy : fs.getFilePolicies()) {
                 FilePolicy policy = dbClient.queryObject(FilePolicy.class, URI.create(strPolicy));
-                if (policy.getFilePolicyVpool() != null
+                if (!NullColumnValueGetter.isNullURI(policy.getFilePolicyVpool())
                         && policy.getFilePolicyVpool().toString().equalsIgnoreCase(vpool.getId().toString())) {
                     filePolicies.add(policy.getId().toString());
                 }

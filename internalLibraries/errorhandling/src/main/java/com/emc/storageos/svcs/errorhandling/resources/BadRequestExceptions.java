@@ -3153,4 +3153,7 @@ public interface BadRequestExceptions {
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException internalPortGroup(final String portGroup);
     
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException portGroupSettingIsOff();
+    
 }

@@ -318,11 +318,10 @@ public class VmaxExportOperations implements ExportMaskOperations {
             ExportGroup exportGroup = null;
             List<ExportGroup> exportGroups = ExportMaskUtils.getExportGroups(_dbClient, mask);
             URI firstVolUri = volumeURIHLUs[0].getVolumeURI();
-            for (ExportGroup eg : exportGroups) {
-                StringMap volumes = eg.getVolumes();
-                if (volumes.containsKey(firstVolUri.toString())) {
-                    exportGroup = eg;
-                }
+            if (exportGroups != null && !exportGroups.isEmpty()) {
+                exportGroup = exportGroups.get(0);
+            } else {
+                _log.warn("There is no export group associated with the mask {}", mask.getLabel());
             }
             ExportPathParams pathParams = null;
             if (exportGroup != null) {

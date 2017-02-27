@@ -3320,9 +3320,26 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
         try {
             StoragePortGroup portGroup = _dbClient.queryObject(StoragePortGroup.class, portGroupURI);
             _log.info(String.format("Deleting port group %s starts", portGroup.getNativeGuid()));
-            _helper.deleteMaskingGroup(storage, portGroup.getLabel(), 
+            String portGroupName = portGroup.getLabel();
+            CIMObjectPath targetPortGroupPath = _cimPath.getMaskingGroupPath(storage, portGroupName,
                     SmisConstants.MASKING_GROUP_TYPE.SE_TargetMaskingGroup);
-            completer.ready(_dbClient);
+            CIMInstance instance = _helper.checkExists(storage, targetPortGroupPath, false, false);
+            if (instance != null) { 
+                // Check if there is any lun masking view associated.
+                if (_helper.checkMaskingViewAssociated(storage, portGroupName)) {
+                    // Could not delete the port group
+                    String msg = String.format("The port group %s could not be deleted, because it still has associated lun masking view.",
+                            portGroup.getNativeGuid());
+                    _log.error(msg);
+                    completer.error(_dbClient, DeviceControllerException.errors.jobFailedOpMsg("DeleteStoragePortGroup", msg));
+                } else {
+                    _helper.deleteMaskingGroup(storage, portGroupName, 
+                            SmisConstants.MASKING_GROUP_TYPE.SE_TargetMaskingGroup);
+                    completer.ready(_dbClient);
+                }
+            } else {
+                _log.info(String.format("The port group %s does not exist in the array", portGroupName));
+            }
             _log.info(String.format("Deleting port group %s ends", portGroup.getNativeGuid()));
         } catch (Exception e) {
             _log.error("Failed deleting storage port group:", e);

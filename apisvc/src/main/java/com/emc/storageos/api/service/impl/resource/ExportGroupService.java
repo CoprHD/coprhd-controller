@@ -47,6 +47,8 @@ import com.emc.storageos.api.service.impl.response.ResRepFilter;
 import com.emc.storageos.api.service.impl.response.RestLinkFactory;
 import com.emc.storageos.api.service.impl.response.SearchedResRepList;
 import com.emc.storageos.computesystemcontroller.impl.ComputeSystemHelper;
+import com.emc.storageos.customconfigcontroller.CustomConfigConstants;
+import com.emc.storageos.customconfigcontroller.impl.CustomConfigHandler;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.ModelClient;
 import com.emc.storageos.db.client.URIUtil;
@@ -161,6 +163,9 @@ public class ExportGroupService extends TaskResourceService {
     private static String ISA_SEPARATOR = ":";
     private static String MOUNTPOINT = ISA_NAMESPACE + ISA_SEPARATOR + "mountPoint";
     private static String VMFS_DATASTORE = ISA_NAMESPACE + ISA_SEPARATOR + "vmfsDatastore";
+    
+    @Autowired
+    private CustomConfigHandler customConfigHandler;
 
     public void setBlockStorageScheduler(BlockStorageScheduler blockStorageScheduler) {
         if (_blockStorageScheduler == null) {
@@ -2116,6 +2121,14 @@ public class ExportGroupService extends TaskResourceService {
                 if (exportPathParameters.getPathsPerInitiator() != null) {
                     pathParams.setPathsPerInitiator(exportPathParameters.getPathsPerInitiator());
                 }
+                if (exportPathParameters.getPortGroup() != null) {
+                    URI pgURI = exportPathParameters.getPortGroup();
+                    pathParams.setPortGroup(pgURI);
+                    StoragePortGroup portGroup = _dbClient.queryObject(StoragePortGroup.class, pgURI);
+                    if (portGroup != null) {
+                        pathParams.setStoragePorts(portGroup.getStoragePorts());
+                    }
+                }
             }
             blockScheduler.assignStoragePorts(storageSystem,
                     varray, initiators, pathParams, null, volumes);
@@ -2879,11 +2892,16 @@ public class ExportGroupService extends TaskResourceService {
             pathParam.setStoragePorts(StringSetUtil.uriListToStringSet(param.getStoragePorts()));
         }
         if (!NullColumnValueGetter.isNullURI(param.getPortGroup())) {
+            // Check if the use port group config setting is on
+            String value = customConfigHandler.getComputedCustomConfigValue(CustomConfigConstants.VMAX_USE_PORT_GROUP_ENABLED,
+                    "vmax", null);
+            if (Boolean.FALSE.toString().equalsIgnoreCase(value)) {
+                throw APIException.badRequests.portGroupSettingIsOff();
+            }
             URI pgURI = param.getPortGroup();
             ArgValidator.checkFieldUriType(pgURI, StoragePortGroup.class, "portGroupId");
             StoragePortGroup portGroup = _dbClient.queryObject(StoragePortGroup.class, pgURI);
-            if (portGroup == null || 
-                    !portGroup.getRegistrationStatus().equalsIgnoreCase(RegistrationStatus.REGISTERED.toString())) {
+            if (portGroup == null || !portGroup.isUsable() ) {
                 throw APIException.badRequests.portGroupInvalid(pgURI.toString());
             }
             pathParam.setPortGroup(pgURI);

@@ -210,8 +210,9 @@ public class VmaxPortGroupProcessor extends StorageProcessor{
      */
     private boolean checkViPRCreated(WBEMClient client, CIMObjectPath groupPath, String portGroupName, StorageSystem device) {
         boolean result = false;
+        CloseableIterator<CIMInstance> iterator = null;
         try {
-            CloseableIterator<CIMInstance> iterator = client.associatorInstances(groupPath, null,
+            iterator = client.associatorInstances(groupPath, null,
                     Constants.SYMM_LUNMASKINGVIEW, null, null, false, Constants.PS_NAME);
         
             if (!iterator.hasNext()) {
@@ -251,6 +252,10 @@ public class VmaxPortGroupProcessor extends StorageProcessor{
         } catch (Exception e) {
             log.info("Exception while getting port gorup association:", e);
             result = false;
+        } finally {
+            if (null != iterator) {
+                iterator.close();
+            }
         }
         return result;
     }

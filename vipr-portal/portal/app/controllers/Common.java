@@ -85,7 +85,7 @@ public class Common extends Controller {
             put("/usergroup/save","userGroup.name", PATH_SANITIZER);
 
             put("/config/passwords","user", PATH_SANITIZER);
-            put("/customConfigs/list", "value", PATH_SANITIZER);
+            put("/config/controller/preview", "value", PATH_SANITIZER);
         }
     };
 

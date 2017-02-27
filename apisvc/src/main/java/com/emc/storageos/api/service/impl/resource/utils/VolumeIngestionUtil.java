@@ -3122,7 +3122,8 @@ public class VolumeIngestionUtil {
                         }
                         for (URI eMaskUri : exportMaskUris) {
                             ExportMask eMask = requestContext.findDataObjectByType(ExportMask.class, eMaskUri, true);
-                            if (null != eMask && eMask.getStorageDevice().equals(unManagedExportMask.getStorageSystemUri())) {
+                            if ((null != eMask) && (null != eMask.getStorageDevice()) && 
+                                    eMask.getStorageDevice().equals(unManagedExportMask.getStorageSystemUri())) {
                                 if (!exportMaskMap.containsKey(eMaskUri)) {
                                     _logger.info("Found Mask {} with matching initiator and matching Storage System", eMaskUri);
                                     exportMaskMap.put(eMaskUri, eMask);

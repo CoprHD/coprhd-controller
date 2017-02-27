@@ -53,7 +53,7 @@ public class DocUtils {
         if (topicHtmlFilename == null || topicHtmlFilename == "")
         	return documentationBaseUrl;
         else
-        	return String.format("%s%s", documentationBaseUrl, topicHtmlFilename);
+        	return String.format("%s?topic=%s#%s", documentationBaseUrl, topic, topicHtmlFilename);
     }
 
     private static String getDocumentationTopic() {

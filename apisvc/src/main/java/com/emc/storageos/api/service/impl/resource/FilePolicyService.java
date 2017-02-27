@@ -1210,7 +1210,7 @@ public class FilePolicyService extends TaskResourceService {
             // Verify the vpool - project has any replication policy!!!
             // only single replication policy per vpool-project combination.
             if (filePolicy.getFilePolicyType().equalsIgnoreCase(FilePolicyType.file_replication.name())
-                    && FilePolicyServiceUtils.projectHasReplicationPolicy(_dbClient, projectURI, filePolicy.getFilePolicyVpool())) {
+                    && FilePolicyServiceUtils.projectHasReplicationPolicy(_dbClient, projectURI, vpool.getId())) {
                 errorMsg.append("Virtual pool " + filePolicy.getFilePolicyVpool().toString() + " project " + project.getLabel()
                         + "pair is already assigned with replication policy.");
                 _log.error(errorMsg.toString());

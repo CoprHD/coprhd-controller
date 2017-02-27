@@ -1617,13 +1617,22 @@ public class HDSExportOperations implements ExportMaskOperations {
                 exportMask
                         .addToExistingInitiatorsIfAbsent(initiatorsExistsOnHSD);
 
+                String strExistingInitiators = "";
+                String strExistingVolumes = "";
+                
+                if(exportMask.getExistingInitiators() !=null ){
+                	strExistingInitiators = Joiner.on(',').join(
+                        exportMask.getExistingInitiators());
+                }
+                if(exportMask.getExistingVolumes() != null){
+                	strExistingVolumes = Joiner.on(',').join(
+                        exportMask.getExistingVolumes()
+                        .keySet());
+                }
+                
                 builder.append(String
                         .format("XM is matching. " + "EI: { %s }, EV: { %s }\n",
-                                Joiner.on(',').join(
-                                        exportMask.getExistingInitiators()),
-                                Joiner.on(',').join(
-                                        exportMask.getExistingVolumes()
-                                                .keySet())));
+                        		strExistingInitiators, strExistingVolumes));
 
             }
             exportMask.addDeviceDataMap(deviceDataMapEntries);

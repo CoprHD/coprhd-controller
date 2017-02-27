@@ -60,6 +60,7 @@ import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.TenantOrg;
+import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualNAS;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
@@ -4617,7 +4618,8 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
 
     @Override
     public void assignFileReplicationPolicyToVirtualPools(URI storageSystemURI, URI targetSystemURI,
-            URI sourceVNasURI, URI targetVNasURI, URI filePolicyToAssign, URI vpoolURI, String opId) throws ControllerException {
+            URI sourceVNasURI, URI targetVArrayURI, URI targetVNasURI, URI filePolicyToAssign,
+            URI vpoolURI, String opId) throws ControllerException {
 
         try {
             WorkflowStepCompleter.stepExecuting(opId);
@@ -4626,12 +4628,13 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
 
             FilePolicy filePolicy = _dbClient.queryObject(FilePolicy.class, filePolicyToAssign);
             VirtualPool vpool = _dbClient.queryObject(VirtualPool.class, vpoolURI);
+            VirtualArray targetVarray = _dbClient.queryObject(VirtualArray.class, targetVArrayURI);
             VirtualNAS sourceVNAS = null;
             VirtualNAS targetVNAS = null;
 
             FileDeviceInputOutput sourceArgs = new FileDeviceInputOutput();
             FileDeviceInputOutput targetArgs = new FileDeviceInputOutput();
-
+            targetArgs.setVarray(targetVarray);
             sourceArgs.setFileProtectionPolicy(filePolicy);
             sourceArgs.setVPool(vpool);
             if (sourceVNasURI != null) {
@@ -4671,8 +4674,8 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
 
     @Override
     public void assignFileReplicationPolicyToProjects(URI storageSystemURI, URI targetSystemURI,
-            URI sourceVNasURI, URI targetVNasURI, URI filePolicyToAssign, URI vpoolURI, URI projectURI, String opId)
-            throws InternalException {
+            URI sourceVNasURI, URI targetVArrayURI, URI targetVNasURI, URI filePolicyToAssign,
+            URI vpoolURI, URI projectURI, String opId) throws InternalException {
         try {
             WorkflowStepCompleter.stepExecuting(opId);
             StorageSystem sourceSystem = _dbClient.queryObject(StorageSystem.class, storageSystemURI);
@@ -4681,6 +4684,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             VirtualPool vpool = _dbClient.queryObject(VirtualPool.class, vpoolURI);
             Project project = _dbClient.queryObject(Project.class, projectURI);
             TenantOrg tenant = _dbClient.queryObject(TenantOrg.class, project.getTenantOrg());
+            VirtualArray targetVarray = _dbClient.queryObject(VirtualArray.class, targetVArrayURI);
 
             VirtualNAS sourceVNAS = null;
             VirtualNAS targetVNAS = null;
@@ -4692,6 +4696,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             sourceArgs.setVPool(vpool);
             sourceArgs.setProject(project);
             sourceArgs.setTenantOrg(tenant);
+            targetArgs.setVarray(targetVarray);
             if (sourceVNasURI != null) {
                 sourceVNAS = _dbClient.queryObject(VirtualNAS.class, sourceVNasURI);
                 sourceArgs.setvNAS(sourceVNAS);

@@ -111,7 +111,7 @@ public interface VPlexApiExceptions {
             final Throwable cause);
 
     @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
-    public VPlexApiException failedToFindCluster(final String clusterName);
+    public VPlexApiException failedToFindCluster(final String clusterName, final String details);
 
     @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
     public VPlexApiException createConsistencyGroupFailureStatus(final String cgName,
@@ -826,6 +826,9 @@ public interface VPlexApiExceptions {
 
     @DeclareServiceCode(ServiceCode.VPLEX_API_FIRMWARE_UPDATE_NEEDED)
     public VPlexApiException vplexFirmwareUpdateNeeded(final String why);
+
+    @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
+    public VPlexApiException thinProvisioningVerificationFailed(final String storageSystemName);
 
     @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
     public VPlexApiException vplexClusterConfigurationChangedFromMetroToLocal(final String systemNativeGuid, final String localAssemblyId);

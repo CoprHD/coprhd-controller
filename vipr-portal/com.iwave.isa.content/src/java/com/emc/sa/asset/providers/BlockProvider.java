@@ -762,23 +762,25 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     
     @Asset("exportPathMinPathsOptions")
     public List<AssetOption> getExportPathMinOptions(AssetOptionsContext ctx) {
-        return generatePathOptions();
+        return generatePathOptions(EXPORT_PATH_MIN, EXPORT_PATH_MAX);
     }
     
     @Asset("exportPathMaxPathsOptions")
-    public List<AssetOption> getExportPathMaxOptions(AssetOptionsContext ctx) {
-        return generatePathOptions();
+    @AssetDependencies({ "exportPathMinPathsOptions" })
+    public List<AssetOption> getExportPathMaxOptions(AssetOptionsContext ctx, int min) {
+        return generatePathOptions(min, EXPORT_PATH_MAX);
     }
     
     @Asset("exportPathPathsPerInitiatorOptions")
-    public List<AssetOption> getExportPathPathsPerOptions(AssetOptionsContext ctx) {
-        return generatePathOptions();
+    @AssetDependencies({ "exportPathMaxPathsOptions" })
+    public List<AssetOption> getExportPathPathsPerOptions(AssetOptionsContext ctx, int max) {
+        return generatePathOptions(EXPORT_PATH_MIN, max);
     }
 
-    private List<AssetOption> generatePathOptions() {
+    private List<AssetOption> generatePathOptions(int min, int max) {
         List<AssetOption> options = Lists.newArrayList();
         
-        for (int i = EXPORT_PATH_MIN; i <= EXPORT_PATH_MAX; ++i) {
+        for (int i = min; i <= max; ++i) {
             options.add(new AssetOption(Integer.toString(i), Integer.toString(i)));
         }
         

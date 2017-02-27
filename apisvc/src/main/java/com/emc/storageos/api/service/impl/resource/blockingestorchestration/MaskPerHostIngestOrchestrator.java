@@ -95,7 +95,8 @@ public class MaskPerHostIngestOrchestrator extends BlockIngestExportOrchestrator
             for (ExportMask createdMask : exportMasks) {
                 if (null != createdMask && createdMask.getInitiators() != null
                         && createdMask.getInitiators().contains(ini.toString())) {
-                    if (createdMask.getStorageDevice().equals(mask.getStorageSystemUri())) {
+                    if (null != createdMask.getStorageDevice() 
+                            && createdMask.getStorageDevice().equals(mask.getStorageSystemUri())) {
                         _logger.info("Found already-created ExportMask {} matching UnManagedExportMask initiator {} and storage system {}",
                                 createdMask.getMaskName(), ini, mask.getStorageSystemUri());
                         return createdMask;

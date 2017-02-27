@@ -1421,7 +1421,8 @@ public class VolumeIngestionUtil {
             for (URI maskUri : maskUris) {
                 ExportMask exportMask = dbClient.queryObject(ExportMask.class, maskUri);
                 // skip if the mask is null, the storage device doesn't match, or is on the incorrect vplex cluster path
-                if (null == exportMask 
+                if (null == exportMask
+                        || null == exportMask.getStorageDevice()
                         || !exportMask.getStorageDevice().equals(mask.getStorageSystemUri())
                         || VolumeIngestionUtil.hasIncorrectMaskPathForVplex(mask, exportMask, dbClient)) {
                     continue;

@@ -60,9 +60,6 @@ public class FilePolicyUnAssignWorkflowCompleter extends FilePolicyWorkflowCompl
                     int successPolicies = totalWFSteps - numFailedSteps;
                     // In case of partial success, Do not update policy assignment attributes!!
                     // as there are some more storage system policy resources!!
-                    if (totalWFSteps != numFailedSteps) {
-                        updatePolicyUnAssignedResources(dbClient, filePolicy, status, coded);
-                    }
                     _log.error(String.format(" %s number of storage policies assigned successful and %s failed due to %s ", successPolicies,
                             numFailedSteps, strErrorMsg.toString()));
                     ServiceError serviceError = DeviceControllerException.errors.deviceProtectionPolicyOperationFailed(

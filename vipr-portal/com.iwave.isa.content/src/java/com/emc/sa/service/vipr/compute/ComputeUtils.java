@@ -528,7 +528,6 @@ public class ComputeUtils {
             for (Task<HostRestRep> failedTask : getFailedTasks(tasks)) {
                 ExecutionUtils.currentContext().logError("computeutils.deactivatehost.deactivate.failure",
                         failedTask.getResource().getName(), failedTask.getMessage());
-                // VBDU TODO: COP-28454 Why are we manipulating the task list here?
                 tasks.remove(failedTask);
             }
         }

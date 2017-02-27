@@ -39,8 +39,8 @@ public class ExtendVmfsDatastoreService extends VMwareHostService {
         acquireHostLock();
         datastore = vmware.getDatastore(datacenter.getLabel(), datastoreName);
 
-        // If no volume were found (or not all the volumes were found in our DB), indicate an error
-        if (vmware.findVolumesBackingDatastore(host, datastore) == null) {
+        // If no volumes were found (or not all the volumes were found in our DB), indicate an error
+        if (vmware.findVolumesBackingDatastore(host, hostId, datastore) == null) {
             preCheckErrors.append(
                     ExecutionUtils.getMessage("extend.vmfs.datastore.notsamewwn", datastoreName) + " ");
         }

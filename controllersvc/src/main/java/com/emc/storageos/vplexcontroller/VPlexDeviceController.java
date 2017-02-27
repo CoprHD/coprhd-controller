@@ -4009,10 +4009,16 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
             
             _log.info("Used HLUs will be found for these cluster initiators {}", Joiner.on(";").join(initiatorsInCluster));
             
-            Set<Integer> newHostUsedHlus;
+            Set<Integer> newHostUsedHlus = new HashSet<Integer>();
             Set<Integer> clusterHlus;
             try {
-                newHostUsedHlus = findHLUsForInitiators(storage, exportGroup, newInitiatorURIs, false);
+                if(null!= givenHLUs && !givenHLUs.isEmpty() &&
+                        !givenHLUs.contains(ExportGroup.LUN_UNASSIGNED)) {
+                    //During VBlock export boot volume to stand alone host, we have to figure out lun violation.
+                    newHostUsedHlus.addAll(givenHLUs);
+                } else {
+                   newHostUsedHlus = findHLUsForInitiators(storage, exportGroup, newInitiatorURIs, false);
+                }
                 //The new cache mechanism will make this call very quick.
                 
                 clusterHlus = findHLUsForInitiators(storage, exportGroup, initiatorsInCluster, false);
@@ -4021,11 +4027,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
                 _log.error(errMsg, e);
                 throw VPlexApiException.exceptions.hluRetrievalFailed(errMsg, e);
             }
-            if(null!= givenHLUs && !givenHLUs.isEmpty() &&
-                    !givenHLUs.contains(ExportGroup.LUN_UNASSIGNED)) {
-                //During VBlock export boot volume to stand alone host, we have to figure out lun violation.
-                newHostUsedHlus.addAll(givenHLUs);
-            }
+           
             // newHostUsedHlus now will contain the intersection of the two Set of HLUs which are conflicting one's
             newHostUsedHlus.retainAll(clusterHlus);
             if (!newHostUsedHlus.isEmpty()) {

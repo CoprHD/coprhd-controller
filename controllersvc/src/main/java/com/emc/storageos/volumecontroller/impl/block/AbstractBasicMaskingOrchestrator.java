@@ -215,13 +215,17 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
             Collection<String> clusterInitiatorNames = Collections2.transform(clusterinitiators, CommonTransformerFunctions.fctnInitiatorToPortName());
             Collection<String> hostInitiatorNames = Collections2.transform(hostinitiators, CommonTransformerFunctions.fctnInitiatorToPortName());
             
-            Set<Integer> newHostUsedHlus = getDevice().findHLUsForInitiators(storage, new ArrayList<String>(hostInitiatorNames), false);
+            Set<Integer> newHostUsedHlus = new HashSet<Integer>();
+            
             Set<Integer> clusterUsedHlus = getDevice().findHLUsForInitiators(storage, new ArrayList<String>(clusterInitiatorNames), false);
            
             if(null!= givenHLUs && !givenHLUs.isEmpty() &&
                     !givenHLUs.contains(ExportGroup.LUN_UNASSIGNED)) {
                 //During VBlock export boot volume to stand alone host, we have to figure out lun violation.
                 newHostUsedHlus.addAll(givenHLUs);
+            } else {
+                newHostUsedHlus = getDevice().findHLUsForInitiators(storage, new ArrayList<String>(hostInitiatorNames), false);
+                
             }
 
             // newHostUsedHlus now will contain the intersection of the two Set of HLUs which are conflicting one's

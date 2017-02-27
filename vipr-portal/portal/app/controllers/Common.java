@@ -126,7 +126,9 @@ public class Common extends Controller {
 
     @Before(priority = 0)
     public static void xssCheck() {
+        Logger.info("--- xss check");
         for (String param : params.all().keySet()) {
+            Logger.info("--- param name is %s", param);
             // skip xss sanitation for fields which name contains password
             if (param.toLowerCase().contains("password") || param.toLowerCase().contains("username")) {
                 Logger.debug("skip sanitation for " + param);
@@ -136,12 +138,14 @@ public class Common extends Controller {
             String[] data = params.getAll(param);
             if ((data != null) && (data.length > 0)) {
                 String sanitizer = (String)XSS_SANITIZERS.get(request.path,param);
-                Logger.debug("Cleaning data for " + param);
+                Logger.debug("---- Cleaning data for " + param);
                 String[] cleanValues = new String[data.length];
                 for (int i = 0; i < data.length; ++i) {
                     if (PATH_SANITIZER.equals(sanitizer)){
+                        Logger.info("---- using path sanitizer");
                         cleanValues[i] = SecurityUtils.stripPathXSS(data[i]);
                     } else {
+                        Logger.info("--- using normal sanitizer");
                         cleanValues[i] = SecurityUtils.stripXSS(data[i]);
                     }
                     params.put(param, cleanValues);

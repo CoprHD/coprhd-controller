@@ -36,7 +36,7 @@ public class DeleteVmfsDatastoreService extends VMwareHostService {
 
             vmware.verifyDatastoreForRemoval(datastore);
 
-            List<VolumeRestRep> volumes = vmware.findVolumesBackingDatastore(host, datastore);
+            List<VolumeRestRep> volumes = vmware.findVolumesBackingDatastore(host, hostId, datastore);
 
             // If no volume were found (or not all the volumes were found in our DB), indicate an error
             if (volumes == null) {

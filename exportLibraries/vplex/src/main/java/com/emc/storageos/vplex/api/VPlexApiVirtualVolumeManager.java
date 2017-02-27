@@ -72,7 +72,8 @@ public class VPlexApiVirtualVolumeManager {
      *            clusters.
      * @param findVirtualVolume If true findVirtualVolume method is called after virtual volume is created.
      * @param thinEnabled If true, the virtual volume should be created as a thin-enabled virtual volume.
-     * @param clusterName The clusterName the volume is on (really only matters for local vols)
+     * @param clusterName The clusterName the volume is on. if non-null, backend volume 
+     *                    search will be restricted to the named cluster.
      *
      * @return The information for the created virtual volume.
      *

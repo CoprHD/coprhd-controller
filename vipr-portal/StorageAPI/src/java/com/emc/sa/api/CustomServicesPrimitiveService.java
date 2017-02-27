@@ -653,7 +653,7 @@ public class CustomServicesPrimitiveService extends CatalogTaggedResourceService
                         && entry.getName().toLowerCase().endsWith(".yml")) {
                     final java.nio.file.Path playbookPath = FileSystems
                             .getDefault().getPath(entry.getName()).normalize();
-                    if (null != playbookPath)
+                    if (null != playbookPath && playbookPath.getNameCount() >= 0)
                         playbooks.add(playbookPath.toString());
                 }
                 entry = tarIn.getNextTarEntry();

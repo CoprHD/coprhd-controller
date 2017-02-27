@@ -120,7 +120,7 @@ public class CustomServicesService extends ViPRService {
         logger.info("Parsing Workflow Definition");
 
         ExecutionUtils.currentContext().logInfo("customServicesService.status", obj.getName(), obj.getDescription());
-        final String orderDir = String.format("%sCS%s/", CustomServicesConstants.PATH,
+        final String orderDir = String.format("%s%s/", CustomServicesConstants.ORDER_DIR_PATH,
                 ExecutionUtils.currentContext().getOrder().getOrderNumber());
 
         Step step = stepsHash.get(StepType.START.toString());

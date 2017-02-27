@@ -303,6 +303,8 @@ public class DataCollectionJobConsumer extends
                 else {
                     // If scan is needed for a single system,
                     // it must be performed for all available providers in the database at the same time.
+                    // update each provider that is reachable to scan in progress
+                    List<StorageProvider> connectedProviders = new ArrayList<StorageProvider>();
                     for (StorageProvider provider : allProviders) {
                         if (provider.connected() || provider.initializing()) {
                             ScanTaskCompleter scanCompleter = job.findProviderTaskCompleter(provider.getId());
@@ -311,20 +313,13 @@ public class DataCollectionJobConsumer extends
                                 scanCompleter = new ScanTaskCompleter(StorageProvider.class, provider.getId(), taskId);
                                 job.addCompleter(scanCompleter);
                             }
-                            try {
-                                scanCompleter.createDefaultOperation(_dbClient);
-                                scanCompleter.updateObjectState(_dbClient, DiscoveredDataObject.DataCollectionJobStatus.IN_PROGRESS);
-                                scanCompleter.setNextRunTime(_dbClient, System.currentTimeMillis()
-                                        + DataCollectionJobScheduler.JobIntervals.get(ControllerServiceImpl.SCANNER).getInterval() * 1000);
-                                provider.setLastScanStatusMessage("");
-                                _dbClient.persistObject(provider);
-                                _logger.info("provider.getInterfaceType():{}", provider.getInterfaceType());
-                                performScan(provider.getId(), scanCompleter, storageSystemsCache);
-                                cacheProviders.add(provider.getId());
-                            } catch (Exception ex) {
-                                _logger.error("Scan failed for {}--->", provider.getId(), ex);
-                                cacheErrorProviders.put(provider.getId(), ex);
-                            }
+                            scanCompleter.createDefaultOperation(_dbClient);
+                            scanCompleter.updateObjectState(_dbClient, DiscoveredDataObject.DataCollectionJobStatus.IN_PROGRESS);
+                            scanCompleter.setNextRunTime(_dbClient, System.currentTimeMillis()
+                                    + DataCollectionJobScheduler.JobIntervals.get(ControllerServiceImpl.SCANNER).getInterval() * 1000);
+                            provider.setLastScanStatusMessage("");
+                            _dbClient.updateObject(provider);
+                            connectedProviders.add(provider);
                         } else {
                             if (null != provider.getStorageSystems() &&
                                     !provider.getStorageSystems().isEmpty()) {
@@ -337,6 +332,18 @@ public class DataCollectionJobConsumer extends
                                         error(_dbClient, DeviceControllerErrors.smis.unableToCallStorageProvider(errMsg));
                             }
                             _dbClient.updateObject(provider);
+                        }
+                    }
+                    // now scan each connected provider
+                    for (StorageProvider provider : connectedProviders) {
+                        try {
+                            _logger.info("provider.getInterfaceType():{}", provider.getInterfaceType());
+                            ScanTaskCompleter scanCompleter = job.findProviderTaskCompleter(provider.getId());
+                            performScan(provider.getId(), scanCompleter, storageSystemsCache);
+                            cacheProviders.add(provider.getId());
+                        } catch (Exception ex) {
+                            _logger.error("Scan failed for {}--->", provider.getId(), ex);
+                            cacheErrorProviders.put(provider.getId(), ex);
                         }
                     }
                     // Perform BooKKeeping

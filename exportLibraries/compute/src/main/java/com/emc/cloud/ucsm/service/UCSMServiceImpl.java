@@ -242,7 +242,23 @@ public class UCSMServiceImpl implements UCSMService {
         return associatedLsServers;
     }
 
-    public List<LsServer> getAllLsServers(String ucsmURL, String username, String password)
+    /*
+    * returns all service profile on the UCS
+    * @param ucsmURL
+    * @param username
+    * @param password
+    * returns list of LsServers on this UCS
+    */
+    @Override
+    public List<LsServer> getAllServiceProfiles(String ucsmURL, String username, String password)
+            throws ClientGeneralException {
+        List<LsServer> lsServers = getAllLsServers(ucsmURL, username,  password, true);
+        return lsServers;
+    }
+
+    
+
+    private List<LsServer> getAllLsServers(String ucsmURL, String username, String password,boolean serviceProfilesOnly )
             throws ClientGeneralException {
         List<LsServer> lsServers = Collections.synchronizedList(new ArrayList<LsServer>());
 
@@ -273,6 +289,9 @@ public class UCSMServiceImpl implements UCSMService {
                             for (JAXBElement<?> managedObject : configSet.getManagedObject()) {
                                 if (managedObject.getValue() instanceof LsServer) {
                                     LsServer lsServer = (LsServer) managedObject.getValue();
+                                    if (serviceProfilesOnly && !(lsServer.getType().equals("instance"))) {
+                                        continue;
+                                    }
                                     lsServers.add(lsServer);
                                 }
                             }
@@ -499,7 +518,7 @@ public class UCSMServiceImpl implements UCSMService {
 
         LsServer createdServiceProfile = null;
 
-        List<LsServer> existingLsServers = getAllLsServers(ucsmURL, username, password);
+        List<LsServer> existingLsServers = getAllLsServers(ucsmURL, username, password,false);
 
         if (StringUtils.isNotBlank(serviceProfileName)) {
             String serviceProfileNameToUse = serviceProfileName;
@@ -571,7 +590,7 @@ public class UCSMServiceImpl implements UCSMService {
                                     for (JAXBElement<?> contentElement2 : configSet.getManagedObject()) {
                                         if (contentElement2.getValue() != null
                                                 && contentElement2.getValue() instanceof LsServer) {
-                                            return (LsServer) contentElement2.getValue();
+                                            createdServiceProfile = (LsServer) contentElement2.getValue();
                                         }
                                     }
                                 }
@@ -590,8 +609,24 @@ public class UCSMServiceImpl implements UCSMService {
             throw new ClientGeneralException(ClientMessageKeys.EXPECTED_PARAMETER_WAS_NULL,
                     new String[] { "serviceProfileName" });
         }
-
+        if (createdServiceProfile!=null){
+             //re-fetch service profile so we have the correct uuid; else uuid of lsServer says 'derived'
+             createdServiceProfile = getLsServerByDn(ucsmURL, username, password,createdServiceProfile.getDn());
+        }
         return createdServiceProfile;
+    }
+   
+    private LsServer getLsServerByDn(String ucsmURL, String username, String password, String spDn) throws ClientGeneralException {  
+        com.emc.cloud.platform.ucs.in.model.LsServer lsServer = new com.emc.cloud.platform.ucs.in.model.LsServer();
+        lsServer.setDn(spDn);
+
+        LsServer lsServerOut = getManagedObject(ucsmURL, username, password, spDn, true, LsServer.class);
+        if(null == lsServerOut){
+            log.error("Unable to fetch LsServer for spDn {}", spDn);
+            String[] s = {"Unable to fetch LsServer for spDn " + spDn};
+            throw new ClientGeneralException(ClientMessageKeys.UNEXPECTED_FAILURE, s);
+        }
+        return lsServerOut;
     }
 
     @Override

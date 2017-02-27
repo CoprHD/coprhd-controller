@@ -24,6 +24,7 @@ public class ServiceDescriptorRestRep implements ServiceItemContainerRestRep {
     private List<String> roles;
     private boolean destructive = false;
     private boolean useModal = false;
+    private String modalTitle;
     private List<ServiceItemRestRep> items;
 
     @XmlElement(name = "service_id")
@@ -90,6 +91,15 @@ public class ServiceDescriptorRestRep implements ServiceItemContainerRestRep {
 
     public void setUseModal(boolean useModal) {
         this.useModal = useModal;
+    }
+    
+    @XmlElement(name = "modal_title")
+    public String getModalTitle() {
+        return modalTitle;
+    }
+
+    public void setModalTitle(String modalTitle) {
+        this.modalTitle = modalTitle;
     }
 
     @XmlElementWrapper(name = "items")

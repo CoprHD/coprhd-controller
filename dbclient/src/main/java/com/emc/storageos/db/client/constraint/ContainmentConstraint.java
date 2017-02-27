@@ -65,6 +65,7 @@ import com.emc.storageos.db.client.model.StorageTier;
 import com.emc.storageos.db.client.model.Task;
 import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.Token;
+import com.emc.storageos.db.client.model.UCSServiceProfile;
 import com.emc.storageos.db.client.model.UCSServiceProfileTemplate;
 import com.emc.storageos.db.client.model.UCSVhbaTemplate;
 import com.emc.storageos.db.client.model.UCSVnicTemplate;
@@ -510,6 +511,13 @@ public interface ContainmentConstraint extends Constraint {
             ColumnField field = doType.getColumnField(COMPUTE_SYSTEM);
             return new ContainmentConstraintImpl(csId, ComputeElement.class, field);
         }
+        
+        public static ContainmentConstraint getComputeSystemServiceProfilesConstraint(URI csId) {
+            DataObjectType doType = TypeMap.getDoType(UCSServiceProfile.class);
+            ColumnField field = doType.getColumnField(COMPUTE_SYSTEM);
+            return new ContainmentConstraintImpl(csId, UCSServiceProfile.class, field);
+        }
+
 
         public static ContainmentConstraint getComputeImageJobsByComputeImageConstraint(URI ciId) {
             DataObjectType doType = TypeMap.getDoType(ComputeImageJob.class);

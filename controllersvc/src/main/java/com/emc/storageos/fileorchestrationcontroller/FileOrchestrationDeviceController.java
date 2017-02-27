@@ -2274,7 +2274,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
                                     // workflow completer should handle the unsuccessful steps
                                     Object[] args = new Object[] { association.getSourceSystem(), targetStorage,
                                             association.getSourceVNAS(), targetVArray, null, filePolicyToAssign, vPoolURI, projectURI };
-                                    waitFor = _fileDeviceController.createMethod(workflow, waitFor,
+                                    _fileDeviceController.createMethod(workflow, waitFor,
                                             ASSIGN_FILE_REPLICATION_POLICY_TO_PROJECTS_METHOD,
                                             stepId,
                                             stepDes,

@@ -2091,7 +2091,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
                         targetKey.append(target.getvNASURI().toString());
                     }
                     if (!targetKey.toString().isEmpty()) {
-                        if (targets.contains(target.toString())) {
+                        if (targets.contains(targetKey.toString())) {
                             s_logger.info("Found same taget for different source recommendations");
                             return true;
                         }

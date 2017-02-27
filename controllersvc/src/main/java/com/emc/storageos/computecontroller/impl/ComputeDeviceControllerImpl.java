@@ -859,7 +859,26 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
 
     @Override 
      public boolean validateBootVolumeExport(URI hostId, URI volumeId) throws InternalException{
-        return validateBootVolumeExport(hostId, volumeId);
+        Host host = _dbClient.queryObject(Host.class, hostId);
+        ComputeElement ce = null;
+        ComputeSystem cs = null;
+        if (host==null){
+             throw ComputeSystemControllerException.exceptions.hostNotFound(hostId.toString());
+        }
+        if (!NullColumnValueGetter.isNullURI(host.getComputeElement())) {
+            ce = _dbClient.queryObject(ComputeElement.class, host.getComputeElement());
+        }
+        if (ce == null){
+             log.error("Cannot determine ComputeElement for host "+ host.getLabel());
+             throw ComputeSystemControllerException.exceptions.cannotDetermineComputeSystemForHost(host.getLabel());
+        }
+        cs = _dbClient.queryObject(ComputeSystem.class, ce.getComputeSystem());
+        if (cs == null){
+             log.error("Cannot determine ComputeSystem for host "+ host.getLabel());
+             throw ComputeSystemControllerException.exceptions.cannotDetermineComputeSystemForHost(host.getLabel());
+        }
+
+        return getDevice(cs.getSystemType()).validateBootVolumeExport(hostId, volumeId);
      }
 
     /**

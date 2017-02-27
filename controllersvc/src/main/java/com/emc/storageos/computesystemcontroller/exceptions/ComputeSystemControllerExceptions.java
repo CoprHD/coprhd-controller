@@ -61,6 +61,9 @@ public interface ComputeSystemControllerExceptions {
     public ComputeSystemControllerException invalidBootVolumeExport(final String host, final String volume );
 
     @DeclareServiceCode(ServiceCode.CONTROLLER_COMPUTESYSTEM_ERROR)
+    public ComputeSystemControllerException cannotDetermineComputeSystemForHost(final String host);
+
+    @DeclareServiceCode(ServiceCode.CONTROLLER_COMPUTESYSTEM_ERROR)
     public ComputeSystemControllerException unableToValidateBootVolumeExport(final String host, final String volume, final Throwable cause);
 
     @DeclareServiceCode(ServiceCode.CONTROLLER_COMPUTESYSTEM_ERROR)

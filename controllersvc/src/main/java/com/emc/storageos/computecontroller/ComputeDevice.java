@@ -144,5 +144,12 @@ public interface ComputeDevice extends Controller {
      * @throws ClientGeneralException
      */
     public void deactivateHost(ComputeSystem cs, Host host) throws ClientGeneralException;
-
+  
+   /**
+    * Validates that the specified boot volume is exported to the host in ViPR and that array target ports are in the ExportMask
+    * @param hostId URI of the host
+    * @param volumeId URI of the volume
+    * @return boolean true if the boot volume is exported to the host
+    */
+    public boolean validateBootVolumeExport(URI hostId, URI volumeId) throws InternalException;
 }

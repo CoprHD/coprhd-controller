@@ -1146,6 +1146,7 @@ public class UcsComputeDevice implements ComputeDevice {
 
     }
 
+    @Override
     public boolean validateBootVolumeExport(URI hostId, URI volumeId) throws InternalException {
         boolean valid = false;
         Host host = _dbClient.queryObject(Host.class, hostId);
@@ -1160,7 +1161,7 @@ public class UcsComputeDevice implements ComputeDevice {
              
                 if (storagePorts != null && !storagePorts.isEmpty()) {
                     LOGGER.info("Initiator " + initiator.getLabel() + " mapped to "+ storagePorts.size()+ " array ports");
-                    initiatorPortMap.add(initiator, storagePorts);
+                    initiatorPortMap.put(initiator, storagePorts);
                 }else {
                     LOGGER.info("Initiator " + initiator.getLabel() + " not mapped to any array ports");
                 }

@@ -361,33 +361,18 @@ public class HostService extends TaskResourceService {
             throw APIException.badRequests.cannotUpdateHost("another operation is in progress for this host");
         }
         
-        if (param.getBootVolume() != null) {
-            host.setBootVolumeId(NullColumnValueGetter.isNullURI(param.getBootVolume()) ? NullColumnValueGetter
-                    .getNullURI() : param.getBootVolume());
-            _log.info("set boot volume in database");
-        }
-	_dbClient.updateAndReindexObject(host);
-        auditOp(OperationTypeEnum.UPDATE_HOST, true, null,
+        auditOp(OperationTypeEnum.UPDATE_HOST_BOOT_VOLUME, true, null,
                 host.auditParameters());
 		
         String taskId = UUID.randomUUID().toString();
         ComputeSystemController controller = getController(ComputeSystemController.class, null);
         Operation op = _dbClient.createTaskOpStatus(Host.class, id, taskId,
-                ResourceOperationTypeEnum.UPDATE_HOST);
+                ResourceOperationTypeEnum.UPDATE_HOST_BOOT_VOLUME);
 
         // VBDU TODO: COP-28451, The above block of code doesn't guarantee that exports will be triggered for the
         // updated host. Is it OK to set boot volume?
 
-        //TODO: COP-27544 fix should validate that the boot volume is exported to the host and that the zoningMap is populated with array ports
-        //as part of the controller workflow invoked below.
         controller.setHostBootVolume(host.getId(), param.getBootVolume(), updateSanBootTargets, taskId);
-         /*
-         * It is not merely enough to make the Host -> (Boot)Volume association
-         * by setting the boot volume id on the Host. A volume is truly a boot
-         * volume, iff it's exported to the Host with HLU 0. Hence an update to
-         * the Host to set the boot volume should only really be made *after*
-         * the volume has been exported to the Host.
-         */
         return toTask(host, taskId, op);
     }
 

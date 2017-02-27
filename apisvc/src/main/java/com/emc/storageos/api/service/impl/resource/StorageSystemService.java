@@ -16,8 +16,10 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.EnumSet;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import javax.ws.rs.Consumes;
@@ -39,6 +41,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import com.emc.storageos.api.mapper.functions.MapStoragePort;
 import com.emc.storageos.api.service.impl.resource.utils.AsyncTaskExecutorIntf;
 import com.emc.storageos.api.service.impl.resource.utils.DiscoveredObjectTaskScheduler;
+import com.emc.storageos.api.service.impl.resource.utils.PropertySetterUtil;
 import com.emc.storageos.api.service.impl.resource.utils.PurgeRunnable;
 import com.emc.storageos.api.service.impl.resource.utils.VolumeIngestionUtil;
 import com.emc.storageos.api.service.impl.response.BulkList;
@@ -79,6 +82,7 @@ import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFil
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFileSystem.SupportedFileSystemCharacterstics;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume.SupportedVolumeCharacterstics;
+import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume.SupportedVolumeInformation;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.exceptions.DatabaseException;
@@ -1797,6 +1801,7 @@ public class StorageSystemService extends TaskResourceService {
                 : FALSE_STR;
         StorageSystem system = _dbClient.queryObject(StorageSystem.class, id);
         boolean isVplexSystem = ConnectivityUtil.isAVPlex(system);
+        Map<String, UnManagedVolume> vplexParentVolumeCache = isVplexSystem ? new HashMap<String, UnManagedVolume>() : null;
         UnManagedVolumeList unManagedVolumeList = new UnManagedVolumeList();
         URIQueryResultList result = new URIQueryResultList();
         _dbClient.queryByConstraint(
@@ -1814,11 +1819,17 @@ public class StorageSystemService extends TaskResourceService {
                 umvExportStatus = umv.getVolumeCharacterstics().get(
                         SupportedVolumeCharacterstics.IS_VOLUME_EXPORTED.toString());
             }
-            // allow backend snapshots for vplex vpool ingestion
-            boolean isSnapshot = VolumeIngestionUtil.isSnapshot(umv);
-            boolean systemMatch = umv.getStorageSystemUri().equals(id) || (isVplexSystem && isSnapshot);
             boolean exportStatusMatch = (null != umvExportStatus) && umvExportStatus.equalsIgnoreCase(isExportedSelected); 
-            if (systemMatch && exportStatusMatch) {
+            boolean systemMatch = umv.getStorageSystemUri().equals(id);
+            // allow backend snapshots for vplex vpool ingestion - must check parent virtual volume for system match
+            boolean isVplexSnapshot = false;
+            if (exportStatusMatch && isVplexSystem && VolumeIngestionUtil.isSnapshot(umv)) {
+                UnManagedVolume vplexParentVolume = VolumeIngestionUtil.findVplexParentVolume(umv, _dbClient, vplexParentVolumeCache);
+                if (vplexParentVolume != null && vplexParentVolume.getStorageSystemUri().equals(id)) {
+                    isVplexSnapshot = true;
+                }
+            }
+            if (exportStatusMatch && (systemMatch || isVplexSnapshot)) {
                 String name = (null == umv.getLabel()) ? umv.getNativeGuid() : umv.getLabel();
                 unManagedVolumeList.getNamedUnManagedVolumes().add(
                         toNamedRelatedResource(ResourceTypeEnum.UNMANAGED_VOLUMES, umv.getId(), name));

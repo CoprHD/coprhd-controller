@@ -102,6 +102,7 @@ import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
 import com.emc.storageos.volumecontroller.placement.BlockStorageScheduler;
 import com.emc.storageos.vplex.api.VPlexApiConstants;
 import com.emc.storageos.vplexcontroller.VPlexControllerUtils;
+import com.emc.storageos.vplexcontroller.VplexBackendIngestionContext;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.Sets;
@@ -4576,6 +4577,56 @@ public class VolumeIngestionUtil {
                 }
             }
         }
+    }
+
+    /**
+     * Recursively find a VPLEX parent volume for the given UnManagedVolume. Will first check
+     * VPLEX_PARENT_VOLUME and if not found, will check LOCAL_REPLICA_SOURCE_VOLUME recursively
+     * for its VPLEX_PARENT_VOLUME.
+     * 
+     * @param unManagedVolume the UnManagedVolume to check
+     * @param dbClient a reference to the database client
+     * @param cache an optional cache of loaded VPLEX parent volume guids to UnManagedVolume object for that GUID
+     * @return the root parent VPLEX virtual volume UnManagedVolume, or null if none found
+     */
+    public static UnManagedVolume findVplexParentVolume(UnManagedVolume unManagedVolume, DbClient dbClient, Map<String, UnManagedVolume> cache) {
+        if (unManagedVolume == null || isVplexVolume(unManagedVolume)) {
+            return unManagedVolume;
+        }
+        String vplexParentVolumeGuid = PropertySetterUtil.extractValueFromStringSet(
+                SupportedVolumeInformation.VPLEX_PARENT_VOLUME.toString(),
+                unManagedVolume.getVolumeInformation());
+        if (vplexParentVolumeGuid != null) {
+            if (cache != null && cache.containsKey(vplexParentVolumeGuid)) {
+                return cache.get(vplexParentVolumeGuid);
+            }
+            URIQueryResultList unManagedVolumeList = new URIQueryResultList();
+            dbClient.queryByConstraint(AlternateIdConstraint.Factory
+                    .getVolumeInfoNativeIdConstraint(vplexParentVolumeGuid), unManagedVolumeList);
+            if (unManagedVolumeList.iterator().hasNext()) {
+                UnManagedVolume vplexParentVolume = dbClient.queryObject(UnManagedVolume.class, unManagedVolumeList.iterator().next());
+                if (cache != null) {
+                    cache.put(vplexParentVolumeGuid, vplexParentVolume);
+                }
+                return vplexParentVolume;
+            }
+        } else {
+            String localReplicaSourceVolumeGuid =  PropertySetterUtil.extractValueFromStringSet(
+                    SupportedVolumeInformation.LOCAL_REPLICA_SOURCE_VOLUME.toString(),
+                    unManagedVolume.getVolumeInformation());
+            if (localReplicaSourceVolumeGuid != null) {
+                URIQueryResultList unManagedVolumeList = new URIQueryResultList();
+                dbClient.queryByConstraint(AlternateIdConstraint.Factory
+                        .getVolumeInfoNativeIdConstraint(localReplicaSourceVolumeGuid), unManagedVolumeList);
+                if (unManagedVolumeList.iterator().hasNext()) {
+                    UnManagedVolume localReplicaSourceVolume = 
+                            dbClient.queryObject(UnManagedVolume.class, unManagedVolumeList.iterator().next());
+                    return findVplexParentVolume(localReplicaSourceVolume, dbClient, cache);
+                }
+            }
+        }
+
+        return null;
     }
 
     /**

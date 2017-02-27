@@ -126,7 +126,7 @@ public class Common extends Controller {
 
     @Before(priority = 0)
     public static void xssCheck() {
-        Logger.info("--- xss check");
+        Logger.info("--- xss check, path is %", request.path);
         for (String param : params.all().keySet()) {
             Logger.info("--- param name is %s", param);
             // skip xss sanitation for fields which name contains password

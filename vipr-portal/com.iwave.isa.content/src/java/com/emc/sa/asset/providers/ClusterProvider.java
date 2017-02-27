@@ -15,6 +15,7 @@ import com.emc.sa.asset.BaseAssetOptionsProvider;
 import com.emc.sa.asset.annotation.Asset;
 import com.emc.sa.asset.annotation.AssetNamespace;
 import com.emc.storageos.db.client.model.Host;
+import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.model.host.HostRestRep;
 import com.emc.storageos.model.host.cluster.ClusterRestRep;
 import com.emc.vipr.model.catalog.AssetOption;
@@ -74,9 +75,11 @@ public class ClusterProvider extends BaseAssetOptionsProvider {
             List<HostRestRep> hostList = api(ctx).hosts().getByCluster(value.getId());
             for (HostRestRep host : hostList) {
                 // If Cluster has an esx or No-OS host and if host has a computeElement - then add it to the list
-                if ((host.getType().equalsIgnoreCase(Host.HostType.Esx.name())
-                        || host.getType().equalsIgnoreCase(Host.HostType.No_OS.name()))
-                        && host.getComputeElement() != null) {
+                if (host.getType() != null &&
+                    (host.getType().equalsIgnoreCase(Host.HostType.Esx.name()) ||
+                     host.getType().equalsIgnoreCase(Host.HostType.No_OS.name())) &&
+                    host.getComputeElement() != null && 
+                    !NullColumnValueGetter.isNullURI(host.getComputeElement().getId())) {
                     options.add(createClusterOption(ctx, value));
                     break;
                 }

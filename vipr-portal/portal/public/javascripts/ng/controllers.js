@@ -282,6 +282,10 @@ angular.module("portalApp").controller({
 	
             // if a required field has no value, disable the order button
             var result = false;
+
+            // if any field in serviceForm is invalid like max number of copies
+            result = ! $scope.serviceForm.$valid;
+
             angular.forEach(requiredFields, function(field) {
                 if (field.value == null || field.value.length < 1) {
                     result = true;
@@ -296,12 +300,33 @@ angular.module("portalApp").controller({
                 }  
             });
 
-            // if any field in serviceForm is invalid like max number of copies
-            result = ! $scope.serviceForm.$valid;
-
             // if we make it out, enable the order button
             return result;
+        };
+        $scope.dismissAssetError = function() {
+            $scope.$root.assetError = undefined;
         }
+        $scope.showModalDialog = function() {
+            $('#serviceModal').modal({backdrop: 'static', keyboard: false});
+            $scope.enableModalFields();
+        }
+        $scope.hideModalDialog = function() {
+            $('#serviceModal').modal('hide');
+            $scope.dismissAssetError();
+            $scope.disableModalFields();
+        }
+        $scope.disableModalButton = function() {
+            if ($scope.$root.errorCount > 0) {
+                return true
+            }
+            return false;
+        };
+        $scope.enableModalFields = function() {
+            $scope.updateModalFields = true;
+        };
+        $scope.disableModalFields = function() {
+            $scope.updateModalFields = false;
+        };
     },
     
     FileRessourceCtrl: function($scope, $http, $window, translate) {

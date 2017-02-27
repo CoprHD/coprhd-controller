@@ -2,6 +2,7 @@
     baseKey:"ExportPathAdjustment.Block",
     serviceId:"ExportPathAdjustment",
     useModal: true,
+    modalTitle:"exportPathAdjustment.modal.title",
     roles: [
         "SYSTEM_ADMIN"
     ],
@@ -67,19 +68,22 @@
                     type:"assetType.vipr.exportPathResultingPaths",
                     select: "list",
                     required: false,
-                    omitNone: true
+                    omitNone: true,
+                    modalField: true
                 },
                 removedPaths:{
                     type:"assetType.vipr.exportPathRemovedPaths",
                     select: "list",
                     required: false,
-                    omitNone: true
+                    omitNone: true,
+                    modalField: true
                 },
                 affectedExports:{
                     type:"assetType.vipr.exportPathAffectedExports",
                     select: "list",
                     required: false,
-                    omitNone: true
+                    omitNone: true,
+                    modalField: true
                 }
     	    }
         }

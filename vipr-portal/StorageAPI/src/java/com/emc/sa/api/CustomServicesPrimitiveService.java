@@ -659,7 +659,7 @@ public class CustomServicesPrimitiveService extends CatalogTaggedResourceService
                 entry = tarIn.getNextTarEntry();
             }
             return playbooks;
-        } catch (IOException e) {
+        } catch (final IOException e) {
             throw InternalServerErrorException.internalServerErrors.genericApisvcError("Invalid ansible archive", e);
         }
     }

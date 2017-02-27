@@ -57,7 +57,7 @@ import com.emc.storageos.services.util.Exec;
 import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorException;
 
 /**
- * Runs User created Primitives - Shell script or Ansible Playbook.
+ * Runs CustomServices Primitives - Shell script or Ansible Playbook.
  * It can run Ansible playbook on local node as well as on Remote node
  *
  */
@@ -89,7 +89,7 @@ public class RunAnsible extends ViPRExecutionTask<CustomServicesTaskResult> {
     @Override
     public CustomServicesTaskResult executeTask() throws Exception {
 
-        ExecutionUtils.currentContext().logInfo("runShellorAnsible.statusInfo", step.getId());
+        ExecutionUtils.currentContext().logInfo("runCustomScript.statusInfo", step.getId());
         final URI scriptid = step.getOperation();
 
         final StepType type = StepType.fromString(step.getType());
@@ -121,15 +121,7 @@ public class RunAnsible extends ViPRExecutionTask<CustomServicesTaskResult> {
                     final String scriptFileName = String.format("%s%s.sh", orderDir, step.getId());
 
                     final byte[] bytes = Base64.decodeBase64(script.getResource());
-                    try (FileOutputStream fileOuputStream = new FileOutputStream(scriptFileName)) {
-                        fileOuputStream.write(bytes);
-                    } catch (IOException e) {
-                        logger.error("Creating Shell Script file failed with exception: {}",
-                                e.getMessage());
-                        throw InternalServerErrorException.internalServerErrors
-                                .customServiceExecutionFailed("Creating Shell Script file failed with exception:" +
-                                        e.getMessage());
-                    }
+                    writeShellScripttoFile(bytes, scriptFileName);
 
                     final String inputToScript = makeParam(input);
                     logger.debug("input is {}", inputToScript);
@@ -171,16 +163,26 @@ public class RunAnsible extends ViPRExecutionTask<CustomServicesTaskResult> {
             throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed("Custom Service Task Failed" + e);
         }
 
-        ExecutionUtils.currentContext().logInfo("runShellorAnsible.statusInfo", step.getId());
+        ExecutionUtils.currentContext().logInfo("runCustomScript.doneInfo", step.getId());
 
         if (result == null) {
             throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed("Script/Ansible execution Failed");
         }
 
-        logger.info("Shell/ Ansible Execution result:output{} error{} exitValue:{}", result.getStdOutput(), result.getStdError(),
+        logger.info("CustomScript Execution result:output{} error{} exitValue:{}", result.getStdOutput(), result.getStdError(),
                 result.getExitValue());
 
         return new CustomServicesTaskResult(parseOut(result.getStdOutput()), result.getStdError(), result.getExitValue(), null);
+    }
+
+    private void writeShellScripttoFile(final byte[] bytes, final String scriptFileName){
+        try (FileOutputStream fileOuputStream = new FileOutputStream(scriptFileName)) {
+            fileOuputStream.write(bytes);
+        } catch (final IOException e) {
+            throw InternalServerErrorException.internalServerErrors
+                    .customServiceExecutionFailed("Creating Shell Script file failed with exception:" +
+                            e.getMessage());
+        }
     }
 
     private void uncompressArchive(final byte[] ansibleArchive) {
@@ -189,22 +191,22 @@ public class RunAnsible extends ViPRExecutionTask<CustomServicesTaskResult> {
                         ansibleArchive)))) {
             TarArchiveEntry entry = tarIn.getNextTarEntry();
             while (entry != null) {
-                File curTarget = new File(orderDir, entry.getName());
+                final File curTarget = new File(orderDir, entry.getName());
                 if (entry.isDirectory()) {
                     curTarget.mkdirs();
                 } else {
-                    File parent = curTarget.getParentFile();
+                    final File parent = curTarget.getParentFile();
                     if (!parent.exists()) {
                         parent.mkdirs();
                     }
-                    OutputStream out = new FileOutputStream(curTarget);
+                    final OutputStream out = new FileOutputStream(curTarget);
                     IOUtils.copy(tarIn, out);
                     out.close();
 
                 }
                 entry = tarIn.getNextTarEntry();
             }
-        } catch (IOException e) {
+        } catch (final IOException e) {
             throw InternalServerErrorException.internalServerErrors.genericApisvcError("Invalid ansible archive", e);
         }
     }
@@ -291,7 +293,7 @@ public class RunAnsible extends ViPRExecutionTask<CustomServicesTaskResult> {
         return Exec.exec(timeout, cmds);
     }
 
-    // Execute Ansible playbook on localhost
+    // Execute Shel Script resource
     private Exec.Result executeCmd(final String playbook, final String extraVars) {
         final AnsibleCommandLine cmd = new AnsibleCommandLine(CustomServicesConstants.SHELL_BIN, playbook);
         cmd.setShellArgs(extraVars);

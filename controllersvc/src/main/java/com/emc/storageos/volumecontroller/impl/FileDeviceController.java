@@ -58,6 +58,7 @@ import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.TenantOrg;
+import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualNAS;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
@@ -97,6 +98,11 @@ import com.emc.storageos.volumecontroller.FileSMBShare;
 import com.emc.storageos.volumecontroller.FileShareExport;
 import com.emc.storageos.volumecontroller.FileShareQuotaDirectory;
 import com.emc.storageos.volumecontroller.FileStorageDevice;
+import com.emc.storageos.volumecontroller.TaskCompleter;
+import com.emc.storageos.volumecontroller.impl.file.MirrorFilePauseTaskCompleter;
+import com.emc.storageos.volumecontroller.impl.file.MirrorFileRefreshTaskCompleter;
+import com.emc.storageos.volumecontroller.impl.file.MirrorFileResumeTaskCompleter;
+import com.emc.storageos.volumecontroller.impl.file.MirrorFileStartTaskCompleter;
 import com.emc.storageos.volumecontroller.impl.monitoring.RecordableBourneEvent;
 import com.emc.storageos.volumecontroller.impl.monitoring.RecordableEventManager;
 import com.emc.storageos.volumecontroller.impl.monitoring.cim.enums.RecordType;
@@ -4378,9 +4384,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             Object[] args) {
         StorageSystem system = _dbClient.queryObject(StorageSystem.class, storage);
         Workflow.Method method = new Workflow.Method(methodName, args);
-        String waitForStep = workflow.createStep(null, stepDescription, waitFor, storage, system.getSystemType(), getClass(), method, null,
-                stepId);
-        return waitForStep;
+        return workflow.createStep(null, stepDescription, waitFor, storage, system.getSystemType(), getClass(), method, null, stepId);
     }
 
     /**
@@ -4568,7 +4572,8 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
 
     @Override
     public void assignFileReplicationPolicyToVirtualPools(URI storageSystemURI, URI targetSystemURI,
-            URI sourceVNasURI, URI targetVNasURI, URI filePolicyToAssign, URI vpoolURI, String opId) throws ControllerException {
+            URI sourceVNasURI, URI targetVArrayURI, URI targetVNasURI, URI filePolicyToAssign,
+            URI vpoolURI, String opId) throws ControllerException {
 
         try {
             WorkflowStepCompleter.stepExecuting(opId);
@@ -4577,12 +4582,13 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
 
             FilePolicy filePolicy = _dbClient.queryObject(FilePolicy.class, filePolicyToAssign);
             VirtualPool vpool = _dbClient.queryObject(VirtualPool.class, vpoolURI);
+            VirtualArray targetVarray = _dbClient.queryObject(VirtualArray.class, targetVArrayURI);
             VirtualNAS sourceVNAS = null;
             VirtualNAS targetVNAS = null;
 
             FileDeviceInputOutput sourceArgs = new FileDeviceInputOutput();
             FileDeviceInputOutput targetArgs = new FileDeviceInputOutput();
-
+            targetArgs.setVarray(targetVarray);
             sourceArgs.setFileProtectionPolicy(filePolicy);
             sourceArgs.setVPool(vpool);
             if (sourceVNasURI != null) {
@@ -4622,8 +4628,8 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
 
     @Override
     public void assignFileReplicationPolicyToProjects(URI storageSystemURI, URI targetSystemURI,
-            URI sourceVNasURI, URI targetVNasURI, URI filePolicyToAssign, URI vpoolURI, URI projectURI, String opId)
-            throws InternalException {
+            URI sourceVNasURI, URI targetVArrayURI, URI targetVNasURI, URI filePolicyToAssign,
+            URI vpoolURI, URI projectURI, String opId) throws InternalException {
         try {
             WorkflowStepCompleter.stepExecuting(opId);
             StorageSystem sourceSystem = _dbClient.queryObject(StorageSystem.class, storageSystemURI);
@@ -4632,6 +4638,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             VirtualPool vpool = _dbClient.queryObject(VirtualPool.class, vpoolURI);
             Project project = _dbClient.queryObject(Project.class, projectURI);
             TenantOrg tenant = _dbClient.queryObject(TenantOrg.class, project.getTenantOrg());
+            VirtualArray targetVarray = _dbClient.queryObject(VirtualArray.class, targetVArrayURI);
 
             VirtualNAS sourceVNAS = null;
             VirtualNAS targetVNAS = null;
@@ -4643,6 +4650,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             sourceArgs.setVPool(vpool);
             sourceArgs.setProject(project);
             sourceArgs.setTenantOrg(tenant);
+            targetArgs.setVarray(targetVarray);
             if (sourceVNasURI != null) {
                 sourceVNAS = _dbClient.queryObject(VirtualNAS.class, sourceVNasURI);
                 sourceArgs.setvNAS(sourceVNAS);
@@ -4675,6 +4683,75 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
         } catch (Exception e) {
             ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
             WorkflowStepCompleter.stepFailed(opId, serviceError);
+        }
+    }
+
+    @Override
+    public void performFileReplicationOperation(URI storage, URI sourceFSURI, String opType, String opId) throws ControllerException {
+        StorageSystem system = _dbClient.queryObject(StorageSystem.class, storage);
+        FileShare fileShare = _dbClient.queryObject(FileShare.class, sourceFSURI);
+        TaskCompleter completer = null;
+        BiosCommandResult result = new BiosCommandResult();
+        try {
+            if ("pause".equalsIgnoreCase(opType)) {
+                completer = new MirrorFilePauseTaskCompleter(FileShare.class, sourceFSURI, opId);
+                result = getDevice(system.getSystemType()).doPauseLink(system, fileShare);
+
+            } else if ("resume".equalsIgnoreCase(opType)) {
+                completer = new MirrorFileResumeTaskCompleter(FileShare.class, sourceFSURI, opId);
+                result = getDevice(system.getSystemType()).doResumeLink(system, fileShare, completer);
+
+            } else if ("start".equalsIgnoreCase(opType)) {
+                completer = new MirrorFileStartTaskCompleter(FileShare.class, sourceFSURI, opId);
+                result = getDevice(system.getSystemType()).doStartMirrorLink(system, fileShare, completer);
+
+            } else if ("refresh".equalsIgnoreCase(opType)) {
+                completer = new MirrorFileRefreshTaskCompleter(FileShare.class, sourceFSURI, opId);
+                result = getDevice(system.getSystemType()).doRefreshMirrorLink(system, fileShare);
+            }
+            if (result.getCommandSuccess()) {
+                completer.ready(_dbClient);
+            } else if (result.getCommandPending()) {
+                completer.statusPending(_dbClient, result.getMessage());
+            } else {
+                completer.error(_dbClient, result.getServiceCoded());
+            }
+        } catch (Exception e) {
+            _log.error("unable to perform mirror operation {} on file system {} ", opType, sourceFSURI, e);
+            updateTaskStatus(opId, fileShare, e);
+        }
+    }
+
+    /**
+     * Fail over Work flow Method
+     * 
+     * @param storage target storage system
+     * @param fileshareURI target file system URI
+     * @param completer
+     * @param opId
+     */
+    public void failoverFileSystem(URI storage, URI fileshareURI, TaskCompleter completer, String opId) {
+        try {
+            StorageSystem system = _dbClient.queryObject(StorageSystem.class, storage);
+            FileShare fileShare = _dbClient.queryObject(FileShare.class, fileshareURI);
+            WorkflowStepCompleter.stepExecuting(opId);
+            _log.info("Execution of Failover Job Started");
+
+            BiosCommandResult cmdResult = getDevice(system.getSystemType()).doFailoverLink(system, fileShare, completer);
+
+            if (cmdResult.getCommandSuccess()) {
+                completer.ready(_dbClient);
+            } else if (cmdResult.getCommandPending()) {
+                completer.statusPending(_dbClient, cmdResult.getMessage());
+            } else {
+                completer.error(_dbClient, cmdResult.getServiceCoded());
+            }
+        } catch (Exception e) {
+            ServiceError error = DeviceControllerException.errors.jobFailed(e);
+            if (null != completer) {
+                completer.error(this._dbClient, error);
+            }
+            WorkflowStepCompleter.stepFailed(opId, error);
         }
     }
 

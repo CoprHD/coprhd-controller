@@ -5,10 +5,14 @@
 package com.emc.storageos.db.client.model.util;
 
 import java.net.URI;
+import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Iterator;
 import java.util.List;
 
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.constraint.AggregatedConstraint;
+import com.emc.storageos.db.client.constraint.AggregationQueryResultList;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.Constraint;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
@@ -66,6 +70,72 @@ public class TaskUtils {
 
     public static List<Task> findResourceTasks(DbClient dbClient, URI resourceId) {
         return getTasks(dbClient, ContainmentConstraint.Factory.getResourceTaskConstraint(resourceId));
+    }
+    
+    /**
+     * cleans up all pending tasks for a resource and task type
+     * 
+     * @param dbClient
+     * @param resourceId resource id
+     * @param taskName the task name to match task.getLabel()
+     * @param tenantId tenant that owns the resource
+     */
+    public static void cleanupPendingTasks(DbClient dbClient, URI resourceId, String taskName, URI tenantId) {
+        cleanupPendingTasks(dbClient, resourceId, taskName, tenantId, null);
+    }
+    
+    /**
+     * cleans up pending tasks for a resource and task type older than a specified time
+     * @param dbClient
+     * @param resourceId resource id
+     * @param taskName the task name to match task.getLabel()
+     * @param tenantId tenant that owns the resource
+     * @param olderThan tasks started before this will be cleared
+     */
+    public static void cleanupPendingTasks(DbClient dbClient, URI resourceId, String taskName, URI tenantId, Calendar olderThan) {
+        Iterator<Task> pendingTasks = TaskUtils.findPendingTasksForResource(dbClient, resourceId, tenantId);
+        while (pendingTasks.hasNext()) {
+            Task task = pendingTasks.next();
+            if (task.getLabel().equals(taskName) && (olderThan == null || task.getStartTime().before(olderThan))) {
+                task.setProgress(100);
+                task.setEndTime(Calendar.getInstance());
+                task.setStatus(Task.Status.error.toString());
+                task.setMessage("Setting orphaned task to error state");
+                dbClient.updateObject(task);
+            }
+        }
+    }
+
+    /**
+     * returns pending tasks for a resource
+     * 
+     * @param dbClient
+     * @param resourceId
+     * @return
+     */
+    public static Iterator<Task> findPendingTasksForResource(DbClient dbClient, URI resourceId, URI tenantId) {
+        Constraint constraint = AggregatedConstraint.Factory.getAggregationConstraint(Task.class, "tenant",
+                tenantId.toString(), "taskStatus");
+        AggregationQueryResultList queryResults = new AggregationQueryResultList();
+        dbClient.queryByConstraint(constraint, queryResults);
+        Iterator<AggregationQueryResultList.AggregatedEntry> it = queryResults.iterator();
+        List<URI> pendingTasks = new ArrayList<URI>();
+        while (it.hasNext()) {
+            AggregationQueryResultList.AggregatedEntry entry = it.next();
+            if (entry.getValue().equals(Task.Status.pending.name())) {
+                pendingTasks.add(entry.getId());
+            }
+        }
+        List<Task> pendingTasksForResource = new ArrayList<Task>();
+        Iterator<Task> pendingItr = dbClient.queryIterativeObjects(Task.class, pendingTasks);
+        while (pendingItr.hasNext()) {
+            Task task = pendingItr.next();
+            if (task.getResource().getURI().equals(resourceId)) {
+                pendingTasksForResource.add(task);
+            }
+        }
+        
+        return pendingTasksForResource.iterator();
     }
 
     public static List<NamedURI> findResourceTaskIds(DbClient dbClient, URI resourceId) {

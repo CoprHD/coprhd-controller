@@ -23,6 +23,7 @@ import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.TenantOrg;
+import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualNAS;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.model.file.CifsShareACLUpdateParams;
@@ -99,6 +100,7 @@ public class FileDeviceInputOutput {
     private StorageSystem sourceSystem;
     private VirtualNAS sourceVNAS;
     private boolean isTarget = false;
+    private VirtualArray varray;
 
     public String getFileSystemPath() {
         return fileSystemPath;
@@ -1106,6 +1108,14 @@ public class FileDeviceInputOutput {
 
     public void setSourceSystem(StorageSystem sourceSystem) {
         this.sourceSystem = sourceSystem;
+    }
+
+    public VirtualArray getVarray() {
+        return varray;
+    }
+
+    public void setVarray(VirtualArray varray) {
+        this.varray = varray;
     }
 
 }

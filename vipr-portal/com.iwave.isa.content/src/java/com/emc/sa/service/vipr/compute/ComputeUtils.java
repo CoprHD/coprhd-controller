@@ -924,7 +924,7 @@ public class ComputeUtils {
         // If this cluster is not part of a virtual center/datacenter, then we cannot perform validation,
         // so return that the boot volume is valid due to lack of technical ability to dig any deeper.
         if (NullColumnValueGetter.isNullURI(cluster.getVcenterDataCenter())) {
-            ExecutionUtils.currentContext().logInfo("computeutils.removebootvolumes.validation.skipped", cluster.forDisplay());
+            ExecutionUtils.currentContext().logInfo("computeutils.removebootvolumes.validation.skipped.noVcenterDataCenter", cluster.forDisplay());
             return true;
         }
 

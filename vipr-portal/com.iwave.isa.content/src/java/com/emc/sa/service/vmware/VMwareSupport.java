@@ -754,9 +754,6 @@ public class VMwareSupport {
         for (String lun : luns) {
             VolumeRestRep volume = execute(new GetBlockVolumeByWWN(lun));
             if (volume != null) {
-
-                // VBDU TODO: Check the datastore tag, make sure it matches
-
                 volumes.add(volume);
             } else {
                 logError("vmware.support.datastore.volumenotfound", datastore.getName());

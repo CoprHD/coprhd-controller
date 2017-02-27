@@ -828,6 +828,9 @@ public interface VPlexApiExceptions {
     public VPlexApiException vplexFirmwareUpdateNeeded(final String why);
 
     @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
+    public VPlexApiException thinProvisioningVerificationFailed(final String storageSystemName);
+
+    @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
     public VPlexApiException vplexClusterConfigurationChangedFromMetroToLocal(final String systemNativeGuid, final String localAssemblyId);
 
     @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)

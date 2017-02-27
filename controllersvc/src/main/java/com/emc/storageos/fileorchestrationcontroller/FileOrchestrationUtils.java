@@ -6,6 +6,7 @@ package com.emc.storageos.fileorchestrationcontroller;
 
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -955,24 +956,49 @@ public final class FileOrchestrationUtils {
      */
     public static String getTargetHostPortForReplication(DbClient dbClient, FileShare targetFS) {
 
-        return getTargetHostPortForReplication(dbClient, targetFS.getStorageDevice());
+        return getTargetHostPortForReplication(dbClient, targetFS.getStorageDevice(),
+                targetFS.getVirtualArray(), targetFS.getVirtualNAS());
 
     }
 
-    public static String getTargetHostPortForReplication(DbClient dbClient, URI targetStorageSystemURI) {
+    public static String getTargetHostPortForReplication(DbClient dbClient, URI targetStorageSystemURI, URI targetVarrayURI,
+            URI targetVNasURI) {
 
         StorageSystem targetSystem = dbClient.queryObject(StorageSystem.class, targetStorageSystemURI);
         String targetHost = targetSystem.getIpAddress();
 
-        URIQueryResultList storagePortURIs = new URIQueryResultList();
-        dbClient.queryByConstraint(
-                ContainmentConstraint.Factory.getStorageDeviceStoragePortConstraint(targetStorageSystemURI),
-                storagePortURIs);
-        Iterator<URI> storagePortIter = storagePortURIs.iterator();
-        while (storagePortIter.hasNext()) {
-            StoragePort port = dbClient.queryObject(StoragePort.class, storagePortIter.next());
+        StringSet targetNasVarraySet = null;
+
+        StringSet targetStoragePortSet = null;
+
+        if (targetVNasURI != null) {
+            VirtualNAS targetVNas = dbClient.queryObject(VirtualNAS.class, targetVNasURI);
+            targetStoragePortSet = targetVNas.getStoragePorts();
+            targetNasVarraySet = targetVNas.getTaggedVirtualArrays();
+        } else {
+            PhysicalNAS pNAS = FileOrchestrationUtils.getSystemPhysicalNAS(dbClient, targetSystem);
+            targetStoragePortSet = pNAS.getStoragePorts();
+            targetNasVarraySet = pNAS.getTaggedVirtualArrays();
+        }
+
+        List<String> drPorts = new ArrayList<String>();
+        for (String nasPort : targetStoragePortSet) {
+
+            StoragePort port = dbClient.queryObject(StoragePort.class, URI.create(nasPort));
+
             if (port != null && !port.getInactive()) {
+
+                StringSet varraySet = port.getTaggedVirtualArrays();
+                if (varraySet == null || !varraySet.contains(targetVarrayURI.toString())) {
+                    continue;
+                }
+                if (targetNasVarraySet != null) {
+                    if (!targetNasVarraySet.contains(targetVarrayURI.toString())) {
+                        continue;
+                    }
+                }
                 targetHost = port.getPortNetworkId();
+
                 // iterate until dr port found!!
                 if (port.getTag() != null) {
                     ScopedLabelSet portTagSet = port.getTag();
@@ -981,13 +1007,17 @@ public final class FileOrchestrationUtils {
                             if ("dr_port".equals(tag.getLabel())) {
                                 _log.info("DR port {} found from storage system {} for replication", port.getPortNetworkId(),
                                         targetSystem.getLabel());
-                                return port.getPortNetworkId();
+                                drPorts.add(port.getPortNetworkId());
                             }
                         }
 
                     }
                 }
             }
+        }
+        if (!drPorts.isEmpty()) {
+            Collections.shuffle(drPorts);
+            return drPorts.get(0);
         }
         return targetHost;
     }

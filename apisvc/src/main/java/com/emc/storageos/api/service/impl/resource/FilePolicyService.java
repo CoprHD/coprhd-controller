@@ -65,6 +65,7 @@ import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.fileorchestrationcontroller.FileOrchestrationController;
 import com.emc.storageos.fileorchestrationcontroller.FileOrchestrationUtils;
 import com.emc.storageos.fileorchestrationcontroller.FileStorageSystemAssociation;
+import com.emc.storageos.fileorchestrationcontroller.FileStorageSystemAssociation.TargetAssociation;
 import com.emc.storageos.model.BulkIdParam;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.model.ResourceTypeEnum;
@@ -743,7 +744,7 @@ public class FilePolicyService extends TaskResourceService {
                 if (replParam.getPolicySchedule().getScheduleFrequency() != null &&
                         !replParam.getPolicySchedule().getScheduleFrequency().isEmpty()) {
                     fileReplicationPolicy
-                            .setScheduleFrequency(replParam.getPolicySchedule().getScheduleFrequency());
+                    .setScheduleFrequency(replParam.getPolicySchedule().getScheduleFrequency());
                 }
             }
         }
@@ -859,11 +860,18 @@ public class FilePolicyService extends TaskResourceService {
                         for (FileReplicationTopology topology : dbTopologies) {
                             if (topology.getSourceVArray() != null
                                     && topology.getSourceVArray().toString().equalsIgnoreCase(topologyParam.getSourceVArray().toString())) {
-                                _log.info("Updating the existing topology");
-                                if (!topology.getTargetVArrays().containsAll(topology.getTargetVArrays())) {
-                                    topology.addTargetVArrays(topology.getTargetVArrays());
+                                _log.info("Updating the existing topology...");
+
+                                if (topologyParam.getTargetVArrays() != null && !topologyParam.getTargetVArrays().isEmpty()) {
+                                    StringSet requestTargetVarraySet = new StringSet();
+                                    for (Iterator<URI> iterator = topologyParam.getTargetVArrays().iterator(); iterator.hasNext();) {
+                                        URI targetVArray = iterator.next();
+                                        requestTargetVarraySet.add(targetVArray.toString());
+                                    }
+                                    topology.setTargetVArrays(requestTargetVarraySet);
                                     _dbClient.updateObject(topology);
                                 }
+
                                 if (filepolicy.getReplicationTopologies() == null
                                         || !filepolicy.getReplicationTopologies().contains(topology.getId().toString())) {
                                     filepolicy.addReplicationTopology(topology.getId().toString());
@@ -1106,17 +1114,20 @@ public class FilePolicyService extends TaskResourceService {
                 association.setProjectvPool(vPoolURI);
                 association.setAppliedAtResource(projectURI);
             }
-            // Constructing a map useful when one-to-many replication is supported in future
-            Map<URI, URI> targetStorageDeviceToVNASMap = new HashMap<URI, URI>();
 
             Map<URI, Target> virtualArrayTargetMap = mirrorRec.getVirtualArrayTargetMap();
             // Getting the first target because we support one-to-one replication now.
+            URI targetVArray = virtualArrayTargetMap.entrySet().iterator().next().getKey();
             Target target = virtualArrayTargetMap.entrySet().iterator().next().getValue();
             URI targetStorageDevice = target.getTargetStorageDevice();
             URI targetVNasURI = target.getTargetvNASURI();
-            targetStorageDeviceToVNASMap.put(targetStorageDevice, targetVNasURI);
 
-            association.setTargetStorageDeviceToVNASMap(targetStorageDeviceToVNASMap);
+            TargetAssociation targetAssociation = new TargetAssociation();
+            targetAssociation.setStorageSystemURI(targetStorageDevice);
+            targetAssociation.setvArrayURI(targetVArray);
+            targetAssociation.setvNASURI(targetVNasURI);
+            association.addTargetAssociation(targetAssociation);
+
             associations.add(association);
         }
         return associations;
@@ -1241,8 +1252,8 @@ public class FilePolicyService extends TaskResourceService {
                                             vpool, capabilities);
                                     if (newRecs != null && !newRecs.isEmpty()) {
                                         projectAssociations
-                                                .addAll(convertRecommendationsToStorageSystemAssociations(newRecs, filePolicy.getApplyAt(),
-                                                        vpool.getId(), projectURI));
+                                        .addAll(convertRecommendationsToStorageSystemAssociations(newRecs, filePolicy.getApplyAt(),
+                                                vpool.getId(), projectURI));
                                     }
                                 } catch (Exception ex) {
                                     _log.error("No recommendations found for storage system {} and virtualArray {} with error {} ",

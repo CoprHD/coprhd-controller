@@ -3635,7 +3635,15 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         _log.info("File replication policy : {} creation started", filePolicy.toString());
 
         try {
-            String targetHost = FileOrchestrationUtils.getTargetHostPortForReplication(_dbClient, targetStorage.getId());
+            VirtualNAS targetVNas = targetSystemArgs.getvNAS();
+            URI targetVNasURI = null;
+            if (targetVNas != null) {
+                targetVNasURI = targetVNas.getId();
+            }
+
+            String targetHost = FileOrchestrationUtils.getTargetHostPortForReplication(_dbClient, targetStorage.getId(),
+                    targetSystemArgs.getVarray().getId(), targetVNasURI);
+
             IsilonApi isi = getIsilonDevice(storageObj);
             isi.createDir(sourcePath, true);
             IsilonSyncPolicy replicationPolicy = new IsilonSyncPolicy(syncPolicyName, sourcePath, targetPath, targetHost,

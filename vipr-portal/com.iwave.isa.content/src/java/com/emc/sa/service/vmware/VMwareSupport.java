@@ -755,6 +755,10 @@ public class VMwareSupport {
             VolumeRestRep volume = execute(new GetBlockVolumeByWWN(lun));
             if (volume != null) {
                 volumes.add(volume);
+            } else {
+                logError("vmware.support.datastore.volumenotfound", datastore.getName());
+                // Don't return any volume objects to quickly report there's an issue to the caller.
+                return null;
             }
         }
         return volumes;

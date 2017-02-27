@@ -135,7 +135,8 @@ public class Common extends Controller {
 
             String[] data = params.getAll(param);
             if ((data != null) && (data.length > 0)) {
-                String sanitizer = (String)XSS_SANITIZERS.get(request.path,param);
+                String sanitizer = (String)XSS_SANITIZERS.get(request.path, param);
+                Logger.debug("Cleaning data for [ %s ] [ %s ]", request.path, param);
                 String[] cleanValues = new String[data.length];
                 for (int i = 0; i < data.length; ++i) {
                     if (PATH_SANITIZER.equals(sanitizer)){

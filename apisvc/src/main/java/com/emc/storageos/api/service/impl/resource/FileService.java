@@ -3160,36 +3160,17 @@ public class FileService extends TaskResourceService {
     @Path("/{id}/protection/continuous-copies/failback")
     @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.OWN, ACL.ALL })
     public TaskList failbackProtection(@PathParam("id") URI id, FileReplicationParam param) throws ControllerException {
+        doMirrorOperationValidation(id, ProtectionOp.FAILBACK.toString());
         TaskResourceRep taskResp = null;
         StoragePort storageportNFS = null;
         StoragePort storageportCIFS = null;
+
         TaskList taskList = new TaskList();
         String task = UUID.randomUUID().toString();
-        ArgValidator.checkFieldUriType(id, FileShare.class, "id");
 
-        FileShare sourceFileShare = _dbClient.queryObject(FileShare.class, id);
-        ArgValidator.checkEntity(sourceFileShare, id, true);
-
-        checkForPendingTasks(Arrays.asList(sourceFileShare.getTenant().getURI()), Arrays.asList(sourceFileShare));
-
-        URI projectURI = sourceFileShare.getProject().getURI();
-        Project project = _permissionsHelper.getObjectById(projectURI, Project.class);
-        ArgValidator.checkEntity(project, projectURI, false);
-        _log.info("Found filesystem project {}", projectURI);
-
-        VirtualPool currentVpool = _dbClient.queryObject(VirtualPool.class, sourceFileShare.getVirtualPool());
-        StringBuffer notSuppReasonBuff = new StringBuffer();
-
-        String operation = ProtectionOp.FAILBACK.getRestOp();
-        if (!FileSystemReplicationUtils.validateMirrorOperationSupported(sourceFileShare, notSuppReasonBuff, operation)) {
-            _log.error("Mirror Operation {} is not supported for the file system {} as : {}", operation.toUpperCase(),
-                    sourceFileShare.getLabel(), notSuppReasonBuff.toString());
-            throw APIException.badRequests.unableToPerformMirrorOperation(operation.toUpperCase(), sourceFileShare.getId(),
-                    notSuppReasonBuff.toString());
-        }
-
+        FileShare sourceFileShare = queryResource(id);
         Operation op = _dbClient.createTaskOpStatus(FileShare.class, id, task, ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_FAILBACK);
-        op.setDescription("Filesystem Failback");
+        op.setDescription("failback to source file system from target system");
 
         boolean replicateConfiguration = param.isReplicateConfiguration();
 

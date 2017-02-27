@@ -102,6 +102,7 @@ import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.file.MirrorFilePauseTaskCompleter;
 import com.emc.storageos.volumecontroller.impl.file.MirrorFileRefreshTaskCompleter;
 import com.emc.storageos.volumecontroller.impl.file.MirrorFileResumeTaskCompleter;
+import com.emc.storageos.volumecontroller.impl.file.MirrorFileResyncTaskCompleter;
 import com.emc.storageos.volumecontroller.impl.file.MirrorFileStartTaskCompleter;
 import com.emc.storageos.volumecontroller.impl.monitoring.RecordableBourneEvent;
 import com.emc.storageos.volumecontroller.impl.monitoring.RecordableEventManager;
@@ -4692,6 +4693,8 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
         FileShare fileShare = _dbClient.queryObject(FileShare.class, sourceFSURI);
         TaskCompleter completer = null;
         BiosCommandResult result = new BiosCommandResult();
+        WorkflowStepCompleter.stepExecuting(opId);
+        _log.info("file replication operation {} started for file systerm {}", opType, fileShare.getName());
         try {
             if ("pause".equalsIgnoreCase(opType)) {
                 completer = new MirrorFilePauseTaskCompleter(FileShare.class, sourceFSURI, opId);
@@ -4708,6 +4711,10 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             } else if ("refresh".equalsIgnoreCase(opType)) {
                 completer = new MirrorFileRefreshTaskCompleter(FileShare.class, sourceFSURI, opId);
                 result = getDevice(system.getSystemType()).doRefreshMirrorLink(system, fileShare);
+
+            } else if ("resync".equalsIgnoreCase(opType)) {
+                completer = new MirrorFileResyncTaskCompleter(FileShare.class, sourceFSURI, opId);
+                result = getDevice(system.getSystemType()).doResyncLink(system, fileShare, completer);
             }
             if (result.getCommandSuccess()) {
                 completer.ready(_dbClient);
@@ -4719,6 +4726,8 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
         } catch (Exception e) {
             _log.error("unable to perform mirror operation {} on file system {} ", opType, sourceFSURI, e);
             updateTaskStatus(opId, fileShare, e);
+            ServiceError error = DeviceControllerException.errors.jobFailed(e);
+            WorkflowStepCompleter.stepFailed(opId, error);
         }
     }
 
@@ -4754,5 +4763,4 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             WorkflowStepCompleter.stepFailed(opId, error);
         }
     }
-
 }

@@ -2831,4 +2831,10 @@ public class VNXeStorageDevice extends VNXeOperations
                 DeviceControllerErrors.vnxe.operationNotSupported("failover the mirror link", "VNXe"));
     }
 
+    @Override
+    public BiosCommandResult doResyncLink(StorageSystem system, FileShare source, TaskCompleter completer) {
+        return BiosCommandResult.createErrorResult(
+                DeviceControllerErrors.vnxe.operationNotSupported("resync the mirror link", "VNXe"));
+    }
+
 }

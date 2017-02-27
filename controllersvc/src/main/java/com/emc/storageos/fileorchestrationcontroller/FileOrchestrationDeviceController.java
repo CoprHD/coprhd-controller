@@ -39,6 +39,7 @@ import com.emc.storageos.db.client.model.SMBShareMap;
 import com.emc.storageos.db.client.model.Snapshot;
 import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageSystem;
+import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.fileorchestrationcontroller.FileStorageSystemAssociation.TargetAssociation;
@@ -71,6 +72,7 @@ import com.emc.storageos.volumecontroller.impl.file.FileProtectionPolicyUpdateCo
 import com.emc.storageos.volumecontroller.impl.file.FileSnapshotWorkflowCompleter;
 import com.emc.storageos.volumecontroller.impl.file.FileSystemAssignPolicyWorkflowCompleter;
 import com.emc.storageos.volumecontroller.impl.file.FileWorkflowCompleter;
+import com.emc.storageos.volumecontroller.impl.file.MirrorFileFailbackTaskCompleter;
 import com.emc.storageos.volumecontroller.impl.file.MirrorFileFailoverTaskCompleter;
 import com.emc.storageos.volumecontroller.impl.vnxe.job.VNXeFSSnapshotTaskCompleter;
 import com.emc.storageos.workflow.Workflow;
@@ -86,10 +88,6 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
     private static FileReplicationDeviceController _fileReplicationDeviceController;
     private ControllerLockingService _locker;
     private CustomConfigHandler customConfigHandler;
-
-    public void setCustomConfigHandler(CustomConfigHandler customConfigHandler) {
-        this.customConfigHandler = customConfigHandler;
-    }
 
     static final String CREATE_FILESYSTEMS_WF_NAME = "CREATE_FILESYSTEMS_WORKFLOW";
     static final String DELETE_FILESYSTEMS_WF_NAME = "DELETE_FILESYSTEMS_WORKFLOW";
@@ -132,6 +130,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
     private static final String MODIFY_FILESYSTEM_METHOD = "modifyFS";
     private static final String FAILOVER_FILE_SYSTEM_METHOD = "failoverFileSystem";
     private static final String FAILBACK_FILE_SYSTEM_METHOD = "doFailBackMirrorSessionWF";
+    private static final String FILE_REPLICATION_OPERATIONS_METHOD = "performFileReplicationOperation";
     private static final String REPLICATE_FILESYSTEM_DIRECTORY_QUOTA_SETTINGS_METHOD = "addStepsToReplicateDirectoryQuotaSettings";
     private static final String REPLICATE_FILESYSTEM_CIFS_SHARES_METHOD = "addStepsToReplicateCIFSShares";
     private static final String REPLICATE_FILESYSTEM_CIFS_SHARE_ACLS_METHOD = "addStepsToReplicateCIFSShareACLs";
@@ -155,6 +154,9 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
     private static final String ASSIGN_FILE_REPLICATION_POLICY_TO_VIRTUAL_POOLS_METHOD = "assignFileReplicationPolicyToVirtualPools";
     private static final String ASSIGN_FILE_REPLICATION_POLICY_TO_PROJECTS_METHOD = "assignFileReplicationPolicyToProjects";
 
+    public void setCustomConfigHandler(CustomConfigHandler customConfigHandler) {
+        this.customConfigHandler = customConfigHandler;
+    }
     /*
      * (non-Javadoc)
      * 
@@ -797,9 +799,10 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
             String failbackStep = workflow.createStepId();
             stepDescription = String.format("Failback to source file System : %s from target system : %s.", sourceFileShare.getName(),
                     targetFileShare.getName());
-            Object[] args = new Object[] { systemSource.getId(), sourceFileShare.getId() };
-            String waitForFailback = _fileReplicationDeviceController.createMethod(workflow, null, null,
-                    FAILBACK_FILE_SYSTEM_METHOD, failbackStep, stepDescription, systemSource.getId(), args);
+            Workflow.Method failbackMethod = new Workflow.Method(FAILBACK_FILE_SYSTEM_METHOD,
+                    systemSource.getId(), sourceFileShare.getId());
+            String waitForFailback = workflow.createStep(null, stepDescription, null, systemSource.getId(),
+                    systemSource.getSystemType(), getClass(), failbackMethod, null, failbackStep);
 
             // Replicate directory quota setting
             stepDescription = String.format(
@@ -2268,4 +2271,91 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
             completer.error(s_dbClient, _locker, serviceError);
         }
     }
+
+    /**
+     * Child Workflow for failback
+     * 
+     * @param systemURI
+     * @param fsURI source FS URI
+     * @param taskId
+     */
+    public void doFailBackMirrorSessionWF(URI systemURI, URI fsURI, String taskId) {
+        TaskCompleter taskCompleter = null;
+        String stepDescription;
+        String stepId;
+        Object[] args;
+        try {
+            FileShare sourceFS = s_dbClient.queryObject(FileShare.class, fsURI);
+            StorageSystem primarysystem = s_dbClient.queryObject(StorageSystem.class, systemURI);
+
+            StringSet targets = sourceFS.getMirrorfsTargets();
+            List<URI> targetFSURI = new ArrayList<>();
+            for (String target : targets) {
+                targetFSURI.add(URI.create(target));
+            }
+            FileShare targetFS = s_dbClient.queryObject(FileShare.class, targetFSURI.get(0));
+            StorageSystem secondarySystem = s_dbClient.queryObject(StorageSystem.class, targetFS.getStorageDevice());
+
+            taskCompleter = new MirrorFileFailbackTaskCompleter(FileShare.class, sourceFS.getId(), taskId);
+            Workflow workflow = _workflowService.getNewWorkflow(this,
+                    FAILBACK_FILE_SYSTEM_METHOD, false, taskId, taskCompleter);
+
+            s_logger.info("Generating steps for failback to source file share: {} from target file share: {}", fsURI, targetFS.getId());
+
+            /*
+             * Step 1. Creates a mirror replication policy for the secondary cluster i.e Resync-prep on primary cluster , this will disable
+             * primary cluster replication policy.
+             */
+            stepDescription = String.format("source resync-prep : creating mirror policy on target system: %s", secondarySystem.getId());
+            stepId = workflow.createStepId();
+            args = new Object[] { primarysystem.getId(), sourceFS.getId(), "resync" };
+            String waitFor = _fileDeviceController.createMethod(workflow, null, FILE_REPLICATION_OPERATIONS_METHOD, stepId,
+                    stepDescription, primarysystem.getId(), args);
+
+            /*
+             * Step 2. Start the mirror replication policy manually, this will replicate new data (written during failover) from secondary
+             * cluster to primary cluster.
+             */
+            stepDescription = String.format("start mirror policy: replicate target file share: %s, data to source file share:%s",
+                    targetFS.getId(), sourceFS.getId());
+            stepId = workflow.createStepId();
+            args = new Object[] { secondarySystem.getId(), sourceFS.getId(), "start" };
+            waitFor = _fileDeviceController.createMethod(workflow, waitFor, FILE_REPLICATION_OPERATIONS_METHOD, stepId,
+                    stepDescription, secondarySystem.getId(), args);
+
+            /*
+             * Step 3. Allow Write on Primary Cluster local target after replication from step 2
+             * i.e Fail over to Primary Cluster
+             */
+
+            stepDescription = String.format("failover on source file system : allow write on source file share: %s", sourceFS.getId());
+            stepId = workflow.createStepId();
+            List<URI> combined = Arrays.asList(sourceFS.getId(), targetFS.getId());
+            MirrorFileFailoverTaskCompleter failoverCompleter = new MirrorFileFailoverTaskCompleter(FileShare.class, combined, stepId);
+            args = new Object[] { primarysystem.getId(), sourceFS.getId(), failoverCompleter };
+            waitFor = _fileDeviceController.createMethod(workflow, waitFor, FAILOVER_FILE_SYSTEM_METHOD, stepId,
+                    stepDescription, primarysystem.getId(), args);
+
+            /*
+             * Step 4. Resync-Prep on secondary cluster , same as step 1 but will be executed on secondary cluster instead of primary
+             * cluster.
+             */
+            stepDescription = String.format(" target resync-prep : disabling mirror policy on target system: %s", secondarySystem.getId());
+            stepId = workflow.createStepId();
+            args = new Object[] { secondarySystem.getId(), targetFS.getId(), "resync" };
+            _fileDeviceController.createMethod(workflow, waitFor, FILE_REPLICATION_OPERATIONS_METHOD, stepId,
+                    stepDescription, secondarySystem.getId(), args);
+
+            String successMsg = String.format("Failback of %s to %s successful", sourceFS.getId(), targetFS.getId());
+            workflow.executePlan(taskCompleter, successMsg);
+
+        } catch (Exception ex) {
+            s_logger.error("Could not replicate source filesystem CIFS shares: " + fsURI, ex);
+            String opName = ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_FAILBACK.getName();
+            ServiceError serviceError = DeviceControllerException.errors.createFileSharesFailed(
+                    fsURI.toString(), opName, ex);
+            taskCompleter.error(s_dbClient, this._locker, serviceError);
+        }
+    }
+
 }

@@ -116,6 +116,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
     private static final String SHARE_OP_NAME = "Snapshot Share";
     public static final long SEC_IN_MILLI = 1000L;
     private static final String STR_WITH_NO_SPECIAL_SYMBOLS = "[^A-Za-z0-9_\\-/]";
+    private static final String MIRROR_POLICY = "_mirror";
 
     private IsilonApiFactory _factory;
     private HashMap<String, String> configinfo;
@@ -2539,11 +2540,21 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
     }
 
     @Override
-    public BiosCommandResult doStartMirrorLink(StorageSystem system, FileShare source, TaskCompleter completer) {
-
-        PolicyStorageResource policyStrRes = getEquivalentPolicyStorageResource(source, _dbClient);
+    public BiosCommandResult doStartMirrorLink(StorageSystem system, FileShare fs, TaskCompleter completer) {
+        FileShare sourceFS = null;
+        if (fs.getPersonality().equals(PersonalityTypes.TARGET.name())) {
+            sourceFS = _dbClient.queryObject(FileShare.class, fs.getParentFileShare());
+        } else if (fs.getPersonality().equals(PersonalityTypes.SOURCE.name())) {
+            sourceFS = fs;
+        }
+        PolicyStorageResource policyStrRes = getEquivalentPolicyStorageResource(sourceFS, _dbClient);
         if (policyStrRes != null) {
             String policyName = policyStrRes.getPolicyNativeId();
+            // In case of fail back we need to append _mirror name since we are starting the target FS mirror policy
+            if (fs.getPersonality().equals(PersonalityTypes.TARGET.name())) {
+                policyName = policyName.concat(MIRROR_POLICY);
+            }
+
             return mirrorOperations.doStartReplicationPolicy(system, policyName, completer);
         }
         ServiceError serviceError = DeviceControllerErrors.isilon.unableToCreateFileShare();
@@ -2597,24 +2608,47 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
     }
 
     @Override
-    public BiosCommandResult doFailoverLink(StorageSystem systemTarget, FileShare target, TaskCompleter completer) {
-        FileShare source = _dbClient.queryObject(FileShare.class, target.getParentFileShare());
-        PolicyStorageResource policyStrRes = getEquivalentPolicyStorageResource(source, _dbClient);
+    public BiosCommandResult doFailoverLink(StorageSystem systemTarget, FileShare fs, TaskCompleter completer) {
+        FileShare sourceFS = null;
+        if (fs.getPersonality().equals(PersonalityTypes.TARGET.name())) {
+            sourceFS = _dbClient.queryObject(FileShare.class, fs.getParentFileShare());
+        } else if (fs.getPersonality().equals(PersonalityTypes.SOURCE.name())) {
+            sourceFS = fs;
+        }
+        PolicyStorageResource policyStrRes = getEquivalentPolicyStorageResource(sourceFS, _dbClient);
         if (policyStrRes != null) {
             String policyName = policyStrRes.getPolicyNativeId();
+            // In case of failback we do failover on the source file system, so we need to append _mirror
+            if (fs.getPersonality().equals(PersonalityTypes.SOURCE.name())) {
+                policyName = policyName.concat(MIRROR_POLICY);
+            }
             return mirrorOperations.doFailover(systemTarget, policyName, completer);
         }
-        ServiceError serviceError = DeviceControllerErrors.isilon.unableToCreateFileShare();
+        ServiceError serviceError = DeviceControllerErrors.isilon
+                .unableToCreateFileShare();
         return BiosCommandResult.createErrorResult(serviceError);
     }
 
     @Override
-    public void doResyncLink(StorageSystem primarySystem, StorageSystem secondarySystem, FileShare target, TaskCompleter completer,
-            String devSpecificPolicyName) {
-        if (devSpecificPolicyName == null) {
-            devSpecificPolicyName = gerneratePolicyName(primarySystem, target);
+    public BiosCommandResult doResyncLink(StorageSystem system, FileShare fs,
+            TaskCompleter completer) {
+        FileShare sourceFS = null;
+        if (fs.getPersonality().equals(PersonalityTypes.TARGET.name())) {
+            sourceFS = _dbClient.queryObject(FileShare.class, fs.getParentFileShare());
+        } else if (fs.getPersonality().equals(PersonalityTypes.SOURCE.name())) {
+            sourceFS = fs;
         }
-        // mirrorOperations.resyncMirrorFileShareLink(primarySystem, secondarySystem, target, completer, devSpecificPolicyName);
+        PolicyStorageResource policyStrRes = getEquivalentPolicyStorageResource(sourceFS, _dbClient);
+        if (policyStrRes != null) {
+            String policyName = policyStrRes.getPolicyNativeId();
+            // In case of failback step 4 we do resysc on the target file system, so we need to append _mirror
+            if (fs.getPersonality().equals(PersonalityTypes.TARGET.name())) {
+                policyName = policyName.concat(MIRROR_POLICY);
+            }
+            return mirrorOperations.doResyncPrep(system, policyName, completer);
+        }
+        ServiceError serviceError = DeviceControllerErrors.isilon.unableToCreateFileShare();
+        return BiosCommandResult.createErrorResult(serviceError);
     }
 
     /**

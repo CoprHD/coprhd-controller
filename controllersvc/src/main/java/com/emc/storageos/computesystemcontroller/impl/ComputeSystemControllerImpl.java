@@ -1614,27 +1614,19 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                 removedInitiators.addAll(ComputeSystemHelper.getChildrenUris(_dbClient, hosturi, Initiator.class, "host"));
             }
 
-            // VBDU TODO: COP-28452, This doesn't look that dangerous, as we might see more than one cluster in export
+            // VBDU [DONE]: COP-28452, This doesn't look that dangerous, as we might see more than one cluster in export
             // group. Delete export Group in controller means export all volumes in the export group.
             // This call's intention is to remove a host, if for some reason one of the export group doesn't have the
             // right set of initiator then we might end up in unexporting all volumes from all the hosts rather than
             // executing remove Host.
-            if (updatedInitiators.isEmpty()) {
-                waitFor = workflow.createStep(DELETE_EXPORT_GROUP_STEP,
-                        String.format("Deleting export group %s", export.getId()), waitFor,
-                        export.getId(), export.getId().toString(),
-                        this.getClass(),
-                        deleteExportGroupMethod(export.getId()),
-                        null, null);
-            } else {
-                waitFor = workflow.createStep(UPDATE_EXPORT_GROUP_STEP,
-                        String.format("Updating export group %s", export.getId()), waitFor,
-                        export.getId(), export.getId().toString(),
-                        this.getClass(),
-                        updateExportGroupMethod(export.getId(), updatedVolumesMap,
-                                addedClusters, removedClusters, addedHosts, removedHosts, addedInitiators, removedInitiators),
-                        updateExportGroupRollbackMethod(export.getId()), null);
-            }
+            // Fixed to only perform export update instead of delete
+            waitFor = workflow.createStep(UPDATE_EXPORT_GROUP_STEP,
+                    String.format("Updating export group %s", export.getId()), waitFor,
+                    export.getId(), export.getId().toString(),
+                    this.getClass(),
+                    updateExportGroupMethod(export.getId(), updatedVolumesMap,
+                            addedClusters, removedClusters, addedHosts, removedHosts, addedInitiators, removedInitiators),
+                    updateExportGroupRollbackMethod(export.getId()), null);
         }
         return waitFor;
     }

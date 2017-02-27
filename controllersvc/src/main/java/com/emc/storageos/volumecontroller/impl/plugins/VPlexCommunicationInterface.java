@@ -591,10 +591,12 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
                 tracker.discoveryMode = ControllerUtils.getPropertyValueFromCoordinator(
                         _coordinator, VplexBackendIngestionContext.DISCOVERY_MODE);
 
+                // get all the detailed virtual volume info from the VPLEX API
                 Map<String, VPlexVirtualVolumeInfo> vvolMap = client.getVirtualVolumes(true);
                 tracker.virtualVolumeFetch = System.currentTimeMillis() - timer;
                 tracker.totalVolumesFetched = vvolMap.size();
 
+                // discover unmanaged storage views
                 timer = System.currentTimeMillis();
                 Map<String, Set<UnManagedExportMask>> volumeToExportMasksMap = new HashMap<String, Set<UnManagedExportMask>>();
                 Map<String, Set<VPlexStorageViewInfo>> volumeToStorageViewMap = new HashMap<String, Set<VPlexStorageViewInfo>>();
@@ -603,11 +605,14 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
                         recoverPointExportMasks);
                 tracker.storageViewFetch = System.currentTimeMillis() - timer;
 
+                // discover unmanaged volumes
                 timer = System.currentTimeMillis();
                 discoverUnmanagedVolumes(accessProfile, client, vvolMap, volumeToExportMasksMap, volumeToStorageViewMap,
                         recoverPointExportMasks, tracker);
                 tracker.unmanagedVolumeProcessing = System.currentTimeMillis() - timer;
 
+                // re-run vpool matching for all vpools so that backend volumes will 
+                // be updated after vvol discovery to match their parent's matched vpools
                 timer = System.currentTimeMillis();
                 List<URI> vpoolURIs = _dbClient.queryByType(VirtualPool.class, true);
                 List<VirtualPool> vpoolList = _dbClient.queryObject(VirtualPool.class, vpoolURIs);

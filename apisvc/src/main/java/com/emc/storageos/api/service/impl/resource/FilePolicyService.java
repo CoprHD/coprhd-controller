@@ -744,7 +744,7 @@ public class FilePolicyService extends TaskResourceService {
                 if (replParam.getPolicySchedule().getScheduleFrequency() != null &&
                         !replParam.getPolicySchedule().getScheduleFrequency().isEmpty()) {
                     fileReplicationPolicy
-                            .setScheduleFrequency(replParam.getPolicySchedule().getScheduleFrequency());
+                    .setScheduleFrequency(replParam.getPolicySchedule().getScheduleFrequency());
                 }
             }
         }
@@ -868,10 +868,8 @@ public class FilePolicyService extends TaskResourceService {
                                         URI targetVArray = iterator.next();
                                         requestTargetVarraySet.add(targetVArray.toString());
                                     }
-                                    if (!topology.getTargetVArrays().containsAll(requestTargetVarraySet)) {
-                                        topology.setTargetVArrays(requestTargetVarraySet);
-                                        _dbClient.updateObject(topology);
-                                    }
+                                    topology.setTargetVArrays(requestTargetVarraySet);
+                                    _dbClient.updateObject(topology);
                                 }
 
                                 if (filepolicy.getReplicationTopologies() == null
@@ -1254,8 +1252,8 @@ public class FilePolicyService extends TaskResourceService {
                                             vpool, capabilities);
                                     if (newRecs != null && !newRecs.isEmpty()) {
                                         projectAssociations
-                                                .addAll(convertRecommendationsToStorageSystemAssociations(newRecs, filePolicy.getApplyAt(),
-                                                        vpool.getId(), projectURI));
+                                        .addAll(convertRecommendationsToStorageSystemAssociations(newRecs, filePolicy.getApplyAt(),
+                                                vpool.getId(), projectURI));
                                     }
                                 } catch (Exception ex) {
                                     _log.error("No recommendations found for storage system {} and virtualArray {} with error {} ",

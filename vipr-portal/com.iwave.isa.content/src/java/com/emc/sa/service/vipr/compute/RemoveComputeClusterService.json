@@ -4,7 +4,7 @@
   destructive:true,
   fields:{
     cluster:{
-      type:"assetType.vipr.cluster"
+      type:"assetType.vipr.vblockCluster"
     }
     
   }

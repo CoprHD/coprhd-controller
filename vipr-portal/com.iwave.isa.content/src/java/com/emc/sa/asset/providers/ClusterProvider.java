@@ -65,4 +65,25 @@ public class ClusterProvider extends BaseAssetOptionsProvider {
         return options;
     }
 
+    @Asset("vblockCluster")
+    public List<AssetOption> getVblockClusterOptions(AssetOptionsContext ctx) {
+        debug("getting vblock clusters");
+        Collection<ClusterRestRep> clusters = getClusters(ctx);
+        List<AssetOption> options = Lists.newArrayList();
+        for (ClusterRestRep value : clusters) {
+            // If Cluster has an esx host - then add it to the list
+            List<HostRestRep> hostList = api(ctx).hosts().getByCluster(value.getId());
+            for (HostRestRep host : hostList) {
+                if ((host.getType().equalsIgnoreCase(Host.HostType.Esx.name())
+                        || host.getType().equalsIgnoreCase(Host.HostType.No_OS.name()))
+                        && host.getComputeElement() != null) {
+                    options.add(createClusterOption(ctx, value));
+                    break;
+                }
+            }
+        }
+        AssetOptionsUtils.sortOptionsByLabel(options);
+        return options;
+    }
+
 }

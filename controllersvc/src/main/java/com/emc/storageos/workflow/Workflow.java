@@ -282,12 +282,17 @@ public class Workflow implements Serializable {
         synchronized void updateState(StepState newState, ServiceCode code, String message) {
             if (this.state == StepState.SUSPENDED_ERROR && newState == StepState.ERROR) {
                 // If the current step state is SUSPENDED_ERROR and the new state is ERROR,
-                // then rollback of that step has been initiated and we are moving the
+                // then rollback of that suspended step has been initiated and we are moving the
                 // state of the execution step to error. In this case, we don't want override
-                // the code and message, which come from the rollback step state. We just 
-                // need to update the state and end time.
+                // the code and message with the passed values, as these come from the rollback
+                // step state. So, we set just the new state and end time. Additionally, we 
+                // don't want the suspended message to be part of the final error message for
+                // the step, so we extract that part of the message so we only see the actual 
+                // error that caused the suspension when rollback completes.
                 this.state = newState;
                 this.endTime = new Date();
+                String suspendedMsg = String.format("Message: %s", WorkflowService.SUSPENDED_MSG);
+                this.message = this.message.substring(suspendedMsg.length());
             } else {
                 this.state = newState;
                 this.serviceCode = code;

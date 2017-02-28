@@ -106,6 +106,7 @@ public class WorkflowService implements WorkflowController {
     // Test-provided suspend variables that override system variables during unit testing.
     private String _suspendClassMethodTestOnly = null;
     private Boolean _suspendOnErrorTestOnly = null;
+    public static final String SUSPENDED_MSG = "Step has been suspended due to an error: ";
 
     /**
      * Returns the ZK path for workflow state. This node has a child for each Step.
@@ -2923,7 +2924,8 @@ public class WorkflowService implements WorkflowController {
 
     public static void completerStepSuspendedError(String stepId, ServiceCoded coded)
             throws WorkflowException {
-        _instance.updateStepStatus(stepId, StepState.SUSPENDED_ERROR, coded.getServiceCode(), String.format("Step has been suspended due to an error: %s", coded.getMessage()));
+        _instance.updateStepStatus(stepId, StepState.SUSPENDED_ERROR, coded.getServiceCode(),
+                String.format("%s%s", SUSPENDED_MSG, coded.getMessage()));
     }
 
     public WorkflowScrubberExecutor getScrubber() {

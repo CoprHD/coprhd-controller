@@ -56,6 +56,7 @@ import com.emc.storageos.db.client.model.DiscoveredDataObject.DiscoveryStatus;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.EndpointUtility;
+import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.client.util.StringSetUtil;
 import com.emc.storageos.db.common.VdcUtil;
 import com.emc.storageos.db.exceptions.DatabaseException;
@@ -1630,7 +1631,8 @@ public class VirtualArrayService extends TaggedResource {
     @Path("/{id}/storage-port-groups")
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR }, acls = { ACL.USE })
     public StoragePortGroupList getVirtualArrayStoragePortGroups(@PathParam("id") URI id,
-            @QueryParam("storage_system") URI storageURI) {
+            @QueryParam("storage_system") URI storageURI,
+            @QueryParam("export_group") URI exportGroupURI) {
 
         // Get and validate the varray with the passed id.
         ArgValidator.checkFieldUriType(id, VirtualArray.class, "id");
@@ -1655,10 +1657,41 @@ public class VirtualArrayService extends TaggedResource {
         }
         
         Set<URI> portGroupURIs = new HashSet<URI>();
+        
+        StoragePortGroupList portGroups = new StoragePortGroupList();
+        Set<URI> excludeSystem = new HashSet<URI>();
+        if (exportGroupURI != null) {
+            ExportGroup exportGroup = _dbClient.queryObject(ExportGroup.class, exportGroupURI);
+            if (exportGroup == null ||
+                    !id.equals(exportGroup.getVirtualArray())) {
+                _log.info(String.format("The export group %s is not valid", exportGroupURI.toString()));
+                return portGroups;
+            }
+            StringSet exportMasks = exportGroup.getExportMasks();
+            if (exportMasks != null && !exportMasks.isEmpty()) {
+                for (String emStr : exportMasks) {
+                    URI maskUri = URI.create(emStr);
+                    ExportMask exportMask = _dbClient.queryObject(ExportMask.class, maskUri);
+                    if (exportMask == null) {
+                        continue;
+                    }
+                    if (NullColumnValueGetter.isNullURI(exportMask.getPortGroup())) {
+                        continue;
+                    } 
+                    if ((storageURI != null && storageURI.equals(exportMask.getStorageDevice())) 
+                            || storageURI == null) {
+                        portGroupURIs.add(exportMask.getPortGroup());
+                    } 
+                    excludeSystem.add(exportMask.getStorageDevice());
+                    
+                }
+            }
+        }
         for (URI portURI : portURIs) {
             // Get port groups for each port
             StoragePort port = _dbClient.queryObject(StoragePort.class, portURI);
-            if (port == null || (storageURI != null && !storageURI.equals(port.getStorageDevice()))) {
+            if (port == null || (storageURI != null && !storageURI.equals(port.getStorageDevice()))
+                    || excludeSystem.contains(port.getStorageDevice())) {
                 continue;
             }
             if ((port != null)
@@ -1673,12 +1706,10 @@ public class VirtualArrayService extends TaggedResource {
                 }                
             }
         }
-        // Create and return the result.
-        StoragePortGroupList portGroups = new StoragePortGroupList();
+        // return the result.
         for (URI uri : portGroupURIs) {
             StoragePortGroup portGroup= _dbClient.queryObject(StoragePortGroup.class, uri);
-            if ((portGroup != null)
-                    && (RegistrationStatus.REGISTERED.toString().equals(portGroup.getRegistrationStatus()))) {
+            if (portGroup != null && portGroup.isUsable()) {
                 if (portURIs.containsAll(StringSetUtil.stringSetToUriList(portGroup.getStoragePorts()))) {
                     portGroups.getPortGroups().add(toNamedRelatedResource(portGroup, portGroup.getNativeGuid()));
                 }

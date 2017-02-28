@@ -46,6 +46,7 @@ public class CreateMultipleBlockVolumes extends WaitForTasks<VolumeRestRep> {
             create.setName(param.getName());
             create.setSize(volumeSize);
             create.setComputeResource(param.getComputeResource());
+            create.setPortGroup(param.getPortGroup());
             int numberOfVolumes = 1;
             if ((param.getCount() != null) && (param.getCount() > 1)) {
                 numberOfVolumes = param.getCount();

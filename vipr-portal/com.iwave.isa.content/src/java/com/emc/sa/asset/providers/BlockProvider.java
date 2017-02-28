@@ -72,6 +72,7 @@ import com.emc.storageos.model.block.VolumeRestRep.ProtectionRestRep;
 import com.emc.storageos.model.block.export.ExportBlockParam;
 import com.emc.storageos.model.block.export.ExportGroupRestRep;
 import com.emc.storageos.model.block.export.ITLRestRep;
+import com.emc.storageos.model.customconfig.SimpleValueRep;
 import com.emc.storageos.model.host.HostRestRep;
 import com.emc.storageos.model.host.cluster.ClusterRestRep;
 import com.emc.storageos.model.project.ProjectRestRep;
@@ -350,29 +351,31 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         final ViPRCoreClient client = api(ctx);
         List<AssetOption> options = Lists.newArrayList();
 
-        List<URI> volumeIds = Lists.newArrayList();
-        info("Volumes selected by user: %s", selectedVolumes);
-        List<String> parsedVolumeIds = TextUtils.parseCSV(selectedVolumes);
-        for (String id : parsedVolumeIds) {
-            volumeIds.add(uri(id));
-        }
+        SimpleValueRep value = client.customConfigs().getCustomConfigTypeValue("VMAXUsePortGroupEnabled/value", "vmax");
+        if (value.getValue().equalsIgnoreCase("true")) {
+            List<URI> volumeIds = Lists.newArrayList();
+            info("Volumes selected by user: %s", selectedVolumes);
+            List<String> parsedVolumeIds = TextUtils.parseCSV(selectedVolumes);
+            for (String id : parsedVolumeIds) {
+                volumeIds.add(uri(id));
+            }
 
-        List<VolumeRestRep> volumes = client.blockVolumes().getByIds(volumeIds);
+            List<VolumeRestRep> volumes = client.blockVolumes().getByIds(volumeIds);
 
-        Set<URI> storageControllers = new HashSet<URI>();
-        for (VolumeRestRep volume : volumes) {
-            storageControllers.add(volume.getStorageController());
-        }
+            Set<URI> storageControllers = new HashSet<URI>();
+            for (VolumeRestRep volume : volumes) {
+                storageControllers.add(volume.getStorageController());
+            }
 
-        if (storageControllers.size() == 1) {
-            Iterator<URI> it = storageControllers.iterator();
-            List<NamedRelatedResourceRep> portGroups = client.storageSystems().getStoragePortGroups(it.next());
+            if (storageControllers.size() == 1) {
+                Iterator<URI> it = storageControllers.iterator();
+                List<NamedRelatedResourceRep> portGroups = client.storageSystems().getStoragePortGroups(it.next());
 
-            for (NamedRelatedResourceRep group : portGroups) {
-                options.add(new AssetOption(group.getId(), group.getName()));
+                for (NamedRelatedResourceRep group : portGroups) {
+                    options.add(new AssetOption(group.getId(), group.getName()));
+                }
             }
         }
-
         return options;
     }
 
@@ -381,11 +384,13 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     public List<AssetOption> getExportVolumeForHostPortGroups(AssetOptionsContext ctx, URI vArrayId) {
         final ViPRCoreClient client = api(ctx);
         List<AssetOption> options = Lists.newArrayList();
+        SimpleValueRep value = client.customConfigs().getCustomConfigTypeValue("VMAXUsePortGroupEnabled/value", "vmax");
+        if (value.getValue().equalsIgnoreCase("true")) {
+            List<NamedRelatedResourceRep> portGroups = client.varrays().getStoragePortGroups(vArrayId);
 
-        List<NamedRelatedResourceRep> portGroups = client.varrays().getStoragePortGroups(vArrayId);
-
-        for (NamedRelatedResourceRep group : portGroups) {
-            options.add(new AssetOption(group.getId(), group.getName()));
+            for (NamedRelatedResourceRep group : portGroups) {
+                options.add(new AssetOption(group.getId(), group.getName()));
+            }
         }
 
         return options;

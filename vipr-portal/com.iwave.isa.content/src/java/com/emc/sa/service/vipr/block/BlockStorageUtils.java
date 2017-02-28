@@ -12,6 +12,7 @@ import static com.emc.sa.service.ServiceParams.MIN_PATHS;
 import static com.emc.sa.service.ServiceParams.NAME;
 import static com.emc.sa.service.ServiceParams.NUMBER_OF_VOLUMES;
 import static com.emc.sa.service.ServiceParams.PATHS_PER_INITIATOR;
+import static com.emc.sa.service.ServiceParams.PORT_GROUP;
 import static com.emc.sa.service.ServiceParams.PROJECT;
 import static com.emc.sa.service.ServiceParams.SIZE_IN_GB;
 import static com.emc.sa.service.ServiceParams.VIRTUAL_ARRAY;
@@ -419,10 +420,10 @@ public class BlockStorageUtils {
     }
 
     public static List<URI> createVolumes(URI projectId, URI virtualArrayId, URI virtualPoolId,
-            String baseVolumeName, double sizeInGb, Integer count, URI consistencyGroupId, URI computeResource) {
+            String baseVolumeName, double sizeInGb, Integer count, URI consistencyGroupId, URI computeResource, URI portGroup) {
         String volumeSize = gbToVolumeSize(sizeInGb);
         Tasks<VolumeRestRep> tasks = execute(new CreateBlockVolume(virtualPoolId, virtualArrayId, projectId, volumeSize,
-                count, baseVolumeName, consistencyGroupId, computeResource));
+                count, baseVolumeName, consistencyGroupId, computeResource, portGroup));
         List<URI> volumeIds = Lists.newArrayList();
         for (Task<VolumeRestRep> task : tasks.getTasks()) {
             URI volumeId = task.getResourceId();
@@ -482,21 +483,25 @@ public class BlockStorageUtils {
     }
 
     public static void addVolumesToExport(Collection<URI> volumeIds, Integer hlu, URI exportId, Map<URI, Integer> volumeHlus,
-            Integer minPaths, Integer maxPaths, Integer pathsPerInitiator) {
+            Integer minPaths, Integer maxPaths, Integer pathsPerInitiator, URI portGroup) {
         Task<ExportGroupRestRep> task = execute(new AddVolumesToExport(exportId, volumeIds, hlu, volumeHlus, minPaths, maxPaths,
-                pathsPerInitiator));
+                pathsPerInitiator, portGroup));
         addRollback(new RemoveBlockResourcesFromExport(exportId, volumeIds));
         addAffectedResource(task);
     }
 
-    public static void addHostToExport(URI exportId, URI host, Integer minPaths, Integer maxPaths, Integer pathsPerInitiator) {
-        Task<ExportGroupRestRep> task = execute(new AddHostToExport(exportId, host, minPaths, maxPaths, pathsPerInitiator));
+    public static void addHostToExport(URI exportId, URI host, Integer minPaths, Integer maxPaths,
+            Integer pathsPerInitiator, URI portGroup) {
+        Task<ExportGroupRestRep> task = execute(new AddHostToExport(exportId, host, minPaths, maxPaths,
+                pathsPerInitiator, portGroup));
         addRollback(new DeactivateBlockExport(exportId));
         addAffectedResource(task);
     }
 
-    public static void addClusterToExport(URI exportId, URI cluster, Integer minPaths, Integer maxPaths, Integer pathsPerInitiator) {
-        Task<ExportGroupRestRep> task = execute(new AddClusterToExport(exportId, cluster, minPaths, maxPaths, pathsPerInitiator));
+    public static void addClusterToExport(URI exportId, URI cluster, Integer minPaths, Integer maxPaths,
+            Integer pathsPerInitiator, URI portGroup) {
+        Task<ExportGroupRestRep> task = execute(new AddClusterToExport(exportId, cluster, minPaths, maxPaths,
+                pathsPerInitiator, portGroup));
         addRollback(new DeactivateBlockExport(exportId));
         addAffectedResource(task);
     }
@@ -1141,6 +1146,8 @@ public class BlockStorageUtils {
         public URI project;
         @Param(value = CONSISTENCY_GROUP, required = false)
         public URI consistencyGroup;
+        @Param(value = PORT_GROUP, required = false)
+        protected URI portGroup;
 
         @Override
         public String toString() {
@@ -1155,6 +1162,7 @@ public class BlockStorageUtils {
             map.put(VIRTUAL_ARRAY, virtualArray);
             map.put(PROJECT, project);
             map.put(CONSISTENCY_GROUP, consistencyGroup);
+            map.put(PORT_GROUP, portGroup);
             return map;
         }
     }

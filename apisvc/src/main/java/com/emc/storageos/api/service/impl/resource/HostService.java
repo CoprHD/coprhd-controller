@@ -353,7 +353,7 @@ public class HostService extends TaskResourceService {
         }
 
         _dbClient.updateObject(host);
-
+        
         auditOp(OperationTypeEnum.UPDATE_HOST, true, null,
                 host.auditParameters());
 
@@ -374,7 +374,7 @@ public class HostService extends TaskResourceService {
     @Path("/{id}/discover")
     @CheckPermission(roles = { Role.TENANT_ADMIN })
     public TaskResourceRep discoverHost(@PathParam("id") URI id) {
-        ArgValidator.checkFieldUriType(id, Host.class, "id");
+        ArgValidator.checkFieldUriType(id, Host.class, "id");        
         return doDiscoverHost(id, null, true);
     }
 
@@ -598,8 +598,12 @@ public class HostService extends TaskResourceService {
 
         // If discoverable, ensure username and password are set in the current host or parameters
         if (!vCenterManaged && discoverable != null && discoverable) {
-            String username = hostParam.getUserName() == null ? (host == null ? null : host.getUsername()) : hostParam.getUserName();
-            String password = hostParam.getPassword() == null ? (host == null ? null : host.getPassword()) : hostParam.getPassword();
+            String username = hostParam.getUserName() == null ?
+                    (host == null ? null : host.getUsername()) :
+                    hostParam.getUserName();
+            String password = hostParam.getPassword() == null ?
+                    (host == null ? null : host.getPassword()) :
+                    hostParam.getPassword();
             ArgValidator.checkFieldNotNull(username, "username");
             ArgValidator.checkFieldNotNull(password, "password");
 
@@ -652,12 +656,12 @@ public class HostService extends TaskResourceService {
         if (hasPendingTasks) {
             throw APIException.badRequests.resourceCannotBeDeleted("Host with another operation in progress");
         }
-
+        
         boolean isHostInUse = ComputeSystemHelper.isHostInUse(_dbClient, host.getId());
         if (isHostInUse && !(detachStorage || detachStorageDeprecated)) {
             throw APIException.badRequests.resourceHasActiveReferences(Host.class.getSimpleName(), id);
         }
-
+        
         ComputeElement computeElement = null;
         Volume bootVolume = null;
         UCSServiceProfile serviceProfile = null;
@@ -675,42 +679,35 @@ public class HostService extends TaskResourceService {
         List<Initiator> initiators = CustomQueryUtility.queryActiveResourcesByRelation(_dbClient, host.getId(), Initiator.class, "host");
 
         // VBDU TODO: COP-28452, Running host deactivate even if initiators == null or list empty seems risky
-        if (StringUtils.equalsIgnoreCase(host.getType(), HostType.No_OS.toString()) && (initiators == null || initiators.isEmpty())) {
-            if (!NullColumnValueGetter.isNullURI(host.getComputeElement())) {
+        if (StringUtils.equalsIgnoreCase(host.getType(),HostType.No_OS.toString()) && (initiators == null || initiators.isEmpty())) {
+            if (!NullColumnValueGetter.isNullURI(host.getComputeElement())){
                 computeElement = _dbClient.queryObject(ComputeElement.class, host.getComputeElement());
             }
-            if (!NullColumnValueGetter.isNullURI(host.getBootVolumeId())) {
-                bootVolume = _dbClient.queryObject(Volume.class, host.getBootVolumeId());
+            if (!NullColumnValueGetter.isNullURI(host.getBootVolumeId())){
+                bootVolume =  _dbClient.queryObject(Volume.class, host.getBootVolumeId());
             }
             if (computeElement != null) {
-                _log.error("No OS host: " + host.getLabel()
-                        + " with no initiators, but with compute element association found. Cannot deactivate.");
-                throw APIException.badRequests.resourceCannotBeDeleted(
-                        "No OS host with no initiators, but with compute element association found. Please contact DELL EMC support to resolve inconsistency detected. Host ");
-            } else if (bootVolume != null) {
-                _log.error("No OS host: " + host.getLabel()
-                        + " with no initiators, but with boot volume association found. Cannot deactivate.");
-                throw APIException.badRequests.resourceCannotBeDeleted(
-                        "No OS host with no initiators, but with boot volume association found. Please contact DELL EMC support to resolve inconsistency detected. Host ");
-            } else if (serviceProfile != null) {
-                _log.error("No OS host: " + host.getLabel()
-                        + " with no initiators, but with service profile association found. Cannot deactivate.");
-                throw APIException.badRequests.resourceCannotBeDeleted(
-                        "No OS host with no initiators, but with service profile association found. Please contact DELL EMC support to resolve inconsistency detected. Host ");
+                _log.error("No OS host: " + host.getLabel() +" with no initiators, but with compute element association found. Cannot deactivate.");
+                throw APIException.badRequests.resourceCannotBeDeleted("No OS host with no initiators, but with compute element association found. Please contact DELL EMC support to resolve inconsistency detected. Host ");
+            } else if (bootVolume != null ) {
+                _log.error("No OS host: " + host.getLabel() +" with no initiators, but with boot volume association found. Cannot deactivate.");
+                throw APIException.badRequests.resourceCannotBeDeleted("No OS host with no initiators, but with boot volume association found. Please contact DELL EMC support to resolve inconsistency detected. Host ");
+            }else if ( serviceProfile != null) {
+                 _log.error("No OS host: " + host.getLabel() +" with no initiators, but with service profile association found. Cannot deactivate.");
+                throw APIException.badRequests.resourceCannotBeDeleted("No OS host with no initiators, but with service profile association found. Please contact DELL EMC support to resolve inconsistency detected. Host ");
 
             } else {
-                _log.info("No OS host: " + host.getLabel()
-                        + " with no initiators and without valid computeElement, service profile or boot volume associations found. Will proceed with deactivation.");
+                _log.info("No OS host: " + host.getLabel() +" with no initiators and without valid computeElement, service profile or boot volume associations found. Will proceed with deactivation.");
             }
         }
-
+        
         String taskId = UUID.randomUUID().toString();
         Operation op = _dbClient.createTaskOpStatus(Host.class, host.getId(), taskId,
                 ResourceOperationTypeEnum.DELETE_HOST);
         ComputeSystemController controller = getController(ComputeSystemController.class, null);
 
         List<VolumeDescriptor> bootVolDescriptors = new ArrayList<>();
-        if (deactivateBootVolume & !NullColumnValueGetter.isNullURI(host.getBootVolumeId())) {
+        if(deactivateBootVolume & !NullColumnValueGetter.isNullURI(host.getBootVolumeId())) {
             Volume vol = _dbClient.queryObject(Volume.class, host.getBootVolumeId());
             if (vol.isVPlexVolume(_dbClient)) {
                 bootVolDescriptors.addAll(vplexBlockServiceApiImpl.getDescriptorsForVolumesToBeDeleted(
@@ -1099,7 +1096,7 @@ public class HostService extends TaskResourceService {
         }
         if (param.getHostName() != null) {
             host.setHostName(param.getHostName());
-        }
+        }        
         if (param.getOsVersion() != null) {
             host.setOsVersion(param.getOsVersion());
         }
@@ -1636,15 +1633,14 @@ public class HostService extends TaskResourceService {
         }
         return sortedHashMap;
     }
-
-    private Map<URI, List<URI>> filterOutBladesFromBadUcs(Map<URI, List<URI>> inputMap) {
-        Map<URI, List<URI>> outputMap = new HashMap<URI, List<URI>>();
-        for (URI csURI : inputMap.keySet()) {
+    private  Map<URI, List<URI>> filterOutBladesFromBadUcs(Map<URI, List<URI>> inputMap){
+        Map<URI, List<URI>> outputMap = new HashMap<URI,List<URI>>();
+        for (URI csURI: inputMap.keySet()){
             ComputeSystem ucs = _dbClient.queryObject(ComputeSystem.class, csURI);
-            if (ucs != null && !ucs.getDiscoveryStatus().equals(DataCollectionJobStatus.ERROR.name())) {
-                outputMap.put(csURI, inputMap.get(csURI));
-            } else {
-                _log.warn("Filtering out blades from Compute System " + ucs.getLabel() + " which failed discovery");
+            if (ucs!=null && !ucs.getDiscoveryStatus().equals(DataCollectionJobStatus.ERROR.name())){
+                outputMap.put(csURI,inputMap.get(csURI));
+            }else {
+                _log.warn("Filtering out blades from Compute System "+ ucs.getLabel()+" which failed discovery");
             }
         }
         return outputMap;
@@ -1922,7 +1918,7 @@ public class HostService extends TaskResourceService {
                         selectedSlotId = slotId;
                         maxSum = sum;
                         if (sum >= numRequiredBlades) { // Stop when we find first slot that enough free blades to
- // satisfy numRequiredBlades
+                                                        // satisfy numRequiredBlades
                             break;
                         }
                     }
@@ -2024,7 +2020,7 @@ public class HostService extends TaskResourceService {
                                     selectedBlades.add(chassisId + "," + slotId);
                                     count++;
                                     if (preferredChassisIds.size() > 1) { // pick one from each if there are multiple
- // preferred chassis
+                                                                          // preferred chassis
                                         break;
                                     }
                                     if (numRequiredBlades == 0) {

@@ -1314,16 +1314,23 @@ public class UcsComputeDevice implements ComputeDevice {
        }
     }
 
-   /*
-   * Unbinds the host's service profile from the associated blade.
-   * Determines the service profile to unbind using host's serviceProfile association.
-   * In case of host provisioned using pre-Anakin version of ViPR and no serviceProfile association yet set,
-   * serviceprofile to unbind will be determined by trying to find a serviceProfile that matches
-   * the computeElement's uuid. 
-   */
-    private void unbindHostFromComputeElement(ComputeSystem cs, Host host) throws ClientGeneralException{
-        // VBDU TODO: COP-28452, Check initiators count, if empty do we still need to delete service profile?
-        if (host != null && !NullColumnValueGetter.isNullURI(host.getComputeElement())) {
+    /*
+     * Unbinds the host's service profile from the associated blade.
+     * Determines the service profile to unbind using host's serviceProfile association.
+     * In case of host provisioned using pre-Anakin version of ViPR and no serviceProfile association yet set,
+     * serviceprofile to unbind will be determined by trying to find a serviceProfile that matches
+     * the computeElement's uuid.
+     */
+    private void unbindHostFromComputeElement(ComputeSystem cs, Host host) throws ClientGeneralException {
+        List<Initiator> initiators = null;
+
+        if (host != null) {
+            initiators = CustomQueryUtility.queryActiveResourcesByRelation(_dbClient, host.getId(), Initiator.class, "host");
+        }
+
+        // VBDU [DONE]: COP-28452, Check initiators count, if empty do we still need to delete service profile?
+        // Added check for empty initiators
+        if (host != null && !NullColumnValueGetter.isNullURI(host.getComputeElement()) && initiators != null && !initiators.isEmpty()) {
             ComputeElement computeElement = _dbClient.queryObject(ComputeElement.class, host.getComputeElement());
             if (computeElement == null){
                 LOGGER.error("Host "+ host.getLabel()+ " has associated computeElementURI: "+ host.getComputeElement()+ " which is an invalid reference");
@@ -1372,10 +1379,10 @@ public class UcsComputeDevice implements ComputeDevice {
                          _dbClient.persistObject(computeElement);
                     }
                 }
-      
-             }
-        }else {
-           LOGGER.info("NO OP. Host is null or has no asscoaited computeElement");
+
+            }
+        } else {
+            LOGGER.info("NO OP. Host is null or has no asscoaited computeElement or has empty initiators");
         }
     }
 

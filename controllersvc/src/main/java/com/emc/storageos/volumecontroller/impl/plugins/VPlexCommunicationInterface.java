@@ -1976,7 +1976,7 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
                 updateHostInitiators(client, vplexStorageSystem.getSerialNumber());
             } catch (VPlexCollectionException vce) {
                 discoverySuccess = false;
-                String errMsg = String.format("Failed port discovery for VPlex %s",
+                String errMsg = String.format("Failed host initiator update for VPlex %s",
                         storageSystemURI.toString());
                 s_logger.error(errMsg, vce);
                 if (errMsgBuilder.length() != 0) {

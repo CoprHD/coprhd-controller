@@ -8,11 +8,7 @@ package com.emc.storageos.volumecontroller.impl.isilon;
 
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.text.DateFormat;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -23,7 +19,6 @@ import java.util.TreeSet;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.lang3.time.DateUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -3380,7 +3375,11 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                 builder.append(" minutes between ");
                 builder.append(schedule.getScheduleTime());
                 builder.append(" and ");
-                builder.append(getPolicyEndTime(schedule.getScheduleTime()));
+                // If we add 23 hours 59 min to start time to get end time
+                // result time come smaller in most of the case
+                // Like for start time 3:00 AM it comes at 2:59 AM. and Isilon API does not accept it.
+                // Fixing End time at 11:59 PM for now.(need to get it from user in future)
+                builder.append("11:59 PM");
                 break;
 
             case HOURS:
@@ -3389,7 +3388,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                 builder.append(" hours between ");
                 builder.append(schedule.getScheduleTime());
                 builder.append(" and ");
-                builder.append(getPolicyEndTime(schedule.getScheduleTime()));
+                builder.append("11:59 PM");
                 break;
 
             case DAYS:
@@ -3423,26 +3422,6 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
 
     }
 
-    /**
-     * Add the 23 hours and 59 minutes to start time
-     * 
-     * @param startPolicyTime
-     * @return string with time
-     */
-    private static String getPolicyEndTime(String startPolicyTime) {
-        
-        DateFormat sdf = new SimpleDateFormat("hh:mm a");
-        Date date = new Date();
-        try {
-            date = sdf.parse(startPolicyTime);
-            date = DateUtils.addHours(date, 23);
-            date = DateUtils.addMinutes(date, 59);
-        } catch (ParseException e) {
-            e.printStackTrace();
-        }
-        return sdf.format(date);
-
-    }
 
     private Integer getIsilonSnapshotExpireValue(FilePolicy policy) {
         Long seconds = 0L;

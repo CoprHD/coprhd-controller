@@ -1171,13 +1171,13 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
     }
 
     /**
-     * Validate all initiator of VNXeHost on single ViPR host, or unknown to ViPR
+     * Validate all initiators of VNXeHost on single ViPR host, or unknown to ViPR
      *
-     * @param dbClient
-     * @param initiators
-     * @param apiClient
-     * @param vnxeHostId
-     * @return boolean
+     * @param dbClient DbClient
+     * @param initiators list of initiators that are/will be in the mask (for export mask creation)
+     * @param apiClient VNXeApiClient
+     * @param vnxeHostId VNXe host Id
+     * @return true if validation is passed
      */
     private boolean validateInitiators(DbClient dbClient, List<Initiator> initiators, VNXeApiClient apiClient, String vnxeHostId) {
         if (ExportMaskUtils.areBackendInitiators(initiators)) {

@@ -1033,7 +1033,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         SourceTargetVolumesFilter sourceTargetVolumesFilter = new SourceTargetVolumesFilter();
         List<VolumeRestRep> volumes = client.blockVolumes().findByProject(projectId, unexportedFilter.and(sourceTargetVolumesFilter));
 
-        return createBaseResourceOptions(volumes);
+        return createVolumeOptions(null, volumes);
     }
 
     @Asset("unassignedVplexBlockVolume")
@@ -1061,7 +1061,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         // get a list of all volumes from our list that are in the target VArray, or use the target VArray for protection
         List<BlockObjectRestRep> acceptedVolumes = getVPlexVolumesInTargetVArray(client, virtualArrayId, volumes);
 
-        return createBaseResourceOptions(acceptedVolumes);
+        return createVolumeOptions(null, acceptedVolumes);
     }
 
     @Asset("unassignedBlockSnapshot")
@@ -3226,7 +3226,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         if (blockObject instanceof VolumeRestRep) {
             VolumeRestRep volume = (VolumeRestRep) blockObject;
             String varrayName = varrayNames.get(volume.getVirtualArray().getId()).getName();
-            return getMessage("block.unexport.volume", volume.getName(), volume.getProvisionedCapacity(), varrayName);
+            return getMessage("block.unexport.volume", volume.getName(), volume.getProvisionedCapacity(), varrayName, volume.getWwn());
         }
         return blockObject.getName();
     }
@@ -3312,7 +3312,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
                 return getMessage("block.mirror", mirror.getName());
             } else {
                 VolumeRestRep volume = (VolumeRestRep) blockObject;
-                return getMessage("block.volume", volume.getName(), volume.getProvisionedCapacity());
+                return getMessage("block.volume", volume.getName(), volume.getProvisionedCapacity(), volume.getWwn());
             }
         }
         else if (blockObject instanceof BlockSnapshotRestRep) {

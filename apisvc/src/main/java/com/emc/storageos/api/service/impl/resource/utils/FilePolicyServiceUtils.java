@@ -101,6 +101,8 @@ public class FilePolicyServiceUtils {
             ScheduleFrequency scheduleFreq = ScheduleFrequency.valueOf(policyScheduleparams.getScheduleFrequency().toUpperCase());
             switch (scheduleFreq) {
 
+                case MINUTES:
+                case HOURS:
                 case DAYS:
                     schedulePolicy.setScheduleRepeat((long) policyScheduleparams.getScheduleRepeat());
                     schedulePolicy.setScheduleTime(policyScheduleparams.getScheduleTime() + period);
@@ -220,6 +222,10 @@ public class FilePolicyServiceUtils {
 
             ScheduleFrequency scheduleFreq = ScheduleFrequency.valueOf(policyScheduleparams.getScheduleFrequency().toUpperCase());
             switch (scheduleFreq) {
+                case MINUTES:
+                    break;
+                case HOURS:
+                    break;
                 case DAYS:
                     break;
                 case WEEKS:

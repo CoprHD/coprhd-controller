@@ -3268,6 +3268,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                     }
                     isi.deleteReplicationPolicy(policyName);
                     isi.deleteReplicationPolicy(policyResource.getPolicyNativeId());
+
                 } else {
                     _log.info("replication policy: {} doesn't exists on storage system", filePolicy.toString());
                 }
@@ -3369,6 +3370,28 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         ScheduleFrequency scheduleFreq = ScheduleFrequency.valueOf(schedule.getScheduleFrequency().toUpperCase());
         switch (scheduleFreq) {
 
+            case MINUTES:
+                builder.append("every 1 days every");
+                builder.append(schedule.getScheduleRepeat());
+                builder.append(" minutes between ");
+                builder.append(schedule.getScheduleTime());
+                builder.append(" and ");
+                // If we add 23 hours 59 min to start time to get end time
+                // result time come smaller in most of the case
+                // Like for start time 3:00 AM it comes at 2:59 AM. and Isilon API does not accept it.
+                // Fixing End time at 11:59 PM for now.(need to get it from user in future)
+                builder.append("11:59 PM");
+                break;
+
+            case HOURS:
+                builder.append("every 1 days every");
+                builder.append(schedule.getScheduleRepeat());
+                builder.append(" hours between ");
+                builder.append(schedule.getScheduleTime());
+                builder.append(" and ");
+                builder.append("11:59 PM");
+                break;
+
             case DAYS:
                 builder.append("every ");
                 builder.append(schedule.getScheduleRepeat());
@@ -3399,6 +3422,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         return builder.toString();
 
     }
+
 
     private Integer getIsilonSnapshotExpireValue(FilePolicy policy) {
         Long seconds = 0L;

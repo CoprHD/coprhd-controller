@@ -22,7 +22,6 @@ import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.services.util.StorageDriverManager;
 import com.emc.storageos.storagedriver.model.StorageVolume;
 import com.emc.storageos.storagedriver.model.VolumeClone;
-import com.emc.storageos.util.ConnectivityUtil;
 import com.emc.storageos.volumecontroller.impl.ControllerServiceImpl;
 import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
 
@@ -186,7 +185,7 @@ public class ExternalDeviceUtils {
                 // Make sure external provider is connected
                 String providerIpAddress = storageProvider.getIPAddress();
                 Integer providerPortNumber = storageProvider.getPortNumber();
-                if (ConnectivityUtil.ping(storageProvider.getIPAddress()) && getExternalDevice().validateStorageProviderConnection(providerIpAddress, providerPortNumber)) {
+                if (getExternalDevice().validateStorageProviderConnection(providerIpAddress, providerPortNumber)) {
                     storageProvider.setConnectionStatus(StorageProvider.ConnectionStatus.CONNECTED.name());
                     externalProvidersUris.add(storageProvider.getId());
                     _log.info("Storage Provider {}/{}:{} is reachable", storageProvider.getLabel(), providerIpAddress, providerPortNumber);

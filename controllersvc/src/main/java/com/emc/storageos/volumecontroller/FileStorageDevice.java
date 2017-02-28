@@ -306,6 +306,8 @@ public interface FileStorageDevice {
     public BiosCommandResult checkFileReplicationPolicyExistsOrCreate(StorageSystem sourceStorageObj, StorageSystem targetStorageObj,
             FileDeviceInputOutput sourceSytemArgs, FileDeviceInputOutput targetSytemArgs);
 
+    public BiosCommandResult checkFilePolicyPathHasResourceLabel(StorageSystem system, FileDeviceInputOutput args);
+
     /**
      * Starts a replication link.
      *
@@ -350,4 +352,5 @@ public interface FileStorageDevice {
      * @param completer
      */
     BiosCommandResult doFailoverLink(StorageSystem system, FileShare target, TaskCompleter completer);
+
 }

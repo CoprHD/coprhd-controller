@@ -3854,4 +3854,22 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         // TODO Auto-generated method stub
 
     }
+
+    @Override
+    public BiosCommandResult checkFilePolicyPathHasResourceLabel(StorageSystem system, FileDeviceInputOutput args) {
+
+        _log.info("Inside checkFilePolicyPathHasResourceLabel()");
+
+        try {
+            FilePolicy filePolicy = args.getFileProtectionPolicy();
+            String filePolicyBasePath = getFilePolicyPath(system, args);
+            checkAppliedResourceNamePartOfFilePolicyPath(filePolicyBasePath, filePolicy, args);
+            _log.info("checkFilePolicyPathHasResourceLabel successful.");
+            return BiosCommandResult.createSuccessfulResult();
+        } catch (IsilonException e) {
+            _log.error("checkFilePolicyPathHasResourceLabel failed.", e);
+            return BiosCommandResult.createErrorResult(e);
+        }
+
+    }
 }

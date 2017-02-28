@@ -75,7 +75,7 @@ import com.emc.storageos.volumecontroller.impl.vnxunity.job.VNXUnityUpdateFileSy
 import com.google.common.collect.Sets;
 
 public class VNXUnityFileStorageDevice extends VNXUnityOperations
-        implements FileStorageDevice {
+implements FileStorageDevice {
 
     private static final Logger _logger = LoggerFactory.getLogger(VNXUnityFileStorageDevice.class);
 
@@ -231,7 +231,7 @@ public class VNXUnityFileStorageDevice extends VNXUnityOperations
     @Override
     public BiosCommandResult doExport(StorageSystem storage,
             FileDeviceInputOutput args, List<FileExport> exportList)
-            throws ControllerException {
+                    throws ControllerException {
 
         _logger.info("exporting the file system: " + args.getFsName());
         if (args.getFileObjExports() == null || args.getFileObjExports().isEmpty()) {
@@ -1801,5 +1801,11 @@ public class VNXUnityFileStorageDevice extends VNXUnityOperations
     public BiosCommandResult doFailoverLink(StorageSystem system, FileShare target, TaskCompleter completer) {
         return BiosCommandResult.createErrorResult(
                 DeviceControllerErrors.vnxe.operationNotSupported("failover the mirror link", "Unity"));
+    }
+
+    @Override
+    public BiosCommandResult checkFilePolicyPathHasResourceLabel(StorageSystem system, FileDeviceInputOutput args) {
+        return BiosCommandResult.createErrorResult(
+                DeviceControllerErrors.vnxe.operationNotSupported("check file policy path", "Unity"));
     }
 }

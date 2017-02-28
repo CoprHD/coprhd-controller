@@ -1683,7 +1683,7 @@ public class VPlexApiDiscoveryManager {
             response = _vplexApiClient.post(requestURI,
                     postDataObject.toString());
             String responseStr = response.getEntity(String.class);
-            s_logger.info("Initiator discovery response is {}", responseStr);
+            s_logger.debug("Initiator discovery response is {}", responseStr);
             if (response.getStatus() != VPlexApiConstants.SUCCESS_STATUS) {
                 if (response.getStatus() == VPlexApiConstants.ASYNC_STATUS) {
                     _vplexApiClient.waitForCompletion(response);
@@ -3974,6 +3974,7 @@ public class VPlexApiDiscoveryManager {
     public synchronized void clearInitiatorCache(String clusterName) {
         if (_vplexClusterInitiatorInfoCache != null) {
             if (_vplexClusterInitiatorInfoCache.get(clusterName) != null) {
+                s_logger.info("clearing initiator cache for vplex cluster " + clusterName);
                 _vplexClusterInitiatorInfoCache.get(clusterName).clear();
             }
         }

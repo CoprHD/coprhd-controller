@@ -2990,6 +2990,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
             WorkflowStepCompleter.stepExecuting(stepId);
             StorageSystem vplex = getDataObject(StorageSystem.class, vplexURI, _dbClient);
             VPlexApiClient client = getVPlexAPIClient(_vplexApiFactory, vplex, _dbClient);
+            client.clearInitiatorCache(vplexClusterName);
 
             List<PortInfo> initiatorPortInfos = new ArrayList<PortInfo>();
             List<Initiator> inits = _dbClient.queryObject(Initiator.class, initiatorUris);
@@ -5326,13 +5327,14 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
         while (initiators.hasNext()) {
             Initiator initiator = initiators.next();
             String portWwn = initiator.getInitiatorPort();
-            String initiatorName = initiator.getMappedInitiatorName(initiatorNameMapKey);
+            String initiatorName = initiator.getInitiatorNames().get(initiatorNameMapKey);
             // if the initiator name couldn't be found in the Initiator.initiatorNames map, check the VPLEX API
             if (initiatorName == null) {
                 initiatorName = client.getInitiatorNameForWwn(
                         vplexClusterName, WWNUtility.getUpperWWNWithNoColons(portWwn), doRefresh);
                 if (initiatorName != null) {
                     // if a new initiator name was found, update the Initiator map.
+                    _log.info("mapping new initiator name {} to storage system key {}", initiatorName, initiatorNameMapKey);
                     initiator.mapInitiatorName(initiatorNameMapKey, initiatorName);
                     initsToUpdate.add(initiator);
                 }
@@ -5343,6 +5345,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
         }
 
         _dbClient.updateObject(initsToUpdate);
+        _log.info("initiator names are " + initiatorNames);
         return initiatorNames;
     }
 

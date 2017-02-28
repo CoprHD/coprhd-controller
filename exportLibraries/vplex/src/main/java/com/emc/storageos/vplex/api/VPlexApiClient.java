@@ -2123,6 +2123,15 @@ public class VPlexApiClient {
     }
 
     /**
+     * Clears the initiator cache for the given cluster.
+     * 
+     * @param vplexClusterName the cluster initiator cache to clear
+     */
+    public void clearInitiatorCache(String vplexClusterName) {
+        _discoveryMgr.clearInitiatorCache(vplexClusterName);
+    }
+
+    /**
      * Primes the local VPLEX REST API info caches.
      */
     public synchronized void primeCaches() {
@@ -2131,4 +2140,5 @@ public class VPlexApiClient {
             getInitiatorWwnToNameMap(clusterName);
         }
     }
+
 }

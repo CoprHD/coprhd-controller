@@ -75,7 +75,9 @@ import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
 import com.emc.storageos.volumecontroller.impl.StoragePoolAssociationHelper;
 import com.emc.storageos.volumecontroller.impl.StoragePortAssociationHelper;
 import com.emc.storageos.volumecontroller.impl.plugins.metering.vplex.VPlexStatsCollector;
+import com.emc.storageos.volumecontroller.impl.smis.srdf.SRDFUtils;
 import com.emc.storageos.volumecontroller.impl.utils.DiscoveryUtils;
+import com.emc.storageos.volumecontroller.impl.utils.ImplicitUnManagedObjectsMatcher;
 import com.emc.storageos.vplex.api.VPlexApiClient;
 import com.emc.storageos.vplex.api.VPlexApiConstants;
 import com.emc.storageos.vplex.api.VPlexApiException;
@@ -589,10 +591,12 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
                 tracker.discoveryMode = ControllerUtils.getPropertyValueFromCoordinator(
                         _coordinator, VplexBackendIngestionContext.DISCOVERY_MODE);
 
+                // get all the detailed virtual volume info from the VPLEX API
                 Map<String, VPlexVirtualVolumeInfo> vvolMap = client.getVirtualVolumes(true);
                 tracker.virtualVolumeFetch = System.currentTimeMillis() - timer;
                 tracker.totalVolumesFetched = vvolMap.size();
 
+                // discover unmanaged storage views
                 timer = System.currentTimeMillis();
                 Map<String, Set<UnManagedExportMask>> volumeToExportMasksMap = new HashMap<String, Set<UnManagedExportMask>>();
                 Map<String, Set<VPlexStorageViewInfo>> volumeToStorageViewMap = new HashMap<String, Set<VPlexStorageViewInfo>>();
@@ -601,10 +605,24 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
                         recoverPointExportMasks);
                 tracker.storageViewFetch = System.currentTimeMillis() - timer;
 
+                // discover unmanaged volumes
                 timer = System.currentTimeMillis();
                 discoverUnmanagedVolumes(accessProfile, client, vvolMap, volumeToExportMasksMap, volumeToStorageViewMap,
                         recoverPointExportMasks, tracker);
                 tracker.unmanagedVolumeProcessing = System.currentTimeMillis() - timer;
+
+                // re-run vpool matching for all vpools so that backend volumes will 
+                // be updated after vvol discovery to match their parent's matched vpools
+                timer = System.currentTimeMillis();
+                List<URI> vpoolURIs = _dbClient.queryByType(VirtualPool.class, true);
+                List<VirtualPool> vpoolList = _dbClient.queryObject(VirtualPool.class, vpoolURIs);
+                Set<URI> srdfEnabledTargetVPools = SRDFUtils.fetchSRDFTargetVirtualPools(_dbClient);
+                Set<URI> rpEnabledTargetVPools = RPHelper.fetchRPTargetVirtualPools(_dbClient);
+                for (VirtualPool vpool : vpoolList) {
+                    ImplicitUnManagedObjectsMatcher.matchVirtualPoolsWithUnManagedVolumes(
+                            vpool, srdfEnabledTargetVPools, rpEnabledTargetVPools, _dbClient, true);
+                }
+                tracker.vpoolMatching = System.currentTimeMillis() - timer;
 
                 s_logger.info(tracker.getPerformanceReport());
             } catch (URISyntaxException ex) {
@@ -2461,6 +2479,7 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
         public long storageViewFetch = 0;
         public long consistencyGroupFetch = 0;
         public long unmanagedVolumeProcessing = 0;
+        public long vpoolMatching = 0;
         public int totalVolumesFetched = 0;
         public int totalVolumesDiscovered = 0;
 
@@ -2486,6 +2505,7 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
             report.append("\tstorage view data fetch: ").append(storageViewFetch).append("ms\n");
             report.append("\tconsistency group data fetch: ").append(consistencyGroupFetch).append("ms\n");
             report.append("\tunmanaged volume processing time: ").append(unmanagedVolumeProcessing).append("ms\n");
+            report.append("\tvpool matching processing time: ").append(unmanagedVolumeProcessing).append("ms\n");
 
             volumeTimeResults = sortByValue(volumeTimeResults);
             report.append("\nTop 20 Longest-Running Volumes...\n");

@@ -72,6 +72,8 @@ public class VPlexApiVirtualVolumeManager {
      *            clusters.
      * @param findVirtualVolume If true findVirtualVolume method is called after virtual volume is created.
      * @param thinEnabled If true, the virtual volume should be created as a thin-enabled virtual volume.
+     * @param clusterName The clusterName the volume is on. if non-null, backend volume 
+     *                    search will be restricted to the named cluster.
      *
      * @return The information for the created virtual volume.
      *
@@ -81,7 +83,7 @@ public class VPlexApiVirtualVolumeManager {
     VPlexVirtualVolumeInfo createVirtualVolume(List<VolumeInfo> nativeVolumeInfoList,
             boolean isDistributed, boolean discoveryRequired, boolean preserveData,
             String winningClusterId, List<VPlexClusterInfo> clusterInfoList, 
-            boolean findVirtualVolume, boolean thinEnabled)
+            boolean findVirtualVolume, boolean thinEnabled, String clusterName)
             throws VPlexApiException {
 
         s_logger.info("Request to create {} virtual volume.",
@@ -100,7 +102,7 @@ public class VPlexApiVirtualVolumeManager {
         // Find the storage volumes corresponding to the passed native
         // volume information, discover them if required.
         Map<VolumeInfo, VPlexStorageVolumeInfo> storageVolumeInfoMap = findStorageVolumes(nativeVolumeInfoList,
-                discoveryRequired, clusterInfoList);
+                discoveryRequired, clusterInfoList, clusterName);
 
         // For a distributed virtual volume, verify logging volumes
         // have been configured on each cluster.
@@ -227,7 +229,7 @@ public class VPlexApiVirtualVolumeManager {
         // volume information, discovery them if required.
         List<VPlexClusterInfo> clusterInfoList = new ArrayList<VPlexClusterInfo>();
         Map<VolumeInfo, VPlexStorageVolumeInfo> storageVolumeInfoMap = findStorageVolumes(
-                nativeVolumeInfoList, discoveryRequired, clusterInfoList);
+                nativeVolumeInfoList, discoveryRequired, clusterInfoList, null);
 
         // Claim the storage volumes
         claimStorageVolumes(storageVolumeInfoMap, preserveData);
@@ -719,12 +721,13 @@ public class VPlexApiVirtualVolumeManager {
      * @param discoveryRequired true if the passed native volumes are newly
      *            exported and need to be discovered by the VPlex.
      * @param clusterInfoList [OUT] param set to the cluster information.
+     * @param clusterName if non-null, search will be restricted to the named cluster
      *
      * @throws VPlexApiException When an error occurs finding the storage
      *             volumes or the storage volumes are not all found.
      */
     Map<VolumeInfo, VPlexStorageVolumeInfo> findStorageVolumes(List<VolumeInfo> nativeVolumeInfoList, boolean discoveryRequired,
-            List<VPlexClusterInfo> clusterInfoList) throws VPlexApiException {
+            List<VPlexClusterInfo> clusterInfoList, String clusterName) throws VPlexApiException {
 
         // If the volume(s) passed are newly exported to the VPlex, they may
         // need to be discovered before they can be used. If the discovery
@@ -757,7 +760,7 @@ public class VPlexApiVirtualVolumeManager {
                     s_logger.info("Discovery completed");
 
                     // Get the cluster information.
-                    clusterInfoList.addAll(discoveryMgr.getClusterInfo(false, true));
+                    clusterInfoList.addAll(discoveryMgr.getClusterInfo(false, true, clusterName));
                     s_logger.info("Retrieved storage volume info for VPlex clusters");
 
                     // Find the back-end storage volumes. If a volume cannot be
@@ -786,7 +789,7 @@ public class VPlexApiVirtualVolumeManager {
 
             // Get the cluster information.
             if (clusterInfoList.isEmpty()) {
-                clusterInfoList.addAll(discoveryMgr.getClusterInfo(false, true));
+                clusterInfoList.addAll(discoveryMgr.getClusterInfo(false, true, clusterName));
                 s_logger.info("Retrieved storage volume info for VPlex clusters");
             }
 
@@ -1435,7 +1438,7 @@ public class VPlexApiVirtualVolumeManager {
         remoteVolumeInfoList.add(newRemoteVolume);
         List<VPlexClusterInfo> clusterInfoList = new ArrayList<VPlexClusterInfo>();
         Map<VolumeInfo, VPlexStorageVolumeInfo> storageVolumeInfoMap = findStorageVolumes(
-                remoteVolumeInfoList, discoveryRequired, clusterInfoList);
+                remoteVolumeInfoList, discoveryRequired, clusterInfoList, null);
         if (storageVolumeInfoMap.isEmpty()) {
             throw VPlexApiException.exceptions.cantDiscoverStorageVolume(newRemoteVolume.getVolumeWWN());
         }

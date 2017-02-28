@@ -961,7 +961,7 @@ public class VPlexApiExportManager {
             argsMap.put(VPlexApiConstants.ARG_DASH_I, initiatorPathBuilder.toString());
             argsMap.put(VPlexApiConstants.ARG_DASH_V, storageViewInfo.getPath());
             JSONObject postDataObject = VPlexApiUtils.createPostData(argsMap, false);
-            s_logger.info("Storage view add initiator POST data is {}",
+            s_logger.info("Storage view update initiators POST data is {}",
                     postDataObject.toString());
             response = _vplexApiClient.post(requestURI,
                     postDataObject.toString());

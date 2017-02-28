@@ -111,7 +111,7 @@ public interface VPlexApiExceptions {
             final Throwable cause);
 
     @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
-    public VPlexApiException failedToFindCluster(final String clusterName);
+    public VPlexApiException failedToFindCluster(final String clusterName, final String details);
 
     @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
     public VPlexApiException createConsistencyGroupFailureStatus(final String cgName,

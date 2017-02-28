@@ -1041,9 +1041,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
         List<Initiator> hostInitiators = ComputeSystemHelper.queryInitiators(_dbClient, hostId);
 
         for (ExportGroup export : getExportGroups(_dbClient, hostId, hostInitiators)) {
-            List<URI> existingInitiators = StringSetUtil.stringSetToUriList(export.getInitiators());
             List<URI> existingHosts = StringSetUtil.stringSetToUriList(export.getHosts());
-            List<URI> updatedClusters = StringSetUtil.stringSetToUriList(export.getClusters());
             Map<URI, Integer> updatedVolumesMap = StringMapUtil.stringMapToVolumeMap(export.getVolumes());
 
             Set<URI> addedClusters = new HashSet<>();
@@ -1056,7 +1054,6 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
             existingHosts.remove(hostId);
 
             for (Initiator initiator : hostInitiators) {
-                existingInitiators.remove(initiator.getId());
                 removedInitiators.add(initiator.getId());
             }
             // VBDU [DONE]: COP-28452 This is dangerous ..Delete export Group in controller means export all volumes in
@@ -1602,7 +1599,6 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
             Set<URI> addedInitiators = new HashSet<>();
             Set<URI> removedInitiators = new HashSet<>();
 
-            List<URI> updatedInitiators = StringSetUtil.stringSetToUriList(export.getInitiators());
             Map<URI, Integer> updatedVolumesMap = StringMapUtil.stringMapToVolumeMap(export.getVolumes());
 
             removedClusters.add(clusterId);
@@ -1610,7 +1606,6 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
             List<URI> hostUris = ComputeSystemHelper.getChildrenUris(_dbClient, clusterId, Host.class, "cluster");
             for (URI hosturi : hostUris) {
                 removedHosts.add(hosturi);
-                updatedInitiators.removeAll(ComputeSystemHelper.getChildrenUris(_dbClient, hosturi, Initiator.class, "host"));
                 removedInitiators.addAll(ComputeSystemHelper.getChildrenUris(_dbClient, hosturi, Initiator.class, "host"));
             }
 

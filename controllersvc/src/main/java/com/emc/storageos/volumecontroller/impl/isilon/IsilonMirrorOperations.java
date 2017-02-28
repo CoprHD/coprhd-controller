@@ -397,7 +397,7 @@ public class IsilonMirrorOperations {
             _log.info("resync-prep between source file system to target file system started");
             IsilonApi isi = getIsilonDevice(system);
             IsilonSyncPolicy syncPolicy = isi.getReplicationPolicy(policyName);
-            if (!syncPolicy.getEnabled() && syncPolicy.getLastJobState().equals(JobState.finished)) {
+            if (!syncPolicy.getEnabled()) {
                 _log.info("can't perform resync-prep operation on policy: {} because policy is disabled and resync-prep is done already",
                         syncPolicy.getName());
                 return BiosCommandResult.createSuccessfulResult();

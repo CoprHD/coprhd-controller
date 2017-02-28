@@ -9,6 +9,7 @@ import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -40,6 +41,7 @@ import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.exceptions.DeviceControllerException;
+import com.emc.storageos.fileorchestrationcontroller.FileStorageSystemAssociation.TargetAssociation;
 import com.emc.storageos.filereplicationcontroller.FileReplicationDeviceController;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.model.file.CifsShareACLUpdateParams;
@@ -2079,20 +2081,25 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
 
             for (FileStorageSystemAssociation association : associations) {
                 StorageSystem sourceStoragesystem = s_dbClient.queryObject(StorageSystem.class, association.getSourceSystem());
-                Map<URI, URI> targetStorageDeviceToVNASMap = association.getTargetStorageDeviceToVNASMap();
-                URI vpoolURI = association.getAppliedAtResource();
-                if (targetStorageDeviceToVNASMap != null && !targetStorageDeviceToVNASMap.isEmpty()) {
-                    for (URI targetStorage : targetStorageDeviceToVNASMap.keySet()) {
 
-                        URI targetVNASURI = targetStorageDeviceToVNASMap.get(targetStorage);
-                        if (targetVNASURI != null) {
+                URI vpoolURI = association.getAppliedAtResource();
+                List<TargetAssociation> targetAssociations = association.getTargets();
+                if (targetAssociations != null && !targetAssociations.isEmpty()) {
+                    for (Iterator<TargetAssociation> iterator = targetAssociations.iterator(); iterator.hasNext();) {
+                        TargetAssociation targetAssociation = iterator.next();
+
+                        URI targetVNASURI = targetAssociation.getvNASURI();
+                        URI targetStorage = targetAssociation.getStorageSystemURI();
+                        URI targetVArray = targetAssociation.getvArrayURI();
+
+                        if (targetVNASURI != null && association.getSourceVNAS() != null) {
                             stepId = workflow.createStepId();
                             stepDes = String.format("Assigning file policy: %s, to vpool: %s on storage system: %s",
                                     filePolicy.getId(),
                                     vpoolURI, association.getSourceSystem());
 
                             Object[] args = new Object[] { association.getSourceSystem(), targetStorage,
-                                    association.getSourceVNAS(), targetVNASURI, filePolicyToAssign, vpoolURI };
+                                    association.getSourceVNAS(), targetVArray, targetVNASURI, filePolicyToAssign, vpoolURI };
                             waitFor = _fileDeviceController.createMethod(workflow, waitFor,
                                     ASSIGN_FILE_REPLICATION_POLICY_TO_VIRTUAL_POOLS_METHOD,
                                     stepId,
@@ -2108,7 +2115,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
                                             vpoolURI, association.getSourceSystem());
 
                                     Object[] args = new Object[] { association.getSourceSystem(), targetStorage,
-                                            association.getSourceVNAS(), null, filePolicyToAssign, vpoolURI };
+                                            association.getSourceVNAS(), targetVArray, null, filePolicyToAssign, vpoolURI };
                                     waitFor = _fileDeviceController.createMethod(workflow, waitFor,
                                             ASSIGN_FILE_REPLICATION_POLICY_TO_VIRTUAL_POOLS_METHOD,
                                             stepId,
@@ -2153,42 +2160,47 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
             for (FileStorageSystemAssociation association : associations) {
                 StorageSystem sourceStoragesystem = s_dbClient.queryObject(StorageSystem.class, association.getSourceSystem());
 
-                Map<URI, URI> targetStorageDeviceToVNASMap = association.getTargetStorageDeviceToVNASMap();
                 URI projectURI = association.getAppliedAtResource();
                 URI vPoolURI = association.getProjectvPool();
-                if (targetStorageDeviceToVNASMap != null && !targetStorageDeviceToVNASMap.isEmpty()) {
-                    for (URI targetStorage : targetStorageDeviceToVNASMap.keySet()) {
+                List<TargetAssociation> targetAssociations = association.getTargets();
+                if (targetAssociations != null && !targetAssociations.isEmpty()) {
+                    for (Iterator<TargetAssociation> iterator = targetAssociations.iterator(); iterator.hasNext();) {
+                        TargetAssociation targetAssociation = iterator.next();
 
-                        URI targetVNASURI = targetStorageDeviceToVNASMap.get(targetStorage);
-                        if (targetVNASURI != null) {
+                        URI targetVNASURI = targetAssociation.getvNASURI();
+                        URI targetStorage = targetAssociation.getStorageSystemURI();
+                        URI targetVArray = targetAssociation.getvArrayURI();
+
+                        if (targetVNASURI != null && association.getSourceVNAS() != null) {
                             stepId = workflow.createStepId();
                             stepDes = String.format("Assigning file policy: %s, to project: %s on storage system: %s",
                                     filePolicy.getId(),
                                     projectURI, association.getSourceSystem());
 
                             Object[] args = new Object[] { association.getSourceSystem(), targetStorage,
-                                    association.getSourceVNAS(), targetVNASURI, filePolicyToAssign, vPoolURI, projectURI };
+                                    association.getSourceVNAS(), targetVArray, targetVNASURI, filePolicyToAssign, vPoolURI, projectURI };
                             waitFor = _fileDeviceController.createMethod(workflow, waitFor,
                                     ASSIGN_FILE_REPLICATION_POLICY_TO_PROJECTS_METHOD,
                                     stepId,
                                     stepDes,
                                     association.getSourceSystem(), args);
 
-                        }
-                        if (sourceStoragesystem.getSystemType().equals(Type.isilon.toString())) {
-                            if (usePhysicalNAS) {
-                                stepId = workflow.createStepId();
-                                stepDes = String.format("Assigning file policy: %s, to project: %s on storage system: %s",
-                                        filePolicy.getId(),
-                                        projectURI, association.getSourceSystem());
+                        } else {
+                            if (sourceStoragesystem.getSystemType().equals(Type.isilon.toString())) {
+                                if (usePhysicalNAS) {
+                                    stepId = workflow.createStepId();
+                                    stepDes = String.format("Assigning file policy: %s, to project: %s on storage system: %s",
+                                            filePolicy.getId(),
+                                            projectURI, association.getSourceSystem());
 
-                                Object[] args = new Object[] { association.getSourceSystem(), targetStorage,
-                                        association.getSourceVNAS(), null, filePolicyToAssign, vPoolURI, projectURI };
-                                waitFor = _fileDeviceController.createMethod(workflow, waitFor,
-                                        ASSIGN_FILE_REPLICATION_POLICY_TO_PROJECTS_METHOD,
-                                        stepId,
-                                        stepDes,
-                                        association.getSourceSystem(), args);
+                                    Object[] args = new Object[] { association.getSourceSystem(), targetStorage,
+                                            association.getSourceVNAS(), targetVArray, null, filePolicyToAssign, vPoolURI, projectURI };
+                                    waitFor = _fileDeviceController.createMethod(workflow, waitFor,
+                                            ASSIGN_FILE_REPLICATION_POLICY_TO_PROJECTS_METHOD,
+                                            stepId,
+                                            stepDes,
+                                            association.getSourceSystem(), args);
+                                }
                             }
                         }
                     }

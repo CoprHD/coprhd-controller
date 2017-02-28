@@ -4,7 +4,6 @@
  */
 package com.emc.storageos.util;
 
-import java.io.IOException;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -1094,18 +1093,5 @@ public class ConnectivityUtil {
         }
 
         return foundStorageSystemURI;
-    }
-    
-    /**
-     * pings a resource
-     * @param resource host name or ip address of a resource
-     * @return
-     */
-    public static boolean ping(String resource) {
-        try {
-            return (java.lang.Runtime.getRuntime().exec("ping -c 1 "+resource).waitFor()==0);
-        } catch (IOException | InterruptedException e) {
-            return false;
-        }
     }
 }

@@ -1519,7 +1519,8 @@ public class VPlexUtil {
         String vplexClusterId = ConnectivityUtil.getVplexClusterForVarray(varrayUri, vplexUri, dbClient);
         if (vplexClusterId.equals(ConnectivityUtil.CLUSTER_UNKNOWN)) {
             _log.error("Unable to find VPLEX cluster for the varray " + varrayUri);
-            throw VPlexApiException.exceptions.failedToFindCluster(vplexClusterId);
+            String details = "Does the virtual array contain VPLEX storage ports?";
+            throw VPlexApiException.exceptions.failedToFindCluster(vplexClusterId, details);
         }
 
         return client.getClusterNameForId(vplexClusterId);
@@ -1540,8 +1541,14 @@ public class VPlexUtil {
 
         String vplexClusterId = ConnectivityUtil.getVplexClusterForExportMask(exportMask, vplexUri, dbClient);
         if (vplexClusterId.equals(ConnectivityUtil.CLUSTER_UNKNOWN)) {
+            String details = "";
             _log.error("Unable to find VPLEX cluster for the ExportMask " + exportMask.getMaskName());
-            throw VPlexApiException.exceptions.failedToFindCluster(vplexClusterId);
+            if (exportMask.getStoragePorts() == null || exportMask.getStoragePorts().isEmpty()) {
+                details = "The export mask " + exportMask.forDisplay() 
+                    + " contains no storage ports, so VPLEX cluster connectivity cannot be determined.";
+                _log.error(details);
+            }
+            throw VPlexApiException.exceptions.failedToFindCluster(vplexClusterId, details);
         }
 
         return client.getClusterNameForId(vplexClusterId);

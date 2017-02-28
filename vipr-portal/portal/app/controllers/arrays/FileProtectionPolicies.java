@@ -81,6 +81,7 @@ import util.datatable.DataTablesSupport;
 public class FileProtectionPolicies extends ViprResourceController {
 
     protected static final String UNKNOWN = "schedule.policies.unknown";
+    protected static final String vPoolLevelSnapshotPattern = "{Cluster}_{vNas}_{VPool}_{Policy_TemplateName}_%Y-%m-%d-_%H-%M";
 
     public static void list() {
         ScheculePoliciesDataTable dataTable = new ScheculePoliciesDataTable();
@@ -616,7 +617,7 @@ public class FileProtectionPolicies extends ViprResourceController {
         // Day of the month
         public Long scheduleDayOfMonth;
 
-        public String snapshotNamePattern = "Snapshot_%Y-%m-%d-_%H-%M";
+        public String snapshotNamePattern = vPoolLevelSnapshotPattern;
 
         // Schedule Snapshot expire type e.g hours, days, weeks, months and never
         public String expireType;

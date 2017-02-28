@@ -2987,20 +2987,19 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                 if (policyUpdateParam.getSnapshotPolicyPrams() != null) {
                     FileSnapshotPolicyParam snapParam = policyUpdateParam.getSnapshotPolicyPrams();
 
-                    if (snapParam.getSnapshotNamePattern() != null && !snapParam.getSnapshotNamePattern().isEmpty() &&
-                            snapParam.getSnapshotNamePattern().equalsIgnoreCase(snapPolicyAtPath.getPattern())) {
-                        modifiedPolicy.setPattern(snapParam.getSnapshotNamePattern());
-                        bModifyPolicy = true;
-                    }
-
                     if (snapParam.getSnapshotExpireParams() != null) {
                         Integer expireTime = getSnapshotExpireValue(snapParam.getSnapshotExpireParams());
-                        if (expireTime != null) {
-                            if (snapPolicyAtPath.getDuration() != null
-                                    && snapPolicyAtPath.getDuration().intValue() != expireTime.intValue()) {
+                        if (expireTime != null && snapPolicyAtPath.getDuration() != null) {
+                            if (snapPolicyAtPath.getDuration().intValue() != expireTime.intValue()) {
                                 modifiedPolicy.setDuration(expireTime);
                                 bModifyPolicy = true;
                             }
+                        } else if (expireTime != null && snapPolicyAtPath.getDuration() == null) {
+                            modifiedPolicy.setDuration(expireTime);
+                            bModifyPolicy = true;
+                        } else if (snapPolicyAtPath.getDuration() != null) {
+                            modifiedPolicy.setDuration(0);
+                            bModifyPolicy = true;
                         }
                     }
 
@@ -3635,7 +3634,15 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         _log.info("File replication policy : {} creation started", filePolicy.toString());
 
         try {
-            String targetHost = FileOrchestrationUtils.getTargetHostPortForReplication(_dbClient, targetStorage.getId());
+            VirtualNAS targetVNas = targetSystemArgs.getvNAS();
+            URI targetVNasURI = null;
+            if (targetVNas != null) {
+                targetVNasURI = targetVNas.getId();
+            }
+
+            String targetHost = FileOrchestrationUtils.getTargetHostPortForReplication(_dbClient, targetStorage.getId(),
+                    targetSystemArgs.getVarray().getId(), targetVNasURI);
+
             IsilonApi isi = getIsilonDevice(storageObj);
             isi.createDir(sourcePath, true);
             IsilonSyncPolicy replicationPolicy = new IsilonSyncPolicy(syncPolicyName, sourcePath, targetPath, targetHost,

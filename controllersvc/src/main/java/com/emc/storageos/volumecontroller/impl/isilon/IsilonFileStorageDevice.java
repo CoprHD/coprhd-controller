@@ -2601,7 +2601,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         PolicyStorageResource policyStrRes = getEquivalentPolicyStorageResource(source, _dbClient);
         if (policyStrRes != null) {
             String policyName = policyStrRes.getPolicyNativeId();
-            return mirrorOperations.doStartReplicationPolicy(system, policyName, completer);
+            return mirrorOperations.doResumeReplicationPolicy(system, policyName);
         }
         ServiceError serviceError = DeviceControllerErrors.isilon.unableToCreateFileShare();
         return BiosCommandResult.createErrorResult(serviceError);

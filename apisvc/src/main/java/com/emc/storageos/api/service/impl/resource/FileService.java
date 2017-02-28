@@ -2883,27 +2883,14 @@ public class FileService extends TaskResourceService {
      * @throws ControllerException
      * 
      */
+    @Deprecated
     @POST
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/protection/continuous-copies/start")
     @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.OWN, ACL.ALL })
     public TaskList startContinuousCopies(@PathParam("id") URI id, FileReplicationParam param)
             throws ControllerException {
-        doMirrorOperationValidation(id, ProtectionOp.START.toString());
-        String task = UUID.randomUUID().toString();
-        FileShare sourceFileShare = queryResource(id);
-        Operation op = _dbClient.createTaskOpStatus(FileShare.class, id, task, ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_START);
-        op.setDescription("start the replication link between source and target");
-
-        StorageSystem system = _dbClient.queryObject(StorageSystem.class, sourceFileShare.getStorageDevice());
-        FileController controller = getController(FileController.class, system.getSystemType());
-
-        controller.performFileReplicationOperation(system.getId(), id, ProtectionOp.START.toString().toLowerCase(), task);
-
-        TaskList taskList = new TaskList();
-        TaskResourceRep taskResp = toTask(sourceFileShare, task, op);
-        taskList.getTaskList().add(taskResp);
-        return taskList;
+        throw APIException.badRequests.unableToPerformMirrorOperation(ProtectionOp.START.toString(), id, "api is deprecated!!");
     }
 
     /**

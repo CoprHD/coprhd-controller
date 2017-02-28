@@ -353,6 +353,12 @@ public class IsilonMirrorOperations {
         _log.info("IsilonMirrorOperations -  doFailover started ");
         try {
             IsilonApi isi = getIsilonDevice(system);
+            IsilonSyncTargetPolicy syncTargetPolicy = isi.getTargetReplicationPolicy(policyName);
+            if (syncTargetPolicy.getFoFbState().equals(FOFB_STATES.writes_enabled)) {
+                _log.info("can't perform failover operation on policy: {} because failover is done already",
+                        syncTargetPolicy.getName());
+                return BiosCommandResult.createSuccessfulResult();
+            }
             IsilonSyncJob job = new IsilonSyncJob();
             job.setId(policyName);
             job.setAction(Action.allow_write);
@@ -390,6 +396,12 @@ public class IsilonMirrorOperations {
         try {
             _log.info("resync-prep between source file system to target file system started");
             IsilonApi isi = getIsilonDevice(system);
+            IsilonSyncPolicy syncPolicy = isi.getReplicationPolicy(policyName);
+            if (!syncPolicy.getEnabled() && syncPolicy.getLastJobState().equals(JobState.finished)) {
+                _log.info("can't perform resync-prep operation on policy: {} because policy is disabled and resync-prep is done already",
+                        syncPolicy.getName());
+                return BiosCommandResult.createSuccessfulResult();
+            }
             IsilonSyncJob job = new IsilonSyncJob();
             job.setId(policyName);
             job.setAction(Action.resync_prep);
@@ -463,4 +475,28 @@ public class IsilonMirrorOperations {
         }
     }
 
+    /**
+     * Call to isilon to resume replication session
+     * 
+     * @param system
+     * @param policyName
+     * @return
+     */
+    public BiosCommandResult doResumeReplicationPolicy(StorageSystem system, String policyName) {
+        _log.info("IsilonMirrorOperations -  do RESUME ReplicationPolicy started on storagesystem {}", system.getLabel());
+        try {
+            IsilonApi isi = getIsilonDevice(system);
+            IsilonSyncPolicy policy = isi.getReplicationPolicy(policyName);
+            if (!policy.getEnabled()) {
+                policy = doEnableReplicationPolicy(isi, policyName);
+                if (policy.getEnabled()) {
+                    _log.info("Replication Policy - {} ENABLED successfully", policy.toString());
+                }
+            }
+            return BiosCommandResult.createSuccessfulResult();
+        } catch (IsilonException e) {
+            _log.error("doStartReplicationPolicy failed.", e);
+            return BiosCommandResult.createErrorResult(e);
+        }
+    }
 }

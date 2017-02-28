@@ -4717,6 +4717,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                 result = getDevice(system.getSystemType()).doResyncLink(system, fileShare, completer);
             }
             if (result.getCommandSuccess()) {
+                _log.info("file replication operation {} finished successfully for file systerm {}", opType, fileShare.getName());
                 completer.ready(_dbClient);
             } else if (result.getCommandPending()) {
                 completer.statusPending(_dbClient, result.getMessage());

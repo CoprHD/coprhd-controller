@@ -2319,7 +2319,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
             stepDescription = String.format("start mirror policy: replicate target file share: %s, data to source file share:%s",
                     targetFS.getId(), sourceFS.getId());
             stepId = workflow.createStepId();
-            args = new Object[] { secondarySystem.getId(), sourceFS.getId(), "start" };
+            args = new Object[] { secondarySystem.getId(), targetFS.getId(), "start" };
             waitFor = _fileDeviceController.createMethod(workflow, waitFor, FILE_REPLICATION_OPERATIONS_METHOD, stepId,
                     stepDescription, secondarySystem.getId(), args);
 

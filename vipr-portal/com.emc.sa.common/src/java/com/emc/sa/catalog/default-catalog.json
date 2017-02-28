@@ -175,7 +175,7 @@
           "baseService": "AddVolumesToConsistencyGroup"
         },
         {
-          "image": "icon_db_create.png",
+          "image": "icon_export_path_adjustment.png",
           "baseService": "ExportPathAdjustment"
         }
       ]

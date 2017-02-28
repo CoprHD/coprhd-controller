@@ -82,7 +82,7 @@ public class VPlexApiMigrationManager {
                 .getVirtualVolumeManager();
         List<VPlexClusterInfo> clusterInfoList = new ArrayList<VPlexClusterInfo>();
         Map<VolumeInfo, VPlexStorageVolumeInfo> storageVolumeInfoMap = virtualVolumeMgr
-                .findStorageVolumes(nativeVolumeInfoList, discoveryRequired, clusterInfoList);
+                .findStorageVolumes(nativeVolumeInfoList, discoveryRequired, clusterInfoList, null);
         s_logger.info("Found storage volumes");
 
         // Now find the virtual volume.

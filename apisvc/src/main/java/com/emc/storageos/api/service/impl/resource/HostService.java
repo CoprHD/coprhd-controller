@@ -302,7 +302,8 @@ public class HostService extends TaskResourceService {
         // We only want to update the export group if we're changing the cluster during a host update
         if (newClusterURI != null) {
             updateTaskStatus = false;
-            // VBDU TODO: COP-28451, The first if block never gets executed, need to understand the impact.
+            // VBDU [DONE]: COP-28451, The first if block never gets executed, need to understand the impact.
+            // This is run when a clustered host is moved out of a cluster
             if (updateExports && !NullColumnValueGetter.isNullURI(oldClusterURI)
                     && NullColumnValueGetter.isNullURI(newClusterURI)
                     && ComputeSystemHelper.isClusterInExport(_dbClient, oldClusterURI)) {

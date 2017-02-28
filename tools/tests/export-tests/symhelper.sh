@@ -44,7 +44,7 @@ delete_mask() {
 	# Put it back into the optimized SG?
 
 	# Delete storage group
-	/opt/emc/SYMCLI/bin/symaccess -sid 612 delete -force -name ${sg_long_id} -type storage -noprompt
+	/opt/emc/SYMCLI/bin/symaccess -sid ${serial_number} delete -force -name ${sg_long_id} -type storage -noprompt
     fi
 }
 
@@ -309,7 +309,7 @@ verify_export_via_provider() {
     DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
     tools_jar="${DIR}/preExistingConfig.jar"
 
-    if [ ! -f preExistingConfig.properties ]; then
+    if [ ! -f ${DIR}/preExistingConfig.properties ]; then
 	echo "Missing preExistingConfg.properties.  dutests should generate this for you"
 	exit 1
     fi

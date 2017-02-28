@@ -97,7 +97,6 @@ import com.emc.storageos.volumecontroller.FileShareExport;
 import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.BiosCommandResult;
 import com.emc.storageos.volumecontroller.impl.file.AbstractFileStorageDevice;
-import com.emc.storageos.volumecontroller.impl.file.FileMirrorOperations;
 import com.google.common.collect.Sets;
 
 /**
@@ -127,13 +126,13 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
     @Autowired
     private DataSourceFactory dataSourceFactory;
 
-    private FileMirrorOperations mirrorOperations;
+    private IsilonMirrorOperations mirrorOperations;
 
-    public FileMirrorOperations getMirrorOperations() {
+    public IsilonMirrorOperations getMirrorOperations() {
         return mirrorOperations;
     }
 
-    public void setMirrorOperations(FileMirrorOperations mirrorOperations) {
+    public void setMirrorOperations(IsilonMirrorOperations mirrorOperations) {
         this.mirrorOperations = mirrorOperations;
     }
 
@@ -2218,51 +2217,58 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         // get the all the Share ACL from the storage system.
         IsilonApi isi = getIsilonDevice(storage);
         String zoneName = getZoneName(args.getvNAS());
-        IsilonSMBShare share = getIsilonSMBShare(isi, args.getShareName(), zoneName);
-        List<Permission> permissions = share.getPermissions();
-        for (Permission perm : permissions) {
-            if (perm.getPermissionType().equalsIgnoreCase(Permission.PERMISSION_TYPE_ALLOW)) {
-                ShareACL shareACL = new ShareACL();
-                shareACL.setPermission(perm.getPermission());
-                String userAndDomain = perm.getTrustee().getName();
-                String[] trustees = new String[2];
-                trustees = userAndDomain.split("\\\\");
-                String trusteesType = perm.getTrustee().getType();
-                if (trustees.length > 1) {
-                    shareACL.setDomain(trustees[0]);
-                    if (trusteesType.equals("group")) {
-                        shareACL.setGroup(trustees[1]);
-                    } else {
-                        shareACL.setUser(trustees[1]);
-                    }
-                } else {
-                    if (trusteesType.equals("group")) {
-                        shareACL.setGroup(trustees[0]);
-                    } else {
-                        shareACL.setUser(trustees[0]);
-                    }
-                }
-                arrayShareACLMap.put(perm.getTrustee().getName(), shareACL);
-
-            }
+        IsilonSMBShare share = null;
+        if (zoneName != null) {
+            share = isi.getShare(args.getShareName(), zoneName);
+        } else {
+            share = isi.getShare(args.getShareName());
         }
-        for (Iterator iterator = existingDBShareACL.iterator(); iterator.hasNext();) {
-            ShareACL shareACL = (ShareACL) iterator.next();
-            String key = "";
-            String domain = "";
-            String user = shareACL.getUser();
-            String group = shareACL.getGroup();
-            if (shareACL.getDomain() != null && !shareACL.getDomain().isEmpty()) {
-                domain = shareACL.getDomain() + "\\";
-            }
-            if (user != null && !user.isEmpty()) {
-                key = domain + user;
-            } else if (group != null && !group.isEmpty()) {
-                key = domain + group;
-            }
-            if (arrayShareACLMap.containsKey(key)) {
+        if (share != null) {
+            List<Permission> permissions = share.getPermissions();
+            for (Permission perm : permissions) {
+                if (perm.getPermissionType().equalsIgnoreCase(Permission.PERMISSION_TYPE_ALLOW)) {
+                    ShareACL shareACL = new ShareACL();
+                    shareACL.setPermission(perm.getPermission());
+                    String userAndDomain = perm.getTrustee().getName();
+                    String[] trustees = new String[2];
+                    trustees = userAndDomain.split("\\\\");
+                    String trusteesType = perm.getTrustee().getType();
+                    if (trustees.length > 1) {
+                        shareACL.setDomain(trustees[0]);
+                        if (trusteesType.equals("group")) {
+                            shareACL.setGroup(trustees[1]);
+                        } else {
+                            shareACL.setUser(trustees[1]);
+                        }
+                    } else {
+                        if (trusteesType.equals("group")) {
+                            shareACL.setGroup(trustees[0]);
+                        } else {
+                            shareACL.setUser(trustees[0]);
+                        }
+                    }
+                    arrayShareACLMap.put(perm.getTrustee().getName(), shareACL);
 
-                arrayShareACLMap.remove(key);
+                }
+            }
+            for (Iterator iterator = existingDBShareACL.iterator(); iterator.hasNext();) {
+                ShareACL shareACL = (ShareACL) iterator.next();
+                String key = "";
+                String domain = "";
+                String user = shareACL.getUser();
+                String group = shareACL.getGroup();
+                if (shareACL.getDomain() != null && !shareACL.getDomain().isEmpty()) {
+                    domain = shareACL.getDomain() + "\\";
+                }
+                if (user != null && !user.isEmpty()) {
+                    key = domain + user;
+                } else if (group != null && !group.isEmpty()) {
+                    key = domain + group;
+                }
+                if (arrayShareACLMap.containsKey(key)) {
+
+                    arrayShareACLMap.remove(key);
+                }
             }
         }
         return arrayShareACLMap;
@@ -2529,48 +2535,49 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
 
     @Override
     public void doCreateMirrorLink(StorageSystem system, URI source, URI target, TaskCompleter completer) {
-        mirrorOperations.createMirrorFileShareLink(system, source, target, completer);
+        // mirrorOperations.createMirrorFileShareLink(system, source, target, completer);
     }
 
     @Override
-    public void doModifyReplicationRPO(StorageSystem system, Long rpoValue, String rpoType, FileShare target, TaskCompleter completer) {
-        mirrorOperations.doModifyReplicationRPO(system, rpoValue, rpoType, target, completer);
-    }
+    public BiosCommandResult doStartMirrorLink(StorageSystem system, FileShare source, TaskCompleter completer) {
 
-    @Override
-    public void doCancelMirrorLink(StorageSystem system, FileShare target, TaskCompleter completer, String devSpecificPolicyName) {
-        if (devSpecificPolicyName == null) {
-            devSpecificPolicyName = gerneratePolicyName(system, target);
+        PolicyStorageResource policyStrRes = getEquivalentPolicyStorageResource(source, _dbClient);
+        if (policyStrRes != null) {
+            String policyName = policyStrRes.getPolicyNativeId();
+            return mirrorOperations.doStartReplicationPolicy(system, policyName, completer);
         }
-        mirrorOperations.cancelMirrorFileShareLink(system, target, completer, devSpecificPolicyName);
+        ServiceError serviceError = DeviceControllerErrors.isilon.unableToCreateFileShare();
+        return BiosCommandResult.createErrorResult(serviceError);
     }
 
     @Override
-    public void doDetachMirrorLink(StorageSystem system, URI source, URI target, TaskCompleter completer) {
-        mirrorOperations.deleteMirrorFileShareLink(system, source, target, completer);
-    }
-
-    @Override
-    public void doStartMirrorLink(StorageSystem system, FileShare target, TaskCompleter completer, String devSpecificPolicyName) {
-        if (devSpecificPolicyName == null) {
-            devSpecificPolicyName = gerneratePolicyName(system, target);
+    public BiosCommandResult doRefreshMirrorLink(StorageSystem system, FileShare source) {
+        PolicyStorageResource policyStrRes = getEquivalentPolicyStorageResource(source, _dbClient);
+        if (policyStrRes != null) {
+            String policyName = policyStrRes.getPolicyNativeId();
+            return mirrorOperations.doRefreshMirrorFileShareLink(system, source, policyName);
         }
-        mirrorOperations.startMirrorFileShareLink(system, target, completer, devSpecificPolicyName);
+        ServiceError serviceError = DeviceControllerErrors.isilon.unableToCreateFileShare();
+        return BiosCommandResult.createErrorResult(serviceError);
     }
 
     @Override
-    public void doRefreshMirrorLink(StorageSystem system, FileShare source, FileShare target, TaskCompleter completer) {
-        mirrorOperations.refreshMirrorFileShareLink(system, source, target, completer);
-    }
+    public BiosCommandResult doPauseLink(StorageSystem system, FileShare source) {
 
-    @Override
-    public void doStopMirrorLink(StorageSystem system, FileShare target, TaskCompleter completer) {
-        mirrorOperations.stopMirrorFileShareLink(system, target, completer);
-    }
+        PolicyStorageResource policyStrRes = getEquivalentPolicyStorageResource(source, _dbClient);
+        if (policyStrRes != null) {
+            String policyName = policyStrRes.getPolicyNativeId();
+            IsilonApi isi = getIsilonDevice(system);
+            IsilonSyncPolicy policy = isi.getReplicationPolicy(policyName);
+            JobState policyState = policy.getLastJobState();
 
-    @Override
-    public void doSuspendLink(StorageSystem system, FileShare target, TaskCompleter completer) {
-        mirrorOperations.pauseMirrorFileShareLink(system, target, completer);
+            if (policyState.equals(JobState.running) || policyState.equals(JobState.paused)) {
+                mirrorOperations.doCancelReplicationPolicy(system, policyName);
+            }
+            return mirrorOperations.doStopReplicationPolicy(system, policyName);
+        }
+        ServiceError serviceError = DeviceControllerErrors.isilon.unableToCreateFileShare();
+        return BiosCommandResult.createErrorResult(serviceError);
     }
 
     String gerneratePolicyName(StorageSystem system, FileShare fileShare) {
@@ -2578,16 +2585,27 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
     }
 
     @Override
-    public void doResumeLink(StorageSystem system, FileShare target, TaskCompleter completer) {
-        mirrorOperations.resumeMirrorFileShareLink(system, target, completer);
+    public BiosCommandResult doResumeLink(StorageSystem system, FileShare source, TaskCompleter completer) {
+
+        PolicyStorageResource policyStrRes = getEquivalentPolicyStorageResource(source, _dbClient);
+        if (policyStrRes != null) {
+            String policyName = policyStrRes.getPolicyNativeId();
+            return mirrorOperations.doStartReplicationPolicy(system, policyName, completer);
+        }
+        ServiceError serviceError = DeviceControllerErrors.isilon.unableToCreateFileShare();
+        return BiosCommandResult.createErrorResult(serviceError);
     }
 
     @Override
-    public void doFailoverLink(StorageSystem systemTarget, FileShare target, TaskCompleter completer, String devSpecificPolicyName) {
-        if (devSpecificPolicyName == null) {
-            devSpecificPolicyName = gerneratePolicyName(systemTarget, target);
+    public BiosCommandResult doFailoverLink(StorageSystem systemTarget, FileShare target, TaskCompleter completer) {
+        FileShare source = _dbClient.queryObject(FileShare.class, target.getParentFileShare());
+        PolicyStorageResource policyStrRes = getEquivalentPolicyStorageResource(source, _dbClient);
+        if (policyStrRes != null) {
+            String policyName = policyStrRes.getPolicyNativeId();
+            return mirrorOperations.doFailover(systemTarget, policyName, completer);
         }
-        mirrorOperations.failoverMirrorFileShareLink(systemTarget, target, completer, devSpecificPolicyName);
+        ServiceError serviceError = DeviceControllerErrors.isilon.unableToCreateFileShare();
+        return BiosCommandResult.createErrorResult(serviceError);
     }
 
     @Override
@@ -2596,7 +2614,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         if (devSpecificPolicyName == null) {
             devSpecificPolicyName = gerneratePolicyName(primarySystem, target);
         }
-        mirrorOperations.resyncMirrorFileShareLink(primarySystem, secondarySystem, target, completer, devSpecificPolicyName);
+        // mirrorOperations.resyncMirrorFileShareLink(primarySystem, secondarySystem, target, completer, devSpecificPolicyName);
     }
 
     /**
@@ -2969,20 +2987,19 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                 if (policyUpdateParam.getSnapshotPolicyPrams() != null) {
                     FileSnapshotPolicyParam snapParam = policyUpdateParam.getSnapshotPolicyPrams();
 
-                    if (snapParam.getSnapshotNamePattern() != null && !snapParam.getSnapshotNamePattern().isEmpty() &&
-                            snapParam.getSnapshotNamePattern().equalsIgnoreCase(snapPolicyAtPath.getPattern())) {
-                        modifiedPolicy.setPattern(snapParam.getSnapshotNamePattern());
-                        bModifyPolicy = true;
-                    }
-
                     if (snapParam.getSnapshotExpireParams() != null) {
                         Integer expireTime = getSnapshotExpireValue(snapParam.getSnapshotExpireParams());
-                        if (expireTime != null) {
-                            if (snapPolicyAtPath.getDuration() != null
-                                    && snapPolicyAtPath.getDuration().intValue() != expireTime.intValue()) {
+                        if (expireTime != null && snapPolicyAtPath.getDuration() != null) {
+                            if (snapPolicyAtPath.getDuration().intValue() != expireTime.intValue()) {
                                 modifiedPolicy.setDuration(expireTime);
                                 bModifyPolicy = true;
                             }
+                        } else if (expireTime != null && snapPolicyAtPath.getDuration() == null) {
+                            modifiedPolicy.setDuration(expireTime);
+                            bModifyPolicy = true;
+                        } else if (snapPolicyAtPath.getDuration() != null) {
+                            modifiedPolicy.setDuration(0);
+                            bModifyPolicy = true;
                         }
                     }
 
@@ -3617,7 +3634,15 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         _log.info("File replication policy : {} creation started", filePolicy.toString());
 
         try {
-            String targetHost = FileOrchestrationUtils.getTargetHostPortForReplication(_dbClient, targetStorage.getId());
+            VirtualNAS targetVNas = targetSystemArgs.getvNAS();
+            URI targetVNasURI = null;
+            if (targetVNas != null) {
+                targetVNasURI = targetVNas.getId();
+            }
+
+            String targetHost = FileOrchestrationUtils.getTargetHostPortForReplication(_dbClient, targetStorage.getId(),
+                    targetSystemArgs.getVarray().getId(), targetVNasURI);
+
             IsilonApi isi = getIsilonDevice(storageObj);
             isi.createDir(sourcePath, true);
             IsilonSyncPolicy replicationPolicy = new IsilonSyncPolicy(syncPolicyName, sourcePath, targetPath, targetHost,
@@ -3753,7 +3778,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         switch (appliedAt) {
             case project:
                 if (args.getProject() != null) {
-                    resourceName = args.getProjectNameWithNoSpecialCharacters();
+                    resourceName = args.getProjectNameWithNoSpecialCharacters().replaceAll("_", "");
                     if (!filePolicyBasePath.contains(resourceName)) {
                         _log.error("File policy base path does not contain project: {}", resourceName);
                         throw DeviceControllerException.exceptions.assignFilePolicyFailed(filePolicy.getFilePolicyName(),
@@ -3767,7 +3792,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                 break;
             case vpool:
                 if (args.getVPool() != null) {
-                    resourceName = args.getVPoolNameWithNoSpecialCharacters();
+                    resourceName = args.getVPoolNameWithNoSpecialCharacters().replaceAll("_", "");
                     if (!filePolicyBasePath.contains(resourceName)) {
                         _log.error("File policy base path does not contain vpool: {}", resourceName);
                         throw DeviceControllerException.exceptions.assignFilePolicyFailed(filePolicy.getFilePolicyName(),
@@ -3783,5 +3808,50 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             default:
                 break;
         }
+    }
+
+    public static FilePolicy getReplicationPolicyAppliedOnFS(FileShare fs, DbClient dbClient) {
+        StringSet existingFSPolicies = fs.getFilePolicies();
+        List<URI> existingFSPolicyURIs = new ArrayList<>();
+        for (String filePolicyURI : existingFSPolicies) {
+            existingFSPolicyURIs.add(URI.create(filePolicyURI));
+        }
+        Iterator<FilePolicy> iterator = dbClient.queryIterativeObjects(FilePolicy.class, existingFSPolicyURIs, true);
+        while (iterator.hasNext()) {
+            FilePolicy fp = iterator.next();
+            if (fp.getFilePolicyType().equals(FilePolicy.FilePolicyType.file_replication.name())) {
+                _log.info("Found replication policy :{}  applied to the file system:  {}.",
+                        fp.toString(), fs.getId());
+                return fp;
+            }
+        }
+        return null;
+    }
+
+    public static PolicyStorageResource getEquivalentPolicyStorageResource(FileShare fs, DbClient dbClient) {
+        FilePolicy fp = getReplicationPolicyAppliedOnFS(fs, dbClient);
+        if (fp != null) {
+            StringSet policyStrResources = fp.getPolicyStorageResources();
+            List<URI> policyStrURIs = new ArrayList<>();
+            for (String policyStrResource : policyStrResources) {
+                policyStrURIs.add(URI.create(policyStrResource));
+            }
+            Iterator<PolicyStorageResource> iterator = dbClient.queryIterativeObjects(PolicyStorageResource.class, policyStrURIs, true);
+            while (iterator.hasNext()) {
+                PolicyStorageResource policyRes = iterator.next();
+                if (policyRes.getAppliedAt().equals(fs.getId()) && policyRes.getStorageSystem().equals(fs.getStorageDevice())) {
+                    _log.info("Found replication policy:{} corresponding storage resource: {}  applied to the file system: {}.",
+                            fp.getLabel(), policyRes.toString(), fs.getId());
+                    return policyRes;
+                }
+            }
+        }
+        return null;
+    }
+
+    @Override
+    public void doFailbackLink(StorageSystem system, FileShare target, TaskCompleter completer) {
+        // TODO Auto-generated method stub
+
     }
 }

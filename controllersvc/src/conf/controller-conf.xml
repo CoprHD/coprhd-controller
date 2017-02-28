@@ -1453,9 +1453,10 @@
 
   <bean id="dataCollectionJobUtil"
 	class="com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.DataCollectionJobUtil">
-	<property name="dbClient" ref="dbclient" />
-	<property name="configInfo" ref="configinfo" />
-         <property name="eventManager" ref="recordableEventMgr" />
+        <property name="dbClient" ref="dbclient" />
+        <property name="configInfo" ref="configinfo" />
+        <property name="eventManager" ref="recordableEventMgr" />
+        <property name="jobScheduler" ref="dataCollectionJobScheduler" />
     </bean>
 
     <bean id="dataCollectionJobScheduler"

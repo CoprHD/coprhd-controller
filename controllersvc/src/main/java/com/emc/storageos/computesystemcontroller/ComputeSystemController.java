@@ -134,18 +134,4 @@ public interface ComputeSystemController extends Controller {
     public void removeIpInterfaceFromFileShare(URI hostId, URI ipInterface, String taskId) throws ControllerException;
 
     public void setHostSanBootTargets(URI hostId, URI volumeId) throws ControllerException;
-
-    /**
-     * Synchronize the cluster's export groups by following steps:
-     * - For hosts in this cluster, remove them from other shared exports that don't belong to this current cluster
-     * - Add all hosts in the cluster that are not in the cluster's export groups
-     * - Remove all hosts in cluster's export groups that don't belong to the cluster
-     * 
-     * @param clusterId
-     *            cluster id
-     * @param taskId
-     *            task
-     * @throws ControllerException
-     */
-    public void synchronizeSharedExports(URI clusterId, String taskId) throws ControllerException;
 }

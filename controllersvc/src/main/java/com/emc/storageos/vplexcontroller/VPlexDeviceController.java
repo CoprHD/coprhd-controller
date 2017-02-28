@@ -2061,6 +2061,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
             }
 
             Map<String, String> targetPortToPwwnMap = VPlexControllerUtils.getTargetPortToPwwnMap(client, vplexClusterName);
+
             Boolean[] doInitiatorRefresh =  new Boolean[] { new Boolean(true) };
 
             for (URI hostUri : hostInitiatorMap.keySet()) {
@@ -2422,6 +2423,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
             exportMask.setStorageDevice(vplexSystem.getId());
             exportMask.setId(URIUtil.createId(ExportMask.class));
             exportMask.setCreatedBySystem(false);
+            exportMask.setNativeId(storageView.getPath());
 
             List<Initiator> initsToAdd = new ArrayList<Initiator>();
             for (Initiator init : inits) {
@@ -4330,6 +4332,15 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
 
                 // Determine host of ExportMask
                 Set<URI> exportMaskHosts = VPlexUtil.getExportMaskHosts(_dbClient, exportMask, sharedExportMask);
+                List<Initiator> inits = _dbClient.queryObject(Initiator.class, initiatorURIs);
+                if (sharedExportMask) {
+                    for (Initiator initUri : inits) {
+                        URI hostUri = VPlexUtil.getInitiatorHost(initUri);
+                        if (null != hostUri) {
+                            exportMaskHosts.add(hostUri);
+                        }
+                    }
+                }
 
                 // Invoke artificial failure to simulate invalid storageview name on vplex
                 InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_060);
@@ -4370,8 +4381,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
                 List<PortInfo> initiatorPortInfos = new ArrayList<PortInfo>();
                 List<String> initiatorPortWwns = new ArrayList<String>();
                 Map<PortInfo, Initiator> portInfosToInitiatorMap = new HashMap<PortInfo, Initiator>();
-                for (URI initiatorURI : initiatorURIs) {
-                    Initiator initiator = getDataObject(Initiator.class, initiatorURI, _dbClient);
+                for (Initiator initiator : inits) {
                     // Only add this initiator if it's for the same host as other initiators in mask
                     if (!exportMaskHosts.contains(VPlexUtil.getInitiatorHost(initiator))) {
                         continue;
@@ -4865,7 +4875,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
         // What is about to happen...
         //
         // 1. if all the initiators in the storage view are getting removed
-        // and there are no existing (external) initiators or volumes in the Export Mask
+        // and there are no existing (external) initiators in the Export Mask
         // then delete the storage view
         //
         // 2. if there are other ExportGroups referencing this ExportMask
@@ -4886,7 +4896,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
         // all initiators, also remove any volumes present in the ExportGroup
 
         boolean removeAllInits = (hostInitiatorURIs.size() >= exportMask.getInitiators().size());
-        boolean canDeleteMask = removeAllInits && !exportMask.hasAnyExistingInitiators() && !exportMask.hasAnyExistingVolumes();
+        boolean canDeleteMask = removeAllInits && !exportMask.hasAnyExistingInitiators();
 
         if (canDeleteMask) {
             if (!exportMaskHasBothExclusiveAndSharedVolumes(exportGroup, otherExportGroups, exportMask)) {
@@ -9868,13 +9878,11 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
                         StorageProvider.InterfaceType.vplex.name());
         for (StorageProvider vplexMnmgtServer : vplexMnmgtServers) {
             try {
-                if (ConnectivityUtil.ping(vplexMnmgtServer.getIPAddress())) {
-                    VPlexApiClient client = getVPlexAPIClient(_vplexApiFactory,
-                            vplexMnmgtServer, _dbClient);
-                    client.verifyConnectivity();
-                    activeMgmntServers.add(vplexMnmgtServer.getId());
-                    vplexMnmgtServer.setConnectionStatus(StorageProvider.ConnectionStatus.CONNECTED.toString());
-                }
+                VPlexApiClient client = getVPlexAPIClient(_vplexApiFactory,
+                        vplexMnmgtServer, _dbClient);
+                client.verifyConnectivity();
+                activeMgmntServers.add(vplexMnmgtServer.getId());
+                vplexMnmgtServer.setConnectionStatus(StorageProvider.ConnectionStatus.CONNECTED.toString());
             } catch (Exception e) {
                 _log.warn("Can't connect to VPLEX management server {}", vplexMnmgtServer.getIPAddress());
                 vplexMnmgtServer.setConnectionStatus(StorageProvider.ConnectionStatus.NOTCONNECTED.toString());

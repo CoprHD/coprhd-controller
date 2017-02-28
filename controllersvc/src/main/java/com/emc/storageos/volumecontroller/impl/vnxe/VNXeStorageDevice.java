@@ -2762,15 +2762,16 @@ public class VNXeStorageDevice extends VNXeOperations
             throws DeviceControllerException {
         throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
     }
-    
+
     @Override
-    public void doExportAddPaths(StorageSystem storage, URI exportMask, Map<URI, List<URI>>addedPaths, 
+    public void doExportAddPaths(StorageSystem storage, URI exportMask, Map<URI, List<URI>> addedPaths,
             TaskCompleter taskCompleter) throws DeviceControllerException {
         throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
     }
-    
+
     @Override
-    public void doExportRemovePaths(StorageSystem storage, URI exportMask, Map<URI, List<URI>> adjustedPaths, Map<URI, List<URI>>removedPaths, 
+    public void doExportRemovePaths(StorageSystem storage, URI exportMask, Map<URI, List<URI>> adjustedPaths,
+            Map<URI, List<URI>> removedPaths,
             TaskCompleter taskCompleter) throws DeviceControllerException {
         throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
     }
@@ -2798,6 +2799,36 @@ public class VNXeStorageDevice extends VNXeOperations
             FileDeviceInputOutput sourceSytemArgs, FileDeviceInputOutput targetSytemArgs) {
         return BiosCommandResult.createErrorResult(
                 DeviceControllerErrors.vnxe.operationNotSupported("assign File Policy", "VNXe"));
+    }
+
+    @Override
+    public BiosCommandResult doStartMirrorLink(StorageSystem system, FileShare source, TaskCompleter completer) {
+        return BiosCommandResult.createErrorResult(
+                DeviceControllerErrors.vnxe.operationNotSupported("start the mirror link", "VNXe"));
+    }
+
+    @Override
+    public BiosCommandResult doRefreshMirrorLink(StorageSystem system, FileShare source) {
+        return BiosCommandResult.createErrorResult(
+                DeviceControllerErrors.vnxe.operationNotSupported("start the mirror link", "VNXe"));
+    }
+
+    @Override
+    public BiosCommandResult doPauseLink(StorageSystem system, FileShare source) {
+        return BiosCommandResult.createErrorResult(
+                DeviceControllerErrors.vnxe.operationNotSupported("pause the mirror link", "VNXe"));
+    }
+
+    @Override
+    public BiosCommandResult doResumeLink(StorageSystem system, FileShare target, TaskCompleter completer) {
+        return BiosCommandResult.createErrorResult(
+                DeviceControllerErrors.vnxe.operationNotSupported("resume the mirror link", "VNXe"));
+    }
+
+    @Override
+    public BiosCommandResult doFailoverLink(StorageSystem system, FileShare target, TaskCompleter completer) {
+        return BiosCommandResult.createErrorResult(
+                DeviceControllerErrors.vnxe.operationNotSupported("failover the mirror link", "VNXe"));
     }
 
 }

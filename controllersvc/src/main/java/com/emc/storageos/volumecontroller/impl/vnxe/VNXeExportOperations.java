@@ -39,6 +39,8 @@ import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.db.client.model.ExportGroup.ExportGroupType;
+import com.emc.storageos.db.client.util.CommonTransformerFunctions;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.exceptions.DeviceControllerErrors;
@@ -67,6 +69,7 @@ import com.emc.storageos.volumecontroller.impl.validators.contexts.ExportMaskVal
 import com.emc.storageos.volumecontroller.impl.validators.vnxe.AbstractVNXeValidator;
 import com.emc.storageos.workflow.WorkflowService;
 import com.google.common.base.Joiner;
+import com.google.common.collect.Collections2;
 import com.google.common.collect.Sets;
 
 public class VNXeExportOperations extends VNXeOperations implements ExportMaskOperations {
@@ -312,6 +315,7 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
                     for (String strUri : exportMask.getInitiators()) {
                         if (ExportUtils.isInitiatorSharedByMasks(_dbClient, exportMask, URI.create(strUri))) {
                             hasSharedInitiator = true;
+                            _logger.info("Initiators are used by multiple export masks");
                             break;
                         }
                     }
@@ -320,7 +324,23 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
                         // if any initiator is shared, all initiators have to be shared, and each mask should have same set of initiators
                         // Otherwise, removing initiator will not be allowed, user can delete individual export mask
                         Collection<ExportMask> masksWithSharedInitiators = validateAllMasks(_dbClient, exportMask, apiClient, hostId);
+                        _logger.info("Masks use the same initiators {}", Joiner.on(", ").join(
+                                Collections2.transform(masksWithSharedInitiators, CommonTransformerFunctions.fctnDataObjectToForDisplay())));
                         // need to unexport all volumes of all export masks
+                        // except shared export co-exists with exclusive export, don't touch exclusive export
+                        // in case of multiple shared exports (e.g., with different projects), all exported LUNs will be unmapped, regardless exclusive export
+                        String exportType = ExportMaskUtils.getExportType(_dbClient, exportMask);
+                        if (ExportGroupType.Cluster.name().equals(exportType)) {
+                            Iterator<ExportMask> maskIter = masksWithSharedInitiators.iterator();
+                            while (maskIter.hasNext()) {
+                                ExportMask mask = maskIter.next();
+                                if (!ExportGroupType.Cluster.name().equals(ExportMaskUtils.getExportType(_dbClient, mask))) {
+                                    _logger.info("Ignore exclusive export {}", mask.getMaskName());
+                                    maskIter.remove();
+                                }
+                            }
+                        }
+
                         volumesToBeUnmapped.addAll(getExportedVolumes(_dbClient, storage.getId(), masksWithSharedInitiators));
                     }
                 }
@@ -363,11 +383,14 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
             Set<String> lunIds = new HashSet<>();
             if (hostId != null) {
                 lunIds = apiClient.getHostLUNIds(hostId);
+                _logger.info("Mapped resources {}", Joiner.on(", ").join(lunIds));
+
             }
 
             boolean hasLUN = lunIds.isEmpty()? false : true;
             lunIds.removeAll(allExportedVolumes);
             boolean hasUnknownLUN = lunIds.isEmpty()? false : true;
+            _logger.info("Export mask deletion - hasLUN {}, hasUnknownLUN {}", hasLUN, hasUnknownLUN);
 
             for (Initiator initiator : initiatorList) {
                 _logger.info("Processing initiator {}", initiator.getLabel());
@@ -949,6 +972,8 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
                     for (String lunId : existingVolumes) {
                         mask.addToExistingVolumesIfAbsent(lunId, discoveredVolumes.get(lunId).toString());
                     }
+                    // Update user added volume's HLU information in ExportMask and ExportGroup
+                    ExportMaskUtils.updateHLUsInExportMask(mask, discoveredVolumes, _dbClient);
                     _dbClient.updateObject(mask);
                 }
             }

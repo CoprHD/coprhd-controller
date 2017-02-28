@@ -1043,7 +1043,7 @@ public class StorageVolumeInfoProcessor extends StorageProcessor {
                 StringSet matchedVPools = DiscoveryUtils.getMatchedVirtualPoolsForPool(_dbClient, pool
                         .getId(), unManagedVolumeCharacteristics
                                 .get(SupportedVolumeCharacterstics.IS_THINLY_PROVISIONED.toString()),
-                        srdfEnabledTargetVPools, null, volumeType);
+                        srdfEnabledTargetVPools, null, volumeType, unManagedVolume);
                 _logger.debug("Matched Pools : {}", Joiner.on("\t").join(matchedVPools));
 
                 if (null == matchedVPools || matchedVPools.isEmpty()) {

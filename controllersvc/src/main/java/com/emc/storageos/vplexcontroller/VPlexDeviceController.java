@@ -2340,15 +2340,8 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
             Boolean[] doInitiatorRefresh, String opId) throws Exception {
         boolean foundMatchingStorageView = false;
 
-        List<String> initiatorNames = new ArrayList<String>();
-        for (Initiator initiator : inits) {
-            String portWwn = initiator.getInitiatorPort();
-            String initiatorName = client.getInitiatorNameForWwn(
-                    vplexCluster, WWNUtility.getUpperWWNWithNoColons(portWwn), doInitiatorRefresh);
-            if (initiatorName != null && !initiatorName.startsWith(VPlexApiConstants.UNREGISTERED_INITIATOR_PREFIX)) {
-                initiatorNames.add(initiatorName);
-            }
-        }
+        List<String> initiatorNames = getInitiatorNames(
+                vplexSystem.getSerialNumber(), vplexCluster, client, inits.iterator(), doInitiatorRefresh);
 
         long start = new Date().getTime();
         List<VPlexStorageViewInfo> storageViewInfos = client.getStorageViewsContainingInitiators(
@@ -5269,17 +5262,8 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
         _log.info("vplexClusterName :{}", vplexClusterName);
 
         Iterator<Initiator> inits = _dbClient.queryIterativeObjects(Initiator.class, initiatorURIs);
-        List<String> initiatorNames = new ArrayList<String>();
         Boolean[] doRefresh =  new Boolean[] { new Boolean(true) };
-        while (inits.hasNext()) {
-            Initiator ini = inits.next();
-            String portWwn = ini.getInitiatorPort();
-            String initiatorName = client.getInitiatorNameForWwn(
-                    vplexClusterName, WWNUtility.getUpperWWNWithNoColons(portWwn), doRefresh);
-            if (initiatorName != null && !initiatorName.startsWith(VPlexApiConstants.UNREGISTERED_INITIATOR_PREFIX)) {
-                initiatorNames.add(initiatorName);
-            }
-        }
+        List<String> initiatorNames = getInitiatorNames(vplexStorageSystem.getSerialNumber(), vplexClusterName, client, inits, doRefresh);
 
         List<VPlexStorageViewInfo> storageViewInfos = client.getStorageViewsContainingInitiators(
                 vplexClusterName, initiatorNames);
@@ -5292,16 +5276,8 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
             _log.info("vplexHAClusterName :{}", vplexHAClusterName);
 
             inits = _dbClient.queryIterativeObjects(Initiator.class, initiatorURIs);
-            List<String> haInitiatorNames = new ArrayList<String>();
             Boolean[] doRefreshHa =  new Boolean[] { new Boolean(true) };
-            while (inits.hasNext()) {
-                Initiator ini = inits.next();
-                String portWwn = ini.getInitiatorPort();
-                String initiatorName = client.getInitiatorNameForWwn(vplexHAClusterName, WWNUtility.getUpperWWNWithNoColons(portWwn), doRefreshHa);
-                if (initiatorName != null && !initiatorName.startsWith(VPlexApiConstants.UNREGISTERED_INITIATOR_PREFIX)) {
-                    haInitiatorNames.add(initiatorName);
-                }
-            }
+            List<String> haInitiatorNames = getInitiatorNames(vplexStorageSystem.getSerialNumber(), vplexHAClusterName, client, inits, doRefreshHa);
             storageViewInfos.addAll(client.getStorageViewsContainingInitiators(
                     vplexHAClusterName, haInitiatorNames));
         }
@@ -5318,6 +5294,56 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
         long totalTime = System.currentTimeMillis() - startTime;
         _log.info(String.format("find used HLUs for Initiators took %f seconds", (double) totalTime / (double) 1000));
         return usedHLUs;
+    }
+
+    /**
+     * Get the registered initiator names for the given initiators on the given VPLEX cluster.
+     * 
+     * If the registered initiator name cannot be found in the Initiator.initiatorNames map in
+     * the database, then the VPLEX API will be checked and the Initiator object will be updated
+     * with the value from the VPLEX API, if found.  If the name is still not found, that means 
+     * it's unregistered and no name for the initiator will be returned in the list.
+     * 
+     * Note that this will not update the Initiator.initiatorMap if the registered name has been
+     * manually changed on the VPLEX.  The auto discovery process will do that when it refreshes
+     * all Initiators in the database (see VPlexCommunicationInterface.updateHostInitiators)
+     * 
+     * @param vplexSerialNumber the VPLEX system serial number
+     * @param vplexClusterName the VPLEX cluster name to look at
+     * @param client the VPLEX api client
+     * @param initiators an iterator of Initiator objects to check
+     * @param doRefresh an out flag to indicate whether refresh has been done 
+     *                  (will be updated to false after first call to getInitiatorNameForWwn)
+     * @return a List of initiator names registered on the VPLEX for the initiators given (any
+     *              initiators that are not currently registered will not be returned in the list).
+     */
+    private List<String> getInitiatorNames(String vplexSerialNumber, String vplexClusterName, VPlexApiClient client, 
+            Iterator<Initiator> initiators, Boolean[] doRefresh) {
+        List<String> initiatorNames = new ArrayList<String>();
+        List<Initiator> initsToUpdate = new ArrayList<Initiator>();
+        // this is the key to look up the name saved in the Initiator.initiatorNames map
+        String initiatorNameMapKey = vplexSerialNumber + VPlexApiConstants.INITIATOR_CLUSTER_NAME_DELIM + vplexClusterName;
+        while (initiators.hasNext()) {
+            Initiator initiator = initiators.next();
+            String portWwn = initiator.getInitiatorPort();
+            String initiatorName = initiator.getMappedInitiatorName(initiatorNameMapKey);
+            // if the initiator name couldn't be found in the Initiator.initiatorNames map, check the VPLEX API
+            if (initiatorName == null) {
+                initiatorName = client.getInitiatorNameForWwn(
+                        vplexClusterName, WWNUtility.getUpperWWNWithNoColons(portWwn), doRefresh);
+                if (initiatorName != null) {
+                    // if a new initiator name was found, update the Initiator map.
+                    initiator.mapInitiatorName(initiatorNameMapKey, initiatorName);
+                    initsToUpdate.add(initiator);
+                }
+            }
+            if (initiatorName != null && !initiatorName.startsWith(VPlexApiConstants.UNREGISTERED_INITIATOR_PREFIX)) {
+                initiatorNames.add(initiatorName);
+            }
+        }
+
+        _dbClient.updateObject(initsToUpdate);
+        return initiatorNames;
     }
 
     public void setVplexApiFactory(VPlexApiFactory _vplexApiFactory) {

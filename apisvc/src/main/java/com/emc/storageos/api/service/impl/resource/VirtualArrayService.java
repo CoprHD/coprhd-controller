@@ -1626,6 +1626,17 @@ public class VirtualArrayService extends TaggedResource {
         }
     }
     
+    /**
+     * This method gets storage port groups for a given virtual array. The storage ports in the port group
+     * should all be assigned or connected to the virtual array. If export group is specified, then it will return
+     * the port group used in the export masks belonging to the export group. If storage system is specified, then
+     * It will return the port groups belonging to the storage system.
+     * 
+     * @param id - Virtual array URI
+     * @param storageURI - Storage system URI
+     * @param exportGroupURI - Export group URI
+     * @return - Storage port group list
+     */
     @GET
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/storage-port-groups")

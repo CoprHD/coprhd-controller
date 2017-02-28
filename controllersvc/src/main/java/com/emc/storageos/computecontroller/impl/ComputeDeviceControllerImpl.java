@@ -1275,8 +1275,10 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
 
             host = _dbClient.queryObject(Host.class, hostId);
             if (null != host) {
-                // VBDU TODO: COP-28452: Need to check initiators inside the host as well
-                if (NullColumnValueGetter.isNullURI(host.getComputeElement())  && NullColumnValueGetter.isNullURI(host.getServiceProfile())) {
+                // VBDU [DONE]: COP-28452: Need to check initiators inside the host as well
+                // Check is done in deactivate host
+                if (NullColumnValueGetter.isNullURI(host.getComputeElement())
+                        && NullColumnValueGetter.isNullURI(host.getServiceProfile())) {
                     // NO-OP
                     log.info("Host " + host.getLabel() + " has no computeElement association and no service profile association");
                     WorkflowStepCompleter.stepSucceded(stepId);

@@ -123,9 +123,11 @@ public interface ComputeDeviceController extends Controller {
      *            StepGroup.
      * @param clusterId
      *            {@link URI} cluster URI
+     * @param deactivateCluster
+     *            if true, cluster is being deactivated
      * @return waitFor step name
      */
-    public String addStepsVcenterClusterCleanup(Workflow workflow, String waitFor, URI clusterId)
+    public String addStepsVcenterClusterCleanup(Workflow workflow, String waitFor, URI clusterId, boolean deactivateCluster)
             throws InternalException;
 
     /**

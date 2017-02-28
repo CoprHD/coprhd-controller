@@ -33,7 +33,6 @@ import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.plugins.common.Constants;
 import com.emc.storageos.services.OperationTypeEnum;
-import com.emc.storageos.util.ConnectivityUtil;
 import com.emc.storageos.volumecontroller.impl.monitoring.RecordableBourneEvent;
 import com.emc.storageos.volumecontroller.impl.monitoring.RecordableEventManager;
 import com.emc.storageos.volumecontroller.impl.monitoring.cim.enums.RecordType;
@@ -280,7 +279,7 @@ public class CIMConnectionFactory {
             // If Provider Connection is active then do the scanner
             // otherwise no point of doing the scanner.
             try {
-                if (ConnectivityUtil.ping(smisProvider.getIPAddress()) && checkConnectionliveness(connection)) {
+                if (checkConnectionliveness(connection)) {
                     if (StorageProvider.ConnectionStatus.NOTCONNECTED.toString().equalsIgnoreCase(
                             smisProvider.getConnectionStatus())) {
                         recordStorageProviderEvent(OperationTypeEnum.STORAGE_PROVIDER_UP,

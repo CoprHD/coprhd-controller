@@ -2274,7 +2274,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
         }
     }
 
-    public static String setVpoolLevelPolicesToCreate(Workflow workflow, VirtualPool vpool, URI storageSystem, URI nasServer,
+    private static String setVpoolLevelPolicesToCreate(Workflow workflow, VirtualPool vpool, URI storageSystem, URI nasServer,
             List<FilePolicy> filePoliciesToCreate, String waitFor) {
 
         StringSet fileVpoolPolicies = vpool.getFilePolicies();
@@ -2317,7 +2317,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
         return waitFor;
     }
 
-    public static String setAllProjectLevelPolices(Workflow workflow, Project project, VirtualPool vpool,
+    private static String setAllProjectLevelPolices(Workflow workflow, Project project, VirtualPool vpool,
             URI storageSystem, URI nasServer, List<FilePolicy> filePoliciesToCreate, String waitFor) {
         StringSet fileProjectPolicies = project.getFilePolicies();
 

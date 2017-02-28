@@ -40,7 +40,9 @@ import com.emc.storageos.db.client.model.FileExportRule;
 import com.emc.storageos.db.client.model.FileMountInfo;
 import com.emc.storageos.db.client.model.FileObject;
 import com.emc.storageos.db.client.model.FilePolicy;
+import com.emc.storageos.db.client.model.FilePolicy.FilePolicyType;
 import com.emc.storageos.db.client.model.FileShare;
+import com.emc.storageos.db.client.model.FileShare.PersonalityTypes;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.NFSShareACL;
 import com.emc.storageos.db.client.model.Operation;
@@ -63,6 +65,7 @@ import com.emc.storageos.db.client.model.VirtualNAS;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.FileOperationUtils;
+import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.fileorchestrationcontroller.FileDescriptor;
@@ -4448,6 +4451,47 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
         }
     }
 
+    protected void resetReplicationFileSystemsRelation(FilePolicy filePolicy, PolicyStorageResource policyResource) {
+        URI storageSystem = policyResource.getStorageSystem();
+        String policyPath = policyResource.getResourcePath();
+        // For replication policy
+        // Remove the source - target relationship
+        if (filePolicy.getFilePolicyType().equalsIgnoreCase(FilePolicyType.file_replication.name())) {
+            ContainmentConstraint containmentConstraint = ContainmentConstraint.Factory.getStorageDeviceFileshareConstraint(storageSystem);
+            List<FileShare> fileshares = CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient, FileShare.class,
+                    containmentConstraint);
+            List<FileShare> modifiedFileshares = new ArrayList<>();
+            for (FileShare fileshare : fileshares) {
+                // All the file systems underneath the policy path
+                // should be decoupled!!!
+                if (fileshare.getNativeId().startsWith(policyPath)) {
+                    if (fileshare.getPersonality() != null
+                            && fileshare.getPersonality().equalsIgnoreCase(PersonalityTypes.SOURCE.toString())) {
+                        fileshare.setMirrorStatus(NullColumnValueGetter.getNullStr());
+                        fileshare.setAccessState(NullColumnValueGetter.getNullStr());
+                        fileshare.setPersonality(NullColumnValueGetter.getNullStr());
+                        if (fileshare.getMirrorfsTargets() != null && !fileshare.getMirrorfsTargets().isEmpty()) {
+                            StringSet targets = fileshare.getMirrorfsTargets();
+                            for (String strTargetFs : targets) {
+                                FileShare targetFs = _dbClient.queryObject(FileShare.class, URI.create(strTargetFs));
+                                targetFs.setMirrorStatus(NullColumnValueGetter.getNullStr());
+                                targetFs.setAccessState(NullColumnValueGetter.getNullStr());
+                                targetFs.setParentFileShare(NullColumnValueGetter.getNullNamedURI());
+                                modifiedFileshares.add(targetFs);
+                            }
+                            targets.clear();
+                            fileshare.setMirrorfsTargets(targets);
+                        }
+                    }
+                    modifiedFileshares.add(fileshare);
+                }
+            }
+            if (!modifiedFileshares.isEmpty()) {
+                _dbClient.updateObject(modifiedFileshares);
+            }
+        }
+    }
+
     /**
      * 
      * @param storage
@@ -4478,6 +4522,8 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                 return;
 
             } else if (result.isCommandSuccess()) {
+                // decouple the replication relation for the policy!!
+                resetReplicationFileSystemsRelation(filePolicy, policyRes);
                 filePolicy.removePolicyStorageResources(policyRes.getId());
                 _dbClient.markForDeletion(policyRes);
                 _dbClient.updateObject(filePolicy);

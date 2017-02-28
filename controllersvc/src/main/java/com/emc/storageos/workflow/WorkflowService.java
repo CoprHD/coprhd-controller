@@ -709,8 +709,8 @@ public class WorkflowService implements WorkflowController {
                     _log.info("Removing step " + statusEntry.getValue().description + " from the suspended steps list in workflow "
                             + workflow._workflowURI.toString());
                     URI suspendStepURI = workflow.getStepMap().get(statusEntry.getKey()).workflowStepURI;
-                    //workflow.getSuspendSteps().remove(suspendStepURI);
-                    //persistWorkflow(workflow);
+                    workflow.getSuspendSteps().remove(suspendStepURI);
+                    persistWorkflow(workflow);
                 }
             }
         }

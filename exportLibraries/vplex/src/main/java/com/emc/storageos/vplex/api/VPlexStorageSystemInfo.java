@@ -93,7 +93,7 @@ public class VPlexStorageSystemInfo extends VPlexResourceInfo {
 
         int lastDelimIndex = name.lastIndexOf(VPLEX_NAME_DELIM);
         String suffix = name.substring(lastDelimIndex + 1);
-        s_logger.info("setting unique id for {} to {}", name, suffix);
+        s_logger.debug("setting unique id for {} to {}", name, suffix);
         uniqueId = suffix;
     }
 

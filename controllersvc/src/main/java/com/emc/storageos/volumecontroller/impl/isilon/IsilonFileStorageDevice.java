@@ -2987,20 +2987,19 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                 if (policyUpdateParam.getSnapshotPolicyPrams() != null) {
                     FileSnapshotPolicyParam snapParam = policyUpdateParam.getSnapshotPolicyPrams();
 
-                    if (snapParam.getSnapshotNamePattern() != null && !snapParam.getSnapshotNamePattern().isEmpty() &&
-                            snapParam.getSnapshotNamePattern().equalsIgnoreCase(snapPolicyAtPath.getPattern())) {
-                        modifiedPolicy.setPattern(snapParam.getSnapshotNamePattern());
-                        bModifyPolicy = true;
-                    }
-
                     if (snapParam.getSnapshotExpireParams() != null) {
                         Integer expireTime = getSnapshotExpireValue(snapParam.getSnapshotExpireParams());
-                        if (expireTime != null) {
-                            if (snapPolicyAtPath.getDuration() != null
-                                    && snapPolicyAtPath.getDuration().intValue() != expireTime.intValue()) {
+                        if (expireTime != null && snapPolicyAtPath.getDuration() != null) {
+                            if (snapPolicyAtPath.getDuration().intValue() != expireTime.intValue()) {
                                 modifiedPolicy.setDuration(expireTime);
                                 bModifyPolicy = true;
                             }
+                        } else if (expireTime != null && snapPolicyAtPath.getDuration() == null) {
+                            modifiedPolicy.setDuration(expireTime);
+                            bModifyPolicy = true;
+                        } else if (snapPolicyAtPath.getDuration() != null) {
+                            modifiedPolicy.setDuration(0);
+                            bModifyPolicy = true;
                         }
                     }
 
@@ -3269,6 +3268,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                     }
                     isi.deleteReplicationPolicy(policyName);
                     isi.deleteReplicationPolicy(policyResource.getPolicyNativeId());
+
                 } else {
                     _log.info("replication policy: {} doesn't exists on storage system", filePolicy.toString());
                 }
@@ -3370,6 +3370,28 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         ScheduleFrequency scheduleFreq = ScheduleFrequency.valueOf(schedule.getScheduleFrequency().toUpperCase());
         switch (scheduleFreq) {
 
+            case MINUTES:
+                builder.append("every 1 days every");
+                builder.append(schedule.getScheduleRepeat());
+                builder.append(" minutes between ");
+                builder.append(schedule.getScheduleTime());
+                builder.append(" and ");
+                // If we add 23 hours 59 min to start time to get end time
+                // result time come smaller in most of the case
+                // Like for start time 3:00 AM it comes at 2:59 AM. and Isilon API does not accept it.
+                // Fixing End time at 11:59 PM for now.(need to get it from user in future)
+                builder.append("11:59 PM");
+                break;
+
+            case HOURS:
+                builder.append("every 1 days every");
+                builder.append(schedule.getScheduleRepeat());
+                builder.append(" hours between ");
+                builder.append(schedule.getScheduleTime());
+                builder.append(" and ");
+                builder.append("11:59 PM");
+                break;
+
             case DAYS:
                 builder.append("every ");
                 builder.append(schedule.getScheduleRepeat());
@@ -3400,6 +3422,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         return builder.toString();
 
     }
+
 
     private Integer getIsilonSnapshotExpireValue(FilePolicy policy) {
         Long seconds = 0L;
@@ -3635,7 +3658,15 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         _log.info("File replication policy : {} creation started", filePolicy.toString());
 
         try {
-            String targetHost = FileOrchestrationUtils.getTargetHostPortForReplication(_dbClient, targetStorage.getId());
+            VirtualNAS targetVNas = targetSystemArgs.getvNAS();
+            URI targetVNasURI = null;
+            if (targetVNas != null) {
+                targetVNasURI = targetVNas.getId();
+            }
+
+            String targetHost = FileOrchestrationUtils.getTargetHostPortForReplication(_dbClient, targetStorage.getId(),
+                    targetSystemArgs.getVarray().getId(), targetVNasURI);
+
             IsilonApi isi = getIsilonDevice(storageObj);
             isi.createDir(sourcePath, true);
             IsilonSyncPolicy replicationPolicy = new IsilonSyncPolicy(syncPolicyName, sourcePath, targetPath, targetHost,

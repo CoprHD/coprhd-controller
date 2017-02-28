@@ -663,12 +663,13 @@ public class HostService extends TaskResourceService {
         
         ComputeElement computeElement = null;
         Volume bootVolume = null;
-    
-        List<Initiator> initiators = CustomQueryUtility.queryActiveResourcesByRelation(_dbClient, host.getId(),Initiator.class, "host");
- 
-        // VBDU TODO: COP-28452, Running host deactivate even if initiators == null or list empty seems risky
-        if (StringUtils.equalsIgnoreCase(host.getType(),HostType.No_OS.toString()) && (initiators == null || initiators.isEmpty())) {
-            if (!NullColumnValueGetter.isNullURI(host.getComputeElement())){
+
+        List<Initiator> initiators = CustomQueryUtility.queryActiveResourcesByRelation(_dbClient, host.getId(), Initiator.class, "host");
+
+        // VBDU [DONE]: COP-28452, Running host deactivate even if initiators == null or list empty seems risky
+        // If host initiators are null or empty, we will not perform any export updates and we will not delete the boot volume
+        if (StringUtils.equalsIgnoreCase(host.getType(), HostType.No_OS.toString()) && (initiators == null || initiators.isEmpty())) {
+            if (!NullColumnValueGetter.isNullURI(host.getComputeElement())) {
                 computeElement = _dbClient.queryObject(ComputeElement.class, host.getComputeElement());
             }
             if (!NullColumnValueGetter.isNullURI(host.getBootVolumeId())){

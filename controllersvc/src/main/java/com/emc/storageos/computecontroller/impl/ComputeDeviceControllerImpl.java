@@ -1259,7 +1259,8 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
 
             host = _dbClient.queryObject(Host.class, hostId);
             if (null != host) {
-                // VBDU TODO: COP-28452: Need to check initiators inside the host as well.
+                // VBDU [DONE]: COP-28452: Need to check initiators inside the host as well.
+                // Check added in the deactivateHost
                 if (NullColumnValueGetter.isNullURI(host.getComputeElement())) {
                     // NO-OP
                     log.info("Host " + host.getLabel() + " has no computeElement association");

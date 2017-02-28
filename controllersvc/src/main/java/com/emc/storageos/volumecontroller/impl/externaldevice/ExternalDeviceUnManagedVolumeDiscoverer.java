@@ -361,7 +361,8 @@ public class ExternalDeviceUnManagedVolumeDiscoverer {
             unManagedVolume.putVolumeInfo(UnManagedVolume.SupportedVolumeInformation.DISK_TECHNOLOGY.toString(), driveTypes);
         }
         StringSet matchedVPools = DiscoveryUtils.getMatchedVirtualPoolsForPool(dbClient, storagePool.getId(),
-                unManagedVolume.getVolumeCharacterstics().get(UnManagedVolume.SupportedVolumeCharacterstics.IS_THINLY_PROVISIONED.toString()));
+                unManagedVolume.getVolumeCharacterstics().get(UnManagedVolume.SupportedVolumeCharacterstics.IS_THINLY_PROVISIONED.toString()),
+                unManagedVolume);
         log.debug("Matched Pools : {}", Joiner.on("\t").join(matchedVPools));
         if (matchedVPools.isEmpty()) {
             // clear all existing supported vpools.

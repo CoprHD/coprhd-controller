@@ -90,6 +90,7 @@ import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.Task;
 import com.emc.storageos.db.client.model.TenantOrg;
+import com.emc.storageos.db.client.model.UCSServiceProfile;
 import com.emc.storageos.db.client.model.UCSServiceProfileTemplate;
 import com.emc.storageos.db.client.model.VcenterDataCenter;
 import com.emc.storageos.db.client.model.VirtualArray;
@@ -662,6 +663,16 @@ public class HostService extends TaskResourceService {
         
         ComputeElement computeElement = null;
         Volume bootVolume = null;
+        UCSServiceProfile serviceProfile = null;
+        if (!NullColumnValueGetter.isNullURI(host.getServiceProfile())){
+             serviceProfile = _dbClient.queryObject(UCSServiceProfile.class, host.getServiceProfile());
+             if (serviceProfile!=null && !NullColumnValueGetter.isNullURI(serviceProfile.getComputeSystem())){
+                  ComputeSystem ucs = _dbClient.queryObject(ComputeSystem.class, serviceProfile.getComputeSystem());
+                  if ( ucs!=null && ucs.getDiscoveryStatus().equals(DataCollectionJobStatus.ERROR.name())){
+                      throw APIException.badRequests.resourceCannotBeDeleted("Host has service profile on a Compute System that failed to discover; ");
+                  }
+             }               
+        }
     
         List<Initiator> initiators = CustomQueryUtility.queryActiveResourcesByRelation(_dbClient, host.getId(),Initiator.class, "host");
  
@@ -673,11 +684,18 @@ public class HostService extends TaskResourceService {
             if (!NullColumnValueGetter.isNullURI(host.getBootVolumeId())){
                 bootVolume =  _dbClient.queryObject(Volume.class, host.getBootVolumeId());
             }
-            if (computeElement != null || bootVolume != null) {
-                _log.error("No OS host: " + host.getLabel() +" with no initiators, but with compute element or boot volume association found. Cannot deactivate.");
-                throw APIException.badRequests.resourceCannotBeDeleted("No OS host with no initiators, but with compute element or boot volume association found. Please contact DELL EMC support to resolve inconsistency detected. Host ");
+            if (computeElement != null) {
+                _log.error("No OS host: " + host.getLabel() +" with no initiators, but with compute element association found. Cannot deactivate.");
+                throw APIException.badRequests.resourceCannotBeDeleted("No OS host with no initiators, but with compute element association found. Please contact DELL EMC support to resolve inconsistency detected. Host ");
+            } else if (bootVolume != null ) {
+                _log.error("No OS host: " + host.getLabel() +" with no initiators, but with boot volume association found. Cannot deactivate.");
+                throw APIException.badRequests.resourceCannotBeDeleted("No OS host with no initiators, but with boot volume association found. Please contact DELL EMC support to resolve inconsistency detected. Host ");
+            }else if ( serviceProfile != null) {
+                 _log.error("No OS host: " + host.getLabel() +" with no initiators, but with service profile association found. Cannot deactivate.");
+                throw APIException.badRequests.resourceCannotBeDeleted("No OS host with no initiators, but with service profile association found. Please contact DELL EMC support to resolve inconsistency detected. Host ");
+
             } else {
-                _log.info("No OS host: " + host.getLabel() +" with no initiators and without valid computeElement or boot volume associations found. Will proceed with deactivation.");
+                _log.info("No OS host: " + host.getLabel() +" with no initiators and without valid computeElement, service profile or boot volume associations found. Will proceed with deactivation.");
             }
         }
         
@@ -1613,6 +1631,18 @@ public class HostService extends TaskResourceService {
         }
         return sortedHashMap;
     }
+    private  Map<URI, List<URI>> filterOutBladesFromBadUcs(Map<URI, List<URI>> inputMap){
+        Map<URI, List<URI>> outputMap = new HashMap<URI,List<URI>>();
+        for (URI csURI: inputMap.keySet()){
+            ComputeSystem ucs = _dbClient.queryObject(ComputeSystem.class, csURI);
+            if (ucs!=null && !ucs.getDiscoveryStatus().equals(DataCollectionJobStatus.ERROR.name())){
+                outputMap.put(csURI,inputMap.get(csURI));
+            }else {
+                _log.warn("Filtering out blades from Compute System "+ ucs.getLabel()+" which failed discovery");
+            }
+        }
+        return outputMap;
+    }
 
     private List<String> takeComputeElementsFromPool(ComputeVirtualPool cvp, int numHosts, VirtualArray varray, URI clusterId) {
         List<URI> selectedCEsList = new ArrayList<URI>();
@@ -1620,7 +1650,8 @@ public class HostService extends TaskResourceService {
         // Map of compute systems to compute elements from this Compute system used in this cluster
         Map<URI, List<ComputeElement>> usedComputeElementsMap = findComputeElementsUsedInCluster(clusterId);
         // Map of compute systems to compute elements from this Compute system that are available in this cvp
-        Map<URI, List<URI>> computeSystemToComputeElementsMap = findComputeElementsMatchingVarrayAndCVP(cvp, varray);
+        Map<URI, List<URI>> computeSystemToComputeElementsMap1 = findComputeElementsMatchingVarrayAndCVP(cvp, varray);
+        Map<URI, List<URI>> computeSystemToComputeElementsMap = filterOutBladesFromBadUcs(computeSystemToComputeElementsMap1);
 
         int numRequiredCEs = numHosts;
         int totalAvailableCEs = 0;

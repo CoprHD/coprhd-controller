@@ -25,6 +25,12 @@ public class FileSnapshotPolicyParam implements Serializable {
 
     }
 
+    /**
+     * Snapshot name pattern would generate automatically
+     * No need to provide input.
+     * 
+     * @return
+     */
     @XmlElement(name = "snapshot_name_pattern")
     public String getSnapshotNamePattern() {
         return this.snapshotNamePattern;

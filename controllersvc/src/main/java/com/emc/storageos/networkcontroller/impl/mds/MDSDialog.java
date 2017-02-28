@@ -61,6 +61,7 @@ public class MDSDialog extends SSHDialog {
     private final String wwnRegex = "([0-9A-Fa-f][0-9A-Fa-f]:){7}[0-9A-Fa-f][0-9A-Fa-f]";
     private final static Integer sessionLockRetryMax = 5;
     private final static String IVR_ZONENAME_PREFIX = "IVRZ_";
+    private final static String EXCEPTION_REGEX_KEY = "MDSDialog.exception.regex";
     public MDSDialog(SSHSession session, Integer defaultTimeout) {
         super(session, defaultTimeout);
     }
@@ -2394,5 +2395,13 @@ public class MDSDialog extends SSHDialog {
     		}
     	}
     	return otherPwwns;
+    }
+    
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    protected String getResponseExceptionRegex() {
+        return MDSDialogProperties.getString(EXCEPTION_REGEX_KEY);
     }
 }

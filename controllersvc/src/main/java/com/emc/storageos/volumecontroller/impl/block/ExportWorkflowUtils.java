@@ -326,21 +326,12 @@ public class ExportWorkflowUtils {
             throws WorkflowException {
         DiscoveredSystemObject storageSystem = getStorageSystem(_dbClient, storage);
 
-        Workflow.Method method =
-                ExportWorkflowEntryPoints.exportAddVolumesMethod(storage, export,
-                        volumeMap);
-
-        List<URI> volumeList = new ArrayList<URI>();
-        volumeList.addAll(volumeMap.keySet());
-
-        Workflow.Method rollback =
-                ExportWorkflowEntryPoints.exportRemoveVolumesMethod(storage, export,
-                        volumeList);
+        Workflow.Method method = ExportWorkflowEntryPoints.exportAddVolumesMethod(storage, export, volumeMap);
 
         return newWorkflowStep(workflow, wfGroupId,
                 String.format("Adding volumes to export on storage array %s (%s)",
                         storageSystem.getNativeGuid(), storage.toString()),
-                storageSystem, method, rollback, waitFor, null);
+                storageSystem, method, rollbackMethodNullMethod(), waitFor, null);
     }
 
     public String generateExportGroupRemoveVolumes(Workflow workflow, String wfGroupId,

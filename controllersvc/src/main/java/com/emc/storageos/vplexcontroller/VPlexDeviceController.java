@@ -931,7 +931,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
 
                 // Make a call to get cluster info
                 if (null == clusterInfoList) {
-                    clusterInfoList = client.getClusterInfoDetails();
+                    clusterInfoList = new ArrayList<VPlexClusterInfo>();
                 }
 
                 // Make the call to create a virtual volume. It is distributed if there are two (or more?)
@@ -2047,131 +2047,144 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
         Set<ExportMask> sharedExportMasks = new HashSet<ExportMask>();
 
         // look at each host
-        String vplexClusterId = ConnectivityUtil.getVplexClusterForVarray(varrayUri, vplexURI, _dbClient);
-        String vplexClusterName = VPlexUtil.getVplexClusterName(varrayUri, vplexURI, client, _dbClient);
+        String lockName = null;
+        boolean lockAcquired = false;
+        try {
+            String vplexClusterId = ConnectivityUtil.getVplexClusterForVarray(varrayUri, vplexURI, _dbClient);
+            String vplexClusterName = VPlexUtil.getVplexClusterName(varrayUri, vplexURI, client, _dbClient);
+            lockName = _vplexApiLockManager.getLockName(vplexURI, vplexClusterId);
+            lockAcquired = _vplexApiLockManager.acquireLock(lockName, LockTimeoutValue.get(LockType.VPLEX_API_LIB));
+            if (!lockAcquired) {
+                throw VPlexApiException.exceptions.couldNotObtainConcurrencyLock(vplexSystem.getLabel());
+            }
 
-        Map<String, String> targetPortToPwwnMap = VPlexControllerUtils.getTargetPortToPwwnMap(client, vplexClusterName);
+            Map<String, String> targetPortToPwwnMap = VPlexControllerUtils.getTargetPortToPwwnMap(client, vplexClusterName);
 
-        for (URI hostUri : hostInitiatorMap.keySet()) {
-            _log.info("assembling export masks workflow, now looking at host URI: " + hostUri);
+            for (URI hostUri : hostInitiatorMap.keySet()) {
+                _log.info("assembling export masks workflow, now looking at host URI: " + hostUri);
 
-            List<Initiator> inits = hostInitiatorMap.get(hostUri);
-            _log.info("this host contains these initiators: " + inits);
+                List<Initiator> inits = hostInitiatorMap.get(hostUri);
+                _log.info("this host contains these initiators: " + inits);
 
-            boolean foundMatchingStorageView = false;
-            boolean allPortsFromMaskMatchForVarray = true;
+                boolean foundMatchingStorageView = false;
+                boolean allPortsFromMaskMatchForVarray = true;
 
-            _log.info("attempting to locate an existing ExportMask for this host's initiators on VPLEX Cluster " + vplexClusterId);
-            Map<URI, ExportMask> vplexExportMasks = new HashMap<URI, ExportMask>();
-            allPortsFromMaskMatchForVarray = filterExportMasks(vplexExportMasks, inits, varrayUri, vplexSystem, vplexClusterId);
-            ExportMask sharedVplexExportMask = null;
-            switch (vplexExportMasks.size()) {
-                case FOUND_NO_VIPR_EXPORT_MASKS:
-                    // Didn't find any single existing ExportMask for this Host/Initiators.
-                    // Check if there is a shared ExportMask in CoprHD with by checking the existing initiators list.
-                    sharedVplexExportMask = VPlexUtil.getExportMasksWithExistingInitiators(vplexURI, _dbClient, inits,
-                            varrayUri,
-                            vplexClusterId);
+                _log.info("attempting to locate an existing ExportMask for this host's initiators on VPLEX Cluster " + vplexClusterId);
+                Map<URI, ExportMask> vplexExportMasks = new HashMap<URI, ExportMask>();
+                allPortsFromMaskMatchForVarray = filterExportMasks(vplexExportMasks, inits, varrayUri, vplexSystem, vplexClusterId);
+                ExportMask sharedVplexExportMask = null;
+                switch (vplexExportMasks.size()) {
+                    case FOUND_NO_VIPR_EXPORT_MASKS:
+                        // Didn't find any single existing ExportMask for this Host/Initiators.
+                        // Check if there is a shared ExportMask in CoprHD with by checking the existing initiators list.
+                        sharedVplexExportMask = VPlexUtil.getExportMasksWithExistingInitiators(vplexURI, _dbClient, inits,
+                                varrayUri,
+                                vplexClusterId);
 
-                    // If an ExportMask like this is found, there is already a storage view
-                    // on the VPLEX with some or all the initiators, so ViPR will reuse the ExportMask
-                    // and storage view in a "shared by multiple hosts" kind of way.
-                    // If not found, ViPR will attempt to find a suitable existing storage view
-                    // on the VPLEX and set it up as a new ExportMask.
+                        // If an ExportMask like this is found, there is already a storage view
+                        // on the VPLEX with some or all the initiators, so ViPR will reuse the ExportMask
+                        // and storage view in a "shared by multiple hosts" kind of way.
+                        // If not found, ViPR will attempt to find a suitable existing storage view
+                        // on the VPLEX and set it up as a new ExportMask.
+                        if (null != sharedVplexExportMask) {
+                            sharedExportMasks.add(sharedVplexExportMask);
+                            // If sharedVplexExportMask is found then that export mask will be used to add any missing
+                            // initiators or storage ports as needed, and volumes requested, if not already present.
+                            setupExistingExportMaskWithNewHost(blockObjectMap, vplexSystem, exportGroup, varrayUri,
+                                    exportMasksToUpdateOnDevice, exportMasksToUpdateOnDeviceWithInitiators,
+                                    exportMasksToUpdateOnDeviceWithStoragePorts, inits, sharedVplexExportMask, opId);
+
+                            VPlexStorageViewInfo storageView = client.getStorageView(vplexClusterName, sharedVplexExportMask.getMaskName());
+                            _log.info("Refreshing ExportMask {}", sharedVplexExportMask.getMaskName());
+                            VPlexControllerUtils.refreshExportMask(
+                                    _dbClient, storageView, sharedVplexExportMask, targetPortToPwwnMap, _networkDeviceController);
+
+                            foundMatchingStorageView = true;
+                            break;
+                        } else {
+                            _log.info("could not find an existing matching ExportMask in ViPR, "
+                                    + "so ViPR will see if there is one already on the VPLEX system");
+
+                            // ViPR will attempt to find a suitable existing storage view
+                            // on the VPLEX and set it up as a new ExportMask.
+                            long start = new Date().getTime();
+                            foundMatchingStorageView = checkForExistingStorageViews(client, targetPortToPwwnMap,
+                                    vplexSystem, vplexClusterName, inits, exportGroup,
+                                    varrayUri, blockObjectMap,
+                                    exportMasksToUpdateOnDevice, exportMasksToUpdateOnDeviceWithInitiators,
+                                    exportMasksToUpdateOnDeviceWithStoragePorts, opId);
+                            long elapsed = new Date().getTime() - start;
+                            _log.info("TIMER: finding an existing storage view took {} ms and returned {}",
+                                    elapsed, foundMatchingStorageView);
+                            break;
+                        }
+                    case FOUND_ONE_VIPR_EXPORT_MASK:
+                        // get the single value in the map
+                        ExportMask viprExportMask = vplexExportMasks.values().iterator().next();
+
+                        _log.info("a valid ExportMask matching these initiators exists already in ViPR "
+                                + "for this VPLEX device, so ViPR will re-use it: " + viprExportMask.getMaskName());
+
+                        VPlexStorageViewInfo storageView = client.getStorageView(vplexClusterName, viprExportMask.getMaskName());
+                        _log.info("Refreshing ExportMask {}", viprExportMask.getMaskName());
+                        VPlexControllerUtils.refreshExportMask(
+                                _dbClient, storageView, viprExportMask, targetPortToPwwnMap, _networkDeviceController);
+
+                        reuseExistingExportMask(blockObjectMap, vplexSystem, exportGroup,
+                                varrayUri, exportMasksToUpdateOnDevice,
+                                exportMasksToUpdateOnDeviceWithStoragePorts, inits,
+                                allPortsFromMaskMatchForVarray, viprExportMask, opId);
+
+                        foundMatchingStorageView = true;
+
+                        break;
+                    default:
+                        String message = "Invalid Configuration: more than one VPLEX ExportMask "
+                                + "in this cluster exists in ViPR for these initiators " + inits;
+                        _log.error(message);
+                        throw new Exception(message);
+                }
+
+                // If a matching storage view has STILL not been found, either use a shared ExportMask if found in the database,
+                // or set up a brand new ExportMask (to create a storage view on the VPLEX) for the Host.
+                if (!foundMatchingStorageView) {
+                    if (null == sharedVplexExportMask) {
+                        // If we reached here, it means there isn't an existing storage view on the VPLEX with the host,
+                        // and no other shared ExportMask was found in the database by looking at existingInitiators.
+                        // So, ViPR will try to find if there is shared export mask already for the ExportGroup in the database.
+                        sharedVplexExportMask = VPlexUtil.getSharedExportMaskInDb(exportGroup, vplexURI, _dbClient,
+                                varrayUri, vplexClusterId, hostInitiatorMap);
+                    }
+
                     if (null != sharedVplexExportMask) {
+                        // If a sharedExportMask was found, then the new host will be added to that ExportMask
+                        _log.info(String.format(
+                                "Shared export mask %s %s found for the export group %s %s which will be reused for initiators %s .",
+                                sharedVplexExportMask.getMaskName(), sharedVplexExportMask.getId(), exportGroup.getLabel(),
+                                exportGroup.getId(), inits.toString()));
                         sharedExportMasks.add(sharedVplexExportMask);
-                        // If sharedVplexExportMask is found then that export mask will be used to add any missing
-                        // initiators or storage ports as needed, and volumes requested, if not already present.
-                        setupExistingExportMaskWithNewHost(blockObjectMap, vplexSystem, exportGroup, varrayUri,
-                                exportMasksToUpdateOnDevice, exportMasksToUpdateOnDeviceWithInitiators,
-                                exportMasksToUpdateOnDeviceWithStoragePorts, inits, sharedVplexExportMask, opId);
 
                         VPlexStorageViewInfo storageView = client.getStorageView(vplexClusterName, sharedVplexExportMask.getMaskName());
                         _log.info("Refreshing ExportMask {}", sharedVplexExportMask.getMaskName());
                         VPlexControllerUtils.refreshExportMask(
                                 _dbClient, storageView, sharedVplexExportMask, targetPortToPwwnMap, _networkDeviceController);
 
-                        foundMatchingStorageView = true;
-                        break;
-                    } else {
-                        _log.info("could not find an existing matching ExportMask in ViPR, "
-                                + "so ViPR will see if there is one already on the VPLEX system");
-
-                        // ViPR will attempt to find a suitable existing storage view
-                        // on the VPLEX and set it up as a new ExportMask.
-                        long start = new Date().getTime();
-                        foundMatchingStorageView = checkForExistingStorageViews(client, targetPortToPwwnMap,
-                                vplexSystem, vplexClusterName, inits, exportGroup,
-                                varrayUri, blockObjectMap,
+                        setupExistingExportMaskWithNewHost(blockObjectMap, vplexSystem, exportGroup, varrayUri,
                                 exportMasksToUpdateOnDevice, exportMasksToUpdateOnDeviceWithInitiators,
-                                exportMasksToUpdateOnDeviceWithStoragePorts, opId);
-                        long elapsed = new Date().getTime() - start;
-                        _log.info("TIMER: finding an existing storage view took {} ms and returned {}",
-                                elapsed, foundMatchingStorageView);
-                        break;
+                                exportMasksToUpdateOnDeviceWithStoragePorts, inits, sharedVplexExportMask, opId);
+                    } else {
+                        // Otherwise, create a brand new ExportMask, which will enable the storage view to
+                        // be created on the VPLEX device as part of this workflow
+                        _log.info("did not find a matching existing storage view anywhere, so ViPR "
+                                + "will initialize a new one and push it to the VPLEX device");
+                        setupNewExportMask(blockObjectMap, vplexSystem, exportGroup, varrayUri,
+                                exportMasksToCreateOnDevice, inits, vplexClusterId, opId);
                     }
-                case FOUND_ONE_VIPR_EXPORT_MASK:
-                    // get the single value in the map
-                    ExportMask viprExportMask = vplexExportMasks.values().iterator().next();
-
-                    _log.info("a valid ExportMask matching these initiators exists already in ViPR "
-                            + "for this VPLEX device, so ViPR will re-use it: " + viprExportMask.getMaskName());
-
-                    VPlexStorageViewInfo storageView = client.getStorageView(vplexClusterName, viprExportMask.getMaskName());
-                    _log.info("Refreshing ExportMask {}", viprExportMask.getMaskName());
-                    VPlexControllerUtils.refreshExportMask(
-                            _dbClient, storageView, viprExportMask, targetPortToPwwnMap, _networkDeviceController);
-
-                    reuseExistingExportMask(blockObjectMap, vplexSystem, exportGroup,
-                            varrayUri, exportMasksToUpdateOnDevice,
-                            exportMasksToUpdateOnDeviceWithStoragePorts, inits,
-                            allPortsFromMaskMatchForVarray, viprExportMask, opId);
-
-                    foundMatchingStorageView = true;
-
-                    break;
-                default:
-                    String message = "Invalid Configuration: more than one VPLEX ExportMask "
-                            + "in this cluster exists in ViPR for these initiators " + inits;
-                    _log.error(message);
-                    throw new Exception(message);
+                }
             }
-
-            // If a matching storage view has STILL not been found, either use a shared ExportMask if found in the database,
-            // or set up a brand new ExportMask (to create a storage view on the VPLEX) for the Host.
-            if (!foundMatchingStorageView) {
-                if (null == sharedVplexExportMask) {
-                    // If we reached here, it means there isn't an existing storage view on the VPLEX with the host,
-                    // and no other shared ExportMask was found in the database by looking at existingInitiators.
-                    // So, ViPR will try to find if there is shared export mask already for the ExportGroup in the database.
-                    sharedVplexExportMask = VPlexUtil.getSharedExportMaskInDb(exportGroup, vplexURI, _dbClient,
-                            varrayUri, vplexClusterId, hostInitiatorMap);
-                }
-
-                if (null != sharedVplexExportMask) {
-                    // If a sharedExportMask was found, then the new host will be added to that ExportMask
-                    _log.info(String.format(
-                            "Shared export mask %s %s found for the export group %s %s which will be reused for initiators %s .",
-                            sharedVplexExportMask.getMaskName(), sharedVplexExportMask.getId(), exportGroup.getLabel(),
-                            exportGroup.getId(), inits.toString()));
-                    sharedExportMasks.add(sharedVplexExportMask);
-
-                    VPlexStorageViewInfo storageView = client.getStorageView(vplexClusterName, sharedVplexExportMask.getMaskName());
-                    _log.info("Refreshing ExportMask {}", sharedVplexExportMask.getMaskName());
-                    VPlexControllerUtils.refreshExportMask(
-                            _dbClient, storageView, sharedVplexExportMask, targetPortToPwwnMap, _networkDeviceController);
-
-                    setupExistingExportMaskWithNewHost(blockObjectMap, vplexSystem, exportGroup, varrayUri,
-                            exportMasksToUpdateOnDevice, exportMasksToUpdateOnDeviceWithInitiators,
-                            exportMasksToUpdateOnDeviceWithStoragePorts, inits, sharedVplexExportMask, opId);
-                } else {
-                    // Otherwise, create a brand new ExportMask, which will enable the storage view to
-                    // be created on the VPLEX device as part of this workflow
-                    _log.info("did not find a matching existing storage view anywhere, so ViPR "
-                            + "will initialize a new one and push it to the VPLEX device");
-                    setupNewExportMask(blockObjectMap, vplexSystem, exportGroup, varrayUri,
-                            exportMasksToCreateOnDevice, inits, vplexClusterId, opId);
-                }
+        } finally {
+            if (lockAcquired) {
+                _vplexApiLockManager.releaseLock(lockName);
             }
         }
 
@@ -2402,6 +2415,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
             exportMask.setStorageDevice(vplexSystem.getId());
             exportMask.setId(URIUtil.createId(ExportMask.class));
             exportMask.setCreatedBySystem(false);
+            exportMask.setNativeId(storageView.getPath());
 
             List<Initiator> initsToAdd = new ArrayList<Initiator>();
             for (Initiator init : inits) {
@@ -4238,6 +4252,15 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
 
                 // Determine host of ExportMask
                 Set<URI> exportMaskHosts = VPlexUtil.getExportMaskHosts(_dbClient, exportMask, sharedExportMask);
+                List<Initiator> inits = _dbClient.queryObject(Initiator.class, initiatorURIs);
+                if (sharedExportMask) {
+                    for (Initiator initUri : inits) {
+                        URI hostUri = VPlexUtil.getInitiatorHost(initUri);
+                        if (null != hostUri) {
+                            exportMaskHosts.add(hostUri);
+                        }
+                    }
+                }
 
                 // Invoke artificial failure to simulate invalid storageview name on vplex
                 InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_060);
@@ -4278,8 +4301,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
                 List<PortInfo> initiatorPortInfos = new ArrayList<PortInfo>();
                 List<String> initiatorPortWwns = new ArrayList<String>();
                 Map<PortInfo, Initiator> portInfosToInitiatorMap = new HashMap<PortInfo, Initiator>();
-                for (URI initiatorURI : initiatorURIs) {
-                    Initiator initiator = getDataObject(Initiator.class, initiatorURI, _dbClient);
+                for (Initiator initiator : inits) {
                     // Only add this initiator if it's for the same host as other initiators in mask
                     if (!exportMaskHosts.contains(VPlexUtil.getInitiatorHost(initiator))) {
                         continue;
@@ -9774,13 +9796,11 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
                         StorageProvider.InterfaceType.vplex.name());
         for (StorageProvider vplexMnmgtServer : vplexMnmgtServers) {
             try {
-                if (ConnectivityUtil.ping(vplexMnmgtServer.getIPAddress())) {
-                    VPlexApiClient client = getVPlexAPIClient(_vplexApiFactory,
-                            vplexMnmgtServer, _dbClient);
-                    client.verifyConnectivity();
-                    activeMgmntServers.add(vplexMnmgtServer.getId());
-                    vplexMnmgtServer.setConnectionStatus(StorageProvider.ConnectionStatus.CONNECTED.toString());
-                }
+                VPlexApiClient client = getVPlexAPIClient(_vplexApiFactory,
+                        vplexMnmgtServer, _dbClient);
+                client.verifyConnectivity();
+                activeMgmntServers.add(vplexMnmgtServer.getId());
+                vplexMnmgtServer.setConnectionStatus(StorageProvider.ConnectionStatus.CONNECTED.toString());
             } catch (Exception e) {
                 _log.warn("Can't connect to VPLEX management server {}", vplexMnmgtServer.getIPAddress());
                 vplexMnmgtServer.setConnectionStatus(StorageProvider.ConnectionStatus.NOTCONNECTED.toString());
@@ -12918,6 +12938,11 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
     private boolean verifyVplexSupportsThinProvisioning(StorageSystem vplex) {
         if (vplex == null) {
             return false;
+        }
+
+        if (VPlexApiConstants.FIRMWARE_MIXED_VERSIONS.equalsIgnoreCase(vplex.getFirmwareVersion().trim())) {
+            _log.error("VPLEX indicates its that directors have mixed firmware versions, so could not determine thin provisioning support");
+            throw VPlexApiException.exceptions.thinProvisioningVerificationFailed(vplex.getLabel());
         }
 
         int versionValue = VersionChecker.verifyVersionDetails(VPlexApiConstants.MIN_VERSION_THIN_PROVISIONING, vplex.getFirmwareVersion());

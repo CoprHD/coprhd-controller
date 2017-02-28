@@ -2343,6 +2343,21 @@ public interface BadRequestExceptions {
     public BadRequestException cannotExecuteOperationWhilePendingTask(final String pendingVolumes);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException clusterHostMismatch(String cluster);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException clusterNotFoundInDatacenter(String cluster, String datacenter);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException vCenterDataCenterHasNullVcenter(String datacenter);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException vCenterDataCenterNotFound(URI datacenter);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException vCenterNotFound(URI vcenter);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException rpClusterVarrayNoClusterId(String label);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
@@ -3094,6 +3109,12 @@ public interface BadRequestExceptions {
     @DeclareServiceCode(ServiceCode.API_NO_PLACEMENT_FOUND)
     public BadRequestException noStoragePools(final String varrayLabel, final String vpoolLabel, final String errorMessage);
 
+    @DeclareServiceCode(ServiceCode.API_NO_PLACEMENT_FOUND)
+    public BadRequestException noFileStorageRecommendationsFound(final String policyLabel);
+
+    @DeclareServiceCode(ServiceCode.API_NO_PLACEMENT_FOUND)
+    public BadRequestException noStoragePoolsExists(final String vPools);
+
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException noVolumesForTaskObjects(String vpool, String taskId);
 
@@ -3221,7 +3242,7 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException cannotDeleteProjectAssignedFilePolicy(final String projectName);
-    
+
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException cannotDeleteApplicationSnapshotExportExists(final String applicationName, final String copySetName);
 

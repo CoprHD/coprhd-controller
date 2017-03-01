@@ -3304,11 +3304,12 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
     @Override
     public void doCreateStoragePortGroup(StorageSystem storage, URI portGroupURI, TaskCompleter completer) throws Exception {
         try {
+            
             StoragePortGroup portGroup = _dbClient.queryObject(StoragePortGroup.class, portGroupURI);
             _log.info("Creating port group");
             _helper.createTargetPortGroup(storage, portGroup.getLabel(), 
                     StringSetUtil.stringSetToUriList(portGroup.getStoragePorts()), completer);
-            completer.ready(_dbClient);
+            completer.ready(_dbClient);            
         } catch (Exception e) {
             _log.error("Failed creating storage port group:", e);
             completer.error(_dbClient, DeviceControllerException.errors.jobFailed(e));

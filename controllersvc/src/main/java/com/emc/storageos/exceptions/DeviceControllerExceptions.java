@@ -515,4 +515,7 @@ public interface DeviceControllerExceptions {
     
     @DeclareServiceCode(ServiceCode.CONTROLLER_VALIDATION_EXCEPTION)
     public DeviceControllerException noPortMembersInPortGroupError(String portGroup);
+    
+    @DeclareServiceCode(ServiceCode.CONTROLLER_VALIDATION_EXCEPTION)
+    public DeviceControllerException portGroupNameInvalid(String portGroup);
 }

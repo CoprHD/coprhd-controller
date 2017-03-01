@@ -1060,6 +1060,8 @@ public class BlockService extends TaskResourceService {
         boolean hasVolInSet = false;
         for (Volume vol : volumes) {
             Iterator<RemoteReplicationPair> pairs = findRemoteReplicationPairsByVolume(vol);
+            // There's no pair that involves this volume as source or target
+            // which means this volume is not a remote replication volume
             if (!pairs.hasNext()) {
                 throw APIException.badRequests.consistencyGroupContainsNonRRVolumes(cGroup.getId());
             }
@@ -1077,9 +1079,8 @@ public class BlockService extends TaskResourceService {
         // assume a volume only appear in only one RemoteReplicationPair
         if (pairs.next().getReplicationGroup() != null) {
             return true;
-        } else {
-            return false;
         }
+        return false;
     }
 
     private Iterator<RemoteReplicationPair> findRemoteReplicationPairsByVolume(Volume vol) {

@@ -179,6 +179,22 @@ public class DbConsistencyCheckerHelperTest extends DbsvcTestBase {
         checkResult = new CheckResult();
         helper.checkIndexingCF(indexAndCf, false, checkResult);
         assertEquals(3, checkResult.getTotal());
+        
+        keyspace.prepareQuery(indexCF)
+        .withCql("TRUNCATE \"AltIdIndex\"")
+        .execute();
+        //test large columns for single row key
+        for (int i = 0; i < 123; i++) {
+            keyspace.prepareQuery(indexCF)
+            .withCql(String.format(
+                    "INSERT INTO \"AltIdIndex\" (key, column1, column2, column3, column4, column5, value) VALUES ('sa', 'FileShare', '%s', '', '', now(), intasblob(10));",
+                    i))
+            .execute();
+        }
+        
+        checkResult = new CheckResult();
+        helper.checkIndexingCF(indexAndCf, false, checkResult);
+        assertEquals(123, checkResult.getTotal());
     }
     
     @Test

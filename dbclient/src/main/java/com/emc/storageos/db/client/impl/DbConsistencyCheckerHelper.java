@@ -47,6 +47,7 @@ import com.netflix.astyanax.model.CqlResult;
 import com.netflix.astyanax.model.Row;
 import com.netflix.astyanax.model.Rows;
 import com.netflix.astyanax.query.ColumnFamilyQuery;
+import com.netflix.astyanax.query.RowQuery;
 import com.netflix.astyanax.serializers.StringSerializer;
 import com.netflix.astyanax.util.RangeBuilder;
 import com.netflix.astyanax.util.TimeUUIDUtils;
@@ -227,37 +228,42 @@ public class DbConsistencyCheckerHelper {
 
         OperationResult<Rows<String, IndexColumnName>> result = query.getAllRows()
                 .setRowLimit(dbClient.DEFAULT_PAGE_SIZE)
-                .withColumnRange(new RangeBuilder().setLimit(dbClient.DEFAULT_PAGE_SIZE).build())
+                .withColumnRange(new RangeBuilder().setLimit(0).build())
                 .execute();
 
         for (Row<String, IndexColumnName> row : result.getResult()) {
-            ColumnList<IndexColumnName> columns = row.getColumns();
+            RowQuery<String, IndexColumnName> rowQuery = indexAndCf.keyspace.prepareQuery(indexAndCf.cf).getKey(row.getKey())
+                    .autoPaginate(true)
+                    .withColumnRange(new RangeBuilder().setLimit(dbClient.DEFAULT_PAGE_SIZE).build());
+            ColumnList<IndexColumnName> columns;
             
-            for (Column<IndexColumnName> column : columns) {
-                ObjectEntry objEntry = extractObjectEntryFromIndex(row.getKey(),
-                        column.getName(), indexAndCf.indexType, toConsole);
-                if (objEntry == null) {
-                    continue;
-                }
-                ColumnFamily<String, CompositeColumnName> objCf = objCfs
-                        .get(objEntry.getClassName());
+            while (!(columns = rowQuery.execute().getResult()).isEmpty()) {
+                for (Column<IndexColumnName> column : columns) {
+                    ObjectEntry objEntry = extractObjectEntryFromIndex(row.getKey(),
+                            column.getName(), indexAndCf.indexType, toConsole);
+                    if (objEntry == null) {
+                        continue;
+                    }
+                    ColumnFamily<String, CompositeColumnName> objCf = objCfs
+                            .get(objEntry.getClassName());
 
-                if (objCf == null) {
-                    logMessage(String.format("DataObject does not exist for %s", row.getKey()), true, toConsole);
-                    continue;
-                }
+                    if (objCf == null) {
+                        logMessage(String.format("DataObject does not exist for %s", row.getKey()), true, toConsole);
+                        continue;
+                    }
 
-                Map<String, List<IndexEntry>> objKeysIdxEntryMap = objsToCheck.get(objCf);
-                if (objKeysIdxEntryMap == null) {
-                    objKeysIdxEntryMap = new HashMap<>();
-                    objsToCheck.put(objCf, objKeysIdxEntryMap);
+                    Map<String, List<IndexEntry>> objKeysIdxEntryMap = objsToCheck.get(objCf);
+                    if (objKeysIdxEntryMap == null) {
+                        objKeysIdxEntryMap = new HashMap<>();
+                        objsToCheck.put(objCf, objKeysIdxEntryMap);
+                    }
+                    List<IndexEntry> idxEntries = objKeysIdxEntryMap.get(objEntry.getObjectId());
+                    if (idxEntries == null) {
+                        idxEntries = new ArrayList<>();
+                        objKeysIdxEntryMap.put(objEntry.getObjectId(), idxEntries);
+                    }
+                    idxEntries.add(new IndexEntry(row.getKey(), column.getName()));
                 }
-                List<IndexEntry> idxEntries = objKeysIdxEntryMap.get(objEntry.getObjectId());
-                if (idxEntries == null) {
-                    idxEntries = new ArrayList<>();
-                    objKeysIdxEntryMap.put(objEntry.getObjectId(), idxEntries);
-                }
-                idxEntries.add(new IndexEntry(row.getKey(), column.getName()));
             }
             
             int size = getObjsSize(objsToCheck);

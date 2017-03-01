@@ -34,6 +34,7 @@ import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DataObject.Flag;
+import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportGroup.ExportGroupType;
 import com.emc.storageos.db.client.model.ExportMask;
@@ -41,6 +42,7 @@ import com.emc.storageos.db.client.model.FCZoneReference;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.StoragePort;
+import com.emc.storageos.db.client.model.StoragePortGroup;
 import com.emc.storageos.db.client.model.StorageProtocol;
 import com.emc.storageos.db.client.model.StorageProtocol.Transport;
 import com.emc.storageos.db.client.model.StorageSystem;
@@ -689,7 +691,8 @@ public class ExportMaskUtils {
             List<URI> targets, ZoneInfoMap zoneInfoMap,
             T volume, Set<String> unManagedInitiators, String nativeId,
             List<Initiator> userAddedInis, DbClient dbClient,
-            Map<String, Integer> wwnToHluMap)
+            Map<String, Integer> wwnToHluMap,
+            String portGroupName)
                     throws Exception {
 
         ExportMask exportMask = new ExportMask();
@@ -723,6 +726,30 @@ public class ExportMaskUtils {
         exportMask.addToExistingInitiatorsIfAbsent(new ArrayList<String>(unManagedInitiators));
         exportMask.addToUserCreatedInitiators(userAddedInis);
 
+        // Set port group
+        if (portGroupName != null) {
+            StorageSystem system = dbClient.queryObject(StorageSystem.class, storage);
+            String guid = String.format("%s+%s" , system.getNativeGuid(), portGroupName);
+            URIQueryResultList result = new URIQueryResultList();
+            dbClient.queryByConstraint(AlternateIdConstraint.Factory
+                    .getPortGroupNativeGUIdConstraint(guid), result);
+            Iterator<URI> it = result.iterator();
+            if (it.hasNext()) {
+                exportMask.setPortGroup(it.next());
+            } else {
+                StoragePortGroup portGroup = new StoragePortGroup();
+                portGroup.setId(URIUtil.createId(StoragePortGroup.class));
+                portGroup.setLabel(portGroupName);
+                portGroup.setNativeGuid(guid);
+                portGroup.setStorageDevice(storage);
+                portGroup.setInactive(false);
+                portGroup.setRegistrationStatus(RegistrationStatus.REGISTERED.name());
+                portGroup.setStoragePorts(StringSetUtil.uriListToStringSet(targets));
+                dbClient.createObject(portGroup);
+                exportMask.setPortGroup(portGroup.getId());
+            }
+            
+        }
         // if the block object is marked as internal, then add to existing volumes of the mask
         if (volume.checkInternalFlags(Flag.PARTIALLY_INGESTED)) {
             _log.info("Block object {} is marked internal. Adding to existing volumes of the mask {}", volume.getNativeGuid(),

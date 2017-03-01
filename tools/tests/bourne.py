@@ -131,13 +131,6 @@ URI_FILE_QUOTA_DIR_BASE         = URI_SERVICES_BASE + '/file/quotadirectories'
 URI_FILE_QUOTA_DIR              = URI_FILE_QUOTA_DIR_BASE + '/{0}'
 URI_FILE_QUOTA_DIR_DELETE       = URI_FILE_QUOTA_DIR + '/deactivate'
 
-URI_FILE_POLICIES = '/file/file-policies'
-URI_FILE_POLICY_SHOW = URI_FILE_POLICIES + '/{0}'
-URI_FILE_POLICY_DELETE = URI_FILE_POLICIES + '/{0}'
-URI_FILE_POLICY_UPDATE = URI_FILE_POLICIES + '/{0}'
-URI_FILE_POLICY_ASSIGN = URI_FILE_POLICIES + '/{0}/assign-policy'
-URI_FILE_POLICY_UNASSIGN = URI_FILE_POLICIES + '/{0}/unassign-policy'
-
 URI_DR                     = URI_SERVICES_BASE  + '/site'
 URI_DR_GET                 = URI_DR   + '/{0}'
 URI_DR_GET_DETAILS         = URI_DR   + '/{0}' + '/details'
@@ -354,6 +347,13 @@ URI_NETWORK_DEREGISTER    = URI_NETWORK   + '/deregister'
 
 URI_SMISPROVIDERS               = URI_SERVICES_BASE   + '/vdc/smis-providers'
 URI_SMISPROVIDER                = URI_SMISPROVIDERS   + '/{0}'
+
+URI_FILE_POLICIES = '/file/file-policies'
+URI_FILE_POLICY_SHOW = URI_FILE_POLICIES + '/{0}'
+URI_FILE_POLICY_DELETE = URI_FILE_POLICIES + '/{0}'
+URI_FILE_POLICY_UPDATE = URI_FILE_POLICIES + '/{0}'
+URI_FILE_POLICY_ASSIGN = URI_FILE_POLICIES + '/{0}/assign-policy'
+URI_FILE_POLICY_UNASSIGN = URI_FILE_POLICIES + '/{0}/unassign-policy'
 
 URI_STORAGEPROVIDERS               = URI_SERVICES_BASE   + '/vdc/storage-providers'
 URI_STORAGEPROVIDER                = URI_STORAGEPROVIDERS   + '/{0}'
@@ -1513,7 +1513,8 @@ class Bourne:
                    mirrorCosUri, neighborhoods, expandable, sourceJournalSize, journalVarray, journalVpool, standbyJournalVarray, 
                    standbyJournalVpool, rp_copy_mode, rp_rpo_value, rp_rpo_type, protectionCoS,
                    multiVolumeConsistency, max_snapshots, max_mirrors, thin_volume_preallocation_percentage,
-                   long_term_retention, drive_type, system_type, srdf, auto_tiering_policy_name, host_io_limit_bandwidth, host_io_limit_iops,auto_cross_connect, placement_policy, compressionEnabled, schedule_snapshots, replication_supported, allow_policy_at_project_level, allow_policy_at_fs_level):
+                   long_term_retention, drive_type, system_type, srdf, auto_tiering_policy_name, host_io_limit_bandwidth, host_io_limit_iops,
+		   auto_cross_connect, placement_policy, compressionEnabled, schedule_snapshots, replication_supported, allow_policy_at_project_level, allow_policy_at_fs_level):
 
         if (type != 'block' and type != 'file' and type != "object" ):
             raise Exception('wrong type for vpool: ' + str(type))
@@ -1652,11 +1653,12 @@ class Bourne:
             if (max_snapshots):
                 cos_protection_snapshot_params = dict()
                 cos_protection_snapshot_params['max_native_snapshots'] = max_snapshots
-                cos_protection_snapshot_params['schedule_snapshots'] = schedule_snapshots
-                cos_protection_snapshot_params['replication_supported'] = replication_supported
-                cos_protection_snapshot_params['allow_policy_at_project_level'] = allow_policy_at_project_level
-                cos_protection_snapshot_params['allow_policy_at_fs_level'] = allow_policy_at_fs_level
                 cos_protection_params['snapshots'] = cos_protection_snapshot_params
+				
+	    cos_protection_params['schedule_snapshots'] = schedule_snapshots
+            cos_protection_params['replication_supported'] = replication_supported
+            cos_protection_params['allow_policy_at_project_level'] = allow_policy_at_project_level
+            cos_protection_params['allow_policy_at_fs_level'] = allow_policy_at_fs_level													 
 
             parms['protection'] = cos_protection_params
 
@@ -1683,7 +1685,7 @@ class Bourne:
                    mirrorCosUri, neighborhoods, expandable, sourceJournalSize, journalVarray, journalVpool, standbyJournalVarray, 
                    standbyJournalVpool, rp_copy_mode, rp_rpo_value, rp_rpo_type, protectionCoS,
                    multiVolumeConsistency, max_snapshots, max_mirrors, thin_volume_preallocation_percentage, drive_type,
-                   system_type, srdf, compressionEnabled, schedule_snapshots, replication_supported, allow_policy_at_project_level, allow_policy_at_fs_level):
+                   system_type, srdf, compressionEnabled):
 
         if (type != 'block' and type != 'file' and type != "object" ):
             raise Exception('wrong type for vpool: ' + str(type))
@@ -1792,10 +1794,6 @@ class Bourne:
             if (max_snapshots):
                 cos_protection_snapshot_params = dict()
                 cos_protection_snapshot_params['max_native_snapshots'] = max_snapshots
-                cos_protection_snapshot_params['schedule_snapshots'] = schedule_snapshots
-                cos_protection_snapshot_params['replication_supported'] = replication_supported
-                cos_protection_snapshot_params['allow_policy_at_project_level'] = allow_policy_at_project_level
-                cos_protection_snapshot_params['allow_policy_at_fs_level'] = allow_policy_at_fs_level
                 cos_protection_params['snapshots'] = cos_protection_snapshot_params
 
             parms['protection'] = cos_protection_params
@@ -1812,7 +1810,7 @@ class Bourne:
     # Assign pools to CoS or change the max snapshots/mirrors values
     # Note that you can either do pool assignments or snapshot/mirror changes at a time
     #
-    def cos_update(self, pooladds, poolrems, type, cosuri, max_snapshots, max_mirrors, expandable, use_matched, host_io_limit_bandwidth, host_io_limit_iops, placement_policy, schedule_snapshots, replication_supported, allow_policy_at_project_level, allow_policy_at_fs_level):
+    def cos_update(self, pooladds, poolrems, type, cosuri, max_snapshots, max_mirrors, expandable, use_matched, host_io_limit_bandwidth, host_io_limit_iops, placement_policy):
         params = dict()
         if (pooladds or poolrems):
             poolassignments = dict();
@@ -1847,14 +1845,6 @@ class Bourne:
             params['expandable'] = expandable
         if (use_matched):
             params['use_matched_pools'] = use_matched
-        if (schedule_snapshots):
-            params['schedule_snapshots'] = schedule_snapshots
-        if (replication_supported):
-            params['replication_supported'] = replication_supported
-        if (allow_policy_at_project_level):
-            params['allow_policy_at_project_level'] = allow_policy_at_project_level
-        if (allow_policy_at_fs_level):
-            params['allow_policy_at_fs_level'] = allow_policy_at_fs_level
             
         if (host_io_limit_bandwidth):
             params['host_io_limit_bandwidth'] = host_io_limit_bandwidth
@@ -6960,7 +6950,7 @@ class Bourne:
         self._headers['date'] = date
         #_headers['x-emc-date'] = date
         self._headers['x-emc-uid'] = uid
-        self._headers['x-emc-meta'] = 'color=red,city=seattle,key=ï¿½'
+        self._headers['x-emc-meta'] = 'color=red,city=seattle,key=�'
         self._headers['x-emc-signature'] = self.atmos_hmac_base64_sig(method, content_type, uri, date, secret)
 
         response = self.coreapi(method, uri, value, None, None, content_type)
@@ -9602,7 +9592,7 @@ class Bourne:
         else:
             return o
 
-    # shows the filepolicy
+	# shows the filepolicy
     def filepolicy_show(self, uri):
         return self.api('GET', URI_FILE_POLICY_SHOW.format(uri))
     
@@ -9756,4 +9746,3 @@ class Bourne:
     def filepolicy_show_task(self, fp, task):
         uri_filepolicy_task = URI_FILE_POLICY_SHOW + '/tasks/{1}'
         return self.api('GET', uri_filepolicy_task.format(fp, task))
-    

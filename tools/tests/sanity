@@ -260,9 +260,7 @@ case $AUTH in
     ipv6)
         export BOURNE_IPV6_MODE="YES"
 	ISI_IP="2620:0:170:2842::6199"
-	ISI_IP1="2620:0:170:2842::6199"
 	ISI_SN="6805ca0e0736b7cf7b52af25f8f67c8e6d35"
-	ISI_SN1="6805ca0e0736b7cf7b52af25f8f67c8e6d35"
 	VNXF_IP="2620:0:170:2860::60"
 	VNXDM_IP="2620:0:170:2860::60"
 	VNXF_SN="APM00112400154"
@@ -327,7 +325,6 @@ NH=nh
 NH2=nh2
 NH3=nh3
 NH4=nh4
-PROTECT_NH=protectnh
 FC_ZONE_A=fctz_a
 FC_ZONE_B=fctz_b
 IP_ZONE=iptz
@@ -476,10 +473,8 @@ HOST_ARRAYAFFINITY_URI=""
 # Isilon configuration
 #
 ISI_DEV=isilon_device
-ISI_DEV1=isilon_device1
 ISI_SMARTCONNECT_IP=${ISI_IP}
 ISI_NATIVEGUID=ISILON+$ISI_SN
-ISI_NATIVEGUID1=ISILON+$ISI_SN1
 ISI_SMBFILESHARE1=smbfileshare1$(date +%Y%m%d%H%M%S) 
 ISI_SMBFILESHARE2=smbfileshare2$(date +%Y%m%d%H%M%S)
 ISI_SMBSNAPSHARE1=smbsnapshare1$(date +%Y%m%d%H%M%S)
@@ -729,126 +724,6 @@ VNX_COS_GROUP=vnx-cos-group-`date +%s | cut -c5-10`
 VMAX_COS_GROUP=vmax-cos-group-`date +%s | cut -c5-10`
 
 #
-# filepolicy tests configuration
-#
-SNAPSHOT_TYPE="file_snapshot"
-REPLICATION_TYPE="file_snapshot"
-APPLY_AT_VPOOL="vpool"
-APPLY_AT_PROJECT="project"
-DESCRIPTION="test policy"
-PRIORITY=4
-NUM_WORKER_THREAD=4
-REPLICATION_CONFIGURATION='false'
-SNAPSHOT_EXPIRE_TYPE="days"
-SNAPSHOT_EXPIRE_VALUE=3
-POLICY_SCHEDULE_FREQUENCY="days"
-POLICY_SCHEDULE_REPEAT=2
-POLICY_SCHEDULE_TIME=03:00
-LOCAL_REPLICATION_TYPE="LOCAL"
-REMOTE_REPLICATION_TYPE="REMOTE"
-REPLICATION_COPY_MODE="ASYNC"
-APPLY_ON_TARGET_SITE="false"
-
-#
-# filepolicy tests
-#
-filepolicy_tests()
-{
-    echo "File policy tests started"
-    cos=$1; shift
-    datetime=`date +%m%d%y%H%M%S`
-    fpname=$cos$SNAPSHOT_TYPE$APPLY_AT_VPOOL$datetime
-    echo $fpname
-    
-    echo "Creating snapshot file policy $fpname"
-    run filepolicy create_snapshot_pol $fpname $SNAPSHOT_TYPE $APPLY_AT_VPOOL --description $DESCRIPTION --snapshotexpiretype $SNAPSHOT_EXPIRE_TYPE --snapshotexpirevalue $SNAPSHOT_EXPIRE_VALUE --policyschedulefrequency$POLICY_SCHEDULE_FREQUENCY --policyschedulerepeat $POLICY_SCHEDULE_REPEAT --policyscheduletime$POLICY_SCHEDULE_TIME
-	
-	run filepolicy show $fpname
-	
-	echo "Assigning filepolicy $fpname to vpool $tgt_vpools"
-	tgt_vpools=("${cos}")
-	run filepolicy vpool_assign $fpname --apply_on_target_site $APPLY_ON_TARGET_SITE $tgt_vpools
-	run filepolicy show $fpname
-	
-	echo "Unassigning filepolicy $fpname from vpool $tgt_vpools"
-    run filepolicy vpool_unassign $fpname $tgt_vpools
-	
-	echo "Deleting the file policy $fpname"
-	run filepolicy delete $fpname
-
-	fpname=$cos$SNAPSHOT_TYPE$APPLY_AT_PROJECT$datetime
-    echo $fpname
-    
-    echo "Creating snapshot file policy $fpname"
-	run filepolicy create_snapshot_pol $fpname $SNAPSHOT_TYPE $APPLY_AT_PROJECT --description $DESCRIPTION --snapshotexpiretype $SNAPSHOT_EXPIRE_TYPE --snapshotexpirevalue $SNAPSHOT_EXPIRE_VALUE --policyschedulefrequency $POLICY_SCHEDULE_FREQUENCY --policyschedulerepeat $POLICY_SCHEDULE_REPEAT --policyscheduletime $POLICY_SCHEDULE_TIME
-	
-	run filepolicy show $fpname
-	
-	echo "Assigning filepolicy $fpname to project $tgt_projects"
-	tgt_projects=("${PROJECT}")
-	run filepolicy project_assign $fpname --apply_on_target_site $APPLY_ON_TARGET_SITE $cos $tgt_projects
-	run filepolicy show $fpname
-	
-	echo "Unassigning filepolicy $fpname from project $tgt_projects"
-    run filepolicy project_unassign $fpname $tgt_projects
-    
-    echo "Deleting the file policy $fpname"
-	run filepolicy delete $fpname
-	
-	datetime=`date +%m%d%y%H%M%S`
-    fpname=$cos$REPLICATION_TYPE$APPLY_AT_VPOOL$datetime
-    echo $fpname
-    
-    echo "Creating replication file policy $fpname"
-	if [ -f $CONFIG_FILE ]; then
-    run filepolicy create_replication_pol $fpname $REPLICATION_TYPE $APPLY_AT_VPOOL --description $DESCRIPTION --replicationtype $REMOTE_REPLICATION_TYPE --replicationcopymode $REPLICATION_COPY_MODE --replicationconfiguration $REPLICATION_CONFIGURATION --policyschedulefrequency $POLICY_SCHEDULE_FREQUENCY --policyschedulerepeat $POLICY_SCHEDULE_REPEAT --policyscheduletime $POLICY_SCHEDULE_TIME
-	else
-	run filepolicy create_replication_pol $fpname $REPLICATION_TYPE $APPLY_AT_VPOOL --description $DESCRIPTION --replicationtype $LOCAL_REPLICATION_TYPE --replicationcopymode $REPLICATION_COPY_MODE --replicationconfiguration $REPLICATION_CONFIGURATION --policyschedulefrequency $POLICY_SCHEDULE_FREQUENCY --policyschedulerepeat $POLICY_SCHEDULE_REPEAT --policyscheduletime $POLICY_SCHEDULE_TIME
-	fi
-	
-	run filepolicy show $fpname
-	
-	echo "Assigning filepolicy $fpname to vpool $tgt_vpools"
-	tgt_varrays=("${PROTECT_NH}")
-	tgt_vpools=("${cos}")
-	run filepolicy vpool_assign $fpname --apply_on_target_site $APPLY_ON_TARGET_SITE $tgt_vpools --source_varray $PROTECT_NH --target_varrays $tgt_varrays
-	run filepolicy show $fpname
-	
-	echo "Unassigning filepolicy $fpname from vpool $tgt_vpools"
-    run filepolicy vpool_unassign $fpname $tgt_vpools
-    
-    echo "Deleting the file policy $fpname"
-	run filepolicy delete $fpname
-
-	fpname=$cos$REPLICATION_TYPE$APPLY_AT_PROJECT$datetime
-    echo $fpname
-    
-    echo "Creating replication file policy $fpname"
-	if [ -f $CONFIG_FILE ]; then
-    run filepolicy create_replication_pol $fpname $REPLICATION_TYPE $APPLY_AT_PROJECT --description $DESCRIPTION --replicationtype $REMOTE_REPLICATION_TYPE --replicationcopymode $REPLICATION_COPY_MODE --replicationconfiguration $REPLICATION_CONFIGURATION --policyschedulefrequency $POLICY_SCHEDULE_FREQUENCY --policyschedulerepeat $POLICY_SCHEDULE_REPEAT --policyscheduletime $POLICY_SCHEDULE_TIME
-	else
-	run filepolicy create_replication_pol $fpname $REPLICATION_TYPE $APPLY_AT_PROJECT --description $DESCRIPTION --replicationtype $LOCAL_REPLICATION_TYPE --replicationcopymode $REPLICATION_COPY_MODE --replicationconfiguration $REPLICATION_CONFIGURATION --policyschedulefrequency $POLICY_SCHEDULE_FREQUENCY --policyschedulerepeat $POLICY_SCHEDULE_REPEAT --policyscheduletime $POLICY_SCHEDULE_TIME
-	fi
-	
-	run filepolicy show $fpname
-	
-	echo "Assigning filepolicy $fpname to project $tgt_projects"
-	tgt_varrays=("${PROTECT_NH}")
-	tgt_projects=("${PROJECT}")
-	run filepolicy project_assign $fpname --apply_on_target_site $APPLY_ON_TARGET_SITE $cos $tgt_projects --source_varray $PROTECT_NH --target_varrays $tgt_varrays
-	run filepolicy show $fpname
-    
-    echo "Unassigning filepolicy $fpname from project $tgt_projects"
-    run filepolicy project_unassign $fpname $tgt_projects
-    
-    echo "Deleting the file policy $fpname"
-	run filepolicy delete $fpname
-	
-	echo "File Policy Completed."
-
-}
-
-#
 # fileshare tests configuration
 #
 # Min 1GB FS
@@ -992,9 +867,6 @@ zone_setup()
     fi
 
     run neighborhood create $NH2
-	
-	run neighborhood create $PROTECT_NH
-	run transportzone create $IP_ZONE $PROTECT_NH --type IP
 
     run transportzone create $IP_ZONE $NH --type IP
     if [ "$EXTRA_PARAM" = "search" ] ; then
@@ -1195,28 +1067,12 @@ isilon_cos_setup()
 	--description 'Virtual-Pool-for-Isilon' true 	\
                             --protocols NFS CIFS --max_snapshots 10 \
                             --provisionType 'Thin' \
-			    --neighborhoods $NH
+			    --neighborhoods $NH --schedule_snapshots true --replication_supported true --allow_policy_at_project_level true --allow_policy_at_fs_level true
     ROOT_TENANT=`tenant root|tail -1`
     run cos allow $COS_ISIFILE file $ROOT_TENANT
     if [ "$EXTRA_PARAM" = "search" ] ; then
         cos search $(echo $COS_ISIFILE | head -c 2) --resource_type file_vpool
         cos tag "$COS_ISIFILE" "file" $TAG
-        cos search $SEARCH_PREFIX --tag true --resource_type file_vpool
-    fi
-	
-	 echo "setting up isilon protected COS"
-    run cos create file $COS_PROTECT_ISIFILE 				\
-	--description 'Virtual-Pool-for-Isilon-with-protection' true 	\
-                            --protocols NFS CIFS --max_snapshots 10 \
-                            --provisionType 'Thin' \
-			    --neighborhoods $PROTECT_NH --schedule_snapshots 'true'--replication_supported 'true'
-                --allow_policy_at_project_level 'true' --allow_policy_at_fs_level 'true'
-                
-    ROOT_TENANT=`tenant root|tail -1`
-    run cos allow $COS_PROTECT_ISIFILE file $ROOT_TENANT
-    if [ "$EXTRA_PARAM" = "search" ] ; then
-        cos search $(echo $COS_PROTECT_ISIFILE | head -c 2) --resource_type file_vpool
-        cos tag "$COS_PROTECT_ISIFILE" "file" $TAG
         cos search $SEARCH_PREFIX --tag true --resource_type file_vpool
     fi
 }
@@ -4919,6 +4775,118 @@ recoverpoint_export_host_setup()
     fi
 }
 
+#
+# filepolicy tests configuration
+#
+SNAPSHOT_TYPE="file_snapshot"
+REPLICATION_TYPE="file_snapshot"
+APPLY_AT_VPOOL="vpool"
+APPLY_AT_PROJECT="project"
+DESCRIPTION="test policy"
+PRIORITY=4
+NUM_WORKER_THREAD=4
+REPLICATION_CONFIGURATION='false'
+SNAPSHOT_EXPIRE_TYPE="days"
+SNAPSHOT_EXPIRE_VALUE=3
+POLICY_SCHEDULE_FREQUENCY="days"
+POLICY_SCHEDULE_REPEAT=2
+POLICY_SCHEDULE_TIME=03:00
+LOCAL_REPLICATION_TYPE="LOCAL"
+REMOTE_REPLICATION_TYPE="REMOTE"
+REPLICATION_COPY_MODE="ASYNC"
+APPLY_ON_TARGET_SITE="false"
+
+#
+# filepolicy tests
+#
+filepolicy_tests()
+{
+    echo "File policy tests started"
+    cos=$1; shift
+    datetime=`date +%m%d%y%H%M%S`
+    fpname=$cos$SNAPSHOT_TYPE$APPLY_AT_VPOOL$datetime
+    echo $fpname
+    
+    echo "Creating snapshot file policy $fpname"
+    run filepolicy create_snapshot_pol $fpname $SNAPSHOT_TYPE $APPLY_AT_VPOOL --description $DESCRIPTION --snapshotexpiretype $SNAPSHOT_EXPIRE_TYPE --snapshotexpirevalue $SNAPSHOT_EXPIRE_VALUE --policyschedulefrequency $POLICY_SCHEDULE_FREQUENCY --policyschedulerepeat $POLICY_SCHEDULE_REPEAT --policyscheduletime $POLICY_SCHEDULE_TIME
+	
+	run filepolicy show $fpname
+	
+	echo "Assigning filepolicy $fpname to vpool $tgt_vpools"
+	tgt_vpools=("${cos}")
+	run filepolicy vpool_assign $fpname --apply_on_target_site $APPLY_ON_TARGET_SITE $tgt_vpools
+	run filepolicy show $fpname
+	
+	echo "Unassigning filepolicy $fpname from vpool $tgt_vpools"
+    run filepolicy vpool_unassign $fpname $tgt_vpools
+	
+	echo "Deleting the file policy $fpname"
+	run filepolicy delete $fpname
+
+	fpname=$cos$SNAPSHOT_TYPE$APPLY_AT_PROJECT$datetime
+    echo $fpname
+    
+    echo "Creating snapshot file policy $fpname"
+	run filepolicy create_snapshot_pol $fpname $SNAPSHOT_TYPE $APPLY_AT_PROJECT --description $DESCRIPTION --snapshotexpiretype $SNAPSHOT_EXPIRE_TYPE --snapshotexpirevalue $SNAPSHOT_EXPIRE_VALUE --policyschedulefrequency $POLICY_SCHEDULE_FREQUENCY --policyschedulerepeat $POLICY_SCHEDULE_REPEAT --policyscheduletime $POLICY_SCHEDULE_TIME
+	
+	run filepolicy show $fpname
+	
+	echo "Assigning filepolicy $fpname to project $tgt_projects"
+	tgt_projects=("${PROJECT}")
+	run filepolicy project_assign $fpname --apply_on_target_site $APPLY_ON_TARGET_SITE $cos $tgt_projects
+	run filepolicy show $fpname
+	
+	echo "Unassigning filepolicy $fpname from project $tgt_projects"
+    run filepolicy project_unassign $fpname $tgt_projects
+    
+    echo "Deleting the file policy $fpname"
+	run filepolicy delete $fpname
+	
+	datetime=`date +%m%d%y%H%M%S`
+    fpname=$cos$REPLICATION_TYPE$APPLY_AT_VPOOL$datetime
+    echo $fpname
+    
+    echo "Creating replication file policy $fpname"
+	run filepolicy create_replication_pol $fpname $REPLICATION_TYPE $APPLY_AT_VPOOL --description $DESCRIPTION --replicationtype $LOCAL_REPLICATION_TYPE --replicationcopymode $REPLICATION_COPY_MODE --replicationconfiguration $REPLICATION_CONFIGURATION --policyschedulefrequency $POLICY_SCHEDULE_FREQUENCY --policyschedulerepeat $POLICY_SCHEDULE_REPEAT --policyscheduletime $POLICY_SCHEDULE_TIME
+	
+	run filepolicy show $fpname
+	
+	echo "Assigning filepolicy $fpname to vpool $tgt_vpools"
+	tgt_varrays=("${NH}")
+	tgt_vpools=("${cos}")
+	run filepolicy vpool_assign $fpname --apply_on_target_site $APPLY_ON_TARGET_SITE $tgt_vpools --source_varray $NH --target_varrays $tgt_varrays
+	run filepolicy show $fpname
+	
+	echo "Unassigning filepolicy $fpname from vpool $tgt_vpools"
+    run filepolicy vpool_unassign $fpname $tgt_vpools
+    
+    echo "Deleting the file policy $fpname"
+	run filepolicy delete $fpname
+
+	fpname=$cos$REPLICATION_TYPE$APPLY_AT_PROJECT$datetime
+    echo $fpname
+    
+    echo "Creating replication file policy $fpname"
+	
+	run filepolicy create_replication_pol $fpname $REPLICATION_TYPE $APPLY_AT_PROJECT --description $DESCRIPTION --replicationtype $LOCAL_REPLICATION_TYPE --replicationcopymode $REPLICATION_COPY_MODE --replicationconfiguration $REPLICATION_CONFIGURATION --policyschedulefrequency $POLICY_SCHEDULE_FREQUENCY --policyschedulerepeat $POLICY_SCHEDULE_REPEAT --policyscheduletime $POLICY_SCHEDULE_TIME
+	
+	run filepolicy show $fpname
+	
+	echo "Assigning filepolicy $fpname to project $tgt_projects"
+	tgt_varrays=("${NH}")
+	tgt_projects=("${PROJECT}")
+	run filepolicy project_assign $fpname --apply_on_target_site $APPLY_ON_TARGET_SITE $cos $tgt_projects --source_varray $NH --target_varrays $tgt_varrays
+	run filepolicy show $fpname
+    
+    echo "Unassigning filepolicy $fpname from project $tgt_projects"
+    run filepolicy project_unassign $fpname $tgt_projects
+    
+    echo "Deleting the file policy $fpname"
+	run filepolicy delete $fpname
+	
+	echo "File Policy Completed."
+
+}
 recoverpoint_auto_snapshot_cleanup_test()
 {
     if [ "$RP_AUTO_SNAP_CLEANUP_TESTS" = "1" ]; then    
@@ -6727,27 +6695,21 @@ isilon_setup_once()
 {
     # do this only once
     discoveredsystem show $ISI_NATIVEGUID &> /dev/null && return $?
-    discoveredsystem show $ISI_NATIVEGUID1 &> /dev/null && return $?
 
     discoveredsystem create $ISI_DEV isilon $ISI_IP 8080 $ISI_USER $ISI_PASSWD --serialno=$ISI_SN
-    discoveredsystem create $ISI_DEV1 isilon $ISI_IP1 8080 $ISI_USER $ISI_PASSWD --serialno=$ISI_SN1
     
     isilon_cos_setup
 
     storagepool   update $ISI_NATIVEGUID --type file
-    storagepool   update $ISI_NATIVEGUID1 --type file
     storageport   update $ISI_NATIVEGUID IP --tzone $NH/$IP_ZONE
-    storageport   update $ISI_NATIVEGUID1 IP --tzone $PROTECT_NH/$IP_ZONE
 
     run cos update file $COS_ISIFILE --storage $ISI_NATIVEGUID
-	run cos update file $COS_PROTECT_ISIFILE --storage $ISI_NATIVEGUID1
     #isilon_cos_setup
 }
 
 isilon_setup()
 {
     isilon_setup_once
-	run cos allow $COS_PROTECT_ISIFILE file $TENANT
     run cos allow $COS_ISIFILE file $TENANT
 }
 
@@ -8477,8 +8439,7 @@ quick_file_tests()
 #
 isilon_tests()
 {
-    file_tests $COS_ISIFILE default ro rw root
-	filepolicy_tests $COS_PROTECT_ISIFILE
+    file_tests $COS_ISIFILE default ro rw root						  
 
     if [ "$AUTH" != 'local' && "$AUTH" != 'ipv6' ] ; then
         bulkapi tenants $LOCAL_LDAP_SUPERUSER_USERNAME $LOCAL_LDAP_SUPERUSER_PASSWORD $LOCAL_LDAP_USER_PASSWORD_1
@@ -8496,6 +8457,8 @@ isilon_tests()
         bulkapi filecos $LOCAL_LDAP_SUPERUSER_USERNAME $LOCAL_LDAP_SUPERUSER_PASSWORD $LOCAL_LDAP_USER_PASSWORD_1
         bulkapi fileshares $LOCAL_LDAP_SUPERUSER_USERNAME $LOCAL_LDAP_SUPERUSER_PASSWORD $LOCAL_LDAP_USER_PASSWORD_1 $NH $COS_ISIFILE $FS_SIZE
     fi
+	
+	filepolicy_tests $COS_ISIFILE
 }
 
 ecs_tests()

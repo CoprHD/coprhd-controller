@@ -100,7 +100,7 @@ def cos_match(args):
 			    args.standbyJournalVarray, args.standbyJournalVpool, args.rp_copy_mode, args.rp_rpo_value, args.rp_rpo_type,
 			    args.protectionCoS, args.multiVolumeConsistency,
                             args.max_snapshots, args.max_mirrors, args.thin_volume_preallocation_percentage, args.drive_type,
-                            args.system_type, args.srdf, args.compressionEnabled, args.schedule_snapshots, args.replication_supported, args.allow_policy_at_project_level, args.allow_policy_at_fs_level)
+                            args.system_type, args.srdf, args.compressionEnabled)
 
     
     bourne.pretty_print_json(cos)
@@ -163,7 +163,7 @@ def cos_update(args):
             return
 
     if (args.name):
-        cos = bourne.cos_update(pooladd, poolrem, args.type, cos_uri, args.max_snapshots, args.max_mirrors, args.expandable, args.use_matched,args.host_io_limit_bandwidth,args.host_io_limit_iops,args.placement_policy, args.schedule_snapshots, args.replication_supported, args.allow_policy_at_project_level, args.allow_policy_at_fs_level)
+        cos = bourne.cos_update(pooladd, poolrem, args.type, cos_uri, args.max_snapshots, args.max_mirrors, args.expandable, args.use_matched,args.host_io_limit_bandwidth,args.host_io_limit_iops,args.placement_policy)
         if 'code' in cos:
             print "FAILED: ", str(cos)
         else:
@@ -397,7 +397,7 @@ create.add_argument('--compressionEnabled', help='Enable compression on VMAX All
 create.add_argument('--schedule_snapshots', help = 'Snapshot scheduling supported')
 create.add_argument('--replication_supported', help = 'Replication supported')
 create.add_argument('--allow_policy_at_project_level', help = 'policy at project level supported')
-create.add_argument('--allow_policy_at_fs_level', help = 'policy at fs level supported')
+create.add_argument('--allow_policy_at_fs_level', help = 'policy at fs level supported')												   
 create.set_defaults(multiVolumeConsistency=False)
 create.set_defaults(schedule_snapshots=False)
 create.set_defaults(replication_supported=False)
@@ -440,15 +440,7 @@ match.add_argument('--max_snapshots', help = 'Maximum number of native snapshots
 match.add_argument('--max_mirrors', help = 'Maximum number of native continuous copies.  -1=disabled, 0=infinite (default)')
 match.add_argument('--thin_volume_preallocation_percentage', help = 'Thin volume preallocation percentage.')
 match.add_argument('--compressionEnabled', help='Enable Compression on VMAX All Flash array')
-match.add_argument('--schedule_snapshots', help = 'Snapshot scheduling supported')
-match.add_argument('--replication_supported', help = 'Replication supported')
-match.add_argument('--allow_policy_at_project_level', help = 'policy at project level supported')
-match.add_argument('--allow_policy_at_fs_level', help = 'policy at fs level supported')
 match.set_defaults(multiVolumeConsistency=False)
-match.set_defaults(schedule_snapshots=False)
-match.set_defaults(replication_supported=False)
-match.set_defaults(allow_policy_at_project_level=False)
-match.set_defaults(allow_policy_at_fs_level=False)
 match.set_defaults(max_snapshots=-1)
 match.set_defaults(max_mirrors=0)
 match.set_defaults(compressionEnabled=False)
@@ -467,10 +459,6 @@ update.add_argument('--host_io_limit_bandwidth', help = 'VMAX host io limit band
 update.add_argument('--host_io_limit_iops', help = 'VMAX host io limit IOPs.  To reset, use value of 0')
 update.add_argument('--placement_policy', help='Resource placement policy')
 update.add_argument('--compressionEnabled', help='Enable Compression on VMAX All Flash array')
-update.add_argument('--schedule_snapshots', help = 'Snapshot scheduling supported')
-update.add_argument('--replication_supported', help = 'Replication supported')
-update.add_argument('--allow_policy_at_project_level', help = 'policy at project level supported')
-update.add_argument('--allow_policy_at_fs_level', help = 'policy at fs level supported')
 
 # cos to pool assignment for any pools
 update_pools = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')

@@ -259,7 +259,7 @@ public class VMWareProvider extends BaseHostProvider {
         for (BlockObjectRestRep volume : mountedVolumes) {
             Set<String> datastoreNames = VMwareDatastoreTagger.getDatastoreNames(volume);
             String datastoresLabel = datastoreNames.isEmpty() ? "N/A" : StringUtils.join(datastoreNames, ",");
-            options.add(newAssetOption(volume.getId(), "volume.hlu.datastore", volume.getName(), datastoresLabel));
+            options.add(newAssetOption(volume.getId(), "volume.hlu.datastore", volume.getName(), datastoresLabel, volume.getWwn()));
         }
         AssetOptionsUtils.sortOptionsByLabel(options);
         return options;

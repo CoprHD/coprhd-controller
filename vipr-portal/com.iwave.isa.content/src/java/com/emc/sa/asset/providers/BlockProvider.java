@@ -473,7 +473,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         ViPRCoreClient client = api(ctx);
         NamedVolumesList volumeList = client.blockVolumes().listVirtualArrayChangeCandidates(projectId, varrayId);
         List<VolumeRestRep> volumes = client.blockVolumes().getByRefs(volumeList.getVolumes());
-        return createBaseResourceOptions(volumes);
+        return createVolumeOptions(client, volumes);
     }
 
     @Asset("targetVirtualArray")
@@ -3309,7 +3309,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         if (blockObject instanceof VolumeRestRep) {
             if (blockObject instanceof BlockMirrorRestRep) {
                 BlockMirrorRestRep mirror = (BlockMirrorRestRep) blockObject;
-                return getMessage("block.mirror", mirror.getName());
+                return getMessage("block.mirror", mirror.getName(), mirror.getWwn());
             } else {
                 VolumeRestRep volume = (VolumeRestRep) blockObject;
                 return getMessage("block.volume", volume.getName(), volume.getProvisionedCapacity(), volume.getWwn());
@@ -3317,7 +3317,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         }
         else if (blockObject instanceof BlockSnapshotRestRep) {
             BlockSnapshotRestRep snapshot = (BlockSnapshotRestRep) blockObject;
-            return getMessage("block.snapshot.label", snapshot.getName(), getBlockSnapshotParentVolumeName(volumeNames, snapshot));
+            return getMessage("block.snapshot.label", snapshot.getName(), snapshot.getWwn(), getBlockSnapshotParentVolumeName(volumeNames, snapshot));
         }
         else if (blockObject instanceof BlockSnapshotSessionRestRep) {
             BlockSnapshotSessionRestRep snapshotSession = (BlockSnapshotSessionRestRep) blockObject;
@@ -3382,7 +3382,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     protected List<AssetOption> constructSnapshotOptions(List<BlockSnapshotRestRep> snapshots) {
         List<AssetOption> options = Lists.newArrayList();
         for (BlockSnapshotRestRep snapshot : snapshots) {
-            options.add(new AssetOption(snapshot.getId(), snapshot.getName()));
+            options.add(new AssetOption(snapshot.getId(), getMessage("block.snapshot.labelNoVolume", snapshot.getName(), snapshot.getWwn())));
         }
         AssetOptionsUtils.sortOptionsByLabel(options);
         return options;

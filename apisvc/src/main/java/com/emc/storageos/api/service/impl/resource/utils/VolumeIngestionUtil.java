@@ -1521,7 +1521,8 @@ public class VolumeIngestionUtil {
 
         ExportMask exportMask = ExportMaskUtils.initializeExportMaskWithVolumes(eligibleMask.getStorageSystemUri(), exportGroup,
                 eligibleMask.getMaskName(), exportMaskLabel, allInitiators, null, storagePortUris, eligibleMask.getZoningMap(), volume,
-                eligibleMask.getUnmanagedInitiatorNetworkIds(), eligibleMask.getNativeId(), userAddedInis, dbClient, wwnToHluMap);
+                eligibleMask.getUnmanagedInitiatorNetworkIds(), eligibleMask.getNativeId(), userAddedInis, dbClient, wwnToHluMap,
+                eligibleMask.getPortGroup());
 
         // remove unmanaged mask if created if the block object is not marked as internal
         if (!volume.checkInternalFlags(Flag.PARTIALLY_INGESTED)) {

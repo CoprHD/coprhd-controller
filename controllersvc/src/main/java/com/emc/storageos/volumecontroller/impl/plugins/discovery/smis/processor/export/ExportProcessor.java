@@ -627,6 +627,16 @@ public class ExportProcessor extends Processor {
 
                     break;
 
+                case SmisConstants.CP_SE_TARGET_MASKING_GROUP:
+
+                    String portGroupName = this.getCIMPropertyValue(cimi, SmisConstants.CP_ELEMENT_NAME);
+                    if (portGroupName == null) {
+                        portGroupName = this.getCIMPropertyValue(cimi, SmisConstants.CP_NAME);
+                    }
+                    mask.setPortGroup(portGroupName);
+                    _logger.info("looking at port group " + portGroupName);
+                    break;
+                    
                 default:
                     break;
             }

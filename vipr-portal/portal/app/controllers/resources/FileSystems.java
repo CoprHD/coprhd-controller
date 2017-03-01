@@ -636,8 +636,8 @@ public class FileSystems extends ResourceController {
         param.setCopies(listCopy);
 
         URI fileSystemUri = URI.create(fileSystemId);
-        if ("start".equalsIgnoreCase(mirrorOperation)) {
-            client.fileSystems().startFileContinuousCopies(fileSystemUri, param);
+        if ("refresh".equalsIgnoreCase(mirrorOperation)) {
+            client.fileSystems().refreshFileContinuousCopies(fileSystemUri, param);
         }
         if ("stop".equalsIgnoreCase(mirrorOperation)) {
             client.fileSystems().stopFileContinuousCopies(fileSystemUri, param);

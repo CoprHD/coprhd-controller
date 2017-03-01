@@ -92,6 +92,10 @@ public interface VPlexErrors {
             final Throwable cause);
 
     @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
+    public ServiceError registerInitiatorsStepFailed(final String opName,
+            final Throwable cause);
+
+    @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
     public ServiceError storageViewAddInitiatorFailed(final String opName,
             final Throwable cause);
 

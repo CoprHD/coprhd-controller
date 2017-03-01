@@ -11,6 +11,7 @@ import java.io.Serializable;
 import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URL;
+import java.util.Arrays;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collection;
@@ -65,6 +66,7 @@ import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.Operation.Status;
 import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StringSet;
+import com.emc.storageos.db.client.model.UCSServiceProfile;
 import com.emc.storageos.db.client.model.UCSServiceProfileTemplate;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.Volume;
@@ -183,6 +185,31 @@ public class UcsComputeDevice implements ComputeDevice {
         discoveryWorker.discoverComputeSystem(computeSystemId);
     }
 
+    private UCSServiceProfile persistServiceProfileForHost(LsServer lsServer, ComputeSystem cs, URI hostId){
+        Host host = _dbClient.queryObject(Host.class, hostId);
+        if (host == null){
+             LOGGER.error("Host not found for URI:"+ hostId.toString());
+             throw ComputeSystemControllerException.exceptions.hostNotFound(hostId.toString());
+        }
+        UCSServiceProfile serviceProfile = new UCSServiceProfile();
+        URI uri = URIUtil.createId(UCSServiceProfile.class);
+        serviceProfile.setComputeSystem(cs.getId());
+        serviceProfile.setInactive(false);
+        serviceProfile.setId(uri);
+        serviceProfile.setSystemType(cs.getSystemType());
+        serviceProfile.setCreationTime(Calendar.getInstance());
+        serviceProfile.setDn(lsServer.getDn());
+        serviceProfile.setLabel(lsServer.getName());
+        serviceProfile.setUuid(lsServer.getUuid());
+        serviceProfile.setNativeGuid(NativeGUIDGenerator.generateNativeGuid(cs, serviceProfile));
+        serviceProfile.setHost(hostId);
+        _dbClient.createObject(serviceProfile);
+         
+        host.setServiceProfile(serviceProfile.getId());
+        _dbClient.persistObject(host);
+
+        return serviceProfile;
+    }
     private void setComputeElementAttrFromBoundLsServer(DbClient dbClient, ComputeElement computeElement,
             LsServer lsServer, Host host, String systemType, boolean markUnregistered) {
 
@@ -456,7 +483,7 @@ public class UcsComputeDevice implements ComputeDevice {
             createSpToken = workflow.createStep(CREATE_SP_FROM_SPT_STEP,
                     "create a service profile from the ServiceProfile template selected in the VCP", null,
                     computeSystem.getId(), computeSystem.getSystemType(), this.getClass(), new Workflow.Method(
-                            "createLsServer", computeSystem, sptDn, host.getHostName()),
+                            "createLsServer", computeSystem, sptDn, host),
                     new Workflow.Method(
                             "deleteLsServer", computeSystem, host.getId(), createSpToken),
                     createSpToken);
@@ -767,18 +794,18 @@ public class UcsComputeDevice implements ComputeDevice {
      * Create a LsServer
      * @param cs ComputeSystem instance
      * @param sptDn serviceProfile template distinguished name (DN)
-     * @param spRn serviceProfile relative name (RN)
+     * @param host Host being created
      * @param stepId Id of step being executed.
      * @return LsServer instance
      */
-    public LsServer createLsServer(ComputeSystem cs, String sptDn, String spRn, String stepId) {
+    public LsServer createLsServer(ComputeSystem cs, String sptDn, Host host, String stepId) {
 
         WorkflowStepCompleter.stepExecuting(stepId);
-        LOGGER.info("Creating Service Profile : " + spRn + " from Service Profile Template : " + sptDn);
+        LOGGER.info("Creating Service Profile : " + host.getHostName() + " from Service Profile Template : " + sptDn);
         LsServer lsServer = null;
         try {
             lsServer = ucsmService.createServiceProfileFromTemplate(getUcsmURL(cs).toString(), cs.getUsername(),
-                    cs.getPassword(), sptDn, spRn);
+                    cs.getPassword(), sptDn, host.getHostName());
 
             // Test mechanism to invoke a failure. No-op on production systems.
             InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_073);
@@ -786,6 +813,9 @@ public class UcsComputeDevice implements ComputeDevice {
                 throw new RuntimeException("UCS call to create service profile from template failed, null LsServer was returned.");
             }
             workflowService.storeStepData(stepId, lsServer.getDn());
+            UCSServiceProfile serviceProfile = persistServiceProfileForHost(lsServer,cs, host.getId());
+            validateNewServiceProfile(cs, serviceProfile, host);
+
             lsServer = pullAndPollManagedObject(getUcsmURL(cs).toString(), cs.getUsername(), cs.getPassword(),
                     lsServer.getDn(), LsServer.class);
 
@@ -795,16 +825,42 @@ public class UcsComputeDevice implements ComputeDevice {
                 throw new RuntimeException("UCS call to poll for ManagedObject failed, null LsServer was returned.");
             }
 
-            WorkflowStepCompleter.stepSucceded(stepId);
-            LOGGER.info("Done Creating Service Profile : " + spRn + " from Service Profile Template : " + sptDn);
-
         } catch (Exception e) {
             LOGGER.error("Unable to createLsServer...", e);
             WorkflowStepCompleter.stepFailed(stepId,
-                    ComputeSystemControllerException.exceptions.unableToProvisionHost(spRn, cs.getNativeGuid(), e));
+                    ComputeSystemControllerException.exceptions.unableToProvisionHost(host.getHostName(), cs.getNativeGuid(), e));
         }
+
+        WorkflowStepCompleter.stepSucceded(stepId);
+        LOGGER.info("Done Creating Service Profile : " + lsServer.getDn() + " from Service Profile Template : " + sptDn);
         return lsServer;
     }
+
+    private void validateNewServiceProfile(ComputeSystem cs, UCSServiceProfile serviceProfile, Host newHost){
+        Collection<URI> allHostUris = _dbClient.queryByType(Host.class, true);
+        Collection<Host> hosts = _dbClient.queryObjectFields(Host.class,
+                Arrays.asList("uuid", "computeElement", "registrationStatus", "inactive"), getFullyImplementedCollection(allHostUris));
+        for (Host host: hosts) {
+            if (host.getUuid()!=null && host.getUuid().equals(serviceProfile.getUuid()) && !host.getId().equals(newHost.getId()) && (host.getInactive()!=true)){
+                LOGGER.error("Newly created service profile :"+ serviceProfile.getLabel() + " shares same uuid "+ serviceProfile.getUuid() +" as existing active host: " + host.getLabel());
+                throw ComputeSystemControllerException.exceptions.newServiceProfileDuplicateUuid(serviceProfile.getLabel(),  serviceProfile.getUuid(), host.getLabel());
+            }
+        }
+
+
+    }
+
+    private static <T> Collection<T> getFullyImplementedCollection(Collection<T> collectionIn) {
+        // Convert objects (like URIQueryResultList) that only implement iterator to
+        // fully implemented Collection
+        Collection<T> collectionOut = new ArrayList<>();
+        Iterator<T> iter = collectionIn.iterator();
+        while (iter.hasNext()) {
+            collectionOut.add(iter.next());
+        }
+        return collectionOut;
+    }
+ 
 
     /**
      * Modify the LsServer to have a no boot policy
@@ -841,23 +897,43 @@ public class UcsComputeDevice implements ComputeDevice {
 
     public void deleteLsServer(ComputeSystem cs, URI hostURI, String createSpStepId, String stepId) throws ClientGeneralException {
         WorkflowStepCompleter.stepExecuting(stepId);
-        String spDn = (String) workflowService.loadStepData(createSpStepId);
+        String spDn = null;
         try {
-            if (spDn != null) {
-                LOGGER.info("Deleting Service Profile : " + spDn);
-                // Test mechanism to invoke a failure. No-op on production systems.
-                InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_066);
-                ucsmService.deleteServiceProfile(getUcsmURL(cs).toString(), cs.getUsername(), cs.getPassword(), spDn);
-                LOGGER.info("Done Deleting Service Profile : " + spDn);
-            } else {
-                LOGGER.info("No OP");
-            }
             Host host = _dbClient.queryObject(Host.class, hostURI);
-            if (host!=null && !NullColumnValueGetter.isNullURI(host.getComputeElement())){
-                host.setComputeElement(NullColumnValueGetter.getNullURI());
+            UCSServiceProfile profile = null;
+            if (host!=null){
+                if (!NullColumnValueGetter.isNullURI(host.getServiceProfile())){
+                   profile = _dbClient.queryObject(UCSServiceProfile.class, host.getServiceProfile());
+                   if (profile == null){
+                       throw ComputeSystemControllerException.exceptions.invalidServiceProfileReference(host.getServiceProfile().toString());
+                   }else {
+                       spDn = profile.getDn();
+                       if (spDn != null) {
+                           LOGGER.info("Deleting Service Profile : " + spDn);
+                           // Test mechanism to invoke a failure. No-op on production systems.
+                           InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_066);
+                           ucsmService.deleteServiceProfile(getUcsmURL(cs).toString(), cs.getUsername(), cs.getPassword(), spDn);
+                           LOGGER.info("Done Deleting Service Profile : " + spDn);
+                           _dbClient.markForDeletion(profile);
+                           host.setServiceProfile(NullColumnValueGetter.getNullURI());
+                       }else {
+                           throw ComputeSystemControllerException.exceptions.invalidServiceProfile(host.getServiceProfile().toString());
+                       }   
+
+                   }
+                }
+
+                if (!NullColumnValueGetter.isNullURI(host.getComputeElement())){
+                     ComputeElement computeElement = _dbClient.queryObject(ComputeElement.class, host.getComputeElement());
+                     if (computeElement!=null){
+                         computeElement.setAvailable(true);
+                         _dbClient.updateObject(computeElement);
+                     }
+                     host.setComputeElement(NullColumnValueGetter.getNullURI());
+                }
                 _dbClient.updateObject(host);
             }
-
+   
             WorkflowStepCompleter.stepSucceded(stepId);
         } catch (Exception e) {
             LOGGER.error("Unable to deleteLsServer...", e);
@@ -1217,61 +1293,147 @@ public class UcsComputeDevice implements ComputeDevice {
 
     @Override
     public void deactivateHost(ComputeSystem cs, Host host) throws ClientGeneralException {
-
-        try {
-            // VBDU TODO: COP-28452, Check initiators count, if empty do we still need to delete service profile?
-            if (host != null && !NullColumnValueGetter.isNullURI(host.getComputeElement()) ) {
-                ComputeElement computeElement = _dbClient.queryObject(ComputeElement.class, host.getComputeElement());
-                if (computeElement == null){
-                    LOGGER.error("Host "+ host.getLabel()+ " has associated computeElementURI: "+ host.getComputeElement()+ " which is an invalid reference");
-                    LOGGER.info("Service profile deletion will not be triggered");
-                    return;
-                }
-                LOGGER.info("Host.uuid: "+host.getUuid() + " ComputeElement.uuid: "+  computeElement.getUuid());
-                if (host.getUuid() != null ) {
-                    LsServer sp = ucsmService.getLsServer(getUcsmURL(cs).toString(),
-                            cs.getUsername(), cs.getPassword(), host.getUuid());
-
-                    if (sp != null) {
-
-                        LsServer unboundServiceProfile = ucsmService.unbindServiceProfile(getUcsmURL(cs).toString(),
-                                cs.getUsername(), cs.getPassword(), sp.getDn());
-
-                        LOGGER.debug("Operational state of Deleted Service Profile : " + unboundServiceProfile.getOperState());
-
-                        ComputeBlade computeBlade = pullAndPollManagedObject(getUcsmURL(cs).toString(), cs.getUsername(), cs.getPassword(),
-                                computeElement.getLabel(), ComputeBlade.class);
-
-                        if (computeBlade == null){
-                            LOGGER.info("ComputeBlade "+ computeElement.getLabel()+ " not found on UCS");
-                        } else {
-
-                            // Release the computeElement back into the pool as soon as we have unbound it from the service profile
-                            if (LsServerOperStates.UNASSOCIATED.equals(LsServerOperStates.fromString(computeBlade.getOperState()))) {
-                                computeElement.setAvailable(true);
-                                _dbClient.persistObject(computeElement);
-                            }
-                        }
-
-                        ucsmService.deleteServiceProfile(getUcsmURL(cs).toString(), cs.getUsername(), cs.getPassword(),
-                                unboundServiceProfile.getDn());
-                    } else {
-                        LOGGER.info("No service profile with uuid: " + host.getUuid() + " found on the UCS. Nothing to delete. ");
-                    }
-
-                    // On successful deletion of the service profile - get rid of the objects that represent objects from the service profile
-                    removeHostInitiatorsFromNetworks(host);
-                }
-            }
-
-        } catch (ClientGeneralException e) {
-            LOGGER.error("Unable to deactivate host : {}", host.getLabel(), e);
-            throw e;
-        } catch (Exception ex) {
+       LOGGER.info("deactivateHost");
+       try{
+          unbindHostFromComputeElement(cs,host);
+          deleteServiceProfile(cs,host);
+       }catch (ClientGeneralException e){
+           LOGGER.warn("Unable to deactivate host : ", e);
+           throw e;
+       }catch (Exception ex) {
             LOGGER.error("Error while deactivating host {} check stacktrace", host.getLabel(), ex);
             throw ex;
-        }
+       }
+    }
 
+   /*
+   * Unbinds the host's service profile from the associated blade.
+   * Determines the service profile to unbind using host's serviceProfile association.
+   * In case of host provisioned using pre-Anakin version of ViPR and no serviceProfile association yet set,
+   * serviceprofile to unbind will be determined by trying to find a serviceProfile that matches
+   * the computeElement's uuid. 
+   */
+    private void unbindHostFromComputeElement(ComputeSystem cs, Host host) throws ClientGeneralException{
+        // VBDU TODO: COP-28452, Check initiators count, if empty do we still need to delete service profile?
+        if (host != null && !NullColumnValueGetter.isNullURI(host.getComputeElement())) {
+            ComputeElement computeElement = _dbClient.queryObject(ComputeElement.class, host.getComputeElement());
+            if (computeElement == null){
+                LOGGER.error("Host "+ host.getLabel()+ " has associated computeElementURI: "+ host.getComputeElement()+ " which is an invalid reference");
+                LOGGER.info("Service profile unbind will not be triggered");
+                return ;
+            }
+            String spDn = null;
+            LOGGER.info("Host.uuid: "+host.getUuid() + " ComputeElement.uuid: "+  computeElement.getUuid());
+            if (NullColumnValueGetter.isNullURI(host.getServiceProfile())){
+                LOGGER.info("Host has no service profile asscoaition. trying to determine service profile to unbind based on compute element uuid: "+ computeElement.getUuid());
+                if (computeElement.getUuid() != null ) {
+                    LsServer sp = ucsmService.getLsServer(getUcsmURL(cs).toString(),
+                            cs.getUsername(), cs.getPassword(), computeElement.getUuid());
+                    if (sp!=null){
+                        spDn = sp.getDn();
+                        LOGGER.info("Found service profile {} matching uuid {}", spDn, computeElement.getUuid());
+                    }else{
+                        LOGGER.info("No service profile found with uuid {}. Nothing to unbind.", computeElement.getUuid());
+                        return;
+                    }
+               }
+            }else{
+                UCSServiceProfile serviceProfile =  _dbClient.queryObject(UCSServiceProfile.class, host.getServiceProfile());
+                if (serviceProfile == null){
+                    LOGGER.error("Host "+ host.getLabel()+ " has associated serviceProfileURI: "+ host.getServiceProfile()+ " which is an invalid reference");
+                    LOGGER.info("Service profile unbind will not be triggered");
+                    return ;
+                }else {
+                    spDn = serviceProfile.getDn();
+                    LOGGER.info("Host.uuid: "+host.getUuid() + " ComputeElement.uuid: "+  computeElement.getUuid() + "serviceProfile.uuid:" + serviceProfile.getUuid());
+                }
+            }
+            if (spDn!=null){
+                LOGGER.info("Unbinding service profile with dn: "+ spDn);
+                LsServer unboundServiceProfile = ucsmService.unbindServiceProfile(getUcsmURL(cs).toString(),
+                     cs.getUsername(), cs.getPassword(), spDn);
+                LOGGER.debug("Operational state of Deleted Service Profile : " + unboundServiceProfile.getOperState());
+                ComputeBlade computeBlade = pullAndPollManagedObject(getUcsmURL(cs).toString(), cs.getUsername(), cs.getPassword(),
+                        computeElement.getLabel(), ComputeBlade.class);
+                if (computeBlade == null){
+                    LOGGER.info("ComputeBlade "+ computeElement.getLabel()+ " not found on UCS");
+                } else {
+                    // Release the computeElement back into the pool as soon as we have unbound it from the service profile
+                    if (LsServerOperStates.UNASSOCIATED.equals(LsServerOperStates.fromString(computeBlade.getOperState()))) {
+                         computeElement.setAvailable(true);
+                         _dbClient.persistObject(computeElement);
+                    }
+                }
+      
+             }
+        }else {
+           LOGGER.info("NO OP. Host is null or has no asscoaited computeElement");
+        }
+    }
+
+  /*
+   * Deletes the host's service profile.
+   * Determines the service profile to delete using host's serviceProfile association.
+   * In case of host provisioned using pre-Anakin version of ViPR and no serviceProfile association yet set,
+   * serviceprofile to delete will be determined by trying to find a serviceProfile that matches
+   * the computeElement's uuid. 
+   */
+
+    private void deleteServiceProfile(ComputeSystem cs, Host host) throws ClientGeneralException {
+        UCSServiceProfile serviceProfile = null;
+        if (host!=null){
+            String spDn = null;
+            if (NullColumnValueGetter.isNullURI(host.getServiceProfile())){
+                if (NullColumnValueGetter.isNullURI(host.getComputeElement())) {
+                    LOGGER.info("Host has no associated service profile or compute element . cannot delete service profile.");
+                   return;
+                }
+                ComputeElement computeElement = _dbClient.queryObject(ComputeElement.class, host.getComputeElement());
+                if (computeElement != null){ 
+                    LOGGER.info("Host has no associated service profile. Trying to determine service profile to delete based on associated computeElement's uuid {} ", computeElement.getUuid());
+                    if (computeElement.getUuid() != null ) {
+                        LsServer sp = ucsmService.getLsServer(getUcsmURL(cs).toString(),
+                            cs.getUsername(), cs.getPassword(), computeElement.getUuid());
+                        if (sp!=null){
+                            spDn = sp.getDn();
+                            LOGGER.info("Found service profile {} matching uuid {}", spDn, computeElement.getUuid());
+                        }else{
+                            LOGGER.info("No service profile found with uuid {}. Nothing to delete.", computeElement.getUuid());
+                            return;
+                        }
+                   }
+                } else {
+                   LOGGER.info("Host has no associated service profile and no valid compute element association. cannot delete service profile.");
+                   return;
+                }
+            } else {
+                serviceProfile =  _dbClient.queryObject(UCSServiceProfile.class, host.getServiceProfile());
+                if (serviceProfile == null){
+                   LOGGER.error("Host "+ host.getLabel()+ " has associated serviceProfileURI: "+ host.getServiceProfile()+ " which is an invalid reference");
+                   LOGGER.info("Service profile deletion will not be triggered");
+                   return;
+                }else {
+                   spDn = serviceProfile.getDn();
+                }
+            }
+            if (spDn!=null){
+                LOGGER.info("Deleting serviceProfile " + spDn );
+                ucsmService.deleteServiceProfile(getUcsmURL(cs).toString(), cs.getUsername(), cs.getPassword(),spDn);
+                host.setServiceProfile(NullColumnValueGetter.getNullURI());
+                _dbClient.persistObject(host);
+                if (serviceProfile!=null){
+                    _dbClient.markForDeletion(serviceProfile);
+                }
+
+            } else {
+                LOGGER.info("No service profile to delete");
+            }
+            // On successful deletion of the service profile - get rid of the objects that represent objects from the service profile
+            LOGGER.info("Removing host endpoints");
+            removeHostInitiatorsFromNetworks(host);
+       }else {
+           LOGGER.info("host is null. NO OP");
+       }
     }
 
     /**

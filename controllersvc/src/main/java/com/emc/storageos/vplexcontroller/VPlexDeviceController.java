@@ -5339,6 +5339,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
                     _log.info("mapping new initiator name {} to storage system key {}", vplexInitiatorName, initiatorNameMapKey);
                     initiator.mapInitiatorName(initiatorNameMapKey, vplexInitiatorName);
                     initsToUpdate.add(initiator);
+                    viprInitiatorName = vplexInitiatorName;
                 }
             }
             if (viprInitiatorName != null && !viprInitiatorName.startsWith(VPlexApiConstants.UNREGISTERED_INITIATOR_PREFIX)) {

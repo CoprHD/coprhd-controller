@@ -173,6 +173,12 @@ public class BlockDeviceExportController implements BlockExportController {
             if (exportGroup != null && exportGroup.getExportMasks() != null) {
                 workflow = _wfUtils.newWorkflow("exportGroupDelete", false, opId);
 
+                if (NullColumnValueGetter.isNullValue(exportGroup.getType())) {
+                    // if the group type is null, it cannot be deleted 
+                    // (VPLEX backend groups have a null export group type, for instance)
+                    throw DeviceControllerException.exceptions.exportGroupDeleteUnsupported(exportGroup.forDisplay());
+                }
+
                 Set<URI> storageSystemURIs = new HashSet<URI>();
                 // Use temp set to prevent ConcurrentModificationException
                 List<ExportMask> tempExportMasks = ExportMaskUtils.getExportMasks(_dbClient, exportGroup);

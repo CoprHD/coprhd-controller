@@ -219,7 +219,7 @@ public class ClusterService extends TaskResourceService {
         Operation op = _dbClient.createTaskOpStatus(Cluster.class, id, taskId,
                 ResourceOperationTypeEnum.DETACH_VCENTER_DATACENTER_STORAGE);
         ComputeSystemController controller = getController(ComputeSystemController.class, null);
-        controller.detachClusterStorage(cluster.getId(), false, false, taskId);
+        controller.detachClusterStorage(cluster.getId(), false, true, taskId);
         return toTask(cluster, taskId, op);
     }
 
@@ -319,9 +319,9 @@ public class ClusterService extends TaskResourceService {
             Operation op = _dbClient.createTaskOpStatus(Cluster.class, id, taskId,
                     ResourceOperationTypeEnum.DELETE_CLUSTER);
             ComputeSystemController controller = getController(ComputeSystemController.class, null);
-            // VBDU TODO: COP-28449, Cross verify checkVMs is always passed as TRUE. We can explicitly make this true
+            // VBDU [DONE]: COP-28449, Cross verify checkVMs is always passed as TRUE. We can explicitly make this true
             // always in the code.
-            controller.detachClusterStorage(id, true, checkVms, taskId);
+            controller.detachClusterStorage(id, true, true, taskId);
             auditOp(OperationTypeEnum.DELETE_CLUSTER, true, op.getStatus(),
                     cluster.auditParameters());
             return toTask(cluster, taskId, op);

@@ -5305,9 +5305,11 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
      * with the value from the VPLEX API, if found.  If the name is still not found, that means 
      * it's unregistered and no name for the initiator will be returned in the list.
      * 
-     * Note that this will not update the Initiator.initiatorMap if the registered name has been
-     * manually changed on the VPLEX.  The auto discovery process will do that when it refreshes
-     * all Initiators in the database (see VPlexCommunicationInterface.updateHostInitiators)
+     * This will also update the Initiator.initiatorMap if the registered name has been
+     * manually changed on the VPLEX since the last system discovery (but cache has refreshed).
+     * 
+     * The auto discovery process would update it when it refreshes all Initiators 
+     * in the database (see VPlexCommunicationInterface.updateHostInitiators).
      * 
      * @param vplexSerialNumber the VPLEX system serial number
      * @param vplexClusterName the VPLEX cluster name to look at
@@ -5327,20 +5329,20 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
         while (initiators.hasNext()) {
             Initiator initiator = initiators.next();
             String portWwn = initiator.getInitiatorPort();
-            String initiatorName = initiator.getInitiatorNames().get(initiatorNameMapKey);
-            // if the initiator name couldn't be found in the Initiator.initiatorNames map, check the VPLEX API
-            if (initiatorName == null) {
-                initiatorName = client.getInitiatorNameForWwn(
-                        vplexClusterName, WWNUtility.getUpperWWNWithNoColons(portWwn), doRefresh);
-                if (initiatorName != null) {
+            String viprInitiatorName = initiator.getInitiatorNames().get(initiatorNameMapKey);
+            String vplexInitiatorName = client.getInitiatorNameForWwn(
+                    vplexClusterName, WWNUtility.getUpperWWNWithNoColons(portWwn), doRefresh);
+            // if the initiator name couldn't be found in the Initiator.initiatorNames map, use the one from the VPLEX API
+            if (viprInitiatorName == null || !viprInitiatorName.equals(vplexInitiatorName)) {
+                if (null != vplexInitiatorName) {
                     // if a new initiator name was found, update the Initiator map.
-                    _log.info("mapping new initiator name {} to storage system key {}", initiatorName, initiatorNameMapKey);
-                    initiator.mapInitiatorName(initiatorNameMapKey, initiatorName);
+                    _log.info("mapping new initiator name {} to storage system key {}", vplexInitiatorName, initiatorNameMapKey);
+                    initiator.mapInitiatorName(initiatorNameMapKey, vplexInitiatorName);
                     initsToUpdate.add(initiator);
                 }
             }
-            if (initiatorName != null && !initiatorName.startsWith(VPlexApiConstants.UNREGISTERED_INITIATOR_PREFIX)) {
-                initiatorNames.add(initiatorName);
+            if (viprInitiatorName != null && !viprInitiatorName.startsWith(VPlexApiConstants.UNREGISTERED_INITIATOR_PREFIX)) {
+                initiatorNames.add(viprInitiatorName);
             }
         }
 

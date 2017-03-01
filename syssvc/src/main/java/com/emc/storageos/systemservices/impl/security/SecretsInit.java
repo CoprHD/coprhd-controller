@@ -83,6 +83,7 @@ public class SecretsInit implements Runnable {
         String dbVersion = coordinator.getCurrentDbSchemaVersion();
         String configIdPrefix = Constants.GEODBSVC_NAME.equalsIgnoreCase(dbsvcName) ? "db" : "geodb";
 
+        log.info("Checking db init status for {} on {} nodes", dbsvcName, nodeCount);
         for (int i = 1; i <= nodeCount; i++) {
             String dbConfigId = String.format("%s-%d", configIdPrefix, i);
             String configKind = coordinator.getCoordinatorClient().getVersionedDbConfigPath(Constants.GEODBSVC_NAME, dbVersion);
@@ -95,6 +96,7 @@ public class SecretsInit implements Runnable {
             String initDoneStr = config.getConfig(DbConfigConstants.INIT_DONE);
             if (initDoneStr != null && initDoneStr.equals(DbConfigConstants.INIT_DONE)) {
                 doneCount ++;
+                log.info("{}-{} init is done.", dbsvcName, i);
             }
         }
 

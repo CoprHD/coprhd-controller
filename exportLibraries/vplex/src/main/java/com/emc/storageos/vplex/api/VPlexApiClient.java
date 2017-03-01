@@ -217,7 +217,8 @@ public class VPlexApiClient {
      * @throws VPlexApiException When an error occurs querying the VPlex.
      */
     public VPlexClusterInfo getClusterInfoLiteForClusterName(String vplexClusterName) throws VPlexApiException {
-        for (VPlexClusterInfo clusterInfo : getClusterInfoLite()) {
+        List<VPlexClusterInfo> clusterInfoList = new ArrayList<VPlexClusterInfo>(getClusterInfoLite());
+        for (VPlexClusterInfo clusterInfo : clusterInfoList) {
             if (clusterInfo != null && clusterInfo.getName() != null && clusterInfo.getName().equals(vplexClusterName)) {
                 return clusterInfo;
             }
@@ -350,7 +351,7 @@ public class VPlexApiClient {
         Map<String, Map<String, VPlexVirtualVolumeInfo>> localVirtualVolumesMap = new HashMap<String, Map<String, VPlexVirtualVolumeInfo>>();
 
         // Get the cluster information.
-        List<VPlexClusterInfo> clusterInfoList = getClusterInfoLite();
+        List<VPlexClusterInfo> clusterInfoList = new ArrayList<VPlexClusterInfo>(getClusterInfoLite());
         for (VPlexClusterInfo clusterInfo : clusterInfoList) {
             String clusterId = clusterInfo.getName();
             // for each cluster get the virtual volume information.
@@ -1443,8 +1444,8 @@ public class VPlexApiClient {
      */
     public synchronized Map<String, String> getClusterIdToNameMap() {
         if (_vplexClusterIdToNameCache.isEmpty()) {
-            List<VPlexClusterInfo> clusterInfos = getClusterInfoLite();
-            for (VPlexClusterInfo clusterInfo : clusterInfos) {
+            List<VPlexClusterInfo> clusterInfoList = new ArrayList<VPlexClusterInfo>(getClusterInfoLite());
+            for (VPlexClusterInfo clusterInfo : clusterInfoList) {
                 _vplexClusterIdToNameCache.put(clusterInfo.getClusterId(), clusterInfo.getName());
             }
             s_logger.info("refreshed cluster id to name map is " + _vplexClusterIdToNameCache.toString());
@@ -2136,7 +2137,8 @@ public class VPlexApiClient {
      */
     public synchronized void primeCaches() {
         // prime the cluster id to name map, then use the values to prime the initiator to wwn map
-        for (String clusterName : getClusterIdToNameMap().values()) {
+        List<String> vplexClusterNames = new ArrayList<String>(getClusterIdToNameMap().values());
+        for (String clusterName : vplexClusterNames) {
             getInitiatorWwnToNameMap(clusterName);
         }
     }

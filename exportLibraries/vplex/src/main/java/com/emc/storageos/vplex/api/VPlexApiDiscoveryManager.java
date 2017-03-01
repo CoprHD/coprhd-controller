@@ -2462,7 +2462,8 @@ public class VPlexApiDiscoveryManager {
         List<VPlexConsistencyGroupInfo> cgInfoList = new ArrayList<VPlexConsistencyGroupInfo>();
         Map<String, VPlexConsistencyGroupInfo> cgMap = new HashMap<String, VPlexConsistencyGroupInfo>();
 
-        for (String clusterName : _vplexApiClient.getClusterIdToNameMap().values()) {
+        List<String> vplexClusterNames = new ArrayList<String>(_vplexApiClient.getClusterIdToNameMap().values());
+        for (String clusterName : vplexClusterNames) {
             List<VPlexConsistencyGroupInfo> clusterCgs = getConsistencyGroupsOnCluster(clusterName);
             for (VPlexConsistencyGroupInfo clusterCGInfo : clusterCgs) {
                 clusterCGInfo.setClusterName(clusterName);

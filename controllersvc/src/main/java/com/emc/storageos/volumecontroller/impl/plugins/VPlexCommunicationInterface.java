@@ -653,7 +653,7 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
             }
 
             // Get the cluster information
-            List<VPlexClusterInfo> clusterInfoList = client.getClusterInfoLite();
+            List<VPlexClusterInfo> clusterInfoList = new ArrayList<VPlexClusterInfo>(client.getClusterInfoLite());
 
             // Get the cluster assembly identifiers and form the
             // system serial number based on these identifiers.
@@ -740,7 +740,7 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
             s_logger.info("Volume to Consistency Group Map is: " + volumesToCgs.toString());
             tracker.consistencyGroupFetch = System.currentTimeMillis() - timer;
 
-            Map<String, String> clusterIdToNameMap = client.getClusterIdToNameMap();
+            Map<String, String> clusterIdToNameMap = new HashMap<String, String>(client.getClusterIdToNameMap());
             Map<String, String> varrayToClusterIdMap = new HashMap<String, String>();
             Map<String, String> distributedDevicePathToClusterMap = VPlexControllerUtils.getDistributedDevicePathToClusterMap(vplexUri,
                     _dbClient);
@@ -1570,11 +1570,10 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
 
         try {
             // this is a map of cluster id (1 or 2) to the actual cluster name
-            Map<String, String> clusterIdToNameMap = client.getClusterIdToNameMap();
             // this is a map of the cluster names to a map of its target port names to wwpns
             Map<String, Map<String, String>> clusterPortMap = new HashMap<String, Map<String, String>>();
-
-            for (String clusterName : clusterIdToNameMap.values()) {
+            List<String> vplexClusterNames = new ArrayList<String>(client.getClusterIdToNameMap().values());
+            for (String clusterName : vplexClusterNames) {
                 Map<String, String> targetPortToPwwnMap = VPlexControllerUtils.getTargetPortToPwwnMap(client, clusterName);
                 clusterPortMap.put(clusterName, targetPortToPwwnMap);
             }
@@ -1585,7 +1584,7 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
 
             Set<URI> rpPortInitiators = RPHelper.getBackendPortInitiators(_dbClient);
 
-            for (String clusterName : clusterIdToNameMap.values()) {
+            for (String clusterName : vplexClusterNames) {
                 List<VPlexStorageViewInfo> storageViews = client.getStorageViewsForCluster(clusterName);
                 for (VPlexStorageViewInfo storageView : storageViews) {
                     s_logger.info("discovering storage view: " + storageView.toString());
@@ -2515,7 +2514,7 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
     private String getSystemSerialNumber(VPlexApiClient client, 
             StorageProvider storageProvider, List<String> clusterAssemblyIds) throws VPlexCollectionException {
         // Get the cluster info.
-        List<VPlexClusterInfo> clusterInfoList = client.getClusterInfoLite();
+        List<VPlexClusterInfo> clusterInfoList = new ArrayList<VPlexClusterInfo>(client.getClusterInfoLite());
 
         // Get the cluster assembly identifiers and form the
         // system serial number based on these identifiers.

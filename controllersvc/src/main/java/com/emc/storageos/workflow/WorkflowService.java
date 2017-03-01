@@ -461,26 +461,24 @@ public class WorkflowService implements WorkflowController {
      * @throws Exception
      */
     public Object loadStepData(URI workflowURI, String key, String stepId) {
-        String stepIdentifier = stepId;
-
         try {
             Workflow workflow = loadWorkflowFromUri(workflowURI);
             if (workflow == null) {
-                Exception ex = WorkflowException.exceptions.workflowNotFound(stepIdentifier);
-                _log.error("Can't load step state for step: " + stepIdentifier, ex);
+                Exception ex = WorkflowException.exceptions.workflowNotFound(stepId);
+                _log.error("Can't load step state for step: " + stepId, ex);
                 return null;
             }
 
-            String path = getZKStepDataPath(stepIdentifier);
+            String path = getZKStepDataPath(stepId);
             Stat stat = _dataManager.checkExists(path);
             if (stat != null) {
                 // Legacy path for old workflows
                 Object data = _dataManager.getData(path, false);
-                _log.info(String.format("Loaded WorkflowStepData for %s %s %s", workflowURI, stepIdentifier, key));
+                _log.info(String.format("Loaded WorkflowStepData for %s %s %s", workflowURI, stepId, key));
                 return data;
             }
             Object data = null;
-            WorkflowStepData stepData = getWorkflowStepData(workflow.getWorkflowURI(), stepIdentifier, key);
+            WorkflowStepData stepData = getWorkflowStepData(workflow.getWorkflowURI(), stepId, key);
 
             if (stepData == null) {
                 // If we were not able to find step data, it could be that the step we are trying to load is a rollback
@@ -499,13 +497,13 @@ public class WorkflowService implements WorkflowController {
 
             if (stepData != null) {
                 data = GenericSerializer.deserialize(stepData.getData());
-                _log.info(String.format("Loaded WorkflowStepData for %s %s %s", workflowURI, stepIdentifier, key));
+                _log.info(String.format("Loaded WorkflowStepData for %s %s %s", workflowURI, stepId, key));
             } else {
-                _log.info(String.format("No WorkflowStepData found for %s %s %s", workflowURI, stepIdentifier, key));
+                _log.info(String.format("No WorkflowStepData found for %s %s %s", workflowURI, stepId, key));
             }
             return data;
         } catch (Exception ex) {
-            _log.error("Can't load step data for step: " + stepIdentifier);
+            _log.error("Can't load step data for step: " + stepId);
         }
         return null;
     }

@@ -309,7 +309,7 @@ verify_export_via_provider() {
     DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
     tools_jar="${DIR}/preExistingConfig.jar"
 
-    if [ ! -f preExistingConfig.properties ]; then
+    if [ ! -f ${DIR}/preExistingConfig.properties ]; then
 	echo "Missing preExistingConfg.properties.  dutests should generate this for you"
 	exit 1
     fi

@@ -81,6 +81,7 @@ import util.datatable.DataTablesSupport;
 public class FileProtectionPolicies extends ViprResourceController {
 
     protected static final String UNKNOWN = "schedule.policies.unknown";
+    protected static final String vPoolLevelSnapshotPattern = "{Cluster}_{vNas}_{VPool}_{Policy_TemplateName}_%Y-%m-%d-_%H-%M";
 
     public static void list() {
         ScheculePoliciesDataTable dataTable = new ScheculePoliciesDataTable();
@@ -442,8 +443,9 @@ public class FileProtectionPolicies extends ViprResourceController {
         try {
             updateAssignPolicyParam(assignPolicy, assignPolicyParam);
             TaskResourceRep taskRes = getViprClient().fileProtectionPolicies().assignPolicy(uri(assignPolicy.id), assignPolicyParam);
-            waitForTaskToFinish(assignPolicy.id, taskRes);
-            flash.success(MessagesUtils.get("assignPolicy.request.saved", assignPolicy.policyName));
+            if (isTaskSuccessful(assignPolicy.id, taskRes)) {
+                flash.success(MessagesUtils.get("assignPolicy.request.saved", assignPolicy.policyName));
+            }
         } catch (Exception ex) {
             flash.error(ex.getMessage(), assignPolicy.policyName);
         }
@@ -473,8 +475,9 @@ public class FileProtectionPolicies extends ViprResourceController {
             if (updateUnAssignPolicyParam(assignPolicy, unAssignPolicyParam)) {
                 TaskResourceRep taskRes = getViprClient().fileProtectionPolicies().unassignPolicy(uri(assignPolicy.id),
                         unAssignPolicyParam);
-                waitForTaskToFinish(assignPolicy.id, taskRes);
-                flash.success(MessagesUtils.get("unAssignPolicy.request.saved", assignPolicy.policyName));
+                if (isTaskSuccessful(assignPolicy.id, taskRes)) {
+                    flash.success(MessagesUtils.get("unAssignPolicy.request.saved", assignPolicy.policyName));
+                }
             }
         } catch (Exception ex) {
             flash.error(ex.getMessage(), assignPolicy.policyName);
@@ -487,11 +490,13 @@ public class FileProtectionPolicies extends ViprResourceController {
 
     }
 
-    private static void waitForTaskToFinish(String policyId, TaskResourceRep taskRes) {
+    private static boolean isTaskSuccessful(String policyId, TaskResourceRep taskRes) {
         try {
             FilePolicyRestRep resp = getViprClient().fileProtectionPolicies().getTask(uri(policyId), taskRes.getId()).get();
+            return true;
         } catch (Exception ex) {
             flash.error(ex.getMessage(), policyId);
+            return false;
         }
     }
 
@@ -616,7 +621,7 @@ public class FileProtectionPolicies extends ViprResourceController {
         // Day of the month
         public Long scheduleDayOfMonth;
 
-        public String snapshotNamePattern = "Snapshot_%Y-%m-%d-_%H-%M";
+        public String snapshotNamePattern = vPoolLevelSnapshotPattern;
 
         // Schedule Snapshot expire type e.g hours, days, weeks, months and never
         public String expireType;

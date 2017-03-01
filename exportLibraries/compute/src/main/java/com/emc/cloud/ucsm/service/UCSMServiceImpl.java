@@ -987,7 +987,12 @@ public class UCSMServiceImpl implements UCSMService {
             lsbootSanCatSanImage.setRn("sanimg-" + SanImagePathType.secondary.toString());
             lsbootSanCatSanImage.setType(SanImagePathType.secondary.toString());
             lsbootSanCatSanImage.setVnicName(hba);
+        }else {
+            log.error("Unable to determine fabric A or B for initiator {}",hba);
+            String[] s = {"Unable to determine fabric A or B for initiator " + hba};
+            throw new ClientGeneralException(ClientMessageKeys.UNEXPECTED_FAILURE, s);
         }
+
 
         /**
          * Only interested in first 2 ports - or just the one port if that's all

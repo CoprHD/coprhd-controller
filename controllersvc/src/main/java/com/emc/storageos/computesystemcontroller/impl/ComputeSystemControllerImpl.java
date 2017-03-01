@@ -248,7 +248,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
     }
   
     public void validateBootVolumeExport(URI hostId, URI volumeId, String stepId) throws ControllerException {
-        _log.info("validatetBootVolumeExport :"+ hostId.toString());
+        _log.info("validateBootVolumeExport :"+ hostId.toString()+" volume: "+ volumeId.toString());
         Host host = null;
         try{
             WorkflowStepCompleter.stepExecuting(stepId);
@@ -281,9 +281,6 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
 
    }
 
-
-
-
     public void setHostBootVolumeId(URI hostId, URI volumeId, String stepId) throws ControllerException {
         _log.info("setHostBootVolumeId :"+ hostId.toString());
         Host host = null;
@@ -312,6 +309,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
         }        
 
    }
+
    public void rollbackHostBootVolumeId(URI hostId, URI volumeId, String stepId) throws ControllerException {
         _log.info("rollbackHostBootVolumeId:"+ hostId.toString());
         Host host = null;
@@ -340,6 +338,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
         }
 
    }
+
     private String addStepsForSanBootTargets(Workflow workflow,  URI hostId, URI volumeId, String waitFor) {
         String newWaitFor = null;
         Host host = _dbClient.queryObject(Host.class, hostId);
@@ -352,6 +351,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
         }
         return newWaitFor;
     }
+
     public void setHostSanBootTargets(URI hostId, URI volumeId, String stepId) throws ControllerException {
         Host host = null;
         try {
@@ -359,13 +359,20 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
            host = _dbClient.queryObject(Host.class, hostId);
            if (host == null) {
                throw ComputeSystemControllerException.exceptions.hostNotFound(hostId.toString());
-           }           if (host.getComputeElement() != null) {
+           }
+           if (host.getComputeElement() != null) {
                ComputeElement computeElement = _dbClient.queryObject(ComputeElement.class, host.getComputeElement());
 
                if (computeElement != null) {
                    computeDeviceController
                         .setSanBootTarget(computeElement.getComputeSystem(), computeElement.getId(), hostId, volumeId, false);
+               }else {
+                   _log.error("Invalid compute element association");
+                  throw ComputeSystemControllerException.exceptions.cannotSetSanBootTargets(host.getHostName(),"Invalid compute elemnt association");
                }
+           }else {
+                 _log.error("Host " + host.getHostName() + " does not have a compute element association.");
+                 throw ComputeSystemControllerException.exceptions.cannotSetSanBootTargets(host.getHostName(),"Host does not have a blade association");
            }
            WorkflowStepCompleter.stepSucceded(stepId);
         }catch (Exception e){

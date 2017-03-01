@@ -369,9 +369,8 @@ public class HostService extends TaskResourceService {
         Operation op = _dbClient.createTaskOpStatus(Host.class, id, taskId,
                 ResourceOperationTypeEnum.UPDATE_HOST_BOOT_VOLUME);
 
-        // VBDU TODO: COP-28451, The above block of code doesn't guarantee that exports will be triggered for the
-        // updated host. Is it OK to set boot volume?
-
+        //The volume being set as the boot volume should be exported to the host and should not be exported to any other initiators.
+        // The controller call invoked below validates that before setting the volume as the boot volume.
         controller.setHostBootVolume(host.getId(), param.getBootVolume(), updateSanBootTargets, taskId);
         return toTask(host, taskId, op);
     }

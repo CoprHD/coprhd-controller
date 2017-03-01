@@ -63,6 +63,10 @@ public class FilePolicyServiceUtils {
         if (policyScheduleparams != null) {
 
             // check schedule frequency is valid or not
+            if(policyScheduleparams.getScheduleFrequency() == null){
+                errorMsg.append("required parameter schedule_frequency is missing");
+                return false;
+            }
             ArgValidator.checkFieldValueFromEnum(policyScheduleparams.getScheduleFrequency().toUpperCase(), "schedule_frequency",
                     EnumSet.allOf(FilePolicy.ScheduleFrequency.class));
 
@@ -78,7 +82,7 @@ public class FilePolicyServiceUtils {
             int hour;
             int minute;
             boolean isValid = true;
-            if (policyScheduleparams.getScheduleTime().contains(":")) {
+            if (policyScheduleparams.getScheduleTime() != null && policyScheduleparams.getScheduleTime().contains(":")) {
                 String splitTime[] = policyScheduleparams.getScheduleTime().split(":");
                 hour = Integer.parseInt(splitTime[0]);
                 minute = Integer.parseInt(splitTime[1]);

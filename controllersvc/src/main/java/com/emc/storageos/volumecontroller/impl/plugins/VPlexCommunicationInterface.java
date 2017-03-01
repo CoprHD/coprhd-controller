@@ -1971,6 +1971,20 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
                 errMsgBuilder.append(errMsg);
             }
 
+            // update host initiators with registered initiator names from VPLEX
+            try {
+                updateHostInitiators(client, vplexStorageSystem.getSerialNumber());
+            } catch (VPlexCollectionException vce) {
+                discoverySuccess = false;
+                String errMsg = String.format("Failed host initiator update for VPlex %s",
+                        storageSystemURI.toString());
+                s_logger.error(errMsg, vce);
+                if (errMsgBuilder.length() != 0) {
+                    errMsgBuilder.append(", ");
+                }
+                errMsgBuilder.append(errMsg);
+            }
+
             try {
                 s_logger.info("Discovering connectivity.");
                 discoverConnectivity(vplexStorageSystem);
@@ -2025,6 +2039,64 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
                 }
             }
         }
+    }
+
+    /**
+     * Update host Initiator names in ViPR database according to what is found
+     * on each VPLEX cluster as a registered name for the Initiator's port.
+     * 
+     * @param client the VPLEX api client
+     * @param systemSerialNumber the VPLEX system serial number
+     */
+    private void updateHostInitiators(VPlexApiClient client, String systemSerialNumber) {
+
+        // get all the Initiators in vipr
+        List<URI> initiatorUris = _dbClient.queryByType(Initiator.class, true);
+        Iterator<Initiator> hostInitiators = _dbClient.queryIterativeObjects(Initiator.class, initiatorUris, true);
+        List<Initiator> initiatorsToPersist = new ArrayList<Initiator>();
+
+        // assemble a small map of the cluster names to the initiator name key for that cluster.
+        // for example: FNM00114300288:FNM00114600001|cluster-1 and FNM00114300288:FNM00114600001|cluster-2.
+        // this is just for efficiency, so we don't have to assemble the key over and over again.
+        List<String> vplexClusterNames = new ArrayList<String>(client.getClusterIdToNameMap().values());
+        Map<String, String> clusterNameToInitNameKey = new HashMap<String, String>(2);
+        for (String vplexClusterName : vplexClusterNames) {
+            String initiatorNameKey = systemSerialNumber + VPlexApiConstants.INITIATOR_CLUSTER_NAME_DELIM + vplexClusterName;
+            clusterNameToInitNameKey.put(vplexClusterName, initiatorNameKey);
+        }
+
+        // iterate through all the host Initiators in vipr and 
+        // update the initiator names mappings if necessary
+        Boolean[] doRefresh =  new Boolean[] { new Boolean(true) };
+        while (hostInitiators.hasNext()) {
+            Initiator hostInitiator = hostInitiators.next();
+            for (String vplexClusterName : vplexClusterNames) {
+                // find the current name on this vplex cluster hardware for the Initiator portWwn,
+                // and also get the current value found in the database for comparison.
+                String portWwn = hostInitiator.getInitiatorPort();
+                String vplexInitiatorName = client.getInitiatorNameForWwn(
+                        vplexClusterName, WWNUtility.getUpperWWNWithNoColons(portWwn), doRefresh);
+                String initiatorNameKey = clusterNameToInitNameKey.get(vplexClusterName);
+                String viprInitiatorName = hostInitiator.getInitiatorNames().get(initiatorNameKey);
+
+                // if a registered initiator name was found, and it hasn't already been mapped, update the Initiator.
+                // otherwise, if it is mapped in the vipr database, but it's no longer on the vplex, unmap it.
+                if (vplexInitiatorName != null 
+                        && !vplexInitiatorName.startsWith(VPlexApiConstants.UNREGISTERED_INITIATOR_PREFIX)) {
+                    if (!vplexInitiatorName.equals(viprInitiatorName)) {
+                        // map
+                        hostInitiator.mapInitiatorName(initiatorNameKey, vplexInitiatorName);
+                        initiatorsToPersist.add(hostInitiator);
+                    }
+                } else if (hostInitiator.getInitiatorNames().containsKey(initiatorNameKey)) {
+                    // unmap
+                    hostInitiator.unmapInitiatorName(initiatorNameKey);
+                    initiatorsToPersist.add(hostInitiator);
+                }
+            }
+        }
+
+        _dbClient.updateObject(initiatorsToPersist);
     }
 
     /**

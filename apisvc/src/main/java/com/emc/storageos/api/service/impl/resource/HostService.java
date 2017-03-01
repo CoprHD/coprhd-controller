@@ -344,7 +344,7 @@ public class HostService extends TaskResourceService {
      * Updates the hosts boot volume Id
      *
      * @param id the URN of host
-         * @
+     * @param hostUpdateParam 
      *
      * @return the task.
      */

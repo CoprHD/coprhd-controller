@@ -263,6 +263,8 @@ public class CreateComputeClusterService extends ViPRService {
 
         List<URI> exportIds = ComputeUtils.exportBootVols(bootVolumeIds, hosts, project, virtualArray, hlu);
         logInfo("compute.cluster.exports.created", ComputeUtils.nonNull(exportIds).size());
+        hosts = ComputeUtils.deactivateHostsWithNoExport(hosts, exportIds, bootVolumeIds, cluster);
+
         hosts = ComputeUtils.setHostBootVolumes(hosts, bootVolumeIds, false);
 
         // VBDU [DONE]: COP-28400, Potential DU if external host is added to vCenter cluster not under ViPR mgmt.

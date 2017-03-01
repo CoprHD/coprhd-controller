@@ -1154,6 +1154,16 @@ public class UcsComputeDevice implements ComputeDevice {
         List<Initiator> initiators = CustomQueryUtility.queryActiveResourcesByRelation(_dbClient, hostId,
                 Initiator.class, "host");
         Map<ExportMask, ExportGroup> exportMasks = ExportUtils.getExportMasks(volume, _dbClient);
+        for (ExportMask exportMask : exportMasks.keySet()) {
+              LOGGER.info("Inspecting initiators for mask : " + exportMask.getId());
+              List<Initiator> initiatorsForMask = ExportUtils.getExportMaskInitiators(exportMask.getId(), _dbClient);
+              for (Initiator initiator : initiatorsForMask){
+                  if (!initiators.contains(initiator)){
+                      LOGGER.error("Volume is exported to initiator " + initiator.getLabel() + "which does not belong to host "+ host.getLabel());
+                      return false;
+                  }
+              }
+        }
         Map<Initiator,List<URI>> initiatorPortMap = new HashMap<Initiator,List<URI>>();
         for (Initiator initiator : initiators) {
             for (ExportMask exportMask : exportMasks.keySet()) {

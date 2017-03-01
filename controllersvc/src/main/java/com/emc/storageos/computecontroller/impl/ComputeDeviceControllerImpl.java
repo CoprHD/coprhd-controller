@@ -7,6 +7,7 @@ package com.emc.storageos.computecontroller.impl;
 import java.net.URI;
 import java.util.List;
 import java.util.Map;
+import java.util.HashMap;
 import java.util.UUID;
 
 import org.slf4j.Logger;
@@ -23,19 +24,24 @@ import com.emc.storageos.db.client.model.Cluster;
 import com.emc.storageos.db.client.model.ComputeElement;
 import com.emc.storageos.db.client.model.ComputeSystem;
 import com.emc.storageos.db.client.model.ComputeVirtualPool;
+import com.emc.storageos.db.client.model.ExportGroup;
+import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.Host;
+import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.Operation.Status;
 import com.emc.storageos.db.client.model.UCSServiceProfileTemplate;
 import com.emc.storageos.db.client.model.VcenterDataCenter;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.imageservercontroller.exceptions.ImageServerControllerException;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
+import com.emc.storageos.util.ExportUtils;
 import com.emc.storageos.util.InvokeTestFailure;
 import com.emc.storageos.vcentercontroller.VcenterController;
 import com.emc.storageos.vcentercontroller.exceptions.VcenterControllerException;
@@ -856,29 +862,49 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
 
         return waitFor;
     }
-
+   /**
+    * Validates that the specified boot volume is exported to the only this host in ViPR and that array target ports are in the ExportMask
+    * @param hostId URI of the host
+    * @param volumeId URI of the volume
+    * @return boolean true if the boot volume is exported to the host
+    */
     @Override 
      public boolean validateBootVolumeExport(URI hostId, URI volumeId) throws InternalException{
-        Host host = _dbClient.queryObject(Host.class, hostId);
-        ComputeElement ce = null;
-        ComputeSystem cs = null;
-        if (host==null){
-             throw ComputeSystemControllerException.exceptions.hostNotFound(hostId.toString());
-        }
-        if (!NullColumnValueGetter.isNullURI(host.getComputeElement())) {
-            ce = _dbClient.queryObject(ComputeElement.class, host.getComputeElement());
-        }
-        if (ce == null){
-             log.error("Cannot determine ComputeElement for host "+ host.getLabel());
-             throw ComputeSystemControllerException.exceptions.cannotDetermineComputeSystemForHost(host.getLabel());
-        }
-        cs = _dbClient.queryObject(ComputeSystem.class, ce.getComputeSystem());
-        if (cs == null){
-             log.error("Cannot determine ComputeSystem for host "+ host.getLabel());
-             throw ComputeSystemControllerException.exceptions.cannotDetermineComputeSystemForHost(host.getLabel());
-        }
+         boolean valid = false;
+         Host host = _dbClient.queryObject(Host.class, hostId);
+         Volume volume = _dbClient.queryObject(Volume.class, volumeId);
+         List<Initiator> initiators = CustomQueryUtility.queryActiveResourcesByRelation(_dbClient, hostId,
+                Initiator.class, "host");
+         Map<ExportMask, ExportGroup> exportMasks = ExportUtils.getExportMasks(volume, _dbClient);
+         for (ExportMask exportMask : exportMasks.keySet()) {
+              log.info("Inspecting initiators for mask : " + exportMask.getId());
+              List<Initiator> initiatorsForMask = ExportUtils.getExportMaskInitiators(exportMask.getId(), _dbClient);
+              for (Initiator initiator : initiatorsForMask){
+                  if (!initiators.contains(initiator)){
+                      log.error("Volume is exported to initiator " + initiator.getLabel() + "which does not belong to host "+ host.getLabel());
+                      return false;
+                  }
+              }
+         }
+         Map<Initiator,List<URI>> initiatorPortMap = new HashMap<Initiator,List<URI>>();
+         for (Initiator initiator : initiators) {
+            for (ExportMask exportMask : exportMasks.keySet()) {
+                List<URI> storagePorts = ExportUtils.getInitiatorPortsInMask(exportMask, initiator, _dbClient);
 
-        return getDevice(cs.getSystemType()).validateBootVolumeExport(hostId, volumeId);
+                if (storagePorts != null && !storagePorts.isEmpty()) {
+                    log.info("Initiator " + initiator.getLabel() + " mapped to "+ storagePorts.size()+ " array ports");
+                    initiatorPortMap.put(initiator, storagePorts);
+                }else {
+                    log.info("Initiator " + initiator.getLabel() + " not mapped to any array ports");
+                }
+             }
+         }
+         if (!initiatorPortMap.isEmpty()){
+            valid = true;
+         }else {
+            log.error("no array ports mapped to the hosts initiators!");
+         }
+         return valid;
      }
 
     /**

@@ -81,20 +81,20 @@ public class SecretsInit implements Runnable {
         int nodeCount = coordinator.getNodeCount();
         int doneCount = 0;
         String dbVersion = coordinator.getCurrentDbSchemaVersion();
-        String configIdPrefix = Constants.GEODBSVC_NAME.equalsIgnoreCase(dbsvcName) ? "db" : "geodb";
+        String configIdPrefix = Constants.GEODBSVC_NAME.equalsIgnoreCase(dbsvcName) ? "geodb" : "db";
 
         log.info("Checking db init status for {} on {} nodes", dbsvcName, nodeCount);
         for (int i = 1; i <= nodeCount; i++) {
             String dbConfigId = String.format("%s-%d", configIdPrefix, i);
-            String configKind = coordinator.getCoordinatorClient().getVersionedDbConfigPath(Constants.GEODBSVC_NAME, dbVersion);
+            String configKind = coordinator.getCoordinatorClient().getVersionedDbConfigPath(dbsvcName, dbVersion);
             Configuration config = coordinator.getCoordinatorClient().queryConfiguration(
                     coordinator.getCoordinatorClient().getSiteId(), configKind, dbConfigId);
             if (config == null) {
-                throw new IllegalStateException("Unexpected error, db versioned configuration is null");
+                return false;
             }
 
             String initDoneStr = config.getConfig(DbConfigConstants.INIT_DONE);
-            if (initDoneStr != null && initDoneStr.equals(DbConfigConstants.INIT_DONE)) {
+            if (initDoneStr != null && initDoneStr.equals("true")) {
                 doneCount ++;
                 log.info("{}-{} init is done.", dbsvcName, i);
             }

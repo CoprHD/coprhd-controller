@@ -52,6 +52,7 @@ import com.emc.storageos.volumecontroller.FileDeviceInputOutput;
 import com.emc.storageos.volumecontroller.FileSMBShare;
 import com.emc.storageos.volumecontroller.FileShareExport;
 import com.emc.storageos.volumecontroller.FileStorageDevice;
+import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.BiosCommandResult;
 import com.emc.storageos.volumecontroller.impl.ControllerServiceImpl;
 import com.emc.storageos.volumecontroller.impl.job.QueueJob;
@@ -1772,4 +1773,33 @@ public class VNXUnityFileStorageDevice extends VNXUnityOperations
                 DeviceControllerErrors.vnxe.operationNotSupported("Assign File Policy", "Unity"));
     }
 
+    @Override
+    public BiosCommandResult doStartMirrorLink(StorageSystem system, FileShare source, TaskCompleter completer) {
+        return BiosCommandResult.createErrorResult(
+                DeviceControllerErrors.vnxe.operationNotSupported("start the mirror link", "Unity"));
+    }
+
+    @Override
+    public BiosCommandResult doRefreshMirrorLink(StorageSystem system, FileShare source) {
+        return BiosCommandResult.createErrorResult(
+                DeviceControllerErrors.vnxe.operationNotSupported("refresh the mirror link", "Unity"));
+    }
+
+    @Override
+    public BiosCommandResult doPauseLink(StorageSystem system, FileShare source) {
+        return BiosCommandResult.createErrorResult(
+                DeviceControllerErrors.vnxe.operationNotSupported("pause the mirror link", "Unity"));
+    }
+
+    @Override
+    public BiosCommandResult doResumeLink(StorageSystem system, FileShare target, TaskCompleter completer) {
+        return BiosCommandResult.createErrorResult(
+                DeviceControllerErrors.vnxe.operationNotSupported("resume the mirror link", "Unity"));
+    }
+
+    @Override
+    public BiosCommandResult doFailoverLink(StorageSystem system, FileShare target, TaskCompleter completer) {
+        return BiosCommandResult.createErrorResult(
+                DeviceControllerErrors.vnxe.operationNotSupported("failover the mirror link", "Unity"));
+    }
 }

@@ -90,6 +90,7 @@ import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.Task;
 import com.emc.storageos.db.client.model.TenantOrg;
+import com.emc.storageos.db.client.model.UCSServiceProfile;
 import com.emc.storageos.db.client.model.UCSServiceProfileTemplate;
 import com.emc.storageos.db.client.model.VcenterDataCenter;
 import com.emc.storageos.db.client.model.VirtualArray;
@@ -302,6 +303,7 @@ public class HostService extends TaskResourceService {
         // We only want to update the export group if we're changing the cluster during a host update
         if (newClusterURI != null) {
             updateTaskStatus = false;
+            // VBDU TODO: COP-28451, The first if block never gets executed, need to understand the impact.
             if (updateExports && !NullColumnValueGetter.isNullURI(oldClusterURI)
                     && NullColumnValueGetter.isNullURI(newClusterURI)
                     && ComputeSystemHelper.isClusterInExport(_dbClient, oldClusterURI)) {
@@ -320,6 +322,12 @@ public class HostService extends TaskResourceService {
                             || ComputeSystemHelper.isClusterInExport(_dbClient, newClusterURI))) {
                 // Clustered host being moved to another cluster
                 controller.addHostsToExport(Arrays.asList(host.getId()), newClusterURI, taskId, oldClusterURI, false);
+            } else if (updateExports && !NullColumnValueGetter.isNullURI(oldClusterURI)
+                    && !NullColumnValueGetter.isNullURI(newClusterURI)
+                    && oldClusterURI.equals(newClusterURI)
+                    && ComputeSystemHelper.isClusterInExport(_dbClient, newClusterURI)) {
+                // Cluster hasn't changed but we should add host to the shared exports for this cluster
+                controller.addHostsToExport(Arrays.asList(host.getId()), newClusterURI, taskId, oldClusterURI, false);
             } else {
                 updateTaskStatus = true;
                 ComputeSystemHelper.updateHostAndInitiatorClusterReferences(_dbClient, newClusterURI, host.getId());
@@ -331,12 +339,14 @@ public class HostService extends TaskResourceService {
          * volume, iff it's exported to the Host with HLU 0. Hence an update to
          * the Host to set the boot volume should only really be made *after*
          * the volume has been exported to the Host.
-         * TODO Consider making the
+         * VBDU TODO: COP-28451, Consider making the
          * above requirement a hard one, by validating that such an export in
          * fact exists. For the time being following piece of code suffices
          * for satisfying some high level requirements, although it may not be
          * sufficient from an API purity standpoint
          */
+        // VBDU TODO: COP-28451, The above block of code doesn't guarantee that exports will be triggered for the
+        // updated host. Is it OK to set boot volume?
         if (!NullColumnValueGetter.isNullURI(host.getComputeElement()) && !NullColumnValueGetter.isNullURI(updateParam.getBootVolume())) {
             controller.setHostSanBootTargets(host.getId(), updateParam.getBootVolume());
         }
@@ -653,9 +663,20 @@ public class HostService extends TaskResourceService {
         
         ComputeElement computeElement = null;
         Volume bootVolume = null;
+        UCSServiceProfile serviceProfile = null;
+        if (!NullColumnValueGetter.isNullURI(host.getServiceProfile())){
+             serviceProfile = _dbClient.queryObject(UCSServiceProfile.class, host.getServiceProfile());
+             if (serviceProfile!=null && !NullColumnValueGetter.isNullURI(serviceProfile.getComputeSystem())){
+                  ComputeSystem ucs = _dbClient.queryObject(ComputeSystem.class, serviceProfile.getComputeSystem());
+                  if ( ucs!=null && ucs.getDiscoveryStatus().equals(DataCollectionJobStatus.ERROR.name())){
+                      throw APIException.badRequests.resourceCannotBeDeleted("Host has service profile on a Compute System that failed to discover; ");
+                  }
+             }               
+        }
     
         List<Initiator> initiators = CustomQueryUtility.queryActiveResourcesByRelation(_dbClient, host.getId(),Initiator.class, "host");
  
+        // VBDU TODO: COP-28452, Running host deactivate even if initiators == null or list empty seems risky
         if (StringUtils.equalsIgnoreCase(host.getType(),HostType.No_OS.toString()) && (initiators == null || initiators.isEmpty())) {
             if (!NullColumnValueGetter.isNullURI(host.getComputeElement())){
                 computeElement = _dbClient.queryObject(ComputeElement.class, host.getComputeElement());
@@ -663,11 +684,18 @@ public class HostService extends TaskResourceService {
             if (!NullColumnValueGetter.isNullURI(host.getBootVolumeId())){
                 bootVolume =  _dbClient.queryObject(Volume.class, host.getBootVolumeId());
             }
-            if (computeElement != null || bootVolume != null) {
-                _log.error("No OS host: " + host.getLabel() +" with no initiators, but with compute element or boot volume association found. Cannot deactivate.");
-                throw APIException.badRequests.resourceCannotBeDeleted("No OS host with no initiators, but with compute element or boot volume association found. Please contact DELL EMC support to resolve inconsistency detected. Host ");
+            if (computeElement != null) {
+                _log.error("No OS host: " + host.getLabel() +" with no initiators, but with compute element association found. Cannot deactivate.");
+                throw APIException.badRequests.resourceCannotBeDeleted("No OS host with no initiators, but with compute element association found. Please contact DELL EMC support to resolve inconsistency detected. Host ");
+            } else if (bootVolume != null ) {
+                _log.error("No OS host: " + host.getLabel() +" with no initiators, but with boot volume association found. Cannot deactivate.");
+                throw APIException.badRequests.resourceCannotBeDeleted("No OS host with no initiators, but with boot volume association found. Please contact DELL EMC support to resolve inconsistency detected. Host ");
+            }else if ( serviceProfile != null) {
+                 _log.error("No OS host: " + host.getLabel() +" with no initiators, but with service profile association found. Cannot deactivate.");
+                throw APIException.badRequests.resourceCannotBeDeleted("No OS host with no initiators, but with service profile association found. Please contact DELL EMC support to resolve inconsistency detected. Host ");
+
             } else {
-                _log.info("No OS host: " + host.getLabel() +" with no initiators and without valid computeElement or boot volume associations found. Will proceed with deactivation.");
+                _log.info("No OS host: " + host.getLabel() +" with no initiators and without valid computeElement, service profile or boot volume associations found. Will proceed with deactivation.");
             }
         }
         
@@ -1603,6 +1631,18 @@ public class HostService extends TaskResourceService {
         }
         return sortedHashMap;
     }
+    private  Map<URI, List<URI>> filterOutBladesFromBadUcs(Map<URI, List<URI>> inputMap){
+        Map<URI, List<URI>> outputMap = new HashMap<URI,List<URI>>();
+        for (URI csURI: inputMap.keySet()){
+            ComputeSystem ucs = _dbClient.queryObject(ComputeSystem.class, csURI);
+            if (ucs!=null && !ucs.getDiscoveryStatus().equals(DataCollectionJobStatus.ERROR.name())){
+                outputMap.put(csURI,inputMap.get(csURI));
+            }else {
+                _log.warn("Filtering out blades from Compute System "+ ucs.getLabel()+" which failed discovery");
+            }
+        }
+        return outputMap;
+    }
 
     private List<String> takeComputeElementsFromPool(ComputeVirtualPool cvp, int numHosts, VirtualArray varray, URI clusterId) {
         List<URI> selectedCEsList = new ArrayList<URI>();
@@ -1610,7 +1650,8 @@ public class HostService extends TaskResourceService {
         // Map of compute systems to compute elements from this Compute system used in this cluster
         Map<URI, List<ComputeElement>> usedComputeElementsMap = findComputeElementsUsedInCluster(clusterId);
         // Map of compute systems to compute elements from this Compute system that are available in this cvp
-        Map<URI, List<URI>> computeSystemToComputeElementsMap = findComputeElementsMatchingVarrayAndCVP(cvp, varray);
+        Map<URI, List<URI>> computeSystemToComputeElementsMap1 = findComputeElementsMatchingVarrayAndCVP(cvp, varray);
+        Map<URI, List<URI>> computeSystemToComputeElementsMap = filterOutBladesFromBadUcs(computeSystemToComputeElementsMap1);
 
         int numRequiredCEs = numHosts;
         int totalAvailableCEs = 0;

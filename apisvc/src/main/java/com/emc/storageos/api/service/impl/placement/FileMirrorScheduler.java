@@ -121,12 +121,25 @@ public class FileMirrorScheduler implements Scheduler {
         } else {
             // Get the recommendation for source from vpool!!!
             sourceFileRecommendations = _fileScheduler.getRecommendationsForResources(vArray, project, vPool, capabilities);
+            // Remove the source storage system from capabilities list
+            // otherwise, try to find the remote pools from the same source system!!!
+            if (capabilities.isVpoolProjectPolicyAssign() && capabilities.getFileProtectionSourceStorageDevice() != null) {
+                capabilities.removeCapabilityEntry(VirtualPoolCapabilityValuesWrapper.FILE_PROTECTION_SOURCE_STORAGE_SYSTEM);
+            }
         }
         // Process the each recommendations for targets
         for (FileRecommendation sourceFileRecommendation : sourceFileRecommendations) {
             String srcSystemType = sourceFileRecommendation.getDeviceType();
             Set<String> systemTypes = new StringSet();
             systemTypes.add(srcSystemType);
+
+            // Based on the source recommendation nas server, target should pick the right nas server.
+            // Both source and target nas servers should be similar.
+            // If sourceFileRecommendation.getvNAS() is null means, the recommendation is for physical nas server!!
+            // This should happen for assignment of replication policy
+            if (capabilities.isVpoolProjectPolicyAssign()) {
+                capabilities.put(VirtualPoolCapabilityValuesWrapper.SOURCE_VIRTUAL_NAS_SERVER, sourceFileRecommendation.getvNAS());
+            }
 
             for (String targetVArry : capabilities.getFileReplicationTargetVArrays()) {
                 // Process for target !!!
@@ -144,6 +157,10 @@ public class FileMirrorScheduler implements Scheduler {
                         VirtualPoolCapabilityValuesWrapper.FILE_REPLICATION_TARGET);
                 // Get target recommendations!!!
                 targetFileRecommendations = _fileScheduler.placeFileShare(targetVArray, targetVPool, capabilities, project, attributeMap);
+                if (targetFileRecommendations == null || targetFileRecommendations.isEmpty()) {
+                    _log.info("No target recommendation found, so ignore the source recommedation as well.");
+                    continue;
+                }
 
                 String copyMode = capabilities.getFileRpCopyMode();
                 if (targetFileRecommendations != null && !targetFileRecommendations.isEmpty()) {

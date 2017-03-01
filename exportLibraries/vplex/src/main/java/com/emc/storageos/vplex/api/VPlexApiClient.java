@@ -87,7 +87,7 @@ public class VPlexApiClient {
     // caching of some almost-static VPLEX info for performance improvement
     private volatile Map<String, String> _vplexClusterIdToNameCache = new HashMap<String, String>();
     private volatile List<VPlexClusterInfo> _vplexClusterInfoLiteCache = new ArrayList<VPlexClusterInfo>();
-    private volatile Map<String, Map<String, String>> _vplexClusterInitiatorNameToWwnCache = new HashMap<String, Map<String, String>>();
+    private volatile Map<String, Map<String, String>> _vplexClusterInitiatorWwnToNameCache = new HashMap<String, Map<String, String>>();
 
     /**
      * Constructor
@@ -103,7 +103,6 @@ public class VPlexApiClient {
         _exportMgr = new VPlexApiExportManager(this);
         _migrationMgr = new VPlexApiMigrationManager(this);
         _cgMgr = new VPlexApiConsistencyGroupManager(this);
-        primeCaches();
     }
 
     /**
@@ -183,7 +182,7 @@ public class VPlexApiClient {
      */
     public List<VPlexClusterInfo> getClusterInfoDetails() throws VPlexApiException {
         s_logger.info("Request for complete detailed cluster info for VPlex at {}", _baseURI);
-        return _discoveryMgr.getClusterInfo(false, true);
+        return _discoveryMgr.getClusterInfo(false, true, null);
     }
 
     /**
@@ -202,11 +201,30 @@ public class VPlexApiClient {
     public synchronized List<VPlexClusterInfo> getClusterInfoLite() throws VPlexApiException {
         s_logger.info("Request for lightweight cluster info for VPlex at {}", _baseURI);
         if (_vplexClusterInfoLiteCache.isEmpty()) {
-            _vplexClusterInfoLiteCache.addAll(_discoveryMgr.getClusterInfo(true, false));
+            _vplexClusterInfoLiteCache.addAll(_discoveryMgr.getClusterInfo(true, false, null));
             s_logger.info("refreshed lightweight cluster info list is " + _vplexClusterInfoLiteCache.toString());
         }
 
         return _vplexClusterInfoLiteCache;
+    }
+
+    /**
+     * Gets a VPlexClusterInfo from the cache for the given VPLEX cluster id.
+     *
+     * @param vplexClusterName the name of the VPLEX cluster to get.
+     * @return a VPlexClusterInfo instance for the requested cluster id, or null if not found.
+     * 
+     * @throws VPlexApiException When an error occurs querying the VPlex.
+     */
+    public VPlexClusterInfo getClusterInfoLiteForClusterName(String vplexClusterName) throws VPlexApiException {
+        for (VPlexClusterInfo clusterInfo : getClusterInfoLite()) {
+            if (clusterInfo != null && clusterInfo.getName() != null && clusterInfo.getName().equals(vplexClusterName)) {
+                return clusterInfo;
+            }
+        }
+
+        s_logger.error("VPlexClusterInfo for cluster id {} not found.", vplexClusterName);
+        throw VPlexApiException.exceptions.couldNotFindCluster(vplexClusterName);
     }
 
     /**
@@ -447,8 +465,13 @@ public class VPlexApiClient {
             boolean findVirtualVolume, boolean thinEnabled)
                     throws VPlexApiException {
         s_logger.info("Request for virtual volume creation on VPlex at {}", _baseURI);
+        String clusterName = null;
+        if (!isDistributed) {
+            // if this is a local volume, we can restrict work to just the local cluster
+            clusterName = getClusterNameForId(winningClusterId);
+        }
         return _virtualVolumeMgr.createVirtualVolume(nativeVolumeInfoList, isDistributed,
-                discoveryRequired, preserveData, winningClusterId, clusterInfoList, findVirtualVolume, thinEnabled);
+                discoveryRequired, preserveData, winningClusterId, clusterInfoList, findVirtualVolume, thinEnabled, clusterName);
     }
 
     /**
@@ -740,6 +763,36 @@ public class VPlexApiClient {
     public boolean setVirtualVolumeThinEnabled(VPlexVirtualVolumeInfo virtualVolumeInfo) {
         s_logger.info(String.format("Request to set virtual volume %s to thin-enabled at %s", virtualVolumeInfo.getName(), _baseURI));
         return _virtualVolumeMgr.setVirtualVolumeThinEnabled(virtualVolumeInfo);
+    }
+
+    /**
+     * Take the list of initiators to check and register any that cannot be found
+     * already registered on the VPLEX.
+     * 
+     * @param initiatorsToCheck the initiators to check for registration
+     * @param vplexClusterName the VPLEX cluster name (like cluster-1 or cluster-2)
+     * @throws VPlexApiException if something went wrong
+     */
+    public void registerInitiators(List<PortInfo> initiatorsToCheck, String vplexClusterName) throws VPlexApiException {
+
+        s_logger.info("Request for registering initiators in cluster {} on VPLEX at {}", vplexClusterName, _baseURI);
+        VPlexClusterInfo clusterInfo = getClusterInfoLiteForClusterName(vplexClusterName);
+
+        List<VPlexInitiatorInfo> initiatorsFound = 
+                _exportMgr.findInitiators(vplexClusterName, initiatorsToCheck);
+
+        if (initiatorsFound.size() != initiatorsToCheck.size()) {
+            s_logger.info("Could not find all of the requested initiators on VPLEX.");
+
+            // get a list of all initiators and register them (the register method checks the name for status)
+            initiatorsFound = _exportMgr.buildInitiatorInfoList(initiatorsFound, initiatorsToCheck, clusterInfo);
+            _exportMgr.registerInitiators(clusterInfo, initiatorsFound);
+
+            // clear the cache so that we'll get a fresh reading next request
+            _discoveryMgr.clearInitiatorCache(vplexClusterName);
+        } else {
+            s_logger.info("All the requested initiators have already been registered.");
+        }
     }
 
     /**
@@ -1306,16 +1359,17 @@ public class VPlexApiClient {
      *         no colons.
      */
     private synchronized Map<String, String> getInitiatorWwnToNameMap(String clusterName) {
-        if (!_vplexClusterInitiatorNameToWwnCache.containsKey(clusterName) ||
-                _vplexClusterInitiatorNameToWwnCache.get(clusterName).isEmpty()) {
+        if (!_vplexClusterInitiatorWwnToNameCache.containsKey(clusterName) ||
+                _vplexClusterInitiatorWwnToNameCache.get(clusterName) == null ||
+                _vplexClusterInitiatorWwnToNameCache.get(clusterName).isEmpty()) {
             long start = System.currentTimeMillis();
-            s_logger.info("TIMER: refreshing initiator wwn to name cache...");
+            s_logger.info("refreshing initiator wwn-to-name cache for cluster " + clusterName);
             Map<String, String> clusterInitiatorToNameMap = _discoveryMgr.getInitiatorWwnToNameMap(clusterName);
-            s_logger.info("TIMER: refreshing initiator wwn to name cache took {}ms", System.currentTimeMillis() - start);
-            _vplexClusterInitiatorNameToWwnCache.put(clusterName, clusterInitiatorToNameMap);
+            s_logger.info("TIMER: refreshing initiator wwn-to-name cache took {}ms", System.currentTimeMillis() - start);
+            _vplexClusterInitiatorWwnToNameCache.put(clusterName, clusterInitiatorToNameMap);
         }
 
-        return _vplexClusterInitiatorNameToWwnCache.get(clusterName);
+        return _vplexClusterInitiatorWwnToNameCache.get(clusterName);
     }
 
     /**
@@ -1324,16 +1378,25 @@ public class VPlexApiClient {
      * 
      * @param vplexClusterName the name of the VPLEX cluster to check
      * @param wwn the wwn to find an Initiator name for
+     * @param doRefresh trigger a cache refresh, once done, this out param will be set to false
+     *                  so that subsequent calls don't have to refresh the cache
      * @return the name of the Initiator
      */
-    public synchronized String getInitiatorNameForWwn(String vplexClusterName, String wwn) {
+    public synchronized String getInitiatorNameForWwn(String vplexClusterName, String wwn, Boolean[] doRefresh) {
         String initiatorName = null;
 
         if (!getInitiatorWwnToNameMap(vplexClusterName).containsKey(wwn)) {
             s_logger.info(
-                    "initiator wwn to name cache does not contain an entry for wwn {} on vplex cluster {}, clearing cache for refresh", 
+                    "initiator wwn to name cache does not contain an entry for wwn {} on vplex cluster {}", 
                         wwn, vplexClusterName);
-            _vplexClusterInitiatorNameToWwnCache.get(vplexClusterName).clear();
+            if (doRefresh[0]) {
+                s_logger.info("clearing vplex cluster {} cache for refresh", vplexClusterName);
+                _vplexClusterInitiatorWwnToNameCache.get(vplexClusterName).clear();
+                _discoveryMgr.clearInitiatorCache(vplexClusterName);
+                doRefresh[0] = false;
+            } else {
+                return null;
+            }
         }
 
         initiatorName = getInitiatorWwnToNameMap(vplexClusterName).get(wwn);
@@ -1364,8 +1427,13 @@ public class VPlexApiClient {
      */
     public String getClusterNameForId(String clusterId) {
         String clusterName = getClusterIdToNameMap().get(clusterId);
-        s_logger.info("found cluster name {} for cluster id {}", clusterName, clusterId);
-        return clusterName;
+        if (clusterName != null && !clusterName.isEmpty()) {
+            s_logger.info("found cluster name {} for cluster id {}", clusterName, clusterId);
+            return clusterName;
+        }
+
+        s_logger.error("VPLEX cluster name for cluster id {} not found.", clusterId);
+        throw VPlexApiException.exceptions.couldNotFindCluster(clusterId);
     }
 
     /**
@@ -2050,7 +2118,17 @@ public class VPlexApiClient {
     public synchronized void clearCaches() {
         _vplexClusterIdToNameCache.clear();
         _vplexClusterInfoLiteCache.clear();
-        _vplexClusterInitiatorNameToWwnCache.clear();
+        _vplexClusterInitiatorWwnToNameCache.clear();
+        _discoveryMgr.clearInitiatorCache();
+    }
+
+    /**
+     * Clears the initiator cache for the given cluster.
+     * 
+     * @param vplexClusterName the cluster initiator cache to clear
+     */
+    public void clearInitiatorCache(String vplexClusterName) {
+        _discoveryMgr.clearInitiatorCache(vplexClusterName);
     }
 
     /**
@@ -2062,4 +2140,5 @@ public class VPlexApiClient {
             getInitiatorWwnToNameMap(clusterName);
         }
     }
+
 }

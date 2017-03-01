@@ -12,6 +12,7 @@ import java.net.URI;
 public class VPlexApiConstants {
 
     // VPLEX firmware version strings for testing availability of certain features
+    public static final String FIRMWARE_MIXED_VERSIONS = "mixed";
     public static final String MIN_VERSION_THIN_PROVISIONING = "5.5.1.00.00.00";
 
     // Constants define the headers required when making HTTP requests to the
@@ -228,9 +229,12 @@ public class VPlexApiConstants {
     public static final String WWN_PREFIX = "0x";
 
     // The delimiter used to separate the port and node WWNs when
-    // registering an initiator port.
+    // registering an initiator port
     public static final String INITIATOR_REG_DELIM = "|";
 
+    // Initiator name cluster delimiter (for mapping Initiator name per cluster)
+    public static final String INITIATOR_CLUSTER_NAME_DELIM = "|";
+    
     // Constants representing response status for VPlex requests
     public static final int SUCCESS_STATUS = 200;
     public static final int ASYNC_STATUS = 202;

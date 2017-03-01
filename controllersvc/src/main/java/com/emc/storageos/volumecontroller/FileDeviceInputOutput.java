@@ -20,8 +20,10 @@ import com.emc.storageos.db.client.model.SMBShareMap;
 import com.emc.storageos.db.client.model.SchedulePolicy;
 import com.emc.storageos.db.client.model.Snapshot;
 import com.emc.storageos.db.client.model.StoragePool;
+import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.TenantOrg;
+import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualNAS;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.model.file.CifsShareACLUpdateParams;
@@ -93,6 +95,12 @@ public class FileDeviceInputOutput {
     private FilePolicy fileProtectionPolicy;
     private PolicyStorageResource policyStorageResource;
     private FilePolicyUpdateParam fileProtectionPolicyUpdateParam;
+
+    // New additions for vNAS
+    private StorageSystem sourceSystem;
+    private VirtualNAS sourceVNAS;
+    private boolean isTarget = false;
+    private VirtualArray varray;
 
     public String getFileSystemPath() {
         return fileSystemPath;
@@ -936,7 +944,7 @@ public class FileDeviceInputOutput {
 
     // replace all special characters except forward slash; -+!@#$%^&())";:[]{}\ |
     public String getPathWithoutSpecialCharacters(String path) {
-        return path.replaceAll("[^/\\-\\dA-Za-z ]", "").replaceAll("\\s+", "_");
+        return path.replaceAll("[^/\\dA-Za-z ]", "").replaceAll("\\s+", "_");
     }
 
     public Project getProject() {
@@ -1076,6 +1084,38 @@ public class FileDeviceInputOutput {
 
     public void setFileProtectionPolicyUpdateParam(FilePolicyUpdateParam fileProtectionPolicyUpdateParam) {
         this.fileProtectionPolicyUpdateParam = fileProtectionPolicyUpdateParam;
+    }
+
+    public VirtualNAS getSourceVNAS() {
+        return sourceVNAS;
+    }
+
+    public void setSourceVNAS(VirtualNAS sourceVNAS) {
+        this.sourceVNAS = sourceVNAS;
+    }
+
+    public boolean isTarget() {
+        return isTarget;
+    }
+
+    public void setTarget(boolean isTarget) {
+        this.isTarget = isTarget;
+    }
+
+    public StorageSystem getSourceSystem() {
+        return sourceSystem;
+    }
+
+    public void setSourceSystem(StorageSystem sourceSystem) {
+        this.sourceSystem = sourceSystem;
+    }
+
+    public VirtualArray getVarray() {
+        return varray;
+    }
+
+    public void setVarray(VirtualArray varray) {
+        this.varray = varray;
     }
 
 }

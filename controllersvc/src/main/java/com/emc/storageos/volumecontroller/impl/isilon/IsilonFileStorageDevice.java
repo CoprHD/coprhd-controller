@@ -1441,7 +1441,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         // set quota - save the quota id to extensions
         String qid = isi.createQuota(qDirPath, fsSize, bThresholdsIncludeOverhead,
                 bIncludeSnapshots, qDirSize, notificationLimitSize != null ? notificationLimitSize : 0L,
-                softLimitSize != null ? softLimitSize : 0L, softGracePeriod != null ? softGracePeriod : 0L);
+                        softLimitSize != null ? softLimitSize : 0L, softGracePeriod != null ? softGracePeriod : 0L);
         return qid;
     }
 
@@ -3130,6 +3130,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
 
             if (filePolicy.getFilePolicyType().equals(FilePolicy.FilePolicyType.file_replication.name())) {
                 String sourcePath = generatePathForPolicy(filePolicy, fs, args);
+                checkAppliedResourceNamePartOfFilePolicyPath(sourcePath, filePolicy, args);
                 String scheduleValue = getIsilonPolicySchedule(filePolicy);
                 String targetPath = null;
                 String targetHost = null;
@@ -3201,6 +3202,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             } else if (filePolicy.getFilePolicyType().equals(FilePolicyType.file_snapshot.name())) {
 
                 String path = generatePathForPolicy(filePolicy, fs, args);
+                checkAppliedResourceNamePartOfFilePolicyPath(path, filePolicy, args);
                 String clusterName = isi.getClusterConfig().getName();
                 String snapshotScheduleName = FileOrchestrationUtils.generateNameForSnapshotIQPolicy(clusterName, filePolicy, fs, args);
                 IsilonSnapshotSchedule isiSnapshotSch = getEquivalentIsilonSnapshotSchedule(isi, path);
@@ -3524,10 +3526,10 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             String clusterName = isi.getClusterConfig().getName();
             String snapshotPolicySceduleName = FileOrchestrationUtils
                     .generateNameForSnapshotIQPolicy(clusterName, filePolicy, null, args);
-            // getIsilonSnapshotIQPolicyNamePrefix(storageObj, args);
-            String filePolicyBasePath = getFilePolicyPath(storageObj, args);
 
+            String filePolicyBasePath = getFilePolicyPath(storageObj, args);
             checkAppliedResourceNamePartOfFilePolicyPath(filePolicyBasePath, filePolicy, args);
+
             IsilonSnapshotSchedule isilonSnapshotSchedule = getEquivalentIsilonSnapshotSchedule(isi, filePolicyBasePath);
             if (isilonSnapshotSchedule != null) {
 
@@ -3828,6 +3830,20 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                             filePolicy.getApplyAt(), "No vpool was provided in the input.");
                 }
                 break;
+            case file_system:
+                if (args.getFs() != null) {
+                    resourceName = args.getFSNameWithNoSpecialCharacters().replaceAll("_", "");
+                    if (!filePolicyBasePath.contains(resourceName)) {
+                        _log.error("File policy base path does not contain fileshare: {}", resourceName);
+                        throw DeviceControllerException.exceptions.assignFilePolicyFailed(filePolicy.getFilePolicyName(),
+                                filePolicy.getApplyAt(),
+                                "File policy base path does not contain fileshare: " + resourceName);
+                    }
+                } else {
+                    throw DeviceControllerException.exceptions.assignFilePolicyFailed(filePolicy.getFilePolicyName(),
+                            filePolicy.getApplyAt(), "No fileshare was provided in the input.");
+                }
+                break;
 
             default:
                 break;
@@ -3876,6 +3892,24 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
     @Override
     public void doFailbackLink(StorageSystem system, FileShare target, TaskCompleter completer) {
         // TODO Auto-generated method stub
+
+    }
+
+    @Override
+    public BiosCommandResult checkFilePolicyPathHasResourceLabel(StorageSystem system, FileDeviceInputOutput args) {
+
+        _log.info("Inside checkFilePolicyPathHasResourceLabel()");
+
+        try {
+            FilePolicy filePolicy = args.getFileProtectionPolicy();
+            String filePolicyBasePath = getFilePolicyPath(system, args);
+            checkAppliedResourceNamePartOfFilePolicyPath(filePolicyBasePath, filePolicy, args);
+            _log.info("checkFilePolicyPathHasResourceLabel successful.");
+            return BiosCommandResult.createSuccessfulResult();
+        } catch (IsilonException e) {
+            _log.error("checkFilePolicyPathHasResourceLabel failed.", e);
+            return BiosCommandResult.createErrorResult(e);
+        }
 
     }
 }

@@ -48,6 +48,7 @@ import com.emc.storageos.db.client.model.VirtualNAS;
 import com.emc.storageos.db.client.model.VirtualNAS.VirtualNasState;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
+import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.TaskResourceRep;
@@ -280,6 +281,9 @@ public class FileStorageScheduler implements Scheduler {
     }
 
     private boolean isTargetRequiredOnPhyscialNAS(VirtualPoolCapabilityValuesWrapper capabilities) {
+        if (NullColumnValueGetter.isNullURI(capabilities.getTargetNasServer())) {
+            return false;
+        }
         if (capabilities.getTargetNasServer() != null && capabilities.getTargetNasServer().toString().contains("VirtualNAS")) {
             return false;
         }

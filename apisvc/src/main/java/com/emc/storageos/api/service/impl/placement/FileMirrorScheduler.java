@@ -206,7 +206,7 @@ public class FileMirrorScheduler implements Scheduler {
                 if (capabilities.getTargetStorageSystem() != null) {
                     capabilities.removeCapabilityEntry(VirtualPoolCapabilityValuesWrapper.TARGET_STORAGE_SYSTEM);
                 }
-                if (storageSystemResources != null && storageSystemResources.isEmpty()) {
+                if (storageSystemResources != null && !storageSystemResources.isEmpty()) {
                     if (!findAndUpdateMatchedPolicyStorageResource(storageSystemResources, sourceFileRecommendation, capabilities)) {
                         _log.info("No policy resource for this source recommendation, so skipping it");
                         continue;

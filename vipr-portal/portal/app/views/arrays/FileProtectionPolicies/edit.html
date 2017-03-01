@@ -95,6 +95,8 @@
     #{field 'schedulePolicy.frequency'}
     #{Form.controlGroup field:field, width:4}
       %{ typeField = field }%
+      #{Form.radio field:typeField, value: "minutes", label: messages.get("schedulePolicy.minute")/}
+      #{Form.radio field:typeField, value: "hours", label: messages.get("schedulePolicy.hours")/}
       #{Form.radio field:typeField, value: "days", label: messages.get("schedulePolicy.daily")/}
       
       #{Form.radio field:typeField, value: "weeks", label: messages.get("schedulePolicy.weekly")/}

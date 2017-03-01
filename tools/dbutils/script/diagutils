@@ -13,6 +13,7 @@
 DIAGCOLLECT_DIR="/data/diagutils-data"
 DIAGCOLLECT_MAME="diagutils-`date +%Y%0m%0d%0k%0M%0S`"
 DIAGCOLLECT_LOG="/tmp/diagutils.out"
+REDIRECT_STDOUT_TO_LOG=false
 DISK_USED_PERCENTAGE_WARNING_LIMIT=50
 DISK_USED_PERCENTAGE_TERMINATION_LIMIT=80
 MIN_CFS=(BlockConsistencyGroup BlockMirror BlockSnapshot Cluster ExportGroup ExportMask FCZoneReference Host Initiator Network NetworkSystem ProtectionSet ProtectionSystem StorageProvider StoragePool StoragePort StorageSystem Vcenter VirtualArray VirtualDataCenter VirtualPool Volume)
@@ -372,7 +373,11 @@ print_progress_point() {
 }
 
 echo_stdout_log() {
-    echo "$@" | tee -a ${DIAGCOLLECT_LOG}
+    if [ ${REDIRECT_STDOUT_TO_LOG} == true ]; then
+        echo "$@" | tee -a ${DIAGCOLLECT_LOG}
+    else
+        echo "$@"
+    fi
 }
 
 check_if_skip() {

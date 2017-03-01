@@ -49,6 +49,8 @@ public class HostDataTable extends DataTable {
         public String version;
         public boolean discoverable;
         public String cluster;
+        public String serviceProfile;
+        piblic String computeElement;
 
         public HostInfo() {
         }
@@ -82,6 +84,8 @@ public class HostDataTable extends DataTable {
                 // substitute status for display
                 this.discoveryStatus = host.getProvisioningJobStatus();
             }
+            this.serviceProfile = host.getServiceProfile();
+            this.computeElement = host.getComputeElement();
         }
 
         public String getHostLabel(HostRestRep host, String vcenterDataCenterName) {

@@ -490,6 +490,9 @@ public class WorkflowService implements WorkflowController {
                 if (stepMap != null) {
                     Step workflowStep = stepMap.get(stepId);
                     if (workflowStep != null && workflowStep.isRollbackStep() && workflowStep.foundingStepId != null) {
+                        _log.info(String.format(
+                                "Step data for rollback step %s does not exist. Attempting to load step data for founding step %s", stepId,
+                                workflowStep.foundingStepId));
                         stepData = getWorkflowStepData(workflow.getWorkflowURI(), workflowStep.foundingStepId, key);
                     }
                 }

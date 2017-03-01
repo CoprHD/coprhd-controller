@@ -634,6 +634,9 @@ public class FileProtectionPolicies extends ViprResourceController {
         public int expireValue = 2;
 
         public String expiration = "EXPIRE_TIME";
+
+        // if true policy has assigned resource .
+        public boolean isAssigned;
         public String referrerUrl;
 
         public String scheduleHour;
@@ -662,6 +665,10 @@ public class FileProtectionPolicies extends ViprResourceController {
             this.policyType = restRep.getType();
             this.policyName = restRep.getName();
             this.frequency = restRep.getSchedule().getFrequency();
+
+            if (restRep.getAssignedResources() != null && !restRep.getAssignedResources().isEmpty()) {
+                this.isAssigned = true;
+            }
 
             if (restRep.getDescription() != null && !restRep.getDescription().isEmpty()) {
                 this.description = restRep.getDescription();

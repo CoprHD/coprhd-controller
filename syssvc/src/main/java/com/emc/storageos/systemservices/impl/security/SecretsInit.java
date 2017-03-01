@@ -6,7 +6,10 @@
 package com.emc.storageos.systemservices.impl.security;
 
 
+import com.emc.storageos.coordinator.client.model.Constants;
 import com.emc.storageos.coordinator.client.service.DrUtil;
+import com.emc.storageos.coordinator.common.Configuration;
+import com.emc.storageos.db.common.DbConfigConstants;
 import com.emc.storageos.security.ipsec.IPsecConfig;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceUnavailableException;
 import com.emc.storageos.systemservices.impl.ipsec.IPsecManager;
@@ -37,6 +40,17 @@ public class SecretsInit implements Runnable {
         boolean ipsecInitDone = false;
         boolean dhInitDone = false;
 
+        while (!dbInitDone()) {
+            try {
+                log.info("Db init has not been done. Waiting {} seoncds", IPSEC_ROTATION_RETRY_INTERVAL);
+                Thread.sleep(IPSEC_ROTATION_RETRY_INTERVAL * 1000);
+            } catch (InterruptedException e) {
+                log.warn("interrupted ipsec initial ", e);
+            }
+        }
+
+        log.info("Db init done. Start ipsec init");
+
         while (true) {
             if (!ipsecInitDone) {
                 ipsecInitDone = rotateIPsecKey();
@@ -57,6 +71,34 @@ public class SecretsInit implements Runnable {
                 log.warn("interrupted ipsec initial ");
             }
         }
+    }
+
+    private boolean dbInitDone() {
+        return checkDbInitDone(Constants.DBSVC_NAME) && checkDbInitDone(Constants.GEODBSVC_NAME);
+    }
+
+    private boolean checkDbInitDone(String dbsvcName) {
+        int nodeCount = coordinator.getNodeCount();
+        int doneCount = 0;
+        String dbVersion = coordinator.getCurrentDbSchemaVersion();
+        String configIdPrefix = Constants.GEODBSVC_NAME.equalsIgnoreCase(dbsvcName) ? "db" : "geodb";
+
+        for (int i = 1; i <= nodeCount; i++) {
+            String dbConfigId = String.format("%s-%d", configIdPrefix, i);
+            String configKind = coordinator.getCoordinatorClient().getVersionedDbConfigPath(Constants.GEODBSVC_NAME, dbVersion);
+            Configuration config = coordinator.getCoordinatorClient().queryConfiguration(
+                    coordinator.getCoordinatorClient().getSiteId(), configKind, dbConfigId);
+            if (config == null) {
+                throw new IllegalStateException("Unexpected error, db versioned configuration is null");
+            }
+
+            String initDoneStr = config.getConfig(DbConfigConstants.INIT_DONE);
+            if (initDoneStr != null && initDoneStr.equals(DbConfigConstants.INIT_DONE)) {
+                doneCount ++;
+            }
+        }
+
+        return doneCount == nodeCount;
     }
 
     private boolean genDHParam() {

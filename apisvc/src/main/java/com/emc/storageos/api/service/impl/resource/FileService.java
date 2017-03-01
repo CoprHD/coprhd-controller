@@ -2874,7 +2874,11 @@ public class FileService extends TaskResourceService {
 
     /**
      * 
-     * Start continuous copies.
+     * @Deprecated use @Path("/{id}/assign-file-policy/{filePolicyUri}") instead
+     *             Assign file policy API will enable the policy and policy will run
+     *             based on the schedule.
+     * 
+     *             Start continuous copies.
      * 
      * @prereq none
      * @param id the URN of a ViPR Source file share
@@ -2890,7 +2894,21 @@ public class FileService extends TaskResourceService {
     @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.OWN, ACL.ALL })
     public TaskList startContinuousCopies(@PathParam("id") URI id, FileReplicationParam param)
             throws ControllerException {
-        throw APIException.badRequests.unableToPerformMirrorOperation(ProtectionOp.START.toString(), id, "api is deprecated!!");
+        doMirrorOperationValidation(id, ProtectionOp.START.toString());
+        String task = UUID.randomUUID().toString();
+        FileShare sourceFileShare = queryResource(id);
+        Operation op = _dbClient.createTaskOpStatus(FileShare.class, id, task, ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_START);
+        op.setDescription("start the replication link between source and target");
+
+        StorageSystem system = _dbClient.queryObject(StorageSystem.class, sourceFileShare.getStorageDevice());
+        FileController controller = getController(FileController.class, system.getSystemType());
+
+        controller.performFileReplicationOperation(system.getId(), id, ProtectionOp.START.toString().toLowerCase(), task);
+
+        TaskList taskList = new TaskList();
+        TaskResourceRep taskResp = toTask(sourceFileShare, task, op);
+        taskList.getTaskList().add(taskResp);
+        return taskList;
     }
 
     /**

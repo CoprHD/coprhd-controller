@@ -517,7 +517,6 @@ public class VPlexApiTest {
             Boolean[] viewFound = new Boolean[] { new Boolean(false) };
             _client.deleteStorageView(storageViewName, VPLEX_TEST_CLUSTER, viewFound);
             _client.deleteVirtualVolume(vvInfo.getName(), true, false);
-            _client.getExportManager().unregisterInitiators(initiatorPortInfoList);
         } catch (Exception e) {
             wasException = true;
         }
@@ -662,7 +661,6 @@ public class VPlexApiTest {
             // Cleanup
             Boolean[] viewFound = new Boolean[] { new Boolean(false) };
             _client.deleteStorageView(storageViewName, VPLEX_TEST_CLUSTER, viewFound);
-            _client.getExportManager().unregisterInitiators(initiatorPortInfoList);
         } catch (Exception e) {
             wasException = true;
         }
@@ -713,7 +711,6 @@ public class VPlexApiTest {
             // Cleanup
             Boolean[] viewFound = new Boolean[] { new Boolean(false) };
             _client.deleteStorageView(storageViewName, VPLEX_TEST_CLUSTER, viewFound);
-            _client.getExportManager().unregisterInitiators(initiatorPortInfoList);
         } catch (Exception e) {
             wasException = true;
         }

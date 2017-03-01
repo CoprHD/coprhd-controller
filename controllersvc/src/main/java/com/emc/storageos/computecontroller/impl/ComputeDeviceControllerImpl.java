@@ -883,7 +883,7 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
      * VMs may endup decommissioned.
      */
     @Override
-    public String addStepsVcenterClusterCleanup(Workflow workflow, String waitFor, URI clusterId)
+    public String addStepsVcenterClusterCleanup(Workflow workflow, String waitFor, URI clusterId, boolean deactivateCluster)
             throws InternalException {
         Cluster cluster = _dbClient.queryObject(Cluster.class, clusterId);
         if (null == cluster) {
@@ -901,7 +901,7 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
         // VBDU [DONE]: COP-28400, Cluster without any hosts is kind of negative case, and this information is not
         // verified against the environment, do we need to take liberty of removing the cluster from VCenter?
         // Before we get to this cluster removal, ClusterService has a precheck to verify the matching environments
-        if (null == clusterHosts || clusterHosts.isEmpty()) {
+        if (deactivateCluster && (null == clusterHosts || clusterHosts.isEmpty())) {
             VcenterDataCenter vcenterDataCenter = _dbClient.queryObject(VcenterDataCenter.class,
                     cluster.getVcenterDataCenter());
             log.info("Cluster has no hosts, removing empty cluster : {}, from vCenter : {}", cluster.getLabel(),
@@ -940,7 +940,7 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
         /*
          * Remove cluster from vcenter only if all hosts are provisioned.
          */
-        if (hasProvisionedHosts && !hasDiscoveredHosts) {
+        if (hasProvisionedHosts && !hasDiscoveredHosts && deactivateCluster) {
             waitFor = workflow.createStep(REMOVE_VCENTER_CLUSTER, "If synced with vCenter, remove the cluster", waitFor,
                     clusterId, clusterId.toString(), this.getClass(),
                     new Workflow.Method("removeVcenterCluster", cluster.getId(), cluster.getVcenterDataCenter()),

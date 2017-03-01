@@ -13,6 +13,7 @@
 DIAGCOLLECT_DIR="/data/diagutils-data"
 DIAGCOLLECT_MAME="diagutils-`date +%Y%0m%0d%0k%0M%0S`"
 DIAGCOLLECT_LOG="/tmp/diagutils.out"
+REDIRECT_STDOUT_TO_LOG=false
 DISK_USED_PERCENTAGE_WARNING_LIMIT=50
 DISK_USED_PERCENTAGE_TERMINATION_LIMIT=80
 MIN_CFS=(BlockConsistencyGroup BlockMirror BlockSnapshot Cluster ExportGroup ExportMask FCZoneReference Host Initiator Network NetworkSystem ProtectionSet ProtectionSystem StorageProvider StoragePool StoragePort StorageSystem Vcenter VirtualArray VirtualDataCenter VirtualPool Volume)
@@ -58,9 +59,14 @@ usage() {
 # Collect Functions
 ######################
 init() {
-    if [ -n "$CONFIG_FILE" ] && [ -f $CONFIG_FILE ]; then
-        echo_stdout_log "Using Configuration file $CONFIG_FILE for diagutils"
-        source $CONFIG_FILE
+    if [ -n "$CONFIG_FILE" ]; then
+        if [ -f $CONFIG_FILE ]; then
+            echo_stdout_log "Using configuration file '$CONFIG_FILE' for diagutils"
+            source $CONFIG_FILE
+        else
+            echo_stdout_log "Configuration file '$CONFIG_FILE' not exist"
+            exit 2
+        fi
     fi
 
     COMMAND_DIR="/opt/storageos/bin"
@@ -343,7 +349,7 @@ kill_background_thread() {
         ps -p ${BACKGROUND_PRINT_PID} | grep -v "PID" &>/dev/null
         if [ $? -eq 0 ]; then
             kill -9  ${BACKGROUND_PRINT_PID} &>/dev/null
-        else 
+        else
             break
         fi
     done
@@ -367,7 +373,11 @@ print_progress_point() {
 }
 
 echo_stdout_log() {
-    echo "$@" | tee -a ${DIAGCOLLECT_LOG}
+    if [ ${REDIRECT_STDOUT_TO_LOG} == true ]; then
+        echo "$@" | tee -a ${DIAGCOLLECT_LOG}
+    else
+        echo "$@"
+    fi
 }
 
 check_if_skip() {
@@ -421,12 +431,12 @@ precheck_node_cluster_status() {
 }
 
 precheck_disk_status() {
-    local dataUsedPercentage=$(df -km /data | awk -F ' ' '/\<data\>/ {print $5}')
+    local dataUsedPercentage=$(df -km ${DIAGCOLLECT_DIR} | grep -v "Used" | awk -F ' ' '{print $5}')
     if [[ ${dataUsedPercentage%\%} -gt $DISK_USED_PERCENTAGE_TERMINATION_LIMIT ]]; then
-        echo_stdout_log "Data disk used percentage is over than 80%(${dataUsedPercentage}), can not execute this tool."
+        echo_stdout_log "Data disk used percentage(${dataUsedPercentage}) is over than ${DISK_USED_PERCENTAGE_TERMINATION_LIMIT}%, can not execute this tool."
         exit 1
     elif [[ ${dataUsedPercentage%\%} -gt $DISK_USED_PERCENTAGE_WARNING_LIMIT ]]; then
-        echo_stdout_log "Data disk used percentage is over than 50%(${dataUsedPercentage})."
+        echo_stdout_log "Data disk used percentage(${dataUsedPercentage}) is over than ${DISK_USED_PERCENTAGE_WARNING_LIMIT}%."
         user_confirm "Are you sure you want to continue?"
     fi
 }
@@ -545,7 +555,9 @@ convert_log_name() {
 }
 
 clean_up() {
-    kill_background_thread
+    set +e
+    kill_background_thread &>>${DIAGCOLLECT_LOG}
+    set -e
 }
 
 #######################

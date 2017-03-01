@@ -131,4 +131,10 @@ public class HostProvider extends BaseHostProvider {
         return createHostOptions(context, getHosts(context, clusterId));
     }
 
+    @Asset("hostsByVblockCluster")
+    @AssetDependencies({ "vblockCluster" })
+    public List<AssetOption> getVblockHostsByCluster(AssetOptionsContext context, URI clusterId) {
+        debug("getting all hosts for a vblock cluster");
+        return createHostOptions(context, getHosts(context, clusterId));
+    }
 }

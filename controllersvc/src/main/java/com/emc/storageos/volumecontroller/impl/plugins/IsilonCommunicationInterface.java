@@ -308,6 +308,8 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
             _log.info("Processed {} file system stats for device {} ", quotas.size(), storageSystemId);
 
             // get all other pages of quota data, process and insert to database page by page
+            int fsQueriedCount=0;
+            int fsUpdatedCount=0;
             while (quotas.getToken() != null && !quotas.getToken().isEmpty()) {
                 quotas = api.listQuotas(quotas.getToken());
                 for (IsilonSmartQuota quota : quotas.getList()) {
@@ -319,6 +321,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                         stats.add(stat);
                         // Persists the file system, only if change in used capacity.
                         FileShare fileSystem = _dbClient.queryObject(FileShare.class, stat.getResourceId());
+                        fsQueriedCount++;
                         if (fileSystem != null) {
                             if (!fileSystem.getInactive()) {
                                 if (fileSystem.getUsedCapacity() != stat.getAllocatedCapacity()) {
@@ -331,19 +334,20 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                                 }
                                 if (fsChanged) {
                                     _dbClient.updateObject(fileSystem);
+                                    fsUpdatedCount++;
                                 }
                             }
                         }
                     }
                 }
                 statsCount = statsCount + quotas.size();
-                _log.info("Processed {} file system stats for device {} ", quotas.size(), storageSystemId);
+                _log.info("Processed {} file system stats for device {} ", quotas.size(), storageSystemId, fsQueriedCount, fsUpdatedCount);
             }
             zeroRecordGenerator.identifyRecordstobeZeroed(_keyMap, stats, FileShare.class);
             persistStatsInDB(stats);
             latestSampleTime = System.currentTimeMillis();
             accessProfile.setLastSampleTime(latestSampleTime);
-            _log.info("Done metering device {}, processed {} file system stats ", storageSystemId, statsCount);
+            _log.info("Done metering device {}, processed {} file system stats; {} filesystems queried; {} filesystems updated", storageSystemId, statsCount, fsQueriedCount, fsUpdatedCount);
         } catch (Exception e) {
             if (isilonCluster != null) {
                 cleanupDiscovery(isilonCluster);

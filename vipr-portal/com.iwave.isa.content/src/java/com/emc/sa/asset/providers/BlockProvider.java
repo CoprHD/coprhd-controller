@@ -2508,7 +2508,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     @Asset("continuousCopies")
     @AssetDependencies("volumeWithContinuousCopies")
     public List<AssetOption> getContinuousCopies(AssetOptionsContext ctx, URI volume) {
-        return createBaseResourceOptions(api(ctx).blockVolumes().getContinuousCopies(volume));
+        return createVolumeOptions(api(ctx), api(ctx).blockVolumes().getContinuousCopies(volume));
     }
 
     @Asset("blockJournalSize")
@@ -2619,7 +2619,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
                 return new ArrayList<AssetOption>();
             }
 
-            return createBaseResourceOptions(client.blockVolumes().getFullCopies(volumeId));
+            return createVolumeOptions(client, client.blockVolumes().getFullCopies(volumeId));
         } else {
             if (!BlockProviderUtils.isType(volumeId, BLOCK_CONSISTENCY_GROUP_TYPE)) {
                 warn("Inconsistent types, %s and %s, return empty results", volumeId, volumeOrConsistencyType);
@@ -3317,7 +3317,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         }
         else if (blockObject instanceof BlockSnapshotRestRep) {
             BlockSnapshotRestRep snapshot = (BlockSnapshotRestRep) blockObject;
-            return getMessage("block.snapshot.label", snapshot.getName(), snapshot.getWwn(), getBlockSnapshotParentVolumeName(volumeNames, snapshot));
+            return getMessage("block.snapshot.label", snapshot.getName(), getBlockSnapshotParentVolumeName(volumeNames, snapshot), snapshot.getWwn());
         }
         else if (blockObject instanceof BlockSnapshotSessionRestRep) {
             BlockSnapshotSessionRestRep snapshotSession = (BlockSnapshotSessionRestRep) blockObject;

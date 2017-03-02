@@ -313,7 +313,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
             String csgName = customConfigHandler.getComputedCustomConfigValue(cascadedSGCustomTemplateName, storage.getSystemType(),
                     cascadedSGDataSource);
 
-            // 3. PortGroup (PG)
+         // 3. PortGroup (PG)
             // check if port group name is specified
             ExportGroup exportGroup = null;
             List<ExportGroup> exportGroups = ExportMaskUtils.getExportGroups(_dbClient, mask);
@@ -332,8 +332,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
                 }
             }
             String portGroupName = null;
-            boolean reusePGName = false;
-            if (pathParams != null && pathParams.getPortGroup() != null && !pathParams.getPortGroup().isEmpty()) {
+            if (pathParams != null) {
                 URI pgURI = pathParams.getPortGroup();
                 if (!NullColumnValueGetter.isNullURI(pgURI) && 
                         isUsePortGroupEnabled(storage.getSystemType())) {
@@ -343,7 +342,6 @@ public class VmaxExportOperations implements ExportMaskOperations {
                     _dbClient.updateObject(mask);
                     _log.info("port group name: " + portGroupName);
                 }
-                reusePGName = true;
             }
             if (portGroupName == null) {
                 DataSource portGroupDataSource = ExportMaskUtils.getExportDatasource(storage, initiatorList, dataSourceFactory,
@@ -354,9 +352,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
             }
 
             // CTRL-9054 Always create unique port Groups.
-            if (!reusePGName) {
-                pgGroupName = _helper.generateGroupName(_helper.getExistingPortGroupsFromArray(storage), pgGroupName);
-            }
+            
             CIMObjectPath targetPortGroupPath = createTargetPortGroup(storage, portGroupName, targetURIList, taskCompleter);
 
             // 4. ExportMask = MaskingView (MV) = IG + SG + PG

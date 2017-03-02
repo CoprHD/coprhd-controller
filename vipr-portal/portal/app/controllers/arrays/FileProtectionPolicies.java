@@ -148,8 +148,8 @@ public class FileProtectionPolicies extends ViprResourceController {
         if (filePolicyRestRep != null) {
             AssignPolicyForm assignPolicy = new AssignPolicyForm().form(filePolicyRestRep);
             addRenderApplyPolicysAt();
-            addProjectArgs(ids);
-            addvPoolArgs(ids);
+            addProjectArgs(filePolicyRestRep);
+            addvPoolArgs(filePolicyRestRep);
             render(assignPolicy);
 
         } else {
@@ -167,8 +167,8 @@ public class FileProtectionPolicies extends ViprResourceController {
         if (filePolicyRestRep != null) {
             AssignPolicyForm assignPolicy = new AssignPolicyForm().form(filePolicyRestRep);
             addRenderApplyPolicysAt();
-            addAssignedProjectArgs(ids);
-            addAssignedVPoolArgs(ids);
+            addAssignedProjectArgs(filePolicyRestRep);
+            addAssignedVPoolArgs(filePolicyRestRep);
             render(assignPolicy);
 
         } else {
@@ -288,16 +288,11 @@ public class FileProtectionPolicies extends ViprResourceController {
         return options;
     }
 
-    private static List<StringOption> getFileVirtualPoolsOptions(URI virtualArray, String id) {
+    private static List<StringOption> getFileVirtualPoolsOptions(FilePolicyRestRep policy) {
         Collection<FileVirtualPoolRestRep> virtualPools;
-        if (virtualArray == null) {
-            virtualPools = getViprClient().fileVpools().getAll();
-        } else {
-            virtualPools = getViprClient().fileVpools().getByVirtualArray(virtualArray);
-        }
-        // Filter the vpools based on policy type!!!
+        virtualPools = getViprClient().fileVpools().getAll();
+        // Filter the protection enable vpools based on policy type
         Collection<FileVirtualPoolRestRep> vPools = Lists.newArrayList();
-        FilePolicyRestRep policy = getViprClient().fileProtectionPolicies().get(uri(id));
         for (FileVirtualPoolRestRep vpool : virtualPools) {
             if (FilePolicyType.file_snapshot.name().equalsIgnoreCase(policy.getType()) &&
                     vpool.getProtection() != null && vpool.getProtection().getScheduleSnapshots()) {
@@ -317,12 +312,11 @@ public class FileProtectionPolicies extends ViprResourceController {
      * @param id
      * @return
      */
-    private static List<StringOption> getAssignedResourceOptions(String id, FilePolicyApplyLevel type) {
+    private static List<StringOption> getAssignedResourceOptions(FilePolicyRestRep policy, FilePolicyApplyLevel applyAt) {
 
         List<StringOption> options = Lists.newArrayList();
         // Filter the vpools based on policy type!!!
-        FilePolicyRestRep policy = getViprClient().fileProtectionPolicies().get(uri(id));
-        if (type.name().equalsIgnoreCase(policy.getAppliedAt())) {
+        if (applyAt.name().equalsIgnoreCase(policy.getAppliedAt())) {
             List<NamedRelatedResourceRep> existingResource = policy.getAssignedResources();
 
             for (NamedRelatedResourceRep value : existingResource) {
@@ -338,11 +332,10 @@ public class FileProtectionPolicies extends ViprResourceController {
      * @param id
      * @return list ,currently only one
      */
-    private static List<StringOption> getVPoolForAssignedProjectOptions(String id) {
+    private static List<StringOption> getVPoolForAssignedProjectOptions(FilePolicyRestRep  policy) {
 
         List<StringOption> options = Lists.newArrayList();
         // get the vpool for which projects are assigned.
-        FilePolicyRestRep policy = getViprClient().fileProtectionPolicies().get(uri(id));
         if (FilePolicyApplyLevel.project.name().equalsIgnoreCase(policy.getAppliedAt())) {
             NamedRelatedResourceRep vpool = policy.getVpool();
             if (vpool != null) {
@@ -357,23 +350,23 @@ public class FileProtectionPolicies extends ViprResourceController {
         return createResourceOptions(projects);
     }
 
-    private static void addProjectArgs(String id) {
-        renderArgs.put("projectVpoolOptions", getFileVirtualPoolsOptions(null, id));
+    private static void addProjectArgs(FilePolicyRestRep policy) {
+        renderArgs.put("projectVpoolOptions", getFileVirtualPoolsOptions(policy));
         renderArgs.put("projectOptions", getFileProjectOptions(uri(Models.currentAdminTenant())));
     }
 
-    private static void addvPoolArgs(String id) {
-        renderArgs.put("vPoolOptions", getFileVirtualPoolsOptions(null, id));
+    private static void addvPoolArgs(FilePolicyRestRep policy) {
+        renderArgs.put("vPoolOptions", getFileVirtualPoolsOptions(policy));
         renderArgs.put("virtualArrayOptions", getVarrays());
     }
 
-    private static void addAssignedProjectArgs(String id) {
-        renderArgs.put("projectVpoolOptions", getVPoolForAssignedProjectOptions(id));
-        renderArgs.put("projectOptions", getAssignedResourceOptions(id, FilePolicyApplyLevel.project));
+    private static void addAssignedProjectArgs(FilePolicyRestRep policy) {
+        renderArgs.put("projectVpoolOptions", getVPoolForAssignedProjectOptions(policy));
+        renderArgs.put("projectOptions", getAssignedResourceOptions(policy, FilePolicyApplyLevel.project));
     }
 
-    private static void addAssignedVPoolArgs(String id) {
-        renderArgs.put("vPoolOptions", getAssignedResourceOptions(id, FilePolicyApplyLevel.vpool));
+    private static void addAssignedVPoolArgs(FilePolicyRestRep policy) {
+        renderArgs.put("vPoolOptions", getAssignedResourceOptions(policy, FilePolicyApplyLevel.vpool));
         renderArgs.put("virtualArrayOptions", getVarrays());
     }
 

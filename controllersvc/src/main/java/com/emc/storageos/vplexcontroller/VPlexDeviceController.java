@@ -1876,6 +1876,12 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
 
             initiators = VPlexUtil.filterInitiatorsForVplex(_dbClient, initiators);
 
+            if (initiators == null || initiators.isEmpty()) {
+                _log.info("ExportGroup created with no initiators connected to VPLEX supplied, no need to orchestrate VPLEX further.");
+                completer.ready(_dbClient);
+                return;
+            }
+
             // Determine whether this export will be done across both VPLEX clusters, or just one.
             // If both, we will set up some data structures to handle both exports.
             // Distributed volumes can be exported to both clusters.
@@ -5339,6 +5345,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
                     _log.info("mapping new initiator name {} to storage system key {}", vplexInitiatorName, initiatorNameMapKey);
                     initiator.mapInitiatorName(initiatorNameMapKey, vplexInitiatorName);
                     initsToUpdate.add(initiator);
+                    viprInitiatorName = vplexInitiatorName;
                 }
             }
             if (viprInitiatorName != null && !viprInitiatorName.startsWith(VPlexApiConstants.UNREGISTERED_INITIATOR_PREFIX)) {

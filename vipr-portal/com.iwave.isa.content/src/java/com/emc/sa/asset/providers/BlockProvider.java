@@ -1033,7 +1033,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         SourceTargetVolumesFilter sourceTargetVolumesFilter = new SourceTargetVolumesFilter();
         List<VolumeRestRep> volumes = client.blockVolumes().findByProject(projectId, unexportedFilter.and(sourceTargetVolumesFilter));
 
-        return createVolumeOptions(null, volumes);
+        return createVolumeOptions(client, volumes);
     }
 
     @Asset("unassignedVplexBlockVolume")
@@ -1061,7 +1061,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         // get a list of all volumes from our list that are in the target VArray, or use the target VArray for protection
         List<BlockObjectRestRep> acceptedVolumes = getVPlexVolumesInTargetVArray(client, virtualArrayId, volumes);
 
-        return createVolumeOptions(null, acceptedVolumes);
+        return createVolumeOptions(client, acceptedVolumes);
     }
 
     @Asset("unassignedBlockSnapshot")

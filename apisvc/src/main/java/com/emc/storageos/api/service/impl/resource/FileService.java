@@ -1930,11 +1930,11 @@ public class FileService extends TaskResourceService {
         quotaDirectory.setProject(new NamedURI(fs.getProject().getURI(), origQtreeName));
         quotaDirectory.setTenant(new NamedURI(fs.getTenant().getURI(), origQtreeName));
         quotaDirectory.setSoftLimit(
-                param.getSoftLimit() != 0 ? param.getSoftLimit() : fs.getSoftLimit() != null ? fs.getSoftLimit().intValue() : 0);
+                param.getSoftLimit()>0 ? param.getSoftLimit() : fs.getSoftLimit().intValue()>0? fs.getSoftLimit().intValue() : 0);
         quotaDirectory.setSoftGrace(
-                param.getSoftGrace() != 0 ? param.getSoftGrace() : fs.getSoftGracePeriod() != null ? fs.getSoftGracePeriod() : 0);
-        quotaDirectory.setNotificationLimit(param.getNotificationLimit() != 0 ? param.getNotificationLimit()
-                : fs.getNotificationLimit() != null ? fs.getNotificationLimit().intValue() : 0);
+                param.getSoftGrace()>0 ? param.getSoftGrace() : fs.getSoftGracePeriod()>0 ? fs.getSoftGracePeriod() : 0);
+        quotaDirectory.setNotificationLimit(param.getNotificationLimit()>0 ? param.getNotificationLimit()
+                : fs.getNotificationLimit().intValue()>0 ? fs.getNotificationLimit().intValue() : 0);
 
         String convertedName = origQtreeName.replaceAll("[^\\dA-Za-z_]", "");
         _log.info("FileService::QuotaDirectory Original name {} and converted name {}", origQtreeName, convertedName);

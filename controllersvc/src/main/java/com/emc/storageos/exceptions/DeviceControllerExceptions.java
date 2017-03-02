@@ -142,6 +142,9 @@ public interface DeviceControllerExceptions {
     public DeviceControllerException exportGroupDeleteFailed(final Throwable cause);
 
     @DeclareServiceCode(ServiceCode.BLOCK_CONTROLLER_ERROR)
+    public DeviceControllerException exportGroupDeleteUnsupported(final String exportGroupName);
+
+    @DeclareServiceCode(ServiceCode.BLOCK_CONTROLLER_ERROR)
     public DeviceControllerException exportGroupUpdateFailed(final Throwable cause);
 
     @DeclareServiceCode(ServiceCode.BLOCK_CONTROLLER_ERROR)

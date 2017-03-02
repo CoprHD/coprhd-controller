@@ -151,6 +151,9 @@ public interface ComputeSystemControllerExceptions {
     public ComputeSystemControllerException noInitiatorPortConnectivity(final String initiator, final String export);
 
     @DeclareServiceCode(ServiceCode.CONTROLLER_COMPUTESYSTEM_ERROR)
+    public ComputeSystemControllerException noHostInitiators(final String host);
+
+    @DeclareServiceCode(ServiceCode.CONTROLLER_COMPUTESYSTEM_ERROR)
     public ComputeSystemControllerException illegalInitiator(final String host, final String initiator, final String initiatorHost);
 
     @DeclareServiceCode(ServiceCode.CONTROLLER_COMPUTESYSTEM_ERROR)

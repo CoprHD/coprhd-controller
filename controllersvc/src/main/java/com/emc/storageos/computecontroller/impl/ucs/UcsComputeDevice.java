@@ -375,16 +375,9 @@ public class UcsComputeDevice implements ComputeDevice {
             // Test mechanism to invoke a failure. No-op on production systems.
             InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_069);
 
-            List<Initiator> initiators = null;
-
-            if (host != null) {
-                initiators = CustomQueryUtility.queryActiveResourcesByRelation(_dbClient, host.getId(), Initiator.class, "host");
-            }
-
             // VBDU [DONE]: COP-28452, Check for initiators in host as well
-            // Check for null or empty initiators
-            if (host != null && !NullColumnValueGetter.isNullURI(host.getComputeElement()) && host.getUuid() != null && initiators != null
-                    && !initiators.isEmpty()) {
+            // No need to check for initiators here, we are only unbinding the service profile template
+            if (host != null && !NullColumnValueGetter.isNullURI(host.getComputeElement()) && host.getUuid() != null) {
                 ComputeElement ce = _dbClient.queryObject(ComputeElement.class, host.getComputeElement());
                 URI sptId = URI.create(ce.getSptId());
                 UCSServiceProfileTemplate template = _dbClient.queryObject(UCSServiceProfileTemplate.class, sptId);
@@ -1322,15 +1315,9 @@ public class UcsComputeDevice implements ComputeDevice {
      * the computeElement's uuid.
      */
     private void unbindHostFromComputeElement(ComputeSystem cs, Host host) throws ClientGeneralException {
-        List<Initiator> initiators = null;
-
-        if (host != null) {
-            initiators = CustomQueryUtility.queryActiveResourcesByRelation(_dbClient, host.getId(), Initiator.class, "host");
-        }
-
         // VBDU [DONE]: COP-28452, Check initiators count, if empty do we still need to delete service profile?
         // Added check for empty initiators
-        if (host != null && !NullColumnValueGetter.isNullURI(host.getComputeElement()) && initiators != null && !initiators.isEmpty()) {
+        if (host != null && !NullColumnValueGetter.isNullURI(host.getComputeElement())) {
             ComputeElement computeElement = _dbClient.queryObject(ComputeElement.class, host.getComputeElement());
             if (computeElement == null){
                 LOGGER.error("Host "+ host.getLabel()+ " has associated computeElementURI: "+ host.getComputeElement()+ " which is an invalid reference");

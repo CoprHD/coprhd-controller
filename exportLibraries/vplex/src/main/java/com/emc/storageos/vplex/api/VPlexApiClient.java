@@ -467,7 +467,7 @@ public class VPlexApiClient {
                     throws VPlexApiException {
         s_logger.info("Request for virtual volume creation on VPlex at {}", _baseURI);
         String clusterName = null;
-        if (!isDistributed) {
+        if (!isDistributed && (null != winningClusterId)) {
             // if this is a local volume, we can restrict work to just the local cluster
             clusterName = getClusterNameForId(winningClusterId);
         }

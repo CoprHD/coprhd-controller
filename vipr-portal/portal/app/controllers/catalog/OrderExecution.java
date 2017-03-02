@@ -260,7 +260,6 @@ public class OrderExecution extends Controller {
         OrderCreateParam order = new OrderCreateParam();
         order.setTenantId(uri(Models.currentAdminTenant()));
         order.setCatalogService(service.getId());
-        order.setWorkflowDocument(service.getWorkflowDocument());
 
         List<Parameter> orderParameters = Lists.newArrayList();
         List<ServiceFieldRestRep> fields = ServiceDescriptorUtils.getAllFieldList(descriptor.getItems());

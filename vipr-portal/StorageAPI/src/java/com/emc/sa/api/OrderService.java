@@ -394,6 +394,15 @@ public class OrderService extends CatalogTaggedResourceService {
                     service.getBaseService());
         }
 
+        // Getting and setting workflow document (if its workflow service)
+        if (null != descriptor.getWorkflowId()) {
+            final String workflowDocument = catalogServiceManager.getWorkflowDocument(service.getBaseService());
+            if( null == workflowDocument ) {
+                throw APIException.badRequests.workflowNotFound(service.getBaseService());
+            }
+            createParam.setWorkflowDocument(workflowDocument);
+        }
+
         Order order = createNewObject(tenantId, createParam);
 
         addLockedFields(service.getId(), descriptor, createParam);

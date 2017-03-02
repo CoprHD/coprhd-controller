@@ -118,6 +118,7 @@
         <package name="net-tools"/>
         <package name="ndisc6"/>
         <package name="nfs-client"/>
+        <package name="nginx"/>
         <package name="openssh"/>
         <package name="openssh-fips"/>
         <package name="p7zip"/>

@@ -310,6 +310,8 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
             // get all other pages of quota data, process and insert to database page by page
             int fsQueriedCount=0;
             int fsUpdatedCount=0;
+            int usedCapacityChangedCount=0;
+            int softLimitExceededChanged=0;
             while (quotas.getToken() != null && !quotas.getToken().isEmpty()) {
                 quotas = api.listQuotas(quotas.getToken());
                 for (IsilonSmartQuota quota : quotas.getList()) {
@@ -324,13 +326,15 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                         fsQueriedCount++;
                         if (fileSystem != null) {
                             if (!fileSystem.getInactive()) {
-                                if (fileSystem.getUsedCapacity() != stat.getAllocatedCapacity()) {
+                                if (!fileSystem.getUsedCapacity().equals(stat.getAllocatedCapacity())) {
                                     fileSystem.setUsedCapacity(stat.getAllocatedCapacity());
                                     fsChanged = true;
+                                    usedCapacityChangedCount++;
                                 }
-                                if (null != fileSystem.getSoftLimit()) {
+                                if (null != fileSystem.getSoftLimit() && !fileSystem.getSoftLimitExceeded().equals(quota.getThresholds().getsoftExceeded())) {
                                     fileSystem.setSoftLimitExceeded(quota.getThresholds().getsoftExceeded());
                                     fsChanged = true;
+                                    softLimitExceededChanged++;
                                 }
                                 if (fsChanged) {
                                     _dbClient.updateObject(fileSystem);
@@ -347,7 +351,8 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
             persistStatsInDB(stats);
             latestSampleTime = System.currentTimeMillis();
             accessProfile.setLastSampleTime(latestSampleTime);
-            _log.info("Done metering device {}, processed {} file system stats; {} filesystems queried; {} filesystems updated", storageSystemId, statsCount, fsQueriedCount, fsUpdatedCount);
+            _log.info("Done metering device {}, processed {} file system stats; {} filesystems queried; {} filesystems updated ({}, {})", storageSystemId, statsCount, fsQueriedCount, fsUpdatedCount,
+                    usedCapacityChangedCount, softLimitExceededChanged);
         } catch (Exception e) {
             if (isilonCluster != null) {
                 cleanupDiscovery(isilonCluster);

@@ -37,7 +37,6 @@ public class HostRestRep extends ComputeSystemRestRep {
     private String provisioningJobStatus;
     private List<RelatedResourceRep> volumeGroups;
     private List<PreferredPoolParam> preferredPools;
-    private RelatedResourceRep serviceProfile;
     private String computeElementName;
     private String serviceProfileName;
 

@@ -187,7 +187,7 @@ public class ImplicitUnManagedObjectsMatcher {
             Map<String, String> clusterIdToNameMap = null;
             try {
                 VPlexApiClient client = VPlexControllerUtils.getVPlexAPIClient(VPlexApiFactory.getInstance(), vplex, dbClient); 
-                clusterIdToNameMap = new HashMap<String, String>(client.getClusterIdToNameMap());
+                clusterIdToNameMap = client.getClusterIdToNameMap();
             } catch (Exception ex) {
                 _log.warn("Exception caught while getting cluster name info from VPLEX {}", vplex.forDisplay());
             }

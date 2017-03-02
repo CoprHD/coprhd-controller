@@ -1612,7 +1612,8 @@ public class VPlexApiDiscoveryManager {
             s_logger.info("TIMER: refreshing VPlexInitiatorInfo cache took {}ms", System.currentTimeMillis() - start);
         }
 
-        return _vplexClusterInitiatorInfoCache.get(clusterName);
+        // return a copy
+        return new ArrayList<VPlexInitiatorInfo>(_vplexClusterInitiatorInfoCache.get(clusterName));
     }
 
     /**
@@ -2462,8 +2463,7 @@ public class VPlexApiDiscoveryManager {
         List<VPlexConsistencyGroupInfo> cgInfoList = new ArrayList<VPlexConsistencyGroupInfo>();
         Map<String, VPlexConsistencyGroupInfo> cgMap = new HashMap<String, VPlexConsistencyGroupInfo>();
 
-        List<String> vplexClusterNames = new ArrayList<String>(_vplexApiClient.getClusterIdToNameMap().values());
-        for (String clusterName : vplexClusterNames) {
+        for (String clusterName : _vplexApiClient.getClusterIdToNameMap().values()) {
             List<VPlexConsistencyGroupInfo> clusterCgs = getConsistencyGroupsOnCluster(clusterName);
             for (VPlexConsistencyGroupInfo clusterCGInfo : clusterCgs) {
                 clusterCGInfo.setClusterName(clusterName);

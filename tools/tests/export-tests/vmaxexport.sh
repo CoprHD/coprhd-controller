@@ -1012,10 +1012,6 @@ test_18() {
     verify_export ${expname}1 -x- 6 1
     runcmd export_group update ${PROJECT}/${expname}1 --remHosts ${HOST1},${HOST2},${HOST3}
     verify_export ${expname}1 -x- gone
-    runcmd export_group update ${PROJECT}/${expname}1 --addClusters ${TENANT}/${CLUSTER}
-    verify_export ${expname}1 -x- 6 1
-    runcmd export_group delete ${PROJECT}/${expname}1 
-    verify_export ${expname}1 -x- gone
 }
 
 test_19() {
@@ -2765,7 +2761,7 @@ test_9;
 test_10; 
 test_11; 
 test_12;
-test_13;
+#test_13;
 #test_14;
 #test_15a;
 #test_15b;

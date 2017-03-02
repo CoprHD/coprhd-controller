@@ -325,14 +325,18 @@ NH=nh
 NH2=nh2
 NH3=nh3
 NH4=nh4
+REMOTE_NH=remotenh
 FC_ZONE_A=fctz_a
 FC_ZONE_B=fctz_b
 IP_ZONE=iptz
+REM_IP_ZONE=remiptz
 IP_ZONE2=iptz2
 IP_ZONE3=iptz3
 
 FCTZ_A=$NH/$FC_ZONE_A
 FCTZ_B=$NH/$FC_ZONE_B
+REMOTE_FCTZ_A=$REMOTE_NH/$FC_ZONE_A
+REMOTE_FCTZ_B=$REMOTE_NH/$FC_ZONE_B
 
 #
 # Vdc Configuration
@@ -435,6 +439,7 @@ COS_VNXE=cosvnxe
 COS_UNITY=cosunity
 COS_UNITY_CIFS=cosunitycifs
 COS_ISIFILE=cosisi
+REM_COS_ISIFILE=remotecosisi
 COS_NETAPP=cosnetappf
 COS_NETAPPC=cosnetappcf
 COS_DDFILE=cosdatadomainf
@@ -475,6 +480,9 @@ HOST_ARRAYAFFINITY_URI=""
 ISI_DEV=isilon_device
 ISI_SMARTCONNECT_IP=${ISI_IP}
 ISI_NATIVEGUID=ISILON+$ISI_SN
+REM_ISI_DEV=remote_isilon_device
+REM_ISI_SMARTCONNECT_IP=${REM_ISI_IP}
+REM_ISI_NATIVEGUID=ISILON+$REM_ISI_SN
 ISI_SMBFILESHARE1=smbfileshare1$(date +%Y%m%d%H%M%S) 
 ISI_SMBFILESHARE2=smbfileshare2$(date +%Y%m%d%H%M%S)
 ISI_SMBSNAPSHARE1=smbsnapshare1$(date +%Y%m%d%H%M%S)
@@ -910,6 +918,44 @@ zone_setup()
         run transportzone add $FCTZ_B $wwn
     done
     trap '_failure $LINENO' ERR
+	
+	######
+	
+	
+    neighborhood show $REMOTE_NH  &> /dev/null && return $?
+
+    run neighborhood create $REMOTE_NH
+    if [ "$EXTRA_PARAM" = "search" ] ; then
+        neighborhood search $(echo $REMOTE_NH | head -c 2)
+        run neighborhood tag $REMOTE_NH $TAG
+        neighborhood search $SEARCH_PREFIX --tag true
+    fi
+
+
+    run transportzone create $REM_IP_ZONE $REMOTE_NH --type IP
+    if [ "$EXTRA_PARAM" = "search" ] ; then
+        transportzone search $(echo $IP_ZONE | head -c 2)
+        run transportzone tag $REMOTE_NH/$REM_IP_ZONE $TAG
+        transportzone search $SEARCH_PREFIX --tag true
+    fi
+
+    run transportzone add $REMOTE_NH/$REM_IP_ZONE $FSEXP1
+    run transportzone add $REMOTE_NH/$REM_IP_ZONE $FSEXP2
+    run transportzone add $REMOTE_NH/$REM_IP_ZONE $FSEXP3
+
+
+    for i in A1 A2 A3 A4 A5 A6 A7 A8 C1 C2 C3 C4 C5 C6 C7 C8
+    do
+        wwn=`pwwn $i`
+	run transportzone add $FCTZ_A $wwn
+    done
+
+    for i in B1 B2 B3 B4 B5 B6 B7 B8 D1 D2 D3 D4 D5 D6 D7 D8
+    do
+        wwn=`pwwn $i`
+        run transportzone add $FCTZ_B $wwn
+    done
+    trap '_failure $LINENO' ERR
 }
 
 brocade_setup_once() 
@@ -1073,6 +1119,20 @@ isilon_cos_setup()
     if [ "$EXTRA_PARAM" = "search" ] ; then
         cos search $(echo $COS_ISIFILE | head -c 2) --resource_type file_vpool
         cos tag "$COS_ISIFILE" "file" $TAG
+        cos search $SEARCH_PREFIX --tag true --resource_type file_vpool
+    fi
+	
+	echo "setting up remote isilon COS"
+    run cos create file $REM_COS_ISIFILE 				\
+	--description 'Virtual-Pool-for-Isilon' true 	\
+                            --protocols NFS CIFS --max_snapshots 10 \
+                            --provisionType 'Thin' \
+			    --neighborhoods $REMOTE_NH --schedule_snapshots true --replication_supported true --allow_policy_at_project_level true --allow_policy_at_fs_level true
+    ROOT_TENANT=`tenant root|tail -1`
+    run cos allow $REM_COS_ISIFILE file $ROOT_TENANT
+    if [ "$EXTRA_PARAM" = "search" ] ; then
+        cos search $(echo $REM_COS_ISIFILE | head -c 2) --resource_type file_vpool
+        cos tag "$REM_COS_ISIFILE" "file" $TAG
         cos search $SEARCH_PREFIX --tag true --resource_type file_vpool
     fi
 }
@@ -4779,10 +4839,9 @@ recoverpoint_export_host_setup()
 # filepolicy tests configuration
 #
 SNAPSHOT_TYPE="file_snapshot"
-REPLICATION_TYPE="file_snapshot"
+REPLICATION_TYPE="file_replication"
 APPLY_AT_VPOOL="vpool"
 APPLY_AT_PROJECT="project"
-DESCRIPTION="test policy"
 PRIORITY=4
 NUM_WORKER_THREAD=4
 REPLICATION_CONFIGURATION='false'
@@ -4803,83 +4862,60 @@ filepolicy_tests()
 {
     echo "File policy tests started"
     cos=$1; shift
-    datetime=`date +%m%d%y%H%M%S`
-    fpname=$cos$SNAPSHOT_TYPE$APPLY_AT_VPOOL$datetime
+    fpname=$SNAPSHOT_TYPE$APPLY_AT_VPOOL
     echo $fpname
     
     echo "Creating snapshot file policy $fpname"
-    run filepolicy create_snapshot_pol $fpname $SNAPSHOT_TYPE $APPLY_AT_VPOOL --description $DESCRIPTION --snapshotexpiretype $SNAPSHOT_EXPIRE_TYPE --snapshotexpirevalue $SNAPSHOT_EXPIRE_VALUE --policyschedulefrequency $POLICY_SCHEDULE_FREQUENCY --policyschedulerepeat $POLICY_SCHEDULE_REPEAT --policyscheduletime $POLICY_SCHEDULE_TIME
+    run filepolicy create_pol $fpname $SNAPSHOT_TYPE $APPLY_AT_VPOOL --snapshotexpiretype $SNAPSHOT_EXPIRE_TYPE --snapshotexpirevalue $SNAPSHOT_EXPIRE_VALUE --policyschedulefrequency $POLICY_SCHEDULE_FREQUENCY --policyschedulerepeat $POLICY_SCHEDULE_REPEAT --policyscheduletime $POLICY_SCHEDULE_TIME
 	
 	run filepolicy show $fpname
 	
-	echo "Assigning filepolicy $fpname to vpool $tgt_vpools"
-	tgt_vpools=("${cos}")
-	run filepolicy vpool_assign $fpname --apply_on_target_site $APPLY_ON_TARGET_SITE $tgt_vpools
+	echo "Assigning filepolicy $fpname to vpool $cos"
+	run filepolicy vpool_assign $fpname --apply_on_target_site $APPLY_ON_TARGET_SITE --assign_to_vpools $cos
 	run filepolicy show $fpname
 	
-	echo "Unassigning filepolicy $fpname from vpool $tgt_vpools"
-    run filepolicy vpool_unassign $fpname $tgt_vpools
+	echo "Unassigning filepolicy $fpname from vpool $cos"
+    run filepolicy vpool_unassign $fpname $cos
 	
 	echo "Deleting the file policy $fpname"
 	run filepolicy delete $fpname
 
-	fpname=$cos$SNAPSHOT_TYPE$APPLY_AT_PROJECT$datetime
+	fpname=$SNAPSHOT_TYPE$APPLY_AT_PROJECT
     echo $fpname
     
     echo "Creating snapshot file policy $fpname"
-	run filepolicy create_snapshot_pol $fpname $SNAPSHOT_TYPE $APPLY_AT_PROJECT --description $DESCRIPTION --snapshotexpiretype $SNAPSHOT_EXPIRE_TYPE --snapshotexpirevalue $SNAPSHOT_EXPIRE_VALUE --policyschedulefrequency $POLICY_SCHEDULE_FREQUENCY --policyschedulerepeat $POLICY_SCHEDULE_REPEAT --policyscheduletime $POLICY_SCHEDULE_TIME
+	run filepolicy create_pol $fpname $SNAPSHOT_TYPE $APPLY_AT_PROJECT --snapshotexpiretype $SNAPSHOT_EXPIRE_TYPE --snapshotexpirevalue $SNAPSHOT_EXPIRE_VALUE --policyschedulefrequency $POLICY_SCHEDULE_FREQUENCY --policyschedulerepeat $POLICY_SCHEDULE_REPEAT --policyscheduletime $POLICY_SCHEDULE_TIME
 	
 	run filepolicy show $fpname
 	
-	echo "Assigning filepolicy $fpname to project $tgt_projects"
-	tgt_projects=("${PROJECT}")
-	run filepolicy project_assign $fpname --apply_on_target_site $APPLY_ON_TARGET_SITE $cos $tgt_projects
+	echo "Assigning filepolicy $fpname to project $PROJECT"
+	run filepolicy project_assign $fpname --apply_on_target_site $APPLY_ON_TARGET_SITE --project_assign_vpool $cos --assign_to_projects $PROJECT
 	run filepolicy show $fpname
 	
-	echo "Unassigning filepolicy $fpname from project $tgt_projects"
-    run filepolicy project_unassign $fpname $tgt_projects
+	echo "Unassigning filepolicy $fpname from project $PROJECT"
+    run filepolicy project_unassign $fpname $PROJECT
     
     echo "Deleting the file policy $fpname"
 	run filepolicy delete $fpname
 	
-	datetime=`date +%m%d%y%H%M%S`
-    fpname=$cos$REPLICATION_TYPE$APPLY_AT_VPOOL$datetime
-    echo $fpname
-    
-    echo "Creating replication file policy $fpname"
-	run filepolicy create_replication_pol $fpname $REPLICATION_TYPE $APPLY_AT_VPOOL --description $DESCRIPTION --replicationtype $LOCAL_REPLICATION_TYPE --replicationcopymode $REPLICATION_COPY_MODE --replicationconfiguration $REPLICATION_CONFIGURATION --policyschedulefrequency $POLICY_SCHEDULE_FREQUENCY --policyschedulerepeat $POLICY_SCHEDULE_REPEAT --policyscheduletime $POLICY_SCHEDULE_TIME
-	
-	run filepolicy show $fpname
-	
-	echo "Assigning filepolicy $fpname to vpool $tgt_vpools"
-	tgt_varrays=("${NH}")
-	tgt_vpools=("${cos}")
-	run filepolicy vpool_assign $fpname --apply_on_target_site $APPLY_ON_TARGET_SITE $tgt_vpools --source_varray $NH --target_varrays $tgt_varrays
-	run filepolicy show $fpname
-	
-	echo "Unassigning filepolicy $fpname from vpool $tgt_vpools"
-    run filepolicy vpool_unassign $fpname $tgt_vpools
-    
-    echo "Deleting the file policy $fpname"
-	run filepolicy delete $fpname
 
-	fpname=$cos$REPLICATION_TYPE$APPLY_AT_PROJECT$datetime
+
+	fpname=$REPLICATION_TYPE$APPLY_AT_PROJECT
     echo $fpname
     
     echo "Creating replication file policy $fpname"
 	
-	run filepolicy create_replication_pol $fpname $REPLICATION_TYPE $APPLY_AT_PROJECT --description $DESCRIPTION --replicationtype $LOCAL_REPLICATION_TYPE --replicationcopymode $REPLICATION_COPY_MODE --replicationconfiguration $REPLICATION_CONFIGURATION --policyschedulefrequency $POLICY_SCHEDULE_FREQUENCY --policyschedulerepeat $POLICY_SCHEDULE_REPEAT --policyscheduletime $POLICY_SCHEDULE_TIME
+	run filepolicy create_pol $fpname $REPLICATION_TYPE $APPLY_AT_PROJECT --replicationtype $REMOTE_REPLICATION_TYPE --replicationcopymode $REPLICATION_COPY_MODE --replicationconfiguration $REPLICATION_CONFIGURATION --policyschedulefrequency $POLICY_SCHEDULE_FREQUENCY --policyschedulerepeat $POLICY_SCHEDULE_REPEAT --policyscheduletime $POLICY_SCHEDULE_TIME
 	
+	sleep 15
 	run filepolicy show $fpname
 	
-	echo "Assigning filepolicy $fpname to project $tgt_projects"
-	tgt_varrays=("${NH}")
-	tgt_projects=("${PROJECT}")
-	run filepolicy project_assign $fpname --apply_on_target_site $APPLY_ON_TARGET_SITE $cos $tgt_projects --source_varray $NH --target_varrays $tgt_varrays
-	run filepolicy show $fpname
+	echo "Assigning filepolicy $fpname to project $PROJECT"
+	run filepolicy project_assign $fpname --apply_on_target_site $APPLY_ON_TARGET_SITE --project_assign_vpool $cos --assign_to_projects $PROJECT --source_varray $NH --target_varrays $REMOTE_NH
+	#run filepolicy show $fpname
     
-    echo "Unassigning filepolicy $fpname from project $tgt_projects"
-    run filepolicy project_unassign $fpname $tgt_projects
+    echo "Unassigning filepolicy $fpname from project $PROJECT"
+    run filepolicy project_unassign $fpname $PROJECT
     
     echo "Deleting the file policy $fpname"
 	run filepolicy delete $fpname
@@ -6704,6 +6740,16 @@ isilon_setup_once()
     storageport   update $ISI_NATIVEGUID IP --tzone $NH/$IP_ZONE
 
     run cos update file $COS_ISIFILE --storage $ISI_NATIVEGUID
+	
+	discoveredsystem show $REM_ISI_NATIVEGUID &> /dev/null && return $?
+
+    discoveredsystem create $REM_ISI_DEV isilon $REM_ISI_IP 8080 $ISI_USER $ISI_PASSWD --serialno=$REM_ISI_SN
+    
+
+    storagepool   update $REM_ISI_NATIVEGUID --type file
+    storageport   update $REM_ISI_NATIVEGUID IP --tzone $REMOTE_NH/$REM_IP_ZONE
+
+    run cos update file $REM_COS_ISIFILE --storage $REM_ISI_NATIVEGUID
     #isilon_cos_setup
 }
 
@@ -7616,6 +7662,7 @@ common_setup()
           secho "Run zone setup"
           zone_setup
           run transportzone add $NH/$IP_ZONE $BLK_CLIENT_iSCSI
+		  run transportzone add $REMOTE_NH/$REM_IP_ZONE $BLK_CLIENT_iSCSI
         fi
     fi
 
@@ -7629,8 +7676,10 @@ common_setup()
             if [ "${RP_INGESTTESTS}" = "0" ]; then
                 secho "Setup ACLs on neighborhood for $TENANT"
                 run neighborhood allow $NH $TENANT
+				run neighborhood allow $REMOTE_NH $TENANT
                 run neighborhood allow $NH2 $TENANT
                 run neighborhood allow $NH $ROOT_TENANT
+				run neighborhood allow $REMOTE_NH $ROOT_TENANT
                 run neighborhood allow $NH2 $ROOT_TENANT
                 secho "Setup hosts and clusters for $TENANT"
                 host_setup
@@ -8439,7 +8488,8 @@ quick_file_tests()
 #
 isilon_tests()
 {
-    file_tests $COS_ISIFILE default ro rw root						  
+	filepolicy_tests $REM_COS_ISIFILE
+    file_tests $COS_ISIFILE default ro rw root
 
     if [ "$AUTH" != 'local' && "$AUTH" != 'ipv6' ] ; then
         bulkapi tenants $LOCAL_LDAP_SUPERUSER_USERNAME $LOCAL_LDAP_SUPERUSER_PASSWORD $LOCAL_LDAP_USER_PASSWORD_1
@@ -8457,8 +8507,6 @@ isilon_tests()
         bulkapi filecos $LOCAL_LDAP_SUPERUSER_USERNAME $LOCAL_LDAP_SUPERUSER_PASSWORD $LOCAL_LDAP_USER_PASSWORD_1
         bulkapi fileshares $LOCAL_LDAP_SUPERUSER_USERNAME $LOCAL_LDAP_SUPERUSER_PASSWORD $LOCAL_LDAP_USER_PASSWORD_1 $NH $COS_ISIFILE $FS_SIZE
     fi
-	
-	filepolicy_tests $COS_ISIFILE
 }
 
 ecs_tests()

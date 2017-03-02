@@ -1654,11 +1654,11 @@ class Bourne:
                 cos_protection_snapshot_params = dict()
                 cos_protection_snapshot_params['max_native_snapshots'] = max_snapshots
                 cos_protection_params['snapshots'] = cos_protection_snapshot_params
-				
-	    cos_protection_params['schedule_snapshots'] = schedule_snapshots
+	    
+            cos_protection_params['schedule_snapshots'] = schedule_snapshots
             cos_protection_params['replication_supported'] = replication_supported
             cos_protection_params['allow_policy_at_project_level'] = allow_policy_at_project_level
-            cos_protection_params['allow_policy_at_fs_level'] = allow_policy_at_fs_level													 
+            cos_protection_params['allow_policy_at_fs_level'] = allow_policy_at_fs_level
 
             parms['protection'] = cos_protection_params
 
@@ -9614,6 +9614,7 @@ class Bourne:
         for filepolicy in filepolicies:
             try:
                 if (filepolicy['name'] == name):
+		    print 'sanjusha:found filepolicy'
                     return filepolicy['id']
             except KeyError:
                 print 'no name key'
@@ -9621,128 +9622,149 @@ class Bourne:
     
     # deletes the filepolicy
     def filepolicy_delete(self, uri):
-        o = self.api('DELETE', URI_FILE_POLICY_DELETE.format(uri))
-        self.assert_is_dict(o)
-        s = self.api_sync_2(o['resource']['id'], o['op_id'], self.filepolicy_show_task)
+        return self.api('DELETE', URI_FILE_POLICY_DELETE.format(uri))
     
     # creates the snapshot filepolicy
-    def filepolicy_create_snapshot_pol(self, name, policy_type, apply_at, description, policyscheduleweek, policyschedulemonth, snapshotnamepattern, snapshotexpiretype, snapshotexpirevalue, policyschedulefrequency, policyschedulerepeat, policyscheduletime):
-        parms = {
-            'name'              : name,
-            'policy_type'       : policy_type,
-            'apply_at'          : apply_at,
-            'description'       : description,
-            }
-        parms['snapshot_params'] = {'snapshot_name_pattern': snapshotnamepattern, 'snapshot_expire_params': {'expire_type' : snapshotexpiretype, 'expire_value' : snapshotexpirevalue}, 'policy_schedule': {'schedule_frequency' : policyschedulefrequency, 'schedule_repeat': policyschedulerepeat,'schedule_time' : policyscheduletime, 'schedule_day_of_week': policyscheduleweek, 'schedule_day_of_month' : policyschedulemonth}}
-        o = self.api('POST', URI_FILE_POLICIES, parms)
-        self.assert_is_dict(o)
-        s = self.api_sync_2(o['resource']['id'], o['op_id'], self.filepolicy_show_task)
+    def filepolicy_create_pol(self, name, policy_type, apply_at, description, policyscheduleweek, policyschedulemonth, snapshotnamepattern, snapshotexpiretype, snapshotexpirevalue, policyschedulefrequency, policyschedulerepeat, policyscheduletime, replicationconfiguration, replicationtype, replicationcopymode, priority, num_worker_threads, is_access_to_tenants):
+	create_request = {}
+        policy_schedule = {}
+        snapshot_params = {}
+        replication_params = {}
+        snapshot_expire_params = {}
+
+        create_request['policy_type'] = policy_type
+        create_request['policy_name'] = name
+        create_request['policy_description'] = description
+        create_request['apply_at'] = apply_at
+
+        policy_schedule['schedule_frequency'] = policyschedulefrequency
+        policy_schedule['schedule_repeat'] = policyschedulerepeat
+        policy_schedule['schedule_time'] = policyscheduletime
+        policy_schedule['schedule_day_of_week'] = policyscheduleweek
+        policy_schedule['schedule_day_of_month'] = policyschedulemonth
+	if(policy_type =='file_snapshot'):
+		snapshot_expire_params['expire_type'] = snapshotexpiretype
+		snapshot_expire_params['expire_value'] = snapshotexpirevalue
+		snapshot_params['snapshot_name_pattern'] = snapshotnamepattern
+		snapshot_params['snapshot_expire_params'] = snapshot_expire_params
+		snapshot_params['policy_schedule'] = policy_schedule
+		create_request['snapshot_params'] = snapshot_params
+	elif(policy_type =='file_replication'):
+		create_request['is_access_to_tenants'] = is_access_to_tenants
+		replication_params['replication_type'] = replicationtype
+		replication_params['replication_copy_mode'] = replicationcopymode
+		replication_params['replicate_configuration'] = replicationconfiguration
+		replication_params['policy_schedule'] = policy_schedule
+		create_request['priority'] = priority
+		create_request['num_worker_threads'] = num_worker_threads
+		create_request['replication_params'] = replication_params
+        return self.api('POST', URI_FILE_POLICIES, create_request)
     
     # creates the replication filepolicy
-    def filepolicy_create_replication_pol(self, name, policy_type, apply_at, description, policyscheduleweek, policyschedulemonth, replicationtype, replicationcopymode, replicationconfiguration, policyschedulefrequency, policyschedulerepeat, policyscheduletime):
-        parms = {
-            'name'              : name,
-            'policy_type'       : policy_type,
-            'apply_at'          : apply_at,
-            'description'       : description,
-            'priority'          : priority,
-            'num_worker_threads': num_worker_threads
-            }
-        parms['replication_params'] = {'replication_type': replicationtype, 'replication_copy_mode': replicationcopymode, 'replicate_configuration' : replicationconfiguration, 'policy_schedule': {'schedule_frequency' : policyschedulefrequency, 'schedule_repeat': policyschedulerepeat,'schedule_time' : policyscheduletime, 'schedule_day_of_week': policyscheduleweek, 'schedule_day_of_month' : policyschedulemonth}}
-        o = self.api('POST', URI_FILE_POLICIES, parms)
-        self.assert_is_dict(o)
-        s = self.api_sync_2(o['resource']['id'], o['op_id'], self.filepolicy_show_task)
+    # def filepolicy_create_replication_pol(self, name, policy_type, apply_at, description, policyscheduleweek, policyschedulemonth, replicationtype, replicationcopymode, replicationconfiguration, policyschedulefrequency, policyschedulerepeat, policyscheduletime, priority, num_worker_threads, is_access_to_tenants):
+	# print 'in bourne'
+        # create_request = {}
+        # policy_schedule = {}
+        # replication_params = {}
+
+        # create_request['policy_type'] = policy_type
+        # create_request['policy_name'] = name
+        # create_request['policy_description'] = description
+        # create_request['apply_at'] = apply_at
+	# create_request['is_access_to_tenants'] = is_access_to_tenants
+
+        # policy_schedule['schedule_frequency'] = policyschedulefrequency
+        # policy_schedule['schedule_repeat'] = policyschedulerepeat
+        # policy_schedule['schedule_time'] = policyscheduletime
+        # policy_schedule['schedule_day_of_week'] = policyscheduleweek
+        # policy_schedule['schedule_day_of_month'] = policyschedulemonth
+	# replication_params['replication_type'] = replicationtype
+        # replication_params['replication_copy_mode'] = replicationcopymode
+        # replication_params['replicate_configuration'] = replicationconfiguration
+        # replication_params['policy_schedule'] = policy_schedule
+        # create_request['priority'] = priority
+        # create_request['num_worker_threads'] = num_worker_threads
+        # create_request['replication_params'] = replication_params
+	# print 'Sanjusha!!!!'
+	# print create_request
+        # o=self.api('POST', URI_FILE_POLICIES, create_request)
+	# print 'Sanjusha after request'
+	# print o
+	# return o
     
     # assigns thefilepolicy to vPool
     def filepolicy_vpool_assign(self, name, apply_on_target_site, assign_to_vpools, source_varray, target_varrays) :
-        parms = {
-            'name'              : name,
-            'apply_on_target_site'       : apply_on_target_site,
-            }
-        assign_request_vpools = []
-        if( assign_to_vpools is not None and (len(assign_to_vpools)>0)):
-                    vpool_names = assign_to_vpools.split(',')
-                    for name in vpool_names:
-                         uri =  self.cos_query("file", name).strip()
-                         assign_request_vpools.append(uri)
-       
-        parms['vpool_assign_param'] = {'assign_to_vpools' : assign_request_vpools}
-        src_varray_uri = self.neighborhood_query(source_varray).strip()
-        assign_target_varrays = []
-        if( target_varrays is not None and (len(target_varrays)>0)):
-            trg_varrays= target_varrays.split(',')
-            for varray in trg_varrays:
-                uri = self.neighborhood_query(varray).strip()
-                assign_target_varrays.append(uri)
-        parms['file_replication_topologies'] = {'source_varray': src_varray_uri , target_varrays:assign_target_varrays}
-        filepolicy = self.filepolicy_query(name)
-        o = self.api('POST', URI_FILE_POLICY_ASSIGN.format(filepolicy['id']), parms)
-        self.assert_is_dict(o)
-        s = self.api_sync_2(o['resource']['id'], o['op_id'], self.filepolicy_show_task)
+	assign_request = {}
+        assign_request['apply_on_target_site'] = apply_on_target_site
+	vpool_assign_param = {}
+	assign_request_vpools = []
+	if( assign_to_vpools is not None):
+            uri =  self.cos_query("file", assign_to_vpools).strip()
+            assign_request_vpools.append(uri)
+	    vpool_assign_param['assign_to_vpools'] = assign_request_vpools
+	assign_request['vpool_assign_param'] = vpool_assign_param
+	if (source_varray is not None and target_varrays is not None):
+	    file_replication_topologies = []
+	    file_replication_topology = {}
+	    assign_target_varrays = []
+	    src_varray_uri = self.neighborhood_query(source_varray).strip()
+	    file_replication_topology['source_varray']= src_varray_uri
+	    uri = self.neighborhood_query(target_varrays).strip()
+            assign_target_varrays.append(uri)
+	    file_replication_topology['target_varrays']= assign_target_varrays
+	    file_replication_topologies.append(file_replication_topology)
+	    assign_request['file_replication_topologies']= file_replication_topologies
+	filepolicy = self.filepolicy_query(name)
+        print filepolicy
+	print "wow"
+        return self.api('POST', URI_FILE_POLICY_ASSIGN.format(filepolicy), assign_request)
     
     # assigns the filepolicy to project
     def filepolicy_project_assign(self, name, apply_on_target_site, project_assign_vpool, assign_to_projects, source_varray, target_varrays):
-        parms = {
-            'name'              : name,
-            'apply_on_target_site'       : apply_on_target_site,
-            }
-        vpooluri =  self.cos_query("file", project_assign_vpool).strip()
-        assign_request_projects = []
-        if( assign_to_projects is not None and (len(assign_to_projects)>0) ):
-            project_names = assign_to_projects.split(',')
-            for name in project_names:
-                uri =  self.project_query(name).strip()
-                assign_request_projects.append(uri)
-        parms['project_assign_param'] = {'vpool' : vpooluri,'assign_to_projects' : assign_request_projects}
-        src_varray_uri = self.neighborhood_query(source_varray).strip()
-        assign_target_varrays = []
-        if( target_varrays is not None and (len(target_varrays)>0)):
-            trg_varrays= target_varrays.split(',')
-            for varray in trg_varrays:
-                uri = self.neighborhood_query(varray)
-                assign_target_varrays.append(uri)
-        parms['file_replication_topologies'] = {'source_varray': src_varray_uri , 'target_varrays' :assign_target_varrays}
+	assign_request = {}
+        assign_request['apply_on_target_site'] = apply_on_target_site
+	project_assign_param = {}
+	assign_request_projects = []
+	assign_request_project_vpools = []
+	if( project_assign_vpool is not None and assign_to_projects is not None):
+	    uri =  self.project_query(assign_to_projects).strip()
+            assign_request_projects.append(uri)
+	    vpooluri =  self.cos_query("file", project_assign_vpool).strip()
+	    project_assign_param['vpool'] = uri
+            project_assign_param['assign_to_projects'] = assign_request_projects
+	    assign_request['project_assign_param'] = project_assign_param
+	if (source_varray is not None and target_varrays is not None):
+    	    file_replication_topologies = []
+	    file_replication_topology = {}
+	    assign_target_varrays = []
+	    src_varray_uri = self.neighborhood_query(source_varray).strip()
+	    file_replication_topology['source_varray']= src_varray_uri
+	    uri = self.neighborhood_query(target_varrays).strip()
+            assign_target_varrays.append(uri)
+	    file_replication_topology['target_varrays']= assign_target_varrays
+	    file_replication_topologies.append(file_replication_topology)
+	    assign_request['file_replication_topologies']= file_replication_topologies
         filepolicy = self.filepolicy_query(name)
-        o = self.api('POST', URI_FILE_POLICY_ASSIGN.format(filepolicy['id']), parms)
-        self.assert_is_dict(o)
-        s = self.api_sync_2(o['resource']['id'], o['op_id'], self.filepolicy_show_task)
+        return self.api('POST', URI_FILE_POLICY_ASSIGN.format(filepolicy), assign_request)
     
      # unassigns the filepolicy from vpool
     def filepolicy_vpool_unassign(self, name, unassign_from_vpools):
-        parms = {
-            'name'              : name,
-            }
+	parms={}
         unassign_request_vpools = []
-        if( unassign_from_vpools is not None and (len(unassign_from_vpools)>0)):
-                    vpool_names = unassign_from_vpools.split(',')
-                    for name in vpool_names:
-                         uri =  self.cos_query("file", name).strip()
-                         unassign_request_vpools.append(uri)
+        if( unassign_from_vpools is not None):
+	    uri =  self.cos_query("file", unassign_from_vpools).strip()
+            unassign_request_vpools.append(uri)
         parms['unassign_from'] = unassign_request_vpools
         filepolicy = self.filepolicy_query(name)
-        o = self.api('POST', URI_FILE_POLICY_UNASSIGN.format(filepolicy['id']), parms)
-        self.assert_is_dict(o)
-        s = self.api_sync_2(o['resource']['id'], o['op_id'], self.filepolicy_show_task)
+        return self.api('POST', URI_FILE_POLICY_UNASSIGN.format(filepolicy), parms)
     
     # unassigns the filepolicy from project
-    def filepolicy_vpool_unassign(self, name, unassign_from_projects):
-        parms = {
-            'name'              : name,
-            }
+    def filepolicy_project_unassign(self, name, unassign_from_projects):
+	parms={}
         unassign_request_projects = []
-        if( unassign_from_projects is not None and (len(unassign_from_projects)>0)):
-                    project_names = unassign_from_projects.split(',')
-                    for name in project_names:
-                         uri =  self.cos_query("file", name).strip()
-                         unassign_request_projects.append(uri)
+        if( unassign_from_projects is not None):
+	    uri =  self.project_query(unassign_from_projects).strip()        
+            unassign_request_projects.append(uri)
         parms['unassign_from'] = unassign_request_projects
         filepolicy = self.filepolicy_query(name)
-        o = self.api('POST', URI_FILE_POLICY_UNASSIGN.format(filepolicy['id']), parms)
-        self.assert_is_dict(o)
-        s = self.api_sync_2(o['resource']['id'], o['op_id'], self.filepolicy_show_task)
-        self.assert_is_dict(o)
-        s = self.api_sync_2(o['resource']['id'], o['op_id'], self.filepolicy_show_task)
-    
-    def filepolicy_show_task(self, fp, task):
-        uri_filepolicy_task = URI_FILE_POLICY_SHOW + '/tasks/{1}'
-        return self.api('GET', uri_filepolicy_task.format(fp, task))
+        return self.api('POST', URI_FILE_POLICY_UNASSIGN.format(filepolicy), parms)

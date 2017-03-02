@@ -780,8 +780,8 @@ public class FileStorageScheduler implements Scheduler {
                             virtualNAS.getNasName());
                     iterator.remove();
                     invalidNasServers.add(virtualNAS);
-                } else if (!virtualNAS.getProtocols().containsAll(
-                        vpool.getProtocols())) {
+                } else if (null != virtualNAS.getProtocols() && null != vpool.getProtocols() && 
+                  !virtualNAS.getProtocols().containsAll(vpool.getProtocols())) {
                     _log.info("Removing vNAS {} as it does not support vpool protocols: {}",
                             virtualNAS.getNasName(), vpool.getProtocols());
                     iterator.remove();

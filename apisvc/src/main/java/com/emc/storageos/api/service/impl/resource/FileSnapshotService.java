@@ -218,12 +218,12 @@ public class FileSnapshotService extends TaskResourceService {
                         _log.info(String.format(
                                 "Existing Export params for Snapshot id: %1$s,  SecurityType: %2$s, " +
                                         "Permissions: %3$s, Root user mapping: %4$s, ",
-                                id, fileExport.getSecurityType(), fileExport.getPermissions(), fileExport.getRootUserMapping()));
+                                        id, fileExport.getSecurityType(), fileExport.getPermissions(), fileExport.getRootUserMapping()));
 
                         _log.info(String.format(
                                 "Recieved Export params for Snapshot id: %1$s,  SecurityType: %2$s, " +
                                         "Permissions: %3$s, Root user mapping: %4$s, ",
-                                id, param.getSecurityType(), param.getPermissions(), param.getRootUserMapping()));
+                                        id, param.getSecurityType(), param.getPermissions(), param.getRootUserMapping()));
                         if (!fileExport.getPermissions().equals(param.getPermissions())) {
                             throw APIException.badRequests.updatingSnapshotExportNotAllowed("permissions");
                         }
@@ -233,6 +233,12 @@ public class FileSnapshotService extends TaskResourceService {
                         if (!fileExport.getRootUserMapping().equals(param.getRootUserMapping())) {
                             throw APIException.badRequests.updatingSnapshotExportNotAllowed("root_user");
                         }
+                    }
+
+                    String rootUserMapping = param.getRootUserMapping();
+                    String currentlyLoggedInUsername = getUserFromContext().getName();
+                    if (!"nobody".equals(rootUserMapping) && !currentlyLoggedInUsername.equals(rootUserMapping)) {
+                        throw APIException.forbidden.insufficientPermissionsForUser(currentlyLoggedInUsername);
                     }
                 }
             }
@@ -723,9 +729,9 @@ public class FileSnapshotService extends TaskResourceService {
         _log.info(String.format(
                 "Create snapshot share --- Snap id: %1$s, Share name: %2$s, StoragePort: %3$s, PermissionType: %4$s, " +
                         "Permissions: %5$s, Description: %6$s, maxUsers: %7$s",
-                id, smbShare.getName(), sport.getPortName(), smbShare.getPermissionType(), smbShare.getPermission(),
-                smbShare.getDescription(),
-                smbShare.getMaxUsers()));
+                        id, smbShare.getName(), sport.getPortName(), smbShare.getPermissionType(), smbShare.getPermission(),
+                        smbShare.getDescription(),
+                        smbShare.getMaxUsers()));
 
         _log.info("SMB share path: {}", smbShare.getPath());
 
@@ -783,7 +789,7 @@ public class FileSnapshotService extends TaskResourceService {
         FileSMBShare fileSMBShare = new FileSMBShare(shareName, smbShare.getDescription(),
                 smbShare.getPermissionType(), smbShare.getPermission(), Integer.toString(smbShare
                         .getMaxUsers()),
-                smbShare.getNativeId(), smbShare.getPath());
+                        smbShare.getNativeId(), smbShare.getPath());
         FileServiceApi fileServiceApi = FileService.getFileShareServiceImpl(fs, _dbClient);
         fileServiceApi.deleteShare(device.getId(), snap.getId(), fileSMBShare, task);
         auditOp(OperationTypeEnum.DELETE_FILE_SNAPSHOT_SHARE, true, AuditLogManager.AUDITOP_BEGIN,
@@ -1044,7 +1050,7 @@ public class FileSnapshotService extends TaskResourceService {
                             false, FileControllerConstants.DeleteTypeEnum.FULL.toString(), task);
                     auditOp(OperationTypeEnum.DELETE_FILE_SNAPSHOT, true,
                             AuditLogManager.AUDITOP_BEGIN, snap.getId()
-                                    .toString(),
+                            .toString(),
                             device.getId().toString());
                 }
             }
@@ -1172,7 +1178,7 @@ public class FileSnapshotService extends TaskResourceService {
             _dbClient.queryByConstraint(
                     ContainmentPrefixConstraint.Factory.getSnapshotUnderProjectConstraint(
                             projectId, name),
-                    resRepList);
+                            resRepList);
         }
         return resRepList;
     }
@@ -1241,7 +1247,7 @@ public class FileSnapshotService extends TaskResourceService {
         try {
 
             // Validate the input
-            ExportVerificationUtility exportVerificationUtility = new ExportVerificationUtility(_dbClient);
+            ExportVerificationUtility exportVerificationUtility = new ExportVerificationUtility(_dbClient, getUserFromContext());
             exportVerificationUtility.verifyExports(fs, snap, param);
 
             _log.info("No Errors found proceeding further {}, {}, {}", new Object[] { _dbClient, fs, param });
@@ -1269,5 +1275,4 @@ public class FileSnapshotService extends TaskResourceService {
 
         return toTask(snap, task, op);
     }
-
 }

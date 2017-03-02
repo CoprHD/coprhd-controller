@@ -588,7 +588,7 @@ public class FileService extends TaskResourceService {
         _dbClient.queryByConstraint(
                 AlternateIdConstraint.Factory.getFileSystemMountPathConstraint(
                         mountPath),
-                fsUriList);
+                        fsUriList);
 
         _log.info("After query of the database for {} and result {}", mountPath, fsUriList);
 
@@ -745,12 +745,12 @@ public class FileService extends TaskResourceService {
                         _log.info(String.format(
                                 "Existing Export params for FileShare id: %1$s,  SecurityType: %2$s, " +
                                         "Permissions: %3$s, Root user mapping: %4$s, ",
-                                id, fileExport.getSecurityType(), fileExport.getPermissions(), fileExport.getRootUserMapping()));
+                                        id, fileExport.getSecurityType(), fileExport.getPermissions(), fileExport.getRootUserMapping()));
 
                         _log.info(String.format(
                                 "Recieved Export params for FileShare id: %1$s,  SecurityType: %2$s, " +
                                         "Permissions: %3$s, Root user mapping: %4$s, ",
-                                id, securityType, permissions, rootUserMapping));
+                                        id, securityType, permissions, rootUserMapping));
 
                         if (!fileExport.getPermissions().equals(permissions)) {
                             throw APIException.badRequests.updatingFileSystemExportNotAllowed("permission");
@@ -851,15 +851,25 @@ public class FileService extends TaskResourceService {
             }
         }
 
+        String rootUserMapping = param.getRootUserMapping();
+
+        if (!"nobody".equals(rootUserMapping)) {
+            StorageOSUser user = getUserFromContext();
+            if (!user.getName().equals(rootUserMapping)) {
+                // throw error
+                throw APIException.forbidden.insufficientPermissionsForUser(user.getName());
+            }
+        }
+
         FileShareExport export = new FileShareExport(param.getEndpoints(), param.getSecurityType(), param.getPermissions(),
-                param.getRootUserMapping(), param.getProtocol(), sport.getPortGroup(), sport.getPortNetworkId(), path, mountPath,
+                rootUserMapping, param.getProtocol(), sport.getPortGroup(), sport.getPortNetworkId(), path, mountPath,
                 subDirectory, param.getComments());
 
         _log.info(String.format(
                 "FileShareExport --- FileShare id: %1$s, Clients: %2$s, StoragePort: %3$s, SecurityType: %4$s, " +
                         "Permissions: %5$s, Root user mapping: %6$s, Protocol: %7$s, path: %8$s, mountPath: %9$s, SubDirectory: %10$s",
-                id, export.getClients(), sport.getPortName(), export.getSecurityType(), export.getPermissions(),
-                export.getRootUserMapping(), export.getProtocol(), export.getPath(), export.getMountPath(), export.getSubDirectory()));
+                        id, export.getClients(), sport.getPortName(), export.getSecurityType(), export.getPermissions(),
+                        export.getRootUserMapping(), export.getProtocol(), export.getPath(), export.getMountPath(), export.getSubDirectory()));
 
         Operation op = _dbClient.createTaskOpStatus(FileShare.class, fs.getId(),
                 task, ResourceOperationTypeEnum.EXPORT_FILE_SYSTEM);
@@ -1419,8 +1429,8 @@ public class FileService extends TaskResourceService {
         _log.info(String.format(
                 "Create file system share --- File system id: %1$s, Share name: %2$s, StoragePort: %3$s, PermissionType: %4$s, " +
                         "Permissions: %5$s, Description: %6$s, maxUsers: %7$s",
-                id, smbShare.getName(), sport.getPortName(), smbShare.getPermissionType(), smbShare.getPermission(),
-                smbShare.getDescription(), smbShare.getMaxUsers()));
+                        id, smbShare.getName(), sport.getPortName(), smbShare.getPermissionType(), smbShare.getPermission(),
+                        smbShare.getDescription(), smbShare.getMaxUsers()));
 
         _log.info("SMB share path {}", smbShare.getPath());
 
@@ -1657,7 +1667,7 @@ public class FileService extends TaskResourceService {
             ArgValidator.checkReference(FileShare.class, id, checkForDelete(fs));
             if (!fs.getFilePolicies().isEmpty()) {
                 throw APIException.badRequests
-                        .resourceCannotBeDeleted("Please unassign the policy from file system. " + fs.getLabel());
+                .resourceCannotBeDeleted("Please unassign the policy from file system. " + fs.getLabel());
             }
         }
         StringBuffer notSuppReasonBuff = new StringBuffer();
@@ -1665,7 +1675,7 @@ public class FileService extends TaskResourceService {
         if (FileSystemReplicationUtils.filesystemHasActiveReplication(fs, notSuppReasonBuff, param.getDeleteType(),
                 param.getForceDelete())) {
             throw APIException.badRequests
-                    .resourceCannotBeDeleted(notSuppReasonBuff.toString());
+            .resourceCannotBeDeleted(notSuppReasonBuff.toString());
         }
         List<URI> fileShareURIs = new ArrayList<URI>();
         fileShareURIs.add(id);
@@ -1846,7 +1856,7 @@ public class FileService extends TaskResourceService {
             _dbClient.queryByConstraint(
                     ContainmentPrefixConstraint.Factory.getFileshareUnderProjectConstraint(
                             projectId, name),
-                    resRepList);
+                            resRepList);
         }
         return resRepList;
     }
@@ -2102,7 +2112,7 @@ public class FileService extends TaskResourceService {
             param.setSubDir(subDir);
 
             // Validate the input
-            ExportVerificationUtility exportVerificationUtility = new ExportVerificationUtility(_dbClient);
+            ExportVerificationUtility exportVerificationUtility = new ExportVerificationUtility(_dbClient, getUserFromContext());
             exportVerificationUtility.verifyExports(fs, null, param);
 
             _log.info("No Errors found proceeding further {}, {}, {}", new Object[] { _dbClient, fs, param });
@@ -3289,9 +3299,11 @@ public class FileService extends TaskResourceService {
         }
         // Check for replication policy existence on file system..
         if (FileSystemReplicationUtils.getReplicationPolicyAppliedOnFS(sourceFileShare, _dbClient) == null) {
-            notSuppReasonBuff.append(String.format(
-                    "Mirror Operation {} is not supported for the file system {} as file system doesn't have any replication policy assigned/applied",
-                    op, sourceFileShare.getLabel()));
+            notSuppReasonBuff
+                    .append(String
+                            .format(
+                                    "Mirror Operation {} is not supported for the file system {} as file system doesn't have any replication policy assigned/applied",
+                                    op, sourceFileShare.getLabel()));
             _log.error(notSuppReasonBuff.toString());
             throw APIException.badRequests.unableToPerformMirrorOperation(op, sourceFileShare.getId(),
                     notSuppReasonBuff.toString());
@@ -3484,7 +3496,7 @@ public class FileService extends TaskResourceService {
             return assignFileReplicationPolicyToFS(fs, filePolicy, param, task);
         } else if (filePolicy.getFilePolicyType().equals(FilePolicyType.file_snapshot.name())
                 || (filePolicy.getFilePolicyType().equals(FilePolicyType.file_replication.name())
-                        && !fs.getMirrorfsTargets().isEmpty())) {
+                && !fs.getMirrorfsTargets().isEmpty())) {
             return assignFilePolicyToFS(fs, filePolicy, task);
         }
         return resp;
@@ -3666,7 +3678,7 @@ public class FileService extends TaskResourceService {
 
             if (taskObject == null) {
                 throw APIException.badRequests
-                        .unableToProcessRequest("Error occured while getting Filesystem policy Snapshots task information");
+                .unableToProcessRequest("Error occured while getting Filesystem policy Snapshots task information");
 
             } else if (taskObject.isReady()) {
                 URIQueryResultList snapshotsURIs = new URIQueryResultList();
@@ -3688,12 +3700,12 @@ public class FileService extends TaskResourceService {
             } else if (taskObject.isError()) {
 
                 throw APIException.badRequests
-                        .unableToProcessRequest("Error occured while getting Filesystem policy Snapshots due to" + taskObject.getMessage());
+                .unableToProcessRequest("Error occured while getting Filesystem policy Snapshots due to" + taskObject.getMessage());
 
             } else {
 
                 throw APIException.badRequests
-                        .unableToProcessRequest("Error occured while getting Filesystem policy Snapshots due to timeout");
+                .unableToProcessRequest("Error occured while getting Filesystem policy Snapshots due to timeout");
 
             }
 
@@ -3809,9 +3821,9 @@ public class FileService extends TaskResourceService {
                 && fs.getPersonality().equalsIgnoreCase(PersonalityTypes.SOURCE.name())
                 && !MirrorStatus.DETACHED.name().equalsIgnoreCase(fs.getMirrorStatus())) {
             notSuppReasonBuff
-                    .append(String
-                            .format("File system given in request is an active source file system %s.",
-                                    fs.getLabel()));
+            .append(String
+                    .format("File system given in request is an active source file system %s.",
+                            fs.getLabel()));
             _log.info(notSuppReasonBuff.toString());
             return false;
         }
@@ -3820,9 +3832,9 @@ public class FileService extends TaskResourceService {
         if (fs.getMirrorfsTargets() != null
                 && !fs.getMirrorfsTargets().isEmpty()) {
             notSuppReasonBuff
-                    .append(String
-                            .format("File system given in request has active target file system %s.",
-                                    fs.getLabel()));
+            .append(String
+                    .format("File system given in request has active target file system %s.",
+                            fs.getLabel()));
             _log.info(notSuppReasonBuff.toString());
             return false;
         }
@@ -3851,11 +3863,11 @@ public class FileService extends TaskResourceService {
         if (fs.getPersonality() != null
                 && fs.getPersonality().equalsIgnoreCase(PersonalityTypes.SOURCE.name())
                 && (MirrorStatus.FAILED_OVER.name().equalsIgnoreCase(fs.getMirrorStatus())
-                        || MirrorStatus.SUSPENDED.name().equalsIgnoreCase(fs.getMirrorStatus()))) {
+                || MirrorStatus.SUSPENDED.name().equalsIgnoreCase(fs.getMirrorStatus()))) {
             notSuppReasonBuff
-                    .append(String
-                            .format("File system given in request is in active or failover state %s.",
-                                    fs.getLabel()));
+            .append(String
+                    .format("File system given in request is in active or failover state %s.",
+                            fs.getLabel()));
             _log.info(notSuppReasonBuff.toString());
             return false;
         }
@@ -3864,9 +3876,9 @@ public class FileService extends TaskResourceService {
         if (fs.getMirrorfsTargets() == null
                 || fs.getMirrorfsTargets().isEmpty()) {
             notSuppReasonBuff
-                    .append(String
-                            .format("File system given in request has no active target file system %s.",
-                                    fs.getLabel()));
+            .append(String
+                    .format("File system given in request has no active target file system %s.",
+                            fs.getLabel()));
             _log.info(notSuppReasonBuff.toString());
             return false;
         }
@@ -3906,19 +3918,19 @@ public class FileService extends TaskResourceService {
 
         switch (operation) {
 
-            // Refresh operation can be performed without any check.
+        // Refresh operation can be performed without any check.
             case "refresh":
                 isSupported = true;
                 break;
 
-            // START operation can be performed only if Mirror status is UNKNOWN
+                // START operation can be performed only if Mirror status is UNKNOWN
             case "start":
                 if (currentMirrorStatus.equalsIgnoreCase(MirrorStatus.UNKNOWN.toString())) {
                     isSupported = true;
                 }
                 break;
 
-            // STOP operation can be performed only if Mirror status is SYNCHRONIZED or IN_SYNC
+                // STOP operation can be performed only if Mirror status is SYNCHRONIZED or IN_SYNC
             case "stop":
                 if (currentMirrorStatus.equalsIgnoreCase(MirrorStatus.SYNCHRONIZED.toString())
                         || currentMirrorStatus.equalsIgnoreCase(MirrorStatus.IN_SYNC.toString())) {
@@ -3926,7 +3938,7 @@ public class FileService extends TaskResourceService {
                 }
                 break;
 
-            // PAUSE operation can be performed only if Mirror status is SYNCHRONIZED or IN_SYNC
+                // PAUSE operation can be performed only if Mirror status is SYNCHRONIZED or IN_SYNC
             case "pause":
                 if (currentMirrorStatus.equalsIgnoreCase(MirrorStatus.SYNCHRONIZED.toString())
                         || currentMirrorStatus.equalsIgnoreCase(MirrorStatus.IN_SYNC.toString())) {
@@ -3934,22 +3946,22 @@ public class FileService extends TaskResourceService {
                 }
                 break;
 
-            // RESUME operation can be performed only if Mirror status is PAUSED.
+                // RESUME operation can be performed only if Mirror status is PAUSED.
             case "resume":
                 if (currentMirrorStatus.equalsIgnoreCase(MirrorStatus.PAUSED.toString())) {
                     isSupported = true;
                 }
                 break;
 
-            // Fail over can be performed if Mirror status is NOT UNKNOWN or FAILED_OVER.
+                // Fail over can be performed if Mirror status is NOT UNKNOWN or FAILED_OVER.
             case "failover":
                 if (!(currentMirrorStatus.equalsIgnoreCase(MirrorStatus.UNKNOWN.toString())
-                        || currentMirrorStatus.equalsIgnoreCase(MirrorStatus.FAILED_OVER.toString()))) {
+                || currentMirrorStatus.equalsIgnoreCase(MirrorStatus.FAILED_OVER.toString()))) {
                     isSupported = true;
                 }
                 break;
 
-            // Fail back can be performed only if Mirror status is FAILED_OVER.
+                // Fail back can be performed only if Mirror status is FAILED_OVER.
             case "failback":
                 if (currentMirrorStatus.equalsIgnoreCase(MirrorStatus.FAILED_OVER.toString())) {
                     isSupported = true;
@@ -4017,9 +4029,9 @@ public class FileService extends TaskResourceService {
             if (fs.getMirrorfsTargets() != null
                     && !fs.getMirrorfsTargets().isEmpty()) {
                 notSuppReasonBuff
-                        .append(String
-                                .format("File system %s given in request has active target file systems.",
-                                        fs.getLabel()));
+                .append(String
+                        .format("File system %s given in request has active target file systems.",
+                                fs.getLabel()));
                 _log.info(notSuppReasonBuff.toString());
                 return true;
 
@@ -4057,7 +4069,7 @@ public class FileService extends TaskResourceService {
                 if (rpoParam.getRpoType() == null
                         || FileReplicationRPOType.lookup(rpoParam.getRpoType()) == null) {
                     throw APIException.badRequests
-                            .invalidReplicationRPOType(rpoParam.getRpoType());
+                    .invalidReplicationRPOType(rpoParam.getRpoType());
                 }
 
                 if (rpoParam.getRpoValue() == null || rpoParam.getRpoValue() <= 0) {

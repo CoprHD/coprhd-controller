@@ -278,7 +278,10 @@ public class CreateComputeClusterService extends ViPRService {
             logInfo("compute.cluster.exports.installed.os", ComputeUtils.nonNull(hostsWithOs).size());
 
             ComputeUtils.addHostsToCluster(hosts, cluster);
-            pushToVcenter();
+
+            if (!ComputeUtils.nonNull(hostsWithOs).isEmpty()) {
+                pushToVcenter();
+            }
         }
 
         String orderErrors = ComputeUtils.getOrderErrors(cluster, copyOfHostNames, computeImage, vcenterId);

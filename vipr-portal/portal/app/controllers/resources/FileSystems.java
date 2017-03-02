@@ -118,7 +118,7 @@ public class FileSystems extends ResourceController {
     public static void validateQuotaSize(String quotaSize) {
         String tempSize = quotaSize;
         if(true == tempSize.contains(",")) {
-            tempSize = tempSize.replace(",", "");
+            tempSize = tempSize.replaceAll(",", "");
         }
         if (StringUtils.isEmpty(quotaSize) || !tempSize.matches("^\\d+$")) {
             Validation.addError("quota.size", "resources.filesystem.quota.size.invalid.value");
@@ -811,7 +811,7 @@ public class FileSystems extends ResourceController {
         //quota size
         String modifiedSize = quota.size;
         if(true == quota.size.contains(",")){
-            modifiedSize = modifiedSize.replace(",", "");
+            modifiedSize = modifiedSize.replaceAll(",", "");
         }
         Double modifyQuotaSize = new Double(modifiedSize);
 
@@ -1388,7 +1388,7 @@ public class FileSystems extends ResourceController {
         public void validate(String formName) {
             String tempSize = size;
             if(true == tempSize.contains(",")) {
-                tempSize = tempSize.replace(",", "");
+                tempSize = tempSize.replaceAll(",", "");
             }
             if (StringUtils.isEmpty(size) || !tempSize.matches("^\\d+$")) {
                 Validation.addError(formName + ".size", "resources.filesystem.quota.size.invalid.value");

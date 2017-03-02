@@ -1033,7 +1033,7 @@ public class ComputeUtils {
                 // If there's no vcenter associated with the host, then this host is in the ViPR cluster, but is not
                 // in the vCenter cluster, and therefore we can not perform a deep validation.
                 if (NullColumnValueGetter.isNullURI(host.getVcenterDataCenter())) {
-                    ExecutionUtils.currentContext().logInfo("computeutils.removebootvolumes.validation.skipped.hostnotinvcenter",
+                    ExecutionUtils.currentContext().logInfo("computeutils.removebootvolumes.validation.skipped.vcenternotinhost",
                             host.getHostName());
                     continue;
                 }
@@ -1055,14 +1055,25 @@ public class ComputeUtils {
                     return false;
                 }
 
-                HostSystem hostSystem = vmware.getHostSystem(dataCenter.getLabel(), clusterHost.getName());
+                HostSystem hostSystem = null;
+                try {
+                    hostSystem = vmware.getHostSystem(dataCenter.getLabel(), clusterHost.getName());
 
-                // Make sure the host system is still part of the cluster. If it isn't, hostSystem will be null and
-                // we can fail the validation based on principle alone.
-                if (hostSystem == null) {
-                    ExecutionUtils.currentContext().logError("computeutils.removebootvolumes.failure.host", host.getHostName(),
-                            "host not part of cluster/datacenter.");
-                    return false;
+                    // Make sure the host system is still part of the cluster in vcenter. If it isn't, hostSystem will be null and
+                    // we can't perform the validation.
+                    if (hostSystem == null) {
+                        ExecutionUtils.currentContext().logInfo("computeutils.removebootvolumes.validation.skipped.hostnotinvcenter", 
+                                host.getHostName());
+                        continue;
+                    }
+                } catch (ExecutionException e) {
+                    if (e.getCause() instanceof IllegalStateException) {
+                        ExecutionUtils.currentContext().logInfo("computeutils.removebootvolumes.validation.skipped.hostnotinvcenter", 
+                            host.getHostName());
+                        continue;
+                    }
+                    // If it's anything other than the IllegalStateException, re-throw the base exception
+                    throw e;
                 }
 
                 if (vmware.findScsiDisk(hostSystem, null, bootVolume, false, false) == null) {

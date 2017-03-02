@@ -117,17 +117,6 @@ public class HostRestRep extends ComputeSystemRestRep {
     public void setComputeElement(RelatedResourceRep computeElement) {
         this.computeElement = computeElement;
     }
-   /**
-    * The UCS service profile for this host
-    */ 
-    @XmlElement(name = "service_profile")
-    public RelatedResourceRep getServiceProfile() {
-        return serviceProfile;
-    }
-
-    public void setServiceProfile(RelatedResourceRep serviceProfile) {
-        this.serviceProfile = serviceProfile;
-    }
      
     /**
     * The name of UCS service profile for this host

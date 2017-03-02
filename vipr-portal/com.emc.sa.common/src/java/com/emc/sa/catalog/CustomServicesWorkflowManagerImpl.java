@@ -20,6 +20,7 @@ import java.net.URI;
 import java.util.Iterator;
 import java.util.List;
 
+import com.emc.storageos.db.client.model.uimodels.CatalogCategory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -28,6 +29,7 @@ import com.emc.storageos.db.client.constraint.NamedElementQueryResultList.NamedE
 import com.emc.storageos.db.client.model.uimodels.CatalogService;
 import com.emc.storageos.db.client.model.uimodels.CustomServicesWorkflow;
 import com.emc.storageos.db.client.model.uimodels.CustomServicesWorkflow.CustomServicesWorkflowStatus;
+import org.springframework.util.CollectionUtils;
 
 
 @Component
@@ -82,8 +84,14 @@ public class CustomServicesWorkflowManagerImpl implements
     @Override
     public boolean hasCatalogServices(final String name) {
         final List<CatalogService> catalogServices = client.catalogServices().findByBaseService(name);
-        if (null != catalogServices && !catalogServices.isEmpty()) {
-            return true;
+        if (!CollectionUtils.isEmpty(catalogServices)) {
+            for(CatalogService cs: catalogServices){
+                // Catalog services are not deleted if there are existing orders. Instead their Category ID will be set to DELETED
+                // So return true only if there are catalog services that do not have this DELETED category ID.
+                if(!cs.getCatalogCategoryId().getURI().toString().startsWith(CatalogCategory.DELETED_CATEGORY)){
+                    return true;
+                }
+            }
         }
         return false;
     }

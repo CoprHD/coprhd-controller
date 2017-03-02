@@ -139,7 +139,6 @@ public class CustomServicesService extends ViPRService {
                 StepType type = StepType.fromString(step.getType());
                 switch (type) {
                     case VIPR_REST: {
-                        // TODO move this outside the try after we have primitives for others. Except Remote Ansible
                         Primitive primitive = PrimitiveHelper.get(step.getOperation());
 
                         if (null == primitive) {

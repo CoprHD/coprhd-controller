@@ -42,10 +42,10 @@ public class SecretsInit implements Runnable {
 
         while (!dbInitDone()) {
             try {
-                log.info("Db init has not been done. Waiting {} seoncds", IPSEC_ROTATION_RETRY_INTERVAL);
+                log.info("Db init has not started. Waiting {} seconds", IPSEC_ROTATION_RETRY_INTERVAL);
                 Thread.sleep(IPSEC_ROTATION_RETRY_INTERVAL * 1000);
             } catch (InterruptedException e) {
-                log.warn("interrupted ipsec initial ", e);
+                log.warn("Interrupted IPSec initialization.", e);
             }
         }
 

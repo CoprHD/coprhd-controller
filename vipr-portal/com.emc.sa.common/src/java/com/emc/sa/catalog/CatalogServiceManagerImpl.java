@@ -89,7 +89,6 @@ public class CatalogServiceManagerImpl implements CatalogServiceManager {
             catalogService.setDescription(customServicesWorkflow.getName());
             catalogService.setImage("icon_orchestration.png");
             catalogService.setBaseService(customServicesWorkflow.getName());
-            catalogService.setWorkflowName(customServicesWorkflow.getName());
         }
 
         return catalogService;

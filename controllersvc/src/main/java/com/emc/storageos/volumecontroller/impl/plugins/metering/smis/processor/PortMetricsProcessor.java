@@ -1234,11 +1234,12 @@ public class PortMetricsProcessor {
         _dbClient.queryByConstraint(AlternateIdConstraint.Factory
                 .getExportMaskByNameConstraint(maskName), uriQueryList);
         while (uriQueryList.iterator().hasNext()) {
-        	ExportMask exportMask = _dbClient.queryObject(ExportMask.class, uriQueryList.iterator().next());
-        	if (exportMask != null && !exportMask.getInactive() 
-        			&& exportMask.getNativeId().equals(nativeId) && exportMask.getStorageDevice().equals(device)) {
-        		return true;
-        	}
+            ExportMask exportMask = _dbClient.queryObject(ExportMask.class, uriQueryList.iterator().next());
+            if (exportMask != null && !exportMask.getInactive()
+                    && (exportMask.getNativeId() != null && exportMask.getNativeId().equals(nativeId))
+                    && exportMask.getStorageDevice().equals(device)) {
+                return true;
+            }
         }
     	return false;
     }
@@ -1468,7 +1469,7 @@ public class PortMetricsProcessor {
         }
         return portMetricsAllocationEnabled;
     }
-
+    
     /**
      * ViPR allocate port based on collected usage metrics, used initiator and volume. The ports which are being heavily used and
      * exceeded configured ceiling, will be eliminated from candidate pools.

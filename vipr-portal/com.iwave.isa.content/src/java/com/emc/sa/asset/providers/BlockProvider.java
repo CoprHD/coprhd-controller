@@ -28,9 +28,13 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
+import com.emc.storageos.model.search.SearchResultResourceRep;
+import com.emc.vipr.client.core.impl.SearchConstants;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.ObjectUtils;
 import org.apache.commons.lang.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import com.emc.sa.asset.AssetOptionsContext;
@@ -43,10 +47,12 @@ import com.emc.sa.machinetags.KnownMachineTags;
 import com.emc.sa.machinetags.MachineTagUtils;
 import com.emc.sa.service.vipr.block.BlockStorageUtils;
 import com.emc.sa.util.ResourceType;
+import com.emc.sa.util.CatalogSerializationUtils;
 import com.emc.sa.util.StringComparator;
 import com.emc.sa.util.TextUtils;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup.Types;
+import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.Volume.ReplicationState;
 import com.emc.storageos.db.client.model.VolumeGroup;
@@ -68,21 +74,30 @@ import com.emc.storageos.model.block.BlockSnapshotSessionRestRep;
 import com.emc.storageos.model.block.NamedVolumesList;
 import com.emc.storageos.model.block.VolumeDeleteTypeEnum;
 import com.emc.storageos.model.block.VolumeRestRep;
+import com.emc.storageos.model.block.VolumeRestRep.MirrorRestRep;
 import com.emc.storageos.model.block.VolumeRestRep.ProtectionRestRep;
 import com.emc.storageos.model.block.export.ExportBlockParam;
 import com.emc.storageos.model.block.export.ExportGroupRestRep;
+import com.emc.storageos.model.block.export.ExportPathParameters;
+import com.emc.storageos.model.block.export.ExportPathsAdjustmentPreviewParam;
 import com.emc.storageos.model.block.export.ITLRestRep;
+import com.emc.storageos.model.block.export.InitiatorPortMapRestRep;
+import com.emc.storageos.model.block.export.ExportPathsAdjustmentPreviewRestRep;
 import com.emc.storageos.model.customconfig.SimpleValueRep;
 import com.emc.storageos.model.host.HostRestRep;
+import com.emc.storageos.model.host.InitiatorRestRep;
 import com.emc.storageos.model.host.cluster.ClusterRestRep;
+import com.emc.storageos.model.ports.StoragePortRestRep;
 import com.emc.storageos.model.project.ProjectRestRep;
 import com.emc.storageos.model.protection.ProtectionSetRestRep;
 import com.emc.storageos.model.systems.StorageSystemRestRep;
+import com.emc.storageos.model.varray.NetworkRestRep;
 import com.emc.storageos.model.varray.VirtualArrayRestRep;
 import com.emc.storageos.model.vpool.BlockVirtualPoolRestRep;
 import com.emc.storageos.model.vpool.VirtualPoolChangeOperationEnum;
 import com.emc.storageos.model.vpool.VirtualPoolChangeRep;
 import com.emc.storageos.model.vpool.VirtualPoolCommonRestRep;
+import com.emc.storageos.storagedriver.model.StoragePort;
 import com.emc.vipr.client.ViPRCoreClient;
 import com.emc.vipr.client.core.filters.BlockVolumeConsistencyGroupFilter;
 import com.emc.vipr.client.core.filters.ConsistencyGroupFilter;
@@ -107,6 +122,9 @@ import com.google.common.collect.Sets;
 @Component
 @AssetNamespace("vipr")
 public class BlockProvider extends BaseAssetOptionsProvider {
+
+    private static final Logger log = LoggerFactory.getLogger(BlockProvider.class);
+
     public static final String EXCLUSIVE_STORAGE = "exclusive";
     public static final String SHARED_STORAGE = "shared";
     public static final String RECOVERPOINT_BOOKMARK_SNAPSHOT_TYPE_VALUE = "rp";
@@ -194,6 +212,9 @@ public class BlockProvider extends BaseAssetOptionsProvider {
 
     private static final String NONE_TYPE = "None";
     private static final String IBMXIV_SYSTEM_TYPE = "ibmxiv";
+
+    private static final int EXPORT_PATH_MIN = 1;
+    private static final int EXPORT_PATH_MAX = 32;
 
     public static boolean isExclusiveStorage(String storageType) {
         return EXCLUSIVE_STORAGE.equals(storageType);
@@ -753,6 +774,311 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         }
         return varrayIds;
     }
+    
+    @Asset("exportPathVirtualArray")
+    @AssetDependencies({ "exportPathExport", "exportPathStorageSystem" })
+    public List<AssetOption> getExportPathVirtualArray(AssetOptionsContext ctx, URI exportId, URI storageSystemId) {
+        ViPRCoreClient client = api(ctx);
+        List<AssetOption> options = Lists.newArrayList();
+        
+        ExportGroupRestRep export = client.blockExports().get(exportId);
+
+        List<URI> vArrayIds = new ArrayList<URI>();
+        vArrayIds.add(export.getVirtualArray().getId());
+        List<StringHashMapEntry> altArrays = export.getAltVirtualArrays() != null ? export.getAltVirtualArrays() : new ArrayList<StringHashMapEntry>();
+        for (StringHashMapEntry altArray : altArrays) {
+            if (altArray.getName().equalsIgnoreCase(storageSystemId.toString())) {
+                vArrayIds.add(URI.create(altArray.getValue()));
+            }
+        }
+
+        List<VirtualArrayRestRep> vArrays = client.varrays().getByIds(vArrayIds);
+        
+        for (VirtualArrayRestRep vArray : vArrays) {
+            options.add(new AssetOption(vArray.getId(), vArray.getName()));
+        }
+        
+        return options;
+    }
+    
+    @Asset("exportPathExport")
+    @AssetDependencies({ "project", "host" })
+    public List<AssetOption> getExportPathExports(AssetOptionsContext ctx, URI projectId, URI hostOrClusterId) {
+        ViPRCoreClient client = api(ctx);
+
+        List<ExportGroupRestRep> exports = new ArrayList<ExportGroupRestRep>();
+
+        if (BlockStorageUtils.isHost(hostOrClusterId)) {
+            exports = client.blockExports().findByHost(hostOrClusterId, projectId, null);
+        } else if (BlockStorageUtils.isCluster(hostOrClusterId)) {
+            exports = client.blockExports().findByCluster(hostOrClusterId, projectId, null);
+        }
+
+        return createExportWithVarrayOptions(client, exports);
+    }
+    
+    @Asset("exportPathMinPathsOptions")
+    public List<AssetOption> getExportPathMinOptions(AssetOptionsContext ctx) {
+        return generatePathOptions(EXPORT_PATH_MIN, EXPORT_PATH_MAX);
+    }
+    
+    @Asset("exportPathMaxPathsOptions")
+    @AssetDependencies({ "exportPathMinPathsOptions" })
+    public List<AssetOption> getExportPathMaxOptions(AssetOptionsContext ctx, int min) {
+        return generatePathOptions(min, EXPORT_PATH_MAX);
+    }
+    
+    @Asset("exportPathPathsPerInitiatorOptions")
+    @AssetDependencies({ "exportPathMaxPathsOptions" })
+    public List<AssetOption> getExportPathPathsPerOptions(AssetOptionsContext ctx, int max) {
+        return generatePathOptions(EXPORT_PATH_MIN, max);
+    }
+
+    private List<AssetOption> generatePathOptions(int min, int max) {
+        List<AssetOption> options = Lists.newArrayList();
+        
+        for (int i = min; i <= max; ++i) {
+            options.add(new AssetOption(Integer.toString(i), Integer.toString(i)));
+        }
+        
+        return options;
+    }
+    
+    @Asset("exportPathExistingPath")
+    public List<AssetOption> getExportPathExistingPath(AssetOptionsContext ctx
+            ) {
+        List<AssetOption> options = Lists.newArrayList();
+        
+        options.add(new AssetOption(YES_VALUE, YES_VALUE));
+        options.add(new AssetOption(NO_VALUE, NO_VALUE));
+        
+        return options;
+    }
+    
+    @SuppressWarnings("incomplete-switch")
+    @Asset("exportPathStorageSystem")
+    @AssetDependencies({ "exportPathExport" })
+    public List<AssetOption> getExportPathStorageSystem(AssetOptionsContext ctx, URI exportId) {
+        ViPRCoreClient client = api(ctx);
+        List<AssetOption> options = Lists.newArrayList();
+        List<URI> storageSystemIds = new ArrayList<URI>();
+        
+        ExportGroupRestRep export = client.blockExports().get(exportId);
+        List<ExportBlockParam> volumes = export.getVolumes();
+        for (ExportBlockParam volume : volumes) {
+            URI resourceId = volume.getId();
+            ResourceType volumeType = ResourceType.fromResourceId(resourceId.toString());
+            switch (volumeType) {
+                case VOLUME:
+                    VolumeRestRep v = client.blockVolumes().get(resourceId);
+                    if (v != null) {
+                        storageSystemIds.add(v.getStorageController());
+                    }
+                    break;
+                case BLOCK_SNAPSHOT:
+                    BlockSnapshotRestRep s = client.blockSnapshots().get(resourceId);
+                    if (s != null) {
+                        storageSystemIds.add(s.getStorageController());
+                    }
+                    break;
+            }
+        }
+
+        List<StorageSystemRestRep> storageSystems = client.storageSystems().getByIds(storageSystemIds);
+
+        for (StorageSystemRestRep storageSystem : storageSystems) {
+            String systemType = storageSystem.getSystemType();
+            if (Type.vmax.name().equalsIgnoreCase(systemType) ||
+                    Type.vplex.name().equalsIgnoreCase(systemType)) {
+                options.add(new AssetOption(storageSystem.getId(), storageSystem.getName()));
+            }
+        }
+
+        return options;
+    }
+    
+    @Asset("exportPathPorts")
+    @AssetDependencies({ "exportPathVirtualArray", "exportPathStorageSystem" })
+    public List<AssetOption> getExportPathPorts(AssetOptionsContext ctx, URI vArrayId, URI storageSystemId) {
+        ViPRCoreClient client = api(ctx);
+        List<AssetOption> options = Lists.newArrayList();
+        
+        List<StoragePortRestRep> ports = client.storagePorts().getByVirtualArray(vArrayId);
+        
+        for (StoragePortRestRep port : ports) {
+            if (port.getPortType().equals(StoragePort.PortType.frontend.toString()) && 
+                    port.getStorageDevice().getId().equals(storageSystemId) &&
+                    port.getOperationalStatus().equals(StoragePort.OperationalStatus.OK.toString())) {
+                if (port.getNetwork() != null) {
+                    String portPercentBusy = (port.getPortPercentBusy() != null) ? String.valueOf(Math.round(port.getPortPercentBusy() * 100 / 100)) + "%" : "N/A";
+                    String networkName = client.networks().get(port.getNetwork().getId()).getName();
+                    String label = getMessage("exportPathAdjustment.ports", port.getPortName(), networkName, 
+                            port.getPortNetworkId(), portPercentBusy);
+                    options.add(new AssetOption(port.getId(), label));
+                }
+            }
+        }
+
+        AssetOptionsUtils.sortOptionsByLabel(options);
+        return options;
+    }
+    
+    @Asset("exportPathResultingPaths")
+    @AssetDependencies({ "host", "exportPathVirtualArray", "exportPathExport", "exportPathMinPathsOptions",
+        "exportPathMaxPathsOptions", "exportPathPathsPerInitiatorOptions", "exportPathExistingPath", "exportPathStorageSystem"})
+    public List<AssetOption> getResultingPaths(AssetOptionsContext ctx, URI hostOrClusterId, URI vArrayId, URI exportId,
+            Integer minPaths, Integer maxPaths, Integer pathsPerInitiator, String useExisting, URI storageSystemId) {
+
+        return getResultingPaths(ctx, hostOrClusterId, vArrayId, exportId, minPaths, maxPaths, pathsPerInitiator,
+                useExisting, storageSystemId, new String(""));
+    }
+    
+    @Asset("exportPathResultingPaths")
+    @AssetDependencies({ "host", "exportPathVirtualArray", "exportPathExport", "exportPathMinPathsOptions",
+        "exportPathMaxPathsOptions", "exportPathPathsPerInitiatorOptions", "exportPathExistingPath", 
+        "exportPathStorageSystem", "exportPathPorts" })
+    public List<AssetOption> getResultingPaths(AssetOptionsContext ctx, URI hostOrClusterId, URI vArrayId, URI exportId,
+            Integer minPaths, Integer maxPaths, Integer pathsPerInitiator, String useExisting, URI storageSystemId, String ports) {
+        List<URI> exportPathPorts = parseExportPathPorts(ports);
+        ExportPathsAdjustmentPreviewRestRep portPreview =  generateExportPathPreview(ctx, hostOrClusterId, vArrayId,
+                exportId, minPaths, maxPaths, pathsPerInitiator, useExisting, storageSystemId, exportPathPorts);
+        List<InitiatorPortMapRestRep> addedList = portPreview.getAdjustedPaths();
+        
+        return buildPathOptions(ctx, addedList, "exportPathAdjustment.resultingPaths");
+    }
+
+    @Asset("exportPathRemovedPaths")
+    @AssetDependencies({ "host", "exportPathVirtualArray", "exportPathExport", "exportPathMinPathsOptions",
+        "exportPathMaxPathsOptions", "exportPathPathsPerInitiatorOptions", "exportPathExistingPath", "exportPathStorageSystem"})
+    public List<AssetOption> getRemovedPaths(AssetOptionsContext ctx, URI hostOrClusterId, URI vArrayId, URI exportId,
+            Integer minPaths, Integer maxPaths, Integer pathsPerInitiator, String useExisting, URI storageSystemId) {
+
+        return getRemovedPaths(ctx, hostOrClusterId, vArrayId, exportId, minPaths, maxPaths, pathsPerInitiator,
+                useExisting, storageSystemId, new String(""));
+    }
+    
+    @Asset("exportPathRemovedPaths")
+    @AssetDependencies({ "host", "exportPathVirtualArray", "exportPathExport", "exportPathMinPathsOptions",
+        "exportPathMaxPathsOptions", "exportPathPathsPerInitiatorOptions", "exportPathExistingPath", 
+        "exportPathStorageSystem", "exportPathPorts" })
+    public List<AssetOption> getRemovedPaths(AssetOptionsContext ctx, URI hostOrClusterId, URI vArrayId, URI exportId,
+            Integer minPaths, Integer maxPaths, Integer pathsPerInitiator, String useExisting, URI storageSystemId, String ports) {
+        List<URI> exportPathPorts = parseExportPathPorts(ports);
+        ExportPathsAdjustmentPreviewRestRep portPreview =  generateExportPathPreview(ctx, hostOrClusterId, vArrayId,
+                exportId, minPaths, maxPaths, pathsPerInitiator, useExisting, storageSystemId, exportPathPorts);
+        List<InitiatorPortMapRestRep> removedList = portPreview.getRemovedPaths();
+        
+        return buildPathOptions(ctx, removedList, "exportPathAdjustment.removedPaths");
+    }
+    
+    private List<URI> parseExportPathPorts(String input) {
+        List<URI> ports = new ArrayList<URI>();
+        
+        List<String> parsedIds = TextUtils.parseCSV(input);
+        for (String id : parsedIds) {
+            ports.add(uri(id));
+        }
+        return ports;
+    }
+     
+    /* helper for building the list of asset option for affected and removed paths */
+    private List<AssetOption> buildPathOptions(AssetOptionsContext ctx, List<InitiatorPortMapRestRep> list, String message) {
+        ViPRCoreClient client = api(ctx);
+        List<AssetOption> options = Lists.newArrayList();
+        
+        for (InitiatorPortMapRestRep ipm : list) {
+            InitiatorRestRep initiator = ipm.getInitiator();
+            List<NamedRelatedResourceRep> ports = ipm.getStoragePorts();
+            
+            String portList = new String(" ");
+            List<URI> portURIs = new ArrayList<URI>();
+            for (NamedRelatedResourceRep port : ports) {
+                StoragePortRestRep p = client.storagePorts().get(port.getId());
+                portList += p.getPortName() + " ";
+                portURIs.add(port.getId());
+            }
+            
+            Map<URI, List<URI>> key = new HashMap<URI, List<URI>>();
+            key.put(initiator.getId(), portURIs);
+            
+            String label = getMessage(message, initiator.getHostName(), initiator.getName(), portList);
+            String keyString = new String("");
+            try {
+                keyString = CatalogSerializationUtils.serializeToString(key);
+            } catch (Exception ex) {
+                
+            }
+            options.add(new AssetOption(keyString, label));
+        }
+        
+        return options;
+    }
+
+    @Asset("exportPathAffectedExports")
+    @AssetDependencies({ "host", "exportPathVirtualArray", "exportPathExport", "exportPathMinPathsOptions",
+        "exportPathMaxPathsOptions", "exportPathPathsPerInitiatorOptions", "exportPathExistingPath", 
+        "exportPathStorageSystem" })
+    public List<AssetOption> getAffectedExports(AssetOptionsContext ctx, URI hostOrClusterId, URI vArrayId, URI exportId, 
+            Integer minPaths, Integer maxPaths, Integer pathsPerInitiator, String useExisting, URI storageSystemId) {
+        
+        return getAffectedExports(ctx, hostOrClusterId, vArrayId, exportId, minPaths, maxPaths, pathsPerInitiator, 
+                useExisting, storageSystemId, new String(""));
+    }
+    
+    @Asset("exportPathAffectedExports")
+    @AssetDependencies({ "host", "exportPathVirtualArray", "exportPathExport", "exportPathMinPathsOptions",
+        "exportPathMaxPathsOptions", "exportPathPathsPerInitiatorOptions", "exportPathExistingPath", 
+        "exportPathStorageSystem", "exportPathPorts" })
+    public List<AssetOption> getAffectedExports(AssetOptionsContext ctx, URI hostOrClusterId, URI vArrayId, URI exportId, 
+            Integer minPaths, Integer maxPaths, Integer pathsPerInitiator, String useExisting, URI storageSystemId, String ports) {
+        ViPRCoreClient client = api(ctx);
+        // the asset option list
+        List<AssetOption> options = Lists.newArrayList();
+        
+        List<URI> exportPathPorts = parseExportPathPorts(ports);
+        ExportPathsAdjustmentPreviewRestRep portPreview =  generateExportPathPreview(ctx, hostOrClusterId, vArrayId, 
+                exportId, minPaths, maxPaths, pathsPerInitiator, useExisting, storageSystemId, exportPathPorts);
+        
+        List<NamedRelatedResourceRep> affectedList = portPreview.getAffectedExportGroups();
+        List<URI> exportIds = new ArrayList<URI>();
+        
+        for (NamedRelatedResourceRep affected : affectedList) {
+            exportIds.add(affected.getId());
+        }
+        
+        List<ExportGroupRestRep> exports = client.blockExports().getByIds(exportIds);
+        
+        for (ExportGroupRestRep export : exports) {
+            // TODO: need to optimize the way that we retrieve the project name. 
+            String projectName = client.projects().get(export.getProject().getId()).getName();
+            String label = getMessage("exportPathAdjustment.affectedExports", projectName, export.getName());
+            options.add(new AssetOption(export.getName(), label));
+        }
+        
+        return options;
+    }
+    
+    private ExportPathsAdjustmentPreviewRestRep generateExportPathPreview(AssetOptionsContext ctx, URI hostOrClusterId, 
+            URI vArrayId, URI exportId, Integer minPaths, Integer maxPaths, Integer pathsPerInitiator, 
+            String useExisting, URI storageSystemId, List<URI> ports) {
+        ViPRCoreClient client = api(ctx);
+        ExportPathsAdjustmentPreviewParam param = new ExportPathsAdjustmentPreviewParam();
+        ExportPathParameters exportPathParameters = new ExportPathParameters();
+        
+        exportPathParameters.setMinPaths(minPaths);
+        exportPathParameters.setMaxPaths(maxPaths);
+        exportPathParameters.setPathsPerInitiator(pathsPerInitiator);
+        exportPathParameters.setStoragePorts(ports);
+       
+        param.setUseExistingPaths(useExisting.equalsIgnoreCase(YES_VALUE) ? true : false);
+
+        param.setVirtualArray(vArrayId);
+        param.setStorageSystem(storageSystemId);
+        
+        param.setExportPathParameters(exportPathParameters);
+        
+        return client.blockExports().getExportPathAdjustmentPreview(exportId, param);
+    }
 
     @Asset("unassignedBlockVolume")
     @AssetDependencies({ "host", "project" })
@@ -847,18 +1173,20 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     public List<AssetOption> getVplexSnapshotVolumes(AssetOptionsContext ctx, URI project, String volumeOrConsistencyType) {
         final ViPRCoreClient client = api(ctx);
         if (isVolumeType(volumeOrConsistencyType)) {
-            List<VolumeRestRep> volumes = client.blockVolumes().findByProject(project, new DefaultResourceFilter<VolumeRestRep>() {
-                @Override
-                public boolean accept(VolumeRestRep volume) {
-                    if (volume.getHaVolumes() != null && !volume.getHaVolumes().isEmpty()
-                            && !client.blockSnapshots().getByVolume(volume.getId()).isEmpty() && !isInConsistencyGroup(volume)) {
-                        return true;
-                    } else {
-                        return false;
-                    }
+            Set<URI> volIdSet = new HashSet<>();
+            List<BlockSnapshotRestRep> snapshots = findSnapshotsByProject(client, project);
+            for (BlockSnapshotRestRep s : snapshots) {
+                volIdSet.add(s.getParent().getId());
+            }
+            // Have to get volumes just as it needs vol's mount point which snapshot doesn't have.
+            List<VolumeRestRep> volumes = getVolumesByIds(client, volIdSet);
+            List<VolumeRestRep> filteredVols = new ArrayList<>();
+            for (VolumeRestRep vol: volumes) {
+                if (vol.getHaVolumes() != null && !vol.getHaVolumes().isEmpty() && !isInConsistencyGroup(vol)) {
+                    filteredVols.add(vol);
                 }
-            });
-            return createVolumeOptions(client, volumes);
+            }
+            return createVolumeOptions(client, filteredVols);
         } else {
             List<BlockConsistencyGroupRestRep> consistencyGroups = client.blockConsistencyGroups().findByProject(project,
                     new DefaultResourceFilter<BlockConsistencyGroupRestRep>() {
@@ -874,6 +1202,26 @@ public class BlockProvider extends BaseAssetOptionsProvider {
                     });
             return createBaseResourceOptions(consistencyGroups);
         }
+    }
+
+    private List<VolumeRestRep> getVolumesByIds(ViPRCoreClient client, Set<URI> vols) {
+        log.info("Getting volumes: [{}]", vols.size());
+        List<VolumeRestRep> volumes = client.blockVolumes().getByIds(vols, null);
+        log.info("Got volumens [{}]", volumes.size());
+        return volumes;
+    }
+
+    private List<BlockSnapshotRestRep> findSnapshotsByProject(ViPRCoreClient client, URI project) {
+        log.info("Finding snapshots by project {}", project);
+        List<SearchResultResourceRep> snapshotRefs = client.blockSnapshots().performSearchBy(SearchConstants.PROJECT_PARAM, project);
+        List<URI> ids = new ArrayList<>();
+        for (SearchResultResourceRep ref: snapshotRefs) {
+            ids.add(ref.getId());
+        }
+
+        List<BlockSnapshotRestRep> snapshots = client.blockSnapshots().getByIds(ids, null);
+        log.info("Got snapshots: [{}]", snapshots.size());
+        return snapshots;
     }
 
     @Asset("vplexBlockSnapshot")
@@ -1159,30 +1507,28 @@ public class BlockProvider extends BaseAssetOptionsProvider {
 
     private List<AssetOption> getVolumeSnapshotOptionsForProject(AssetOptionsContext ctx, URI project) {
         final ViPRCoreClient client = api(ctx);
-        List<BlockSnapshotRestRep> snapshots = client.blockSnapshots().findByProject(project,
-                new DefaultResourceFilter<BlockSnapshotRestRep>() {
-                    @Override
-                    public boolean accept(BlockSnapshotRestRep snapshot) {
-                        VolumeRestRep parentVolume = client.blockVolumes().get(snapshot.getParent().getId());
-                        return ((isRPSourceVolume(parentVolume) && !isSnapshotRPBookmark(snapshot)) ||
-                                !isInConsistencyGroup(snapshot));
-                    }
-                });
+        List<BlockSnapshotRestRep> snapshots = findSnapshotsByProject(client, project);
+        List<BlockSnapshotRestRep> filteredSnap = new ArrayList<>();
+        for (BlockSnapshotRestRep snapshot: snapshots) {
+            if ( !isSnapshotRPBookmark(snapshot) ) {
+                filteredSnap.add(snapshot);
+            }
+        }
 
-        return constructSnapshotOptions(client, project, snapshots);
+        return constructSnapshotOptions(client, project, filteredSnap);
     }
 
     private List<AssetOption> getVolumeRPSnapshotOptionsForProject(AssetOptionsContext ctx, URI project) {
         final ViPRCoreClient client = api(ctx);
-        List<BlockSnapshotRestRep> snapshots = client.blockSnapshots().findByProject(project,
-                new DefaultResourceFilter<BlockSnapshotRestRep>() {
-                    @Override
-                    public boolean accept(BlockSnapshotRestRep snapshot) {
-                        return (isSnapshotRPBookmark(snapshot));
-                    }
-                });
+        List<BlockSnapshotRestRep> snapshots = findSnapshotsByProject(client, project);
+        List<BlockSnapshotRestRep> filteredSnap = new ArrayList<>();
+        for (BlockSnapshotRestRep snapshot: snapshots) {
+            if ( isSnapshotRPBookmark(snapshot) ) {
+                filteredSnap.add(snapshot);
+            }
+        }
 
-        return constructSnapshotOptions(client, project, snapshots);
+        return constructSnapshotOptions(client, project, filteredSnap);
     }
 
     /**
@@ -2121,18 +2467,21 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     public List<AssetOption> getBlockVolumesWithSnapshot(AssetOptionsContext context, URI project, String volumeOrConsistencyType) {
         final ViPRCoreClient client = api(context);
         if (isVolumeType(volumeOrConsistencyType)) {
-            List<VolumeRestRep> volumes = client.blockVolumes().findByProject(project, new DefaultResourceFilter<VolumeRestRep>() {
-                @Override
-                public boolean accept(VolumeRestRep volume) {
-                    if (!(client.blockSnapshots().getByVolume(volume.getId())).isEmpty()
-                            && StringUtils.isEmpty(volume.getReplicationGroupInstance())) {
-                        return true;
-                    } else {
-                        return false;
-                    }
+
+            Set<URI> volIdSet = new HashSet<>();
+            List<BlockSnapshotRestRep> snapshots = findSnapshotsByProject(client, project);
+            for (BlockSnapshotRestRep snapshot : snapshots) {
+                volIdSet.add(snapshot.getParent().getId());
+            }
+            // Have to get volumes just as it needs vol's mount point which snapshot doesn't have.
+            List<VolumeRestRep> volumes = getVolumesByIds(client, volIdSet);
+            List<VolumeRestRep> filteredVols = new ArrayList<>();
+            for (VolumeRestRep vol: volumes) {
+                if (StringUtils.isEmpty(vol.getReplicationGroupInstance())) {
+                    filteredVols.add(vol);
                 }
-            });
-            return createVolumeOptions(client, volumes);
+            }
+            return createVolumeOptions(client, filteredVols);
         } else {
             List<BlockConsistencyGroupRestRep> consistencyGroups = client.blockConsistencyGroups()
                     .search()
@@ -2199,8 +2548,15 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         final ViPRCoreClient client = api(ctx);
         List<VolumeRestRep> volumes = client.blockVolumes().findByProject(project, new SourceTargetVolumesFilter() {
             @Override
-            public boolean acceptId(URI id) {
-                return !client.blockVolumes().getContinuousCopies(id).isEmpty();
+            public boolean accept(VolumeRestRep volume) {
+                if (volume.getProtection() == null) {
+                    return false;
+                }
+                MirrorRestRep mirrors = volume.getProtection().getMirrorRep();
+                if (mirrors == null || mirrors.getMirrors() == null || mirrors.getMirrors().isEmpty()) {
+                    return false;
+                }
+                return true;
             }
         });
         return createVolumeOptions(client, volumes);
@@ -2265,18 +2621,20 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     public List<AssetOption> getVolumesWithFullCopies(AssetOptionsContext ctx, URI project, String volumeOrConsistencyType) {
         final ViPRCoreClient client = api(ctx);
         if (isVolumeType(volumeOrConsistencyType)) {
-            List<VolumeRestRep> volumes = client.blockVolumes().findByProject(project, new DefaultResourceFilter<VolumeRestRep>() {
-                @Override
-                public boolean accept(VolumeRestRep volume) {
-                    if (!client.blockVolumes().getFullCopies(volume.getId()).isEmpty()
-                            && StringUtils.isEmpty(volume.getReplicationGroupInstance())) {
-                        return true;
-                    } else {
-                        return false;
-                    }
+            List<VolumeRestRep> volumes = findVolumesByProject(client, project);
+            List<VolumeRestRep> filteredVols = new ArrayList<>();
+            for (VolumeRestRep vol: volumes) {
+                if ( vol.getProtection() == null ||
+                        vol.getProtection().getFullCopyRep() == null ||
+                        vol.getProtection().getFullCopyRep().getFullCopyVolumes() == null ||
+                        vol.getProtection().getFullCopyRep().getFullCopyVolumes().isEmpty() ||
+                        ! StringUtils.isEmpty(vol.getReplicationGroupInstance())) {
+                    continue;
                 }
-            });
-            return createVolumeOptions(client, volumes);
+                filteredVols.add(vol);
+            }
+            log.info("Got volumes with full copies: [{}]", filteredVols.size());
+            return createVolumeOptions(client, filteredVols);
         } else {
             List<BlockConsistencyGroupRestRep> consistencyGroups = api(ctx).blockConsistencyGroups()
                     .search()
@@ -2285,6 +2643,26 @@ public class BlockProvider extends BaseAssetOptionsProvider {
 
             return createBaseResourceOptions(consistencyGroups);
         }
+    }
+
+    /**
+     * Find all volumes by a project
+     * @param client
+     * @param project
+     * @return  a list of volume REST representations.
+     */
+    private List<VolumeRestRep> findVolumesByProject(ViPRCoreClient client, URI project) {
+            log.info("Finding volumes by project {}", project);
+            List<SearchResultResourceRep> volRefs = client.blockVolumes().performSearchBy(SearchConstants.PROJECT_PARAM, project);
+            List<URI> ids = new ArrayList<>();
+            for (SearchResultResourceRep volRef: volRefs) {
+                ids.add(volRef.getId());
+            }
+
+            List<VolumeRestRep> volumes = client.blockVolumes().getByIds(ids, null);
+            log.info("Got volumes: [{}]", volumes.size());
+
+            return volumes;
     }
 
     @Asset("fullCopy")
@@ -3106,17 +3484,14 @@ public class BlockProvider extends BaseAssetOptionsProvider {
             getContinuousCopyOptionsForProject(AssetOptionsContext ctx, URI project, URI volumeId, ResourceFilter<BlockMirrorRestRep> filter) {
         ViPRCoreClient client = api(ctx);
         
-        VolumeRestRep volume = client.blockVolumes().get(volumeId);
-        
-        List<BlockMirrorRestRep> copies = client.blockVolumes().getContinuousCopies(volume.getId(), filter);
+        List<BlockMirrorRestRep> copies = client.blockVolumes().getContinuousCopies(volumeId, filter);
         return constructCopiesOptions(client, project, copies);
     }
     
     protected List<AssetOption> constructCopiesOptions(ViPRCoreClient client, URI project, List<BlockMirrorRestRep> copies) {
         List<AssetOption> options = Lists.newArrayList();
-        Map<URI, VolumeRestRep> volumeNames = getProjectVolumeNames(client, project);
         for (BlockMirrorRestRep copy : copies) {
-            options.add(new AssetOption(copy.getId(), getBlockObjectLabel(client, copy, volumeNames)));
+            options.add(new AssetOption(copy.getId(), getBlockObjectLabel(client, copy, null)));
         }
         AssetOptionsUtils.sortOptionsByLabel(options);
         return options;

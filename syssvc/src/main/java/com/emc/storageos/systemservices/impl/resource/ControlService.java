@@ -4,61 +4,64 @@
  */
 package com.emc.storageos.systemservices.impl.resource;
 
+import static com.emc.storageos.coordinator.client.model.Constants.CONTROL_NODE_ID_PATTERN;
+
 import java.io.File;
 import java.io.IOException;
 import java.net.URI;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
 
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
-import javax.ws.rs.*;
+import javax.ws.rs.DefaultValue;
+import javax.ws.rs.GET;
+import javax.ws.rs.POST;
+import javax.ws.rs.Path;
+import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.SecurityContext;
 
-import com.emc.storageos.coordinator.client.service.DrUtil;
-import com.emc.storageos.management.jmx.recovery.DbManagerOps;
-import com.emc.storageos.security.dbInfo.DbInfoUtils;
-import com.emc.storageos.services.util.Exec;
-import com.emc.storageos.services.util.FileUtils;
-import com.emc.storageos.services.util.PlatformUtils;
-import com.emc.storageos.systemservices.impl.ipreconfig.IpReconfigManager;
-import com.emc.vipr.model.sys.ClusterInfo;
-import com.emc.storageos.systemservices.impl.util.DbRepairStatusHandler;
-import com.emc.vipr.model.sys.ipreconfig.ClusterIpInfo;
-import com.emc.vipr.model.sys.ipreconfig.ClusterNetworkReconfigStatus;
-
-import com.emc.vipr.model.sys.recovery.DbOfflineStatus;
-import com.emc.vipr.model.sys.recovery.RecoveryPrecheckStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import com.sun.jersey.api.client.ClientHandlerException;
-import com.emc.vipr.model.sys.recovery.RecoveryStatus;
-import com.emc.vipr.model.sys.recovery.DbRepairStatus;
+import com.emc.storageos.coordinator.client.model.Constants;
+import com.emc.storageos.coordinator.client.model.PowerOffState;
+import com.emc.storageos.coordinator.client.service.DrUtil;
 import com.emc.storageos.security.audit.AuditLogManager;
 import com.emc.storageos.security.authentication.StorageOSUser;
 import com.emc.storageos.security.authorization.CheckPermission;
 import com.emc.storageos.security.authorization.Role;
+import com.emc.storageos.security.dbInfo.DbInfoUtils;
 import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.services.ServicesMetadata;
 import com.emc.storageos.services.util.AlertsLogger;
+import com.emc.storageos.services.util.Exec;
+import com.emc.storageos.services.util.FileUtils;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
-
-import static com.emc.storageos.coordinator.client.model.Constants.*;
-
-import com.emc.storageos.coordinator.client.model.Constants;
-import com.emc.storageos.coordinator.client.model.PowerOffState;
 import com.emc.storageos.systemservices.exceptions.LocalRepositoryException;
 import com.emc.storageos.systemservices.exceptions.SysClientException;
 import com.emc.storageos.systemservices.impl.client.SysClientFactory;
+import com.emc.storageos.systemservices.impl.ipreconfig.IpReconfigManager;
 import com.emc.storageos.systemservices.impl.property.PropertyManager;
+import com.emc.storageos.systemservices.impl.recovery.RecoveryManager;
 import com.emc.storageos.systemservices.impl.upgrade.CoordinatorClientExt;
 import com.emc.storageos.systemservices.impl.upgrade.LocalRepository;
+import com.emc.storageos.systemservices.impl.util.DbRepairStatusHandler;
 import com.emc.storageos.systemservices.impl.vdc.VdcManager;
-import com.emc.storageos.systemservices.impl.recovery.RecoveryManager;
+import com.emc.vipr.model.sys.ClusterInfo;
+import com.emc.vipr.model.sys.ipreconfig.ClusterIpInfo;
+import com.emc.vipr.model.sys.ipreconfig.ClusterNetworkReconfigStatus;
+import com.emc.vipr.model.sys.recovery.DbOfflineStatus;
+import com.emc.vipr.model.sys.recovery.DbRepairStatus;
+import com.emc.vipr.model.sys.recovery.RecoveryPrecheckStatus;
+import com.emc.vipr.model.sys.recovery.RecoveryStatus;
+import com.sun.jersey.api.client.ClientHandlerException;
 
 /**
  * Control service is used to
@@ -209,7 +212,7 @@ public class ControlService {
         final String dbDir = dataDir + "db/";
         final String geodbDir=dataDir +"geodb/";
         final String dbFile= dbDir + startupModeFile;
-        final String geodbFile=geodbDir + startupModeContent;
+        final String geodbFile=geodbDir + startupModeFile;
 
         ArrayList<String> cleanDb = new ArrayList<>();
         cleanDb.add("/usr/bin/rm");
@@ -574,6 +577,11 @@ public class ControlService {
             Long dbOfflineTime = DbInfoUtils.getDbOfflineTime(_coordinator.getCoordinatorClient(), Constants.DBSVC_NAME, nodeId);
             if (dbOfflineTime != null ) {
                 unvaliableNodeSet.add(nodeId);
+            } else {
+                dbOfflineTime = DbInfoUtils.getDbOfflineTime(_coordinator.getCoordinatorClient(), Constants.GEODBSVC_NAME, nodeId);
+                if (dbOfflineTime != null) {
+                    unvaliableNodeSet.add(nodeId);
+                }
             }
             try {
                 DbOfflineStatus dbOfflineStatus = SysClientFactory.getSysClient(_coordinator.getNodeEndpoint(nodeId)).get(SysClientFactory.URI_GET_DB_OFFLINE_STATUS,
@@ -619,6 +627,7 @@ public class ControlService {
         _log.info("Check db offline time");
         try {
             DbInfoUtils.checkDBOfflineInfo(_coordinator.getCoordinatorClient(), Constants.DBSVC_NAME , "/data/db", false);
+            DbInfoUtils.checkDBOfflineInfo(_coordinator.getCoordinatorClient(), Constants.GEODBSVC_NAME , "/data/geodb", false);
         }catch (IllegalStateException e){
             return new DbOfflineStatus(true);
         }

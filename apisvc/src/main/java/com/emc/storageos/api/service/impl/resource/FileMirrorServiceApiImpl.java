@@ -21,6 +21,7 @@ import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.ContainmentPrefixConstraint;
 import com.emc.storageos.db.client.constraint.PrefixConstraint;
 import com.emc.storageos.db.client.model.DataObject;
+import com.emc.storageos.db.client.model.FilePolicy;
 import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.model.FileShare.FileAccessState;
 import com.emc.storageos.db.client.model.NamedURI;
@@ -34,7 +35,6 @@ import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.VirtualPool.FileReplicationType;
-import com.emc.storageos.db.client.model.VpoolRemoteCopyProtectionSettings;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.fileorchestrationcontroller.FileDescriptor;
@@ -286,11 +286,11 @@ public class FileMirrorServiceApiImpl extends AbstractFileServiceApiImpl<FileMir
                 targetFsPrefix = cosCapabilities.getFileTargetCopyName();
             }
 
-            if (vpool.getFileReplicationType().equals(FileReplicationType.LOCAL.name())) {
+            if (FileReplicationType.LOCAL.name().equalsIgnoreCase(cosCapabilities.getFileReplicationType())) {
 
                 // Stripping out the special characters like ; /-+!@#$%^&())";:[]{}\ | but allow underscore character _
                 String varrayName = varray.getLabel().replaceAll("[^\\dA-Za-z\\_]", "");
-                fileLabelBuilder = new StringBuilder(targetFsPrefix).append("-target-" + varrayName);
+                fileLabelBuilder = new StringBuilder(targetFsPrefix).append("-localTarget");
                 _log.info("Target file system name {}", fileLabelBuilder.toString());
                 targetFileShare = prepareEmptyFileSystem(fileLabelBuilder.toString(), sourceFileShare.getCapacity(),
                         project, recommendation, tenantOrg, varray, vpool, targetVpool, flags, task);
@@ -304,23 +304,28 @@ public class FileMirrorServiceApiImpl extends AbstractFileServiceApiImpl<FileMir
 
             } else {
 
-                Map<URI, VpoolRemoteCopyProtectionSettings> settingMap = VirtualPool.getFileRemoteProtectionSettings(vpool, _dbClient);
-                VpoolRemoteCopyProtectionSettings protectionSettings = null;
-                List<VirtualArray> virtualArrayTargets = FileMirrorScheduler.getTargetVirtualArraysForVirtualPool(project, vpool,
-                        _dbClient, getPermissionsHelper());
-
                 // Source file system!!
                 preparedFileSystems.add(sourceFileShare);
 
+                List<VirtualArray> virtualArrayTargets = new ArrayList<VirtualArray>();
+                if (cosCapabilities.getFileReplicationTargetVArrays() != null
+                        & !cosCapabilities.getFileReplicationTargetVArrays().isEmpty()) {
+                    for (String strVarray : cosCapabilities.getFileReplicationTargetVArrays()) {
+                        virtualArrayTargets.add(_dbClient.queryObject(VirtualArray.class, URI.create(strVarray)));
+                    }
+                }
+
                 for (VirtualArray targetVArray : virtualArrayTargets) {
-                    protectionSettings = settingMap.get(targetVArray.getId());
-                    if (protectionSettings.getVirtualPool() != null) {
-                        targetVpool = _dbClient.queryObject(VirtualPool.class, protectionSettings.getVirtualPool());
+
+                    if (cosCapabilities.getFileReplicationTargetVPool() != null) {
+                        targetVpool = _dbClient.queryObject(VirtualPool.class, cosCapabilities.getFileReplicationTargetVPool());
+                    } else {
+                        targetVpool = vpool;
                     }
 
                     // Stripping out the special characters like ; /-+!@#$%^&())";:[]{}\ | but allow underscore character _
                     String varrayName = targetVArray.getLabel().replaceAll("[^\\dA-Za-z\\_]", "");
-                    fileLabelBuilder = new StringBuilder(targetFsPrefix).append("-target-" + varrayName);
+                    fileLabelBuilder = new StringBuilder(targetFsPrefix).append("-target");
                     _log.info("Target file system name {}", fileLabelBuilder.toString());
                     targetFileShare = prepareEmptyFileSystem(fileLabelBuilder.toString(), sourceFileShare.getCapacity(),
                             project, recommendation, tenantOrg, targetVArray, vpool, targetVpool, flags, task);
@@ -579,6 +584,44 @@ public class FileMirrorServiceApiImpl extends AbstractFileServiceApiImpl<FileMir
                 ContainmentPrefixConstraint.Factory.getFullMatchConstraint(FileShare.class, "project", project.getId(), label));
         if (!fileShareList.isEmpty()) {
             throw APIException.badRequests.duplicateLabel(label);
+        }
+    }
+
+    @Override
+    public void assignFilePolicyToFileSystem(FileShare fs, FilePolicy filePolicy, Project project, VirtualPool vpool,
+            VirtualArray varray, TaskList taskList, String task, List<Recommendation> recommendations,
+            VirtualPoolCapabilityValuesWrapper vpoolCapabilities) throws InternalException {
+        List<FileShare> fileList = null;
+        List<FileShare> fileShares = new ArrayList<>();
+
+        FileSystemParam fsParams = new FileSystemParam();
+        fsParams.setFsId(fs.getId().toString());
+        fsParams.setLabel(fs.getLabel());
+        fsParams.setVarray(fs.getVirtualArray());
+        fsParams.setVpool(fs.getVirtualPool());
+
+        TenantOrg tenant = _dbClient.queryObject(TenantOrg.class, project.getTenantOrg().getURI());
+
+        // Prepare the FileShares
+        fileList = prepareFileSystems(fsParams, task, taskList, project, tenant, null,
+                varray, vpool, recommendations, vpoolCapabilities, false);
+        fileShares.addAll(fileList);
+
+        // prepare the file descriptors
+        final List<FileDescriptor> fileDescriptors = prepareFileDescriptors(fileShares, vpoolCapabilities, null);
+        final FileOrchestrationController controller = getController(FileOrchestrationController.class,
+                FileOrchestrationController.FILE_ORCHESTRATION_DEVICE);
+        try {
+            // Execute the create mirror copies of file share!!!
+            controller.assignFilePolicyToFileSystem(filePolicy, fileDescriptors, task);
+        } catch (InternalException e) {
+            _log.error("Controller error when creating mirror filesystems", e);
+            failFileShareCreateRequest(task, taskList, fileShares, e.getMessage());
+            throw e;
+        } catch (Exception e) {
+            _log.error("Controller error when creating mirror filesystems", e);
+            failFileShareCreateRequest(task, taskList, fileShares, e.getMessage());
+            throw e;
         }
     }
 

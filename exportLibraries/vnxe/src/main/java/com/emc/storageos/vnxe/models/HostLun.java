@@ -13,7 +13,7 @@ public class HostLun extends VNXeBase {
     private int type;
     private int hlu;
     private VNXeBase lun;
-    private VNXeBase lunSnap;
+    private VNXeBase snap;
     private boolean isReadOnly;
 
     public VNXeBase getHost() {
@@ -48,12 +48,12 @@ public class HostLun extends VNXeBase {
         this.lun = lun;
     }
 
-    public VNXeBase getLunSnap() {
-        return lunSnap;
+    public VNXeBase getSnap() {
+        return snap;
     }
 
-    public void setLunSnap(VNXeBase lunSnap) {
-        this.lunSnap = lunSnap;
+    public void setSnap(VNXeBase snap) {
+        this.snap = snap;
     }
 
     public boolean getIsReadOnly() {
@@ -65,8 +65,8 @@ public class HostLun extends VNXeBase {
     }
 
     public static enum HostLUNTypeEnum {
-        LUN_SNAP(1),
-        LUN(2);
+        LUN_SNAP(2),
+        LUN(1);
 
         private int value;
 

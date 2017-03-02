@@ -4,12 +4,25 @@
  */
 package com.emc.storageos.workflow;
 
+import static com.google.common.collect.Collections2.filter;
+import static com.google.common.collect.Lists.newArrayList;
+
 import java.io.ObjectStreamField;
 import java.io.Serializable;
 import java.net.URI;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
 
-import com.google.common.base.Predicate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -18,9 +31,7 @@ import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
 import com.emc.storageos.volumecontroller.TaskCompleter;
-
-import static com.google.common.collect.Collections2.filter;
-import static com.google.common.collect.Lists.newArrayList;
+import com.google.common.base.Predicate;
 
 /**
  * A Workflow represents a sequence of steps that can be executed by Controllers to
@@ -55,8 +66,12 @@ public class Workflow implements Serializable {
     Boolean _suspendOnError = true; // suspend on error (rather than rollback)
     private WorkflowState _workflowState;
     Set<URI> _suspendSteps = new HashSet<URI>(); // Steps that initiate workflow suspend
+    private Boolean _rollingBackFromSuspend = false;  // Set during rollback initiated from suspend, transient
+    private Boolean _treatSuspendRollbackAsTerminate = false;
+    
 
     // Define the serializable, persistent fields save in ZK
+    
     private static final ObjectStreamField[] serialPersistentFields = {
             new ObjectStreamField("_orchControllerName", String.class),
             new ObjectStreamField("_orchMethod", String.class),
@@ -77,8 +92,9 @@ public class Workflow implements Serializable {
             new ObjectStreamField("_stepStatusMap", Map.class),
             new ObjectStreamField("_suspendOnError", Boolean.class),
             new ObjectStreamField("_workflowState", WorkflowState.class),
-            new ObjectStreamField("_suspendSteps", Set.class)
-    };
+            new ObjectStreamField("_suspendSteps", Set.class),
+            new ObjectStreamField("_treatSuspendRollbackAsTerminate", Boolean.class)    
+            };
 
     private static final Logger _log = LoggerFactory.getLogger(Workflow.class);
 
@@ -264,21 +280,36 @@ public class Workflow implements Serializable {
          *            Message from the controller.
          */
         synchronized void updateState(StepState newState, ServiceCode code, String message) {
-            this.state = newState;
-            this.message = message;
-            this.serviceCode = code;
-            if (newState == StepState.QUEUED || newState == StepState.CANCELLED) {
-                this.startTime = new Date();
-            }
-            if (newState == StepState.CANCELLED
-                    || newState == StepState.SUCCESS || newState == StepState.ERROR) {
+            if (this.state == StepState.SUSPENDED_ERROR && newState == StepState.ERROR) {
+                // If the current step state is SUSPENDED_ERROR and the new state is ERROR,
+                // then rollback of that suspended step has been initiated and we are moving the
+                // state of the execution step to error. In this case, we don't want override
+                // the code and message with the passed values, as these come from the rollback
+                // step state. So, we set just the new state and end time. Additionally, we 
+                // don't want the suspended message to be part of the final error message for
+                // the step, so we extract that part of the message so we only see the actual 
+                // error that caused the suspension when rollback completes.
+                this.state = newState;
                 this.endTime = new Date();
+                String suspendedMsg = String.format("Message: %s", WorkflowService.SUSPENDED_MSG);
+                this.message = this.message.substring(suspendedMsg.length());
+            } else {
+                this.state = newState;
+                this.serviceCode = code;
+                this.message = message;
+                if (newState == StepState.QUEUED || newState == StepState.CANCELLED) {
+                    this.startTime = new Date();
+                }
+                if (newState == StepState.CANCELLED
+                        || newState == StepState.SUCCESS || newState == StepState.ERROR) {
+                    this.endTime = new Date();
+                }
+                // SUSPENDED state doesn't need either start nor endTime specified
+                this.serviceCode = code == null ? newState.getServiceCode() : code;
             }
-            // SUSPENDED state doesn't need either start nor endTime specified
-            this.serviceCode = code == null ? newState.getServiceCode() : code;
             this.notifyAll();
         }
-
+        
         /**
          * Block the calling thread until this step reaches a terminal state.
          */
@@ -315,6 +346,11 @@ public class Workflow implements Serializable {
             byte[] bytes = GenericSerializer.serialize(this);
         }
     }
+    
+    /**
+     * Defines a NULL method, either for execution or rollback. The null method always returns "Step Succeeded.".
+     */
+    static final public Method NULL_METHOD = new Workflow.Method("_null_method_");
 
     /**
      * The interface that must be provided as the workflow callback handler.
@@ -398,6 +434,9 @@ public class Workflow implements Serializable {
      */
     private void methodNameValidator(Class controllerClass, String methodName)
             throws WorkflowException {
+        if (methodName.equals(NULL_METHOD.methodName)) {
+            return;
+        }
         java.lang.reflect.Method[] methods = controllerClass.getMethods();
         for (java.lang.reflect.Method method : methods) {
             if (method.getName().equals(methodName)) {
@@ -871,7 +910,6 @@ public class Workflow implements Serializable {
         errorStatePriorities.put(StepState.ERROR, 0);
         errorStatePriorities.put(StepState.SUSPENDED_NO_ERROR, 1);
         errorStatePriorities.put(StepState.SUSPENDED_ERROR, 1);
-        errorStatePriorities.put(StepState.CANCELLED, 2);
 
         // Filter out non-error statuses.
         List<StepStatus> statuses = newArrayList(filter(statusMap.values(), new Predicate<StepStatus>() {
@@ -901,9 +939,39 @@ public class Workflow implements Serializable {
                     return result;
                 }
 
-                long aTime = a.endTime.getTime();
-                long bTime = b.endTime.getTime();
-                return Long.compare(aTime, bTime);
+                Date aTime = a.endTime;
+                Date bTime = b.endTime;
+                
+                // Comparison based on end time is as follows:
+                // If a step hasn't finished yet, its endTime is null.
+                // That time is interpreted as "infinity" for comparison purposes below.
+                if (aTime != null && bTime == null) {
+                    return -1; // b hasn't ended, so b has an infinite time in comparison
+                } else if (aTime == null && bTime != null) {
+                    return 1; // a hasn't ended, so a is greater than b
+                } else if (aTime == null && bTime == null) {
+                    // If neither step has a valid end time, they're both in flight.
+                    // So compare their start times instead.
+                    Date cTime = a.startTime;
+                    Date dTime = b.startTime;
+
+                    // Comparison based on start time is as follows:
+                    // If a step hasn't started yet, its startTime is null.
+                    // That time is interpreted as ZERO for comparison purposes below.
+                    if (cTime != null && dTime == null) {
+                        return 1; // b (dTime) hasn't started, so b is zero and a is greater
+                    } else if (cTime == null && dTime != null) {
+                        return -1; // a (cTime) hasn't started, so b is greater than a
+                    } else if (cTime == null && dTime == null) {
+                        // no start or end times on neither, return equal.
+                        return 0;
+                    }
+
+                    // Both start times are valid, so sort based on those values
+                    return Long.compare(cTime.getTime(), dTime.getTime());
+                }
+                
+                return Long.compare(aTime.getTime(), bTime.getTime());
             }
         });
 
@@ -1046,6 +1114,22 @@ public class Workflow implements Serializable {
             return;
         }
         step.suspendedMessage = suspendedMessage;
+    }
+
+    public boolean isTreatSuspendRollbackAsTerminate() {
+        return _treatSuspendRollbackAsTerminate;
+    }
+
+    public void setTreatSuspendRollbackAsTerminate(boolean treatSuspendRollbackAsTerminate) {
+        this._treatSuspendRollbackAsTerminate = treatSuspendRollbackAsTerminate;
+    }
+
+    public boolean isRollingBackFromSuspend() {
+        return _rollingBackFromSuspend;
+    }
+
+    public void setRollingBackFromSuspend(boolean rollingBackFromSuspend) {
+        this._rollingBackFromSuspend = rollingBackFromSuspend;
     }
 
 }

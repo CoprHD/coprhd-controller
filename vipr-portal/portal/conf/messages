@@ -71,6 +71,7 @@ nav.file.filesystems=File Systems
 nav.file.snapshots=File Snapshots
 nav.file.vnasservers=vNas Servers
 nav.file.virtualPools=File Virtual Pools
+nav.file.protectionPolicies=File Protection Policy Templates
 nav.object.virtualPools=Object Virtual Pools
 nav.computeVirtualPools=Compute Virtual Pools
 nav.system=System
@@ -554,6 +555,7 @@ initiator.node.help=Node WWN for Fibre-Channel ports, empty for iSCSI
 initiator.port=Port
 initiator.port.help=Port WWN for Fibre-Channel ports, IQN for iSCSI
 initiator.deleteConfirm=Are you sure you want to delete the selected Initiator(s)?
+initiator.prerequisite=Before adding an initiator to a host, rediscover the Fabric Manager and verify the initiator is part of the correct Network. This allows ViPR Controller to perform automatic export updates.
 
 cluster.name=Cluster
 cluster.discovered=Discovered
@@ -732,6 +734,7 @@ CustomConfigs.configType.PortAllocationMetricsEnabled=Metrics Enabled
 CustomConfigs.configType.PortAllocationEmaFactor=Weight for Exponential Moving Average
 CustomConfigs.configType.PortAllocationUsePrezonedPortsFrontEnd=Zoned Ports Favored For Host Exports
 CustomConfigs.configType.PortAllocationUsePrezonedPortsBackEnd=Zoned Ports Used For Backend Exports
+CustomConfigs.configType.PortAllocationSwitchAffinityEnabled=Switch Affinity Enabled
 CustomConfigs.configType.VNXHostStorageGroupName=Host Storage Group Name
 CustomConfigs.configType.VNXClusterStorageGroupName=Cluster Storage Group Name
 CustomConfigs.configType.VMAXHostMaskingViewName=Host Masking View Name
@@ -1310,23 +1313,33 @@ project.owner.error.invalid=Not a valid username.
 
 schedulepolicies.policyName=Name
 schedulepolicies.policyType=Type
-schedulepolicies.list.title=Schedule Policies
-schedulepolicies.deleted=Schedule Policies deleted successfully.
-schedulepolicies.deleteConfirm=Are you sure you want to delete these Policies?
-schedulepolicies.create.title=Create Policy
-schedulepolicies.edit.title=Edit Policy
+schedulepolicies.appliedAt=Applied At
+schedulepolicies.vPools=vPool(s)
+schedulepolicies.projects=Project(s)
+schedulepolicies.priority=Priority
+schedulepolicies.description=Description
+schedulepolicies.list.title=File Protection Policy Templates
+FileProtectionPolicies.list.title=File Protection Policy Templates
+schedulepolicies.deleted=File Protection Policy Templates deleted successfully.
+schedulepolicies.deleteConfirm=Are you sure you want to delete these policy templates?
+schedulepolicies.create.title=Create File Protection Policy Template
+schedulepolicies.edit.title=Edit File Protection Policy Template
+schedulepolicies.saved=File Protection Policy '%s' saved successfully.
 schedulePolicy.policyName=Name
 schedulePolicy.policyType=Type
-schedulePolicy.scheduleTime=Schedule Time
+schedulePolicy.scheduleTime=Run/Start at
 schedulePolicy.scheduleTime.help=(HH:MM)
-schedulePolicy.repeat=Generate Snapshot every
+schedulePolicy.repeat=Run every
 schedulePolicy.dayOfWeek=Day of Week
 schedulePolicy.dayOfMonth=Day of Month
 schedulePolicy.daily=Day(s)
+schedulePolicy.hour=Hour(s)
+schedulePolicy.minute=Minute(s)
 schedulePolicy.weekly=Week(s)
 schedulePolicy.monthly=Month(s)
 schedulePolicy.frequency=Frequency
-schedulePolicy.snapshot=File Snapshot Schedule
+schedulePolicy.snapshot=File Snapshot Policy
+schedulePolicy.replication= File Replication Policy
 schedulePolicy.hours=Hour(s)
 schedulePolicy.days=Day(s)
 schedulePolicy.weeks=Weeks(s)
@@ -1336,7 +1349,62 @@ schedulePolicy.expire.never=Never expires
 schedulePolicy.expire.value=Snapshot expires
 schedulePolicy.expiration=Snapshot Expiration
 schedulePolicy.policyName.error.required=Policy name must be supplied
+schedulePolicy.snapshotNamePattern=Snapshot Name Pattern
+schedulePolicy.description=Description
+schedulePolicy.group.accessControl=Access Control
+schedulePolicy.enableTenants=Grant Access to Tenants
+schedulePolicy.tenants=Tenants
+schedulePolicy.replicationType=Replication Type
+schedulePolicy.replicationCopyType=Copy Type
+schedulePolicy.priority=Priority
+schedulePolicy.replicationLocal=Local
+schedulePolicy.replicationRemote=Remote
+schedulePolicy.replicationAsync=Asynchronous
+schedulePolicy.replicationSemiSync=Semi Synchronous
+schedulePolicy.replicationSync=Synchronous
+schedulePolicy.priorityLow=Low
+schedulePolicy.priorityHigh=High
 filePolicy.name=Policy Name
+schedule.policies.unknown=Unknown File Policy
+schedulePolicy.appliedAt=Apply Policies at
+schedulePolicy.numWorkerThreads=Worker Threads
+
+assignPolicy.assign.title=Policy Template Assignment
+assignPolicy.unassign.title=Policy Template Unassignment
+assignPolicy.policyName=Policy
+assignPolicy.appliedAt=Apply Policies at
+assignPolicy.project.applyAll=Apply for all applicable Projects
+assignPolicy.project.applySpecific=Apply for specific Projects
+assignPolicy.vpool.applyAll=Apply for all applicable vPools
+assignPolicy.vpool.applySpecific=Apply for specific vPools
+
+assignPolicy.applySpecificProjects=
+assignPolicy.applySpecificvPools=
+
+assignPolicy.applyToAllProjects=Projects
+assignPolicy.applyToAllVpools=Virtual Pools
+assignPolicy.projects=Projects
+assignPolicy.virtualPools=Virtual Pools
+assignPolicy.vpool=Virtual Pool
+assignPolicy.request.submit=File Protection Policy '%s' assignment request submitted successfully
+unAssignPolicy.request.submit=File Protection Policy '%s' unassignment request submitted successfully
+assignPolicy.request.saved=File Protection Policy '%s' assignment successful
+unAssignPolicy.request.saved=File Protection Policy '%s' unassignment successful
+assignPolicy.applyAtProject=Project
+assignPolicy.applyAtVPool=Virtual Pool
+assignPolicy.applyAtFs=File System
+assignPolicy.sourceVArray=Source vArray
+assignPolicy.targetVArray=Target vArray
+
+assignPolicy.project.availableVpool=Available vPools
+assignPolicy.project.appliedVpool=Applied vPools
+assignPolicy.targetVarray=Target vArray
+assignPolicy.vArray.source=Source vArray
+assignPolicy.replicationTopology=Replication Site(s)
+
+replicationTopology.title=Select Replication Site(s)
+replicationTopology.sourceVArray=Source Virtual Array
+replicationTopology.targetVArray=Target Virtual Array
 
 vdcs.list.title=Virtual Data Centers
 vdcs.edit.title=Edit Virtual Data Center
@@ -2174,6 +2242,7 @@ storageArrayPorts.initiatorLoad=Initiator Load
 storageArrayPorts.volumeLoad=Volume Load
 storageArrayPort.portTypes.IP=IP
 storageArrayPort.portTypes.FC=Fiber Channel
+storageArrayPorts.isDRPort=DR Port
 
 StorageSystems.savedPort=Saved '%s'
 
@@ -2375,6 +2444,12 @@ vpool.remoteVirtualArray=Virtual Array
 vpool.remoteVirtualPool=Virtual Pool
 vpool.replicationType=Replication Type
 vpool.scheduleSnapshots=Schedule Snapshots
+
+vpool.replicationSupported=Replication
+vpool.snapshotSupported=Snapshots
+vpool.allowPolicyApplyAtProject=Allow Policies at Project
+vpool.allowPolicyApplyAtFS=Allow Policies at File System
+
 # File Replication
 replicationCopy.virtualArray=Virtual Array
 replicationCopy.virtualPool=Virtual Pool
@@ -2610,7 +2685,7 @@ consistencyGroups.edit.title=Edit Consistency Group
 consistencyGroups.create.title=New Consistency Group
 consistencyGroup.name=Name
 consistencyGroup.arrayConsistency=Enable Array Consistency
-consistencyGroup.name.help=Use only alphanumeric characters for groups intended for use with SRDF
+consistencyGroup.name.help=Use only alphanumeric characters for groups
 consistencyGroup.arrayConsistency.help=Disable check for VPLEX/RP/VPLEX+RP Application Support
 consistencyGroups.saved=Consistency Group %s Saved
 consistencyGroups.name=Name
@@ -2699,7 +2774,7 @@ configProperties.backup.testSuccessful=Test external server settings successful
 configProperties.backup.credential.invalid=Bad user credential to access external server
 
 configProperties.syslog.settings=Syslog Settings
-configProperties.syslog.servers=Remote Server Settings
+configProperties.syslog.servers=Remote Syslog Server Settings
 configProperties.syslog.logs=Log Settings
 configProperties.syslog.setToZero.ip=Required ip value is empty.
 configProperties.syslog.setToZero.port=Required port value is empty.
@@ -2812,6 +2887,15 @@ adminDashboard.blockCapacity=Block
 adminDashboard.object=Object
 adminDashboard.blockFileFreeCapacity=Free Block/File/Object
 adminDashboard.disasterRecovery=System Disaster Recovery
+adminDashboard.backupStatus=Backup Status
+adminDashboard.backupStatus.none=NA
+adminDashboard.lastSuccessfulBackup=Last Successful Backup
+adminDashboard.lastManualBackup=Last Manual Backup
+adminDashboard.lastScheduledBackup=Last Scheduled Backup
+adminDashboard.nextScheduledBackup=Next Scheduled Backup
+adminDashboard.nextScheduledBackup.disabled=Scheduled backup is disabled
+adminDashboard.lastUploadStatus=Last Upload Status
+adminDashboard.lastUploadStatus.notConfigured=External server is not configured
 
 license.model.ViPR_Controller=ViPR Controller
 license.model.ViPR_Object=ViPR Object
@@ -3128,7 +3212,8 @@ orders.createdDate=Date Submitted
 orders.scheduledTime=Scheduled Time
 orders.submittedBy=Submitted By
 orders.searchEmpty=No Matching Orders
-orders.maxDays=Showing orders from the last
+orders.maxDays=Showing orders from
+orders.maxDays.last=the last
 orders.1days=Day
 orders.7days=Week
 orders.14days=2 Weeks
@@ -3140,6 +3225,19 @@ orders.startDate=Start Date
 orders.endDate=End Date
 requestSearch.placeholder=Search for Orders...
 orders.warning=Based on the current filter, %s orders were found in the database. A maximum of %s orders are displayed here.
+orders.delete=Delete Orders
+orders.delete.description=Click Confirm to delete the selected (checked) orders.
+orders.delete.all=All rows are checked, all <b style="color:red">%s</b> orders will be deleted.
+orders.delete.all.threshold=(Only %,d orders could be deleted done in every five days).
+orders.delete.help=We strongly recommend that you download the orders before deleting them. <p>Only one 'Download/Delete' orders job is allowed at any given time. Only orders whose status are in '%s' can be deleted.</p>
+orders.delete.submitted=Orders deletion submitted successfully.
+orders.delete.status=Deleting orders from %s to %s is in progress: %s of %s orders have been successfully deleted, %s orders failed.
+orders.download=Download Orders
+orders.download.description=Click Confirm to delete the selected (checked) orders.
+orders.download.all=All rows are checked, all <b style="color:red">%s</b> orders will be downloaded.
+orders.download.help=Only one 'Download/Delete' orders job is allowed at any given time.
+orders.download.status=Downloading orders from %s to %s is in progress: %s of %s orders have been successfully downloaded, %s orders failed.
+orders.download.status.notime=Downloading orders is in progress: %s of %s orders have been successfully downloaded, %s orders failed.
 
 catalog.corrupted-service.title=Corrupted Service
 catalog.corrupted-service.description=Unable to find this catalog service - it may have been removed or is configured incorrectly. You can still view the order details below.
@@ -4144,13 +4242,18 @@ button.ipsec.rotate.keys=Rotate IPsec Key
 button.synchronize=Synchronize
 button.syncOptions=Sync Options
 selectOne.chooseOption=-- Please Choose --
+button.assignPolicies=Assign Policy
+button.unassignPolicies=Unassign Policy
 
-button.mirroring.start=Start
+button.mirroring.refresh=Refresh
 button.mirroring.stop=Stop
 button.mirroring.pause=Pause
 button.mirroring.resume=Resume
 
 button.driverupload=Upload Driver
+
+button.setDR=Set as DR Port
+button.unsetDR=Unset as DR Port
 
 common.yes=Yes
 common.no=No
@@ -4924,6 +5027,9 @@ gettingStarted.incompletesteps.text=You must complete all prerequisite steps to 
 gettingStarted.popover=The Guide has been closed. <br/> Click Guide to return to it at any time.
 gettingStarted.step.popover=Please complete this step then click the arrow to continue.
 gettingStarted.vpool.allflash.desc=Virtual Pool for All-Flash Storage created by Getting Started Guide
-gettingStarted.vpool.vmax.desc=Virtual Pool for EMC VMAX All-Flash Storage created by Getting Started Guide
-gettingStarted.vpool.xio.desc=Virtual Pool for EMC XtremIO Storage created by Getting Started Guide
-gettingStarted.vpool.unity.desc=Virtual Pool for EMC UNITY Storage created by Getting Started Guide
+gettingStarted.vpool.vmax.desc=Virtual Pool for Dell EMC VMAX All-Flash Storage created by Getting Started Guide
+gettingStarted.vpool.xio.desc=Virtual Pool for Dell EMC XtremIO Storage created by Getting Started Guide
+gettingStarted.vpool.unity.desc=Virtual Pool for Dell EMC UNITY Storage created by Getting Started Guide
+
+# Export Path Adjustment
+exportPathAdjustment.modal.title=Export Path Adjustment Preview

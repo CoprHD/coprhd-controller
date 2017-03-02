@@ -9,6 +9,8 @@ import java.beans.Transient;
 import java.net.URI;
 
 import com.emc.storageos.db.client.model.ExportGroup.ExportGroupType;
+import com.emc.storageos.db.client.util.StringSetUtil;
+import com.emc.storageos.model.block.export.ExportPathParameters;
 
 @Cf("ExportPathParams")
 public class ExportPathParams extends DiscoveredDataObject {
@@ -59,6 +61,31 @@ public class ExportPathParams extends DiscoveredDataObject {
         this.pathsPerInitiator = pathsPerInitiator;
         this.exportGroupType = type.toString();
         this.maxInitiatorsPerPort = 1;
+    }
+    
+    /**
+     * Constructor that will make ExportPathParams form an ExportPathParameters structure and ExportGroup
+     * @param modelPathParameters -- model ExportPathParameters structure
+     * @param exportGroup -- ExportGroup db object
+     */
+    public ExportPathParams(ExportPathParameters modelPathParameters, ExportGroup exportGroup) {
+       this.maxPaths = modelPathParameters.getMaxPaths();
+       if (this.maxPaths == null) {
+           this.maxPaths = defaultParams.getMaxPaths();
+       }
+       this.minPaths = modelPathParameters.getMinPaths();
+       if (this.minPaths == null) {
+           this.minPaths = defaultParams.getMinPaths();
+       }
+       this.pathsPerInitiator = modelPathParameters.getPathsPerInitiator();
+       if (this.pathsPerInitiator == null) {
+           this.pathsPerInitiator = defaultParams.getPathsPerInitiator();
+       }
+       this.exportGroupType = exportGroup.getType();
+       this.maxInitiatorsPerPort = 1;
+       if (modelPathParameters.getStoragePorts() != null) {
+           this.storagePorts = StringSetUtil.uriListToStringSet(modelPathParameters.getStoragePorts());
+       }
     }
     
     public String toString() {

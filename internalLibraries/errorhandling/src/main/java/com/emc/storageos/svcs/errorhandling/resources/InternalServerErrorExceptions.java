@@ -112,8 +112,8 @@ public interface InternalServerErrorExceptions {
     public InternalServerErrorException attachmentSizeError(final long currentSize,
             final long maxSize);
 
-    @DeclareServiceCode(ServiceCode.SYS_INTERNAL_ERROR)
-    public InternalServerErrorException logCollectionTimeout(final long maxTimeMins);
+    @DeclareServiceCode(ServiceCode.SYS_LOG_COLLECTING_TIMEOUT)
+    public InternalServerErrorException logCollectionTimeout();
 
     @DeclareServiceCode(ServiceCode.API_INTERNAL_SERVER_ERROR)
     public InternalServerErrorException genericApisvcError(final String message, final Throwable cause);

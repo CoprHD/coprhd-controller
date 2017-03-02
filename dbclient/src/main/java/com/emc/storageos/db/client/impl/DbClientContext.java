@@ -62,8 +62,8 @@ public class DbClientContext {
     private static final int MAX_QUERY_RETRY = 5;
     private static final int QUERY_RETRY_SLEEP_SECONDS = 1000;
     private static final String LOCAL_HOST = "localhost";
-    private static final int DB_THRIFT_PORT = 9160;
-    private static final int GEODB_THRIFT_PORT = 9260;
+    public static final int DB_THRIFT_PORT = 9160;
+    public static final int GEODB_THRIFT_PORT = 9260;
     private static final String KEYSPACE_NETWORK_TOPOLOGY_STRATEGY = "NetworkTopologyStrategy";
     private static final int DEFAULT_CONSISTENCY_LEVEL_CHECK_SEC = 30;
 

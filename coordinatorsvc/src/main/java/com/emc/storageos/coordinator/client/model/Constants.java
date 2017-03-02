@@ -130,6 +130,7 @@ public interface Constants {
     public static final String STARTUPMODE_RESTORE_REINIT = "restorereinit";
 
     public static final String NODE_RECOVERY_STATUS = "recovery";
+    public static final String BACKUP_OPERATION_STATUS = "backupOperationStatus";
 
     public static final String VDC_HEART_BEATER = "vdcHeartbeater";
 

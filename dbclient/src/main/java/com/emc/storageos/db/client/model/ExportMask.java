@@ -94,6 +94,7 @@ public class ExportMask extends DataObject {
         ready,              // export mask is created
     }
 
+    @RelationIndex(cf = "RelationIndex", type = StorageSystem.class)
     @Name("storageDevice")
     public URI getStorageDevice() {
         return _storageDevice;
@@ -667,7 +668,7 @@ public class ExportMask extends DataObject {
                     (_userAddedVolumes == null ||
                     !_userAddedVolumes.containsKey(normalizedWWN))) {
                 String hluStr = ExportGroup.LUN_UNASSIGNED_STR;
-                Integer hlu = volumeWWNs.get(normalizedWWN);
+                Integer hlu = volumeWWNs.get(wwn);
                 if (hlu != null) {
                     hluStr = hlu.toString();
                 }

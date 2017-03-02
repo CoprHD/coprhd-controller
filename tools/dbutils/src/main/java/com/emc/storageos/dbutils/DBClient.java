@@ -63,6 +63,7 @@ import javax.xml.transform.stream.StreamResult;
 import org.apache.commons.beanutils.BeanUtils;
 import org.apache.commons.beanutils.ConvertUtils;
 import org.apache.commons.beanutils.converters.CalendarConverter;
+import org.apache.commons.beanutils.converters.DateConverter;
 import org.apache.commons.lang3.StringUtils;
 import org.joda.time.DateTime;
 import org.slf4j.Logger;
@@ -692,7 +693,7 @@ public class DBClient {
                 log.info("Force to delete object {} that can't be deleted", id);
             }
 
-            _dbClient.removeObject(object);
+            _dbClient.internalRemoveObjects(object);
             return true;
         }
 
@@ -1386,6 +1387,7 @@ public class DBClient {
                 DataObject newObject = queryObject.getClass().newInstance();
                 newObject.trackChanges();
                 ConvertUtils.register(new CalendarConverter(null), Calendar.class);
+                ConvertUtils.register(new DateConverter(null), Date.class);
                 BeanUtils.copyProperties(newObject, queryObject);
 
                 // special change tracking for customized types

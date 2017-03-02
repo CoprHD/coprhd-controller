@@ -27,6 +27,8 @@ import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.StorageSystem;
+import com.emc.storageos.db.client.model.StringSet;
+import com.emc.storageos.db.client.model.StringSetMap;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.util.CommonTransformerFunctions;
 import com.emc.storageos.db.client.util.StringSetUtil;
@@ -83,6 +85,103 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
             BlockStorageDevice device, StorageSystem storage, ExportGroup exportGroup,
             List<URI> initiatorURIs, Map<URI, Integer> volumeMap, boolean zoningStepNeeded, String token) throws Exception {
         return false;
+    }
+
+    /**
+     * This method is different than findAndUpdateFreeHLUsForClusterExport(). It is
+     * a common method which each Orchestrator can call and make use of.
+     * 
+     * Finds the next available HLU for cluster export by querying the cluster's hosts'
+     * used HLUs and updates the volumeHLU map with free HLUs.
+     *
+     * @param storage the storage system
+     * @param exportGroup the export group
+     * @param initiatorURIs the initiator uris
+     * @param volumeMap the volume HLU map
+     */
+    public void findUpdateFreeHLUsForClusterExport(StorageSystem storage, ExportGroup exportGroup,
+            List<URI> initiatorURIs, Map<URI, Integer> volumeMap) {
+        if (exportGroup.forCluster() && volumeMap.values().contains(ExportGroup.LUN_UNASSIGNED)
+                && ExportUtils.systemSupportsConsistentHLUGeneration(storage)) {
+            _log.info("Find and update free HLUs for Cluster Export START..");
+            /**
+             * Group the initiators by Host. For each Host, call device.findHLUsForInitiators() to get used HLUs.
+             * Add all hosts's HLUs to a Set.
+             * Get the maximum allowed HLU for the storage array.
+             * Calculate the free lowest available HLUs.
+             * Update the new values in the VolumeHLU Map.
+             */
+            Set<Integer> usedHlus = findHLUsForClusterHosts(storage, exportGroup, initiatorURIs);
+            Integer maxHLU = ExportUtils.getMaximumAllowedHLU(storage);
+            Set<Integer> freeHLUs = ExportUtils.calculateFreeHLUs(usedHlus, maxHLU);
+
+            ExportUtils.updateFreeHLUsInVolumeMap(volumeMap, freeHLUs);
+
+            _log.info("Find and update free HLUs for Cluster Export END.");
+        } else {
+            _log.info("Find and update free HLUs is not required to run. HLU consistency is not guaranteed.");
+        }
+    }
+
+    /**
+     * Find HLUs for cluster hosts.
+     *
+     * @param storage the storage
+     * @param exportGroup the export group
+     * @param initiatorURIs the initiator uris
+     * @return the used HLUs
+     */
+    private Set<Integer> findHLUsForClusterHosts(StorageSystem storage, ExportGroup exportGroup, List<URI> initiatorURIs) {
+        Map<String, List<URI>> computeResourceToInitiators = mapInitiatorsToComputeResource(exportGroup, initiatorURIs);
+        Set<Integer> usedHlus = new HashSet<Integer>();
+        for (Entry<String, List<URI>> entry : computeResourceToInitiators.entrySet()) {
+            List<URI> hostInitiatorURIs = entry.getValue();
+            List<String> initiatorNames = new ArrayList<String>();
+            Map<String, URI> portNameToInitiatorURI = new HashMap<String, URI>();
+            List<URI> hostURIs = new ArrayList<URI>();
+            processInitiators(exportGroup, hostInitiatorURIs, initiatorNames, portNameToInitiatorURI, hostURIs);
+            queryHostInitiatorsAndAddToList(initiatorNames, portNameToInitiatorURI, initiatorURIs, hostURIs);
+
+            Set<Integer> hostUsedHlus = getDevice().findHLUsForInitiators(storage, initiatorNames, false);
+            usedHlus.addAll(hostUsedHlus);
+        }
+        return usedHlus;
+    }
+
+    /**
+     * Validates if there is a HLU conflict between cluster volumes and the host volumes.
+     * 
+     * @param storage the storage
+     * @param exportGroup the export group
+     * @param newInitiatorURIs the host initiators to be added to the export group
+     **/
+    public void checkForConsistentLunViolation(StorageSystem storage, ExportGroup exportGroup, List<URI> newInitiatorURIs) {
+
+        Map<String, Integer> volumeHluPair = new HashMap<String, Integer>();
+        // For 'add host to cluster' operation, validate and fail beforehand if HLU conflict is detected
+        if (exportGroup.forCluster() && exportGroup.getVolumes() != null
+                && ExportUtils.systemSupportsConsistentHLUGeneration(storage)) {
+            // get HLUs from ExportGroup as these are the volumes that will be exported to new Host.
+            Collection<String> egHlus = exportGroup.getVolumes().values();
+            Collection<Integer> clusterHlus = Collections2.transform(egHlus, CommonTransformerFunctions.FCTN_STRING_TO_INTEGER);
+
+            List<Initiator> initiators = _dbClient.queryObject(Initiator.class, newInitiatorURIs);
+            Collection<String> initiatorNames = Collections2.transform(initiators, CommonTransformerFunctions.fctnInitiatorToPortName());
+            Set<Integer> newHostUsedHlus = getDevice().findHLUsForInitiators(storage, new ArrayList<String>(initiatorNames), false);
+
+            // newHostUsedHlus now will contain the intersection of the two Set of HLUs which are conflicting one's
+            newHostUsedHlus.retainAll(clusterHlus);
+            if (!newHostUsedHlus.isEmpty()) {
+                _log.info("Conflicting HLUs: {}", newHostUsedHlus);
+                for (Map.Entry<String, String> entry : exportGroup.getVolumes().entrySet()) {
+                    Integer hlu = Integer.valueOf(entry.getValue());
+                    if (newHostUsedHlus.contains(hlu)) {
+                        volumeHluPair.put(entry.getKey(), hlu);
+                    }
+                }
+                throw DeviceControllerException.exceptions.addHostHLUViolation(volumeHluPair);
+            }
+        }
     }
 
     /**
@@ -222,6 +321,7 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
 
         boolean anyOperationsToDo = false;
         Map<String, Set<URI>> matchingExportMaskURIs = device.findExportMasks(storage, portNames, false);
+
         if (matchingExportMaskURIs != null && !matchingExportMaskURIs.isEmpty()) {
             // There were some exports out there that already have some or all of the
             // initiators that we are attempting to add. We need to only add
@@ -1440,13 +1540,14 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
         // currently zoned to ports. The method generateExportMaskAddInitiatorsWorkflow will
         // allocate additional ports for the newInitiators to be processed.
         // These will be zoned and then subsequently added to the MaskingView / ExportMask.
+        Set<URI> volumeURIs = new HashSet<URI>(StringSetUtil.stringSetToUriList(exportMask.getUserAddedVolumes().values()));
+        String stepId = generateExportMaskAddInitiatorsWorkflow(workflow, null, storageSystem,
+                exportGroup, exportMask, newInitiators, volumeURIs, token);
         Map<URI, List<URI>> zoneMasksToInitiatorsURIs = new HashMap<URI, List<URI>>();
         zoneMasksToInitiatorsURIs.put(exportMask.getId(), newInitiators);
-        String zoningStep = generateZoningAddInitiatorsWorkflow(workflow, null,
+        generateZoningAddInitiatorsWorkflow(workflow, stepId,
                 exportGroup, zoneMasksToInitiatorsURIs);
-        Set<URI> volumeURIs = new HashSet<URI>(StringSetUtil.stringSetToUriList(exportMask.getUserAddedVolumes().values()));
-        generateExportMaskAddInitiatorsWorkflow(workflow, zoningStep, storageSystem,
-                exportGroup, exportMask, newInitiators, volumeURIs, token);
+
     }
 
     public void exportGroupChangePolicyAndLimits(URI storageURI,
@@ -1462,4 +1563,89 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
         throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
     }
 
+    @Override
+    public void portRebalance(URI storageSystem, URI exportGroupURI, URI varray, URI exportMaskURI, 
+            Map<URI, List<URI>> adjustedPaths,
+            Map<URI, List<URI>> removedPaths, boolean isAdd, String token) throws Exception
+    {
+        String workflowKey = "exportMaskExportPathAdjustment";
+        if (_workflowService.hasWorkflowBeenCreated(token, workflowKey)) {
+            return;
+        }
+        Workflow workflow = _workflowService.getNewWorkflow(
+                MaskingWorkflowEntryPoints.getInstance(),
+                workflowKey, false, token);
+        ExportOrchestrationTask taskCompleter = new ExportOrchestrationTask(exportGroupURI, token);
+        try {
+            StorageSystem storage = _dbClient.queryObject(StorageSystem.class,
+                    storageSystem);
+
+            ExportMask exportMask = _dbClient.queryObject(ExportMask.class, exportMaskURI);
+            
+            if (isAdd) {
+                Map<URI, List<URI>> newPaths = getNewPathsForExportMask(exportMask, adjustedPaths);
+                generateExportMaskAddPathsWorkflow(workflow, storage, exportGroupURI, exportMaskURI,
+                        newPaths, null);
+            } else {
+                generateExportMaskRemovePathsWorkflow(workflow, storage, exportGroupURI, exportMaskURI, adjustedPaths, 
+                        removedPaths, null);
+            }
+            
+            if (!workflow.getAllStepStatus().isEmpty()) {
+                _log.info("The port rebalance workflow has {} steps. Starting the workflow.",
+                        workflow.getAllStepStatus().size());
+                workflow.executePlan(taskCompleter, "Update the export group on all export masks successfully.");
+                _workflowService.markWorkflowBeenCreated(token, workflowKey);
+            } else {
+                taskCompleter.ready(_dbClient);
+            }
+
+        } catch (Exception ex) {
+            _log.error("ExportGroup port rebalance failed.", ex);
+            ServiceError serviceError = DeviceControllerException.errors.jobFailedMsg(ex.getMessage(), ex);
+            taskCompleter.error(_dbClient, serviceError);
+        }       
+        
+    }
+    
+    /**
+     * Get new paths that need to be added to the export mask, by comparing the zoning map in the exportMask, 
+     * and making sure the initiators in the new path belong to the exportMask.
+     *  
+     * @param exportMask - Export mask 
+     * @param existingAndNewPaths -- Include existing and new paths for all export masks belonging to the same export group
+     * @return The new paths to be added to the export mask
+     */
+    protected Map<URI, List<URI>> getNewPathsForExportMask(ExportMask exportMask, Map<URI, List<URI>> existingAndNewPaths) {
+        Map<URI, List<URI>> result = new HashMap<URI, List<URI>>();
+        StringSetMap zoningMap = exportMask.getZoningMap();
+        StringSet maskInitiators = exportMask.getInitiators();
+        if (existingAndNewPaths == null || existingAndNewPaths.isEmpty()) {
+            return result;
+        }
+        for (Map.Entry<URI, List<URI>> entry : existingAndNewPaths.entrySet()) {
+            URI initiator = entry.getKey();
+            if (!maskInitiators.contains(initiator.toString())) {
+                _log.info(String.format("The initiator %s does not belong to the exportMask, it will be ignored", initiator.toString()));
+                continue;
+            }
+            List<URI> ports = entry.getValue();
+            List<URI> newPorts = new ArrayList<URI> ();
+            StringSet targets = zoningMap.get(initiator.toString());
+            if (targets != null && !targets.isEmpty()) {
+                for (URI port : ports) {
+                    if (!targets.contains(port.toString())) {
+                        newPorts.add(port);
+                    }
+                }
+                if (!newPorts.isEmpty()) {
+                    result.put(initiator, newPorts);
+                }
+            } else {
+                result.put(initiator, ports);
+            }
+        }
+        return result;
+    }
+    
 }

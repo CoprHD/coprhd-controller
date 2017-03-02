@@ -6,12 +6,17 @@ package com.emc.storageos.fileorchestrationcontroller;
 
 import java.net.URI;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.model.FilePolicy;
 import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.model.file.CifsShareACLUpdateParams;
 import com.emc.storageos.model.file.FileExportUpdateParams;
+import com.emc.storageos.model.file.policy.FilePolicyUpdateParam;
+import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.FileSMBShare;
 import com.emc.storageos.volumecontroller.FileShareExport;
@@ -114,6 +119,51 @@ public class FileOrchestrationControllerImpl implements FileOrchestrationControl
         execOrchestration("deleteShareACLs", storage, uri, shareName, taskId);
     }
 
+    @Override
+    public void unassignFilePolicy(URI policy, Set<URI> unassignFrom, String taskId) throws InternalException {
+        execOrchestration("unassignFilePolicy", policy, unassignFrom, taskId);
+
+    }
+
+    @Override
+    public void assignFileSnapshotPolicyToVirtualPools(Map<URI, List<URI>> vpoolToStorageSystemMap, URI filePolicyToAssign, String taskId)
+            throws InternalException {
+        execOrchestration("assignFileSnapshotPolicyToVirtualPools", vpoolToStorageSystemMap, filePolicyToAssign, taskId);
+    }
+
+    @Override
+    public void assignFileSnapshotPolicyToProjects(Map<URI, List<URI>> vpoolToStorageSystemMap, List<URI> projectURIs,
+            URI filePolicyToAssign, String taskId) {
+        execOrchestration("assignFileSnapshotPolicyToProjects", vpoolToStorageSystemMap, projectURIs, filePolicyToAssign, taskId);
+
+    }
+
+    @Override
+    public void updateFileProtectionPolicy(URI policy, FilePolicyUpdateParam param, String taskId) {
+        execOrchestration("updateFileProtectionPolicy", policy, param, taskId);
+    }
+
+    @Override
+    public void assignFileReplicationPolicyToVirtualPools(List<FileStorageSystemAssociation> associations,
+            List<URI> vpoolURIs, URI filePolicyToAssign, String taskId) {
+        execOrchestration("assignFileReplicationPolicyToVirtualPools", associations, vpoolURIs, filePolicyToAssign, taskId);
+
+    }
+
+    @Override
+    public void assignFileReplicationPolicyToProjects(List<FileStorageSystemAssociation> associations, URI vpoolURI, List<URI> projectURIs,
+            URI filePolicyToAssign, String taskId) {
+        execOrchestration("assignFileReplicationPolicyToProjects", associations, vpoolURI, projectURIs, filePolicyToAssign, taskId);
+
+    }
+
+    @Override
+    public void assignFilePolicyToFileSystem(FilePolicy filePolicy, List<FileDescriptor> fileDescriptors, String taskId)
+            throws ControllerException {
+        execOrchestration("assignFilePolicyToFileSystem", filePolicy, fileDescriptors, taskId);
+
+    }
+
     // getter and setter methods
     public FileOrchestrationController getController() {
         return _controller;
@@ -143,5 +193,4 @@ public class FileOrchestrationControllerImpl implements FileOrchestrationControl
         _dispatcher.queue(NullColumnValueGetter.getNullURI(), FILE_ORCHESTRATION_DEVICE,
                 getController(), methodName, args);
     }
-
 }

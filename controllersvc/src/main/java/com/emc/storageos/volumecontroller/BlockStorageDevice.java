@@ -690,6 +690,18 @@ public interface BlockStorageDevice {
             List<String> initiatorNames, boolean mustHaveAllPorts) throws DeviceControllerException;
 
     /**
+     * For the given list of initiators, go to the Storage Array and get the list of HLUs that the volumes are assigned with.
+     *
+     * @param storage the storage system
+     * @param initiatorNames the initiator names
+     * @param mustHaveAllPorts
+     *            If true, *all* the passed in initiators have to be in the existing matching mask.
+     *            If false, a mask with *any* of the specified initiators will be considered a hit.
+     * @return the HLUs for the given initiators
+     */
+    public Set<Integer> findHLUsForInitiators(StorageSystem storage, List<String> initiatorNames, boolean mustHaveAllPorts);
+
+    /**
      * This call will be used to update the ExportMask with the latest data from the array.
      * 
      * @param storage
@@ -1115,6 +1127,32 @@ public interface BlockStorageDevice {
      * @param initiator
      */
     public String doInitiatorAliasGet(StorageSystem storage, Initiator initiator) throws Exception;
+    
+    /**
+     * Add paths to export mask
+     * 
+     * @param storage Storage system
+     * @param exportMask Export mask 
+     * @param addedPaths - paths to be added
+     * @param taskCompleter - task completer
+     * @throws DeviceControllerException
+     */
+    public void doExportAddPaths(StorageSystem storage, URI exportMask, Map<URI, List<URI>>addedPaths, 
+            TaskCompleter taskCompleter) throws DeviceControllerException;
+    
+    /**
+     * Remove paths from export mask
+     * 
+     * @param storage - Storage system
+     * @param exportMask - Export mask 
+     * @param adjustedPaths - new and/or retained paths in the export mask
+     * @param removedPaths - paths to be removed
+     * @param taskCompleter - task completer
+     * @throws DeviceControllerException
+     */
+    public void doExportRemovePaths(StorageSystem storage, URI exportMask, Map<URI, List<URI>> adjustedPaths, 
+            Map<URI, List<URI>>removedPaths, TaskCompleter taskCompleter) throws DeviceControllerException;
+
     
     /**
      * Create storage port group

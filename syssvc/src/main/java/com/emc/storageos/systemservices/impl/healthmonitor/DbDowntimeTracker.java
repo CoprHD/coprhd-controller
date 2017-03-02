@@ -99,6 +99,7 @@ public class DbDowntimeTracker {
         Configuration config = coordinator.getCoordinatorClient().queryConfiguration(siteId,
                 Constants.DB_DOWNTIME_TRACKER_CONFIG, serviceName);
         DbOfflineEventInfo dbOfflineEventInfo = new DbOfflineEventInfo(config);
+        log.debug("DbofflineEnventInfo is {}", dbOfflineEventInfo.getEventInfo());
 
         long currentTimeStamp = TimeUtils.getCurrentTime();
         Long lastUpdateTimestamp = dbOfflineEventInfo.getLastUpdateTimestamp();
@@ -147,7 +148,7 @@ public class DbDowntimeTracker {
         Long alertDays = dbOfflineEventInfo.getOfflineAlertInDay(nodeId);
         if (alertDays != null) {
             if (offLineTimeInDay > alertDays) {
-                if (offLineTimeInDay <= DbInfoUtils.MAX_SERVICE_OUTAGE_TIME) {
+                if (offLineTimeInDay <= DbInfoUtils.MAX_SERVICE_OUTAGE_TIME / TimeUtils.DAYS) {
                     _alertLog.warn(String.format("DataBase service(%s) of node(%s) has been unavailable for %s days," +
                                     "please power on the node in timely manner",
                             serviceName, nodeId, offLineTimeInDay));
@@ -174,6 +175,11 @@ public class DbDowntimeTracker {
             _alertLog.warn(String.format("DataBase service(%s) of node(%s) has been unavailable for %s days," +
                             "please power on the node in timely manner",
                     serviceName, nodeId, offLineTimeInDay));
+            try {
+                sendDbsvcOfflineMail(nodeId, serviceName, offLineTimeInDay, false);
+            }catch (Exception e ) {
+                log.error("Failed to sending mail for db offline alert", e);
+            }
             dbOfflineEventInfo.setKeyOfflineAlertInDay(nodeId, offLineTimeInDay);
         }
     }

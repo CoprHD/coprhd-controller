@@ -37,6 +37,7 @@ import com.emc.storageos.db.client.model.NetworkSystem;
 import com.emc.storageos.db.client.model.ObjectBucketACL;
 import com.emc.storageos.db.client.model.ObjectNamespace;
 import com.emc.storageos.db.client.model.PhysicalNAS;
+import com.emc.storageos.db.client.model.PolicyStorageResource;
 import com.emc.storageos.db.client.model.ProtectionSet;
 import com.emc.storageos.db.client.model.ProtectionSystem;
 import com.emc.storageos.db.client.model.ProxyToken;
@@ -168,7 +169,7 @@ public interface AlternateIdConstraint extends Constraint {
             DataObjectType doType = TypeMap.getDoType(UnManagedFileSystem.class);
             return new AlternateIdConstraintImpl(doType.getColumnField(NATIVE_GUID), altId);
         }
-        
+
         public static AlternateIdConstraint getUnManagedFileQuotaDirectoryInfoParentNativeGUIdConstraint(String altId) {
             DataObjectType doType = TypeMap.getDoType(UnManagedFileQuotaDirectory.class);
             return new AlternateIdConstraintImpl(doType.getColumnField("parentFsNativeGuid"), altId);
@@ -274,6 +275,11 @@ public interface AlternateIdConstraint extends Constraint {
             return new AlternateIdConstraintImpl(doType.getColumnField(NATIVE_GUID), nativeGuid);
         }
 
+        public static AlternateIdConstraint getPolicyStorageResourceByNativeGuidConstraint(String nativeGuid) {
+            DataObjectType doType = TypeMap.getDoType(PolicyStorageResource.class);
+            return new AlternateIdConstraintImpl(doType.getColumnField(NATIVE_GUID), nativeGuid);
+        }
+
         public static AlternateIdConstraint getPhysicalNasByNativeGuidConstraint(String nativeGuid) {
             DataObjectType doType = TypeMap.getDoType(PhysicalNAS.class);
             return new AlternateIdConstraintImpl(doType.getColumnField(NATIVE_GUID), nativeGuid);
@@ -348,7 +354,7 @@ public interface AlternateIdConstraint extends Constraint {
             DataObjectType doType = TypeMap.getDoType(StoragePort.class);
             return new AlternateIdConstraintImpl(doType.getColumnField("taggedVirtualArrays"), varrayId);
         }
-        
+
         public static AlternateIdConstraint getStoragePortsForStorageSystemConstraint(String storageSystem) {
             DataObjectType doType = TypeMap.getDoType(StoragePort.class);
             return new AlternateIdConstraintImpl(doType.getColumnField("storageDevice"), storageSystem);
@@ -672,7 +678,7 @@ public interface AlternateIdConstraint extends Constraint {
             DataObjectType doType = TypeMap.getDoType(Workflow.class);
             return new AlternateIdConstraintImpl(doType.getColumnField("orchTaskId"), orchTaskId);
         }
-        
+
         public static AlternateIdConstraint getWorkflowStepDataByStep(String stepId) {
             DataObjectType doType = TypeMap.getDoType(WorkflowStepData.class);
             return new AlternateIdConstraintImpl(doType.getColumnField("stepId"), stepId);

@@ -25,6 +25,7 @@ public class PathConstants {
     public static final String BACKUP_PULL_CANCEL_URL = BACKUP_URL + "pull/cancel";
     public static final String RESTORE_URL = BACKUP_URL + "restore/";
     public static final String RESTORE_STATUS_URL = BACKUP_URL + "restore/status";
+    public static final String BACKUP_STATUS_URL = BACKUP_URL + "backup-status";
 
     public static final String CHECKDB_URL="/control/db";
     public static final String CHECKDB_GET_URL = CHECKDB_URL + "/consistency";

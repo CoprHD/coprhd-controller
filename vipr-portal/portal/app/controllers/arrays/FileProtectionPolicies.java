@@ -16,8 +16,26 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import jobs.vipr.TenantsCall;
+import models.datatable.ScheculePoliciesDataTable;
+
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
+
+import play.Logger;
+import play.data.binding.As;
+import play.data.validation.MaxSize;
+import play.data.validation.MinSize;
+import play.data.validation.Required;
+import play.data.validation.Validation;
+import play.mvc.Util;
+import play.mvc.With;
+import util.MessagesUtils;
+import util.StringOption;
+import util.TenantUtils;
+import util.VirtualPoolUtils;
+import util.builders.ACLUpdateBuilder;
+import util.datatable.DataTablesSupport;
 
 import com.emc.storageos.db.client.model.FilePolicy.FilePolicyApplyLevel;
 import com.emc.storageos.db.client.model.FilePolicy.FilePolicyType;
@@ -59,28 +77,13 @@ import controllers.deadbolt.Restrictions;
 import controllers.util.FlashException;
 import controllers.util.Models;
 import controllers.util.ViprResourceController;
-import jobs.vipr.TenantsCall;
-import models.datatable.ScheculePoliciesDataTable;
-import play.Logger;
-import play.data.binding.As;
-import play.data.validation.MaxSize;
-import play.data.validation.MinSize;
-import play.data.validation.Required;
-import play.data.validation.Validation;
-import play.mvc.Util;
-import play.mvc.With;
-import util.MessagesUtils;
-import util.StringOption;
-import util.TenantUtils;
-import util.VirtualPoolUtils;
-import util.builders.ACLUpdateBuilder;
-import util.datatable.DataTablesSupport;
 
 @With(Common.class)
 @Restrictions({ @Restrict("PROJECT_ADMIN"), @Restrict("TENANT_ADMIN"), @Restrict("SYSTEM_ADMIN"), @Restrict("RESTRICTED_SYSTEM_ADMIN") })
 public class FileProtectionPolicies extends ViprResourceController {
 
     protected static final String UNKNOWN = "schedule.policies.unknown";
+    protected static final String vPoolLevelSnapshotPattern = "{Cluster}_{vNas}_{VPool}_{Policy_TemplateName}_%Y-%m-%d-_%H-%M";
 
     public static void list() {
         ScheculePoliciesDataTable dataTable = new ScheculePoliciesDataTable();
@@ -403,7 +406,9 @@ public class FileProtectionPolicies extends ViprResourceController {
             FilePolicyCreateParam policyParam = new FilePolicyCreateParam();
             updatePolicyParam(schedulePolicy, policyParam, null);
             policyParam.setPolicyType(schedulePolicy.policyType);
-            policyParam.setPolicyDescription(schedulePolicy.description);
+            if (schedulePolicy.description != null && !schedulePolicy.description.isEmpty()) {
+                policyParam.setPolicyDescription(schedulePolicy.description);
+            }
             FilePolicyCreateResp createdPolicy = getViprClient().fileProtectionPolicies().create(policyParam);
             policyId = createdPolicy.getId();
         } else {
@@ -442,8 +447,9 @@ public class FileProtectionPolicies extends ViprResourceController {
         try {
             updateAssignPolicyParam(assignPolicy, assignPolicyParam);
             TaskResourceRep taskRes = getViprClient().fileProtectionPolicies().assignPolicy(uri(assignPolicy.id), assignPolicyParam);
-            waitForTaskToFinish(assignPolicy.id, taskRes);
-            flash.success(MessagesUtils.get("assignPolicy.request.saved", assignPolicy.policyName));
+            if (isTaskSuccessful(assignPolicy.id, taskRes)) {
+                flash.success(MessagesUtils.get("assignPolicy.request.saved", assignPolicy.policyName));
+            }
         } catch (Exception ex) {
             flash.error(ex.getMessage(), assignPolicy.policyName);
         }
@@ -473,8 +479,9 @@ public class FileProtectionPolicies extends ViprResourceController {
             if (updateUnAssignPolicyParam(assignPolicy, unAssignPolicyParam)) {
                 TaskResourceRep taskRes = getViprClient().fileProtectionPolicies().unassignPolicy(uri(assignPolicy.id),
                         unAssignPolicyParam);
-                waitForTaskToFinish(assignPolicy.id, taskRes);
-                flash.success(MessagesUtils.get("unAssignPolicy.request.saved", assignPolicy.policyName));
+                if (isTaskSuccessful(assignPolicy.id, taskRes)) {
+                    flash.success(MessagesUtils.get("unAssignPolicy.request.saved", assignPolicy.policyName));
+                }
             }
         } catch (Exception ex) {
             flash.error(ex.getMessage(), assignPolicy.policyName);
@@ -487,11 +494,13 @@ public class FileProtectionPolicies extends ViprResourceController {
 
     }
 
-    private static void waitForTaskToFinish(String policyId, TaskResourceRep taskRes) {
+    private static boolean isTaskSuccessful(String policyId, TaskResourceRep taskRes) {
         try {
             FilePolicyRestRep resp = getViprClient().fileProtectionPolicies().getTask(uri(policyId), taskRes.getId()).get();
+            return true;
         } catch (Exception ex) {
             flash.error(ex.getMessage(), policyId);
+            return false;
         }
     }
 
@@ -616,7 +625,7 @@ public class FileProtectionPolicies extends ViprResourceController {
         // Day of the month
         public Long scheduleDayOfMonth;
 
-        public String snapshotNamePattern = "Snapshot_%Y-%m-%d-_%H-%M";
+        public String snapshotNamePattern = vPoolLevelSnapshotPattern;
 
         // Schedule Snapshot expire type e.g hours, days, weeks, months and never
         public String expireType;
@@ -625,6 +634,9 @@ public class FileProtectionPolicies extends ViprResourceController {
         public int expireValue = 2;
 
         public String expiration = "EXPIRE_TIME";
+
+        // if true policy has assigned resource .
+        public boolean isAssigned;
         public String referrerUrl;
 
         public String scheduleHour;
@@ -653,6 +665,10 @@ public class FileProtectionPolicies extends ViprResourceController {
             this.policyType = restRep.getType();
             this.policyName = restRep.getName();
             this.frequency = restRep.getSchedule().getFrequency();
+
+            if (restRep.getAssignedResources() != null && !restRep.getAssignedResources().isEmpty()) {
+                this.isAssigned = true;
+            }
 
             if (restRep.getDescription() != null && !restRep.getDescription().isEmpty()) {
                 this.description = restRep.getDescription();

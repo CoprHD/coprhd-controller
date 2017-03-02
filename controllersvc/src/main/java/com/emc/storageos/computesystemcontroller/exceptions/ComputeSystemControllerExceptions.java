@@ -151,6 +151,24 @@ public interface ComputeSystemControllerExceptions {
     public ComputeSystemControllerException unableToRemoveVcenterCluster(final String cluster, final Throwable cause);
 
     @DeclareServiceCode(ServiceCode.CONTROLLER_COMPUTESYSTEM_ERROR)
+    public ComputeSystemControllerException serviceProfileUuidChanged(final String serviceProfileDn, final String oldUUID, final String newUUID);
+
+    @DeclareServiceCode(ServiceCode.CONTROLLER_COMPUTESYSTEM_ERROR)
+    public ComputeSystemControllerException serviceProfileMatchedMultipleHosts(final String serviceProfileDn, final String uuid, final String hostNames);
+
+    @DeclareServiceCode(ServiceCode.CONTROLLER_COMPUTESYSTEM_ERROR)
+    public ComputeSystemControllerException serviceProfileUuidDuplicate(final String lsServerDn, final String serviceProfileDn, final String uuid);
+
+    @DeclareServiceCode(ServiceCode.CONTROLLER_COMPUTESYSTEM_ERROR)
+    public ComputeSystemControllerException newServiceProfileDuplicateUuid(final String serviceProfile, final String uuid, final String host);
+
+    @DeclareServiceCode(ServiceCode.CONTROLLER_COMPUTESYSTEM_ERROR)
+    public ComputeSystemControllerException invalidServiceProfileReference(final String serviceProfileId);
+
+    @DeclareServiceCode(ServiceCode.CONTROLLER_COMPUTESYSTEM_ERROR)
+    public ComputeSystemControllerException invalidServiceProfile(final String serviceProfileId);
+
+    @DeclareServiceCode(ServiceCode.CONTROLLER_COMPUTESYSTEM_ERROR)
     public ComputeSystemControllerException clusterHasVms(final String cluster);
 
     @DeclareServiceCode(ServiceCode.CONTROLLER_COMPUTESYSTEM_ERROR)

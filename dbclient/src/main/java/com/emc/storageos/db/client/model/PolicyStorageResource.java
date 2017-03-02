@@ -106,4 +106,11 @@ public class PolicyStorageResource extends DataObject {
         this.fileReplicaPolicyTargetMap = fileReplicaPolicyTargetMap;
     }
 
+    @Override
+    public String toString() {
+        return "PolicyStorageResource [filePolicyId=" + filePolicyId + ", storageSystem=" + storageSystem + ", nasServer=" + nasServer
+                + ", appliedAt=" + appliedAt + ", policyNativeId=" + policyNativeId + ", resourcePath=" + resourcePath + ", nativeGuid="
+                + nativeGuid + ", fileReplicaPolicyTargetMap=" + fileReplicaPolicyTargetMap + "]";
+    }
+
 }

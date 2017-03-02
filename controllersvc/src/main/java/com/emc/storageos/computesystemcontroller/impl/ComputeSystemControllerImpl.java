@@ -1763,7 +1763,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
             String waitFor = null;
 
             if (checkVms) {
-                waitFor = computeDeviceController.addStepsVcenterClusterCleanup(workflow, waitFor, cluster);
+                waitFor = computeDeviceController.addStepsVcenterClusterCleanup(workflow, waitFor, cluster, deactivateOnComplete);
             }
 
             waitFor = addStepsForClusterExportGroups(workflow, waitFor, cluster);

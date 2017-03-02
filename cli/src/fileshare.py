@@ -905,7 +905,6 @@ class Fileshare(object):
     def assign_policy(self, filesharename, policyname, tenantname, policyid, targetvarrays):
         assign_request = {}
         trg_varrays = []
-        filepolicy_filesystem_assign_param = {}
         if (targetvarrays is not None):
             assign_target_varrays = []
             from virtualarray import VirtualArray
@@ -918,8 +917,7 @@ class Fileshare(object):
             else:
                 uri = varray_obj.varray_query(targetvarrays)
                 assign_target_varrays.append(uri)
-            filepolicy_filesystem_assign_param['target_varrays']= assign_target_varrays
-            assign_request['filepolicy_filesystem_assign_param']= filepolicy_filesystem_assign_param
+            assign_request['target_varrays']= assign_target_varrays
             
         fsname = self.show(filesharename)
         fsid = fsname['id']

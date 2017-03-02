@@ -31,12 +31,15 @@ import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.PasswordHistory;
 import com.emc.storageos.db.client.model.ScopedLabel;
+import com.emc.storageos.db.client.model.uimodels.Order;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.google.common.collect.Lists;
 import com.netflix.astyanax.Keyspace;
 import com.netflix.astyanax.connectionpool.OperationResult;
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 import com.netflix.astyanax.connectionpool.exceptions.NotFoundException;
+import com.netflix.astyanax.cql.CqlStatement;
+import com.netflix.astyanax.cql.CqlStatementResult;
 import com.netflix.astyanax.model.Column;
 import com.netflix.astyanax.model.ColumnFamily;
 import com.netflix.astyanax.model.ColumnList;
@@ -44,7 +47,7 @@ import com.netflix.astyanax.model.CqlResult;
 import com.netflix.astyanax.model.Row;
 import com.netflix.astyanax.model.Rows;
 import com.netflix.astyanax.query.ColumnFamilyQuery;
-import com.netflix.astyanax.serializers.CompositeRangeBuilder;
+import com.netflix.astyanax.query.RowQuery;
 import com.netflix.astyanax.serializers.StringSerializer;
 import com.netflix.astyanax.util.RangeBuilder;
 import com.netflix.astyanax.util.TimeUUIDUtils;
@@ -55,13 +58,15 @@ public class DbConsistencyCheckerHelper {
 
     private static final String DELETE_INDEX_CQL = "delete from \"%s\" where key='%s' and column1='%s' and column2='%s' and column3='%s' and column4='%s' and column5=%s;";
     private static final String DELETE_INDEX_CQL_WITHOUT_UUID = "delete from \"%s\" where key='%s' and column1='%s' and column2='%s' and column3='%s' and column4='%s';";
+    private static final String DELETE_ORDER_INDEX_CQL = "delete from \"%s\" where key='%s' and column1='%s' and column2=%s and column3='%s' and column4='%s' and column5=%s;";
+    private static final String DELETE_ORDER_INDEX_CQL_WITHOUT_UUID = "delete from \"%s\" where key='%s' and column1='%s' and column2=%s and column3='%s' and column4='%s';";
     private static final String CQL_QUERY_SCHEMA_VERSION_TIMESTAMP = "SELECT key, writetime(value) FROM \"SchemaRecord\";";
     private static final int THREAD_POOL_QUEUE_SIZE = 50;
     private static final int WAITING_TIME_FOR_QUEUE_FULL_MS = 3000;
 
     private DbClientImpl dbClient;
     private Set<Class<? extends DataObject>> excludeClasses = new HashSet<Class<? extends DataObject>>(Arrays.asList(PasswordHistory.class));
-    private Map<Long, String> schemaVersionsTime;
+    private volatile Map<Long, String> schemaVersionsTime;
     private BlockingQueue<Runnable> blockingQueue = new ArrayBlockingQueue<Runnable>(THREAD_POOL_QUEUE_SIZE);
     private ThreadPoolExecutor executor = new ThreadPoolExecutor(5, 20, 50, TimeUnit.MILLISECONDS, blockingQueue);
     private boolean doubleConfirmed = true;
@@ -71,7 +76,6 @@ public class DbConsistencyCheckerHelper {
 
     public DbConsistencyCheckerHelper(DbClientImpl dbClient) {
         this.dbClient = dbClient;
-        schemaVersionsTime = querySchemaVersions();
     }
 
     /**
@@ -128,6 +132,7 @@ public class DbConsistencyCheckerHelper {
      * @throws ConnectionException
      */
     public void checkCFIndices(DataObjectType doType, boolean toConsole, CheckResult checkResult) throws ConnectionException {
+        initSchemaVersions();
         Class objClass = doType.getDataObjectClass();
         _log.info("Check Data Object CF {} with double confirmed option: {}", objClass, doubleConfirmed);
 
@@ -148,7 +153,7 @@ public class DbConsistencyCheckerHelper {
 
         for (Row<String, CompositeColumnName> objRow : result.getResult()) {
             boolean inactiveObject = false;
-            
+
             for (Column<CompositeColumnName> column : objRow.getColumns()) {
                 if (column.getName().getOne().equals(DataObject.INACTIVE_FIELD_NAME) && column.getBooleanValue()) {
                 	inactiveObject = true;
@@ -171,7 +176,7 @@ public class DbConsistencyCheckerHelper {
                 }
             	
             	ColumnField indexedField = indexedFields.get(column.getName().getOne());
-            	String indexKey = getIndexKey(indexedField, column);
+            	String indexKey = getIndexKey(indexedField, column, objRow);
             	
                 if (indexKey == null) {
                     continue;
@@ -212,6 +217,7 @@ public class DbConsistencyCheckerHelper {
      * @throws ConnectionException
      */
     public void checkIndexingCF(IndexAndCf indexAndCf, boolean toConsole, CheckResult checkResult, boolean isParallel) throws ConnectionException {
+        initSchemaVersions();
         String indexCFName = indexAndCf.cf.getName();
         Map<String, ColumnFamily<String, CompositeColumnName>> objCfs = getDataObjectCFs();
         _log.info("Start checking the index CF {} with double confirmed option: {}", indexCFName, doubleConfirmed);
@@ -223,37 +229,42 @@ public class DbConsistencyCheckerHelper {
 
         OperationResult<Rows<String, IndexColumnName>> result = query.getAllRows()
                 .setRowLimit(dbClient.DEFAULT_PAGE_SIZE)
-                .withColumnRange(new RangeBuilder().setLimit(dbClient.DEFAULT_PAGE_SIZE).build())
+                .withColumnRange(new RangeBuilder().setLimit(0).build())
                 .execute();
 
         for (Row<String, IndexColumnName> row : result.getResult()) {
-            ColumnList<IndexColumnName> columns = row.getColumns();
+            RowQuery<String, IndexColumnName> rowQuery = indexAndCf.keyspace.prepareQuery(indexAndCf.cf).getKey(row.getKey())
+                    .autoPaginate(true)
+                    .withColumnRange(new RangeBuilder().setLimit(dbClient.DEFAULT_PAGE_SIZE).build());
+            ColumnList<IndexColumnName> columns;
             
-            for (Column<IndexColumnName> column : columns) {
-                ObjectEntry objEntry = extractObjectEntryFromIndex(row.getKey(),
-                        column.getName(), indexAndCf.indexType, toConsole);
-                if (objEntry == null) {
-                    continue;
-                }
-                ColumnFamily<String, CompositeColumnName> objCf = objCfs
-                        .get(objEntry.getClassName());
+            while (!(columns = rowQuery.execute().getResult()).isEmpty()) {
+                for (Column<IndexColumnName> column : columns) {
+                    ObjectEntry objEntry = extractObjectEntryFromIndex(row.getKey(),
+                            column.getName(), indexAndCf.indexType, toConsole);
+                    if (objEntry == null) {
+                        continue;
+                    }
+                    ColumnFamily<String, CompositeColumnName> objCf = objCfs
+                            .get(objEntry.getClassName());
 
-                if (objCf == null) {
-                    logMessage(String.format("DataObject does not exist for %s", row.getKey()), true, toConsole);
-                    continue;
-                }
+                    if (objCf == null) {
+                        logMessage(String.format("DataObject does not exist for %s", row.getKey()), true, toConsole);
+                        continue;
+                    }
 
-                Map<String, List<IndexEntry>> objKeysIdxEntryMap = objsToCheck.get(objCf);
-                if (objKeysIdxEntryMap == null) {
-                    objKeysIdxEntryMap = new HashMap<>();
-                    objsToCheck.put(objCf, objKeysIdxEntryMap);
+                    Map<String, List<IndexEntry>> objKeysIdxEntryMap = objsToCheck.get(objCf);
+                    if (objKeysIdxEntryMap == null) {
+                        objKeysIdxEntryMap = new HashMap<>();
+                        objsToCheck.put(objCf, objKeysIdxEntryMap);
+                    }
+                    List<IndexEntry> idxEntries = objKeysIdxEntryMap.get(objEntry.getObjectId());
+                    if (idxEntries == null) {
+                        idxEntries = new ArrayList<>();
+                        objKeysIdxEntryMap.put(objEntry.getObjectId(), idxEntries);
+                    }
+                    idxEntries.add(new IndexEntry(row.getKey(), column.getName()));
                 }
-                List<IndexEntry> idxEntries = objKeysIdxEntryMap.get(objEntry.getObjectId());
-                if (idxEntries == null) {
-                    idxEntries = new ArrayList<>();
-                    objKeysIdxEntryMap.put(objEntry.getObjectId(), idxEntries);
-                }
-                idxEntries.add(new IndexEntry(row.getKey(), column.getName()));
             }
             
             int size = getObjsSize(objsToCheck);
@@ -340,15 +351,29 @@ public class DbConsistencyCheckerHelper {
                         }
                         UUID timeUUID = idxEntry.getColumnName().getTimeUUID();
                         DbCheckerFileWriter.writeTo(indexAndCf.keyspace.getKeyspaceName(),
-                                String.format(timeUUID != null ? DELETE_INDEX_CQL : DELETE_INDEX_CQL_WITHOUT_UUID,
-                                        indexAndCf.cf.getName(), idxEntry.getIndexKey(), idxEntry.getColumnName().getOne(),
-                                        handleNullValue(idxEntry.getColumnName().getTwo()),
-                                        handleNullValue(idxEntry.getColumnName().getThree()),
-                                        handleNullValue(idxEntry.getColumnName().getFour()),
-                                        timeUUID));
+                                generateCleanIndexCQL(indexAndCf, idxEntry, timeUUID, idxEntry.getColumnName()));
                     }
                 }
             }
+        }
+    }
+
+    protected String generateCleanIndexCQL(IndexAndCf indexAndCf, IndexEntry idxEntry, UUID timeUUID, CompositeIndexColumnName compositeIndexColumnName) {
+        if (compositeIndexColumnName instanceof ClassNameTimeSeriesIndexColumnName ||
+                compositeIndexColumnName instanceof TimeSeriesIndexColumnName) {
+            return String.format(timeUUID != null ? DELETE_ORDER_INDEX_CQL : DELETE_ORDER_INDEX_CQL_WITHOUT_UUID,
+                    indexAndCf.cf.getName(), idxEntry.getIndexKey(), idxEntry.getColumnName().getOne(),
+                    handleNullValue(idxEntry.getColumnName().getTwo()),
+                    handleNullValue(idxEntry.getColumnName().getThree()),
+                    handleNullValue(idxEntry.getColumnName().getFour()),
+                    timeUUID);
+        } else {
+            return String.format(timeUUID != null ? DELETE_INDEX_CQL : DELETE_INDEX_CQL_WITHOUT_UUID,
+                indexAndCf.cf.getName(), idxEntry.getIndexKey(), idxEntry.getColumnName().getOne(),
+                handleNullValue(idxEntry.getColumnName().getTwo()),
+                handleNullValue(idxEntry.getColumnName().getThree()),
+                handleNullValue(idxEntry.getColumnName().getFour()),
+                timeUUID);
         }
     }
     
@@ -443,13 +468,13 @@ public class DbConsistencyCheckerHelper {
      * This class records the Index Data's ColumnFamily and
      * the related DbIndex type and it belongs to which Keyspace.
      */
-    public static class IndexAndCf implements Comparable {
-        private ColumnFamily<String, IndexColumnName> cf;
+    public static class IndexAndCf<T extends CompositeIndexColumnName> implements Comparable {
+        private ColumnFamily<String, T> cf;
         private Class<? extends DbIndex> indexType;
         private Keyspace keyspace;
 
         public IndexAndCf(Class<? extends DbIndex> indexType,
-                ColumnFamily<String, IndexColumnName> cf, Keyspace keyspace) {
+                ColumnFamily<String, T> cf, Keyspace keyspace) {
             this.indexType = indexType;
             this.cf = cf;
             this.keyspace = keyspace;
@@ -509,11 +534,11 @@ public class DbConsistencyCheckerHelper {
         }
     }
 
-    class IndexEntry {
+    public class IndexEntry {
         private String indexKey;
-        private IndexColumnName columnName;
+        private CompositeIndexColumnName columnName;
 
-        public IndexEntry(String indexKey, IndexColumnName columnName) {
+        public IndexEntry(String indexKey, CompositeIndexColumnName columnName) {
             this.indexKey = indexKey;
             this.columnName = columnName;
         }
@@ -522,7 +547,7 @@ public class DbConsistencyCheckerHelper {
             return indexKey;
         }
 
-        public IndexColumnName getColumnName() {
+        public CompositeIndexColumnName getColumnName() {
             return columnName;
         }
 
@@ -559,6 +584,12 @@ public class DbConsistencyCheckerHelper {
             objectId = name.getTwo();
             int firstColon = indexKey.indexOf(':');
             className = firstColon == -1 ? indexKey : indexKey.substring(0, firstColon);
+        } else if (type.equals(ClassNameTimeSeriesDBIndex.class)) {
+            objectId = name.getThree();
+            className = name.getOne();
+        } else if (type.equals(TimeSeriesDbIndex.class)) {
+            objectId = name.getThree();
+            className = name.getOne();
         } else {
             String msg = String.format("Unsupported index type %s.", type);
             logMessage(msg, false, toConsole);
@@ -593,27 +624,29 @@ public class DbConsistencyCheckerHelper {
         }
     }
 
-    private boolean isColumnInIndex(Keyspace ks, ColumnFamily<String, IndexColumnName> indexCf, String indexKey, String[] indexColumns)
+    private boolean isColumnInIndex(Keyspace ks, ColumnFamily<String, CompositeIndexColumnName> indexCf, String indexKey, Object[] indexColumns)
             throws ConnectionException {
-        CompositeRangeBuilder builder = IndexColumnNameSerializer.get().buildRange();
+        StringBuilder cql = new StringBuilder("select * from ");
+        cql.append("\"").append(indexCf.getName())
+        .append("\" where key='").append(indexKey).append("' ");
+
         for (int i = 0; i < indexColumns.length; i++) {
-            if (i == (indexColumns.length - 1)) {
-                builder.greaterThanEquals(indexColumns[i]).lessThanEquals(indexColumns[i]).limit(1);
-                break;
+            cql.append(" and column").append(i + 1).append("=");
+            if (indexColumns[i] instanceof String) {
+                cql.append("\'").append(indexColumns[i]).append("'");
+            } else {
+                cql.append(indexColumns[i]);
             }
-            builder.withPrefix(indexColumns[i]);
         }
 
-        ColumnList<IndexColumnName> result = ks.prepareQuery(indexCf).getKey(indexKey)
-                .withColumnRange(builder)
-                .execute().getResult();
-        for (Column<IndexColumnName> indexColumn : result) {
-            return true;
-        }
-        return false;
+        CqlStatement statement = ks.prepareCqlStatement();
+        CqlStatementResult result = statement.withCql(cql.toString()).execute().getResult();
+        Rows<String, CompositeIndexColumnName> rows = result.getRows(indexCf);
+        
+        return !rows.isEmpty();
     }
     
-    public boolean isIndexExists(Keyspace ks, ColumnFamily<String, IndexColumnName> indexCf, String indexKey, IndexColumnName column) throws ConnectionException {
+    public <T extends CompositeIndexColumnName> boolean isIndexExists(Keyspace ks, ColumnFamily<String, T> indexCf, String indexKey, T column) throws ConnectionException {
         try {
             ks.prepareQuery(indexCf).getKey(indexKey)
                     .getColumn(column)
@@ -624,7 +657,7 @@ public class DbConsistencyCheckerHelper {
         }
     }
 
-    public static String getIndexKey(ColumnField field, Column<CompositeColumnName> column) {
+    public static String getIndexKey(ColumnField field, Column<CompositeColumnName> column, Row<String, CompositeColumnName> objRow) {
         String indexKey = null;
         DbIndex dbIndex = field.getIndex();
         boolean indexByKey = field.isIndexByKey();
@@ -642,6 +675,15 @@ public class DbConsistencyCheckerHelper {
             indexKey = field.getPrefixIndexRowKey(column.getStringValue());
         } else if (dbIndex instanceof ScopedLabelDbIndex) {
             indexKey = field.getPrefixIndexRowKey(ScopedLabel.fromString(column.getStringValue()));
+        } else if (dbIndex instanceof ClassNameTimeSeriesDBIndex) {
+            indexKey = column.getStringValue();
+        } else if (dbIndex instanceof TimeSeriesDbIndex) {
+            if (field.getDataObjectType().equals(Order.class)) {
+                Order order = new Order();
+                DataObjectType doType = TypeMap.getDoType(Order.class);
+                doType.deserializeColumns(order, objRow, Lists.newArrayList(doType.getColumnField("tenant")), true);
+                indexKey = order.getTenant();
+            }
         } else if (dbIndex instanceof AggregateDbIndex) {
             // Not support this index type yet.
         } else {
@@ -652,8 +694,8 @@ public class DbConsistencyCheckerHelper {
         return indexKey;
     }
 
-    public static String[] getIndexColumns(ColumnField field, Column<CompositeColumnName> column, String rowKey) {
-        String[] indexColumns = null;
+    public static Object[] getIndexColumns(ColumnField field, Column<CompositeColumnName> column, String rowKey) {
+        Object[] indexColumns = null;
         DbIndex dbIndex = field.getIndex();
 
         if (dbIndex instanceof AggregateDbIndex) {
@@ -690,6 +732,11 @@ public class DbConsistencyCheckerHelper {
             Boolean val = column.getBooleanValue();
             indexColumns[0] = val.toString();
             indexColumns[1] = rowKey;
+        } else if (dbIndex instanceof ClassNameTimeSeriesDBIndex || dbIndex instanceof TimeSeriesDbIndex) {
+            indexColumns = new Object[3];
+            indexColumns[0] = field.getDataObjectType().getSimpleName();
+            indexColumns[1] = TimeUUIDUtils.getMicrosTimeFromUUID(column.getName().getTimeUUID());
+            indexColumns[2] = rowKey;
         } else {
             // For AltIdDbIndex, RelationDbIndex, PermissionsDbIndex
             indexColumns = new String[2];
@@ -718,6 +765,12 @@ public class DbConsistencyCheckerHelper {
     
     private boolean isValidDataObjectKey(URI uri, final Class<? extends DataObject> type) {
     	return uri != null && URIUtil.isValid(uri) && URIUtil.isType(uri, type);
+    }
+    
+    protected void initSchemaVersions() {
+        if (schemaVersionsTime == null) {
+            schemaVersionsTime = querySchemaVersions();
+        }
     }
 
     protected Map<Long, String> querySchemaVersions() {

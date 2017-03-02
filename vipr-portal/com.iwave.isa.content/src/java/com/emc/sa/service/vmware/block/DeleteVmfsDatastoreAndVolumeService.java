@@ -17,6 +17,7 @@ import com.emc.sa.engine.service.Service;
 import com.emc.sa.service.vipr.block.BlockStorageUtils;
 import com.emc.sa.service.vmware.VMwareHostService;
 import com.emc.storageos.model.block.VolumeRestRep;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.vmware.vim25.mo.Datastore;
 
@@ -29,38 +30,58 @@ public class DeleteVmfsDatastoreAndVolumeService extends VMwareHostService {
 
     @Override
     public void precheck() throws Exception {
+        StringBuilder preCheckErrors = new StringBuilder();
+
         super.precheck();
         datastores = Maps.newHashMap();
         acquireHostLock();
         for (String datastoreName : datastoreNames) {
             Datastore datastore = vmware.getDatastore(datacenter.getLabel(), datastoreName);
+
             vmware.verifyDatastoreForRemoval(datastore);
-            List<VolumeRestRep> volumes = vmware.findVolumesBackingDatastore(host, datastore);
+
+            List<VolumeRestRep> volumes = vmware.findVolumesBackingDatastore(host, hostId, datastore);
+
+            // If no volumes were found (or not all the volumes were found in our DB), indicate an error
+            if (volumes == null) {
+                preCheckErrors.append(
+                        ExecutionUtils.getMessage("delete.vmfs.datastore.notsamewwn", datastoreName) + " ");
+            }
+
             datastores.put(datastore, volumes);
+        }
+
+        if (preCheckErrors.length() > 0) {
+            throw new IllegalStateException(preCheckErrors.toString());
         }
     }
 
     @Override
     public void execute() throws Exception {
 
+        List<VolumeRestRep> volumes = Lists.newArrayList();
+
         for (Map.Entry<Datastore, List<VolumeRestRep>> entry : datastores.entrySet()) {
 
             Datastore datastore = entry.getKey();
-            List<VolumeRestRep> volumes = entry.getValue();
+            volumes.addAll(entry.getValue());
 
             vmware.deleteVmfsDatastore(volumes, hostId, datastore, true);
-
-            if (!volumes.isEmpty()) {
-                List<URI> volumeList = new ArrayList<URI>();
-                for (VolumeRestRep volume : volumes) {
-                    volumeList.add(volume.getId());
-                }
-                BlockStorageUtils.removeVolumes(volumeList);
-            }
-            else {
-                logInfo("delete.vmfs.datastore.volume.not.found");
-            }
         }
+
+        vmware.disconnect();
+
+        if (!volumes.isEmpty()) {
+            List<URI> volumeList = new ArrayList<URI>();
+            for (VolumeRestRep volume : volumes) {
+                volumeList.add(volume.getId());
+            }
+            BlockStorageUtils.removeVolumes(volumeList);
+        } else {
+            logInfo("delete.vmfs.datastore.volume.not.found");
+        }
+
+        this.connectAndInitializeHost();
 
         vmware.refreshStorage(host, cluster);
 

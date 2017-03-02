@@ -30,6 +30,8 @@ import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.Operation.Status;
+import com.emc.storageos.db.client.model.StoragePool;
+import com.emc.storageos.db.client.model.UCSServiceProfile;
 import com.emc.storageos.db.client.model.UCSServiceProfileTemplate;
 import com.emc.storageos.db.client.model.VcenterDataCenter;
 import com.emc.storageos.db.client.model.VirtualArray;
@@ -820,26 +822,42 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
         if (host == null) {
             log.error("No host found with Id: {}", hostId);
             return waitFor;
-        } else if (NullColumnValueGetter.isNullURI(host.getComputeElement())) {
+        } else if (NullColumnValueGetter.isNullURI(host.getServiceProfile()) && NullColumnValueGetter.isNullURI(host.getComputeElement())) {
             /**
              * No steps need to be added - as this was not a host that we
-             * created in ViPR. If it was computeElement property of the host
+             * created in ViPR. If it was serviceProfile or computeElement property of the host
              * would have been set.
              */
             log.info(
-                    "Host: {} has no associated computeElement. So skipping service profile and boot volume deletion steps",
+                    "Host: {} has no associated serviceProfile or computeElement. So skipping service profile and boot volume deletion steps",
                     host.getLabel());
             return waitFor;
         }
+        ComputeSystem cs = null;
+        if (!NullColumnValueGetter.isNullURI(host.getServiceProfile())){
+            UCSServiceProfile serviceProfile = _dbClient.queryObject(UCSServiceProfile.class, host.getServiceProfile());
+            if (serviceProfile !=null){
+                cs = _dbClient.queryObject(ComputeSystem.class, serviceProfile.getComputeSystem());
+                if (cs == null){
+                   log.error("ServiceProfile " + serviceProfile.getDn() + " has an invalid computeSystem reference: " + serviceProfile.getComputeSystem());
+                   return waitFor;
+                }
+           }
+       } else if (!NullColumnValueGetter.isNullURI(host.getComputeElement())){
+            ComputeElement computeElement = _dbClient.queryObject(ComputeElement.class, host.getComputeElement());
+            if (computeElement !=null){
+                cs = _dbClient.queryObject(ComputeSystem.class, computeElement.getComputeSystem());
+                if (cs == null){
+                   log.error("ComputeElement " + computeElement.getDn() + " has an invalid computeSystem reference: " + computeElement.getComputeSystem());
+                   return waitFor;
+                }
+           }
+       }
+       if (cs == null){
+            log.error("Could not determine the Compute System the host {} is provisioned on. Skipping service profile and boot volume deletion steps", host.getLabel());
+            return waitFor;
+       }else {
 
-        ComputeElement computeElement = _dbClient.queryObject(ComputeElement.class, host.getComputeElement());
-
-        if (computeElement != null) {
-            ComputeSystem cs = _dbClient.queryObject(ComputeSystem.class, computeElement.getComputeSystem());
-            if (cs == null){
-                log.error("ComputeElement " + computeElement.getLabel() + " has an invalid computeSystem reference: " + computeElement.getComputeSystem());
-                return waitFor;
-            }
             //TODO: need to break this up into individual smaller steps so that we can try to recover using rollback if decommission failed
             waitFor = workflow.createStep(DEACTIVATION_COMPUTE_SYSTEM_HOST, "Unbind blade from service profile",
                     waitFor, cs.getId(), cs.getSystemType(), this.getClass(), new Workflow.Method(
@@ -856,8 +874,6 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
             } else if (!NullColumnValueGetter.isNullURI(host.getBootVolumeId())){
                 log.info("Host "+ host.getLabel() + " has no bootVolume association");
             }
-        } else {
-            log.error("Host "+ host.getLabel()+ " has associated computeElementURI: "+ host.getComputeElement()+ " which is an invalid reference");
         }
 
         return waitFor;
@@ -917,7 +933,7 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
      * VMs may endup decommissioned.
      */
     @Override
-    public String addStepsVcenterClusterCleanup(Workflow workflow, String waitFor, URI clusterId)
+    public String addStepsVcenterClusterCleanup(Workflow workflow, String waitFor, URI clusterId, boolean deactivateCluster)
             throws InternalException {
         Cluster cluster = _dbClient.queryObject(Cluster.class, clusterId);
         if (null == cluster) {
@@ -935,7 +951,7 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
         // VBDU [DONE]: COP-28400, Cluster without any hosts is kind of negative case, and this information is not
         // verified against the environment, do we need to take liberty of removing the cluster from VCenter?
         // Before we get to this cluster removal, ClusterService has a precheck to verify the matching environments
-        if (null == clusterHosts || clusterHosts.isEmpty()) {
+        if (deactivateCluster && (null == clusterHosts || clusterHosts.isEmpty())) {
             VcenterDataCenter vcenterDataCenter = _dbClient.queryObject(VcenterDataCenter.class,
                     cluster.getVcenterDataCenter());
             log.info("Cluster has no hosts, removing empty cluster : {}, from vCenter : {}", cluster.getLabel(),
@@ -974,7 +990,7 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
         /*
          * Remove cluster from vcenter only if all hosts are provisioned.
          */
-        if (hasProvisionedHosts && !hasDiscoveredHosts) {
+        if (hasProvisionedHosts && !hasDiscoveredHosts && deactivateCluster) {
             waitFor = workflow.createStep(REMOVE_VCENTER_CLUSTER, "If synced with vCenter, remove the cluster", waitFor,
                     clusterId, clusterId.toString(), this.getClass(),
                     new Workflow.Method("removeVcenterCluster", cluster.getId(), cluster.getVcenterDataCenter()),
@@ -1309,21 +1325,12 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
 
             host = _dbClient.queryObject(Host.class, hostId);
             if (null != host) {
-                // VBDU TODO: COP-28452: Need to check initiators inside the host as well.
-                if (NullColumnValueGetter.isNullURI(host.getComputeElement())) {
+                // VBDU TODO: COP-28452: Need to check initiators inside the host as well
+                if (NullColumnValueGetter.isNullURI(host.getComputeElement())  && NullColumnValueGetter.isNullURI(host.getServiceProfile())) {
                     // NO-OP
-                    log.info("Host " + host.getLabel() + " has no computeElement association");
+                    log.info("Host " + host.getLabel() + " has no computeElement association and no service profile association");
                     WorkflowStepCompleter.stepSucceded(stepId);
                     return;
-                } else {
-                    ComputeElement computeElement = _dbClient.queryObject(ComputeElement.class,
-                            host.getComputeElement());
-                    if (NullColumnValueGetter.isNullValue(computeElement.getDn())) {
-                        log.info("Host " + host.getLabel() + " has computeElement " + host.getComputeElement()
-                        + " with label " + computeElement.getLabel() + " and Dn " + computeElement.getDn());
-                        WorkflowStepCompleter.stepSucceded(stepId);
-                        return;
-                    }
                 }
 
                 getDevice(cs.getSystemType()).deactivateHost(cs, host);

@@ -224,7 +224,22 @@ public class HostService extends TaskResourceService {
         Host host = queryObject(Host.class, id, false);
         // check the user permissions
         verifyAuthorizedInTenantOrg(host.getTenant(), getUserFromContext());
-        return map(host);
+        ComputeElement computeElement = null;
+        UCSServiceProfile serviceProfile = null;
+        ComputeSystem computeSystem = null;
+        if (!NullColumnValueGetter.isNullURI(host.getComputeElement())){
+           computeElement = queryObject(ComputeElement.class, host.getComputeElement(),false);
+        }
+        if (!NullColumnValueGetter.isNullURI(host.getServiceProfile())){
+           serviceProfile = queryObject(UCSServiceProfile.class, host.getServiceProfile(), false);
+        }
+        if (serviceProfile!=null){
+           computeSystem = queryObject(ComputeSystem.class, serviceProfile.getComputeSystem(), false);
+        }else if (computeElement !=null){
+           computeSystem = queryObject(ComputeSystem.class, computeElement.getComputeSystem(), false);
+        }
+       
+        return map(host, computeElement, serviceProfile, computeSystem);
     }
 
     /**

@@ -727,17 +727,6 @@
           "baseService": "RemoveBlockSnapshot" 
         }
       ]
-    }, 
-    { 
-      "title": "custom_services.title",
-      "image": "icon_orchestration.png",
-      "description": "custom_services.description",
-      "services": [
-        { 
-          "image": "icon_orchestration.png", 
-          "baseService": "CustomServicesService"
-        } 
-      ]
-    } 
+    }
   ]
 }

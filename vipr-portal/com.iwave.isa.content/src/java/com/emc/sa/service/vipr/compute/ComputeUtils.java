@@ -1026,11 +1026,13 @@ public class ComputeUtils {
         if (hosts != null && !hosts.isEmpty()) {
             ArrayList<Task<HostRestRep>> tasks = new ArrayList<>();
             for (HostRestRep host : hosts) {
-                try {
-                    tasks.add(execute(new DiscoverHost(host.getId())));
-                } catch (Exception e) {
-                    ExecutionUtils.currentContext().logError("computeutils.discoverhost.failure",
-                            host.getName());
+                if (host != null) {
+                    try {
+                        tasks.add(execute(new DiscoverHost(host.getId())));
+                    } catch (Exception e) {
+                        ExecutionUtils.currentContext().logError("computeutils.discoverhost.failure",
+                                host.getName());
+                    }
                 }
             }
             if (tasks != null && !tasks.isEmpty()) {

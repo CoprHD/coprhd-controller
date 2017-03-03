@@ -1,7 +1,6 @@
 vmaccepteula
 
 # Do not allow overwrite of existing datastore
-clearpart ${clear.device}
 install ${install.device}
 rootpw --iscrypted  ${root.password}
 network --addvmportgroup=0 --bootproto=dhcp  
@@ -14,10 +13,10 @@ localcli network firewall set --enabled false
 
 # ensure there is only one volume (the boot volume) visible to this server.
 # This prevents accidentally picking up the wrong volume as /datastore1 on OS boot.
-LINECOUNT=`ls /dev/disks/naa.* | grep -v ":" | wc -l`
+LINECOUNT=`find /dev/disks -name "naa*" -maxdepth 1 -size +0 | grep -v ":" | wc -l`
 if [ "$LINECOUNT" != "1" ] ; then
 echo "ViPR requires only a boot volume at install time."
-ls /dev/disks/naa.* | grep -v ${raw.uuid} | grep -v ":"
+find /dev/disks -name "naa*" -maxdepth 1 -size +0 | grep -v ${raw.uuid} | grep -v ":"
 exit 1
 fi
 

@@ -96,24 +96,30 @@ public class FileMirrorScheduler implements Scheduler {
 
     }
 
-    private boolean findAndUpdateMatchedPolicyStorageResource(List<PolicyStorageResource> storageSystemResources,
-            FileRecommendation sourceFileRecommendation, VirtualPoolCapabilityValuesWrapper capabilities) {
-        PolicyStorageResource matchedPolicyResource = null;
+    private PolicyStorageResource findMatchedPolicyStorageResource(List<PolicyStorageResource> storageSystemResources,
+            FileRecommendation sourceFileRecommendation) {
         for (PolicyStorageResource strRes : storageSystemResources) {
             if (sourceFileRecommendation.getSourceStorageSystem().equals(strRes.getStorageSystem())) {
                 if (sourceFileRecommendation.getvNAS() != null
                         && sourceFileRecommendation.getvNAS().equals(strRes.getNasServer())) {
-                    capabilities.put(VirtualPoolCapabilityValuesWrapper.SOURCE_VIRTUAL_NAS_SERVER,
-                            sourceFileRecommendation.getvNAS());
-                    matchedPolicyResource = strRes;
-                    break;
+                    return strRes;
                 } else if (strRes.getNasServer() != null && strRes.getNasServer().toString().contains("PhysicalNAS")) {
-                    matchedPolicyResource = strRes;
-                    break;
+                    return strRes;
                 }
             }
         }
+        return null;
+    }
+
+    private void findAndUpdateMatchedPolicyStorageResource(List<PolicyStorageResource> storageSystemResources,
+            FileRecommendation sourceFileRecommendation, VirtualPoolCapabilityValuesWrapper capabilities) {
+
+        PolicyStorageResource matchedPolicyResource = findMatchedPolicyStorageResource(storageSystemResources, sourceFileRecommendation);
         if (matchedPolicyResource != null) {
+            if (sourceFileRecommendation.getvNAS() != null) {
+                capabilities.put(VirtualPoolCapabilityValuesWrapper.SOURCE_VIRTUAL_NAS_SERVER,
+                        sourceFileRecommendation.getvNAS());
+            }
             _log.info("Found the valid existing policy storage resource for system {} nas server {}",
                     matchedPolicyResource.getStorageSystem(), matchedPolicyResource.getNasServer());
             FileReplicaPolicyTargetMap targetMap = matchedPolicyResource.getFileReplicaPolicyTargetMap();
@@ -124,13 +130,12 @@ public class FileMirrorScheduler implements Scheduler {
                                 URI.create(target.getNasServer()));
                         capabilities.put(VirtualPoolCapabilityValuesWrapper.TARGET_STORAGE_SYSTEM,
                                 URI.create(target.getStorageSystem()));
-                        return true;
+                        break;
                     }
                 }
             }
         }
-        return false;
-
+        return;
     }
 
     /* local mirror related functions */
@@ -207,10 +212,7 @@ public class FileMirrorScheduler implements Scheduler {
                     capabilities.removeCapabilityEntry(VirtualPoolCapabilityValuesWrapper.TARGET_STORAGE_SYSTEM);
                 }
                 if (storageSystemResources != null && !storageSystemResources.isEmpty()) {
-                    if (!findAndUpdateMatchedPolicyStorageResource(storageSystemResources, sourceFileRecommendation, capabilities)) {
-                        _log.info("No policy resource for this source recommendation, so skipping it");
-                        continue;
-                    }
+                    findAndUpdateMatchedPolicyStorageResource(storageSystemResources, sourceFileRecommendation, capabilities);
                 }
             }
 

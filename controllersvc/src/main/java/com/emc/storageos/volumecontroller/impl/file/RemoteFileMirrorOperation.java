@@ -42,15 +42,4 @@ public interface RemoteFileMirrorOperation {
      */
     void doFailbackLink(StorageSystem system, FileShare target, TaskCompleter completer);
 
-    /**
-     * Resync replication links
-     * 
-     * @param primarySystem
-     * @param secondarySystem
-     * @param Target
-     * @param completer
-     */
-    void doResyncLink(StorageSystem primarySystem, StorageSystem secondarySystem, FileShare Target, TaskCompleter completer,
-            String policyName);
-
 }

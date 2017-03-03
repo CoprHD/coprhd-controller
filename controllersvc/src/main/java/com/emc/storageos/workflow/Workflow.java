@@ -280,21 +280,36 @@ public class Workflow implements Serializable {
          *            Message from the controller.
          */
         synchronized void updateState(StepState newState, ServiceCode code, String message) {
-            this.state = newState;
-            this.message = message;
-            this.serviceCode = code;
-            if (newState == StepState.QUEUED || newState == StepState.CANCELLED) {
-                this.startTime = new Date();
-            }
-            if (newState == StepState.CANCELLED
-                    || newState == StepState.SUCCESS || newState == StepState.ERROR) {
+            if (this.state == StepState.SUSPENDED_ERROR && newState == StepState.ERROR) {
+                // If the current step state is SUSPENDED_ERROR and the new state is ERROR,
+                // then rollback of that suspended step has been initiated and we are moving the
+                // state of the execution step to error. In this case, we don't want override
+                // the code and message with the passed values, as these come from the rollback
+                // step state. So, we set just the new state and end time. Additionally, we 
+                // don't want the suspended message to be part of the final error message for
+                // the step, so we extract that part of the message so we only see the actual 
+                // error that caused the suspension when rollback completes.
+                this.state = newState;
                 this.endTime = new Date();
+                String suspendedMsg = String.format("Message: %s", WorkflowService.SUSPENDED_MSG);
+                this.message = this.message.substring(suspendedMsg.length());
+            } else {
+                this.state = newState;
+                this.serviceCode = code;
+                this.message = message;
+                if (newState == StepState.QUEUED || newState == StepState.CANCELLED) {
+                    this.startTime = new Date();
+                }
+                if (newState == StepState.CANCELLED
+                        || newState == StepState.SUCCESS || newState == StepState.ERROR) {
+                    this.endTime = new Date();
+                }
+                // SUSPENDED state doesn't need either start nor endTime specified
+                this.serviceCode = code == null ? newState.getServiceCode() : code;
             }
-            // SUSPENDED state doesn't need either start nor endTime specified
-            this.serviceCode = code == null ? newState.getServiceCode() : code;
             this.notifyAll();
         }
-
+        
         /**
          * Block the calling thread until this step reaches a terminal state.
          */

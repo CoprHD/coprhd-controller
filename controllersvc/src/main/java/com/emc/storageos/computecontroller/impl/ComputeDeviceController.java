@@ -123,9 +123,11 @@ public interface ComputeDeviceController extends Controller {
      *            StepGroup.
      * @param clusterId
      *            {@link URI} cluster URI
+     * @param deactivateCluster
+     *            if true, cluster is being deactivated
      * @return waitFor step name
      */
-    public String addStepsVcenterClusterCleanup(Workflow workflow, String waitFor, URI clusterId)
+    public String addStepsVcenterClusterCleanup(Workflow workflow, String waitFor, URI clusterId, boolean deactivateCluster)
             throws InternalException;
 
     /**
@@ -160,5 +162,12 @@ public interface ComputeDeviceController extends Controller {
      */
     public void setSanBootTarget(URI computeSystemId, URI computeElementId, URI hostId, URI volumeId,
             boolean waitForServerRestart) throws InternalException;
-
+    
+    /**
+     * Validates that the specified boot volume is exported to the host and there are array portsmapped to the host's initiators in the export masks
+     * @param hostId the host URI
+     * @param volumeId the volumeId
+     * @returns boolean true if the export is valid
+     */
+     public boolean validateBootVolumeExport(URI hostId, URI volumeId) throws InternalException;
 }

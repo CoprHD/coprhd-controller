@@ -7,6 +7,7 @@ package com.emc.storageos.computecontroller.impl;
 import java.net.URI;
 import java.util.List;
 import java.util.Map;
+import java.util.HashMap;
 import java.util.UUID;
 
 import org.slf4j.Logger;
@@ -23,6 +24,8 @@ import com.emc.storageos.db.client.model.Cluster;
 import com.emc.storageos.db.client.model.ComputeElement;
 import com.emc.storageos.db.client.model.ComputeSystem;
 import com.emc.storageos.db.client.model.ComputeVirtualPool;
+import com.emc.storageos.db.client.model.ExportGroup;
+import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.Operation;
@@ -39,6 +42,7 @@ import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
+import com.emc.storageos.util.ExportUtils;
 import com.emc.storageos.util.InvokeTestFailure;
 import com.emc.storageos.vcentercontroller.VcenterController;
 import com.emc.storageos.vcentercontroller.exceptions.VcenterControllerException;
@@ -866,20 +870,64 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
                             "deactiveComputeSystemHost", cs.getId(), hostId),
                     new Workflow.Method(ROLLBACK_NOTHING_METHOD), null);
 
-            if (deactivateBootVolume && host.getBootVolumeId() != null) {
+            if (deactivateBootVolume && !NullColumnValueGetter.isNullURI(host.getBootVolumeId())) {
                 waitFor = workflow.createStep(DEACTIVATION_COMPUTE_SYSTEM_BOOT_VOLUME,
                         "Delete the boot volume for the host", waitFor, cs.getId(), cs.getSystemType(),
                         this.getClass(), new Workflow.Method("deleteBlockBootVolume", hostId, volumeDescriptors),
                         new Workflow.Method(ROLLBACK_NOTHING_METHOD), null);
             } else if (!deactivateBootVolume) {
                 log.info("flag deactivateBootVolume set to false");
-            } else if (host.getBootVolumeId() == null){
+            } else if (!NullColumnValueGetter.isNullURI(host.getBootVolumeId())){
                 log.info("Host "+ host.getLabel() + " has no bootVolume association");
             }
         }
 
         return waitFor;
     }
+   /**
+    * Validates that the specified boot volume is exported to the only this host in ViPR and that array target ports are in the ExportMask
+    * @param hostId URI of the host
+    * @param volumeId URI of the volume
+    * @return boolean true if the boot volume is exported to the host
+    */
+    @Override 
+     public boolean validateBootVolumeExport(URI hostId, URI volumeId) throws InternalException{
+         boolean valid = false;
+         Host host = _dbClient.queryObject(Host.class, hostId);
+         Volume volume = _dbClient.queryObject(Volume.class, volumeId);
+         List<Initiator> initiators = CustomQueryUtility.queryActiveResourcesByRelation(_dbClient, hostId,
+                Initiator.class, "host");
+         Map<ExportMask, ExportGroup> exportMasks = ExportUtils.getExportMasks(volume, _dbClient);
+         for (ExportMask exportMask : exportMasks.keySet()) {
+              log.info("Inspecting initiators for mask : " + exportMask.getId());
+              List<Initiator> initiatorsForMask = ExportUtils.getExportMaskInitiators(exportMask.getId(), _dbClient);
+              for (Initiator initiator : initiatorsForMask){
+                  if (!initiators.contains(initiator)){
+                      log.error("Volume is exported to initiator " + initiator.getLabel() + "which does not belong to host "+ host.getLabel());
+                      return false;
+                  }
+              }
+         }
+         Map<Initiator,List<URI>> initiatorPortMap = new HashMap<Initiator,List<URI>>();
+         for (Initiator initiator : initiators) {
+            for (ExportMask exportMask : exportMasks.keySet()) {
+                List<URI> storagePorts = ExportUtils.getInitiatorPortsInMask(exportMask, initiator, _dbClient);
+
+                if (storagePorts != null && !storagePorts.isEmpty()) {
+                    log.info("Initiator " + initiator.getLabel() + " mapped to "+ storagePorts.size()+ " array ports");
+                    initiatorPortMap.put(initiator, storagePorts);
+                }else {
+                    log.info("Initiator " + initiator.getLabel() + " not mapped to any array ports");
+                }
+             }
+         }
+         if (!initiatorPortMap.isEmpty()){
+            valid = true;
+         }else {
+            log.error("no array ports mapped to the hosts initiators!");
+         }
+         return valid;
+     }
 
     /**
      * A cluster could have only discovered hosts, only provisioned hosts, or mixed.
@@ -891,7 +939,7 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
      * VMs may endup decommissioned.
      */
     @Override
-    public String addStepsVcenterClusterCleanup(Workflow workflow, String waitFor, URI clusterId)
+    public String addStepsVcenterClusterCleanup(Workflow workflow, String waitFor, URI clusterId, boolean deactivateCluster)
             throws InternalException {
         Cluster cluster = _dbClient.queryObject(Cluster.class, clusterId);
         if (null == cluster) {
@@ -909,7 +957,7 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
         // VBDU [DONE]: COP-28400, Cluster without any hosts is kind of negative case, and this information is not
         // verified against the environment, do we need to take liberty of removing the cluster from VCenter?
         // Before we get to this cluster removal, ClusterService has a precheck to verify the matching environments
-        if (null == clusterHosts || clusterHosts.isEmpty()) {
+        if (deactivateCluster && (null == clusterHosts || clusterHosts.isEmpty())) {
             VcenterDataCenter vcenterDataCenter = _dbClient.queryObject(VcenterDataCenter.class,
                     cluster.getVcenterDataCenter());
             log.info("Cluster has no hosts, removing empty cluster : {}, from vCenter : {}", cluster.getLabel(),
@@ -948,7 +996,7 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
         /*
          * Remove cluster from vcenter only if all hosts are provisioned.
          */
-        if (hasProvisionedHosts && !hasDiscoveredHosts) {
+        if (hasProvisionedHosts && !hasDiscoveredHosts && deactivateCluster) {
             waitFor = workflow.createStep(REMOVE_VCENTER_CLUSTER, "If synced with vCenter, remove the cluster", waitFor,
                     clusterId, clusterId.toString(), this.getClass(),
                     new Workflow.Method("removeVcenterCluster", cluster.getId(), cluster.getVcenterDataCenter()),

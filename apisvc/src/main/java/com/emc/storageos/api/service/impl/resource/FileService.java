@@ -851,8 +851,18 @@ public class FileService extends TaskResourceService {
             }
         }
 
+        String rootUserMapping = param.getRootUserMapping();
+
+        if (!"nobody".equals(rootUserMapping)) {
+            StorageOSUser user = getUserFromContext();
+            if (!user.getName().equals(rootUserMapping)) {
+                // throw error
+                throw APIException.forbidden.onlyCurrentUserCanBeSetInRootUserMapping(user.getName());
+            }
+        }
+
         FileShareExport export = new FileShareExport(param.getEndpoints(), param.getSecurityType(), param.getPermissions(),
-                param.getRootUserMapping(), param.getProtocol(), sport.getPortGroup(), sport.getPortNetworkId(), path, mountPath,
+                rootUserMapping, param.getProtocol(), sport.getPortGroup(), sport.getPortNetworkId(), path, mountPath,
                 subDirectory, param.getComments());
 
         _log.info(String.format(
@@ -2102,7 +2112,7 @@ public class FileService extends TaskResourceService {
             param.setSubDir(subDir);
 
             // Validate the input
-            ExportVerificationUtility exportVerificationUtility = new ExportVerificationUtility(_dbClient);
+            ExportVerificationUtility exportVerificationUtility = new ExportVerificationUtility(_dbClient, getUserFromContext());
             exportVerificationUtility.verifyExports(fs, null, param);
 
             _log.info("No Errors found proceeding further {}, {}, {}", new Object[] { _dbClient, fs, param });
@@ -3275,9 +3285,11 @@ public class FileService extends TaskResourceService {
         }
         // Check for replication policy existence on file system..
         if (FileSystemReplicationUtils.getReplicationPolicyAppliedOnFS(sourceFileShare, _dbClient) == null) {
-            notSuppReasonBuff.append(String.format(
-                    "Mirror Operation {} is not supported for the file system {} as file system doesn't have any replication policy assigned/applied",
-                    op, sourceFileShare.getLabel()));
+            notSuppReasonBuff
+            .append(String
+                    .format(
+                            "Mirror Operation {} is not supported for the file system {} as file system doesn't have any replication policy assigned/applied",
+                            op, sourceFileShare.getLabel()));
             _log.error(notSuppReasonBuff.toString());
             throw APIException.badRequests.unableToPerformMirrorOperation(op, sourceFileShare.getId(),
                     notSuppReasonBuff.toString());

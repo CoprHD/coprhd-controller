@@ -1157,8 +1157,8 @@ test_22() {
         echo Test 22 skipped, does not apply when clustered tests are disabled
         return
     fi
-    echot "Test 21 Begins"
-    expname=${EXPORT_GROUP_NAME}t21
+    echot "Test 22 Begins"
+    expname=${EXPORT_GROUP_NAME}t22
     runcmd export_group create $PROJECT ${expname}1 $NH --type Host --volspec ${PROJECT}/${VOLNAME}-1 --hosts "${HOST1}"
     runcmd export_group update $PROJECT/${expname}1 --addHosts "${HOST2}"
     runcmd export_group create $PROJECT ${expname}_cluster $NH --type Cluster --volspec ${PROJECT}/${VOLNAME}-3,${PROJECT}/${VOLNAME}-4 --cluster "${TENANT}/${CLUSTER}"

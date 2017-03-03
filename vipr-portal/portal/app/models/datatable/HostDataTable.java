@@ -28,6 +28,8 @@ public class HostDataTable extends DataTable {
         addColumn("name").setRenderFunction("renderLink");
         addColumn("hostname");
         addColumn("type").setRenderFunction("render.operatingSystem");
+        addColumn("computeElement");
+        addColumn("serviceProfile");
         addColumn("version").hidden();
         addColumn("cluster").hidden();
         addColumn("discoverable").setRenderFunction("render.boolean");

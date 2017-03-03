@@ -2135,7 +2135,6 @@ public class HostService extends TaskResourceService {
         } else {
             host.setPassword(param.getRootPassword());
             host.setUsername("root");
-            host.setDiscoverable(true);
         }
 
         // check that CS has os install network

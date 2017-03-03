@@ -8,6 +8,7 @@ import java.net.URI;
 
 import com.emc.sa.service.vipr.tasks.ViPRExecutionTask;
 import com.emc.storageos.model.host.HostRestRep;
+import com.emc.storageos.model.host.HostUpdateParam;
 import com.emc.vipr.client.Task;
 
 public class DiscoverHost extends ViPRExecutionTask<Task<HostRestRep>> {
@@ -21,7 +22,9 @@ public class DiscoverHost extends ViPRExecutionTask<Task<HostRestRep>> {
 
     @Override
     public Task<HostRestRep> executeTask() throws Exception {
-        Task<HostRestRep> task = getClient().hosts().discover(hostId);
+        HostUpdateParam param = new HostUpdateParam();
+        param.setDiscoverable(true);
+        Task<HostRestRep> task = getClient().hosts().update(hostId, param);
         addOrderIdTag(task.getTaskResource().getId());
         return task;
     }

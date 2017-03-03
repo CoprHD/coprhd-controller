@@ -81,7 +81,7 @@ public class VcenterControllerImpl implements VcenterController {
             vcenterApiClient.setup(vcenter.getIpAddress(), vcenter.getUsername(), vcenter.getPassword());
             return runningOnly ? vcenterApiClient.getRunningVirtualMachines(vcenterDataCenter.getLabel(), cluster.getExternalId(),
                     host.getHostName()) : vcenterApiClient.getVirtualMachines(vcenterDataCenter.getLabel(), cluster.getExternalId(),
-                    host.getHostName());
+                            host.getHostName());
         } catch (VcenterObjectConnectionException e) {
             throw VcenterControllerException.exceptions.objectConnectionException(e.getLocalizedMessage(), e);
         } catch (VcenterObjectNotFoundException e) {
@@ -534,5 +534,39 @@ public class VcenterControllerImpl implements VcenterController {
                 vcenterApiClient.destroy();
             }
         }
+    }
+
+    @Override
+    public boolean checkVMsOnHostBootVolume(URI datacenterUri, URI clusterUri, URI hostId, URI bootVolumeId) {
+        VcenterApiClient vcenterApiClient = null;
+        boolean isVMsPresent = false;
+        try {
+            VcenterDataCenter vcenterDataCenter = _dbClient.queryObject(VcenterDataCenter.class, datacenterUri);
+            Cluster cluster = _dbClient.queryObject(Cluster.class, clusterUri);
+            Vcenter vcenter = _dbClient.queryObject(Vcenter.class, vcenterDataCenter.getVcenter());
+            Host host = _dbClient.queryObject(Host.class, hostId);
+            Volume volume = _dbClient.queryObject(Volume.class, bootVolumeId);
+            _log.info("Request to remove cluster " + vcenter.getLabel() + "/" + vcenterDataCenter.getLabel() + "/"
+                    + cluster.getLabel());
+
+            vcenterApiClient = new VcenterApiClient(_coordinator.getPropertyInfo());
+            vcenterApiClient.setup(vcenter.getIpAddress(), vcenter.getUsername(), vcenter.getPassword());
+            isVMsPresent = vcenterApiClient.checkVMsOnHostVolume(vcenterDataCenter.getLabel(), cluster.getExternalId(),
+                    host.getHostName(), volume.getWWN());
+        } catch (VcenterObjectConnectionException e) {
+            throw VcenterControllerException.exceptions.objectConnectionException(e.getLocalizedMessage(), e);
+        } catch (VcenterObjectNotFoundException e) {
+            throw VcenterControllerException.exceptions.objectNotFoundException(e.getLocalizedMessage(), e);
+        } catch (VcenterServerConnectionException e) {
+            throw VcenterControllerException.exceptions.serverConnectionException(e.getLocalizedMessage(), e);
+        } catch (Exception e) {
+            _log.error("checkVMsOnHostBootVolume exception ", e);
+            throw VcenterControllerException.exceptions.unexpectedException(e.getLocalizedMessage(), e);
+        } finally {
+            if (vcenterApiClient != null) {
+                vcenterApiClient.destroy();
+            }
+        }
+        return isVMsPresent;
     }
 }

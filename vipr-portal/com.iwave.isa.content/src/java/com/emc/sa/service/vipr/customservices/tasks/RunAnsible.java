@@ -293,7 +293,7 @@ public class RunAnsible extends ViPRExecutionTask<CustomServicesTaskResult> {
         return Exec.exec(timeout, cmds);
     }
 
-    // Execute Shel Script resource
+    // Execute Shell Script resource
     private Exec.Result executeCmd(final String playbook, final String extraVars) {
         final AnsibleCommandLine cmd = new AnsibleCommandLine(CustomServicesConstants.SHELL_BIN, playbook);
         cmd.setShellArgs(extraVars);
@@ -331,7 +331,7 @@ public class RunAnsible extends ViPRExecutionTask<CustomServicesTaskResult> {
             return null;
         }
 
-        final StringBuilder sb = new StringBuilder("");
+        final StringBuilder sb = new StringBuilder();
         for (Map.Entry<String, List<String>> e : input.entrySet()) {
             // TODO find a better way to fix this
             sb.append(e.getKey()).append("=").append(e.getValue().get(0).replace("\"", "")).append(" ");

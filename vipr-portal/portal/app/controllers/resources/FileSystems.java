@@ -116,7 +116,11 @@ public class FileSystems extends ResourceController {
     }
 
     public static void validateQuotaSize(String quotaSize) {
-        if (StringUtils.isEmpty(quotaSize) || !quotaSize.matches("^\\d+$")) {
+        String tempSize = quotaSize;
+        if(true == tempSize.contains(",")) {
+            tempSize = tempSize.replaceAll(",", "");
+        }
+        if (StringUtils.isEmpty(quotaSize) || !tempSize.matches("^\\d+$")) {
             Validation.addError("quota.size", "resources.filesystem.quota.size.invalid.value");
         }
 
@@ -804,7 +808,14 @@ public class FileSystems extends ResourceController {
         QuotaDirectoryUpdateParam param = new QuotaDirectoryUpdateParam();
         param.setOpLock(quota.oplock);
         param.setSecurityStyle(quota.securityStyle);
-        param.setSize(String.valueOf(DiskSizeConversionUtils.gbToBytes(new Double(quota.size))));
+        //quota size
+        String modifiedSize = quota.size;
+        if(true == quota.size.contains(",")){
+            modifiedSize = modifiedSize.replaceAll(",", "");
+        }
+        Double modifyQuotaSize = new Double(modifiedSize);
+
+        param.setSize(String.valueOf(DiskSizeConversionUtils.gbToBytes(modifyQuotaSize)));
         client.quotaDirectories().updateQuotaDirectory(uri(id), param);
         flash.put("info", MessagesUtils.get("resources.filesystem.quota.update"));
         fileSystem(fileSystemId);
@@ -1375,7 +1386,11 @@ public class FileSystems extends ResourceController {
         }
 
         public void validate(String formName) {
-            if (StringUtils.isEmpty(size) || !size.matches("^\\d+$")) {
+            String tempSize = size;
+            if(true == tempSize.contains(",")) {
+                tempSize = tempSize.replaceAll(",", "");
+            }
+            if (StringUtils.isEmpty(size) || !tempSize.matches("^\\d+$")) {
                 Validation.addError(formName + ".size", "resources.filesystem.quota.size.invalid.value");
             }
         }

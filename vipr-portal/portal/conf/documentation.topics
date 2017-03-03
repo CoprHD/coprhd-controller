@@ -75,6 +75,7 @@ auth.IPsec.ipsec = SecurityIPsec
 catalog.ApprovalConfiguration = vipr_c_approval_settings
 catalog.Approvals = vipr_c_user_approvals
 catalog.Approvals.edit = vipr_t_approving_an_order
+catalog.CatalogImages = CatalogImages
 catalog.EditCatalog = AdminServiceCatalog
 catalog.EditCatalog.createService = vipr_t_add_service
 catalog.EditCatalog.editService = vipr_t_edit_service

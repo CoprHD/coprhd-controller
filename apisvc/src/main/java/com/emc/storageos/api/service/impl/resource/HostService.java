@@ -333,23 +333,6 @@ public class HostService extends TaskResourceService {
                 ComputeSystemHelper.updateHostAndInitiatorClusterReferences(_dbClient, newClusterURI, host.getId());
             }
         }
-        /*
-         * It is not merely enough to make the Host -> (Boot)Volume association
-         * by setting the boot volume id on the Host. A volume is truly a boot
-         * volume, iff it's exported to the Host with HLU 0. Hence an update to
-         * the Host to set the boot volume should only really be made *after*
-         * the volume has been exported to the Host.
-         * VBDU TODO: COP-28451, Consider making the
-         * above requirement a hard one, by validating that such an export in
-         * fact exists. For the time being following piece of code suffices
-         * for satisfying some high level requirements, although it may not be
-         * sufficient from an API purity standpoint
-         */
-        // VBDU TODO: COP-28451, The above block of code doesn't guarantee that exports will be triggered for the
-        // updated host. Is it OK to set boot volume?
-        if (!NullColumnValueGetter.isNullURI(host.getComputeElement()) && !NullColumnValueGetter.isNullURI(updateParam.getBootVolume())) {
-            controller.setHostSanBootTargets(host.getId(), updateParam.getBootVolume());
-        }
 
         _dbClient.updateObject(host);
         
@@ -357,6 +340,40 @@ public class HostService extends TaskResourceService {
                 host.auditParameters());
 
         return doDiscoverHost(host.getId(), taskId, updateTaskStatus);
+    }
+    /**
+     * Updates the hosts boot volume Id
+     *
+     * @param id the URN of host
+     * @param hostUpdateParam 
+     *
+     * @return the task.
+     */
+    @PUT
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @CheckPermission(roles = { Role.TENANT_ADMIN })
+    @Path("/{id}/update-boot-volume")
+    public TaskResourceRep updateBootVolume(@PathParam("id") URI id, HostUpdateParam param) {
+         Host host = queryObject(Host.class, id, true);
+        boolean hasPendingTasks = hostHasPendingTasks(id);
+        boolean updateSanBootTargets = param.getUpdateSanBootTargets();
+        if (hasPendingTasks) {
+            throw APIException.badRequests.cannotUpdateHost("another operation is in progress for this host");
+        }
+        
+        auditOp(OperationTypeEnum.UPDATE_HOST_BOOT_VOLUME, true, null,
+                host.auditParameters());
+		
+        String taskId = UUID.randomUUID().toString();
+        ComputeSystemController controller = getController(ComputeSystemController.class, null);
+        Operation op = _dbClient.createTaskOpStatus(Host.class, id, taskId,
+                ResourceOperationTypeEnum.UPDATE_HOST_BOOT_VOLUME);
+
+        //The volume being set as the boot volume should be exported to the host and should not be exported to any other initiators.
+        // The controller call invoked below validates that before setting the volume as the boot volume.
+        controller.setHostBootVolume(host.getId(), param.getBootVolume(), updateSanBootTargets, taskId);
+        return toTask(host, taskId, op);
     }
 
     /**

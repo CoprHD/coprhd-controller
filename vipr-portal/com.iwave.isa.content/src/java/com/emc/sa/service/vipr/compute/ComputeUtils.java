@@ -827,16 +827,84 @@ public class ComputeUtils {
         }
     }
 
-    public static void setHostBootVolumes(List<Host> hosts,
-            List<URI> bootVolumeIds) {
+    public static List<Host> setHostBootVolumes(List<Host> hosts,
+            List<URI> bootVolumeIds, boolean updateSanBootTargets) {
+        List<Task<HostRestRep>> tasks = new ArrayList<>();
         for (Host host : hosts) {
+
             if (host != null && !host.getInactive()) {
                 host.setBootVolumeId(bootVolumeIds.get(hosts.indexOf(host)));
-                ViPRExecutionUtils.execute(new SetBootVolume(host, bootVolumeIds.get(hosts.indexOf(host))));
+                Task<HostRestRep> task = ViPRExecutionUtils.execute(new SetBootVolume(host, bootVolumeIds.get(hosts.indexOf(host)), updateSanBootTargets));
+                tasks.add(task);
             }
         }
-    }
+        //monitor tasks
+        List<URI> successfulHostIds = Lists.newArrayList();
+        List<URI> hostsToRemove = Lists.newArrayList();
+        List<URI> bootVolumesToRemove = Lists.newArrayList();
+        Map<URI,URI> hostDeactivateMap = new HashMap<URI, URI>();
+        while (!tasks.isEmpty()) {
+            waitAndRefresh(tasks);
+            for (Task<HostRestRep> successfulTask : getSuccessfulTasks(tasks)) {
+                tasks.remove(successfulTask);
+                URI hostId = successfulTask.getResource().getId();
+                Host newHost = execute(new GetHost(hostId));
+                if (newHost == null || newHost.getBootVolumeId()== null || newHost.getBootVolumeId().equals("null")) {
+                    ExecutionUtils.currentContext().logError("computeutils.sethostbootvolume.failure",
+                            successfulTask.getResource().getName());
+                    hostsToRemove.add(hostId);
+                }
+                else {
+                    ExecutionUtils.currentContext().logInfo("computeutils.sethostbootvolume.success",
+                            newHost.getHostName());
+                    addAffectedResource(hostId);
+                    successfulHostIds.add(hostId);
+                }
+            }
+            for (Task<HostRestRep> failedTask : getFailedTasks(tasks)) {
+                tasks.remove(failedTask);
+                String errorMessage = failedTask.getMessage() == null ? "" : failedTask.getMessage();
+                ExecutionUtils.currentContext().logError("computeutils.sethostbootvolume.failure.task",
+                        failedTask.getResource().getName(), errorMessage);
+                URI hostId = failedTask.getResource().getId();
+                Host newHost = execute(new GetHost(hostId));
+                hostsToRemove.add(hostId);
 
+            }
+        }
+
+        for (URI hostId: hostsToRemove){
+            for (Host host: hosts){
+               if (host.getId() == hostId){
+                 ExecutionUtils.currentContext().logInfo("computeutils.deactivatehost.nobootvolumeassociation",
+                            host.getHostName());
+
+                 bootVolumesToRemove.add(host.getBootVolumeId());
+                 break;
+               }
+            }
+            execute(new DeactivateHost(hostId, true));
+        }
+        // Cleanup all bootvolumes of the deactivated host so that we do not leave any unsed boot volumes.
+        if (!bootVolumesToRemove.isEmpty()) {
+            try {
+                ExecutionUtils.currentContext().logInfo("computeutils.deactivatebootvolume.nobootvolumeassociation");
+                BlockStorageUtils.deactivateVolumes(bootVolumesToRemove, VolumeDeleteTypeEnum.FULL);
+            }catch (Exception e) {
+                ExecutionUtils.currentContext().logError("computeutils.bootvolume.deactivate.failure",
+                        e.getMessage());
+            }
+        }
+        // remove failed hosts
+        for (ListIterator<Host> itr = hosts.listIterator(); itr.hasNext();) {
+            Host host = itr.next();
+            if ((host != null) && !successfulHostIds.contains(host.getId())) {
+                itr.set(null);
+            }
+        }
+
+        return hosts;
+    }
     public static Map<String, URI> getHostNameBootVolume(List<Host> hosts) {
 
         if (hosts == null || hosts.isEmpty()) {
@@ -966,7 +1034,7 @@ public class ComputeUtils {
                 // If there's no vcenter associated with the host, then this host is in the ViPR cluster, but is not
                 // in the vCenter cluster, and therefore we can not perform a deep validation.
                 if (NullColumnValueGetter.isNullURI(host.getVcenterDataCenter())) {
-                    ExecutionUtils.currentContext().logInfo("computeutils.removebootvolumes.validation.skipped.hostnotinvcenter",
+                    ExecutionUtils.currentContext().logInfo("computeutils.removebootvolumes.validation.skipped.vcenternotinhost",
                             host.getHostName());
                     continue;
                 }
@@ -988,14 +1056,25 @@ public class ComputeUtils {
                     return false;
                 }
 
-                HostSystem hostSystem = vmware.getHostSystem(dataCenter.getLabel(), clusterHost.getName());
+                HostSystem hostSystem = null;
+                try {
+                    hostSystem = vmware.getHostSystem(dataCenter.getLabel(), clusterHost.getName());
 
-                // Make sure the host system is still part of the cluster. If it isn't, hostSystem will be null and
-                // we can fail the validation based on principle alone.
-                if (hostSystem == null) {
-                    ExecutionUtils.currentContext().logError("computeutils.removebootvolumes.failure.host", host.getHostName(),
-                            "host not part of cluster/datacenter.");
-                    return false;
+                    // Make sure the host system is still part of the cluster in vcenter. If it isn't, hostSystem will be null and
+                    // we can't perform the validation.
+                    if (hostSystem == null) {
+                        ExecutionUtils.currentContext().logInfo("computeutils.removebootvolumes.validation.skipped.hostnotinvcenter", 
+                                host.getHostName());
+                        continue;
+                    }
+                } catch (ExecutionException e) {
+                    if (e.getCause() instanceof IllegalStateException) {
+                        ExecutionUtils.currentContext().logInfo("computeutils.removebootvolumes.validation.skipped.hostnotinvcenter", 
+                            host.getHostName());
+                        continue;
+                    }
+                    // If it's anything other than the IllegalStateException, re-throw the base exception
+                    throw e;
                 }
 
                 if (vmware.findScsiDisk(hostSystem, null, bootVolume, false, false) == null) {

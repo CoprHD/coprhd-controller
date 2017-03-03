@@ -44,7 +44,6 @@ import javax.ws.rs.core.MediaType;
 import com.emc.storageos.db.client.model.remotereplication.RemoteReplicationGroup;
 import com.emc.storageos.db.client.model.remotereplication.RemoteReplicationPair;
 import com.emc.storageos.db.client.model.remotereplication.RemoteReplicationSet;
-import com.emc.storageos.db.client.model.remotereplication.RemoteReplicationPair.ElementType;
 import com.emc.storageos.model.remotereplication.RemoteReplicationParameters;
 import com.emc.storageos.plugins.common.Constants;
 import org.slf4j.Logger;
@@ -79,7 +78,6 @@ import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.ContainmentPrefixConstraint;
 import com.emc.storageos.db.client.constraint.PrefixConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
-import com.emc.storageos.db.client.constraint.impl.ContainmentConstraintImpl;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup.Types;
 import com.emc.storageos.db.client.model.BlockMirror;
@@ -1049,38 +1047,27 @@ public class BlockService extends TaskResourceService {
 
     private void validateCGForRemoteReplication(BlockConsistencyGroup cGroup, RemoteReplicationParameters params,
             BlockServiceApi blockService) {
-        // Consistency group should only contain RR type volume
-        if (cGroup.getTypes().size() != 1 || !cGroup.checkForType(Types.RR)) {
+        // Consistency group should only be empty or only contain RR type volume(s)
+        if (cGroup.getTypes().size() != 0 &&
+                (cGroup.getTypes().size() != 1 || !cGroup.checkForType(Types.RR))) {
             throw APIException.badRequests.consistencyGroupMustOnlyBeRRProtected(cGroup.getId());
         }
         List<Volume> volumes = blockService.getActiveCGVolumes(cGroup);
-        // Consistency group can't hold both volumes provisioned directly in
-        // remote replication set and volumes in remote replication group
+        // Consistency group can only hold RR volumes of single type (in RR group or in RR set)
         boolean hasVolInGroup = false;
         boolean hasVolInSet = false;
         for (Volume vol : volumes) {
             Iterator<RemoteReplicationPair> pairs = findRemoteReplicationPairsByVolume(vol);
-            // There's no pair that involves this volume as source or target
-            // which means this volume is not a remote replication volume
             if (!pairs.hasNext()) {
                 throw APIException.badRequests.consistencyGroupContainsNonRRVolumes(cGroup.getId());
             }
-            boolean inGroup = isVolumeInRemoteRepliationGroup(pairs);
+            boolean inGroup = (pairs.next().getReplicationGroup() != null);
             hasVolInGroup |= inGroup;
             hasVolInSet |= (!inGroup);
             if (hasVolInGroup && hasVolInSet) {
                 throw APIException.badRequests.consistencyGroupContainsDifferentRRVolumes(cGroup.getId());
             }
         }
-    }
-
-    // not sure if it is a proper method to judge whether a volume is provisioned in rr group
-    private boolean isVolumeInRemoteRepliationGroup(Iterator<RemoteReplicationPair> pairs) {
-        // assume a volume only appear in only one RemoteReplicationPair
-        if (pairs.next().getReplicationGroup() != null) {
-            return true;
-        }
-        return false;
     }
 
     private Iterator<RemoteReplicationPair> findRemoteReplicationPairsByVolume(Volume vol) {

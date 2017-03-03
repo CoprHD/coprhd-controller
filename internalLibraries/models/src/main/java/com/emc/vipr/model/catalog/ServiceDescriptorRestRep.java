@@ -23,6 +23,8 @@ public class ServiceDescriptorRestRep implements ServiceItemContainerRestRep {
     private String description;
     private List<String> roles;
     private boolean destructive = false;
+    private boolean useModal = false;
+    private String modalTitle;
     private List<ServiceItemRestRep> items;
 
     @XmlElement(name = "service_id")
@@ -81,12 +83,31 @@ public class ServiceDescriptorRestRep implements ServiceItemContainerRestRep {
     public void setDestructive(boolean destructive) {
         this.destructive = destructive;
     }
+    
+    @XmlElement(name = "use_modal")
+    public boolean isUseModal() {
+        return useModal;
+    }
+
+    public void setUseModal(boolean useModal) {
+        this.useModal = useModal;
+    }
+    
+    @XmlElement(name = "modal_title")
+    public String getModalTitle() {
+        return modalTitle;
+    }
+
+    public void setModalTitle(String modalTitle) {
+        this.modalTitle = modalTitle;
+    }
 
     @XmlElementWrapper(name = "items")
     @XmlElements({
             @XmlElement(name = "field", type = ServiceFieldRestRep.class),
             @XmlElement(name = "group", type = ServiceFieldGroupRestRep.class),
-            @XmlElement(name = "table", type = ServiceFieldTableRestRep.class)
+            @XmlElement(name = "table", type = ServiceFieldTableRestRep.class),
+            @XmlElement(name = "modal", type = ServiceFieldModalRestRep.class)
     })
     public List<ServiceItemRestRep> getItems() {
         if (items == null) {

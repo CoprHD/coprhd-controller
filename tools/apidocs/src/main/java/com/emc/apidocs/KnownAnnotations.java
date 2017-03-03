@@ -15,6 +15,7 @@ public class KnownAnnotations {
     public static final String XMLAccessorType_Annotation = "javax.xml.bind.annotation.XmlAccessorType";
     public static final String XMLTransient_Annotation = "javax.xml.bind.annotation.XmlTransient";
     public static final String XMLEnum_Annotation = "javax.xml.bind.annotation.XmlEnum";
+    public static final String JsonProperty_Annotation = "org.codehaus.jackson.annotate.JsonProperty";
 
     public static final String CheckPermission_Annotation = "com.emc.storageos.security.authorization.CheckPermission";
     public static final String InheritCheckPermission_Annotation = "com.emc.storageos.security.authorization.InheritCheckPermission";

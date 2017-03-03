@@ -143,16 +143,16 @@ adg_KIWIMods() {
      xsed $FileArchiveBuilder 's/--exclude=image/--exclude=\.\/image/'
     fi
 
-    FileLinuxRC="$kiwiPath/KIWILinuxRC.sh"
-    if [ -f $FileLinuxRC ]; then
-     echo "Modifying to fix for FIPS firstboot issue $FileLinuxRC"
-     linenum=`grep -n "# create grub2 configuration" $FileLinuxRC | cut -d ":" -f1`
-     let linenum=$linenum+2
-     sed -i."bak" "$linenum i \    /usr/sbin/haveged" $FileLinuxRC
-     linenum=`grep -n "# reset bind mount to standard boot dir" $FileLinuxRC | cut -d ":" -f1`
-     let linenum=$linenum+5
-     sed -i "$linenum i \    mv /\$bootdir/tmp/.vmlinuz* /\$bootdir" $FileLinuxRC
-    fi
+    #FileLinuxRC="$kiwiPath/KIWILinuxRC.sh"
+    #if [ -f $FileLinuxRC ]; then
+    # echo "Modifying to fix for FIPS firstboot issue $FileLinuxRC"
+    # linenum=`grep -n "# create grub2 configuration" $FileLinuxRC | cut -d ":" -f1`
+    # let linenum=$linenum+2
+    # sed -i."bak" "$linenum i \    /usr/sbin/haveged" $FileLinuxRC
+    # linenum=`grep -n "# reset bind mount to standard boot dir" $FileLinuxRC | cut -d ":" -f1`
+    # let linenum=$linenum+5
+    # sed -i "$linenum i \    mv /\$bootdir/tmp/.vmlinuz* /\$bootdir" $FileLinuxRC
+    #fi
 
     #######################################################
     # Modify zypper cache behaviour

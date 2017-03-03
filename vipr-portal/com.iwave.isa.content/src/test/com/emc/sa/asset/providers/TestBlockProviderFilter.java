@@ -6,7 +6,6 @@
 package com.emc.sa.asset.providers;
 
 import static com.emc.sa.asset.providers.BlockProvider.getVolumeDetails;
-import static com.emc.sa.asset.providers.BlockProvider.hasXIO3XVolumes;
 import static com.emc.sa.asset.providers.BlockProvider.isInConsistencyGroup;
 import static com.emc.sa.asset.providers.BlockProvider.listVolumes;
 import static com.emc.sa.asset.providers.BlockProviderUtils.getVolumePersonality;

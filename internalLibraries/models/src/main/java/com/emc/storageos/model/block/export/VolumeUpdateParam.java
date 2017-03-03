@@ -42,6 +42,10 @@ public class VolumeUpdateParam {
         return add;
     }
 
+    public void setAdd(List<VolumeParam> add) {
+        this.add = add;
+    }
+
     /**
      * Remove lists of volume or volume snapshot changes.
      * 
@@ -53,6 +57,10 @@ public class VolumeUpdateParam {
             remove = new ArrayList<URI>();
         }
         return remove;
+    }
+
+    public void setRemove(List<URI> remove) {
+        this.remove = remove;
     }
 
     public void addVolume(URI volumeId) {

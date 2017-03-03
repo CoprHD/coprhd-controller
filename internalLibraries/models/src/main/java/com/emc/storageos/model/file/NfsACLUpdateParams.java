@@ -5,6 +5,7 @@
 package com.emc.storageos.model.file;
 
 import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.List;
 
 import javax.xml.bind.annotation.XmlElement;
@@ -79,6 +80,24 @@ public class NfsACLUpdateParams implements Serializable {
         builder.append(acesToDelete);
         builder.append("]");
         return builder.toString();
+    }
+
+    public List<NfsACE> retrieveAllACL() {
+
+        List<NfsACE> aclList = new ArrayList<NfsACE>();
+
+        if (acesToAdd != null && !acesToAdd.isEmpty()) {
+            aclList.addAll(acesToAdd);
+        }
+
+        if (acesToModify != null && !acesToModify.isEmpty()) {
+            aclList.addAll(acesToModify);
+        }
+
+        if (acesToDelete != null && !acesToDelete.isEmpty()) {
+            aclList.addAll(acesToDelete);
+        }
+        return aclList;
     }
 
 }

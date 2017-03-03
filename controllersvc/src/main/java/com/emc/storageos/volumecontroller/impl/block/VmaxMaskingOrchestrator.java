@@ -353,25 +353,8 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                             }
                         }
                     }
-                    //TODO we need to move this into completer
-                    // Update the list of volumes and initiators for the mask
-                    Map<URI, Integer> volumeMapForExistingMask = existingMasksToUpdateWithNewVolumes
-                            .get(mask.getId());
-                    if (volumeMapForExistingMask != null && !volumeMapForExistingMask.isEmpty()) {
-                        mask.addVolumes(volumeMapForExistingMask);
-                    }
 
-                    Set<Initiator> initiatorSetForExistingMask = existingMasksToUpdateWithNewInitiators
-                            .get(mask.getId());
-                    if (initiatorSetForExistingMask != null && initiatorSetForExistingMask.isEmpty()) {
-                        mask.addInitiators(initiatorSetForExistingMask);
-                    }
-
-                    updateZoningMap(exportGroup, mask, false);
-
-                    _dbClient.updateObject(mask);
-                    exportGroup.addExportMask(mask.getId());
-                    _dbClient.updateObject(exportGroup);
+                    updateZoningMap(exportGroup, mask, true);
                 }
             }
 
@@ -427,10 +410,10 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                         Joiner.on(",").join(initiatorsURIs), mask.getMaskName()));
                 Map<URI, List<URI>> maskToInitiatorsMap = new HashMap<URI, List<URI>>();
                 maskToInitiatorsMap.put(mask.getId(), initiatorsURIs);
-                previousStep = generateZoningAddInitiatorsWorkflow(workflow, previousStep,
-                        exportGroup, maskToInitiatorsMap);
                 previousStep = generateExportMaskAddInitiatorsWorkflow(workflow, previousStep, storage, exportGroup, mask,
                         initiatorsURIs, null, token);
+                previousStep = generateZoningAddInitiatorsWorkflow(workflow, previousStep,
+                        exportGroup, maskToInitiatorsMap);
                 anyOperationsToDo = true;
             }
 
@@ -539,7 +522,7 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                     Initiator initiator = _dbClient.queryObject(Initiator.class, initiatorURI);
 
                     // Get a list of the ExportMasks that were matched to the initiator
-                    // go through the initiators and figure out the proper intiator and volume ramifications
+                    // go through the initiators and figure out the proper initiator and volume ramifications
                     // to the existing masks.
                     List<URI> exportMaskURIs = new ArrayList<URI>();
                     exportMaskURIs.addAll(entry.getValue());
@@ -859,7 +842,6 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
         }
     }
 
-
     @Override
     protected boolean useComputedMaskName() {
         return true;
@@ -872,6 +854,12 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
         } else {
             return CustomConfigConstants.VMAX_HOST_MASKING_VIEW_MASK_NAME;
         }
+    }
+
+    @Override
+    public void findAndUpdateFreeHLUsForClusterExport(StorageSystem storage, ExportGroup exportGroup, List<URI> initiatorURIs,
+            Map<URI, Integer> volumeMap) {
+        findUpdateFreeHLUsForClusterExport(storage, exportGroup, initiatorURIs, volumeMap);
     }
 
     /**
@@ -908,6 +896,8 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
         Map<String, Set<URI>> initiatorToExportMaskPlacementMap = determineInitiatorToExportMaskPlacements(exportGroup, storage.getId(),
                 initiatorHelper.getResourceToInitiators(), device.findExportMasks(storage, initiatorHelper.getPortNames(), false),
                 initiatorHelper.getPortNameToInitiatorURI(), partialMasks);
+
+        findAndUpdateFreeHLUsForClusterExport(storage, exportGroup, initiatorURIs, volumeMap);
 
         // If we didn't find any export masks for any compute resources, then it's a total loss, and we need to
         // create new masks for each compute resource.
@@ -1952,16 +1942,18 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                 Initiator initiator =
                         _dbClient.queryObject(Initiator.class,
                                 newExportMaskInitiator);
-                String clusterName = getClusterName(singleCluster, initiator);
-                List<URI> initiatorSet = result.get(clusterName);
-                if (initiatorSet == null) {
-                    initiatorSet = new ArrayList<URI>();
-                    result.put(clusterName, initiatorSet);
+                if (initiator != null) {
+                    String clusterName = getClusterName(singleCluster, initiator);
+                    List<URI> initiatorSet = result.get(clusterName);
+                    if (initiatorSet == null) {
+                        initiatorSet = new ArrayList<URI>();
+                        result.put(clusterName, initiatorSet);
+                    }
+                    initiatorSet.add(newExportMaskInitiator);
+                    _log.info(String.format("cluster = %s, initiators to add to map: %s, ",
+                            clusterName,
+                            newExportMaskInitiator.toString()));
                 }
-                initiatorSet.add(newExportMaskInitiator);
-                _log.info(String.format("cluster = %s, initiators to add to map: %s, ",
-                        clusterName,
-                        newExportMaskInitiator.toString()));
             }
         } else {
             // Bogus URI for those initiators without a host object, helps maintain a good map.

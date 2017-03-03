@@ -157,7 +157,7 @@
             <boolean-checkbox v-disabled='locked'></boolean-checkbox>
           </control-group>
         </div>
-        <div ng-if="['driversystem','${models.StorageSystemTypes.VMAX}','${models.StorageSystemTypes.VNX_BLOCK}','${models.StorageSystemTypes.HITACHI}','${models.StorageSystemTypes.VNXe}','${models.StorageSystemTypes.UNITY}'].indexOf(vpool.systemType) > -1">
+        <div ng-if="[#{list items: autoTierTypes, as: 'type'}'${type}',#{/list}'driversystem','${models.StorageSystemTypes.VMAX}','${models.StorageSystemTypes.VNX_BLOCK}','${models.StorageSystemTypes.HITACHI}','${models.StorageSystemTypes.VNXe}','${models.StorageSystemTypes.UNITY}'].indexOf(vpool.systemType) > -1">
           <control-group v-field='vpool.autoTierPolicy'>
             <select-one v-disabled="locked" auto-default options="autoTierPolicyOptions" empty-option="none"></select-one>
           </control-group>

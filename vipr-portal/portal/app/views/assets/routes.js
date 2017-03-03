@@ -83,6 +83,9 @@ var routes = {
 
   AuditLog_list: #{jsAction @infra.AuditLog.list() /},
   AuditLog_download: #{jsAction @infra.AuditLog.download() /},
+  
+  Order_list: #{jsAction @catalog.Orders.list() /},
+  Order_allOrders: #{jsAction @catalog.Orders.allOrders() /},
 
   FileSystems_fileSystemExportsJson: #{jsAction @resources.FileSystems.fileSystemExportsJson() /},
   FileSystems_save: #{jsAction @resources.FileSystems.save() /},
@@ -108,6 +111,7 @@ var routes = {
   VirtualArrays_getDisconnectedStorage: #{jsAction @VirtualArrays.getDisconnectedStorage(':ids') /},
   VirtualPools_checkDisconnectedStoragePools: #{jsAction @arrays.BlockVirtualPools.checkDisconnectedStoragePools(':ids') /},
   WF_directories: #{jsAction @catalog.WorkflowBuilder.getWFDirectories() /},
+  FileProtectionPolicy_details: #{jsAction @arrays.FileProtectionPolicies.details(':id') /}
   WF_directory_edit_name: #{jsAction @catalog.WorkflowBuilder.editWFDirName(':id',':newName') /},
   WF_directory_delete: #{jsAction @catalog.WorkflowBuilder.deleteWFDir(':id') /},
   WF_directory_create: #{jsAction @catalog.WorkflowBuilder.createWFDir(':name',':parent') /},

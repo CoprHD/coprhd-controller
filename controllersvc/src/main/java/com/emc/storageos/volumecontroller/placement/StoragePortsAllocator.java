@@ -427,13 +427,15 @@ public class StoragePortsAllocator {
      *            number of ports requested.
      * @param allowFewerPorts
      *            -- If true, do not fail if fewer ports can be allocated than requested.
+     * @param switchToMaxPortNumber
+     *            -- The map of switch name to the max port number could be allocated
      * @return
      * @throws DeviceControllerException if not enough ports are allocated
      */
     public List<StoragePort> allocatePortsForNetwork(int portsRequested,
             PortAllocationContext context, boolean checkConnectivity,
-            Collection<StoragePort> previouslyAllocatedPorts, boolean allowFewerPorts)
-            throws PlacementException {
+            Collection<StoragePort> previouslyAllocatedPorts, boolean allowFewerPorts,
+            Map<String, Integer> switchToMaxPortNumber) throws PlacementException {
         List<StoragePort> allocatedStoragePorts = new ArrayList<StoragePort>();
 
         _log.info(String.format(
@@ -558,6 +560,14 @@ public class StoragePortsAllocator {
             candidates = filterCandidates(candidates, allocatedCpus,
                     context._cpuToStoragePortSet);
 
+            // Try to select the port in the same switch as initiator.
+            boolean sameSwitchPort = false;
+            Set<StoragePort> switchPorts = getSameSwitchCandidate(candidates, context, switchToMaxPortNumber);
+            if (!switchPorts.isEmpty()) {
+                _log.info("Found same switch port");
+                candidates = switchPorts;
+                sameSwitchPort = true;
+            }
             // See if there are any ports that can be allocated that are
             // connected to different SAN switches
             candidates = filterCandidates(candidates, allocatedSwitches,
@@ -566,6 +576,17 @@ public class StoragePortsAllocator {
             // Choose the final allocated port.
             // The choice is made based on choosing one of the ports with minimum usage metric.
             allocatedPort = chooseCandidate(candidates, context._storagePortToUsage);
+            if (sameSwitchPort) {
+                String switchName = context._storagePortToSwitchName.get(allocatedPort);
+                _log.info(String.format("The switch that the storage port connected to is %s", switchName));
+                Integer path = switchToMaxPortNumber.get(switchName);
+                if (path != null && path > 1) {
+                    path--;
+                    switchToMaxPortNumber.put(switchName, path);
+                } else if (path != null && path == 1) {
+                    switchToMaxPortNumber.remove(switchName);
+                }
+            } 
             allocatePort(allocatedPort, allocatedPorts, allocatedEngines, allocatedDirectorTypes,
                     allocatedDirectors, allocatedCpus, allocatedSwitches, allocatedStoragePorts,
                     context);
@@ -945,34 +966,7 @@ public class StoragePortsAllocator {
         return rule17Directors.isEmpty();
     }
 
-    /**
-     * Get the name of a SAN switch that is connected to this StoragePort.
-     * Return null if no SAN switches are connected to this StoragePort.
-     * 
-     * @param port
-     * @param dbClient
-     * @return
-     */
-    public String getSwitchName(StoragePort port, DbClient dbClient) {
-        URIQueryResultList uriList = new URIQueryResultList();
-        dbClient.queryByConstraint(
-                AlternateIdConstraint.Factory
-                        .getFCEndpointRemotePortNameConstraint(port
-                                .getPortNetworkId()), uriList);
-        for (URI uri : uriList) {
-            FCEndpoint endpoint = dbClient.queryObject(FCEndpoint.class, uri);
-            if (endpoint != null) {           
-	            if (endpoint.getSwitchName() != null) {
-	                // Return the switch name if it is known.
-	                if (endpoint.getAwolCount() == 0) {
-	                    return endpoint.getSwitchName();
-	                }
-	            }
-            }
-        }
-        return null;
-    }
-
+    
     PortAllocationContext context = null;
 
     /**
@@ -991,12 +985,15 @@ public class StoragePortsAllocator {
      *            The number of ports requested to be allocated.
      * @param allowFewerPorts
      *            If set, allow fewer ports to be allocated than numPorts requested.
+     * @param switchToMaxPortNumber 
+     *            The map of switch name to storage port numbers to be allocated for the network
      * @return
      * @throws PlacementException if not enough ports are allocated
      */
     public List<StoragePort> selectStoragePorts(DbClient dbClient,
             Map<StoragePort, Long> sportMap, NetworkLite net, URI varrayURI, Integer numPorts,
-            Set<StoragePort> previouslyAllocatedPorts, boolean allowFewerPorts) throws PlacementException {
+            Set<StoragePort> previouslyAllocatedPorts, boolean allowFewerPorts, 
+            Map<String, Integer> switchToMaxPortNumber) throws PlacementException {
 
         if (numPorts == null || numPorts <= 0)
         {
@@ -1018,7 +1015,7 @@ public class StoragePortsAllocator {
                 haDomain = dbClient.queryObject(StorageHADomain.class, sp.getStorageHADomain());
             }
             StorageSystem storageSystem = dbClient.queryObject(StorageSystem.class, sp.getStorageDevice());
-            String switchName = getSwitchName(sp, dbClient);
+            String switchName = PlacementUtils.getSwitchName(sp, dbClient);
             if (ctx == null) {
                 // Initialize context with Network, StorageSystem name, previous context.
                 ctx = new PortAllocationContext(net, storageSystem.getNativeGuid(), context);
@@ -1028,7 +1025,7 @@ public class StoragePortsAllocator {
                     switchName, usage);
         }
         List<StoragePort> portUris = allocator.allocatePortsForNetwork(numPorts,
-                ctx, checkConnectivity, previouslyAllocatedPorts, allowFewerPorts);
+                ctx, checkConnectivity, previouslyAllocatedPorts, allowFewerPorts, switchToMaxPortNumber);
         context = ctx; // save context for next TZ
         return portUris;
     }
@@ -1054,7 +1051,7 @@ public class StoragePortsAllocator {
                 haDomain = dbClient.queryObject(StorageHADomain.class, sp.getStorageHADomain());
             }
             StorageSystem storageSystem = dbClient.queryObject(StorageSystem.class, sp.getStorageDevice());
-            String switchName = getSwitchName(sp, dbClient);
+            String switchName = PlacementUtils.getSwitchName(sp, dbClient);
             if (context == null) {
                 context = new PortAllocationContext(net, storageSystem.getNativeGuid());
             }
@@ -1090,5 +1087,38 @@ public class StoragePortsAllocator {
 
     public void setContext(PortAllocationContext context) {
         this.context = context;
+    }
+    
+    /**
+     * Get the storage ports which connect to the same switches in the passed in switch to maxPortNumber map.
+     * 
+     * @param candidates The candidate storage ports
+     * @param switchToMaxPortNumber the map of switch to the max storage port needed
+     * @return The set of Storage ports connecting to the switches.
+     */
+    private Set<StoragePort> getSameSwitchCandidate(Set<StoragePort> candidates, PortAllocationContext context,
+            Map<String, Integer> switchToMaxPortNumber) {
+        Set<StoragePort> sameSwitchStoragePorts = new HashSet<StoragePort>();
+        if (switchToMaxPortNumber != null && !switchToMaxPortNumber.isEmpty()
+                && candidates != null && !candidates.isEmpty()) {
+            for (StoragePort port : candidates) {
+                String switchName = context._storagePortToSwitchName.get(port);
+                Integer paths = switchToMaxPortNumber.get(switchName);
+                if (paths != null && paths >0) {
+                    sameSwitchStoragePorts.add(port);
+                }
+            }
+        }
+        return sameSwitchStoragePorts;
+    }
+    
+    /**
+     * Get Storage port to switch name map in th context
+     * 
+     * @param context port allocation conext
+     * @return the map of the storage port to switch name
+     */
+    public Map<StoragePort, String> getPortSwitchMap(PortAllocationContext context) {
+        return context._storagePortToSwitchName;
     }
 }

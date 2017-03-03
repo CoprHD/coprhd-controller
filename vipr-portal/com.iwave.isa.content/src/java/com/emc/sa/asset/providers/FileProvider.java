@@ -31,14 +31,14 @@ import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.VirtualArrayRelatedResourceRep;
 import com.emc.storageos.model.file.CifsShareACLUpdateParams;
 import com.emc.storageos.model.file.ExportRule;
-import com.emc.storageos.model.file.FilePolicyList;
-import com.emc.storageos.model.file.FilePolicyRestRep;
 import com.emc.storageos.model.file.FileShareRestRep;
 import com.emc.storageos.model.file.FileShareRestRep.FileProtectionRestRep;
 import com.emc.storageos.model.file.FileSystemExportParam;
 import com.emc.storageos.model.file.MountInfo;
 import com.emc.storageos.model.file.SmbShareResponse;
-import com.emc.storageos.model.schedulepolicy.SchedulePolicyList;
+import com.emc.storageos.model.file.policy.FilePolicyListRestRep;
+import com.emc.storageos.model.file.policy.FilePolicyRestRep;
+import com.emc.storageos.model.varray.VirtualArrayRestRep;
 import com.emc.storageos.model.vpool.FileVirtualPoolRestRep;
 import com.emc.storageos.volumecontroller.FileControllerConstants;
 import com.emc.storageos.volumecontroller.FileSMBShare;
@@ -170,52 +170,71 @@ public class FileProvider extends BaseAssetOptionsProvider {
         return createFilesystemOptions(fileSharesforAssociation);
     }
 
+    @Asset("fileFilesystemSourceArray")
+    @AssetDependencies("fileFilesystemAssociation")
+    public List<AssetOption> getFileFilesystemSourceArrayForAssociation(AssetOptionsContext ctx, URI fsId) {
+        ViPRCoreClient client = api(ctx);
+        VirtualArrayRestRep vArray = null;
+
+        List<AssetOption> options = Lists.newArrayList();
+        FileShareRestRep fsObj = client.fileSystems().get(fsId);
+        if (fsObj != null) {
+            vArray = client.varrays().get(fsObj.getVirtualArray().getId());
+            options.add(createBaseResourceOption(vArray));
+        }
+        return options;
+    }
+
+    private List<FilePolicyRestRep> getAllFileSystemLevelPolicies(AssetOptionsContext ctx) {
+        ViPRCoreClient client = api(ctx);
+        List<FilePolicyRestRep> fileSystemPolicies = new ArrayList<FilePolicyRestRep>();
+        FilePolicyListRestRep policies = client.fileProtectionPolicies().listFilePolicies();
+        if (policies != null && !policies.getFilePolicies().isEmpty()) {
+            for (NamedRelatedResourceRep policy : policies.getFilePolicies()) {
+                FilePolicyRestRep policyRestRep = client.fileProtectionPolicies().get(policy.getId());
+                if (policyRestRep != null && policyRestRep.getAppliedAt() != null
+                        && policyRestRep.getAppliedAt().equalsIgnoreCase("file_system")) {
+                    fileSystemPolicies.add(policyRestRep);
+                }
+            }
+        }
+        return fileSystemPolicies;
+    }
+
     @Asset("fileFilePolicy")
     @AssetDependencies({ "project", "fileFilesystemAssociation" })
     public List<AssetOption> getFilePolicies(AssetOptionsContext ctx, URI project, URI fsId) {
         ViPRCoreClient client = api(ctx);
         List<AssetOption> options = Lists.newArrayList();
-
-        FilePolicyList policyList = client.fileSystems().getFilePolicies(fsId);
-        SchedulePolicyList schedulePolicies = client.tenants().getSchedulePoliciesByTenant(ctx.getTenant());
-
-        for (NamedRelatedResourceRep policy : schedulePolicies.getSchdulePolicies()) {
-            if (!isSchedulePolicyInFilePolicies(policy, policyList)) {
-                options.add(new AssetOption(policy.getId(), policy.getName()));
-            }
+        for (FilePolicyRestRep policyRestRep : getAllFileSystemLevelPolicies(ctx)) {
+            options.add(new AssetOption(policyRestRep.getId(), policyRestRep.getName()));
         }
-        AssetOptionsUtils.sortOptionsByLabel(options);
+        if (options != null && !options.isEmpty()) {
+            AssetOptionsUtils.sortOptionsByLabel(options);
+        }
         return options;
-    }
-
-    protected boolean isSchedulePolicyInFilePolicies(NamedRelatedResourceRep schedulePolicy, FilePolicyList policyList) {
-        List<FilePolicyRestRep> filePolicies = policyList.getFilePolicies();
-        if (filePolicies == null) {
-            return false;
-        }
-
-        for (FilePolicyRestRep p : filePolicies) {
-            if (p.getPolicyId().toString().equals(schedulePolicy.getId().toString())) {
-                return true;
-            }
-        }
-        return false;
     }
 
     @Asset("fileFilesystemWithPolicies")
     @AssetDependencies("project")
     public List<AssetOption> getFilesystemsWithPolicies(AssetOptionsContext ctx, URI project) {
-        ViPRCoreClient client = api(ctx);
         List<AssetOption> options = Lists.newArrayList();
 
+        List<FilePolicyRestRep> fileSystemPolicies = getAllFileSystemLevelPolicies(ctx);
         List<FileShareRestRep> fileSystems = api(ctx).fileSystems().findByProject(project);
-        for (FileShareRestRep fileSystem : fileSystems) {
-            List<FilePolicyRestRep> filePolicies = client.fileSystems().getFilePolicies(fileSystem.getId()).getFilePolicies();
-            if (filePolicies != null && !filePolicies.isEmpty()) {
-                options.add(new AssetOption(fileSystem.getId(), fileSystem.getName()));
+
+        for (FilePolicyRestRep policyRestRep : fileSystemPolicies) {
+            if (policyRestRep.getAssignedResources() != null && !policyRestRep.getAssignedResources().isEmpty()) {
+                for (FileShareRestRep fileSystem : fileSystems) {
+                    for (NamedRelatedResourceRep resource : policyRestRep.getAssignedResources()) {
+                        if (resource.getId().equals(fileSystem.getId())) {
+                            options.add(new AssetOption(fileSystem.getId(), fileSystem.getName()));
+                            break;
+                        }
+                    }
+                }
             }
         }
-
         AssetOptionsUtils.sortOptionsByLabel(options);
         return options;
     }
@@ -226,15 +245,19 @@ public class FileProvider extends BaseAssetOptionsProvider {
         ViPRCoreClient client = api(ctx);
         List<AssetOption> options = Lists.newArrayList();
 
-        List<FilePolicyRestRep> filePolicies = client.fileSystems().getFilePolicies(fsId).getFilePolicies();
+        List<FilePolicyRestRep> fileSystemPolicies = getAllFileSystemLevelPolicies(ctx);
+        for (FilePolicyRestRep policyRestRep : fileSystemPolicies) {
+            if (policyRestRep.getAssignedResources() != null && !policyRestRep.getAssignedResources().isEmpty()) {
+                for (NamedRelatedResourceRep resource : policyRestRep.getAssignedResources()) {
+                    if (resource.getId().equals(fsId)) {
+                        options.add(new AssetOption(policyRestRep.getId(), policyRestRep.getName()));
+                    }
+                }
 
-        if (filePolicies != null && !filePolicies.isEmpty()) {
-            for (FilePolicyRestRep fp : filePolicies) {
-                options.add(new AssetOption(fp.getPolicyId(), fp.getPolicyName()));
             }
         }
-
         AssetOptionsUtils.sortOptionsByLabel(options);
+
         return options;
     }
 
@@ -406,16 +429,11 @@ public class FileProvider extends BaseAssetOptionsProvider {
         List<FileShareRestRep> fileSystems = client.fileSystems().findByProject(project);
 
         for (FileShareRestRep fileShare : fileSystems) {
-            if (fileShare.getProtection() != null) {
-                URI vpoolId = fileShare.getVirtualPool().getId();
-                FileVirtualPoolRestRep vpool = client.fileVpools().get(vpoolId);
-                if (StringUtils.equals(FileShare.PersonalityTypes.SOURCE.toString(), fileShare.getProtection().getPersonality()) &&
-                        StringUtils.equals(vpool.getFileReplicationType(), FileReplicationType.REMOTE.name())) {
+            if (fileShare.getProtection() != null && 
+                    StringUtils.equals(FileShare.PersonalityTypes.SOURCE.toString(), fileShare.getProtection().getPersonality())){ 
                     options.add(new AssetOption(fileShare.getId(), fileShare.getName()));
                 }
             }
-        }
-
         AssetOptionsUtils.sortOptionsByLabel(options);
         return options;
     }

@@ -1316,7 +1316,7 @@ public class UcsComputeDevice implements ComputeDevice {
      */
     private void unbindHostFromComputeElement(ComputeSystem cs, Host host) throws ClientGeneralException {
         // VBDU [DONE]: COP-28452, Check initiators count, if empty do we still need to delete service profile?
-        // Added check for empty initiators
+        // We already checked for empty initiators in a step before we get here
         if (host != null && !NullColumnValueGetter.isNullURI(host.getComputeElement())) {
             ComputeElement computeElement = _dbClient.queryObject(ComputeElement.class, host.getComputeElement());
             if (computeElement == null){
@@ -1369,7 +1369,7 @@ public class UcsComputeDevice implements ComputeDevice {
 
             }
         } else {
-            LOGGER.info("NO OP. Host is null or has no asscoaited computeElement or has empty initiators");
+            LOGGER.info("NO OP. Host is null or has no asscoaited computeElement");
         }
     }
 

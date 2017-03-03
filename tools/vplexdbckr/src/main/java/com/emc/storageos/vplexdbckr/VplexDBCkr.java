@@ -198,6 +198,7 @@ public class VplexDBCkr {
 		}
     }
 
+	/*
 	public List<VolumeDescriptor> getDescriptorsForVolumesToBeDeleted(URI systemURI,
             List<URI> volumeURIs, String deletionType) {
         List<VolumeDescriptor> volumeDescriptors = new ArrayList<VolumeDescriptor>();
@@ -222,6 +223,7 @@ public class VplexDBCkr {
         }
         return volumeDescriptors;
     }
+	*/
 	
 	public void addDescriptorsForVplexMirrors(List<VolumeDescriptor> descriptors, Volume vplexVolume) {
         if (vplexVolume.getMirrors() != null && vplexVolume.getMirrors().isEmpty() == false) {
@@ -257,7 +259,7 @@ public class VplexDBCkr {
         // we will spend time below getting details.
         writeLog("Retrieving all virtual volumes... this will take some time...");
         Map<String, VPlexVirtualVolumeInfo> vvInfoMap = client.getVirtualVolumes(true);
-		List<VPlexStorageViewInfo> storageViews = client.getStorageViews();
+		List<VPlexStorageViewInfo> storageViews = client.getStorageViewsLite();
         writeLog("... done");
        
 	   try {
@@ -402,6 +404,7 @@ public class VplexDBCkr {
 		   
 		 }
 		   
+		/*
 		if (deleteInvalidVolumes)
 		{
 		  writeLog("deleting invalid volumes");
@@ -426,6 +429,7 @@ public class VplexDBCkr {
                 dbClient.updateObject(volume);
             }
 		  }
+		  */
 		  } catch (Exception e) {
                     writeLog(String.format("Exception: while verifying virtual volumes", e));
          }

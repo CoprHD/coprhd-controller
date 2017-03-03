@@ -133,5 +133,13 @@ public interface ComputeSystemController extends Controller {
 
     public void removeIpInterfaceFromFileShare(URI hostId, URI ipInterface, String taskId) throws ControllerException;
 
-    public void setHostSanBootTargets(URI hostId, URI volumeId) throws ControllerException;
+    /*
+    * Sets the host's boot volume association, optionally updates the hosts UCS san boot targets
+    * @param hostId URI of the host
+    * @param volumeId URI of the boot volume
+    * @param updateSanBootTargets  set to true to update the UCS san boot targets
+    * @param taskId the taskId
+    * @throws ControllerException
+    */
+    public void setHostBootVolume(URI hostId, URI volumeId, boolean updateSanBootTargets, String taskId) throws ControllerException;
 }

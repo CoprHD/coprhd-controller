@@ -1612,7 +1612,8 @@ public class VPlexApiDiscoveryManager {
             s_logger.info("TIMER: refreshing VPlexInitiatorInfo cache took {}ms", System.currentTimeMillis() - start);
         }
 
-        return _vplexClusterInitiatorInfoCache.get(clusterName);
+        // return a copy
+        return new ArrayList<VPlexInitiatorInfo>(_vplexClusterInitiatorInfoCache.get(clusterName));
     }
 
     /**

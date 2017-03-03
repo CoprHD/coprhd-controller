@@ -55,6 +55,7 @@ import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.ScopedLabel;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.Vcenter;
+import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.VcenterDataCenter;
 import com.emc.storageos.db.client.util.CommonTransformerFunctions;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
@@ -123,6 +124,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
     private static final String REMOVE_IPINTERFACE_STORAGE_WF_NAME = "REMOVE_IPINTERFACE_STORAGE_WORKFLOW";
     private static final String HOST_CHANGES_WF_NAME = "HOST_CHANGES_WORKFLOW";
     private static final String SYNCHRONIZE_SHARED_EXPORTS_WF_NAME = "SYNCHRONIZE_SHARED_EXPORTS_WORKFLOW";
+    private static final String SET_SAN_BOOT_TARGETS_WF_NAME = "SET_SAN_BOOT_TARGETS_WORKFLOW";
 
     private static final String DETACH_HOST_STORAGE_WF_NAME = "DETACH_HOST_STORAGE_WORKFLOW";
     private static final String DETACH_CLUSTER_STORAGE_WF_NAME = "DETACH_CLUSTER_STORAGE_WORKFLOW";
@@ -205,6 +207,185 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
      */
     public void rollbackMethodNull(String stepId) throws WorkflowException {
         WorkflowStepCompleter.stepSucceded(stepId);
+    }
+
+    @Override
+    public void setHostBootVolume(URI host, URI bootVolumeId, boolean updateSanBootTargets,String taskId) throws ControllerException {
+        TaskCompleter completer = null;
+        try {
+            completer = new HostCompleter(host, false, taskId);
+            Workflow workflow = _workflowService.getNewWorkflow(this, SET_SAN_BOOT_TARGETS_WF_NAME, true, taskId);
+            String waitFor = addStepsForBootVolume(workflow,  host, bootVolumeId);
+            if (updateSanBootTargets){
+                 waitFor = addStepsForSanBootTargets(workflow,  host, bootVolumeId, waitFor);
+            }
+            workflow.executePlan(completer, "Success", null, null, null, null);
+        } catch  (Exception ex) {
+            String message = "setHostSanBootTargets caught an exception.";
+            _log.error(message, ex);
+            ServiceError serviceError = DeviceControllerException.errors.jobFailed(ex);
+            completer.error(_dbClient, serviceError);
+        }
+
+    }
+
+    private String addStepsForBootVolume(Workflow workflow,  URI hostId, URI volumeId) {
+        String waitFor = null;
+        Host host = _dbClient.queryObject(Host.class, hostId);
+        if (host != null && host.getComputeElement() != null) {
+           _log.info("Generating steps for setting boot volume associstion");
+           waitFor = workflow.createStep(null,
+                   "Validate Boot Volume export", waitFor, host.getId(), host.getLabel(),
+                        this.getClass(), new Workflow.Method("validateBootVolumeExport", hostId, volumeId),
+                        new Workflow.Method("rollbackMethodNull"), null);
+
+           waitFor = workflow.createStep(null,
+                   "Set Boot Volume Association", waitFor, host.getId(), host.getLabel(),
+                        this.getClass(), new Workflow.Method("setHostBootVolumeId", hostId, volumeId),
+                        new Workflow.Method("rollbackHostBootVolumeId", hostId, volumeId), null);
+        }
+        return waitFor;
+    }
+  
+    public void validateBootVolumeExport(URI hostId, URI volumeId, String stepId) throws ControllerException {
+        _log.info("validateBootVolumeExport :"+ hostId.toString()+" volume: "+ volumeId.toString());
+        Host host = null;
+        try{
+            WorkflowStepCompleter.stepExecuting(stepId);
+
+            host = _dbClient.queryObject(Host.class, hostId);
+            if (host == null) {
+                throw ComputeSystemControllerException.exceptions.hostNotFound(hostId.toString());
+            }
+            Volume volume = _dbClient.queryObject(Volume.class, volumeId);
+            if (volume == null){
+                throw ComputeSystemControllerException.exceptions.volumeNotFound(volumeId.toString());
+            }
+            boolean validExport = computeDeviceController.validateBootVolumeExport(hostId, volumeId);
+            if (validExport){
+                 WorkflowStepCompleter.stepSucceded(stepId);
+            }else{
+                 ServiceCoded serviceCoded = ComputeSystemControllerException.exceptions.invalidBootVolumeExport(host.getLabel(),volume.getLabel());
+                 WorkflowStepCompleter.stepFailed(stepId, serviceCoded);
+            }
+       } catch (Exception e){
+            _log.error("unexpected exception: " + e.getMessage(), e);
+            String hostString = hostId.toString();
+            if (host!=null){
+                hostString = host.getHostName();
+            }
+            ServiceCoded serviceCoded = ComputeSystemControllerException.exceptions.unableToValidateBootVolumeExport(
+                    hostString, volumeId.toString(), e);
+            WorkflowStepCompleter.stepFailed(stepId, serviceCoded);
+        }
+
+   }
+
+    public void setHostBootVolumeId(URI hostId, URI volumeId, String stepId) throws ControllerException {
+        _log.info("setHostBootVolumeId :"+ hostId.toString());
+        Host host = null;
+        try {
+            WorkflowStepCompleter.stepExecuting(stepId);
+
+            host = _dbClient.queryObject(Host.class, hostId);
+            if (host == null) {
+                throw ComputeSystemControllerException.exceptions.hostNotFound(hostId.toString());
+            }
+
+            _log.info("Setting boot volume association for host");
+            host.setBootVolumeId(volumeId);
+            _dbClient.persistObject(host);
+
+            WorkflowStepCompleter.stepSucceded(stepId);
+        } catch (Exception e){
+            _log.error("unexpected exception: " + e.getMessage(), e);
+            String hostString = hostId.toString();
+            if (host!=null){
+                hostString = host.getHostName();
+            }
+            ServiceCoded serviceCoded = ComputeSystemControllerException.exceptions.unableToSetBootVolume(
+                    hostString, e);
+            WorkflowStepCompleter.stepFailed(stepId, serviceCoded);
+        }        
+
+   }
+
+   public void rollbackHostBootVolumeId(URI hostId, URI volumeId, String stepId) throws ControllerException {
+        _log.info("rollbackHostBootVolumeId:"+ hostId.toString());
+        Host host = null;
+        try {
+            WorkflowStepCompleter.stepExecuting(stepId);
+
+            host = _dbClient.queryObject(Host.class, hostId);
+            if (host == null) {
+                throw ComputeSystemControllerException.exceptions.hostNotFound(hostId.toString());
+            }
+
+            _log.info("Rolling back boot volume association for host");
+            host.setBootVolumeId(NullColumnValueGetter.getNullURI());
+            _dbClient.persistObject(host);
+
+            WorkflowStepCompleter.stepSucceded(stepId);
+        } catch (Exception e){
+            _log.error("unexpected exception: " + e.getMessage(), e);
+            String hostString = hostId.toString();
+            if (host!=null){
+                hostString = host.getHostName();
+            }
+            ServiceCoded serviceCoded = ComputeSystemControllerException.exceptions.unableToRollbackBootVolume(
+                    hostString, e);
+            WorkflowStepCompleter.stepFailed(stepId, serviceCoded);
+        }
+
+   }
+
+    private String addStepsForSanBootTargets(Workflow workflow,  URI hostId, URI volumeId, String waitFor) {
+        String newWaitFor = null;
+        Host host = _dbClient.queryObject(Host.class, hostId);
+        if (host != null && !NullColumnValueGetter.isNullURI(host.getComputeElement())) {
+           _log.info("Generating steps for San Boot Targets");
+           newWaitFor = workflow.createStep(null,
+                   "Set UCS san boot targets for the host", waitFor, host.getId(), host.getLabel(), 
+                        this.getClass(), new Workflow.Method("setHostSanBootTargets", hostId, volumeId), 
+                        new Workflow.Method(ROLLBACK_METHOD_NULL), null);
+        }
+        return newWaitFor;
+    }
+
+    public void setHostSanBootTargets(URI hostId, URI volumeId, String stepId) throws ControllerException {
+        Host host = null;
+        try {
+           WorkflowStepCompleter.stepExecuting(stepId);
+           host = _dbClient.queryObject(Host.class, hostId);
+           if (host == null) {
+               throw ComputeSystemControllerException.exceptions.hostNotFound(hostId.toString());
+           }
+           if (host.getComputeElement() != null) {
+               ComputeElement computeElement = _dbClient.queryObject(ComputeElement.class, host.getComputeElement());
+
+               if (computeElement != null) {
+                   computeDeviceController
+                        .setSanBootTarget(computeElement.getComputeSystem(), computeElement.getId(), hostId, volumeId, false);
+               }else {
+                   _log.error("Invalid compute element association");
+                  throw ComputeSystemControllerException.exceptions.cannotSetSanBootTargets(host.getHostName(),"Invalid compute elemnt association");
+               }
+           }else {
+                 _log.error("Host " + host.getHostName() + " does not have a compute element association.");
+                 throw ComputeSystemControllerException.exceptions.cannotSetSanBootTargets(host.getHostName(),"Host does not have a blade association");
+           }
+           WorkflowStepCompleter.stepSucceded(stepId);
+        }catch (Exception e){
+            _log.error("unexpected exception: " + e.getMessage(), e);
+            String hostString = hostId.toString();
+            if (host!=null){
+                hostString = host.getHostName();
+            }
+            ServiceCoded serviceCoded = ComputeSystemControllerException.exceptions.unableToSetSanBootTargets(
+                    hostString, e);
+            WorkflowStepCompleter.stepFailed(stepId, serviceCoded);
+        }
+
     }
 
     @Override
@@ -1916,18 +2097,6 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
         return null;
     }
 
-    @Override
-    public void setHostSanBootTargets(URI hostId, URI volumeId) throws ControllerException {
-        Host host = _dbClient.queryObject(Host.class, hostId);
-        if (host != null && !NullColumnValueGetter.isNullURI(host.getComputeElement())) {
-            ComputeElement computeElement = _dbClient.queryObject(ComputeElement.class, host.getComputeElement());
-
-            if (computeElement != null) {
-                computeDeviceController
-                        .setSanBootTarget(computeElement.getComputeSystem(), computeElement.getId(), hostId, volumeId, false);
-            }
-        }
-    }
 
     public String addStepsForMountDevice(Workflow workflow, HostDeviceInputOutput args) {
         String waitFor = null; // the wait for key returned by previous call

@@ -1808,4 +1808,10 @@ implements FileStorageDevice {
         return BiosCommandResult.createErrorResult(
                 DeviceControllerErrors.vnxe.operationNotSupported("check file policy path", "Unity"));
     }
+
+    @Override
+    public BiosCommandResult doResyncLink(StorageSystem system, FileShare source, TaskCompleter completer) {
+        return BiosCommandResult.createErrorResult(
+                DeviceControllerErrors.vnxe.operationNotSupported("resync the mirror link", "Unity"));
+    }
 }

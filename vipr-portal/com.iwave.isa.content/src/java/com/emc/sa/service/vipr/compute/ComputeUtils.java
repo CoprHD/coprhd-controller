@@ -31,6 +31,7 @@ import com.emc.sa.service.vipr.compute.tasks.CreateVcenterCluster;
 import com.emc.sa.service.vipr.compute.tasks.DeactivateCluster;
 import com.emc.sa.service.vipr.compute.tasks.DeactivateHost;
 import com.emc.sa.service.vipr.compute.tasks.DeactivateHostNoWait;
+import com.emc.sa.service.vipr.compute.tasks.DiscoverHost;
 import com.emc.sa.service.vipr.compute.tasks.FindCluster;
 import com.emc.sa.service.vipr.compute.tasks.FindHostsInCluster;
 import com.emc.sa.service.vipr.compute.tasks.FindVblockHostsInCluster;
@@ -1014,5 +1015,23 @@ public class ComputeUtils {
         }
 
         return true;
+    }
+
+    /**
+     * Run discovery for a list of hosts and prevent order failure if an exception occurs
+     * 
+     * @param hosts list of hosts to discover
+     */
+    public static void discoverHosts(List<HostRestRep> hosts) {
+        if (hosts != null && !hosts.isEmpty()) {
+            for (HostRestRep host : hosts) {
+                try {
+                    execute(new DiscoverHost(host.getId()));
+                } catch (Exception e) {
+                    ExecutionUtils.currentContext().logError("computeutils.discoverhost.failure",
+                            host.getName());
+                }
+            }
+        }
     }
 }

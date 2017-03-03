@@ -33,7 +33,6 @@ import com.emc.sa.engine.bind.Param;
 import com.emc.sa.engine.service.Service;
 import com.emc.sa.service.vipr.ViPRService;
 import com.emc.sa.service.vipr.compute.ComputeUtils.FqdnToIpTable;
-import com.emc.sa.service.vipr.compute.tasks.DiscoverHost;
 import com.emc.storageos.db.client.model.Cluster;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Vcenter;
@@ -279,9 +278,7 @@ public class CreateComputeClusterService extends ViPRService {
             ComputeUtils.addHostsToCluster(hosts, cluster);
             pushToVcenter();
 
-            for (HostRestRep host : hostsWithOs) {
-                execute(new DiscoverHost(host.getId()));
-            }
+            ComputeUtils.discoverHosts(hostsWithOs);
         }
 
         String orderErrors = ComputeUtils.getOrderErrors(cluster, copyOfHostNames, computeImage, vcenterId);

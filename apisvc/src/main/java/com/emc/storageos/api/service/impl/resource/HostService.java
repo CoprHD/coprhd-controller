@@ -1197,49 +1197,6 @@ public class HostService extends TaskResourceService {
     public HostBulkRep getBulkResources(BulkIdParam param) {
        return (HostBulkRep) super.getBulkResources(param);
     }
-   /**
-    * HostBulkRep generated does not have the service profile and compute element details for each host.
-    * This method adds these to the HostRestReps in HostBulkRep.
-    */ 
-    private void transformBulkRep(HostBulkRep inputValue) {
-        List<HostRestRep> hostsList = inputValue.getHosts();
-        for (HostRestRep hostRep: hostsList){
-           Host host = queryObject(Host.class, hostRep.getId(), false);
-           if (host!=null){
-              ComputeElement computeElement = null;
-              UCSServiceProfile serviceProfile = null;
-              ComputeSystem computeSystem = null;
-              if (!NullColumnValueGetter.isNullURI(host.getComputeElement())){
-                  computeElement = queryObject(ComputeElement.class, host.getComputeElement(),false);
-              } 
-              if (!NullColumnValueGetter.isNullURI(host.getServiceProfile())){
-                  serviceProfile = queryObject(UCSServiceProfile.class, host.getServiceProfile(), false);
-              }
-              if (serviceProfile!=null){
-                  computeSystem = queryObject(ComputeSystem.class, serviceProfile.getComputeSystem(), false);
-              }else if (computeElement !=null){
-                  computeSystem = queryObject(ComputeSystem.class, computeElement.getComputeSystem(), false);
-              }
-              if (computeElement!=null){
-                 StringBuffer buffer = new StringBuffer();
-                 if (computeSystem!=null){
-                     buffer.append(computeSystem.getLabel()+ " : ");
-                 }
-                 buffer.append(computeElement.getLabel());
-                 hostRep.setComputeElementName(buffer.toString());
-              }   
-              if (serviceProfile != null) {
-                 StringBuffer buffer = new StringBuffer();
-                 if (computeSystem!=null){
-                     buffer.append(computeSystem.getLabel()+ " : ");
-                 }
-                 buffer.append(serviceProfile.getLabel());
-                 hostRep.setServiceProfileName(buffer.toString());
-              }
-              
-           }
-        }
-    }
         
 
     @Override

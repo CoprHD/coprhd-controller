@@ -84,17 +84,7 @@ public class FileSnapshotPolicyMigration extends BaseCustomMigrationCallback{
 				
 				
 				filePolicies.add(fileSnapshotPolicy);
-				
-				
-				//if(schedulePolicy.getAssignedResources() != null 
-				//		&& !schedulePolicy.getAssignedResources().isEmpty()){
-				//	for(String str : fileSnapshotPolicy.getAssignedResources()){
-				//		URI fsURI = URI.create(str);
-				//		fsURIs.add(fsURI);
-				//	}
-						
-					
-				}
+			}
 			
 	
 			//Update DB
@@ -103,8 +93,9 @@ public class FileSnapshotPolicyMigration extends BaseCustomMigrationCallback{
 				dbClient.createObject(filePolicies);				
 			}
 			
-		}catch (Exception e){
-			
+		}catch (Exception ex){
+			logger.error("Exception occured while migrating file replication policy for Virtual pools");
+            logger.error(ex.getMessage(), ex);
 		}
 	}
 

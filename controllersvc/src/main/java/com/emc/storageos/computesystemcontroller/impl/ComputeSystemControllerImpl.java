@@ -647,7 +647,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
             waitFor = addStepForUpdatingHostAndInitiatorClusterReferences(workflow, waitFor, hostIds, clusterId, vCenterDataCenterId,
                     completer);
 
-            waitFor = addStepsForAddHost(workflow, waitFor, hostIds, clusterId, isVcenter);
+            waitFor = addStepsForAddHost(workflow, waitFor, hostIds, clusterId, isVcenter, eventId);
 
             workflow.executePlan(completer, "Success", null, null, null, null);
         } catch (Exception ex) {
@@ -937,7 +937,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
         return waitFor;
     }
 
-    public String addStepsForAddHost(Workflow workflow, String waitFor, List<URI> hostIds, URI clusterId, boolean isVcenter) {
+    public String addStepsForAddHost(Workflow workflow, String waitFor, List<URI> hostIds, URI clusterId, boolean isVcenter, URI eventId) {
         List<Host> hosts = _dbClient.queryObject(Host.class, hostIds);
         List<ExportGroup> exportGroups = getSharedExports(_dbClient, clusterId);
 
@@ -969,6 +969,9 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                             addedInitiators.add(initiator.getId());
                         }
                     }
+                } else if (!NullColumnValueGetter.isNullURI(eventId)) {
+                    throw ComputeSystemControllerException.exceptions.noInitiatorPortConnectivity(StringUtils.join(hostInitiators, ","),
+                            eg.forDisplay());
                 }
             }
 

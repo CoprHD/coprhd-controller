@@ -167,7 +167,6 @@ import com.emc.storageos.db.client.model.uimodels.CustomServicesScriptResource;
 import com.emc.storageos.db.client.model.uimodels.CustomServicesWorkflow;
 import com.emc.storageos.db.client.model.uimodels.ExecutionWindow;
 import com.emc.storageos.db.client.model.uimodels.Order;
-import com.emc.storageos.db.client.model.StorageSystemType;
 import com.emc.storageos.db.client.model.uimodels.CustomServicesUserPrimitive;
 import com.emc.storageos.db.client.model.uimodels.WFDirectory;
 import com.emc.storageos.model.ResourceTypeEnum;

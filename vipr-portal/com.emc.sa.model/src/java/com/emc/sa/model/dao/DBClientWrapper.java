@@ -4,7 +4,6 @@
  */
 package com.emc.sa.model.dao;
 
-import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 import java.net.URI;
 import java.util.Date;
 import java.util.Iterator;

@@ -20,19 +20,15 @@ import java.net.URI;
 import java.util.Calendar;
 import java.util.Date;
 
-import org.apache.commons.lang.builder.ToStringBuilder;
-import org.apache.commons.lang.builder.ToStringStyle;
 import com.emc.storageos.db.client.model.*;
 import com.emc.storageos.model.valid.EnumType;
 
 import com.emc.storageos.db.client.model.AlternateId;
 import com.emc.storageos.db.client.model.Cf;
-import com.emc.storageos.db.client.model.DecommissionedIndex;
 import com.emc.storageos.db.client.model.ModelObject;
 import com.emc.storageos.db.client.model.Name;
 import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.RelationIndex;
-import com.emc.storageos.model.valid.EnumType;
 
 @Cf("Order")
 public class Order extends ModelObject implements TenantDataObject {

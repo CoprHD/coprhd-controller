@@ -110,8 +110,8 @@ var routes = {
   Networks_getDisconnectedStorage: #{jsAction @arrays.Networks.getDisconnectedStorage(':ids') /},
   VirtualArrays_getDisconnectedStorage: #{jsAction @VirtualArrays.getDisconnectedStorage(':ids') /},
   VirtualPools_checkDisconnectedStoragePools: #{jsAction @arrays.BlockVirtualPools.checkDisconnectedStoragePools(':ids') /},
+  FileProtectionPolicy_details: #{jsAction @arrays.FileProtectionPolicies.details(':id') /},
   WF_directories: #{jsAction @catalog.WorkflowBuilder.getWFDirectories() /},
-  FileProtectionPolicy_details: #{jsAction @arrays.FileProtectionPolicies.details(':id') /}
   WF_directory_edit_name: #{jsAction @catalog.WorkflowBuilder.editWFDirName(':id',':newName') /},
   WF_directory_delete: #{jsAction @catalog.WorkflowBuilder.deleteWFDir(':id') /},
   WF_directory_create: #{jsAction @catalog.WorkflowBuilder.createWFDir(':name',':parent') /},

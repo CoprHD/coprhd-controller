@@ -439,6 +439,8 @@ public class ViPRCoreClient {
 
     public StorageDriver storageDriver() {
         return new StorageDriver(client);
+    }
+
     public RestClient getRestClient() {
         return client;
     }

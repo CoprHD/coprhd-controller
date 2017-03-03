@@ -1024,13 +1024,17 @@ public class ComputeUtils {
      */
     public static void discoverHosts(List<HostRestRep> hosts) {
         if (hosts != null && !hosts.isEmpty()) {
+            ArrayList<Task<HostRestRep>> tasks = new ArrayList<>();
             for (HostRestRep host : hosts) {
                 try {
-                    execute(new DiscoverHost(host.getId()));
+                    tasks.add(execute(new DiscoverHost(host.getId())));
                 } catch (Exception e) {
                     ExecutionUtils.currentContext().logError("computeutils.discoverhost.failure",
                             host.getName());
                 }
+            }
+            if (tasks != null && !tasks.isEmpty()) {
+                waitAndRefresh(tasks);
             }
         }
     }

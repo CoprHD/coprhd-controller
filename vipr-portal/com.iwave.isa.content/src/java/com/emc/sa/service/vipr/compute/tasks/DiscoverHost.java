@@ -6,11 +6,11 @@ package com.emc.sa.service.vipr.compute.tasks;
 
 import java.net.URI;
 
-import com.emc.sa.service.vipr.tasks.WaitForTask;
+import com.emc.sa.service.vipr.tasks.ViPRExecutionTask;
 import com.emc.storageos.model.host.HostRestRep;
 import com.emc.vipr.client.Task;
 
-public class DiscoverHost extends WaitForTask<HostRestRep> {
+public class DiscoverHost extends ViPRExecutionTask<Task<HostRestRep>> {
 
     private URI hostId;
 
@@ -20,7 +20,9 @@ public class DiscoverHost extends WaitForTask<HostRestRep> {
     }
 
     @Override
-    public Task<HostRestRep> doExecute() throws Exception {
-        return getClient().hosts().discover(hostId);
+    public Task<HostRestRep> executeTask() throws Exception {
+        Task<HostRestRep> task = getClient().hosts().discover(hostId);
+        addOrderIdTag(task.getTaskResource().getId());
+        return task;
     }
 }

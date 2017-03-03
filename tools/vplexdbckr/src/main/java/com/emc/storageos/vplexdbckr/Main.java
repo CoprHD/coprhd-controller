@@ -63,7 +63,7 @@ public class Main {
             for(int i=0;i<args.length;i++) {
              if (args[i].equals(vplexSystem.getLabel())) {
 			   System.out.println("************Processing vplex: " + vplexSystem.getLabel());
-               vplexDBCkr.checkVolumesOnVplex(vplexSystem.getId(),deleteInvalidVolumes);
+               vplexDBCkr.checkVolumesOnVplex(vplexSystem.getId(),deleteInvalidVolumes,checkStorageViews);
 			 }
             }			
 		}

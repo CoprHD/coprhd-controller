@@ -181,6 +181,7 @@ public class VplexDBCkr {
 			for (String exportMaskId : exportMaskIds) {
                 ExportMask exportMask = null;
                 exportMask = dbClient.queryObject(ExportMask.class, URI.create(exportMaskId));
+				writeLog(String.format("checking block object belongs or not to exportmask %s %s and exportgroup %s", URI.create(exportMaskId),exportMask.getMaskName(),exportGroupURI));
                 if (exportMask.hasVolume(boURI)) {
                    if (!exportMaskMap.containsKey(exportMaskId)) {
 				   exportMaskMap.put(exportMaskId, exportMask);
@@ -284,6 +285,14 @@ public class VplexDBCkr {
                 continue;
             }
 			
+			if (null == volume.getWWN()) {
+                 if (vvInfo.getName().equals(volume.getDeviceLabel())) {
+                writeLog(String.format("ERROR: Volume %s (%s) wwn is null and in vplex wwn is %s",
+                        volume.getLabel(), volume.getDeviceLabel(),vvInfo.getWwn()));
+                                nerrors++;
+            }
+			}
+			
 			if ((null != vvInfo.getWwn()) && (null != volume.getWWN())) {
 			 if (vvInfo.getName().equals(volume.getDeviceLabel())) {
 			  if (vvInfo.getWwn().toUpperCase().equals(volume.getWWN().toUpperCase())) {
@@ -333,9 +342,13 @@ public class VplexDBCkr {
 			for (ExportMask exportMaskInDB : exportMaskListInDB) {
 			 boolean found = false;
 			 boolean storageviewfound = false;
+			  writeLog(String.format("INFO: exportmask PORT %s",exportMaskInDB.getStoragePorts())); 
 			 for (VPlexStorageViewInfo storageView : storageViews) {
 			  if (storageView.getName().equals(exportMaskInDB.getMaskName())) {
 			   storageviewfound = true;
+			  for (String portNameStr : storageView.getPorts()) {
+                 writeLog(String.format("INFO: PORT %s",portNameStr));          
+			   }
 			  for (String volumeNameStr : storageView.getVirtualVolumes()) {
                 String[] tokens = volumeNameStr.split(",");
                 String volumeName = tokens[1];

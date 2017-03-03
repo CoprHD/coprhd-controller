@@ -268,6 +268,8 @@ public class AddHostToClusterService extends ViPRService {
 
         pushToVcenter();
 
+        ComputeUtils.discoverHosts(hostsWithOs);
+
         String orderErrors = ComputeUtils.getOrderErrors(cluster, copyOfHostNames, computeImage, vcenterId);
         if (orderErrors.length() > 0) { // fail order so user can resubmit
             if (ComputeUtils.nonNull(hosts).isEmpty()) {

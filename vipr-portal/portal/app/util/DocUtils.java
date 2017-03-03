@@ -9,6 +9,7 @@ import play.libs.IO;
 import java.util.Properties;
 import play.mvc.Http;
 import play.vfs.VirtualFile;
+import play.Logger;
 
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.DocumentBuilder;
@@ -114,7 +115,7 @@ public class DocUtils {
 		    }
 		    
 	    } catch (Exception e) {
-		    e.printStackTrace();
+		    Logger.error(e, e.getMessage());
 	    }
 		
 	    return topicHtmlFilename;

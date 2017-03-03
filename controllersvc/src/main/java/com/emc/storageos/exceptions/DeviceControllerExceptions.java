@@ -521,6 +521,9 @@ public interface DeviceControllerExceptions {
     @DeclareServiceCode(ServiceCode.BLOCK_CONTROLLER_ERROR)
     public DeviceControllerException addHostHLUViolation(Map<String, Integer> volumeHluPair);
 
+    @DeclareServiceCode(ServiceCode.BLOCK_CONTROLLER_ERROR)
+    public DeviceControllerException addVblockHostHLUViolation(Collection<Integer> givenHLUs, Collection<Integer> conflictingHLUs);
+
     @DeclareServiceCode(ServiceCode.CONTROLLER_VALIDATION_EXCEPTION)
     public DeviceControllerException removeVolumesValidationError(String volumeNames, String storageSystemName, String details);
 

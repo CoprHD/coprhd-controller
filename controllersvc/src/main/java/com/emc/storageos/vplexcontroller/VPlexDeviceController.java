@@ -3936,8 +3936,9 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
      **/
     @Override
     public void checkForConsistentLunViolation(StorageSystem storage, ExportGroup exportGroup, List<URI> newInitiatorURIs) {
-
+        Collection<Integer> givenHLUs = new HashSet<Integer>(); // TODO pass-in this argument
         Map<String, Integer> volumeHluPair = new HashMap<String, Integer>();
+        Initiator initiator = _dbClient.queryObject(Initiator.class, newInitiatorURIs.get(0));
         // For 'add host to cluster' operation, validate and fail beforehand if HLU conflict is detected
         if (exportGroup.forCluster() && exportGroup.getVolumes() != null) {
             // get HLUs from ExportGroup as these are the volumes that will be exported to new Host.
@@ -3962,6 +3963,44 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
                     }
                 }
                 throw DeviceControllerException.exceptions.addHostHLUViolation(volumeHluPair);
+            }
+        } else if (exportGroup.forHost() && initiator.getClusterName() != null
+                && givenHLUs != null && !givenHLUs.contains(ExportGroup.LUN_UNASSIGNED)
+                && ExportUtils.isVblockHost(newInitiatorURIs, _dbClient)) {
+            /**
+             * Export boot volume to vBlock Host, where the host is part of Cluster:
+             * For this case we have to validate whether the given HLU for the boot volume will cause
+             * lun violation if later the host gets added to Cluster.
+             */
+            URI clusterURI = ExportUtils.getClusterOfGivenInitiator(initiator, _dbClient);
+            if (NullColumnValueGetter.isNullURI(clusterURI)) {
+                _log.info("Cluster URI is null for initiator {}", initiator.getId());
+                return; // TODO check if we can return without error?
+            }
+
+            List<URI> initiatorsInCluster = ExportUtils.getAllInitiatorsForCluster(clusterURI, _dbClient);
+            if (initiatorsInCluster.isEmpty()) {
+                _log.info("Cluster {} initiators empty", clusterURI);
+                return;
+            }
+            _log.info("Initiators {} found in cluster {}", Joiner.on(";").join(initiatorsInCluster), clusterURI);
+
+            // remove the passed initiators as we need to get only the cluster's shared volumes' HLUs
+            initiatorsInCluster.removeAll(newInitiatorURIs);
+
+            List<Initiator> clusterInitiators = _dbClient.queryObject(Initiator.class, initiatorsInCluster);
+            Collection<String> clusterInitiatorNames = Collections2.transform(clusterInitiators,
+                    CommonTransformerFunctions.fctnInitiatorToPortName());
+            Set<Integer> clusterUsedHlus = getDevice().findHLUsForInitiators(storage, new ArrayList<String>(clusterInitiatorNames), true);
+
+            // HLUs that are going to be provisioned to this host
+            Set<Integer> hostHlus = new HashSet<Integer>(givenHLUs);
+
+            // hostHlus now will contain the intersection of the two Set of HLUs which are conflicting one's
+            hostHlus.retainAll(clusterUsedHlus);
+            if (!hostHlus.isEmpty()) {
+                _log.info("Conflicting HLUs: {}", hostHlus);
+                throw DeviceControllerException.exceptions.addVblockHostHLUViolation(givenHLUs, hostHlus);
             }
         }
     }
@@ -5144,18 +5183,65 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
     }
 
     /**
-     * 
-     * @param vplexStorageSystem
-     * @param exportGroup
-     * @param initiatorURIs
-     * @param mustHaveAllPorts
-     * @return
-     * @throws Exception
+     * For the given list of initiators, go to the Storage Array and get the list of HLUs that the volumes are assigned with.
+     *
+     * @param vplexStorageSystem the vplex storage system
+     * @param exportGroup the export group
+     * @param initiatorURIs the initiator uris
+     * @param onlySharedVolumes the only shared volumes
+     * @return the HLU set
+     * @throws Exception the exception
      */
     public Set<Integer> findHLUsForInitiators(StorageSystem vplexStorageSystem, ExportGroup exportGroup, List<URI> initiatorURIs,
-            boolean mustHaveAllPorts) throws Exception {
+            boolean onlySharedVolumes) throws Exception {
         long startTime = System.currentTimeMillis();
         Set<Integer> usedHLUs = new HashSet<Integer>();
+        Map<String, Integer> volumeToHLUMap = null;
+        if (onlySharedVolumes) {
+            _log.info("find HLUs of only the shared volumes");
+            /**
+             * If onlySharedVolumes HLUs is requested,
+             * group the initiators by Host,
+             * If there are more than 1 host:
+             * -get the volume-HLU map for each host, and then the intersection of volume set provides the shared volumes
+             */
+            Map<String, Map<String, Integer>> hostToVolumesMap = new HashMap<String, Map<String, Integer>>();
+            Map<String, List<URI>> computeResourceToInitiators = mapInitiatorsToComputeResource(exportGroup, initiatorURIs);
+            if (computeResourceToInitiators.size() > 1) {
+                for (Entry<String, List<URI>> entry : computeResourceToInitiators.entrySet()) {
+                    List<URI> hostInitiatorURIs = entry.getValue();
+                    Map<String, Integer> hostVolumeToHLUMap = findVolumeHLUMapForInitiators(vplexStorageSystem, exportGroup,
+                            hostInitiatorURIs);
+                    hostToVolumesMap.put(entry.getKey(), hostVolumeToHLUMap);
+                }
+                volumeToHLUMap = ExportUtils.getSharedVolumes(hostToVolumesMap);
+            } else {
+                volumeToHLUMap = findVolumeHLUMapForInitiators(vplexStorageSystem, exportGroup, initiatorURIs);
+            }
+        } else {
+            volumeToHLUMap = findVolumeHLUMapForInitiators(vplexStorageSystem, exportGroup, initiatorURIs);
+        }
+        usedHLUs.addAll(volumeToHLUMap.values());
+
+        _log.info(String.format("HLUs found for Initiators { %s }: %s",
+                Joiner.on(',').join(initiatorURIs), usedHLUs));
+        long totalTime = System.currentTimeMillis() - startTime;
+        _log.info(String.format("find used HLUs for Initiators took %f seconds", (double) totalTime / (double) 1000));
+        return usedHLUs;
+    }
+
+    /**
+     * Find volume to HLU map for given initiators.
+     *
+     * @param vplexStorageSystem the vplex storage system
+     * @param exportGroup the export group
+     * @param initiatorURIs the initiator uris
+     * @return the volume to HLU map
+     * @throws Exception the exception
+     */
+    public Map<String, Integer> findVolumeHLUMapForInitiators(StorageSystem vplexStorageSystem, ExportGroup exportGroup,
+            List<URI> initiatorURIs) throws Exception {
+        Map<String, Integer> volumeToHLUMap = new HashMap<String, Integer>();
         VPlexApiClient client = VPlexControllerUtils.getVPlexAPIClient(_vplexApiFactory, vplexStorageSystem, _dbClient);
 
         URI srcVarrayURI = exportGroup.getVirtualArray();
@@ -5205,15 +5291,11 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
         for (VPlexStorageViewInfo storageViewInfo : storageViewInfos) {
             if (storageViewInfo != null && !CollectionUtils.isEmpty(storageViewInfo.getWwnToHluMap())) {
                 _log.info("storageViewInfo.getWwnToHluMap() :{}", storageViewInfo.getWwnToHluMap());
-                usedHLUs.addAll(storageViewInfo.getWwnToHluMap().values());
+                volumeToHLUMap.putAll(storageViewInfo.getWwnToHluMap());
             }
         }
 
-        _log.info(String.format("HLUs found for Initiators { %s }: %s",
-                Joiner.on(',').join(initiatorNames), usedHLUs));
-        long totalTime = System.currentTimeMillis() - startTime;
-        _log.info(String.format("find used HLUs for Initiators took %f seconds", (double) totalTime / (double) 1000));
-        return usedHLUs;
+        return volumeToHLUMap;
     }
 
     public void setVplexApiFactory(VPlexApiFactory _vplexApiFactory) {

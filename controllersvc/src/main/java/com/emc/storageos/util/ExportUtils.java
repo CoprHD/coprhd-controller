@@ -1609,6 +1609,24 @@ public class ExportUtils {
     }
 
     /**
+     * get Cluster URI from initiator.
+     *
+     * @param initiator the initiator
+     * @param dbClient the db client
+     * @return the cluster of given initiator
+     */
+    public static URI getClusterOfGivenInitiator(Initiator initiator, DbClient dbClient) {
+        URI hostURI = initiator.getHost();
+        if (null != hostURI) {
+            Host host = dbClient.queryObject(Host.class, hostURI);
+            if (null != host) {
+                return host.getCluster();
+            }
+        }
+        return null;
+    }
+
+    /**
      * Gets all hosts initiators for the given cluster.
      *
      * @param clusterURI the cluster uri
@@ -1639,6 +1657,46 @@ public class ExportUtils {
         return (DiscoveredDataObject.Type.vmax.name().equals(systemType) || DiscoveredDataObject.Type.vnxblock.name().equals(systemType)
                 || DiscoveredDataObject.Type.xtremio.name().equals(systemType) || DiscoveredDataObject.Type.unity.name().equals(systemType)
                 || DiscoveredDataObject.Type.vplex.name().equals(systemType));
+    }
+
+    /**
+     * Checks if the given initiators belong to vBlock host.
+     *
+     * @param initiatorURIs the initiator uris
+     * @param dbClient the db client
+     * @return true, if the given initiators belong to vBlock host
+     */
+    public static boolean isVblockHost(List<URI> initiatorURIs, DbClient dbClient) {
+        Iterator<Initiator> initiators = dbClient.queryIterativeObjects(Initiator.class,
+                initiatorURIs);
+        while (initiators.hasNext()) {
+            Initiator initiator = initiators.next();
+            URI hostURI = initiator.getHost();
+            if (hostURI != null) {
+                Host host = dbClient.queryObject(Host.class, hostURI);
+                if (host != null && !NullColumnValueGetter.isNullURI(host.getComputeElement())) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Gets the shared volumes.
+     * From the given host to volumes map, the intersection of all the
+     * map entries provides the shared volumes list.
+     */
+    public static Map<String, Integer> getSharedVolumes(Map<String, Map<String, Integer>> hostToVolumesMap) {
+        Map<String, Integer> result = new HashMap<String, Integer>();
+        for (Map<String, Integer> entry : hostToVolumesMap.values()) {
+            if (result.isEmpty()) {
+                result.putAll(entry);
+            } else {
+                result.keySet().retainAll(entry.keySet());
+            }
+        }
+        return result;
     }
 
     /**

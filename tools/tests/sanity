@@ -6743,7 +6743,7 @@ isilon_setup_once()
 	
 	discoveredsystem show $REM_ISI_NATIVEGUID &> /dev/null && return $?
 
-    discoveredsystem create $REM_ISI_DEV isilon $REM_ISI_IP 8080 $ISI_USER $ISI_PASSWD --serialno=$REM_ISI_SN
+    discoveredsystem create $REM_ISI_DEV isilon $REM_ISI_IP 8080 $REM_ISI_USER $REM_ISI_PASSWD --serialno=$REM_ISI_SN
     
 
     storagepool   update $REM_ISI_NATIVEGUID --type file

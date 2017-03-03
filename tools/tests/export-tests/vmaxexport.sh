@@ -1315,7 +1315,6 @@ test_26() {
     runcmd export_group update ${PROJECT}/$hostXP2 --remVols ${PROJECT}/${VOLNAME}-2
     verify_export $hostXP1 $HOST1 gone
     runcmd export_group delete ${PROJECT}/$hostXP1
-    runcmd export_group delete ${PROJECT}/$hostXP2
 }
 
 #
@@ -1492,6 +1491,8 @@ test_30() {
         echo Test 30 skipped, does not apply when non-clustered tests are enabled
         return
     fi
+    
+    echot "Test 30 Begin"
 
     clusterRef="${TENANT}/${CLUSTER}"
 
@@ -1522,7 +1523,7 @@ test_30() {
     runcmd transportzone add $NH/${FC_ZONE_A} $H4PI1
     runcmd transportzone add $NH/${FC_ZONE_A} $H5PI1
 
-    echot "Test 30 Begin"
+    
     expname=${EXPORT_GROUP_NAME}t30
     clusterXP=${expname}CL
     host4XP=${expname}H4

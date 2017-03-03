@@ -33,7 +33,6 @@ import play.mvc.With;
 import util.MessagesUtils;
 import util.StringOption;
 import util.TenantUtils;
-import util.VirtualArrayUtils;
 import util.VirtualPoolUtils;
 import util.builders.ACLUpdateBuilder;
 import util.datatable.DataTablesSupport;
@@ -375,13 +374,11 @@ public class FileProtectionPolicies extends ViprResourceController {
     private static void addProjectArgs(FilePolicyRestRep policy) {
         renderArgs.put("projectVpoolOptions", getFileVirtualPoolsOptions(policy));
         renderArgs.put("projectOptions", getFileProjectOptions(uri(Models.currentAdminTenant())));
-        renderArgs.put("varrayListAssocitedWithPool", VirtualArrayUtils.ATTRIBUTES);
     }
 
     private static void addvPoolArgs(FilePolicyRestRep policy) {
         renderArgs.put("vPoolOptions", getFileVirtualPoolsOptions(policy));
         renderArgs.put("virtualArrayOptions", getAllVarrays());
-        renderArgs.put("varrayListAssocitedWithPool", VirtualArrayUtils.ATTRIBUTES);
     }
 
     private static void addAssignedProjectArgs(FilePolicyRestRep policy) {
@@ -405,10 +402,10 @@ public class FileProtectionPolicies extends ViprResourceController {
         return varrayList;
     }
 
-    private static List<StringOption> getVarraysAssociatedWithPools(List<String> ids) {
-        List<StringOption> varrayOptionList = Lists.newArrayList();
+    public static void getVarraysAssociatedWithPools(String id) {
+        List<VirtualArrayRestRep> varrayList = Lists.newArrayList();
         Set<String> varraySet = Sets.newHashSet();
-        for (String id : ids) {
+        // for (String id : ids) {
             FileVirtualPoolRestRep vpool = getViprClient().fileVpools().get(uri(id));
             List<RelatedResourceRep> varrays = vpool.getVirtualArrays();
             for (RelatedResourceRep varray : varrays) {
@@ -416,16 +413,16 @@ public class FileProtectionPolicies extends ViprResourceController {
 
             }
 
-        }
-        // now construct the varray option from the vaaray set id
+        // }
+        // now construct the varray option from the varray set id
         
-        for (String id : varraySet) {
+        for (String varrayId : varraySet) {
         
-            VirtualArrayRestRep varray = getViprClient().varrays().get(uri(id));
-            varrayOptionList.add(new StringOption(varray.getId().toString(), varray.getName()));
+            VirtualArrayRestRep varray = getViprClient().varrays().get(uri(varrayId));
+            varrayList.add(varray);
         }
 
-        return varrayOptionList;
+        renderJSON(varrayList);
     }
 
     @FlashException(keep = true, referrer = { "create", "edit" })

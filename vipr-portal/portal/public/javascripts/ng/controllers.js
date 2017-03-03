@@ -442,6 +442,18 @@ angular.module("portalApp").controller({
         	$scope.topologiesString = angular.toJson($scope.topologies, false);
         }, true);
      },
+     
+     
+     filePolicyVarryFromPoolCtrl: function ($scope, $http, $window, translate) {
+    	 
+    	 $scope.vpoolFunc = function() { 
+    	 $http.get(routes.FileProtectionPolicy_getVarraysAssociatedWithPools({id:$scope.field.value})).success(function(data) {     		 
+    		 window.alert("inside filePolicyVarryFromPoolCtrl value of vpool is"+varrayValue)
+    	  });
+    	 } 
+     
+     },
+     
     
     FileShareAclCtrl: function($scope, $http, $window, translate) {
     	

@@ -62,13 +62,16 @@
      #{/field}
     </div>
     
-    <div id="vpoolFields">
-     #{field 'assignPolicy.virtualPools', noLabel:noLabel}
-         #{Form.selectOneControlGroup field:field, options:vPoolOptions /}
-     #{/field}
+    <div id="vpoolFields" ng-controller="filePolicyVarryFromPoolCtrl">
+    <div class="pull-left col-sm-3" style="text-align:center;"><strong>&{'assignPolicy.vpool'}</strong></div> 
+    <div class="pull-left col-sm-3" v-field="assignPolicy.virtualPools">
+           <select-one options="vPoolOptions" ng-chnage="vpoolFunc()" required></select-one>
+     </div>
+
     </div>
 	    
     <div ng-init="policyId='${assignPolicy.id}'" id="replicationFields" ng-controller="filePolicyCtrl">
+    <br>
         <div class="row" style="padding-top:20px; padding-bottom:0px;">
             <div class="col-xs-3"></div>    
             <div class="pull-left col-sm-3" style="text-align:center;"><strong>&{'replicationTopology.sourceVArray'}</strong></div>

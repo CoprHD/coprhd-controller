@@ -32,8 +32,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Collection;
-import java.util.Collections;
-import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -449,26 +447,7 @@ public class DBClient {
             return;
         }
 
-        // The list returned by getColumnUris() is not compatible with sort, so normalize
-        // to a type that does.
-        List<URI> straightUriList = new ArrayList<URI>();
-        Iterator<URI> urisIter = uris.iterator();
-        while (urisIter.hasNext()) {
-            straightUriList.add(urisIter.next());
-        }
-
-        // Sort the URIs in alphabetical order for consistent output across executions
-        Comparator<URI> cmp = new Comparator<URI>() {
-            public int compare(URI u1, URI u2) {
-                if (u1 == null) {
-                    return 1;
-                }
-                return u1.toString().compareTo(u2.toString());
-            }
-        };
-        Collections.sort(straightUriList, cmp);
-        
-        int count = queryAndPrintRecords(straightUriList, clazz, criterias);
+        int count = queryAndPrintRecords(uris, clazz, criterias);
         System.out.println("Number of All Records is: " + count);
     }
 

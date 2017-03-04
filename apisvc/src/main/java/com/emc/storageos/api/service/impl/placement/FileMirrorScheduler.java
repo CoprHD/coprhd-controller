@@ -116,10 +116,6 @@ public class FileMirrorScheduler implements Scheduler {
 
         PolicyStorageResource matchedPolicyResource = findMatchedPolicyStorageResource(storageSystemResources, sourceFileRecommendation);
         if (matchedPolicyResource != null) {
-            if (sourceFileRecommendation.getvNAS() != null) {
-                capabilities.put(VirtualPoolCapabilityValuesWrapper.SOURCE_VIRTUAL_NAS_SERVER,
-                        sourceFileRecommendation.getvNAS());
-            }
             _log.info("Found the valid existing policy storage resource for system {} nas server {}",
                     matchedPolicyResource.getStorageSystem(), matchedPolicyResource.getNasServer());
             FileReplicaPolicyTargetMap targetMap = matchedPolicyResource.getFileReplicaPolicyTargetMap();
@@ -197,23 +193,26 @@ public class FileMirrorScheduler implements Scheduler {
             Set<String> systemTypes = new StringSet();
             systemTypes.add(srcSystemType);
 
-            // Based on the source recommendation nas server, target should pick the right nas server.
+            // Based on the source recommendation nas server, should pick the right target nas server.
             // Both source and target nas servers should be similar.
             // If sourceFileRecommendation.getvNAS() is null means, the recommendation is for physical nas server!!
-            // This should happen for assignment of replication policy
-            if (capabilities.isVpoolProjectPolicyAssign()) {
+            // Remove the existing source nas server if any!!
+            if (capabilities.getSourceVirtualNasServer() != null) {
+                capabilities.removeCapabilityEntry(VirtualPoolCapabilityValuesWrapper.SOURCE_VIRTUAL_NAS_SERVER);
+            }
+            // add the new vnas server of current source recommendations!!!
+            if (sourceFileRecommendation.getvNAS() != null) {
                 capabilities.put(VirtualPoolCapabilityValuesWrapper.SOURCE_VIRTUAL_NAS_SERVER, sourceFileRecommendation.getvNAS());
-            } else {
-                // Findout is there any policy was created for the source recommendations!!!
-                if (capabilities.getTargetNasServer() != null) {
-                    capabilities.removeCapabilityEntry(VirtualPoolCapabilityValuesWrapper.TARGET_NAS_SERVER);
-                }
-                if (capabilities.getTargetStorageSystem() != null) {
-                    capabilities.removeCapabilityEntry(VirtualPoolCapabilityValuesWrapper.TARGET_STORAGE_SYSTEM);
-                }
-                if (storageSystemResources != null && !storageSystemResources.isEmpty()) {
-                    findAndUpdateMatchedPolicyStorageResource(storageSystemResources, sourceFileRecommendation, capabilities);
-                }
+            }
+            // Findout is there any policy was created for the source recommendations!!!
+            if (capabilities.getTargetNasServer() != null) {
+                capabilities.removeCapabilityEntry(VirtualPoolCapabilityValuesWrapper.TARGET_NAS_SERVER);
+            }
+            if (capabilities.getTargetStorageSystem() != null) {
+                capabilities.removeCapabilityEntry(VirtualPoolCapabilityValuesWrapper.TARGET_STORAGE_SYSTEM);
+            }
+            if (storageSystemResources != null && !storageSystemResources.isEmpty()) {
+                findAndUpdateMatchedPolicyStorageResource(storageSystemResources, sourceFileRecommendation, capabilities);
             }
 
             for (String targetVArry : capabilities.getFileReplicationTargetVArrays()) {

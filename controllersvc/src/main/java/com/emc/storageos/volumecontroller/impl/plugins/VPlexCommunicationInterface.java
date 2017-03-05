@@ -547,10 +547,10 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
                             // THIS IS VERY BAD
                             String message = 
                                     String.format("The VPLEX storage system serial number unexpectedly changed. "
-                                    + "Existing VPLEX metro native GUID %s contains the newly-discovered system assembly "
-                                    + "id %s, which indicates a change in VPLEX hardware configuration from metro to local. "
+                                    + "The newly-discovered native GUID %s contains the existing VPLEX metro system assembly "
+                                    + "id %s of VPLEX %s, which indicates a change in VPLEX hardware configuration from metro to local. "
                                     + "Scanning of this Storage Provider cannot continue. Recommended course of action is "
-                                    + "to contact EMC Customer Support.", systemNativeGUID, assemblyId);
+                                    + "to contact EMC Customer Support.", systemNativeGUID, assemblyId, vplex.forDisplay());
                             s_logger.error(message);
                             vplex.setDiscoveryStatus(DataCollectionJobStatus.ERROR.name());
                             vplex.setLastDiscoveryStatusMessage(message);

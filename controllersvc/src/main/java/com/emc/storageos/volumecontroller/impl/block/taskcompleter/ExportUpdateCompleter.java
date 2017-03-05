@@ -106,12 +106,12 @@ public class ExportUpdateCompleter extends ExportTaskCompleter {
             // update the export group data if the job completes successfully
             if (status.equals(Operation.Status.ready)) {
                 updateExportGroup(exportGroup, dbClient);
+                if (needToRunExportGroupCleanup(dbClient)) {
+                    // Clean stale references from EG if the status is ready
+                    ExportUtils.cleanStaleReferences(exportGroup.getId(), dbClient);
+                }
             }
             dbClient.updateObject(exportGroup);
-            if (Operation.isTerminalState(status) && needToRunExportGroupCleanup(dbClient)) {
-                // Clean stale references from EG if the status is either ready or error.
-                ExportUtils.cleanStaleReferences(exportGroup.getId(), dbClient);
-            }
             _log.info("export_update completer: done");
             _log.info(String.format("Done ExportMaskUpdate - Id: %s, OpId: %s, status: %s",
                     getId().toString(), getOpId(), status.name()));
@@ -173,6 +173,7 @@ public class ExportUpdateCompleter extends ExportTaskCompleter {
         if (_removedBlockObjects != null) {
             exportGroup.removeVolumes(_removedBlockObjects);
         }
+        dbClient.updateObject(exportGroup);
     }
 
     /**
@@ -188,14 +189,14 @@ public class ExportUpdateCompleter extends ExportTaskCompleter {
      * @return
      */
     private boolean needToRunExportGroupCleanup(DbClient dbClient) {
-        boolean needtoRunExportCleanupTask = true;;
+        boolean needtoRunExportCleanupTask = true;
         ExportGroup exportGroup = dbClient.queryObject(ExportGroup.class, getId());
         if (null == exportGroup.getVolumes() || exportGroup.getVolumes().isEmpty()) {
             if ((_addedInitiators != null && !_addedInitiators.isEmpty()) ||
                     (_addedHosts != null && !_addedHosts.isEmpty())
                     || (_addedClusters != null && !_addedClusters.isEmpty())) {
                 _log.info("No need to run Export Clean up, as export Group contains no volumes and the request includes to add compute resource.");
-                needtoRunExportCleanupTask = false;;
+                needtoRunExportCleanupTask = false;
             }
         } else if (null == exportGroup.getInitiators() || exportGroup.getInitiators().isEmpty()) {
             if (_addedBlockObjects != null && !_addedBlockObjects.isEmpty()) {

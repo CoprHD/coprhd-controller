@@ -61,16 +61,13 @@
          #{Form.selectManyControlGroup field:field, options:projectOptions /}
      #{/field}
     </div>
-    
-    <div id="vpoolFields" ng-controller="filePolicyVarryFromPoolCtrl">
-    <div class="pull-left col-sm-3" style="text-align:center;"><strong>&{'assignPolicy.vpool'}</strong></div> 
-    <div class="pull-left col-sm-3" v-field="assignPolicy.virtualPools">
-           <select-one options="vPoolOptions" ng-chnage="vpoolFunc()" required></select-one>
-     </div>
-
-    </div>
-	    
+        
     <div ng-init="policyId='${assignPolicy.id}'" id="replicationFields" ng-controller="filePolicyCtrl">
+        <div class="pull-left col-sm-3" style="text-align:center;"><strong>&{'assignPolicy.vpool'}</strong></div> 
+    <div class="pull-left col-sm-3" v-field="assignPolicy.virtualPools">
+           <select-one options="vPoolOptions" ng-change="populateVarray(field)" required></select-one>
+     </div>
+    
     <br>
         <div class="row" style="padding-top:20px; padding-bottom:0px;">
             <div class="col-xs-3"></div>    
@@ -121,11 +118,6 @@
 		$('#assignPolicy_appliedAt').on('change', showAssignAt);
 		showAssignAt();
 		
-		
-		// when user change the vpool select the varry based on that.
-			
-		$('#assignPolicy_virtualPools').on('change', virtualPoolChanged);
-		
     });
     
     
@@ -155,17 +147,6 @@
 				}
 				
 			}
-    
-    
-    function virtualPoolChanged(){
-    	
-    	var poolSeeted = $('#assignPolicy_virtualPools').val();  	
-    	window.alert("seletced pool are "+poolSeeted);
-         //now based on seletctionn send the call to backend to fetch the varray details
- 	    virtualPools.updateVirtualArrayAttributes(url, "#virtualPool form");
-    	
-    }
-    
     
 		</script>
 #{/set}

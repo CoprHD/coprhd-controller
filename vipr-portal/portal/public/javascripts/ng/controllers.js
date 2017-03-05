@@ -419,9 +419,14 @@ angular.module("portalApp").controller({
         $scope.deleteTopology = function(idx) { $scope.topologies.splice(idx, 1); }
         $scope.addTopology = function() { $scope.topologies.push(angular.copy($scope.add)); }
         
-        $http.get(routes.VirtualArrays_list()).success(function(data) {
-        	$scope.virtualArrayOptions = data.aaData;
-        });  
+       // $http.get(routes.VirtualArrays_list()).success(function(data) {
+       // 	$scope.virtualArrayOptions = data.aaData;
+       // });
+        
+        $http.get(routes.FileVirtualPools_list()).success(function(data) {
+        	$scope.vPoolOptions = data.aaData;
+        });
+        
 
         $scope.$watch('policyId', function () {
             $http.get(routes.FileProtectionPolicy_details({id:$scope.policyId})).success(function(data) {             	            	 
@@ -441,18 +446,22 @@ angular.module("portalApp").controller({
         $scope.$watch('topologies', function(newVal) {
         	$scope.topologiesString = angular.toJson($scope.topologies, false);
         }, true);
+        
+        
+        $scope.populateVarray = function(selected) { 
+        	
+        window.alert("feild value changed from"+selected)
+        $http.get(routes.FileProtectionPolicy_getVarraysAssociatedWithPools({id:selected.value})).success(function(data) {
+       		 
+        $scope.virtualArrayOptions = data;
+       		
+       	  });
+       	 } 
+        
+        
      },
      
-     
-     filePolicyVarryFromPoolCtrl: function ($scope, $http, $window, translate) {
-    	 
-    	 $scope.vpoolFunc = function() { 
-    	 $http.get(routes.FileProtectionPolicy_getVarraysAssociatedWithPools({id:$scope.field.value})).success(function(data) {     		 
-    		 window.alert("inside filePolicyVarryFromPoolCtrl value of vpool is"+varrayValue)
-    	  });
-    	 } 
-     
-     },
+    
      
     
     FileShareAclCtrl: function($scope, $http, $window, translate) {

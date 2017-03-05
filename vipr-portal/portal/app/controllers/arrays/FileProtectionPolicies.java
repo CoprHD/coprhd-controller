@@ -405,17 +405,11 @@ public class FileProtectionPolicies extends ViprResourceController {
     public static void getVarraysAssociatedWithPools(String id) {
         List<VirtualArrayRestRep> varrayList = Lists.newArrayList();
         Set<String> varraySet = Sets.newHashSet();
-        // for (String id : ids) {
             FileVirtualPoolRestRep vpool = getViprClient().fileVpools().get(uri(id));
             List<RelatedResourceRep> varrays = vpool.getVirtualArrays();
             for (RelatedResourceRep varray : varrays) {
                 varraySet.add(varray.getId().toString());
-
             }
-
-        // }
-        // now construct the varray option from the varray set id
-        
         for (String varrayId : varraySet) {
         
             VirtualArrayRestRep varray = getViprClient().varrays().get(uri(varrayId));
@@ -423,6 +417,41 @@ public class FileProtectionPolicies extends ViprResourceController {
         }
 
         renderJSON(varrayList);
+    }
+
+    public static void getVpoolForProtectionPolicy(String id) {
+        Collection<FileVirtualPoolRestRep> vPools = Lists.newArrayList();
+        List<FileVirtualPoolRestRep> virtualPools = getViprClient().fileVpools().getAll();
+        FilePolicyRestRep policy = getViprClient().fileProtectionPolicies().get(uri(id));
+        for (FileVirtualPoolRestRep vpool : virtualPools) {
+            // first level filter based on the protection is enabled or not
+            FileVirtualPoolProtectionParam protectParam = vpool.getProtection();
+            if (protectParam == null)
+            {
+                continue;
+            }
+            // 2nde level filter based on the applied level of policy and the pool
+            if (FilePolicyApplyLevel.project.name().equalsIgnoreCase(policy.getAppliedAt())
+                    && !protectParam.getAllowFilePolicyAtProjectLevel())
+            {
+                continue;
+            }
+            if (FilePolicyApplyLevel.file_system.name().equalsIgnoreCase(policy.getAppliedAt())
+                    && !protectParam.getAllowFilePolicyAtFSLevel())
+            {
+                continue;
+            }
+            // now add pool into list if matches protection type with policy
+            if (FilePolicyType.file_snapshot.name().equalsIgnoreCase(policy.getType()) &&
+                    protectParam.getScheduleSnapshots()) {
+                vPools.add(vpool);
+            } else if (FilePolicyType.file_replication.name().equalsIgnoreCase(policy.getType()) &&
+                    protectParam.getReplicationSupported()) {
+                vPools.add(vpool);
+            }
+        }
+
+        renderJSON(vPools);
     }
 
     @FlashException(keep = true, referrer = { "create", "edit" })

@@ -4476,6 +4476,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                                 targetFs.setMirrorStatus(NullColumnValueGetter.getNullStr());
                                 targetFs.setAccessState(NullColumnValueGetter.getNullStr());
                                 targetFs.setParentFileShare(NullColumnValueGetter.getNullNamedURI());
+                                targetFs.setPersonality(NullColumnValueGetter.getNullStr());
                                 modifiedFileshares.add(targetFs);
                             }
                             targets.clear();

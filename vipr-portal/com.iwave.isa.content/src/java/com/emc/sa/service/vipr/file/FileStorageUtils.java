@@ -212,7 +212,6 @@ public class FileStorageUtils {
                 deactivateFileSystem(mirrorFS, FileControllerConstants.DeleteTypeEnum.FULL);
             }
         }
-
         // Remove the FileSystem
         deactivateFileSystem(fileSystemId, fileDeletionType);
     }

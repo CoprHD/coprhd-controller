@@ -533,6 +533,10 @@ public interface DeviceControllerExceptions {
     @DeclareServiceCode(ServiceCode.BLOCK_CONTROLLER_ERROR)
     public DeviceControllerException hostRescanUnsuccessful(String hostName, String reason);
     
+    @DeclareServiceCode(ServiceCode.BLOCK_CONTROLLER_ERROR)
+    public DeviceControllerException addVblockHostHLUViolation(Collection<Integer> givenHLUs, Collection<Integer> conflictingHLUs);
+
+    
     @DeclareServiceCode(ServiceCode.FILE_CONTROLLER_ERROR)
     public DeviceControllerException assignFilePolicyFailed(String filePolicyName, String appliedAt, String details);
 }

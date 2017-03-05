@@ -2088,6 +2088,11 @@ public class VmaxExportOperations implements ExportMaskOperations {
 
     @Override
     public Set<Integer> findHLUsForInitiators(StorageSystem storage, List<String> initiatorNames, boolean mustHaveAllPorts) {
+        
+        if (mustHaveAllPorts) {
+            return findHLUsForCluster(storage, initiatorNames);
+        }
+        
         long startTime = System.currentTimeMillis();
         Set<Integer> usedHLUs = new HashSet<Integer>();
         CloseableIterator<CIMInstance> maskInstanceItr = null;
@@ -2136,6 +2141,113 @@ public class VmaxExportOperations implements ExportMaskOperations {
                     }
                 }
             }
+
+            _log.info(String.format("HLUs found for Initiators { %s }: %s",
+                    Joiner.on(',').join(initiatorNames), usedHLUs));
+        } catch (Exception e) {
+            String errMsg = "Encountered an SMIS error when attempting to query used HLUs for initiators: " + e.getMessage();
+            _log.error(errMsg, e);
+            throw SmisException.exceptions.hluRetrievalFailed(errMsg, e);
+        } finally {
+            if (maskInstanceItr != null) {
+                maskInstanceItr.close();
+            }
+            long totalTime = System.currentTimeMillis() - startTime;
+            _log.info(String.format("find used HLUs for Initiators took %f seconds", (double) totalTime / (double) 1000));
+        }
+        return usedHLUs;
+    }
+    
+    
+    /**
+     * To prevent re-running the HLU regression, creating a different method.
+     * TODO- refactor this.
+     * @param storage
+     * @param initiatorNames
+     * @return
+     */
+    private Set<Integer> findHLUsForCluster(StorageSystem storage, List<String> initiatorNames) {
+        long startTime = System.currentTimeMillis();
+        Set<Integer> usedHLUs = new HashSet<Integer>();
+        Map<String, ArrayList<String>> volumeToInitiatorMapping = new HashMap<String, ArrayList<String>>();
+        Map<String, List<Integer>> volumeToHLU = new HashMap<String, List<Integer>>();
+        CloseableIterator<CIMInstance> maskInstanceItr = null;
+        try {
+            // Get a mapping of the initiator port names to their CIMObjectPaths on the provider
+            WBEMClient client = _helper.getConnection(storage).getCimClient();
+            HashMap<String, CIMObjectPath> initiatorPathsMap = _cimPath.getInitiatorToInitiatorPath(storage, initiatorNames);
+            List<String> maskNames = new ArrayList<String>();
+
+            // Iterate through each initiator port name ...
+            for (String initiatorName : initiatorPathsMap.keySet()) {
+                CIMObjectPath initiatorPath = initiatorPathsMap.get(initiatorName);
+
+                // Find out if there is a MaskingView associated with the initiator...
+                maskInstanceItr = _helper.getAssociatorInstances(storage, initiatorPath, null, SmisConstants.SYMM_LUN_MASKING_VIEW, null,
+                        null, SmisConstants.PS_LUN_MASKING_CNTRL_NAME_AND_ROLE);
+                while (maskInstanceItr.hasNext()) {
+                    // Found a MaskingView...
+                    CIMInstance instance = maskInstanceItr.next();
+                    String systemName = CIMPropertyFactory.getPropertyValue(instance, SmisConstants.CP_SYSTEM_NAME);
+
+                    if (!systemName.contains(storage.getSerialNumber())) {
+                        // We're interested in the specific StorageSystem's masks.
+                        // The above getSymmLunMaskingViews call will get
+                        // a listing of for all the protocol controllers seen by the
+                        // SMISProvider pointed to by 'storage' system.
+                        continue;
+                    }
+
+                    String name = CIMPropertyFactory.getPropertyValue(instance, SmisConstants.CP_ELEMENT_NAME);
+                    if (!maskNames.contains(name)) {
+                        _log.info("Found matching mask {}", name);
+                        maskNames.add(name);
+
+                        // Find all the initiators associated with the MaskingView
+                        List<String> initiatorPorts = _helper.getInitiatorsFromLunMaskingInstance(client, instance);
+
+                        // Get volumes for the MaskingView
+                        Map<String, Integer> volumeWWNs = _helper.getVolumesFromLunMaskingInstance(client, instance);
+                        
+                        for (String volume : volumeWWNs.keySet()) {
+                            if(volumeToInitiatorMapping.get(volume) == null) {
+                                volumeToInitiatorMapping.put(volume, new ArrayList<String>());
+                            }
+                            volumeToInitiatorMapping.get(volume).addAll(initiatorPorts);
+                            
+                            if (volumeToHLU.get(volume) == null) {
+                                volumeToHLU.put(volume,new ArrayList<Integer>());
+                            }
+                            volumeToHLU.get(volume).add(volumeWWNs.get(volume));
+                        }
+                        
+                       
+                        
+                        
+                        _log.info(String.format("%nXM:%s I:{%s} V:{%s} HLU:{%s}%n", name,
+                                Joiner.on(',').join(initiatorPorts),
+                                Joiner.on(',').join(volumeWWNs.keySet()), volumeWWNs.values()));
+                    }
+                }
+            }
+            
+            _log.info("Volume to Initiator Mapping : {}", Joiner.on('\t').withKeyValueSeparator(" -> ").join(volumeToInitiatorMapping));
+            
+            _log.info("Volume to HLU Mapping : {}", Joiner.on('\t').withKeyValueSeparator(" -> ").join(volumeToHLU));
+            
+            //Loop through the volumeToInitiatorMapping, find out the shared volumes.
+             for (Entry<String,ArrayList<String>> volumeEntry : volumeToInitiatorMapping.entrySet()) {
+                  //Get all the initiators from the values and then compare the same with the given
+                  List<String> discoveredInitiators = volumeEntry.getValue();
+                  discoveredInitiators.removeAll(initiatorNames);
+                  
+                  if (discoveredInitiators.isEmpty()) {
+                      _log.info("Shared volume found : {}", volumeEntry.getKey());
+                      usedHLUs.addAll(volumeToHLU.get(volumeEntry.getKey()));
+                  } else {
+                      _log.info("Exclusive volume found : {}", volumeEntry.getKey()); 
+                  }
+              }
 
             _log.info(String.format("HLUs found for Initiators { %s }: %s",
                     Joiner.on(',').join(initiatorNames), usedHLUs));

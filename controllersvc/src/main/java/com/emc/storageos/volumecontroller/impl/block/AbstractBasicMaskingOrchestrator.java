@@ -31,6 +31,7 @@ import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.StringSetMap;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.util.CommonTransformerFunctions;
+import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.client.util.StringSetUtil;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
@@ -155,9 +156,11 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
      * @param exportGroup the export group
      * @param newInitiatorURIs the host initiators to be added to the export group
      **/
-    public void checkForConsistentLunViolation(StorageSystem storage, ExportGroup exportGroup, List<URI> newInitiatorURIs) {
+    public void checkForConsistentLunViolation(StorageSystem storage, ExportGroup exportGroup, List<URI> newInitiatorURIs,
+             Collection<Integer> givenHLUs) {
 
         Map<String, Integer> volumeHluPair = new HashMap<String, Integer>();
+        Initiator initiator = _dbClient.queryObject(Initiator.class, newInitiatorURIs.get(0));
         // For 'add host to cluster' operation, validate and fail beforehand if HLU conflict is detected
         if (exportGroup.forCluster() && exportGroup.getVolumes() != null
                 && ExportUtils.systemSupportsConsistentHLUGeneration(storage)) {
@@ -180,6 +183,45 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
                     }
                 }
                 throw DeviceControllerException.exceptions.addHostHLUViolation(volumeHluPair);
+            }
+        }else if (exportGroup.forHost() && initiator.getClusterName() != null
+                && ExportUtils.systemSupportsConsistentHLUGeneration(storage)
+                && givenHLUs != null && !givenHLUs.contains(ExportGroup.LUN_UNASSIGNED)
+                && ExportUtils.isVblockHost(newInitiatorURIs, _dbClient)) {
+            /**
+             * Export boot volume to vBlock Host, where the host is part of Cluster:
+             * For this case we have to validate whether the given HLU for the boot volume will cause
+             * lun violation if later the host gets added to Cluster.
+             */
+            URI clusterURI = ExportUtils.getClusterOfGivenInitiator(initiator, _dbClient);
+            if (NullColumnValueGetter.isNullURI(clusterURI)) {
+                _log.info("Cluster URI is null for initiator {}", initiator.getId());
+                return; // TODO check if we can return without error?
+            }
+
+            List<URI> initiatorsInCluster = ExportUtils.getAllInitiatorsForCluster(clusterURI, _dbClient);
+            if (initiatorsInCluster.isEmpty()) {
+                _log.info("Cluster {} initiators empty", clusterURI);
+                return;
+            }
+            _log.info("Initiators {} found in cluster {}", Joiner.on(";").join(initiatorsInCluster), clusterURI);
+
+            // remove the passed initiators as we need to get only the cluster's shared volumes' HLUs
+            initiatorsInCluster.removeAll(newInitiatorURIs);
+
+            List<Initiator> clusterInitiators = _dbClient.queryObject(Initiator.class, initiatorsInCluster);
+            Collection<String> clusterInitiatorNames = Collections2.transform(clusterInitiators,
+                    CommonTransformerFunctions.fctnInitiatorToPortName());
+            Set<Integer> clusterUsedHlus = getDevice().findHLUsForInitiators(storage, new ArrayList<String>(clusterInitiatorNames), true);
+
+            // HLUs that are going to be provisioned to this host
+            Set<Integer> hostHlus = new HashSet<Integer>(givenHLUs);
+
+            // hostHlus now will contain the intersection of the two Set of HLUs which are conflicting one's
+            hostHlus.retainAll(clusterUsedHlus);
+            if (!hostHlus.isEmpty()) {
+                _log.info("Conflicting HLUs: {}", hostHlus);
+                throw DeviceControllerException.exceptions.addVblockHostHLUViolation(givenHLUs, hostHlus);
             }
         }
     }

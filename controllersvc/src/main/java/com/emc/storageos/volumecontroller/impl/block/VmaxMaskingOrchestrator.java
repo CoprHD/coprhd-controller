@@ -896,6 +896,12 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
         Map<String, Set<URI>> initiatorToExportMaskPlacementMap = determineInitiatorToExportMaskPlacements(exportGroup, storage.getId(),
                 initiatorHelper.getResourceToInitiators(), device.findExportMasks(storage, initiatorHelper.getPortNames(), false),
                 initiatorHelper.getPortNameToInitiatorURI(), partialMasks);
+        
+        // Validate exporting this boot volume would in turn cause Lun
+        // violation ,when the host gets added to cluster.
+        if (ExportGroupType.Host.toString().equalsIgnoreCase(exportGroup.getType())) {
+            checkForConsistentLunViolation(storage, exportGroup, initiatorURIs, volumeMap.values());
+        }
 
         findAndUpdateFreeHLUsForClusterExport(storage, exportGroup, initiatorURIs, volumeMap);
 

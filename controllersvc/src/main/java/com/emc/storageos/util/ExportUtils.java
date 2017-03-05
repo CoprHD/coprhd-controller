@@ -340,6 +340,47 @@ public class ExportUtils {
         _log.info("Found {} storage ports in export mask {}", ports.size(), exportMask.getMaskName());
         return ports;
     }
+    
+    /**
+     * Checks if the given initiators belong to vBlock host.
+     *
+     * @param initiatorURIs the initiator uris
+     * @param dbClient the db client
+     * @return true, if the given initiators belong to vBlock host
+     */
+    public static boolean isVblockHost(List<URI> initiatorURIs, DbClient dbClient) {
+        Iterator<Initiator> initiators = dbClient.queryIterativeObjects(Initiator.class,
+                initiatorURIs);
+        while (initiators.hasNext()) {
+            Initiator initiator = initiators.next();
+            URI hostURI = initiator.getHost();
+            if (hostURI != null) {
+                Host host = dbClient.queryObject(Host.class, hostURI);
+                if (host != null && !NullColumnValueGetter.isNullURI(host.getComputeElement())) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+    
+    /**
+     * get Cluster URI from initiator.
+     *
+     * @param initiator the initiator
+     * @param dbClient the db client
+     * @return the cluster of given initiator
+     */
+    public static URI getClusterOfGivenInitiator(Initiator initiator, DbClient dbClient) {
+        URI hostURI = initiator.getHost();
+        if (null != hostURI) {
+            Host host = dbClient.queryObject(Host.class, hostURI);
+            if (null != host) {
+                return host.getCluster();
+            }
+        }
+        return null;
+    }
 
     /**
      * Creates a map of storage ports keyed by the port WWN.

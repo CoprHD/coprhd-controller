@@ -148,35 +148,26 @@ public class CustomServicesAnsiblePrimitiveDAO implements
     }
     
     private StringSet getPlaybooks(final byte[] archive) {
-        try(final TarArchiveInputStream tarIn = new TarArchiveInputStream(
+        try (final TarArchiveInputStream tarIn = new TarArchiveInputStream(
                 new GzipCompressorInputStream(new ByteArrayInputStream(
                         archive)))) {
             TarArchiveEntry entry = tarIn.getNextTarEntry();
             final StringSet playbooks = new StringSet();
-    
+
             while (entry != null) {
                 if (entry.isFile()
                         && entry.getName().toLowerCase().endsWith(".yml")) {
-                    
-                    final java.nio.file.Path path = FileSystems
-                            .getDefault().getPath(entry.getName());
-                    final java.nio.file.Path root = path.getRoot() != null ? path
-                            .getRoot() : FileSystems.getDefault().getPath(
-                            ".");
-                    if (path.getParent() == null
-                            || 0 == path.getParent().compareTo(root)) {
-                        final String playbook = path.getFileName().toString();
-                        //_log.info("Top level playbook: " + playbook);
-                        playbooks.add(playbook);
-                    } 
+                    final java.nio.file.Path playbookPath = FileSystems
+                            .getDefault().getPath(entry.getName()).normalize();
+                    if (null != playbookPath && playbookPath.getNameCount() >= 0)
+                        playbooks.add(playbookPath.toString());
                 }
                 entry = tarIn.getNextTarEntry();
             }
             return playbooks;
-        } catch (IOException e) {
+        } catch (final IOException e) {
             throw InternalServerErrorException.internalServerErrors.genericApisvcError("Invalid ansible archive", e);
         }
-       
     }
 
     @Override

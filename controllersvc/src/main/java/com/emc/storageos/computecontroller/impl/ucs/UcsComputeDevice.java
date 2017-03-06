@@ -512,18 +512,6 @@ public class UcsComputeDevice implements ComputeDevice {
                     computeSystem.getId(), computeSystem.getSystemType(), this.getClass(), new Workflow.Method(
                             "addHostPortsToVArrayNetworks", varray, host),
                     new Workflow.Method(ROLLBACK_NOTHING_METHOD), addHostPortsToNetworkStepId);
-            //forcefully skipping the sharedExport update step, due to concurrency issue
-            // we will handle update of sharedExport to all hosts in bulk rather than one for each host.
-            // Temporary workaround fix until the actual fix is delivered.
-            boolean performStep = false;
-            if (performStep) {
-                String addHostToSharedExportGroupsStepId = workflow.createStepId();
-                addHostToSharedExportGroupsStepId = workflow.createStep(ADD_HOST_TO_SHARED_EXPORT_GROUPS,
-                        "Add host to shared export groups", addHostPortsToNetworkStepId, computeSystem.getId(),
-                        computeSystem.getSystemType(), this.getClass(),
-                        new Workflow.Method("addHostToSharedExportGroups", host), null,
-                        addHostToSharedExportGroupsStepId);
-            }
             workflow.executePlan(taskCompleter, "Successfully created host : " + host.getHostName());
 
             LOGGER.info("create Host : " + host.getLabel() + " Complete");
@@ -534,95 +522,6 @@ public class UcsComputeDevice implements ComputeDevice {
         }
     }
 
-    public void addHostToSharedExportGroups(Host host, String stepId) {
-
-        LOGGER.info("addHostToSharedExportGroups : " + host.getHostName());
-
-        try {
-
-            WorkflowStepCompleter.stepExecuting(stepId);
-
-            if (host.getCluster() != null) {
-                List<ExportGroup> sharedExportGroups = CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient,
-                        ExportGroup.class, AlternateIdConstraint.Factory.getConstraint(ExportGroup.class, "clusters",
-                                host.getCluster().toString()));
-
-                for (ExportGroup exportGroup : sharedExportGroups) {
-
-                    String task = UUID.randomUUID().toString();
-
-                    Operation op = _dbClient.createTaskOpStatus(ExportGroup.class, exportGroup.getId(), task,
-                            ResourceOperationTypeEnum.UPDATE_EXPORT_GROUP);
-                    exportGroup.getOpStatus().put(task, op);
-
-                    _dbClient.persistObject(exportGroup);
-
-                    Map<URI, Integer> noUpdatesVolumeMap = new HashMap<URI, Integer>();
-
-                    List<URI> existingInitiators = StringSetUtil.stringSetToUriList(exportGroup.getInitiators());
-                    List<URI> existingHosts = StringSetUtil.stringSetToUriList(exportGroup.getHosts());
-                    List<URI> existingClusters = StringSetUtil.stringSetToUriList(exportGroup.getClusters());
-
-                    Set<URI> addedClusters = new HashSet<>();
-                    Set<URI> removedClusters = new HashSet<>();
-                    Set<URI> addedHosts = new HashSet<>();
-                    Set<URI> removedHosts = new HashSet<>();
-                    Set<URI> addedInitiators = new HashSet<>();
-                    Set<URI> removedInitiators = new HashSet<>();
-
-                    // add host reference to export group
-                    if (!existingHosts.contains(host.getId())) {
-                        addedHosts.add(host.getId());
-                    }
-
-                    List<Initiator> hostInitiators = ComputeSystemHelper.queryInitiators(_dbClient, host.getId());
-                    List<Initiator> validInitiators = ComputeSystemHelper.validatePortConnectivity(_dbClient,
-                            exportGroup, hostInitiators);
-                    if (!validInitiators.isEmpty()) {
-                        // if the initiators is not already in the list add
-                        // it.
-                        for (Initiator initiator : validInitiators) {
-                            if (!existingInitiators.contains(initiator.getId())) {
-                                addedInitiators.add(initiator.getId());
-                            }
-                        }
-                    }
-
-                    blockExportController.exportGroupUpdate(exportGroup.getId(),
-                            noUpdatesVolumeMap, noUpdatesVolumeMap,
-                            addedClusters, removedClusters, addedHosts, removedHosts, addedInitiators, removedInitiators, task);
-
-                    while (true) {
-                        Thread.sleep(TASK_STATUS_POLL_FREQUENCY);
-                        exportGroup = _dbClient.queryObject(ExportGroup.class, exportGroup.getId());
-
-                        switch (Status.toStatus(exportGroup.getOpStatus().get(task).getStatus())) {
-                        case ready:
-                            WorkflowStepCompleter.stepSucceded(stepId);
-                            break;
-                        case error:
-                            WorkflowStepCompleter.stepFailed(stepId, exportGroup.getOpStatus().get(task)
-                                    .getServiceError());
-                            break;
-                        default:
-                            break;
-
-                        }
-                    }
-
-                }
-
-            }
-        }
-
-        catch (Exception exception) {
-            ServiceCoded serviceCoded = ComputeSystemControllerException.exceptions.unableToProvisionHost(
-                    host != null ? host.getHostName() : host.getId().toString(), null, exception);
-            WorkflowStepCompleter.stepFailed(stepId, serviceCoded);
-        }
-
-        WorkflowStepCompleter.stepSucceded(stepId);
-    }
 
     public void unbindServiceProfile(ComputeSystem cs, String contextStepId, String stepId)
             throws ClientGeneralException {
@@ -839,7 +738,7 @@ public class UcsComputeDevice implements ComputeDevice {
     private void validateNewServiceProfile(ComputeSystem cs, UCSServiceProfile serviceProfile, Host newHost){
         Collection<URI> allHostUris = _dbClient.queryByType(Host.class, true);
         Collection<Host> hosts = _dbClient.queryObjectFields(Host.class,
-                Arrays.asList("uuid", "computeElement", "registrationStatus", "inactive"), getFullyImplementedCollection(allHostUris));
+                Arrays.asList("uuid","label", "computeElement", "registrationStatus", "inactive"), getFullyImplementedCollection(allHostUris));
         for (Host host: hosts) {
             if (host.getUuid()!=null && host.getUuid().equals(serviceProfile.getUuid()) && !host.getId().equals(newHost.getId()) && (host.getInactive()!=true)){
                 LOGGER.error("Newly created service profile :"+ serviceProfile.getLabel() + " shares same uuid "+ serviceProfile.getUuid() +" as existing active host: " + host.getLabel());

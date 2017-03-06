@@ -45,17 +45,16 @@ public class DocUtils {
         if (topic == null) {
             return documentationBaseUrl;
         }
-        //return String.format("%s?topic=%s&context=%s", documentationBaseUrl, topic, guid);
         
         // Added for Context Sensitive Help(CSH) for HTML5 using the map.xml file
         String topicHtmlFilename = getHtmlHelpFile(topic);
         
-        if (topicHtmlFilename == null || topicHtmlFilename == "") {
-        	String unknownDocumentationBaseUrl = documentationBaseUrl.substring(0, documentationBaseUrl.length()-1);
-        	return String.format("%s?topic=%s", unknownDocumentationBaseUrl, topic);
-        }
-        else
+        if (topicHtmlFilename != null && !topicHtmlFilename.isEmpty()) 
         	return String.format("%s%s", documentationBaseUrl, topicHtmlFilename);
+        else {
+	    	String unknownDocumentationBaseUrl = documentationBaseUrl.substring(0, documentationBaseUrl.length()-1);
+	    	return String.format("%s?topic=%s", unknownDocumentationBaseUrl, topic);
+        }
     }
 
     private static String getDocumentationTopic() {
@@ -104,7 +103,7 @@ public class DocUtils {
 		        
 		    	if (nNode.getNodeType() == Node.ELEMENT_NODE) {
 		           
-		    		Element eElement = (Element) nNode;
+		    	    Element eElement = (Element) nNode;
 		            String topicValue = eElement.getAttribute("target");
 
 		            if (topicValue.equals(topic)) {

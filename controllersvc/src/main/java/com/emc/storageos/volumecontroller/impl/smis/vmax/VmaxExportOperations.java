@@ -2087,9 +2087,9 @@ public class VmaxExportOperations implements ExportMaskOperations {
     }
 
     @Override
-    public Set<Integer> findHLUsForInitiators(StorageSystem storage, List<String> initiatorNames, boolean mustHaveAllPorts) {
+    public Set<Integer> findHLUsForInitiators(StorageSystem storage, List<String> initiatorNames, boolean considerOnlyClusterHLUs) {
         
-        if (mustHaveAllPorts) {
+        if (considerOnlyClusterHLUs) {
             return findHLUsForCluster(storage, initiatorNames);
         }
         
@@ -2222,8 +2222,6 @@ public class VmaxExportOperations implements ExportMaskOperations {
                         }
                         
                        
-                        
-                        
                         _log.info(String.format("%nXM:%s I:{%s} V:{%s} HLU:{%s}%n", name,
                                 Joiner.on(',').join(initiatorPorts),
                                 Joiner.on(',').join(volumeWWNs.keySet()), volumeWWNs.values()));

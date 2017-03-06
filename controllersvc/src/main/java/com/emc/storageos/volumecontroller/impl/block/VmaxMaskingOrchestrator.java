@@ -901,9 +901,9 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
         // violation ,when the host gets added to cluster.
         if (ExportGroupType.Host.toString().equalsIgnoreCase(exportGroup.getType())) {
             checkForConsistentLunViolation(storage, exportGroup, initiatorURIs, volumeMap.values());
+        } else {
+            findAndUpdateFreeHLUsForClusterExport(storage, exportGroup, initiatorURIs, volumeMap);
         }
-
-        findAndUpdateFreeHLUsForClusterExport(storage, exportGroup, initiatorURIs, volumeMap);
 
         // If we didn't find any export masks for any compute resources, then it's a total loss, and we need to
         // create new masks for each compute resource.

@@ -1974,9 +1974,9 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
             // violation ,when the host gets added to cluster.
             if (ExportGroupType.Host.toString().equalsIgnoreCase(exportGroup.getType())) {
                 checkForConsistentLunViolation(vplexSystem, exportGroup, initiators, volumeMap.values());
+            } else {
+              findAndUpdateFreeHLUsForClusterExport(vplexSystem, exportGroup, initiators, volumeMap);
             }
-
-            findAndUpdateFreeHLUsForClusterExport(vplexSystem, exportGroup, initiators, volumeMap);
 
             // Do the source side export if there are src side volumes and initiators.
             if (srcVolumes != null && varrayToInitiators.get(srcVarray) != null) {
@@ -3503,9 +3503,9 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
             // violation ,when the host gets added to cluster.
             if (ExportGroupType.Host.toString().equalsIgnoreCase(exportGroup.getType())) {
                 checkForConsistentLunViolation(vplexSystem, exportGroup, exportGroupInitiatorList, volumeMap.values());
+            } else {
+                findAndUpdateFreeHLUsForClusterExport(vplexSystem, exportGroup, exportGroupInitiatorList, volumeMap);
             }
-            
-            findAndUpdateFreeHLUsForClusterExport(vplexSystem, exportGroup, exportGroupInitiatorList, volumeMap);
 
             // Add all the volumes to the SRC varray if there are src side volumes and
             // initiators that have connectivity to the source side.
@@ -5336,13 +5336,13 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
      * @param vplexStorageSystem
      * @param exportGroup
      * @param initiatorURIs
-     * @param mustHaveAllPorts
+     * @param considerOnlyClusterHLUs
      * @return
      * @throws Exception
      */
     public Set<Integer> findHLUsForInitiators(StorageSystem vplexStorageSystem, ExportGroup exportGroup, List<URI> initiatorURIs,
-            boolean mustHaveAllPorts) throws Exception {
-        if (mustHaveAllPorts) return findHLUsForCluster(vplexStorageSystem, exportGroup, initiatorURIs);
+            boolean considerOnlyClusterHLUs) throws Exception {
+        if (considerOnlyClusterHLUs) return findHLUsForCluster(vplexStorageSystem, exportGroup, initiatorURIs);
         
         long startTime = System.currentTimeMillis();
         Set<Integer> usedHLUs = new HashSet<Integer>();
@@ -5392,7 +5392,8 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
     }
     
     /**
-     * 
+     * TODO To avoid testing regression cycles added this newm thod.
+     * refactor this later
      * @param vplexStorageSystem
      * @param exportGroup
      * @param initiatorURIs

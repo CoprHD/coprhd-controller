@@ -304,7 +304,8 @@ public class HostService extends TaskResourceService {
         // We only want to update the export group if we're changing the cluster during a host update
         if (newClusterURI != null) {
             updateTaskStatus = false;
-            // VBDU TODO: COP-28451, The first if block never gets executed, need to understand the impact.
+            // VBDU [DONE]: COP-28451, The first if block never gets executed, need to understand the impact.
+            // This is run when a clustered host is moved out of a cluster
             if (updateExports && !NullColumnValueGetter.isNullURI(oldClusterURI)
                     && NullColumnValueGetter.isNullURI(newClusterURI)
                     && ComputeSystemHelper.isClusterInExport(_dbClient, oldClusterURI)) {
@@ -713,8 +714,11 @@ public class HostService extends TaskResourceService {
         } 
         if (!NullColumnValueGetter.isNullURI(host.getComputeElement()) && NullColumnValueGetter.isNullURI(host.getServiceProfile())){
                 throw APIException.badRequests.resourceCannotBeDeleted("Host "+ host.getLabel()+ " has a computeElement, but no serviceProfile."
-                            +" Please re-discover the Vblock Compute System and retry");
+                                          +" Please re-discover the Vblock Compute System and retry");
         }
+        // VBDU [DONE]: COP-28452, Running host deactivate even if initiators == null or list empty seems risky
+        // If initiators are empty, we will not perform any export updates
+
         String taskId = UUID.randomUUID().toString();
         Operation op = _dbClient.createTaskOpStatus(Host.class, host.getId(), taskId,
                 ResourceOperationTypeEnum.DELETE_HOST);

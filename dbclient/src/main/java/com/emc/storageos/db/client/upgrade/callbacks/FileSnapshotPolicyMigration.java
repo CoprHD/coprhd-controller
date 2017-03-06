@@ -74,10 +74,11 @@ public class FileSnapshotPolicyMigration extends BaseCustomMigrationCallback{
                         ContainmentConstraint.Factory.getFileshareSnapshotConstraint(fileSnapshotPolicy.getId()), resultList);
 				for (Iterator<URI> fileShareItr = resultList.iterator(); fileShareItr.hasNext();) {
 					FileShare fs = dbClient.queryObject(FileShare.class, fileShareItr.next());
-					if(!fs.getInactive() && fs.getPersonality() != null
-                            && fs.getPersonality().equalsIgnoreCase(PersonalityTypes.SOURCE.name())){
+					if(!fs.getInactive()){
 						StorageSystem system = dbClient.queryObject(StorageSystem.class, fs.getStorageDevice());
+						logger.info("updating policy storage resource");
 						updatePolicyStorageResouce(system, fileSnapshotPolicy, fs);
+						logger.info("Done updating policy storage resources");
 					}
 					
 				}

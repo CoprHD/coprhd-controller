@@ -54,7 +54,9 @@ public class FileSnapshotPolicyMigration extends BaseCustomMigrationCallback{
 				FilePolicy fileSnapshotPolicy = new FilePolicy();
 				
 				fileSnapshotPolicy.setId(URIUtil.createId(FilePolicy.class));
+				logger.info("assigning resource to fileSnapshotPolicy from schedulePolicy : {}" , schedulePolicy.getAssignedResources());
 				fileSnapshotPolicy.setAssignedResources(schedulePolicy.getAssignedResources());
+				logger.info("Assigned resources from fileSnapshotPolicy : {}", fileSnapshotPolicy.getAssignedResources());
 				fileSnapshotPolicy.setFilePolicyDescription(
 						"Policy created from Schedule Policy " + schedulePolicy.getLabel() + " while system upgrade");
 				String polName = schedulePolicy.getLabel() + "_File_Snapshot_Policy";
@@ -70,21 +72,26 @@ public class FileSnapshotPolicyMigration extends BaseCustomMigrationCallback{
 				fileSnapshotPolicy.setApplyAt(FilePolicyApplyLevel.file_system.name());
 			
 				URIQueryResultList resultList = new URIQueryResultList();
+				logger.info("resultList init  : {}", resultList);
 				dbClient.queryByConstraint(
                         ContainmentConstraint.Factory.getFileshareSnapshotConstraint(fileSnapshotPolicy.getId()), resultList);
 				for (Iterator<URI> fileShareItr = resultList.iterator(); fileShareItr.hasNext();) {
+					logger.info("ready to create policy storage resources");
+					logger.info("fileShareItr {}" , fileShareItr.hasNext());
 					FileShare fs = dbClient.queryObject(FileShare.class, fileShareItr.next());
 					if(!fs.getInactive()){
 						StorageSystem system = dbClient.queryObject(StorageSystem.class, fs.getStorageDevice());
 						logger.info("updating policy storage resource");
+						logger.info("Storage  system : {}" , system.toString());
 						updatePolicyStorageResouce(system, fileSnapshotPolicy, fs);
 						logger.info("Done updating policy storage resources");
 					}
 					
 				}
 				
-				
 				filePolicies.add(fileSnapshotPolicy);
+				logger.info("Added info to filePolicies : {}" , filePolicies);
+				logger.info("Added info to filePolicies : {}" , filePolicies.toString());
 			}
 			
 	

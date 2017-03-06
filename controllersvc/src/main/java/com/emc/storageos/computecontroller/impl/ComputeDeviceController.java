@@ -169,7 +169,6 @@ public interface ComputeDeviceController extends Controller {
      * @param volumeId the volumeId
      * @returns boolean true if the export is valid
      */
-
     public boolean validateBootVolumeExport(URI hostId, URI volumeId) throws InternalException;
 
     /**

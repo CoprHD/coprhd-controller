@@ -18,8 +18,12 @@ package com.emc.storageos.db.client.model.uimodels;
 
 import com.emc.storageos.db.client.model.Cf;
 
+/**
+ * Database column family for Ansible packages
+ *
+ */
 @Cf("CustomServicesDBAnsibleResource")
 public class CustomServicesDBAnsibleResource extends CustomServicesDBResource {
 
-
+    private static final long serialVersionUID = 1L;
 }

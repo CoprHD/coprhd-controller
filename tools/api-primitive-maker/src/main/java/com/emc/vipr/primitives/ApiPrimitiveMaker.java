@@ -30,9 +30,9 @@ import com.emc.apidocs.model.ApiField;
 import com.emc.apidocs.model.ApiMethod;
 import com.emc.apidocs.model.ApiService;
 import com.emc.storageos.primitives.CustomServicesPrimitive.InputType;
-import com.emc.storageos.primitives.ViPRPrimitive;
 import com.emc.storageos.primitives.input.BasicInputParameter;
 import com.emc.storageos.primitives.input.InputParameter;
+import com.emc.storageos.primitives.java.vipr.CustomServicesViPRPrimitive;
 import com.emc.storageos.primitives.output.BasicOutputParameter;
 import com.emc.storageos.primitives.output.OutputParameter;
 import com.google.common.base.Joiner;
@@ -169,7 +169,7 @@ public final class ApiPrimitiveMaker {
 
         TypeSpec primitive = TypeSpec.classBuilder(name)
                 .addModifiers(Modifier.PUBLIC, Modifier.FINAL)
-                .superclass(ViPRPrimitive.class).addMethods(METHODS)
+                .superclass(CustomServicesViPRPrimitive.class).addMethods(METHODS)
                 .addMethod(makeConstructor(name))
                 .addFields(makeFields(method, friendlyName)).build();
 
@@ -280,7 +280,7 @@ public final class ApiPrimitiveMaker {
     private static MethodSpec makeConstructor(final String name) {
         final String id = URI.create(
                 String.format("urn:storageos:%1$s:%2$s:",
-                        ViPRPrimitive.class.getSimpleName(), name)).toString();
+                        CustomServicesViPRPrimitive.class.getSimpleName(), name)).toString();
         return MethodSpec
                 .constructorBuilder()
                 .addModifiers(Modifier.PUBLIC)

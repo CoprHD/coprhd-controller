@@ -51,8 +51,8 @@ import com.emc.storageos.model.customservices.CustomServicesWorkflowDocument;
 import com.emc.storageos.model.customservices.CustomServicesWorkflowDocument.Input;
 import com.emc.storageos.model.customservices.CustomServicesWorkflowDocument.Step;
 import com.emc.storageos.primitives.CustomServicesPrimitive.StepType;
+import com.emc.storageos.primitives.java.vipr.CustomServicesViPRPrimitive;
 import com.emc.storageos.primitives.CustomServicesPrimitiveType;
-import com.emc.storageos.primitives.ViPRPrimitive;
 import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorException;
 import com.google.common.collect.ImmutableMap;
 import com.google.gson.Gson;
@@ -146,7 +146,7 @@ public class CustomServicesService extends ViPRService {
                                     .customServiceExecutionFailed("Primitive not found: " + step.getOperation());
                         }
 
-                        res = ViPRExecutionUtils.execute(new RunViprREST((ViPRPrimitive) (primitive),
+                        res = ViPRExecutionUtils.execute(new RunViprREST((CustomServicesViPRPrimitive) (primitive),
                                 getClient().getRestClient(), inputPerStep.get(step.getId())));
 
                         break;

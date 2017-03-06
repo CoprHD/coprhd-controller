@@ -38,6 +38,10 @@ import com.emc.storageos.primitives.CustomServicesPrimitiveType;
 import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorException;
 import com.google.common.collect.ImmutableList;
 
+/**
+ * Class that can map primitive java objects to the REST response entity
+ *
+ */
 public final class  CustomServicesPrimitiveMapper extends DbObjectMapper {
     public final static CustomServicesPrimitiveMapper instance = new CustomServicesPrimitiveMapper();
 

@@ -21,10 +21,44 @@ import java.util.Set;
 
 import com.emc.storageos.db.client.model.ModelObject;
 
+/**
+ * Interface that represents a primitive resource java object
+ *
+ */
 public interface CustomServicesPrimitiveResourceType {
+    /**
+     * The attributes of the primitive resource type instance
+     * 
+     * @return A map of attributes for the primitive resource type instance
+     */
     public Map<String, Set<String>> attributes();
+    
+    
+    /**
+     * The primitive resource object instance as a ModelObject
+     * @return
+     */
     public ModelObject asModelObject();
+    
+    
+    /**
+     * The bytes of the resource
+     * 
+     * @return Byte array of the primitive resource
+     */
     public byte[] resource();
+    
+    
+    /**
+     * The name of the primitive resource
+     * @return The name of the resource
+     */
     public String name();
+    
+    
+    /**
+     * Suffix of the primitive resource file type
+     * @return The suffix of the primitive resource file (e.g. '.tar')
+     */
     public String suffix();
 }

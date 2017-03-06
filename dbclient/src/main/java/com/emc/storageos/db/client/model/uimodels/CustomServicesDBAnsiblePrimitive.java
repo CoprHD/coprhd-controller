@@ -21,8 +21,13 @@ import java.util.Set;
 
 import com.emc.storageos.db.client.model.Cf;
 
+/**
+ * Database column family for ansible primitives
+ *
+ */
 @Cf("CustomServicesDBAnsiblePrimitive")
 public class CustomServicesDBAnsiblePrimitive extends CustomServicesDBPrimitive {
+    private static final long serialVersionUID = 1L;
     private static final Set<String> ATTRIBUTES = Collections.singleton("playbook");
     private static final Set<String> INPUT_TYPES = Collections.singleton("input_params");
 

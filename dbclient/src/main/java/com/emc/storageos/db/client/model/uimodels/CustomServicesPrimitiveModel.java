@@ -18,6 +18,12 @@ package com.emc.storageos.db.client.model.uimodels;
 
 import com.emc.storageos.db.client.model.ModelObject;
 
+/**
+ * Base class for the primitive type model objects 
+ *
+ */
 public abstract class CustomServicesPrimitiveModel extends ModelObject {
+
+    private static final long serialVersionUID = 1L;
 
 }

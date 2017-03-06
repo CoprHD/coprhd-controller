@@ -24,6 +24,10 @@ import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.StringSetMap;
 
+/**
+ * Base class for primitives that will be stored in the database
+ *
+ */
 public abstract class CustomServicesDBPrimitive extends CustomServicesPrimitiveModel {
 
     private static final long serialVersionUID = 1L;
@@ -48,18 +52,6 @@ public abstract class CustomServicesDBPrimitive extends CustomServicesPrimitiveM
     
     public abstract Set<String> attributeKeys();
     public abstract Set<String> inputTypes();
-    
-//    public CustomServicesDBPrimitive(final URI id, final String label,
-//            final String friendlyName, final String description, final String successCriteria,
-//            final StringSet output) {
-//        setId(id);
-//        setLabel(label);
-//        this.friendlyName = friendlyName;
-//        this.description = description;
-//        this.successCriteria = successCriteria;  
-//        this.output = output;
-//        
-//    }
 
     @Name(FRIENDLY_NAME)
     public String getFriendlyName() {

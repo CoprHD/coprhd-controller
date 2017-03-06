@@ -31,26 +31,30 @@ import com.emc.storageos.db.client.model.ModelObject;
 import com.emc.storageos.model.customservices.CustomServicesPrimitiveCreateParam;
 import com.emc.storageos.model.customservices.CustomServicesPrimitiveRestRep;
 import com.emc.storageos.model.customservices.CustomServicesPrimitiveUpdateParam;
-import com.emc.storageos.primitives.CustomServicesNoResourceType;
-import com.emc.storageos.primitives.ViPRPrimitive;
+import com.emc.storageos.primitives.java.CustomServicesNoResourceType;
+import com.emc.storageos.primitives.java.vipr.CustomServicesViPRPrimitive;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMap.Builder;
 
-public class CustomServicesViprPrimitiveDao implements
-        CustomServicesPrimitiveDAO<ViPRPrimitive, CustomServicesNoResourceType> {
+/**
+ * Data access object for ViPR primitives
+ *
+ */
+public class CustomServicesViprPrimitiveDAO implements
+        CustomServicesPrimitiveDAO<CustomServicesViPRPrimitive, CustomServicesNoResourceType> {
 
     private static final List<NamedElement> EMPTY_RESOURCE_LIST = ImmutableList.<NamedElement>builder().build();
-    private final ImmutableMap<URI, ViPRPrimitive> PRIMITIVES_MAP;
+    private final ImmutableMap<URI, CustomServicesViPRPrimitive> PRIMITIVES_MAP;
     
-    public CustomServicesViprPrimitiveDao() {
+    public CustomServicesViprPrimitiveDAO() {
      
-        final Set<Class<? extends ViPRPrimitive>> primitives = 
-                new Reflections("com.emc.storageos", new SubTypesScanner()).getSubTypesOf(ViPRPrimitive.class);
-        final Builder<URI, ViPRPrimitive> builder = ImmutableMap.<URI, ViPRPrimitive>builder();
-        for( final Class<? extends ViPRPrimitive> primitive : primitives) {
-            final ViPRPrimitive instance;
+        final Set<Class<? extends CustomServicesViPRPrimitive>> primitives = 
+                new Reflections("com.emc.storageos", new SubTypesScanner()).getSubTypesOf(CustomServicesViPRPrimitive.class);
+        final Builder<URI, CustomServicesViPRPrimitive> builder = ImmutableMap.<URI, CustomServicesViPRPrimitive>builder();
+        for( final Class<? extends CustomServicesViPRPrimitive> primitive : primitives) {
+            final CustomServicesViPRPrimitive instance;
             try {
                 instance = primitive.newInstance();
             } catch (final IllegalAccessException | InstantiationException e) {
@@ -64,22 +68,22 @@ public class CustomServicesViprPrimitiveDao implements
   
     @Override 
     public String getType() {
-        return "vipr";
+        return CustomServicesViPRPrimitive.TYPE;
     }
     
     @Override
-    public ViPRPrimitive get(URI id) {
+    public CustomServicesViPRPrimitive get(URI id) {
         return PRIMITIVES_MAP.get(id);
     }
 
 
     @Override
-    public ViPRPrimitive create(CustomServicesPrimitiveCreateParam param) {
+    public CustomServicesViPRPrimitive create(CustomServicesPrimitiveCreateParam param) {
         throw APIException.methodNotAllowed.notSupported();
     }
 
     @Override
-    public ViPRPrimitive update(URI id, CustomServicesPrimitiveUpdateParam param) {
+    public CustomServicesViPRPrimitive update(URI id, CustomServicesPrimitiveUpdateParam param) {
         throw APIException.methodNotAllowed.notSupported();
     }
 
@@ -95,14 +99,14 @@ public class CustomServicesViprPrimitiveDao implements
 
     @Override
     public String getPrimitiveModel() {
-        return ViPRPrimitive.class.getSimpleName();
+        return CustomServicesViPRPrimitive.class.getSimpleName();
     }
 
     @Override
     public Iterator<CustomServicesPrimitiveRestRep> bulk(final Collection<URI> ids) {
         ImmutableList.Builder<CustomServicesPrimitiveRestRep> primitives = ImmutableList.<CustomServicesPrimitiveRestRep>builder();
         for(final URI id : ids ) {
-            final ViPRPrimitive primitive = PRIMITIVES_MAP.get(id);
+            final CustomServicesViPRPrimitive primitive = PRIMITIVES_MAP.get(id);
             final ModelObject model = primitive == null ? null : primitive.asModelObject(); 
             ArgValidator.checkEntityNotNull(model, id, false);
             primitives.add(CustomServicesPrimitiveMapper.map(primitive));

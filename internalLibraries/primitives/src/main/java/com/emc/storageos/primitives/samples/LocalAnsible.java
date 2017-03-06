@@ -23,9 +23,9 @@ import java.util.Map;
 import javax.xml.bind.annotation.XmlRootElement;
 
 import com.emc.storageos.primitives.CustomServicesPrimitive.InputType;
-import com.emc.storageos.primitives.CustomServicesStaticPrimitiveModel;
 import com.emc.storageos.primitives.input.BasicInputParameter.StringParameter;
 import com.emc.storageos.primitives.input.InputParameter;
+import com.emc.storageos.primitives.java.CustomServicesStaticPrimitiveModel;
 import com.emc.storageos.primitives.output.BasicOutputParameter;
 import com.emc.storageos.primitives.output.BasicOutputParameter.NameValueListParameter;
 import com.google.common.collect.ImmutableList;

@@ -14,21 +14,26 @@
  * limitations under the License.
  *
  */
-package com.emc.storageos.primitives;
+package com.emc.storageos.primitives.java.vipr;
 
 import java.net.URI;
 
 import com.emc.storageos.db.client.model.ModelObject;
 import com.emc.storageos.db.client.model.NamedURI;
+import com.emc.storageos.primitives.CustomServicesPrimitiveType;
+import com.emc.storageos.primitives.java.CustomServicesStaticPrimitiveModel;
 
 
 /**
  * Base class for a primitive that represents a ViPR API call
  */
-public abstract class ViPRPrimitive extends CustomServicesPrimitiveType {
+public abstract class CustomServicesViPRPrimitive extends CustomServicesPrimitiveType {
 
+ 
+    public static final String TYPE = "vipr";
+    
     private final CustomServicesStaticPrimitiveModel model;
-    public ViPRPrimitive(URI id, String name) {
+    public CustomServicesViPRPrimitive(URI id, String name) {
         model = new CustomServicesStaticPrimitiveModel(id, name);
     }
 
@@ -44,7 +49,7 @@ public abstract class ViPRPrimitive extends CustomServicesPrimitiveType {
     
     @Override 
     public String type() {
-        return "vipr";
+        return TYPE;
     }
     
     @Override 

@@ -14,13 +14,17 @@
  * limitations under the License.
  *
  */
-package com.emc.storageos.primitives;
+package com.emc.storageos.primitives.java;
 
 
 import java.net.URI;
 
 import com.emc.storageos.db.client.model.uimodels.CustomServicesPrimitiveModel;
 
+/**
+ * Class representing a primitive that cannot be changed
+ *
+ */
 public class CustomServicesStaticPrimitiveModel extends CustomServicesPrimitiveModel {
     
     private static final long serialVersionUID = 1L;

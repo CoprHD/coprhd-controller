@@ -14,16 +14,17 @@
  * limitations under the License.
  *
  */
-package com.emc.storageos.primitives;
+package com.emc.storageos.primitives.db;
 
 import java.util.Map;
 import java.util.Set;
 
 import com.emc.storageos.db.client.model.ModelObject;
 import com.emc.storageos.db.client.model.uimodels.CustomServicesDBResource;
+import com.emc.storageos.primitives.CustomServicesPrimitiveResourceType;
 
 /**
- * @author ssulliva
+ * Class that represents a primitive resource stored in the database as a java object
  *
  */
 public abstract class CustomServicesDBResourceType<Resource extends CustomServicesDBResource> implements

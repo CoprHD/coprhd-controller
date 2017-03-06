@@ -14,14 +14,19 @@
  * limitations under the License.
  *
  */
-package com.emc.storageos.primitives;
+package com.emc.storageos.primitives.java;
 
 import java.util.Map;
 import java.util.Set;
 
 import com.emc.storageos.db.client.model.ModelObject;
+import com.emc.storageos.primitives.CustomServicesPrimitiveResourceType;
 import com.google.common.collect.ImmutableMap;
 
+/**
+ * Class for primitives that do not have a resource associated with them (e.g. ViPR primitives)
+ *
+ */
 public class CustomServicesNoResourceType implements CustomServicesPrimitiveResourceType {
 
     private final static ImmutableMap<String, Set<String>> EMPTY = ImmutableMap.<String, Set<String>>builder().build();

@@ -22,6 +22,10 @@ import java.util.Set;
 import com.google.common.collect.ImmutableMap;
 
 
+/**
+ * Bean class that has maps of the primitive DAO types
+ *
+ */
 public class CustomServicesPrimitiveDAOs {
     
     private final ImmutableMap<String, CustomServicesPrimitiveDAO<?, ?>> typeMap; 

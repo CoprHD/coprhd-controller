@@ -19,10 +19,22 @@ package com.emc.storageos.primitives;
 import com.emc.storageos.db.client.model.ModelObject;
 
 
+/**
+ * Abstract class that is the java object representation of a primitive type
+ *
+ */
 public abstract class CustomServicesPrimitiveType implements CustomServicesPrimitive {
 
-    private static final long serialVersionUID = 1L;
-
+    /**
+     * Get the type name of the primitive
+     * @return The type name of the primitive
+     */
     public abstract String type();
+    
+    
+    /**
+     * The primitive type as a model object
+     * @return The primitive represented as a model object
+     */
     public abstract ModelObject asModelObject();
 }

@@ -40,11 +40,15 @@ import com.emc.storageos.db.client.model.uimodels.CustomServicesDBAnsibleResourc
 import com.emc.storageos.model.customservices.CustomServicesPrimitiveCreateParam;
 import com.emc.storageos.model.customservices.CustomServicesPrimitiveRestRep;
 import com.emc.storageos.model.customservices.CustomServicesPrimitiveUpdateParam;
-import com.emc.storageos.primitives.CustomServicesAnsiblePrimitive;
-import com.emc.storageos.primitives.CustomServicesAnsibleResource;
+import com.emc.storageos.primitives.db.ansible.CustomServicesAnsiblePrimitive;
+import com.emc.storageos.primitives.db.ansible.CustomServicesAnsibleResource;
 import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorException;
 
 
+/**
+ * Data access object for Ansible primitives
+ *
+ */
 public class CustomServicesAnsiblePrimitiveDAO implements
         CustomServicesPrimitiveDAO<CustomServicesAnsiblePrimitive, CustomServicesAnsibleResource> {
     
@@ -57,7 +61,7 @@ public class CustomServicesAnsiblePrimitiveDAO implements
     
     @Override 
     public String getType() {
-        return "ansible";
+        return CustomServicesAnsiblePrimitive.TYPE;
     }
     
     @Override

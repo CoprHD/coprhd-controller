@@ -19,6 +19,10 @@ package com.emc.storageos.db.client.model.uimodels;
 import com.emc.storageos.db.client.model.Name;
 import com.emc.storageos.db.client.model.StringSetMap;
 
+/**
+ * Base class for primitive resources that will be stored in the database
+ *
+ */
 public abstract class CustomServicesDBResource extends CustomServicesPrimitiveResourceModel {
 
     private static final long serialVersionUID = 1L;

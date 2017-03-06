@@ -21,9 +21,14 @@ import java.util.Set;
 
 import com.emc.storageos.db.client.model.Cf;
 
+/**
+ * Column family for a shell script primitive
+ *
+ */
 @Cf("CustomServicesDBScriptPrimitive")
 public class CustomServicesDBScriptPrimitive extends CustomServicesDBPrimitive {
     
+    private static final long serialVersionUID = 1L;
     private static final Set<String> ATTRIBUTES = Collections.emptySet();
     private static final Set<String> INPUT_TYPES = Collections.singleton("input_params");
     

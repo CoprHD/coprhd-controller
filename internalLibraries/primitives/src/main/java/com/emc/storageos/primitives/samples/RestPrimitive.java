@@ -21,12 +21,12 @@ import java.util.List;
 import java.util.Map;
 
 import com.emc.storageos.primitives.CustomServicesPrimitive.InputType;
-import com.emc.storageos.primitives.CustomServicesStaticPrimitiveModel;
 import com.emc.storageos.primitives.input.BasicInputParameter.IntegerParameter;
 import com.emc.storageos.primitives.input.BasicInputParameter.NameValueListParameter;
 import com.emc.storageos.primitives.input.BasicInputParameter.StringParameter;
 import com.emc.storageos.primitives.input.BasicInputParameter.URIParameter;
 import com.emc.storageos.primitives.input.InputParameter;
+import com.emc.storageos.primitives.java.CustomServicesStaticPrimitiveModel;
 import com.emc.storageos.primitives.output.BasicOutputParameter;
 import com.emc.storageos.primitives.output.OutputParameter;
 import com.google.common.collect.ImmutableList;

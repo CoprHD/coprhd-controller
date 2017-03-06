@@ -14,7 +14,7 @@
  * limitations under the License.
  *
  */
-package com.emc.storageos.primitives;
+package com.emc.storageos.primitives.db;
 
 import java.net.URI;
 import java.util.List;
@@ -23,10 +23,15 @@ import java.util.Map;
 import com.emc.storageos.db.client.model.ModelObject;
 import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.uimodels.CustomServicesDBPrimitive;
+import com.emc.storageos.primitives.CustomServicesPrimitiveType;
 import com.emc.storageos.primitives.input.InputParameter;
 import com.emc.storageos.primitives.output.OutputParameter;
 
 
+/**
+ * Class that respresents an instance of a primitive stored in the database as a java object
+ *
+ */
 public abstract class CustomServicesDBPrimitiveType extends CustomServicesPrimitiveType {
 
     private final Map<InputType, List<InputParameter>> input;

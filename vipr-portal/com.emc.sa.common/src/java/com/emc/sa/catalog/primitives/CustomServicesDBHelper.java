@@ -45,10 +45,10 @@ import com.emc.storageos.db.client.model.uimodels.CustomServicesWorkflow;
 import com.emc.storageos.model.customservices.CustomServicesPrimitiveCreateParam;
 import com.emc.storageos.model.customservices.CustomServicesPrimitiveRestRep;
 import com.emc.storageos.model.customservices.CustomServicesPrimitiveUpdateParam;
-import com.emc.storageos.primitives.CustomServicesDBPrimitiveType;
-import com.emc.storageos.primitives.CustomServicesDBResourceType;
 import com.emc.storageos.primitives.CustomServicesPrimitive.InputType;
 import com.emc.storageos.primitives.CustomServicesPrimitiveResourceType;
+import com.emc.storageos.primitives.db.CustomServicesDBPrimitiveType;
+import com.emc.storageos.primitives.db.CustomServicesDBResourceType;
 import com.emc.storageos.primitives.input.BasicInputParameter;
 import com.emc.storageos.primitives.input.InputParameter;
 import com.emc.storageos.primitives.output.BasicOutputParameter.StringOutputParameter;
@@ -61,6 +61,11 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMap.Builder;
 
 
+/**
+ * Helper class to access primitives and resources that are stored in the 
+ * database
+ *
+ */
 public final class CustomServicesDBHelper {
     
     @SuppressWarnings("rawtypes")
@@ -72,6 +77,16 @@ public final class CustomServicesDBHelper {
     @SuppressWarnings("rawtypes")
     private static final Class<Map> RESOURCE_ATTRIBUTES_ARG = Map.class;
     
+    /**
+     * Given a DB column family and an ID get the primitive from the database and return it 
+     * as a primitive type java object
+     * 
+     * @param type The primitive type
+     * @param clazz the column family java class
+     * @param primitiveManager The database access component
+     * @param id The id of the primitive
+     * @return The primitive type java object
+     */
     public static <T extends CustomServicesDBPrimitiveType> T get(final Class<T> type,
             final Class<? extends CustomServicesDBPrimitive> clazz,
             final CustomServicesPrimitiveManager primitiveManager,
@@ -80,6 +95,17 @@ public final class CustomServicesDBHelper {
         return primitive == null ? null : makePrimitiveType(type, primitive);
     }
     
+    /**
+     * Given a creation param, DB column family, and primitive type save a new primitive to the DB
+     * and return the primitive type java object
+     * 
+     * @param type The primitive type java object
+     * @param dbModel The database column family java class
+     * @param resourceType The resource 
+     * @param primitiveManager The database access component
+     * @param param The primitive creation param
+     * @return The primitive type java object
+     */
     public static <T extends CustomServicesDBPrimitiveType> T create(final Class<T> type,
             final Class<? extends CustomServicesDBPrimitive> dbModel,
             final Class<? extends CustomServicesDBResource> resourceType,
@@ -130,6 +156,20 @@ public final class CustomServicesDBHelper {
         return makePrimitiveType(type, primitive);
     }
     
+    /**
+     * Given an ID, update param, DB column family, and primitive type save a new primitive to the DB
+     * and return the primitive type java object
+     * 
+     * @param type The primitive type class
+     * @param clazz The DB column family class
+     * @param resourceType The resource
+     * @param primitiveManager The database access component
+     * @param client The model client
+     * @param param The primitive update param
+     * @param id The id of the primitive to update
+     * 
+     * @return The primitive type java object
+     */
     public static <T extends CustomServicesDBPrimitiveType> T update(final Class<T> type,
             final Class<? extends CustomServicesDBPrimitive> clazz,
             final Class<? extends CustomServicesDBResource> resourceType,
@@ -175,6 +215,14 @@ public final class CustomServicesDBHelper {
         
     }
     
+    /**
+     * Deactivate primitive with the given ID
+     * 
+     * @param clazz The database column family class
+     * @param primitiveManager The database access component
+     * @param client The model client
+     * @param id The ID of the primitive to deactivate
+     */
     public static void deactivate(final Class<? extends CustomServicesDBPrimitive> clazz,
             final CustomServicesPrimitiveManager primitiveManager,
             final ModelClient client,
@@ -189,6 +237,12 @@ public final class CustomServicesDBHelper {
         client.delete(primitive);
     }
     
+    /**
+     * Get a list of IDs of the given database column family
+     * @param clazz The database column family class
+     * @param client The model client
+     * @return A list of IDs of primitives
+     */
     public static List<URI> list(final Class<? extends CustomServicesDBPrimitive> clazz, final ModelClient client) {
         return client.findByType(clazz);
     }
@@ -203,6 +257,11 @@ public final class CustomServicesDBHelper {
         
     }
     
+    /**
+     * Map input of a given primitive from a StringSet map to the input paramater map
+     * @param primitive A primitive instance
+     * @return An input parameter map
+     */
     private static Map<InputType, List<InputParameter>> mapInput(final CustomServicesDBPrimitive primitive) {
         final Builder<InputType, List<InputParameter>> inputMap = ImmutableMap.<InputType, List<InputParameter>>builder();
         if( null != primitive.getInput() ) {
@@ -213,6 +272,12 @@ public final class CustomServicesDBHelper {
         return inputMap.build();
     }
     
+    /**
+     * Get an input type given a string and the supported set of input types
+     * @param key The name of the input type as a string
+     * @param inputTypes The supported input types
+     * @return The InputType enum of the given string
+     */
     private static InputType inputGroup(final String key, final Set<String> inputTypes) {
         final InputType type = InputType.fromString(key);
         if( key == null || !inputTypes.contains(key)) {
@@ -221,6 +286,11 @@ public final class CustomServicesDBHelper {
         return type;
     }
     
+    /**
+     * Convert an AbstractChangeTrackingSet of strings to a List of InputParameters
+     * @param inputSet The set of strings to convert
+     * @return A list of input parameters
+     */
     private static final List<InputParameter> mapInputParameters(final AbstractChangeTrackingSet<String> inputSet) {
         final ImmutableList.Builder<InputParameter> parameters = ImmutableList.<InputParameter>builder();
         if( null != inputSet ) {
@@ -231,6 +301,11 @@ public final class CustomServicesDBHelper {
         return parameters.build();
     }
 
+    /**
+     * Convert a given primitive instance's out from a StringSet into a list of OutputParameter
+     * @param primitive The primitive instance 
+     * @return The converted List of output parameters
+     */
     private static List<OutputParameter> mapOutput(final CustomServicesDBPrimitive primitive) {
         final ImmutableList.Builder<OutputParameter> output = ImmutableList.<OutputParameter>builder();
         if( null != primitive.getOutput()) {
@@ -241,6 +316,11 @@ public final class CustomServicesDBHelper {
         return output.build();
     }
 
+    /**
+     * Convert a given primitive instance's StringMap attributes to a Map
+     * @param primitive The primitive instance
+     * @return The converted attributes map
+     */
     private static Map<String, String> mapAttributes(final CustomServicesDBPrimitive primitive) {
         ImmutableMap.Builder<String, String> attributeMap = ImmutableMap.<String,String>builder();
         if( null != primitive.getAttributes()) {
@@ -254,15 +334,31 @@ public final class CustomServicesDBHelper {
         return attributeMap.build();
     }
 
+    /**
+     * Make a string key into an InputParameter object
+     * @param parameter The name of the input parameter
+     * @return The input parameter
+     */
     private static InputParameter makeInputParameter(String parameter) {
         return new BasicInputParameter.StringParameter(parameter, false, null);
     }
     
+    /**
+     * Convert a string key into an OutputParameter
+     * @param name The name of the output parameter
+     * @return The output parameter
+     */
     private static OutputParameter makeOutputParameter(String name) {
         return new StringOutputParameter(name);
     }
     
 
+    /**
+     * Check if a primitive is in use in a workflow.  Throw a bad request exception if it is being used.
+     * @param client ModelClient 
+     * @param id The ID of the primitive
+     * @param primitive The primitive instance
+     */
     private static <T extends CustomServicesDBPrimitive> void checkNotInUse(
             final ModelClient client, final URI id, final T primitive) {
         final List<NamedElement> workflows = client.customServicesWorkflows().getByPrimitive(id);
@@ -271,6 +367,13 @@ public final class CustomServicesDBHelper {
         }
     }
     
+    /**
+     * Given a primitive type java class and the database column family instance
+     * Create an insteance of the primitive type
+     * @param clazz The primitive type java class
+     * @param primitive The instance of the database column family
+     * @return The primitive type instance
+     */
     private static <T extends CustomServicesDBPrimitiveType> T makePrimitiveType(final Class<T> clazz, final CustomServicesDBPrimitive primitive) {
         Constructor<T> constructor;
         try {
@@ -287,6 +390,12 @@ public final class CustomServicesDBHelper {
         }
     }
     
+    /**
+     * Given a primitive resource type java class and the database column family instance
+     * @param type The type of the resource java class
+     * @param resource The resource database column family instance
+     * @return The resource type class instance
+     */
     private static <T extends CustomServicesPrimitiveResourceType> T makeResourceType(final Class<T> type, final CustomServicesDBResource resource) {
         Constructor<T> constructor;
         try {
@@ -303,6 +412,11 @@ public final class CustomServicesDBHelper {
         }
     }
 
+    /**
+     * Given a resource database instance convert its StringSetMap of attributes to a Map
+     * @param resource The resource database instance
+     * @return The Map representation of the attributes
+     */
     private static Map<String, Set<String>> mapResourceAttributes(final CustomServicesDBResource resource) {
         final ImmutableMap.Builder<String, Set<String>> attributes = ImmutableMap.<String, Set<String>>builder();
         if(resource.getAttributes() != null) {
@@ -313,6 +427,17 @@ public final class CustomServicesDBHelper {
         return attributes.build();
     }
 
+    /**
+     * Given the name and bytes of a resource save the database instance 
+     * 
+     * @param type The class type of the resource
+     * @param dbModel The database column family of the resource
+     * @param primitiveManager The database access component
+     * @param name The name of the new resource
+     * @param stream The bytes of the resource
+     * @param attributes The attributes of the resource
+     * @return The java object instance of this resource
+     */
     public static <T extends CustomServicesDBResourceType<?>> T createResource(
             final Class<T> type,
             final Class<? extends CustomServicesDBResource> dbModel,
@@ -334,6 +459,18 @@ public final class CustomServicesDBHelper {
         return makeResourceType(type, resource);
     }
 
+    /**
+     * Given a resource ID and parameters update a resource in the database
+     * 
+     * @param type The java class of the resource type
+     * @param dbModel The database column family of the resource
+     * @param primitiveManager The database access component
+     * @param id The ID of the resource
+     * @param name The new name of the resource null, if no update
+     * @param stream The new bytes of the resource, null if no update
+     * @param attributes The new attributes of the resource, null if no update
+     * @return The updated java object instance of this resource type
+     */
     public static <T extends CustomServicesDBResourceType<?>> T updateResource(
             final Class<T> type,
             final Class<? extends CustomServicesDBResource> dbModel,
@@ -359,6 +496,14 @@ public final class CustomServicesDBHelper {
         return makeResourceType(type, resource);
     }
 
+    /**
+     * Deactivate a resource database instance
+     * 
+     * @param dbModel The database column family class
+     * @param primitiveManager The database access component
+     * @param client The model client
+     * @param id ID of the resource to deactivate
+     */
     public static void deactivateResource(
             final Class<? extends CustomServicesDBResource> dbModel,
             final CustomServicesPrimitiveManager primitiveManager,
@@ -373,6 +518,15 @@ public final class CustomServicesDBHelper {
         client.delete(resource);
     }
 
+    /**
+     * Get a bulk iterator of the primitives with given IDs
+     * 
+     * @param ids The list of IDs of primitives to query
+     * @param type The java object type of the primitive
+     * @param dbModel The database column family class of the primitive
+     * @param dbClient DBClient to query the database
+     * @return An Iterator of rest response entities of the given type
+     */
     public static <Type extends CustomServicesDBPrimitiveType, Model extends CustomServicesDBPrimitive> Iterator<CustomServicesPrimitiveRestRep> bulk(
             final Collection<URI> ids, 
             Class<Type> type,

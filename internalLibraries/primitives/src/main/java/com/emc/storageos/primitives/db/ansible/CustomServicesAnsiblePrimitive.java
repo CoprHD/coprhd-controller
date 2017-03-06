@@ -14,18 +14,25 @@
  * limitations under the License.
  *
  */
-package com.emc.storageos.primitives;
+package com.emc.storageos.primitives.db.ansible;
 
 import java.util.List;
 import java.util.Map;
 
 import com.emc.storageos.db.client.model.uimodels.CustomServicesDBAnsiblePrimitive;
+import com.emc.storageos.primitives.db.CustomServicesDBPrimitiveType;
 import com.emc.storageos.primitives.input.InputParameter;
 import com.emc.storageos.primitives.output.OutputParameter;
 
+/**
+ * Class that represents an ansible primitive as a java object
+ *
+ */
 public class CustomServicesAnsiblePrimitive extends
 CustomServicesDBPrimitiveType {
     
+    public static final String TYPE = "ansible";
+
     public CustomServicesAnsiblePrimitive(final CustomServicesDBAnsiblePrimitive primitive,
             final Map<InputType, List<InputParameter>> input,
             final Map<String, String> attributes,
@@ -40,6 +47,6 @@ CustomServicesDBPrimitiveType {
     
     @Override
     public String type() {
-        return "ansible";
+        return TYPE;
     }
 }

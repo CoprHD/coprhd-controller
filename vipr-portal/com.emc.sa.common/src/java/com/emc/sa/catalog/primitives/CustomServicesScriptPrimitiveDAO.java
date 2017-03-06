@@ -33,11 +33,11 @@ import com.emc.storageos.db.client.model.uimodels.CustomServicesDBScriptResource
 import com.emc.storageos.model.customservices.CustomServicesPrimitiveCreateParam;
 import com.emc.storageos.model.customservices.CustomServicesPrimitiveRestRep;
 import com.emc.storageos.model.customservices.CustomServicesPrimitiveUpdateParam;
-import com.emc.storageos.primitives.CustomServicesScriptPrimitive;
-import com.emc.storageos.primitives.CustomServicesScriptResource;
+import com.emc.storageos.primitives.db.script.CustomServicesScriptPrimitive;
+import com.emc.storageos.primitives.db.script.CustomServicesScriptResource;
 
 /**
- * @author ssulliva
+ * Data access object for script primitives
  *
  */
 public class CustomServicesScriptPrimitiveDAO implements CustomServicesPrimitiveDAO<CustomServicesScriptPrimitive, CustomServicesScriptResource>{
@@ -51,7 +51,7 @@ public class CustomServicesScriptPrimitiveDAO implements CustomServicesPrimitive
     
     @Override 
     public String getType() {
-        return "script";
+        return CustomServicesScriptPrimitive.TYPE;
     }
     
     @Override

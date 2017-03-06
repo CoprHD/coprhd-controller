@@ -14,17 +14,22 @@
  * limitations under the License.
  *
  */
-package com.emc.storageos.primitives;
+package com.emc.storageos.primitives.db.script;
 
 import java.util.List;
 import java.util.Map;
 
 import com.emc.storageos.db.client.model.uimodels.CustomServicesDBScriptPrimitive;
+import com.emc.storageos.primitives.db.CustomServicesDBPrimitiveType;
 import com.emc.storageos.primitives.input.InputParameter;
 import com.emc.storageos.primitives.output.OutputParameter;
 
+/**
+ * Class that represents a script primitive as a java object
+ *
+ */
 public class CustomServicesScriptPrimitive extends CustomServicesDBPrimitiveType {
-    private static final String TYPE = "script";
+    public static final String TYPE = "script";
  
     public CustomServicesScriptPrimitive(CustomServicesDBScriptPrimitive primitive,
             final Map<InputType, List<InputParameter>> input,

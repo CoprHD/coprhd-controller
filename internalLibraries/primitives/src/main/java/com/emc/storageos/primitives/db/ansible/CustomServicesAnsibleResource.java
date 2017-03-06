@@ -14,24 +14,29 @@
  * limitations under the License.
  *
  */
-package com.emc.storageos.primitives;
+package com.emc.storageos.primitives.db.ansible;
 
 import java.util.Map;
 import java.util.Set;
 
-import com.emc.storageos.db.client.model.uimodels.CustomServicesDBScriptResource;
+import com.emc.storageos.db.client.model.uimodels.CustomServicesDBAnsibleResource;
+import com.emc.storageos.primitives.db.CustomServicesDBResourceType;
 
-public class CustomServicesScriptResource extends CustomServicesDBResourceType<CustomServicesDBScriptResource> {
 
+/**
+ * Class that represents an Ansible package as a java object
+ *
+ */
+public class CustomServicesAnsibleResource extends CustomServicesDBResourceType<CustomServicesDBAnsibleResource> {
 
-    public CustomServicesScriptResource(final CustomServicesDBScriptResource resource,
+    public CustomServicesAnsibleResource(final CustomServicesDBAnsibleResource resource,
             final Map<String, Set<String>> attributes) {
         super(resource, attributes);
     }
 
     @Override
     public String suffix() {
-        return "sh";
+        return "tar";
     }
 
 }

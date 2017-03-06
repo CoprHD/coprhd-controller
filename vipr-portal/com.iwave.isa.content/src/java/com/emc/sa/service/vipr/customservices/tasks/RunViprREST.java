@@ -34,7 +34,7 @@ import com.emc.sa.service.vipr.customservices.CustomServicesConstants;
 import com.emc.sa.service.vipr.customservices.CustomServicesUtils;
 import com.emc.sa.service.vipr.customservices.gson.ViprOperation;
 import com.emc.sa.service.vipr.tasks.ViPRExecutionTask;
-import com.emc.storageos.primitives.ViPRPrimitive;
+import com.emc.storageos.primitives.java.vipr.CustomServicesViPRPrimitive;
 import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorException;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
 import com.emc.vipr.client.impl.RestClient;
@@ -49,9 +49,9 @@ public class RunViprREST extends ViPRExecutionTask<CustomServicesTaskResult> {
 
     private final Map<String, List<String>> input;
     private final RestClient client;
-    private final ViPRPrimitive primitive;
+    private final CustomServicesViPRPrimitive primitive;
 
-    public RunViprREST(final ViPRPrimitive primitive, final RestClient client, final Map<String, List<String>> input) {
+    public RunViprREST(final CustomServicesViPRPrimitive primitive, final RestClient client, final Map<String, List<String>> input) {
         this.input = input;
         this.client = client;
         this.primitive = primitive;

@@ -63,18 +63,18 @@
     </div>
         
     <div ng-init="policyId='${assignPolicy.id}'" id="replicationFields" ng-controller="filePolicyCtrl">
-        <div class="pull-left col-sm-3" style="text-align:center;"><strong>&{'assignPolicy.vpool'}</strong></div> 
-    <div class="pull-left col-sm-3" v-field="assignPolicy.virtualPools">
-           <select-one options="vPoolOptions" ng-change="populateVarray(field)" required></select-one>
-     </div>
-    
-    <br>
+    	<div id=vpoolFields"  class="row">
+           <div class="control-label col-sm-3"><strong>&{'assignPolicy.vpool'}:</strong></div> 
+           <div class="pull-left col-sm-6" v-field="assignPolicy.virtualPools">
+              <select-one options="vPoolOptions" ng-change="populateVarray(field)" required></select-one>
+           </div> 
+        </div>   
         <div class="row" style="padding-top:20px; padding-bottom:0px;">
             <div class="col-xs-3"></div>    
             <div class="pull-left col-sm-3" style="text-align:center;"><strong>&{'replicationTopology.sourceVArray'}</strong></div>
             <div class="pull-left col-sm-3" style="text-align:center;"><strong>&{'replicationTopology.targetVArray'}</strong></div>
         </div>
-        <hr style="margin:5px;"/>
+        <hr style="margin:05px;"/>
         <div class="row col-gap-none" ng-repeat="topology in topologies" style="margin-bottom:5px;">
             <div class="col-xs-3"></div>    
             <div class="pull-left col-sm-3" v-field="topology.sourceVArray">

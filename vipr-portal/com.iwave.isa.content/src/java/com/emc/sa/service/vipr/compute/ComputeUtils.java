@@ -380,17 +380,7 @@ public class ComputeUtils {
             }
         }
 
-        // monitor tasks
-        List<String> hostNames = Lists.newArrayList();
-        for (Host host : hostToVolumeIdMap.keySet()) {
-            if (host != null) {
-                hostNames.add(host.getHostName());
-            }
-            else {
-                hostNames.add(null);
-            }
-        }
-
+        // Monitor tasks
         Map<Host, URI> hostToEgIdMap = new HashMap<>();
         List<Task<ExportGroupRestRep>> tasks = new ArrayList<>(taskToHostMap.keySet()); 
         while (!tasks.isEmpty()) {
@@ -494,17 +484,10 @@ public class ComputeUtils {
         List<Host> hostsToRemove = Lists.newArrayList();
         Map<Host, URI> hostToVolumeIdNotRemovedMap = new HashMap<Host, URI>(hostToVolumeIdMap);
 
-        // Verify both maps are the same size
-        if (hostToVolumeIdMap.size() != hostToEgIdMap.size()) {
-            ExecutionUtils.currentContext().logError("computeutils.deactivatehost.noexport",
-                    "N/A", "incorrect number of elements");
-            return Maps.newHashMap();
-        }
-        
         // Perform all host removal from cluster operations first.
-        for (Entry<Host, URI> hostToEgIdEntry : hostToEgIdMap.entrySet()) {
-            Host host = hostToEgIdEntry.getKey();
-            URI egId = hostToEgIdEntry.getValue();
+        for (Entry<Host, URI> hostToVolumeIdEntry : hostToVolumeIdMap.entrySet()) {
+            Host host = hostToVolumeIdEntry.getKey();
+            URI egId = hostToEgIdMap.get(host);
             if (NullColumnValueGetter.isNullURI(egId) && host != null) {
                 try {
                     execute(new RemoveHostFromCluster(host.getId()));
@@ -564,7 +547,7 @@ public class ComputeUtils {
         ListIterator<Host> hostItr = nonNull(hosts).listIterator();
         while (hostItr.hasNext()) {
             Host host = hostItr.next();
-            if (deactivatedHostURIs.contains(hostItr.next().getId())) {
+            if (deactivatedHostURIs.contains(host.getId())) {
                 hostsDeactivated.add(host);
             }
         }

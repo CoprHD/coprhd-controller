@@ -10,8 +10,6 @@ import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
-import com.emc.storageos.db.client.constraint.ContainmentConstraint;
-import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.FilePolicy;
 import com.emc.storageos.db.client.model.SchedulePolicy;
 import com.emc.storageos.db.client.model.StorageSystem;
@@ -19,7 +17,6 @@ import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.VirtualNAS;
 import com.emc.storageos.db.client.model.FilePolicy.FilePolicyApplyLevel;
 import com.emc.storageos.db.client.model.FilePolicy.FilePolicyType;
-import com.emc.storageos.db.client.model.FileShare.PersonalityTypes;
 import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.model.NASServer;
 import com.emc.storageos.db.client.model.PhysicalNAS;
@@ -47,8 +44,6 @@ public class FileSnapshotPolicyMigration extends BaseCustomMigrationCallback{
 			List<URI> schedulePolicyURIs = dbClient.queryByType(SchedulePolicy.class, true);
 			Iterator<SchedulePolicy> schedulePolicies = dbClient.queryIterativeObjects(SchedulePolicy.class, schedulePolicyURIs, true);
 			List<FilePolicy> filePolicies = new ArrayList<FilePolicy>();
-			List<FileShare> fileShares = new ArrayList<FileShare>();
-			List<URI> fsURIs = null;
 			while (schedulePolicies.hasNext()) {
 				SchedulePolicy schedulePolicy = schedulePolicies.next();
 				FilePolicy fileSnapshotPolicy = new FilePolicy();
@@ -71,32 +66,24 @@ public class FileSnapshotPolicyMigration extends BaseCustomMigrationCallback{
 				// snapshot policy apply at file system level
 				fileSnapshotPolicy.setApplyAt(FilePolicyApplyLevel.file_system.name());
 
-				List<URI> fileShareURIs = getAssignedResourcesURIs(schedulePolicy.getAssignedResources());
-				
-				for(URI fsURI : fileShareURIs){
-					logger.info("ready to create policy storage resources");
-					logger.info("FS URI {}" , fsURI);
-					FileShare fs = dbClient.queryObject(FileShare.class, fsURI);
-					if(!fs.getInactive()){
-						StorageSystem system = dbClient.queryObject(StorageSystem.class, fs.getStorageDevice());
-						logger.info("updating policy storage resource");
-						logger.info("Storage  system : {}" , system.toString());
-						updatePolicyStorageResouce(system, fileSnapshotPolicy, fs);
-						logger.info("Done updating policy storage resources");
+				if(!schedulePolicy.getAssignedResources().isEmpty()){
+					List<URI> fileShareURIs = getAssignedResourcesURIs(schedulePolicy.getAssignedResources());
+					for(URI fsURI : fileShareURIs){
+						FileShare fs = dbClient.queryObject(FileShare.class, fsURI);
+						if(!fs.getInactive()){
+							StorageSystem system = dbClient.queryObject(StorageSystem.class, fs.getStorageDevice());
+							updatePolicyStorageResouce(system, fileSnapshotPolicy, fs);
+						}
 					}
-					
 				}
 				
 				filePolicies.add(fileSnapshotPolicy);
-				logger.info("Added info to filePolicies : {}" , filePolicies);
-				logger.info("Added info to filePolicies : {}" , filePolicies.toString());
 			}
 			
 	
 			//Update DB
 			if(!filePolicies.isEmpty()){
 				logger.info("Created {} file snapshot policies", filePolicies.size());
-				logger.info("creating FilePolicies : {}" , filePolicies);
 				dbClient.createObject(filePolicies);				
 			}
 			
@@ -109,7 +96,6 @@ public class FileSnapshotPolicyMigration extends BaseCustomMigrationCallback{
 	private List<URI> getAssignedResourcesURIs(StringSet assignedResources) {
 		List<URI> resourceURIs = new ArrayList<URI>();
 		if(!assignedResources.isEmpty()){
-			logger.info("Converting String to URIs");
 			for(String resource : assignedResources){
 				URI resourceURI = URI.create(resource);
 				resourceURIs.add(resourceURI);

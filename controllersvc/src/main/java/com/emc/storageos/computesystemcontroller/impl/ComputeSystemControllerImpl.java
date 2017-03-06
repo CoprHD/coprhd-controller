@@ -44,7 +44,6 @@ import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.Cluster;
 import com.emc.storageos.db.client.model.ComputeElement;
 import com.emc.storageos.db.client.model.ExportGroup;
-import com.emc.storageos.db.client.model.ExportGroup.ExportGroupType;
 import com.emc.storageos.db.client.model.FileExport;
 import com.emc.storageos.db.client.model.FileMountInfo;
 import com.emc.storageos.db.client.model.FileShare;
@@ -483,8 +482,9 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
     public static List<ExportGroup> getExportGroups(DbClient dbClient, URI hostId, List<Initiator> initiators) {
         HashMap<URI, ExportGroup> exports = new HashMap<URI, ExportGroup>();
         // Get all exports that use the host's initiators
-        // VBDU TODO: COP-28451, This method brings in cluster export Groups as well, which ends up in removing the
+        // VBDU [DONE]: COP-28451, This method brings in cluster export Groups as well, which ends up in removing the
         // shared and exclusive volumes from the host, maybe it's intentional, need to verify.
+        // Yes this is intentional. We are going to remove the host and its initiators from all export groups (exclusive and shared)
         for (Initiator item : initiators) {
             List<ExportGroup> list = ComputeSystemHelper.findExportsByInitiator(dbClient, item.getId().toString());
             for (ExportGroup export : list) {
@@ -647,7 +647,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
             waitFor = addStepForUpdatingHostAndInitiatorClusterReferences(workflow, waitFor, hostIds, clusterId, vCenterDataCenterId,
                     completer);
 
-            waitFor = addStepsForAddHost(workflow, waitFor, hostIds, clusterId, isVcenter);
+            waitFor = addStepsForAddHost(workflow, waitFor, hostIds, clusterId, isVcenter, eventId);
 
             workflow.executePlan(completer, "Success", null, null, null, null);
         } catch (Exception ex) {
@@ -937,7 +937,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
         return waitFor;
     }
 
-    public String addStepsForAddHost(Workflow workflow, String waitFor, List<URI> hostIds, URI clusterId, boolean isVcenter) {
+    public String addStepsForAddHost(Workflow workflow, String waitFor, List<URI> hostIds, URI clusterId, boolean isVcenter, URI eventId) {
         List<Host> hosts = _dbClient.queryObject(Host.class, hostIds);
         List<ExportGroup> exportGroups = getSharedExports(_dbClient, clusterId);
 
@@ -969,6 +969,9 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                             addedInitiators.add(initiator.getId());
                         }
                     }
+                } else if (!NullColumnValueGetter.isNullURI(eventId)) {
+                    throw ComputeSystemControllerException.exceptions.noInitiatorPortConnectivity(StringUtils.join(hostInitiators, ","),
+                            eg.forDisplay());
                 }
             }
 
@@ -1223,9 +1226,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
         List<Initiator> hostInitiators = ComputeSystemHelper.queryInitiators(_dbClient, hostId);
 
         for (ExportGroup export : getExportGroups(_dbClient, hostId, hostInitiators)) {
-            List<URI> existingInitiators = StringSetUtil.stringSetToUriList(export.getInitiators());
             List<URI> existingHosts = StringSetUtil.stringSetToUriList(export.getHosts());
-            List<URI> updatedClusters = StringSetUtil.stringSetToUriList(export.getClusters());
             Map<URI, Integer> updatedVolumesMap = StringMapUtil.stringMapToVolumeMap(export.getVolumes());
 
             Set<URI> addedClusters = new HashSet<>();
@@ -1238,33 +1239,23 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
             existingHosts.remove(hostId);
 
             for (Initiator initiator : hostInitiators) {
-                existingInitiators.remove(initiator.getId());
                 removedInitiators.add(initiator.getId());
             }
-            // VBDU TODO: COP-28452 This is dangerous ..Delete export Group in controller means export all volumes in
+            // VBDU [DONE]: COP-28452 This is dangerous ..Delete export Group in controller means export all volumes in
             // the export group. This call's intention is to remove a host, if for some reason one of the export group
             // doesn't have the right set of initiator then we might end up in unexporting all volumes from all the
             // hosts rather than executing remove Host.
-            if ((existingInitiators.isEmpty() && export.getType().equals(ExportGroupType.Initiator.name())) ||
-                    (existingHosts.isEmpty() && export.getType().equals(ExportGroupType.Host.name()))) {
-                waitFor = workflow.createStep(DELETE_EXPORT_GROUP_STEP,
-                        String.format("Deleting export group %s", export.getId()), waitFor,
-                        export.getId(), export.getId().toString(),
-                        this.getClass(),
-                        deleteExportGroupMethod(export.getId()),
-                        rollbackMethodNullMethod(), null);
-            } else {
-                waitFor = workflow.createStep(
-                        UPDATE_EXPORT_GROUP_STEP,
-                        String.format("Updating export group %s", export.getId()),
-                        waitFor,
-                        export.getId(),
-                        export.getId().toString(),
-                        this.getClass(),
-                        updateExportGroupMethod(export.getId(), updatedVolumesMap,
-                                addedClusters, removedClusters, addedHosts, removedHosts, addedInitiators, removedInitiators),
-                        updateExportGroupRollbackMethod(export.getId()), null);
-            }
+            // Fixed to only perform export update instead of delete
+            waitFor = workflow.createStep(
+                    UPDATE_EXPORT_GROUP_STEP,
+                    String.format("Updating export group %s", export.getId()),
+                    waitFor,
+                    export.getId(),
+                    export.getId().toString(),
+                    this.getClass(),
+                    updateExportGroupMethod(export.getId(), updatedVolumesMap,
+                            addedClusters, removedClusters, addedHosts, removedHosts, addedInitiators, removedInitiators),
+                    updateExportGroupRollbackMethod(export.getId()), null);
         }
         return waitFor;
     }
@@ -1793,7 +1784,6 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
             Set<URI> addedInitiators = new HashSet<>();
             Set<URI> removedInitiators = new HashSet<>();
 
-            List<URI> updatedInitiators = StringSetUtil.stringSetToUriList(export.getInitiators());
             Map<URI, Integer> updatedVolumesMap = StringMapUtil.stringMapToVolumeMap(export.getVolumes());
 
             removedClusters.add(clusterId);
@@ -1801,31 +1791,22 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
             List<URI> hostUris = ComputeSystemHelper.getChildrenUris(_dbClient, clusterId, Host.class, "cluster");
             for (URI hosturi : hostUris) {
                 removedHosts.add(hosturi);
-                updatedInitiators.removeAll(ComputeSystemHelper.getChildrenUris(_dbClient, hosturi, Initiator.class, "host"));
                 removedInitiators.addAll(ComputeSystemHelper.getChildrenUris(_dbClient, hosturi, Initiator.class, "host"));
             }
 
-            // VBDU TODO: COP-28452, This doesn't look that dangerous, as we might see more than one cluster in export
+            // VBDU [DONE]: COP-28452, This doesn't look that dangerous, as we might see more than one cluster in export
             // group. Delete export Group in controller means export all volumes in the export group.
             // This call's intention is to remove a host, if for some reason one of the export group doesn't have the
             // right set of initiator then we might end up in unexporting all volumes from all the hosts rather than
             // executing remove Host.
-            if (updatedInitiators.isEmpty()) {
-                waitFor = workflow.createStep(DELETE_EXPORT_GROUP_STEP,
-                        String.format("Deleting export group %s", export.getId()), waitFor,
-                        export.getId(), export.getId().toString(),
-                        this.getClass(),
-                        deleteExportGroupMethod(export.getId()),
-                        null, null);
-            } else {
-                waitFor = workflow.createStep(UPDATE_EXPORT_GROUP_STEP,
-                        String.format("Updating export group %s", export.getId()), waitFor,
-                        export.getId(), export.getId().toString(),
-                        this.getClass(),
-                        updateExportGroupMethod(export.getId(), updatedVolumesMap,
-                                addedClusters, removedClusters, addedHosts, removedHosts, addedInitiators, removedInitiators),
-                        updateExportGroupRollbackMethod(export.getId()), null);
-            }
+            // Fixed to only perform export update instead of delete
+            waitFor = workflow.createStep(UPDATE_EXPORT_GROUP_STEP,
+                    String.format("Updating export group %s", export.getId()), waitFor,
+                    export.getId(), export.getId().toString(),
+                    this.getClass(),
+                    updateExportGroupMethod(export.getId(), updatedVolumesMap,
+                            addedClusters, removedClusters, addedHosts, removedHosts, addedInitiators, removedInitiators),
+                    updateExportGroupRollbackMethod(export.getId()), null);
         }
         return waitFor;
     }

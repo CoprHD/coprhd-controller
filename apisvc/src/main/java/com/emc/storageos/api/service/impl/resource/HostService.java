@@ -303,7 +303,8 @@ public class HostService extends TaskResourceService {
         // We only want to update the export group if we're changing the cluster during a host update
         if (newClusterURI != null) {
             updateTaskStatus = false;
-            // VBDU TODO: COP-28451, The first if block never gets executed, need to understand the impact.
+            // VBDU [DONE]: COP-28451, The first if block never gets executed, need to understand the impact.
+            // This is run when a clustered host is moved out of a cluster
             if (updateExports && !NullColumnValueGetter.isNullURI(oldClusterURI)
                     && NullColumnValueGetter.isNullURI(newClusterURI)
                     && ComputeSystemHelper.isClusterInExport(_dbClient, oldClusterURI)) {
@@ -681,21 +682,23 @@ public class HostService extends TaskResourceService {
         ComputeElement computeElement = null;
         Volume bootVolume = null;
         UCSServiceProfile serviceProfile = null;
-        if (!NullColumnValueGetter.isNullURI(host.getServiceProfile())){
-             serviceProfile = _dbClient.queryObject(UCSServiceProfile.class, host.getServiceProfile());
-             if (serviceProfile!=null && !NullColumnValueGetter.isNullURI(serviceProfile.getComputeSystem())){
-                  ComputeSystem ucs = _dbClient.queryObject(ComputeSystem.class, serviceProfile.getComputeSystem());
-                  if ( ucs!=null && ucs.getDiscoveryStatus().equals(DataCollectionJobStatus.ERROR.name())){
-                      throw APIException.badRequests.resourceCannotBeDeleted("Host has service profile on a Compute System that failed to discover; ");
-                  }
-             }               
+        if (!NullColumnValueGetter.isNullURI(host.getServiceProfile())) {
+            serviceProfile = _dbClient.queryObject(UCSServiceProfile.class, host.getServiceProfile());
+            if (serviceProfile != null && !NullColumnValueGetter.isNullURI(serviceProfile.getComputeSystem())) {
+                ComputeSystem ucs = _dbClient.queryObject(ComputeSystem.class, serviceProfile.getComputeSystem());
+                if (ucs != null && ucs.getDiscoveryStatus().equals(DataCollectionJobStatus.ERROR.name())) {
+                    throw APIException.badRequests
+                            .resourceCannotBeDeleted("Host has service profile on a Compute System that failed to discover; ");
+                }
+            }
         }
-    
-        List<Initiator> initiators = CustomQueryUtility.queryActiveResourcesByRelation(_dbClient, host.getId(),Initiator.class, "host");
- 
-        // VBDU TODO: COP-28452, Running host deactivate even if initiators == null or list empty seems risky
-        if (StringUtils.equalsIgnoreCase(host.getType(),HostType.No_OS.toString()) && (initiators == null || initiators.isEmpty())) {
-            if (!NullColumnValueGetter.isNullURI(host.getComputeElement())){
+
+        List<Initiator> initiators = CustomQueryUtility.queryActiveResourcesByRelation(_dbClient, host.getId(), Initiator.class, "host");
+
+        // VBDU [DONE]: COP-28452, Running host deactivate even if initiators == null or list empty seems risky
+        // If initiators are empty, we will not perform any export updates
+        if (StringUtils.equalsIgnoreCase(host.getType(), HostType.No_OS.toString()) && (initiators == null || initiators.isEmpty())) {
+            if (!NullColumnValueGetter.isNullURI(host.getComputeElement())) {
                 computeElement = _dbClient.queryObject(ComputeElement.class, host.getComputeElement());
             }
             if (!NullColumnValueGetter.isNullURI(host.getBootVolumeId())){

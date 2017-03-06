@@ -133,18 +133,21 @@ public class AddBareMetalHostToClusterService extends ViPRService {
         hostNames = ComputeUtils.removeExistingHosts(hostNames, cluster);
 
         List<Host> hosts = ComputeUtils.createHosts(cluster, computeVirtualPool, hostNames, virtualArray);
+
         logInfo("compute.cluster.hosts.created", ComputeUtils.nonNull(hosts).size());
 
         Map<Host, URI> hostToBootVolumeIdMap = ComputeUtils.makeBootVolumes(project, virtualArray, virtualPool, size, hosts,
                 getClient());
-        logInfo("compute.cluster.boot.volumes.created", ComputeUtils.nonNull(hostToBootVolumeIdMap).size());
+        logInfo("compute.cluster.boot.volumes.created", 
+                hostToBootVolumeIdMap != null ? ComputeUtils.nonNull(hostToBootVolumeIdMap.values()).size() : 0);
 
         // Deactivate hosts with no boot volume, return list of hosts remaining.
         hostToBootVolumeIdMap = ComputeUtils.deactivateHostsWithNoBootVolume(hostToBootVolumeIdMap, cluster);
 
         // Export the boot volume, return a map of hosts and their EG IDs
         Map<Host, URI> hostToEgIdMap = ComputeUtils.exportBootVols(hostToBootVolumeIdMap, project, virtualArray, hlu);
-        logInfo("compute.cluster.exports.created", ComputeUtils.nonNull(hostToEgIdMap).size());
+        logInfo("compute.cluster.exports.created", 
+                hostToEgIdMap != null ? ComputeUtils.nonNull(hostToEgIdMap.values()).size(): 0);
         
         // Deactivate any hosts where the export failed, return list of hosts remaining
         hostToBootVolumeIdMap = ComputeUtils.deactivateHostsWithNoExport(hostToBootVolumeIdMap, hostToEgIdMap, cluster);

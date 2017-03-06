@@ -95,7 +95,7 @@ public class ComputeUtils {
             hostNames.add(hostNameIn != null ? hostNameIn.toLowerCase() : null);
         }
 
-        Host[] hosts = new Host[hostNames.size()];
+        List<Host> createdHosts = new ArrayList<>();
         Tasks<HostRestRep> tasks = null;
         List<String> hostsToDeactivate = Lists.newArrayList();
         try {
@@ -119,9 +119,8 @@ public class ComputeUtils {
                 URI hostUri = task.getResourceId();
                 addAffectedResource(hostUri);
                 Host host = execute(new GetHost(hostUri));
-                int hostIndex = hostNames.indexOf(host.getHostName());
                 succeededHosts.add(host.getHostName());
-                hosts[hostIndex] = host;
+                createdHosts.add(host);
             }
             for (String hostName : hostNames) {
                 if (!succeededHosts.contains(hostName)) {
@@ -147,7 +146,7 @@ public class ComputeUtils {
         for (Entry<URI, String> hostEntry : hostDeactivateMap.entrySet()){
             execute(new DeactivateHost(hostEntry.getKey(), hostEntry.getValue(), true));
         }
-        return Arrays.asList(hosts);
+        return createdHosts;
     }
 
     // VBDU TODO: COP-28437, These methods need to be rewritten to use maps. Assuming stable indexing of
@@ -255,7 +254,7 @@ public class ComputeUtils {
         Map<String, Host> volumeNameToHostMap = new HashMap<>();
         Map<Host, URI> hostToBootVolumeIdMap = new HashMap<>();
         
-        if (hosts == null) {
+        if (hosts == null || hosts.isEmpty()) {
             return Maps.newHashMap();
         }
         
@@ -506,7 +505,7 @@ public class ComputeUtils {
         for (Entry<Host, URI> hostToEgIdEntry : hostToEgIdMap.entrySet()) {
             Host host = hostToEgIdEntry.getKey();
             URI egId = hostToEgIdEntry.getValue();
-            if (!NullColumnValueGetter.isNullURI(egId) && host != null) {
+            if (NullColumnValueGetter.isNullURI(egId) && host != null) {
                 try {
                     execute(new RemoveHostFromCluster(host.getId()));
                 } catch (Exception e) {
@@ -690,7 +689,7 @@ public class ComputeUtils {
         return execute(new FindHostsInCluster(clusterId, clustername));
     }
 
-    static <T> List<T> nonNull(List<T> objectList) {
+    static <T> List<T> nonNull(Collection<T> objectList) {
         List<T> objectListToReturn = new ArrayList<>();
         if (objectList != null) {
             for (T object : objectList) {

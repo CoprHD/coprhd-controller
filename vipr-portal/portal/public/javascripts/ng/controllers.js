@@ -418,8 +418,19 @@ angular.module("portalApp").controller({
         $scope.topologies = []
         $scope.deleteTopology = function(idx) { $scope.topologies.splice(idx, 1); }
         $scope.addTopology = function() { $scope.topologies.push(angular.copy($scope.add)); }
-
+        
+        $scope.populateVarray = function(selected) { 
+            $http.get(routes.FileProtectionPolicy_getVarraysAssociatedWithPools({id:selected.value})).success(function(data) {     		 
+            $scope.virtualArrayOptions = data;
+        		
+        });
+       }
         $scope.$watch('policyId', function () {
+        	
+           $http.get(routes.FileProtectionPolicy_getVpoolForProtectionPolicy({id:$scope.policyId})).success(function(data) { 
+              	$scope.vPoolOptions = data;
+             });
+        	
         	
             $http.get(routes.FileProtectionPolicy_details({id:$scope.policyId})).success(function(data) {             	            	 
                 if ( (typeof data.replicationSettings != 'undefined') &&  (typeof data.replicationSettings.replicationTopologies != 'undefined') ) {
@@ -434,29 +445,19 @@ angular.module("portalApp").controller({
                 }
             });
             
-            
-            
-            $http.get(routes.FileProtectionPolicy_getVpoolForProtectionPolicy({id:$scope.policyId})).success(function(data) { 
-            	$scope.vPoolOptions = data;
-           });
+                        
+          
                                      
         });
-        
 
+
+        
         $scope.$watch('topologies', function(newVal) {
         	$scope.topologiesString = angular.toJson($scope.topologies, false);
         }, true);
         
         
-        $scope.populateVarray = function(selected) { 
-        	
-        window.alert("feild value changed from"+selected)
-        $http.get(routes.FileProtectionPolicy_getVarraysAssociatedWithPools({id:selected.value})).success(function(data) {
-       		 
-        $scope.virtualArrayOptions = data;
-       		
-       	  });
-       	 } 
+
         
         
      },

@@ -421,8 +421,30 @@ public class FileProtectionPolicies extends ViprResourceController {
 
     public static void getVpoolForProtectionPolicy(String id) {
         Collection<FileVirtualPoolRestRep> vPools = Lists.newArrayList();
-        List<FileVirtualPoolRestRep> virtualPools = getViprClient().fileVpools().getAll();
+
         FilePolicyRestRep policy = getViprClient().fileProtectionPolicies().get(uri(id));
+
+        // check if policy is already assigned then return only assigned pool.
+
+        if (policy.getAssignedResources() != null && !policy.getAssignedResources().isEmpty()) {
+            NamedRelatedResourceRep vpoolNameRes = null;
+            // get the first vpool and return it.
+            if (policy.getAppliedAt().equalsIgnoreCase(FilePolicyApplyLevel.vpool.name())) {
+                vpoolNameRes = policy.getAssignedResources().get(0);
+
+            } else if (policy.getAppliedAt().equalsIgnoreCase(FilePolicyApplyLevel.project.name())) {
+                vpoolNameRes = policy.getVpool();
+
+            }
+
+            if (vpoolNameRes != null) {
+            FileVirtualPoolRestRep vpolRestep = getViprClient().fileVpools().get(vpoolNameRes.getId());
+            vPools.add(vpolRestep);
+                renderJSON(vPools);
+            return;
+            }
+        }
+        List<FileVirtualPoolRestRep> virtualPools = getViprClient().fileVpools().getAll();
         for (FileVirtualPoolRestRep vpool : virtualPools) {
             // first level filter based on the protection is enabled or not
             FileVirtualPoolProtectionParam protectParam = vpool.getProtection();
@@ -1017,8 +1039,8 @@ public class FileProtectionPolicies extends ViprResourceController {
 
         public boolean applyOnTargetSite;
 
-        // if true then form is used for assignmnet
-        public boolean operationAssign;
+        // if true policy already has assigned resource .
+        public boolean isAssigned;
 
         public String appliedAt;
 
@@ -1035,9 +1057,9 @@ public class FileProtectionPolicies extends ViprResourceController {
             // this.tenantId = restRep.getTenant().getId().toString();
             this.policyType = restRep.getType();
             this.policyName = restRep.getName();
-            if (restRep.getAssignedResources() == null) {
+            if (restRep.getAssignedResources() != null && !restRep.getAssignedResources().isEmpty()) {
                 // if it does not have already assigned resource
-                this.operationAssign = true;
+                this.isAssigned = true;
             }
 
             this.appliedAt = restRep.getAppliedAt();

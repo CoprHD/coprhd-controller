@@ -27,7 +27,6 @@ import com.emc.storageos.volumecontroller.ControllerLockingService;
 import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.ControllerServiceImpl;
 import com.emc.storageos.volumecontroller.impl.plugins.ExtendedCommunicationInterface;
-import com.emc.storageos.volumecontroller.impl.utils.DbClientObjectLocalCache;
 
 /**
  * Loads Spring Context based on Profile & DeviceType i.e. Scanner-block
@@ -201,7 +200,6 @@ class DataCollectionJobInvoker {
      * @throws BaseCollectionException
      */
     private void invokeMetering() throws BaseCollectionException {
-        _commInterface.injectDBClient(new DbClientObjectLocalCache(_dbClient));
         _commInterface.collectStatisticsInformation(_accessProfile);
     }
 

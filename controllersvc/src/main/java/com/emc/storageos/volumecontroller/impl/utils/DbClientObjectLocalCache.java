@@ -4,14 +4,9 @@
  */
 package com.emc.storageos.volumecontroller.impl.utils;
 
-import java.lang.ref.SoftReference;
 import java.net.URI;
-import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.impl.DbClientImpl;
@@ -31,126 +26,96 @@ import com.emc.storageos.db.client.model.DataObject;
  * or
  * refresh (Class<T> clazz, URI id)
  * to eliminate stale objects from the cache.
+ * 
+ * This version of the local cache extends DbClientImpl so that all methods of DbClient are valid. Only these methods will result in
+ * caching of the returned objects:
+ *    queryObject(clazz, id)
+ *    queryObject(clazz, ids)
  */
 public class DbClientObjectLocalCache extends DbClientImpl {
 
-    private int maxHashSize = 50000;
-
-    /**
-     * Maps URI/String to a Soft Reference to DataObjects
-     * Soft References are guaranteed to get GCed before the process goes OOM
-     */
-    private final Map<URI, SoftReference<DataObject>> CACHE_MAP = new HashMap<>();
-
-    public DbClientObjectLocalCache(DbClient dbClient) {
-        this.dbClient = dbClient;
-        enabled = true;
+    private ObjectLocalCache cache;
+    
+    public void init() {
+        if (cache == null) {
+            throw new IllegalStateException();
+        }
+        this.cache.getDbClient().start();
     }
-
-    public DbClientObjectLocalCache(DbClient dbClient, boolean enabled) {
-        this.dbClient = dbClient;
-        this.enabled = enabled;
-    }
-
-    private boolean enabled;
-
-    private DbClient dbClient;
 
     public void setDbClient(DbClient dbClient) {
-        this.dbClient = dbClient;
-    }
-
-    public DbClient getDbClient() {
-        return this.dbClient;
+        if (cache == null) {
+            cache = new ObjectLocalCache(dbClient, true);
+        } else {
+            throw new IllegalStateException();
+        }
     }
 
     public void setMaxHashSize(int max) {
-        this.maxHashSize = max;
+        if (cache == null) {
+            throw new IllegalStateException();
+        }
+        this.cache.setMaxHashSize(max);
     }
 
     public int getMaxHashSize() {
-        return maxHashSize;
-    }
-
-    public boolean getEnabled() {
-        return enabled;
-    }
-
-    public void setEnable(boolean flag) {
-        enabled = flag;
+        if (cache == null) {
+            throw new IllegalStateException();
+        }
+        return this.cache.getMaxHashSize();
     }
 
     /**
-     * Returns thread local map instance
-     * 
-     * @return
+     * @param enabled the enabled to set
      */
-    private Map<URI, SoftReference<DataObject>> getCached() {
-        return Collections.unmodifiableMap(CACHE_MAP);
+    public void setEnabled(boolean enabled) {
+        if (cache == null) {
+            throw new IllegalStateException();
+        }
+        this.cache.setEnable(enabled);
+    }
+
+    public boolean getEnabled() {
+        if (cache == null) {
+            throw new IllegalStateException();
+        }
+        return this.cache.getEnabled();
     }
 
     @Override
     public <T extends DataObject> T queryObject(Class<T> clazz, URI id) {
-        T obj = getObject(id, clazz);
-        if (obj == null) {
-            obj = dbClient.queryObject(clazz, id);
-            if (obj != null && !obj.getInactive()) {
-                putObject(id, obj);
-            }
+        if (cache == null) {
+            throw new IllegalStateException();
         }
-        return obj;
+        return cache.queryObject(clazz, id);
     }
 
     @Override
     public <T extends DataObject> List<T> queryObject(Class<T> clazz, Collection<URI> ids) {
-        List<URI> missed = new ArrayList<>();
-        List<T> result = new ArrayList<>();
-        for (URI id : ids) {
-            T obj = getObject(id, clazz);
-            if (obj == null) {
-                missed.add(id);
-            }
-            else {
-                result.add(obj);
-            }
+        if (cache == null) {
+            throw new IllegalStateException();
         }
-        List<T> more = dbClient.queryObject(clazz, missed);
-        for (T obj : more) {
-            if (!obj.getInactive()) {
-                putObject(obj.getId(), obj);
-            }
-            result.add(obj);
-        }
-        return result;
-    }
-
-    private <T extends DataObject> T getObject(URI id, Class<T> clazz) {
-        SoftReference<DataObject> objRef = CACHE_MAP.get(id);
-        return objRef == null ? null : clazz.cast(objRef.get());
-    }
-
-    private <T extends DataObject> void putObject(URI id, T object) {
-        if (enabled && CACHE_MAP.size() < maxHashSize) {
-            CACHE_MAP.put(id, new SoftReference<DataObject>(object));
-        }
+        return cache.queryObject(clazz, ids);
     }
 
     public void clearCache() {
-        CACHE_MAP.clear();
+        if (cache == null) {
+            throw new IllegalStateException();
+        }
+        this.cache.clearCache();
     }
 
     public void clearCache(URI cached) {
-        CACHE_MAP.remove(cached);
+        if (cache == null) {
+            throw new IllegalStateException();
+        }
+        this.cache.clearCache(cached);
     }
 
     public <T extends DataObject> T refresh(Class<T> clazz, URI id) {
-        T obj = dbClient.queryObject(clazz, id);
-        if (obj == null) {
-            clearCache(id);
+        if (cache == null) {
+            throw new IllegalStateException();
         }
-        else {
-            putObject(id, obj);
-        }
-        return obj;
+        return this.cache.refresh(clazz, id);
     }
 }

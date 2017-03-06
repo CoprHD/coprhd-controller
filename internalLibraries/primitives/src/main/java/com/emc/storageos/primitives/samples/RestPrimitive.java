@@ -20,7 +20,8 @@ import java.net.URI;
 import java.util.List;
 import java.util.Map;
 
-import com.emc.storageos.primitives.CustomServicesStaticPrimitive;
+import com.emc.storageos.primitives.CustomServicesPrimitive.InputType;
+import com.emc.storageos.primitives.CustomServicesStaticPrimitiveModel;
 import com.emc.storageos.primitives.input.BasicInputParameter.IntegerParameter;
 import com.emc.storageos.primitives.input.BasicInputParameter.NameValueListParameter;
 import com.emc.storageos.primitives.input.BasicInputParameter.StringParameter;
@@ -34,13 +35,12 @@ import com.google.common.collect.ImmutableMap;
 /**
  * Class to contains the meta data for a generic rest call primitive
  */
-public class RestPrimitive extends CustomServicesStaticPrimitive {
+public class RestPrimitive extends CustomServicesStaticPrimitiveModel {
 
     private final static URI id = URI.create(String.format(
             "urn:storageos:%1$s:%2$s:", RestPrimitive.class.getSimpleName(),
             RestPrimitive.class.getName()));
     private final static String FRIENDLY_NAME = "REST API";
-    private final static StepType TYPE = StepType.REST;
     private final static String DESCRIPTION = "Execute a REST API method";
     private final static String SUCCESS_CRITERIA = "code > 199 or code < 300";
     private final static StringParameter HOSTNAME = new StringParameter("hostname", true, null);
@@ -64,35 +64,5 @@ public class RestPrimitive extends CustomServicesStaticPrimitive {
     
     public RestPrimitive( ) {
         super(id, RestPrimitive.class.getName());
-    }
-    
-    @Override
-    public Map<InputType, List<InputParameter>> getInput() {
-        return INPUT;
-    }
-
-    @Override
-    public List<OutputParameter> getOutput() {
-        return OUTPUT;
-    }
-
-    @Override
-    public String getFriendlyName() {
-        return FRIENDLY_NAME;
-    }
-
-    @Override
-    public String getDescription() {
-        return DESCRIPTION;
-    }
-
-    @Override
-    public String getSuccessCriteria() {
-        return SUCCESS_CRITERIA;
-    }
-
-    @Override
-    public StepType getType() {
-        return StepType.REST;
     }
 }

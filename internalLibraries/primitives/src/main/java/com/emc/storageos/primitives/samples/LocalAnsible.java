@@ -22,12 +22,12 @@ import java.util.Map;
 
 import javax.xml.bind.annotation.XmlRootElement;
 
-import com.emc.storageos.primitives.CustomServicesStaticPrimitive;
+import com.emc.storageos.primitives.CustomServicesPrimitive.InputType;
+import com.emc.storageos.primitives.CustomServicesStaticPrimitiveModel;
 import com.emc.storageos.primitives.input.BasicInputParameter.StringParameter;
 import com.emc.storageos.primitives.input.InputParameter;
 import com.emc.storageos.primitives.output.BasicOutputParameter;
 import com.emc.storageos.primitives.output.BasicOutputParameter.NameValueListParameter;
-import com.emc.storageos.primitives.output.OutputParameter;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
@@ -36,13 +36,12 @@ import com.google.common.collect.ImmutableMap;
  * executed locally
  */
 @XmlRootElement(name = "primitive")
-public class LocalAnsible extends CustomServicesStaticPrimitive {
+public class LocalAnsible extends CustomServicesStaticPrimitiveModel {
 
     private final static URI id = URI.create(String.format(
             "urn:storageos:%1$s:%2$s:", LocalAnsible.class.getSimpleName(),
             LocalAnsible.class.getName()));
     private final static String FRIENDLY_NAME = "Ansible playbook";
-    private final static StepType TYPE = StepType.LOCAL_ANSIBLE;
     private final static String DESCRIPTION = "Locally executed ansible playbook";
     private final static String SUCCESS_CRITERIA = "code = 0";
 
@@ -60,53 +59,5 @@ public class LocalAnsible extends CustomServicesStaticPrimitive {
         super(id, LocalAnsible.class.getName());
 }
 
-    /* (non-Javadoc)
-     * @see com.emc.storageos.primitives.Primitive#getInput()
-     */
-    @Override
-    public Map<InputType, List<InputParameter>> getInput() {
-        return INPUT;
-    }
-
-    /* (non-Javadoc)
-     * @see com.emc.storageos.primitives.Primitive#getOutput()
-     */
-    @Override
-    public List<OutputParameter> getOutput() {
-        // TODO Auto-generated method stub
-        return null;
-    }
-
-    /* (non-Javadoc)
-     * @see com.emc.storageos.db.client.model.uimodels.CustomServicesPrimitive#getFriendlyName()
-     */
-    @Override
-    public String getFriendlyName() {
-        return FRIENDLY_NAME;
-    }
-
-    /* (non-Javadoc)
-     * @see com.emc.storageos.db.client.model.uimodels.CustomServicesPrimitive#getDescription()
-     */
-    @Override
-    public String getDescription() {
-        return DESCRIPTION;
-    }
-
-    /* (non-Javadoc)
-     * @see com.emc.storageos.db.client.model.uimodels.CustomServicesPrimitive#getSuccessCriteria()
-     */
-    @Override
-    public String getSuccessCriteria() {
-        return SUCCESS_CRITERIA;
-    }
-
-    /* (non-Javadoc)
-     * @see com.emc.storageos.db.client.model.uimodels.CustomServicesPrimitive#getType()
-     */
-    @Override
-    public StepType getType() {
-        return StepType.LOCAL_ANSIBLE;
-    }
 
 }

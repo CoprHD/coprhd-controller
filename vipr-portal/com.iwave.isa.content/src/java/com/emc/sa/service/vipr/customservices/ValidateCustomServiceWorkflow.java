@@ -24,10 +24,10 @@ import java.util.Map;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.LoggerFactory;
 
-import com.emc.storageos.db.client.model.uimodels.CustomServicesPrimitive.StepType;
 import com.emc.storageos.model.customservices.CustomServicesWorkflowDocument;
 import com.emc.storageos.model.customservices.CustomServicesWorkflowDocument.Input;
 import com.emc.storageos.model.customservices.CustomServicesWorkflowDocument.Step;
+import com.emc.storageos.primitives.CustomServicesPrimitive.StepType;
 import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorException;
 
 public class ValidateCustomServiceWorkflow {

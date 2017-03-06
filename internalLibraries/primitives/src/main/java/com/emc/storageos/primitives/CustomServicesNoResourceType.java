@@ -14,41 +14,42 @@
  * limitations under the License.
  *
  */
-package com.emc.storageos.db.client.model.uimodels;
+package com.emc.storageos.primitives;
 
-import com.emc.storageos.db.client.model.Cf;
+import java.util.Map;
+import java.util.Set;
 
-/**
- * Column family that represents a script file
- */
-@Cf("CustomServiceScriptResource")
-public class CustomServicesScriptResource extends CustomServicesPrimitiveResource {
+import com.emc.storageos.db.client.model.ModelObject;
+import com.google.common.collect.ImmutableMap;
 
-    private static final long serialVersionUID = 1L;
+public class CustomServicesNoResourceType implements CustomServicesPrimitiveResourceType {
 
+    private final static ImmutableMap<String, Set<String>> EMPTY = ImmutableMap.<String, Set<String>>builder().build();
+    private final static String EMPTY_STRING = "";
+    
     @Override
-    public boolean isCustomServiceAnsiblePackage() {
-        return false;
+    public Map<String, Set<String>> attributes() {
+        return EMPTY;
     }
 
     @Override
-    public CustomServicesAnsiblePackage asCustomServiceAnsiblePackage() {
+    public ModelObject asModelObject() {
         return null;
     }
 
     @Override
-    public boolean isCustomServiceScriptResource() {
-        return true;
+    public byte[] resource() {
+        return null;
     }
 
     @Override
-    public CustomServicesScriptResource asCustomServiceScriptResource() {
-        return this;
+    public String name() {
+        return EMPTY_STRING;
     }
 
     @Override
     public String suffix() {
-        return ".sh";
+        return EMPTY_STRING;
     }
 
 }

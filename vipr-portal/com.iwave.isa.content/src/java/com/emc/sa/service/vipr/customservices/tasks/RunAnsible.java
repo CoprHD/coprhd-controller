@@ -40,12 +40,12 @@ import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.service.vipr.customservices.CustomServicesConstants;
 import com.emc.sa.service.vipr.tasks.ViPRExecutionTask;
 import com.emc.storageos.db.client.DbClient;
-import com.emc.storageos.db.client.model.uimodels.CustomServicesPrimitive.StepType;
-import com.emc.storageos.db.client.model.uimodels.CustomServicesScriptPrimitive;
-import com.emc.storageos.db.client.model.uimodels.CustomServicesScriptResource;
+import com.emc.storageos.db.client.model.uimodels.CustomServicesDBScriptPrimitive;
+import com.emc.storageos.db.client.model.uimodels.CustomServicesDBScriptResource;
 import com.emc.storageos.model.customservices.CustomServicesWorkflowDocument;
 import com.emc.storageos.model.customservices.CustomServicesWorkflowDocument.Input;
 import com.emc.storageos.model.customservices.CustomServicesWorkflowDocument.Step;
+import com.emc.storageos.primitives.CustomServicesPrimitive.StepType;
 import com.emc.storageos.services.util.Exec;
 import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorException;
 
@@ -99,21 +99,21 @@ public class RunAnsible extends ViPRExecutionTask<CustomServicesTaskResult> {
             switch (type) {
                 case SHELL_SCRIPT:
                     // get the resource database
-                    final CustomServicesScriptPrimitive primitive = dbClient.queryObject(CustomServicesScriptPrimitive.class, scriptid);
+                    final CustomServicesDBScriptPrimitive primitive = dbClient.queryObject(CustomServicesDBScriptPrimitive.class, scriptid);
                     if (null == primitive) {
                         logger.error("Error retrieving the script primitive from DB. {} not found in DB", scriptid);
                         throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed(scriptid + " not found in DB");
                     }
 
-                    final CustomServicesScriptResource script = dbClient.queryObject(CustomServicesScriptResource.class,
-                            primitive.getScript());
+                    final CustomServicesDBScriptResource script = dbClient.queryObject(CustomServicesDBScriptResource.class,
+                            primitive.getResource());
 
                     if (null == script) {
                         logger.error("Error retrieving the resource for the script primitive from DB. {} not found in DB",
-                                primitive.getScript());
+                                primitive.getResource());
 
                         throw InternalServerErrorException.internalServerErrors
-                                .customServiceExecutionFailed(primitive.getScript() + " not found in DB");
+                                .customServiceExecutionFailed(primitive.getResource() + " not found in DB");
                     }
 
                     // Currently, the stepId is set to random hash values in the UI. If this changes then we have to change the following to

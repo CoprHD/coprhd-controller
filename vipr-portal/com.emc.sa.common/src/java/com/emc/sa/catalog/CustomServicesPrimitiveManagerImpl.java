@@ -24,10 +24,8 @@ import org.springframework.stereotype.Component;
 
 import com.emc.sa.model.dao.ModelClient;
 import com.emc.storageos.db.client.constraint.NamedElementQueryResultList.NamedElement;
-import com.emc.storageos.db.client.model.uimodels.CustomServicesAnsiblePrimitive;
-import com.emc.storageos.db.client.model.uimodels.CustomServicesPrimitiveResource;
-import com.emc.storageos.db.client.model.uimodels.CustomServicesScriptPrimitive;
-import com.emc.storageos.db.client.model.uimodels.CustomServicesUserPrimitive;
+import com.emc.storageos.db.client.model.uimodels.CustomServicesDBPrimitive;
+import com.emc.storageos.db.client.model.uimodels.CustomServicesDBResource;
 import com.emc.storageos.db.client.model.uimodels.CustomServicesWorkflow;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 
@@ -39,23 +37,23 @@ public class CustomServicesPrimitiveManagerImpl implements CustomServicesPrimiti
 
     
     @Override
-    public void save(final CustomServicesPrimitiveResource resource) {
+    public void save(final CustomServicesDBResource resource) {
         client.save(resource);
     }
 
     @Override
-    public <T extends CustomServicesUserPrimitive> T findById(final Class<T> clazz, final URI id) {
+    public <T extends CustomServicesDBPrimitive> T findById(final Class<T> clazz, final URI id) {
         return client.findById(clazz, id);  
     }
 
     @Override
-    public void save(final CustomServicesUserPrimitive primitive) {
+    public void save(final CustomServicesDBPrimitive primitive) {
         client.save(primitive);
     }
 
     @Override
-    public <T extends CustomServicesUserPrimitive> void deactivate(final Class<T> clazz, final URI id) {
-        final CustomServicesUserPrimitive primitive = findById(clazz, id);
+    public <T extends CustomServicesDBPrimitive> void deactivate(final Class<T> clazz, final URI id) {
+        final CustomServicesDBPrimitive primitive = findById(clazz, id);
         if( null == primitive ) {
             throw APIException.notFound.unableToFindEntityInURL(id);
         }
@@ -69,42 +67,12 @@ public class CustomServicesPrimitiveManagerImpl implements CustomServicesPrimiti
     }
 
     @Override
-    public <T extends CustomServicesPrimitiveResource> T findResource(final Class<T> clazz, final URI id) {
+    public <T extends CustomServicesDBResource> T findResource(final Class<T> clazz, final URI id) {
             return client.findById(clazz, id);  
     }
     
     @Override
-    public List<URI> findAllAnsibleIds() {
-        return client.findByType(CustomServicesAnsiblePrimitive.class);
-    }
-
-    @Override
-    public List<CustomServicesAnsiblePrimitive> findAllAnsible() {
-        final List<URI> ids = findAllAnsibleIds();
-        if( null == ids) {
-            return null;
-        }
-        List<CustomServicesAnsiblePrimitive> ansiblePrimitives = client.findByIds(CustomServicesAnsiblePrimitive.class, ids);
-        return ansiblePrimitives;
-    }
-
-
-    @Override
-    public List<URI> findAllScriptPrimitiveIds() {
-        return client.findByType(CustomServicesScriptPrimitive.class);
-    }
-    
-    @Override
-    public List<CustomServicesScriptPrimitive> findAllScriptPrimitives() {
-        final List<URI> ids = findAllScriptPrimitiveIds();
-        if( null == ids) {
-            return null;
-        }
-        List<CustomServicesScriptPrimitive> scriptPrimitives = client.findByIds(CustomServicesScriptPrimitive.class, ids);
-        return scriptPrimitives;
-    }
-    @Override
-    public <T extends CustomServicesPrimitiveResource> List<NamedElement> getResources(Class<T> type) {
+    public <T extends CustomServicesDBResource> List<NamedElement> getResources(Class<T> type) {
         return client.customServicesPrimitiveResources().list(type);
     }
 }

@@ -18,6 +18,7 @@ package com.emc.vipr.primitives;
 
 import java.net.URI;
 import java.util.List;
+import java.util.Map;
 
 import javax.lang.model.element.Modifier;
 
@@ -28,6 +29,7 @@ import com.emc.apidocs.model.ApiClass;
 import com.emc.apidocs.model.ApiField;
 import com.emc.apidocs.model.ApiMethod;
 import com.emc.apidocs.model.ApiService;
+import com.emc.storageos.primitives.CustomServicesPrimitive.InputType;
 import com.emc.storageos.primitives.ViPRPrimitive;
 import com.emc.storageos.primitives.input.BasicInputParameter;
 import com.emc.storageos.primitives.input.InputParameter;
@@ -36,10 +38,14 @@ import com.emc.storageos.primitives.output.OutputParameter;
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableList.Builder;
+import com.google.common.collect.ImmutableMap;
+import com.squareup.javapoet.ClassName;
 import com.squareup.javapoet.CodeBlock;
 import com.squareup.javapoet.FieldSpec;
 import com.squareup.javapoet.JavaFile;
 import com.squareup.javapoet.MethodSpec;
+import com.squareup.javapoet.ParameterizedTypeName;
+import com.squareup.javapoet.TypeName;
 import com.squareup.javapoet.TypeSpec;
 import com.sun.tools.javac.util.StringUtils;
 
@@ -52,7 +58,38 @@ public final class ApiPrimitiveMaker {
     private static final String PACKAGE = "com.emc.storageos.primitives";
     private static final String TASK_SUCCESS = "#task.state = ready";
     private static final String HTTP_SUCCESS = "code > 199 and code < 300";
-
+    
+    private static final MethodSpec FRIENDLY_NAME_METHOD = MethodSpec
+            .methodBuilder("friendlyName").addAnnotation(Override.class)
+            .addModifiers(Modifier.PUBLIC).addStatement("return FRIENDLY_NAME")
+            .returns(String.class).build();
+    
+    private static final MethodSpec DESCRIPTION_METHOD = MethodSpec
+            .methodBuilder("description").addAnnotation(Override.class)
+            .addModifiers(Modifier.PUBLIC).addStatement("return DESCRIPTION")
+            .returns(String.class).build();
+    
+    private static final MethodSpec SUCCESS_CRITERIA_METHOD = MethodSpec
+            .methodBuilder("successCriteria").addAnnotation(Override.class)
+            .addModifiers(Modifier.PUBLIC).addStatement("return SUCCESS_CRITERIA")
+            .returns(String.class).build();
+    
+    private static final MethodSpec INPUT_METHOD = MethodSpec
+            .methodBuilder("input").addAnnotation(Override.class)
+            .addModifiers(Modifier.PUBLIC).addStatement("return INPUT")
+            .returns(ParameterizedTypeName.get(ClassName.get(Map.class), TypeName.get(InputType.class), 
+                    ParameterizedTypeName.get(List.class, InputParameter.class))).build();
+    
+    private static final MethodSpec OUTPUT_METHOD = MethodSpec
+            .methodBuilder("output").addAnnotation(Override.class)
+            .addModifiers(Modifier.PUBLIC).addStatement("return OUTPUT")
+            .returns(ParameterizedTypeName.get(List.class, OutputParameter.class)).build();
+    
+    private static final MethodSpec ATTRIBUTES_METHOD = MethodSpec
+            .methodBuilder("attributes").addAnnotation(Override.class)
+            .addModifiers(Modifier.PUBLIC).addStatement("return ATTRIBUTES")
+            .returns(ParameterizedTypeName.get(Map.class, String.class, String.class)).build();
+    
     private static final MethodSpec PATH_METHOD = MethodSpec
             .methodBuilder("path").addAnnotation(Override.class)
             .addModifiers(Modifier.PUBLIC).addStatement("return PATH")
@@ -70,7 +107,9 @@ public final class ApiPrimitiveMaker {
 
     private static final ImmutableList<MethodSpec> METHODS = ImmutableList
             .<MethodSpec> builder()
-            .add(PATH_METHOD, METHOD_METHOD, BODY_METHOD).build();
+            .add(FRIENDLY_NAME_METHOD, DESCRIPTION_METHOD, SUCCESS_CRITERIA_METHOD,
+                    INPUT_METHOD, OUTPUT_METHOD, ATTRIBUTES_METHOD,
+                    PATH_METHOD, METHOD_METHOD, BODY_METHOD).build();
 
     private static ImmutableList<String> METHOD_BLACK_LIST = ImmutableList
             .<String> builder().add("assignTags").add("getTags").add("search")
@@ -158,7 +197,8 @@ public final class ApiPrimitiveMaker {
                 .add(makeStringConstant("PATH", method.path))
                 .add(makeStringConstant("METHOD", method.httpMethod))
                 .add(makeStringConstant("BODY", makeBody(method.input)))
-                .addAll(makeInput(method)).addAll(makeOutput(method)).build();
+                .addAll(makeInput(method)).addAll(makeOutput(method))
+                .add(makeAttributes()).build();
     }
 
     /**
@@ -245,7 +285,7 @@ public final class ApiPrimitiveMaker {
                 .constructorBuilder()
                 .addModifiers(Modifier.PUBLIC)
                 .addStatement(
-                        "super($T.create($S), $L.class.getName(), FRIENDLY_NAME, DESCRIPTION, SUCCESS_CRITERIA, INPUT, OUTPUT)",
+                        "super($T.create($S), $L.class.getName())",
                         URI.class, id, name).build();
     }
 
@@ -296,13 +336,19 @@ public final class ApiPrimitiveMaker {
             }
         }
 
+        builder.add(FieldSpec.builder(
+                ParameterizedTypeName.get(ImmutableList.class, InputParameter.class), "INPUT_LIST")
+                .addModifiers(Modifier.PRIVATE, Modifier.FINAL,Modifier.STATIC)
+                .initializer("new $T().add($L).build()", 
+                        ParameterizedTypeName.get(ImmutableList.Builder.class,InputParameter.class),
+                        Joiner.on(",").join(parameters.build())).build());
+        
         return builder.add(
                 FieldSpec
-                        .builder(InputParameter[].class, "INPUT")
-                        .addModifiers(Modifier.PRIVATE, Modifier.FINAL,
-                                Modifier.STATIC)
-                        .initializer("{$L}",
-                                Joiner.on(",").join(parameters.build()))
+                        .builder(ParameterizedTypeName.get(ClassName.get(Map.class), ClassName.get(InputType.class), 
+                                ParameterizedTypeName.get(List.class, InputParameter.class)), "INPUT")
+                        .addModifiers(Modifier.PRIVATE, Modifier.FINAL,Modifier.STATIC)
+                        .initializer("$T.of($T.$L, $L)", ImmutableMap.class, InputType.class, InputType.INPUT_PARAMS.name(), "INPUT_LIST")
                         .build()).build();
     }
 
@@ -335,15 +381,20 @@ public final class ApiPrimitiveMaker {
 
         return builder.add(
                 FieldSpec
-                        .builder(OutputParameter[].class, "OUTPUT")
-                        .addModifiers(Modifier.PRIVATE, Modifier.FINAL,
-                                Modifier.STATIC)
-                        .initializer("{$L}",
+                        .builder(ParameterizedTypeName.get(List.class, OutputParameter.class), "OUTPUT")
+                        .addModifiers(Modifier.PRIVATE, Modifier.FINAL, Modifier.STATIC)
+                        .initializer("new $T().add($L).build()", 
+                                ParameterizedTypeName.get(ImmutableList.Builder.class,OutputParameter.class),
                                 Joiner.on(",").join(parameters.build()))
-                        .build()).build();
+                                .build()).build();
 
     }
 
+    private static FieldSpec makeAttributes() {
+        return FieldSpec.builder(
+                ParameterizedTypeName.get(Map.class, String.class, String.class), "ATTRIBUTES")
+                .initializer("$T.of()", ImmutableMap.class).build();
+    }
     /**
      * Make a list of request parameters in this request
      * 

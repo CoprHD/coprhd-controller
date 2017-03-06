@@ -16,13 +16,22 @@
  */
 package com.emc.storageos.primitives;
 
-import com.emc.storageos.db.client.model.ModelObject;
+import java.util.Map;
+import java.util.Set;
+
+import com.emc.storageos.db.client.model.uimodels.CustomServicesDBScriptResource;
+
+public class CustomServicesScriptResource extends CustomServicesDBResourceType<CustomServicesDBScriptResource> {
 
 
-public abstract class CustomServicesPrimitiveType implements CustomServicesPrimitive {
+    public CustomServicesScriptResource(final CustomServicesDBScriptResource resource,
+            final Map<String, Set<String>> attributes) {
+        super(resource, attributes);
+    }
 
-    private static final long serialVersionUID = 1L;
+    @Override
+    public String suffix() {
+        return "sh";
+    }
 
-    public abstract String type();
-    public abstract ModelObject asModelObject();
 }

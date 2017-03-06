@@ -16,40 +16,51 @@
  */
 package com.emc.storageos.db.client.model.uimodels;
 
-import java.net.URI;
+import java.util.Set;
 
 import com.emc.storageos.db.client.model.Name;
+import com.emc.storageos.db.client.model.NamedURI;
+import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
+import com.emc.storageos.db.client.model.StringSetMap;
 
-public abstract class CustomServicesUserPrimitive extends CustomServicesPrimitive {
+public abstract class CustomServicesDBPrimitive extends CustomServicesPrimitiveModel {
 
     private static final long serialVersionUID = 1L;
     
     private static final String FRIENDLY_NAME = "friendlyName";
     private static final String DESCRIPTION = "description";
     private static final String SUCCESS_CRITERIA = "successCriteria";
+    private static final String ATTRIBUTES = "attributes";
+    private static final String INPUT = "input";
     private static final String OUTPUT = "output";
-
+    private static final String RESOURCE = "resource";
+    
     private String friendlyName;
     private String description;
     private String successCriteria;
+    private StringMap attributes;
+    private StringSetMap input;
     private StringSet output;
+    private NamedURI resource;
 
-    public CustomServicesUserPrimitive() {}
+    public CustomServicesDBPrimitive() {}
     
-    public CustomServicesUserPrimitive(final URI id, final String label,
-            final String friendlyName, final String description, final String successCriteria,
-            final StringSet output) {
-        setId(id);
-        setLabel(label);
-        this.friendlyName = friendlyName;
-        this.description = description;
-        this.successCriteria = successCriteria;  
-        this.output = output;
-        
-    }
+    public abstract Set<String> attributeKeys();
+    public abstract Set<String> inputTypes();
+    
+//    public CustomServicesDBPrimitive(final URI id, final String label,
+//            final String friendlyName, final String description, final String successCriteria,
+//            final StringSet output) {
+//        setId(id);
+//        setLabel(label);
+//        this.friendlyName = friendlyName;
+//        this.description = description;
+//        this.successCriteria = successCriteria;  
+//        this.output = output;
+//        
+//    }
 
-    @Override
     @Name(FRIENDLY_NAME)
     public String getFriendlyName() {
         return friendlyName;
@@ -60,7 +71,6 @@ public abstract class CustomServicesUserPrimitive extends CustomServicesPrimitiv
         setChanged(FRIENDLY_NAME);
     }
 
-    @Override
     @Name(DESCRIPTION)
     public String getDescription() {
         return description;
@@ -71,7 +81,6 @@ public abstract class CustomServicesUserPrimitive extends CustomServicesPrimitiv
         setChanged(DESCRIPTION);
     }
 
-    @Override
     @Name(SUCCESS_CRITERIA)
     public String getSuccessCriteria() {
         return successCriteria;
@@ -87,14 +96,39 @@ public abstract class CustomServicesUserPrimitive extends CustomServicesPrimitiv
         return output;
 
     }
+    
+    @Name(ATTRIBUTES)
+    public StringMap getAttributes() {
+        return attributes;
+    }
+    
+    public void setAttributes(final StringMap attributes) {
+        this.attributes = attributes;
+        setChanged(ATTRIBUTES);
+    }
 
     public void setOutput(final StringSet output) {
         this.output = output;
+        setChanged(OUTPUT);
     }
     
-    public abstract boolean isCustomServiceAnsiblePrimitive();
-    public abstract CustomServicesAnsiblePrimitive asCustomServiceAnsiblePrimitive(); 
-    public abstract boolean isCustomServiceScriptPrimitive();
-    public abstract CustomServicesScriptPrimitive asCustomServiceScriptPrimitive();
+    @Name(INPUT)
+    public StringSetMap getInput() {
+        return input;
+    }
     
+    public void setInput(final StringSetMap input) {
+        this.input = input;
+        setChanged(INPUT);
+    }
+    
+    @Name(RESOURCE)
+    public NamedURI getResource() {
+        return resource;
+    }
+    
+    public void setResource( final NamedURI resource ) {
+        this.resource = resource;
+        setChanged(RESOURCE);
+    }
 }

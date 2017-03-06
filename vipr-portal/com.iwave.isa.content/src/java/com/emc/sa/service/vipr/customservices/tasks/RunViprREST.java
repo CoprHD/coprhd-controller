@@ -74,11 +74,11 @@ public class RunViprREST extends ViPRExecutionTask<CustomServicesTaskResult> {
 
         String path = makePath(templatePath);
 
-        ExecutionUtils.currentContext().logInfo("runViprREST.startInfo", primitive.getFriendlyName());
+        ExecutionUtils.currentContext().logInfo("runViprREST.startInfo", primitive.friendlyName());
 
         CustomServicesTaskResult result = makeRestCall(path, requestBody, method);
 
-        ExecutionUtils.currentContext().logInfo("runViprREST.doneInfo", primitive.getFriendlyName());
+        ExecutionUtils.currentContext().logInfo("runViprREST.doneInfo", primitive.friendlyName());
 
         return result;
     }
@@ -127,7 +127,7 @@ public class RunViprREST extends ViPRExecutionTask<CustomServicesTaskResult> {
                         customServiceExecutionFailed("REST Execution Failed. Response returned is null");
             }
 
-            logger.info("Status of ViPR REST Operation:{} is :{}", primitive.getLabel(), response.getStatus());
+            logger.info("Status of ViPR REST Operation:{} is :{}", primitive.name(), response.getStatus());
 
 
             responseString = IOUtils.toString(response.getEntityInputStream(), "UTF-8");

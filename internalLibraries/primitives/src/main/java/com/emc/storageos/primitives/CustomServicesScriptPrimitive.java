@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 Dell Inc. or its subsidiaries.
+ * Copyright 2017 Dell Inc. or its subsidiaries.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,38 +16,30 @@
  */
 package com.emc.storageos.primitives;
 
-
-import java.net.URI;
 import java.util.List;
 import java.util.Map;
 
-import com.emc.storageos.db.client.model.uimodels.CustomServicesPrimitive;
+import com.emc.storageos.db.client.model.uimodels.CustomServicesDBScriptPrimitive;
 import com.emc.storageos.primitives.input.InputParameter;
 import com.emc.storageos.primitives.output.OutputParameter;
 
-/**
- * Abstract Class that contains the base properties of a primitive
- */
-public abstract class CustomServicesStaticPrimitive extends CustomServicesPrimitive {
-    
-    private static final long serialVersionUID = 1L;
-    
-    public CustomServicesStaticPrimitive(final URI id, final String name) {
-        super.setId(id);
-        super.setLabel(name);
+public class CustomServicesScriptPrimitive extends CustomServicesDBPrimitiveType {
+    private static final String TYPE = "script";
+ 
+    public CustomServicesScriptPrimitive(CustomServicesDBScriptPrimitive primitive,
+            final Map<InputType, List<InputParameter>> input,
+            final Map<String, String> attributes,
+            final List<OutputParameter> output) {
+        super(primitive, input, attributes, output);
     }
 
     @Override
-    public void setLabel(final String label) {
-        throw new UnsupportedOperationException();
+    public StepType stepType() {
+        return StepType.SHELL_SCRIPT;
     }
     
     @Override
-    public void setId(final URI id) {
-        throw new UnsupportedOperationException();
+    public String type() {
+        return TYPE;
     }
-    
-    public abstract Map<InputType, List<InputParameter>> getInput();
-    public abstract List<OutputParameter> getOutput();
-    
 }

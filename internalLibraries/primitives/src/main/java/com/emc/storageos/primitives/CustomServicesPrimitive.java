@@ -14,11 +14,17 @@
  * limitations under the License.
  *
  */
-package com.emc.storageos.db.client.model.uimodels;
+package com.emc.storageos.primitives;
 
-import com.emc.storageos.db.client.model.ModelObject;
+import java.net.URI;
+import java.util.List;
+import java.util.Map;
 
-public abstract class CustomServicesPrimitive extends ModelObject {
+import com.emc.storageos.db.client.model.NamedURI;
+import com.emc.storageos.primitives.input.InputParameter;
+import com.emc.storageos.primitives.output.OutputParameter;
+
+public interface CustomServicesPrimitive {
 
     public enum StepType {
         VIPR_REST("ViPR REST API"),
@@ -76,9 +82,15 @@ public abstract class CustomServicesPrimitive extends ModelObject {
         }
     }
     
-    public abstract String getFriendlyName();
-    public abstract String getDescription();
-    public abstract String getSuccessCriteria();
-    public abstract StepType getType();
+    public URI id();
+    public String name();
+    public String friendlyName();
+    public String description();
+    public String successCriteria();
+    public StepType stepType();
+    public Map<InputType, List<InputParameter>> input();
+    public List<OutputParameter> output();
+    public Map<String, String> attributes();
+    public NamedURI resource();
     
 }

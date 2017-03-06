@@ -40,7 +40,6 @@ import play.mvc.Controller;
 import play.mvc.With;
 import util.StringOption;
 
-import com.emc.storageos.db.client.model.uimodels.CustomServicesPrimitive;
 import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.customservices.CustomServicesPrimitiveCreateParam;
 import com.emc.storageos.model.customservices.CustomServicesPrimitiveList;
@@ -56,6 +55,7 @@ import com.emc.storageos.model.customservices.InputParameterRestRep;
 import com.emc.storageos.model.customservices.InputUpdateParam;
 import com.emc.storageos.model.customservices.OutputParameterRestRep;
 import com.emc.storageos.model.customservices.OutputUpdateParam;
+import com.emc.storageos.primitives.CustomServicesPrimitive;
 import com.emc.vipr.model.catalog.WFBulkRep;
 import com.emc.vipr.model.catalog.WFDirectoryParam;
 import com.emc.vipr.model.catalog.WFDirectoryRestRep;

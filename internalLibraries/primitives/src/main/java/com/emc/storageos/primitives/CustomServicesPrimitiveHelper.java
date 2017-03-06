@@ -16,96 +16,102 @@
  */
 package com.emc.storageos.primitives;
 
-import java.net.URI;
-import java.util.Set;
-
-import org.reflections.Reflections;
-import org.reflections.scanners.SubTypesScanner;
-
-import com.emc.storageos.db.client.URIUtil;
-import com.emc.storageos.db.client.model.uimodels.CustomServicesPrimitive;
-import com.emc.storageos.db.client.model.uimodels.CustomServicesUserPrimitive;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableMap.Builder;
 
 /**
  * Helper class to load primitives
  */
 public final class CustomServicesPrimitiveHelper {
     
-    private static final ImmutableMap<URI, CustomServicesStaticPrimitive> PRIMITIVES_MAP;
-
-    static {
-        Set<Class<? extends ViPRPrimitive>> primitives = 
-                new Reflections("com.emc.storageos", new SubTypesScanner()).getSubTypesOf(ViPRPrimitive.class);
-        final Builder<URI, CustomServicesStaticPrimitive> builder = ImmutableMap.<URI, CustomServicesStaticPrimitive>builder();
-        for( final Class<? extends ViPRPrimitive> primitive : primitives) {
-            final ViPRPrimitive instance;
-            try {
-                instance = primitive.newInstance();
-            } catch (final IllegalAccessException | InstantiationException e) {
-                throw new RuntimeException("Failed to create instance of primitive: "+primitive.getName(), e);
-            }
-        
-            builder.put(instance.getId(), instance);
-        }
-        PRIMITIVES_MAP = builder
-                .build();
-    }
-    
-    
-    private static final ImmutableList<CustomServicesStaticPrimitive> PRIMITIVES_LIST = ImmutableList.<CustomServicesStaticPrimitive>builder()
-            .addAll((PRIMITIVES_MAP.values()))
-            .build();
-    
-    public static ImmutableList<CustomServicesStaticPrimitive> list() {
-        return PRIMITIVES_LIST;
-    }
-    
-    public static CustomServicesStaticPrimitive get(final URI id) {
-        return PRIMITIVES_MAP.get(id);
-    }
-    
-    public static boolean isStatic(final CustomServicesPrimitiveType type) {
-        return type.type().isAssignableFrom(CustomServicesStaticPrimitive.class);
-    }
-    
-    public static boolean isCustomServicesUserPrimitive(final CustomServicesPrimitiveType type) {
-        return type.type().isAssignableFrom(CustomServicesUserPrimitive.class);
-    }
-    
-    public static Class<? extends CustomServicesUserPrimitive> userModel(final CustomServicesPrimitiveType type) {
-        if( isCustomServicesUserPrimitive(type)) {
-            return type.type().asSubclass(CustomServicesUserPrimitive.class);
-        }
-        return null;
-    }
-    
-    public static <T extends CustomServicesPrimitive> T toModel(final Class<T> clazz, final CustomServicesPrimitive primitive) {
-        if(primitive.getClass().isAssignableFrom(clazz)) {
-            return clazz.cast(primitive);
-        }
-        
-        return null;
-    }
-
-    public static CustomServicesPrimitiveType typeFromId(URI id) {
-        final String typeName = URIUtil.getTypeName(id);
-        for(CustomServicesPrimitiveType primitiveType : CustomServicesPrimitiveType.values()) {
-            if(primitiveType.type().equals(typeName)) {
-                return primitiveType;
-            }
-        }
-        return null;
-    }
-    
-    public static Class<? extends CustomServicesUserPrimitive > getUserModel(final URI id) {
-        CustomServicesPrimitiveType type = typeFromId(id);
-        if( type == null || isStatic(type)) {
-            return null;
-        } else {
-            return userModel(type);
-        }
-    }
+//    private static final ImmutableMap<URI, CustomServicesStaticPrimitiveModel> PRIMITIVES_MAP;
+//    private static final ImmutableMap<String, CustomServicesPrimitiveType> TYPES;
+//    static {
+//        Set<Class<? extends CustomServicesPrimitiveType>> types = new Reflections("com.emc.storageos", 
+//                new SubTypesScanner()).getSubTypesOf(CustomServicesPrimitiveType.class);
+//        final Builder<String, CustomServicesPrimitiveType> typeBuilder = ImmutableMap.<String, CustomServicesPrimitiveType>builder();
+//        for( final Class<? extends CustomServicesPrimitiveType> type : types ) {
+//            final CustomServicesPrimitiveType<?,?> typeInstance;
+//            try {
+//                typeInstance = type.newInstance();
+//            } catch(final IllegalAccessException | InstantiationException e) {
+//                throw new RuntimeException("Failed to create instance of type: " + type.getName(), e);
+//            }
+//            typeBuilder.put(typeInstance.name(), typeInstance);
+//        }
+//        TYPES = typeBuilder.build();
+//        
+//        Set<Class<? extends ViPRPrimitive>> primitives = 
+//                new Reflections("com.emc.storageos", new SubTypesScanner()).getSubTypesOf(ViPRPrimitive.class);
+//        final Builder<URI, CustomServicesStaticPrimitiveModel> builder = ImmutableMap.<URI, CustomServicesStaticPrimitiveModel>builder();
+//        for( final Class<? extends ViPRPrimitive> primitive : primitives) {
+//            final ViPRPrimitive instance;
+//            try {
+//                instance = primitive.newInstance();
+//            } catch (final IllegalAccessException | InstantiationException e) {
+//                throw new RuntimeException("Failed to create instance of primitive: "+primitive.getName(), e);
+//            }
+//        
+//            builder.put(instance.getId(), instance);
+//        }
+//        PRIMITIVES_MAP = builder
+//                .build();
+//    }
+//    
+//    
+//    private static final ImmutableList<CustomServicesStaticPrimitiveModel> PRIMITIVES_LIST = ImmutableList.<CustomServicesStaticPrimitiveModel>builder()
+//            .addAll((PRIMITIVES_MAP.values()))
+//            .build();
+//    
+//    public static ImmutableList<CustomServicesStaticPrimitiveModel> list() {
+//        return PRIMITIVES_LIST;
+//    }
+//    
+//    public static CustomServicesStaticPrimitiveModel get(final URI id) {
+//        return PRIMITIVES_MAP.get(id);
+//    }
+//    
+//    public static boolean isStatic(final CustomServicesPrimitiveTypeSave type) {
+//        return type.type().isAssignableFrom(CustomServicesStaticPrimitiveModel.class);
+//    }
+//    
+//    public static boolean isCustomServicesUserPrimitive(final CustomServicesPrimitiveTypeSave type) {
+//        return type.type().isAssignableFrom(CustomServicesDBPrimitive.class);
+//    }
+//    
+//    public static Class<? extends CustomServicesDBPrimitive> userModel(final CustomServicesPrimitiveTypeSave type) {
+//        if( isCustomServicesUserPrimitive(type)) {
+//            return type.type().asSubclass(CustomServicesDBPrimitive.class);
+//        }
+//        return null;
+//    }
+//    
+//    public static <T extends CustomServicesPrimitive> T toModel(final Class<T> clazz, final CustomServicesPrimitive primitive) {
+//        if(primitive.getClass().isAssignableFrom(clazz)) {
+//            return clazz.cast(primitive);
+//        }
+//        
+//        return null;
+//    }
+//
+//    public static CustomServicesPrimitiveTypeSave typeFromId(URI id) {
+//        final String typeName = URIUtil.getTypeName(id);
+//        for(CustomServicesPrimitiveTypeSave primitiveType : CustomServicesPrimitiveTypeSave.values()) {
+//            if(primitiveType.type().equals(typeName)) {
+//                return primitiveType;
+//            }
+//        }
+//        return null;
+//    }
+//    
+//    public static Class<? extends CustomServicesDBPrimitive > getUserModel(final URI id) {
+//        CustomServicesPrimitiveTypeSave type = typeFromId(id);
+//        if( type == null || isStatic(type)) {
+//            return null;
+//        } else {
+//            return userModel(type);
+//        }
+//    }
+//    
+//    public static CustomServicesPrimitiveType get(final String type) {
+//        return TYPES.get(type);
+//    }
 }

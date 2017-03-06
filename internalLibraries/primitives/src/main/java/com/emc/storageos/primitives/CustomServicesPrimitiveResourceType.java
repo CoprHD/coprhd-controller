@@ -16,13 +16,15 @@
  */
 package com.emc.storageos.primitives;
 
+import java.util.Map;
+import java.util.Set;
+
 import com.emc.storageos.db.client.model.ModelObject;
 
-
-public abstract class CustomServicesPrimitiveType implements CustomServicesPrimitive {
-
-    private static final long serialVersionUID = 1L;
-
-    public abstract String type();
-    public abstract ModelObject asModelObject();
+public interface CustomServicesPrimitiveResourceType {
+    public Map<String, Set<String>> attributes();
+    public ModelObject asModelObject();
+    public byte[] resource();
+    public String name();
+    public String suffix();
 }

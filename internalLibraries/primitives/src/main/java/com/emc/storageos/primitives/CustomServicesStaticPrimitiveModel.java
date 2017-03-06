@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Dell Inc. or its subsidiaries.
+ * Copyright 2016 Dell Inc. or its subsidiaries.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,13 +16,30 @@
  */
 package com.emc.storageos.primitives;
 
-import com.emc.storageos.db.client.model.ModelObject;
 
+import java.net.URI;
 
-public abstract class CustomServicesPrimitiveType implements CustomServicesPrimitive {
+import com.emc.storageos.db.client.model.uimodels.CustomServicesPrimitiveModel;
 
+public class CustomServicesStaticPrimitiveModel extends CustomServicesPrimitiveModel {
+    
     private static final long serialVersionUID = 1L;
+    
+    public CustomServicesStaticPrimitiveModel(final URI id, final String name) {
+        super.setId(id);
+        super.setLabel(name);
+    }
 
-    public abstract String type();
-    public abstract ModelObject asModelObject();
+    @Override
+    public void setLabel(final String label) {
+        throw new UnsupportedOperationException();
+    }
+    
+    @Override
+    public void setId(final URI id) {
+        throw new UnsupportedOperationException();
+    }
+    
+
+    
 }

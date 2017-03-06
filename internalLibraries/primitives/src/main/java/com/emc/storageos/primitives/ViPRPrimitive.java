@@ -18,20 +18,48 @@ package com.emc.storageos.primitives;
 
 import java.net.URI;
 
+import com.emc.storageos.db.client.model.ModelObject;
+import com.emc.storageos.db.client.model.NamedURI;
+
+
 /**
  * Base class for a primitive that represents a ViPR API call
  */
-public abstract class ViPRPrimitive extends CustomServicesStaticPrimitive {
-    
-    private static final long serialVersionUID = 1L;
+public abstract class ViPRPrimitive extends CustomServicesPrimitiveType {
 
-    public ViPRPrimitive(final URI id, final String name) {
-        super(id, name);
+    private final CustomServicesStaticPrimitiveModel model;
+    public ViPRPrimitive(URI id, String name) {
+        model = new CustomServicesStaticPrimitiveModel(id, name);
     }
 
+    @Override
+    public URI id() {
+        return model.getId();
+    }
+    
     @Override 
-    public StepType getType() {
+    public String name() {
+        return model.getLabel();
+    }
+    
+    @Override 
+    public String type() {
+        return "vipr";
+    }
+    
+    @Override 
+    public StepType stepType() {
         return StepType.VIPR_REST;
+    }
+    
+    @Override
+    public NamedURI resource() {
+        return null;
+    }
+    
+    @Override
+    public ModelObject asModelObject() {
+        return model;
     }
     
     public abstract String path();

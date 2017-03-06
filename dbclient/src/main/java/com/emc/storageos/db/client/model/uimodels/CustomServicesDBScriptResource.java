@@ -14,15 +14,11 @@
  * limitations under the License.
  *
  */
-package com.emc.storageos.primitives;
+package com.emc.storageos.db.client.model.uimodels;
 
-import com.emc.storageos.db.client.model.ModelObject;
+import com.emc.storageos.db.client.model.Cf;
 
+@Cf("CustomServiceDBScriptResource")
+public class CustomServicesDBScriptResource extends CustomServicesDBResource {
 
-public abstract class CustomServicesPrimitiveType implements CustomServicesPrimitive {
-
-    private static final long serialVersionUID = 1L;
-
-    public abstract String type();
-    public abstract ModelObject asModelObject();
 }

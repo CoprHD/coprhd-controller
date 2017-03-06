@@ -5726,6 +5726,16 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                 throw DeviceControllerExceptions.recoverpoint.failedEnableAccessOnRP();
             }
 
+            // Mark the snapshots
+            StringSet snapshots = new StringSet();
+            for (URI snapshotID : snapshotList) {
+                BlockSnapshot snapshot = _dbClient.queryObject(BlockSnapshot.class, snapshotID);
+                snapshot.setInactive(false);
+                snapshot.setIsSyncActive(true);
+                snapshots.add(snapshot.getNativeId());
+                _dbClient.updateObject(snapshot);
+            }
+
             completer.ready(_dbClient);
             return true;
 
@@ -6007,6 +6017,19 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                         throw DeviceControllerExceptions.recoverpoint.failedDisableAccessOnRP();
                     }
                 }
+            }
+
+            // Mark the snapshots
+            StringSet snapshots = new StringSet();
+            for (URI snapshotID : snapshotList) {
+                BlockSnapshot snapshot = _dbClient.queryObject(BlockSnapshot.class, snapshotID);
+                snapshot.setInactive(setSnapshotsInactive);
+                // If we are performing the disable as part of a snapshot create for an array snapshot + RP bookmark,
+                // we want to set the syncActive field to true. This will enable us to perform snapshot exports and
+                // remove snapshots from exports.
+                snapshot.setIsSyncActive(setSnapshotSyncActive);
+                snapshots.add(snapshot.getNativeId());
+                _dbClient.updateObject(snapshot);
             }
 
             completer.ready(_dbClient);

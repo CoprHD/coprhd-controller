@@ -14,9 +14,10 @@ import org.slf4j.LoggerFactory;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.Operation;
-import com.emc.storageos.db.client.model.ProtectionSet;
 import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.exceptions.DeviceControllerException;
+import com.emc.storageos.protectioncontroller.impl.recoverpoint.RPHelper;
 import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 
@@ -51,39 +52,10 @@ public class BlockSnapshotActivateCompleter extends BlockSnapshotTaskCompleter {
                         dbClient.error(Volume.class, volume.getId(), getOpId(), coded);
                         break;
                     case ready:
-                        // Mark the snapshots
-                        snapshot.setInactive(false);
-                        snapshot.setIsSyncActive(true);
-                        _log.info(String.format(
-                                "Updating inactive field to false and isSyncActive field to true for BlockSnapshot %s.",
-                                snapshot.getId()));
-                        dbClient.updateObject(snapshot);
-
-                        // For RP+VPLEX volumes, we need to fetch the VPLEX volume. The snapshot objects references the
-                        // block/back-end volume as its parent. Fetch the VPLEX volume that is created with this volume
-                        // as the back-end volume.
-                        if (Volume.checkForVplexBackEndVolume(dbClient, volume)) {
-                            volume = Volume.fetchVplexVolume(dbClient, volume);
-                        }
-
-                        Volume targetVolume = null;
-
-                        // If the personality is SOURCE, then the enable image access request is part of export operation.
-                        if (volume.checkPersonality(Volume.PersonalityTypes.SOURCE.toString())) {
-                            // Now determine the target volume that corresponds to the site of the snapshot
-                            ProtectionSet protectionSet = dbClient.queryObject(ProtectionSet.class, volume.getProtectionSet());
-                            targetVolume = ProtectionSet.getTargetVolumeFromSourceAndInternalSiteName(dbClient, protectionSet,
-                                    volume,
-                                    snapshot.getEmInternalSiteName());
-                        } else if (volume.checkPersonality(Volume.PersonalityTypes.TARGET.toString())) {
-                            targetVolume = volume;
-                        }
-
-                        if (targetVolume != null) {
-                            _log.info(String.format("Updating the access state to %s for target volume %s.",
-                                    Volume.VolumeAccessState.READWRITE.name(), targetVolume.getId()));
-                            targetVolume.setAccessState(Volume.VolumeAccessState.READWRITE.name());
-                            dbClient.updateObject(targetVolume);
+                        // Only execute the following logic if the snapshot is tied to a bookmark
+                        if (NullColumnValueGetter.isNotNullValue(snapshot.getEmName())) {
+                            // Update the target volume's access state
+                            RPHelper.updateAccessState(snapshot, volume, Volume.VolumeAccessState.READWRITE, dbClient);
                         }
                     default:
                         dbClient.ready(BlockSnapshot.class, snapshotUri, getOpId());

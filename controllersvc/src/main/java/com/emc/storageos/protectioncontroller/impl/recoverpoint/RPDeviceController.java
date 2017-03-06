@@ -5976,9 +5976,20 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
             Set<String> volumeWWNs = new HashSet<String>();
             String emName = "";
+
             for (URI snapshotID : snapshotList) {
                 // Get the volume associated with this snapshot
                 BlockSnapshot snapshot = _dbClient.queryObject(BlockSnapshot.class, snapshotID);
+
+                if (doDisableImageCopies(snapshot)) {
+                    // Skip this snapshot because we cannot disable image access. Likely due to the snapshot
+                    // being exported to multiple hosts.
+                    _log.warn(
+                            "Cannot disable image access for snapshot %s so it will be skipped.  Likely due to the snapshot being exported to multiple hosts",
+                            snapshot.getId());
+                    continue;
+                }
+
                 if (snapshot.getEmName() != null) {
                     emName = snapshot.getEmName();
                 }
@@ -6004,19 +6015,17 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
                     volumeWWNs.add(RPHelper.getRPWWn(targetVolume.getId(), _dbClient));
                 }
+            }
 
-                // Now disable image access to that bookmark
-                RecoverPointClient rp = RPHelper.getRecoverPointClient(system);
-                MultiCopyDisableImageRequestParams request = new MultiCopyDisableImageRequestParams();
-                request.setVolumeWWNSet(volumeWWNs);
-                request.setEmName(emName);
-                if (doDisableImageCopies(snapshot)) {
-                    MultiCopyDisableImageResponse response = rp.disableImageCopies(request);
+            // Now disable image access on the bookmark copies
+            RecoverPointClient rp = RPHelper.getRecoverPointClient(system);
+            MultiCopyDisableImageRequestParams request = new MultiCopyDisableImageRequestParams();
+            request.setVolumeWWNSet(volumeWWNs);
+            request.setEmName(emName);
+            MultiCopyDisableImageResponse response = rp.disableImageCopies(request);
 
-                    if (response == null) {
-                        throw DeviceControllerExceptions.recoverpoint.failedDisableAccessOnRP();
-                    }
-                }
+            if (response == null) {
+                throw DeviceControllerExceptions.recoverpoint.failedDisableAccessOnRP();
             }
 
             // Mark the snapshots

@@ -253,8 +253,8 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
         StorageSystem isilonCluster = null;
         long statsCount = 0;
         try {
-            _log.info("Metering for {} using ip {}", accessProfile.getSystemId(),
-                    accessProfile.getIpAddress());
+            _log.info("Metering for {} using ip {} and dbclient {}", accessProfile.getSystemId(),
+                    accessProfile.getIpAddress(), _dbClient.getClass().getName());
             IsilonApi api = getIsilonDevice(accessProfile);
             long latestSampleTime = accessProfile.getLastSampleTime();
             storageSystemId = accessProfile.getSystemId();

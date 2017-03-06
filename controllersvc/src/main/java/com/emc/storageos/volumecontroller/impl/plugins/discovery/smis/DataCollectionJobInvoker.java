@@ -18,7 +18,6 @@ import org.springframework.context.support.ClassPathXmlApplicationContext;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
-import com.emc.storageos.db.client.model.StorageSystem.Discovery_Namespaces;
 import com.emc.storageos.networkcontroller.impl.NetworkDeviceController;
 import com.emc.storageos.plugins.AccessProfile;
 import com.emc.storageos.plugins.BaseCollectionException;
@@ -28,6 +27,7 @@ import com.emc.storageos.volumecontroller.ControllerLockingService;
 import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.ControllerServiceImpl;
 import com.emc.storageos.volumecontroller.impl.plugins.ExtendedCommunicationInterface;
+import com.emc.storageos.volumecontroller.impl.utils.DbClientObjectLocalCache;
 
 /**
  * Loads Spring Context based on Profile & DeviceType i.e. Scanner-block
@@ -201,6 +201,7 @@ class DataCollectionJobInvoker {
      * @throws BaseCollectionException
      */
     private void invokeMetering() throws BaseCollectionException {
+        _commInterface.injectDBClient(new DbClientObjectLocalCache(_dbClient));
         _commInterface.collectStatisticsInformation(_accessProfile);
     }
 

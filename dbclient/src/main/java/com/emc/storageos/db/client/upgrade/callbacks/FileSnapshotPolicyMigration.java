@@ -107,7 +107,7 @@ public class FileSnapshotPolicyMigration extends BaseCustomMigrationCallback{
 	}
 
 	private List<URI> getAssignedResourcesURIs(StringSet assignedResources) {
-		List<URI> resourceURIs = null;
+		List<URI> resourceURIs = new ArrayList<URI>();
 		if(!assignedResources.isEmpty()){
 			logger.info("Converting String to URIs");
 			for(String resource : assignedResources){

@@ -1198,6 +1198,9 @@ public interface BadRequestExceptions {
     public BadRequestException moreThanOneRemoteCopiesSpecified();
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException moreThanOneReplicationPolicySpecified();
+
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException remoteCopyDoesNotExists(URI varray, URI vpool);
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)

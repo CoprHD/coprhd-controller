@@ -36,7 +36,7 @@ public class CustomServicesScriptResource extends CustomServicesDBResourceType<C
 
     @Override
     public String suffix() {
-        return "sh";
+        return ".sh";
     }
 
 }

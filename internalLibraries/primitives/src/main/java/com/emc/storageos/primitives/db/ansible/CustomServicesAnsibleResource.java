@@ -36,7 +36,7 @@ public class CustomServicesAnsibleResource extends CustomServicesDBResourceType<
 
     @Override
     public String suffix() {
-        return "tar";
+        return ".tar";
     }
 
 }

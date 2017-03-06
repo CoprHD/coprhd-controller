@@ -617,10 +617,11 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
                     if (storageSystem.deviceIsType(Type.vnxblock)) {
                         cleanupAnyGroupBackupSnapshots(storageSystem, volume);
                     }
-                    // Clean up any volume backup snapshots, if there are none this step will be skipped.
-                    cleanupAnyBackupSnapshots(storageSystem, volume);
                     // Remove the volume from the backend CG, if it's not actually in a backend CG this step will be skipped.
                     removeVolumeFromConsistencyGroup(storageSystem, volume);
+                    // Clean up any volume backup snapshots, if there are none this step will be skipped.
+                    cleanupAnyBackupSnapshots(storageSystem, volume);
+
                 } else {
                     // for VMAX3, clean up unlinked snapshot session, which is possible for ingested volume
                     if (storageSystem.deviceIsType(Type.vnxblock) || storageSystem.checkIfVmax3()) {

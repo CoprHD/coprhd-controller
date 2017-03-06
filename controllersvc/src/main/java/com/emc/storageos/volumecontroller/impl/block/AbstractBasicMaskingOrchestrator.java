@@ -22,6 +22,7 @@ import org.springframework.util.StringUtils;
 
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.BlockObject;
+import com.emc.storageos.db.client.model.DataObject.Flag;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportMask;
@@ -101,7 +102,8 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
      */
     public void findUpdateFreeHLUsForClusterExport(StorageSystem storage, ExportGroup exportGroup,
             List<URI> initiatorURIs, Map<URI, Integer> volumeMap) {
-        if (exportGroup.forCluster() && volumeMap.values().contains(ExportGroup.LUN_UNASSIGNED)
+        if (!exportGroup.checkInternalFlags(Flag.INTERNAL_OBJECT) && exportGroup.forCluster()
+                && volumeMap.values().contains(ExportGroup.LUN_UNASSIGNED)
                 && ExportUtils.systemSupportsConsistentHLUGeneration(storage)) {
             _log.info("Find and update free HLUs for Cluster Export START..");
             /**
@@ -159,7 +161,7 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
 
         Map<String, Integer> volumeHluPair = new HashMap<String, Integer>();
         // For 'add host to cluster' operation, validate and fail beforehand if HLU conflict is detected
-        if (exportGroup.forCluster() && exportGroup.getVolumes() != null
+        if (!exportGroup.checkInternalFlags(Flag.INTERNAL_OBJECT) && exportGroup.forCluster() && exportGroup.getVolumes() != null
                 && ExportUtils.systemSupportsConsistentHLUGeneration(storage)) {
             // get HLUs from ExportGroup as these are the volumes that will be exported to new Host.
             Collection<String> egHlus = exportGroup.getVolumes().values();

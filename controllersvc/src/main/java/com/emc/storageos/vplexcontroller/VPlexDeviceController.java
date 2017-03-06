@@ -884,8 +884,38 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
             }
             _log.info(String.format("Request to create: %s virtual volume(s) %s", volumeMap.size(), volumeLabels));
             long startTime = System.currentTimeMillis();
-            // Make a call to re-discover storage system for storageSystemGuids
-            client.rediscoverStorageSystems(storageSystemGuids);
+
+            // If a new backend system is connected to a VPLEX and the VPLEX does not
+            // yet know about the system i.e., the system does not show up in the path 
+            // /clusters/cluster-x/storage-elements/storage-arrays, and a user attempts
+            // to create a virtual volume, the request may fail because we cannot find 
+            // the storage system. When the backend volume on the new system is created 
+            // and exported to the VPLEX, the VPLEX will recognize new system. However, 
+            // this may not occur immediately. So, when we go to create the vplex volume 
+            // using that backend volume, we may not find that system and volume on the 
+            // first try. We saw this in development. As such there was a retry loop 
+            // added when finding the backend volumes in the discovery that is performed
+            // in the method to create the virtual volume.
+            //
+            // However changes for CTRL-12826 were merged on 7/31/2015 that circumvented 
+            // that retry code. Changes were made to do the array re-discover here prior
+            // to virtual volume creation, rather than during virtual volume creation and 
+            // false was passed to the create virtual volume routine for the discovery 
+            // required flag. The newly added call does not do any kind of retry if the 
+            // system is not found and so a failure will occur in the scenario described 
+            // above. If a system is not found an exception is thrown. Now we will catch
+            // that exception and re-enable discovery in the volume creation routine. 
+            // Essentially we revert to what was happening before the 12826 changes if there
+            // is an issue discovering the systems on the initial try here.
+            boolean discoveryRequired = false;
+            try {
+                client.rediscoverStorageSystems(storageSystemGuids);
+            } catch (Exception e) {
+                String warnMsg = String.format("Initial discovery of one or more of these backend systems %s failed: %s."
+                        + "Discovery is required during virtual volume creation", storageSystemGuids, e.getMessage()); 
+                _log.warn(warnMsg);
+                discoveryRequired = true;
+            }
 
             // Now make a call to the VPlexAPIClient.createVirtualVolume for each vplex volume.
             StringBuilder buf = new StringBuilder();
@@ -940,8 +970,8 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
                 // physical volumes.
                 boolean isDistributed = (vinfos.size() >= 2);
                 thinEnabled = thinEnabled && verifyVplexSupportsThinProvisioning(vplex);
-                VPlexVirtualVolumeInfo vvInfo = client.createVirtualVolume(vinfos, isDistributed, false, false, clusterId, clusterInfoList,
-                        false, thinEnabled);
+                VPlexVirtualVolumeInfo vvInfo = client.createVirtualVolume(vinfos, isDistributed,
+                        discoveryRequired, false, clusterId, clusterInfoList, false, thinEnabled);
 
                 // Note: according to client.createVirtualVolume, this will never be the case.
                 if (vvInfo == null) {
@@ -1072,7 +1102,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
             WorkflowStepCompleter.stepFailed(stepId, serviceError);
         }
     }
-
+    
     /**
      * Records a VPLEX volume event.
      *
@@ -1875,6 +1905,12 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
                     exportGroup.getInitiators());
 
             initiators = VPlexUtil.filterInitiatorsForVplex(_dbClient, initiators);
+
+            if (initiators == null || initiators.isEmpty()) {
+                _log.info("ExportGroup created with no initiators connected to VPLEX supplied, no need to orchestrate VPLEX further.");
+                completer.ready(_dbClient);
+                return;
+            }
 
             // Determine whether this export will be done across both VPLEX clusters, or just one.
             // If both, we will set up some data structures to handle both exports.
@@ -4028,7 +4064,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
 
         Map<String, Integer> volumeHluPair = new HashMap<String, Integer>();
         // For 'add host to cluster' operation, validate and fail beforehand if HLU conflict is detected
-        if (exportGroup.forCluster() && exportGroup.getVolumes() != null) {
+        if (!exportGroup.checkInternalFlags(Flag.INTERNAL_OBJECT) && exportGroup.forCluster() && exportGroup.getVolumes() != null) {
             // get HLUs from ExportGroup as these are the volumes that will be exported to new Host.
             Collection<String> egHlus = exportGroup.getVolumes().values();
             Collection<Integer> clusterHlus = Collections2.transform(egHlus, CommonTransformerFunctions.FCTN_STRING_TO_INTEGER);
@@ -5187,7 +5223,8 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
     public void findAndUpdateFreeHLUsForClusterExport(StorageSystem storage, ExportGroup exportGroup, List<URI> initiatorURIs,
             Map<URI, Integer> volumeMap) {
         try {
-            if (exportGroup.forCluster() && volumeMap.values().contains(ExportGroup.LUN_UNASSIGNED)
+            if (!exportGroup.checkInternalFlags(Flag.INTERNAL_OBJECT) && exportGroup.forCluster()
+                    && volumeMap.values().contains(ExportGroup.LUN_UNASSIGNED)
                     && ExportUtils.systemSupportsConsistentHLUGeneration(storage)) {
                 _log.info("Find and update free HLUs for Cluster Export START..");
                 /**

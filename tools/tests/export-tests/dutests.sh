@@ -1201,7 +1201,8 @@ test_4() {
     if [ "$SS" != "xio" ]; then
         PWWN=`echo ${H2PI1} | sed 's/://g'`
         if [ "$SS" = "unity" ]; then
-            PWWN="${H2NI1}:${H2PI1}"
+            # shouldn't add initiator of host2 to host1, using a random one
+            PWWN=`getwwn`
         fi
 
         # Add another initiator to the mask (done differently per array type)
@@ -1265,7 +1266,8 @@ test_4() {
 
     PWWN=`echo ${H2PI1} | sed 's/://g'`
     if [ "$SS" = "unity" ]; then
-        PWWN="${H2NI1}:${H2PI1}"
+        # shouldn't add initiator of host2 to host1, using a random one
+        PWWN=`getwwn`
     fi
 
     # Add another initiator to the mask (done differently per array type)
@@ -1373,7 +1375,8 @@ test_5() {
 
         PWWN=`echo ${H2PI1} | sed 's/://g'`
         if [ "$SS" = "unity" ]; then
-            PWWN="${H2NI1}:${H2PI1}"
+            # shouldn't add initiator of host2 to host1, using a random one
+            PWWN=`getwwn`
         fi
     
         # Add another initiator to the mask (done differently per array type)

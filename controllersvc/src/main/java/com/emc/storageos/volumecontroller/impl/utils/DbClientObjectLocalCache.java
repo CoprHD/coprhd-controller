@@ -38,14 +38,8 @@ public class DbClientObjectLocalCache extends DbClientImpl {
     
     public void init() {
         if (cache == null) {
-            throw new IllegalStateException();
-        }
-        this.cache.getDbClient().start();
-    }
-
-    public void setDbClient(DbClient dbClient) {
-        if (cache == null) {
-            cache = new ObjectLocalCache(dbClient, true);
+            this.start();
+            cache = new ObjectLocalCache(this, true);
         } else {
             throw new IllegalStateException();
         }

@@ -1440,14 +1440,20 @@
         <property name="locker" ref="locker" />
     </bean>
 
-    <bean id="dbClientObjectLocalCache"
-          class="com.emc.storageos.volumecontroller.impl.utils.DbClientObjectLocalCache" init-method="init">
-        <property name="dbClient" ref="dbclient" />
-    </bean>
-
     <bean id="meteringJobConsumer"
           class="com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.DataCollectionJobConsumer">
-        <property name="dbClient" ref="dbClientObjectLocalCache" />
+        <property name="dbClient" >
+            <bean class="com.emc.storageos.volumecontroller.impl.utils.DbClientObjectLocalCache" init-method="init">
+                <property name="coordinatorClient" ref="coordinator"/>
+                <property name="dbVersionInfo" ref="dbVersionInfo"/>
+                <property name="encryptionProvider" ref="encryptionProvider"/>
+                <property name="geoEncryptionProvider" ref="geoEncryptionProvider"/>
+                <property name="bypassMigrationLock" ref="serviceRunsDuringMigration"/>
+                <property name="localContext" ref="dbclientcontext"/>
+                <property name="geoContext" ref="geodbclientcontext"/>
+                <property name="drUtil" ref="drUtil"/>
+            </bean>
+        </property>
         <property name="coordinator" ref="coordinator" />
         <property name="util" ref="dataCollectionJobUtil" />
         <property name="configInfo" ref="configinfo" />

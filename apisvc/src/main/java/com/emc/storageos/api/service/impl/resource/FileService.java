@@ -1940,11 +1940,11 @@ public class FileService extends TaskResourceService {
         quotaDirectory.setProject(new NamedURI(fs.getProject().getURI(), origQtreeName));
         quotaDirectory.setTenant(new NamedURI(fs.getTenant().getURI(), origQtreeName));
         quotaDirectory.setSoftLimit(
-                param.getSoftLimit()>0 ? param.getSoftLimit() : fs.getSoftLimit().intValue()>0? fs.getSoftLimit().intValue() : 0);
+                param.getSoftLimit() > 0 ? param.getSoftLimit() : fs.getSoftLimit().intValue() > 0 ? fs.getSoftLimit().intValue() : 0);
         quotaDirectory.setSoftGrace(
-                param.getSoftGrace()>0 ? param.getSoftGrace() : fs.getSoftGracePeriod()>0 ? fs.getSoftGracePeriod() : 0);
-        quotaDirectory.setNotificationLimit(param.getNotificationLimit()>0 ? param.getNotificationLimit()
-                : fs.getNotificationLimit().intValue()>0 ? fs.getNotificationLimit().intValue() : 0);
+                param.getSoftGrace() > 0 ? param.getSoftGrace() : fs.getSoftGracePeriod() > 0 ? fs.getSoftGracePeriod() : 0);
+        quotaDirectory.setNotificationLimit(param.getNotificationLimit() > 0 ? param.getNotificationLimit()
+                : fs.getNotificationLimit().intValue() > 0 ? fs.getNotificationLimit().intValue() : 0);
 
         String convertedName = origQtreeName.replaceAll("[^\\dA-Za-z_]", "");
         _log.info("FileService::QuotaDirectory Original name {} and converted name {}", origQtreeName, convertedName);
@@ -3286,10 +3286,10 @@ public class FileService extends TaskResourceService {
         // Check for replication policy existence on file system..
         if (FileSystemReplicationUtils.getReplicationPolicyAppliedOnFS(sourceFileShare, _dbClient) == null) {
             notSuppReasonBuff
-            .append(String
-                    .format(
-                            "Mirror Operation {} is not supported for the file system {} as file system doesn't have any replication policy assigned/applied",
-                            op, sourceFileShare.getLabel()));
+                    .append(String
+                            .format(
+                                    "Mirror Operation {} is not supported for the file system {} as file system doesn't have any replication policy assigned/applied",
+                                    op, sourceFileShare.getLabel()));
             _log.error(notSuppReasonBuff.toString());
             throw APIException.badRequests.unableToPerformMirrorOperation(op, sourceFileShare.getId(),
                     notSuppReasonBuff.toString());
@@ -3477,6 +3477,21 @@ public class FileService extends TaskResourceService {
                     errorMsg.toString());
         }
 
+        // Verify the vpool/project/fs has any replication policy!!!
+        // only single replication policy per vpool/project/fs.
+        if (filePolicy.getFilePolicyType().equalsIgnoreCase(FilePolicyType.file_replication.name())
+                && FilePolicyServiceUtils.fsHasReplicationPolicy(_dbClient, vpool.getId(), fs.getProject().getURI(), fs.getId())) {
+            errorMsg.append("Provided vpool/project/fs has already assigned with replication policy.");
+            _log.error(errorMsg.toString());
+            throw APIException.badRequests.invalidFilePolicyAssignParam(filePolicy.getFilePolicyName(), errorMsg.toString());
+        }
+
+        if (FilePolicyServiceUtils.fsHasSnapshotPolicyWithSameSchedule(_dbClient, fs.getId(), filePolicy)) {
+            errorMsg.append("Snapshot policy with similar schedule is already present on fs " + fs.getLabel());
+            _log.error(errorMsg.toString());
+            throw APIException.badRequests.invalidFilePolicyAssignParam(filePolicy.getFilePolicyName(), errorMsg.toString());
+        }
+
         if (filePolicy.getFilePolicyType().equals(FilePolicyType.file_replication.name())
                 && fs.getMirrorfsTargets() == null) {
             return assignFileReplicationPolicyToFS(fs, filePolicy, param, task);
@@ -3521,37 +3536,34 @@ public class FileService extends TaskResourceService {
         ArgValidator.checkUri(filePolicyUri);
         FilePolicy fp = _permissionsHelper.getObjectById(filePolicyUri, FilePolicy.class);
         ArgValidator.checkEntityNotNull(fp, filePolicyUri, isIdEmbeddedInURL(filePolicyUri));
-        // verify the file system tenant is same as policy tenant
-        if(!(fp.getTenantOrg().contains(fs.getTenant().getURI().toString()))){
-            throw APIException.badRequests.associatedPolicyTenantMismatch(filePolicyUri, id);
-        }
+
         // verify the schedule policy is associated with file system or not.
         if (!fs.getFilePolicies().contains(filePolicyUri.toString())) {
             throw APIException.badRequests.cannotFindAssociatedPolicy(filePolicyUri);
         }
 
         StorageSystem device = _dbClient.queryObject(StorageSystem.class, fs.getStorageDevice());
-        FileController controller = getController(FileController.class, device.getSystemType());
+        FileOrchestrationController controller = getController(FileOrchestrationController.class,
+                FileOrchestrationController.FILE_ORCHESTRATION_DEVICE);
 
-        String path = fs.getMountPath();
-        _log.info("Mount path found {} ", path);
+        Operation op = _dbClient.createTaskOpStatus(FilePolicy.class, fp.getId(),
+                task, ResourceOperationTypeEnum.UNASSIGN_FILE_POLICY);
 
-        Operation op = _dbClient.createTaskOpStatus(FileShare.class, fs.getId(),
-                task, ResourceOperationTypeEnum.UNASSIGN_FILE_SYSTEM_SNAPSHOT_SCHEDULE);
         op.setDescription("Filesystem unassign policy");
 
         try {
+            Set<URI> unassignFrom = new HashSet<URI>();
+            unassignFrom.add(id);
 
             _log.info("No Errors found proceeding further {}, {}, {}", new Object[] { _dbClient, fs, fp });
+            controller.unassignFilePolicy(filePolicyUri, unassignFrom, task);
 
-            controller.unassignFileSystemSnapshotPolicy(device.getId(), fs.getId(), fp.getId(), task);
-
-            auditOp(OperationTypeEnum.ASSIGN_FILE_SYSTEM_SNAPSHOT_SCHEDULE, true, AuditLogManager.AUDITOP_BEGIN,
-                    fs.getId().toString(), device.getId().toString(), fp.getId());
+            auditOp(OperationTypeEnum.UNASSIGN_FILE_POLICY, true, "BEGIN", fp.getId().toString(),
+                    fp.getFilePolicyName());
 
         } catch (BadRequestException e) {
-            op = _dbClient.error(FileShare.class, fs.getId(), task, e);
-            _log.error("Error Unassigning Filesystem policy {}, {}", e.getMessage(), e);
+            op = _dbClient.error(FilePolicy.class, fp.getId(), task, e);
+            _log.error("Error Unassigning File policy {}, {}", e.getMessage(), e);
             throw e;
         } catch (Exception e) {
             _log.error("Error Unassigning Filesystem policy {}, {}", e.getMessage(), e);

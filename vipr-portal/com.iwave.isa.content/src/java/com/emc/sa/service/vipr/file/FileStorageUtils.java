@@ -83,7 +83,6 @@ import com.emc.storageos.model.file.ShareACL;
 import com.emc.storageos.model.file.ShareACLs;
 import com.emc.storageos.model.file.SmbShareResponse;
 import com.emc.storageos.model.file.SnapshotExportUpdateParams;
-import com.emc.storageos.model.file.policy.FilePolicyRestRep;
 import com.emc.storageos.volumecontroller.FileControllerConstants;
 import com.emc.vipr.client.Task;
 import com.emc.vipr.client.Tasks;
@@ -606,7 +605,7 @@ public class FileStorageUtils {
         return execute(new AssociateFilePolicyToFileSystem(fileSystemId, filePolicyId, targetVArray));
     }
 
-    public static Task<FilePolicyRestRep> dissociateFilePolicy(URI fileSystemId, URI filePolicyId) {
+    public static Task<FileShareRestRep> dissociateFilePolicy(URI fileSystemId, URI filePolicyId) {
         return execute(new DissociateFilePolicyFromFileSystem(fileSystemId, filePolicyId));
     }
 

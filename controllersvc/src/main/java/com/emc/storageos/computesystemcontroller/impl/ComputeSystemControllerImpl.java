@@ -400,7 +400,9 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
             if (deactivateOnComplete) {
                 waitFor = computeDeviceController.addStepsVcenterHostCleanup(workflow, waitFor, host);
             }
-            
+
+            waitFor = checkForHostVirtualMachines(workflow, waitFor, host);
+
             String unassociateStepId = workflow.createStepId();
             
             waitFor = addStepsForExportGroups(workflow, waitFor, host);
@@ -420,6 +422,53 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
             ServiceError serviceError = DeviceControllerException.errors.jobFailed(ex);
             completer.error(_dbClient, serviceError);
         }
+    }
+
+    private String checkForClusterVirtualMachines(Workflow workflow, String waitFor, URI clusterId) {
+        Cluster cluster = _dbClient.queryObject(Cluster.class, clusterId);
+
+        String newWaitFor = waitFor;
+        if (!NullColumnValueGetter.isNullURI(cluster.getVcenterDataCenter())) {
+            List<ExportGroup> exportGroups = getSharedExports(_dbClient, clusterId);
+            List<URI> clusterHosts = ComputeSystemHelper.getChildrenUris(_dbClient, clusterId, Host.class, "cluster");
+
+            URI vcenterDataCenter = cluster.getVcenterDataCenter();
+            Collection<URI> exportIds = Collections2.transform(exportGroups, CommonTransformerFunctions.fctnDataObjectToID());
+            Map<URI, Collection<URI>> hostExports = Maps.newHashMap();
+
+            for (URI host : clusterHosts) {
+                hostExports.put(host, exportIds);
+            }
+
+            newWaitFor = this.verifyDatastoreForRemoval(hostExports, vcenterDataCenter, newWaitFor, workflow);
+
+            newWaitFor = this.unmountAndDetachVolumes(hostExports, vcenterDataCenter, newWaitFor, workflow);
+        }
+
+        return newWaitFor;
+    }
+
+    private String checkForHostVirtualMachines(Workflow workflow, String waitFor, URI hostId) {
+        Host host = _dbClient.queryObject(Host.class, hostId);
+
+        String newWaitFor = waitFor;
+        if (!NullColumnValueGetter.isNullURI(host.getVcenterDataCenter())) {
+
+            URI vcenterDataCenter = host.getVcenterDataCenter();
+            List<Initiator> hostInitiators = ComputeSystemHelper.queryInitiators(_dbClient, hostId);
+            List<ExportGroup> exportGroups = getExportGroups(_dbClient, hostId, hostInitiators);
+
+            Collection<URI> exportIds = Collections2.transform(exportGroups, CommonTransformerFunctions.fctnDataObjectToID());
+            Map<URI, Collection<URI>> hostExports = Maps.newHashMap();
+
+            hostExports.put(hostId, exportIds);
+
+            newWaitFor = this.verifyDatastoreForRemoval(hostExports, vcenterDataCenter, newWaitFor, workflow);
+
+            newWaitFor = this.unmountAndDetachVolumes(hostExports, vcenterDataCenter, newWaitFor, workflow);
+        }
+
+        return newWaitFor;
     }
 
     @Override
@@ -505,6 +554,24 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
             // clean all export related to host in datacenter
             List<NamedElementQueryResultList.NamedElement> hostUris = ComputeSystemHelper.listChildren(_dbClient,
                     dataCenter.getId(), Host.class, "label", "vcenterDataCenter");
+
+            for (NamedElementQueryResultList.NamedElement hostUri : hostUris) {
+                Host host = _dbClient.queryObject(Host.class, hostUri.getId());
+                // do not detach storage of provisioned hosts
+                if (host != null && !host.getInactive() && NullColumnValueGetter.isNullURI(host.getComputeElement())) {
+                    waitFor = checkForHostVirtualMachines(workflow, waitFor, host.getId());
+                }
+            }
+
+            List<NamedElementQueryResultList.NamedElement> clustersUris = ComputeSystemHelper.listChildren(_dbClient,
+                    dataCenter.getId(), Cluster.class, "label", "vcenterDataCenter");
+            for (NamedElementQueryResultList.NamedElement clusterUri : clustersUris) {
+                Cluster cluster = _dbClient.queryObject(Cluster.class, clusterUri.getId());
+                if (cluster != null && !cluster.getInactive()) {
+                    waitFor = checkForClusterVirtualMachines(workflow, waitFor, cluster.getId());
+                }
+            }
+
             for (NamedElementQueryResultList.NamedElement hostUri : hostUris) {
                 Host host = _dbClient.queryObject(Host.class, hostUri.getId());
                 // do not detach storage of provisioned hosts

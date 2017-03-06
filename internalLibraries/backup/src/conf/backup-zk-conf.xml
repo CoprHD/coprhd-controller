@@ -21,6 +21,7 @@
         <property name="nodeCount" ref="nodeCount"/>
         <property name="zkDir" ref="zkBackupFolder" />
         <property name="siteIdFile" ref="siteIdPath" />
+        <property name="driverPath" ref="driverPath" />
         <property name="fileTypeList">
             <list value-type="java.lang.String">
                 <value>log.</value>
@@ -41,6 +42,10 @@
 
     <bean id="siteIdPath" class="java.io.File">
         <constructor-arg value="/data/zk/siteid" />
+    </bean>
+
+    <bean id="driverPath" class="java.io.File">
+        <constructor-arg value="/data/drivers" />
     </bean>
 </beans>
 

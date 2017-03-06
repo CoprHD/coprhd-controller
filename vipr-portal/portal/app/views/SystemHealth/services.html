@@ -54,6 +54,7 @@
         <li><a href="@{logs()}?nodeId={{row.nodeId}}&serviceName={{row.name}}&startTime={{time}}">{{'system.stats.logs' | t}}</a></li>
         #{deadbolt.restrict roles:[['SYSTEM_ADMIN'], ['SECURITY_ADMIN'], ['RESTRICTED_SECURITY_ADMIN']]}
           <li><a href="{{restartUrl}}" onclick="if (!confirm('&{'adminDashboard.confirm.restart'}'')){return false;}">{{'system.stats.restart' | t}}</a></li>
+          <li ng-if="rstatus != 'Good' && (rname === 'dbsvc' || rname === 'geodbsvc')"><a href="@{nodeRecoveryVapp}">{{'system.stats.recover' | t}}</a></li>
         #{/deadbolt.restrict}
       </ul>
   </div>
@@ -70,6 +71,8 @@
              link: function(scope, elem, attrs) {
                  scope.restartUrl = serviceRestartUrl({'serviceName': scope.row.name });
                  scope.time = new Date().getTime() - (3600000);
+                 scope.rname = scope.row.name;
+                 scope.rstatus = scope.row.status;
              }
          }
      } 

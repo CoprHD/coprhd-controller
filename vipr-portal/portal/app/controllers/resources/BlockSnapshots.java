@@ -17,10 +17,13 @@ import org.apache.commons.lang.StringUtils;
 
 import play.data.binding.As;
 import play.mvc.With;
+import plugin.StorageOsPlugin;
 import util.BourneUtil;
 import util.MessagesUtils;
 import util.datatable.DataTablesSupport;
 
+import com.emc.storageos.coordinator.client.model.Constants;
+import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.block.BlockSnapshotRestRep;
 import com.emc.storageos.model.block.VolumeDeleteTypeEnum;
@@ -44,6 +47,11 @@ public class BlockSnapshots extends ResourceController {
     public static void snapshots(String projectId) {
         setActiveProjectId(projectId);
         renderArgs.put("dataTable", blockSnapshotsDataTable);
+
+        CoordinatorClient coordinatorClient = StorageOsPlugin.getInstance().getCoordinatorClient();
+        String limit = coordinatorClient.getPropertyInfo().getProperty(Constants.RESOURCE_LIMIT_PROJECT_SNAPSHOTS);
+        renderArgs.put(Constants.RESOURCE_LIMIT_PROJECT_SNAPSHOTS, limit);
+        
         addReferenceData();
         render();
     }

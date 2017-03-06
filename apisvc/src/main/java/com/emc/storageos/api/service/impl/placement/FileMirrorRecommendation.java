@@ -9,11 +9,8 @@ import java.net.URI;
 import java.util.List;
 import java.util.Map;
 
-import com.emc.storageos.volumecontroller.Recommendation;
-
 public class FileMirrorRecommendation extends FileRecommendation {
     private String copyMode;
-    
 
     public FileMirrorRecommendation(FileRecommendation sourceFileRecommendation) {
         super(sourceFileRecommendation);
@@ -21,13 +18,13 @@ public class FileMirrorRecommendation extends FileRecommendation {
 
     public FileMirrorRecommendation() {
     }
-    
+
     public static class Target implements Serializable {
-        
+
         // Target (for protection only)
         private URI targetDevice;
         private URI targetPool;
-        
+
         private List<URI> targetStoragePortUris;
         private URI targetvNASURI;
 
@@ -46,7 +43,7 @@ public class FileMirrorRecommendation extends FileRecommendation {
         public void setTargetStorageDevice(URI targetDevice) {
             this.targetDevice = targetDevice;
         }
-        
+
         public List<URI> getTargetStoragePortUris() {
             return targetStoragePortUris;
         }
@@ -74,7 +71,7 @@ public class FileMirrorRecommendation extends FileRecommendation {
             Map<URI, FileMirrorRecommendation.Target> varrayTargetMap) {
         this._varrayTargetMap = varrayTargetMap;
     }
-    
+
     public String getCopyMode() {
         return copyMode;
     }

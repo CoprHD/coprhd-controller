@@ -12,14 +12,12 @@ import static com.emc.sa.service.ServiceParams.VOLUMES;
 import java.net.URI;
 import java.util.List;
 
-import com.emc.sa.asset.providers.BlockProvider;
 import com.emc.sa.engine.bind.Param;
 import com.emc.sa.engine.service.Service;
 import com.emc.sa.service.vipr.ViPRService;
-import com.emc.sa.service.vipr.block.tasks.DeactivateBlockSnapshot;
-import com.emc.sa.service.vipr.block.tasks.DeactivateBlockSnapshotSession;
 import com.emc.storageos.db.client.model.uimodels.RetainedReplica;
 import com.emc.storageos.model.DataObjectRestRep;
+import com.emc.storageos.model.block.BlockObjectRestRep;
 import com.emc.storageos.model.block.VolumeDeleteTypeEnum;
 import com.emc.vipr.client.Task;
 import com.emc.vipr.client.Tasks;
@@ -76,8 +74,9 @@ public class CreateFullCopyService extends ViPRService {
         List<RetainedReplica> replicas = findObsoleteReplica(volumeOrCgId);
         for (RetainedReplica replica : replicas) {
             for (String obsoleteCopyId : replica.getAssociatedReplicaIds()) {
-                info("Delete full copy %s since it exceeds max number of copies allowed", obsoleteCopyId);
-    
+                BlockObjectRestRep obsoleteCopy = BlockStorageUtils.getVolume(uri(obsoleteCopyId));
+                info("Delete full copy %s (%s) since it exceeds max number of copies allowed", obsoleteCopyId, obsoleteCopy.getName());
+                
                 if (ConsistencyUtils.isVolumeStorageType(storageType)) {
                     BlockStorageUtils.removeFullCopy(uri(obsoleteCopyId), VolumeDeleteTypeEnum.FULL);
                 } else {

@@ -12,7 +12,7 @@ import java.util.UUID;
 /**
  * Composite column name for all index entries
  */
-public class IndexColumnName {
+public class IndexColumnName implements CompositeIndexColumnName {
     private @Component(ordinal = 0)
     String _one;
     private @Component(ordinal = 1)
@@ -53,22 +53,27 @@ public class IndexColumnName {
         _timeUUID = timeUUID;
     }
 
+    @Override
     public String getOne() {
         return _one;
     }
 
+    @Override
     public String getTwo() {
         return _two;
     }
 
+    @Override
     public String getThree() {
         return _three;
     }
 
+    @Override
     public String getFour() {
         return _four;
     }
 
+    @Override
     public UUID getTimeUUID() {
         return _timeUUID;
     }

@@ -12,6 +12,7 @@ import java.net.URI;
 public class VPlexApiConstants {
 
     // VPLEX firmware version strings for testing availability of certain features
+    public static final String FIRMWARE_MIXED_VERSIONS = "mixed";
     public static final String MIN_VERSION_THIN_PROVISIONING = "5.5.1.00.00.00";
 
     // Constants define the headers required when making HTTP requests to the

@@ -13,7 +13,6 @@ import javax.cim.CIMObjectPath;
 import javax.wbem.WBEMException;
 import javax.wbem.client.WBEMClient;
 
-import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -24,6 +23,7 @@ import com.emc.storageos.cimadapter.connections.cim.CimConnection;
 import com.emc.storageos.cimadapter.connections.cim.CimConnectionInfo;
 import com.emc.storageos.cimadapter.connections.cim.CimConstants;
 import com.emc.storageos.cimadapter.connections.cim.CimObjectPathCreator;
+import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
 import com.emc.storageos.db.client.model.StorageProvider;

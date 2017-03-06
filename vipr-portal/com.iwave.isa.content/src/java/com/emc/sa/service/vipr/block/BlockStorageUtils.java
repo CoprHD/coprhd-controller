@@ -38,6 +38,7 @@ import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.Logger;
 
+import com.emc.sa.engine.ExecutionContext;
 import com.emc.sa.engine.ExecutionException;
 import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.engine.bind.Param;
@@ -53,6 +54,7 @@ import com.emc.sa.service.vipr.block.tasks.AddHostToExport;
 import com.emc.sa.service.vipr.block.tasks.AddJournalCapacity;
 import com.emc.sa.service.vipr.block.tasks.AddVolumesToConsistencyGroup;
 import com.emc.sa.service.vipr.block.tasks.AddVolumesToExport;
+import com.emc.sa.service.vipr.block.tasks.AdjustExportPaths;
 import com.emc.sa.service.vipr.block.tasks.CreateBlockVolume;
 import com.emc.sa.service.vipr.block.tasks.CreateBlockVolumeByName;
 import com.emc.sa.service.vipr.block.tasks.CreateContinuousCopy;
@@ -109,6 +111,7 @@ import com.emc.sa.service.vipr.tasks.GetStorageSystem;
 import com.emc.sa.service.vipr.tasks.GetVirtualArray;
 import com.emc.sa.util.DiskSizeConversionUtils;
 import com.emc.sa.util.ResourceType;
+import com.emc.storageos.coordinator.client.model.Constants;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.Cluster;
 import com.emc.storageos.db.client.model.DataObject;
@@ -134,6 +137,7 @@ import com.emc.storageos.model.block.VolumeRestRep.FullCopyRestRep;
 import com.emc.storageos.model.block.export.ExportBlockParam;
 import com.emc.storageos.model.block.export.ExportGroupRestRep;
 import com.emc.storageos.model.block.export.ITLRestRep;
+import com.emc.storageos.model.block.export.InitiatorPathParam;
 import com.emc.storageos.model.systems.StorageSystemRestRep;
 import com.emc.storageos.model.varray.VirtualArrayRestRep;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
@@ -388,6 +392,17 @@ public class BlockStorageUtils {
 
     public static ExportGroupRestRep findEmptyExportsByName(String name, URI projectId, URI varrayId) {
         return execute(new FindEmptyExportByName(name, projectId, varrayId));
+    }
+    
+    public static URI adjustExportPaths(URI vArray, Integer minPaths, Integer maxPaths, Integer pathsPerInitiator,
+            URI storageSystemId, URI id, List<InitiatorPathParam> addedPaths, List<InitiatorPathParam> removedPaths,
+            boolean suspendWait) {
+        
+        Task<ExportGroupRestRep> task = execute(new AdjustExportPaths(vArray, minPaths, maxPaths, pathsPerInitiator,
+                storageSystemId, id, addedPaths, removedPaths, suspendWait));
+        URI exportId = task.getResourceId();
+        addAffectedResource(exportId);
+        return exportId;
     }
 
     public static List<URI> addJournalCapacity(URI projectId, URI virtualArrayId, URI virtualPoolId, double sizeInGb, Integer count,
@@ -1522,4 +1537,13 @@ public class BlockStorageUtils {
         return group != null && group.getTypes().contains(BlockConsistencyGroup.Types.SRDF.name());
     }
 
+    public static void checkVolumeLimit(ViPRCoreClient client, URI project) {
+        ExecutionContext context = ExecutionUtils.currentContext();
+        long limit = context.getResourceLimit(Constants.RESOURCE_LIMIT_PROJECT_VOLUMES);
+        int numOfVolumes = client.blockVolumes().countByProject(project);
+        // Show alert in case of approaching 90% of the limit
+        if (numOfVolumes >= limit * Constants.RESOURCE_LIMIT_ALERT_RATE) {
+            context.logWarn("alert.createVolume.exceedingResourceLimit", numOfVolumes, limit);
+        }
+    }
 }

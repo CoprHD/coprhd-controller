@@ -43,17 +43,17 @@ def task_delete(args):
         names = args.name.split(',')
         for name in names:
             print "Querying for task: " + name
-            task = bourne.task_show(uri)
+            task = bourne.task_show(name)
             # Only remove active tasks
             if (not task['inactive']):
-                uris.append(uri)
+                uris.append(task['id'])
     start = time.time()
     if (len(uris) > 1):
         print "Multi task delete"
         (o, s, m) = bourne.task_multi_delete(uris, args.wait, args.vipronly, args.force)
     elif (len(uris) == 1):
         print "Single task delete"
-        (o, s, m) = bourne.task_delete(uris[0], args.wait, args.vipronly, args.force)
+        o = bourne.task_delete(uris[0])
     else:
         print "No active tasks to delete"
         o = "There were no active tasks to delete"
@@ -69,14 +69,40 @@ def task_show(args):
     task_op = bourne.task_show(args.id)
     bourne.pretty_print_json(task_op)
 
+def task_check_for_pending(args):
+    pending_values = ['pending','queued']
+    bourne.connect(args.ip)
+    if (args.system):
+        res = bourne.task_list_system()
+    else:
+        res = bourne.task_list()
+    tasks = res['task']
+    task_count = 0
+    for r in tasks:
+        task = bourne.task_show(r['id'])
+        state = task['state']
+        if (state in pending_values):
+            task_count = task_count + 1
+            task_display(task)
+
+    print task_count, " pending tasks"
+
+    if (args.fail and task_count > 0):
+        raise Exception('penging tasks exist')
+
 def task_list(args):
     bourne.connect(args.ip)
     task_display_hdr()
-    res = bourne.task_list()
+    if (args.system):
+        res = bourne.task_list_system()
+    else:
+        res = bourne.task_list()
     tasks = res['task']
     for r in tasks:
         task = bourne.task_show(r['id'])
-        task_display(task)
+        state = task['state']
+        if (not args.state or state in args.state.split(',')):
+            task_display(task)
 
 def task_bulkget(args):
     bourne.connect(args.ip)
@@ -147,6 +173,8 @@ show.add_argument('id',	help = 'URI of task')
 
 # task list project
 list = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+list.add_argument('--system', action='store_true', help = 'List system tasks')
+list.add_argument('--state', help = 'List tasks matching a list of states')
 
 # task bulkget
 bulkget = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
@@ -165,6 +193,11 @@ search.add_argument('--name',    metavar = 'name', help = 'name for search ', de
 search.add_argument('--tag',     metavar = 'tag',    help = 'tag for search ', default=None)
 search.add_argument('--project', metavar = 'project',help = 'search within project', default=None)
 search.add_argument('--wwn', metavar = 'wwn',help = 'search for task with given wwn', default=None)
+
+# task check for pending
+check_for_pending = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+check_for_pending.add_argument('--fail', action='store_true', help = 'fail if pending tasks exist')
+check_for_pending.add_argument('--system', action='store_true', help = 'check for pending system tasks')
 
 
 #----------------------------------------------------------------------
@@ -201,6 +234,9 @@ try:
     elif(cmd == "search"):
         args = search.parse_args()
         task_search(args)
+    elif(cmd == "check_for_pending"):
+        args = check_for_pending.parse_args()
+        task_check_for_pending(args)
     else:
         parser.print_help()
 

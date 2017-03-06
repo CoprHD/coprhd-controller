@@ -13,9 +13,9 @@ import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.VirtualPool;
-import com.emc.storageos.db.client.model.VirtualPool.FileReplicationType;
 import com.emc.storageos.db.client.model.VpoolProtectionVarraySettings;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
+import com.emc.storageos.model.file.policy.FileProtectionRemoteSettings;
 import com.emc.storageos.volumecontroller.AttributeMatcher.Attributes;
 import com.google.common.base.Joiner;
 
@@ -27,7 +27,7 @@ public class VirtualPoolAttributeMapBuilder extends AttributeMapBuilder {
     private VirtualPool _vpool = null;
     private Map<URI, VpoolProtectionVarraySettings> protectionSettings = null;
     private Map<String, List<String>> remoteProtectionSettings = null;
-    private Map<String, List<String>> fileRemoteProtectionSettings = null;
+    private Map<String, FileProtectionRemoteSettings> fileRemoteProtectionSettings = null;
     private static final Logger _logger = LoggerFactory
             .getLogger(VirtualPoolAttributeMapBuilder.class);
 
@@ -45,7 +45,7 @@ public class VirtualPoolAttributeMapBuilder extends AttributeMapBuilder {
     }
 
     public VirtualPoolAttributeMapBuilder(VirtualPool vpool, Map<URI, VpoolProtectionVarraySettings> map,
-            Map<String, List<String>> remoteProtectionSettings, Map<String, List<String>> fileRemoteProtectionSettings) {
+            Map<String, List<String>> remoteProtectionSettings, Map<String, FileProtectionRemoteSettings> fileRemoteProtectionSettings) {
         _vpool = vpool;
         protectionSettings = map;
         this.remoteProtectionSettings = remoteProtectionSettings;
@@ -84,6 +84,24 @@ public class VirtualPoolAttributeMapBuilder extends AttributeMapBuilder {
         if (null != _vpool.getScheduleSnapshots()) {
             putAttributeInMap(Attributes.schedule_snapshots.toString(), _vpool.getScheduleSnapshots());
         }
+
+        if (null != _vpool.getFileReplicationSupported()) {
+            putAttributeInMap(Attributes.file_replication_supported.toString(), _vpool.getFileReplicationSupported());
+
+            // Update the replication setting to the mapper!!
+            if (_vpool.getFileReplicationSupported() && fileRemoteProtectionSettings != null && !fileRemoteProtectionSettings.isEmpty()) {
+                FileProtectionRemoteSettings fileProtectionSettings = fileRemoteProtectionSettings.get(_vpool.getId().toString());
+                if (fileProtectionSettings != null) {
+                    putAttributeInMap(Attributes.file_replication_type.toString(), fileProtectionSettings.getReplicationType());
+                    putAttributeInMap(Attributes.file_replication_copy_mode.toString(), fileProtectionSettings.getReplicationCopyMode());
+                    if (fileProtectionSettings.getTargetVirtualPool() != null) {
+                        putAttributeInMap(Attributes.file_replication_target_vpool.toString(),
+                                URI.create(fileProtectionSettings.getTargetVirtualPool()));
+                    }
+                }
+            }
+        }
+
         putAttributeInMap(Attributes.high_availability_varray.toString(), haNh);
         putAttributeInMap(Attributes.high_availability_vpool.toString(), haCos);
         putAttributeInMap(Attributes.high_availability_rp.toString(), _vpool.getHaVarrayConnectedToRp());
@@ -123,22 +141,9 @@ public class VirtualPoolAttributeMapBuilder extends AttributeMapBuilder {
         }
         putAttributeInMap(Attributes.long_term_retention_policy.toString(), _vpool.getLongTermRetention());
 
-        if (_vpool.getFileReplicationType() != null &&
-                !FileReplicationType.NONE.name().equalsIgnoreCase(_vpool.getFileReplicationType())) {
-
-            putAttributeInMap(Attributes.file_replication_type.toString(), _vpool.getFileReplicationType());
-            if (_vpool.getFileReplicationCopyMode() != null) {
-                putAttributeInMap(Attributes.file_replication_copy_mode.toString(), _vpool.getFileReplicationCopyMode());
-            }
-            if (null != fileRemoteProtectionSettings && !fileRemoteProtectionSettings.isEmpty()) {
-                _logger.info("File Replication Remote Settings : {}", Joiner.on("\t").join(fileRemoteProtectionSettings.keySet()));
-                putAttributeInMap(Attributes.file_replication.toString(), fileRemoteProtectionSettings);
-            }
-        }
-        
         putAttributeInMap(Attributes.min_datacenters.toString(), _vpool.getMinDataCenters());
-        if (_vpool.getDedupCapable() != null &&  _vpool.getDedupCapable()) {
-        	putAttributeInMap(Attributes.dedup.toString(), _vpool.getDedupCapable());
+        if (_vpool.getDedupCapable() != null && _vpool.getDedupCapable()) {
+            putAttributeInMap(Attributes.dedup.toString(), _vpool.getDedupCapable());
         }
         return _attributeMap;
     }

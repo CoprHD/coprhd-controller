@@ -29,6 +29,7 @@ import com.emc.storageos.networkcontroller.exceptions.NetworkDeviceControllerExc
 import com.emc.storageos.networkcontroller.impl.NetworkSystemDevice;
 import com.emc.storageos.networkcontroller.impl.NetworkSystemDeviceImpl;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
+import com.emc.storageos.util.InvokeTestFailure;
 import com.emc.storageos.util.NetworkLite;
 import com.emc.storageos.util.NetworkUtil;
 import com.emc.storageos.volumecontroller.ControllerException;
@@ -218,7 +219,8 @@ public class MdsNetworkSystemDevice extends NetworkSystemDeviceImpl implements N
                 // Both fabricId and fabricWwn supplied; fabricId matches vsan containing WWN
                 Integer vsanId = new Integer(fabricId);
                 vsanWwnMap = dialog.getVsanWwns(new Integer(fabricId));
-                if (vsanWwnMap.get(vsanId).equals(fabricWwn)) {
+                String vsanwwn = vsanWwnMap.get(vsanId);
+                if (null != vsanwwn && vsanwwn.equals(fabricWwn)) {
                     return vsanId;
                 }
             } catch (Exception ex) {
@@ -315,6 +317,9 @@ public class MdsNetworkSystemDevice extends NetworkSystemDeviceImpl implements N
                     removingZones.add(zone);
                 }
             }
+            
+            //Throw artificial exception here to simulate FOD for MDS same as creating alias
+            InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_057);
 
             if (!removingZones.isEmpty()) {
                 removedZoneNames.putAll(removeZonesStrategy(dialog, removingZones, vsanId, activateZones));
@@ -565,7 +570,7 @@ public class MdsNetworkSystemDevice extends NetworkSystemDeviceImpl implements N
             throws NetworkDeviceControllerException {
         waitForSession(dialog, vsanId);
         Long time = System.currentTimeMillis();
-
+        
         // a zone-name-to-result map to hold the results for each zone
         Map<String, String> removedZoneNames = new HashMap<String, String>();
 

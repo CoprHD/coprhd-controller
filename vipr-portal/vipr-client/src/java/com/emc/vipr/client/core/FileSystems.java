@@ -7,8 +7,10 @@ package com.emc.vipr.client.core;
 import static com.emc.vipr.client.core.util.ResourceUtils.defaultList;
 
 import java.net.URI;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Properties;
+import java.util.Set;
 
 import javax.ws.rs.core.UriBuilder;
 
@@ -47,6 +49,7 @@ import com.emc.storageos.model.file.ScheduleSnapshotList;
 import com.emc.storageos.model.file.ShareACL;
 import com.emc.storageos.model.file.ShareACLs;
 import com.emc.storageos.model.file.SmbShareResponse;
+import com.emc.storageos.model.file.policy.FilePolicyFileSystemAssignParam;
 import com.emc.vipr.client.Task;
 import com.emc.vipr.client.Tasks;
 import com.emc.vipr.client.ViPRCoreClient;
@@ -276,8 +279,7 @@ public class FileSystems extends ProjectResources<FileShareRestRep> implements T
     /**
      * Removes an export from the given file system by ID.
      * <p>
-     * API Call:
-     * <tt>DELETE /file/filesystems/{id}/exports/{protocol},{securityType},{permissions},{rootUserMapping}</tt>
+     * API Call: <tt>DELETE /file/filesystems/{id}/exports/{protocol},{securityType},{permissions},{rootUserMapping}</tt>
      * 
      * @param id
      *            the ID of the file system.
@@ -738,10 +740,14 @@ public class FileSystems extends ProjectResources<FileShareRestRep> implements T
      *            the ID of the file policy.
      * @return a task for monitoring the progress of the operation.
      */
-    public Task<FileShareRestRep> associateFilePolicy(URI fileSystemId, URI filePolicyId) {
+    public Task<FileShareRestRep> associateFilePolicy(URI fileSystemId, URI filePolicyId, URI targetVarray) {
         UriBuilder builder = client.uriBuilder(getIdUrl() + "/assign-file-policy/{file_policy_uri}");
         URI targetUri = builder.build(fileSystemId, filePolicyId);
-        return putTaskURI(null, targetUri);
+        FilePolicyFileSystemAssignParam param = new FilePolicyFileSystemAssignParam();
+        Set<URI> targetArrays = new HashSet<URI>();
+        targetArrays.add(targetVarray);
+        param.setTargetVArrays(targetArrays);
+        return putTaskURI(param, targetUri);
     }
 
     /**

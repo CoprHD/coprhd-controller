@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.apache.commons.logging.Log;
@@ -41,7 +42,7 @@ import com.emc.storageos.volumecontroller.placement.StoragePortsAllocator.PortAl
  * 
  */
 public class StoragePortsAllocatorTest {
-    private static boolean vmaxonly = false;
+    private static boolean vmaxonly = true;
     private static boolean vnxonly = false;
     private static boolean vplexonly = false;
     private static boolean duplicateCpuExpected = false;
@@ -139,7 +140,12 @@ public class StoragePortsAllocatorTest {
             duplicateCpuExpected = true;
             alloc(allocator, 16, ctx, true);
             duplicateCpuExpected = true;
-            alloc(allocator, 32, ctx, true);
+            alloc(allocator, 32, ctx, true); 
+            alloc(allocator, 4, ctx, true);
+            Map<String, Integer>switchMap = new HashMap<String, Integer>();
+            switchMap.put("mds-a", 4);
+            System.out.println("testing swich affinity");
+            alloc(allocator, 4, ctx, true, switchMap);
 
             ctx = createVMAXWithCpuDuplication();
             allocator = new StoragePortsAllocator();
@@ -148,7 +154,7 @@ public class StoragePortsAllocatorTest {
             alloc(allocator, 3, ctx, true);
             _log.debug("Cpu duplication forced");
             duplicateCpuExpected = true;
-            alloc(allocator, 4, ctx, true);
+            alloc(allocator, 4, ctx, true); 
         }
 
         if (!vnxonly && !vmaxonly) {
@@ -228,7 +234,26 @@ public class StoragePortsAllocatorTest {
         ctx.reinitialize();
         try {
             List<URI> portUris = getPortURIs(allocator.allocatePortsForNetwork(tznpaths,
-                    ctx, checkConnectivity, null, false));
+                    ctx, checkConnectivity, null, false, null));
+            checkForDuplicates(portUris, ctx);
+            checkForAlternation(portUris, ctx);
+            printPorts(portUris, ctx);
+            return portUris;
+        } catch (PlacementException ex) {
+            System.out.println("PlacementException: " + ex.getMessage());
+            return new ArrayList<URI>();
+        }
+
+    }
+    
+    private static List<URI> alloc(StoragePortsAllocator allocator,
+            int tznpaths, PortAllocationContext ctx, boolean checkConnectivity,
+            Map<String, Integer> switchMap) throws Exception {
+        System.out.println("TZ Numpaths = " + new Integer(tznpaths));
+        ctx.reinitialize();
+        try {
+            List<URI> portUris = getPortURIs(allocator.allocatePortsForNetwork(tznpaths,
+                    ctx, checkConnectivity, null, false, switchMap));
             checkForDuplicates(portUris, ctx);
             checkForAlternation(portUris, ctx);
             printPorts(portUris, ctx);
@@ -245,7 +270,7 @@ public class StoragePortsAllocatorTest {
             throws Exception {
         StoragePortsAllocator allocator = new StoragePortsAllocator();
         List<URI> tzone1Uris = getPortURIs(
-                allocator.allocatePortsForNetwork(numPaths / 2, tzone1, checkConnectivity, null, false));
+                allocator.allocatePortsForNetwork(numPaths / 2, tzone1, checkConnectivity, null, false, null));
         System.out.println(String.format("Transport zone: %s paths: %d", tzone1._initiatorNetwork.getLabel(), new Integer(numPaths)));
         printPorts(tzone1Uris, tzone1);
         checkForDuplicates(tzone1Uris, tzone1);
@@ -254,7 +279,7 @@ public class StoragePortsAllocatorTest {
         tzone2._alreadyAllocatedSwitches
                 .addAll(tzone1._alreadyAllocatedSwitches);
         List<URI> tzone2Uris = getPortURIs(
-                allocator.allocatePortsForNetwork(numPaths / 2, tzone2, checkConnectivity, null, false));
+                allocator.allocatePortsForNetwork(numPaths / 2, tzone2, checkConnectivity, null, false, null));
         System.out.println(String.format("Transport zone: %s paths: %d", tzone2._initiatorNetwork.getLabel(), new Integer(numPaths)));
         printPorts(tzone2Uris, tzone2);
         checkForDuplicates(tzone2Uris, tzone2);

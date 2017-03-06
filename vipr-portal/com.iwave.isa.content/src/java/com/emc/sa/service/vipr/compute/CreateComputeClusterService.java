@@ -256,16 +256,22 @@ public class CreateComputeClusterService extends ViPRService {
 
         logInfo("compute.cluster.hosts.created", ComputeUtils.nonNull(hosts).size());
 
-        List<URI> bootVolumeIds = ComputeUtils.makeBootVolumes(project, virtualArray, virtualPool, size, hosts,
+        Map<Host, URI> hostToBootVolumeIdMap = ComputeUtils.makeBootVolumes(project, virtualArray, virtualPool, size, hosts,
                 getClient());
-        logInfo("compute.cluster.boot.volumes.created", ComputeUtils.nonNull(bootVolumeIds).size());
-        hosts = ComputeUtils.deactivateHostsWithNoBootVolume(hosts, bootVolumeIds, cluster);
+        logInfo("compute.cluster.boot.volumes.created", ComputeUtils.nonNull(hostToBootVolumeIdMap).size());
 
-        List<URI> exportIds = ComputeUtils.exportBootVols(bootVolumeIds, hosts, project, virtualArray, hlu);
-        logInfo("compute.cluster.exports.created", ComputeUtils.nonNull(exportIds).size());
-        hosts = ComputeUtils.deactivateHostsWithNoExport(hosts, exportIds, bootVolumeIds, cluster);
+        // Deactivate hosts with no boot volume, return list of hosts remaining.
+        hostToBootVolumeIdMap = ComputeUtils.deactivateHostsWithNoBootVolume(hostToBootVolumeIdMap, cluster);
 
-        hosts = ComputeUtils.setHostBootVolumes(hosts, bootVolumeIds, false);
+        // Export the boot volume, return a map of hosts and their EG IDs
+        Map<Host, URI> hostToEgIdMap = ComputeUtils.exportBootVols(hostToBootVolumeIdMap, project, virtualArray, hlu);
+        logInfo("compute.cluster.exports.created", ComputeUtils.nonNull(hostToEgIdMap).size());
+        
+        // Deactivate any hosts where the export failed, return list of hosts remaining
+        hostToBootVolumeIdMap = ComputeUtils.deactivateHostsWithNoExport(hostToBootVolumeIdMap, hostToEgIdMap, cluster);
+        
+        // Set host boot volume ids, but do not set san boot targets. They will get set post os install.
+        hosts = ComputeUtils.setHostBootVolumes(hostToBootVolumeIdMap, false);
 
         // VBDU [DONE]: COP-28400, Potential DU if external host is added to vCenter cluster not under ViPR mgmt.
         // ClusterService has a precheck to verify the matching environments before deactivating

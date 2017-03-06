@@ -28,15 +28,10 @@ public class BlockSnapshotDeactivateCompleter extends BlockSnapshotTaskCompleter
     private static final String SNAPSHOT_DEACTIVATED_MSG = "Snapshot %s deactivated for volume %s";
     private static final String SNAPSHOT_DEACTIVATE_FAILED_MSG = "Failed to deactivate snapshot %s for volume %s";
     private final List<URI> snapshotURIs;
-    private final boolean setSnapshotsInactive;
-    private final boolean setSnapshotSyncActive;
 
-    public BlockSnapshotDeactivateCompleter(List<URI> snaps, boolean setSnapshotsInactive, boolean setSnapshotSyncActive, String task) {
+    public BlockSnapshotDeactivateCompleter(List<URI> snaps, String task) {
         super(BlockSnapshot.class, snaps.get(0), task);
         snapshotURIs = new ArrayList<URI>();
-        this.setSnapshotsInactive = setSnapshotsInactive;
-        this.setSnapshotSyncActive = setSnapshotSyncActive;
-
         for (URI snapshotUri : snaps) {
             snapshotURIs.add(snapshotUri);
         }

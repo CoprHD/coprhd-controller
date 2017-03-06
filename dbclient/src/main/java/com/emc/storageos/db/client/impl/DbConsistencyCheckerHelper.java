@@ -265,18 +265,17 @@ public class DbConsistencyCheckerHelper {
                     }
                     idxEntries.add(new IndexEntry(row.getKey(), column.getName()));
                 }
-            }
-            
-            int size = getObjsSize(objsToCheck);
-            if (size >= INDEX_OBJECTS_BATCH_SIZE ) {
-                if (isParallel) {
-                    processBatchIndexObjectsWithMultipleThreads(indexAndCf, toConsole, objsToCheck, checkResult);
-                } else {
-                    processBatchIndexObjects(indexAndCf, toConsole, objsToCheck, checkResult);
+                
+                int size = getObjsSize(objsToCheck);
+                if (size >= INDEX_OBJECTS_BATCH_SIZE ) {
+                    if (isParallel) {
+                        processBatchIndexObjectsWithMultipleThreads(indexAndCf, toConsole, objsToCheck, checkResult);
+                    } else {
+                        processBatchIndexObjects(indexAndCf, toConsole, objsToCheck, checkResult);
+                    }
+                    objsToCheck = new HashMap<>();
                 }
-                objsToCheck = new HashMap<>();
             }
-            
         }
 
         // Detect whether the DataObject CFs have the records

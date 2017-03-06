@@ -67,6 +67,7 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
     private VcenterController vcenterController;
 
     private static final String DEACTIVATION_MAINTENANCE_MODE = "DEACTIVATION_MAINTENANCE_MODE";
+    private static final String CHECK_HOST_INITIATORS = "CHECK_HOST_INITIATORS";
     private static final String DEACTIVATION_REMOVE_HOST_VCENTER = "DEACTIVATION_REMOVE_HOST_VCENTER";
     private static final String DEACTIVATION_COMPUTE_SYSTEM_HOST = "DEACTIVATION_COMPUTE_SYSTEM_HOST";
     private static final String DEACTIVATION_COMPUTE_SYSTEM_BOOT_VOLUME = "DEACTIVATION_COMPUTE_SYSTEM_BOOT_VOLUME";
@@ -780,6 +781,12 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
         if (computeElement != null) {
             ComputeSystem cs = _dbClient.queryObject(ComputeSystem.class, computeElement.getComputeSystem());
 
+            waitFor = workflow.createStep(CHECK_HOST_INITIATORS,
+                    "Check for host initiators", waitFor, cs.getId(),
+                    cs.getSystemType(), this.getClass(), new Workflow.Method("checkHostInitiators", hostId),
+                    new Workflow.Method(ROLLBACK_NOTHING_METHOD),
+                    null);
+
             waitFor = workflow.createStep(DEACTIVATION_MAINTENANCE_MODE,
                     "If synced with vCenter, put the host in maintenance mode", waitFor, cs.getId(),
                     cs.getSystemType(), this.getClass(), new Workflow.Method("putHostInMaintenanceMode", hostId),
@@ -1087,6 +1094,30 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
     }
 
     /**
+     * Validates that the host has initiators and fails the workflow if no initiators are found.
+     *
+     * @param hostId the host to check
+     * @param stepId the workflow step id
+     */
+    public void checkHostInitiators(URI hostId, String stepId) {
+        log.info("checkHostInitiators {}", hostId);
+        try {
+            WorkflowStepCompleter.stepExecuting(stepId);
+
+            List<Initiator> initiators = CustomQueryUtility.queryActiveResourcesByRelation(_dbClient, hostId, Initiator.class, "host");
+
+            if (initiators == null || initiators.isEmpty()) {
+                WorkflowStepCompleter.stepFailed(stepId, ComputeSystemControllerException.exceptions.noHostInitiators(hostId.toString()));
+            } else {
+                WorkflowStepCompleter.stepSucceded(stepId);
+            }
+        } catch (InternalException e) {
+            log.error("InternalException when trying to checkHostInitiators: " + e.getMessage(), e);
+            WorkflowStepCompleter.stepFailed(stepId, e);
+        }
+    }
+
+    /**
      * This will attempt to put host into maintenance mode on a Vcenter.
      *
      * @param hostId
@@ -1325,8 +1356,10 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
 
             host = _dbClient.queryObject(Host.class, hostId);
             if (null != host) {
-                // VBDU TODO: COP-28452: Need to check initiators inside the host as well
-                if (NullColumnValueGetter.isNullURI(host.getComputeElement())  && NullColumnValueGetter.isNullURI(host.getServiceProfile())) {
+                // VBDU [DONE]: COP-28452: Need to check initiators inside the host as well
+                // Added check before we get here
+                if (NullColumnValueGetter.isNullURI(host.getComputeElement())
+                        && NullColumnValueGetter.isNullURI(host.getServiceProfile())) {
                     // NO-OP
                     log.info("Host " + host.getLabel() + " has no computeElement association and no service profile association");
                     WorkflowStepCompleter.stepSucceded(stepId);

@@ -1286,17 +1286,13 @@ test_25() {
     runcmd export_group update ${PROJECT}/$clusterXP --remHosts ${HOST1},${HOST2},${HOST3}
     verify_export $clusterXP -x- gone
     verify_export $hostXP $HOST1 2 1
-    runcmd export_group update ${PROJECT}/$clusterXP --addClusters "${TENANT}/${CLUSTER}"
+    runcmd export_group create ${PROJECT} $clusterXP nh --volspec ${PROJECT}/${VOLNAME}-1 --clusters "${TENANT}/${CLUSTER}" --type Cluster
     verify_export $clusterXP -x- 6 1
     verify_export $hostXP $HOST1 2 1
     runcmd export_group update ${PROJECT}/$hostXP --remHosts ${HOST1}
     verify_export $clusterXP -x- 6 1
     verify_export $hostXP $HOST1 gone
-    runcmd export_group update ${PROJECT}/$hostXP --addHosts ${HOST1}
-    verify_export $clusterXP -x- 6 1
-    verify_export $hostXP $HOST1 2 1
     runcmd export_group delete ${PROJECT}/$clusterXP
-    runcmd export_group delete ${PROJECT}/$hostXP
     verify_export $clusterXP -x- gone
     verify_export $hostXP $HOST1 gone
 }
@@ -1319,7 +1315,6 @@ test_26() {
     runcmd export_group update ${PROJECT}/$hostXP2 --remVols ${PROJECT}/${VOLNAME}-2
     verify_export $hostXP1 $HOST1 gone
     runcmd export_group delete ${PROJECT}/$hostXP1
-    runcmd export_group delete ${PROJECT}/$hostXP2
 }
 
 #
@@ -1359,10 +1354,7 @@ test_27() {
     runcmd export_group update ${PROJECT}/$hostXP --remInits ${HOST1}/${H1PI1}
     runcmd export_group update ${PROJECT}/$hostXP --remInits ${HOST1}/${H1PI2}
     verify_export $hostXP $HOST1 gone
-    runcmd export_group update ${PROJECT}/$hostXP --addHosts ${HOST1}
-    verify_export $hostXP $HOST1 2 1
-    runcmd export_group delete ${PROJECT}/$hostXP
-    verify_export $hostXP $HOST1 gone
+
 
     # Test removal of all initiators in one host, but partial removal in another
     runcmd export_group create ${PROJECT} $hostXP nh --volspec ${PROJECT}/${VOLNAME}-2 --hosts "${HOST1},${HOST2}" --type Host
@@ -1499,6 +1491,8 @@ test_30() {
         echo Test 30 skipped, does not apply when non-clustered tests are enabled
         return
     fi
+    
+    echot "Test 30 Begin"
 
     clusterRef="${TENANT}/${CLUSTER}"
 
@@ -1529,7 +1523,7 @@ test_30() {
     runcmd transportzone add $NH/${FC_ZONE_A} $H4PI1
     runcmd transportzone add $NH/${FC_ZONE_A} $H5PI1
 
-    echot "Test 30 Begin"
+    
     expname=${EXPORT_GROUP_NAME}t30
     clusterXP=${expname}CL
     host4XP=${expname}H4

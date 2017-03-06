@@ -59,6 +59,7 @@ public class VcenterApiClient {
 
     private final static Logger _log = LoggerFactory.getLogger(VcenterApiClient.class);
 
+    private static int DEFAULT_PORT = 443;
     private ServiceInstance serviceInstance;
     private VcenterClusterConfigurer clusterConfigurer = new VcenterClusterConfigurerPropertyInfoImpl();
     private PropertyInfo propertyInfo;
@@ -84,8 +85,10 @@ public class VcenterApiClient {
         }
     }
 
-    public void setup(String vcenterIp, String vcenterUsername, String vcenterPassword) throws VcenterServerConnectionException {
-        String vcenterUrl = "https://" + vcenterIp + ":443/sdk";
+    public void setup(String vcenterIp, String vcenterUsername, String vcenterPassword, Integer portNumber)
+            throws VcenterServerConnectionException {
+        int port = (portNumber == null) ? DEFAULT_PORT : portNumber;
+        String vcenterUrl = "https://" + vcenterIp + ":" + port + "/sdk";
         serviceInstance = createServiceInstance(vcenterUrl, vcenterUsername, vcenterPassword);
         _log.info("Connected to vcenter " + vcenterIp + " API version " + serviceInstance.getAboutInfo().getApiVersion());
     }

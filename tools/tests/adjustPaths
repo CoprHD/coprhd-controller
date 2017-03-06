@@ -142,6 +142,18 @@ source subs/mkvplexvarrays
 SITE1=VPLEX+FNM00130900300_FNM00130900301_cluster1 
 SITE2=VPLEX+FNM00130900300_FNM00130900301_cluster2
 
+# Limit the array choices according to the following simulator configuration:
+# emcArrays1=SYMMETRIX+999316031302,SYMMETRIX+999595867618,SYMMETRIX+999000000003,SYMMETRIX+999000000004
+# emcArrays2=SYMMETRIX+999024668923,SYMMETRIX+999334388821,SYMMETRIX+999000414197
+# The simulator configuration must match these choices. This matches vplex sim sanity.conf.
+storageport update $VPLEX_SIM_VMAX1_NATIVEGUID FC --addvarrays $SITE1
+storageport update $VPLEX_SIM_VMAX2_NATIVEGUID FC --addvarrays $SITE1
+storageport update $VPLEX_SIM_VMAX3_NATIVEGUID FC --addvarrays $SITE1
+storageport update $VPLEX_SIM_VMAX4_NATIVEGUID FC --addvarrays $SITE1
+storageport update $VPLEX_SIM_VMAX5_NATIVEGUID FC --addvarrays $SITE2
+storageport update $VPLEX_SIM_VMAX6_NATIVEGUID FC --addvarrays $SITE2
+storageport update $VPLEX_SIM_VMAX7_NATIVEGUID FC --addvarrays $SITE2
+
 source subs/hosts
 aclusterName=aclus${hostseed}
 cluster_create $aclusterName

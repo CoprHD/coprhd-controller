@@ -219,7 +219,7 @@ public class ClusterService extends TaskResourceService {
         Operation op = _dbClient.createTaskOpStatus(Cluster.class, id, taskId,
                 ResourceOperationTypeEnum.DETACH_VCENTER_DATACENTER_STORAGE);
         ComputeSystemController controller = getController(ComputeSystemController.class, null);
-        controller.detachClusterStorage(cluster.getId(), false, false, taskId);
+        controller.detachClusterStorage(cluster.getId(), false, true, taskId);
         return toTask(cluster, taskId, op);
     }
 
@@ -319,9 +319,9 @@ public class ClusterService extends TaskResourceService {
             Operation op = _dbClient.createTaskOpStatus(Cluster.class, id, taskId,
                     ResourceOperationTypeEnum.DELETE_CLUSTER);
             ComputeSystemController controller = getController(ComputeSystemController.class, null);
-            // VBDU TODO: COP-28449, Cross verify checkVMs is always passed as TRUE. We can explicitly make this true
+            // VBDU [DONE]: COP-28449, Cross verify checkVMs is always passed as TRUE. We can explicitly make this true
             // always in the code.
-            controller.detachClusterStorage(id, true, checkVms, taskId);
+            controller.detachClusterStorage(id, true, true, taskId);
             auditOp(OperationTypeEnum.DELETE_CLUSTER, true, op.getStatus(),
                     cluster.auditParameters());
             return toTask(cluster, taskId, op);
@@ -661,10 +661,12 @@ public class ClusterService extends TaskResourceService {
             // environment and our database representation of the cluster.
             ClusterComputeResource vcenterCluster = api.findCluster(vcenterDataCenter.getLabel(), cluster.getLabel());
 
-            // If we can't find the cluster on the vCenter environment, we can not proceed and must fail the validation.
-            // This may be caused by a datacenter or cluster rename in the vCenter environment.
+            // If we can't find the cluster on the vCenter environment, we can not proceed with validation.
+            // The cluster may not have been pushed to vCenter yet.
             if (vcenterCluster == null) {
-                throw APIException.badRequests.clusterNotFoundInDatacenter(cluster.forDisplay(), vcenterDataCenter.forDisplay());
+                _log.info("Unable to find cluster %s in datacenter %s in vCenter environment %s", cluster.getLabel(),
+                        vcenterDataCenter.getLabel(), vcenter.getLabel());
+                return;
             }
 
             // Gather a set of all the host UUIDs in this vCenter cluster.
@@ -681,8 +683,8 @@ public class ClusterService extends TaskResourceService {
                 dbHostUuids.add(host.getUuid());
             }
 
-            // Compare the list of UUIDs between the vCenter environment and our database. Throw an exception if they do not match.
-            if (!vCenterHostUuids.equals(dbHostUuids)) {
+            // If there are hosts in vCenter that are not in our database, fail the validation
+            if (!dbHostUuids.containsAll(vCenterHostUuids)) {
                 throw APIException.badRequests.clusterHostMismatch(cluster.forDisplay());
             }
         } finally {

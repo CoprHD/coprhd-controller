@@ -142,7 +142,7 @@ public class AddBareMetalHostToClusterService extends ViPRService {
         List<URI> exportIds = ComputeUtils.exportBootVols(bootVolumeIds, hosts, project, virtualArray, hlu);
         logInfo("compute.cluster.exports.created", ComputeUtils.nonNull(exportIds).size());
         hosts = ComputeUtils.deactivateHostsWithNoExport(hosts, exportIds, bootVolumeIds, cluster);
-        ComputeUtils.setHostBootVolumes(hosts, bootVolumeIds);
+        hosts = ComputeUtils.setHostBootVolumes(hosts, bootVolumeIds, true);
 
         ComputeUtils.addHostsToCluster(hosts, cluster);
 

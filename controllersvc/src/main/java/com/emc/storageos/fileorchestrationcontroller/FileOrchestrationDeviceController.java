@@ -292,7 +292,6 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
     @Override
     public void deleteFileSystems(List<FileDescriptor> fileDescriptors,
             String taskId) throws ControllerException {
-        String waitFor = null; // the wait for key returned by previous call
         List<URI> fileShareUris = FileDescriptor.getFileSystemURIs(fileDescriptors);
         FileDeleteWorkflowCompleter completer = new FileDeleteWorkflowCompleter(fileShareUris, taskId);
         Workflow workflow = null;
@@ -302,12 +301,8 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
             workflow = _workflowService.getNewWorkflow(this,
                     DELETE_FILESYSTEMS_WF_NAME, false, taskId);
 
-            // Call the FileReplicationDeviceController to add its delete methods if there are Mirror FileShares.
-            waitFor = _fileReplicationDeviceController.addStepsForDeleteFileSystems(workflow,
-                    waitFor, fileDescriptors, taskId);
-
-            // Next, call the FileDeviceController to add its delete methods.
-            waitFor = _fileDeviceController.addStepsForDeleteFileSystems(workflow, waitFor, fileDescriptors, taskId);
+            // call the FileDeviceController to add its delete methods.
+            _fileDeviceController.addStepsForDeleteFileSystems(workflow, null, fileDescriptors, taskId);
 
             // Finish up and execute the plan.
             // The Workflow will handle the TaskCompleter

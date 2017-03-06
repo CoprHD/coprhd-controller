@@ -69,8 +69,8 @@ unity_test_1() {
     runcmd export_group update $PROJECT/${expname}1 --addVolspec "$snap1","$snap2"
     verify_export "ignore" ${HOST1} 2 4
 
-    PWWN="${H2NI1}:${H2PI1}"
     # Add another initiator to the host
+    PWWN=`getwwn`
     arrayhelper add_initiator_to_mask ${SERIAL_NUMBER} ${PWWN} ${HOST1}
 
     # Verify the mask has the new initiator in it
@@ -245,7 +245,7 @@ unity_test_2() {
 
     verify_export "ignore" ${HOST1} 2 4
 
-    PWWN="${H2NI1}:${H2PI1}"
+    PWWN=`getwwn`
     # Add another initiator to the host
     arrayhelper add_initiator_to_mask ${SERIAL_NUMBER} ${PWWN} ${HOST1}
 

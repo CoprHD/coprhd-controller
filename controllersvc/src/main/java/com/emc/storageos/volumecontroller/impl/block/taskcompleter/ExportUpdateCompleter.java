@@ -173,6 +173,7 @@ public class ExportUpdateCompleter extends ExportTaskCompleter {
         if (_removedBlockObjects != null) {
             exportGroup.removeVolumes(_removedBlockObjects);
         }
+        dbClient.updateObject(exportGroup);
     }
 
     /**

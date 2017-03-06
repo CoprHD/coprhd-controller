@@ -13,6 +13,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.services.restutil.StandardRestClient;
+import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.xtremio.restapi.errorhandling.XtremIOApiException;
 import com.emc.storageos.xtremio.restapi.model.XtremIOAuthInfo;
 import com.sun.jersey.api.client.Client;
@@ -70,8 +71,10 @@ public abstract class XtremIOClient extends StandardRestClient implements XtremI
             }
 
             if (xtremIOCode == 404 || xtremIOCode == 410) {
+                closeResponse(response);
                 throw XtremIOApiException.exceptions.resourceNotFound(uri.toString());
             } else if (xtremIOCode == 401) {
+                closeResponse(response);
                 throw XtremIOApiException.exceptions.authenticationFailure(uri.toString());
             } else {
                 // Sometimes the response object can be null, just set it to empty when it is null.
@@ -81,6 +84,7 @@ public abstract class XtremIOClient extends StandardRestClient implements XtremI
                     objStr = String.format("%s%s", 
                             (objStr.isEmpty()) ? objStr : objStr + " | ", extraExceptionInfo);
                 }
+                closeResponse(response);
                 throw XtremIOApiException.exceptions.internalError(uri.toString(), objStr);
             }
         } else {
@@ -103,11 +107,63 @@ public abstract class XtremIOClient extends StandardRestClient implements XtremI
 
             if (response.getClientResponseStatus() != ClientResponse.Status.OK
                     && response.getClientResponseStatus() != ClientResponse.Status.CREATED) {
+                closeResponse(response);
                 throw XtremIOApiException.exceptions.authenticationFailure(_base.toString());
             }
             _authToken = response.getHeaders().getFirst(XtremIOConstants.AUTH_TOKEN_HEADER);
         } catch (Exception e) {
             throw XtremIOApiException.exceptions.authenticationFailure(_base.toString());
         }
+    }
+
+    /**
+     * Wrapper of post method to ignore the response
+     *
+     * @param uri URI
+     * @param body request body string
+     * @return null
+     * @throws InternalException
+     */
+    public ClientResponse postIgnoreResponse(URI uri, String body) throws InternalException {
+        ClientResponse response = null;
+        try {
+            response = super.post(uri,  body);
+        } finally {
+            closeResponse(response);
+        }
+        return null;
+    }
+
+    @Override
+    public ClientResponse put(URI uri, String body) throws InternalException {
+        ClientResponse response = null;
+        try {
+            response = super.put(uri,  body);
+        } finally {
+            closeResponse(response);
+        }
+        return null;
+    }
+
+    @Override
+    public ClientResponse delete(URI uri) throws InternalException {
+        ClientResponse response = null;
+        try {
+            response = super.delete(uri);
+        } finally {
+            closeResponse(response);
+        }
+        return null;
+    }
+
+    @Override
+    public ClientResponse delete(URI uri, String body) throws InternalException {
+        ClientResponse response = null;
+        try {
+            response = super.delete(uri, body);
+        } finally {
+            closeResponse(response);
+        }
+        return null;
     }
 }

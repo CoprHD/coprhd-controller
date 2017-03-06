@@ -96,6 +96,17 @@ public abstract class StandardRestClient implements RestClientItf {
         return response;
     }
 
+    /**
+     * Close the entity input stream
+     *
+     * @param clientRespopnse ClientResponse to be closed
+     */
+    public void closeResponse(ClientResponse clientResp) {
+        if (clientResp != null) {
+            clientResp.close();
+        }
+    }
+
     @Override
     public void close() throws InternalException {
         _client.destroy();

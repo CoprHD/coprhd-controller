@@ -70,15 +70,13 @@ public class FileSnapshotPolicyMigration extends BaseCustomMigrationCallback{
 				fileSnapshotPolicy.setSnapshotExpireType(schedulePolicy.getSnapshotExpireType());
 				// snapshot policy apply at file system level
 				fileSnapshotPolicy.setApplyAt(FilePolicyApplyLevel.file_system.name());
-			
-				URIQueryResultList resultList = new URIQueryResultList();
-				logger.info("resultList init  : {}", resultList);
-				dbClient.queryByConstraint(
-                        ContainmentConstraint.Factory.getFileshareSnapshotConstraint(fileSnapshotPolicy.getId()), resultList);
-				for (Iterator<URI> fileShareItr = resultList.iterator(); fileShareItr.hasNext();) {
+
+				List<URI> fileShareURIs = getAssignedResourcesURIs(schedulePolicy.getAssignedResources());
+				
+				for(URI fsURI : fileShareURIs){
 					logger.info("ready to create policy storage resources");
-					logger.info("fileShareItr {}" , fileShareItr.hasNext());
-					FileShare fs = dbClient.queryObject(FileShare.class, fileShareItr.next());
+					logger.info("FS URI {}" , fsURI);
+					FileShare fs = dbClient.queryObject(FileShare.class, fsURI);
 					if(!fs.getInactive()){
 						StorageSystem system = dbClient.queryObject(StorageSystem.class, fs.getStorageDevice());
 						logger.info("updating policy storage resource");
@@ -98,6 +96,7 @@ public class FileSnapshotPolicyMigration extends BaseCustomMigrationCallback{
 			//Update DB
 			if(!filePolicies.isEmpty()){
 				logger.info("Created {} file snapshot policies", filePolicies.size());
+				logger.info("creating FilePolicies : {}" , filePolicies);
 				dbClient.createObject(filePolicies);				
 			}
 			
@@ -105,6 +104,18 @@ public class FileSnapshotPolicyMigration extends BaseCustomMigrationCallback{
 			logger.error("Exception occured while migrating file replication policy for Virtual pools");
             logger.error(ex.getMessage(), ex);
 		}
+	}
+
+	private List<URI> getAssignedResourcesURIs(StringSet assignedResources) {
+		List<URI> resourceURIs = null;
+		if(!assignedResources.isEmpty()){
+			logger.info("Converting String to URIs");
+			for(String resource : assignedResources){
+				URI resourceURI = URI.create(resource);
+				resourceURIs.add(resourceURI);
+			}
+		}
+		return resourceURIs;
 	}
 
 	private String generateNativeGuidForFilePolicyResource(StorageSystem system, String nasServer, String filePolicyType,

@@ -581,8 +581,6 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                 }
             }
             // clean all the export related to clusters in datacenter
-            List<NamedElementQueryResultList.NamedElement> clustersUris = ComputeSystemHelper.listChildren(_dbClient,
-                    dataCenter.getId(), Cluster.class, "label", "vcenterDataCenter");
             // VBDU TODO: COP-28457, The above code runs host unexport only if compute element is null. Will there be
             // any cases where few hosts in the cluster got skipped because of associated compute element, but this
             // cluster unexport removes the storage.(because we didn't consider the skipped hosts above)

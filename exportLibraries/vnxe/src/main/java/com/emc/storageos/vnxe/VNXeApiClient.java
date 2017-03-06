@@ -720,6 +720,7 @@ public class VNXeApiClient {
         parm.setStorageResource(resource);
         parm.setName(name);
         parm.setIsReadOnly(false);
+        parm.setAutoDelete(false);
         FileSystemSnapRequests req = new FileSystemSnapRequests(_khClient, getBasicSystemInfo().getSoftwareVersion());
 
         return req.createFileSystemSnap(parm);

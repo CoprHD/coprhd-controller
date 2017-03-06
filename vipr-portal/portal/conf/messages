@@ -4244,7 +4244,7 @@ selectOne.chooseOption=-- Please Choose --
 button.assignPolicies=Assign Policy
 button.unassignPolicies=Unassign Policy
 
-button.mirroring.start=Start
+button.mirroring.refresh=Refresh
 button.mirroring.stop=Stop
 button.mirroring.pause=Pause
 button.mirroring.resume=Resume

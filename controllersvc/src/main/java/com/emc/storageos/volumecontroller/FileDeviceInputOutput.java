@@ -938,6 +938,10 @@ public class FileDeviceInputOutput {
         return stripSpecialCharacters(vNAS.getNasName());
     }
 
+    public String getFSNameWithNoSpecialCharacters() {
+        return stripSpecialCharacters(getFsLabel());
+    }
+
     private String stripSpecialCharacters(String label) {
         return label.replaceAll("[^\\dA-Za-z ]", "").replaceAll("\\s+", "_");
     }

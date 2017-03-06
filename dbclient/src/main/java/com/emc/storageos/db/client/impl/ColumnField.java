@@ -18,9 +18,14 @@ import java.util.List;
 import java.util.ArrayList;
 import java.util.Map;
 
-import com.emc.storageos.db.client.model.NoInactiveIndex;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.netflix.astyanax.ColumnListMutation;
+import com.netflix.astyanax.model.ByteBufferRange;
+import com.netflix.astyanax.model.Column;
+import com.netflix.astyanax.model.ColumnFamily;
+import com.netflix.astyanax.serializers.StringSerializer;
 
 import com.emc.storageos.db.client.model.AbstractChangeTrackingMap;
 import com.emc.storageos.db.client.model.AbstractChangeTrackingSet;
@@ -47,17 +52,15 @@ import com.emc.storageos.db.client.model.ScopedLabelIndex;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.Ttl;
 import com.emc.storageos.db.client.model.AggregatedIndex;
+import com.emc.storageos.db.client.model.ClassNameTimeSeries;
+import com.emc.storageos.db.client.model.NoInactiveIndex;
+import com.emc.storageos.db.client.model.TimeSeriesAlternateId;
 import com.emc.storageos.db.exceptions.DatabaseException;
-import com.netflix.astyanax.ColumnListMutation;
-import com.netflix.astyanax.model.ByteBufferRange;
-import com.netflix.astyanax.model.Column;
-import com.netflix.astyanax.model.ColumnFamily;
-import com.netflix.astyanax.serializers.StringSerializer;
 
 /**
  * Column / data object field type metadata
  */
-public class ColumnField {
+public class ColumnField <T extends CompositeIndexColumnName> {
     private static final Logger _log = LoggerFactory.getLogger(ColumnField.class);
 
     // types of columns object mapper supports
@@ -172,7 +175,7 @@ public class ColumnField {
      * 
      * @return
      */
-    public ColumnFamily<String, IndexColumnName> getIndexCF() {
+    public ColumnFamily<String, T> getIndexCF() {
         return _index.getIndexCF();
     }
 
@@ -750,6 +753,16 @@ public class ColumnField {
                 indexCF = new ColumnFamily<String, IndexColumnName>(((AlternateId) a).value(), StringSerializer.get(),
                         IndexColumnNameSerializer.get());
                 _index = new AltIdDbIndex(indexCF);
+            } else if (a instanceof ClassNameTimeSeries) {
+                ColumnFamily<String, ClassNameTimeSeriesIndexColumnName> newIndexCF =
+                        new ColumnFamily<String, ClassNameTimeSeriesIndexColumnName>(((ClassNameTimeSeries) a).value(), StringSerializer.get(),
+                        ClassNameTimeSeriesSerializer.get());
+                _index = new ClassNameTimeSeriesDBIndex(newIndexCF);
+            } else if (a instanceof TimeSeriesAlternateId) {
+                ColumnFamily<String, TimeSeriesIndexColumnName> newIndexCF=
+                        new ColumnFamily<String, TimeSeriesIndexColumnName>(((TimeSeriesAlternateId) a).value(), StringSerializer.get(),
+                        TimeSeriesColumnNameSerializer.get());
+                _index = new TimeSeriesDbIndex(newIndexCF);
             } else if (a instanceof NamedRelationIndex) {
                 indexCF = new ColumnFamily<String, IndexColumnName>(((NamedRelationIndex) a).cf(), StringSerializer.get(),
                         IndexColumnNameSerializer.get());

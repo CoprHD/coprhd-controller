@@ -82,7 +82,7 @@ public class VPlexApiMigrationManager {
                 .getVirtualVolumeManager();
         List<VPlexClusterInfo> clusterInfoList = new ArrayList<VPlexClusterInfo>();
         Map<VolumeInfo, VPlexStorageVolumeInfo> storageVolumeInfoMap = virtualVolumeMgr
-                .findStorageVolumes(nativeVolumeInfoList, discoveryRequired, clusterInfoList);
+                .findStorageVolumes(nativeVolumeInfoList, discoveryRequired, clusterInfoList, null);
         s_logger.info("Found storage volumes");
 
         // Now find the virtual volume.
@@ -1202,8 +1202,7 @@ public class VPlexApiMigrationManager {
                 virtualVolumeInfo = _vplexApiClient.renameResource(virtualVolumeInfo, volumeNameBuilder.toString());
                 s_logger.info(String.format("Renamed virtual volume after migration from name: %s path: %s to %s",
                         volumeNameAfterMigration, volumePathAfterMigration, volumeNameBuilder.toString()));
-            } 
-            migrationInfo.setVirtualVolumeInfo(virtualVolumeInfo);
+            }
         } else if (!originalVolumeName.equals(virtualVolumeInfo.getName())) {
             // We are not to rename the volume, but it could be that VPLEX renamed it 
             // automatically. So we will rename it back to its original name if necessary
@@ -1211,8 +1210,11 @@ public class VPlexApiMigrationManager {
             String newName = virtualVolumeInfo.getName();
             virtualVolumeInfo = _vplexApiClient.renameResource(virtualVolumeInfo, originalVolumeName);
             s_logger.info("Renamed virtual volume {} back to its orginal name {}", newName, originalVolumeName);
-            migrationInfo.setVirtualVolumeInfo(virtualVolumeInfo);
         }
+
+        // virtual volume info should be set so that the caller can tell
+        // if the thin-capable flag changed and needs further 
+        migrationInfo.setVirtualVolumeInfo(virtualVolumeInfo);
     }
 
     /**
@@ -1313,8 +1315,12 @@ public class VPlexApiMigrationManager {
                 renameSupportingDevicesAfterExtentMigration(virtualVolumeInfo, migrationInfo);
             }
         }
+
+        // virtual volume info should be set so that the caller can tell
+        // if the thin-capable flag changed and needs further 
+        migrationInfo.setVirtualVolumeInfo(virtualVolumeInfo);
     }
-    
+
     /**
      * Determines if the volume has default naming conventions. A volume with default naming
      * convention has a format like below:
@@ -1429,7 +1435,6 @@ public class VPlexApiMigrationManager {
         // Update the virtual volume information and set it
         // into the migration info.
         virtualVolumeInfo.updateNameOnMigrationCommit(updatedVirtualVolumeName);
-        migrationInfo.setVirtualVolumeInfo(virtualVolumeInfo);
     }
     
     /**

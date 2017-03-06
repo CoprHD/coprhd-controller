@@ -31,6 +31,7 @@ import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.emc.storageos.volumecontroller.placement.BlockStorageScheduler;
 import com.emc.storageos.volumecontroller.placement.StoragePortsAllocator;
 import com.emc.storageos.volumecontroller.placement.StoragePortsAssigner;
+import com.emc.storageos.volumecontroller.placement.StoragePortsAllocator.PortAllocationContext;
 
 public class VPlexBackEndOrchestratorUtil {
     private static final Logger _log = LoggerFactory.getLogger(VPlexBackEndOrchestratorUtil.class);
@@ -39,33 +40,45 @@ public class VPlexBackEndOrchestratorUtil {
 
     public static List<StoragePort> allocatePorts(StoragePortsAllocator allocator,
             List<StoragePort> candidatePorts, int portsRequested, NetworkLite net, URI varrayURI,
-            boolean simulation, BlockStorageScheduler blockScheduler, DbClient dbClient) {
+            boolean simulation, BlockStorageScheduler blockScheduler, DbClient dbClient,
+            Map<String, Integer> switchToPortNumber, PortAllocationContext context) {
         Collections.shuffle(candidatePorts);
         if (simulation) {
-            StoragePortsAllocator.PortAllocationContext context = StoragePortsAllocator
-                    .getPortAllocationContext(net, "arrayX", allocator.getContext());
-            for (StoragePort port : candidatePorts) {
-                context.addPort(port, null, null, null, null);
+            if (context == null) {
+                context = StoragePortsAllocator.getPortAllocationContext(net, "arrayX", allocator.getContext());
+                for (StoragePort port : candidatePorts) {
+                    context.addPort(port, null, null, null, null);
+                }
             }
+            
             List<StoragePort> portsAllocated = allocator.allocatePortsForNetwork(portsRequested,
-                    context, false, null, false);
+                    context, false, null, false, switchToPortNumber);
             allocator.setContext(context);
             return portsAllocated;
         } else {
             Map<StoragePort, Long> sportMap = blockScheduler
                     .computeStoragePortUsage(candidatePorts);
             List<StoragePort> portsAllocated = allocator.selectStoragePorts(dbClient, sportMap,
-                    net, varrayURI, portsRequested, null, false);
+                    net, varrayURI, portsRequested, null, false, switchToPortNumber);
             return portsAllocated;
         }
     }
 
     public static StringSetMap configureZoning(Map<URI, List<List<StoragePort>>> portGroup,
             Map<String, Map<URI, Set<Initiator>>> initiatorGroup, Map<URI, NetworkLite> networkMap,
-            StoragePortsAssigner assigner) {
+            StoragePortsAssigner assigner, Map<URI, String> initiatorSwitchMap,
+            Map<URI, Map<String, List<StoragePort>>> switchStoragePortsMap,
+            Map<URI, String> portSwitchMap) {
         StringSetMap zoningMap = new StringSetMap();
         // Set up a map to track port usage so that we can use all ports more or less equally.
         Map<StoragePort, Integer> portUsage = new HashMap<StoragePort, Integer>();
+        
+        // check if switch affinity is on
+        boolean isSwitchAffinity = false;
+        if (initiatorSwitchMap != null && !initiatorSwitchMap.isEmpty() &&
+                switchStoragePortsMap != null && !switchStoragePortsMap.isEmpty()) {
+            isSwitchAffinity = true;
+        }
         // Iterate through each of the directors, matching each of its initiators
         // with one port. This will ensure not to violate four paths per director.
         for (String director : initiatorGroup.keySet()) {
@@ -80,12 +93,30 @@ public class VPlexBackEndOrchestratorUtil {
                     }
 
                     // find a port for the initiator
+                    List<StoragePort> assignablePorts = portGroup.get(networkURI).iterator().next();
+                    if (isSwitchAffinity) {
+                        // find the ports with the same switch as the initiator
+                        String switchName = initiatorSwitchMap.get(initiator.getId());
+                        if (!switchName.equals(NullColumnValueGetter.getNullStr())) {
+                            Map<String, List<StoragePort>>switchMap = switchStoragePortsMap.get(networkURI);
+                            if (switchMap != null) {
+                                List<StoragePort> switchPorts = switchMap.get(switchName);
+                                if (switchPorts != null && !switchPorts.isEmpty()) {
+                                    _log.info(String.format("Found the same switch ports, switch is %s", switchName));
+                                    assignablePorts = switchPorts;
+                                } else {
+                                    _log.info(String.format("Switch affinity is not honored, because no storage port from the switch %s for the initiator %s", 
+                                            switchName, initiator.getInitiatorPort()));
+                                }
+                            }
+                        }
+                    }
                     StoragePort storagePort = assignPortToInitiator(assigner,
-                            portGroup.get(networkURI).iterator().next(), net, initiator, portUsage, null);
+                            assignablePorts, net, initiator, portUsage, null);
                     if (storagePort != null) {
-                        _log.info(String.format("%s %s   %s -> %s  %s", director, net.getLabel(),
-                                initiator.getInitiatorPort(), storagePort.getPortNetworkId(),
-                                storagePort.getPortName()));
+                        _log.info(String.format("%s %s   %s %s -> %s  %s %s", director, net.getLabel(),
+                                initiator.getInitiatorPort(), initiatorSwitchMap.get(initiator.getId()),storagePort.getPortNetworkId(),
+                                storagePort.getPortName(), portSwitchMap.get(storagePort.getId())));
                         StringSet ports = new StringSet();
                         ports.add(storagePort.getId().toString());
                         zoningMap.put(initiator.getId().toString(), ports);

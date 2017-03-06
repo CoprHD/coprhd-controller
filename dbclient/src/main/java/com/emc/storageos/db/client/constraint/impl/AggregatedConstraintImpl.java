@@ -9,6 +9,7 @@ import com.emc.storageos.db.client.impl.ColumnField;
 import com.emc.storageos.db.client.impl.ColumnValue;
 import com.emc.storageos.db.client.impl.CompositeColumnNameSerializer;
 import com.emc.storageos.db.client.impl.IndexColumnName;
+import com.emc.storageos.db.client.impl.IndexColumnNameSerializer;
 import com.emc.storageos.db.client.model.DataObject;
 import com.netflix.astyanax.Keyspace;
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
@@ -21,7 +22,7 @@ import java.net.URI;
 /**
  * Constrained query to get list of decommissioned object URIs of a given type
  */
-public class AggregatedConstraintImpl extends ConstraintImpl implements AggregatedConstraint {
+public class AggregatedConstraintImpl extends ConstraintImpl<IndexColumnName> implements AggregatedConstraint {
 
     private Keyspace keyspace;
     private final ColumnFamily<String, IndexColumnName> cf;
@@ -37,6 +38,7 @@ public class AggregatedConstraintImpl extends ConstraintImpl implements Aggregat
     public AggregatedConstraintImpl(Class<? extends DataObject> clazz, ColumnField groupByField, String groupByValue, ColumnField field) {
 
         super(clazz, field, groupByField.getName(), groupByValue);
+        indexSerializer = IndexColumnNameSerializer.get();
 
         cf = field.getIndexCF();
         entryType = clazz;

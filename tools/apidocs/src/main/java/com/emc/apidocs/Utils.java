@@ -108,6 +108,7 @@ public class Utils {
             Gson g = builder.create();
             JsonParser parser = new JsonParser();
             JsonElement el = parser.parse(buffer.toString());
+
             return g.toJson(el);
         } catch (Exception e) {
             throw new RuntimeException(buffer.toString(), e);
@@ -115,6 +116,7 @@ public class Utils {
     }
 
     public static String generateJSON(ApiClass element, StringBuffer buffer) {
+
         buffer.append("{\n");
         int counter = 0;
         for (ApiField field : element.fields) {
@@ -132,8 +134,13 @@ public class Utils {
     }
 
     public static void generateJSON(ApiField field, StringBuffer buffer) {
+        String name = field.jsonName;
+        if (name == null) {
+            name = !field.wrapperName.equals("") ? field.wrapperName : field.name;
+        }
+
         buffer.append("\"")
-                .append((!field.wrapperName.equals("") ? field.wrapperName : field.name));
+                .append(name);
         buffer.append("\": ");
 
         if (field.collection) {
@@ -168,7 +175,6 @@ public class Utils {
     }
 
     private static void generateXml(ApiField element, int level, StringBuffer response) {
-
         if (!element.wrapperName.equals("")) {  // Output <WRAPPER>
             response.append(repeatSpace(level));
             response.append(XML_START).append(element.wrapperName).append(XML_END).append(NEW_LINE);

@@ -31,6 +31,7 @@ import com.emc.storageos.api.mapper.TaskMapper;
 import com.emc.storageos.api.service.authorization.PermissionsHelper;
 import com.emc.storageos.api.service.impl.resource.ArgValidator;
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
@@ -416,8 +417,19 @@ public class BlockServiceUtils {
         // array snapshot.
         String modifiedRequestedName = ResourceOnlyNameGenerator.removeSpecialCharsForName(
                 requestedName, SmisConstants.MAX_SNAPSHOT_NAME_LENGTH);
-        List<BlockSnapshotSession> snapSessions = CustomQueryUtility.queryActiveResourcesByConstraint(dbClient,
-                BlockSnapshotSession.class, ContainmentConstraint.Factory.getParentSnapshotSessionConstraint(sourceURI));
+        List<BlockSnapshotSession> snapSessions = null;
+        Volume sourceVolume = null;
+        if (URIUtil.isType(sourceURI, Volume.class)) {
+            sourceVolume = dbClient.queryObject(Volume.class, sourceURI);
+        }
+        if (sourceVolume != null && NullColumnValueGetter.isNotNullValue(sourceVolume.getReplicationGroupInstance())) {
+            snapSessions = CustomQueryUtility.queryActiveResourcesByConstraint(dbClient,
+                    BlockSnapshotSession.class,
+                    ContainmentConstraint.Factory.getBlockSnapshotSessionByConsistencyGroup(sourceVolume.getConsistencyGroup()));
+        } else {
+            snapSessions = CustomQueryUtility.queryActiveResourcesByConstraint(dbClient,
+                    BlockSnapshotSession.class, ContainmentConstraint.Factory.getParentSnapshotSessionConstraint(sourceURI));
+        }
         for (BlockSnapshotSession snapSession : snapSessions) {
             if (modifiedRequestedName.equals(snapSession.getSessionLabel())) {
                 throw APIException.badRequests.duplicateLabel(requestedName);

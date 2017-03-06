@@ -712,7 +712,7 @@ public class VNXeUnManagedObjectDiscoverer {
 
         unManagedVolume.setLabel(lun.getName());
 
-        Map<String, StringSet> unManagedVolumeInformation = new HashMap<String, StringSet>();
+        StringSetMap unManagedVolumeInformation = new StringSetMap();
         Map<String, String> unManagedVolumeCharacteristics = new HashMap<String, String>();
 
         Boolean isVolumeExported = false;
@@ -772,7 +772,8 @@ public class VNXeUnManagedObjectDiscoverer {
                         driveTypes);
             }
             StringSet matchedVPools = DiscoveryUtils.getMatchedVirtualPoolsForPool(dbClient, pool.getId(),
-                    unManagedVolumeCharacteristics.get(SupportedVolumeCharacterstics.IS_THINLY_PROVISIONED.toString()));
+                    unManagedVolumeCharacteristics.get(SupportedVolumeCharacterstics.IS_THINLY_PROVISIONED.toString()),
+                    unManagedVolume);
             log.debug("Matched Pools : {}", Joiner.on("\t").join(matchedVPools));
             if (null == matchedVPools || matchedVPools.isEmpty()) {
                 // clear all existing supported vpools.
@@ -785,7 +786,7 @@ public class VNXeUnManagedObjectDiscoverer {
 
         }
 
-        unManagedVolume.addVolumeInformation(unManagedVolumeInformation);
+        unManagedVolume.setVolumeInformation(unManagedVolumeInformation);
 
         if (unManagedVolume.getVolumeCharacterstics() == null) {
             unManagedVolume.setVolumeCharacterstics(new StringMap());

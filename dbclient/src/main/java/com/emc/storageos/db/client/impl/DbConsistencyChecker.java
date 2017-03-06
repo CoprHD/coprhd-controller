@@ -18,8 +18,9 @@ import org.slf4j.LoggerFactory;
 import com.emc.storageos.coordinator.client.model.Constants;
 import com.emc.storageos.coordinator.client.model.DbConsistencyStatus;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
-import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
+import com.emc.storageos.db.client.impl.DbConsistencyCheckerHelper.CheckResult;
 import com.emc.storageos.db.client.impl.DbConsistencyCheckerHelper.IndexAndCf;
+import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 
 public class DbConsistencyChecker {
     private static final Logger log = LoggerFactory.getLogger(DbConsistencyChecker.class);
@@ -141,28 +142,28 @@ public class DbConsistencyChecker {
         DbConsistencyStatus status = getStatusFromZk();
         Collection<DataObjectType> resumeDataCfs = resumeFromWorkingPoint(checkType, status.getWorkingPoint());
 
-        int totalCorruptedCount = 0;
+        CheckResult checkResult = new CheckResult();
         for (DataObjectType dataCf : resumeDataCfs) {
-            int corruptedCount = helper.checkCFIndices(dataCf, toConsole);
+            helper.checkCFIndices(dataCf, toConsole, checkResult);
             status = getStatusFromZk();
             if (!toConsole && isCancelled(status)) {
                 cancel(status);
             }
             if (!toConsole) {
-                status.update(this.totalCount, checkType.name(), dataCf.getCF().getName(), corruptedCount);
+                status.update(this.totalCount, checkType.name(), dataCf.getCF().getName(), checkResult.getTotal());
                 persistStatus(status);
             }
-            totalCorruptedCount += corruptedCount;
         }
 
         DbCheckerFileWriter.close();
 
-        String msg = String.format("\nFinish to check DataObject records index: totally checked %d data CFs, "
-                + "%d corrupted rows found.\n", resumeDataCfs.size(), totalCorruptedCount);
+        String msg = String.format("Finish to check DataObject records index: totally checked %d data CFs, "
+                + "%d corrupted rows found.\n", resumeDataCfs.size(), checkResult.getTotal());
 
+        helper.logMessage(checkResult.toString(), false, toConsole);
         helper.logMessage(msg, false, toConsole);
-
-        return totalCorruptedCount;
+        
+        return checkResult.getTotal();
     }
 
     /**
@@ -179,28 +180,28 @@ public class DbConsistencyChecker {
         DbConsistencyStatus status = getStatusFromZk();
         Collection<IndexAndCf> resumeIdxCfs = resumeFromWorkingPoint(checkType, status.getWorkingPoint());
 
-        int totalCorruptCount = 0;
+        CheckResult checkResult = new CheckResult();
         for (IndexAndCf indexAndCf : resumeIdxCfs) {
-            int corruptCount = helper.checkIndexingCF(indexAndCf, toConsole);
+            helper.checkIndexingCF(indexAndCf, toConsole, checkResult);
             status = getStatusFromZk();
             if (!toConsole && isCancelled(status)) {
                 cancel(status);
             }
             if (!toConsole) {
-                status.update(this.totalCount, checkType.name(), indexAndCf.generateKey(), corruptCount);
+                status.update(this.totalCount, checkType.name(), indexAndCf.generateKey(), checkResult.getTotal());
                 persistStatus(status);
             }
-            totalCorruptCount += corruptCount;
         }
 
         DbCheckerFileWriter.close();
 
-        String msg = String.format("\nFinish to check INDEX records: totally checked %d indices " +
-                "and %d corrupted rows found.\n", resumeIdxCfs.size(), totalCorruptCount);
+        String msg = String.format("Finish to check INDEX records: totally checked %d indices " +
+                "and %d corrupted rows found.\n", resumeIdxCfs.size(), checkResult.getTotal());
 
+        helper.logMessage(checkResult.toString(), false, toConsole);
         helper.logMessage(msg, false, toConsole);
-
-        return totalCorruptCount;
+        
+        return checkResult.getTotal();
     }
 
     private Collection resumeFromWorkingPoint(CheckType checkType, String workingPoint) {
@@ -325,5 +326,4 @@ public class DbConsistencyChecker {
     public void setHelper(DbConsistencyCheckerHelper helper) {
         this.helper = helper;
     }
-
 }

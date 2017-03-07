@@ -39,6 +39,7 @@ import util.datatable.DataTablesSupport;
 
 import com.emc.storageos.db.client.model.FilePolicy.FilePolicyApplyLevel;
 import com.emc.storageos.db.client.model.FilePolicy.FilePolicyType;
+import com.emc.storageos.db.client.model.FilePolicy.FileReplicationType;
 import com.emc.storageos.model.DataObjectRestRep;
 import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.RelatedResourceRep;
@@ -535,6 +536,18 @@ public class FileProtectionPolicies extends ViprResourceController {
         }
         assignPolicy.id = params.get("id");
         FilePolicyAssignParam assignPolicyParam = new FilePolicyAssignParam();
+        if (assignPolicy.topologiesString == null || assignPolicy.topologiesString.equalsIgnoreCase("[]")) {
+            FilePolicyRestRep policy = getViprClient().fileProtectionPolicies().getFilePolicy(uri(assignPolicy.id));
+            if (policy.getReplicationSettings() != null
+                    && policy.getReplicationSettings().getType().equalsIgnoreCase(FileReplicationType.REMOTE.name())) {
+                flash.error("No source and target varry parameters passed", policy.getName());
+                if (StringUtils.isNotBlank(assignPolicy.referrerUrl)) {
+                    redirect(assignPolicy.referrerUrl);
+                } else {
+                    list();
+                }
+            }
+        }
         try {
             updateAssignPolicyParam(assignPolicy, assignPolicyParam);
             TaskResourceRep taskRes = getViprClient().fileProtectionPolicies().assignPolicy(uri(assignPolicy.id), assignPolicyParam);

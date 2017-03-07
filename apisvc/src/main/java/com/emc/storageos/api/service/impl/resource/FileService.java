@@ -3569,7 +3569,6 @@ public class FileService extends TaskResourceService {
             _log.error("Error Unassigning Filesystem policy {}, {}", e.getMessage(), e);
             throw APIException.badRequests.unableToProcessRequest(e.getMessage());
         }
-
         return toTask(fp, task, op);
 
     }

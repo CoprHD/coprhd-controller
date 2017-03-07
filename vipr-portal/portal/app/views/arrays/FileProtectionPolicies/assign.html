@@ -55,28 +55,27 @@
       #{Form.selectOneControlGroup field:field, options:applyPolicyOptions, select:assignPolicy.appliedAt, cssClass:'span3' /}
     #{/field} 
     
-   <div id="projectFields"> 
-    #{field 'assignPolicy.vpool'}
-      #{Form.selectOneControlGroup field:field, options:projectVpoolOptions, select:assignPolicy.vpool, cssClass:'span3' /}
-    #{/field} 
+    <div id="projectFields"> 
      #{field 'assignPolicy.projects', noLabel:noLabel}
          #{Form.selectManyControlGroup field:field, options:projectOptions /}
      #{/field}
     </div>
         
-    <div ng-init="policyId='${assignPolicy.id}'" id="replicationFields" ng-controller="filePolicyCtrl">
+    <div ng-init="policyId='${assignPolicy.id}'"  ng-controller="filePolicyCtrl">
     	<div id="vpoolFields"  class="row">
-           <div class="control-label col-sm-3"><strong>&{'assignPolicy.vpools'}:</strong></div> 
+           <div class="control-label col-sm-3"><strong>&{'assignPolicy.vpool'}:</strong></div> 
            <div class="pull-left col-sm-6" v-field="vpoolFields">
               <select-one options="vPoolOptions" ng-change="populateVarray(field)" required></select-one>
            </div> 
         </div> 
+        <br>
+        <div id="replicationFields">
         <div class="row" style="padding-top:20px; padding-bottom:0px;">
             <div class="col-xs-3"></div>    
             <div class="pull-left col-sm-3" style="text-align:center;"><strong>&{'replicationTopology.sourceVArray'}</strong></div>
             <div class="pull-left col-sm-3" style="text-align:center;"><strong>&{'replicationTopology.targetVArray'}</strong></div>
         </div>
-        <hr style="margin:05px;"/>
+        <hr style="margin:5px;"/>
         <div class="row col-gap-none" ng-repeat="topology in topologies" style="margin-bottom:5px;">
             <div class="col-xs-3"></div>    
             <div class="pull-left col-sm-3" v-field="topology.sourceVArray">
@@ -91,11 +90,12 @@
             <div class="col-xs-2"></div>    
             <div class="pull-left col-sm-9"><button type="button" ng-click="addTopology()" class="btn btn-sm btn-success"><i v-icon=plus></i> &{'button.add'}</button></div>
         </div>
+        
         #{field 'assignPolicy.topologiesString'}
             <input type="hidden" name="assignPolicy.topologiesString" ng-value="topologiesString" />
         #{/field}
     </div>
-    
+    </div>
   #{Form.saveCancelButtonBar size:'large', cancelHref:@list()/}
 #{/form}
 </div>
@@ -117,13 +117,13 @@
 			$('div.form-actions a.btn').attr('href', referrerUrl);
 		}
 		
-        var assignAlready = #{get 'assignAlready'/};
+      //  var assignAlready = #{get 'assignAlready'/};
 		
-		if (assignAlready) {
+		//if (assignAlready) {
 			
-			$('#vpoolFields').hide();	
+		//	$('#vpoolFields').hide();	
 			
-		}
+		//}
 		
 		$('#assignPolicy_appliedAt').on('change', showAssignAt);
 		showAssignAt();
@@ -136,8 +136,8 @@
             var policyType = $('#policyType').val();
             var replicationType = $('#replicationType').val();
 				if (assignAt == 'project') {
-					$('#vpoolFields').hide();
 					$('#projectFields').show();
+					$('#vpoolFields').show();
 				} else if (assignAt == 'vpool') {
 					$('#vpoolFields').show();
 					$('#projectFields').hide();

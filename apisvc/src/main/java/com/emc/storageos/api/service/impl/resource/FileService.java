@@ -3570,7 +3570,7 @@ public class FileService extends TaskResourceService {
             throw APIException.badRequests.unableToProcessRequest(e.getMessage());
         }
 
-        return toTask(fs, task, op);
+        return toTask(fp, task, op);
 
     }
 

@@ -1226,28 +1226,17 @@ public class UcsComputeDevice implements ComputeDevice {
             String spDn = null;
             LOGGER.info("Host.uuid: "+host.getUuid() + " ComputeElement.uuid: "+  computeElement.getUuid());
             if (NullColumnValueGetter.isNullURI(host.getServiceProfile())){
-                LOGGER.info("Host has no service profile asscoaition. trying to determine service profile to unbind based on compute element uuid: "+ computeElement.getUuid());
-                if (computeElement.getUuid() != null ) {
-                    LsServer sp = ucsmService.getLsServer(getUcsmURL(cs).toString(),
-                            cs.getUsername(), cs.getPassword(), computeElement.getUuid());
-                    if (sp!=null){
-                        spDn = sp.getDn();
-                        LOGGER.info("Found service profile {} matching uuid {}", spDn, computeElement.getUuid());
-                    }else{
-                        LOGGER.info("No service profile found with uuid {}. Nothing to unbind.", computeElement.getUuid());
-                        return;
-                    }
-               }
-            }else{
-                UCSServiceProfile serviceProfile =  _dbClient.queryObject(UCSServiceProfile.class, host.getServiceProfile());
-                if (serviceProfile == null){
-                    LOGGER.error("Host "+ host.getLabel()+ " has associated serviceProfileURI: "+ host.getServiceProfile()+ " which is an invalid reference");
-                    LOGGER.info("Service profile unbind will not be triggered");
-                    return ;
-                }else {
-                    spDn = serviceProfile.getDn();
-                    LOGGER.info("Host.uuid: "+host.getUuid() + " ComputeElement.uuid: "+  computeElement.getUuid() + "serviceProfile.uuid:" + serviceProfile.getUuid());
-                }
+               LOGGER.error("Host has no asscoaited serviceProfile. Service profile unbind will not be triggered.");
+               return;
+            }
+            UCSServiceProfile serviceProfile =  _dbClient.queryObject(UCSServiceProfile.class, host.getServiceProfile());
+            if (serviceProfile == null){
+                LOGGER.error("Host "+ host.getLabel()+ " has associated serviceProfileURI: "+ host.getServiceProfile()+ " which is an invalid reference");
+                LOGGER.info("Service profile unbind will not be triggered");
+                return ;
+            }else {
+                spDn = serviceProfile.getDn();
+                LOGGER.info("Host.uuid: "+host.getUuid() + " ComputeElement.uuid: "+  computeElement.getUuid() + "serviceProfile.uuid:" + serviceProfile.getUuid());
             }
             if (spDn!=null){
                 LOGGER.info("Unbinding service profile with dn: "+ spDn);
@@ -1268,7 +1257,7 @@ public class UcsComputeDevice implements ComputeDevice {
 
             }
         } else {
-            LOGGER.info("NO OP. Host is null or has no asscoaited computeElement");
+            LOGGER.info("NO OP. Host is null or has no associated compute element");
         }
     }
 
@@ -1285,28 +1274,8 @@ public class UcsComputeDevice implements ComputeDevice {
         if (host!=null){
             String spDn = null;
             if (NullColumnValueGetter.isNullURI(host.getServiceProfile())){
-                if (NullColumnValueGetter.isNullURI(host.getComputeElement())) {
-                    LOGGER.info("Host has no associated service profile or compute element . cannot delete service profile.");
-                   return;
-                }
-                ComputeElement computeElement = _dbClient.queryObject(ComputeElement.class, host.getComputeElement());
-                if (computeElement != null){ 
-                    LOGGER.info("Host has no associated service profile. Trying to determine service profile to delete based on associated computeElement's uuid {} ", computeElement.getUuid());
-                    if (computeElement.getUuid() != null ) {
-                        LsServer sp = ucsmService.getLsServer(getUcsmURL(cs).toString(),
-                            cs.getUsername(), cs.getPassword(), computeElement.getUuid());
-                        if (sp!=null){
-                            spDn = sp.getDn();
-                            LOGGER.info("Found service profile {} matching uuid {}", spDn, computeElement.getUuid());
-                        }else{
-                            LOGGER.info("No service profile found with uuid {}. Nothing to delete.", computeElement.getUuid());
-                            return;
-                        }
-                   }
-                } else {
-                   LOGGER.info("Host has no associated service profile and no valid compute element association. cannot delete service profile.");
-                   return;
-                }
+                LOGGER.info("Host has no associated service profile. cannot delete service profile.");
+                return;
             } else {
                 serviceProfile =  _dbClient.queryObject(UCSServiceProfile.class, host.getServiceProfile());
                 if (serviceProfile == null){

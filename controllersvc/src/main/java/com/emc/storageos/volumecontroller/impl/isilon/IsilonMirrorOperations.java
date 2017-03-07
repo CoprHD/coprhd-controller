@@ -34,7 +34,6 @@ import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.BiosCommandResult;
 import com.emc.storageos.volumecontroller.impl.ControllerServiceImpl;
-import com.emc.storageos.volumecontroller.impl.isilon.job.IsilonSyncIQJob;
 import com.emc.storageos.volumecontroller.impl.isilon.job.IsilonSyncJobFailover;
 import com.emc.storageos.volumecontroller.impl.isilon.job.IsilonSyncJobResync;
 import com.emc.storageos.volumecontroller.impl.isilon.job.IsilonSyncJobStart;
@@ -183,73 +182,22 @@ public class IsilonMirrorOperations {
         }
     }
 
-    /**
-     * Call to device to cancel policy
-     * 
-     * @param system
-     * @param policyName
-     * @return
-     */
-    public BiosCommandResult doCancelReplicationPolicy(StorageSystem system, String policyName, TaskCompleter taskCompleter) {
-        IsilonSyncPolicy policy = null;
-        try {
-            IsilonApi isi = getIsilonDevice(system);
-            try {
-                policy = isi.getReplicationPolicy(policyName);
-            } catch (IsilonException e) {
-                policy = null;
-                return BiosCommandResult.createSuccessfulResult();
-            }
-
-            if (policy != null) {
-                JobState policyState = policy.getLastJobState();
-
-                if (policyState.equals(JobState.running) || policyState.equals(JobState.paused)) {
-                    _log.info("Canceling Replication Policy  -{} because policy is in - {} state ", policyName, policyState);
-                    IsilonSyncPolicy modifiedPolicy = new IsilonSyncPolicy();
-                    modifiedPolicy.setName(policyName);
-                    modifiedPolicy.setLastJobState(JobState.canceled);
-                    isi.modifyReplicationPolicy(policyName, modifiedPolicy);
-                    IsilonSyncIQJob isiSyncJobcancel = null;
-                    try {
-                        isiSyncJobcancel = new IsilonSyncIQJob(policyName, system.getId(), taskCompleter, policyName);
-                        ControllerServiceImpl.enqueueJob(new QueueJob(isiSyncJobcancel));
-                        return BiosCommandResult.createPendingResult();
-                    } catch (Exception ex) {
-                        _log.error("Cancel Replication Job Failed ", ex);
-                        ServiceError error = DeviceControllerErrors.isilon.jobFailed("Cancel Replication Job Failed as:" + ex.getMessage());
-                        if (taskCompleter != null) {
-                            taskCompleter.error(_dbClient, error);
-                        }
-                        return BiosCommandResult.createErrorResult(error);
-                    }
-                } else {
-                    return BiosCommandResult.createSuccessfulResult();
-                }
-            }
-            return BiosCommandResult.createSuccessfulResult();
-        } catch (IsilonException e) {
-            return BiosCommandResult.createErrorResult(e);
-        }
-
-    }
-
     public BiosCommandResult doCancelReplicationPolicy(StorageSystem system, String policyName) {
         try {
             IsilonApi isi = getIsilonDevice(system);
-            IsilonSyncPolicy policy = isi.getReplicationPolicy(policyName);
-            JobState policyState = policy.getLastJobState();
-            if (policyState.equals(JobState.running) || policyState.equals(JobState.paused)) {
-                _log.info("Canceling Replication Policy  -{} because policy is in - {} state ", policyName, policyState);
-                IsilonSyncPolicy modifiedPolicy = new IsilonSyncPolicy();
-                modifiedPolicy.setName(policyName);
-                modifiedPolicy.setLastJobState(JobState.canceled);
-                isi.modifyReplicationPolicy(policyName, modifiedPolicy);
-                return BiosCommandResult.createSuccessfulResult();
-            }
+            _log.info("Canceling Replication Policy  -{} because policy is in running state ", policyName);
+            IsilonSyncJob syncJob = new IsilonSyncJob();
+            syncJob.setState(JobState.canceled.name());
+            isi.modifyReplicationJob(policyName, syncJob);
+            _log.info("Sleeping for 10 seconds for cancel operation to complete...");
+            TimeUnit.SECONDS.sleep(10);
             return BiosCommandResult.createSuccessfulResult();
+
         } catch (IsilonException e) {
             return BiosCommandResult.createErrorResult(e);
+        } catch (InterruptedException e) {
+            _log.warn("Canceling ReplicationPolicy - {} intertupted", policyName);
+            return BiosCommandResult.createSuccessfulResult();
         }
 
     }

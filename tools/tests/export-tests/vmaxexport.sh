@@ -1641,7 +1641,8 @@ exisitingintiatorstest() {
 
     echot "Deleting existing initiators 10:00:00:DE:AD:BE:EF:03"
     runcmd initiator delete $EXISTINGINITTEST/$EXISTINGINIT3
-
+    verify_export $EXISTINGINITEGTEST ${EXISTINGINITTEST} 3 2
+    
     echot "Deleting Export Mask existing initiators 10:00:00:DE:AD:BE:EF:04"
     runcmd export_group delete $PROJECT/$EXISTINGINITEGTEST
     verify_export $EXISTINGINITEGTEST ${EXISTINGINITTEST} gone

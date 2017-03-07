@@ -1047,9 +1047,13 @@ public class BlockService extends TaskResourceService {
 
     private void validateCGForRemoteReplication(BlockConsistencyGroup cGroup, RemoteReplicationParameters params,
             BlockServiceApi blockService) {
+        if (cGroup == null) {
+            _log.info("No consistency group is specified for this RR volume creating request, skip validating");
+            return;
+        }
         // Consistency group should only be empty or only contain RR type volume(s)
         if (cGroup.getRequestedTypes().size() != 0 &&
-                (cGroup.getRequestedTypes().size() != 1 || !cGroup.checkForType(Types.RR))) {
+                (cGroup.getRequestedTypes().size() != 1 || !cGroup.checkForRequestedType(Types.RR))) {
             throw APIException.badRequests.consistencyGroupMustOnlyBeRRProtected(cGroup.getId());
         }
         List<Volume> volumes = blockService.getActiveCGVolumes(cGroup);

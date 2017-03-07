@@ -66,7 +66,7 @@ public class DbConsistencyCheckerHelper {
 
     private DbClientImpl dbClient;
     private Set<Class<? extends DataObject>> excludeClasses = new HashSet<Class<? extends DataObject>>(Arrays.asList(PasswordHistory.class));
-    private Map<Long, String> schemaVersionsTime;
+    private volatile Map<Long, String> schemaVersionsTime;
     private BlockingQueue<Runnable> blockingQueue = new ArrayBlockingQueue<Runnable>(THREAD_POOL_QUEUE_SIZE);
     private ThreadPoolExecutor executor = new ThreadPoolExecutor(5, 20, 50, TimeUnit.MILLISECONDS, blockingQueue);
     private boolean doubleConfirmed = true;
@@ -76,7 +76,6 @@ public class DbConsistencyCheckerHelper {
 
     public DbConsistencyCheckerHelper(DbClientImpl dbClient) {
         this.dbClient = dbClient;
-        schemaVersionsTime = querySchemaVersions();
     }
 
     /**
@@ -133,6 +132,7 @@ public class DbConsistencyCheckerHelper {
      * @throws ConnectionException
      */
     public void checkCFIndices(DataObjectType doType, boolean toConsole, CheckResult checkResult) throws ConnectionException {
+        initSchemaVersions();
         Class objClass = doType.getDataObjectClass();
         _log.info("Check Data Object CF {} with double confirmed option: {}", objClass, doubleConfirmed);
 
@@ -217,6 +217,7 @@ public class DbConsistencyCheckerHelper {
      * @throws ConnectionException
      */
     public void checkIndexingCF(IndexAndCf indexAndCf, boolean toConsole, CheckResult checkResult, boolean isParallel) throws ConnectionException {
+        initSchemaVersions();
         String indexCFName = indexAndCf.cf.getName();
         Map<String, ColumnFamily<String, CompositeColumnName>> objCfs = getDataObjectCFs();
         _log.info("Start checking the index CF {} with double confirmed option: {}", indexCFName, doubleConfirmed);
@@ -264,18 +265,17 @@ public class DbConsistencyCheckerHelper {
                     }
                     idxEntries.add(new IndexEntry(row.getKey(), column.getName()));
                 }
-            }
-            
-            int size = getObjsSize(objsToCheck);
-            if (size >= INDEX_OBJECTS_BATCH_SIZE ) {
-                if (isParallel) {
-                    processBatchIndexObjectsWithMultipleThreads(indexAndCf, toConsole, objsToCheck, checkResult);
-                } else {
-                    processBatchIndexObjects(indexAndCf, toConsole, objsToCheck, checkResult);
+                
+                int size = getObjsSize(objsToCheck);
+                if (size >= INDEX_OBJECTS_BATCH_SIZE ) {
+                    if (isParallel) {
+                        processBatchIndexObjectsWithMultipleThreads(indexAndCf, toConsole, objsToCheck, checkResult);
+                    } else {
+                        processBatchIndexObjects(indexAndCf, toConsole, objsToCheck, checkResult);
+                    }
+                    objsToCheck = new HashMap<>();
                 }
-                objsToCheck = new HashMap<>();
             }
-            
         }
 
         // Detect whether the DataObject CFs have the records
@@ -764,6 +764,12 @@ public class DbConsistencyCheckerHelper {
     
     private boolean isValidDataObjectKey(URI uri, final Class<? extends DataObject> type) {
     	return uri != null && URIUtil.isValid(uri) && URIUtil.isType(uri, type);
+    }
+    
+    protected void initSchemaVersions() {
+        if (schemaVersionsTime == null) {
+            schemaVersionsTime = querySchemaVersions();
+        }
     }
 
     protected Map<Long, String> querySchemaVersions() {

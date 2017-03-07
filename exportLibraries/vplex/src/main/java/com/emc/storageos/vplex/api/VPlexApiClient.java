@@ -205,7 +205,8 @@ public class VPlexApiClient {
             s_logger.info("refreshed lightweight cluster info list is " + _vplexClusterInfoLiteCache.toString());
         }
 
-        return _vplexClusterInfoLiteCache;
+        // return a copy
+        return new ArrayList<VPlexClusterInfo>(_vplexClusterInfoLiteCache);
     }
 
     /**
@@ -1450,7 +1451,8 @@ public class VPlexApiClient {
             s_logger.info("refreshed cluster id to name map is " + _vplexClusterIdToNameCache.toString());
         }
 
-        return _vplexClusterIdToNameCache;
+        // return a copy
+        return new HashMap<String, String>(_vplexClusterIdToNameCache);
     }
 
     /**
@@ -2127,7 +2129,7 @@ public class VPlexApiClient {
      * 
      * @param vplexClusterName the cluster initiator cache to clear
      */
-    public void clearInitiatorCache(String vplexClusterName) {
+    public synchronized void clearInitiatorCache(String vplexClusterName) {
         _discoveryMgr.clearInitiatorCache(vplexClusterName);
     }
 

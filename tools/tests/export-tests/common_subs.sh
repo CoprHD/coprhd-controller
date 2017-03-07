@@ -698,7 +698,8 @@ run() {
 # A method to run a command that continues on failure.
 runcmd() {
     cmd=$*
-    echo === $cmd | tee -a ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
+    datetime=`date +"%Y-%m-%d %H:%M:%S"`
+    echo === $datetime : $cmd | tee -a ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
     rm -f ${CMD_OUTPUT}
     if [ "${HIDE_OUTPUT}" = "" -o "${HIDE_OUTPUT}" = "1" ]; then
 	"$@" &> ${CMD_OUTPUT}
@@ -763,7 +764,8 @@ fail(){
       # TODO When the cmd fails, we can check if the failure output contains this expected error message
     fi
     cmd=$*
-    echo === $cmd | tee -a ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
+    datetime=`date +"%Y-%m-%d %H:%M:%S"`
+    echo === $datetime : $cmd | tee -a ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
     if [ "${HIDE_OUTPUT}" = "" -o "${HIDE_OUTPUT}" = "1" ]; then
         $cmd &> ${CMD_OUTPUT}
     else

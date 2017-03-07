@@ -650,6 +650,9 @@ do
             ftp_param_count=$[ftp_param_count+1]
             if [[ $i -lt $# ]]; then
                 eval FTP=\${$[i+1]}
+                if [[ $FTP != *'/$' ]]; then
+                    FTP=$FTP"/"
+                fi
             fi
             check_parameter "$param" "$FTP"
             ;;

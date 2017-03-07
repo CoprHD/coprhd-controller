@@ -64,7 +64,7 @@
     <div ng-init="policyId='${assignPolicy.id}'"  ng-controller="filePolicyCtrl">
     	<div id="vpoolFields"  class="row">
            <div class="control-label col-sm-3"><strong>&{'assignPolicy.vpool'}:</strong></div> 
-           <div class="pull-left col-sm-6" v-field="vpoolFields">
+           <div class="pull-left col-sm-6" v-field="assignPolicy.vpool">
               <select-one options="vPoolOptions" ng-change="populateVarray(field)" required></select-one>
            </div> 
         </div> 
@@ -94,6 +94,7 @@
         #{field 'assignPolicy.topologiesString'}
             <input type="hidden" name="assignPolicy.topologiesString" ng-value="topologiesString" />
         #{/field}
+        
     </div>
     </div>
   #{Form.saveCancelButtonBar size:'large', cancelHref:@list()/}

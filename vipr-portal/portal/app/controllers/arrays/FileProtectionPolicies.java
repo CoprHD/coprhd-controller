@@ -946,8 +946,8 @@ public class FileProtectionPolicies extends ViprResourceController {
             List<String> existingvPools = stringRefIds(existingPolicy.getAssignedResources());
             List<String> vPools = Lists.newArrayList();
 
-            if (assignPolicy.virtualPools != null) {
-                vPools = assignPolicy.virtualPools;
+            if (assignPolicy.vpool != null) {
+                vPools.add(assignPolicy.vpool);
             }
 
             Set<String> add = Sets.newHashSet(CollectionUtils.subtract(vPools, existingvPools));
@@ -997,8 +997,8 @@ public class FileProtectionPolicies extends ViprResourceController {
             List<String> existingvPools = stringRefIds(existingPolicy.getAssignedResources());
             List<String> vPools = Lists.newArrayList();
 
-            if (assignPolicy.virtualPools != null) {
-                vPools = assignPolicy.virtualPools;
+            if (assignPolicy.vpool != null) {
+                vPools.add(assignPolicy.vpool);
             }
 
             Set<String> remove = Sets.newHashSet(CollectionUtils.subtract(existingvPools, vPools));
@@ -1094,8 +1094,9 @@ public class FileProtectionPolicies extends ViprResourceController {
 
             }
             // Load project applicable fields
+            this.vpool = ResourceUtils.stringId(restRep.getVpool());
             if (FilePolicyApplyLevel.project.name().equalsIgnoreCase(restRep.getAppliedAt())) {
-                this.vpool = ResourceUtils.stringId(restRep.getVpool());
+
                 this.projects = ResourceUtils.stringRefIds(restRep.getAssignedResources());
             } else if (FilePolicyApplyLevel.vpool.name().equalsIgnoreCase(restRep.getAppliedAt())) {
                 this.virtualPools = ResourceUtils.stringRefIds(restRep.getAssignedResources());

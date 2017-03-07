@@ -71,7 +71,7 @@ public class FilePolicyServiceUtils {
                     EnumSet.allOf(FilePolicy.ScheduleFrequency.class));
 
             // validating schedule repeat period
-            if (policyScheduleparams.getScheduleRepeat() != null && policyScheduleparams.getScheduleRepeat() < 1) {
+            if (policyScheduleparams.getScheduleRepeat() == null && policyScheduleparams.getScheduleRepeat() < 1) {
                 errorMsg.append("required parameter schedule_repeat is missing or value: " + policyScheduleparams.getScheduleRepeat()
                         + " is invalid");
                 return false;

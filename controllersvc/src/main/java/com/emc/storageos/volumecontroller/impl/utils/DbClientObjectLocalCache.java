@@ -34,12 +34,13 @@ import com.emc.storageos.db.client.model.DataObject;
  */
 public class DbClientObjectLocalCache extends DbClientImpl {
 
+    private DbClient dbClientCache;
     private ObjectLocalCache cache;
     
     public void init() {
         if (cache == null) {
             this.start();
-            cache = new ObjectLocalCache(this, true);
+            cache = new ObjectLocalCache(dbClientCache, true);
         } else {
             throw new IllegalStateException();
         }

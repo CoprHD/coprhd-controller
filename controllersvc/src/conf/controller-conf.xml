@@ -1444,6 +1444,7 @@
           class="com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.DataCollectionJobConsumer">
         <property name="dbClient" >
             <bean class="com.emc.storageos.volumecontroller.impl.utils.DbClientObjectLocalCache" init-method="init">
+                <property name="dbClientCache" ref="dbclient"/>
                 <property name="coordinatorClient" ref="coordinator"/>
                 <property name="dbVersionInfo" ref="dbVersionInfo"/>
                 <property name="encryptionProvider" ref="encryptionProvider"/>

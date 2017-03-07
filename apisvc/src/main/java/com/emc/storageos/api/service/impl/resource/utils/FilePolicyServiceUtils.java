@@ -71,7 +71,7 @@ public class FilePolicyServiceUtils {
                     EnumSet.allOf(FilePolicy.ScheduleFrequency.class));
 
             // validating schedule repeat period
-            if (policyScheduleparams.getScheduleRepeat() < 1) {
+            if (policyScheduleparams.getScheduleRepeat() != null && policyScheduleparams.getScheduleRepeat() < 1) {
                 errorMsg.append("required parameter schedule_repeat is missing or value: " + policyScheduleparams.getScheduleRepeat()
                         + " is invalid");
                 return false;
@@ -82,6 +82,10 @@ public class FilePolicyServiceUtils {
             int hour;
             int minute;
             boolean isValid = true;
+            if (policyScheduleparams.getScheduleTime() == null){
+                errorMsg.append("required parameter schedule_time is missing");
+                return false;
+            }
             if (policyScheduleparams.getScheduleTime() != null && policyScheduleparams.getScheduleTime().contains(":")) {
                 String splitTime[] = policyScheduleparams.getScheduleTime().split(":");
                 hour = Integer.parseInt(splitTime[0]);
@@ -159,13 +163,14 @@ public class FilePolicyServiceUtils {
     }
 
     public static void validateSnapshotPolicyExpireParam(FileSnapshotPolicyParam param) {
-        boolean isValidSnapshotExpire;
+        boolean isValidSnapshotExpire = false;
+        if(param.getSnapshotExpireParams().getExpireType()!= null){
+         // check snapshot expire type is valid or not
+            ArgValidator.checkFieldValueFromEnum(param.getSnapshotExpireParams().getExpireType().toUpperCase(), "expire_type",
+                    EnumSet.allOf(FilePolicy.SnapshotExpireType.class));
 
-        // check snapshot expire type is valid or not
-        ArgValidator.checkFieldValueFromEnum(param.getSnapshotExpireParams().getExpireType().toUpperCase(), "expire_type",
-                EnumSet.allOf(FilePolicy.SnapshotExpireType.class));
-
-        isValidSnapshotExpire = validateSnapshotExpireParam(param.getSnapshotExpireParams());
+            isValidSnapshotExpire = validateSnapshotExpireParam(param.getSnapshotExpireParams());
+        }
         if (!isValidSnapshotExpire) {
             int expireTime = param.getSnapshotExpireParams().getExpireValue();
             _log.error("Invalid schedule snapshot expire time {}. Try an expire time between {} hours to {} years",

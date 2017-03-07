@@ -4063,7 +4063,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
 
         Map<String, Integer> volumeHluPair = new HashMap<String, Integer>();
         // For 'add host to cluster' operation, validate and fail beforehand if HLU conflict is detected
-        if (exportGroup.forCluster() && exportGroup.getVolumes() != null) {
+        if (!exportGroup.checkInternalFlags(Flag.INTERNAL_OBJECT) && exportGroup.forCluster() && exportGroup.getVolumes() != null) {
             // get HLUs from ExportGroup as these are the volumes that will be exported to new Host.
             Collection<String> egHlus = exportGroup.getVolumes().values();
             Collection<Integer> clusterHlus = Collections2.transform(egHlus, CommonTransformerFunctions.FCTN_STRING_TO_INTEGER);
@@ -5248,7 +5248,8 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
     public void findAndUpdateFreeHLUsForClusterExport(StorageSystem storage, ExportGroup exportGroup, List<URI> initiatorURIs,
             Map<URI, Integer> volumeMap) {
         try {
-            if (exportGroup.forCluster() && volumeMap.values().contains(ExportGroup.LUN_UNASSIGNED)
+            if (!exportGroup.checkInternalFlags(Flag.INTERNAL_OBJECT) && exportGroup.forCluster()
+                    && volumeMap.values().contains(ExportGroup.LUN_UNASSIGNED)
                     && ExportUtils.systemSupportsConsistentHLUGeneration(storage)) {
                 _log.info("Find and update free HLUs for Cluster Export START..");
                 /**

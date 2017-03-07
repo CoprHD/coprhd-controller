@@ -150,6 +150,7 @@
                 <bean class="com.emc.storageos.db.client.upgrade.callbacks.TimeSeriesIndexMigration"/>
                 <bean class="com.emc.storageos.db.client.upgrade.callbacks.VirtualPoolFileReplicationPolicyMigration"/>
                 <bean class="com.emc.storageos.db.client.upgrade.callbacks.VolumeBootVolumeMigration"/>
+				<bean class="com.emc.storageos.db.client.upgrade.callbacks.FileSnapshotPolicyMigration"/>
             </list>
         </entry>
     </util:map>

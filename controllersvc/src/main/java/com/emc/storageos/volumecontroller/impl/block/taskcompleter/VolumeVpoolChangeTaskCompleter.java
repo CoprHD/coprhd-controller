@@ -27,6 +27,7 @@ import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
 import com.emc.storageos.util.VPlexUtil;
+import com.emc.storageos.vplex.api.VPlexMigrationInfo;
 import com.google.common.base.Joiner;
 
 @SuppressWarnings("serial")
@@ -129,7 +130,7 @@ public class VolumeVpoolChangeTaskCompleter extends VolumeWorkflowCompleter {
                         VirtualPool oldVpool = dbClient.queryObject(VirtualPool.class, oldVpoolURI);
                         VirtualPool newVpool = dbClient.queryObject(VirtualPool.class, newVpoolURI);
                         
-                        if (serviceCoded.getServiceCode() == ServiceCode.VPLEX_CANNOT_ROLLBACK_COMMITTED_MIGRATION) {
+                        if (isMigrationCommitted(dbClient)) {
                             _log.info("Migration already commited, leaving virtual pool for volume: " + volume.forDisplay());
                         }  else {
                             volume.setVirtualPool(oldVpoolURI);
@@ -151,7 +152,7 @@ public class VolumeVpoolChangeTaskCompleter extends VolumeWorkflowCompleter {
                         } 
                         
                         if (RPHelper.isVPlexVolume(volume, dbClient)) {
-                            if (serviceCoded.getServiceCode() != ServiceCode.VPLEX_CANNOT_ROLLBACK_COMMITTED_MIGRATION) {
+                            if (!isMigrationCommitted(dbClient)) {
                                 // Special rollback for VPLEX to update the backend vpools to the old vpools
                                 rollBackVpoolOnVplexBackendVolume(volume, volumesToUpdate, dbClient, oldVpoolURI);
                             }
@@ -384,5 +385,29 @@ public class VolumeVpoolChangeTaskCompleter extends VolumeWorkflowCompleter {
         }
 
         dbClient.updateObject(masks);
+    }
+    
+    /**
+     * Determines if a migration associated with the virtual pool change was successfully committed.
+     * 
+     * @param dbClient A reference to a database client.
+     * 
+     * @return true if a migration was committed, false otherwise.
+     */
+    private boolean isMigrationCommitted(DbClient dbClient) {
+        boolean migrationCommitted = false;
+        if (migrationURIs != null && !migrationURIs.isEmpty()) {
+            for (URI migrationURI : migrationURIs) {
+                Migration migration = dbClient.queryObject(Migration.class, migrationURI);
+                if (migration != null) {
+                    if (VPlexMigrationInfo.MigrationStatus.COMMITTED.getStatusValue().equals(
+                            migration.getMigrationStatus())) {
+                        migrationCommitted = true;
+                        break;
+                    }
+                }
+            }
+        }
+        return migrationCommitted;
     }
 }

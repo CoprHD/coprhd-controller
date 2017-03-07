@@ -475,7 +475,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         ViPRCoreClient client = api(ctx);
         NamedVolumesList volumeList = client.blockVolumes().listVirtualArrayChangeCandidates(projectId, varrayId);
         List<VolumeRestRep> volumes = client.blockVolumes().getByRefs(volumeList.getVolumes());
-        return createBaseResourceOptions(volumes);
+        return createVolumeOptions(client, volumes);
     }
 
     @Asset("targetVirtualArray")
@@ -1036,7 +1036,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         BlockVolumeBootVolumeFilter bootVolumeFilter = new BlockVolumeBootVolumeFilter();
         List<VolumeRestRep> volumes = client.blockVolumes().findByProject(projectId, unexportedFilter.and(sourceTargetVolumesFilter).and(bootVolumeFilter.not()));
 
-        return createBaseResourceOptions(volumes);
+        return createVolumeOptions(client, volumes);
     }
 
     @Asset("unassignedVplexBlockVolume")
@@ -1066,7 +1066,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         // get a list of all volumes from our list that are in the target VArray, or use the target VArray for protection
         List<BlockObjectRestRep> acceptedVolumes = getVPlexVolumesInTargetVArray(client, virtualArrayId, volumes);
 
-        return createBaseResourceOptions(acceptedVolumes);
+        return createVolumeOptions(client, acceptedVolumes);
     }
 
     @Asset("unassignedBlockSnapshot")
@@ -2536,7 +2536,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     @Asset("continuousCopies")
     @AssetDependencies("volumeWithContinuousCopies")
     public List<AssetOption> getContinuousCopies(AssetOptionsContext ctx, URI volume) {
-        return createBaseResourceOptions(api(ctx).blockVolumes().getContinuousCopies(volume));
+        return createVolumeOptions(api(ctx), api(ctx).blockVolumes().getContinuousCopies(volume));
     }
 
     @Asset("blockJournalSize")
@@ -2647,7 +2647,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
                 return new ArrayList<AssetOption>();
             }
 
-            return createBaseResourceOptions(client.blockVolumes().getFullCopies(volumeId));
+            return createVolumeOptions(client, client.blockVolumes().getFullCopies(volumeId));
         } else {
             if (!BlockProviderUtils.isType(volumeId, BLOCK_CONSISTENCY_GROUP_TYPE)) {
                 warn("Inconsistent types, %s and %s, return empty results", volumeId, volumeOrConsistencyType);
@@ -3255,7 +3255,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         if (blockObject instanceof VolumeRestRep) {
             VolumeRestRep volume = (VolumeRestRep) blockObject;
             String varrayName = varrayNames.get(volume.getVirtualArray().getId()).getName();
-            return getMessage("block.unexport.volume", volume.getName(), volume.getProvisionedCapacity(), varrayName);
+            return getMessage("block.unexport.volume", volume.getName(), volume.getProvisionedCapacity(), varrayName, volume.getWwn());
         }
         return blockObject.getName();
     }
@@ -3338,15 +3338,15 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         if (blockObject instanceof VolumeRestRep) {
             if (blockObject instanceof BlockMirrorRestRep) {
                 BlockMirrorRestRep mirror = (BlockMirrorRestRep) blockObject;
-                return getMessage("block.mirror", mirror.getName());
+                return getMessage("block.mirror", mirror.getName(), mirror.getWwn());
             } else {
                 VolumeRestRep volume = (VolumeRestRep) blockObject;
-                return getMessage("block.volume", volume.getName(), volume.getProvisionedCapacity());
+                return getMessage("block.volume", volume.getName(), volume.getProvisionedCapacity(), volume.getWwn());
             }
         }
         else if (blockObject instanceof BlockSnapshotRestRep) {
             BlockSnapshotRestRep snapshot = (BlockSnapshotRestRep) blockObject;
-            return getMessage("block.snapshot.label", snapshot.getName(), getBlockSnapshotParentVolumeName(volumeNames, snapshot));
+            return getMessage("block.snapshot.label", snapshot.getName(), getBlockSnapshotParentVolumeName(volumeNames, snapshot), snapshot.getWwn());
         }
         else if (blockObject instanceof BlockSnapshotSessionRestRep) {
             BlockSnapshotSessionRestRep snapshotSession = (BlockSnapshotSessionRestRep) blockObject;
@@ -3411,7 +3411,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     protected List<AssetOption> constructSnapshotOptions(List<BlockSnapshotRestRep> snapshots) {
         List<AssetOption> options = Lists.newArrayList();
         for (BlockSnapshotRestRep snapshot : snapshots) {
-            options.add(new AssetOption(snapshot.getId(), snapshot.getName()));
+            options.add(new AssetOption(snapshot.getId(), getMessage("block.snapshot.labelNoVolume", snapshot.getName(), snapshot.getWwn())));
         }
         AssetOptionsUtils.sortOptionsByLabel(options);
         return options;

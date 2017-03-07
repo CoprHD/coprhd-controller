@@ -96,6 +96,14 @@ public class ExportBlockVolumeHelper {
             cluster = BlockStorageUtils.getCluster(hostId);
         }
 
+        // Don't allow ViPR exports of block volumes (this may not fly as part of the create host services)
+        for (URI volumeId : uris(volumeIds)) {
+            BlockObjectRestRep volume = BlockStorageUtils.getBlockResource(volumeId);
+            if (BlockStorageUtils.isVolumeBootVolume(volume)) {
+                ExecutionUtils.fail("failTask.verifyBootVolume", volume.getName(), volume.getName());
+            }
+        }
+        
         BlockStorageUtils.checkEvents(host != null ? host : cluster);
     }
 

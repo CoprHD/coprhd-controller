@@ -7,11 +7,14 @@ package com.emc.sa.service.vipr.block;
 import static com.emc.sa.service.ServiceParams.SIZE_IN_GB;
 import static com.emc.sa.service.ServiceParams.VOLUMES;
 
+import java.net.URI;
 import java.util.List;
 
+import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.engine.bind.Param;
 import com.emc.sa.engine.service.Service;
 import com.emc.sa.service.vipr.ViPRService;
+import com.emc.storageos.model.block.BlockObjectRestRep;
 
 @Service("ExpandBlockStorage")
 public class ExpandBlockStorageService extends ViPRService {
@@ -23,6 +26,12 @@ public class ExpandBlockStorageService extends ViPRService {
     @Override
     public void precheck() {
         BlockStorageUtils.getBlockResources(uris(volumeIds));
+        for (URI volumeId : uris(volumeIds)) {
+            BlockObjectRestRep volume = BlockStorageUtils.getBlockResource(volumeId);
+            if (BlockStorageUtils.isVolumeBootVolume(volume)) {
+                ExecutionUtils.fail("failTask.verifyBootVolume", volume.getName(), volume.getName());
+            }
+        }
     }
 
     @Override

@@ -43,6 +43,9 @@ public class MountBlockVolumeService extends WindowsService {
         if (BlockStorageUtils.isVolumeVMFSDatastore(volume)) {
             ExecutionUtils.fail("failTask.verifyVMFSDatastore", volume.getName(), volume.getName());
         }
+        if (BlockStorageUtils.isVolumeBootVolume(volume)) {
+            ExecutionUtils.fail("failTask.verifyBootVolume", volume.getName(), volume.getName());
+        }
         mountBlockVolumeHelpers = MountBlockVolumeHelper.createHelpers(windowsSystems, extractCapacityInBytes(volume));
         verifyClusterConfiguration();
         for (MountBlockVolumeHelper mountBlockVolumeHelper : mountBlockVolumeHelpers) {

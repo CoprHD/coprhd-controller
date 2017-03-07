@@ -80,8 +80,8 @@
 <target name="axis"                                depends="axis-1.4-236.36.4.1adg"/>
 <target name="bash-doc"                            depends="bash-doc-4.2-75.2_1"/>
 <target name="bigdata"                             depends="bigdata-1.2.3-1"/>
-<target name="bind-libs"                           depends="bind-libs-9.9.9P1-28.20.1_1"/>
-<target name="bind-utils"                          depends="bind-utils-9.9.9P1-28.20.1_1"/>
+<target name="bind-libs"                           depends="bind-libs-9.9.9P1-28.26.1_1"/>
+<target name="bind-utils"                          depends="bind-utils-9.9.9P1-28.26.1_1"/>
 <target name="binutils"                            depends="binutils-2.24-7.1_1"/>
 <target name="boost-devel-1.54.0"                  depends="boost-devel-1.54.0-15.1_1"/>
 <target name="boost-license1_54_0"                 depends="boost-license1_54_0-1.54.0-10.5_1"/>
@@ -120,6 +120,7 @@
 <target name="commons-validator"                   depends="apache-commons-validator-1.3.1"/>
 <target name="configure-network"                   depends="configure-network-3.3-1_1"/>
 <target name="connectemc"                          depends="connectemc-3.1.0.1-1"/>
+<target name="containerd"                          depends="containerd-0.2.5+gitr569_2a5e70c-15.3_1"/>
 <target name="coreutils"                           depends="coreutils-8.22-9.1_1"/>
 <target name="coreutils-lang"                      depends="coreutils-lang-8.22-9.1_1"/>
 <target name="cpio"                                depends="cpio-2.11-29.1_1"/>
@@ -146,7 +147,7 @@
 <target name="dialog"                              depends="dialog-1.2-5.36_1"/>
 <target name="dmidecode"                           depends="dmidecode-2.12-5.20_1"/>
 <target name="dmt-api-java"                        depends="dmt-api-java-8.0.9.0.28-1"/>
-<target name="docker"                              depends="docker-1.10.3-66.1_1"/>
+<target name="docker"                              depends="docker-1.12.6-90.1_1"/>
 <target name="docker-compose"                      depends="docker-compose-1.1.0-2_1"/>
 <target name="dom4j"                               depends="dom4j-1.6.1"/>
 <target name="dos2unix"                            depends="dos2unix-6.0.4-1.133_1"/>
@@ -393,8 +394,7 @@
 <target name="libexpat1-2.1.0"                     depends="libexpat1-2.1.0-17.1_1"/>
 <target name="libffi4"                             depends="libffi4-5.3.1+r233831-9.1_1"/>
 <target name="libfltk1"                            depends="libfltk1-1.3.2-10.2_1"/>
-<target name="libfreebl3"                          depends="libfreebl3-3.21.1-46.2"/>
-<target name="libfreebl3-3.21.1-46.2"              depends="libfreebl3-3.21.1-46.2_1"/>
+<target name="libfreebl3"                          depends="libfreebl3-3.21.3-50.1_1"/>
 <target name="libfreetype6"                        depends="libfreetype6-2.5.3-5.1_1"/>
 <target name="libgcc_s1"                           depends="libgcc_s1-5.3.1+r233831-9.1_1"/>
 <target name="libgcrypt-devel"                     depends="libgcrypt-devel-1.6.1-16.27.1_1"/>
@@ -475,8 +475,8 @@
 <target name="libserf-1-1"                         depends="libserf-1-1-1.3.7-1.37_1"/>
 <target name="libsmartcols1"                       depends="libsmartcols1-2.25-10.1_1"/>
 <target name="libsndfile1"                         depends="libsndfile1-1.0.25-24.1_1"/>
-<target name="libsoftokn3"                         depends="libsoftokn3-3.21.1-46.2_1"/>
-<target name="libsoftokn3-hmac"                    depends="libsoftokn3-hmac-3.21.1-46.2_1"/>
+<target name="libsoftokn3"                         depends="libsoftokn3-3.21.3-50.1_1"/>
+<target name="libsoftokn3-hmac"                    depends="libsoftokn3-hmac-3.21.3-50.1_1"/>
 <target name="libspeex1"                           depends="libspeex1-1.1.999_1.2rc1-22.64_1"/>
 <target name="libsqlite3-0"                        depends="libsqlite3-0-3.8.3.1-1.14_1"/>
 <target name="libtasn1"                            depends="libtasn1-3.7-11.1_1"/>
@@ -534,7 +534,7 @@
 <target name="mod_auth_cas"                        depends="emc-mod_auth_cas"/>
 <target name="mon"                                 depends="mon-1.2.0"/>
 <target name="mozilla-nspr"                        depends="mozilla-nspr-4.12-15.2_1"/>
-<target name="mozilla-nss"                         depends="mozilla-nss-3.21.1-46.2_1"/>
+<target name="mozilla-nss"                         depends="mozilla-nss-3.21.3-50.1_1"/>
 <target name="mozilla-nss-certs"                   depends="mozilla-nss-certs-3.21.1-46.2_1"/>
 <target name="mpt-firmware"                        depends="mpt-firmware-1.0-258.8_1"/>
 <target name="mtools"                              depends="mtools-4.0.18-4.379_1"/>
@@ -687,6 +687,7 @@
 <target name="rsyslog-module-gtls"                 depends="rsyslog-module-gtls-8.4.0-5.1_1"/>
 <target name="ruby2.1"                             depends="ruby2.1-2.1.2-9.1_1"/>
 <target name="ruby2.1-stdlib"                      depends="ruby2.1-stdlib-2.1.2-9.1_1"/>
+<target name="runc"                                depends="runc-0.1.1+gitr2819_50a19c6-15.2_1"/>
 <target name="sbt"                                 depends="sbt-0.13.7-1_1"/>
 <target name="screen"                              depends="screen-4.0.4-16.140_1"/>
 <target name="sendmail"                            depends="sendmail-8.14.9-2.80_1"/>
@@ -760,7 +761,7 @@
 <target name="update-alternatives"                 depends="update-alternatives-1.16.10-6.109_1"/>
 <target name="user-management-service"             depends="user-management-service-3.1.100.1.5-1"/>
 <target name="util-linux"                          depends="util-linux-2.25-10.1_1"/>
-<target name="util-linux-lang"                     depends="util-linux-lang-2.25-10.1_1"/>
+<target name="util-linux-lang"                     depends="util-linux-lang-2.25-24.10.1_1"/>
 <target name="util-linux-systemd"                  depends="util-linux-systemd-2.25-10.1_1"/>
 <target name="velocity"                            depends="velocity-1.6.2"/>
 <target name="vijava"                              depends="vijava-5.1-1"/>

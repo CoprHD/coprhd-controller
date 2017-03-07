@@ -66,7 +66,7 @@ public class VPlexApiConsistencyGroupManager {
 
         // Error if not found.
         if (clusterInfo == null) {
-            throw VPlexApiException.exceptions.failedToFindCluster(clusterName);
+            throw VPlexApiException.exceptions.failedToFindCluster(clusterName, "");
         }
 
         // Create the consistency group on the cluster.

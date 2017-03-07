@@ -15,7 +15,7 @@ import com.iwave.ext.text.TextParser;
 
 public class ListHBAInfoCommand extends HpuxResultsCommand<List<HBAInfo>> {
 
-    private static final Pattern DEVICE_PATTERN = Pattern.compile("host: /dev/fclp(\\d+)");
+    private static final Pattern DEVICE_PATTERN = Pattern.compile("host: (.+)");
     private static final Pattern WWPN_PATTERN = Pattern.compile("N_Port Port World Wide Name = 0x([0-9a-fA-F]*)");
     private static final Pattern WWNN_PATTERN = Pattern.compile("N_Port Node World Wide Name = 0x([0-9a-fA-F]*)");
 
@@ -43,7 +43,6 @@ public class ListHBAInfoCommand extends HpuxResultsCommand<List<HBAInfo>> {
                 String host = parser.findMatch(DEVICE_PATTERN, textBlock);
                 if (StringUtils.isNotBlank(host)) {
                     HBAInfo hba = new HBAInfo();
-                    hba.setHostId(Integer.parseInt(host));
 
                     String wwnn = parser.findMatch(WWNN_PATTERN, textBlock);
                     hba.setWwnn(normalizeWWN(wwnn));

@@ -29,5 +29,4 @@ public class HostRequest extends KHRequests<VNXeHost> {
         _url += URL_MODIFY;
         return postRequestSync(param);
     }
-
 }

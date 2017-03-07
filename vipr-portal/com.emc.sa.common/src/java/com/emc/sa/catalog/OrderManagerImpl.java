@@ -20,21 +20,20 @@ package com.emc.sa.catalog;
 import static com.emc.storageos.db.client.URIUtil.uri;
 
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.*;
 
 import javax.annotation.PostConstruct;
 import javax.annotation.Resource;
 
-import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
-import com.emc.storageos.db.client.constraint.NamedElementQueryResultList;
+import com.emc.storageos.api.service.impl.resource.ArgValidator;
 import com.emc.storageos.db.client.util.ExecutionWindowHelper;
-import com.emc.sa.model.util.ScheduleTimeHelper;
 import com.emc.storageos.db.client.model.*;
 import com.emc.storageos.db.client.model.uimodels.*;
-import com.emc.storageos.services.OperationTypeEnum;
-import com.emc.vipr.model.catalog.OrderRestRep;
+import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import org.apache.commons.lang.StringUtils;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -47,6 +46,7 @@ import com.emc.sa.model.dao.ModelClient;
 import com.emc.sa.model.util.CreationTimeComparator;
 import com.emc.sa.model.util.SortedIndexUtils;
 import com.emc.sa.util.ResourceType;
+import com.emc.sa.util.CatalogSerializationUtils;
 import com.emc.sa.util.TextUtils;
 import com.emc.sa.zookeeper.OrderCompletionQueue;
 import com.emc.sa.zookeeper.OrderExecutionQueue;
@@ -62,8 +62,8 @@ import com.google.common.collect.Maps;
 
 @Component
 public class OrderManagerImpl implements OrderManager {
-
-    private static final Logger log = Logger.getLogger(OrderManagerImpl.class);
+    private static final Logger log = LoggerFactory.getLogger(OrderManagerImpl.class);
+    private long noDeletePeriod = 2592000000L;
 
     @Autowired
     private ModelClient client;
@@ -111,6 +111,14 @@ public class OrderManagerImpl implements OrderManager {
         Order order = client.orders().findById(id);
 
         return order;
+    }
+
+    public void setNoDeletePeriod(long noDeletePeriod) {
+        this.noDeletePeriod = noDeletePeriod;
+    }
+
+    public long getNoDeletePeriod() {
+        return noDeletePeriod;
     }
 
     public Order createOrder(Order order, List<OrderParameter> orderParameters, StorageOSUser user) {
@@ -166,7 +174,7 @@ public class OrderManagerImpl implements OrderManager {
         for (OrderParameter orderParameter : orderParameters) {
             ServiceField serviceField = findServiceField(serviceDescriptor, orderParameter.getLabel());
             String friendlyLabel = serviceField.getLabel();
-    
+
             StringBuilder friendlyValue = new StringBuilder();
             List<String> values = TextUtils.parseCSV(orderParameter.getValue());
             for (String value : values) {
@@ -178,7 +186,7 @@ public class OrderManagerImpl implements OrderManager {
 
             orderParameter.setFriendlyLabel(friendlyLabel);
             orderParameter.setFriendlyValue(friendlyValue.toString());
-            
+
             createOrderParameter(orderParameter);
         }
 
@@ -219,6 +227,7 @@ public class OrderManagerImpl implements OrderManager {
             case QUOTA_DIRECTORY:
             case VIRTUAL_ARRAY:
             case VIRTUAL_POOL:
+            case COMPUTE_VIRTUAL_POOL:
             case CONSISTENCY_GROUP:
             case STORAGE_SYSTEM:
             case EXPORT_GROUP:
@@ -237,6 +246,7 @@ public class OrderManagerImpl implements OrderManager {
             case UNMANAGED_EXPORTMASK:
             case BLOCK_CONTINUOUS_COPY:
             case VPLEX_CONTINUOUS_COPY:
+            case STORAGE_PORT:
                 return true;
             default:
                 return false;
@@ -247,6 +257,22 @@ public class OrderManagerImpl implements OrderManager {
         try {
             if (canGetResourceLabel(key)) {
                 return getResourceLabel(key);
+            } else if (CatalogSerializationUtils.isSerializedObject(key)) {
+                Map<URI, List<URI>> port = (Map<URI, List<URI>>) CatalogSerializationUtils.serializeFromString(key);
+                String s = new String("{");
+                for (Map.Entry<URI, List<URI> > entry : port.entrySet()) {
+                    s += getResourceLabel(entry.getKey().toString());
+                    s += ":[";
+                    List<String> portLabels = new ArrayList<String>();
+                    for (URI p : entry.getValue()) {
+                        portLabels.add(getResourceLabel(p.toString()));
+                    }
+                    s += String.join(",", portLabels);
+                    s += "]";
+                }
+                s += "}";
+                log.info(String.format("Serialized label: %s", s));
+                return s;
             }
             else {
 
@@ -256,6 +282,7 @@ public class OrderManagerImpl implements OrderManager {
                 }
 
                 // Defer to AssetOptions if it's not a ViPR resource
+                log.info(String.format("AssetType %s not a ViPR resource, deferring to AssetOptions to get value.", key));
                 AssetOptionsContext context = assetOptionsManager.createDefaultContext(user);
                 List<AssetOption> options = assetOptionsManager.getOptions(context, assetType, assetValues);
                 for (AssetOption option : options) {
@@ -287,6 +314,9 @@ public class OrderManagerImpl implements OrderManager {
                     break;
                 case CLUSTER:
                     dataObject = client.findById(Cluster.class, id);
+                    break;
+                case COMPUTE_VIRTUAL_POOL:
+                    dataObject = client.findById(ComputeVirtualPool.class, id);
                     break;
                 case QUOTA_DIRECTORY:
                     dataObject = client.findById(QuotaDirectory.class, id);
@@ -351,6 +381,12 @@ public class OrderManagerImpl implements OrderManager {
                 case VPLEX_CONTINUOUS_COPY:
                     dataObject = client.findById(VplexMirror.class, id);
                     break;
+                case STORAGE_PORT:
+                    dataObject = client.findById(StoragePort.class, id);
+                    break;
+                case INITIATOR:
+                    dataObject = client.findById(Initiator.class, id);
+                    break;
             }
         } catch (Exception e) {
             log.error(String.format("Error getting resource %s", resourceId), e);
@@ -383,6 +419,8 @@ public class OrderManagerImpl implements OrderManager {
                     return String.format("%s [cluster: %s]", dataObject.getLabel(), cluster.getLabel());
                 }
             }
+        } else if (dataObject instanceof StoragePort) {
+            return ((StoragePort) dataObject).getPortName();
         }
         return dataObject.getLabel();
     }
@@ -434,7 +472,68 @@ public class OrderManagerImpl implements OrderManager {
         client.save(order);
     }
 
+    public void canBeDeleted(Order order, OrderStatus orderStatus) {
+        if (order.getScheduledEventId()!=null) {
+            throw APIException.badRequests.scheduledOrderNotAllowed("deactivation");
+        }
+
+        if (createdWithinOneMonth(order)) {
+            throw APIException.badRequests.orderWithinOneMonth(order.getId());
+        }
+
+        OrderStatus status = OrderStatus.valueOf(order.getOrderStatus());
+
+        if (orderStatus != null && status != orderStatus) {
+            throw APIException.badRequests.orderCanNotBeDeleted(order.getId(), status.toString());
+        }
+
+        if (!status.canBeDeleted()) {
+            throw APIException.badRequests.orderCanNotBeDeleted(order.getId(), status.toString());
+        }
+
+    }
+
+    private boolean createdWithinOneMonth(Order order) {
+        long now = System.currentTimeMillis();
+
+        long createdTime = order.getCreationTime().getTimeInMillis();
+
+        return (now - createdTime) < noDeletePeriod;
+    }
+
     public void deleteOrder(Order order) {
+        canBeDeleted(order, null);
+
+        URI orderId = order.getId();
+        List<ApprovalRequest> approvalRequests = approvalManager.findApprovalsByOrderId(orderId);
+        client.delete(approvalRequests);
+
+        List<OrderParameter> orderParameters = getOrderParameters(orderId);
+        client.delete(orderParameters);
+
+        ExecutionState state = getOrderExecutionState(order.getExecutionStateId());
+        if (state != null) {
+            StringSet logIds = state.getLogIds();
+            URI id = null;
+            for (String logId : logIds) {
+                try {
+                    id = new URI(logId);
+                } catch (URISyntaxException e) {
+                    log.error("Invalid id {} e=", logId, e);
+                    continue;
+                }
+                ExecutionLog execlog = client.getModelClient().findById(ExecutionLog.class, id);
+                client.delete(execlog);
+            }
+
+            List<ExecutionTaskLog> logs = client.executionTaskLogs().findByIds(state.getTaskLogIds());
+            for (ExecutionTaskLog taskLog: logs) {
+                client.delete(taskLog);
+            }
+
+            client.delete(state);
+        }
+
         client.delete(order);
     }
 
@@ -442,16 +541,24 @@ public class OrderManagerImpl implements OrderManager {
         return client.orders().findAll(tenantId.toString());
     }
 
-    public List<Order> getUserOrders(StorageOSUser user) {
-        return client.orders().findByUserId(user.getUserName());
+    public List<Order> getUserOrders(StorageOSUser user, long startTime, long endTime, int maxCount) {
+        return client.orders().findOrdersByUserId(user.getUserName(), startTime, endTime, maxCount);
+    }
+
+    public long getOrderCount(StorageOSUser user, long startTime, long endTime) {
+        return client.orders().getOrdersCount(user.getUserName(), startTime, endTime);
+    }
+
+    public Map<String, Long> getOrderCount(List<URI> tids, long startTime, long endTime) {
+        return client.orders().getOrdersCount(tids, startTime, endTime);
     }
 
     public List<Order> findOrdersByStatus(URI tenantId, OrderStatus orderStatus) {
         return client.orders().findByOrderStatus(tenantId.toString(), orderStatus);
     }
 
-    public List<Order> findOrdersByTimeRange(URI tenantId, Date startTime, Date endTime) {
-        return client.orders().findByTimeRange(tenantId, startTime, endTime);
+    public List<Order> findOrdersByTimeRange(URI tenantId, Date startTime, Date endTime, int maxCount) {
+        return client.orders().findByTimeRange(tenantId, startTime, endTime, maxCount);
     }
 
     public List<ExecutionLog> getOrderExecutionLogs(Order order) {

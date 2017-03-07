@@ -10,7 +10,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Set;
 
 import org.slf4j.Logger;
@@ -28,7 +27,6 @@ import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
-import com.emc.storageos.db.client.model.VpoolRemoteCopyProtectionSettings;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.volumecontroller.AttributeMatcher;
@@ -85,7 +83,7 @@ public class FileMirrorScheduler implements Scheduler {
             VirtualPoolCapabilityValuesWrapper capabilities) {
 
         List<FileRecommendation> recommendations = null;
-        if (vpool.getFileReplicationType().equals(VirtualPool.FileReplicationType.REMOTE.name())) {
+        if (capabilities.getFileReplicationType().equalsIgnoreCase(VirtualPool.FileReplicationType.REMOTE.name())) {
             recommendations = getRemoteMirrorRecommendationsForResources(varray, project, vpool, capabilities);
         } else {
             recommendations = getLocalMirrorRecommendationsForResources(varray, project, vpool, capabilities);
@@ -123,47 +121,58 @@ public class FileMirrorScheduler implements Scheduler {
         } else {
             // Get the recommendation for source from vpool!!!
             sourceFileRecommendations = _fileScheduler.getRecommendationsForResources(vArray, project, vPool, capabilities);
+            // Remove the source storage system from capabilities list
+            // otherwise, try to find the remote pools from the same source system!!!
+            if (capabilities.isVpoolProjectPolicyAssign() && capabilities.getFileProtectionSourceStorageDevice() != null) {
+                capabilities.removeCapabilityEntry(VirtualPoolCapabilityValuesWrapper.FILE_PROTECTION_SOURCE_STORAGE_SYSTEM);
+            }
         }
         // Process the each recommendations for targets
         for (FileRecommendation sourceFileRecommendation : sourceFileRecommendations) {
-
-            Map<URI, VpoolRemoteCopyProtectionSettings> remoteCopySettings =
-                    VirtualPool.getFileRemoteProtectionSettings(vPool, _dbClient);
-
             String srcSystemType = sourceFileRecommendation.getDeviceType();
             Set<String> systemTypes = new StringSet();
             systemTypes.add(srcSystemType);
 
-            if (remoteCopySettings != null && !remoteCopySettings.isEmpty()) {
-                for (Entry<URI, VpoolRemoteCopyProtectionSettings> copy : remoteCopySettings.entrySet()) {
-                    // Process each target !!!
-                    FileMirrorRecommendation fileMirrorRecommendation = new FileMirrorRecommendation(sourceFileRecommendation);
-                    VpoolRemoteCopyProtectionSettings targetCopy = copy.getValue();
-                    VirtualPool targetPool = _dbClient.queryObject(VirtualPool.class, targetCopy.getVirtualPool());
-                    VirtualArray targetArray = _dbClient.queryObject(VirtualArray.class, targetCopy.getVirtualArray());
-                    // Filter the target storage pools!!!
-                    Map<String, Object> attributeMap = new HashMap<String, Object>();
+            // Based on the source recommendation nas server, target should pick the right nas server.
+            // Both source and target nas servers should be similar.
+            // If sourceFileRecommendation.getvNAS() is null means, the recommendation is for physical nas server!!
+            // This should happen for assignment of replication policy
+            if (capabilities.isVpoolProjectPolicyAssign()) {
+                capabilities.put(VirtualPoolCapabilityValuesWrapper.SOURCE_VIRTUAL_NAS_SERVER, sourceFileRecommendation.getvNAS());
+            }
 
-                    attributeMap.put(Attributes.system_type.toString(), systemTypes);
-                    attributeMap.put(Attributes.remote_copy_mode.toString(), targetCopy.getCopyMode());
-                    attributeMap.put(Attributes.source_storage_system.name(), sourceFileRecommendation.getSourceStorageSystem().toString());
+            for (String targetVArry : capabilities.getFileReplicationTargetVArrays()) {
+                // Process for target !!!
+                FileMirrorRecommendation fileMirrorRecommendation = new FileMirrorRecommendation(sourceFileRecommendation);
+                VirtualPool targetVPool = _dbClient.queryObject(VirtualPool.class, capabilities.getFileReplicationTargetVPool());
+                VirtualArray targetVArray = _dbClient.queryObject(VirtualArray.class, URI.create(targetVArry));
+                // Filter the target storage pools!!!
+                Map<String, Object> attributeMap = new HashMap<String, Object>();
 
-                    capabilities.put(VirtualPoolCapabilityValuesWrapper.PERSONALITY,
-                            VirtualPoolCapabilityValuesWrapper.FILE_REPLICATION_TARGET);
-                    // Get target recommendations!!!
-                    targetFileRecommendations = _fileScheduler.placeFileShare(targetArray, targetPool, capabilities, project, attributeMap);
+                attributeMap.put(Attributes.system_type.toString(), systemTypes);
+                attributeMap.put(Attributes.remote_copy_mode.toString(), capabilities.getFileRpCopyMode());
+                attributeMap.put(Attributes.source_storage_system.name(), sourceFileRecommendation.getSourceStorageSystem().toString());
 
-                    String copyMode = vPool.getFileReplicationCopyMode();
-                    if (targetFileRecommendations != null && !targetFileRecommendations.isEmpty()) {
-                        // prepare the target recommendation
-                        FileRecommendation targetRecommendation = targetFileRecommendations.get(0);
-                        prepareTargetFileRecommendation(copyMode,
-                                targetArray, targetRecommendation, fileMirrorRecommendation);
+                capabilities.put(VirtualPoolCapabilityValuesWrapper.PERSONALITY,
+                        VirtualPoolCapabilityValuesWrapper.FILE_REPLICATION_TARGET);
+                // Get target recommendations!!!
+                targetFileRecommendations = _fileScheduler.placeFileShare(targetVArray, targetVPool, capabilities, project, attributeMap);
+                if (targetFileRecommendations == null || targetFileRecommendations.isEmpty()) {
+                    _log.info("No target recommendation found, so ignore the source recommedation as well.");
+                    continue;
+                }
 
-                        fileMirrorRecommendations.add(fileMirrorRecommendation);
-                    }
+                String copyMode = capabilities.getFileRpCopyMode();
+                if (targetFileRecommendations != null && !targetFileRecommendations.isEmpty()) {
+                    // prepare the target recommendation
+                    FileRecommendation targetRecommendation = targetFileRecommendations.get(0);
+                    prepareTargetFileRecommendation(copyMode,
+                            targetVArray, targetRecommendation, fileMirrorRecommendation);
+
+                    fileMirrorRecommendations.add(fileMirrorRecommendation);
                 }
             }
+
         }
         return fileMirrorRecommendations;
     }
@@ -212,7 +221,7 @@ public class FileMirrorScheduler implements Scheduler {
             // get target recommendations -step2
             targetFileRecommendations = _fileScheduler.placeFileShare(vArray, vPool, capabilities, project, attributeMap);
 
-            String copyMode = vPool.getFileReplicationCopyMode();
+            String copyMode = capabilities.getFileRpCopyMode();
             if (targetFileRecommendations != null && !targetFileRecommendations.isEmpty()) {
                 // prepare the target recommendation
                 FileRecommendation targetRecommendation = targetFileRecommendations.get(0);
@@ -282,7 +291,7 @@ public class FileMirrorScheduler implements Scheduler {
             VirtualPoolCapabilityValuesWrapper capabilities, Map<VpoolUse, List<Recommendation>> currentRecommendations) {
         throw DeviceControllerException.exceptions.operationNotSupported();
     }
-    
+
     private FileRecommendation getSourceRecommendationParameters(FileShare sourceFs, StorageSystem storageSystem) {
 
         FileRecommendation fileRecommendation = new FileRecommendation();
@@ -337,7 +346,7 @@ public class FileMirrorScheduler implements Scheduler {
     @Override
     public String getSchedulerName() {
         return SCHEDULER_NAME;
-}
+    }
 
     @Override
     public boolean handlesVpool(VirtualPool vPool, VpoolUse vPoolUse) {

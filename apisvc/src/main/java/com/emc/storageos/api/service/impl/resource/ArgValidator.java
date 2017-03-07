@@ -21,6 +21,7 @@ import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.util.SizeUtil;
+import com.emc.storageos.recoverpoint.utils.WwnUtils;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCodeException;
@@ -32,6 +33,7 @@ public class ArgValidator {
 
     private static final String ALPHA_NUMERIC_PATTERN = "^[a-zA-Z0-9]+$";
     private static final Pattern patternAlphanumeric = Pattern.compile(ALPHA_NUMERIC_PATTERN);
+    private static final String ALPHA_NUMERIC_UNDERSCORE = "^[a-zA-Z0-9_-]*$";
 
     /**
      * Checks input URI and throws APIException.badRequests.invalidURI if
@@ -140,7 +142,7 @@ public class ArgValidator {
             throw APIException.badRequests.requiredParameterMissingOrEmpty(fieldName);
         }
     }
-    
+
     /**
      * Validates that the value supplied is not null, and matches one of the
      * expected values
@@ -223,6 +225,16 @@ public class ArgValidator {
                 throw APIException.badRequests.resourceCannotBeDeleteDueToUnreachableVdc();
             } else {
                 throw APIException.badRequests.resourceHasActiveReferencesWithType(type.getSimpleName(), id, depedency);
+            }
+        }
+    }
+
+    public static void checkReference(final Class<? extends DataObject> type, final String label, final String depedency) {
+        if (depedency != null) {
+            if (depedency.length() == 0) {
+                throw APIException.badRequests.resourceCannotBeDeleteDueToUnreachableVdc();
+            } else {
+                throw APIException.badRequests.resourceHasActiveReferencesWithType(type.getSimpleName(), label, depedency);
             }
         }
     }
@@ -672,6 +684,29 @@ public class ArgValidator {
             }
         }
         return false;
+    }
+
+    /**
+     * Check the format of the endpoint wwn entered.
+     * 
+     * @param wwn
+     *            wwn field
+     */
+    public static void checkFieldValidWwn(String wwn) {
+        if (!WwnUtils.isValidEndpoint(wwn)) {
+            throw APIException.badRequests.invalidParameterWwnBadFormat(wwn);
+        }
+    }
+
+    /**
+     * Check whether consistency group has special characters other than _ and -
+     * 
+     * @param consistencyGroupName
+     */
+    public static void checkIsAlphaNumeric(String consistencyGroupName) {
+        if (!consistencyGroupName.matches(ALPHA_NUMERIC_UNDERSCORE)) {
+            throw APIException.badRequests.groupNameonlyAlphaNumericAllowed();
+        }
     }
 
 }

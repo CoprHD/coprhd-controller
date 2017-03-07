@@ -111,7 +111,7 @@ public interface VPlexApiExceptions {
             final Throwable cause);
 
     @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
-    public VPlexApiException failedToFindCluster(final String clusterName);
+    public VPlexApiException failedToFindCluster(final String clusterName, final String details);
 
     @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
     public VPlexApiException createConsistencyGroupFailureStatus(final String cgName,
@@ -772,12 +772,6 @@ public interface VPlexApiExceptions {
     public VPlexApiException failedToExecuteDrillDownCommand(String deviceName, String response);
 
     @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
-    public VPlexApiException cantRenameDevice(String originalDeviceName, String newName, final Throwable cause);
-
-    @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
-    public VPlexApiException cantRenameDeviceBackToOriginalName(String originalDeviceName, String newName, final Throwable cause);
-
-    @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
     public VPlexApiException cantUseBackendExportMaskNotAllPortsInVarray(final String maskName, final String varray,
             final String listOfPorts);
 
@@ -834,6 +828,9 @@ public interface VPlexApiExceptions {
     public VPlexApiException vplexFirmwareUpdateNeeded(final String why);
 
     @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
+    public VPlexApiException thinProvisioningVerificationFailed(final String storageSystemName);
+
+    @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
     public VPlexApiException vplexClusterConfigurationChangedFromMetroToLocal(final String systemNativeGuid, final String localAssemblyId);
 
     @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
@@ -841,4 +838,22 @@ public interface VPlexApiExceptions {
 
     @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
     public VPlexApiException vplexSerialNumberChanged(final String oldSerialNumber, final String newSerialNumber);
+
+    @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
+    public VPlexApiException cantFindVolumeForDeatchMirror(final String volumeId);
+
+    @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
+    public VPlexApiException cantFindDistributedDeviceForRename(final String deviceId);    
+    
+    @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
+    public VPlexApiException failedGettingDistributedDevice(final String name);
+
+    @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
+    VPlexApiException hluRetrievalFailed(final String message, final Throwable cause);
+
+    @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
+    VPlexApiException cannotAddVolumesToExportGroupWithoutInitiators(String exportGroupName);
+
+    @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
+    VPlexApiException forgetVolumesFailed(final String volumeWWNs, final String vplexName, final String errMsg, final Throwable cause);
 }

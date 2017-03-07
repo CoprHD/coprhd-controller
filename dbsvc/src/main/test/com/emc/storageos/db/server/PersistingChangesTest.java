@@ -13,12 +13,11 @@ import java.net.URI;
 import java.util.*;
 
 import com.emc.storageos.db.client.impl.ColumnField;
-import com.emc.storageos.db.client.impl.CompositeColumnName;
 import com.emc.storageos.db.client.impl.DataObjectType;
+import com.emc.storageos.db.client.impl.DbClientImpl;
 import com.emc.storageos.db.client.impl.IndexCleaner;
 import com.emc.storageos.db.client.impl.IndexCleanupList;
 import com.emc.storageos.db.client.impl.IndexColumnName;
-import com.emc.storageos.db.client.impl.PrefixDbIndex;
 import com.emc.storageos.db.client.impl.RowMutator;
 import com.emc.storageos.db.client.impl.TypeMap;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
@@ -26,11 +25,9 @@ import com.netflix.astyanax.Keyspace;
 import com.netflix.astyanax.connectionpool.OperationResult;
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 import com.netflix.astyanax.model.Column;
-import com.netflix.astyanax.model.ColumnList;
 import com.netflix.astyanax.model.Row;
 import com.netflix.astyanax.model.Rows;
 import com.netflix.astyanax.query.ColumnFamilyQuery;
-import com.netflix.astyanax.util.RangeBuilder;
 import com.netflix.astyanax.util.TimeUUIDUtils;
 
 import org.junit.After;
@@ -592,7 +589,7 @@ public class PersistingChangesTest extends DbsvcTestBase {
         Assert.assertEquals(0, gotUris.size());
 
         // test remove object
-        this.dbClient.removeObject(tenant, tenant2);
+        ((DbClientImpl)dbClient).internalRemoveObjects(tenant, tenant2);
         read = this.dbClient.queryObject(TenantOrg.class, tenant.getId());
         Assert.assertNull(read);
         read = this.dbClient.queryObject(TenantOrg.class, tenant2.getId());
@@ -694,7 +691,8 @@ public class PersistingChangesTest extends DbsvcTestBase {
 
     @Test
     public void testAggregationQuery() throws Exception {
-
+        cleanupDataObjectCF(Volume.class);
+        
         Volume volume1 = new Volume();
         URI id1 = URIUtil.createId(Volume.class);
         URI pool1 = URIUtil.createId(StoragePool.class);
@@ -961,5 +959,26 @@ public class PersistingChangesTest extends DbsvcTestBase {
 
         Assert.assertTrue(unManagedVolume.getVolumeInformation().get(key2).contains("test7"));
         Assert.assertFalse(unManagedVolume.getVolumeInformation().get(key2).contains("test6"));
+    }
+    
+    @Test
+    public void testRemoveObject() throws Exception {
+        Task task = new Task();
+        task.setId(URIUtil.createId(Task.class));
+        task.setLabel("task1");
+        
+        Volume volume = new Volume();
+        volume.setId(URIUtil.createId(Volume.class));
+        volume.setLabel("Volume");
+     
+        dbClient.updateObject(task, volume);        
+        dbClient.removeObject(task, volume);
+        
+        Assert.assertNull(dbClient.queryObject(Task.class, task.getId()));
+        
+        Volume result = dbClient.queryObject(Volume.class, volume.getId());
+        Assert.assertEquals(volume.getId(), result.getId());
+        Assert.assertEquals(volume.getLabel(), result.getLabel());
+        Assert.assertTrue(result.getInactive());
     }
 }

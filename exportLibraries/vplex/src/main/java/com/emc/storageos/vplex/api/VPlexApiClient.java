@@ -85,8 +85,9 @@ public class VPlexApiClient {
     private String _vplexSessionId = null;
 
     // caching of some almost-static VPLEX info for performance improvement
-    private volatile Map<String, String> vplexClusterIdToNameCache = new HashMap<String, String>();
-    private volatile List<VPlexClusterInfo> vplexClusterInfoLiteCache = new ArrayList<VPlexClusterInfo>();
+    private volatile Map<String, String> _vplexClusterIdToNameCache = new HashMap<String, String>();
+    private volatile List<VPlexClusterInfo> _vplexClusterInfoLiteCache = new ArrayList<VPlexClusterInfo>();
+    private volatile Map<String, Map<String, String>> _vplexClusterInitiatorNameToWwnCache = new HashMap<String, Map<String, String>>();
 
     /**
      * Constructor
@@ -102,6 +103,7 @@ public class VPlexApiClient {
         _exportMgr = new VPlexApiExportManager(this);
         _migrationMgr = new VPlexApiMigrationManager(this);
         _cgMgr = new VPlexApiConsistencyGroupManager(this);
+        primeCaches();
     }
 
     /**
@@ -181,7 +183,7 @@ public class VPlexApiClient {
      */
     public List<VPlexClusterInfo> getClusterInfoDetails() throws VPlexApiException {
         s_logger.info("Request for complete detailed cluster info for VPlex at {}", _baseURI);
-        return _discoveryMgr.getClusterInfo(false, true);
+        return _discoveryMgr.getClusterInfo(false, true, null);
     }
 
     /**
@@ -199,12 +201,12 @@ public class VPlexApiClient {
      */
     public synchronized List<VPlexClusterInfo> getClusterInfoLite() throws VPlexApiException {
         s_logger.info("Request for lightweight cluster info for VPlex at {}", _baseURI);
-        if (vplexClusterInfoLiteCache.isEmpty()) {
-            vplexClusterInfoLiteCache.addAll(_discoveryMgr.getClusterInfo(true, false));
-            s_logger.info("refreshed lightweight cluster info list is " + vplexClusterInfoLiteCache.toString());
+        if (_vplexClusterInfoLiteCache.isEmpty()) {
+            _vplexClusterInfoLiteCache.addAll(_discoveryMgr.getClusterInfo(true, false, null));
+            s_logger.info("refreshed lightweight cluster info list is " + _vplexClusterInfoLiteCache.toString());
         }
 
-        return vplexClusterInfoLiteCache;
+        return _vplexClusterInfoLiteCache;
     }
 
     /**
@@ -445,8 +447,13 @@ public class VPlexApiClient {
             boolean findVirtualVolume, boolean thinEnabled)
                     throws VPlexApiException {
         s_logger.info("Request for virtual volume creation on VPlex at {}", _baseURI);
+        String clusterName = null;
+        if (!isDistributed) {
+            // if this is a local volume, we can restrict work to just the local cluster
+            clusterName = getClusterNameForId(winningClusterId);
+        }
         return _virtualVolumeMgr.createVirtualVolume(nativeVolumeInfoList, isDistributed,
-                discoveryRequired, preserveData, winningClusterId, clusterInfoList, findVirtualVolume, thinEnabled);
+                discoveryRequired, preserveData, winningClusterId, clusterInfoList, findVirtualVolume, thinEnabled, clusterName);
     }
 
     /**
@@ -561,7 +568,7 @@ public class VPlexApiClient {
      * @param nativeVolumeInfoList The native volume information for the
      *            storage volumes to be forgotten.
      */
-    public void forgetVolumes(List<VolumeInfo> nativeVolumeInfoList) {
+    public void forgetVolumes(List<VolumeInfo> nativeVolumeInfoList) throws Exception {
         s_logger.info("Request to forget volumes on VPlex at {}", _baseURI);
         _discoveryMgr.forgetVolumes(nativeVolumeInfoList);
     }
@@ -1250,6 +1257,22 @@ public class VPlexApiClient {
                 _baseURI);
         return _virtualVolumeMgr.detachMirrorFromDistributedVolume(virtualVolumeName, clusterId);
     }
+    
+    /**
+     * Renames the distributed device with the passed name to the passed new name.
+     * 
+     * @param currentName The current device name
+     * @param newName The new device name.
+     */
+    public void renameDistributedDevice(String currentName, String newName) {
+        VPlexDistributedDeviceInfo ddInfo = _discoveryMgr.findDistributedDevice(currentName);
+        if (ddInfo != null) {
+            renameResource(ddInfo, newName);
+        } else {
+            s_logger.error("Can't find distributed device {} for rename request.", currentName);
+            throw VPlexApiException.exceptions.cantFindDistributedDeviceForRename(currentName);   
+        }
+    }
 
     /**
      * Reattach the mirror on the specified cluster to the distributed VPLEX
@@ -1287,8 +1310,41 @@ public class VPlexApiClient {
      * @return a map of port WWNs to initiator names. Note the keys (WWNs) have
      *         no colons.
      */
-    public Map<String, String> getInitiatorWwnToNameMap(String clusterName) {
-        return _discoveryMgr.getInitiatorWwnToNameMap(clusterName);
+    private synchronized Map<String, String> getInitiatorWwnToNameMap(String clusterName) {
+        if (!_vplexClusterInitiatorNameToWwnCache.containsKey(clusterName) ||
+                _vplexClusterInitiatorNameToWwnCache.get(clusterName).isEmpty()) {
+            long start = System.currentTimeMillis();
+            s_logger.info("TIMER: refreshing initiator wwn to name cache...");
+            Map<String, String> clusterInitiatorToNameMap = _discoveryMgr.getInitiatorWwnToNameMap(clusterName);
+            s_logger.info("TIMER: refreshing initiator wwn to name cache took {}ms", System.currentTimeMillis() - start);
+            _vplexClusterInitiatorNameToWwnCache.put(clusterName, clusterInitiatorToNameMap);
+        }
+
+        return _vplexClusterInitiatorNameToWwnCache.get(clusterName);
+    }
+
+    /**
+     * Gets the VPLEX initiator name for an upper case wwn with no colons,
+     * or null if not found.
+     * 
+     * @param vplexClusterName the name of the VPLEX cluster to check
+     * @param wwn the wwn to find an Initiator name for
+     * @return the name of the Initiator
+     */
+    public synchronized String getInitiatorNameForWwn(String vplexClusterName, String wwn) {
+        String initiatorName = null;
+
+        if (!getInitiatorWwnToNameMap(vplexClusterName).containsKey(wwn)) {
+            s_logger.info(
+                    "initiator wwn to name cache does not contain an entry for wwn {} on vplex cluster {}, clearing cache for refresh", 
+                        wwn, vplexClusterName);
+            _vplexClusterInitiatorNameToWwnCache.get(vplexClusterName).clear();
+        }
+
+        initiatorName = getInitiatorWwnToNameMap(vplexClusterName).get(wwn);
+
+        s_logger.info("initiator name {} found for wwn {}", initiatorName, wwn);
+        return initiatorName;
     }
 
     /**
@@ -1323,15 +1379,15 @@ public class VPlexApiClient {
      * @return a map of cluster IDs to cluster names for the VPLEX device
      */
     public synchronized Map<String, String> getClusterIdToNameMap() {
-        if (vplexClusterIdToNameCache.isEmpty()) {
+        if (_vplexClusterIdToNameCache.isEmpty()) {
             List<VPlexClusterInfo> clusterInfos = getClusterInfoLite();
             for (VPlexClusterInfo clusterInfo : clusterInfos) {
-                vplexClusterIdToNameCache.put(clusterInfo.getClusterId(), clusterInfo.getName());
+                _vplexClusterIdToNameCache.put(clusterInfo.getClusterId(), clusterInfo.getName());
             }
-            s_logger.info("refreshed cluster id to name map is " + vplexClusterIdToNameCache.toString());
+            s_logger.info("refreshed cluster id to name map is " + _vplexClusterIdToNameCache.toString());
         }
 
-        return vplexClusterIdToNameCache;
+        return _vplexClusterIdToNameCache;
     }
 
     /**
@@ -1695,25 +1751,21 @@ public class VPlexApiClient {
     }
 
     /**
-     * Returns the top-level supporting device name for a given storage volume native id,
-     * wwn, and backend array serial number.
+     * Returns the top-level supporting device name for a given storage with the passed 
+     * native storage volume information.
      * 
-     * @param volumeNativeId the storage volume's native id
-     * @param wwn the storage volume's wwn
-     * @param backendArraySerialNum the serial number of the backend array
+     * @param vInfo The native storage volume information.
      * 
      * @return the name of the top level device for the given storage volume
      * @throws VPlexApiException
      */
     @Deprecated
-    public String getDeviceForStorageVolume(String volumeNativeId,
-            String wwn, String backendArraySerialNum) throws VPlexApiException {
+    public String getDeviceForStorageVolume(VolumeInfo vInfo) throws VPlexApiException {
 
         s_logger.info("Request to find device name for storage volume {} on VPLEX at {}",
-                volumeNativeId, _baseURI);
+                vInfo.getVolumeNativeId(), _baseURI);
 
-        String deviceName = getDiscoveryManager()
-                .getDeviceForStorageVolume(volumeNativeId, wwn, backendArraySerialNum);
+        String deviceName = getDiscoveryManager().getDeviceForStorageVolume(vInfo);
 
         return deviceName;
     }
@@ -1997,8 +2049,22 @@ public class VPlexApiClient {
         return getDiscoveryManager().getStorageViewsForCluster(clusterName, true);
     }
 
+    /**
+     * Clears the local VPLEX REST API info caches.
+     */
     public synchronized void clearCaches() {
-        vplexClusterIdToNameCache.clear();
-        vplexClusterInfoLiteCache.clear();
+        _vplexClusterIdToNameCache.clear();
+        _vplexClusterInfoLiteCache.clear();
+        _vplexClusterInitiatorNameToWwnCache.clear();
+    }
+
+    /**
+     * Primes the local VPLEX REST API info caches.
+     */
+    public synchronized void primeCaches() {
+        // prime the cluster id to name map, then use the values to prime the initiator to wwn map
+        for (String clusterName : getClusterIdToNameMap().values()) {
+            getInitiatorWwnToNameMap(clusterName);
+        }
     }
 }

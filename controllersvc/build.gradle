@@ -10,6 +10,7 @@ scripts {
         maxPermMemoryFactor = ""        
         jvmArgs += " -Djava.library.path=${project.installDir}/lib -Dsblim.wbem.configURL=file:${project.installDir}/conf/cimom.properties -DbuildType=" + buildType
         startupTimeoutSec = "180"
+        extraClasspath = "/data/drivers/*"
     }
 }
 

@@ -1,0 +1,46 @@
+#!/bin/sh
+#Subroutines for running commands
+
+echoit() {
+    echo "******************************************************************"
+    echo $*
+    echo "******************************************************************"
+}
+run() {
+    cmd=$*
+    date
+    echoit $cmd
+    $cmd 2>&1
+    status=$?
+    date
+    if [ $status -ne 0 ]; then
+        echoit $cmd failed
+	date
+	exit $status
+    fi
+}
+
+run_nofail() {
+    cmd=$*
+    date
+    echoit $cmd
+    $cmd 2>&1
+    status=$?
+    date
+}
+
+# $1 = failure message
+fail() {
+    [ "$1" = ""	] && {
+        $1="Failed- please see previous messages"
+    }
+    echoit fail: $1
+    date
+    exit 2
+}
+
+# $1 message to be display before pause
+pause() {
+    echo "pause: $1"
+    read x
+}

@@ -24,6 +24,9 @@ import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.emc.storageos.db.client.util.OrderTextCreator;
+import com.emc.storageos.model.ResourceTypeEnum;
+
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang3.StringUtils;
 
@@ -37,7 +40,6 @@ import com.emc.storageos.db.client.model.uimodels.ExecutionState;
 import com.emc.storageos.db.client.model.uimodels.ExecutionTaskLog;
 import com.emc.storageos.db.client.model.uimodels.Order;
 import com.emc.storageos.db.client.model.uimodels.OrderParameter;
-import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.vipr.model.catalog.ExecutionLogList;
 import com.emc.vipr.model.catalog.ExecutionLogRestRep;
 import com.emc.vipr.model.catalog.ExecutionStateRestRep;
@@ -103,52 +105,15 @@ public class OrderMapper {
     }
 
     public static ExecutionStateRestRep map(ExecutionState from) {
-        if (from == null) {
-            return null;
-        }
-        ExecutionStateRestRep to = new ExecutionStateRestRep();
-
-        to.setAffectedResources(Lists.newArrayList(from.getAffectedResources()));
-        to.setCurrentTask(from.getCurrentTask());
-        to.setEndDate(from.getEndDate());
-        to.setExecutionStatus(from.getExecutionStatus());
-        to.setStartDate(from.getStartDate());
-        to.setLastUpdated(from.getLastUpdated());
-
-        return to;
+        return OrderTextCreator.map(from);
     }
 
     public static OrderLogRestRep map(ExecutionLog from) {
-        if (from == null) {
-            return null;
-        }
-        OrderLogRestRep to = new OrderLogRestRep();
-
-        to.setDate(from.getDate());
-        to.setLevel(from.getLevel());
-        to.setMessage(from.getMessage());
-        to.setPhase(from.getPhase());
-        to.setStackTrace(from.getStackTrace());
-
-        return to;
+        return OrderTextCreator.map(from);
     }
 
     public static ExecutionLogRestRep map(ExecutionTaskLog from) {
-        if (from == null) {
-            return null;
-        }
-        ExecutionLogRestRep to = new ExecutionLogRestRep();
-
-        to.setDate(from.getDate());
-        to.setLevel(from.getLevel());
-        to.setMessage(from.getMessage());
-        to.setPhase(from.getPhase());
-        to.setStackTrace(from.getStackTrace());
-        to.setDetail(from.getDetail());
-        to.setElapsed(from.getElapsed());
-        to.setLastUpdated(from.getLastUpdated());
-
-        return to;
+        return OrderTextCreator.map(from);
     }
 
     public static Order createNewObject(URI tenantId, OrderCreateParam param) {
@@ -175,7 +140,8 @@ public class OrderMapper {
         return newObject;
     }
 
-    public static List<OrderParameter> createOrderParameters(Order order, OrderCreateParam param, EncryptionProvider encryption) {
+    public static List<OrderParameter> createOrderParameters(Order order, OrderCreateParam param,
+            EncryptionProvider encryption) {
 
         List<OrderParameter> orderParams = new ArrayList<OrderParameter>();
 
@@ -189,7 +155,8 @@ public class OrderMapper {
                 orderParameter.setUserInput(parameter.isUserInput());
                 orderParameter.setEncrypted(parameter.isEncrypted());
                 if (parameter.isEncrypted()) {
-                    // We have to treat this as a CSV value - pull the CSV apart, encrypt the pieces, re-CSV encode
+                    // We have to treat this as a CSV value - pull the CSV
+                    // apart, encrypt the pieces, re-CSV encode
                     List<String> values = Lists.newArrayList();
                     for (String value : TextUtils.parseCSV(parameter.getValue())) {
                         values.add(Base64.encodeBase64String(encryption.encrypt(value)));
@@ -197,8 +164,7 @@ public class OrderMapper {
                     String encryptedValue = TextUtils.formatCSV(values);
                     orderParameter.setFriendlyValue(ENCRYPTED_FIELD_MASK);
                     orderParameter.setValue(encryptedValue);
-                }
-                else {
+                } else {
                     orderParameter.setFriendlyValue(parameter.getFriendlyValue());
                     orderParameter.setValue(parameter.getValue());
                 }

@@ -69,6 +69,9 @@ public class ServiceDefinitionReader {
         else if (ServiceItem.TYPE_TABLE.equals(type)) {
             return readTable(obj);
         }
+        else if (ServiceItem.TYPE_MODAL.equals(type)) {
+            return readModal(obj);
+        }
         else {
             return readField(obj);
         }
@@ -99,6 +102,17 @@ public class ServiceDefinitionReader {
             }
         }
         return table;
+    }
+    
+    private ModalDefinition readModal(JsonObject obj) {
+        JsonElement items = obj.remove("items");
+        ModalDefinition modal = GSON.fromJson(obj, ModalDefinition.class);
+        if (items != null && items.isJsonObject()) {
+            for (ItemDefinition item : readItems(items.getAsJsonObject())) {
+                modal.addItem(item);
+            }
+        }
+        return modal;
     }
 
     private FieldDefinition readField(JsonObject obj) {

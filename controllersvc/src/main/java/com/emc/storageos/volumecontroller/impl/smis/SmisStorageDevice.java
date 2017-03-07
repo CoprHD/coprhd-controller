@@ -745,9 +745,12 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
             taskCompleter.error(_dbClient, error);
         } catch (Exception e) {
             _log.error("Problem in doDeleteVolume: ", e);
-            ServiceError error = DeviceControllerErrors.smis.methodFailed("doDeleteVolume",
-                    e.getMessage());
-            taskCompleter.error(_dbClient, error);
+            // Check to see if an Asynchronous job will now handle the task status.
+            if (!taskCompleter.isAsynchronous()) {
+                ServiceError error = DeviceControllerErrors.smis.methodFailed("doDeleteVolume",
+                        e.getMessage());
+                taskCompleter.error(_dbClient, error);
+            }
         }
         StringBuilder logMsgBuilder = new StringBuilder(String.format(
                 "Delete Volume End - Array: %s", storageSystem.getSerialNumber()));
@@ -779,9 +782,14 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
         if (initiatorURIs != null) {
             initiators.addAll(_dbClient.queryObject(Initiator.class, initiatorURIs));
         }
+        
+        List<URI> volURIs = Lists.newArrayList();
+        if (volumeURIs != null) {
+        	volURIs.addAll(volumeURIs);
+        }
 
         _exportMaskOperationsHelper.deleteExportMask(storage, exportMask.getId(),
-                volumeURIs, new ArrayList<URI>(), initiators, taskCompleter);
+        		volURIs, new ArrayList<URI>(), initiators, taskCompleter);
         _log.info("{} doExportDelete END ...", storage.getSerialNumber());
     }
 
@@ -1059,6 +1067,11 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
             final List<String> initiatorNames, final boolean mustHaveAllPorts) throws DeviceControllerException {
         return _exportMaskOperationsHelper.findExportMasks(storage, initiatorNames,
                 mustHaveAllPorts);
+    }
+
+    @Override
+    public Set<Integer> findHLUsForInitiators(StorageSystem storage, List<String> initiatorNames, boolean mustHaveAllPorts) {
+        return _exportMaskOperationsHelper.findHLUsForInitiators(storage, initiatorNames, mustHaveAllPorts);
     }
 
     @Override
@@ -1764,20 +1777,19 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
                 // cg id will be null when deleting replication groups created for CG full copy volumes
                 consistencyGroup = _dbClient.queryObject(BlockConsistencyGroup.class, consistencyGroupId);
             }
-            if (replicationGroupName == null && (consistencyGroup == null || consistencyGroup.getInactive())) {
+            if (replicationGroupName == null || (consistencyGroup == null || consistencyGroup.getInactive())) {
                 _log.info(String.format("%s is inactive or deleted", consistencyGroupId));
                 return;
             }
 
-            String groupName = replicationGroupName;
-            if (groupName == null) {
-                groupName = _helper.getConsistencyGroupName(consistencyGroup, storage);
-            }
+            String groupName = _helper.getConsistencyGroupName(consistencyGroup, storage);
 
             // This will be null, if consistencyGroup references no system CG's for storage.
             if (groupName == null) {
                 _log.info(String.format("%s contains no system CG for %s.  Assuming it has already been deleted.",
                         consistencyGroupId, systemURI));
+                // Clean up the system consistency group references
+                BlockConsistencyGroupUtils.cleanUpCGAndUpdate(consistencyGroup, storage.getId(), groupName, markInactive, _dbClient);
                 return;
             }
 
@@ -1797,12 +1809,6 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
                     if (storage.deviceIsType(Type.vmax) && storage.checkIfVmax3()) {
                         // if deleting snap session replication group, we need to remove the EMCSFSEntries first
                         _helper.removeSFSEntryForReplicaReplicationGroup(storage, replicationSvc, replicationGroupName);
-                    }
-
-                    if (storage.checkIfVmax3() && replicationGroupName != null) {
-                        // if deleting snap session replication group, we need to remove the EMCSFSEntries first
-                        _helper.removeSFSEntryForReplicaReplicationGroup(storage, replicationSvc, replicationGroupName);
-
                         markSnapSessionsInactiveForReplicationGroup(systemURI, consistencyGroupId, replicationGroupName);
                     }
 
@@ -1821,40 +1827,8 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
                 return;
             }
 
-            // Remove the replication group name from the SystemConsistencyGroup field
-            consistencyGroup.removeSystemConsistencyGroup(systemURI.toString(), groupName);
-
-            /*
-             * Verify if the BlockConsistencyGroup references any LOCAL arrays.
-             * If we no longer have any references we can remove the 'LOCAL' type from the BlockConsistencyGroup.
-             */
-            List<URI> referencedArrays = BlockConsistencyGroupUtils.getLocalSystems(consistencyGroup, _dbClient);
-            boolean cgReferenced = false;
-            for (URI storageSystemUri : referencedArrays) {
-                StringSet cgs = consistencyGroup.getSystemConsistencyGroups().get(storageSystemUri.toString());
-                if (cgs != null && !cgs.isEmpty()) {
-                    cgReferenced = true;
-                    break;
-                }
-            }
-
-            if (!cgReferenced) {
-                // Remove the LOCAL type
-                StringSet cgTypes = consistencyGroup.getTypes();
-                cgTypes.remove(BlockConsistencyGroup.Types.LOCAL.name());
-                consistencyGroup.setTypes(cgTypes);
-
-                // Remove the referenced storage system as well, but only if there are no other types
-                // of storage systems associated with the CG.
-                if (!BlockConsistencyGroupUtils.referencesNonLocalCgs(consistencyGroup, _dbClient)) {
-                    consistencyGroup.setStorageController(NullColumnValueGetter.getNullURI());
-
-                    // Update the consistency group model
-                    consistencyGroup.setInactive(markInactive);
-                }
-            }
-
-            _dbClient.updateObject(consistencyGroup);
+            // Clean up the system consistency group references
+            BlockConsistencyGroupUtils.cleanUpCGAndUpdate(consistencyGroup, storage.getId(), groupName, markInactive, _dbClient);
         } catch (Exception e) {
             _log.error("Failed to delete consistency group: ", e);
             serviceError = DeviceControllerErrors.smis.methodFailed("doDeleteConsistencyGroup", e.getMessage());
@@ -3324,5 +3298,23 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
             _log.error(errMsg);
             throw DeviceControllerException.exceptions.couldNotPerformAliasOperation(errMsg);
         }
+    }
+    
+    @Override
+    public void doExportAddPaths(final StorageSystem storage, final URI exportMask,
+            final Map<URI, List<URI>> newPaths, final TaskCompleter taskCompleter)
+                    throws DeviceControllerException {
+        _log.info("{} doExportAddPaths START ...", storage.getSerialNumber());
+        _exportMaskOperationsHelper.addPaths(storage, exportMask, newPaths, taskCompleter);
+        _log.info("{} doExportAddPaths END ...", storage.getSerialNumber());
+    }
+    
+    @Override
+    public void doExportRemovePaths(final StorageSystem storage, final URI exportMask, final Map<URI, List<URI>> adjustedPaths,
+            final Map<URI, List<URI>> removePaths, final TaskCompleter taskCompleter)
+                    throws DeviceControllerException {
+        _log.info("{} doExportRemovePaths START ...", storage.getSerialNumber());
+        _exportMaskOperationsHelper.removePaths(storage, exportMask, adjustedPaths, removePaths, taskCompleter);
+        _log.info("{} doExportRemovePaths END ...", storage.getSerialNumber());
     }
 }

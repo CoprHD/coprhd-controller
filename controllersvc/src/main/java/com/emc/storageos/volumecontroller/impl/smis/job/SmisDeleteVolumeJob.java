@@ -74,14 +74,6 @@ public class SmisDeleteVolumeJob extends SmisJob
             StringBuilder logMsgBuilder = new StringBuilder();
             if (jobStatus == JobStatus.SUCCESS) {
                 for (Volume volume : volumes) {
-                    volume.setInactive(true);
-                    // Find the CG for this volume and remove it from the list
-                    // of CGs
-                    volume.setConsistencyGroup(NullColumnValueGetter.getNullURI());
-                    dbClient.updateAndReindexObject(volume);
-                    dbClient.updateTaskOpStatus(Volume.class, volume.getId(), getTaskCompleter().getOpId(),
-                            new Operation(Operation.Status.ready.name(),
-                                    String.format("Deleted volume %s", volume.getNativeId())));
                     if (logMsgBuilder.length() != 0) {
                         logMsgBuilder.append("\n");
                     }
@@ -110,8 +102,8 @@ public class SmisDeleteVolumeJob extends SmisJob
                             volume.getSrdfTargets().clear();
                         }
                     }
-                    dbClient.updateAndReindexObject(volume);
                 }
+                dbClient.updateObject(volumes);
             }
             if (logMsgBuilder.length() > 0) {
                 _log.info(logMsgBuilder.toString());

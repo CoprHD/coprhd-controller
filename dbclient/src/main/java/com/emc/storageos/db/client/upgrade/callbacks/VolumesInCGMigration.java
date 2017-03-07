@@ -46,9 +46,10 @@ public class VolumesInCGMigration extends BaseCustomMigrationCallback {
         Iterator<Volume> volumes = dbClient.queryIterativeObjects(Volume.class, volumeURIs);
         while (volumes.hasNext()) {
             Volume volume = volumes.next();
-            URI cgUri = volume.getConsistencyGroup();
-            URI storageUri = volume.getStorageController();
-            if (!NullColumnValueGetter.isNullURI(volume.getConsistencyGroup())) {
+            if (!NullColumnValueGetter.isNullURI(volume.getStorageController()) && 
+                    !NullColumnValueGetter.isNullURI(volume.getConsistencyGroup())) {
+                URI cgUri = volume.getConsistencyGroup();
+                URI storageUri = volume.getStorageController();
                 BlockConsistencyGroup cg = dbClient.queryObject(BlockConsistencyGroup.class, cgUri);
                 StorageSystem system = dbClient.queryObject(StorageSystem.class, storageUri);
                 if (cg == null || system == null) {
@@ -64,11 +65,11 @@ public class VolumesInCGMigration extends BaseCustomMigrationCallback {
                     if (NullColumnValueGetter.isNullValue(personality) || 
                             personality.equals(PersonalityTypes.SOURCE.name())) {
                         StringSet associatedVolumeIds = volume.getAssociatedVolumes();
-                        if(associatedVolumeIds != null) {
+                        if (associatedVolumeIds != null) {
                             for (String associatedVolumeId : associatedVolumeIds) {
                                 Volume backendVol = dbClient.queryObject(Volume.class,
                                         URI.create(associatedVolumeId));
-                                updateBackendVolume(cg, backendVol, dbClient);
+                                updateBackendVolume(cg, volume, backendVol, dbClient);
                             }
                         }
                     }
@@ -87,16 +88,19 @@ public class VolumesInCGMigration extends BaseCustomMigrationCallback {
     /**
      * Update the backend volume with the backend replication group name
      * @param cg The ViPR BlockConsistencyGroup
+     * @param virtualVolume The frontend virtual volume
      * @param backendVolume The backend volume
      * @param dbClient
      */
-    private void updateBackendVolume(BlockConsistencyGroup cg, Volume backendVolume, DbClient dbClient) {
+    private void updateBackendVolume(BlockConsistencyGroup cg, Volume virtualVolume, Volume backendVolume, DbClient dbClient) {
         if (backendVolume != null) {
             String backendCG = cg.getCgNameOnStorageSystem(backendVolume.getStorageController());
             if (backendCG != null && !backendCG.isEmpty()) {
                 log.info("updating the volume {} replicationgroup {}", backendVolume.getLabel(), backendCG);
                 backendVolume.setReplicationGroupInstance(backendCG);
                 dbClient.updateObject(backendVolume);
+                virtualVolume.setBackingReplicationGroupInstance(backendCG);
+                dbClient.updateObject(virtualVolume);
             }
         }
     }

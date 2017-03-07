@@ -1058,7 +1058,7 @@ public class ComputeUtils {
 
                 HostSystem hostSystem = null;
                 try {
-                    hostSystem = vmware.getHostSystem(dataCenter.getLabel(), clusterHost.getName());
+                    hostSystem = vmware.getHostSystem(dataCenter.getLabel(), clusterHost.getName(), false);
 
                     // Make sure the host system is still part of the cluster in vcenter. If it isn't, hostSystem will be null and
                     // we can't perform the validation.

@@ -99,7 +99,7 @@ public class CreateBlockVolumeForHostHelper extends CreateBlockVolumeHelper {
                     // If there is an existing non-empty export with the same name, append a time stamp to the name to make it unique
                     if (!isEmptyExport) {
                         exportName = exportName + BlockStorageUtils.UNDERSCORE
-                                + new SimpleDateFormat("yyyyMMddhhmmssSSS").format(new Date());
+                                + new SimpleDateFormat("yyyyMMddhhmm").format(new Date());
                     }
                 }
 

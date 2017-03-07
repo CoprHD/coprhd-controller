@@ -239,7 +239,7 @@ task migrationTest(type:Test, dependsOn:compileTestJava) {
     reports.html.destination = reports.junitXml.destination
 
     exclude "com/emc/storageos/db/server/*.class"
-    include "com/emc/storageos/db/server/upgrade/impl/callback/YourMigrationTest.class"
+    include "com/emc/storageos/db/server/upgrade/impl/callback/VolumeBootVolumeMigrationTest.class"
 }
 
 testUsingJavassist(upgradeTests, [

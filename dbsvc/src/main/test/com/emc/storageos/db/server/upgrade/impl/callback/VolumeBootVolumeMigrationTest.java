@@ -9,6 +9,7 @@ import java.io.IOException;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map.Entry;
 
 import org.junit.Assert;
@@ -151,6 +152,27 @@ public class VolumeBootVolumeMigrationTest extends DbSimpleMigrationTestBase {
                 ScopedLabel sl = volume.getTag().iterator().next();
                 Assert.assertEquals(sl.getScope(), volume.getTenant().getURI().toASCIIString());
                 Assert.assertEquals(sl.getLabel(), "vipr:bootVolume=" + volumeToHostId.getValue().toASCIIString());
+            }
+
+            if (volume.getLabel().equals("VOL2-ABOOTVOLUME")) {
+                // Make sure volume1 has the new tag
+                Assert.assertNotNull("Tag Set of volume 1 must be non-null", volume.getTag());
+                Assert.assertTrue("Tag set of volume 2 must be non-empty", !volume.getTag().isEmpty());
+                boolean found = false;
+                Iterator<ScopedLabel> slIter = volume.getTag().iterator();
+                while (slIter.hasNext()) {
+                    ScopedLabel sl = slIter.next();
+                    if (sl.getScope().equals(volume.getTenant().getURI().toASCIIString()) &&
+                        (sl.getLabel().equals("vipr:bootVolume=" + volumeToHostId.getValue().toASCIIString()))) {
+                        found = true;
+                    }
+                }
+                Assert.assertTrue("Tag not found in tag set", found);
+            }
+            
+            if (volume.getLabel().equals("VOL3-NOTABOOTVOLUME")) {
+                // Make sure volume1 has no tags
+                Assert.assertNull("Tag Set of volume 3 must be null", volume.getTag());
             }
         }
     }

@@ -152,7 +152,6 @@ public class FileProtectionPolicies extends ViprResourceController {
             AssignPolicyForm assignPolicy = new AssignPolicyForm().form(filePolicyRestRep);
             addRenderApplyPolicysAt();
             addProjectArgs(filePolicyRestRep);
-            addvPoolArgs(filePolicyRestRep);
             render(assignPolicy);
 
         } else {
@@ -372,14 +371,9 @@ public class FileProtectionPolicies extends ViprResourceController {
     }
 
     private static void addProjectArgs(FilePolicyRestRep policy) {
-        renderArgs.put("projectVpoolOptions", getFileVirtualPoolsOptions(policy));
         renderArgs.put("projectOptions", getFileProjectOptions(uri(Models.currentAdminTenant())));
     }
 
-    private static void addvPoolArgs(FilePolicyRestRep policy) {
-        renderArgs.put("vPoolOptions", getFileVirtualPoolsOptions(policy));
-        renderArgs.put("virtualArrayOptions", getAllVarrays());
-    }
 
     private static void addAssignedProjectArgs(FilePolicyRestRep policy) {
         renderArgs.put("projectVpoolOptions", getVPoolForAssignedProjectOptions(policy));
@@ -419,6 +413,15 @@ public class FileProtectionPolicies extends ViprResourceController {
         renderJSON(varrayList);
     }
 
+    /**
+     * This call return the pool or pools which can be associated with policy.
+     * Currently this does not check vpool is assigned to another policy.
+     * As we do not have direct reference of policy in file vpool and looping all
+     * policy and then its assigned resource to figure out it is assign or not
+     * is causing slowness in GUI.Will address this in future release
+     * 
+     * @param id
+     */
     public static void getVpoolForProtectionPolicy(String id) {
         Collection<FileVirtualPoolRestRep> vPools = Lists.newArrayList();
 
@@ -438,10 +441,10 @@ public class FileProtectionPolicies extends ViprResourceController {
             }
 
             if (vpoolNameRes != null) {
-            FileVirtualPoolRestRep vpolRestep = getViprClient().fileVpools().get(vpoolNameRes.getId());
-            vPools.add(vpolRestep);
+                FileVirtualPoolRestRep vpolRestep = getViprClient().fileVpools().get(vpoolNameRes.getId());
+                vPools.add(vpolRestep);
                 renderJSON(vPools);
-            return;
+                return;
             }
         }
         List<FileVirtualPoolRestRep> virtualPools = getViprClient().fileVpools().getAll();

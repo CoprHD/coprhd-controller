@@ -20,8 +20,6 @@ import java.util.ListIterator;
 import java.util.Map;
 import java.util.Map.Entry;
 
-import org.testng.collections.Maps;
-
 import com.emc.sa.engine.ExecutionException;
 import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.engine.bind.Param;
@@ -72,6 +70,7 @@ import com.emc.vipr.client.ViPRCoreClient;
 import com.emc.vipr.client.core.filters.NameIgnoreCaseFilter;
 import com.emc.vipr.client.exceptions.TimeoutException;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import com.vmware.vim25.mo.HostSystem;
 
 // VBDU TODO COP-28437: In general, this module needs javadoc.  Many methods are using List objects and returning List objects that correspond to the incoming list that
@@ -522,9 +521,7 @@ public class ComputeUtils {
             }
 
             // Now remove host entries from the map that we removed.
-            for (Host host : hostsToRemove) {
-                hostToVolumeIdNotRemovedMap.remove(host);
-            }
+            hostToVolumeIdNotRemovedMap.remove(hostsToRemove);
         }
 
         return hostToVolumeIdNotRemovedMap;
@@ -1190,7 +1187,6 @@ public class ComputeUtils {
         for (URI volume : volumes) {
             addBootVolumeTag(volume, hostOrClusterId);
         }
-
     }
 
     /**

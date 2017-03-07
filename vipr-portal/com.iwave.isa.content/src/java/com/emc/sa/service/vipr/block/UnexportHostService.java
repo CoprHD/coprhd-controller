@@ -63,12 +63,7 @@ public class UnexportHostService extends ViPRService {
             }
         }
 
-        for (URI volumeId : uris(volumeIds)) {
-            BlockObjectRestRep volume = BlockStorageUtils.getBlockResource(volumeId);
-            if (BlockStorageUtils.isVolumeBootVolume(volume)) {
-                ExecutionUtils.fail("failTask.verifyBootVolume", volume.getName(), volume.getName());
-            }
-        }
+        checkForBootVolumes(volumeIds);
     }
 
     @Override

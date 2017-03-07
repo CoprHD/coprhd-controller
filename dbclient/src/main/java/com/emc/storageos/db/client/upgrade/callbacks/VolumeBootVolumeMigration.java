@@ -110,8 +110,15 @@ public class VolumeBootVolumeMigration extends BaseCustomMigrationCallback {
             
             Volume volume = dbClient.queryObject(Volume.class, host.getBootVolumeId());
             
-            // if it's not in the DB or the volume is already marked, move on.
-            if (volume == null || isVolumeBootVolume(volume)) {
+            // if it's not in the DB, set it back to "null" on the host
+            if (volume == null) {
+                host.setBootVolumeId(NullColumnValueGetter.getNullURI());
+                dbClient.updateObject(host);
+                continue;
+            }
+            
+            // If it's already a boot volume, move on
+            if (isVolumeBootVolume(volume)) {
                 continue;
             }
             

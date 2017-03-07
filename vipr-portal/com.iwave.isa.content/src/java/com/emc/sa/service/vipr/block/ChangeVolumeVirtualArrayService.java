@@ -7,13 +7,11 @@ package com.emc.sa.service.vipr.block;
 import java.net.URI;
 import java.util.List;
 
-import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.engine.bind.Param;
 import com.emc.sa.engine.service.Service;
 import com.emc.sa.service.ServiceParams;
 import com.emc.sa.service.vipr.ViPRService;
 import com.emc.sa.service.vipr.block.tasks.ChangeBlockVolumeVirtualArray;
-import com.emc.storageos.model.block.BlockObjectRestRep;
 import com.emc.storageos.model.block.VolumeRestRep;
 import com.emc.vipr.client.Tasks;
 
@@ -31,12 +29,7 @@ public class ChangeVolumeVirtualArrayService extends ViPRService {
     @Override
     public void precheck() throws Exception {
         super.precheck();
-        for (URI volumeId : uris(volumeIds)) {
-            BlockObjectRestRep volume = BlockStorageUtils.getBlockResource(volumeId);
-            if (BlockStorageUtils.isVolumeBootVolume(volume)) {
-                ExecutionUtils.fail("failTask.verifyBootVolume", volume.getName(), volume.getName());
-            }
-        }
+        checkForBootVolumes(volumeIds);
     }
     
     @Override

@@ -1255,7 +1255,10 @@ public class UcsComputeDevice implements ComputeDevice {
                     }
                 }
 
+            } else {
+                LOGGER.error("spDn is null. Cannot determine the service profile to unbind");
             }
+  
         } else {
             LOGGER.info("NO OP. Host is null or has no associated compute element");
         }

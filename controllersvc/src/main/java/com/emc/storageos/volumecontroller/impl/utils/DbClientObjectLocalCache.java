@@ -113,4 +113,11 @@ public class DbClientObjectLocalCache extends DbClientImpl {
         }
         return this.cache.refresh(clazz, id);
     }
+
+    /**
+     * @param dbClientCache the dbClientCache to set
+     */
+    public void setDbClientCache(DbClient dbClientCache) {
+        this.dbClientCache = dbClientCache;
+    }
 }

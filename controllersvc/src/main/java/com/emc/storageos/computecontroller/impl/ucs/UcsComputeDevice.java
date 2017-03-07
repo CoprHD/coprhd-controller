@@ -11,8 +11,8 @@ import java.io.Serializable;
 import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URL;
-import java.util.Arrays;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Collection;
 import java.util.Collections;
@@ -799,7 +799,7 @@ public class UcsComputeDevice implements ComputeDevice {
      * @param stepId Id of step being executed.
      * @return LsServer instance
      */
-    public LsServer createLsServer(ComputeSystem cs, String sptDn, Host host, String stepId) {
+    public boolean createLsServer(ComputeSystem cs, String sptDn, Host host, String stepId) {
 
         WorkflowStepCompleter.stepExecuting(stepId);
         LOGGER.info("Creating Service Profile : " + host.getHostName() + " from Service Profile Template : " + sptDn);
@@ -830,11 +830,12 @@ public class UcsComputeDevice implements ComputeDevice {
             LOGGER.error("Unable to createLsServer...", e);
             WorkflowStepCompleter.stepFailed(stepId,
                     ComputeSystemControllerException.exceptions.unableToProvisionHost(host.getHostName(), cs.getNativeGuid(), e));
+            return false;
         }
 
         WorkflowStepCompleter.stepSucceded(stepId);
         LOGGER.info("Done Creating Service Profile : " + lsServer.getDn() + " from Service Profile Template : " + sptDn);
-        return lsServer;
+        return true;
     }
 
     private void validateNewServiceProfile(ComputeSystem cs, UCSServiceProfile serviceProfile, Host newHost){

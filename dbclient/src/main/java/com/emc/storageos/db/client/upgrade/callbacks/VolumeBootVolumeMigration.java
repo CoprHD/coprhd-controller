@@ -71,10 +71,12 @@ public class VolumeBootVolumeMigration extends BaseCustomMigrationCallback {
      */
     private Map<String, String> parseMachineTags(ScopedLabelSet tagSet) {
         Map<String, String> machineTags = Maps.newHashMap();
-        for (ScopedLabel tag : tagSet) {
-            Matcher matcher = MACHINE_TAG_REGEX.matcher(tag.getScope());
-            if (matcher.matches()) {
-                machineTags.put(matcher.group(1), matcher.group(2));
+        if (tagSet != null) {
+            for (ScopedLabel tag : tagSet) {
+                Matcher matcher = MACHINE_TAG_REGEX.matcher(tag.getScope());
+                if (matcher.matches()) {
+                    machineTags.put(matcher.group(1), matcher.group(2));
+                }
             }
         }
         return machineTags;

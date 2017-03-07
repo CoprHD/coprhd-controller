@@ -24,6 +24,7 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.StringReader;
 import java.io.StringWriter;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.net.URI;
 import java.nio.file.Files;
@@ -61,6 +62,7 @@ import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 
 import org.apache.commons.beanutils.BeanUtils;
+import org.apache.commons.beanutils.BeanUtilsBean;
 import org.apache.commons.beanutils.ConvertUtils;
 import org.apache.commons.beanutils.converters.CalendarConverter;
 import org.apache.commons.beanutils.converters.DateConverter;
@@ -1378,7 +1380,18 @@ public class DBClient {
         }
         return runResult;
     }
-    
+
+    private class NullAwareBeanUtilsBean extends BeanUtilsBean {
+        @Override
+        public void copyProperty(Object bean, String name, Object value) throws IllegalAccessException, InvocationTargetException {
+            if (value == null) {
+                log.info("The property value of {} {} is null, ignore it.", bean, name);
+                return;
+            }
+            super.copyProperty(bean, name, value);
+        }
+    }
+
     public boolean rebuildIndex(URI id, Class clazz) {
         boolean runResult = false;
         try {
@@ -1388,7 +1401,8 @@ public class DBClient {
                 newObject.trackChanges();
                 ConvertUtils.register(new CalendarConverter(null), Calendar.class);
                 ConvertUtils.register(new DateConverter(null), Date.class);
-                BeanUtils.copyProperties(newObject, queryObject);
+                BeanUtilsBean notNull = new NullAwareBeanUtilsBean();
+                notNull.copyProperties(newObject, queryObject);
 
                 // special change tracking for customized types
                 BeanInfo bInfo;

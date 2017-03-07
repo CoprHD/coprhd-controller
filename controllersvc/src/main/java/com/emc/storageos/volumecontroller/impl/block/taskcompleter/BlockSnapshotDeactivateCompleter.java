@@ -6,7 +6,9 @@ package com.emc.storageos.volumecontroller.impl.block.taskcompleter;
 
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -15,7 +17,6 @@ import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.Volume;
-import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.protectioncontroller.impl.recoverpoint.RPHelper;
 import com.emc.storageos.services.OperationTypeEnum;
@@ -28,13 +29,26 @@ public class BlockSnapshotDeactivateCompleter extends BlockSnapshotTaskCompleter
     private static final String SNAPSHOT_DEACTIVATED_MSG = "Snapshot %s deactivated for volume %s";
     private static final String SNAPSHOT_DEACTIVATE_FAILED_MSG = "Failed to deactivate snapshot %s for volume %s";
     private final List<URI> snapshotURIs;
+    private final boolean setSnapshotSyncActive;
 
-    public BlockSnapshotDeactivateCompleter(List<URI> snaps, String task) {
+    // Not all snapshots from when the object was created will be deactivated.
+    private Set<URI> deactivatedSnapshots = new HashSet<URI>();
+
+    public BlockSnapshotDeactivateCompleter(List<URI> snaps, boolean setSnapshotSyncActive, String task) {
         super(BlockSnapshot.class, snaps.get(0), task);
         snapshotURIs = new ArrayList<URI>();
         for (URI snapshotUri : snaps) {
             snapshotURIs.add(snapshotUri);
         }
+        this.setSnapshotSyncActive = setSnapshotSyncActive;
+    }
+
+    public Set<URI> getDeactivatedSnapshots() {
+        return deactivatedSnapshots;
+    }
+
+    public void setDeactivatedSnapshots(Set<URI> deactivatedSnapshots) {
+        this.deactivatedSnapshots = deactivatedSnapshots;
     }
 
     @Override
@@ -51,10 +65,16 @@ public class BlockSnapshotDeactivateCompleter extends BlockSnapshotTaskCompleter
                         setErrorOnDataObject(dbClient, Volume.class, volume.getId(), coded);
                         break;
                     case ready:
-                        // Only execute the following logic if the snapshot is tied to a bookmark
-                        if (NullColumnValueGetter.isNotNullValue(snapshot.getEmName())) {
-                            // Update the target volume's access state
-                            RPHelper.updateAccessState(snapshot, volume, Volume.VolumeAccessState.NOT_READY, dbClient);
+                        // Only execute the following logic if the snapshot has been deactivated and is tied to a bookmark
+                        if (deactivatedSnapshots.contains(snapshot.getId()) && RPHelper.hasRpBookmark(snapshot)) {
+                            // Note regarding the syncActive field:
+                            // If we are performing a disable image access as part of a snapshot create for an array snapshot + RP bookmark,
+                            // we want to set the syncActive field to true. This will enable us to perform snapshot exports and remove
+                            // snapshots from exports.
+
+                            // Update the snapshot/volume fields
+                            RPHelper.updateRPSnapshotPostImageAccessChange(snapshot, volume, Volume.VolumeAccessState.NOT_READY,
+                                    setSnapshotSyncActive, dbClient);
                         }
                     default:
                         setReadyOnDataObject(dbClient, BlockSnapshot.class, snapshot);

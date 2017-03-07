@@ -2414,26 +2414,29 @@ public class RPHelper {
      * @param dbClient the database client reference
      * @throws URISyntaxException
      */
-    public static void updateAccessState(BlockSnapshot snapshot, Volume volume, VolumeAccessState accessState, DbClient dbClient)
+    private static void updateAccessState(BlockSnapshot snapshot, Volume volume, VolumeAccessState accessState, DbClient dbClient)
             throws URISyntaxException {
         // For RP+VPLEX volumes, we need to fetch the VPLEX volume. The snapshot object references the
         // block/back-end volume as its parent. Fetch the VPLEX volume that is created with this volume
         // as the back-end volume.
+
+        Volume vol = volume;
+
         if (Volume.checkForVplexBackEndVolume(dbClient, volume)) {
-            volume = Volume.fetchVplexVolume(dbClient, volume);
+            vol = Volume.fetchVplexVolume(dbClient, volume);
         }
 
         Volume targetVolume = null;
 
         // If the personality is SOURCE, then the enable image access request is part of export operation.
-        if (volume.checkPersonality(Volume.PersonalityTypes.SOURCE.toString())) {
+        if (vol.checkPersonality(Volume.PersonalityTypes.SOURCE.toString())) {
             // Now determine the target volume that corresponds to the site of the snapshot
-            ProtectionSet protectionSet = dbClient.queryObject(ProtectionSet.class, volume.getProtectionSet());
+            ProtectionSet protectionSet = dbClient.queryObject(ProtectionSet.class, vol.getProtectionSet());
             targetVolume = ProtectionSet.getTargetVolumeFromSourceAndInternalSiteName(dbClient, protectionSet,
-                    volume,
+                    vol,
                     snapshot.getEmInternalSiteName());
-        } else if (volume.checkPersonality(Volume.PersonalityTypes.TARGET.toString())) {
-            targetVolume = volume;
+        } else if (vol.checkPersonality(Volume.PersonalityTypes.TARGET.toString())) {
+            targetVolume = vol;
         }
 
         if (targetVolume != null) {
@@ -2446,5 +2449,40 @@ public class RPHelper {
                 _log.warn(String.format("Invalid access state.  Could not update access state for target volume %s.", targetVolume.getId()));
             }
         }
+    }
+
+    /**
+     * Update the snapshot's syncActive field and associated volume's access state post image access change.
+     *
+     * @param snapshot the snapshot
+     * @param volume the snapshot's parent volume
+     * @param accessState accessState the volume access state
+     * @param setSnapshotSyncActive
+     * @param dbClient the database client reference
+     * @throws URISyntaxException
+     */
+    public static void updateRPSnapshotPostImageAccessChange(BlockSnapshot snapshot, Volume volume, VolumeAccessState accessState,
+            boolean setSnapshotSyncActive, DbClient dbClient) throws URISyntaxException {
+        // If we are performing a disable image access as part of a snapshot create for an array snapshot + RP bookmark,
+        // we want to set the syncActive field to true. This will enable us to perform snapshot exports and
+        // remove snapshots from exports.
+        snapshot.setIsSyncActive(setSnapshotSyncActive);
+
+        _log.info(String.format("Updating the isSyncActive field to %s for BlockSnapshot %s.",
+                setSnapshotSyncActive, snapshot.getId()));
+        dbClient.updateObject(snapshot);
+
+        // Update the access state of the snapshot's associated target volume
+        updateAccessState(snapshot, volume, accessState, dbClient);
+    }
+
+    /**
+     * Determines if the given snapshot references an RP bookmark.
+     *
+     * @param snapshot the snapshot to check
+     * @return true if the given snapshot is an RP bookmark, false otherwise.
+     */
+    public static boolean hasRpBookmark(BlockSnapshot snapshot) {
+        return NullColumnValueGetter.isNotNullValue(snapshot.getEmName());
     }
 }

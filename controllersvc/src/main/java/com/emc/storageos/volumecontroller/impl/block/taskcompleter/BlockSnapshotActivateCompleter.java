@@ -21,6 +21,7 @@ import com.emc.storageos.protectioncontroller.impl.recoverpoint.RPHelper;
 import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 
+@SuppressWarnings("serial")
 public class BlockSnapshotActivateCompleter extends BlockSnapshotTaskCompleter {
     private static final Logger _log = LoggerFactory.getLogger(BlockSnapshotActivateCompleter.class);
     private static final String SNAPSHOT_ACTIVATED_MSG = "Snapshot %s activated for volume %s";
@@ -55,7 +56,8 @@ public class BlockSnapshotActivateCompleter extends BlockSnapshotTaskCompleter {
                         // Only execute the following logic if the snapshot is tied to a bookmark
                         if (NullColumnValueGetter.isNotNullValue(snapshot.getEmName())) {
                             // Update the target volume's access state
-                            RPHelper.updateAccessState(snapshot, volume, Volume.VolumeAccessState.READWRITE, dbClient);
+                            RPHelper.updateRPSnapshotPostImageAccessChange(snapshot, volume, Volume.VolumeAccessState.READWRITE,
+                                    true, dbClient);
                         }
                     default:
                         dbClient.ready(BlockSnapshot.class, snapshotUri, getOpId());

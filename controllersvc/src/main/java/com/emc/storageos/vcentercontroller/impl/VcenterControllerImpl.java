@@ -546,8 +546,7 @@ public class VcenterControllerImpl implements VcenterController {
             Vcenter vcenter = _dbClient.queryObject(Vcenter.class, vcenterDataCenter.getVcenter());
             Host host = _dbClient.queryObject(Host.class, hostId);
             Volume volume = _dbClient.queryObject(Volume.class, bootVolumeId);
-            _log.info("Request to remove cluster " + vcenter.getLabel() + "/" + vcenterDataCenter.getLabel() + "/"
-                    + cluster.getLabel());
+            _log.info("Request to check VMs on boot volume {} of host {}", volume.getLabel() +" - " +bootVolumeId, host.getLabel());
 
             vcenterApiClient = new VcenterApiClient(_coordinator.getPropertyInfo());
             vcenterApiClient.setup(vcenter.getIpAddress(), vcenter.getUsername(), vcenter.getPassword(), vcenter.getPortNumber());

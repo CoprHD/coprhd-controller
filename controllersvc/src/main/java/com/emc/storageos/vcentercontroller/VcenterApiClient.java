@@ -1048,7 +1048,7 @@ public class VcenterApiClient {
                     _log.warn("Could not find disk on host {} for volume UUID {}", hostName, volumewwn);
                 }
             } else {
-                _log.info("No datastores found for host {}, cannot check for VMs on volume wwn {}", hostName,
+                _log.info("No datastores found for host {}, hence inferring that no VMs are present on the given volume wwn {}", hostName,
                         volumewwn);
             }
         } catch (VcenterSystemException | VcenterObjectNotFoundException | VcenterObjectConnectionException e) {

@@ -5680,7 +5680,9 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                 }
             }
 
+            // Keep a mapping of the emNames(bookmark names) to target copy volume WWNs
             Map<String, Set<String>> emNamesToVolumeWWNs = new HashMap<String, Set<String>>();
+            // Keep a mapping of the emNames(bookmark names) to BlockSnapshot objects
             Map<String, Set<URI>> emNamesToSnapshots = new HashMap<String, Set<URI>>();
 
             for (URI snapshotID : snapshotList) {
@@ -5981,7 +5983,9 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                 throw DeviceControllerExceptions.recoverpoint.databaseExceptionDeactivateSnapshot(protectionDevice);
             }
 
+            // Keep a mapping of the emNames(bookmark names) to target copy volume WWNs
             Map<String, Set<String>> emNamesToVolumeWWNs = new HashMap<String, Set<String>>();
+            // Keep a mapping of the emNames(bookmark names) to BlockSnapshot objects
             Map<String, Set<URI>> emNamesToSnapshots = new HashMap<String, Set<URI>>();
 
             for (URI snapshotID : snapshotList) {

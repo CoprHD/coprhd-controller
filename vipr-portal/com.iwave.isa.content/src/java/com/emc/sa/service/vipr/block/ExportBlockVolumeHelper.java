@@ -169,7 +169,7 @@ public class ExportBlockVolumeHelper {
         }
         // If there is an existing non-empty export with the same name, append a time stamp to the name to make it unique
         if (!isEmptyExport) {
-            exportName = exportName + BlockStorageUtils.UNDERSCORE + new SimpleDateFormat("yyyyMMddhhmm").format(new Date());
+            exportName = exportName + BlockStorageUtils.UNDERSCORE + new SimpleDateFormat("yyyyMMddhhmmssSSS").format(new Date());
         }
 
         // Bulk update multiple volumes to single export

@@ -464,27 +464,14 @@ angular.module("portalApp").controller({
                     });
                 }
             });
-            
-                                 
-          
-                                     
-        });
-
-
-        
+                                                                                            
+        });   
         $scope.$watch('topologies', function(newVal) {
         	$scope.topologiesString = angular.toJson($scope.topologies, false);
         }, true);
-        
-  
-
-        
-        
+      
      },
      
-    
-     
-    
     FileShareAclCtrl: function($scope, $http, $window, translate) {
     	
     	$scope.add = {type:'User', name:'', domain:'', permission:'Change'};

@@ -5680,14 +5680,28 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                 }
             }
 
-            Set<String> volumeWWNs = new HashSet<String>();
-            String emName = null;
+            Map<String, Set<String>> emNamesToVolumeWWNs = new HashMap<String, Set<String>>();
+            Map<String, Set<URI>> emNamesToSnapshots = new HashMap<String, Set<URI>>();
+
             for (URI snapshotID : snapshotList) {
                 // Get the volume associated with this snapshot
                 BlockSnapshot snapshot = _dbClient.queryObject(BlockSnapshot.class, snapshotID);
-                if (snapshot.getEmName() != null) {
-                    emName = snapshot.getEmName();
+
+                String emName = snapshot.getEmName();
+                if (NullColumnValueGetter.isNotNullValue(emName)) {
+                    if (!emNamesToVolumeWWNs.containsKey(emName)) {
+                        emNamesToVolumeWWNs.put(emName, new HashSet<String>());
+                    }
+
+                    if (!emNamesToSnapshots.containsKey(emName)) {
+                        emNamesToSnapshots.put(emName, new HashSet<URI>());
+                    }
+
+                    emNamesToSnapshots.get(emName).add(snapshotID);
+                } else {
+                    throw DeviceControllerExceptions.recoverpoint.failedToActivateSnapshotEmNameMissing(snapshotID);
                 }
+
                 Volume volume = _dbClient.queryObject(Volume.class, snapshot.getParent().getURI());
                 // For RP+VPLEX volumes, we need to fetch the VPLEX volume.
                 // The snapshot objects references the block/back-end volume as its parent.
@@ -5696,30 +5710,39 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                     volume = Volume.fetchVplexVolume(_dbClient, volume);
                 }
 
+                String wwn = null;
                 // If the volume type is TARGET, then the enable image access request is part of snapshot create, just
                 // add the volumeWWN to
                 // the list.
                 // If the personality is SOURCE, then the enable image access request is part of export operation.
                 if (volume.checkPersonality(Volume.PersonalityTypes.TARGET.toString())) {
-                    volumeWWNs.add(RPHelper.getRPWWn(volume.getId(), _dbClient));
+                    wwn = RPHelper.getRPWWn(volume.getId(), _dbClient);
                 } else {
                     // Now determine the target volume that corresponds to the site of the snapshot
                     ProtectionSet protectionSet = _dbClient.queryObject(ProtectionSet.class, volume.getProtectionSet());
                     Volume targetVolume = ProtectionSet.getTargetVolumeFromSourceAndInternalSiteName(_dbClient, protectionSet, volume,
                             snapshot.getEmInternalSiteName());
-                    volumeWWNs.add(RPHelper.getRPWWn(targetVolume.getId(), _dbClient));
+                    wwn = RPHelper.getRPWWn(targetVolume.getId(), _dbClient);
                 }
+
+                // Add the volume WWN
+                emNamesToVolumeWWNs.get(emName).add(wwn);
             }
 
             // Now enable image access to that bookmark
             RecoverPointClient rp = RPHelper.getRecoverPointClient(system);
-            MultiCopyEnableImageRequestParams request = new MultiCopyEnableImageRequestParams();
-            request.setVolumeWWNSet(volumeWWNs);
-            request.setBookmark(emName);
-            MultiCopyEnableImageResponse response = rp.enableImageCopies(request);
 
-            if (response == null) {
-                throw DeviceControllerExceptions.recoverpoint.failedEnableAccessOnRP();
+            // Iterate over the the emNames and call RP to enableImageCopies for the WWNs
+            // correponding to each emName.
+            for (Map.Entry<String, Set<String>> emNameEntry : emNamesToVolumeWWNs.entrySet()) {
+                MultiCopyEnableImageRequestParams request = new MultiCopyEnableImageRequestParams();
+                request.setVolumeWWNSet(emNameEntry.getValue());
+                request.setBookmark(emNameEntry.getKey());
+                MultiCopyEnableImageResponse response = rp.enableImageCopies(request);
+
+                if (response == null) {
+                    throw DeviceControllerExceptions.recoverpoint.failedEnableAccessOnRP();
+                }
             }
 
             completer.ready(_dbClient);
@@ -5960,7 +5983,6 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
             Map<String, Set<String>> emNamesToVolumeWWNs = new HashMap<String, Set<String>>();
             Map<String, Set<URI>> emNamesToSnapshots = new HashMap<String, Set<URI>>();
-            Set<URI> deactivatedSnapshots = new HashSet<URI>();
 
             for (URI snapshotID : snapshotList) {
                 // Get the volume associated with this snapshot
@@ -5988,15 +6010,8 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
                     emNamesToSnapshots.get(emName).add(snapshotID);
                 } else {
-                    _log.warn(
-                            "Cannot disable image access for snapshot %s so it will be skipped.  The snapshot does not have a bookmark name set.",
-                            snapshot.getId());
-                    continue;
+                    throw DeviceControllerExceptions.recoverpoint.failedToDeactivateSnapshotEmNameMissing(snapshotID);
                 }
-
-                // Keep track of the snapshots that need to have their access state/sync active/inactive fields updated
-                // by the completer.
-                deactivatedSnapshots.add(snapshotID);
 
                 Volume volume = _dbClient.queryObject(Volume.class, snapshot.getParent().getURI());
 
@@ -6023,7 +6038,6 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
                 // Add the volume WWN
                 emNamesToVolumeWWNs.get(emName).add(wwn);
-
             }
 
             // Now disable image access on the bookmark copies
@@ -6040,11 +6054,14 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                 if (response == null) {
                     throw DeviceControllerExceptions.recoverpoint.failedDisableAccessOnRP();
                 }
-            }
 
-            // Let the completer know about the deactivated snapshots (ones who's associated copies
-            // had image access disabled). This will be used to update the BlockSnapshot fields accordingly.
-            completer.setDeactivatedSnapshots(deactivatedSnapshots);
+                // Let the completer know about the deactivated snapshots (ones who's associated copies
+                // had image access disabled). This will be used to update the BlockSnapshot fields accordingly.
+                // This is done because not all snapshots used when creating the completer will be deactivated.
+                // We need to maintain a collection of snapshots so that those exported to multiple hosts to not
+                // get deactivated.
+                completer.addDeactivatedSnapshots(emNamesToSnapshots.get(emNameEntry.getKey()));
+            }
 
             completer.ready(_dbClient);
         } catch (InternalException e) {

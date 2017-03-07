@@ -6,6 +6,7 @@ package com.emc.storageos.volumecontroller.impl.block.taskcompleter;
 
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -31,7 +32,8 @@ public class BlockSnapshotDeactivateCompleter extends BlockSnapshotTaskCompleter
     private final List<URI> snapshotURIs;
     private final boolean setSnapshotSyncActive;
 
-    // Not all snapshots from when the object was created will be deactivated.
+    // A collection of snapshots that have been deactivated (image access disabled) so that
+    // the completer is aware that these objects need updating.
     private Set<URI> deactivatedSnapshots = new HashSet<URI>();
 
     public BlockSnapshotDeactivateCompleter(List<URI> snaps, boolean setSnapshotSyncActive, String task) {
@@ -49,6 +51,10 @@ public class BlockSnapshotDeactivateCompleter extends BlockSnapshotTaskCompleter
 
     public void setDeactivatedSnapshots(Set<URI> deactivatedSnapshots) {
         this.deactivatedSnapshots = deactivatedSnapshots;
+    }
+
+    public void addDeactivatedSnapshots(Collection<URI> snapshotURIs) {
+        deactivatedSnapshots.addAll(snapshotURIs);
     }
 
     @Override

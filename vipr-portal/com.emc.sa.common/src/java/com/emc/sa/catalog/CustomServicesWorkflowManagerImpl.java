@@ -22,6 +22,7 @@ import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+import org.springframework.util.CollectionUtils;
 
 import com.emc.sa.model.dao.ModelClient;
 import com.emc.storageos.db.client.constraint.NamedElementQueryResultList.NamedElement;
@@ -29,7 +30,7 @@ import com.emc.storageos.db.client.model.uimodels.CatalogCategory;
 import com.emc.storageos.db.client.model.uimodels.CatalogService;
 import com.emc.storageos.db.client.model.uimodels.CustomServicesWorkflow;
 import com.emc.storageos.db.client.model.uimodels.CustomServicesWorkflow.CustomServicesWorkflowStatus;
-import org.springframework.util.CollectionUtils;
+
 
 
 @Component

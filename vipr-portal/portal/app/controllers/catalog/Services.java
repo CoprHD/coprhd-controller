@@ -57,7 +57,7 @@ public class Services extends Controller {
         renderArgs.put("breadcrumbs", breadcrumbs);
 
         String backUrl;
-        if(StringUtils.isEmpty(backUrlInput)) {
+        if (StringUtils.isEmpty(backUrlInput)) {
             backUrl = request.params.get("return");
             if (StringUtils.isBlank(backUrl)) {
                 String path = "";

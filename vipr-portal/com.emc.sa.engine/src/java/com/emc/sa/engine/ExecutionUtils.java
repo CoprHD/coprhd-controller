@@ -60,7 +60,7 @@ public class ExecutionUtils {
         }
         
         CatalogService catalogService = modelClient.catalogServices().findById(order.getCatalogServiceId());
-        if(null != catalogService){
+        if (null != catalogService) {
             context.setServiceName(catalogService.getLabel());
         }
         List<OrderParameter> orderParameters = modelClient.orderParameters().findByOrderId(order.getId());

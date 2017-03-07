@@ -3492,12 +3492,9 @@ public class FileService extends TaskResourceService {
             throw APIException.badRequests.invalidFilePolicyAssignParam(filePolicy.getFilePolicyName(), errorMsg.toString());
         }
 
-        if (filePolicy.getFilePolicyType().equals(FilePolicyType.file_replication.name())
-                && fs.getMirrorfsTargets() == null) {
+        if (filePolicy.getFilePolicyType().equals(FilePolicyType.file_replication.name())) {
             return assignFileReplicationPolicyToFS(fs, filePolicy, param, task);
-        } else if (filePolicy.getFilePolicyType().equals(FilePolicyType.file_snapshot.name())
-                || (filePolicy.getFilePolicyType().equals(FilePolicyType.file_replication.name())
-                        && !fs.getMirrorfsTargets().isEmpty())) {
+        } else if (filePolicy.getFilePolicyType().equals(FilePolicyType.file_snapshot.name())) {
             return assignFilePolicyToFS(fs, filePolicy, task);
         }
         return resp;

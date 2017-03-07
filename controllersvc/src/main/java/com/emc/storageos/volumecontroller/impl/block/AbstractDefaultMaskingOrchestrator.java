@@ -327,8 +327,9 @@ abstract public class AbstractDefaultMaskingOrchestrator {
         if (exportGroup.getZoneAllInitiators()) {
             pathParams.setAllowFewerPorts(true);
         }
+        URI portGroupURI = null;
         if (pathParams.getPortGroup() != null) {
-            URI portGroupURI = pathParams.getPortGroup();
+            portGroupURI = pathParams.getPortGroup();
             StoragePortGroup portGroup = _dbClient.queryObject(StoragePortGroup.class, portGroupURI);
             _log.info("port group is " + portGroup.getLabel());
             List<URI> storagePorts = StringSetUtil.stringSetToUriList(portGroup.getStoragePorts());
@@ -353,6 +354,10 @@ abstract public class AbstractDefaultMaskingOrchestrator {
 
         ExportMask exportMask = ExportMaskUtils.initializeExportMask(storage, exportGroup,
                 initiators, volumeMap, targets, assignments, maskName, _dbClient);
+        if (portGroupURI != null) {
+            exportMask.setPortGroup(portGroupURI);
+            _dbClient.updateObject(exportMask);
+        }
         List<BlockObject> vols = new ArrayList<BlockObject>();
         for (URI boURI : volumeMap.keySet()) {
             BlockObject bo = BlockObject.fetch(_dbClient, boURI);

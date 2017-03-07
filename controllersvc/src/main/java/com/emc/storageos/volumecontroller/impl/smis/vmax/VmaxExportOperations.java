@@ -317,33 +317,15 @@ public class VmaxExportOperations implements ExportMaskOperations {
 
          // 3. PortGroup (PG)
             // check if port group name is specified
-            ExportGroup exportGroup = null;
-            List<ExportGroup> exportGroups = ExportMaskUtils.getExportGroups(_dbClient, mask);
-            URI firstVolUri = volumeURIHLUs[0].getVolumeURI();
-            if (exportGroups != null && !exportGroups.isEmpty()) {
-                exportGroup = exportGroups.get(0);
-            } else {
-                _log.warn("There is no export group associated with the mask {}", mask.getLabel());
-            }
-            ExportPathParams pathParams = null;
-            if (exportGroup != null) {
-             // Check to see if the ExportGroup has path parameters for volume
-                if (exportGroup.getPathParameters().containsKey(firstVolUri.toString())) {
-                    URI exportPathParamsUri = URI.create(exportGroup.getPathParameters().get(firstVolUri.toString()));
-                    pathParams = _dbClient.queryObject(ExportPathParams.class, exportPathParamsUri);
-                }
-            }
+            URI portGroupURI = mask.getPortGroup();
             String portGroupName = null;
-            if (pathParams != null) {
-                URI pgURI = pathParams.getPortGroup();
-                if (!NullColumnValueGetter.isNullURI(pgURI) && 
-                        isUsePortGroupEnabled(storage.getSystemType())) {
-                    mask.setPortGroup(pgURI);
-                    StoragePortGroup pg = _dbClient.queryObject(StoragePortGroup.class, pgURI);
-                    portGroupName = pg.getLabel();
-                    _dbClient.updateObject(mask);
-                    _log.info("port group name: " + portGroupName);
-                }
+            if (!NullColumnValueGetter.isNullURI(portGroupURI) && 
+                    isUsePortGroupEnabled(storage.getSystemType())) {
+                StoragePortGroup pg = _dbClient.queryObject(StoragePortGroup.class, portGroupURI);
+                portGroupName = pg.getLabel();
+                _dbClient.updateObject(mask);
+                _log.info("port group name: " + portGroupName);
+                
             }
             if (portGroupName == null) {
                 DataSource portGroupDataSource = ExportMaskUtils.getExportDatasource(storage, initiatorList, dataSourceFactory,

@@ -7897,31 +7897,5 @@ public class SmisCommandHelper implements SmisConstants {
                 _cimArgument.bool(CP_DELETE_WHEN_BECOMES_UNASSOCIATED, Boolean.FALSE)
         };
     }
-    
-    /**
-     * Get Port Groups within the masking View.
-     *
-     * @param system
-     * @param mvName
-     * @return
-     * @throws Exception
-     */
-    public boolean checkMaskingViewAssociated(StorageSystem system, String portGroupName) throws Exception {
-        CIMObjectPath portGroupPath = _cimPath.getMaskingGroupPath(system, portGroupName,
-                SmisConstants.MASKING_GROUP_TYPE.SE_TargetMaskingGroup);
-        CloseableIterator<CIMInstance> cimPathItr = null;
-        try {
-            _log.info("Trying to find the masking view associated with port group {}", portGroupName);
-            cimPathItr = getAssociatorInstances(system, portGroupPath, null, SYMM_LUNMASKINGVIEW,
-                    null, null, PS_ELEMENT_NAME);
-            if (cimPathItr.hasNext()) {
-                _log.info("The port group {} has lun masking view associated", portGroupName);
-                return true;
-            }
-        } finally {
-            closeCIMIterator(cimPathItr);
-        }
-        return false;
-    }
-        
+          
 }

@@ -3350,7 +3350,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
             CIMInstance instance = _helper.checkExists(storage, targetPortGroupPath, false, false);
             if (instance != null) { 
                 // Check if there is any lun masking view associated.
-                if (_helper.checkMaskingViewAssociated(storage, portGroupName)) {
+                if (_helper.checkPortGroupShared(storage, portGroupName, null)) {
                     // Could not delete the port group
                     String msg = String.format("The port group %s could not be deleted, because it still has associated lun masking view.",
                             portGroup.getNativeGuid());

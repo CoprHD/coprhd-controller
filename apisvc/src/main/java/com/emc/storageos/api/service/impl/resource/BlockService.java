@@ -1052,7 +1052,7 @@ public class BlockService extends TaskResourceService {
             return;
         }
         // Consistency group should only be empty or only contain RR type volume(s)
-        if (cGroup.getRequestedTypes().size() != 0 &&
+        if (!cGroup.getRequestedTypes().isEmpty() &&
                 (cGroup.getRequestedTypes().size() != 1 || !cGroup.checkForRequestedType(Types.RR))) {
             throw APIException.badRequests.consistencyGroupMustOnlyBeRRProtected(cGroup.getId());
         }

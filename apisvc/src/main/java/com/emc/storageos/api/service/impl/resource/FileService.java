@@ -3522,11 +3522,11 @@ public class FileService extends TaskResourceService {
         FilePolicy fp = _permissionsHelper.getObjectById(filePolicyUri, FilePolicy.class);
         ArgValidator.checkEntityNotNull(fp, filePolicyUri, isIdEmbeddedInURL(filePolicyUri));
         // verify the file system tenant is same as policy tenant
-        if(!(fp.getTenantOrg().contains(fs.getTenant().getURI().toString()))){
+        if(!fp.getTenantOrg().isEmpty() && !(fp.getTenantOrg().contains(fs.getTenant().getURI().toString()))){
             throw APIException.badRequests.associatedPolicyTenantMismatch(filePolicyUri, id);
         }
         // verify the schedule policy is associated with file system or not.
-        if (!fs.getFilePolicies().contains(filePolicyUri.toString())) {
+        if (!fs.getFilePolicies().isEmpty() && !fs.getFilePolicies().contains(filePolicyUri.toString())) {
             throw APIException.badRequests.cannotFindAssociatedPolicy(filePolicyUri);
         }
 

@@ -5,6 +5,7 @@
 package com.emc.storageos.computesystemcontroller.impl;
 
 import java.net.URI;
+import java.rmi.RemoteException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;

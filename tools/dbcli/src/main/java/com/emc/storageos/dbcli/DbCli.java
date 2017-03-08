@@ -422,7 +422,15 @@ public class DbCli {
                             if (!verifyField(scopedLabelSet)) {
                                 throw new Exception("field format exception");
                             }
-                            pd.getWriteMethod().invoke(object, scopedLabelSet);
+                            
+                            ScopedLabelSet updateSet = (ScopedLabelSet) pd.getReadMethod().invoke(object);
+                            if (updateSet != null) {
+                                updateSet.clear();
+                                updateSet.addAll(scopedLabelSet);
+                            } else {
+                                pd.getWriteMethod().invoke(object, scopedLabelSet);
+                            }
+
                         } else if (type == String.class) {
                             pd.getWriteMethod().invoke(object, fieldClass.cast(fieldValue));
                         } else if (type.isEnum()) {

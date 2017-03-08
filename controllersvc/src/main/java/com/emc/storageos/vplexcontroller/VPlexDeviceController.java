@@ -3166,7 +3166,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
                             _dbClient, storageView, exportMask, targetPortToPwwnMap, _networkDeviceController);
 
                     // assemble a list of other ExportGroups that reference this ExportMask
-                    List<ExportGroup> otherExportGroups = getOtherExportGroups(exportGroup, exportMask);
+                    List<ExportGroup> otherExportGroups = ExportUtils.getOtherExportGroups(exportGroup, exportMask, _dbClient);
 
                     boolean existingVolumes = exportMask.hasAnyExistingVolumes();
                     boolean existingInitiators = exportMask.hasAnyExistingInitiators();
@@ -3725,7 +3725,8 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
                     // situation in which this export mask is in use by other
                     // export groups... see CTRL-3941
                     // assemble a list of other ExportGroups that reference this ExportMask
-                    List<ExportGroup> otherExportGroups = getOtherExportGroups(exportGroup, exportMask);
+                    List<ExportGroup> otherExportGroups = ExportUtils.getOtherExportGroups(exportGroup, exportMask,
+                            _dbClient);
 
                     if (otherExportGroups != null && !otherExportGroups.isEmpty()) {
                         // Gets the list of volume URIs that are not other Export Groups
@@ -4893,7 +4894,8 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
         String lastStep = previousStep;
 
         // assemble a list of other ExportGroups that reference this ExportMask
-        List<ExportGroup> otherExportGroups = getOtherExportGroups(exportGroup, exportMask);
+        List<ExportGroup> otherExportGroups = ExportUtils.getOtherExportGroups(exportGroup, exportMask,
+                _dbClient);
 
         _log.info(String.format("will be removing initiators %s for host %s mask %s (%s)",
                 getInitiatorsWwnsString(initiators), hostURI.toString(), exportMask.getMaskName(), exportMask.getId()));
@@ -4938,7 +4940,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
         boolean canDeleteMask = removeAllInits && !exportMask.hasAnyExistingInitiators();
 
         if (canDeleteMask) {
-            if (!exportMaskHasBothExclusiveAndSharedVolumes(exportGroup, otherExportGroups, exportMask)) {
+            if (!ExportUtils.exportMaskHasBothExclusiveAndSharedVolumes(exportGroup, otherExportGroups, exportMask)) {
                 _log.info("all initiators are being removed and no " + "other ExportGroups reference ExportMask {}",
                         exportMask.getMaskName());
                 _log.info("creating a deleteStorageView workflow step for " + exportMask.getMaskName());
@@ -5006,34 +5008,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
         return lastStep;
     }
 
-    /**
-     * Export Mask can be shared with multiple ExportGroups in the below case.
-     * 
-     * 1. Create volumes from different projects and export to same compute resource.
-     * 2. Export Mask has both exclusive and shared volumes.
-     * 
-     * A storage view for a host can be deleted, if there are shared volumes from multiple projects.
-     * A storage view cannot be deleted, if there are excluisve volumes on the storage view along with shared volumes.
-     * We have to return true only for Case 2.
-     * 
-     * @return
-     */
-    private boolean exportMaskHasBothExclusiveAndSharedVolumes(ExportGroup current, List<ExportGroup> otherExportGroups,
-            ExportMask exportMask) {
-        for (ExportGroup exportGroup : otherExportGroups) {
-            // This piece of code gets executed only when all the initiators of
-            // Host are being asked to remove and the export mask is being shared.
-            if (ExportGroupType.Cluster.toString().equalsIgnoreCase(current.getType())
-                    && ExportGroupType.Host.toString().equalsIgnoreCase(exportGroup.getType()) &&
-                    !CollectionUtils.isEmpty(exportGroup.getInitiators())) {
-                _log.info(
-                        "Export Mask is being shared with other Export Groups, and the export Group {} type is different from the current processed {}."
-                                + "Assuming this mask contains both shared and exclusive volumes ,removing the initiators might affect.");
-                return true;
-            }
-        }
-        return false;
-    }
+   
 
     /**
      * Adds workflow steps for the final removal of a set of Initiators
@@ -11304,39 +11279,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
         return volumeURIList;
     }
 
-    /**
-     * Returns a list of ExportGroups that reference the given ExportMask,
-     * minus the given ExportGroup
-     *
-     * @param exportGroup
-     *            the ExportGroup to exclude
-     * @param exportMask
-     *            the ExportMask to locate in other ExportGroups
-     * @return a list of other ExportGroups containing the ExportMask
-     */
-    private List<ExportGroup> getOtherExportGroups(ExportGroup exportGroup, ExportMask exportMask) {
-
-        List<ExportGroup> otherExportGroups = ExportMaskUtils.getExportGroups(_dbClient, exportMask);
-
-        ExportGroup egToSkip = null;
-        for (ExportGroup eg : otherExportGroups) {
-            // do not include the ExportGroup requested for delete
-            if (eg.getId().equals(exportGroup.getId())) {
-                egToSkip = eg;
-                break;
-            }
-        }
-        otherExportGroups.remove(egToSkip);
-
-        if (!otherExportGroups.isEmpty()) {
-            _log.info("ExportMask {} is in use by these other ExportGroups: {}",
-                    exportMask.getMaskName(), Joiner.on(',').join(otherExportGroups));
-        } else {
-            _log.info("ExportMask {} is not in use by any other ExportGroups.", exportMask.getMaskName());
-        }
-
-        return otherExportGroups;
-    }
+   
 
     /**
      * Validate a VPLEX Storage Provider connection.

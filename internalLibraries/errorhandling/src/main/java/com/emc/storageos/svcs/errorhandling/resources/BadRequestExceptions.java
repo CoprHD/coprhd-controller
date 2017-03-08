@@ -2646,6 +2646,9 @@ public interface BadRequestExceptions {
     public BadRequestException consistencyGroupMustOnlyBeRRProtected(final URI consistencyGroupId);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException consistencyGroupOnlySupportRRVolProvisioning(final URI consistencyGroupId);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException cannotRemoveTenant(final String resource, final String name, final Set<String> tenants);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)

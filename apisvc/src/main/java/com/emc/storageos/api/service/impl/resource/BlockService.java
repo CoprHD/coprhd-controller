@@ -1020,6 +1020,9 @@ public class BlockService extends TaskResourceService {
             capabilities.put(VirtualPoolCapabilityValuesWrapper.REMOTE_REPLICATION_GROUP, rrParameters.getRemoteReplicationGroup());
             capabilities.put(VirtualPoolCapabilityValuesWrapper.REMOTE_REPLICATION_MODE, rrParameters.getRemoteReplicationMode());
             capabilities.put(VirtualPoolCapabilityValuesWrapper.REMOTE_REPLICATION_CREATE_INACTIVE, rrParameters.getCreateInactive());
+        } else if (consistencyGroup != null && cgOnlySupportRR(consistencyGroup)) {
+            _log.error("Consistency group {} should only be used to provision RR volumes", consistencyGroup.getId());
+            throw APIException.badRequests.consistencyGroupOnlySupportRRVolProvisioning(consistencyGroup.getId());
         }
 
 
@@ -1054,13 +1057,13 @@ public class BlockService extends TaskResourceService {
         }
 
         // Consistency group should only be empty or only contain RR type volume(s)
-        if (!cGroup.getRequestedTypes().isEmpty() && (cGroup.getRequestedTypes().size() != 1 || !cGroup.checkForRequestedType(Types.RR))) {
+        if (!cGroup.getRequestedTypes().isEmpty() && !cgOnlySupportRR(cGroup)) {
             throw APIException.badRequests.consistencyGroupMustOnlyBeRRProtected(cGroup.getId());
         }
 
         List<Volume> volumes = blockService.getActiveCGVolumes(cGroup);
         if (volumes.isEmpty()) {
-            _log.info(String.format("Specified consistency group: %s is an empty one (contains no volume), skip validating", cGroup.getId()));
+            _log.info("Specified consistency group: {} is an empty one (contains no volume), skip validating", cGroup.getId());
             return;
         }
 
@@ -1079,6 +1082,13 @@ public class BlockService extends TaskResourceService {
                 throw APIException.badRequests.consistencyGroupContainsVolsInDifferentRRSets(cGroup.getId());
             }
         }
+    }
+
+    private boolean cgOnlySupportRR(BlockConsistencyGroup cGroup) {
+        if (cGroup == null || cGroup.getRequestedTypes() == null) {
+            return false;
+        }
+        return cGroup.getRequestedTypes().size() == 1 && cGroup.checkForRequestedType(Types.RR);
     }
 
     /**

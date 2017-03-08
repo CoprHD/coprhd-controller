@@ -143,8 +143,7 @@ public class CustomServicesService extends ViPRService {
                 switch (type) {
                     case VIPR_REST: {
 
-                        // TODO move this outside the try after we have primitives for others. Except Remote Ansible
-                        CustomServicesPrimitiveType primitive = daos.get("vipr").get(step.getOperation());
+                        final CustomServicesPrimitiveType primitive = daos.get("vipr").get(step.getOperation());
 
                         if (null == primitive) {
                             throw InternalServerErrorException.internalServerErrors

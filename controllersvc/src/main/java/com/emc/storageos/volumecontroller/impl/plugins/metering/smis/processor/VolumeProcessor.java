@@ -87,7 +87,6 @@ public class VolumeProcessor extends CommonStatsProcessor {
             @SuppressWarnings("unchecked")
             List<Stat> metricsObjList = (List<Stat>) keyMap.get(Constants._Stats);
             DbClient dbClient = (DbClient) keyMap.get(Constants.dbClient);
-            _logger.info("Volume metering using dbclient of type {}", dbClient.getClass().getName());
             if ((null == outputArguments[0]) ||
                     ((String[]) outputArguments[0].getValue()).length == 0) {
                 _logger.warn("Empty Statistics response returned from Provider");

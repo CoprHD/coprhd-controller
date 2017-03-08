@@ -450,7 +450,7 @@ precheck_ftp_status() {
 
     curl -sSk -u ${user}:${password} -l "${ftpserver}" &>>${DIAGCOLLECT_LOG}
     if [ $? -ne 0 ]; then
-        echo_stdout_log "FTP server is unavailable or upload directory does not exist, or username/password is incorrect,"
+        echo_stdout_log "FTP server is unavailable or upload directory does not exist, or username/password is incorrect."
         exit 2
     fi
 }

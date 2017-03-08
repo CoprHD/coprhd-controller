@@ -25,6 +25,7 @@ public class RemoveBlockStorageService extends ViPRService {
     @Override
     public void precheck() {
         BlockStorageUtils.getBlockResources(uris(volumeIds));
+        checkForBootVolumes(volumeIds);
     }
 
     @Override

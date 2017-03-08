@@ -864,10 +864,15 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
             // List of storage system Guids
             List<String> storageSystemGuids = new ArrayList<String>();
 
+            boolean searchAllClustersForStorageVolumes = false;
             for (URI vplexVolumeURI : vplexVolumeURIs) {
                 Volume vplexVolume = getDataObject(Volume.class, vplexVolumeURI, _dbClient);
                 volumeLabels.append(vplexVolume.getLabel()).append(" ");
                 volumeMap.put(vplexVolume, new ArrayList<Volume>());
+                if (vplexVolume.getAssociatedVolumes().size() >= VPlexApiConstants.DISTRIBUTED_BACKEND_VOLUME_COUNT ||
+                        RPHelper.isAssociatedToAnyRpVplexTypes(vplexVolume, _dbClient)) {
+                    searchAllClustersForStorageVolumes = true;
+                }
                 // Find the underlying Storage Volumes
                 for (String associatedVolume : vplexVolume.getAssociatedVolumes()) {
                     Volume storageVolume = getDataObject(Volume.class, new URI(associatedVolume), _dbClient);
@@ -963,7 +968,11 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
 
                 // Make a call to get cluster info
                 if (null == clusterInfoList) {
-                    clusterInfoList = new ArrayList<VPlexClusterInfo>();
+                    if (searchAllClustersForStorageVolumes) {
+                        clusterInfoList = client.getClusterInfoDetails();
+                    } else {
+                        clusterInfoList = new ArrayList<VPlexClusterInfo>();
+                    }
                 }
 
                 // Make the call to create a virtual volume. It is distributed if there are two (or more?)
@@ -971,7 +980,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
                 boolean isDistributed = (vinfos.size() >= 2);
                 thinEnabled = thinEnabled && verifyVplexSupportsThinProvisioning(vplex);
                 VPlexVirtualVolumeInfo vvInfo = client.createVirtualVolume(vinfos, isDistributed,
-                        discoveryRequired, false, clusterId, clusterInfoList, false, thinEnabled);
+                        discoveryRequired, false, clusterId, clusterInfoList, false, thinEnabled, searchAllClustersForStorageVolumes);
 
                 // Note: according to client.createVirtualVolume, this will never be the case.
                 if (vvInfo == null) {
@@ -7279,7 +7288,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
                         existingVolume.getNativeId(), thinEnabled, itls);
                 vinfos.add(vinfo);
                 thinEnabled = thinEnabled && verifyVplexSupportsThinProvisioning(vplex);
-                virtvinfo = client.createVirtualVolume(vinfos, false, true, true, null, null, true, thinEnabled);
+                virtvinfo = client.createVirtualVolume(vinfos, false, true, true, null, null, true, thinEnabled, true);
                 // Note: According to client.createVirtualVolume code, this will never be the case (null)
                 if (virtvinfo == null) {
                     String opName = ResourceOperationTypeEnum.CREATE_VVOLUME_FROM_IMPORT.getName();

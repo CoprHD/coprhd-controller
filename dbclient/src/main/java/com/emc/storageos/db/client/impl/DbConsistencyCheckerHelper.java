@@ -76,6 +76,7 @@ public class DbConsistencyCheckerHelper {
 
     public DbConsistencyCheckerHelper(DbClientImpl dbClient) {
         this.dbClient = dbClient;
+        initSchemaVersions();
     }
 
     /**

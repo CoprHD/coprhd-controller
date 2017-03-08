@@ -119,7 +119,7 @@ public class RemoveComputeClusterService extends ViPRService {
         if (successfulHostIds.size() < vblockHostURIs.size()) {
             for (URI hostURI : vblockHostURIs) {
                 if (!successfulHostIds.contains(hostURI)) {
-                    logError("computeutils.deactivatehost.failure", hostURI, clusterId);
+                    logError("computeutils.deactivatehost.failure", vblockHostMap.get(hostURI), cluster.getLabel());
                 }
             }
             setPartialSuccess();

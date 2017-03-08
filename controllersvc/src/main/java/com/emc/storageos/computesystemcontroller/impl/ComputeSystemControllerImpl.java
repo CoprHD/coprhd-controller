@@ -1579,7 +1579,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
             if (exportGroup != null && exportGroup.getVolumes() != null) {
                 for (String volume : exportGroup.getVolumes().keySet()) {
                     BlockObject blockObject = BlockObject.fetch(_dbClient, URI.create(volume));
-                    Datastore datastore = wwnDatastores.get(blockObject.getWWN());
+                    Datastore datastore = findingMatchingDatastore(wwnDatastores, blockObject.getWWN());
                     if (datastore != null) {
                         ComputeSystemHelper.verifyDatastore(datastore, host);
                     }
@@ -1609,6 +1609,15 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
             }
         }
         return result;
+    }
+
+    public Datastore findingMatchingDatastore(Map<String, Datastore> map, String wwn) {
+        for (String dswwn : map.keySet()) {
+            if (VolumeWWNUtils.wwnMatches(dswwn, wwn)) {
+                return map.get(dswwn);
+            }
+        }
+        return null;
     }
 
     /**
@@ -1645,7 +1654,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                 for (String volume : exportGroup.getVolumes().keySet()) {
                     BlockObject blockObject = BlockObject.fetch(_dbClient, URI.create(volume));
                     if (blockObject != null) {
-                        Datastore datastore = wwnDatastores.get(blockObject.getWWN());
+                        Datastore datastore = findingMatchingDatastore(wwnDatastores, blockObject.getWWN());
                         if (datastore != null) {
                             boolean storageIOControlEnabled = datastore.getIormConfiguration().isEnabled();
                             if (storageIOControlEnabled) {

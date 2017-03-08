@@ -269,6 +269,8 @@ public class AddHostToClusterService extends ViPRService {
         if (!ComputeUtils.nonNull(hostsWithOs).isEmpty()) {
             pushToVcenter();
             ComputeUtils.discoverHosts(hostsWithOs);
+        } else {
+            logWarn("compute.cluster.installed.os.none");
         }
 
         String orderErrors = ComputeUtils.getOrderErrors(cluster, copyOfHostNames, computeImage, vcenterId);

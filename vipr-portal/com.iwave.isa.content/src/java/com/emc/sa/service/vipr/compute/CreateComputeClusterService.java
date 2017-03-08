@@ -282,6 +282,8 @@ public class CreateComputeClusterService extends ViPRService {
             if (!ComputeUtils.nonNull(hostsWithOs).isEmpty()) {
                 pushToVcenter();
                 ComputeUtils.discoverHosts(hostsWithOs); 
+            } else {
+                logWarn("compute.cluster.installed.os.none");
             }
 
         }

@@ -7,24 +7,29 @@ package com.emc.sa.service.vipr;
 import java.net.URI;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
-import java.util.Calendar;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 
-import com.emc.storageos.db.client.URIUtil;
-import com.emc.storageos.db.client.model.*;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.engine.service.AbstractExecutionService;
 import com.emc.sa.model.dao.ModelClient;
+import com.emc.sa.service.vipr.block.BlockStorageUtils;
 import com.emc.sa.service.vipr.tasks.AcquireHostLock;
-import com.emc.storageos.db.client.constraint.NamedElementQueryResultList.NamedElement;
 import com.emc.sa.service.vipr.tasks.ReleaseHostLock;
+import com.emc.storageos.db.client.constraint.NamedElementQueryResultList.NamedElement;
+import com.emc.storageos.db.client.model.Cluster;
+import com.emc.storageos.db.client.model.EncryptionProvider;
+import com.emc.storageos.db.client.model.Host;
+import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.uimodels.RetainedReplica;
 import com.emc.storageos.db.client.model.uimodels.ScheduledEvent;
 import com.emc.storageos.model.DataObjectRestRep;
+import com.emc.storageos.model.block.BlockObjectRestRep;
 import com.emc.vipr.client.ClientConfig;
 import com.emc.vipr.client.Task;
 import com.emc.vipr.client.Tasks;
@@ -312,4 +317,26 @@ public abstract class ViPRService extends AbstractExecutionService {
         }
         return obsoleteReplicas;
     }
+
+    /**
+     * Check for a boot volume.  Throw failure message if found.
+     * @param volumeId volume ID
+     */
+    public static void checkForBootVolume(URI volumeId) {
+        checkForBootVolumes(Arrays.asList(volumeId.toASCIIString()));                
+    }
+
+    /**
+     * Check for boot volumes.  Throw failure message if found.
+     * @param volumeIds volume IDs
+     */
+    public static void checkForBootVolumes(Collection<String> volumeIds) {
+        for (URI volumeId : ResourceUtils.uris(volumeIds)) {
+            BlockObjectRestRep volume = BlockStorageUtils.getBlockResource(volumeId);
+            if (BlockStorageUtils.isVolumeBootVolume(volume)) {
+            ExecutionUtils.fail("failTask.verifyBootVolume", volume.getName(), volume.getName());
+            }
+        }
+    }
+
 }

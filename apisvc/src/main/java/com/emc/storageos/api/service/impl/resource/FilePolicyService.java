@@ -214,7 +214,7 @@ public class FilePolicyService extends TaskResourceService {
         ArgValidator.checkFieldNotNull(param.getPolicyName(), "policyName");
 
         // Make apply at as mandatory field
-        ArgValidator.checkFieldNotNull(param.getPolicyName(), "apply_at");
+        ArgValidator.checkFieldNotNull(param.getApplyAt(), "apply_at");
 
         // Check for duplicate policy name
         if (param.getPolicyName() != null && !param.getPolicyName().isEmpty()) {
@@ -717,7 +717,7 @@ public class FilePolicyService extends TaskResourceService {
             FileReplicationPolicyParam replParam = param.getReplicationPolicyParams();
 
             if (replParam.getReplicationCopyMode() != null && !replParam.getReplicationCopyMode().isEmpty()) {
-                ArgValidator.checkFieldValueFromEnum(param.getReplicationPolicyParams().getReplicationCopyMode(), "replicationCopyMode",
+                ArgValidator.checkFieldValueFromEnum(replParam.getReplicationCopyMode(), "replicationCopyMode",
                         EnumSet.allOf(FilePolicy.FileReplicationCopyMode.class));
                 fileReplicationPolicy.setFileReplicationCopyMode(replParam.getReplicationCopyMode());
             }

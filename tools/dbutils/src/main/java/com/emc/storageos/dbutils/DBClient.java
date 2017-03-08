@@ -24,6 +24,7 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.StringReader;
 import java.io.StringWriter;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.net.URI;
 import java.nio.file.Files;
@@ -61,6 +62,7 @@ import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 
 import org.apache.commons.beanutils.BeanUtils;
+import org.apache.commons.beanutils.BeanUtilsBean;
 import org.apache.commons.beanutils.ConvertUtils;
 import org.apache.commons.beanutils.converters.CalendarConverter;
 import org.apache.commons.beanutils.converters.DateConverter;
@@ -136,6 +138,7 @@ public class DBClient {
     private int listLimit = 100;
     private boolean turnOnLimit = false;
     private boolean activeOnly = true;
+    private boolean sortByURI = false;
     
     private static final String PRINT_COUNT_RESULT = "Column Family %s's row count is: %s";
     private static final String REGEN_RECOVER_FILE_MSG = "Please regenerate the recovery " +
@@ -449,26 +452,32 @@ public class DBClient {
             return;
         }
 
+        int count = 0;
+        
         // The list returned by getColumnUris() is not compatible with sort, so normalize
         // to a type that does.
-        List<URI> straightUriList = new ArrayList<URI>();
-        Iterator<URI> urisIter = uris.iterator();
-        while (urisIter.hasNext()) {
-            straightUriList.add(urisIter.next());
-        }
-
-        // Sort the URIs in alphabetical order for consistent output across executions
-        Comparator<URI> cmp = new Comparator<URI>() {
-            public int compare(URI u1, URI u2) {
-                if (u1 == null) {
-                    return 1;
-                }
-                return u1.toString().compareTo(u2.toString());
+        if (sortByURI) {
+            List<URI> straightUriList = new ArrayList<URI>();
+            Iterator<URI> urisIter = uris.iterator();
+            while (urisIter.hasNext()) {
+                straightUriList.add(urisIter.next());
             }
-        };
-        Collections.sort(straightUriList, cmp);
         
-        int count = queryAndPrintRecords(straightUriList, clazz, criterias);
+            // Sort the URIs in alphabetical order for consistent output across executions
+            Comparator<URI> cmp = new Comparator<URI>() {
+                public int compare(URI u1, URI u2) {
+                    if (u1 == null) {
+                        return 1;
+                    }
+                    return u1.toString().compareTo(u2.toString());
+                }
+            };
+            Collections.sort(straightUriList, cmp);
+            count = queryAndPrintRecords(straightUriList, clazz, criterias);
+        } else {
+            count = queryAndPrintRecords(uris, clazz, criterias);
+        }
+        
         System.out.println("Number of All Records is: " + count);
     }
 
@@ -801,6 +810,10 @@ public class DBClient {
 
     public void setActiveOnly(boolean activeOnly) {
         this.activeOnly = activeOnly;
+    }
+    
+    public void setSortByURI(boolean sortByURI) {
+        this.sortByURI = sortByURI;
     }
 
     public void setShowModificationTime(boolean showModificationTime) {
@@ -1378,7 +1391,18 @@ public class DBClient {
         }
         return runResult;
     }
-    
+
+    private class NullAwareBeanUtilsBean extends BeanUtilsBean {
+        @Override
+        public void copyProperty(Object bean, String name, Object value) throws IllegalAccessException, InvocationTargetException {
+            if (value == null) {
+                log.info("The property value of {} {} is null, ignore it.", bean, name);
+                return;
+            }
+            super.copyProperty(bean, name, value);
+        }
+    }
+
     public boolean rebuildIndex(URI id, Class clazz) {
         boolean runResult = false;
         try {
@@ -1388,7 +1412,8 @@ public class DBClient {
                 newObject.trackChanges();
                 ConvertUtils.register(new CalendarConverter(null), Calendar.class);
                 ConvertUtils.register(new DateConverter(null), Date.class);
-                BeanUtils.copyProperties(newObject, queryObject);
+                BeanUtilsBean notNull = new NullAwareBeanUtilsBean();
+                notNull.copyProperties(newObject, queryObject);
 
                 // special change tracking for customized types
                 BeanInfo bInfo;

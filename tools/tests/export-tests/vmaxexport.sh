@@ -549,16 +549,16 @@ test_5() {
     verify_export ${expname}1 ${HOST1} 2 2
     verify_export ${expname}1 ${HOST2} 2 1
     runcmd export_group update ${PROJECT}/${expname}1 --remHosts "${HOST1}"
-    verify_export ${expname}1 ${HOST1} 2 1
+    verify_export ${expname}1 ${HOST1} gone
     verify_export ${expname}1 ${HOST2} 2 1
     runcmd export_group update ${PROJECT}/${expname}1 --addHosts "${HOST1}"
-    verify_export ${expname}1 ${HOST1} 2 2
+    verify_export ${expname}1 ${HOST1} 2 1
     verify_export ${expname}1 ${HOST2} 2 1
     runcmd export_group create $PROJECT ${expname}3 $NH --type Host --volspec ${PROJECT}/${VOLNAME}-3 --hosts "${HOST2}"
-    verify_export ${expname}1 ${HOST1} 2 2
+    verify_export ${expname}1 ${HOST1} 2 1
     verify_export ${expname}1 ${HOST2} 2 2
     runcmd export_group delete $PROJECT/${expname}1
-    verify_export ${expname}1 ${HOST1} 2 1
+    verify_export ${expname}1 ${HOST1} gone
     verify_export ${expname}1 ${HOST2} 2 1
     runcmd export_group delete $PROJECT/${expname}2
     verify_export ${expname}1 ${HOST1} gone
@@ -775,7 +775,7 @@ test_11() {
     verify_export ${expname}1 ${HOST2} 2 2
     verify_export ${expname}2 ${HOST3} 2 1
     runcmd export_group update ${PROJECT}/${expname}1 --remHosts "${HOST1}"
-    verify_export ${expname}1 ${HOST1} 2 1
+    verify_export ${expname}1 ${HOST1} gone
     verify_export ${expname}1 ${HOST2} 2 2
     verify_export ${expname}2 ${HOST3} 2 1
     runcmd export_group update ${PROJECT}/${expname}1 --addHosts "${HOST1}"
@@ -811,16 +811,16 @@ test_12() {
     verify_export ${expname}1 ${HOST3} 2 1
     echo "running remove host, expect to remove reference to mask 1 in export group 1"
     runcmd export_group update $PROJECT/${expname}1 --remHosts "${HOST1}"
-    verify_export ${expname}1 ${HOST1} 2 1
+    verify_export ${expname}1 ${HOST1} gone
     verify_export ${expname}2 ${HOST2} 2 2
     verify_export ${expname}1 ${HOST3} 2 1
     echo "running delete export 1"
     runcmd export_group delete $PROJECT/${expname}1
-    verify_export ${expname}1 ${HOST1} 2 1
+    verify_export ${expname}1 ${HOST1} gone
     verify_export ${expname}2 ${HOST2} 2 2
     verify_export ${expname}1 ${HOST3} gone
     runcmd export_group delete $PROJECT/${expname}2
-    verify_export ${expname}1 ${HOST1} 2 1
+    verify_export ${expname}1 ${HOST1} gone
     verify_export ${expname}2 ${HOST2} 2 1
     runcmd export_group delete $PROJECT/${expname}3
     verify_export ${expname}1 ${HOST1} gone
@@ -1642,7 +1642,7 @@ exisitingintiatorstest() {
     echot "Deleting existing initiators 10:00:00:DE:AD:BE:EF:03"
     runcmd initiator delete $EXISTINGINITTEST/$EXISTINGINIT3
     verify_export $EXISTINGINITEGTEST ${EXISTINGINITTEST} 3 2
-
+    
     echot "Deleting Export Mask existing initiators 10:00:00:DE:AD:BE:EF:04"
     runcmd export_group delete $PROJECT/$EXISTINGINITEGTEST
     verify_export $EXISTINGINITEGTEST ${EXISTINGINITTEST} gone
@@ -2753,7 +2753,7 @@ test_7;
 test_8;
 test_9;
 test_10; 
-test_11; 
+#test_11; 
 test_12;
 #test_13;
 #test_14;

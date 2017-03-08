@@ -43,6 +43,7 @@ import com.emc.storageos.model.host.cluster.ClusterRestRep;
 import com.emc.storageos.model.host.vcenter.VcenterDataCenterRestRep;
 import com.emc.storageos.model.host.vcenter.VcenterRestRep;
 import com.emc.vipr.client.ViPRCoreClient;
+import com.emc.vipr.client.core.filters.BlockVolumeBootVolumeFilter;
 import com.emc.vipr.client.core.filters.HostTypeFilter;
 import com.emc.vipr.client.core.filters.SourceTargetVolumesFilter;
 import com.emc.vipr.model.catalog.AssetOption;
@@ -193,7 +194,8 @@ public class VMWareProvider extends BaseHostProvider {
         UnexportedBlockResourceFilter<VolumeRestRep> unexportedFilter = new UnexportedBlockResourceFilter<VolumeRestRep>(
                 exportedBlockResources);
         SourceTargetVolumesFilter sourceTargetVolumesFilter = new SourceTargetVolumesFilter();
-        List<VolumeRestRep> volumes = client.blockVolumes().findByProject(projectId, unexportedFilter.and(sourceTargetVolumesFilter));
+        BlockVolumeBootVolumeFilter bootVolumeFilter = new BlockVolumeBootVolumeFilter();
+        List<VolumeRestRep> volumes = client.blockVolumes().findByProject(projectId, unexportedFilter.and(sourceTargetVolumesFilter).and(bootVolumeFilter.not()));
 
         return createBlockVolumeDatastoreOptions(volumes, hostOrClusterId);
     }
@@ -259,7 +261,7 @@ public class VMWareProvider extends BaseHostProvider {
         for (BlockObjectRestRep volume : mountedVolumes) {
             Set<String> datastoreNames = VMwareDatastoreTagger.getDatastoreNames(volume);
             String datastoresLabel = datastoreNames.isEmpty() ? "N/A" : StringUtils.join(datastoreNames, ",");
-            options.add(newAssetOption(volume.getId(), "volume.hlu.datastore", volume.getName(), datastoresLabel));
+            options.add(newAssetOption(volume.getId(), "volume.hlu.datastore", volume.getName(), datastoresLabel, volume.getWwn()));
         }
         AssetOptionsUtils.sortOptionsByLabel(options);
         return options;
@@ -279,14 +281,20 @@ public class VMWareProvider extends BaseHostProvider {
     }
 
     protected static List<AssetOption> createDatastoreOptions(List<? extends BlockObjectRestRep> mountedVolumes, URI hostId) {
-        Set<String> datastores = Sets.newHashSet(); // There can be multiple volumes to a DS, so de-dupe in a Set
+        Map<String, List<String>> datastores = Maps.newHashMap(); // There can be multiple volumes to a DS, so de-dupe in a hash map
         for (BlockObjectRestRep volume : mountedVolumes) {
-            datastores.add(KnownMachineTags.getBlockVolumeVMFSDatastore(hostId, volume));
+            String key = KnownMachineTags.getBlockVolumeVMFSDatastore(hostId, volume);
+            List<String> values = Lists.newArrayList();
+            if (datastores.containsKey(key)) {
+                values = datastores.get(key);
+            }
+            values.add(volume.getWwn());
+            datastores.put(key, values);
         }
 
         List<AssetOption> options = Lists.newArrayList();
-        for (String datastore : datastores) {
-            options.add(new AssetOption(datastore, datastore));
+        for (Map.Entry<String, List<String>> datastore : datastores.entrySet()) {
+            options.add(new AssetOption(datastore.getKey(), getMessage("datastore.label", datastore.getKey(), String.join(",", datastore.getValue()))));
         }
 
         AssetOptionsUtils.sortOptionsByLabel(options);

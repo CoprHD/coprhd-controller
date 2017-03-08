@@ -702,9 +702,9 @@ public class BlockConsistencyGroupService extends TaskResourceService {
                 clazz);
         ArgValidator.checkEntityNotNull(consistencyGroup, consistencyGroupId,
                 isIdEmbeddedInURL(consistencyGroupId));
-        
+
         List<Volume> volumes = ControllerUtils.getVolumesPartOfCG(consistencyGroupId, _dbClient);
-        
+
         // if any of the source volumes are in an application, replica management must be done via the application
         for (Volume srcVol : volumes) {
             if (srcVol.getApplication(_dbClient) != null) {
@@ -826,7 +826,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         // check for backend CG
         if (BlockConsistencyGroupUtils.getLocalSystemsInCG(consistencyGroup, _dbClient).isEmpty()) {
             _log.error("{} Group Snapshot operations not supported when there is no backend CG", consistencyGroup.getId());
-            throw APIException.badRequests.cannotCreateSnapshotOfVplexCG();
+            throw APIException.badRequests.cannotCreateSnapshotOfCG();
         }
         final StorageSystem device = _dbClient.queryObject(StorageSystem.class,
                 snapshot.getStorageController());
@@ -905,7 +905,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         // check for backend CG
         if (BlockConsistencyGroupUtils.getLocalSystemsInCG(consistencyGroup, _dbClient).isEmpty()) {
             _log.error("{} Group Snapshot operations not supported when there is no backend CG", consistencyGroup.getId());
-            throw APIException.badRequests.cannotCreateSnapshotOfVplexCG();
+            throw APIException.badRequests.cannotCreateSnapshotOfCG();
         }
 
         final BlockSnapshot snapshot = (BlockSnapshot) queryResource(snapshotId);
@@ -1049,7 +1049,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         // check for backend CG
         if (BlockConsistencyGroupUtils.getLocalSystemsInCG(consistencyGroup, _dbClient).isEmpty()) {
             _log.error("{} Group Snapshot operations not supported when there is no backend CG", consistencyGroup.getId());
-            throw APIException.badRequests.cannotCreateSnapshotOfVplexCG();
+            throw APIException.badRequests.cannotCreateSnapshotOfCG();
         }
 
         // Get the parent volume.
@@ -1134,7 +1134,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         // check for backend CG
         if (BlockConsistencyGroupUtils.getLocalSystemsInCG(consistencyGroup, _dbClient).isEmpty()) {
             _log.error("{} Group Snapshot operations not supported when there is no backend CG", consistencyGroup.getId());
-            throw APIException.badRequests.cannotCreateSnapshotOfVplexCG();
+            throw APIException.badRequests.cannotCreateSnapshotOfCG();
         }
 
         // Get the storage system for the consistency group.
@@ -1339,14 +1339,13 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         // For replicas, check replica count with volume count in CG
         StorageSystem cgStorageSystem = null;
 
-       
-        //Throw exception if the operation is attempted on volumes that are in RP CG.
+        // Throw exception if the operation is attempted on volumes that are in RP CG.
         if (consistencyGroup.isRPProtectedCG()) {
-        	throw APIException.badRequests.operationNotAllowedOnRPVolumes();    
+            throw APIException.badRequests.operationNotAllowedOnRPVolumes();
         }
-        
+
         // if consistency group is not created yet, then get the storage system from the block object to be added
-        // This method also supports adding volumes or replicas to CG (VMAX - SMIS 8.0.x)        
+        // This method also supports adding volumes or replicas to CG (VMAX - SMIS 8.0.x)
         if ((!consistencyGroup.created() || NullColumnValueGetter.isNullURI(consistencyGroup.getStorageController()))
                 && param.hasVolumesToAdd()) { // we just need to check the case of add volumes in this case
             BlockObject bo = BlockObject.fetch(_dbClient, param.getAddVolumesList().getVolumes().get(0));
@@ -2034,7 +2033,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         // Verify the consistency group in the request and get the
         // volumes in the consistency group.
         List<Volume> cgVolumes = verifyCGForFullCopyRequest(cgURI);
-        
+
         // if any of the source volumes are in an application, replica management must be done via the application
         for (Volume srcVol : cgVolumes) {
             if (srcVol.getApplication(_dbClient) != null) {
@@ -2313,7 +2312,6 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         }
         return taskList;
     }
-
 
     /**
      * Since all of the protection operations are very similar, this method does all of the work.

@@ -50,6 +50,9 @@ public interface BadRequestExceptions {
     public BadRequestException cannotCreateSnapshotOfVplexCG();
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException cannotCreateSnapshotOfCG();
+
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException snapshotsNotSupportedForRPCGs();
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
@@ -712,7 +715,7 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException osInstallAlreadyInProgress();
-     
+
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException noBootVolumeSpecified(final String hostName);
 

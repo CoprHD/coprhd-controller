@@ -1499,24 +1499,21 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
 
                     storageAPI.getStorageSystem().rescanVmfs();
 
-                    if (blockObject != null && blockObject.getTag() != null) {
-                        for (ScopedLabel tag : blockObject.getTag()) {
-                            String tagValue = tag.getLabel();
-                            if (tagValue != null && tagValue.startsWith(VMFS_DATASTORE_PREFIX)) {
-                                String datastoreName = getDatastoreName(tagValue);
-                                try {
-                                    Datastore datastore = api.findDatastore(vCenterDataCenter.getLabel(), datastoreName);
-                                    if (datastore != null) {
-                                        _log.info("Mounting datastore " + datastore.getName() + " on host " + esxHost.getLabel());
-                                        storageAPI.mountDatastore(datastore);
+                    Map<String, Datastore> wwnDatastores = getDatastoreMap(hostSystem);
 
-                                        // Test mechanism to invoke a failure. No-op on production systems.
-                                        InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_056);
-                                    }
-                                } catch (VMWareException ex) {
-                                    _log.warn(ex.getMessage(), ex);
-                                }
+                    if (blockObject != null) {
+
+                        try {
+                            Datastore datastore = findingMatchingDatastore(wwnDatastores, blockObject.getWWN());
+                            if (datastore != null) {
+                                _log.info("Mounting datastore " + datastore.getName() + " on host " + esxHost.getLabel());
+                                storageAPI.mountDatastore(datastore);
+
+                                // Test mechanism to invoke a failure. No-op on production systems.
+                                InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_056);
                             }
+                        } catch (VMWareException ex) {
+                            _log.warn(ex.getMessage(), ex);
                         }
                     }
 

@@ -567,6 +567,8 @@ public class MaskingWorkflowEntryPoints implements Controller {
         }
         doExportGroupRemoveInitiators(storageURI, exportGroupURI, exportMaskURI,
                 volumeURIs, initiatorURIs, true, taskCompleter, token);
+        
+        ExportUtils.cleanStaleReferences(exportGroupURI, _dbClient);
     }
 
     public void doExportGroupRemoveInitiators(URI storageURI, URI exportGroupURI,

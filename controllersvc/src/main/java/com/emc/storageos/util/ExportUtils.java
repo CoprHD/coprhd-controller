@@ -2022,7 +2022,7 @@ public class ExportUtils {
      * @param exportGroup {@link ExportGroup}
      * @param dbClient {@link DbClient}
      */
-    private static void cleanStaleInitiatorReferences(ExportGroup exportGroup, DbClient dbClient) {
+    public static void cleanStaleInitiatorReferences(ExportGroup exportGroup, DbClient dbClient) {
         if (null == exportGroup || exportGroup.getInactive()) {
             return;
         }

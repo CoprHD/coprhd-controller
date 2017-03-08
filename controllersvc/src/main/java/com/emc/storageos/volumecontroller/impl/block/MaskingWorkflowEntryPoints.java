@@ -556,6 +556,8 @@ public class MaskingWorkflowEntryPoints implements Controller {
             String contextKey, String token) throws ControllerException {
         ExportTaskCompleter taskCompleter = new ExportMaskRemoveInitiatorCompleter(exportGroupURI, exportMaskURI,
                 initiatorURIs, token);
+        taskCompleter.setRollingBack(true);
+        
         // Take the context of the step in flight and feed it into our current step
         // in order to only perform rollback of operations we successfully performed.
 
@@ -567,8 +569,6 @@ public class MaskingWorkflowEntryPoints implements Controller {
         }
         doExportGroupRemoveInitiators(storageURI, exportGroupURI, exportMaskURI,
                 volumeURIs, initiatorURIs, true, taskCompleter, token);
-        
-        ExportUtils.cleanStaleReferences(exportGroupURI, _dbClient);
     }
 
     public void doExportGroupRemoveInitiators(URI storageURI, URI exportGroupURI,

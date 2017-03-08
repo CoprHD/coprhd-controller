@@ -377,7 +377,7 @@ public class VNXUnityCommunicationInterface extends ExtendedCommunicationInterfa
                 _completer.statusPending(_dbClient, "Completed pool discovery");
 
                 // This associates the VNas with the virtual array
-                StoragePortAssociationHelper.runUpdateVirtualNasAssociationsProcess(allExistingPorts, null, _dbClient);
+                StoragePortAssociationHelper.runUpdateVirtualNasAssociationsProcess(null, allExistingPorts, null, _dbClient);
                 _logger.info("update virtual nas association for unity");
                 /**
                  * Discover AutoTieringPolicies and StorageTiers if FASTVP

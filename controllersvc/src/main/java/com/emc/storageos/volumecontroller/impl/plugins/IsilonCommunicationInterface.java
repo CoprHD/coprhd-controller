@@ -109,10 +109,10 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
     private final Logger _log = LoggerFactory.getLogger(IsilonCommunicationInterface.class);
     private static final String POOL_TYPE = "IsilonNodePool";
     private static final int BYTESCONVERTER = 1024;
-    private static final int PATH_IS_FILE =1;
-    private static final int PATH_IS_QUOTA =2;
-    private static final int PATH_IS_INVALID=3;
-    
+    private static final int PATH_IS_FILE = 1;
+    private static final int PATH_IS_QUOTA = 2;
+    private static final int PATH_IS_INVALID = 3;
+
     private static final String UNMANAGED_EXPORT_RULE = "UnManagedExportRule";
     private static final String UNMANAGED_SHARE_ACL = "UnManagedCifsShareACL";
     private static final String IFS_ROOT = "/ifs";
@@ -131,9 +131,9 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
     private static final Integer MAX_UMFS_RECORD_SIZE = 1000;
     private static final String SYSSECURITY = "sys";
     private static final String NFSv4 = "NFSv4";
-    private static final String UMFS_DETAILS="FS_DETAILS";
-    private static final String UMFSQD_DETAILS="UMFSQD_DETAILS";
-    private static final String INITIAL_PATH="/ifs/accesszone/";
+    private static final String UMFS_DETAILS = "FS_DETAILS";
+    private static final String UMFSQD_DETAILS = "UMFSQD_DETAILS";
+    private static final String INITIAL_PATH = "/ifs/accesszone/";
 
     private static final Long MAX_NFS_EXPORTS_V7_2 = 1500L;
     private static final Long MAX_CIFS_SHARES = 40000L;
@@ -669,7 +669,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
 
             // Update the virtual nas association with virtual arrays!!!
             // For existing virtual nas ports!!
-            StoragePortAssociationHelper.runUpdateVirtualNasAssociationsProcess(allExistPorts, null, _dbClient);
+            StoragePortAssociationHelper.runUpdateVirtualNasAssociationsProcess(null, allExistPorts, null, _dbClient);
             _completer.statusPending(_dbClient, "Completed Access Zone discovery");
 
             // discovery succeeds
@@ -1288,16 +1288,15 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
         }
         _log.info("Unmanaged file system locations are {}", paths);
         List<String> pathList = Arrays.asList(paths.split(","));
-        
+
         /*
-         * fix COP-27008: if system-access-zone's dir has been removed 
-         * and is just /ifs/ 
+         * fix COP-27008: if system-access-zone's dir has been removed
+         * and is just /ifs/
          */
         pathList.remove("/ifs/");
 
         setDiscPathsForUnManaged(pathList);
-        
-        
+
         _discCustomPath = getCustomConfigPath();
     }
 
@@ -1421,15 +1420,17 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
 
             List<FileShare> discoveredFS = new ArrayList<FileShare>();
             do {
-                
-                HashMap<String,Object> discoverdFileDetails =discoverAllFileSystem(storageSystem, resumeToken);
-                
-                IsilonApi.IsilonList<FileShare> discoveredIsilonFS = (IsilonApi.IsilonList<FileShare>) discoverdFileDetails.get(UMFS_DETAILS);
-                
+
+                HashMap<String, Object> discoverdFileDetails = discoverAllFileSystem(storageSystem, resumeToken);
+
+                IsilonApi.IsilonList<FileShare> discoveredIsilonFS = (IsilonApi.IsilonList<FileShare>) discoverdFileDetails
+                        .get(UMFS_DETAILS);
+
                 resumeToken = discoveredIsilonFS.getToken();
                 discoveredFS = discoveredIsilonFS.getList();
-                
-                ArrayList<UnManagedFileQuotaDirectory> discoveredUmfsQd = (ArrayList<UnManagedFileQuotaDirectory>) discoverdFileDetails.get(UMFSQD_DETAILS);
+
+                ArrayList<UnManagedFileQuotaDirectory> discoveredUmfsQd = (ArrayList<UnManagedFileQuotaDirectory>) discoverdFileDetails
+                        .get(UMFSQD_DETAILS);
 
                 totalIsilonFSDiscovered += discoveredFS.size();
 
@@ -1441,10 +1442,6 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
 
                 // NFSv4 enabled on storage system!!!
                 boolean isNfsV4Enabled = isilonApi.nfsv4Enabled(storageSystem.getFirmwareVersion());
-                
-                
-                
-                
 
                 for (FileShare fs : discoveredFS) {
                     if (!checkStorageFileSystemExistsInDB(fs.getNativeGuid())) {
@@ -1692,30 +1689,31 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                 if (!existingUnManagedFileSystems.isEmpty()) {
                     _dbClient.updateAndReindexObject(existingUnManagedFileSystems);
                 }
-                
+
                 List<UnManagedFileQuotaDirectory> existingUmfsQd = new ArrayList<UnManagedFileQuotaDirectory>();
                 List<UnManagedFileQuotaDirectory> newUmfsQd = new ArrayList<UnManagedFileQuotaDirectory>();
-                
-                for(UnManagedFileQuotaDirectory umfsQd : discoveredUmfsQd ){
-                    if(!checkStorageQuotaDirectoryExistsInDB(umfsQd.getNativeGuid())){
-                        
-                    	
-                    	String fsUnManagedQdNativeGuid = NativeGUIDGenerator.generateNativeGuidForUnManagedQuotaDir(storageSystem.getSystemType(), storageSystem.getSerialNumber(), umfsQd.getNativeId(), "");
-                        
+
+                for (UnManagedFileQuotaDirectory umfsQd : discoveredUmfsQd) {
+                    if (!checkStorageQuotaDirectoryExistsInDB(umfsQd.getNativeGuid())) {
+
+                        String fsUnManagedQdNativeGuid = NativeGUIDGenerator.generateNativeGuidForUnManagedQuotaDir(
+                                storageSystem.getSystemType(), storageSystem.getSerialNumber(), umfsQd.getNativeId(), "");
+
                         String qdPathName = umfsQd.getPath();
-                        UnManagedFileQuotaDirectory unManagedFileQd = checkUnManagedFileSystemQuotaDirectoryExistsInDB(fsUnManagedQdNativeGuid);
-                        
-                        boolean umfsQdExists = (unManagedFileQd == null) ? false : true ;
-                        if(umfsQdExists){
-                        	umfsQd.setId(unManagedFileQd.getId());
+                        UnManagedFileQuotaDirectory unManagedFileQd = checkUnManagedFileSystemQuotaDirectoryExistsInDB(
+                                fsUnManagedQdNativeGuid);
+
+                        boolean umfsQdExists = (unManagedFileQd == null) ? false : true;
+                        if (umfsQdExists) {
+                            umfsQd.setId(unManagedFileQd.getId());
                             existingUnManagedFileQuotaDir.add(umfsQd);
-                        }else if(null != umfsQd){
-                        	umfsQd.setId(URIUtil.createId(UnManagedFileQuotaDirectory.class));
+                        } else if (null != umfsQd) {
+                            umfsQd.setId(URIUtil.createId(UnManagedFileQuotaDirectory.class));
                             unManagedFileQuotaDir.add(umfsQd);
                         }
                     }
                 }
-                
+
                 _log.info("New unmanaged Isilon file systems QuotaDirecotry  count: {}", unManagedFileQuotaDir.size());
                 _log.info("Update unmanaged Isilon file systems QuotaDirectory count: {}", existingUnManagedFileQuotaDir.size());
                 if (!unManagedFileQuotaDir.isEmpty()) {
@@ -1724,7 +1722,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                 if (!existingUnManagedFileQuotaDir.isEmpty()) {
                     _dbClient.updateObject(existingUnManagedFileQuotaDir);
                 }
-                
+
             } while (resumeToken != null);
 
             // Saving bunch of Unmanaged objects!!!
@@ -1879,7 +1877,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
         }
     }
 
-    private  HashMap<String, Object> discoverAllFileSystem(StorageSystem storageSystem, String resumeToken)
+    private HashMap<String, Object> discoverAllFileSystem(StorageSystem storageSystem, String resumeToken)
             throws IsilonCollectionException {
 
         // Discover All FileSystem
@@ -1897,32 +1895,31 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
             HashMap<String, IsilonSmartQuota> fsQuotaMap = new HashMap<String, IsilonSmartQuota>();
             HashMap<String, IsilonSmartQuota> quotaDirMap = new HashMap<String, IsilonSmartQuota>();
             HashMap<String, UnManagedFileQuotaDirectory> qdMap = new HashMap<String, UnManagedFileQuotaDirectory>();
-             
+
             // get first page of quota data, process and insert to database
-            
+
             HashMap<String, IsilonSmartQuota> tempQuotaMap = new HashMap<String, IsilonSmartQuota>();
-            
-            
+
             List<IsilonAccessZone> accessZones = isilonApi.getAccessZones(null);
-            
+
             List<String> tempAccessZonePath = new ArrayList<String>();
-            
+
             for (IsilonAccessZone accessZone : accessZones) {
                 if (!accessZone.isSystem()) {
                     tempAccessZonePath.add(accessZone.getPath() + "/");
                 }
             }
-            
+
             /*
-             *Corner case code: JIRA COP-27008
-             * code scenario : remote remote-access-zone path starts in another access-zone path 
+             * Corner case code: JIRA COP-27008
+             * code scenario : remote remote-access-zone path starts in another access-zone path
              * remote access zone-1 : /ifs/zone-a
              * remote access zone-2 : /ifs/zone-a/zone-b
-             * To handle this scenario, we are taking the discoverable path to start from access zone 
-             * FS path will be : /<access-zone-path>/<v-pool>/<tenant-name>/<project-name> 
-             *   
+             * To handle this scenario, we are taking the discoverable path to start from access zone
+             * FS path will be : /<access-zone-path>/<v-pool>/<tenant-name>/<project-name>
+             * 
              */
-            
+
             for (String umfsDiscoverPath : _discPathsForUnManaged) {
 
                 int accessZoneDiscPathLength = computeCustomConfigPathLengths(umfsDiscoverPath);
@@ -1945,7 +1942,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                     }
                 }
             }
-            
+
             Set<String> filePaths = fsQuotaMap.keySet();
             Set<String> quotaPaths = quotaDirMap.keySet();
             /*
@@ -1965,7 +1962,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                     fileQuotas.put(filePath, qdPaths);
                 }
             }
-            
+
             for (String fsNativeId : filePaths) {
                 IsilonSmartQuota fileFsQuota = fsQuotaMap.get(fsNativeId);
                 FileShare fs = extractFileShare(fsNativeId, fileFsQuota, storageSystem);
@@ -1986,7 +1983,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                     }
                 }
             }
-                
+
             // get all other pages of quota data, process and set quota page by page
             _log.info("NativeGUIDGenerator for storage system {} - complete", storageSystemId);
 
@@ -2065,13 +2062,10 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
         fs.setSoftLimit(softLimit);
         fs.setSoftGracePeriod(softGrace);
         fs.setNotificationLimit(notificationLimit);
-        
+
         return fs;
     }
-    
-    
-     
-    
+
     private UnManagedFileQuotaDirectory getUnManagedFileQuotaDirectory(String fsNativeGuid, IsilonSmartQuota quota,
             StorageSystem storageSystem) {
         String qdNativeId = quota.getPath();
@@ -2139,7 +2133,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
         }
         return qualified;
     }
-    
+
     private int isQuotaOrFile(String fsNativeId, int accessZoneDiscPathLength) {
 
         int pathLength = fsNativeId.split("/").length;
@@ -2604,8 +2598,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
         }
         return false;
     }
-    
-    
+
     /**
      * check QuotaDirectory for given nativeGuid exists in DB
      * 
@@ -2662,7 +2655,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
         return null;
 
     }
-    
+
     /**
      * check Pre Existing UnManagedFileSystemQuotaDirectory in DB
      * 
@@ -3531,7 +3524,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
 
         return physicalNas;
     }
-    
+
     private String getCustomConfigPath() {
         URIQueryResultList results = new URIQueryResultList();
 
@@ -3550,7 +3543,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
         }
         return tempConfig.getValue();
     }
-    
+
     /**
      * Compute the path length for discovering a file system for a give AccessZone path
      * its
@@ -3562,14 +3555,14 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
     private int computeCustomConfigPathLengths(String accessZonePath) {
         String tempCustomConfigPathLength = getCustomConfigPath();
         String initialPath = accessZonePath;
-        int discPathLength=0;
+        int discPathLength = 0;
         if (StringUtils.isNotEmpty(tempCustomConfigPathLength)) {
             discPathLength = (initialPath + tempCustomConfigPathLength).split("/").length;
         } else {
             _log.error("CustomConfig path {} has not been set ", tempCustomConfigPathLength);
             discPathLength = (initialPath).split("/").length;
         }
-        
+
         return discPathLength;
     }
 

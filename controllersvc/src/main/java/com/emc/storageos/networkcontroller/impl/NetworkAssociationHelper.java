@@ -98,7 +98,7 @@ public class NetworkAssociationHelper {
                 coordinator);
         
         // Update the virtual nas with network changes!!!
-        StoragePortAssociationHelper.runUpdateVirtualNasAssociationsProcess(addPorts, remPorts, dbClient);
+        StoragePortAssociationHelper.runUpdateVirtualNasAssociationsProcess(network, addPorts, remPorts, dbClient);
     }
     
 

@@ -25,6 +25,7 @@ import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
+import com.emc.storageos.db.client.model.Network;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StoragePort.TransportType;
@@ -434,10 +435,14 @@ public class StoragePortAssociationHelper {
      * @param coordinator
      * @throws IOException
      */
-    public static void runUpdateVirtualNasAssociationsProcess(Collection<StoragePort> ports, Collection<StoragePort> remPorts,
+    public static void runUpdateVirtualNasAssociationsProcess(Network net, Collection<StoragePort> ports, Collection<StoragePort> remPorts,
             DbClient dbClient) {
         try {
-
+            if (net != null && ports.isEmpty()) {
+                // In Some scenario while updating network we update only VARRAY not ports,
+                // so in that case ports to add/remove will be empty..
+                ports = NetworkAssociationHelper.getNetworkStoragePorts(net.getId().toString(), null, dbClient);
+            }
             List<VirtualNAS> modifiedServers = new ArrayList<VirtualNAS>();
 
             if (ports != null && !ports.isEmpty()) {

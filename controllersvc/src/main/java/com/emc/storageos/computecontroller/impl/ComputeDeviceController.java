@@ -102,7 +102,7 @@ public interface ComputeDeviceController extends Controller {
      */
     public String addStepsDeactivateHost(Workflow workflow, String waitFor, URI hostId,
             boolean deactivateBootVolume, List<VolumeDescriptor> volumeDescriptors)
-            throws InternalException;
+                    throws InternalException;
 
     /**
      * A cluster could have only discovered hosts, only provisioned hosts, or
@@ -162,12 +162,25 @@ public interface ComputeDeviceController extends Controller {
      */
     public void setSanBootTarget(URI computeSystemId, URI computeElementId, URI hostId, URI volumeId,
             boolean waitForServerRestart) throws InternalException;
-    
+
     /**
      * Validates that the specified boot volume is exported to the host and there are array portsmapped to the host's initiators in the export masks
      * @param hostId the host URI
      * @param volumeId the volumeId
      * @returns boolean true if the export is valid
      */
-     public boolean validateBootVolumeExport(URI hostId, URI volumeId) throws InternalException;
+    public boolean validateBootVolumeExport(URI hostId, URI volumeId) throws InternalException;
+
+    /**
+     * Method to add steps to perform check for VMs on host boot volume
+     * @param workflow {@link Workflow} instance
+     * @param waitFor {@link String} If non-null, the step will not be queued for
+     *            execution in the Dispatcher until the Step or StepGroup
+     *            indicated by the waitFor has completed. The waitFor may either
+     *            be a string representation of a Step UUID, or the name of a
+     *            StepGroup.
+     * @param hostId {@link URI} hostId URI
+     * @return waitFor step name
+     */
+    public String addStepsCheckVMsOnHostBootVolume(Workflow workflow, String waitFor, URI hostId);
 }

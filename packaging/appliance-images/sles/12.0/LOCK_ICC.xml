@@ -450,13 +450,13 @@
 <target name="libopenssl1_0_0-1.0.1i-2.12"         depends="libopenssl1_0_0-1.0.1i-2.12_1"/>
 <target name="libopenssl1_0_0-hmac"                depends="libopenssl1_0_0-hmac-1.0.1i-27.21.1_1"/>
 <target name="libpci3"                             depends="libpci3-3.2.1-2.15_1"/>
-<target name="libpcre1"                            depends="libpcre1-8.33"/>
+<target name="libpcre1"                            depends="libpcre1-8.39-7.1_1"/>
 <target name="libpcre1-8.33"                       depends="libpcre1-8.33-3.314_1"/>
-<target name="libpcre16-0"                         depends="libpcre16-0-8.33"/>
+<target name="libpcre16-0"                         depends="libpcre16-0-8.39-7.1_1"/>
 <target name="libpcre16-0-8.33"                    depends="libpcre16-0-8.33-3.314_1"/>
-<target name="libpcrecpp0"                         depends="libpcrecpp0-8.33"/>
+<target name="libpcrecpp0"                         depends="libpcrecpp0-8.39-7.1_1"/>
 <target name="libpcrecpp0-8.33"                    depends="libpcrecpp0-8.33-3.314_1"/>
-<target name="libpcreposix0"                       depends="libpcreposix0-8.33"/>
+<target name="libpcreposix0"                       depends="libpcreposix0-8.39-7.1_1"/>
 <target name="libpcreposix0-8.33"                  depends="libpcreposix0-8.33-3.314_1"/>
 <target name="libpng16-16"                         depends="libpng16-16-1.6.8-8.1_1"/>
 <target name="libpolkit0"                          depends="libpolkit0-0.113-4.1_1"/>
@@ -570,7 +570,7 @@
 <target name="pax-runner"                          depends="pax-runner-1.2.0"/>
 <target name="pciutils"                            depends="pciutils-3.2.1-2.15_1"/>
 <target name="pciutils-ids"                        depends="pciutils-ids-2014.06.02-2.12_1"/>
-<target name="pcre-devel"                          depends="pcre-devel-8.33-3.314_1"/>
+<target name="pcre-devel"                          depends="pcre-devel-8.39-7.1_1"/>
 <target name="perf4j"                              depends="perf4j-0.9.12"/>
 <target name="perl"                                depends="perl-5.18.2-3.7_2"/>
 <target name="perl-Config-General"                 depends="perl-Config-General-2.52-4.13_1"/>

@@ -4649,6 +4649,9 @@ recoverpoint_export_bookmark_tests()
         blocksnapshot show ${PROJECT}/${volume}${volume_name_modifier}/${rpsnap}-failtest2-${rp_tgt_varrays[0]}
     
         run export_group create $PROJECT ${RP_EXPORT_GROUP} ${rp_tgt_varrays[0]} --type Host --volspec ${PROJECT}/${volume}${volume_name_modifier}/${rpsnap}-failtest1-${rp_tgt_varrays[0]} --hosts "${RP_HOSTNAME}1"
+        secho 'Verifying the access state of the target volume is set to READWRITE'
+        run volume verify ${PROJECT}/${volume}-target-${rp_tgt_varrays[0]} access_state READWRITE        
+
         export_group show ${rpexport}
         secho 'Exporting RP bookmark for the same target copy as a bookmark already exported - expected failure'
         fail export_group update ${rpexport} --addVolspec ${PROJECT}/${volume}${volume_name_modifier}/${rpsnap}-failtest2-${rp_tgt_varrays[0]}
@@ -4658,18 +4661,29 @@ recoverpoint_export_bookmark_tests()
         fail volume change_link ${PROJECT}/${volume}${volume_name_modifier} swap ${PROJECT}/${volume}-target-${rp_tgt_varrays[0]} rp 
 
         run export_group delete ${rpexport}
-    
+        secho 'Verifying the access state of the target volume is set to NOT_READY'
+        run volume verify ${PROJECT}/${volume}-target-${rp_tgt_varrays[0]} access_state NOT_READY   
+
         secho 'Finished running export RP bookmark failure tests'
 
         secho 'Exporting RP bookmark to 2 different hosts'
         run export_group create $PROJECT ${RP_EXPORT_GROUP} ${rp_tgt_varrays[0]} --type Host --volspec ${PROJECT}/${volume}${volume_name_modifier}/${rpsnap}-${rp_tgt_varrays[0]} --hosts "${RP_HOSTNAME}1"
         run export_group create $PROJECT ${RP_EXPORT_GROUP}2 ${rp_tgt_varrays[0]} --type Host --volspec ${PROJECT}/${volume}${volume_name_modifier}/${rpsnap}-${rp_tgt_varrays[0]} --hosts "${RP_HOSTNAME}2"        
 
+        secho 'Verifying the access state of the target volume is set to READWRITE'
+        run volume verify ${PROJECT}/${volume}-target-${rp_tgt_varrays[0]} access_state READWRITE
+
         secho 'Unexport RP bookmark from host '${RP_HOSTNAME}2
         run export_group delete ${rpexport}2
 
+        secho 'Verifying the access state of the target volume is set to READWRITE'
+        run volume verify ${PROJECT}/${volume}-target-${rp_tgt_varrays[0]} access_state READWRITE
+
         secho 'Unexport RP bookmark from host '${RP_HOSTNAME}1
         run export_group delete ${rpexport}
+
+        secho 'Verifying the access state of the target volume is set to NOT_READY'
+        run volume verify ${PROJECT}/${volume}-target-${rp_tgt_varrays[0]} access_state NOT_READY
 
         secho 'Finished with export RP bookmark tests, cleaning up'
 

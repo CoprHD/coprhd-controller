@@ -9,8 +9,10 @@ import static com.emc.storageos.api.mapper.DbObjectMapper.toNamedRelatedResource
 import static com.emc.storageos.api.mapper.VirtualPoolMapper.toFileVirtualPool;
 
 import java.net.URI;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Set;
 
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DefaultValue;
@@ -40,6 +42,7 @@ import com.emc.storageos.db.client.model.FilePolicy.FilePolicyType;
 import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StringMap;
+import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.StringSetMap;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
@@ -316,10 +319,22 @@ public class FileVirtualPoolService extends VirtualPoolService {
             List<URI> filePolicyList = _dbClient.queryByType(FilePolicy.class, true);
             for (URI filePolicy : filePolicyList) {
                 FilePolicy policyObj = _dbClient.queryObject(FilePolicy.class, filePolicy);
-                if ((policyObj.getAssignedResources() != null) && (policyObj.getFilePolicyVpool() != null) &&
-                        (policyObj.getFilePolicyVpool().toString().equalsIgnoreCase(cos.getId().toString()))) {
-                    checkProtectAttributeAginstPolicy(param.getProtection(), policyObj);
+                if (policyObj.getAssignedResources() != null) {
+                    Set<String> vpoolList = new HashSet<String>();
+                    if(policyObj.getApplyAt().equalsIgnoreCase(FilePolicyApplyLevel.project.name()) && (policyObj.getFilePolicyVpool() != null)){
+                        vpoolList.add(policyObj.getFilePolicyVpool().toString());   
 
+                    }else if(policyObj.getApplyAt().equalsIgnoreCase(FilePolicyApplyLevel.vpool.name())) {
+                        StringSet vpools = policyObj.getAssignedResources();
+                        vpoolList.addAll(vpools.getAddedSet());
+                    }
+                    for (String vpool : vpoolList) {
+                        if (vpool.equalsIgnoreCase(id.toString())) {
+                            checkProtectAttributeAginstPolicy(param.getProtection(), policyObj);
+
+                        }
+
+                    }
                 }
             }
         }

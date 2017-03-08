@@ -851,8 +851,18 @@ public class FileService extends TaskResourceService {
             }
         }
 
+        String rootUserMapping = param.getRootUserMapping();
+
+        if (!"nobody".equals(rootUserMapping)) {
+            StorageOSUser user = getUserFromContext();
+            if (!user.getName().equals(rootUserMapping)) {
+                // throw error
+                throw APIException.forbidden.onlyCurrentUserCanBeSetInRootUserMapping(user.getName());
+            }
+        }
+
         FileShareExport export = new FileShareExport(param.getEndpoints(), param.getSecurityType(), param.getPermissions(),
-                param.getRootUserMapping(), param.getProtocol(), sport.getPortGroup(), sport.getPortNetworkId(), path, mountPath,
+                rootUserMapping, param.getProtocol(), sport.getPortGroup(), sport.getPortNetworkId(), path, mountPath,
                 subDirectory, param.getComments());
 
         _log.info(String.format(
@@ -1930,11 +1940,11 @@ public class FileService extends TaskResourceService {
         quotaDirectory.setProject(new NamedURI(fs.getProject().getURI(), origQtreeName));
         quotaDirectory.setTenant(new NamedURI(fs.getTenant().getURI(), origQtreeName));
         quotaDirectory.setSoftLimit(
-                param.getSoftLimit() != 0 ? param.getSoftLimit() : fs.getSoftLimit() != null ? fs.getSoftLimit().intValue() : 0);
+                param.getSoftLimit()>0 ? param.getSoftLimit() : fs.getSoftLimit().intValue()>0? fs.getSoftLimit().intValue() : 0);
         quotaDirectory.setSoftGrace(
-                param.getSoftGrace() != 0 ? param.getSoftGrace() : fs.getSoftGracePeriod() != null ? fs.getSoftGracePeriod() : 0);
-        quotaDirectory.setNotificationLimit(param.getNotificationLimit() != 0 ? param.getNotificationLimit()
-                : fs.getNotificationLimit() != null ? fs.getNotificationLimit().intValue() : 0);
+                param.getSoftGrace()>0 ? param.getSoftGrace() : fs.getSoftGracePeriod()>0 ? fs.getSoftGracePeriod() : 0);
+        quotaDirectory.setNotificationLimit(param.getNotificationLimit()>0 ? param.getNotificationLimit()
+                : fs.getNotificationLimit().intValue()>0 ? fs.getNotificationLimit().intValue() : 0);
 
         String convertedName = origQtreeName.replaceAll("[^\\dA-Za-z_]", "");
         _log.info("FileService::QuotaDirectory Original name {} and converted name {}", origQtreeName, convertedName);
@@ -2102,7 +2112,7 @@ public class FileService extends TaskResourceService {
             param.setSubDir(subDir);
 
             // Validate the input
-            ExportVerificationUtility exportVerificationUtility = new ExportVerificationUtility(_dbClient);
+            ExportVerificationUtility exportVerificationUtility = new ExportVerificationUtility(_dbClient, getUserFromContext());
             exportVerificationUtility.verifyExports(fs, null, param);
 
             _log.info("No Errors found proceeding further {}, {}, {}", new Object[] { _dbClient, fs, param });
@@ -2874,7 +2884,11 @@ public class FileService extends TaskResourceService {
 
     /**
      * 
-     * Start continuous copies.
+     * @Deprecated use @Path("/{id}/assign-file-policy/{filePolicyUri}") instead
+     *             Assign file policy API will enable the policy and policy will run
+     *             based on the schedule.
+     * 
+     *             Start continuous copies.
      * 
      * @prereq none
      * @param id the URN of a ViPR Source file share
@@ -2883,6 +2897,7 @@ public class FileService extends TaskResourceService {
      * @throws ControllerException
      * 
      */
+    @Deprecated
     @POST
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/protection/continuous-copies/start")
@@ -3160,36 +3175,17 @@ public class FileService extends TaskResourceService {
     @Path("/{id}/protection/continuous-copies/failback")
     @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.OWN, ACL.ALL })
     public TaskList failbackProtection(@PathParam("id") URI id, FileReplicationParam param) throws ControllerException {
+        doMirrorOperationValidation(id, ProtectionOp.FAILBACK.toString());
         TaskResourceRep taskResp = null;
         StoragePort storageportNFS = null;
         StoragePort storageportCIFS = null;
+
         TaskList taskList = new TaskList();
         String task = UUID.randomUUID().toString();
-        ArgValidator.checkFieldUriType(id, FileShare.class, "id");
 
-        FileShare sourceFileShare = _dbClient.queryObject(FileShare.class, id);
-        ArgValidator.checkEntity(sourceFileShare, id, true);
-
-        checkForPendingTasks(Arrays.asList(sourceFileShare.getTenant().getURI()), Arrays.asList(sourceFileShare));
-
-        URI projectURI = sourceFileShare.getProject().getURI();
-        Project project = _permissionsHelper.getObjectById(projectURI, Project.class);
-        ArgValidator.checkEntity(project, projectURI, false);
-        _log.info("Found filesystem project {}", projectURI);
-
-        VirtualPool currentVpool = _dbClient.queryObject(VirtualPool.class, sourceFileShare.getVirtualPool());
-        StringBuffer notSuppReasonBuff = new StringBuffer();
-
-        String operation = ProtectionOp.FAILBACK.getRestOp();
-        if (!FileSystemReplicationUtils.validateMirrorOperationSupported(sourceFileShare, notSuppReasonBuff, operation)) {
-            _log.error("Mirror Operation {} is not supported for the file system {} as : {}", operation.toUpperCase(),
-                    sourceFileShare.getLabel(), notSuppReasonBuff.toString());
-            throw APIException.badRequests.unableToPerformMirrorOperation(operation.toUpperCase(), sourceFileShare.getId(),
-                    notSuppReasonBuff.toString());
-        }
-
+        FileShare sourceFileShare = queryResource(id);
         Operation op = _dbClient.createTaskOpStatus(FileShare.class, id, task, ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_FAILBACK);
-        op.setDescription("Filesystem Failback");
+        op.setDescription("failback to source file system from target system");
 
         boolean replicateConfiguration = param.isReplicateConfiguration();
 
@@ -3289,9 +3285,11 @@ public class FileService extends TaskResourceService {
         }
         // Check for replication policy existence on file system..
         if (FileSystemReplicationUtils.getReplicationPolicyAppliedOnFS(sourceFileShare, _dbClient) == null) {
-            notSuppReasonBuff.append(String.format(
-                    "Mirror Operation {} is not supported for the file system {} as file system doesn't have any replication policy assigned/applied",
-                    op, sourceFileShare.getLabel()));
+            notSuppReasonBuff
+            .append(String
+                    .format(
+                            "Mirror Operation {} is not supported for the file system {} as file system doesn't have any replication policy assigned/applied",
+                            op, sourceFileShare.getLabel()));
             _log.error(notSuppReasonBuff.toString());
             throw APIException.badRequests.unableToPerformMirrorOperation(op, sourceFileShare.getId(),
                     notSuppReasonBuff.toString());
@@ -3519,16 +3517,16 @@ public class FileService extends TaskResourceService {
 
         ArgValidator.checkEntity(fs, id, isIdEmbeddedInURL(id));
 
-        ArgValidator.checkFieldUriType(filePolicyUri, SchedulePolicy.class, "filePolicyUri");
+        ArgValidator.checkFieldUriType(filePolicyUri, FilePolicy.class, "filePolicyUri");
         ArgValidator.checkUri(filePolicyUri);
-        SchedulePolicy fp = _permissionsHelper.getObjectById(filePolicyUri, SchedulePolicy.class);
+        FilePolicy fp = _permissionsHelper.getObjectById(filePolicyUri, FilePolicy.class);
         ArgValidator.checkEntityNotNull(fp, filePolicyUri, isIdEmbeddedInURL(filePolicyUri));
         // verify the file system tenant is same as policy tenant
-        if (!fp.getTenantOrg().getURI().toString().equalsIgnoreCase(fs.getTenant().getURI().toString())) {
+        if(!fp.getTenantOrg().isEmpty() && !(fp.getTenantOrg().contains(fs.getTenant().getURI().toString()))){
             throw APIException.badRequests.associatedPolicyTenantMismatch(filePolicyUri, id);
         }
         // verify the schedule policy is associated with file system or not.
-        if (!fs.getFilePolicies().contains(filePolicyUri.toString())) {
+        if (!fs.getFilePolicies().isEmpty() && !fs.getFilePolicies().contains(filePolicyUri.toString())) {
             throw APIException.badRequests.cannotFindAssociatedPolicy(filePolicyUri);
         }
 

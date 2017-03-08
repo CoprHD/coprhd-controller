@@ -28,6 +28,7 @@ import java.util.Set;
 
 import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.engine.bind.Param;
+import com.emc.sa.service.vipr.ViPRService;
 import com.emc.storageos.db.client.model.Cluster;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.model.block.BlockObjectRestRep;
@@ -96,6 +97,9 @@ public class ExportBlockVolumeHelper {
             cluster = BlockStorageUtils.getCluster(hostId);
         }
 
+        // Don't allow ViPR exports of block volumes (this may not fly as part of the create host services)
+        ViPRService.checkForBootVolumes(volumeIds);
+        
         BlockStorageUtils.checkEvents(host != null ? host : cluster);
     }
 

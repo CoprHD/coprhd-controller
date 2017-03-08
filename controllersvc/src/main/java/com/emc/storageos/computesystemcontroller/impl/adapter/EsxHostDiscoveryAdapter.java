@@ -138,6 +138,7 @@ public class EsxHostDiscoveryAdapter extends AbstractHostDiscoveryAdapter {
         EsxVersion esxVersion = getVersion(host);
         if (null != esxVersion
                 && getVersionValidator().isValidEsxVersion(esxVersion)) {
+            changes.setNewCluster(host.getCluster());
             discoverHost(host, changes);
             processHostChanges(changes);
             matchHostsToComputeElements(host.getId());

@@ -17,10 +17,12 @@ public class FindESXHost extends ExecutionTask<HostSystem> {
     private VCenterAPI vcenter;
     private String datacenterName;
     private String esxHostName;
+    private boolean failIfNotFound;
 
-    public FindESXHost(String datacenterName, String esxHostName) {
+    public FindESXHost(String datacenterName, String esxHostName, boolean failIfNotFound) {
         this.datacenterName = datacenterName;
         this.esxHostName = esxHostName;
+        this.failIfNotFound = failIfNotFound;
         provideDetailArgs(esxHostName, datacenterName);
     }
 
@@ -29,7 +31,11 @@ public class FindESXHost extends ExecutionTask<HostSystem> {
         debug("Executing: %s", getDetail());
         HostSystem host = vcenter.findHostSystem(datacenterName, esxHostName);
         if (host == null) {
-            throw stateException("FindESXHost.illegalState.noHost", datacenterName, esxHostName);
+            if (failIfNotFound) {
+                throw stateException("FindESXHost.illegalState.noHost", datacenterName, esxHostName);
+            } else {
+                return null;
+            }
         }
         // Check the connection state of this host
         HostSystemConnectionState connectionState = VMwareUtils.getConnectionState(host);

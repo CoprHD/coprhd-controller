@@ -61,7 +61,7 @@ public class HostToServiceProfileMatcher {
         Collection<URI> allServiceProfileUris = _dbClient.queryByType(UCSServiceProfile.class, true);
 
         Collection<UCSServiceProfile> allServiceProfiles = _dbClient.queryObjectFields(UCSServiceProfile.class,
-                Arrays.asList("uuid", "registrationStatus", "host", "inactive"),
+                Arrays.asList("uuid", "registrationStatus", "host", "inactive", "dn"),
                 getFullyImplementedCollection(allServiceProfileUris));
         List<UCSServiceProfile> serviceProfilesWithoutHost = new ArrayList<UCSServiceProfile>();
         for (UCSServiceProfile serviceProfile : allServiceProfiles) {
@@ -85,6 +85,7 @@ public class HostToServiceProfileMatcher {
         URIQueryResultList uris = new URIQueryResultList();
         _dbClient.queryByConstraint(ContainmentConstraint.Factory
                 .getComputeSystemServiceProfilesConstraint(cs.getId()), uris);
+
         List<UCSServiceProfile> allServiceProfiles = _dbClient.queryObject(UCSServiceProfile.class, uris, true);
         List<UCSServiceProfile> serviceProfilesWithoutHost = new ArrayList<UCSServiceProfile>();
         for (UCSServiceProfile serviceProfile : allServiceProfiles) {
@@ -130,6 +131,8 @@ public class HostToServiceProfileMatcher {
     private static void matchServiceProfilesToHosts(List<UCSServiceProfile> serviceProfiles, List<Host> hosts, DbClient _dbClient){
         List<Host> hostsToUpdate = new ArrayList<Host>();
         List<UCSServiceProfile> serviceProfilesToUpdate = new ArrayList<UCSServiceProfile>();
+        _log.info("Locating matches among " + hosts.size() + " Hosts and " + serviceProfiles.size() +
+                " ServiceProfiles");
 
         for (UCSServiceProfile serviceProfile: serviceProfiles) {
             _log.info("matching serviceProfile :" + serviceProfile.getDn());

@@ -139,7 +139,6 @@ class FilePolicy(object):
         policyscheduleweek,
         policyschedulemonth,
         replicationtype,
-        replicationcopymode,
         replicationconfiguration,
         snapshotnamepattern,
         snapshotexpiretype,
@@ -158,7 +157,6 @@ class FilePolicy(object):
         policyscheduletime Time when policy run,
         policyscheduleweek day of week when policy run,
         policyschedulemonth day of month when policy run,
-        replicationcopymode,
         replicationconfiguration,
         replicationtype,
         snapshotnamepattern,
@@ -186,7 +184,7 @@ class FilePolicy(object):
 
         if type == 'file_replication':
             replication_params['replication_type'] = replicationtype
-            replication_params['replication_copy_mode'] = replicationcopymode
+            replication_params['replication_copy_mode'] = 'ASYNC'
             replication_params['replicate_configuration'] = replicationconfiguration
             replication_params['policy_schedule'] = policy_schedule
             create_request['priority'] = priority
@@ -229,7 +227,6 @@ class FilePolicy(object):
         policyscheduleweek,
         policyschedulemonth,
         replicationtype,
-        replicationcopymode,
         replicationconfiguration,
         snapshotnamepattern,
         snapshotexpiretype,
@@ -297,8 +294,6 @@ class FilePolicy(object):
         if pol_type == 'file_replication':
             if replicationtype is not None:
                 replication_params['replication_type'] = replicationtype
-            if replicationcopymode is not None:
-                replication_params['replication_copy_mode'] = replicationcopymode
             if replicationconfiguration is not None:
                 replication_params['replicate_configuration'] = replicationconfiguration
             if policy_schedule is not None and (len(policy_schedule) >0):
@@ -308,6 +303,7 @@ class FilePolicy(object):
             if num_worker_threads is not None:
                 update_request['num_worker_threads'] = num_worker_threads
             if replication_params is not None and (len(replication_params) >0):
+                replication_params['replication_copy_mode'] = 'ASYNC'
                 update_request['replication_params'] = replication_params
         elif pol_type == 'file_snapshot':
             if snapshotexpiretype is not None:
@@ -659,7 +655,8 @@ def create_parser(subcommand_parsers, common_parser):
                                help='Policy Description')
     create_parser.add_argument('-priority', '-pr', metavar='<priority>'
                                , dest='priority',
-                               help='Priority of the policy',)
+                               help='Priority of the policy. Valid values are: HIGH, LOW',
+                               choices=['HIGH', 'LOW'])
     create_parser.add_argument('-num_worker_threads','-wt',
                                metavar='<num_worker_threads>',
                                dest='num_worker_threads',
@@ -714,12 +711,6 @@ def create_parser(subcommand_parsers, common_parser):
                 		       help='File Replication type Valid values are: LOCAL, REMOTE. Default: REMOTE',
                 		       choices=['LOCAL', 'REMOTE'],
                 		       default = 'REMOTE',)
-    create_parser.add_argument('-replicationcopymode','-repcpmode',
-        		               metavar='<replication_copy_mode>',
-        		               dest='replication_copy_mode',
-                		       help='File Replication copy type Valid values are: SYNC, ASYNC. Default: ASYNC',
-        		               choices=['SYNC', 'ASYNC'],
-          		               default = 'ASYNC',)
     create_parser.set_defaults(func=filepolicy_create)
 
 
@@ -742,7 +733,6 @@ def filepolicy_create(args):
                 args.policy_schedule_week,
                 args.policy_schedule_month,
                 args.replication_type,
-                args.replication_copy_mode,
                 args.replicate_configuration,
                 args.snapshot_name_pattern,
                 args.snapshot_expire_type,
@@ -783,7 +773,8 @@ def update_parser(subcommand_parsers, common_parser):
                                help='Policy Description')
     update_parser.add_argument('-priority', '-pr', metavar='<priority>'
                                , dest='priority',
-                               help='Priority of the policy',)
+                               help='Priority of the policy. Valid value: LOW, HIGH',
+                               choices = ['LOW','HIGH'])
     update_parser.add_argument('-num_worker_threads','-wt',
                                metavar='<num_worker_threads>',
                                dest='num_worker_threads',
@@ -832,11 +823,6 @@ def update_parser(subcommand_parsers, common_parser):
                                dest='replication_type',
                                help='File Replication type Valid values are: LOCAL, REMOTE',
                                choices=['LOCAL', 'REMOTE'])
-    update_parser.add_argument('-replicationcopymode','-repcpmode',
-                               metavar='<replication_copy_mode>',
-                               dest='replication_copy_mode',
-                               help='File Replication copy type Valid values are: SYNC, ASYNC',
-                               choices=['SYNC', 'ASYNC'])
     update_parser.set_defaults(func=filepolicy_update)
 
 
@@ -855,7 +841,6 @@ def filepolicy_update(args):
                 args.policy_schedule_week,
                 args.policy_schedule_month,
                 args.replication_type,
-                args.replication_copy_mode,
                 args.replicate_configuration,
                 args.snapshot_name_pattern,
                 args.snapshot_expire_type,

@@ -329,6 +329,7 @@ public enum OperationTypeEnum {
     UPDATE_HOST("UPDATE HOST", "", "operation to update a compute host."),
     DELETE_HOST("DELETE HOST", "", "operation to delete a compute host."),
     DETACH_HOST_STORAGE("DELETE HOST STORAGE", "", "operation to detach storage from a compute host."),
+    UPDATE_HOST_BOOT_VOLUME("UPDATE HOST BOOT VOLUME", "", "operation to update a host's boot volume"),
 
     CREATE_CLUSTER("CREATE CLUSTER", "", "operation to create a cluster."),
     UPDATE_CLUSTER("UPDATE CLUSTER", "", "operation to update a cluster."),

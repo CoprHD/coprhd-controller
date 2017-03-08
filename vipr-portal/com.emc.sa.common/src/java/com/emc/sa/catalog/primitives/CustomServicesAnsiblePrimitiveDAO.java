@@ -53,11 +53,11 @@ public class CustomServicesAnsiblePrimitiveDAO implements
         CustomServicesPrimitiveDAO<CustomServicesAnsiblePrimitive, CustomServicesAnsibleResource> {
     
     @Autowired
-    CustomServicesPrimitiveManager primitiveManager;
+    private CustomServicesPrimitiveManager primitiveManager;
     @Autowired
-    ModelClient client;
+    private ModelClient client;
     @Autowired 
-    DbClient dbClient;
+    private DbClient dbClient;
     
     @Override 
     public String getType() {

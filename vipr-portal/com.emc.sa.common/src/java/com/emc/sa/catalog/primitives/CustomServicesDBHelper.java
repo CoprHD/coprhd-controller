@@ -45,6 +45,7 @@ import com.emc.storageos.db.client.model.uimodels.CustomServicesWorkflow;
 import com.emc.storageos.model.customservices.CustomServicesPrimitiveCreateParam;
 import com.emc.storageos.model.customservices.CustomServicesPrimitiveRestRep;
 import com.emc.storageos.model.customservices.CustomServicesPrimitiveUpdateParam;
+import com.emc.storageos.model.customservices.OutputUpdateParam;
 import com.emc.storageos.primitives.CustomServicesPrimitive.InputType;
 import com.emc.storageos.primitives.CustomServicesPrimitiveResourceType;
 import com.emc.storageos.primitives.db.CustomServicesDBPrimitiveType;
@@ -76,6 +77,8 @@ public final class CustomServicesDBHelper {
     private static final Class<List> OUTPUT_ARG = List.class;
     @SuppressWarnings("rawtypes")
     private static final Class<Map> RESOURCE_ATTRIBUTES_ARG = Map.class;
+    
+    private CustomServicesDBHelper() {}
     
     /**
      * Given a DB column family and an ID get the primitive from the database and return it 
@@ -196,25 +199,63 @@ public final class CustomServicesDBHelper {
         }
         // TODO missing attributes and input updates 
         
-        if (null != param.getOutput()) {
-            final StringSet output = primitive.getOutput() == null ? new StringSet()
-                    : primitive.getOutput();
-            if (null != param.getOutput().getAdd()) {
-                for (final String addOutput : param.getOutput().getAdd()) {
-                    output.add(addOutput);
-                }
-            }
-            if (null != param.getOutput().getRemove()) {
-                for (final String rmOutput : param.getOutput().getRemove()) {
-                    output.remove(rmOutput);
-                }
-            }
-            primitive.setOutput(output);
-        }
+        
+        updateOutput(param.getOutput(), primitive);
+        
         return makePrimitiveType(type, primitive);
         
     }
     
+    /**
+     * Given an output update parameter update the output key set for the primitive
+     * 
+     * @param param OutputUpdateParam that contains the keys to add or remove
+     * @param primitive The primitive instance to update
+     */
+    private static void updateOutput(final OutputUpdateParam param, final CustomServicesDBPrimitive primitive) {
+        if( null == param ) {
+            return;
+        }
+        final StringSet output = primitive.getOutput() == null ? new StringSet() : primitive.getOutput();
+ 
+        addOutputKeys(param.getAdd(), output);
+        
+        removeOutputKeys(param.getRemove(), output);
+        
+        primitive.setOutput(output);
+    }
+
+    /**
+     * Add a given list of output keys to a the set
+     * @param add List of keys to add
+     * @param output updated StringSet
+     */
+    private static void addOutputKeys(final List<String> add, final StringSet output) {
+        if (null == add) {
+            return;
+        }
+        
+        for (final String addOutput : add) {
+            output.add(addOutput);
+        }
+    }
+    
+    /**
+     * Remove a given list of output keys from the given set
+     * 
+     * @param rm The list of keys to remove
+     * @param output The updated StringSet
+     */
+    private static void removeOutputKeys(final List<String> rm, final StringSet output) {
+        if (null == rm) {
+            return;
+        }
+        
+        for (final String rmOutput : rm) {
+            output.remove(rmOutput);
+        }
+    }
+
     /**
      * Deactivate primitive with the given ID
      * 

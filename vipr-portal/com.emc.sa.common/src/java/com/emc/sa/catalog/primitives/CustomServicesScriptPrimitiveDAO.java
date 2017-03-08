@@ -43,11 +43,11 @@ import com.emc.storageos.primitives.db.script.CustomServicesScriptResource;
 public class CustomServicesScriptPrimitiveDAO implements CustomServicesPrimitiveDAO<CustomServicesScriptPrimitive, CustomServicesScriptResource>{
 
     @Autowired
-    CustomServicesPrimitiveManager primitiveManager;
+    private CustomServicesPrimitiveManager primitiveManager;
     @Autowired
-    ModelClient client;
+    private ModelClient client;
     @Autowired 
-    DbClient dbClient;
+    private DbClient dbClient;
     
     @Override 
     public String getType() {

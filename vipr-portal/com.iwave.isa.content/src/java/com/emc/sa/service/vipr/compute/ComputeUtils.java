@@ -834,8 +834,14 @@ public class ComputeUtils {
 
             if (host != null && !host.getInactive()) {
                 host.setBootVolumeId(bootVolumeIds.get(hosts.indexOf(host)));
-                Task<HostRestRep> task = ViPRExecutionUtils.execute(new SetBootVolume(host, bootVolumeIds.get(hosts.indexOf(host)), updateSanBootTargets));
-                tasks.add(task);
+                try{
+                    Task<HostRestRep> task = ViPRExecutionUtils.execute(new SetBootVolume(host, bootVolumeIds.get(hosts.indexOf(host)), updateSanBootTargets));
+                    tasks.add(task);
+                } catch (Exception e) {
+                    ExecutionUtils.currentContext().logError("computeutils.sethostbootvolume.failure",
+                            host.getHostName() + "  " + e.getMessage());
+                }
+
             }
         }
         //monitor tasks
@@ -872,10 +878,18 @@ public class ComputeUtils {
 
             }
         }
+       
+        for (Host host: hosts) {
+            if (host!=null && !host.getInactive()) {
+                if (!successfulHostIds.contains(host.getId()) && !hostsToRemove.contains(host.getId())) {
+                   hostsToRemove.add(host.getId());
+                }
+            }
+        }
 
         for (URI hostId: hostsToRemove){
             for (Host host: hosts){
-               if (host.getId() == hostId){
+               if (host.getId().equals( hostId)){
                  ExecutionUtils.currentContext().logInfo("computeutils.deactivatehost.nobootvolumeassociation",
                             host.getHostName());
 

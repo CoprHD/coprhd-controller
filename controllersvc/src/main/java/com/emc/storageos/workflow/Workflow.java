@@ -691,10 +691,6 @@ public class Workflow implements Serializable {
         _service.executePlan(this);
     }
     
-    TaskCompleter getCompleter() {
-        return _taskCompleter;
-    }
-
     public void executePlan(TaskCompleter completer, String successMessage)
             throws WorkflowException {
         executePlan(completer, successMessage, null, null, null, null);

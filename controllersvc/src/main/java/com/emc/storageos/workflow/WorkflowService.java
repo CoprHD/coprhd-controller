@@ -2353,6 +2353,7 @@ public class WorkflowService implements WorkflowController {
                 ;
                 boolean rollBackStarted = initiateRollback(workflow);
                 if (rollBackStarted) {
+                    TaskCompleter completer = workflow.getTaskCompleter();
                     _log.info(String.format("Rollback initiated workflow %s", uri));
                 } else {
                     // We were unable to initiate rollback, probably because there is no rollback handler somehwere

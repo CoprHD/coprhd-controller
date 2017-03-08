@@ -1271,7 +1271,7 @@ public class DBClient {
         try {
             logMsg(DbConsistencyCheckerHelper.MSG_OBJECT_ID_START);
             int illegalCount = helper.checkDataObject(dataCf, true);
-            logMsg(String.format(DbConsistencyCheckerHelper.MSG_OBJECT_ID_END, dataCf.getCF().getName(), illegalCount));
+            logMsg(String.format(DbConsistencyCheckerHelper.MSG_OBJECT_ID_END_SPECIFIED, dataCf.getCF().getName(), illegalCount));
             corruptedCount += illegalCount;
 
             logMsg(DbConsistencyCheckerHelper.MSG_OBJECT_INDICES_START);

@@ -23,6 +23,7 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -56,6 +57,7 @@ public class DbConsistencyCheckerHelper {
     private static final Logger _log = LoggerFactory.getLogger(DbConsistencyCheckerHelper.class);
     public static final String MSG_OBJECT_ID_START = "\nStart to check DataObject records id that is illegal.\n";
     public static final String MSG_OBJECT_ID_END = "\nFinish to check DataObject records id: totally checked %d data CFs, %d corrupted rows found.\n";
+    public static final String MSG_OBJECT_ID_END_SPECIFIED = "\nFinish to check DataObject records id for CF %s, %d corrupted rows found.\n";
     public static final String MSG_OBJECT_INDICES_START = "\nStart to check DataObject records that the related index is missing.\n";
     public static final String MSG_OBJECT_INDICES_END = "Finish to check DataObject records index: totally checked %d data CFs, %d corrupted rows found.\n";
     public static final String MSG_OBJECT_INDICES_END_SPECIFIED = "\nFinish to check DataObject records index for CF %s, %d corrupted rows found.\n";
@@ -458,6 +460,9 @@ public class DbConsistencyCheckerHelper {
     }
 
     void logMessage(String msg, boolean isError, boolean toConsole) {
+        if (StringUtils.isEmpty(msg)) {
+            return;
+        }
         if (isError) {
             _log.error(msg);
             if (toConsole) {
@@ -856,6 +861,9 @@ public class DbConsistencyCheckerHelper {
 
         @Override
         public String toString() {
+            if (0 == getTotal()) {
+                return null;
+            }
             StringBuilder builder = new StringBuilder();
             builder.append("\nCorrupted rows by version: ");
             int index = 1;

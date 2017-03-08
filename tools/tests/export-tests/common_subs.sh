@@ -838,7 +838,7 @@ setup_yaml() {
 
 setup_provider() {
     DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-    tools_file="${DIR}/preExistingConfig.properties"
+    tools_file="preExistingConfig.properties"
     if [ -f "$tools_file" ]; then
 	echo "stale $tools_file found. Deleting it."
 	rm $tools_file

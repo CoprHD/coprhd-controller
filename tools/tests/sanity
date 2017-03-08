@@ -335,8 +335,6 @@ IP_ZONE3=iptz3
 
 FCTZ_A=$NH/$FC_ZONE_A
 FCTZ_B=$NH/$FC_ZONE_B
-REMOTE_FCTZ_A=$REMOTE_NH/$FC_ZONE_A
-REMOTE_FCTZ_B=$REMOTE_NH/$FC_ZONE_B
 
 #
 # Vdc Configuration
@@ -919,43 +917,6 @@ zone_setup()
     done
     trap '_failure $LINENO' ERR
 	
-	######
-	
-	
-    neighborhood show $REMOTE_NH  &> /dev/null && return $?
-
-    run neighborhood create $REMOTE_NH
-    if [ "$EXTRA_PARAM" = "search" ] ; then
-        neighborhood search $(echo $REMOTE_NH | head -c 2)
-        run neighborhood tag $REMOTE_NH $TAG
-        neighborhood search $SEARCH_PREFIX --tag true
-    fi
-
-
-    run transportzone create $REM_IP_ZONE $REMOTE_NH --type IP
-    if [ "$EXTRA_PARAM" = "search" ] ; then
-        transportzone search $(echo $IP_ZONE | head -c 2)
-        run transportzone tag $REMOTE_NH/$REM_IP_ZONE $TAG
-        transportzone search $SEARCH_PREFIX --tag true
-    fi
-
-    run transportzone add $REMOTE_NH/$REM_IP_ZONE $FSEXP1
-    run transportzone add $REMOTE_NH/$REM_IP_ZONE $FSEXP2
-    run transportzone add $REMOTE_NH/$REM_IP_ZONE $FSEXP3
-
-
-    for i in A1 A2 A3 A4 A5 A6 A7 A8 C1 C2 C3 C4 C5 C6 C7 C8
-    do
-        wwn=`pwwn $i`
-	run transportzone add $FCTZ_A $wwn
-    done
-
-    for i in B1 B2 B3 B4 B5 B6 B7 B8 D1 D2 D3 D4 D5 D6 D7 D8
-    do
-        wwn=`pwwn $i`
-        run transportzone add $FCTZ_B $wwn
-    done
-    trap '_failure $LINENO' ERR
 }
 
 brocade_setup_once() 
@@ -1109,11 +1070,7 @@ project_setup()
 isilon_cos_setup()
 {
     echo "setting up isilon COS"
-    run cos create file $COS_ISIFILE 				\
-	--description 'Virtual-Pool-for-Isilon' true 	\
-                            --protocols NFS CIFS --max_snapshots 10 \
-                            --provisionType 'Thin' \
-			    --neighborhoods $NH --schedule_snapshots true --replication_supported true --allow_policy_at_project_level true --allow_policy_at_fs_level true
+    run cos create file $COS_ISIFILE --description 'Virtual-Pool-for-Isilon' true --protocols NFS CIFS --max_snapshots 10 --provisionType 'Thin' --neighborhoods $NH
     ROOT_TENANT=`tenant root|tail -1`
     run cos allow $COS_ISIFILE file $ROOT_TENANT
     if [ "$EXTRA_PARAM" = "search" ] ; then
@@ -1122,19 +1079,6 @@ isilon_cos_setup()
         cos search $SEARCH_PREFIX --tag true --resource_type file_vpool
     fi
 	
-	echo "setting up remote isilon COS"
-    run cos create file $REM_COS_ISIFILE 				\
-	--description 'Virtual-Pool-for-Isilon' true 	\
-                            --protocols NFS CIFS --max_snapshots 10 \
-                            --provisionType 'Thin' \
-			    --neighborhoods $REMOTE_NH --schedule_snapshots true --replication_supported true --allow_policy_at_project_level true --allow_policy_at_fs_level true
-    ROOT_TENANT=`tenant root|tail -1`
-    run cos allow $REM_COS_ISIFILE file $ROOT_TENANT
-    if [ "$EXTRA_PARAM" = "search" ] ; then
-        cos search $(echo $REM_COS_ISIFILE | head -c 2) --resource_type file_vpool
-        cos tag "$REM_COS_ISIFILE" "file" $TAG
-        cos search $SEARCH_PREFIX --tag true --resource_type file_vpool
-    fi
 }
 
 ecs_cos_setup()
@@ -6741,7 +6685,35 @@ isilon_setup_once()
 
     run cos update file $COS_ISIFILE --storage $ISI_NATIVEGUID
 	
-	discoveredsystem show $REM_ISI_NATIVEGUID &> /dev/null && return $?
+}
+
+isilon_replication_setup_once()
+{
+####ZoneSetup
+
+    run neighborhood create $REMOTE_NH
+    if [ "$EXTRA_PARAM" = "search" ] ; then
+        neighborhood search $(echo $REMOTE_NH | head -c 2)
+        run neighborhood tag $REMOTE_NH $TAG
+        neighborhood search $SEARCH_PREFIX --tag true
+    fi
+
+
+    run transportzone create $REM_IP_ZONE $REMOTE_NH --type IP
+    if [ "$EXTRA_PARAM" = "search" ] ; then
+        transportzone search $(echo $IP_ZONE | head -c 2)
+        run transportzone tag $REMOTE_NH/$REM_IP_ZONE $TAG
+        transportzone search $SEARCH_PREFIX --tag true
+    fi
+
+    run transportzone add $REMOTE_NH/$REM_IP_ZONE $FSEXP1
+    run transportzone add $REMOTE_NH/$REM_IP_ZONE $FSEXP2
+    run transportzone add $REMOTE_NH/$REM_IP_ZONE $FSEXP3
+    
+	run neighborhood allow $REMOTE_NH $TENANT
+	run neighborhood allow $REMOTE_NH $ROOT_TENANT
+	
+####device discovery
 
     discoveredsystem create $REM_ISI_DEV isilon $REM_ISI_IP 8080 $REM_ISI_USER $REM_ISI_PASSWD --serialno=$REM_ISI_SN
     
@@ -6749,14 +6721,36 @@ isilon_setup_once()
     storagepool   update $REM_ISI_NATIVEGUID --type file
     storageport   update $REM_ISI_NATIVEGUID IP --tzone $REMOTE_NH/$REM_IP_ZONE
 
-    run cos update file $REM_COS_ISIFILE --storage $REM_ISI_NATIVEGUID
-    #isilon_cos_setup
+
+
+####Cos setup
+    echo "setting up remote isilon COS"
+    run cos create file $REM_COS_ISIFILE 				\
+	--description 'Virtual-Pool-for-Isilon' true 	\
+                            --protocols NFS CIFS --max_snapshots 10 \
+                            --provisionType 'Thin' \
+			    --neighborhoods $REMOTE_NH --schedule_snapshots true --replication_supported true --allow_policy_at_project_level true --allow_policy_at_fs_level true
+    ROOT_TENANT=`tenant root|tail -1`
+    run cos allow $REM_COS_ISIFILE file $ROOT_TENANT
+    if [ "$EXTRA_PARAM" = "search" ] ; then
+        cos search $(echo $REM_COS_ISIFILE | head -c 2) --resource_type file_vpool
+        cos tag "$REM_COS_ISIFILE" "file" $TAG
+        cos search $SEARCH_PREFIX --tag true --resource_type file_vpool
+    fi
+    
+	run cos update file $REM_COS_ISIFILE --storage $REM_ISI_NATIVEGUID
+	
+    run cos allow $REM_COS_ISIFILE file $TENANT
+	
+    trap '_failure $LINENO' ERR
+
 }
 
 isilon_setup()
 {
     isilon_setup_once
     run cos allow $COS_ISIFILE file $TENANT
+    isilon_replication_setup_once
 }
 
 sbsdk_setup()
@@ -7662,7 +7656,6 @@ common_setup()
           secho "Run zone setup"
           zone_setup
           run transportzone add $NH/$IP_ZONE $BLK_CLIENT_iSCSI
-		  run transportzone add $REMOTE_NH/$REM_IP_ZONE $BLK_CLIENT_iSCSI
         fi
     fi
 
@@ -7676,10 +7669,8 @@ common_setup()
             if [ "${RP_INGESTTESTS}" = "0" ]; then
                 secho "Setup ACLs on neighborhood for $TENANT"
                 run neighborhood allow $NH $TENANT
-				run neighborhood allow $REMOTE_NH $TENANT
                 run neighborhood allow $NH2 $TENANT
                 run neighborhood allow $NH $ROOT_TENANT
-				run neighborhood allow $REMOTE_NH $ROOT_TENANT
                 run neighborhood allow $NH2 $ROOT_TENANT
                 secho "Setup hosts and clusters for $TENANT"
                 host_setup

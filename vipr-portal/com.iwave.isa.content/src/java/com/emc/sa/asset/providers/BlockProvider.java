@@ -9,9 +9,9 @@ import static com.emc.sa.asset.providers.BlockProviderUtils.isLocalSnapshotSuppo
 import static com.emc.sa.asset.providers.BlockProviderUtils.isRPSourceVolume;
 import static com.emc.sa.asset.providers.BlockProviderUtils.isRPTargetVolume;
 import static com.emc.sa.asset.providers.BlockProviderUtils.isRemoteSnapshotSupported;
+import static com.emc.sa.asset.providers.BlockProviderUtils.isSnapshotRPBookmark;
 import static com.emc.sa.asset.providers.BlockProviderUtils.isSnapshotSessionSupportedForCG;
 import static com.emc.sa.asset.providers.BlockProviderUtils.isSnapshotSessionSupportedForVolume;
-import static com.emc.sa.asset.providers.BlockProviderUtils.isSnapshotRPBookmark;
 import static com.emc.sa.asset.providers.BlockProviderUtils.isVpoolProtectedByVarray;
 import static com.emc.vipr.client.core.util.ResourceUtils.name;
 import static com.emc.vipr.client.core.util.ResourceUtils.stringId;
@@ -28,8 +28,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
-import com.emc.storageos.model.search.SearchResultResourceRep;
-import com.emc.vipr.client.core.impl.SearchConstants;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.ObjectUtils;
 import org.apache.commons.lang.StringUtils;
@@ -46,8 +44,8 @@ import com.emc.sa.asset.annotation.AssetNamespace;
 import com.emc.sa.machinetags.KnownMachineTags;
 import com.emc.sa.machinetags.MachineTagUtils;
 import com.emc.sa.service.vipr.block.BlockStorageUtils;
-import com.emc.sa.util.ResourceType;
 import com.emc.sa.util.CatalogSerializationUtils;
+import com.emc.sa.util.ResourceType;
 import com.emc.sa.util.StringComparator;
 import com.emc.sa.util.TextUtils;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
@@ -81,17 +79,17 @@ import com.emc.storageos.model.block.export.ExportBlockParam;
 import com.emc.storageos.model.block.export.ExportGroupRestRep;
 import com.emc.storageos.model.block.export.ExportPathParameters;
 import com.emc.storageos.model.block.export.ExportPathsAdjustmentPreviewParam;
+import com.emc.storageos.model.block.export.ExportPathsAdjustmentPreviewRestRep;
 import com.emc.storageos.model.block.export.ITLRestRep;
 import com.emc.storageos.model.block.export.InitiatorPortMapRestRep;
-import com.emc.storageos.model.block.export.ExportPathsAdjustmentPreviewRestRep;
 import com.emc.storageos.model.host.HostRestRep;
 import com.emc.storageos.model.host.InitiatorRestRep;
 import com.emc.storageos.model.host.cluster.ClusterRestRep;
 import com.emc.storageos.model.ports.StoragePortRestRep;
 import com.emc.storageos.model.project.ProjectRestRep;
 import com.emc.storageos.model.protection.ProtectionSetRestRep;
+import com.emc.storageos.model.search.SearchResultResourceRep;
 import com.emc.storageos.model.systems.StorageSystemRestRep;
-import com.emc.storageos.model.varray.NetworkRestRep;
 import com.emc.storageos.model.varray.VirtualArrayRestRep;
 import com.emc.storageos.model.vpool.BlockVirtualPoolRestRep;
 import com.emc.storageos.model.vpool.VirtualPoolChangeOperationEnum;
@@ -99,6 +97,7 @@ import com.emc.storageos.model.vpool.VirtualPoolChangeRep;
 import com.emc.storageos.model.vpool.VirtualPoolCommonRestRep;
 import com.emc.storageos.storagedriver.model.StoragePort;
 import com.emc.vipr.client.ViPRCoreClient;
+import com.emc.vipr.client.core.filters.BlockVolumeBootVolumeFilter;
 import com.emc.vipr.client.core.filters.BlockVolumeConsistencyGroupFilter;
 import com.emc.vipr.client.core.filters.ConsistencyGroupFilter;
 import com.emc.vipr.client.core.filters.DefaultResourceFilter;
@@ -112,6 +111,7 @@ import com.emc.vipr.client.core.filters.SRDFTargetFilter;
 import com.emc.vipr.client.core.filters.SourceTargetVolumesFilter;
 import com.emc.vipr.client.core.filters.VplexVolumeFilter;
 import com.emc.vipr.client.core.filters.VplexVolumeVirtualPoolFilter;
+import com.emc.vipr.client.core.impl.SearchConstants;
 import com.emc.vipr.client.core.util.CachedResources;
 import com.emc.vipr.client.core.util.ResourceUtils;
 import com.emc.vipr.model.catalog.AssetOption;
@@ -373,6 +373,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         List<URI> volumeIds = getExportedVolumeIds(ctx, project);
         FilterChain<VolumeRestRep> filter = new FilterChain<VolumeRestRep>(RecoverPointPersonalityFilter.METADATA.not());
         filter.and(new BlockVolumeVMFSDatastoreFilter().not());
+        filter.and(new BlockVolumeBootVolumeFilter().not());
         filter.and(new BlockVolumeMountPointFilter().not());
         List<VolumeRestRep> volumes = client.blockVolumes().getByIds(volumeIds, filter);
         return createVolumeWithVarrayOptions(client, volumes);
@@ -440,7 +441,8 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     @Asset("virtualPoolChangeVolumeWithSource")
     @AssetDependencies({ "project", "blockVirtualPool" })
     public List<AssetOption> getVpoolChangeVolumes(AssetOptionsContext ctx, URI projectId, URI virtualPoolId) {
-        return createVolumeOptions(api(ctx), listSourceVolumes(api(ctx), projectId, new VirtualPoolFilter(virtualPoolId)));
+        return createVolumeOptions(api(ctx), listSourceVolumes(api(ctx), projectId, 
+                new VirtualPoolFilter(virtualPoolId)));
     }
     
     @Asset("virtualPoolChangeVolumeWithSource")
@@ -1035,7 +1037,8 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         UnexportedBlockResourceFilter<VolumeRestRep> unexportedFilter = new UnexportedBlockResourceFilter<VolumeRestRep>(
                 exportedBlockResources);
         SourceTargetVolumesFilter sourceTargetVolumesFilter = new SourceTargetVolumesFilter();
-        List<VolumeRestRep> volumes = client.blockVolumes().findByProject(projectId, unexportedFilter.and(sourceTargetVolumesFilter));
+        BlockVolumeBootVolumeFilter bootVolumeFilter = new BlockVolumeBootVolumeFilter();
+        List<VolumeRestRep> volumes = client.blockVolumes().findByProject(projectId, unexportedFilter.and(sourceTargetVolumesFilter).and(bootVolumeFilter.not()));
 
         return createVolumeOptions(client, volumes);
     }
@@ -1057,7 +1060,9 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         CachedResources<BlockVirtualPoolRestRep> blockVpools = new CachedResources<>(client.blockVpools());
         VplexVolumeVirtualPoolFilter virtualPoolFilter = new VplexVolumeVirtualPoolFilter(blockVpools);
 
-        FilterChain<VolumeRestRep> filter = sourceTargetVolumesFilter.and(unexportedFilter).and(vplexVolumeFilter.or(virtualPoolFilter));
+        BlockVolumeBootVolumeFilter bootVolumeFilter = new BlockVolumeBootVolumeFilter();
+
+        FilterChain<VolumeRestRep> filter = sourceTargetVolumesFilter.and(unexportedFilter).and(bootVolumeFilter.not()).and(vplexVolumeFilter.or(virtualPoolFilter));
 
         // perform the query and apply the filter
         List<VolumeRestRep> volumes = client.blockVolumes().findByProject(projectId, filter);
@@ -2094,37 +2099,43 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     @Asset("mountedBlockVolume")
     @AssetDependencies("linuxHost")
     public List<AssetOption> getMountedBlockVolumesForLinuxHost(AssetOptionsContext context, URI host) {
-        return getBlockVolumesForHost(api(context), context.getTenant(), host, true, new BlockObjectVMFSDatastoreFilter().not());
+        return getBlockVolumesForHost(api(context), context.getTenant(), host, true, 
+                new BlockObjectVMFSDatastoreFilter().not().and(new BlockObjectBootVolumeFilter().not()));
     }
 
     @Asset("mountedBlockVolume")
     @AssetDependencies({ "linuxHost", "project" })
     public List<AssetOption> getMountedBlockVolumesForLinuxHost(AssetOptionsContext context, URI host, URI project) {
-        return getProjectBlockVolumesForHost(api(context), project, host, true, new BlockObjectVMFSDatastoreFilter().not());
+        return getProjectBlockVolumesForHost(api(context), project, host, true, 
+                new BlockObjectVMFSDatastoreFilter().not().and(new BlockObjectBootVolumeFilter().not()));
     }
 
     @Asset("mountedBlockVolume")
     @AssetDependencies("hpuxHost")
     public List<AssetOption> getMountedBlockVolumesForHpuxHost(AssetOptionsContext context, URI host) {
-        return getBlockVolumesForHost(api(context), context.getTenant(), host, true, new BlockObjectVMFSDatastoreFilter().not());
+        return getBlockVolumesForHost(api(context), context.getTenant(), host, true, 
+                new BlockObjectVMFSDatastoreFilter().not().and(new BlockObjectBootVolumeFilter().not()));
     }
 
     @Asset("mountedBlockVolume")
     @AssetDependencies({ "hpuxHost", "project" })
     public List<AssetOption> getMountedBlockVolumesForHpuxHost(AssetOptionsContext context, URI host, URI project) {
-        return getProjectBlockVolumesForHost(api(context), project, host, true, new BlockObjectVMFSDatastoreFilter().not());
+        return getProjectBlockVolumesForHost(api(context), project, host, true, 
+                new BlockObjectVMFSDatastoreFilter().not().and(new BlockObjectBootVolumeFilter().not()));
     }
 
     @Asset("mountedBlockVolume")
     @AssetDependencies("windowsHost")
     public List<AssetOption> getMountedBlockVolumesForWindowsHost(AssetOptionsContext context, URI host) {
-        return getBlockVolumesForHost(api(context), context.getTenant(), host, true, new BlockObjectVMFSDatastoreFilter().not());
+        return getBlockVolumesForHost(api(context), context.getTenant(), host, true, 
+                new BlockObjectVMFSDatastoreFilter().not().and(new BlockObjectBootVolumeFilter().not()));
     }
 
     @Asset("mountedBlockVolume")
     @AssetDependencies({ "windowsHost", "project" })
     public List<AssetOption> getMountedBlockVolumesForWindowsHost(AssetOptionsContext context, URI host, URI project) {
-        return getProjectBlockVolumesForHost(api(context), project, host, true, new BlockObjectVMFSDatastoreFilter().not());
+        return getProjectBlockVolumesForHost(api(context), project, host, true, 
+                new BlockObjectVMFSDatastoreFilter().not().and(new BlockObjectBootVolumeFilter().not()));
     }
 
     @Asset("fileSystemType")
@@ -2181,25 +2192,29 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     @Asset("unmountedBlockVolume")
     @AssetDependencies("linuxHost")
     public List<AssetOption> getUnmountedBlockVolumesForLinuxHost(AssetOptionsContext context, URI host) {
-        return getBlockVolumesForHost(api(context), context.getTenant(), host, false, new BlockObjectVMFSDatastoreFilter().not());
+        return getBlockVolumesForHost(api(context), context.getTenant(), host, false, 
+                new BlockObjectVMFSDatastoreFilter().not().and(new BlockObjectBootVolumeFilter().not()));
     }
 
     @Asset("unmountedBlockVolume")
     @AssetDependencies({ "linuxHost", "project" })
     public List<AssetOption> getUnmountedBlockVolumesForLinuxHost(AssetOptionsContext context, URI host, URI project) {
-        return getProjectBlockVolumesForHost(api(context), project, host, false, new BlockObjectVMFSDatastoreFilter().not());
+        return getProjectBlockVolumesForHost(api(context), project, host, false, 
+                new BlockObjectVMFSDatastoreFilter().not().and(new BlockObjectBootVolumeFilter().not()));
     }
 
     @Asset("unmountedBlockVolume")
     @AssetDependencies("windowsHost")
     public List<AssetOption> getUnmountedBlockVolumesForWindowsHost(AssetOptionsContext context, URI host) {
-        return getBlockVolumesForHost(api(context), context.getTenant(), host, false, new BlockObjectVMFSDatastoreFilter().not());
+        return getBlockVolumesForHost(api(context), context.getTenant(), host, false, 
+                new BlockObjectVMFSDatastoreFilter().not().and(new BlockObjectBootVolumeFilter().not()));
     }
 
     @Asset("unmountedBlockVolume")
     @AssetDependencies({ "windowsHost", "project" })
     public List<AssetOption> getUnmountedBlockVolumesForWindowsHost(AssetOptionsContext context, URI host, URI project) {
-        return getProjectBlockVolumesForHost(api(context), project, host, false, new BlockObjectVMFSDatastoreFilter().not());
+        return getProjectBlockVolumesForHost(api(context), project, host, false, 
+                new BlockObjectVMFSDatastoreFilter().not().and(new BlockObjectBootVolumeFilter().not()));
     }
 
     @Asset("unmountedBlockVolume")
@@ -2212,7 +2227,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     @AssetDependencies({ "esxHost", "project" })
     public List<AssetOption> getUnmountedBlockVolumesForEsxHost(AssetOptionsContext context, URI host, URI project) {
         return getProjectBlockVolumesForHost(api(context), project, host, false,
-                new BlockObjectMountPointFilter().not().and(new BlockObjectVMFSDatastoreFilter().not()));
+                new BlockObjectMountPointFilter().not().and(new BlockObjectVMFSDatastoreFilter().not().and(new BlockObjectBootVolumeFilter().not())));
     }
 
     @Asset("mountedBlockResource")
@@ -2230,7 +2245,8 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     @Asset("unmountedBlockResourceNoTargets")
     @AssetDependencies({ "host" })
     public List<AssetOption> getUnmountedBlockResourcesNoTargets(AssetOptionsContext context, URI host) {
-        return getBlockResourcesForHost(api(context), context.getTenant(), host, false, new BlockObjectSRDFTargetFilter().not());
+        return getBlockResourcesForHost(api(context), context.getTenant(), host, false, 
+                new BlockObjectSRDFTargetFilter().not().and(new BlockObjectBootVolumeFilter().not()));
     }
 
     @Asset("unmountedBlockResource")
@@ -2248,26 +2264,29 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     @Asset("mountedBlockResource")
     @AssetDependencies("linuxHost")
     public List<AssetOption> getLinuxMountedBlockResources(AssetOptionsContext context, URI linuxHost) {
-        return getBlockResourcesForHost(api(context), context.getTenant(), linuxHost, true, new BlockObjectVMFSDatastoreFilter().not());
+        return getBlockResourcesForHost(api(context), context.getTenant(), linuxHost, true, 
+                new BlockObjectVMFSDatastoreFilter().not().and(new BlockObjectBootVolumeFilter().not()));
     }
 
     @Asset("mountedBlockResourceNoTargets")
     @AssetDependencies("linuxHost")
     public List<AssetOption> getLinuxMountedBlockResourcesNoTargets(AssetOptionsContext context, URI linuxHost) {
         return getBlockResourcesForHost(api(context), context.getTenant(), linuxHost, true,
-                new BlockObjectSRDFTargetFilter().not().and(new BlockObjectVMFSDatastoreFilter().not()));
+                new BlockObjectSRDFTargetFilter().not().and(new BlockObjectVMFSDatastoreFilter().not().and(new BlockObjectBootVolumeFilter().not())));
     }
 
     @Asset("unmountedBlockResource")
     @AssetDependencies({ "linuxHost" })
     public List<AssetOption> getLinuxUnmountedBlockResources(AssetOptionsContext context, URI linuxHost) {
-        return getBlockResourcesForHost(api(context), context.getTenant(), linuxHost, false, new BlockObjectVMFSDatastoreFilter().not());
+        return getBlockResourcesForHost(api(context), context.getTenant(), linuxHost, false, 
+                new BlockObjectVMFSDatastoreFilter().not().and(new BlockObjectBootVolumeFilter().not()));
     }
 
     @Asset("unmountedBlockResource")
     @AssetDependencies({ "linuxHost", "project" })
     public List<AssetOption> getLinuxUnmountedBlockResources(AssetOptionsContext context, URI linuxHost, URI project) {
-        return getProjectBlockResourcesForHost(api(context), project, linuxHost, false, new BlockObjectVMFSDatastoreFilter().not());
+        return getProjectBlockResourcesForHost(api(context), project, linuxHost, false, 
+                new BlockObjectVMFSDatastoreFilter().not().and(new BlockObjectBootVolumeFilter().not()));
     }
 
     @Asset("mountedBlockResourcePath")
@@ -2281,44 +2300,50 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     @Asset("unmountedBlockResource")
     @AssetDependencies({ "aixHost" })
     public List<AssetOption> getAixUnmountedBlockResources(AssetOptionsContext context, URI aixHost) {
-        return getBlockResourcesForHost(api(context), context.getTenant(), aixHost, false, new BlockObjectVMFSDatastoreFilter().not());
+        return getBlockResourcesForHost(api(context), context.getTenant(), aixHost, false, 
+                new BlockObjectVMFSDatastoreFilter().not().and(new BlockObjectBootVolumeFilter().not()));
     }
 
     @Asset("unmountedBlockResource")
     @AssetDependencies({ "aixHost", "project" })
     public List<AssetOption> getAixUnmountedBlockResources(AssetOptionsContext context, URI aixHost, URI project) {
-        return getProjectBlockResourcesForHost(api(context), project, aixHost, false, new BlockObjectVMFSDatastoreFilter().not());
+        return getProjectBlockResourcesForHost(api(context), project, aixHost, false, 
+                new BlockObjectVMFSDatastoreFilter().not().and(new BlockObjectBootVolumeFilter().not()));
     }
 
     @Asset("mountedBlockResource")
     @AssetDependencies("aixHost")
     public List<AssetOption> getAixMountedBlockResources(AssetOptionsContext context, URI aixHost) {
-        return getBlockResourcesForHost(api(context), context.getTenant(), aixHost, true, new BlockObjectVMFSDatastoreFilter().not());
+        return getBlockResourcesForHost(api(context), context.getTenant(), aixHost, true, 
+                new BlockObjectVMFSDatastoreFilter().not().and(new BlockObjectBootVolumeFilter().not()));
     }
 
     @Asset("mountedBlockResourceNoTargets")
     @AssetDependencies("aixHost")
     public List<AssetOption> getAixMountedBlockResourcesNoTargets(AssetOptionsContext context, URI aixHost) {
         return getBlockResourcesForHost(api(context), context.getTenant(), aixHost, true,
-                new BlockObjectSRDFTargetFilter().not().and(new BlockObjectVMFSDatastoreFilter().not()));
+                new BlockObjectSRDFTargetFilter().not().and(new BlockObjectVMFSDatastoreFilter().not().and(new BlockObjectBootVolumeFilter().not())));
     }
 
     @Asset("unmountedBlockResource")
     @AssetDependencies({ "hpuxHost" })
     public List<AssetOption> getHpuxUnmountedBlockResources(AssetOptionsContext context, URI hpuxHost) {
-        return getBlockResourcesForHost(api(context), context.getTenant(), hpuxHost, false, new BlockObjectVMFSDatastoreFilter().not());
+        return getBlockResourcesForHost(api(context), context.getTenant(), hpuxHost, false, 
+                new BlockObjectVMFSDatastoreFilter().not().and(new BlockObjectBootVolumeFilter().not()));
     }
 
     @Asset("unmountedBlockResource")
     @AssetDependencies({ "hpuxHost", "project" })
     public List<AssetOption> getHpuxUnmountedBlockResources(AssetOptionsContext context, URI hpuxHost, URI project) {
-        return getProjectBlockResourcesForHost(api(context), project, hpuxHost, false, new BlockObjectVMFSDatastoreFilter().not());
+        return getProjectBlockResourcesForHost(api(context), project, hpuxHost, false, 
+                new BlockObjectVMFSDatastoreFilter().not().and(new BlockObjectBootVolumeFilter().not()));
     }
 
     @Asset("mountedBlockResource")
     @AssetDependencies("hpuxHost")
     public List<AssetOption> getHpuxMountedBlockResources(AssetOptionsContext context, URI hpuxHost) {
-        return getBlockResourcesForHost(api(context), context.getTenant(), hpuxHost, true, new BlockObjectVMFSDatastoreFilter().not());
+        return getBlockResourcesForHost(api(context), context.getTenant(), hpuxHost, true, 
+                new BlockObjectVMFSDatastoreFilter().not().and(new BlockObjectBootVolumeFilter().not()));
     }
 
     @Asset("mountedBlockResourceNoTargets")
@@ -2331,26 +2356,29 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     @Asset("mountedBlockResource")
     @AssetDependencies("windowsHost")
     public List<AssetOption> getWindowsMountedBlockResources(AssetOptionsContext context, URI windowsHost) {
-        return getBlockResourcesForHost(api(context), context.getTenant(), windowsHost, true, new BlockObjectVMFSDatastoreFilter().not());
+        return getBlockResourcesForHost(api(context), context.getTenant(), windowsHost, true, 
+                new BlockObjectVMFSDatastoreFilter().not().and(new BlockObjectBootVolumeFilter().not()));
     }
 
     @Asset("mountedBlockResourceNoTargets")
     @AssetDependencies("windowsHost")
     public List<AssetOption> getWindowsMountedBlockResourcesNoTargets(AssetOptionsContext context, URI windowsHost) {
         return getBlockResourcesForHost(api(context), context.getTenant(), windowsHost, true,
-                new BlockObjectSRDFTargetFilter().not().and(new BlockObjectVMFSDatastoreFilter().not()));
+                new BlockObjectSRDFTargetFilter().not().and(new BlockObjectVMFSDatastoreFilter().not()).and(new BlockObjectBootVolumeFilter().not()));
     }
 
     @Asset("unmountedBlockResource")
     @AssetDependencies({ "windowsHost" })
     public List<AssetOption> getWindowsUnmountedBlockResources(AssetOptionsContext context, URI windowsHost) {
-        return getBlockResourcesForHost(api(context), context.getTenant(), windowsHost, false, new BlockObjectVMFSDatastoreFilter().not());
+        return getBlockResourcesForHost(api(context), context.getTenant(), windowsHost, false, 
+                new BlockObjectVMFSDatastoreFilter().not().and(new BlockObjectBootVolumeFilter().not()));
     }
 
     @Asset("unmountedBlockResource")
     @AssetDependencies({ "windowsHost", "project" })
     public List<AssetOption> getWindowsUnmountedBlockResources(AssetOptionsContext context, URI windowsHost, URI project) {
-        return getProjectBlockResourcesForHost(api(context), project, windowsHost, false, new BlockObjectVMFSDatastoreFilter().not());
+        return getProjectBlockResourcesForHost(api(context), project, windowsHost, false, 
+                new BlockObjectVMFSDatastoreFilter().not().and(new BlockObjectBootVolumeFilter().not()));
     }
 
     @Asset("mountedBlockResource")
@@ -3216,6 +3244,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         FilterChain<VolumeRestRep> filter = new FilterChain<VolumeRestRep>(new SRDFTargetFilter().not());
         filter.and(RecoverPointPersonalityFilter.TARGET.not());
         filter.and(RecoverPointPersonalityFilter.METADATA.not());
+        filter.and(new BlockVolumeBootVolumeFilter().not());
         for (ResourceFilter<VolumeRestRep> additionalFilter : filters) {
             filter.and(additionalFilter);
         }
@@ -3874,6 +3903,17 @@ public class BlockProvider extends BaseAssetOptionsProvider {
             return BlockStorageUtils.isVolumeVMFSDatastore(volume);
         }
     }
+
+    /**
+     * Boot volume filter for block objects.
+     */
+    private static class BlockObjectBootVolumeFilter extends DefaultResourceFilter<BlockObjectRestRep> {
+        @Override
+        public boolean accept(BlockObjectRestRep blockObject) {
+            return BlockStorageUtils.isVolumeBootVolume(blockObject);
+        }
+    }
+
 
     /**
      * MountPoint filter for block objects.

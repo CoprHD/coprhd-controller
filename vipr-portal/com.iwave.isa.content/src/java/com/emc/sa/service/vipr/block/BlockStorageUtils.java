@@ -144,6 +144,7 @@ import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
 import com.emc.vipr.client.Task;
 import com.emc.vipr.client.Tasks;
 import com.emc.vipr.client.ViPRCoreClient;
+import com.emc.vipr.client.core.filters.BlockVolumeBootVolumeFilter;
 import com.emc.vipr.client.core.filters.ExportClusterFilter;
 import com.emc.vipr.client.core.filters.ExportHostFilter;
 import com.emc.vipr.client.core.util.ResourceUtils;
@@ -280,6 +281,16 @@ public class BlockStorageUtils {
         }
 
         return false;
+    }
+
+    /**
+     * Return true of false if a given volume is a boot volume for an OS.
+     *
+     * @param blockObject to validate
+     * @return true or false if the volume is a boot volume
+     */
+    public static boolean isVolumeBootVolume(BlockObjectRestRep blockObject) {
+        return BlockVolumeBootVolumeFilter.isVolumeBootVolume(blockObject);
     }
 
     /**

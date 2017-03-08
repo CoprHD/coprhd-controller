@@ -319,10 +319,8 @@ public class FileVirtualPoolService extends VirtualPoolService {
                 FilePolicy policyObj = _dbClient.queryObject(FilePolicy.class, filePolicy);
                 if (policyObj.getAssignedResources() != null) {
                     if(policyObj.getApplyAt().equalsIgnoreCase(FilePolicyApplyLevel.project.name()) && (policyObj.getFilePolicyVpool() != null)){
-                        if(policyObj.getFilePolicyVpool().toString().equalsIgnoreCase(id.toString())){
-                            
-                            checkProtectAttributeAginstPolicy(param.getProtection(), policyObj); 
-                            
+                        if (policyObj.getFilePolicyVpool().toString().equalsIgnoreCase(id.toString())) {
+                            checkProtectAttributeAginstPolicy(param.getProtection(), policyObj);
                         }
 
                     } else if (policyObj.getApplyAt().equalsIgnoreCase(FilePolicyApplyLevel.vpool.name())) {

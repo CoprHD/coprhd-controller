@@ -2619,6 +2619,9 @@ public interface BadRequestExceptions {
     public BadRequestException consistencyGroupContainsDifferentRRVolumes(final URI id);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException consistencyGroupContainsVolsInDifferentRRSets(final URI id);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException consistencyGroupContainsNonRRVolumes(final URI id);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)

@@ -158,6 +158,7 @@ import com.emc.storageos.model.vpool.VirtualPoolChangeOperationEnum;
 import com.emc.storageos.protectioncontroller.ProtectionController;
 import com.emc.storageos.protectioncontroller.RPController;
 import com.emc.storageos.protectionorchestrationcontroller.ProtectionOrchestrationController;
+import com.emc.storageos.remotereplicationcontroller.RemoteReplicationUtils;
 import com.emc.storageos.security.audit.AuditLogManager;
 import com.emc.storageos.security.authentication.StorageOSUser;
 import com.emc.storageos.security.authorization.ACL;
@@ -1051,39 +1052,33 @@ public class BlockService extends TaskResourceService {
             _log.info("No consistency group is specified for this RR volume creating request, skip validating");
             return;
         }
+
         // Consistency group should only be empty or only contain RR type volume(s)
-        if (!cGroup.getRequestedTypes().isEmpty() &&
-                (cGroup.getRequestedTypes().size() != 1 || !cGroup.checkForRequestedType(Types.RR))) {
+        if (!cGroup.getRequestedTypes().isEmpty() && (cGroup.getRequestedTypes().size() != 1 || !cGroup.checkForRequestedType(Types.RR))) {
             throw APIException.badRequests.consistencyGroupMustOnlyBeRRProtected(cGroup.getId());
         }
+
         List<Volume> volumes = blockService.getActiveCGVolumes(cGroup);
-        // Consistency group can only hold RR volumes of single type (in RR group or in RR set)
-        boolean hasVolInGroup = false;
-        boolean hasVolInSet = false;
-        for (Volume vol : volumes) {
-            Iterator<RemoteReplicationPair> pairs = findRemoteReplicationPairsByVolume(vol);
-            if (!pairs.hasNext()) {
-                throw APIException.badRequests.consistencyGroupContainsNonRRVolumes(cGroup.getId());
-            }
-            boolean inGroup = (pairs.next().getReplicationGroup() != null);
-            hasVolInGroup |= inGroup;
-            hasVolInSet |= (!inGroup);
-            if (hasVolInGroup && hasVolInSet) {
+        if (volumes.isEmpty()) {
+            _log.info(String.format("Specified consistency group: %s is an empty one (contains no volume), skip validating", cGroup.getId()));
+            return;
+        }
+
+        // Consistency group can only hold RR volumes and only of single type (in RR group or in RR set)
+        boolean shouldInGroup = (params.getRemoteReplicationGroup() != null);
+        URI rrSet = params.getRemoteReplicationSet();
+        List<RemoteReplicationPair> pairs = RemoteReplicationUtils.getRemoteReplicationPairsForCG(cGroup, _dbClient);
+        if (pairs.isEmpty()) {
+            throw APIException.badRequests.consistencyGroupMustOnlyBeRRProtected(cGroup.getId());
+        }
+        for (RemoteReplicationPair pair : pairs) {
+            if (shouldInGroup ^ (pair.getReplicationGroup() != null)) {
                 throw APIException.badRequests.consistencyGroupContainsDifferentRRVolumes(cGroup.getId());
             }
+            if (!pair.getReplicationSet().equals(rrSet)) {
+                throw APIException.badRequests.consistencyGroupContainsVolsInDifferentRRSets(cGroup.getId());
+            }
         }
-    }
-
-    private Iterator<RemoteReplicationPair> findRemoteReplicationPairsByVolume(Volume vol) {
-        URIQueryResultList uriQueryResultList = new URIQueryResultList();
-        if (PersonalityTypes.SOURCE.toString().equals(vol.getPersonality())) {
-            _dbClient.queryByConstraint(ContainmentConstraint.Factory.getConstraint(RemoteReplicationPair.class,
-                    "sourceElement", vol.getId()), uriQueryResultList);
-        } else if (PersonalityTypes.TARGET.toString().equals(vol.getPersonality())) {
-            _dbClient.queryByConstraint(ContainmentConstraint.Factory.getConstraint(RemoteReplicationPair.class,
-                    "targetElement", vol.getId()), uriQueryResultList);
-        }
-        return _dbClient.queryIterativeObjects(RemoteReplicationPair.class, uriQueryResultList);
     }
 
     /**

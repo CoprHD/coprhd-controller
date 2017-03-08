@@ -54,7 +54,7 @@ public class DbCheckerFileWriter {
     private static String owner = STORAGEOS_NAME;
     private static String group = STORAGEOS_NAME;
     private static final Map<String, String> cleanupFiles = new ConcurrentHashMap<>();
-    private static final Map<String, BufferedWriter> writers = new HashMap<String, BufferedWriter>();
+    private static final Map<String, BufferedWriter> writers = new ConcurrentHashMap<>();
     private static final Logger log = LoggerFactory.getLogger(DbCheckerFileWriter.class);
 
     private DbCheckerFileWriter() {
@@ -105,13 +105,13 @@ public class DbCheckerFileWriter {
             try {
                 if (writer != null) {
                     writer.close();
-                    writer = null;
                 }
             } catch (IOException e) {
                 log.error("Exception happens when closing file, e=", e);
             }
         }
         writers.clear();
+        cleanupFiles.clear();
     }
 
     public static String getGeneratedFileNames() {

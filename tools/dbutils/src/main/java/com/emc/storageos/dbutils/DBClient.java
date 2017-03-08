@@ -1277,6 +1277,7 @@ public class DBClient {
             logMsg(DbConsistencyCheckerHelper.MSG_OBJECT_INDICES_START);
             CheckResult checkResult = new CheckResult();
             helper.checkCFIndices(dataCf, true, checkResult);
+            logMsg(checkResult.toString());
             logMsg(String.format(DbConsistencyCheckerHelper.MSG_OBJECT_INDICES_END_SPECIFIED, dataCf.getCF().getName(),
                     checkResult.getTotal()));
             corruptedCount += checkResult.getTotal();
@@ -1287,6 +1288,7 @@ public class DBClient {
             for (DbConsistencyCheckerHelper.IndexAndCf indexAndCf : idxCfs) {
                 helper.checkIndexingCF(indexAndCf, true, checkResult);
             }
+            logMsg(checkResult.toString());
             logMsg(String.format(DbConsistencyCheckerHelper.MSG_INDEX_OBJECTS_END_SPECIFIED, idxCfs.size(), dataCf.getCF().getName(),
                     checkResult.getTotal()));
             corruptedCount += checkResult.getTotal();
@@ -1489,6 +1491,9 @@ public class DBClient {
     }
     
     private void logMsg(String msg, boolean isError, Exception e) {
+        if (isEmptyStr(msg)) {
+            return;
+        }
         if (isError) {
             log.error(msg, e);
             System.err.println(msg);

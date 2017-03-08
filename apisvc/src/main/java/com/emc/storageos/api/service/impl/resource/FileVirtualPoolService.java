@@ -9,10 +9,8 @@ import static com.emc.storageos.api.mapper.DbObjectMapper.toNamedRelatedResource
 import static com.emc.storageos.api.mapper.VirtualPoolMapper.toFileVirtualPool;
 
 import java.net.URI;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Set;
 
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DefaultValue;
@@ -320,21 +318,21 @@ public class FileVirtualPoolService extends VirtualPoolService {
             for (URI filePolicy : filePolicyList) {
                 FilePolicy policyObj = _dbClient.queryObject(FilePolicy.class, filePolicy);
                 if (policyObj.getAssignedResources() != null) {
-                    Set<String> vpoolList = new HashSet<String>();
                     if(policyObj.getApplyAt().equalsIgnoreCase(FilePolicyApplyLevel.project.name()) && (policyObj.getFilePolicyVpool() != null)){
-                        vpoolList.add(policyObj.getFilePolicyVpool().toString());   
-
-                    }else if(policyObj.getApplyAt().equalsIgnoreCase(FilePolicyApplyLevel.vpool.name())) {
-                        StringSet vpools = policyObj.getAssignedResources();
-                        vpoolList.addAll(vpools.getAddedSet());
-                    }
-                    for (String vpool : vpoolList) {
-                        if (vpool.equalsIgnoreCase(id.toString())) {
-                            checkProtectAttributeAginstPolicy(param.getProtection(), policyObj);
-
+                        if(policyObj.getFilePolicyVpool().toString().equalsIgnoreCase(id.toString())){
+                            
+                            checkProtectAttributeAginstPolicy(param.getProtection(), policyObj); 
+                            
                         }
 
+                    } else if (policyObj.getApplyAt().equalsIgnoreCase(FilePolicyApplyLevel.vpool.name())) {
+                        StringSet assignedResources = policyObj.getAssignedResources();
+                        if (assignedResources.contains(id.toString())) {
+                        checkProtectAttributeAginstPolicy(param.getProtection(), policyObj);
+                        }
+                        
                     }
+                   
                 }
             }
         }

@@ -5,12 +5,14 @@
 package com.emc.sa.service.vipr.compute;
 
 import static com.emc.sa.service.vipr.ViPRExecutionUtils.addAffectedResource;
+import static com.emc.sa.service.vipr.ViPRExecutionUtils.addRollback;
 import static com.emc.sa.service.vipr.ViPRExecutionUtils.execute;
 import static com.emc.sa.service.vipr.ViPRExecutionUtils.getOrderTenant;
 
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -21,9 +23,12 @@ import java.util.Map.Entry;
 import com.emc.sa.engine.ExecutionException;
 import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.engine.bind.Param;
+import com.emc.sa.machinetags.KnownMachineTags;
 import com.emc.sa.service.vipr.ViPRExecutionUtils;
 import com.emc.sa.service.vipr.block.BlockStorageUtils;
 import com.emc.sa.service.vipr.block.tasks.GetBlockResource;
+import com.emc.sa.service.vipr.block.tasks.RemoveBlockVolumeMachineTag;
+import com.emc.sa.service.vipr.block.tasks.SetBlockVolumeMachineTag;
 import com.emc.sa.service.vipr.compute.tasks.AddHostToCluster;
 import com.emc.sa.service.vipr.compute.tasks.CreateCluster;
 import com.emc.sa.service.vipr.compute.tasks.CreateHosts;
@@ -65,6 +70,7 @@ import com.emc.vipr.client.ViPRCoreClient;
 import com.emc.vipr.client.core.filters.NameIgnoreCaseFilter;
 import com.emc.vipr.client.exceptions.TimeoutException;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import com.vmware.vim25.mo.HostSystem;
 
 // VBDU TODO COP-28437: In general, this module needs javadoc.  Many methods are using List objects and returning List objects that correspond to the incoming list that
@@ -88,7 +94,7 @@ public class ComputeUtils {
             hostNames.add(hostNameIn != null ? hostNameIn.toLowerCase() : null);
         }
 
-        Host[] hosts = new Host[hostNames.size()];
+        List<Host> createdHosts = new ArrayList<>();
         Tasks<HostRestRep> tasks = null;
         List<String> hostsToDeactivate = Lists.newArrayList();
         try {
@@ -112,9 +118,8 @@ public class ComputeUtils {
                 URI hostUri = task.getResourceId();
                 addAffectedResource(hostUri);
                 Host host = execute(new GetHost(hostUri));
-                int hostIndex = hostNames.indexOf(host.getHostName());
                 succeededHosts.add(host.getHostName());
-                hosts[hostIndex] = host;
+                createdHosts.add(host);
             }
             for (String hostName : hostNames) {
                 if (!succeededHosts.contains(hostName)) {
@@ -140,7 +145,7 @@ public class ComputeUtils {
         for (Entry<URI, String> hostEntry : hostDeactivateMap.entrySet()){
             execute(new DeactivateHost(hostEntry.getKey(), hostEntry.getValue(), true));
         }
-        return Arrays.asList(hosts);
+        return createdHosts;
     }
 
     // VBDU TODO: COP-28437, These methods need to be rewritten to use maps. Assuming stable indexing of
@@ -229,15 +234,29 @@ public class ComputeUtils {
         return false;
     }
 
-    // VBDU TODO: COP-28437, These methods need to be rewritten to use maps. Assuming stable indexing of
-    // hosts->return List is poor programming practice.
-    public static List<URI> makeBootVolumes(URI project,
+    /**
+     * Attempts to create a boot volume for each host sent in.
+     * Guarantees a map with all hosts, even if that host's boot volume creation failed.
+     * 
+     * @param project project
+     * @param virtualArray virtual array
+     * @param virtualPool virtual pool
+     * @param size size of boot volumes
+     * @param hosts host list
+     * @param client NB API
+     * @return map of host objects to volume IDs.  (volume ID is null if that host didn't get a good boot volume)
+     */
+    public static Map<Host, URI> makeBootVolumes(URI project,
             URI virtualArray, URI virtualPool, Double size,
             List<Host> hosts, ViPRCoreClient client) {
 
-        if (hosts == null) {
-            return Lists.newArrayList();
+        Map<String, Host> volumeNameToHostMap = new HashMap<>();
+        Map<Host, URI> hostToBootVolumeIdMap = new HashMap<>();
+        
+        if (hosts == null || hosts.isEmpty()) {
+            return Maps.newHashMap();
         }
+        
         ArrayList<Task<VolumeRestRep>> tasks = new ArrayList<>();
         ArrayList<String> volumeNames = new ArrayList<>();
         for (Host host : hosts) {
@@ -258,7 +277,7 @@ public class ComputeUtils {
             try {
                 tasks.add(BlockStorageUtils.createVolumesByName(project, virtualArray,
                         virtualPool, size, nullConsistencyGroup, volumeName));  // does not wait for task
-                volumeNames.add(volumeName);
+                volumeNameToHostMap.put(volumeName, host);
             } catch (ExecutionException e) {
                 String errorMessage = e.getMessage() == null ? "" : e.getMessage();
                 ExecutionUtils.currentContext().logError("computeutils.makebootvolumes.failure",
@@ -267,27 +286,28 @@ public class ComputeUtils {
         }
 
         // monitor tasks
-        URI[] volumeIds = new URI[hosts.size()];
         while (!tasks.isEmpty()) {
             waitAndRefresh(tasks);
             for (Task<VolumeRestRep> successfulTask : getSuccessfulTasks(tasks)) {
                 URI volumeId = successfulTask.getResourceId();
                 String taskResourceName = successfulTask.getResource().getName();
-                int volNameIndex = volumeNames.indexOf(taskResourceName);
-                volumeIds[volNameIndex] = volumeId;
-                hosts.get(volNameIndex).setBootVolumeId(volumeId);
+                hostToBootVolumeIdMap.put(volumeNameToHostMap.get(taskResourceName), volumeId); 
+                volumeNameToHostMap.get(taskResourceName).setBootVolumeId(volumeId);
                 addAffectedResource(volumeId);
                 tasks.remove(successfulTask);
+                addBootVolumeTag(volumeId, volumeNameToHostMap.get(taskResourceName).getId());
             }
             for (Task<VolumeRestRep> failedTask : getFailedTasks(tasks)) {
                 String volumeName = failedTask.getResource().getName();
+                hostToBootVolumeIdMap.put(volumeNameToHostMap.get(volumeName), null); 
                 String errorMessage = failedTask.getMessage() == null ? "" : failedTask.getMessage();
                 ExecutionUtils.currentContext().logError("computeutils.makebootvolumes.createvolume.failure",
                         volumeName, errorMessage);
                 tasks.remove(failedTask);
             }
         }
-        return Arrays.asList(volumeIds);
+
+        return hostToBootVolumeIdMap;
     }
 
     public static <T> List<Task<T>> getSuccessfulTasks(List<Task<T>> tasks) {
@@ -323,53 +343,51 @@ public class ComputeUtils {
         }
     }
 
-    // VBDU TODO: COP-28437, These methods need to be rewritten to use maps. Assuming stable indexing of
-    // volumeIds,hosts->return List is poor programming practice.
-    public static List<URI> exportBootVols(List<URI> volumeIds, List<Host> hosts, URI project, URI virtualArray, Integer hlu) {
+    /**
+     * Exports all boot volumes to respective hosts.
+     * 
+     * @param hostToVolumeIdMap host to boot volume ID map
+     * @param project project
+     * @param virtualArray virtual array
+     * @param hlu HLU
+     * @return returns a map of hosts to Export Group URIs
+     */
+    public static Map<Host, URI> exportBootVols(Map<Host, URI> hostToVolumeIdMap, URI project, URI virtualArray, Integer hlu) {
 
-        if ((hosts == null) || (volumeIds == null)) {
-            return Collections.emptyList();
+        if (hostToVolumeIdMap == null || hostToVolumeIdMap.isEmpty()) {
+            return Maps.newHashMap();
         }
 
-        List<Task<ExportGroupRestRep>> tasks = new ArrayList<>();
-        for (int x = 0; x < hosts.size(); x++) {
-            if ((volumeIds.get(x) != null) && (hosts.get(x) != null) && !(hosts.get(x).getInactive())) {
+        Map<Task<ExportGroupRestRep>, Host> taskToHostMap = new HashMap<>();
+        for (Entry<Host, URI> hostToVolumeIdEntry : hostToVolumeIdMap.entrySet()) {
+            Host host = hostToVolumeIdEntry.getKey();
+            URI volumeId = hostToVolumeIdEntry.getValue();
+            if (!NullColumnValueGetter.isNullURI(volumeId) && (host != null) && !(host.getInactive())) {
                 try {
                     /**
                      * Don't determine HLUs at all, even for the boot volumes. Let the system decide them for you. Hence passing -1
                      */
                     Task<ExportGroupRestRep> task = BlockStorageUtils.createHostExportNoWait(project,
-                            virtualArray, Arrays.asList(volumeIds.get(x)), hlu, hosts.get(x));
-                    tasks.add(task);
+                            virtualArray, Arrays.asList(volumeId), hlu, host);
+                    taskToHostMap.put(task, host);
                 } catch (ExecutionException e) {
                     String errorMessage = e.getMessage() == null ? "" : e.getMessage();
                     ExecutionUtils.currentContext().logError("computeutils.exportbootvolumes.failure",
-                            hosts.get(x).getHostName(), errorMessage);
+                            host.getHostName(), errorMessage);
                 }
                 ExecutionUtils.clearRollback(); // prevent exports from rolling back on exception
             }
         }
 
-        // monitor tasks
-        List<String> hostNames = Lists.newArrayList();
-        for (Host host : hosts) {
-            if (host != null) {
-                hostNames.add(host.getHostName());
-            }
-            else {
-                hostNames.add(null);
-            }
-        }
-
-        URI[] exportIds = new URI[hosts.size()];
+        // Monitor tasks
+        Map<Host, URI> hostToEgIdMap = new HashMap<>();
+        List<Task<ExportGroupRestRep>> tasks = new ArrayList<>(taskToHostMap.keySet()); 
         while (!tasks.isEmpty()) {
             waitAndRefresh(tasks);
             for (Task<ExportGroupRestRep> successfulTask : getSuccessfulTasks(tasks)) {
                 URI exportId = successfulTask.getResourceId();
                 addAffectedResource(exportId);
-                String exportName = successfulTask.getResource().getName();
-                int hostNameIndex = hostNames.indexOf(exportName); // export named after host
-                exportIds[hostNameIndex] = exportId;
+                hostToEgIdMap.put(taskToHostMap.get(successfulTask), exportId);
                 tasks.remove(successfulTask);
             }
             for (Task<ExportGroupRestRep> failedTask : getFailedTasks(tasks)) {
@@ -379,7 +397,7 @@ public class ComputeUtils {
                 tasks.remove(failedTask);
             }
         }
-        return Arrays.asList(exportIds);
+        return hostToEgIdMap;
     }
 
     protected static boolean isCapacityAvailable(ViPRCoreClient client,
@@ -399,16 +417,24 @@ public class ComputeUtils {
         return reqCapacity > freeCapacity ? false : true;
     }
 
-    // VBDU TODO: COP-28437, These methods need to be rewritten to use maps. Assuming stable indexing of
-    // hosts->return List is poor programming practice.
-    public static List<Host> deactivateHostsWithNoBootVolume(List<Host> hosts,
-            List<URI> bootVolumeIds, Cluster cluster) {
-        if (hosts == null) {
-            return Lists.newArrayList();
+    /**
+     * Deactivate hosts whose boot volumes were not properly created.
+     * 
+     * @param hostToVolumeIdMap map of host object to its respective boot volume
+     * @param cluster cluster ID
+     * @return list of hosts that were NOT deactivated.  This includes hosts with good boot volumes and hosts where the deactivation failed.
+     */
+    public static Map<Host, URI> deactivateHostsWithNoBootVolume(Map<Host, URI> hostToVolumeIdMap, Cluster cluster) {
+        if (hostToVolumeIdMap == null) {
+            return Maps.newHashMap();
         }
+        
         List<Host> hostsToRemove = Lists.newArrayList();
-        for (Host host : hosts) {
-            if ((host != null) && (bootVolumeIds.get(hosts.indexOf(host)) == null)) {
+        Map<Host, URI> hostsToVolumeIdNotRemovedMap = new HashMap<>(hostToVolumeIdMap);
+        for (Entry<Host, URI> hostVolumeIdEntry : hostToVolumeIdMap.entrySet()) {
+            Host host = hostVolumeIdEntry.getKey();
+            URI volumeId = hostVolumeIdEntry.getValue();
+            if ((host != null) && (volumeId == null)) {
                 try {
                     execute(new RemoveHostFromCluster(host.getId()));
                 } catch (Exception e) {
@@ -419,14 +445,19 @@ public class ComputeUtils {
                 host.setInactive(true);
             }
         }
+        
         if (!hostsToRemove.isEmpty()) {
             try {
-                deactivateHosts(hostsToRemove);
-                for (Host hostRemoved : hostsToRemove) {
-                    for (Host hostCreated : hosts) {
+                List<Host> hostsRemoved = deactivateHosts(hostsToRemove);
+                for (Host hostCreated : hostToVolumeIdMap.keySet()) {
+                    boolean found = false;
+                    for (Host hostRemoved : hostsRemoved) {
                         if(hostCreated.getId().equals(hostRemoved.getId())) {
-                            hosts.set(hosts.indexOf(hostCreated), null);
+                            found = true;
                         }
+                    }
+                    if (!found) {
+                        hostsToVolumeIdNotRemovedMap.remove(hostCreated);
                     }
                 }
             } catch (Exception e) {
@@ -434,21 +465,29 @@ public class ComputeUtils {
                         e.getMessage());
             }
         }
-        return hosts;
+        return hostsToVolumeIdNotRemovedMap;
     }
 
-    // VBDU TODO: COP-28437, These methods need to be rewritten to use maps. Assuming stable indexing of
-    // hosts/exports->return List is poor programming practice.
-    public static List<Host> deactivateHostsWithNoExport(List<Host> hosts,
-            List<URI> exportIds, List<URI> bootVolumeIds, Cluster cluster) {
-        if (hosts == null) {
-            return Lists.newArrayList();
+    /**
+     * Deactivate hosts with no valid export of the boot volume, return a map of hosts still standing.
+     * 
+     * @param hostToVolumeIdMap hosts to volume ID map
+     * @param hostToEgIdMap hosts to export group ID map
+     * @param cluster cluster, if applicable
+     * @return a map of hosts to volume ID that are still exported. 
+     */
+    public static Map<Host, URI> deactivateHostsWithNoExport(Map<Host, URI> hostToVolumeIdMap, Map<Host, URI> hostToEgIdMap, Cluster cluster) {
+        if (hostToVolumeIdMap == null || hostToVolumeIdMap.isEmpty()) {
+            return Maps.newHashMap();
         }
         List<Host> hostsToRemove = Lists.newArrayList();
-        List<URI> bootVolsToRemove = Lists.newArrayList();
+        Map<Host, URI> hostToVolumeIdNotRemovedMap = new HashMap<Host, URI>(hostToVolumeIdMap);
 
-        for (Host host : hosts) {
-            if ((exportIds.get(hosts.indexOf(host)) == null) && (host != null)) {
+        // Perform all host removal from cluster operations first.
+        for (Entry<Host, URI> hostToVolumeIdEntry : hostToVolumeIdMap.entrySet()) {
+            Host host = hostToVolumeIdEntry.getKey();
+            URI egId = hostToEgIdMap.get(host);
+            if (NullColumnValueGetter.isNullURI(egId) && host != null) {
                 try {
                     execute(new RemoveHostFromCluster(host.getId()));
                 } catch (Exception e) {
@@ -457,54 +496,59 @@ public class ComputeUtils {
                 }
                 hostsToRemove.add(host);
                 host.setInactive(true);
-                // remove the corresponding boot volume of the host too, if the
-                // boot volume export failed.
-                bootVolsToRemove.add(bootVolumeIds.get(hosts.indexOf(host)));
             }
         }
+
         if (!hostsToRemove.isEmpty()) {
+            // Deactivate all the hosts at the same time.
             try {
                 deactivateHosts(hostsToRemove);
-                for (Host hostRemoved : hostsToRemove) {
-                    for (Host hostCreated : hosts) {
-                        if(hostCreated.getId().equals(hostRemoved.getId())) {
-                            hosts.set(hosts.indexOf(hostCreated), null);
-                        }
-                    }
-                }
             } catch (Exception e) {
                 ExecutionUtils.currentContext().logError("computeutils.deactivatehost.deactivate.failure",
                         e.getMessage());
             }
-        }
-        // Cleanup all bootvolumes of the deactivated host so that we do not leave any unsed boot volumes.
-        if (!bootVolsToRemove.isEmpty()) {
+
+            // Deactivate all the of boot volumes at the same time.
             try {
+                List<URI> bootVolsToRemove = Lists.newArrayList();
+                for (Host host : hostsToRemove) {
+                    bootVolsToRemove.add(hostToVolumeIdMap.get(host));
+                }
                 BlockStorageUtils.deactivateVolumes(bootVolsToRemove, VolumeDeleteTypeEnum.FULL);
             }catch (Exception e) {
                 ExecutionUtils.currentContext().logError("computeutils.bootvolume.deactivate.failure",
                         e.getMessage());
             }
+
+            // Now remove host entries from the map that we removed.
+            hostToVolumeIdNotRemovedMap.remove(hostsToRemove);
         }
-        return hosts;
+
+        return hostToVolumeIdNotRemovedMap;
     }
 
-    // VBDU TODO: COP-28437, These methods need to be rewritten to use maps. Assuming stable indexing of
-    // hosts->return List is poor programming practice.
+    /**
+     * Deactivate a list of hosts.
+     * 
+     * @param hosts hosts to deactivate
+     * @return list of hosts that were successfully deactivated
+     */
     public static List<Host> deactivateHosts(List<Host> hosts) {
+        List<Host> hostsDeactivated = new ArrayList<>();
         Map<URI, String> hostURIMap = new HashMap<URI, String>();
         for (Host host : hosts) {
             hostURIMap.put(host.getId(), host.getLabel());
         }
-        List<URI> successfulHostURIs = deactivateHostURIs(hostURIMap);
+        List<URI> deactivatedHostURIs = deactivateHostURIs(hostURIMap);
 
         ListIterator<Host> hostItr = nonNull(hosts).listIterator();
         while (hostItr.hasNext()) {
-            if (!successfulHostURIs.contains(hostItr.next().getId())) {
-                hostItr.set(null);
+            Host host = hostItr.next();
+            if (deactivatedHostURIs.contains(host.getId())) {
+                hostsDeactivated.add(host);
             }
         }
-        return hosts;
+        return hostsDeactivated;
     }
 
     // VBDU TODO: COP-28437, These methods need to be rewritten to use maps. Assuming stable indexing of
@@ -625,12 +669,24 @@ public class ComputeUtils {
         return execute(new FindHostsInCluster(clusterId, clustername));
     }
 
-    static <T> List<T> nonNull(List<T> objectList) {
+    static <T> List<T> nonNull(Collection<T> objectList) {
         List<T> objectListToReturn = new ArrayList<>();
         if (objectList != null) {
             for (T object : objectList) {
                 if (object != null) {
                     objectListToReturn.add(object);
+                }
+            }
+        }
+        return objectListToReturn;
+    }
+
+    static <T, V> Map<T, V> nonNull(Map<T, V> objectMap) {
+        Map<T, V> objectListToReturn = Maps.newHashMap();
+        if (objectMap != null) {
+            for (Entry<T, V> objectEntry : objectMap.entrySet()) {
+                if (objectEntry != null) {
+                    objectListToReturn.put(objectEntry.getKey(), objectEntry.getValue());
                 }
             }
         }
@@ -827,28 +883,26 @@ public class ComputeUtils {
         }
     }
 
-    public static List<Host> setHostBootVolumes(List<Host> hosts,
-            List<URI> bootVolumeIds, boolean updateSanBootTargets) {
+    public static List<Host> setHostBootVolumes(Map<Host, URI> hostToVolumeIdMap, boolean updateSanBootTargets) {
         List<Task<HostRestRep>> tasks = new ArrayList<>();
-        for (Host host : hosts) {
-
+        for (Entry<Host, URI> hostToVolumeIdEntry : hostToVolumeIdMap.entrySet()) {
+            Host host = hostToVolumeIdEntry.getKey();
+            URI volumeId = hostToVolumeIdEntry.getValue();
             if (host != null && !host.getInactive()) {
-                host.setBootVolumeId(bootVolumeIds.get(hosts.indexOf(host)));
+                host.setBootVolumeId(volumeId);
                 try{
-                    Task<HostRestRep> task = ViPRExecutionUtils.execute(new SetBootVolume(host, bootVolumeIds.get(hosts.indexOf(host)), updateSanBootTargets));
+                    Task<HostRestRep> task = ViPRExecutionUtils.execute(new SetBootVolume(host, volumeId, updateSanBootTargets));
                     tasks.add(task);
                 } catch (Exception e) {
                     ExecutionUtils.currentContext().logError("computeutils.sethostbootvolume.failure",
                             host.getHostName() + "  " + e.getMessage());
                 }
-
             }
         }
         //monitor tasks
         List<URI> successfulHostIds = Lists.newArrayList();
         List<URI> hostsToRemove = Lists.newArrayList();
         List<URI> bootVolumesToRemove = Lists.newArrayList();
-        Map<URI,URI> hostDeactivateMap = new HashMap<URI, URI>();
         while (!tasks.isEmpty()) {
             waitAndRefresh(tasks);
             for (Task<HostRestRep> successfulTask : getSuccessfulTasks(tasks)) {
@@ -873,13 +927,12 @@ public class ComputeUtils {
                 ExecutionUtils.currentContext().logError("computeutils.sethostbootvolume.failure.task",
                         failedTask.getResource().getName(), errorMessage);
                 URI hostId = failedTask.getResource().getId();
-                Host newHost = execute(new GetHost(hostId));
+                execute(new GetHost(hostId));
                 hostsToRemove.add(hostId);
-
             }
         }
        
-        for (Host host: hosts) {
+        for (Host host: hostToVolumeIdMap.keySet()) {
             if (host!=null && !host.getInactive()) {
                 if (!successfulHostIds.contains(host.getId()) && !hostsToRemove.contains(host.getId())) {
                    hostsToRemove.add(host.getId());
@@ -888,12 +941,12 @@ public class ComputeUtils {
         }
 
         for (URI hostId: hostsToRemove){
-            for (Host host: hosts){
-               if (host.getId().equals( hostId)){
+            for (Host host: hostToVolumeIdMap.keySet()){
+               if (host.getId().equals(hostId)){
                  ExecutionUtils.currentContext().logInfo("computeutils.deactivatehost.nobootvolumeassociation",
                             host.getHostName());
 
-                 bootVolumesToRemove.add(host.getBootVolumeId());
+                 bootVolumesToRemove.add(hostToVolumeIdMap.get(host));
                  break;
                }
             }
@@ -909,15 +962,16 @@ public class ComputeUtils {
                         e.getMessage());
             }
         }
-        // remove failed hosts
-        for (ListIterator<Host> itr = hosts.listIterator(); itr.hasNext();) {
-            Host host = itr.next();
-            if ((host != null) && !successfulHostIds.contains(host.getId())) {
-                itr.set(null);
+        
+        // Only return successful hosts
+        List<Host> successfulHosts = new ArrayList<>();
+        for (Host host : hostToVolumeIdMap.keySet()) {
+            if ((host != null) && successfulHostIds.contains(host.getId())) {
+                successfulHosts.add(host);
             }
         }
 
-        return hosts;
+        return successfulHosts;
     }
     public static Map<String, URI> getHostNameBootVolume(List<Host> hosts) {
 
@@ -1132,5 +1186,58 @@ public class ComputeUtils {
                 waitAndRefresh(tasks);
             }
         }
+    }
+
+    /**
+     * Adds a tag associating the volumes to a boot volume
+     * 
+     * @param volumes
+     *            the volumes.
+     * @param datastoreName
+     *            the datastore name.
+     */
+    public static void addBootVolumeTag(Collection<URI> volumes, URI hostOrClusterId) {
+        for (URI volume : volumes) {
+            addBootVolumeTag(volume, hostOrClusterId);
+        }
+    }
+
+    /**
+     * Adds a tag to the volume associating it with a datastore.
+     * 
+     * @param volume
+     *            the volume to tag.
+     * @param datastoreName
+     *            the name of the datastore to associate.
+     */
+    public static void addBootVolumeTag(URI volume, URI hostOrClusterId) {
+        execute(new SetBlockVolumeMachineTag(volume, KnownMachineTags.getBootVolumeTagName(), hostOrClusterId.toASCIIString()));
+        addRollback(new RemoveBlockVolumeMachineTag(volume,
+                KnownMachineTags.getBootVolumeTagName()));
+        addAffectedResource(volume);
+    }
+
+    /**
+     * Removes the boot volume tag from the volumes.
+     * 
+     * @param volumes
+     *            the volumes to remove the tag from.
+     */
+    public static void removeBootVolumeTag(Collection<? extends BlockObjectRestRep> volumes, URI hostOrClusterId) {
+        for (BlockObjectRestRep volume : volumes) {
+            removeBootVolumeTag(volume, hostOrClusterId);
+        }
+    }
+
+    /**
+     * Removes a datastore tag from the given volume.
+     * 
+     * @param volume
+     *            the volume to remove the tag from.
+     */
+    public static void removeBootVolumeTag(BlockObjectRestRep volume, URI hostOrClusterId) {
+        execute(new RemoveBlockVolumeMachineTag(volume.getId(),
+                KnownMachineTags.getBootVolumeTagName()));
+        addAffectedResource(volume);
     }
 }

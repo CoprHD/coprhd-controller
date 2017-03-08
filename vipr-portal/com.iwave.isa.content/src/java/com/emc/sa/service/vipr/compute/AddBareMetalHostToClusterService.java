@@ -14,6 +14,7 @@ import static com.emc.sa.service.ServiceParams.VIRTUAL_POOL;
 
 import java.net.URI;
 import java.util.List;
+import java.util.Map;
 
 import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.engine.bind.Bindable;
@@ -132,17 +133,27 @@ public class AddBareMetalHostToClusterService extends ViPRService {
         hostNames = ComputeUtils.removeExistingHosts(hostNames, cluster);
 
         List<Host> hosts = ComputeUtils.createHosts(cluster, computeVirtualPool, hostNames, virtualArray);
+
         logInfo("compute.cluster.hosts.created", ComputeUtils.nonNull(hosts).size());
 
-        List<URI> bootVolumeIds = ComputeUtils.makeBootVolumes(project, virtualArray, virtualPool, size, hosts,
+        Map<Host, URI> hostToBootVolumeIdMap = ComputeUtils.makeBootVolumes(project, virtualArray, virtualPool, size, hosts,
                 getClient());
-        logInfo("compute.cluster.boot.volumes.created", ComputeUtils.nonNull(bootVolumeIds).size());
-        hosts = ComputeUtils.deactivateHostsWithNoBootVolume(hosts, bootVolumeIds, cluster);
+        logInfo("compute.cluster.boot.volumes.created", 
+                hostToBootVolumeIdMap != null ? ComputeUtils.nonNull(hostToBootVolumeIdMap.values()).size() : 0);
 
-        List<URI> exportIds = ComputeUtils.exportBootVols(bootVolumeIds, hosts, project, virtualArray, hlu);
-        logInfo("compute.cluster.exports.created", ComputeUtils.nonNull(exportIds).size());
-        hosts = ComputeUtils.deactivateHostsWithNoExport(hosts, exportIds, bootVolumeIds, cluster);
-        hosts = ComputeUtils.setHostBootVolumes(hosts, bootVolumeIds, true);
+        // Deactivate hosts with no boot volume, return list of hosts remaining.
+        hostToBootVolumeIdMap = ComputeUtils.deactivateHostsWithNoBootVolume(hostToBootVolumeIdMap, cluster);
+
+        // Export the boot volume, return a map of hosts and their EG IDs
+        Map<Host, URI> hostToEgIdMap = ComputeUtils.exportBootVols(hostToBootVolumeIdMap, project, virtualArray, hlu);
+        logInfo("compute.cluster.exports.created", 
+                hostToEgIdMap != null ? ComputeUtils.nonNull(hostToEgIdMap.values()).size(): 0);
+        
+        // Deactivate any hosts where the export failed, return list of hosts remaining
+        hostToBootVolumeIdMap = ComputeUtils.deactivateHostsWithNoExport(hostToBootVolumeIdMap, hostToEgIdMap, cluster);
+        
+        // Set host boot volume ids, but do not set san boot targets. They will get set post os install.
+        hosts = ComputeUtils.setHostBootVolumes(hostToBootVolumeIdMap, true);
 
         ComputeUtils.addHostsToCluster(hosts, cluster);
 

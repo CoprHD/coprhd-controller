@@ -152,6 +152,8 @@ import com.emc.storageos.volumecontroller.AsyncTask;
 import com.emc.storageos.volumecontroller.BlockController;
 import com.emc.storageos.volumecontroller.ControllerException;
 
+import com.google.common.base.Function;
+
 /**
  * A service that provides APIs for viewing, updating and removing hosts and their
  * interfaces by authorized users.
@@ -224,7 +226,22 @@ public class HostService extends TaskResourceService {
         Host host = queryObject(Host.class, id, false);
         // check the user permissions
         verifyAuthorizedInTenantOrg(host.getTenant(), getUserFromContext());
-        return map(host);
+        ComputeElement computeElement = null;
+        UCSServiceProfile serviceProfile = null;
+        ComputeSystem computeSystem = null;
+        if (!NullColumnValueGetter.isNullURI(host.getComputeElement())){
+           computeElement = queryObject(ComputeElement.class, host.getComputeElement(),false);
+        }
+        if (!NullColumnValueGetter.isNullURI(host.getServiceProfile())){
+           serviceProfile = queryObject(UCSServiceProfile.class, host.getServiceProfile(), false);
+        }
+        if (serviceProfile!=null){
+           computeSystem = queryObject(ComputeSystem.class, serviceProfile.getComputeSystem(), false);
+        }else if (computeElement !=null){
+           computeSystem = queryObject(ComputeSystem.class, computeElement.getComputeSystem(), false);
+        }
+       
+        return map(host, computeElement, serviceProfile, computeSystem);
     }
 
     /**
@@ -359,7 +376,8 @@ public class HostService extends TaskResourceService {
          Host host = queryObject(Host.class, id, true);
         boolean hasPendingTasks = hostHasPendingTasks(id);
         boolean updateSanBootTargets = param.getUpdateSanBootTargets();
-        if (hasPendingTasks) {
+//        if (hasPendingTasks) {
+        if(true) {
             throw APIException.badRequests.cannotUpdateHost("another operation is in progress for this host");
         }
         
@@ -1198,8 +1216,9 @@ public class HostService extends TaskResourceService {
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Override
     public HostBulkRep getBulkResources(BulkIdParam param) {
-        return (HostBulkRep) super.getBulkResources(param);
+       return (HostBulkRep) super.getBulkResources(param);
     }
+        
 
     @Override
     protected DataObject queryResource(URI id) {
@@ -1227,14 +1246,39 @@ public class HostService extends TaskResourceService {
     public HostBulkRep queryBulkResourceReps(List<URI> ids) {
 
         Iterator<Host> _dbIterator = _dbClient.queryIterativeObjects(getResourceClass(), ids);
-        return new HostBulkRep(BulkList.wrapping(_dbIterator, MapHost.getInstance()));
+        return new HostBulkRep(BulkList.wrapping(_dbIterator, new MapHostWithBladeAndProfile()));
     }
 
     @Override
     public HostBulkRep queryFilteredBulkResourceReps(List<URI> ids) {
         Iterator<Host> _dbIterator = _dbClient.queryIterativeObjects(getResourceClass(), ids);
         BulkList.ResourceFilter filter = new BulkList.HostFilter(getUserFromContext(), _permissionsHelper);
-        return new HostBulkRep(BulkList.wrapping(_dbIterator, MapHost.getInstance(), filter));
+        return new HostBulkRep(BulkList.wrapping(_dbIterator, new MapHostWithBladeAndProfile(), filter));
+    }
+    
+    private class MapHostWithBladeAndProfile implements Function<Host, HostRestRep> {
+        @Override
+        public HostRestRep apply(Host host) {
+            ComputeElement computeElement = null;
+            UCSServiceProfile serviceProfile = null;
+            ComputeSystem computeSystem = null;
+            if (host!=null){
+              if (!NullColumnValueGetter.isNullURI(host.getComputeElement())){
+                  computeElement = queryObject(ComputeElement.class, host.getComputeElement(),false);
+              }
+              if (!NullColumnValueGetter.isNullURI(host.getServiceProfile())){
+                  serviceProfile = queryObject(UCSServiceProfile.class, host.getServiceProfile(), false);
+              }
+              if (serviceProfile!=null){
+                  computeSystem = queryObject(ComputeSystem.class, serviceProfile.getComputeSystem(), false);
+              }else if (computeElement !=null){
+                  computeSystem = queryObject(ComputeSystem.class, computeElement.getComputeSystem(), false);
+              }
+            }
+            HostRestRep rep = map(host,computeElement, serviceProfile, computeSystem);
+            return rep;
+        }
+
     }
 
     @Override

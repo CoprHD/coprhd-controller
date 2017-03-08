@@ -68,11 +68,7 @@ public class ExportMaskRemoveInitiatorCompleter extends ExportTaskCompleter {
                     removeUnusedTargets(exportMask);
                     dbClient.updateObject(exportMask);
                 }
-                
-                if (isRollingBack()) {
-                    ExportUtils.cleanStaleInitiatorReferences(exportGroup, dbClient);
-                }
-                
+                                
                 _log.info(String.format(
                         "Done ExportMaskRemoveInitiator - Id: %s, OpId: %s, status: %s",
                         getId().toString(), getOpId(), Operation.Status.ready.name()));
@@ -141,6 +137,10 @@ public class ExportMaskRemoveInitiatorCompleter extends ExportTaskCompleter {
 					removeUnusedTargets(exportMask);
 					dbClient.updateObject(exportMask);
 				}
+				
+                if (isRollingBack()) {
+                    ExportUtils.cleanStaleInitiatorReferences(exportGroup, dbClient);
+                }
                 
                 _log.info(String.format(
                         "Done ExportMaskRemoveInitiator - Id: %s, OpId: %s, status: %s",

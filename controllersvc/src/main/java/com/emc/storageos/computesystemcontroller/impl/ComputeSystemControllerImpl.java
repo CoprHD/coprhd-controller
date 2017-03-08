@@ -99,9 +99,12 @@ import com.iwave.ext.vmware.VCenterAPI;
 import com.iwave.ext.vmware.VMWareException;
 import com.iwave.ext.vmware.VMwareUtils;
 import com.vmware.vim25.HostScsiDisk;
+import com.vmware.vim25.InvalidProperty;
+import com.vmware.vim25.RuntimeFault;
 import com.vmware.vim25.StorageIORMConfigSpec;
 import com.vmware.vim25.TaskInfo;
 import com.vmware.vim25.TaskInfoState;
+import com.vmware.vim25.VmfsDatastoreInfo;
 import com.vmware.vim25.mo.Datastore;
 import com.vmware.vim25.mo.HostSystem;
 import com.vmware.vim25.mo.StorageResourceManager;
@@ -1570,24 +1573,14 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
             VCenterAPI api = VcenterDiscoveryAdapter.createVCenterAPI(vCenter);
             HostSystem host = api.findHostSystem(vCenterDataCenter.getLabel(), esxHostname);
 
+            Map<String, Datastore> wwnDatastores = getDatastoreMap(host);
+
             if (exportGroup != null && exportGroup.getVolumes() != null) {
                 for (String volume : exportGroup.getVolumes().keySet()) {
                     BlockObject blockObject = BlockObject.fetch(_dbClient, URI.create(volume));
-                    if (blockObject != null && blockObject.getTag() != null) {
-                        for (ScopedLabel tag : blockObject.getTag()) {
-                            String tagValue = tag.getLabel();
-                            if (tagValue != null && tagValue.startsWith(VMFS_DATASTORE_PREFIX)) {
-                                String datastoreName = getDatastoreName(tagValue);
-                                // VBDU TODO: COP-28459, In addition to Name , is there any other way we can make sure
-                                // the right data store is picked up
-                                Datastore datastore = api.findDatastore(vCenterDataCenter.getLabel(), datastoreName);
-                                if (datastore != null) {
-                                    ComputeSystemHelper.verifyDatastore(datastore, host);
-                                }
-                                // VBDU TODO: COP-28459, If datastore doesn't match we should fail the operation, we
-                                // cannot proceed with unmount volumes.
-                            }
-                        }
+                    Datastore datastore = wwnDatastores.get(blockObject.getWWN());
+                    if (datastore != null) {
+                        ComputeSystemHelper.verifyDatastore(datastore, host);
                     }
                 }
             }
@@ -1599,6 +1592,22 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
             _log.error(ex.getMessage(), ex);
             WorkflowStepCompleter.stepFailed(stepId, DeviceControllerException.errors.jobFailed(ex));
         }
+
+    }
+
+    public Map<String, Datastore> getDatastoreMap(HostSystem host) throws InvalidProperty, RuntimeFault, RemoteException {
+        Map<String, Datastore> result = Maps.newHashMap();
+        HostStorageAPI hostApi = new HostStorageAPI(host);
+
+        for (Datastore ds : host.getDatastores()) {
+            if (ds.getInfo() instanceof VmfsDatastoreInfo) {
+                Collection<HostScsiDisk> disks = hostApi.getDisksByPartition(ds).values();
+                for (HostScsiDisk disk : disks) {
+                    result.put(VMwareUtils.getDiskWwn(disk), ds);
+                }
+            }
+        }
+        return result;
     }
 
     /**
@@ -1629,27 +1638,22 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
             HostSystem hostSystem = api.findHostSystem(vCenterDataCenter.getLabel(), esxHost.getLabel());
             HostStorageAPI storageAPI = new HostStorageAPI(hostSystem);
 
+            Map<String, Datastore> wwnDatastores = getDatastoreMap(hostSystem);
+
             if (exportGroup != null && exportGroup.getVolumes() != null) {
                 for (String volume : exportGroup.getVolumes().keySet()) {
                     BlockObject blockObject = BlockObject.fetch(_dbClient, URI.create(volume));
-                    if (blockObject != null && blockObject.getTag() != null) {
-                        for (ScopedLabel tag : blockObject.getTag()) {
-                            String tagValue = tag.getLabel();
-                            if (tagValue != null && tagValue.startsWith(VMFS_DATASTORE_PREFIX)) {
-                                String datastoreName = getDatastoreName(tagValue);
-
-                                Datastore datastore = api.findDatastore(vCenterDataCenter.getLabel(), datastoreName);
-                                if (datastore != null) {
-                                    boolean storageIOControlEnabled = datastore.getIormConfiguration().isEnabled();
-                                    if (storageIOControlEnabled) {
-                                        setStorageIOControl(api, datastore, false);
-                                    }
-                                    _log.info("Unmount datastore " + datastore.getName() + " from host " + esxHost.getLabel());
-                                    storageAPI.unmountVmfsDatastore(datastore);
-                                    if (storageIOControlEnabled) {
-                                        setStorageIOControl(api, datastore, true);
-                                    }
-                                }
+                    if (blockObject != null) {
+                        Datastore datastore = wwnDatastores.get(blockObject.getWWN());
+                        if (datastore != null) {
+                            boolean storageIOControlEnabled = datastore.getIormConfiguration().isEnabled();
+                            if (storageIOControlEnabled) {
+                                setStorageIOControl(api, datastore, false);
+                            }
+                            _log.info("Unmount datastore " + datastore.getName() + " from host " + esxHost.getLabel());
+                            storageAPI.unmountVmfsDatastore(datastore);
+                            if (storageIOControlEnabled) {
+                                setStorageIOControl(api, datastore, true);
                             }
                         }
                     }

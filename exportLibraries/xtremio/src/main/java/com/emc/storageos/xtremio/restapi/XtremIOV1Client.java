@@ -130,12 +130,21 @@ public class XtremIOV1Client extends XtremIOClient {
         List<XtremIOInitiator> initiatorPortList = new ArrayList<XtremIOInitiator>();
         for (XtremIOObjectInfo initiatorPortInfo : initiatorPortLinks.getInitiators()) {
             URI initiatorPortUri = URI.create(URIUtil.getFromPath(initiatorPortInfo.getHref()));
+            try {
             log.debug("Trying to get initiator details for {}", initiatorPortUri.toString());
             response = get(initiatorPortUri);
             XtremIOInitiators initiatorPorts = getResponseObject(XtremIOInitiators.class, response);
             log.info("Initiator Port {}", initiatorPorts.getContent().getName() + "-"
                     + initiatorPorts.getContent().getPortAddress());
             initiatorPortList.add(initiatorPorts.getContent());
+            } catch (Exception e) {
+                if (null != e.getMessage() && !e.getMessage().contains(XtremIOConstants.OBJECT_NOT_FOUND)) {
+                    throw e;
+                } else {
+                    log.warn("GET initiator - {} failed with obj_not_found. Initiator might be deleted from the system",
+                            initiatorPortUri.toString());
+                }
+            }
         }
         return initiatorPortList;
     }

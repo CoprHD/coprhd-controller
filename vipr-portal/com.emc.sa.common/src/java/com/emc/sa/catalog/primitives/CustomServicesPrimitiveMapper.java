@@ -19,6 +19,8 @@ package com.emc.sa.catalog.primitives;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
 
 import com.emc.storageos.api.mapper.DbObjectMapper;
 import com.emc.storageos.api.service.impl.response.ResourceTypeMapping;
@@ -32,11 +34,19 @@ import com.emc.storageos.model.RestLinkRep;
 import com.emc.storageos.model.customservices.CustomServicesPrimitiveResourceList;
 import com.emc.storageos.model.customservices.CustomServicesPrimitiveResourceRestRep;
 import com.emc.storageos.model.customservices.CustomServicesPrimitiveRestRep;
+import com.emc.storageos.model.customservices.CustomServicesPrimitiveRestRep.InputGroup;
+import com.emc.storageos.model.customservices.InputParameterRestRep;
+import com.emc.storageos.model.customservices.OutputParameterRestRep;
 import com.emc.storageos.primitives.CustomServicesPrimitive;
+import com.emc.storageos.primitives.CustomServicesPrimitive.InputType;
 import com.emc.storageos.primitives.CustomServicesPrimitiveResourceType;
 import com.emc.storageos.primitives.CustomServicesPrimitiveType;
+import com.emc.storageos.primitives.input.BasicInputParameter;
+import com.emc.storageos.primitives.input.InputParameter;
+import com.emc.storageos.primitives.output.OutputParameter;
 import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorException;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 
 /**
  * Class that can map primitive java objects to the REST response entity
@@ -96,8 +106,12 @@ public final class  CustomServicesPrimitiveMapper extends DbObjectMapper {
         to.setFriendlyName(from.friendlyName());
         to.setDescription(from.description());
         to.setSuccessCriteria(from.successCriteria());
+        to.setType(from.stepType().toString());
+        to.setAttributes(from.attributes());
+        to.setInputGroups(mapInput(from.input()));
+        to.setOutput(mapOutput(from.output()));
+        
     }
-
 
     public static <T extends CustomServicesDBResource> CustomServicesPrimitiveResourceList toCustomServicesPrimitiveResourceList(
             final String type, final List<NamedElement> fromList) {
@@ -106,5 +120,60 @@ public final class  CustomServicesPrimitiveMapper extends DbObjectMapper {
             builder.add(toNamedRelatedResource(ResourceTypeMapping.getResourceType(CustomServicesDBResource.class), resource.getId(), resource.getName()));
         }
         return new CustomServicesPrimitiveResourceList(builder.build());
+    }
+    
+    private static Map<String, InputGroup> mapInput(
+            final Map<InputType, List<InputParameter>> input) {
+        final ImmutableMap.Builder<String, InputGroup> builder = ImmutableMap.<String, InputGroup>builder();
+        
+        for(final Entry<InputType, List<InputParameter>> entry : input.entrySet()) {
+            builder.put(entry.getKey().toString(), mapInputGroup(entry.getValue()));
+        }
+        
+        return builder.build();
+    }
+
+
+    private static InputGroup mapInputGroup(final List<InputParameter> list) {
+        final ImmutableList.Builder<InputParameterRestRep> builder = ImmutableList.<InputParameterRestRep>builder();
+        if( list != null ) {
+            for( final InputParameter param : list ) {
+                builder.add(mapInputParameter(param.asBasicInputParameter()));
+            }
+        }
+        final InputGroup inputGroup = new InputGroup();
+        inputGroup.setInputGroup(builder.build());
+        return inputGroup;
+    }
+
+
+    private static InputParameterRestRep mapInputParameter(final BasicInputParameter<?> param) {
+        InputParameterRestRep restRep = new InputParameterRestRep();
+        restRep.setName(param.getName());
+        restRep.setRequired(param.getRequired());
+        restRep.setType(param.getType().name());
+
+        return restRep;
+    }
+
+    private static List<OutputParameterRestRep> mapOutput(
+            final List<OutputParameter> output) {
+        ImmutableList.Builder<OutputParameterRestRep> builder = ImmutableList.<OutputParameterRestRep>builder();
+        if(output != null ) {
+            for(final OutputParameter param : output) {
+                builder.add(mapOutputParameter(param));
+            }
+        }
+        return builder.build();
+    }
+
+    private static OutputParameterRestRep mapOutputParameter(
+            final OutputParameter param) {
+        final OutputParameterRestRep restRep = new OutputParameterRestRep();
+        
+        restRep.setName(param.getName());
+        restRep.setType(param.getType().name());
+        
+        return restRep;
     }
 }

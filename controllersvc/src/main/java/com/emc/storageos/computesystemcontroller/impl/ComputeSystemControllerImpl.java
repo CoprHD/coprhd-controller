@@ -412,7 +412,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                 waitFor = computeDeviceController.addStepsVcenterHostCleanup(workflow, waitFor, host);
             }
 
-            waitFor = checkForHostVirtualMachines(workflow, waitFor, host);
+            waitFor = unmountHostStorage(workflow, waitFor, host);
 
             String unassociateStepId = workflow.createStepId();
 
@@ -435,7 +435,15 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
         }
     }
 
-    private String checkForClusterVirtualMachines(Workflow workflow, String waitFor, URI clusterId) {
+    /**
+     * Unmounts storage for a cluster
+     * 
+     * @param workflow the workflow to use
+     * @param waitFor the step to wait for
+     * @param clusterId the cluster id to unmount storage
+     * @return wait step
+     */
+    private String unmountClusterStorage(Workflow workflow, String waitFor, URI clusterId) {
         Cluster cluster = _dbClient.queryObject(Cluster.class, clusterId);
 
         String newWaitFor = waitFor;
@@ -459,7 +467,15 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
         return newWaitFor;
     }
 
-    private String checkForHostVirtualMachines(Workflow workflow, String waitFor, URI hostId) {
+    /**
+     * Unmounts storage for a host
+     * 
+     * @param workflow the workflow to use
+     * @param waitFor the step to wait for
+     * @param hostId the host id to unmount storage
+     * @return wait step
+     */
+    private String unmountHostStorage(Workflow workflow, String waitFor, URI hostId) {
         Host host = _dbClient.queryObject(Host.class, hostId);
 
         String newWaitFor = waitFor;
@@ -570,7 +586,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                 Host host = _dbClient.queryObject(Host.class, hostUri.getId());
                 // do not detach storage of provisioned hosts
                 if (host != null && !host.getInactive() && NullColumnValueGetter.isNullURI(host.getComputeElement())) {
-                    waitFor = checkForHostVirtualMachines(workflow, waitFor, host.getId());
+                    waitFor = unmountHostStorage(workflow, waitFor, host.getId());
                 }
             }
 
@@ -579,7 +595,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
             for (NamedElementQueryResultList.NamedElement clusterUri : clustersUris) {
                 Cluster cluster = _dbClient.queryObject(Cluster.class, clusterUri.getId());
                 if (cluster != null && !cluster.getInactive()) {
-                    waitFor = checkForClusterVirtualMachines(workflow, waitFor, cluster.getId());
+                    waitFor = unmountClusterStorage(workflow, waitFor, cluster.getId());
                 }
             }
 
@@ -1506,12 +1522,12 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
 
                     storageAPI.getStorageSystem().rescanVmfs();
 
-                    Map<String, Datastore> wwnDatastores = getDatastoreMap(hostSystem);
+                    Map<String, Datastore> wwnDatastores = getWwnDatastoreMap(hostSystem);
 
                     if (blockObject != null) {
 
                         try {
-                            Datastore datastore = findingMatchingDatastore(wwnDatastores, blockObject.getWWN());
+                            Datastore datastore = getDatastoreByWwn(wwnDatastores, blockObject.getWWN());
                             if (datastore != null) {
                                 _log.info("Mounting datastore " + datastore.getName() + " on host " + esxHost.getLabel());
                                 storageAPI.mountDatastore(datastore);
@@ -1578,12 +1594,12 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
             VCenterAPI api = VcenterDiscoveryAdapter.createVCenterAPI(vCenter);
             HostSystem host = api.findHostSystem(vCenterDataCenter.getLabel(), esxHostname);
 
-            Map<String, Datastore> wwnDatastores = getDatastoreMap(host);
+            Map<String, Datastore> wwnDatastores = getWwnDatastoreMap(host);
 
             if (exportGroup != null && exportGroup.getVolumes() != null) {
                 for (String volume : exportGroup.getVolumes().keySet()) {
                     BlockObject blockObject = BlockObject.fetch(_dbClient, URI.create(volume));
-                    Datastore datastore = findingMatchingDatastore(wwnDatastores, blockObject.getWWN());
+                    Datastore datastore = getDatastoreByWwn(wwnDatastores, blockObject.getWWN());
                     if (datastore != null) {
                         ComputeSystemHelper.verifyDatastore(datastore, host);
                     }
@@ -1600,25 +1616,41 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
 
     }
 
-    public Map<String, Datastore> getDatastoreMap(HostSystem host) throws InvalidProperty, RuntimeFault, RemoteException {
+    /**
+     * Gets a map of volume wwn to datastore for all datastores that the host has access to
+     * 
+     * @param host the host
+     * @return map of volume wwn to datastore
+     * @throws InvalidProperty
+     * @throws RuntimeFault
+     * @throws RemoteException
+     */
+    public Map<String, Datastore> getWwnDatastoreMap(HostSystem host) throws InvalidProperty, RuntimeFault, RemoteException {
         Map<String, Datastore> result = Maps.newHashMap();
         HostStorageAPI hostApi = new HostStorageAPI(host);
 
-        for (Datastore ds : host.getDatastores()) {
-            if (ds.getInfo() instanceof VmfsDatastoreInfo) {
-                Collection<HostScsiDisk> disks = hostApi.getDisksByPartition(ds).values();
+        for (Datastore datastore : host.getDatastores()) {
+            if (datastore.getInfo() instanceof VmfsDatastoreInfo) {
+                Collection<HostScsiDisk> disks = hostApi.getDisksByPartition(datastore).values();
                 for (HostScsiDisk disk : disks) {
-                    result.put(VMwareUtils.getDiskWwn(disk), ds);
+                    result.put(VMwareUtils.getDiskWwn(disk), datastore);
                 }
             }
         }
         return result;
     }
 
-    public Datastore findingMatchingDatastore(Map<String, Datastore> map, String wwn) {
-        for (String dswwn : map.keySet()) {
-            if (VolumeWWNUtils.wwnMatches(dswwn, wwn)) {
-                return map.get(dswwn);
+    /**
+     * Gets the datastore that is backed by volume wwn
+     * 
+     * @param wwnDatastoreMap the map of volume wwn to datastore
+     * @param wwn the wwn to search for
+     * @return datastore that is backed by the volume wwn or null if not found
+     */
+    public Datastore getDatastoreByWwn(Map<String, Datastore> wwnDatastoreMap, String wwn) {
+        for (String datastoreWwn : wwnDatastoreMap.keySet()) {
+            if (VolumeWWNUtils.wwnMatches(datastoreWwn, wwn)) {
+                return wwnDatastoreMap.get(datastoreWwn);
             }
         }
         return null;
@@ -1652,13 +1684,13 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
             HostSystem hostSystem = api.findHostSystem(vCenterDataCenter.getLabel(), esxHost.getLabel());
             HostStorageAPI storageAPI = new HostStorageAPI(hostSystem);
 
-            Map<String, Datastore> wwnDatastores = getDatastoreMap(hostSystem);
+            Map<String, Datastore> wwnDatastores = getWwnDatastoreMap(hostSystem);
 
             if (exportGroup != null && exportGroup.getVolumes() != null) {
                 for (String volume : exportGroup.getVolumes().keySet()) {
                     BlockObject blockObject = BlockObject.fetch(_dbClient, URI.create(volume));
                     if (blockObject != null) {
-                        Datastore datastore = findingMatchingDatastore(wwnDatastores, blockObject.getWWN());
+                        Datastore datastore = getDatastoreByWwn(wwnDatastores, blockObject.getWWN());
                         if (datastore != null) {
                             boolean storageIOControlEnabled = datastore.getIormConfiguration().isEnabled();
                             if (storageIOControlEnabled) {

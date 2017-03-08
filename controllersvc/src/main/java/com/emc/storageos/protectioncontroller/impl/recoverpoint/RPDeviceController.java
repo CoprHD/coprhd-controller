@@ -5684,7 +5684,6 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
             Map<String, Set<URI>> emNamesToSnapshots = new HashMap<String, Set<URI>>();
 
             for (URI snapshotID : snapshotList) {
-                // Get the volume associated with this snapshot
                 BlockSnapshot snapshot = _dbClient.queryObject(BlockSnapshot.class, snapshotID);
 
                 String emName = snapshot.getEmName();
@@ -5702,6 +5701,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                     throw DeviceControllerExceptions.recoverpoint.failedToActivateSnapshotEmNameMissing(snapshotID);
                 }
 
+                // Get the volume associated with this snapshot
                 Volume volume = _dbClient.queryObject(Volume.class, snapshot.getParent().getURI());
                 // For RP+VPLEX volumes, we need to fetch the VPLEX volume.
                 // The snapshot objects references the block/back-end volume as its parent.
@@ -5987,7 +5987,6 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
             Map<String, Set<URI>> emNamesToSnapshots = new HashMap<String, Set<URI>>();
 
             for (URI snapshotID : snapshotList) {
-                // Get the volume associated with this snapshot
                 BlockSnapshot snapshot = _dbClient.queryObject(BlockSnapshot.class, snapshotID);
 
                 // Determine if we can actually disable image access to the copy associated with the snapshot first
@@ -6015,6 +6014,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                     throw DeviceControllerExceptions.recoverpoint.failedToDeactivateSnapshotEmNameMissing(snapshotID);
                 }
 
+                // Get the volume associated with this snapshot
                 Volume volume = _dbClient.queryObject(Volume.class, snapshot.getParent().getURI());
 
                 // For RP+VPLEX volumes, we need to fetch the VPLEX volume.

@@ -3254,4 +3254,8 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException deprecatedRestCall(final String uri, final String replacementUri);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException operationNotPermittedOnSRDFActiveCopyMode(final String operation);
+
 }

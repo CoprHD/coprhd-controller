@@ -126,12 +126,14 @@ import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.services.util.StorageDriverManager;
 import com.emc.storageos.services.util.TimeUtils;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
+import com.emc.storageos.svcs.errorhandling.resources.BadRequestException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCodeException;
 import com.emc.storageos.util.VPlexUtil;
 import com.emc.storageos.volumecontroller.BlockController;
 import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.impl.ControllerUtils;
+import com.emc.storageos.volumecontroller.impl.smis.SRDFOperations.Mode;
 import com.google.common.collect.Table;
 import com.google.common.collect.Table.Cell;
 
@@ -2475,6 +2477,13 @@ public class BlockConsistencyGroupService extends TaskResourceService {
 
         // Get the first volume
         Volume targetVolume = targetVolumes.get(0);
+
+        // COP-25377. We need to block failover and swap operations for SRDF ACTIVE COPY MODE
+        if (Mode.ACTIVE.toString().equalsIgnoreCase(targetVolume.getSrdfCopyMode())
+                && (op.equalsIgnoreCase(ProtectionOp.FAILOVER_CANCEL.getRestOp()) ||
+                        op.equalsIgnoreCase(ProtectionOp.FAILOVER.getRestOp()) || op.equalsIgnoreCase(ProtectionOp.SWAP.getRestOp()))) {
+            throw BadRequestException.badRequests.operationNotPermittedOnSRDFActiveCopyMode(op);
+        }
 
         String task = UUID.randomUUID().toString();
         Operation status = new Operation();

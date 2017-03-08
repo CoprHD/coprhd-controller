@@ -376,8 +376,7 @@ public class HostService extends TaskResourceService {
          Host host = queryObject(Host.class, id, true);
         boolean hasPendingTasks = hostHasPendingTasks(id);
         boolean updateSanBootTargets = param.getUpdateSanBootTargets();
-//        if (hasPendingTasks) {
-        if(true) {
+        if (hasPendingTasks) {
             throw APIException.badRequests.cannotUpdateHost("another operation is in progress for this host");
         }
         

@@ -13,6 +13,7 @@ import org.apache.commons.httpclient.util.URIUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.xtremio.restapi.XtremIOConstants.XTREMIO_ENTITY_TYPE;
 import com.emc.storageos.xtremio.restapi.errorhandling.XtremIOApiException;
 import com.emc.storageos.xtremio.restapi.model.XtremIOResponseContent;
@@ -228,7 +229,7 @@ public class XtremIOV1Client extends XtremIOClient {
         XtremIOInitiatorGroupFolderCreate igFolderCreate = new XtremIOInitiatorGroupFolderCreate();
         igFolderCreate.setCaption(igFolderName);
         igFolderCreate.setParentFolderId("/");
-        postIgnoreResponse(XtremIOConstants.XTREMIO_INITIATOR_GROUPS_FOLDER_URI,
+        ClientResponse response = post(XtremIOConstants.XTREMIO_INITIATOR_GROUPS_FOLDER_URI,
                 getJsonForEntity(igFolderCreate));
     }
 
@@ -330,7 +331,7 @@ public class XtremIOV1Client extends XtremIOClient {
         XtremIOInitiatorGroupCreate initiatorGroupCreate = new XtremIOInitiatorGroupCreate();
         initiatorGroupCreate.setName(igName);
         initiatorGroupCreate.setParentFolderId(XtremIOConstants.V1_ROOT_FOLDER.concat(parentFolderId));
-        postIgnoreResponse(XtremIOConstants.XTREMIO_INITIATOR_GROUPS_URI, getJsonForEntity(initiatorGroupCreate));
+        post(XtremIOConstants.XTREMIO_INITIATOR_GROUPS_URI, getJsonForEntity(initiatorGroupCreate));
     }
 
     @Override
@@ -343,7 +344,7 @@ public class XtremIOV1Client extends XtremIOClient {
         lunMapCreate.setName(volName);
         log.info("Calling lun map Create {}", lunMapCreate.toString());
         try {
-            postIgnoreResponse(XtremIOConstants.XTREMIO_LUNMAPS_URI, getJsonForEntity(lunMapCreate));
+            post(XtremIOConstants.XTREMIO_LUNMAPS_URI, getJsonForEntity(lunMapCreate));
         } catch (Exception e) {
             // TODO Right now making the fix very simple ,instead of trying to acquire a lock on Storage System
             if (null != e.getMessage() && !e.getMessage().contains(XtremIOConstants.VOLUME_MAPPED)) {

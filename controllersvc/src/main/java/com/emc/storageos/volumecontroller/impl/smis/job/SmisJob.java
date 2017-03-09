@@ -449,7 +449,7 @@ public class SmisJob extends Job implements Serializable
     }
 
     /**
-     * Attempt to get a non-empty error description from the CIM Job.
+     * Attempt to get a better non-empty error description from the CIM Job where ever possible.
      *
      * @param errorMessage The current SMI-S error message .
      * @return Non-empty string containing better error message if available or the default.

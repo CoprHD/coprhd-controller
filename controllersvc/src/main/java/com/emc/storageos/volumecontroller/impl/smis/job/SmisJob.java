@@ -56,7 +56,7 @@ public class SmisJob extends Job implements Serializable
 
     // Place holder for error messages and their conversions
     private static final String ERROR_DESC_UNLINK_OP = "The unlink cannot be completed in this state unless the Symmetrix force flag is used";
-    private static final String ERROR_DESC_UNLINK_OP_NEW = "The copy/define is in progress and unlink is not allowed at this time";
+    private static final String ERROR_DESC_UNLINK_OP_NEW = "***The copy/define is in progress and unlink is not allowed at this time***";
 
     protected JobPollResult _pollResult = new JobPollResult();
     private String _id;

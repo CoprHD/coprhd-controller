@@ -1600,6 +1600,7 @@ angular.module("portalApp").controller("ConfigBackupCtrl", function($scope) {
     });
 
     $scope.$watch('backup_startTime', function (newVal, oldVal) {
+        if (newVal === undefined) return;
         setOffsetFromLocalTime($scope.backup_startTime, $backup_interval.val());
         if (typeof $backup_interval != 'undefined') {
             withHint($backup_interval.val());

@@ -1198,7 +1198,7 @@
     {
         key : "controller_enable_autoscan",
         label : "Enable Auto-Scan",
-        description : "Indicates whether auto-scan of SMI-S providers is enabled.",
+        description : "Indicates whether auto-scan of Storage providers is enabled.",
         type : "string",
         allowedValues : ( "true", "false" ),
         userConfigurable : false, 

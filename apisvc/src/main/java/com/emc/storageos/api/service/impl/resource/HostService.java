@@ -13,8 +13,8 @@ import static com.emc.storageos.api.mapper.TaskMapper.toTask;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -47,7 +47,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.emc.storageos.api.mapper.TaskMapper;
-import com.emc.storageos.api.mapper.functions.MapHost;
 import com.emc.storageos.api.service.authorization.PermissionsHelper;
 import com.emc.storageos.api.service.impl.resource.utils.AsyncTaskExecutorIntf;
 import com.emc.storageos.api.service.impl.resource.utils.DiscoveredObjectTaskScheduler;
@@ -78,7 +77,6 @@ import com.emc.storageos.db.client.model.DiscoveredDataObject.DataCollectionJobS
 import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
 import com.emc.storageos.db.client.model.Host;
-import com.emc.storageos.db.client.model.Host.HostType;
 import com.emc.storageos.db.client.model.Host.ProvisioningJobStatus;
 import com.emc.storageos.db.client.model.HostInterface;
 import com.emc.storageos.db.client.model.Initiator;
@@ -99,7 +97,6 @@ import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedExportMask;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
 import com.emc.storageos.db.client.model.util.TaskUtils;
-import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.EndpointUtility;
 import com.emc.storageos.db.client.util.FileOperationUtils;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
@@ -152,7 +149,6 @@ import com.emc.storageos.volumecontroller.ArrayAffinityAsyncTask;
 import com.emc.storageos.volumecontroller.AsyncTask;
 import com.emc.storageos.volumecontroller.BlockController;
 import com.emc.storageos.volumecontroller.ControllerException;
-
 import com.google.common.base.Function;
 
 /**
@@ -697,8 +693,6 @@ public class HostService extends TaskResourceService {
             throw APIException.badRequests.resourceHasActiveReferences(Host.class.getSimpleName(), id);
         }
         
-        ComputeElement computeElement = null;
-        Volume bootVolume = null;
         UCSServiceProfile serviceProfile = null;
         if (!NullColumnValueGetter.isNullURI(host.getServiceProfile())){
              serviceProfile = _dbClient.queryObject(UCSServiceProfile.class, host.getServiceProfile());
@@ -730,8 +724,8 @@ public class HostService extends TaskResourceService {
              }             
         } 
         if (!NullColumnValueGetter.isNullURI(host.getComputeElement()) && NullColumnValueGetter.isNullURI(host.getServiceProfile())){
-                throw APIException.badRequests.resourceCannotBeDeleted("Host "+ host.getLabel()+ " has a computeElement, but no serviceProfile."
-                                          +" Please re-discover the Vblock Compute System and retry");
+                throw APIException.badRequests.resourceCannotBeDeletedVblock(host.getLabel(), "Host "+ host.getLabel()+ " has a compute element, but no service profile."
+                                          +" Please re-discover the Vblock Compute System and retry.");
         }
         // VBDU [DONE]: COP-28452, Running host deactivate even if initiators == null or list empty seems risky
         // If initiators are empty, we will not perform any export updates

@@ -20,6 +20,7 @@ import java.util.Set;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.util.CollectionUtils;
 
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
@@ -940,6 +941,53 @@ public class VPlexUtil {
                 sharedExportMask = exportMask;
             }
         }
+
+        return sharedExportMask;
+    }
+    
+    /**
+     * 
+     * @param exportGroup
+     * @param vplexURI
+     * @param dbClient
+     * @param varrayUri
+     * @param vplexCluster
+     * @param hostInitiatorMap
+     * @return
+     * @throws Exception
+     */
+    public static ExportMask getAllSharedExportMasksInDb(ExportGroup exportGroup, URI vplexURI, DbClient dbClient,
+            URI varrayUri) throws Exception {
+        
+        ExportMask sharedExportMask = null;
+        if (exportGroup.getExportMasks() == null) {
+            return null;
+        }
+        StringSet exportGrouphosts = exportGroup.getHosts();
+        // Get all the exportMasks for the VPLEX from the export group
+        List<ExportMask> exportMasks = ExportMaskUtils.getExportMasks(dbClient, exportGroup, vplexURI);
+        
+        //TODO Do we need to filter masks which belongs to other vplex cluster in the export group? Is that really possible?
+
+        int hostSize = 0;
+        /**
+         * Return null, if not even one export mask has more than 1 host.
+         * If export masks having more than one host available, loop through the available export masks and pick the export mask which has the highest # of hosts.
+         */
+        if (exportGrouphosts != null && exportGrouphosts.size() > 1)
+            for (ExportMask exportMask : exportMasks) {
+                
+                ArrayList<String> exportMaskInitiators = new ArrayList<>(exportMask.getInitiators());
+                Map<URI, List<Initiator>> exportMaskHostInitiatorsMap = makeHostInitiatorsMap(
+                        URIUtil.toURIList(exportMaskInitiators), dbClient);
+               
+                
+                if (exportMaskHostInitiatorsMap.size() > 1 && exportMaskHostInitiatorsMap.size() > hostSize &&
+                        !CollectionUtils.isEmpty(exportMask.getVolumes())) {
+                    sharedExportMask = exportMask;
+                    hostSize = exportMaskHostInitiatorsMap.size();
+                }
+            }
 
         return sharedExportMask;
     }

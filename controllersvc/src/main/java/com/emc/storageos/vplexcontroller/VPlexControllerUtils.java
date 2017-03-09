@@ -1016,4 +1016,27 @@ public class VPlexControllerUtils {
 
         log.info("Stale Export Mask cleanup complete.");
     }
+
+    /**
+     * Group Ports by initiators by looping through each mask
+     * @param existingMasksFoundInVPlex
+     * @return
+     */
+    public static Map<String, Set<String>> groupPortsByInitiators(Map<URI, ExportMask> existingMasksFoundInVPlex) {
+        Map<String, Set<String>> groupPortsByInitiators = new HashMap<String, Set<String>>();
+        for(Entry<URI,ExportMask> maskEntry : existingMasksFoundInVPlex.entrySet()) {
+            ExportMask mask = maskEntry.getValue();
+            if(!CollectionUtils.isEmpty(mask.getStoragePorts()) &&
+                    !CollectionUtils.isEmpty(mask.getInitiators())) {
+                for(String iniPort : mask.getInitiators()) {
+                    if(groupPortsByInitiators.get(iniPort) == null) {
+                        groupPortsByInitiators.put(iniPort, new HashSet<String>());
+                    }
+                    groupPortsByInitiators.get(iniPort).addAll(mask.getStoragePorts());
+                }
+            }
+        }
+        log.info("Grouping Ports by Initiator : {}",Joiner.on(";").withKeyValueSeparator(" -> ").join(groupPortsByInitiators));
+        return groupPortsByInitiators;
+    }
 }

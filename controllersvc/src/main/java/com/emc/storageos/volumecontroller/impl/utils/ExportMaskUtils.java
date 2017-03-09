@@ -268,8 +268,8 @@ public class ExportMaskUtils {
         return initiators;
     }
     
-    public static Map<String, ExportMask> groupExportMaskByHost(DbClient dbClient,List<ExportMask> masksToGetProcessed) {
-        Map<String, ExportMask> hostToMaskGroup = new HashMap<String, ExportMask>();
+    public static Map<URI, Set<String>> groupExportMaskByHost(DbClient dbClient,List<ExportMask> masksToGetProcessed) {
+        Map<URI, Set<String>> hostToMaskGroup = new HashMap<URI, Set<String>>();
         
         for (ExportMask mask : masksToGetProcessed) {
             
@@ -279,9 +279,10 @@ public class ExportMaskUtils {
                 if (initiator.getHost() != null) {
                     key = initiator.getHost().toString();
                 }
-                if (hostToMaskGroup.get(key) == null) {
-                    hostToMaskGroup.put(key, mask);
+                if (hostToMaskGroup.get(mask.getId()) == null) {
+                    hostToMaskGroup.put(mask.getId(), new HashSet<String>());
                 }
+                hostToMaskGroup.get(mask.getId()).add(key);
                 
             }
         }

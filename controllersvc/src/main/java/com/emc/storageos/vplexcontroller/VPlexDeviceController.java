@@ -2128,7 +2128,13 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
             Map<URI, ExportMask> existingMasksFoundInVPlex = VPlexControllerUtils.findExistingStorageViewsAndCreateMasks(initiatorNames, _dbClient, targetPortToPwwnMap, _networkDeviceController,
                     client, vplexClusterName, vplexURI, exportGroup);
             
+            /**
+             * Get initiator-->ports for existing storage views.If all these storage views are skipped, thne during new view creation we will skip ports
+             * which are already allocated ofr the initiators.
+             */
             
+            Map<String,Set<String>> initiatorToPortsMap = VPlexControllerUtils.groupPortsByInitiators(existingMasksFoundInVPlex);
+             
              /**
              * This method filters out the export masks which has ports not part of given varray.
              */
@@ -2175,25 +2181,43 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
             }
             
             // Group masktoGetProcessed by Host
-            Map<String, ExportMask> hostToMaskGroup = ExportMaskUtils.groupExportMaskByHost(_dbClient, masksToGetProcessed);
-            
-            for (URI hostUri : hostInitiatorMap.keySet()) {
-                _log.info("assembling export masks workflow, now looking at host URI: " + hostUri);
+            Map<URI, Set<String>> hostToMaskGroup = ExportMaskUtils.groupExportMaskByHost(_dbClient, masksToGetProcessed);
+            /**
+             * If expectedInitiatorCount is not 0, which means there are
+             * existing storage views but those storage views doesn't have the
+             * full set of initiators. E.g. In 3 node cluster, say there are 2
+             * existing storage views one per Host for 2 Hosts and the 3rd Host
+             * doesnt have any view. In this case the new code will generate new
+             * storage view. If storage view contains both Host1 and Host2
+             * initiators, then this code will create a new storage view.
+             */
+            if (masksToGetProcessed.isEmpty() || expectedInitiatorCount > 0) {
+                /**
+                 * If we didn't find any existing Storage view, then always
+                 * create 1 Storage view with all initiators.
+                 */
+                _log.info("did not find a matching existing storage view anywhere, so ViPR "
+                        + "will initialize a new one and push it to the VPLEX device");
+                setupNewExportMask(blockObjectMap, vplexSystem, exportGroup, varrayUri, exportMasksToCreateOnDevice,
+                        initiatorList, vplexClusterId, initiatorToPortsMap, opId);
+            } else {
+                /**
+                 * We find existing storage views which contains all the
+                 * initiators.Loop through each storage view and add volume.
+                 */
+                for (ExportMask mask : masksToGetProcessed) {
+                    _log.info("assembling export masks workflow, now looking at mask URI: " + mask.getMaskName());
+                    exportMasksToUpdateOnDevice.add(mask);
+                    
+                }
                 
-                 List<Initiator> inits = hostInitiatorMap.get(hostUri);
-                
-                _log.info("this host contains these initiators: " + inits);
-                
-                if (masksToGetProcessed.isEmpty()) {
-                    // create a mew mask and storage view only for this host.
-                    // Otherwise, create a brand new ExportMask, which will
-                    // enable the storage view to
-                    // be created on the VPLEX device as part of this workflow
-                    _log.info("did not find a matching existing storage view anywhere, so ViPR "
-                            + "will initialize a new one and push it to the VPLEX device");
-                    setupNewExportMask(blockObjectMap, vplexSystem, exportGroup, varrayUri, exportMasksToCreateOnDevice, inits,
-                            vplexClusterId, opId);
-                } else {
+                /*for (URI hostUri : hostInitiatorMap.keySet()) {
+                    _log.info("assembling export masks workflow, now looking at host URI: " + hostUri);
+                    
+                    List<Initiator> inits = hostInitiatorMap.get(hostUri);
+                    
+                    _log.info("this host contains these initiators: " + inits);
+                    
                     // find the mask which belongs to this host by looking at
                     // initiator.
                     ExportMask mask = hostToMaskGroup.get(hostUri.toString());
@@ -2223,9 +2247,8 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
                     }
                     
                     exportMasksToUpdateOnDevice.add(mask);
-                   
-                }
-                
+                    
+                }*/
             }
             
         } finally {
@@ -2590,13 +2613,40 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
     private void setupNewExportMask(Map<URI, Integer> blockObjectMap,
             StorageSystem vplexSystem, ExportGroup exportGroup,
             URI varrayUri, List<ExportMask> exportMasksToCreateOnDevice,
-            List<Initiator> initiators, String vplexCluster, String opId) throws Exception {
+            List<Initiator> initiators, String vplexCluster,
+            Map<String,Set<String>> portsToInitiatorMap,String opId) throws Exception {
 
         ExportPathParams pathParams = _blockScheduler.calculateExportPathParamForVolumes(
                 blockObjectMap.keySet(), 0, vplexSystem.getId(), exportGroup.getId());
         if (exportGroup.getType() != null) {
             pathParams.setExportGroupType(exportGroup.getType());
         }
+        /**
+         * Figure out all the storage ports in existing storage views which are used by the given initiators.
+         */
+        Set<String> storagePortsAlreadyUsed = new HashSet<String>();
+        for(Initiator initiator : initiators) {
+            if(!CollectionUtils.isEmpty(portsToInitiatorMap.get(initiator.getId().toString()))) {
+                storagePortsAlreadyUsed.addAll(portsToInitiatorMap.get(initiator.getId().toString()));
+            }
+        }
+        
+        _log.info("Storage Ports {} already used in existing storage views", Joiner.on(",").join(storagePortsAlreadyUsed));
+        
+        List<StoragePort> storagePorts = ExportUtils.getStorageSystemAssignablePorts(
+                _dbClient, vplexSystem.getId(), varrayUri, pathParams);
+        
+        StringSet storagePortsInVarray = new StringSet();
+        for(StoragePort port : storagePorts) {
+            storagePortsInVarray.add(port.getId().toString());
+        }
+        
+        _log.info("Storage Ports {} in Varray", Joiner.on(",").join(storagePortsInVarray));
+        
+        storagePortsInVarray.removeAll(storagePortsAlreadyUsed);
+        _log.info("Storage Ports {} used for creating the new export mask", Joiner.on(",").join(storagePortsInVarray));
+        pathParams.setStoragePorts(storagePortsInVarray);
+        
         Map<URI, List<URI>> assignments = _blockScheduler.assignStoragePorts(vplexSystem, exportGroup,
                 initiators, null, pathParams, blockObjectMap.keySet(), _networkDeviceController, varrayUri, opId);
         List<URI> targets = BlockStorageScheduler.getTargetURIsFromAssignments(assignments);
@@ -4036,6 +4086,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
                         }
                     }
                     if (!initiators.isEmpty()) {
+                        
                         previousStep = addStepsForAddInitiators(
                                 workflow, vplex, exportGroup, varrayURI,
                                 initURIs, initiators, hostURI, previousStep, opId);
@@ -4127,10 +4178,43 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
         URI vplexURI = vplex.getId();
         URI exportURI = exportGroup.getId();
         String initListStr = Joiner.on(',').join(hostInitiatorURIs);
+        
+        VPlexApiClient client = getVPlexAPIClient(_vplexApiFactory, vplex, _dbClient);
+        String vplexClusterName = VPlexUtil.getVplexClusterName(varrayURI, vplexURI, client, _dbClient);
+        Boolean[] doInitiatorRefresh =  new Boolean[] { new Boolean(true) };
+        
+        
+
+        Map<String, String> targetPortToPwwnMap = VPlexControllerUtils.getTargetPortToPwwnMap(client, vplexClusterName);
+
+        List<Initiator> initiatorList = _dbClient.queryObject(Initiator.class, hostInitiatorURIs);
+        
+        List<String> initiatorNames = getInitiatorNames(vplex.getSerialNumber(), vplexClusterName, client,
+                initiatorList.iterator(), doInitiatorRefresh);
+        
+        /**
+         * This method finds out all the storage views macthing the given initiators in the vplex system.
+         * If an equivalent export mask is not found , it creates a new mask.
+         * Else it refresh the existing mask.
+         * 
+         * At the end of this method , we generate export masks for all the storage views matching the given initiators (even if 1 initiator match).
+         * TODO We could add validation to skip or throw exception if the view contains partial initiators.
+         */
+        Map<URI, ExportMask> existingMasksFoundInVPlex = VPlexControllerUtils.
+                findExistingStorageViewsAndCreateMasks(initiatorNames, _dbClient, 
+                        targetPortToPwwnMap, _networkDeviceController,
+                        client, vplexClusterName, vplexURI, exportGroup);
+        
+        /**
+         * Get initiator-->ports for existing storage views.If all these storage views are skipped, thne during new view creation we will skip ports
+         * which are already allocated ofr the initiators.
+         */
+        
+        Map<String,Set<String>> initiatorToPortsMap = VPlexControllerUtils.groupPortsByInitiators(existingMasksFoundInVPlex);
 
         // Find the ExportMask for my host.
-        ExportMask exportMask = VPlexUtil.getExportMaskForHostInVarray(_dbClient,
-                exportGroup, hostURI, vplexURI, varrayURI);
+        //TODO Do we need to filter the masks based on vplex cluster inside the export group?
+        ExportMask exportMask = VPlexUtil.getAllSharedExportMasksInDb(exportGroup, vplexURI, _dbClient, varrayURI);
         if (exportMask == null) {
             _log.info("No export mask found for hostURI: " + hostURI + " varrayURI: " + varrayURI);
 
@@ -4147,8 +4231,8 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
                         hostInitiatorURIs, varrayVolumeMap, workflow, previousStepId, opId);
             }
         } else {
-            VPlexApiClient client = getVPlexAPIClient(_vplexApiFactory, vplex, _dbClient);
-            String vplexClusterName = VPlexUtil.getVplexClusterName(exportMask, vplexURI, client, _dbClient);
+            
+            vplexClusterName = VPlexUtil.getVplexClusterName(exportMask, vplexURI, client, _dbClient);
             VPlexStorageViewInfo storageView = client.getStorageView(vplexClusterName, exportMask.getMaskName());
             _log.info("Refreshing ExportMask {}", exportMask.getMaskName());
             VPlexControllerUtils.refreshExportMask(
@@ -4156,13 +4240,9 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
                     VPlexControllerUtils.getTargetPortToPwwnMap(client, vplexClusterName),
                     _networkDeviceController);
 
-            if (exportMask.getVolumes() == null) {
-                // This can occur in Brownfield scenarios where we have not added any volumes yet to the HA side,
-                // CTRL10760
-                _log.info(String.format("No volumes in ExportMask %s (%s), so not adding initiators",
-                        exportMask.getMaskName(), exportMask.getId()));
-                return lastStepId;
-            }
+            /// CTRL10760- we should create new storage view, we cannot return without doing any.
+            //The changed logic would create a new view in the above if block in this case.
+            
             _log.info(String.format("Adding initiators %s for host %s mask %s (%s)",
                     getInitiatorsWwnsString(initiators), hostURI.toString(), exportMask.getMaskName(), exportMask.getId()));
 
@@ -4190,6 +4270,33 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
             if (exportGroup.getType() != null) {
                 pathParams.setExportGroupType(exportGroup.getType());
             }
+            
+            /**
+             * Figure out all the storage ports in existing storage views which are used by the given initiators.
+             */
+            Set<String> storagePortsAlreadyUsed = new HashSet<String>();
+            for(Initiator initiator : initiators) {
+                if(!CollectionUtils.isEmpty(initiatorToPortsMap.get(initiator.getId().toString()))) {
+                    storagePortsAlreadyUsed.addAll(initiatorToPortsMap.get(initiator.getId().toString()));
+                }
+            }
+            
+            _log.info("Storage Ports {} already used in existing storage views", Joiner.on(",").join(storagePortsAlreadyUsed));
+            
+            List<StoragePort> storagePorts = ExportUtils.getStorageSystemAssignablePorts(
+                    _dbClient, vplex.getId(), varrayURI, pathParams);
+            
+            StringSet storagePortsInVarray = new StringSet();
+            for(StoragePort port : storagePorts) {
+                storagePortsInVarray.add(port.getId().toString());
+            }
+            
+            _log.info("Storage Ports {} in Varray", Joiner.on(",").join(storagePortsInVarray));
+            
+            storagePortsInVarray.removeAll(storagePortsAlreadyUsed);
+            _log.info("Storage Ports {} used for creating the new export mask", Joiner.on(",").join(storagePortsInVarray));
+            pathParams.setStoragePorts(storagePortsInVarray);
+            
 
             // Assign additional StoragePorts if needed.
             Map<URI, List<URI>> assignments = _blockScheduler.assignStoragePorts(vplex, exportGroup,

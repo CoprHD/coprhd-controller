@@ -93,12 +93,13 @@ public class SecretsManager extends AbstractManager {
                 continue;
             }
 
+            log.info("Step2: Generate DH Params if not yet");
             if (!dhInitDone) {
                 dhInitDone = genDHParam();
             }
 
             // Step2: sleep
-            log.info("Step2: sleep");
+            log.info("Step3: sleep");
             longSleep();
         }
     }

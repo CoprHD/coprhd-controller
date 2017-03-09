@@ -815,7 +815,7 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
          * This condition is valid only for boot volume vblock export.
          */
         
-        if (ExportMaskUtils.isVblockHost(initiatorURIs, _dbClient) && ExportMaskUtils.isBootVolume(volumeMap)) {
+        if (exportGroup.forHost() && ExportMaskUtils.isVblockHost(initiatorURIs, _dbClient) && ExportMaskUtils.isBootVolume(volumeMap)) {
             _log.info("VBlock Boot volume Export : Validating the storage system {}  to find existing storage views",
                     storage.getNativeGuid());
             if (CollectionUtils.isEmpty(matchingMasks)) {

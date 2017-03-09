@@ -2113,7 +2113,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
              * If found throw exception.
              * This condition is valid only for boot volume vblock export.
              */
-            if (ExportMaskUtils.isVblockHost(initiators, _dbClient) && ExportMaskUtils.isBootVolume(blockObjectMap)) {
+            if (exportGroup.forHost() && ExportMaskUtils.isVblockHost(initiators, _dbClient) && ExportMaskUtils.isBootVolume(blockObjectMap)) {
                 _log.info("VBlock Boot volume Export : Validating the Vplex Cluster {} to find existing storage views", vplexClusterName);
                 List<Initiator> initiatorList = _dbClient.queryObject(Initiator.class, initiators);
                 

@@ -80,7 +80,7 @@ public class TagUtils {
 
         List<String> tags = new ArrayList<>();
         for (ScopedLabel sl : dataObject.getTag()) {
-            tags.add("" + sl.getScope() + "=" + sl.getLabel());
+            tags.add("" + sl.getLabel());
         }
         Map<String, String> currentMachineTags = parseTags(tags);
         return currentMachineTags.get(tagName);

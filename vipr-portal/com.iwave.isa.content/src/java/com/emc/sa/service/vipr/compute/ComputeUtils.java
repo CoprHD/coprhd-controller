@@ -824,7 +824,7 @@ public class ComputeUtils {
         }
         if (numberOfFailedHosts > 0) {
             orderErrors.append(ExecutionUtils.getMessage("compute.cluster.hosts.failed",
-                    numberOfFailedHosts + "  "));
+                    numberOfFailedHosts + " "));
         }
 
         for (HostRestRep host : hosts) {

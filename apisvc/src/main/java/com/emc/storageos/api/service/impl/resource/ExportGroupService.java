@@ -1439,7 +1439,8 @@ public class ExportGroupService extends TaskResourceService {
         if (param.getExportPathParameters() != null) {
             // Only [RESTRICTED_]SYSTEM_ADMIN may override the Vpool export parameters
             if (!_permissionsHelper.userHasGivenRole(getUserFromContext(),
-                    null, Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN)) {
+                    null, Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN) &&
+                    param.getExportPathParameters().getPortGroup() == null) {
                 throw APIException.forbidden.onlySystemAdminsCanOverrideVpoolPathParameters(exportGroup.getLabel());
             }
         }
@@ -2942,6 +2943,18 @@ public class ExportGroupService extends TaskResourceService {
             // No initiators currently in export, nothing to do
             return;
         }
+        Boolean isPGCompatible = null;
+        URI portGroupParam = pathParam.getPortGroup();
+        URI pgSystemURI = null;
+        if (portGroupParam == null) {
+            isPGCompatible = Boolean.TRUE;
+        } else {
+            StoragePortGroup portGroup = _dbClient.queryObject(StoragePortGroup.class, portGroupParam);
+            if (portGroup == null || !portGroup.isUsable()) {
+                throw APIException.badRequests.portGroupInvalid(portGroupParam.toString());
+            }
+            pgSystemURI = portGroup.getStorageDevice();
+        }
         for (String initiatorId : initiators) {
             Initiator initiator = _dbClient.queryObject(Initiator.class, URI.create(initiatorId));
             if (initiator == null || initiator.getInactive()) {
@@ -2950,6 +2963,7 @@ public class ExportGroupService extends TaskResourceService {
             // Look up all the Export Masks for this Initiator
             List<ExportMask> exportMasks =
                     ExportUtils.getInitiatorExportMasks(initiator, _dbClient);
+            
             for (ExportMask exportMask : exportMasks) {
                 // If this mask is for the same Host and Storage combination, we cannot override
                 if (arrayURIs.contains(exportMask.getStorageDevice())) {
@@ -2958,6 +2972,15 @@ public class ExportGroupService extends TaskResourceService {
                     _log.info(String.format("Existing mask %s (%s) parameters: %s",
                             exportMask.getMaskName(), exportMask.getId(), maskParam));
 
+                    if (portGroupParam != null 
+                            && portGroupParam.equals(exportMask.getPortGroup())) {
+                        isPGCompatible = Boolean.TRUE;
+                    } else if (portGroupParam != null 
+                            && exportMask.getStorageDevice().equals(pgSystemURI)
+                            && isPGCompatible == null) {
+                        // The export mask is for the same storage system, but the port group URI does not match the one in the exportMask
+                        isPGCompatible = Boolean.FALSE;
+                    }
                     // Determine if the mask is compatible with the requested parameters or not.
                     // To be compatible, the mask must have the same paths_per_initiator setting, and
                     // its max paths must be between the requested min paths and max paths.
@@ -2991,6 +3014,9 @@ public class ExportGroupService extends TaskResourceService {
                 builder.append(entry.getValue());
             }
             throw APIException.badRequests.cannotOverrideVpoolPathsBecauseExistingExports(builder.toString());
+        }
+        if (isPGCompatible != null && isPGCompatible == Boolean.FALSE) {
+            throw APIException.badRequests.portGroupInvalid(portGroupParam.toString());
         }
     }
 

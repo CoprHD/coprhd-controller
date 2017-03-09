@@ -88,7 +88,7 @@ public class ExportUtils {
 
     /**
      * Get an initiator as specified by the initiator's network port.
-     * 
+     *
      * @param networkPort The initiator's port WWN or IQN.
      * @return A reference to an initiator.
      */
@@ -112,7 +112,7 @@ public class ExportUtils {
 
     /**
      * Return a Set initiators for the given collection of port names (WWN or IQNs)
-     * 
+     *
      * @param portNames [IN] - Port names to query
      * @param dbClient [IN] - DbClient for DB access
      * @return Set or Initiators looked up by the 'portNames'
@@ -132,7 +132,7 @@ public class ExportUtils {
      * A utility function method to get the user-created initiators from an export mask.
      * If an initiator is not found for a given user-created WWN, it is simply
      * ignored and no error is raised.
-     * 
+     *
      * @param exportMask the export mask
      * @param dbClient an instance of DbClient
      * @return a list of Initiators
@@ -157,7 +157,7 @@ public class ExportUtils {
      * Fetches and returns the initiators for an export mask. If the ExportMask's
      * existing initiators are set, they will also be returned if an instance can
      * be found in ViPR for the given initiator port id.
-     * 
+     *
      * @param exportMask the export mask
      * @param dbClient an instance of {@link DbClient}
      * @return a list of active initiators in the export mask
@@ -183,7 +183,7 @@ public class ExportUtils {
 
     /**
      * Fetches and returns the initiators for one or more export masks.
-     * 
+     *
      * @param exportMaskUris the export mask URIs
      * @param dbClient an instance of {@link DbClient}
      * @return a list of active initiators in the export mask
@@ -198,7 +198,7 @@ public class ExportUtils {
 
     /**
      * Get all initiator ports in mask.
-     * 
+     *
      * @param exportMask
      * @param dbClient
      * @return
@@ -227,7 +227,7 @@ public class ExportUtils {
 
     /**
      * Fetches and returns the initiators for an export mask.
-     * 
+     *
      * @param exportMaskUri the export mask URI
      * @param dbClient an instance of {@link DbClient}
      * @return a list of active initiators in the export mask
@@ -241,7 +241,7 @@ public class ExportUtils {
      * Fetches and returns the initiators for an export mask. If the ExportMask's
      * existing initiators are set, they will also be returned if an instance can
      * be found in ViPR for the given initiator port id.
-     * 
+     *
      * @param exportMask the export mask
      * @param dbClient an instance of {@link DbClient}
      * @return a list of active initiators in the export mask
@@ -256,7 +256,7 @@ public class ExportUtils {
 
     /**
      * Fetches and returns the initiators for an export group.
-     * 
+     *
      * @param exportGroup the export grop
      * @param dbClient an instance of {@link DbClient}
      * @return a list of active initiators in the export mask
@@ -269,7 +269,7 @@ public class ExportUtils {
     /**
      * Return the storage ports allocated to each initiators in an export mask by looking
      * up the zoningMap.
-     * 
+     *
      * @param mask
      * @param initiator
      * @return
@@ -289,7 +289,7 @@ public class ExportUtils {
     /**
      * Returns the storage ports allocated to each initiator based
      * on the connectivity between them.
-     * 
+     *
      * @param mask
      * @param initiator
      * @param dbClient
@@ -321,7 +321,7 @@ public class ExportUtils {
 
     /**
      * Fetches and returns the storage ports for an export mask
-     * 
+     *
      * @param exportMask the export mask
      * @param dbClient an instance of {@link DbClient}
      * @return a list of active storage ports used by the export mask
@@ -343,9 +343,9 @@ public class ExportUtils {
 
     /**
      * Creates a map of storage ports keyed by the port WWN.
-     * 
+     *
      * @param ports the storage ports
-     * 
+     *
      * @return a map of portWwn-to-port of storage ports
      */
     public static Map<String, StoragePort> getStoragePortsByWwnMap(Collection<StoragePort> ports) {
@@ -358,7 +358,7 @@ public class ExportUtils {
 
     /**
      * Fetches all the export masks in which a block object is member
-     * 
+     *
      * @param blockObject the block object
      * @param dbClient an instance of {@link DbClient}
      * @return a list of export masks in which a block object is member
@@ -389,7 +389,7 @@ public class ExportUtils {
 
     /**
      * Gets all the export masks that this initiator is member of.
-     * 
+     *
      * @param initiator the initiator
      * @param dbClient an instance of {@link DbClient}
      * @return all the export masks that this initiator is member of
@@ -422,7 +422,7 @@ public class ExportUtils {
 
     /**
      * Returns all the ExportGroups the initiator is a member of.
-     * 
+     *
      * @param initiator Initiator
      * @param dbClient
      * @return List<ExportGroup> that contain a key to the Initiator URI
@@ -445,7 +445,7 @@ public class ExportUtils {
 
     /**
      * Returns all the ExportGroups the initiator and volume/snapshot is a member of.
-     * 
+     *
      * @param initiator Initiator
      * @param blockObjectId ID of a volume or snapshot
      * @param dbClient db client handle
@@ -470,7 +470,7 @@ public class ExportUtils {
 
     /**
      * Cleans up the export group references to the export mask and volumes therein
-     * 
+     *
      * @param exportMask export mask
      */
     public static void cleanupAssociatedMaskResources(DbClient dbClient, ExportMask exportMask) {
@@ -491,7 +491,7 @@ public class ExportUtils {
      * Create a TreeMultimap that gives a mapping of a volume URI String to a list of
      * ExportMasks that the volume is associated with. All ExportMasks are associated
      * with the ExportGroup.
-     * 
+     *
      * @param dbClient [in] - DB client object
      * @param exportGroup [in] - ExportGroup object to use build the mapping
      * @return Mapping of volume URI String to list of ExportMask URIs.
@@ -512,7 +512,7 @@ public class ExportUtils {
 
     /**
      * Routine will determine if the volume is associated with an ExportMask other than 'exportMask'.
-     * 
+     *
      * @param exportMask [in] ExportMask that is currently being validated
      * @param volumeURIString [in] VolumeURI String
      * @param volumesToExportMasks [in] - Used for checking the volume
@@ -567,7 +567,7 @@ public class ExportUtils {
      * <li>is for the same storage system</li>
      * <li>is not one used by the same export group</li>
      * </ol>
-     * 
+     *
      * @param dbClient an instance of DbClient
      * @param initiatorUri the URI of the initiator being checked
      * @param curExportMask the export mask being processed
@@ -634,7 +634,7 @@ public class ExportUtils {
 
     /**
      * Using the ExportGroup object, produces a mapping of the BlockObject URI to LUN value
-     * 
+     *
      * @param dbClient
      * @param storage
      * @param exportGroup
@@ -659,7 +659,7 @@ public class ExportUtils {
     /**
      * Validate that an ExportGroup's mapping of Volume URIs to LUNs contains only one
      * entry for each LUN. Otherwise, throw an Exception containing detailed information.
-     * 
+     *
      * @param exportGroupName the name of the ExportGroup containing this volume to URI mapping
      * @param volumeMap a Map of Volume URI to LUN Integer for an ExportGroup
      * @throws ControllerException if there are LUN inconsistencies
@@ -702,7 +702,7 @@ public class ExportUtils {
 
     /**
      * This method updates zoning map to add new assignments.
-     * 
+     *
      * @param dbClient an instance of {@link DbClient}
      * @param exportMask The reference to exportMask
      * @param assignments New assignments Map of initiator to storagePorts that will be updated in the zoning map
@@ -748,7 +748,7 @@ public class ExportUtils {
     /**
      * This method just updates the passed in exportMasksToUpdateOnDeviceWithStoragePorts map with
      * the new storage ports assigned for the initiator for a exportMask.
-     * 
+     *
      * @param exportMask The reference to exportMask
      * @param exportMasksToUpdateOnDeviceWithStoragePorts OUT param -- map of exportMask to update with new storage ports
      * @param assignments New assignments Map of initiator to storage ports
@@ -768,9 +768,9 @@ public class ExportUtils {
     /**
      * Take in a list of storage port names (hex digits separated by colons),
      * then returns a list of URIs representing the StoragePort URIs they represent.
-     * 
+     *
      * This method ignores the storage ports from cinder storage systems.
-     * 
+     *
      * @param storagePorts [in] - Storage port name, hex digits separated by colons
      * @return List of StoragePort URIs
      */
@@ -812,7 +812,7 @@ public class ExportUtils {
 
     /**
      * Checks to see if the export group is for RecoverPoint
-     * 
+     *
      * @param exportGroup
      *            The export group to check
      * @return True if this export group is for RecoverPoint, false otherwise.
@@ -827,10 +827,10 @@ public class ExportUtils {
 
     /**
      * Checks to see if the initiators passed in are for RecoverPoint.
-     * 
+     *
      * Convenience method to load the actual Initiators from the StringSet first
      * before calling checkIfInitiatorsForRP(List<Initiator> initiatorList).
-     * 
+     *
      * @param dbClient
      *            DB Client
      * @param initiatorList
@@ -856,7 +856,7 @@ public class ExportUtils {
 
     /**
      * Check the list of passed in initiators and check if the RP flag is set.
-     * 
+     *
      * @param initiatorList
      *            List of Initiators
      * @return True if there are RecoverPoint Initiators in the passed in list,
@@ -883,7 +883,7 @@ public class ExportUtils {
     /**
      * Figure out whether or not we need to use the EMC Force flag for the SMIS
      * operation being performed on this volume.
-     * 
+     *
      * @param _dbClient
      *            DB Client
      * @param blockObjectURI
@@ -906,7 +906,7 @@ public class ExportUtils {
     /**
      * Get the varrays used for the set of volumes for a storage system.
      * For the VPlex, it will include the HA virtual array if there are distributed volumes.
-     * 
+     *
      * @param exportGroup -- ExportGroup instance
      * @param storageURI -- the URI of the Storage System
      * @param dbClient
@@ -929,7 +929,7 @@ public class ExportUtils {
     /**
      * Given an exportGroup, generate a map of Storage System URI to a map of BlockObject URI to lun id
      * for BlockObjects in the Export Group.
-     * 
+     *
      * @param exportGroup
      * @param protection
      * @param dbClient
@@ -962,7 +962,7 @@ public class ExportUtils {
      * Get the possible Varrays a BlockObject can be associated with.
      * Handles the Vplex... which can be the BlockObject's varray,
      * or the HA Virtual array in the Vpool.
-     * 
+     *
      * @param blockObject
      * @param dbClient
      * @return Set<URI> of Varray URIs
@@ -986,7 +986,7 @@ public class ExportUtils {
 
     /**
      * Get the Virtual Pool for a Block Object.
-     * 
+     *
      * @param blockObject
      * @param dbClient
      * @return VirtualPool or null if could not locate
@@ -1009,7 +1009,7 @@ public class ExportUtils {
     /**
      * Filters Initiators for non-VPLEX systems by the ExportGroup varray.
      * Initiators not in the Varray are removed from the newInitiators list.
-     * 
+     *
      * @param exportGroup -- ExportGroup used to get virtual array.
      * @param newInitiators -- List of new initiators to be processed
      * @param storageURI -- storage system URI
@@ -1030,7 +1030,7 @@ public class ExportUtils {
     /**
      * Routine will examine the 'newInitiators' list and remove any that do not have any association
      * to the VirtualArray.
-     * 
+     *
      * @param virtualArrayURI [in] - VirtualArray URI reference
      * @param newInitiators [in/out] - List of initiator URIs to examine.
      * @param dbClient [in] -- Used to access database
@@ -1059,7 +1059,7 @@ public class ExportUtils {
 
     /**
      * Validate if the initiator is linked to the VirtualArray through some Network
-     * 
+     *
      * @param virtualArrayURI [in] - VirtualArray URI reference
      * @param initiator [in] - the initiator
      * @return true iff the initiator belongs to a Network and that Network has the VirtualArray
@@ -1100,7 +1100,7 @@ public class ExportUtils {
 
     /**
      * Check if any ExportGroups passed in contain the initiator
-     * 
+     *
      * @param dbClient [in] - DB client object
      * @param exportGroupURIs [in] - List of ExportGroup URIs referencing ExportGroups to check
      * @param initiator [in] - The initiator check
@@ -1119,7 +1119,7 @@ public class ExportUtils {
 
     /**
      * Check if any ExportGroups passed in contain the initiator and block object
-     * 
+     *
      * @param dbClient [in] - DB client object
      * @param exportGroupURIs [in] - List of ExportGroup URIs referencing ExportGroups to check
      * @param initiator [in] - The initiator check
@@ -1141,7 +1141,7 @@ public class ExportUtils {
 
     /**
      * Returns the list of export groups referencing the mask
-     * 
+     *
      * @param uri the export mask UTI
      * @param dbClient and instance of {@link DbClient}
      * @return the list of export groups referencing the mask
@@ -1156,7 +1156,7 @@ public class ExportUtils {
     /**
      * Find out if the mirror is part of any export group/export mask.
      * If yes, remove the mirror and add the promoted volume.
-     * 
+     *
      * @param mirror
      * @param promotedVolume
      * @param dbClient
@@ -1204,7 +1204,7 @@ public class ExportUtils {
     /**
      * Find all the ports in a storage system that can be assigned in a given virtual array. These are
      * registered ports that are assigned to the virtual array, in good discovery and operational status.
-     * 
+     *
      * @param dbClient an instance of {@link DbClient}
      * @param storageSystemURI the URI of the storage system
      * @param varrayURI the virtual array
@@ -1266,7 +1266,7 @@ public class ExportUtils {
      * Given a list of storage ports and networks, map the ports to the networks. If the port network
      * is in the networks collection, the port is mapped to it. If the port network is not in the
      * networks collection but can is routed to it, then the port is mapped to the routed network.
-     * 
+     *
      * @param ports the ports to be mapped to their networks
      * @param networks the networks
      * @param _dbClient and instance of DbClient
@@ -1299,13 +1299,13 @@ public class ExportUtils {
      * existingAndPrezonedZoningMap contains all pre-existing assignments plus those made from pre-zoned
      * ports. exportMask.zoningMap contains all pre-existing assignments, and 'assignments' has all ports
      * made by ordinary assignment.
-     * 
+     *
      * The function consolidate the targets to be added to the masking view by adding those taken from
      * pre-zoned ports to those taken from the other set of ports. The way ports taken from pre-zoned
      * ports are identified is by comparing existingAndPrezonedZoningMap to exportMask.zoningMap, these
      * are ports assigned to initiators found in existingAndPrezonedZoningMap but not in exportMask.zoningMap.
      * This is because the port assignment never adds new ports to already used initiators.
-     * 
+     *
      * @param exportMaskZoningMap -- the export mask zoningMap before any assignments are made
      * @param assignments -- assignments made from all ports not based on what is pre-zoned.
      * @param existingAndPrezonedZoningMap -- assignments made from pre-zoned ports plus all pre-existing assignments.
@@ -1449,7 +1449,7 @@ public class ExportUtils {
      * Given an updatedBlockObjectMap (maps BlockObject URI to Lun Integer) representing the desired state,
      * and an Export Group, makes addedBlockObjects containing the entries that were added,
      * and removedBlockObjects containing the entries that were removed.
-     * 
+     *
      * @param updatedBlockObjectMap : desired state of the Block Object Map
      * @param exportGroup : existing map taken from exportGroup.getVolumes()
      * @param addedBlockObjects : OUTPUT - contains map of added Block Objects
@@ -1633,6 +1633,69 @@ public class ExportUtils {
         }
         return clusterInitaitors;
     }
+    
+    /**
+     * Returns a list of ExportGroups that reference the given ExportMask,
+     * minus the given ExportGroup
+     *
+     * @param exportGroup
+     *            the ExportGroup to exclude
+     * @param exportMask
+     *            the ExportMask to locate in other ExportGroups
+     * @return a list of other ExportGroups containing the ExportMask
+     */
+    public static List<ExportGroup> getOtherExportGroups(ExportGroup exportGroup, ExportMask exportMask, DbClient dbClient) {
+
+        List<ExportGroup> otherExportGroups = ExportMaskUtils.getExportGroups(dbClient, exportMask);
+
+        ExportGroup egToSkip = null;
+        for (ExportGroup eg : otherExportGroups) {
+            // do not include the ExportGroup requested for delete
+            if (eg.getId().equals(exportGroup.getId())) {
+                egToSkip = eg;
+                break;
+            }
+        }
+        otherExportGroups.remove(egToSkip);
+
+        if (!otherExportGroups.isEmpty()) {
+            _log.info("ExportMask {} is in use by these other ExportGroups: {}",
+                    exportMask.getMaskName(), Joiner.on(',').join(otherExportGroups));
+        } else {
+            _log.info("ExportMask {} is not in use by any other ExportGroups.", exportMask.getMaskName());
+        }
+
+        return otherExportGroups;
+    }
+    
+    /**
+     * Export Mask can be shared with multiple ExportGroups in the below case.
+     * 
+     * 1. Create volumes from different projects and export to same compute resource.
+     * 2. Export Mask has both exclusive and shared volumes.
+     * 
+     * A storage view for a host can be deleted, if there are shared volumes from multiple projects.
+     * A storage view cannot be deleted, if there are excluisve volumes on the storage view along with shared volumes.
+     * We have to return true only for Case 2.
+     * 
+     * @return
+     */
+    public static boolean exportMaskHasBothExclusiveAndSharedVolumes(ExportGroup current, List<ExportGroup> otherExportGroups,
+            ExportMask exportMask) {
+        for (ExportGroup exportGroup : otherExportGroups) {
+            // This piece of code gets executed only when all the initiators of
+            // Host are being asked to remove and the export mask is being shared.
+            if (ExportGroupType.Cluster.toString().equalsIgnoreCase(current.getType())
+                    && ExportGroupType.Host.toString().equalsIgnoreCase(exportGroup.getType()) &&
+                    !CollectionUtils.isEmpty(exportGroup.getInitiators())) {
+                _log.info(
+                        "Export Mask is being shared with other Export Groups, and the export Group {} type is different from the current processed {}."
+                                + "Assuming this mask contains both shared and exclusive volumes ,removing the initiators might affect.");
+                return true;
+            }
+        }
+        return false;
+    }
 
     /**
      * Returns true if the storage system implementation supports consistent HLU generation for cluster export.
@@ -1700,7 +1763,7 @@ public class ExportUtils {
             DbClient dbClient) {
         Set<Initiator> initiators = ExportUtils.getInitiators(initiatorNames, dbClient);
         Set<ExportMask> staleExportMasks = new HashSet<>();
-        
+
         _log.info("Mask Names found in array:{} for the initiators: {}", maskNamesFromArray, initiatorNames);
         for (Initiator initiator : initiators) {
             URIQueryResultList emUris = new URIQueryResultList();
@@ -1725,7 +1788,7 @@ public class ExportUtils {
                 }
             }
         }
-        
+
         if (!CollectionUtils.isEmpty(staleExportMasks)) {
             dbClient.markForDeletion(staleExportMasks);
             _log.info("Deleted {} stale export masks from DB", staleExportMasks.size());
@@ -1741,7 +1804,7 @@ public class ExportUtils {
      * Note: We intentionally avoid looking for existing non-managed initiators for VPLEX back-end and
      * RP front-end masks. Those initiator types do not have a host URI and therefore will be exempt
      * from this ever returning true.
-     * 
+     *
      * @param exportMask
      *            export mask
      * @param computeResourceId
@@ -1812,7 +1875,7 @@ public class ExportUtils {
      * For ViPR-only delete operations, we use this method to remove the
      * block object from the export group and export masks associated with
      * the block object.
-     * 
+     *
      * @param boURI
      *            The BlockObject to remove from export masks
      * @param addToExisting
@@ -1883,7 +1946,7 @@ public class ExportUtils {
     /**
      * Checks the passed in Export Group and determines if it requires cleanup. This is
      * mainly used for internal EGs (VPLEX/RP) as they might not otherwise be cleaned up.
-     * 
+     *
      * @param exportGroup The Export Group to check
      * @param dbClient DbClient reference
      */
@@ -1893,7 +1956,7 @@ public class ExportUtils {
             // export group, delete the export group automatically.
             if ((exportGroup.checkInternalFlags(Flag.INTERNAL_OBJECT)) &&
                     (CollectionUtils.isEmpty(exportGroup.getVolumes())
-                            || CollectionUtils.isEmpty(ExportMaskUtils.getExportMasks(dbClient, exportGroup)))) {
+                    || CollectionUtils.isEmpty(ExportMaskUtils.getExportMasks(dbClient, exportGroup)))) {
                 _log.info(String.format("Marking export group [%s %s] for deletion.",
                         exportGroup.getLabel(), exportGroup.getId()));
                 dbClient.markForDeletion(exportGroup);
@@ -1903,7 +1966,7 @@ public class ExportUtils {
 
     /**
      * Cleans ExportGroup's stale references
-     * 
+     *
      * @param exportGroup
      * @param dbClient
      */
@@ -1928,7 +1991,7 @@ public class ExportUtils {
 
     /**
      * Cleans stale mask references from export group instance
-     * 
+     *
      * @param exportGroup {@link ExportGroup}
      * @param dbClient {@link DbClient}
      */
@@ -2001,7 +2064,7 @@ public class ExportUtils {
 
     /**
      * Cleanup any stale entries in the zoning maps for the export masks with the passed URIs.
-     * 
+     *
      * @param maskURIs The URIs of the export masks to examine.
      * @param dbClient A reference to a database client.
      */
@@ -2024,7 +2087,7 @@ public class ExportUtils {
 
     /**
      * Cleans stale initiator references from export group instance
-     * 
+     *
      * @param exportGroup {@link ExportGroup}
      * @param dbClient {@link DbClient}
      */
@@ -2068,7 +2131,6 @@ public class ExportUtils {
             }
         }
 
-
         if (CollectionUtils.isEmpty(exportGroup.getInitiators())
                 && !exportGroup.checkInternalFlags(DataObject.Flag.INTERNAL_OBJECT)) {
             // COP-27689 - Even if all the export masks got cleared, the export Group still remains with initiators and volumes.
@@ -2084,7 +2146,7 @@ public class ExportUtils {
      * Get all the user Added volumes from all the masks in the export group.
      * Compare the same with volumes with export group and remove stale volumes.
      * After removal, if the volumes are empty in export Group, delete the export Group.
-     * 
+     *
      * @param exportGroup
      * @param dbClient
      */
@@ -2107,7 +2169,7 @@ public class ExportUtils {
             // To Avoid concurrent modfication exception created new set instance
             Set<String> volumeDiff = new HashSet<>(Sets.difference(exportGroupVolumes, volumesInAllMasks));
             if (!CollectionUtils.isEmpty(volumeDiff)) {
-                exportGroup.removeVolumes(volumeDiff);
+                exportGroup.removeVolumes(new HashSet<String>(volumeDiff));
                 _log.info("Stale volumes {}  removed from Export Group {}", volumeDiff, exportGroup.getId());
             }
         }
@@ -2126,7 +2188,7 @@ public class ExportUtils {
 
     /**
      * Cleans stale host references from export group instance
-     * 
+     *
      * @param exportGroup {@link ExportGroup}
      * @param dbClient {@link DbClient}
      */
@@ -2175,7 +2237,7 @@ public class ExportUtils {
 
     /**
      * Cleans stale cluster references from export group instance
-     * 
+     *
      * @param exportGroup {@link ExportGroup}
      * @param dbClient {@link DbClient}
      */
@@ -2218,7 +2280,7 @@ public class ExportUtils {
 
     /**
      * Handle the ExportMask Volume removal based on the ExportMaskToRemovedVolumeMap.
-     * 
+     *
      * @param dbClient a reference to the database client
      * @param exportMaskToRemovedVolumeMap a map of ExportMask URI to Volume URIs to be removed
      * @param exportGroupId the parent ExportGroup URI (used to determine "other" ExportGroups)

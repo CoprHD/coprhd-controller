@@ -17,6 +17,7 @@ import org.springframework.stereotype.Component;
 import com.emc.storageos.computesystemcontroller.exceptions.ComputeSystemControllerException;
 import com.emc.storageos.computesystemcontroller.impl.DiscoveryStatusUtils;
 import com.emc.storageos.computesystemcontroller.impl.HostToComputeElementMatcher;
+import com.emc.storageos.computesystemcontroller.impl.HostToServiceProfileMatcher;
 import com.emc.storageos.db.client.constraint.PrefixConstraint;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Initiator;
@@ -137,9 +138,11 @@ public class EsxHostDiscoveryAdapter extends AbstractHostDiscoveryAdapter {
         EsxVersion esxVersion = getVersion(host);
         if (null != esxVersion
                 && getVersionValidator().isValidEsxVersion(esxVersion)) {
+            changes.setNewCluster(host.getCluster());
             discoverHost(host, changes);
             processHostChanges(changes);
             matchHostsToComputeElements(host.getId());
+            matchHostsToServiceProfiles(host.getId());
         } else {
             host.setCompatibilityStatus(CompatibilityStatus.INCOMPATIBLE.name());
             save(host);
@@ -148,6 +151,15 @@ public class EsxHostDiscoveryAdapter extends AbstractHostDiscoveryAdapter {
                             getVersionValidator().getEsxMinimumVersion(false)
                                     .toString());
         }
+    }
+    /**
+     * Match hosts to service profiles
+     *
+     * @param hostId The ID of the host to find a matching ServiceProfile
+     *
+     */
+    private void matchHostsToServiceProfiles(URI hostId) {
+        HostToServiceProfileMatcher.matchHostsToServiceProfilesByUuid(hostId, getDbClient());
     }
 
     /**

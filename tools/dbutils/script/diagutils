@@ -13,10 +13,11 @@
 DIAGCOLLECT_DIR="/data/diagutils-data"
 DIAGCOLLECT_MAME="diagutils-`date +%Y%0m%0d%0k%0M%0S`"
 DIAGCOLLECT_LOG="/tmp/diagutils.out"
+REDIRECT_STDOUT_TO_LOG=false
 DISK_USED_PERCENTAGE_WARNING_LIMIT=50
 DISK_USED_PERCENTAGE_TERMINATION_LIMIT=80
 MIN_CFS=(BlockConsistencyGroup BlockMirror BlockSnapshot Cluster ExportGroup ExportMask FCZoneReference Host Initiator Network NetworkSystem ProtectionSet ProtectionSystem StorageProvider StoragePool StoragePort StorageSystem Vcenter VirtualArray VirtualDataCenter VirtualPool Volume)
-LOG_DOWNLOAD_SERVICE_NAMES=(vasasvc portalsvc systemevents coordinatorsvc apisvc bkutils geosvc dbsvc authsvc controllersvc syssvc sasvc geodbsvc systemevents)
+LOG_DOWNLOAD_SERVICE_NAMES=(vasasvc portalsvc systemevents coordinatorsvc apisvc bkutils geosvc dbsvc authsvc controllersvc controllersvc-discovery controllersvc-metering controllersvc-vplex-api syssvc sasvc geodbsvc)
 
 
 #This script is used to help user to restore a backupset simply
@@ -27,7 +28,7 @@ usage() {
     echo_stdout_log "       -min_cfs               Collect a minimum set of column families through output of dbutils list and/or cqlsh"
     echo_stdout_log "                              The default cfs list includes:"
     echo_stdout_log "                              BlockConsistencyGroup, BlockMirror, BlockSnapshot, Cluster, ExportGroup, ExportMask, FCZoneReference, Host, Initiator, Network, NetworkSystem,"
-    echo_stdout_log "                              ProtectionSet, ProtectionSystem, StoragePort, StorageProvider, StorageSystem, VirtualArray, VirtualDataCenter, VirtualPool, Volume."
+    echo_stdout_log "                              ProtectionSet, ProtectionSystem, StorageProvider, StoragePool, StoragePort, StorageSystem, Vcenter, VirtualArray, VirtualDataCenter, VirtualPool, Volume."
     echo_stdout_log "       -all_cfs               Collect all column families through output of dbutils list and/or cqlsh."
     echo_stdout_log "       -zk                    Collect zk jobs and queues through zkutils."
     echo_stdout_log "       -backup [backup name]  Create a new ViPR system backup/dump of DB and ZK through bkutils, which can be restored later."
@@ -58,9 +59,16 @@ usage() {
 # Collect Functions
 ######################
 init() {
-    if [ -n "$CONFIG_FILE" ] && [ -f $CONFIG_FILE ]; then
-        echo_stdout_log "Using Configuration file $CONFIG_FILE for diagutils"
-        source $CONFIG_FILE
+    echo "ViPR version: `/etc/systool --get-default`"
+
+    if [ -n "$CONFIG_FILE" ]; then
+        if [ -f $CONFIG_FILE ]; then
+            echo_stdout_log "Using configuration file '$CONFIG_FILE' for diagutils"
+            source $CONFIG_FILE
+        else
+            echo_stdout_log "Configuration file '$CONFIG_FILE' not exist"
+            exit 2
+        fi
     fi
 
     COMMAND_DIR="/opt/storageos/bin"
@@ -152,7 +160,7 @@ collect_logs() {
     set +e
     cd ${logsDir}
     mkdir info logs orders
-    /opt/storageos/bin/dbutils dump_orders "${logsDir}/orders" &> /dev/null
+    /opt/storageos/bin/dbutils dump_orders "${logsDir}/orders" &>> ${DIAGCOLLECT_LOG}
     collect_data "/opt/storageos/logs" "${logsDir}/info" "true"
     convert_log_name
     zip -r logs-${DIAGCOLLECT_MAME}.zip * &>>${DIAGCOLLECT_LOG}
@@ -278,7 +286,7 @@ collect_data() {
     local sourceDir=${1}
     local targetDir=${2}
     local haveSubDir=${3}
-    
+     
     for i in $(seq 1 ${NODE_COUNT})
     do
         local viprNode=$(get_nodeid)
@@ -343,7 +351,7 @@ kill_background_thread() {
         ps -p ${BACKGROUND_PRINT_PID} | grep -v "PID" &>/dev/null
         if [ $? -eq 0 ]; then
             kill -9  ${BACKGROUND_PRINT_PID} &>/dev/null
-        else 
+        else
             break
         fi
     done
@@ -367,7 +375,11 @@ print_progress_point() {
 }
 
 echo_stdout_log() {
-    echo "$@" | tee -a ${DIAGCOLLECT_LOG}
+    if [ ${REDIRECT_STDOUT_TO_LOG} == true ]; then
+        echo "$@" | tee -a ${DIAGCOLLECT_LOG}
+    else
+        echo "$@"
+    fi
 }
 
 check_if_skip() {
@@ -421,12 +433,12 @@ precheck_node_cluster_status() {
 }
 
 precheck_disk_status() {
-    local dataUsedPercentage=$(df -km /data | awk -F ' ' '/\<data\>/ {print $5}')
+    local dataUsedPercentage=$(df -km ${DIAGCOLLECT_DIR} | grep -v "Used" | awk -F ' ' '{print $5}')
     if [[ ${dataUsedPercentage%\%} -gt $DISK_USED_PERCENTAGE_TERMINATION_LIMIT ]]; then
-        echo_stdout_log "Data disk used percentage is over than 80%(${dataUsedPercentage}), can not execute this tool."
+        echo_stdout_log "Data disk used percentage(${dataUsedPercentage}) is over than ${DISK_USED_PERCENTAGE_TERMINATION_LIMIT}%, can not execute this tool."
         exit 1
     elif [[ ${dataUsedPercentage%\%} -gt $DISK_USED_PERCENTAGE_WARNING_LIMIT ]]; then
-        echo_stdout_log "Data disk used percentage is over than 50%(${dataUsedPercentage})."
+        echo_stdout_log "Data disk used percentage(${dataUsedPercentage}) is over than ${DISK_USED_PERCENTAGE_WARNING_LIMIT}%."
         user_confirm "Are you sure you want to continue?"
     fi
 }
@@ -438,7 +450,7 @@ precheck_ftp_status() {
 
     curl -sSk -u ${user}:${password} -l "${ftpserver}" &>>${DIAGCOLLECT_LOG}
     if [ $? -ne 0 ]; then
-        echo_stdout_log "FTP server is unavailable or username/password is incorrect."
+        echo_stdout_log "FTP server is unavailable or upload directory does not exist, or username/password is incorrect."
         exit 2
     fi
 }
@@ -532,12 +544,13 @@ convert_log_name() {
             local nodeId=$(get_nodeid)
             local nodeName=$(get_nodeName)
             local serviceLogFiles=($(ls -rt info/${nodeId}/${service}.log.*.gz 2>>${DIAGCOLLECT_LOG}))
+            local logId=1
             for file in ${serviceLogFiles[@]}; do
-                local timestamp=`echo_stdout_log ${file} | awk -F '-' '{print $2}'`
-                zcat ${file} | sed "s/^[0-9]/${nodeId} ${nodeName} ${service} &/g" > logs/${service}_${nodeId}_${nodeName}_${timestamp}.log
+                zcat ${file} | sed "s/^[0-9]/${nodeId} ${nodeName} ${service} &/g" > logs/${service}_${nodeId}_${nodeName}_${logId}.log
+                logId=$[logId+1]
             done
             if [ -f "info/${nodeId}/${service}.log" ]; then
-                cat info/${nodeId}/${service}.log | sed "s/^[0-9]/${nodeId} ${nodeName} ${service} &/g" > logs/${service}_${nodeId}_${nodeName}.log
+                cat info/${nodeId}/${service}.log | sed "s/^[0-9]/${nodeId} ${nodeName} ${service} &/g" > logs/${service}_${nodeId}_${nodeName}_${logId}.log
             fi
             rm -rf info/${nodeId}/${service}.log*
         done
@@ -545,7 +558,9 @@ convert_log_name() {
 }
 
 clean_up() {
-    kill_background_thread
+    set +e
+    kill_background_thread &>>${DIAGCOLLECT_LOG}
+    set -e
 }
 
 #######################
@@ -637,6 +652,9 @@ do
             ftp_param_count=$[ftp_param_count+1]
             if [[ $i -lt $# ]]; then
                 eval FTP=\${$[i+1]}
+                if [[ $FTP != *'/$' ]]; then
+                    FTP=$FTP"/"
+                fi
             fi
             check_parameter "$param" "$FTP"
             ;;

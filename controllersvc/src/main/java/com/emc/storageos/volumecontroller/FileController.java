@@ -261,7 +261,7 @@ public interface FileController extends StorageController {
      * @param taskId
      * @throws InternalException
      */
-    public void applyFilePolicy(URI storageSystem,URI fs, URI filePolicy, String taskId) throws InternalException;
+    public void applyFilePolicy(URI storageSystem, URI fs, URI filePolicy, String taskId) throws InternalException;
 
     public void assignFileSnapshotPolicyToVirtualPools(URI storageSystemURI, URI vNASURI, URI filePolicyToAssign, URI vpoolURI,
             String taskId)
@@ -272,10 +272,23 @@ public interface FileController extends StorageController {
                     throws InternalException;
 
     public void assignFileReplicationPolicyToVirtualPools(URI storageSystemURI, URI targetSystemURI,
-            URI sourceVNasURI, URI targetVNasURI, URI filePolicyToAssign, URI vpoolURI, String opId) throws ControllerException;
+            URI sourceVNasURI, URI targetVArrayURI, URI targetVNasURI, URI filePolicyToAssign, URI vpoolURI, String opId)
+                    throws ControllerException;
 
     public void assignFileReplicationPolicyToProjects(URI storageSystemURI, URI targetSystemURI,
-            URI sourceVNasURI, URI targetVNasURI, URI filePolicyToAssign, URI vpoolURI, URI projectURI, String opId)
+            URI sourceVNasURI, URI targetVArrayURI, URI targetVNasURI, URI filePolicyToAssign, URI vpoolURI, URI projectURI, String opId)
                     throws InternalException;
+
+    /**
+     * 
+     * @param storage -URI of the storage system
+     * @param fsId -URI of the source file system
+     * @param opType - operation to perform(start,pause,resume,refresh)
+     * @param opId -task Id
+     * @throws ControllerException
+     */
+    public void performFileReplicationOperation(URI storage, URI fsId, String opType, String opId) throws ControllerException;
+
+    public void checkFilePolicyPathHasResourceLabel(URI storage, URI filePolicyURI, URI vNasURI, URI vpoolURI, URI projectURI, String opId);
 
 }

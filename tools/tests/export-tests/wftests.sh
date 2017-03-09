@@ -1135,7 +1135,7 @@ snap_db() {
 
     IFS=' ' read -ra cfs_array <<< "$column_families"
     for cf in "${cfs_array[@]}"; do
-       execute="/opt/storageos/bin/dbutils list ${cf} $base_filter > results/${item}/${cf}-${slot}.txt"
+       execute="/opt/storageos/bin/dbutils list -sortByURI ${cf} $base_filter > results/${item}/${cf}-${slot}.txt"
        eval $execute
     done
 }      
@@ -2754,7 +2754,6 @@ test_13() {
       # Run the export group command
       fail export_group update $PROJECT/${expname}1 --remHosts ${HOST2}
 
-      exit;
       # Turn off suspend of export after orchestration
       set_suspend_on_class_method none
 

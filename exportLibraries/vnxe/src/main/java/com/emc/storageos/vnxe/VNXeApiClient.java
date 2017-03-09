@@ -720,6 +720,7 @@ public class VNXeApiClient {
         parm.setStorageResource(resource);
         parm.setName(name);
         parm.setIsReadOnly(false);
+        parm.setAutoDelete(false);
         FileSystemSnapRequests req = new FileSystemSnapRequests(_khClient, getBasicSystemInfo().getSoftwareVersion());
 
         return req.createFileSystemSnap(parm);
@@ -1583,10 +1584,15 @@ public class VNXeApiClient {
     public void unexportLun(String hostId, String lunId) {
         _logger.info("Unexporting lun: {}", lunId);
 
+        if (!checkLunExists(lunId)) {
+            _logger.info("The lun {} does not exist, do nothing", lunId);
+            return;
+        }
+
         VNXeLun lun = getLun(lunId);
         if (lun == null) {
             _logger.info("Could not find lun in the vxne: {}", lunId);
-            throw VNXeException.exceptions.vnxeCommandFailed("Could not find lun : " + lunId);
+            return;
         }
 
         List<BlockHostAccess> hostAccesses = lun.getHostAccess();

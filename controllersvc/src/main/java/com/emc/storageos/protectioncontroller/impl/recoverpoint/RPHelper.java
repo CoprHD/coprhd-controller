@@ -56,6 +56,7 @@ import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.Volume.PersonalityTypes;
+import com.emc.storageos.db.client.model.Volume.VolumeAccessState;
 import com.emc.storageos.db.client.model.VpoolProtectionVarraySettings;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedProtectionSet;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
@@ -1516,7 +1517,7 @@ public class RPHelper {
         String standbyInternalSite = null;
         if (sourceVolume != null
                 && Volume.PersonalityTypes.SOURCE.name().equals(sourceVolume.getPersonality())) {
-            if (isMetroPointVolume(dbClient, sourceVolume) 
+            if (isMetroPointVolume(dbClient, sourceVolume)
                     && (null != sourceVolume.getAssociatedVolumes()
                     && (!sourceVolume.getAssociatedVolumes().isEmpty()))) {
                 // Check the associated volumes to find the non-matching internal site and return that one.
@@ -1683,7 +1684,7 @@ public class RPHelper {
                 if (null == volume.getAssociatedVolumes()) {
                     // this is a rollback situation, so we probably don't want to
                     // throw another exception...
-                    _log.warn("VPLEX volume {} has no backend volumes.", 
+                    _log.warn("VPLEX volume {} has no backend volumes.",
                             volume.forDisplay());
                 } else {
                     for (String associatedVolId : volume.getAssociatedVolumes()) {
@@ -1825,14 +1826,14 @@ public class RPHelper {
                 newStyleJournals.add(journalVol);
             }
         }
-        
-        // For some platforms volume names with blank spaces are not allowed. 
+
+        // For some platforms volume names with blank spaces are not allowed.
         // If the varray and/or CG name has spaces they may have been removed from
         // the volume label. If this is the case, we would not have added them
         // to the new style journal list. If the list is empty, try again with
         // the blank spaces removed from the journal name prefix.
         if (newStyleJournals.isEmpty()) {
-            journalPrefix = journalPrefix.replaceAll("\\s+","");
+            journalPrefix = journalPrefix.replaceAll("\\s+", "");
             for (Volume journalVol : existingJournals) {
                 String volName = journalVol.getLabel();
                 if (volName != null && volName.length() >= journalPrefix.length() &&
@@ -1848,7 +1849,7 @@ public class RPHelper {
             String journalVolName = journalVol.getLabel();
             // For journal volumes that are VPLEX volumes, if custom naming was enabled,
             // then the journal volume may have an unexpected name. However, the backend
-            // volume is not custom named and will have the expected label, but with a 
+            // volume is not custom named and will have the expected label, but with a
             // well-known suffix. We simply remove the suffix and compare against the backend
             // volume name. If we use the VPLEX volume name and its name was customized, then
             // we could end up with a duplicate name error when we go to prepare the backend
@@ -2313,7 +2314,7 @@ public class RPHelper {
      * Validate the CG before performing destructive operations.
      * If additional volumes appear in the RP CG on the hardware, this method returns false
      * Clerical errors (such as missing DB entries) result in an Exception
-     * 
+     *
      * @param dbClient
      *            dbclient
      * @param system
@@ -2331,37 +2332,37 @@ public class RPHelper {
         RecoverPointClient rp = RPHelper.getRecoverPointClient(system);
         Set<GetCGsResponse> cgList = rp.getAllCGs();
         if (cgList == null || cgList.isEmpty()) {
-            String errMsg = "Could not retrieve CGs from the RPA to perform validation."; 
+            String errMsg = "Could not retrieve CGs from the RPA to perform validation.";
             throw DeviceControllerExceptions.recoverpoint.unableToPerformValidation(errMsg);
         }
-        
+
         // Grab all of the source volumes from the CG according to ViPR
         List<Volume> srcVolumes = RPHelper.getCgVolumes(dbClient, cgId, PersonalityTypes.SOURCE.toString());
         if (srcVolumes == null || srcVolumes.isEmpty()) {
             String errMsg = "Could not retrieve volumes from the database for CG to perform validation";
             throw DeviceControllerExceptions.recoverpoint.unableToPerformValidation(errMsg);
         }
-        
+
         // Get the protection set ID from the first source volume. All volumes will have the same pset ID.
         URI psetId = srcVolumes.get(0).getProtectionSet().getURI();
         if (NullColumnValueGetter.isNullURI(psetId)) {
             String errMsg = "Could not retrieve protection set ID from the database for CG to perform validation";
             throw DeviceControllerExceptions.recoverpoint.unableToPerformValidation(errMsg);
         }
-        
+
         // Get the protection set, which is required to get the CG ID on the RPA
         ProtectionSet pset = dbClient.queryObject(ProtectionSet.class, psetId);
         if (pset == null) {
             String errMsg = "Could not retrieve protection set from the database for CG to perform validation";
             throw DeviceControllerExceptions.recoverpoint.unableToPerformValidation(errMsg);
         }
-        
+
         // Pre-populate the wwn fields for comparisons later.
         List<String> srcVolumeWwns = new ArrayList<>();
         for (Volume srcVolume : srcVolumes) {
             srcVolumeWwns.add(srcVolume.getWWN());
         }
-        
+
         // This loop finds the CG on the hardware from the list of all CGs. Ignores all CGs that don't match our ID.
         for (GetCGsResponse cgResponse : cgList) {
             // Compare the stored CG ID (unique per RP System, doesn't change even if CG name changes)
@@ -2374,16 +2375,16 @@ public class RPHelper {
                 String errMsg = "Could not retrieve replication sets from the hardware to perform validation";
                 throw DeviceControllerExceptions.recoverpoint.unableToPerformValidation(errMsg);
             }
-            
+
             // Find one of our volumes
             for (GetRSetResponse rsetResponse : cgResponse.getRsets()) {
-                
+
                 // Make sure we have volumes in the RSet before we continue
                 if (rsetResponse == null || rsetResponse.getVolumes() == null || rsetResponse.getVolumes().isEmpty()) {
                     String errMsg = "Could not retrieve the volumes in the replication set from the hardware to perform validation";
                     throw DeviceControllerExceptions.recoverpoint.unableToPerformValidation(errMsg);
                 }
-            
+
                 // Check all of the volumes in the replication set. At least ONE volume needs to match one of our source
                 // volumes. An RSet contains one source (or an active and stand-by source) and multiple targets. Our
                 // list of WWNs is the list of source volumes we know about.
@@ -2400,5 +2401,88 @@ public class RPHelper {
         }
         _log.info("validateCGForDelete {} - end", system.getId());
         return true;
+    }
+
+    /**
+     * Updates the access state for a snapshot's target volume. If image access is being enabled, the
+     * access state will be set to READWRITE. If image access is being disabled, the access state will
+     * be set to READ_ONLY.
+     *
+     * @param snapshot the snapshot
+     * @param volume the snapshot's parent volume
+     * @param accessState the volume access state
+     * @param dbClient the database client reference
+     * @throws URISyntaxException
+     */
+    private static void updateAccessState(BlockSnapshot snapshot, Volume volume, VolumeAccessState accessState, DbClient dbClient)
+            throws URISyntaxException {
+        // For RP+VPLEX volumes, we need to fetch the VPLEX volume. The snapshot object references the
+        // block/back-end volume as its parent. Fetch the VPLEX volume that is created with this volume
+        // as the back-end volume.
+
+        Volume vol = volume;
+
+        if (Volume.checkForVplexBackEndVolume(dbClient, volume)) {
+            vol = Volume.fetchVplexVolume(dbClient, volume);
+        }
+
+        Volume targetVolume = null;
+
+        // If the personality is SOURCE, then the enable image access request is part of export operation.
+        if (vol.checkPersonality(Volume.PersonalityTypes.SOURCE.toString())) {
+            // Now determine the target volume that corresponds to the site of the snapshot
+            ProtectionSet protectionSet = dbClient.queryObject(ProtectionSet.class, vol.getProtectionSet());
+            targetVolume = ProtectionSet.getTargetVolumeFromSourceAndInternalSiteName(dbClient, protectionSet,
+                    vol,
+                    snapshot.getEmInternalSiteName());
+        } else if (vol.checkPersonality(Volume.PersonalityTypes.TARGET.toString())) {
+            targetVolume = vol;
+        }
+
+        if (targetVolume != null) {
+            if (accessState != null) {
+                _log.info(String.format("Updating the access state to %s for target volume %s.",
+                        accessState.name(), targetVolume.getId()));
+                targetVolume.setAccessState(accessState.name());
+                dbClient.updateObject(targetVolume);
+            } else {
+                _log.warn(String.format("Invalid access state.  Could not update access state for target volume %s.", targetVolume.getId()));
+            }
+        }
+    }
+
+    /**
+     * Update the snapshot's syncActive field and associated volume's access state post image access change.
+     *
+     * @param snapshot the snapshot
+     * @param volume the snapshot's parent volume
+     * @param accessState accessState the volume access state
+     * @param setSnapshotSyncActive
+     * @param dbClient the database client reference
+     * @throws URISyntaxException
+     */
+    public static void updateRPSnapshotPostImageAccessChange(BlockSnapshot snapshot, Volume volume, VolumeAccessState accessState,
+            boolean setSnapshotSyncActive, DbClient dbClient) throws URISyntaxException {
+        // If we are performing a disable image access as part of a snapshot create for an array snapshot + RP bookmark,
+        // we want to set the syncActive field to true. This will enable us to perform snapshot exports and
+        // remove snapshots from exports.
+        snapshot.setIsSyncActive(setSnapshotSyncActive);
+
+        _log.info(String.format("Updating the isSyncActive field to %s for BlockSnapshot %s.",
+                setSnapshotSyncActive, snapshot.getId()));
+        dbClient.updateObject(snapshot);
+
+        // Update the access state of the snapshot's associated target volume
+        updateAccessState(snapshot, volume, accessState, dbClient);
+    }
+
+    /**
+     * Determines if the given snapshot references an RP bookmark.
+     *
+     * @param snapshot the snapshot to check
+     * @return true if the given snapshot is an RP bookmark, false otherwise.
+     */
+    public static boolean hasRpBookmark(BlockSnapshot snapshot) {
+        return NullColumnValueGetter.isNotNullValue(snapshot.getEmName());
     }
 }

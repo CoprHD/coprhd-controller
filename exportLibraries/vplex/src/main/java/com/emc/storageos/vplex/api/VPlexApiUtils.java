@@ -156,7 +156,7 @@ public class VPlexApiUtils {
             for (int i = 0; i < contextArray.length(); i++) {
                 JSONObject contextObj = contextArray.getJSONObject(i);
 
-                s_logger.info("Parsing {}: {}", clazz.getName(), contextObj.toString());
+                s_logger.debug("Parsing {}: {}", clazz.getName(), contextObj.toString());
                 Gson gson = new GsonBuilder().setFieldNamingPolicy(FieldNamingPolicy.LOWER_CASE_WITH_DASHES).create();
                 T resource = gson.fromJson(contextObj.toString(), clazz);
                 resource.setPath(contextObj.getString(VPlexApiConstants.PARENT_JSON_KEY) + VPlexApiConstants.SLASH + resource.getName());

@@ -245,7 +245,6 @@ public class Host extends AbstractComputeSystem {
         _isManualCreation = isManualCreation;
         setChanged("isManualCreation");
     }
-
     /**
      * Gets the discoverable flag. Discoverable indicates if automatic discovery should be
      * performed against this host.
@@ -346,6 +345,7 @@ public class Host extends AbstractComputeSystem {
         this._vcenterDataCenter = dataCenter;
         setChanged("vcenterDataCenter");
     }
+
 
     @RelationIndex(cf = "RelationIndex", type = ComputeElement.class)
     @Name("computeElement")

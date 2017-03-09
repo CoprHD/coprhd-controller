@@ -11,16 +11,16 @@ import com.emc.sa.service.vipr.block.BlockStorageUtils;
 import com.emc.sa.service.vipr.tasks.ViPRExecutionTask;
 import com.emc.storageos.model.block.export.ExportGroupRestRep;
 
-public class FindEmptyExportByName extends ViPRExecutionTask<ExportGroupRestRep> {
+public class FindExportByName extends ViPRExecutionTask<ExportGroupRestRep> {
     private final String name;
     private final URI project;
     private final URI varray;
 
-    public FindEmptyExportByName(String name, String project, String varrayId) {
+    public FindExportByName(String name, String project, String varrayId) {
         this(name, uri(project), uri(varrayId));
     }
 
-    public FindEmptyExportByName(String name, URI project, URI varrayId) {
+    public FindExportByName(String name, URI project, URI varrayId) {
         this.name = name;
         this.project = project;
         this.varray = varrayId;
@@ -31,9 +31,7 @@ public class FindEmptyExportByName extends ViPRExecutionTask<ExportGroupRestRep>
     public ExportGroupRestRep executeTask() throws Exception {
         List<ExportGroupRestRep> exports = getClient().blockExports().findByName(name, project, varray);
         for (ExportGroupRestRep export : exports) {
-            if (BlockStorageUtils.isEmptyExport(export)) {
-                return export;
-            }
+            return export;
         }
         return null;
     }

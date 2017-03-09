@@ -2274,7 +2274,9 @@ public class ExportUtils {
         exportGroup.removeInitiators(URIUtil.toURIList(exportGroup.getInitiators()));
         exportGroup.removeHosts(URIUtil.toURIList(exportGroup.getHosts()));
         exportGroup.removeClusters(URIUtil.toURIList(exportGroup.getClusters()));
-        exportGroup.removeVolumes(URIUtil.toURIList(exportGroup.getVolumes().keySet()));
+        if(!CollectionUtils.isEmpty(exportGroup.getVolumes())) {
+            exportGroup.removeVolumes(URIUtil.toURIList(exportGroup.getVolumes().keySet()));
+        }
         exportGroup.removeExportMasks(URIUtil.toURIList(exportGroup.getExportMasks()));
         dbClient.updateObject(exportGroup);   
     }

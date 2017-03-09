@@ -71,10 +71,8 @@ public abstract class XtremIOClient extends StandardRestClient implements XtremI
             }
 
             if (xtremIOCode == 404 || xtremIOCode == 410) {
-                closeResponse(response);
                 throw XtremIOApiException.exceptions.resourceNotFound(uri.toString());
             } else if (xtremIOCode == 401) {
-                closeResponse(response);
                 throw XtremIOApiException.exceptions.authenticationFailure(uri.toString());
             } else {
                 // Sometimes the response object can be null, just set it to empty when it is null.
@@ -84,7 +82,6 @@ public abstract class XtremIOClient extends StandardRestClient implements XtremI
                     objStr = String.format("%s%s", 
                             (objStr.isEmpty()) ? objStr : objStr + " | ", extraExceptionInfo);
                 }
-                closeResponse(response);
                 throw XtremIOApiException.exceptions.internalError(uri.toString(), objStr);
             }
         } else {
@@ -94,6 +91,7 @@ public abstract class XtremIOClient extends StandardRestClient implements XtremI
 
     @Override
     protected void authenticate() throws XtremIOApiException {
+        ClientResponse response = null;
         try {
             XtremIOAuthInfo authInfo = new XtremIOAuthInfo();
             authInfo.setPassword(_password);
@@ -102,17 +100,18 @@ public abstract class XtremIOClient extends StandardRestClient implements XtremI
             String body = getJsonForEntity(authInfo);
 
             URI requestURI = _base.resolve(URI.create(XtremIOConstants.XTREMIO_BASE_STR));
-            ClientResponse response = _client.resource(requestURI).type(MediaType.APPLICATION_JSON)
+            response = _client.resource(requestURI).type(MediaType.APPLICATION_JSON)
                     .post(ClientResponse.class, body);
 
             if (response.getClientResponseStatus() != ClientResponse.Status.OK
                     && response.getClientResponseStatus() != ClientResponse.Status.CREATED) {
-                closeResponse(response);
                 throw XtremIOApiException.exceptions.authenticationFailure(_base.toString());
             }
             _authToken = response.getHeaders().getFirst(XtremIOConstants.AUTH_TOKEN_HEADER);
         } catch (Exception e) {
             throw XtremIOApiException.exceptions.authenticationFailure(_base.toString());
+        } finally {
+            closeResponse(response);
         }
     }
 

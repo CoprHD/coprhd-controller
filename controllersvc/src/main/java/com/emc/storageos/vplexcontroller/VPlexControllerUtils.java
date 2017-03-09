@@ -753,6 +753,79 @@ public class VPlexControllerUtils {
             throw VPlexApiException.exceptions.failedToRefreshVplexStorageView(storageViewName, ex.getLocalizedMessage());
         }
     }
+    
+    public static Map<URI, ExportMask> findExistingStorageViewsAndCreateMasks(List<String> initiatorNames, DbClient _dbClient,
+            Map<String, String> targetPortToPwwnMap, 
+            NetworkDeviceController networkDeviceController, VPlexApiClient client, String vplexClusterName,
+            URI vplexURI, ExportGroup exportGroup ) {
+       
+        Map<URI, ExportMask> exportMasks = new HashMap<URI, ExportMask>();
+        List<VPlexStorageViewInfo> storageViewInfos = client.getStorageViewsContainingInitiators(vplexClusterName,
+                initiatorNames);
+        
+        for (VPlexStorageViewInfo storageView : storageViewInfos) {
+            // create Export Mask if not found.
+            ExportMask exportMask = ExportMaskUtils.getExportMaskByName(_dbClient, vplexURI, storageView.getName());
+            if (null == exportMask) {
+                
+                // Grab the storage ports that have been allocated for this
+                // existing mask.
+                List<String> storagePorts = storageView.getPorts();
+                
+                // convert storage view target ports like
+                // P0000000046E01E80-A0-FC02
+                // to port wwn format that ViPR better understands like
+                // 0x50001442601e8002
+                List<String> portWwns = new ArrayList<String>();
+                for (String storagePort : storagePorts) {
+                    if (targetPortToPwwnMap.keySet().contains(storagePort)) {
+                        portWwns.add(WwnUtils.convertWWN(targetPortToPwwnMap.get(storagePort), WwnUtils.FORMAT.COLON));
+                    }
+                }
+                
+                List<String> storagePortURIs = ExportUtils.storagePortNamesToURIs(_dbClient, portWwns);
+                log.info("this storage view contains storage port URIs: " + storagePortURIs);
+                
+                exportMask = new ExportMask();
+                exportMask.setMaskName(storageView.getName());
+                exportMask.setStorageDevice(vplexURI);
+                exportMask.setId(URIUtil.createId(ExportMask.class));
+                exportMask.setCreatedBySystem(false);
+                exportMask.setNativeId(storageView.getPath());
+                
+                List<String> discoveredInitiators = storageView.getInitiatorPwwns();
+                
+                for (String port : discoveredInitiators) {
+                    String normalizedPort = Initiator.normalizePort(port);
+                    Initiator knownInitiator = ExportUtils.getInitiator(Initiator.toPortNetworkId(normalizedPort), _dbClient);
+                    if (null == knownInitiator) {
+                        exportMask.addInitiator(knownInitiator);
+                        exportMask.addToUserCreatedInitiators(knownInitiator);
+                    } else {
+                        exportMask.addToExistingInitiatorsIfAbsent(knownInitiator);
+                    }
+                }
+                
+                exportMask.setStoragePorts(storagePortURIs);
+                
+                // Update the tracking containers
+                exportMask.addToExistingVolumesIfAbsent(storageView.getWwnToHluMap());
+                
+                // Create zoningMap for the matched initiators and
+                // storagePorts
+                networkDeviceController.updateZoningMapForInitiators(exportGroup, exportMask, false);
+                
+                _dbClient.createObject(exportMask);
+                
+            } else {
+                VPlexControllerUtils.refreshExportMask(_dbClient, storageView, exportMask, targetPortToPwwnMap,
+                        networkDeviceController);
+            }
+            exportMasks.put(exportMask.getId(), exportMask);
+            
+        }
+        return exportMasks;
+    }
 
     /**
      * Returns all VPLEX storage systems in ViPR.

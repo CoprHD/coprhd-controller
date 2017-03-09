@@ -267,6 +267,26 @@ public class ExportMaskUtils {
         }
         return initiators;
     }
+    
+    public static Map<String, ExportMask> groupExportMaskByHost(DbClient dbClient,List<ExportMask> masksToGetProcessed) {
+        Map<String, ExportMask> hostToMaskGroup = new HashMap<String, ExportMask>();
+        
+        for (ExportMask mask : masksToGetProcessed) {
+            
+            Set<Initiator> initiatorSet = ExportMaskUtils.getInitiatorsForExportMask(dbClient, mask, null);
+            for (Initiator initiator : initiatorSet) {
+                String key = NullColumnValueGetter.getNullURI().toString();
+                if (initiator.getHost() != null) {
+                    key = initiator.getHost().toString();
+                }
+                if (hostToMaskGroup.get(key) == null) {
+                    hostToMaskGroup.put(key, mask);
+                }
+                
+            }
+        }
+        return hostToMaskGroup;
+    }
 
     /**
      * Get the Initiators that correspond to the addresses in an ExportMask existingInitiators

@@ -145,10 +145,13 @@ public enum OperationTypeEnum {
     CREATE_FILE_SYSTEM_SHARE("FileSystemShared", "FileSystemShareFailed", "FileSystem shared"),
     ASSIGN_FILE_SYSTEM_TAG("TAG A FILESYSTEM", "", "operation to tag a filesystem"),
     ASSIGN_FILE_SYSTEM_SNAPSHOT_SCHEDULE("FileSystemPolicyAssign", "FileSystemPolicyAssignFailed", "FileSystem Policy Assigned"),
+    ASSIGN_FILE_POLICY("AssignFileSystemPolicy", "FileSystemPolicyAssignFailed", "FileSystem Policy Assigned"),
     UNASSIGN_FILE_SYSTEM_SNAPSHOT_SCHEDULE("FileSystemPolicyUnassign", "FileSystemPolicyUnassignFailed", "FileSystem Policy Unassigned"),
     DELETE_FILE_SYSTEM_SHARE("FileSystemShareDeleted", "FileSystemShareDeleteFailed", "FileSystem share deleted"),
     GET_FILE_SYSTEM_SNAPSHOT_BY_SCHEDULE("FileSystemScheduleSnapshot", "FileSystemScheduleSnapshotFailed",
             "FileSystem Schedule Snapshot List"),
+    UPDATE_STORAGE_SYSTEM_POLICY_BY_POLICY_RESOURCE("StorageSystemPolicyForPolicyResource", "StorageSystemPolicyForPolicyResourceFailed",
+            "Get Storage System Policy For Policy Resource"),
 
     CREATE_FILE_SYSTEM_SNAPSHOT("FileSystemSnapshotCreated", "FileSystemSnapshotCreateFailed", "FileSystem snapshot created"),
     DELETE_FILE_SNAPSHOT("FileSystemSnapshotDeleted", "FileSystemSnapshotDeleteFailed", "FileSystem snapshot deleted"),
@@ -163,7 +166,8 @@ public enum OperationTypeEnum {
 
     CREATE_FILE_SNAPSHOT_SHARE("FileSystemSnapshotShared", "FileSystemSnapshotShareFailed", "FileSystem snapshot shared"),
     ASSIGN_FILE_SNAPSHOT_TAG("TAG A FILESYSTEM SNAPSHOT", "", "tag a fileshare snapshot"),
-    DELETE_FILE_SNAPSHOT_SHARE("FileSystemSnapshotShareDeleted", "FileSystemSnapshotShareDeleteFailed", "FileSystem snapshot share deleted"),
+    DELETE_FILE_SNAPSHOT_SHARE("FileSystemSnapshotShareDeleted", "FileSystemSnapshotShareDeleteFailed",
+            "FileSystem snapshot share deleted"),
     RESTORE_FILE_SNAPSHOT("FileSystemRestored", "FileSystemRestoreFailed", "FileSystem restored"),
 
     CREATE_FILE_MIRROR("FileSystemMirrorCreated", "FileSystemMirrorCreateFailed", "FileSystemMirror Create"),
@@ -319,11 +323,13 @@ public enum OperationTypeEnum {
     CREATE_ORDER("CRAETE ORDER", "", "operation to create a order"),
     UPDATE_ORDER("UPDATE ORDER", "", "operation to update a order"),
     DELETE_ORDER("DELETE ORDER", "", "operation to delete a order"),
+    DOWNLOAD_ORDER("DOWNLOAD ORDER", "", "operation to download a order"),
 
     CREATE_HOST("CREATE HOST", "", "operation to create a compute host."),
     UPDATE_HOST("UPDATE HOST", "", "operation to update a compute host."),
     DELETE_HOST("DELETE HOST", "", "operation to delete a compute host."),
     DETACH_HOST_STORAGE("DELETE HOST STORAGE", "", "operation to detach storage from a compute host."),
+    UPDATE_HOST_BOOT_VOLUME("UPDATE HOST BOOT VOLUME", "", "operation to update a host's boot volume"),
 
     CREATE_CLUSTER("CREATE CLUSTER", "", "operation to create a cluster."),
     UPDATE_CLUSTER("UPDATE CLUSTER", "", "operation to update a cluster."),
@@ -365,7 +371,8 @@ public enum OperationTypeEnum {
     INSTALL_COMPUTE_IMAGE("INSTALL COMPUTE IMAGE", "", "operation to install a compute image."),
 
     POWERUP_COMPUTE_ELEMENT("POWERUP COMPUTE ELEMENT", "POWERUP COMPUTE ELEMENT_FAILED", "operation to power-up a compute element."),
-    POWERDOWN_COMPUTE_ELEMENT("POWERDOWN COMPUTE ELEMENT", "POWERDOWN COMPUTE ELEMENT_FAILED", "operation to power-down a compute element."),
+    POWERDOWN_COMPUTE_ELEMENT("POWERDOWN COMPUTE ELEMENT", "POWERDOWN COMPUTE ELEMENT_FAILED",
+            "operation to power-down a compute element."),
 
     CREATE_COMPUTE_VPOOL("CREATE COMPUTE VPOOL", "", "operation to create a virtual compute pool"),
     UPDATE_COMPUTE_VPOOL("UPDATE COMPUTE VPOOL", "", "operation to update a virtual compute pool"),
@@ -510,18 +517,20 @@ public enum OperationTypeEnum {
     FAILOVER("FAILOVER TO A STANDBY", "", "operation to initiate failing over to a standby site"),
     STANDBY_FAILOVER("STANDBY BECOME ACTIVE AFTER FAILOVER", "", "operation that marks failover on new active site complete"),
     STANDBY_DEGRADE("DEGRADE STANDBY", "", "operation that marks standby as degraded"),
-    STANDBY_REJOIN("STANDBY REJOIN VDC FROM STANDBY_DEGRADED STATE", "", "operation that marks standby has rejoined vdc rom degraded state"),
+    STANDBY_REJOIN("STANDBY REJOIN VDC FROM STANDBY_DEGRADED STATE", "",
+            "operation that marks standby has rejoined vdc rom degraded state"),
     UPDATE_SITE("UPDATE SITE", "", "operation to update site information"),
     ADD_STORAGE_SYSTEM_TYPE("ADD STORAGE SYSTEM TYPE", "", "operation to initiate adding a new storage system type"),
     REMOVE_STORAGE_SYSTEM_TYPE("REMOVE STORAGE SYSTEM TYPE", "", "operation to initiate removing a storage system type"),
     CREATE_SCHEDULE_POLICY("SchedulePolicyCreated", "", "create schedule policy."),
-    
+    EXPORT_PATH_ADJUSTMENT("EXPORT PATH ADJUSTMENT", "", "operation to adjust export paths"),
     /* Filesystem Mount Operations*/
-    
     MOUNT_NFS_EXPORT("MOUNT NFS EXPORT", "mount nfs export operation failed", "mount nfs export operation"),
     UNMOUNT_NFS_EXPORT("UNMOUNT NFS EXPORT", "unmount nfs operation failed", "unmount nfs export operation"),
     LIST_MOUNTED_EXPORTS("LIST MOUNTED EXPORTS", "list mounted nfs operation failed", "list mounted exports operation"),
 
+    DELETE_FILE_POLICY("DELETE FILE POLICY", "Delete file policy failed", "Delete file policy operation"),
+    UNASSIGN_FILE_POLICY("FilePolicyUnassign", "FilePolicyUnassignFailed", "File Policy Unassigned"),
     /* Storage Driver Operations */
     INSTALL_STORAGE_DRIVER("INSTALL STORAGE DRIVER", "", "install storage driver operation"),
     UNINSTALL_STORAGE_DRIVER("UNINSTALL STORAGE DRIVER", "", "uninstall storage driver operation"),

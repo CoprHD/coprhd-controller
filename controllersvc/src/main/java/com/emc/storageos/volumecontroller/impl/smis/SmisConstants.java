@@ -259,6 +259,7 @@ public interface SmisConstants {
     static final String EMC_LIST_SFSENTRIES = "EMCListSFSEntries";
     static final String SFSENTRIES = "SFSEntries";
     static final String EMC_REMOVE_SFSENTRIES = "EMCRemoveSFSEntries";
+    static final String ADD_SFS_ENTRIES = "AddSFSEntries";
 
     // Class and properties for SE_ReplicaPairView
     String SE_REPLICA_PAIR_VIEW = "SE_ReplicaPairView";

@@ -28,6 +28,7 @@ import com.emc.vipr.client.core.ComputeSystems;
 import com.emc.vipr.client.core.ComputeVirtualPools;
 import com.emc.vipr.client.core.CustomConfigs;
 import com.emc.vipr.client.core.Events;
+import com.emc.vipr.client.core.FileProtectionPolicies;
 import com.emc.vipr.client.core.FileSnapshots;
 import com.emc.vipr.client.core.FileSystems;
 import com.emc.vipr.client.core.FileVirtualPools;
@@ -418,6 +419,10 @@ public class ViPRCoreClient {
 
     public SchedulePolicies schedulePolicies() {
         return new SchedulePolicies(this, client);
+    }
+    
+    public FileProtectionPolicies fileProtectionPolicies() {
+        return new FileProtectionPolicies(this, client);
     }
 
     public ApplicationSupport application() {

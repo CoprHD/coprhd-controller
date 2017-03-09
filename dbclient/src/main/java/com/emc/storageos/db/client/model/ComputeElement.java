@@ -67,6 +67,16 @@ public class ComputeElement extends DiscoveredSystemObject {
         setChanged("uuid");
     }
 
+    @Name("bios")
+    public String getBios() {
+        return _bios;
+    }
+
+    public void setBios(String bios) {
+        this._bios = bios;
+        setChanged("bios");
+    }
+
     @Name("originalUuid")
     public String getOriginalUuid() {
         return _originalUuid;

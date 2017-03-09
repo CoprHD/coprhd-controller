@@ -16,7 +16,8 @@ dependencies {
             library(commons_compress),
             project(":dbsvc"),
             project(":geosvc"),
-            project(":com.emc.sa.model")
+            project(":com.emc.sa.model"),
+            project(":com.iwave.platform")
 }
 
 task copyScripts(type: Copy) {

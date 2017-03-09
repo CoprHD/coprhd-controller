@@ -20,6 +20,8 @@ import org.springframework.util.CollectionUtils;
 
 import com.emc.storageos.computesystemcontroller.exceptions.CompatibilityException;
 import com.emc.storageos.computesystemcontroller.exceptions.ComputeSystemControllerException;
+import com.emc.storageos.computesystemcontroller.impl.HostToComputeElementMatcher;
+import com.emc.storageos.computesystemcontroller.impl.HostToServiceProfileMatcher;
 import com.emc.storageos.computesystemcontroller.impl.ComputeSystemHelper;
 import com.emc.storageos.computesystemcontroller.impl.DiscoveryStatusUtils;
 import com.emc.storageos.db.client.DbClient;
@@ -386,13 +388,14 @@ public class VcenterDiscoveryAdapter extends EsxHostDiscoveryAdapter {
                 try {
                     discoverHost(source, sourceHost, uuid, bios, target, targetHost, newClusters, changes);
                     discoveredHosts.add(targetHost.getId());
+                    matchHostsToComputeElements(targetHost.getId());
+                    matchHostsToServiceProfiles(targetHost.getId());
                     DiscoveryStatusUtils.markAsSucceeded(getModelClient(), targetHost);
                 } catch (RuntimeException e) {
                     warn(e, "Problem discovering host %s", targetHost.getLabel());
                     DiscoveryStatusUtils.markAsFailed(getModelClient(), targetHost, e.getMessage(), e);
                 }
             }
-
             for (Host oldHost : oldHosts) {
                 if (!discoveredHosts.contains(oldHost.getId())) {
                     info("Unable to discover host %s. Marking as failed discovery.", oldHost.getId());
@@ -409,6 +412,27 @@ public class VcenterDiscoveryAdapter extends EsxHostDiscoveryAdapter {
                     CommonTransformerFunctions.fctnDataObjectToID()));
             deletedHosts.addAll(oldHostIds);
         }
+
+       /**
+        * Match hosts to service profiles
+        *
+        * @param hostId The ID of the host to find a matching ServiceProfile
+        *
+        */
+        private void matchHostsToServiceProfiles(URI hostId) {
+            HostToServiceProfileMatcher.matchHostsToServiceProfilesByUuid(hostId, getDbClient());
+        }
+
+       /**
+        * Match hosts to compute elements
+        *
+        * @param hostId The ID of the host to find a matching ComputeElement (blade) for
+        *
+        */
+        private void matchHostsToComputeElements(URI hostId) {
+            HostToComputeElementMatcher.matchHostsToComputeElementsByUuid(hostId, getDbClient());
+        }
+
 
         /**
          * Get all clusters for the datacenter.
@@ -449,6 +473,7 @@ public class VcenterDiscoveryAdapter extends EsxHostDiscoveryAdapter {
                 targetCluster.setExternalId(vcenterClusterId);
 
                 save(targetCluster);
+                ComputeSystemHelper.updateInitiatorClusterName(dbClient, targetCluster.getId());
                 newClusters.add(targetCluster);
             }
         }
@@ -556,6 +581,7 @@ public class VcenterDiscoveryAdapter extends EsxHostDiscoveryAdapter {
 
             // Only attempt to update ip interfaces or initiators for connected hosts
             HostSystemConnectionState connectionState = getConnectionState(source);
+            info("Connection status for host %s is %s", target.forDisplay(), connectionState);
             if (connectionState == HostSystemConnectionState.connected) {
 
                 // discover initiators

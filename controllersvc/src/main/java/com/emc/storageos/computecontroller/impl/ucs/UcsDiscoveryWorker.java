@@ -10,6 +10,7 @@ import java.net.URI;
 import java.net.URL;
 import java.text.NumberFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Collection;
 import java.util.HashMap;
@@ -57,6 +58,7 @@ import com.emc.cloud.platform.ucs.out.model.VnicSanConnTempl;
 import com.emc.cloud.ucsm.service.UCSMService;
 import com.emc.storageos.computesystemcontroller.exceptions.ComputeSystemControllerException;
 import com.emc.storageos.computesystemcontroller.impl.HostToComputeElementMatcher;
+import com.emc.storageos.computesystemcontroller.impl.HostToServiceProfileMatcher;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
@@ -79,9 +81,11 @@ import com.emc.storageos.db.client.model.ComputeVirtualPool;
 import com.emc.storageos.db.client.model.ComputeVnic;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
+import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus;
 import com.emc.storageos.db.client.model.DiscoveredSystemObject;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.StringSet;
+import com.emc.storageos.db.client.model.UCSServiceProfile;
 import com.emc.storageos.db.client.model.UCSServiceProfileTemplate;
 import com.emc.storageos.db.client.model.UCSVhbaTemplate;
 import com.emc.storageos.db.client.model.UCSVnicTemplate;
@@ -146,6 +150,7 @@ public class UcsDiscoveryWorker {
         URL ucsmURL = getUcsmURL(cs);
 
         List<ComputeBlade> computeBlades;
+        List<LsServer> allServiceProfiles;
         Map<String, LsServer> associatedLsServers;
         List<LsServer> serviceProfileTemplates;
         List<VnicLanConnTempl> vnicTemplates;
@@ -163,6 +168,7 @@ public class UcsDiscoveryWorker {
             verifyVersion(cs, ucsmVersion);
 
             computeBlades = ucsmService.getComputeBlades(ucsmURL.toString(), cs.getUsername(), cs.getPassword());
+            allServiceProfiles = ucsmService.getAllServiceProfiles(ucsmURL.toString(), cs.getUsername(), cs.getPassword());
             associatedLsServers = ucsmService.getAllAssociatedLsServers(ucsmURL.toString(), cs.getUsername(), cs.getPassword());
             serviceProfileTemplates = ucsmService.getServiceProfileTemplates(ucsmURL.toString(), cs.getUsername(), cs.getPassword());
             bootPolicies = ucsmService.getBootPolicies(ucsmURL.toString(), cs.getUsername(), cs.getPassword());
@@ -185,29 +191,36 @@ public class UcsDiscoveryWorker {
             _dbClient.updateObject(cs);
             throw ComputeSystemControllerException.exceptions.discoverFailed(computeSystemURI.toString(), e);
         }
-
-        reconcileServiceProfileTemplates(cs, serviceProfileTemplates);
-        reconcileComputeBlades(cs, computeBlades, associatedLsServers);
-        reconcileVhbas(cs, associatedLsServers, new VhbaHelper(vsanFabricList));
-        reconcileServiceProfileTemplatesHBAs(cs, serviceProfileTemplates, new VhbaHelper(vsanFabricList));
-        reconcileServiceProfileTemplatesVnics(cs, serviceProfileTemplates);
-        reconcileServiceProfileTemplatesBootDefinitions(cs, serviceProfileTemplates);
-        reconcileBootPolicies(cs, bootPolicies);
-        reconcileVnicTemplates(cs, vnicTemplates);
-        reconcileVhbaTemplates(cs, vhbaTemplates);
-
-        Map<String, Set<String>> unpinnedVsans = getUnpinnedVSans(vsanList, fcInterfaceMap);
-        reconcileUplinkPorts(cs, uplinkMap, fcInterfaceMap, unpinnedVsans);
-        reconcileUplinkPortChannels(cs, portChannelMap, unpinnedVsans);
-        reconcileVlans(cs, vlanList);
-
-        matchComputeBladesToHosts(cs);
-
-        cs.setLastDiscoveryRunTime(Calendar.getInstance().getTimeInMillis());
-        cs.setSuccessDiscoveryTime(Calendar.getInstance().getTimeInMillis());
-        cs.setDiscoveryStatus(DiscoveredDataObject.DataCollectionJobStatus.COMPLETE.name());
-        associateComputeImageServer(cs);
-        _dbClient.updateObject(cs);
+        try{
+            reconcileServiceProfileTemplates(cs, serviceProfileTemplates);
+            reconcileServiceProfiles(cs,allServiceProfiles);
+            reconcileComputeBlades(cs, computeBlades, associatedLsServers);
+            reconcileVhbas(cs, associatedLsServers, new VhbaHelper(vsanFabricList));
+            reconcileServiceProfileTemplatesHBAs(cs, serviceProfileTemplates, new VhbaHelper(vsanFabricList));
+            reconcileServiceProfileTemplatesVnics(cs, serviceProfileTemplates);
+            reconcileServiceProfileTemplatesBootDefinitions(cs, serviceProfileTemplates);
+            reconcileBootPolicies(cs, bootPolicies);
+            reconcileVnicTemplates(cs, vnicTemplates);
+            reconcileVhbaTemplates(cs, vhbaTemplates);
+    
+            Map<String, Set<String>> unpinnedVsans = getUnpinnedVSans(vsanList, fcInterfaceMap);
+            reconcileUplinkPorts(cs, uplinkMap, fcInterfaceMap, unpinnedVsans);
+            reconcileUplinkPortChannels(cs, portChannelMap, unpinnedVsans);
+            reconcileVlans(cs, vlanList);
+    
+            matchComputeBladesToHosts(cs);
+            matchServiceProfilesToHosts(cs);
+    
+            cs.setLastDiscoveryRunTime(Calendar.getInstance().getTimeInMillis());
+            cs.setSuccessDiscoveryTime(Calendar.getInstance().getTimeInMillis());
+            cs.setDiscoveryStatus(DiscoveredDataObject.DataCollectionJobStatus.COMPLETE.name());
+            associateComputeImageServer(cs);
+        } catch (ComputeSystemControllerException e){
+            cs.setLastDiscoveryStatusMessage(e.getMessage());
+            throw ComputeSystemControllerException.exceptions.discoverFailed(cs.getId().toString(), e);
+        } finally {
+           _dbClient.persistObject(cs);
+        }
     }
 
     private void verifyVersion(ComputeSystem cs, String version) {
@@ -428,6 +441,108 @@ public class UcsDiscoveryWorker {
             }
         return biosVersion;
     }
+
+    private void reconcileServiceProfiles(ComputeSystem cs, List<LsServer> allLsServers){
+        _log.info("Reconciling UCS Service Profiles");
+
+        URIQueryResultList uris = new URIQueryResultList();
+        _dbClient.queryByConstraint(ContainmentConstraint.Factory
+                .getComputeSystemServiceProfilesConstraint(cs.getId()), uris);
+
+        Map<String, UCSServiceProfile> removeServiceProfiles = new HashMap<>();
+        Map<String, UCSServiceProfile> updateServiceProfiles = new HashMap<>();
+        Map<String, UCSServiceProfile> addServiceProfiles = new HashMap<>();
+
+        List<UCSServiceProfile> serviceProfiles = _dbClient.queryObject(UCSServiceProfile.class, uris, true);
+
+        for (UCSServiceProfile serviceProfile : serviceProfiles) {
+            removeServiceProfiles.put(serviceProfile.getDn(), serviceProfile);
+        }
+
+        // discovered data
+        for (LsServer lsServer : allLsServers) {
+            UCSServiceProfile serviceProfile = removeServiceProfiles.get(lsServer.getDn());
+            if (serviceProfile != null) {
+                removeServiceProfiles.remove(lsServer.getDn());
+                updateUCSServiceProfile(serviceProfile, lsServer);
+                updateServiceProfiles.put(lsServer.getDn(), serviceProfile);
+            } else {
+                serviceProfile = new UCSServiceProfile();
+                createUCSServiceProfile(cs, serviceProfile, lsServer);
+                addServiceProfiles.put(lsServer.getDn(), serviceProfile);
+            }
+        }
+        createDataObjects(new ArrayList<DataObject>(addServiceProfiles.values()));
+        persistDataObjects(new ArrayList<DataObject>(updateServiceProfiles.values()));
+
+        if (!removeServiceProfiles.isEmpty()){
+            for (String key : removeServiceProfiles.keySet()) {
+               _log.info("Marked for deletion UCSServiceProfile: " + key);
+            }   
+            
+            removeServiceProfilesFromHosts(removeServiceProfiles.values());
+            deleteDataObjects(new ArrayList<DataObject>(removeServiceProfiles.values()));
+        }
+        validateServiceProfileUuids(cs);
+
+    }
+   
+    private void validateServiceProfileUuids(ComputeSystem cs){
+        URIQueryResultList uris = new URIQueryResultList();
+        _dbClient.queryByConstraint(ContainmentConstraint.Factory
+                .getComputeSystemServiceProfilesConstraint(cs.getId()), uris);
+
+        List<UCSServiceProfile> serviceProfiles = _dbClient.queryObject(UCSServiceProfile.class, uris, true);
+        Map<String,UCSServiceProfile> uuidMap = new HashMap<>();
+        for (UCSServiceProfile serviceProfile : serviceProfiles) {
+            UCSServiceProfile anotherProfile = uuidMap.get(serviceProfile.getUuid());
+            if (anotherProfile == null) {
+                uuidMap.put(serviceProfile.getUuid(), serviceProfile);
+            }else {
+                _log.info("Found two service profiles {} , {}  that have same uuid: {} ", serviceProfile.getDn(), anotherProfile.getDn(), serviceProfile.getUuid());
+                throw ComputeSystemControllerException.exceptions.serviceProfileUuidDuplicate(serviceProfile.getDn(), anotherProfile.getDn(), serviceProfile.getUuid());
+            }
+        }
+    }
+
+    private void createUCSServiceProfile(ComputeSystem cs, UCSServiceProfile serviceProfile, LsServer lsServer) {
+
+        _log.info("Adding UCSServiceProfile label: " + lsServer.getDn());
+        URI uri = URIUtil.createId(UCSServiceProfile.class);
+        serviceProfile.setComputeSystem(cs.getId());
+        serviceProfile.setInactive(false);
+        serviceProfile.setId(uri);
+        serviceProfile.setSystemType(cs.getSystemType());
+        serviceProfile.setCreationTime(Calendar.getInstance());
+        serviceProfile.setDn(lsServer.getDn());
+        serviceProfile.setNativeGuid(NativeGUIDGenerator.generateNativeGuid(cs, serviceProfile));
+        updateUCSServiceProfile(serviceProfile, lsServer);
+    }
+
+    private void updateUCSServiceProfile(UCSServiceProfile serviceProfile, LsServer lsServer) {
+
+        _log.info("Updating UCSServiceProfile id: " + serviceProfile.getId());
+        serviceProfile.setLabel(lsServer.getName());
+        serviceProfile.setComputeElementDn(lsServer.getPnDn());
+        // Fail discovery if the uuid of a service profile matching a managed host changes!
+        if (serviceProfile.getUuid() == null) {
+            serviceProfile.setUuid(lsServer.getUuid());
+        }else if (!serviceProfile.getUuid().equals(lsServer.getUuid()) ){
+            if ( !NullColumnValueGetter.isNullURI(serviceProfile.getHost())){
+                String errorMessage = "uuid of service profile" + lsServer.getDn() + " changed from : "+ serviceProfile.getUuid() + " to : "+ lsServer.getUuid();
+                _log.error(errorMessage);
+                throw ComputeSystemControllerException.exceptions.serviceProfileUuidChanged(lsServer.getDn(), serviceProfile.getUuid(), lsServer.getUuid());
+            }else {
+                serviceProfile.setUuid(lsServer.getUuid());
+            }
+        }
+
+        serviceProfile.setLastDiscoveryRunTime(Calendar.getInstance().getTimeInMillis());
+        serviceProfile.setSuccessDiscoveryTime(Calendar.getInstance().getTimeInMillis());
+        serviceProfile.setDiscoveryStatus(DiscoveredDataObject.DataCollectionJobStatus.COMPLETE.name());
+        serviceProfile.setCompatibilityStatus(DiscoveredDataObject.CompatibilityStatus.UNKNOWN.name());
+    }
+
 
     private void reconcileVhbas(ComputeSystem cs, Map<String, LsServer> associatedLsServers, VhbaHelper lookUpVsan) {
         _log.info("Reconciling Vhbas");
@@ -1673,7 +1788,26 @@ public class UcsDiscoveryWorker {
         computeVnic.setNativeVlan(nativeVlan);
         computeVnic.setVlans(vlans);
     }
+    private void removeServiceProfilesFromHosts(Collection<UCSServiceProfile> serviceProfiles) {
+         List<UCSServiceProfile> serviceProfilesToUpdate = new ArrayList<UCSServiceProfile>();
+         for (UCSServiceProfile serviceProfile : serviceProfiles) {
+             if (!NullColumnValueGetter.isNullURI(serviceProfile.getHost())){
+                Host host = _dbClient.queryObject(Host.class,serviceProfile.getHost());
+                if (host!=null){
+                     _log.info("Removing UCSServiceProfile {} association from Host {} ", serviceProfile.getDn(), host.getLabel());
+                     host.setServiceProfile(NullColumnValueGetter.getNullURI());
+                    _dbClient.persistObject(host);
+                }
+                _log.info("Removing Host association from service profile {}",  serviceProfile.getDn());
+                serviceProfile.setHost(NullColumnValueGetter.getNullURI());
+                serviceProfilesToUpdate.add(serviceProfile);
+             }
+        }
+        if (!serviceProfilesToUpdate.isEmpty()){
+            persistDataObjects(new ArrayList<DataObject>(serviceProfilesToUpdate));
+        }
 
+    }
     private void removeBladesFromHosts(Collection<ComputeElement> removeBlades) {
         List<URI> ids = _dbClient.queryByType(Host.class, true);
         Iterator<Host> iter = _dbClient.queryIterativeObjects(Host.class, ids);
@@ -2134,6 +2268,10 @@ public class UcsDiscoveryWorker {
 
     private void matchComputeBladesToHosts(ComputeSystem cs) {
         HostToComputeElementMatcher.matchHostsToComputeElements(_dbClient);
+    }
+ 
+    private void matchServiceProfilesToHosts(ComputeSystem cs) {
+        HostToServiceProfileMatcher.matchServiceProfilesToHosts(cs, _dbClient);
     }
 
     /**

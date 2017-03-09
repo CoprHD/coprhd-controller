@@ -1110,41 +1110,41 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                         _dbClient.updateAndReindexObject(volume);
                     }
                 }
-
+            
+            
                 // Check for loose export groups associated with this rolled-back volume
                 URIQueryResultList exportGroupURIs = new URIQueryResultList();
-                _dbClient.queryByConstraint(ContainmentConstraint.Factory.getVolumeExportGroupConstraint(
-                        volume.getId()), exportGroupURIs);
+                _dbClient.queryByConstraint(ContainmentConstraint.Factory.getVolumeExportGroupConstraint(volume.getId()), exportGroupURIs);
                 while (exportGroupURIs.iterator().hasNext()) {
-                    URI exportGroupURI = exportGroupURIs.iterator().next();
+                	URI exportGroupURI = exportGroupURIs.iterator().next();
                     ExportGroup exportGroup = _dbClient.queryObject(ExportGroup.class, exportGroupURI);
                     if (!exportGroup.getInactive()) {
-                        if (exportGroup.checkInternalFlags(Flag.INTERNAL_OBJECT)) {
-                            // Make sure the volume is not in an export mask
-                            boolean foundInMask = false;
-                            
-                            for (ExportMask exportMask : ExportMaskUtils.getExportMasks(_dbClient, exportGroup)) {                                  
-                                if (exportMask.hasVolume(volume.getId())) {
-                                    foundInMask = true;
-                                    break;
-                                }
-                            }                            
-
-                            // If we didn't find that volume in a mask, it's OK to remove it.
-                            if (!foundInMask) {
-                                exportGroup.removeVolume(volume.getId());
-                                if (exportGroup.getVolumes().isEmpty()) {
-                                    _dbClient.removeObject(exportGroup);
-                                } else {
-                                    _dbClient.updateObject(exportGroup);
-                                }
+                    	exportGroup.removeVolume(volume.getId());
+                        boolean canRemoveGroup = false;
+                        List<ExportMask> exportMasks = ExportMaskUtils.getExportMasks(_dbClient, exportGroup);
+                    	// Make sure the volume is not in an export mask
+                        for (ExportMask exportMask : exportMasks) {
+                        	exportMask.removeVolume(volume.getId());
+                    		exportMask.removeFromUserCreatedVolumes(volume);
+                            exportMask.removeFromExistingVolumes(volume);
+                    		if (!exportMask.getCreatedBySystem() && !exportMask.hasAnyVolumes() && exportMask.emptyVolumes()) {
+                    			canRemoveGroup = true;
+                    			_dbClient.removeObject(exportMask);
+                            } else {
+                            	_dbClient.updateObject(exportMask);
                             }
+                        }                            
+
+                        // If we didn't find that volume in a mask, it's OK to remove it.
+                        if (canRemoveGroup && exportMasks.size() == 1 && exportGroup.getVolumes().isEmpty()) {
+                            _dbClient.removeObject(exportGroup);
+                        } else {
+                            _dbClient.updateObject(exportGroup);
                         }
                     }
                 }
-            }
-
-            // Call regular delete volumes
+            }                  		
+                           
             InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_013);
             deleteVolumesWithCompleter(systemURI, volumeURIs, completer);
             InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_014);
@@ -3222,7 +3222,34 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
 
     @Override
     public void deleteConsistencyGroup(URI storage, URI consistencyGroup, Boolean markInactive, String opId) throws ControllerException {
-        deleteReplicationGroupInConsistencyGroup(storage, consistencyGroup, null, false, markInactive, true, opId);
+        _log.info("START delete consistency group");
+        TaskCompleter wfCompleter = null;
+
+        try {
+            Workflow workflow = _workflowService.getNewWorkflow(this, "deleteReplicationGroupInConsistencyGroup", true, opId);
+            wfCompleter = new SimpleTaskCompleter(BlockConsistencyGroup.class, consistencyGroup, opId);
+
+            StorageSystem system = _dbClient.queryObject(StorageSystem.class, storage);
+            BlockConsistencyGroup cg = _dbClient.queryObject(BlockConsistencyGroup.class, consistencyGroup);
+            Set<String> groupNames = BlockConsistencyGroupUtils.getGroupNamesForSystemCG(cg, system);
+
+            String stepId = null;
+            for (String groupName : groupNames) {
+                Workflow.Method deleteStep = new Workflow.Method("deleteReplicationGroupInConsistencyGroup",
+                        storage, consistencyGroup, groupName, false, markInactive, true);
+                stepId = workflow.createStep("DeleteReplicationGroup", "Deleting replication group", stepId, storage,
+                        system.getSystemType(), this.getClass(), deleteStep, rollbackMethodNullMethod(), null);
+            }
+
+            String successMsg = String.format("Successfully deleted replication groups %s", Joiner.on(',').join(groupNames));
+            workflow.executePlan(wfCompleter, successMsg);
+        } catch (Exception e) {
+            if (wfCompleter != null) {
+                ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
+                wfCompleter.error(_dbClient, serviceError);
+            }
+            throw DeviceControllerException.exceptions.deleteConsistencyGroupFailed(e);
+        }
     }
 
     public void deleteReplicationGroupInConsistencyGroup(URI storage, URI consistencyGroup, String groupName, Boolean keepRGName,
@@ -3253,6 +3280,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                     } else {
                         completer.ready(_dbClient);
                     }
+                    return;
                 }
             }
 
@@ -5268,7 +5296,6 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             BlockSnapshot snapObj = _dbClient.queryObject(BlockSnapshot.class, snapshot);
             completer = BlockSnapshotDeleteCompleter.createCompleter(_dbClient, snapObj, opId);
             getDevice(storageObj.getSystemType()).doDeleteSelectedSnapshot(storageObj, snapshot, completer);
-            WorkflowStepCompleter.stepSucceded(opId);
         } catch (Exception e) {
             if (completer != null) {
                 ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);

@@ -17,10 +17,8 @@ import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.ExportMask;
-import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedExportMask;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
-import com.emc.storageos.util.ConnectivityUtil;
 
 /*
  * MULTIPLE_MASK_PER_HOST :
@@ -51,10 +49,11 @@ public class MultipleMaskPerHostIngestOrchestrator extends BlockIngestExportOrch
         if (null != maskUris && !maskUris.isEmpty()) {
             for (URI maskUri : maskUris) {
                 ExportMask exportMask = dbClient.queryObject(ExportMask.class, maskUri);
-                if (null == exportMask) {
-                    continue;
-                }
-                if (VolumeIngestionUtil.hasIncorrectMaskPathForVplex(mask, exportMask, dbClient)) {
+                // skip if the mask is null, the storage device doesn't match, or is on the incorrect vplex cluster path
+                if (null == exportMask 
+                        || null == exportMask.getStorageDevice()
+                        || !exportMask.getStorageDevice().equals(mask.getStorageSystemUri())
+                        || VolumeIngestionUtil.hasIncorrectMaskPathForVplex(mask, exportMask, dbClient)) {
                     continue;
                 }
                 // COP-18184 : Check if the initiators are also matching

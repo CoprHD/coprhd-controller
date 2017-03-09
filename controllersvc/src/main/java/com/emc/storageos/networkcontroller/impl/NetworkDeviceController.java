@@ -7,6 +7,7 @@ package com.emc.storageos.networkcontroller.impl;
 import java.net.URI;
 import java.text.MessageFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
@@ -22,6 +23,7 @@ import org.apache.curator.framework.recipes.locks.InterProcessLock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.util.CollectionUtils;
 
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.customconfigcontroller.CustomConfigConstants;
@@ -44,6 +46,7 @@ import com.emc.storageos.db.client.model.NetworkSystem;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageProtocol.Transport;
+import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.StringSetMap;
 import com.emc.storageos.db.client.model.VirtualArray;
@@ -80,8 +83,10 @@ import com.emc.storageos.util.NetworkLite;
 import com.emc.storageos.util.NetworkUtil;
 import com.emc.storageos.volumecontroller.AsyncTask;
 import com.emc.storageos.volumecontroller.ControllerException;
+import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.BiosCommandResult;
 import com.emc.storageos.volumecontroller.impl.ControllerUtils;
+import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ZoneReferencesRemoveCompleter;
 import com.emc.storageos.volumecontroller.impl.monitoring.RecordableBourneEvent;
 import com.emc.storageos.volumecontroller.impl.monitoring.RecordableEventManager;
 import com.emc.storageos.volumecontroller.impl.monitoring.cim.enums.RecordType;
@@ -464,6 +469,14 @@ public class NetworkDeviceController implements NetworkController {
             }
             return result;
         } catch (ControllerException ex) {
+        	 String operation = doRemove ? "Remove Zones" : "Add Zones";
+        	 _log.info(String.format("waiting for 2 min before retrying %s with alternate device", operation));
+        	 try {
+				Thread.sleep(1000 * 120);
+			} catch (InterruptedException e) {
+				_log.warn("Thread sleep interrupted.  Allowing to continue without sleep");
+			}
+         
             NetworkFCZoneInfo fabricInfo = fabricInfos.get(0);
             URI primaryUri = fabricInfo.getNetworkDeviceId();
             URI altUri = fabricInfo.getAltNetworkDeviceId();
@@ -696,6 +709,13 @@ public class NetworkDeviceController implements NetworkController {
                 setStatus(Volume.class, volUri, taskId, true, null);
             }
         } catch (ControllerException ex) {
+        	 _log.info("waiting for 2 min before retrying removeZone with alternate device");
+        	 try {
+				Thread.sleep(1000 * 120);
+			} catch (InterruptedException e) {
+				_log.warn("Thread sleep interrupted.  Allowing to continue without sleep");
+			}
+        	 
             URI primaryUri = fabricInfo.getNetworkDeviceId();
             URI altUri = fabricInfo.getAltNetworkDeviceId();
             if (altUri != null && altUri != primaryUri) {
@@ -1027,8 +1047,10 @@ public class NetworkDeviceController implements NetworkController {
                 result = BiosCommandResult.createSuccessfulResult();
             } else {
                 // Now call addZones to add all the required zones.
+                InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_047);
                 result = addRemoveZones(exportGroup.getId(),
                         context.getZoneInfos(), false);
+                InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_048);
             }
 
             // Save our zone infos in case we want to rollback.
@@ -1209,8 +1231,10 @@ public class NetworkDeviceController implements NetworkController {
             }
 
             // Now call addZones to add all the required zones.
+            InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_058);
             BiosCommandResult result = addRemoveZones(exportGroup.getId(),
                     context.getZoneInfos(), false);
+            InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_059);
             status = result.isCommandSuccess();
             // Save our zone infos in case we want to rollback.
             WorkflowService.getInstance().storeStepData(token, context);
@@ -1265,6 +1289,7 @@ public class NetworkDeviceController implements NetworkController {
     private boolean doZoneExportMasksDelete(List<NetworkZoningParam> zoningParams,
             Collection<URI> volumeURIs, String stepId) {
         NetworkFCContext context = new NetworkFCContext();
+        TaskCompleter taskCompleter = null;
         boolean status = false;
         try {
             if (zoningParams.isEmpty()) {
@@ -1288,17 +1313,28 @@ public class NetworkDeviceController implements NetworkController {
 
             // If there are no zones to do, we were successful.
             if (context.getZoneInfos().isEmpty()) {
+                _log.info("No zoning information provided.");
                 WorkflowStepCompleter.stepSucceded(stepId);
                 return true;
             }
 
+            // Determine what needs to be rolled back.
             List<NetworkFCZoneInfo> lastReferenceZoneInfo = new ArrayList<NetworkFCZoneInfo>();
-            for (NetworkFCZoneInfo zoneInfo : zones) {
-                if (zoneInfo.isLastReference()) {
-                    _log.debug("EndPoints with last reference" + zoneInfo.getEndPoints());
-                    lastReferenceZoneInfo.add(zoneInfo);
+            List<NetworkFCZoneInfo> rollbackList = new ArrayList<NetworkFCZoneInfo>();
+            for (NetworkFCZoneInfo info : context.getZoneInfos()) {
+                if (info.canBeRolledBack()) {
+                    // If we were adding zones, we set lastReference so it will be deleted.
+                    if (context.isAddingZones()) {
+                        info.setLastReference(true);
+                        lastReferenceZoneInfo.add(info);
+                    }
+                    rollbackList.add(info);
                 }
             }
+
+            // Create a local completer to handle DB cleanup in the case of failure.
+            taskCompleter = new ZoneReferencesRemoveCompleter(context.getZoneInfos(), true, stepId);
+
             InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_007);
             // Now call removeZones to remove all the required zones.
             BiosCommandResult result = addRemoveZones(exportGroupId, context.getZoneInfos(), true);
@@ -1324,11 +1360,10 @@ public class NetworkDeviceController implements NetworkController {
             _log.info("Successfully removed zones for ExportGroup: {}", exportGroupId.toString());
         } catch (Exception ex) {
             _log.error("Exception zoning delete Export Masks", ex);
-            // TODO revisit Exceptions
-            // Save our zone infos in case we want to rollback.
             WorkflowService.getInstance().storeStepData(stepId, context);
             ServiceError svcError = NetworkDeviceControllerException.errors
                     .zoneExportGroupDeleteFailed(ex.getMessage(), ex);
+            taskCompleter.error(_dbClient, svcError);
             WorkflowStepCompleter.stepFailed(stepId, svcError);
         }
         return status;
@@ -1474,6 +1509,9 @@ public class NetworkDeviceController implements NetworkController {
     public boolean zoneExportRemoveInitiators(
     		List<NetworkZoningParam> zoningParams,
             String stepId) throws ControllerException {
+        boolean isRollback = WorkflowService.getInstance().isStepInRollbackState(stepId);
+        boolean isOperationSuccessful = false;
+        TaskCompleter taskCompleter = null;
         if (zoningParams.isEmpty()) {
             _log.info("zoningParams is empty, returning");
             WorkflowStepCompleter.stepSucceded(stepId);
@@ -1498,9 +1536,13 @@ public class NetworkDeviceController implements NetworkController {
 
             // If there are no zones to do, we were successful.
             if (context.getZoneInfos().isEmpty()) {
+                isOperationSuccessful = true;
                 WorkflowStepCompleter.stepSucceded(stepId);
                 return true;
             }
+
+            // Create a local completer to handle DB cleanup in the case of failure.
+            taskCompleter = new ZoneReferencesRemoveCompleter(context.getZoneInfos(), true, stepId);
 
             InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_024);
             // Now call removeZones to remove all the required zones.
@@ -1511,9 +1553,8 @@ public class NetworkDeviceController implements NetworkController {
             // Update the workflow state.
             completeWorkflowState(stepId, "zoneExportRemoveInitiators", result);
 
-            // If the result is success, remove the initiators from the ExportMask zoningMap.
             if (result.isCommandSuccess()) {
-                removeInitiatorsFromZoningMap(zoningParams);
+                isOperationSuccessful = true;
             }
             return status;
 
@@ -1521,8 +1562,14 @@ public class NetworkDeviceController implements NetworkController {
             _log.error("Exception zoning remove initiators", ex);
             ServiceError svcError = NetworkDeviceControllerException.errors.zoneExportRemoveInitiatorsFailed(
                     ex.getMessage(), ex);
+            taskCompleter.error(_dbClient, svcError);
             WorkflowStepCompleter.stepFailed(stepId, svcError);
             return status;
+        } finally {
+            // clean up the zoning map too if the result is success or a rollback
+            if (isOperationSuccessful || isRollback) {
+                removeInitiatorsFromZoningMap(zoningParams);
+            }
         }
     }
 
@@ -1541,13 +1588,17 @@ public class NetworkDeviceController implements NetworkController {
     /**
      * Rollback any of the zoning operations.
      * 
-     * @param exportGroupURI -- The ExportGroup URI
-     * @param contextKey -- The context which indicates what zones were configured on the device.
-     * @param taskId -- String tas identifier for WorkflowTaskCompleter.
+     * @param exportGroupURI
+     *            -- The ExportGroup URI
+     * @param contextKey
+     *            -- The context which indicates what zones were configured on the device.
+     * @param taskId
+     *            -- String task identifier for WorkflowTaskCompleter.
      * @return
      * @throws DeviceControllerException
      */
     public boolean zoneRollback(URI exportGroupURI, String contextKey, String taskId) throws DeviceControllerException {
+        TaskCompleter taskCompleter = null;
         try {
             NetworkFCContext context = (NetworkFCContext) WorkflowService.getInstance()
                     .loadStepData(contextKey);
@@ -1575,6 +1626,8 @@ public class NetworkDeviceController implements NetworkController {
                     rollbackList.add(info);
                 }
             }
+            
+            taskCompleter = new ZoneReferencesRemoveCompleter(rollbackList, context.isAddingZones(), taskId);
 
             InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_020);
             BiosCommandResult result = addRemoveZones(exportGroupURI, rollbackList,
@@ -1593,6 +1646,7 @@ public class NetworkDeviceController implements NetworkController {
             _log.error("Exception occurred while doing zone rollback", ex);
             ServiceError svcError = NetworkDeviceControllerException.errors.zoneRollbackFailedExc(
                     exportGroupURI.toString(), ex);
+            taskCompleter.error(_dbClient, svcError);
             WorkflowStepCompleter.stepFailed(taskId, svcError);
             return false;
         }
@@ -1655,7 +1709,12 @@ public class NetworkDeviceController implements NetworkController {
      */
     private FCZoneReference addZoneReference(URI exportGroupURI, NetworkFCZoneInfo zoneInfo, String[] newOrExisting) {
         String refKey = zoneInfo.makeEndpointsKey();
-        FCZoneReference ref = addZoneReference(exportGroupURI, zoneInfo.getVolumeId(), refKey, zoneInfo.getFabricId(),
+        URI egURI = exportGroupURI;
+        // If ExportGroup specified in zone info, use it instead of the default of the order
+        if (zoneInfo.getExportGroup() != null) {
+            egURI = zoneInfo.getExportGroup();
+        }
+        FCZoneReference ref = addZoneReference(egURI, zoneInfo.getVolumeId(), refKey, zoneInfo.getFabricId(),
                 zoneInfo.getNetworkDeviceId(), zoneInfo.getZoneName(), zoneInfo.isExistingZone(), newOrExisting);
         return ref;
     }
@@ -1729,6 +1788,10 @@ public class NetworkDeviceController implements NetworkController {
     }
 
     private void logZones(List<NetworkFCZoneInfo> zones) {
+        if (CollectionUtils.isEmpty(zones)) {
+            _log.info("No zones to log in logZones");
+            return;
+        }
         for (NetworkFCZoneInfo zone : zones) {
             _log.info(String.format("zone %s endpoints %s vol %s last %s ref %s existing %s",
                     zone.getZoneName(), zone.getEndPoints(), zone.getVolumeId(),
@@ -2157,21 +2220,32 @@ public class NetworkDeviceController implements NetworkController {
      * Finds all the zone paths that exists between a list of initiators and storage ports.
      * 
      * @param initiators the list of initiators
-     * @param storagePorts a map of storage port keyed by the port WWN
+     * @param portsMap a map of storage port keyed by the port WWN
      * @param initiatorWwnToZonesMap an OUT parameter used to store the zones retrieved mapped by initiator
+     * @param networkSystemURI - an OUT parameter indicating the NetworkSystem's URI that found the zones
      * 
      * @return a zoning map of zones that exists on the network systems
      */
     public StringSetMap getZoningMap(NetworkLite network, List<Initiator> initiators,
-            Map<String, StoragePort> portsMap, Map<String, List<Zone>> initiatorWwnToZonesMap) {
+            Map<String, StoragePort> portsMap, Map<String, List<Zone>> initiatorWwnToZonesMap, 
+            URI[] networkSystemURI) {
         StringSetMap map = new StringSetMap();
+        
+        StringSet initiatorWwns = new StringSet();
+        for (Initiator initiator : initiators) {
+            initiatorWwns.add(initiator.getInitiatorPort());
+        }
+        _log.info(String.format("Looking for zones from iniiators %s to targets %s", initiatorWwns, portsMap.keySet()));
 
         // find all the zones for the initiators as a map of initiator WWN to zones
         if (initiatorWwnToZonesMap == null) {
             initiatorWwnToZonesMap = new HashMap<String, List<Zone>>();
         }
         // of the zones retrieved from the network system, select the once
-        fetchInitiatorsZones(network, initiators, initiatorWwnToZonesMap);
+        NetworkSystem networkSystem = fetchInitiatorsZones(network, initiators, initiatorWwnToZonesMap);
+        if (networkSystem != null && networkSystemURI != null) {
+            networkSystemURI[0] = networkSystem.getId();
+        }
         initiatorWwnToZonesMap = selectZonesForInitiatorsAndPorts(network, initiatorWwnToZonesMap, portsMap);
         // build the map object
         for (Initiator initiator : initiators) {
@@ -2179,6 +2253,7 @@ public class NetworkDeviceController implements NetworkController {
             List<Zone> zones = initiatorWwnToZonesMap.get(initiator.getInitiatorPort());
             if (zones != null) {
                 for (Zone zone : zones) {
+                    _log.info(zone.getLogString());
                     for (ZoneMember member : zone.getMembers()) {
                         if (portsMap.containsKey(member.getAddress())) {
                             // There can be multiple zones with the same initiator and port
@@ -2196,40 +2271,98 @@ public class NetworkDeviceController implements NetworkController {
                 new Object[] { map, initiatorWwnToZonesMap.keySet(), portsMap.keySet() });
         return map;
     }
-
+    
     /**
      * Update the zoning map for a newly "accepted" export mask. This applies to
      * brown field scenarios where a export mask was found on the storage array.
-     * This function finds the zones of the export mask existing initiators and
+     * This function finds the zones of the export mask initiators and
      * existing ports and creates the zoning map between the two sets.
      * 
      * @param exportGroup the masking view export group
      * @param exportMask the export mask being updated.
      * @param doPersist a boolean that indicates if the changes should be persisted in the db
      */
-    public void updateZoningMap(ExportGroup exportGroup, ExportMask exportMask, boolean doPersist) {
-        if (exportMask.getCreatedBySystem() == false && exportMask.getExistingInitiators() != null
-                && !exportMask.getExistingInitiators().isEmpty()) {
-            // we have a mask that was not created by ViPR
-            if (exportMask.getZoningMap() == null || exportMask.getZoningMap().isEmpty()) {
-                // possibly the first time this export mask is processed, populate from existing zones
-                List<StoragePort> storagePorts = ExportUtils.getStoragePorts(exportMask, _dbClient);
-                List<Initiator> initiators = ExportUtils.getExportMaskExistingInitiators(exportMask, _dbClient);
-                Map<NetworkLite, List<Initiator>> initiatorsByNetworkMap = NetworkUtil.getInitiatorsByNetwork(initiators, _dbClient);
+    public void updateZoningMapForInitiators(ExportGroup exportGroup, ExportMask exportMask, boolean doPersist) {
+        if (exportMask.getZoningMap() == null || exportMask.getZoningMap().isEmpty()) {
+            Long start = System.currentTimeMillis();
+            // possibly the first time this export mask is processed, populate from existing zones
+            List<StoragePort> storagePorts = ExportUtils.getStoragePorts(exportMask, _dbClient);
+            Set<Initiator> initiators = ExportMaskUtils.getInitiatorsForExportMask(_dbClient,  exportMask, Transport.FC);
+            Map<NetworkLite, List<Initiator>> initiatorsByNetworkMap = NetworkUtil.getInitiatorsByNetwork(initiators, _dbClient);
 
-                StringSetMap zoningMap = new StringSetMap();
-                for (NetworkLite network : initiatorsByNetworkMap.keySet()) {
-                    if (!Transport.FC.toString().equals(network.getTransportType())) {
+            StringSetMap zoningMap = new StringSetMap();
+            for (NetworkLite network : initiatorsByNetworkMap.keySet()) {
+                if (!Transport.FC.toString().equals(network.getTransportType())) {
+                    continue;
+                }
+                Map<String, StoragePort> initiatorPortsMap = NetworkUtil.getPortsInNetworkMap(network, storagePorts);
+                if (!initiatorPortsMap.isEmpty()) {
+                    Map<String, List<Zone>> initiatorWwnToZonesMap = new HashMap<String, List<Zone>>();
+                    URI[] networkSystemURIUsed = new URI[1];
+                    zoningMap.putAll(
+                            getZoningMap(network, initiatorsByNetworkMap.get(network), initiatorPortsMap, 
+                                    initiatorWwnToZonesMap, networkSystemURIUsed));
+                    createZoneReferences(network, networkSystemURIUsed[0], exportGroup, exportMask, initiatorWwnToZonesMap);
+                }
+            }
+            _log.info(String.format("Elapsed time to updateZoningMap %d seconds", ((System.currentTimeMillis()-start)/1000L)));
+            exportMask.setZoningMap(zoningMap);
+            if (doPersist) {
+                _dbClient.updateAndReindexObject(exportMask);
+            }
+        } else {
+            _log.info((String.format("Export mask %s (%s, args) already has a zoning map, not importing zones", 
+                    exportMask.getMaskName(), exportMask.getId())));
+        }
+    }
+    
+    /**
+     * Create zone references when we discover zones off the switch. 
+     * Normally this routine will not do anything, because the ExportMask is freshly created, and
+     * will therefore have no volumes in it.
+     * @param network -- Network Lite
+     * @param networkSystem -- URI of network system
+     * @param exportGroup -- ExportGroup
+     * @param exportMask -- ExportMask
+     * @param initiatorWwntoZonesMap -- Map of initiator WWN string to a list of corresponding Zones
+     */
+    void createZoneReferences(NetworkLite network, URI networkSystem, 
+            ExportGroup exportGroup, ExportMask exportMask, Map<String, List<Zone>> initiatorWwntoZonesMap) {
+        StringMap maskVolumes = exportMask.getVolumes();
+        if (maskVolumes == null || maskVolumes.isEmpty()) {
+            _log.info(String.format("No volumes in ExportMask %s %s so no zone references created",  
+                    exportMask.getMaskName(), exportMask.getId()));
+            return;
+        }
+        // Create zone reference for each volume and zone. In the case of zones with multiple targets,
+        // create a separate zone reference for each initiator - target pair.
+        for (String maskVolume : maskVolumes.keySet()) {
+            for (List<Zone> zones : initiatorWwntoZonesMap.values()) {
+                for (Zone zone : zones) {
+                    // Find the initiatorWwn
+                    String initiatorWwn = null;
+                    for (ZoneMember member : zone.getMembers()) {
+                        if (initiatorWwntoZonesMap.containsKey(member.getAddress())) {
+                            initiatorWwn = member.getAddress();
+                            break;
+                        }
+                    }
+                    if (initiatorWwn == null) {
+                        // Could not locate the initiator
+                        _log.info("Could not locat the initiator: " + zone.getName());
                         continue;
                     }
-                    Map<String, StoragePort> initiatorPortsMap = NetworkUtil.getPortsInNetworkMap(network, storagePorts);
-                    if (!initiatorPortsMap.isEmpty()) {
-                        zoningMap.putAll(getZoningMap(network, initiatorsByNetworkMap.get(network), initiatorPortsMap, null));
+                    for (ZoneMember member : zone.getMembers()) {
+                        if (initiatorWwn.equals(member.getAddress())) {
+                            continue;
+                        }
+                        String key = FCZoneReference.makeEndpointsKey(initiatorWwn, member.getAddress());
+                        String[] newOrExisting = new String[1];
+                        FCZoneReference ref = addZoneReference(exportGroup.getId(),  URI.create(maskVolume), key, network.getNativeId(), 
+                                networkSystem, zone.getName(), true, newOrExisting);
+                        _log.info(String.format("Created FCZoneReference for existing zone %s %s %s %s", 
+                                ref.getZoneName(), ref.getPwwnKey(), ref.getVolumeUri(), ref.getGroupUri()));
                     }
-                }
-                exportMask.setZoningMap(zoningMap);
-                if (doPersist) {
-                    _dbClient.updateAndReindexObject(exportMask);
                 }
             }
         }
@@ -2400,7 +2533,7 @@ public class NetworkDeviceController implements NetworkController {
             if (persist) {
                 _dbClient.updateAndReindexObject(exportMask);
             }
-            _log.info("Changed zones for export mask {} to {}. \nRefreshin zones took {} ms",
+            _log.info("Changed zones for export mask {} to {}. \nRefreshing zones took {} ms",
                     new Object[] { exportMask.getMaskName(), exportMask.getZoningMap(),
                             (System.currentTimeMillis() - start) });
         } catch (Exception ex) {
@@ -2601,5 +2734,152 @@ public class NetworkDeviceController implements NetworkController {
                     + ex.getMessage());
         }
         return alwaysRefresh;
+    }
+    
+    /**
+     * Method for the zoning for adding paths to mask.
+     * @param systemURI -- Storage system URI
+     * @param exportGroupURI -- Export Group URI
+     * @param exportMaskURIs -- List of ExportMask URIs
+     * @param newPaths -- Zoning map of the new paths to be added
+     * @param taskCompleter -- Task completer to be called
+     * @return true if successful
+     * @throws ControllerException
+     */
+    public Workflow.Method zoneExportAddPathsMethod(URI systemURI, URI exportGroupURI, Collection<URI> exportMasks, 
+            Map<URI, List<URI>> newPaths, TaskCompleter taskCompleter) {
+        return new Workflow.Method("zoneExportAddPaths", systemURI, exportGroupURI, exportMasks, newPaths, taskCompleter);
+    }
+
+    /**
+     * Handle zoning when adding paths to ExportMasks
+     * @param systemURI -- Storage system URI
+     * @param exportGroupURI -- Export Group URI
+     * @param exportMaskURIs -- List of ExportMask URIs
+     * @param newPaths -- Zoning map of the new paths to be added
+     * @param taskCompleter -- Task completer to be called
+     * @param token -- Step id
+     * @return true if successful
+     * @throws ControllerException
+     */
+    public boolean zoneExportAddPaths(URI systemURI, URI exportGroupURI,
+            Collection<URI> exportMaskURIs,
+            Map<URI, List<URI>> newPaths,
+            TaskCompleter taskCompleter,
+            String token) throws ControllerException {
+        NetworkFCContext context = new NetworkFCContext();
+        boolean completedSucessfully = false;
+        ExportGroup exportGroup = _dbClient
+                .queryObject(ExportGroup.class, exportGroupURI);
+        _log.info(String.format("Entering zoneExportAddPaths for ExportGroup: %s (%s)",
+                exportGroup.getLabel(), exportGroup.getId()));
+        try {
+            if (!isZoningRequired(exportGroup.getVirtualArray())) {
+                _log.info("The zoning is not required.");
+                taskCompleter.ready(_dbClient);
+                return true;
+            }
+
+            // get existing zones on the switch
+            Map<String, List<Zone>> zonesMap = getExistingZonesMap(exportMaskURIs, token);
+
+            // Compute zones that are required.
+            List<NetworkFCZoneInfo> zoneInfos =
+                    _networkScheduler.getZoningTargetsForPaths(systemURI, exportGroup, exportMaskURIs, newPaths, zonesMap, _dbClient);
+            context.getZoneInfos().addAll(zoneInfos);
+            logZones(zoneInfos);
+
+            // If there are no zones to do, we were successful.
+            if (context.getZoneInfos().isEmpty()) {
+                taskCompleter.ready(_dbClient);;
+                return true;
+            }
+
+            // Now call addRemoveZones to add all the required zones.
+            BiosCommandResult result = addRemoveZones(exportGroup.getId(),
+                    context.getZoneInfos(), false);
+            completedSucessfully = result.isCommandSuccess();
+            if (completedSucessfully) {
+                taskCompleter.ready(_dbClient);
+            } else {
+                ServiceError svcError = NetworkDeviceControllerException.errors.zoneExportAddPathsError(
+                        result.getMessage());
+                taskCompleter.error(_dbClient, svcError);
+            }
+        } catch (Exception ex) {
+            _log.error("Exception zoning add paths", ex);
+            ServiceError svcError = NetworkDeviceControllerException.errors.zoneExportAddPathsFailed(
+                    ex.getMessage(), ex);
+            taskCompleter.error(_dbClient, svcError);
+        }
+        return completedSucessfully;
+    }
+    
+    /**
+     * Method for handling zoning when removing paths
+     * @param zoningParam -- List of NetworkZoningParam
+     * @param taskCompleter -- TaskCompleter to be called
+     * @return true if successful
+     */
+    public Workflow.Method zoneExportRemovePathsMethod(List<NetworkZoningParam> zoningParam, TaskCompleter taskCompleter) {
+        return new Workflow.Method("zoneExportRemovePaths", zoningParam, taskCompleter);
+    }
+    
+    /**
+     * Handle zoning when removing paths from export masks
+     * @param zoningParams NetworkZoningParam list
+     * @param taskCompleter -- Task completer to be called
+     * @param token -- Step id
+     * @return true if successful
+     */
+    public boolean zoneExportRemovePaths(List<NetworkZoningParam> zoningParams, TaskCompleter taskCompleter, String token) {
+        if (zoningParams.isEmpty()) {
+            _log.info("zoningParams is empty, returning");
+            taskCompleter.ready(_dbClient);
+            return true;
+        }
+        NetworkFCContext context = new NetworkFCContext();
+        boolean completedSuccessfully = false;
+        URI exportGroupId = zoningParams.get(0).getExportGroupId();
+        URI virtualArray = zoningParams.get(0).getVirtualArray();
+        _log.info(String.format("Entering zoneExportRemovePaths for ExportGroup: %s",
+                zoningParams.get(0).getExportGroupDisplay()));
+        try {
+            if(!isZoningRequired(virtualArray)) {
+                taskCompleter.ready(_dbClient);
+                return true;
+            }
+            context.setAddingZones(false);
+
+            // Get the zoning targets to be removed.
+            List<NetworkFCZoneInfo> zoneInfos = _networkScheduler.getZoningRemoveTargets(zoningParams, null);
+            context.getZoneInfos().addAll(zoneInfos);
+            logZones(zoneInfos);
+
+            // If there are no zones to do, we were successful.
+            if (context.getZoneInfos().isEmpty()) {
+                taskCompleter.ready(_dbClient);
+                return true;
+            }
+
+            // Now call addRemoveZones to remove all the required zones.
+            BiosCommandResult result = addRemoveZones(exportGroupId, context.getZoneInfos(), true);
+            completedSuccessfully = result.isCommandSuccess();
+
+            if (completedSuccessfully) {
+                taskCompleter.ready(_dbClient);
+            } else {
+                ServiceError svcError = NetworkDeviceControllerException.errors.zoneExportRemovePathsError(
+                        result.getMessage());
+                taskCompleter.error(_dbClient, svcError);
+            }
+
+        } catch (Exception ex) {
+            _log.error("Exception zoning remove initiators", ex);
+            ServiceError svcError = NetworkDeviceControllerException.errors.zoneExportRemovePathsFailed(
+                    ex.getMessage(), ex);
+            taskCompleter.error(_dbClient, svcError);
+        }
+        return completedSuccessfully;
     }
 }

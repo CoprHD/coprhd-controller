@@ -49,6 +49,9 @@ public class PathConstants {
     public static final String ORDER2_EXECUTION_STATE_URL = ORDER2_URL + "/{id}/execution";
     public static final String ORDER2_EXECUTION_LOGS_URL = ORDER2_EXECUTION_STATE_URL + "/logs";
     public static final String ORDER2_MY_COUNT = ORDER2_URL + "/my-order-count";
+    public static final String ORDER2_DELETE_ORDERS = ORDER2_URL;
+    public static final String ORDER2_QUERY_ORDER_JOB = ORDER2_URL+"/job-status";
+    public static final String ORDER2_DOWNLOAD_ORDER = ORDER2_URL+"/download";
     public static final String ORDER2_ALL_COUNT = ORDER2_URL + "/count";
     public static final String ASSET_OPTIONS2_URL = "/catalog/asset-options";
     public static final String ASSET_OPTIONS2_OPTIONS_URL = ASSET_OPTIONS2_URL + "/{assetType}";

@@ -56,6 +56,14 @@ public class CommonTransformerFunctions {
                 }
             };
 
+    public static final Function<String, Integer> FCTN_STRING_TO_INTEGER =
+            new Function<String, Integer>() {
+                @Override
+                public Integer apply(String str) {
+                    return Integer.valueOf(str);
+                }
+            };
+
     public static final Function<URI, String> FCTN_URI_TO_STRING =
             new Function<URI, String>() {
                 @Override

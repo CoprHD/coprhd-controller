@@ -4,7 +4,7 @@
  */
 package com.emc.storageos.api.mapper;
 
-import static com.emc.storageos.api.mapper.DbObjectMapper.mapDataObjectFieldsNoLink;
+import static com.emc.storageos.api.mapper.DbObjectMapper.mapDataObjectFields;
 import static com.emc.storageos.api.mapper.DbObjectMapper.toRelatedResource;
 
 import java.net.URI;
@@ -90,7 +90,7 @@ public class ComputeVirtualPoolMapper {
             }
         }
 
-        mapDataObjectFieldsNoLink(from, to);
+        mapDataObjectFields(from, to);
         return to;
     }
 

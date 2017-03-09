@@ -28,10 +28,13 @@ import com.emc.storageos.vplex.api.VPlexErrors;
 import com.emc.storageos.xtremio.restapi.errorhandling.XtremIOErrors;
 
 /**
- * This interface holds all the methods and interfaces used to create {@link ServiceError}s related to Device Controllers
+ * This interface holds all the methods and interfaces used to create {@link ServiceError}s related to Device
+ * Controllers
  * <p/>
- * Remember to add the English message associated to the method in DeviceControllerMessages.properties and use the annotation
- * {@link DeclareServiceCode} to set the service code associated to this error condition. You may need to create a new service code if there
+ * Remember to add the English message associated to the method in DeviceControllerMessages.properties and use the
+ * annotation
+ * {@link DeclareServiceCode} to set the service code associated to this error condition. You may need to create a new
+ * service code if there
  * is no an existing one suitable for your error condition.
  * <p/>
  * For more information or to see an example, check the Developers Guide section in the Error Handling Wiki page:
@@ -236,6 +239,22 @@ public interface DeviceControllerErrors {
 
     @DeclareServiceCode(ServiceCode.CONTROLLER_JOB_ERROR)
     public ServiceError deleteShareACLFailed(final String fsUris, final String operationName, final Throwable cause);
+
+    @DeclareServiceCode(ServiceCode.CONTROLLER_JOB_ERROR)
+    public ServiceError assignFilePolicyFailed(final String uri, final String level, final Throwable cause);
+
+    @DeclareServiceCode(ServiceCode.CONTROLLER_JOB_ERROR)
+    public ServiceError updateFilePolicyFailed(final String uri, final Throwable cause);
+
+    @DeclareServiceCode(ServiceCode.CONTROLLER_JOB_ERROR)
+    public ServiceError unassignFilePolicyFailed(final String uri, final Throwable cause);
+
+    @DeclareServiceCode(ServiceCode.CONTROLLER_JOB_ERROR)
+    public ServiceError deviceProtectionPolicyOperationFailed(final String uri, final String operation, final int failedPolicies,
+            final int successPolicies);
+
+    @DeclareServiceCode(ServiceCode.CONTROLLER_JOB_ERROR)
+    public ServiceError noNasServerFoundToAddStepsToApplyPolicy(final String system);
 
     @DeclareServiceCode(ServiceCode.CONTROLLER_JOB_ERROR)
     public ServiceError removeVolumeFromMaskFailed(final String volumeURIs);

@@ -268,6 +268,9 @@ public class VnxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                 queryHostInitiatorsAndAddToList(portNames, portNameToInitiatorURI,
                         initiatorURIs, hostURIs);
                 Map<String, Set<URI>> foundMatches = device.findExportMasks(storage, portNames, false);
+
+                findAndUpdateFreeHLUsForClusterExport(storage, exportGroup, new ArrayList<URI>(initiatorURIs), volumeMap);
+
                 Set<String> checkMasks = mergeWithExportGroupMaskURIs(exportGroup, foundMatches.values());
                 for (String maskURIStr : checkMasks) {
                     ExportMask exportMask = _dbClient.queryObject(ExportMask.class,
@@ -451,6 +454,12 @@ public class VnxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
         return CustomConfigConstants.VNX_HOST_STORAGE_GROUP_MASK_NAME;
     }
 
+    @Override
+    public void findAndUpdateFreeHLUsForClusterExport(StorageSystem storage, ExportGroup exportGroup, List<URI> initiatorURIs,
+            Map<URI, Integer> volumeMap) {
+        findUpdateFreeHLUsForClusterExport(storage, exportGroup, initiatorURIs, volumeMap);
+    }
+
     /**
      * Routine contains logic to create an export mask on the array
      *
@@ -502,6 +511,9 @@ public class VnxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
         // portNames. We will have to do processing differently based on whether
         // or there is an existing ExportMasks.
         Map<String, Set<URI>> matchingExportMaskURIs = device.findExportMasks(storage, portNames, false);
+
+        findAndUpdateFreeHLUsForClusterExport(storage, exportGroup, initiatorURIs, volumeMap);
+
         if (matchingExportMaskURIs.isEmpty()) {
             previousStep = checkForSnapshotsToCopyToTarget(workflow, storage, previousStep,
                     volumeMap, null);
@@ -633,6 +645,14 @@ public class VnxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                                 return false;
                             }
                             newVolumes.put(bo.getId(), requestedHLU);
+                            mask.addToUserCreatedVolumes(bo);
+                        } else if (bo != null && mask.hasExistingVolume(bo)) {
+                            _log.info(String.format(
+                                    "volume %s is already in mask %s. Removing it from mask's existing volumes and adding to user created volumes",
+                                    bo.getWWN(), mask.getMaskName()));
+                            String hlu = mask.getExistingVolumes().get(BlockObject.normalizeWWN(bo.getWWN()));
+                            mask.removeFromExistingVolumes(bo);
+                            mask.addVolume(bo.getId(), Integer.parseInt(hlu));
                             mask.addToUserCreatedVolumes(bo);
                         }
                     }

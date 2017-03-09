@@ -79,7 +79,6 @@ public class SmisDeleteVolumeJob extends SmisJob
                     }
                     logMsgBuilder.append(String.format("Successfully deleted volume %s", volume.getId()));
                 }
-                getTaskCompleter().ready(dbClient);
             } else if (jobStatus == JobStatus.FAILED || jobStatus == JobStatus.FATAL_ERROR) {
                 for (URI id : getTaskCompleter().getIds()) {
                     if (logMsgBuilder.length() != 0) {

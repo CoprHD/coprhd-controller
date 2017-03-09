@@ -617,10 +617,11 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
                     if (storageSystem.deviceIsType(Type.vnxblock)) {
                         cleanupAnyGroupBackupSnapshots(storageSystem, volume);
                     }
-                    // Clean up any volume backup snapshots, if there are none this step will be skipped.
-                    cleanupAnyBackupSnapshots(storageSystem, volume);
                     // Remove the volume from the backend CG, if it's not actually in a backend CG this step will be skipped.
                     removeVolumeFromConsistencyGroup(storageSystem, volume);
+                    // Clean up any volume backup snapshots, if there are none this step will be skipped.
+                    cleanupAnyBackupSnapshots(storageSystem, volume);
+
                 } else {
                     // for VMAX3, clean up unlinked snapshot session, which is possible for ingested volume
                     if (storageSystem.deviceIsType(Type.vnxblock) || storageSystem.checkIfVmax3()) {
@@ -782,9 +783,14 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
         if (initiatorURIs != null) {
             initiators.addAll(_dbClient.queryObject(Initiator.class, initiatorURIs));
         }
+        
+        List<URI> volURIs = Lists.newArrayList();
+        if (volumeURIs != null) {
+        	volURIs.addAll(volumeURIs);
+        }
 
         _exportMaskOperationsHelper.deleteExportMask(storage, exportMask.getId(),
-                volumeURIs, new ArrayList<URI>(), initiators, taskCompleter);
+        		volURIs, new ArrayList<URI>(), initiators, taskCompleter);
         _log.info("{} doExportDelete END ...", storage.getSerialNumber());
     }
 
@@ -1062,6 +1068,11 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
             final List<String> initiatorNames, final boolean mustHaveAllPorts) throws DeviceControllerException {
         return _exportMaskOperationsHelper.findExportMasks(storage, initiatorNames,
                 mustHaveAllPorts);
+    }
+
+    @Override
+    public Set<Integer> findHLUsForInitiators(StorageSystem storage, List<String> initiatorNames, boolean mustHaveAllPorts) {
+        return _exportMaskOperationsHelper.findHLUsForInitiators(storage, initiatorNames, mustHaveAllPorts);
     }
 
     @Override
@@ -1767,7 +1778,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
                 // cg id will be null when deleting replication groups created for CG full copy volumes
                 consistencyGroup = _dbClient.queryObject(BlockConsistencyGroup.class, consistencyGroupId);
             }
-            if (replicationGroupName == null && (consistencyGroup == null || consistencyGroup.getInactive())) {
+            if (replicationGroupName == null || (consistencyGroup == null || consistencyGroup.getInactive())) {
                 _log.info(String.format("%s is inactive or deleted", consistencyGroupId));
                 return;
             }
@@ -1799,12 +1810,6 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
                     if (storage.deviceIsType(Type.vmax) && storage.checkIfVmax3()) {
                         // if deleting snap session replication group, we need to remove the EMCSFSEntries first
                         _helper.removeSFSEntryForReplicaReplicationGroup(storage, replicationSvc, replicationGroupName);
-                    }
-
-                    if (storage.checkIfVmax3() && replicationGroupName != null) {
-                        // if deleting snap session replication group, we need to remove the EMCSFSEntries first
-                        _helper.removeSFSEntryForReplicaReplicationGroup(storage, replicationSvc, replicationGroupName);
-
                         markSnapSessionsInactiveForReplicationGroup(systemURI, consistencyGroupId, replicationGroupName);
                     }
 
@@ -3294,5 +3299,23 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
             _log.error(errMsg);
             throw DeviceControllerException.exceptions.couldNotPerformAliasOperation(errMsg);
         }
+    }
+    
+    @Override
+    public void doExportAddPaths(final StorageSystem storage, final URI exportMask,
+            final Map<URI, List<URI>> newPaths, final TaskCompleter taskCompleter)
+                    throws DeviceControllerException {
+        _log.info("{} doExportAddPaths START ...", storage.getSerialNumber());
+        _exportMaskOperationsHelper.addPaths(storage, exportMask, newPaths, taskCompleter);
+        _log.info("{} doExportAddPaths END ...", storage.getSerialNumber());
+    }
+    
+    @Override
+    public void doExportRemovePaths(final StorageSystem storage, final URI exportMask, final Map<URI, List<URI>> adjustedPaths,
+            final Map<URI, List<URI>> removePaths, final TaskCompleter taskCompleter)
+                    throws DeviceControllerException {
+        _log.info("{} doExportRemovePaths START ...", storage.getSerialNumber());
+        _exportMaskOperationsHelper.removePaths(storage, exportMask, adjustedPaths, removePaths, taskCompleter);
+        _log.info("{} doExportRemovePaths END ...", storage.getSerialNumber());
     }
 }

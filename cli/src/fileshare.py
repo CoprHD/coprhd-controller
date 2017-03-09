@@ -16,6 +16,7 @@ import socket
 import commands
 from common import SOSError
 from threading import Timer
+from filepolicy import FilePolicy
 import schedulepolicy
 import virtualpool
 import host
@@ -901,15 +902,32 @@ class Fileshare(object):
             return self.check_for_sync(o, sync,synctimeout)
         return o
     
-    def assign_policy(self, filesharename, policyname, tenantname, policyid):
+    def assign_policy(self, filesharename, policyname, tenantname, policyid, targetvarrays):
+        assign_request = {}
+        trg_varrays = []
+        if (targetvarrays is not None):
+            assign_target_varrays = []
+            from virtualarray import VirtualArray
+            varray_obj = VirtualArray(self.__ipAddr, self.__port)
+            if( len(targetvarrays)>1):
+                trg_varrays= targetvarrays.split(',')
+                for varray in trg_varrays:
+                    uri =  varray_obj.varray_query(varray)
+                    assign_target_varrays.append(uri)
+            else:
+                uri = varray_obj.varray_query(targetvarrays)
+                assign_target_varrays.append(uri)
+            assign_request['target_varrays']= assign_target_varrays
+            
         fsname = self.show(filesharename)
         fsid = fsname['id']
 
+        body = json.dumps(assign_request)
         (s, h) = common.service_json_request(
             self.__ipAddr, self.__port,
             "PUT",
             Fileshare.URI_POLICY_ASSIGN.format(fsid, policyid),
-            None)
+            body)
         
         return
     
@@ -2693,21 +2711,24 @@ def assign_policy_parser(subcommand_parsers, common_parser):
                             dest='project',
                             help='Name of Project',
                             required=True)
-
+    assign_policy_parser.add_argument('-targetvarrays', '-trgvarrays',
+                            metavar='<targetvarrays>',
+                            dest='targetvarrays',
+                            help='target varrays for file replication')
     assign_policy_parser.set_defaults(func=assign_policy)
 
 
 def assign_policy(args):
     try:
-        from schedulepolicy import Schedulepolicy
-        policy = Schedulepolicy(args.ip,
-                        args.port).get_policy_from_name(args.polname, args.tenant)
+        
+        policy = FilePolicy(args.ip,
+                        args.port).filepolicy_query(args.polname)
         policyid = policy['id']
         obj = Fileshare(args.ip, args.port)
         
         res = obj.assign_policy(args.tenant + "/" + args.project + "/" + args.name,
                       args.polname,
-                      args.tenant, policyid)
+                      args.tenant, policyid, args.targetvarrays)
         return
     except SOSError as e:
         common.format_err_msg_and_raise("fileshare", "assign",
@@ -2748,9 +2769,8 @@ def unassign_policy_parser(subcommand_parsers, common_parser):
 
 def unassign_policy(args):
     try:
-        from schedulepolicy import Schedulepolicy
-        policy = Schedulepolicy(args.ip,
-                        args.port).get_policy_from_name(args.polname, args.tenant)
+        policy = FilePolicy(args.ip,
+                        args.port).filepolicy_query(args.polname)
         policyid = policy['id']
         obj = Fileshare(args.ip, args.port)
         

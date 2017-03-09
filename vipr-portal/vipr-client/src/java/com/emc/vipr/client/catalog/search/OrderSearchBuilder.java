@@ -20,6 +20,7 @@ import com.emc.vipr.client.core.search.SearchBuilder;
 import com.emc.vipr.model.catalog.OrderRestRep;
 
 public class OrderSearchBuilder extends SearchBuilder<OrderRestRep> {
+    private static final String NO_LIMIT_FOR_MAX_COUNT = "-1";
 
     public OrderSearchBuilder(AbstractResources<OrderRestRep> resources) {
         super(resources);
@@ -39,7 +40,11 @@ public class OrderSearchBuilder extends SearchBuilder<OrderRestRep> {
     }
 
     public SearchBuilder<OrderRestRep> byTimeRange(String start, String end) {
-        return byTimeRange(start, end, null, "-1");
+        return byTimeRange(start, end, null, NO_LIMIT_FOR_MAX_COUNT);
+    }
+
+    public SearchBuilder<OrderRestRep> byTimeRange(String start, String end, URI tenantId) {
+        return byTimeRange(start, end, tenantId, NO_LIMIT_FOR_MAX_COUNT);
     }
 
     public SearchBuilder<OrderRestRep> byTimeRange(String start, String end, URI tenantId, String maxCount) {

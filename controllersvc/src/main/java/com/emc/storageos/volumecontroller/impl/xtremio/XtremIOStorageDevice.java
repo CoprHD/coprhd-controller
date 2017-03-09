@@ -886,6 +886,11 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
     }
 
     @Override
+    public Set<Integer> findHLUsForInitiators(StorageSystem storage, List<String> initiatorNames, boolean mustHaveAllPorts) {
+        return xtremioExportOperationHelper.findHLUsForInitiators(storage, initiatorNames, mustHaveAllPorts);
+    }
+
+    @Override
     public ExportMask refreshExportMask(StorageSystem storage, ExportMask mask) throws DeviceControllerException {
         return xtremioExportOperationHelper.refreshExportMask(storage, mask);
     }

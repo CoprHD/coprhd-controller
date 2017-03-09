@@ -36,6 +36,9 @@ public interface UCSMService {
     public Map<String, LsServer> getAllAssociatedLsServers(String ucsmURL, String username, String password)
             throws ClientGeneralException;
 
+    public List<LsServer> getAllServiceProfiles(String ucsmURL, String username, String password)
+            throws ClientGeneralException;
+
     public LsServer getLsServer(String ucsmURL, String username, String password, String uuid)
             throws ClientGeneralException;
 

@@ -241,6 +241,10 @@ angular.module("portalApp").controller({
            return $scope.schedulerEnabled;
         };
         
+        $scope.isModalEnabled = function() {
+            return $scope.serviceDescriptor.useModal;
+         };
+        
         $scope.isRecurring = function() {
            return $scope.isRecurringAllowed() && $scope.scheduler.recurrence != 1;
         };
@@ -278,6 +282,10 @@ angular.module("portalApp").controller({
 	
             // if a required field has no value, disable the order button
             var result = false;
+
+            // if any field in serviceForm is invalid like max number of copies
+            result = ! $scope.serviceForm.$valid;
+
             angular.forEach(requiredFields, function(field) {
                 if (field.value == null || field.value.length < 1) {
                     result = true;
@@ -292,12 +300,33 @@ angular.module("portalApp").controller({
                 }  
             });
 
-            // if any field in serviceForm is invalid like max number of copies
-            result = ! $scope.serviceForm.$valid;
-
             // if we make it out, enable the order button
             return result;
+        };
+        $scope.dismissAssetError = function() {
+            $scope.$root.assetError = undefined;
         }
+        $scope.showModalDialog = function() {
+            $('#serviceModal').modal({backdrop: 'static', keyboard: false});
+            $scope.enableModalFields();
+        }
+        $scope.hideModalDialog = function() {
+            $('#serviceModal').modal('hide');
+            $scope.dismissAssetError();
+            $scope.disableModalFields();
+        }
+        $scope.disableModalButton = function() {
+            if ($scope.$root.errorCount > 0) {
+                return true
+            }
+            return false;
+        };
+        $scope.enableModalFields = function() {
+            $scope.updateModalFields = true;
+        };
+        $scope.disableModalFields = function() {
+            $scope.updateModalFields = false;
+        };
     },
     
     FileRessourceCtrl: function($scope, $http, $window, translate) {
@@ -383,7 +412,66 @@ angular.module("portalApp").controller({
               $scope.root = root.toString();
        }, true);
     },
+    filePolicyUnassignCtrl: function($scope, $http, $window, translate) {
+        $scope.topologies = []       
+        $http.get(routes.VirtualArrays_list()).success(function(data) {
+        	$scope.virtualArrayOptions = data.aaData;
+        });  
+        $scope.$watch('policyId', function () {
+            $http.get(routes.FileProtectionPolicy_details({id:$scope.policyId})).success(function(data) {             	            	 
+                if ( (typeof data.replicationSettings != 'undefined') &&  (typeof data.replicationSettings.replicationTopologies != 'undefined') ) {
+                    var protectionPolicyJson = data.replicationSettings.replicationTopologies;
+                    angular.forEach(protectionPolicyJson, function(topology) {
+                        var source =topology.sourceVArray.id.toString();
+                        //for now api support only one target for each source.
+                        var target=  topology.targetVArrays[0].id.toString();       	           
+                        var topo = {sourceVArray:source, targetVArray:target};
+                        $scope.topologies.push(angular.copy(topo));   
+                    });
+                }
+            });
+        });
+     },
     
+    filePolicyCtrl: function($scope, $http, $window, translate) {
+        $scope.add = {sourceVArray:'', targetVArray:''};
+        $scope.topologies = []
+        $scope.deleteTopology = function(idx) { $scope.topologies.splice(idx, 1); }
+        $scope.addTopology = function() { $scope.topologies.push(angular.copy($scope.add)); }
+        
+        $scope.populateVarray = function(selected) { 
+            $http.get(routes.FileProtectionPolicy_getVarraysAssociatedWithPools({id:selected.value})).success(function(data) {     		 
+            $scope.virtualArrayOptions = data;
+        		
+        });
+       }
+        $scope.$watch('policyId', function () {
+        	
+           $http.get(routes.FileProtectionPolicy_getVpoolForProtectionPolicy({id:$scope.policyId})).success(function(data) { 
+              	$scope.vPoolOptions = data;
+             });
+        	
+        	
+            $http.get(routes.FileProtectionPolicy_details({id:$scope.policyId})).success(function(data) {             	            	 
+                if ( (typeof data.replicationSettings != 'undefined') &&  (typeof data.replicationSettings.replicationTopologies != 'undefined') ) {
+                    var protectionPolicyJson = data.replicationSettings.replicationTopologies;
+                    angular.forEach(protectionPolicyJson, function(topology) {
+                        var source =topology.sourceVArray.id.toString();
+                        //for now api support only one target for each source.
+                        var target=  topology.targetVArrays[0].id.toString();       	           
+                        var topo = {sourceVArray:source, targetVArray:target};
+                        $scope.topologies.push(angular.copy(topo));   
+                    });
+                }
+            });
+                                                                                            
+        });   
+        $scope.$watch('topologies', function(newVal) {
+        	$scope.topologiesString = angular.toJson($scope.topologies, false);
+        }, true);
+      
+     },
+     
     FileShareAclCtrl: function($scope, $http, $window, translate) {
     	
     	$scope.add = {type:'User', name:'', domain:'', permission:'Change'};
@@ -676,6 +764,19 @@ angular.module("portalApp").controller({
         
         getClusterInfo();
         var clusterPoller = $interval(getClusterInfo,LONG_POLLING);
+    },
+    PolicyAsignVPol: function($scope,$http, $interval){
+    	$scope.addVArray= function(){
+    		var item = schome.vArray.length+1;
+    		$scope.vArray.push({'id':'vArray'+item});
+    	};
+    	
+    	$scope.removeVArray= function(){
+    		var lastItem= $scope.vArray.length-1;
+    		$scope.choices.splice(lastItem);
+    	};
+    	
+    	console.log("Registring policy controller"+$scope.val());
     }
 });
 
@@ -1346,6 +1447,10 @@ angular.module("portalApp").controller("SystemLogsCtrl", function($scope, $http,
     function fetchError(data, status, headers, config) {
         $scope.loading = false;
         $scope.error = data;
+        // For log collecting error, show warning instead of error
+        if ($scope.error.code === 30070) {
+            $("#log_info_box").removeClass("alert-danger").addClass("alert-warning");
+        }
     }
 });
 
@@ -1554,44 +1659,43 @@ angular.module("portalApp").controller("ConfigBackupCtrl", function($scope) {
     }
 });
 
-angular.module("portalApp").controller("MyOrdersCtrl", function($scope, $http) {
-	var ORDER_MY_LIST = routes.Order_list();
-	console.info($scope);
-	var dateFormat = "YYYY-MM-DD";
-	
-	var dateDaysAgo = $scope.dateDaysAgo;
-	var startDate = $scope.startDate;
-	var endDate = $scope.endDate;
-	var current = new Date().getTime();
-		
+angular.module("portalApp").controller("MyOrdersCtrl", function ($scope) {
+    var ORDER_MY_LIST = routes.Order_list();
+    console.info($scope);
+    var dateFormat = "YYYY-MM-DD";
+
+    var dateDaysAgo = $scope.dateDaysAgo;
+    var startDate = $scope.startDate;
+    var endDate = $scope.endDate;
+    var current = new Date().getTime();
+
     angular.element("#orderSelector").ready(function () {
-        $scope.$apply(function () {        	
-            $scope.rangeStartDate = startDate != null?startDate : formatDate(dateDaysAgo, dateFormat);
-            $scope.rangeEndDate = endDate != null?endDate : formatDate(current, dateFormat);
-        });  
-    });   
-    
-    $scope.$watch('rangeEndDate', function (newVal, oldVal) {
-    	console.info("vals "+newVal+"\t|"+oldVal);
-    	if(oldVal === undefined) return;
-    	if(newVal < $scope.rangeStartDate) {
-    		alert("The End Date must be not earlier than the Start Date, please re-select.");
-    		return;
-    	}
-    	
-        var url = ORDER_MY_LIST + "?startDate=" + encodeURIComponent($scope.rangeStartDate)+
-        			"&endDate="+encodeURIComponent($scope.rangeEndDate);
-        //TODO: should disabled when go to new url
-        $('.bfh-datepicker-toggle input').attr("readonly", true);
-        $('date-picker').click(false);
-        
-        console.info(url);
-        window.location.href = url;
+        $scope.$apply(function () {
+            $scope.rangeStartDate = startDate != null ? startDate : formatDate(dateDaysAgo, dateFormat);
+            $scope.rangeEndDate = endDate != null ? endDate : formatDate(current, dateFormat);
+        });
     });
-    
+
+    angular.element("#endDatePicker").on("change", "input[type=text]", function (e) {
+        var newEndVal = angular.element("#endDatePicker").find("input[type=text]").val();
+        console.info("vals on change: " + $scope.rangeStartDate + "\t|" +
+        $scope.rangeEndDate + "\t" + newEndVal);
+        if (newEndVal < $scope.rangeStartDate) {
+            alert("The End Date must be not earlier than the Start Date, please re-select.");
+            return;
+        } else {
+            var url = ORDER_MY_LIST + "?startDate=" + encodeURIComponent($scope.rangeStartDate) +
+                "&endDate=" + encodeURIComponent(newEndVal);
+            $('.bfh-datepicker-toggle input').attr("readonly", true);
+            $('date-picker').click(false);
+
+            console.info(url);
+            window.location.href = url;
+        }
+    });
 });
 
-angular.module("portalApp").controller("AllOrdersCtrl", function($scope, $http) {
+angular.module("portalApp").controller("AllOrdersCtrl", function ($scope) {
     var ORDER_ALL_ORDERS = routes.Order_allOrders();
     console.info($scope);
     var dateFormat = "YYYY-MM-DD";
@@ -1603,29 +1707,28 @@ angular.module("portalApp").controller("AllOrdersCtrl", function($scope, $http) 
 
     angular.element("#orderSelector").ready(function () {
         $scope.$apply(function () {
-            $scope.rangeStartDate = startDate != null?startDate : formatDate(dateDaysAgo, dateFormat);
-            $scope.rangeEndDate = endDate != null?endDate : formatDate(current, dateFormat);
+            $scope.rangeStartDate = startDate != null ? startDate : formatDate(dateDaysAgo, dateFormat);
+            $scope.rangeEndDate = endDate != null ? endDate : formatDate(current, dateFormat);
         });
     });
 
-    $scope.$watch('rangeEndDate', function (newVal, oldVal) {
-        if(oldVal === undefined) return;
-        console.info("vals "+newVal+"\t|"+oldVal);
-        if(newVal < $scope.rangeStartDate) {
+    angular.element("#endDatePicker").on("change", "input[type=text]", function (e) {
+        var newEndVal = angular.element("#endDatePicker").find("input[type=text]").val();
+        console.info("vals on change: " + $scope.rangeStartDate + "\t|" +
+        $scope.rangeEndDate + "\t" + newEndVal);
+        if (newEndVal < $scope.rangeStartDate) {
             alert("The End Date must be not earlier than the Start Date, please re-select.");
             return;
+        } else {
+            var url = ORDER_ALL_ORDERS + "?startDate=" + encodeURIComponent($scope.rangeStartDate) +
+                "&endDate=" + encodeURIComponent(newEndVal);
+            $('.bfh-datepicker-toggle input').attr("readonly", true);
+            $('date-picker').click(false);
+
+            console.info(url);
+            window.location.href = url;
         }
-
-        var url = ORDER_ALL_ORDERS + "?startDate=" + encodeURIComponent($scope.rangeStartDate)+
-            "&endDate="+encodeURIComponent($scope.rangeEndDate);
-        //TODO: should disabled when go to new url
-        $('.bfh-datepicker-toggle input').attr("readonly", true);
-        $('date-picker').click(false);
-
-        console.info(url);
-        window.location.href = url;
     });
-
 });
 
 angular.module("portalApp").controller("schedulerEditCtrl", function($scope) {

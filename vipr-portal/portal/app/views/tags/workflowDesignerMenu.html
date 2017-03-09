@@ -1,0 +1,93 @@
+<div class="side-container">
+    <button class="slider-button" ng-class="{'slider-open':menuOpen}" ng-click="toggleMenu();">
+        <span ng-class="{'glyphicon-chevron-left':!menuOpen,'glyphicon-chevron-right':menuOpen}" class="glyphicon"></span>
+    </button>
+    <div id="sliderMenu">
+        <a type="button" ng-disabled="!selectedId" class="btn btn-lg" ng-click="openPage(0);">
+            <span class="glyphicon glyphicon-pencil"></span>
+        </a>
+        <a type="button" class="btn btn-lg" ng-click="openPage(1);">
+            <span class="glyphicon glyphicon-list"></span>
+        </a>
+    </div>
+    <div id="mySidenav" ng-class="{'sidenav-open':menuOpen}" class="sidenav">
+        <a class="closebtn" ng-click="closeMenu()">&times;</a>
+        <div id="stepInputPage" ng-if="activePage==0">
+            <h3>Edit Inputs/Outputs</h3>
+            <h4>{{stepData.id}}</h4>
+            <p>{{stepData.description}}</p>
+
+            <div class="panel panel-default panel-collapse">
+                <div class="panel-heading in" data-toggle="collapse" data-target="#uid3">
+                    <h4 class="panel-title ng-binding">
+                        <em v-icon="chevron-right" class="indicator indicator-collapsed ng-isolate-scope"><span ng-if="icon" class="glyphicon glyphicon-chevron-right"><content></content></span></em>
+                        <em v-icon="chevron-down" class="indicator indicator-expanded ng-isolate-scope"><span ng-if="icon" class="glyphicon glyphicon-chevron-down"><content></content></span></em>
+                        Input
+                    </h4>
+                </div>
+                <div id="uid3" class="panel-collapse in collapse" style="height: auto;">
+                    <div class="panel-body sidenav-panel">
+                        <table>
+                            <tbody>
+                            <tr>
+                                <td><strong>name</strong></td>
+                                <td><strong>label</strong></td>
+                                <td><strong>type</strong></td>
+                                <td><strong>required</strong></td>
+                                <td><strong>default_value</strong></td>
+                                <td><strong>value</strong></td>
+                                <td><strong>locked</strong></td>
+                                <td><strong>group</strong></td>
+                            </tr>
+                            </tbody>
+                            <tbody ng-repeat="inputParam in stepData.inputGroups.input_params">
+                                <tr ng-repeat="input in inputParam">
+                                    <td>{{ input.name }}</td>
+                                    <td><input ng-model="input.friendlyName" /></td>
+                                    <td><input ng-model="input.type" /></td>
+                                    <td><input ng-model="input.required" /></td>
+                                    <td><input ng-model="input.default_value" /></td>
+                                    <td><input ng-model="input.value" /></td>
+                                    <td><input ng-model="input.locked" /></td>
+                                    <td><input ng-model="input.group" /></td>
+                                </tr>
+                            </tbody>
+                        </table>
+
+                    </div>
+                </div>
+            </div>
+            <div class="panel panel-default panel-collapse">
+            <div class="panel-heading in" data-toggle="collapse" data-target="#uid4">
+                <h4 class="panel-title ng-binding">
+                    <em v-icon="chevron-right" class="indicator indicator-collapsed ng-isolate-scope"><span ng-if="icon" class="glyphicon glyphicon-chevron-right"><content></content></span></em>
+                    <em v-icon="chevron-down" class="indicator indicator-expanded ng-isolate-scope"><span ng-if="icon" class="glyphicon glyphicon-chevron-down"><content></content></span></em>
+                    Output
+                </h4>
+            </div>
+            <div id="uid4" class="panel-collapse in collapse" style="height: auto;">
+                <div class="panel-body sidenav-panel">
+                    <table>
+                        <tr>
+                            <td><strong>name</strong></td>
+                        </tr>
+                        <tr ng-repeat="output in stepData.output">
+                            <td>{{output.name}}</td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+        </div>
+        </div>
+        <div id="stepListPage" ng-show="activePage==1">
+            <h3>Add Steps to Workflow</h3>
+            <div ng-controller="treeController" id="theSidebar" class="sidebar" >
+                <div>
+                    <input class="search-input form-control" placeholder="search..."></input>
+                </div>
+                <div id="jstree_demo" >
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

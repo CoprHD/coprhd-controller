@@ -5,18 +5,18 @@
 
 package com.emc.storageos.dbcli;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.util.Calendar;
 import java.util.TimeZone;
 
-import com.emc.storageos.dbcli.wrapper.*;
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.Marshaller;
 import javax.xml.bind.Unmarshaller;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.w3c.dom.Node;
+
+import com.emc.storageos.dbcli.wrapper.Wrapper;
 
 public class FieldType {
     private static final Logger log = LoggerFactory.getLogger(FieldType.class);
@@ -75,6 +75,18 @@ public class FieldType {
             return null;
         }
         return longNum;
+    }
+
+    public static Short toShort(String str) {
+        Short shortNum = null;
+        try {
+            shortNum = new Short(str);
+        } catch (Exception e) {
+            System.err.println("Caught Exception: " + e);
+            log.error("Exception in: ", e);
+            return null;
+        }
+        return shortNum;
     }
     
     public static Double toDouble(String str) {

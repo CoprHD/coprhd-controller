@@ -514,6 +514,9 @@ public interface DeviceControllerExceptions {
     
     @DeclareServiceCode(ServiceCode.BLOCK_CONTROLLER_ERROR)
     public DeviceControllerException exportGroupPortRebalanceError(final Throwable cause);
+    
+    @DeclareServiceCode(ServiceCode.BLOCK_CONTROLLER_ERROR)
+    public DeviceControllerException exportGroupPathAdjustmentError(String reason);
 
     @DeclareServiceCode(ServiceCode.BLOCK_CONTROLLER_ERROR)
     public DeviceControllerException addHostHLUViolation(Map<String, Integer> volumeHluPair);

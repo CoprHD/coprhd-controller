@@ -1,7 +1,6 @@
 %{
-  titleKey = 'assignPolicy.' + (assignPolicy.operationAssign ? 'assign' : 'unassign') + '.title';
+  titleKey = 'assignPolicy.assign.title';
 }%
-
 #{extends 'main.html'/}
 #{set navSelected: ['nav.virtualStorage', 'nav.file.protectionPolicies'] /}
 #{set 'title'}&{titleKey}#{/set}
@@ -27,6 +26,10 @@
   #{/field}
  #{field 'assignPolicy.referrerUrl'}
      <input type="hidden" name="${field.policyName}" value="${field.value}">
+  #{/field}
+  
+  #{field 'assignPolicy.replicationType'}
+     <input type="hidden" id="replicationType" value="${field.value}">
   #{/field}
   
  
@@ -122,6 +125,7 @@
     function showAssignAt(){
 			var assignAt = $('#assignPolicy_appliedAt').val();
             var policyType = $('#policyType').val();
+            var replicationType = $('#replicationType').val();
 				if (assignAt == 'project') {
 					$('#vpoolFields').hide();
 					$('#projectFields').show();
@@ -136,7 +140,11 @@
 				if(policyType == 'file_snapshot') {
 					$('#replicationFields').hide();
 				} else if (policyType == 'file_replication') {
-					$('#replicationFields').show();
+				    if(replicationType == 'REMOTE') {
+					    $('#replicationFields').show();
+					} else {
+					    $('#replicationFields').hide();
+					}
 				}
 				
 			}

@@ -1,6 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
- * Copyright 2016 Intel Corporation
+ * Copyright 2017 Dell Inc. or its subsidiaries.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,6 +17,8 @@
 package com.emc.storageos.api.service.impl.response;
 
 import static com.emc.storageos.model.ResourceTypeEnum.ACTIONABLE_EVENT;
+import static com.emc.storageos.model.ResourceTypeEnum.ANSIBLE;
+import static com.emc.storageos.model.ResourceTypeEnum.ANSIBLE_PACKAGE;
 import static com.emc.storageos.model.ResourceTypeEnum.AUTHN_PROVIDER;
 import static com.emc.storageos.model.ResourceTypeEnum.AUTO_TIERING_POLICY;
 import static com.emc.storageos.model.ResourceTypeEnum.BLOCK_CONSISTENCY_GROUP;
@@ -37,6 +38,8 @@ import static com.emc.storageos.model.ResourceTypeEnum.COMPUTE_IMAGESERVER;
 import static com.emc.storageos.model.ResourceTypeEnum.COMPUTE_SYSTEM;
 import static com.emc.storageos.model.ResourceTypeEnum.COMPUTE_VPOOL;
 import static com.emc.storageos.model.ResourceTypeEnum.CUSTOM_CONFIG;
+import static com.emc.storageos.model.ResourceTypeEnum.CUSTOM_SERVICES_WORKFLOW;
+import static com.emc.storageos.model.ResourceTypeEnum.CUSTOM_SERVICE_PRIMITIVE;
 import static com.emc.storageos.model.ResourceTypeEnum.DATA_STORE;
 import static com.emc.storageos.model.ResourceTypeEnum.EXECUTION_WINDOW;
 import static com.emc.storageos.model.ResourceTypeEnum.EXPORT_GROUP;
@@ -60,6 +63,8 @@ import static com.emc.storageos.model.ResourceTypeEnum.PROTECTION_SYSTEM;
 import static com.emc.storageos.model.ResourceTypeEnum.QUOTA_DIR;
 import static com.emc.storageos.model.ResourceTypeEnum.RDF_GROUP;
 import static com.emc.storageos.model.ResourceTypeEnum.SCHEDULE_POLICY;
+import static com.emc.storageos.model.ResourceTypeEnum.SCRIPT_PRIMITIVE;
+import static com.emc.storageos.model.ResourceTypeEnum.SCRIPT_RESOURCE;
 import static com.emc.storageos.model.ResourceTypeEnum.SMIS_PROVIDER;
 import static com.emc.storageos.model.ResourceTypeEnum.STORAGE_POOL;
 import static com.emc.storageos.model.ResourceTypeEnum.STORAGE_PORT;
@@ -82,6 +87,7 @@ import static com.emc.storageos.model.ResourceTypeEnum.VOLUME;
 import static com.emc.storageos.model.ResourceTypeEnum.VOLUME_GROUP;
 import static com.emc.storageos.model.ResourceTypeEnum.VPLEX_MIRROR;
 import static com.emc.storageos.model.ResourceTypeEnum.VPOOL;
+import static com.emc.storageos.model.ResourceTypeEnum.WF_DIRECTORY;
 import static com.emc.storageos.model.ResourceTypeEnum.WORKFLOW;
 import static com.emc.storageos.model.ResourceTypeEnum.WORKFLOW_STEP;
 
@@ -150,16 +156,24 @@ import com.emc.storageos.db.client.model.Workflow;
 import com.emc.storageos.db.client.model.WorkflowStep;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFileSystem;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
+import com.emc.storageos.db.client.model.uimodels.CustomServicesAnsiblePrimitive;
+import com.emc.storageos.db.client.model.uimodels.CustomServicesAnsiblePackage;
 import com.emc.storageos.db.client.model.uimodels.CatalogCategory;
 import com.emc.storageos.db.client.model.uimodels.CatalogImage;
 import com.emc.storageos.db.client.model.uimodels.CatalogService;
 import com.emc.storageos.db.client.model.uimodels.CatalogServiceField;
+import com.emc.storageos.db.client.model.uimodels.CustomServicesScriptPrimitive;
+import com.emc.storageos.db.client.model.uimodels.CustomServicesScriptResource;
+import com.emc.storageos.db.client.model.uimodels.CustomServicesWorkflow;
 import com.emc.storageos.db.client.model.uimodels.ExecutionWindow;
 import com.emc.storageos.db.client.model.uimodels.Order;
+import com.emc.storageos.db.client.model.uimodels.CustomServicesUserPrimitive;
+import com.emc.storageos.db.client.model.uimodels.WFDirectory;
 import com.emc.storageos.model.ResourceTypeEnum;
 
 public class ResourceTypeMapping {
-    private static final Logger _log = LoggerFactory.getLogger(ResourceTypeMapping.class);
+    private static final Logger _log = LoggerFactory
+            .getLogger(ResourceTypeMapping.class);
     // Mapping of Resource Type -> DB Class
     private static final Map<ResourceTypeEnum, Class<? extends DataObject>> classMapping = new HashMap<>();
     // Reverse mapping of DB Class -> Resource Type
@@ -234,13 +248,22 @@ public class ResourceTypeMapping {
         classMapping.put(CATALOG_IMAGE, CatalogImage.class);
         classMapping.put(ACTIONABLE_EVENT, ActionableEvent.class);
         classMapping.put(EXECUTION_WINDOW, ExecutionWindow.class);
+        classMapping.put(CUSTOM_SERVICES_WORKFLOW, CustomServicesWorkflow.class);
+        classMapping.put(ANSIBLE_PACKAGE, CustomServicesAnsiblePackage.class);
+        classMapping.put(ANSIBLE, CustomServicesAnsiblePrimitive.class);
+        classMapping.put(SCRIPT_PRIMITIVE, CustomServicesScriptPrimitive.class);
+        classMapping.put(SCRIPT_RESOURCE, CustomServicesScriptResource.class);
+        classMapping.put(WF_DIRECTORY, WFDirectory.class);
+        classMapping.put(CUSTOM_SERVICE_PRIMITIVE, CustomServicesUserPrimitive.class);
 
-        for (Map.Entry<ResourceTypeEnum, Class<? extends DataObject>> entry : classMapping.entrySet()) {
+        for (Map.Entry<ResourceTypeEnum, Class<? extends DataObject>> entry : classMapping
+                .entrySet()) {
             resourceMapping.put(entry.getValue(), entry.getKey());
         }
     }
 
-    public static Class<? extends DataObject> getDataObjectClass(ResourceTypeEnum type) {
+    public static Class<? extends DataObject> getDataObjectClass(
+            ResourceTypeEnum type) {
         return classMapping.get(type);
     }
 

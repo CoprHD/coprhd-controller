@@ -1,0 +1,209 @@
+.exampleEditor {
+    background-color: #eee !important;
+    //height: calc(100vh-50px);
+    position: absolute;
+    bottom: 8px;
+    right: 8px;
+    left: 88px;
+    top: 159px;
+    max-width: 100vw;
+    overflow: hidden;
+    border: 1px solid rgb(192, 192, 192);
+}
+
+.success-icon {
+    color:#5cb85c;
+}
+.warning-icon {
+    color:#f0ad4e;
+}
+
+.jsPlumb_dragged {
+    z-index: 999;
+}
+.jsPlumb-container {
+    width:4000px;
+    height:4000px;
+    position:relative;
+    background-image: url("/public/img/grid.png");
+}
+.example-item-card-wrapper {
+    position:absolute;
+    overflow: visible;
+    z-index:200;
+    min-width: 100px;
+    //min-height: 70px;
+}
+
+.example-item-card-wrapper a {
+    text-decoration: none;
+}
+
+.item {
+    margin-top: 0;
+    margin-bottom: 0;
+    padding-bottom:15px;
+    padding-top:15px;
+    background-color: #428bca;
+    border-color: #357ebd;
+    border-radius: 3px;
+    pointer-events:none;
+}
+
+.sidebar {
+    background-color: white !important;
+    z-index:999 !important;
+    width: 100%;
+    height: 100%;
+}
+
+.home-sidebar {
+    background-color: white !important;
+    z-index:999 !important;
+    width: 100%;
+    height: 80vh;
+}
+
+.buttonbar {
+    margin: 10px;
+    float: right;
+}
+
+.passEndpoint svg circle {
+     fill: #5cb85c;
+     border-color: #4cae4c;
+ }
+
+.failEndpoint svg circle {
+    fill: #d9534f;
+    border-color: #d43f3a;
+}
+
+.jsplumb-endpoint.jsplumb-endpoint-connected {
+    opacity: 1;
+}
+
+.jsplumb-connector {
+    z-index: 4;
+}
+
+.jsplumb-endpoint {
+    z-index: 5;
+    opacity: 0.2;
+    stroke: none;
+}
+
+.itemText {
+    color: white;
+    text-align: center;
+    margin: 10px;
+    font-size: 15px;
+    pointer-events:none;
+}
+
+.draggable-card {
+    display: inline-block;
+    z-index: 100;
+}
+
+.draggable-card .itemText {
+    font-size: 16px;
+}
+
+.builder-column {
+    width: auto;
+    overflow: hidden;
+}
+
+.button-step-close {
+    margin: 5px;
+    color: white;
+}
+
+.button-container {
+    position: absolute;
+    right: 0px;
+}
+
+.highlighted {
+    border: 2px solid limegreen;
+}
+
+table, th , td {
+  padding: 5px;
+}
+
+.sidenav-panel {
+    overflow:scroll;
+}
+
+.sidenav {
+    height: 100%; /* 100% Full-height */
+    width: 0; /* 0 width - change this with JavaScript */
+    position: absolute; /* Stay in place */
+    z-index: 2; /* Stay on top */
+    right: 52px;
+    background-color: #eee; /* Black*/
+    overflow-x: hidden; /* Disable horizontal scroll */
+    padding-top: 20px; /* Place content 60px from the top */
+    transition: 0.5s; /* 0.5 second transition effect to slide in the sidenav */
+    border: 1px solid rgb(192, 192, 192);
+}
+
+.sidenav-open {
+    width: 600px;
+    padding-left: 20px;
+    padding-right: 20px;
+}
+
+.sidenav a:hover, .offcanvas a:focus{
+    color: #414141;
+    text-decoration: none;
+     cursor: pointer;
+     cursor: hand;
+}
+
+.sidenav .closebtn {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    font-size: 36px;
+    margin-left: 50px;
+}
+
+.slider-button {
+    padding: 1px;
+    height: 100%;
+    position: absolute;
+    z-index: 1; /* Stay on top */
+    right: 52px;
+    transition: margin-right .5s;
+    margin-right: 0px;
+}
+
+.slider-open {
+    margin-right: 600px;
+}
+
+#sliderMenu {
+    width: 54px;
+    height: 100%;
+    position: absolute;
+    right: 0;
+    background-color: white;
+    border: 1px solid rgb(192, 192, 192);
+    z-index: 2;
+}
+
+.side-container {
+    float: right;
+    position: absolute;
+    right: 8px;
+    bottom: 8px;
+    top: 159px;
+    z-index: 1;
+}
+
+.builder-container {
+    clear: both;
+}

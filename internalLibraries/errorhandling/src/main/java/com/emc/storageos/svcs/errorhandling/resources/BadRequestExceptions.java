@@ -1,6 +1,18 @@
 /*
- * Copyright (c) 2013-2014 EMC Corporation
- * All Rights Reserved
+ * Copyright 2013-2016 Dell Inc. or its subsidiaries.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
  */
 
 package com.emc.storageos.svcs.errorhandling.resources;
@@ -18,10 +30,8 @@ import com.emc.storageos.svcs.errorhandling.annotations.MessageBundle;
  * This interface holds all the methods used to create an error condition that will be associated
  * with an HTTP status of Bad Request (400)
  * <p/>
- * Remember to add the English message associated to the method in BadRequestExceptions.properties and use the
- * annotation
- * {@link DeclareServiceCode} to set the service code associated to this error condition. You may need to create a new
- * service code if there
+ * Remember to add the English message associated to the method in BadRequestExceptions.properties and use the annotation
+ * {@link DeclareServiceCode} to set the service code associated to this error condition. You may need to create a new service code if there
  * is no an existing one suitable for your error condition.
  * <p/>
  * For more information or to see an example, check the Developers Guide section in the Error Handling Wiki page:
@@ -1287,6 +1297,10 @@ public interface BadRequestExceptions {
     public BadRequestException resourceHasActiveReferencesWithType(final String clazz,
             final URI resourceId, final String depType);
 
+    @DeclareServiceCode(ServiceCode.API_RESOURCE_BEING_REFERENCED)
+    public BadRequestException resourceHasActiveReferencesWithType(final String clazz,
+            final String label, final String depType);
+
     @DeclareServiceCode(ServiceCode.API_RESOURCE_CANNOT_BE_DELETE_DUE_TO_UNREACHABLE_VDC)
     public BadRequestException resourceCannotBeDeleteDueToUnreachableVdc();
 
@@ -1523,6 +1537,9 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException baseServiceNotFound(final String baseServiceId);
+    
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException workflowNotFound(String workflowName);
 
     @DeclareServiceCode(ServiceCode.API_PLACEMENT_ERROR)
     public BadRequestException vplexPlacementError(final URI uri);
@@ -2341,6 +2358,21 @@ public interface BadRequestExceptions {
     public BadRequestException cannotExecuteOperationWhilePendingTask(final String pendingVolumes);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException clusterHostMismatch(String cluster);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException clusterNotFoundInDatacenter(String cluster, String datacenter);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException vCenterDataCenterHasNullVcenter(String datacenter);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException vCenterDataCenterNotFound(URI datacenter);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException vCenterNotFound(URI vcenter);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException rpClusterVarrayNoClusterId(String label);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
@@ -3092,6 +3124,12 @@ public interface BadRequestExceptions {
     @DeclareServiceCode(ServiceCode.API_NO_PLACEMENT_FOUND)
     public BadRequestException noStoragePools(final String varrayLabel, final String vpoolLabel, final String errorMessage);
 
+    @DeclareServiceCode(ServiceCode.API_NO_PLACEMENT_FOUND)
+    public BadRequestException noFileStorageRecommendationsFound(final String policyLabel);
+
+    @DeclareServiceCode(ServiceCode.API_NO_PLACEMENT_FOUND)
+    public BadRequestException noStoragePoolsExists(final String vPools);
+
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException noVolumesForTaskObjects(String vpool, String taskId);
 
@@ -3139,7 +3177,7 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException cantMigrateNotAllRPSourceVolumesInRequest();
-    
+
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException driverNameNotFound(String name);
 
@@ -3151,28 +3189,28 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException externallyAddedInitiators(final String exportMask, final String initiators);
-    
+
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException additionalInitiators(final String exportMask, final String initiators);
-    
+
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException exportPathAdjustmentSystemNotSupported(final String systemType);
-    
+
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException exportPathAdjustmentSystemExportGroupNotMatch(final String exportGroup, String system);
-    
+
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException exportPathAdjustmentSystemExportGroupHostsMismatch(String mismatchHosts);
-    
+
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException exportPathAdjustmentRemovingPathsNotExist(final String initiator);
-    
+
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException exportPathAdjustmentAdjustedPathNotValid(final String initiatorOrTargets);
-    
+
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException exportPathAdjustmentNoPathAdjustmentAllowed(final String exportGroup);
-    
+
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException invalidParameterWwnBadFormat(String wwn);
 
@@ -3199,10 +3237,10 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException invalidFilePolicyUnAssignParam(final String policyName, final String errorMsg);
-    
+
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException storagePortsNotInVarray(final String ports, final String exportMask, final String varray);
-    
+
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException exportMaskNotInVarray(final String exportMask);
 
@@ -3219,7 +3257,7 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException cannotDeleteProjectAssignedFilePolicy(final String projectName);
-    
+
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException cannotDeleteApplicationSnapshotExportExists(final String applicationName, final String copySetName);
 
@@ -3228,4 +3266,5 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException storageSystemClientException(final String storageSystemType, final String errorMsg);
+    public BadRequestException deprecatedRestCall(final String uri, final String replacementUri);
 }

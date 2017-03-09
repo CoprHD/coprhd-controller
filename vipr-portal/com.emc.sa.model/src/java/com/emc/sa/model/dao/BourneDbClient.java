@@ -5,21 +5,33 @@
 package com.emc.sa.model.dao;
 
 import java.net.URI;
-import java.util.*;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
+import com.emc.storageos.db.client.constraint.TimeSeriesConstraint;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.PostConstruct;
 
-import com.emc.storageos.db.client.constraint.*;
 import com.emc.storageos.db.client.constraint.impl.*;
 import com.emc.storageos.db.client.impl.DbClientImpl;
 import com.emc.storageos.db.client.model.uimodels.Order;
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
+import com.emc.storageos.db.client.constraint.Constraint;
+import com.emc.storageos.db.client.constraint.ContainmentConstraint;
+import com.emc.storageos.db.client.constraint.ContainmentPermissionsConstraint;
+import com.emc.storageos.db.client.constraint.ContainmentPrefixConstraint;
+import com.emc.storageos.db.client.constraint.NamedElementQueryResultList;
 import com.emc.storageos.db.client.constraint.NamedElementQueryResultList.NamedElement;
+import com.emc.storageos.db.client.constraint.PrefixConstraint;
 import com.emc.storageos.db.client.impl.ColumnField;
 import com.emc.storageos.db.client.impl.DataObjectType;
 import com.emc.storageos.db.client.impl.TypeMap;
@@ -228,7 +240,19 @@ public class BourneDbClient implements DBClientWrapper {
             throw new DataAccessException(e);
         }
     }
+    
+    @Override
+    public <T extends DataObject> Iterator<T> findAllFields(final Class<T> clazz, final List<URI> ids, final List<String> columnFields) throws DataAccessException {
 
+        LOG.debug("findAllFields({}, {}, {})", clazz, ids, columnFields);
+
+        try {
+            return getDbClient().queryIterativeObjectFields(clazz, columnFields, ids);
+        } catch (DatabaseException e) {
+            throw new DataAccessException(e);
+        }
+    }
+    
     @Override
     public <T extends DataObject> T findById(Class<T> clazz, URI id) throws DataAccessException {
 

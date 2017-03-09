@@ -175,7 +175,7 @@
           "baseService": "AddVolumesToConsistencyGroup"
         },
         {
-          "image": "icon_db_create.png",
+          "image": "icon_export_path_adjustment.png",
           "baseService": "ExportPathAdjustment"
         }
       ]
@@ -703,9 +703,9 @@
           "image": "icon_delete_bucket.png",
           "baseService": "DeleteBucket"
         }
-      ]
-    },
-    {
+      ] 
+    }, 
+    { 
       "title": "guide.title",
       "image": "icon_host.png",
       "description": "guide.description",
@@ -732,9 +732,20 @@
         },
 		{
           "image": "Service_Remove_Block_Snapshot.png",
-          "baseService": "RemoveBlockSnapshot"
+          "baseService": "RemoveBlockSnapshot" 
         }
       ]
-    }
+    }, 
+    { 
+      "title": "custom_services.title",
+      "image": "icon_orchestration.png",
+      "description": "custom_services.description",
+      "services": [
+        { 
+          "image": "icon_orchestration.png", 
+          "baseService": "CustomServicesService"
+        } 
+      ]
+    } 
   ]
 }

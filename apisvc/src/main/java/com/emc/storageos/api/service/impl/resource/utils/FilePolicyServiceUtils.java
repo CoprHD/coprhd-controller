@@ -491,10 +491,65 @@ public class FilePolicyServiceUtils {
             for (String strPolicy : project.getFilePolicies()) {
                 FilePolicy policy = dbClient.queryObject(FilePolicy.class, URI.create(strPolicy));
                 if (policy.getFilePolicyType().equalsIgnoreCase(FilePolicyType.file_replication.name())
-                        && policy.getFilePolicyVpool() != null && vpoolURI != null
+                        && !NullColumnValueGetter.isNullURI(policy.getFilePolicyVpool()) && vpoolURI != null
                         && policy.getFilePolicyVpool().toString().equalsIgnoreCase(vpoolURI.toString())) {
                     _log.info("Replication policy found for vpool {} and project {}", vpoolURI.toString(), project.getLabel());
                     return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Verifies the vpool assigned policies with similar schedule as given policy
+     * 
+     * 
+     * @param dbClient
+     * @param vpoolURI
+     * @param newPolicy
+     * @return true/false
+     */
+    public static boolean vPoolHasSnapshotPolicyWithSameSchedule(DbClient dbClient, URI vpoolURI, FilePolicy newPolicy) {
+        VirtualPool vPool = dbClient.queryObject(VirtualPool.class, vpoolURI);
+        if (vPool != null && vPool.getFilePolicies() != null && !vPool.getFilePolicies().isEmpty()) {
+            for (String strPolicy : vPool.getFilePolicies()) {
+                FilePolicy policy = dbClient.queryObject(FilePolicy.class, URI.create(strPolicy));
+                if (policy.getFilePolicyType().equalsIgnoreCase(FilePolicyType.file_snapshot.name())) {
+                    if (policy.getScheduleFrequency().equalsIgnoreCase(newPolicy.getScheduleFrequency())
+                            && policy.getScheduleRepeat().longValue() == newPolicy.getScheduleRepeat().longValue()) {
+                        _log.info("Snapshot policy found for vpool {} with similar schedule ", vPool.getLabel());
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Verifies the project assigned policies with similar schedule as given policy
+     * 
+     * 
+     * @param dbClient
+     * @param vpoolURI
+     * @param projectURI
+     * @param newPolicy
+     * @return true/false
+     */
+    public static boolean projectHasSnapshotPolicyWithSameSchedule(DbClient dbClient, URI projectURI, URI vpoolURI, FilePolicy newPolicy) {
+        Project project = dbClient.queryObject(Project.class, projectURI);
+        if (project != null && project.getFilePolicies() != null && !project.getFilePolicies().isEmpty()) {
+            for (String strPolicy : project.getFilePolicies()) {
+                FilePolicy policy = dbClient.queryObject(FilePolicy.class, URI.create(strPolicy));
+                if (policy.getFilePolicyType().equalsIgnoreCase(FilePolicyType.file_snapshot.name())
+                        && !NullColumnValueGetter.isNullURI(policy.getFilePolicyVpool()) && vpoolURI != null
+                        && policy.getFilePolicyVpool().toString().equalsIgnoreCase(vpoolURI.toString())) {
+                    if (policy.getScheduleFrequency().equalsIgnoreCase(newPolicy.getScheduleFrequency())
+                            && policy.getScheduleRepeat().longValue() == newPolicy.getScheduleRepeat().longValue()) {
+                        _log.info("Snapshot policy found for project {} with similar schedule ", project.getLabel());
+                        return true;
+                    }
                 }
             }
         }

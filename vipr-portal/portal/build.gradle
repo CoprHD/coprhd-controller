@@ -33,7 +33,7 @@ for f in ${project.installDir}/portal/modules/*/lib/* ; do
     FRAMEWORK_PATH="\${FRAMEWORK_PATH}:\${f}"
 done
 """
-        extraClasspath = "\${FRAMEWORK_PATH}"
+        extraClasspath = "\${FRAMEWORK_PATH}:\${LIB_DIR}/storageos-vipr-primitives.jar"
         startupTimeoutSec = "180"
     }
 }
@@ -54,6 +54,7 @@ dependencies {
             project(":com.iwave.ext.vmware.vcenter"),
             project(":processmonitor"),
             project(":vipr-client"),
+            project(":primitives"),
             "org.lesscss:lesscss:1.7.0.1.1"
     webjar "org.webjars:jquery:1.11.1",
            "org.webjars:angularjs:1.2.21",

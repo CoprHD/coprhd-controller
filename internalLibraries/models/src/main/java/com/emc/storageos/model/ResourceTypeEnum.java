@@ -1,6 +1,5 @@
 /*
- * Copyright 2008-2013 EMC Corporation
- * Copyright 2016 Intel Corporation
+ * Copyright 2017 Dell Inc. or its subsidiaries.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -100,12 +99,19 @@ public enum ResourceTypeEnum {
     FILE_POLICY("file_policy", "/file/file-policies"),
     STORAGE_SYSTEM_TYPE("storage_system_type", "/vdc/storage-system-types"),
     OBJECT_NAMESPACE("object_namespaces", "/vdc/object-namespaces"),
-    ACTIONABLE_EVENT("actionable_event", "/vdc/events");
-
+    ACTIONABLE_EVENT("actionable_event", "/vdc/events"),
+    CUSTOM_SERVICES_WORKFLOW("custom_services_workflow", "/workflows"),
+    ANSIBLE("ansible", "/primitives"),
+    ANSIBLE_PACKAGE("ansible_package", "/primitives/resource/ansible"),
+    SCRIPT_PRIMITIVE("script_primitive","/primitives"),
+    SCRIPT_RESOURCE("script_resource", "/primitives/resource/script"),
+    WF_DIRECTORY("wf_directory","/workflow/directory"),
+    CUSTOM_SERVICE_PRIMITIVE("primitive", "/primitives");
+    
     private final String type;
     private final String service;
-
-    ResourceTypeEnum(String type, String service) {
+    
+    ResourceTypeEnum(final String type, final String service) {
         this.service = service;
         this.type = type;
     }
@@ -122,7 +128,7 @@ public enum ResourceTypeEnum {
     public String getService() {
         return service;
     }
-
+    
     @Override
     public String toString() {
         return type;

@@ -66,5 +66,17 @@ public class PathConstants {
     public static final String SCHEDULED_EVENTS_URL = "/catalog/events";
     public static final String SCHEDULED_EVENTS_DEACTIVATE_URL = SCHEDULED_EVENTS_URL + "/{id}/deactivate";
     public static final String SCHEDULED_EVENTS_CANCELLATION_URL = SCHEDULED_EVENTS_URL + "/{id}/cancel";
-
+    public static final String WF_DIRECTORIES = "/workflow/directory";
+    public static final String WF_DIRECTORY_BULK = "/workflow/directory/bulk";
+    public static final String WF_DIRECTORY = "/workflow/directory/{id}";
+    public static final String WF_DIRECTORY_DELETE = "/workflow/directory/{id}/deactivate";
+    public static final String CUSTOM_SERVICES_PRIMITIVES = "/primitives";
+    public static final String CUSTOM_SERVICES_PRIMITIVE = "/primitives/{id}";
+    public static final String CUSTOM_SERVICES_PRIMITIVE_RESOURCE = "/primitives/resource/{type}";
+    public static final String CUSTOM_SERVICES_WORKFLOWS = "/workflows";
+    public static final String CUSTOM_SERVICES_WORKFLOW_DELETE = "/workflows/{id}/deactivate";
+    public static final String CUSTOM_SERVICES_WORKFLOW_VALIDATE = "/workflows/{id}/validate";
+    public static final String CUSTOM_SERVICES_WORKFLOW_PUBLISH = "/workflows/{id}/publish";
+    public static final String CUSTOM_SERVICES_WORKFLOW_UNPUBLISH = "/workflows/{id}/unpublish";
+    public static final String CUSTOM_SERVICES_WORKFLOW = "/workflows/{id}";
 }

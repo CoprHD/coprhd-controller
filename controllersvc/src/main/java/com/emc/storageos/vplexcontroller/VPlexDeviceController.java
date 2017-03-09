@@ -2106,8 +2106,49 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
             }
 
             Map<String, String> targetPortToPwwnMap = VPlexControllerUtils.getTargetPortToPwwnMap(client, vplexClusterName);
-
             Boolean[] doInitiatorRefresh =  new Boolean[] { new Boolean(true) };
+            
+            /**
+             * COP-28674 : During Vblock Boot volume export, if existing storage views are found then check for existing volumes
+             * If found throw exception.
+             * This condition is valid only for boot volume vblock export.
+             */
+            if (ExportMaskUtils.isVblockHost(initiators, _dbClient) && ExportMaskUtils.isBootVolume(blockObjectMap)) {
+                _log.info("VBlock Boot volume Export : Validating the Vplex Cluster {} to find existing storage views", vplexClusterName);
+                List<Initiator> initiatorList = _dbClient.queryObject(Initiator.class, initiators);
+                
+                List<String> initiatorNames = getInitiatorNames(vplexSystem.getSerialNumber(), vplexClusterName, client,
+                        initiatorList.iterator(), doInitiatorRefresh);
+                
+                List<VPlexStorageViewInfo> storageViewInfos = client.getStorageViewsContainingInitiators(vplexClusterName,
+                        initiatorNames);
+                List<String> maskNames = new ArrayList<String>();
+                if(!CollectionUtils.isEmpty(storageViewInfos)) {
+                    for (VPlexStorageViewInfo storageView : storageViewInfos) {
+                        if(!CollectionUtils.isEmpty(storageView.getVirtualVolumes())) {
+                            maskNames.add(storageView.getName());
+                        } else {
+                            _log.info("Found Storage View {} for cluster {} with empty volumes",storageView.getName(),
+                                    vplexClusterName);
+                        }
+                    }
+                } else {
+                    _log.info("No Storage views found for cluster {}", vplexClusterName);
+                }
+                
+                
+                if (!CollectionUtils.isEmpty(maskNames)) {
+                    Set<URI> computeResourceSet = hostInitiatorMap.keySet();
+                    throw VPlexApiException.exceptions.existingMaskFoundDuringBootVolumeExport(Joiner.on(", ").join(maskNames),
+                            Joiner.on(", ").join(computeResourceSet), vplexClusterName);
+                } else {
+                    _log.info("VBlock Boot volume Export : Validation passed");
+                }
+            }
+            
+            
+
+            
 
             for (URI hostUri : hostInitiatorMap.keySet()) {
                 _log.info("assembling export masks workflow, now looking at host URI: " + hostUri);

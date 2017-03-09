@@ -298,6 +298,29 @@ public class ExportMaskUtils {
         }
         return initiators;
     }
+    
+    /**
+     * Checks if the given initiators belong to vBlock host.
+     *
+     * @param initiatorURIs the initiator uris
+     * @param dbClient the db client
+     * @return true, if the given initiators belong to vBlock host
+     */
+    public static boolean isVblockHost(List<URI> initiatorURIs, DbClient dbClient) {
+        Iterator<Initiator> initiators = dbClient.queryIterativeObjects(Initiator.class,
+                initiatorURIs);
+        while (initiators.hasNext()) {
+            Initiator initiator = initiators.next();
+            URI hostURI = initiator.getHost();
+            if (hostURI != null) {
+                Host host = dbClient.queryObject(Host.class, hostURI);
+                if (host != null && !NullColumnValueGetter.isNullURI(host.getComputeElement())) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
 
     /**
      * Return all the StoragePorts in an ExportMask of a specificed Transport type.
@@ -1806,6 +1829,17 @@ public class ExportMaskUtils {
         }
         _log.info("Constructed zoningMap -" + zoningMap.toString());
         return zoningMap;
+    }
+    
+    /**
+     * 
+     * @param volumeMap
+     * @return
+     */
+    public static boolean isBootVolume(Map<URI, Integer> volumeMap) {
+        // TODO Auto-generated method stub
+        
+        return true;
     }
 
 }

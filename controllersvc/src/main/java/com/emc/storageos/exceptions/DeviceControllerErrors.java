@@ -261,4 +261,7 @@ public interface DeviceControllerErrors {
 
     @DeclareServiceCode(ServiceCode.CONTROLLER_JOB_ERROR)
     public ServiceError unableToUpdateFileSystem(final String operationName, final Throwable cause);
+
+    @DeclareServiceCode(ServiceCode.CONTROLLER_JOB_ERROR)
+    public ServiceError existingMaskFoundDuringBootVolumeExport(String maskNames, String computeResource);
 }

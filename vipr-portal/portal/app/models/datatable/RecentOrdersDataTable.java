@@ -6,6 +6,7 @@ package models.datatable;
 
 import static com.emc.vipr.client.core.util.ResourceUtils.uri;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
@@ -14,6 +15,7 @@ import java.util.Iterator;
 import java.util.List;
 
 import com.emc.storageos.db.client.model.uimodels.OrderStatus;
+
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.collections.Predicate;
 import org.apache.commons.lang.ObjectUtils;
@@ -29,6 +31,7 @@ import util.datatable.DataTableParams;
 import com.emc.vipr.model.catalog.OrderCount;
 import com.emc.vipr.model.catalog.OrderJobInfo;
 import com.emc.vipr.model.catalog.OrderRestRep;
+
 import util.support.SupportOrderPackageCreator;
 
 public class RecentOrdersDataTable extends OrderDataTable {
@@ -139,7 +142,7 @@ public class RecentOrdersDataTable extends OrderDataTable {
     }
     
     public static String getCanBeDeletedOrderStatuses() {
-        List<OrderStatus> canBeDeletedStatus = Arrays.asList(OrderStatus.values());
+        List<OrderStatus> canBeDeletedStatus = new ArrayList<OrderStatus>(Arrays.asList(OrderStatus.values()));
         CollectionUtils.filter(canBeDeletedStatus, new Predicate() {
             @Override
             public boolean evaluate(Object o) {

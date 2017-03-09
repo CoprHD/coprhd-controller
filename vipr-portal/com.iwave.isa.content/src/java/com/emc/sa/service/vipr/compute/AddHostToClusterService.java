@@ -270,9 +270,12 @@ public class AddHostToClusterService extends ViPRService {
         // VBDU TODO: COP-28433: Deactivate Host without OS installed (when rollback is added, this should be addressed)
         ComputeUtils.addHostsToCluster(hosts, cluster);
 
-        pushToVcenter();
-
-        ComputeUtils.discoverHosts(hostsWithOs);
+        if (!ComputeUtils.nonNull(hostsWithOs).isEmpty()) {
+            pushToVcenter();
+            ComputeUtils.discoverHosts(hostsWithOs);
+        } else {
+            logWarn("compute.cluster.installed.os.none");
+        }
 
         String orderErrors = ComputeUtils.getOrderErrors(cluster, copyOfHostNames, computeImage, vcenterId);
         if (orderErrors.length() > 0) { // fail order so user can resubmit

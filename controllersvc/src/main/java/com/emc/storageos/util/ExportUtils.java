@@ -1627,6 +1627,69 @@ public class ExportUtils {
         }
         return clusterInitaitors;
     }
+    
+    /**
+     * Returns a list of ExportGroups that reference the given ExportMask,
+     * minus the given ExportGroup
+     *
+     * @param exportGroup
+     *            the ExportGroup to exclude
+     * @param exportMask
+     *            the ExportMask to locate in other ExportGroups
+     * @return a list of other ExportGroups containing the ExportMask
+     */
+    public static List<ExportGroup> getOtherExportGroups(ExportGroup exportGroup, ExportMask exportMask, DbClient dbClient) {
+
+        List<ExportGroup> otherExportGroups = ExportMaskUtils.getExportGroups(dbClient, exportMask);
+
+        ExportGroup egToSkip = null;
+        for (ExportGroup eg : otherExportGroups) {
+            // do not include the ExportGroup requested for delete
+            if (eg.getId().equals(exportGroup.getId())) {
+                egToSkip = eg;
+                break;
+            }
+        }
+        otherExportGroups.remove(egToSkip);
+
+        if (!otherExportGroups.isEmpty()) {
+            _log.info("ExportMask {} is in use by these other ExportGroups: {}",
+                    exportMask.getMaskName(), Joiner.on(',').join(otherExportGroups));
+        } else {
+            _log.info("ExportMask {} is not in use by any other ExportGroups.", exportMask.getMaskName());
+        }
+
+        return otherExportGroups;
+    }
+    
+    /**
+     * Export Mask can be shared with multiple ExportGroups in the below case.
+     * 
+     * 1. Create volumes from different projects and export to same compute resource.
+     * 2. Export Mask has both exclusive and shared volumes.
+     * 
+     * A storage view for a host can be deleted, if there are shared volumes from multiple projects.
+     * A storage view cannot be deleted, if there are excluisve volumes on the storage view along with shared volumes.
+     * We have to return true only for Case 2.
+     * 
+     * @return
+     */
+    public static boolean exportMaskHasBothExclusiveAndSharedVolumes(ExportGroup current, List<ExportGroup> otherExportGroups,
+            ExportMask exportMask) {
+        for (ExportGroup exportGroup : otherExportGroups) {
+            // This piece of code gets executed only when all the initiators of
+            // Host are being asked to remove and the export mask is being shared.
+            if (ExportGroupType.Cluster.toString().equalsIgnoreCase(current.getType())
+                    && ExportGroupType.Host.toString().equalsIgnoreCase(exportGroup.getType()) &&
+                    !CollectionUtils.isEmpty(exportGroup.getInitiators())) {
+                _log.info(
+                        "Export Mask is being shared with other Export Groups, and the export Group {} type is different from the current processed {}."
+                                + "Assuming this mask contains both shared and exclusive volumes ,removing the initiators might affect.");
+                return true;
+            }
+        }
+        return false;
+    }
 
     /**
      * Returns true if the storage system implementation supports consistent HLU generation for cluster export.
@@ -1903,17 +1966,17 @@ public class ExportUtils {
      */
     public static void cleanStaleReferences(URI exportGroupURI, DbClient dbClient) {
         ExportGroup exportGroup = dbClient.queryObject(ExportGroup.class, exportGroupURI);
-
+        
         cleanStaleMaskReferences(exportGroup, dbClient);
-
+        
         cleanStaleInitiatorReferences(exportGroup, dbClient);
-
+        
         cleanStaleHostReferences(exportGroup, dbClient);
-
+        
         cleanStaleClusterReferences(exportGroup, dbClient);
-
+        
         cleanStaleVolumeReferences(exportGroup, dbClient);
-
+        
         // Export Group might have been marked to deletion already
         if (null != exportGroup && !exportGroup.getInactive()) {
             dbClient.updateObject(exportGroup);
@@ -1979,17 +2042,15 @@ public class ExportUtils {
             if (!CollectionUtils.isEmpty(unstaleMasks)) {
                 cleanStaleZoningMapEntries(unstaleMasks, dbClient);
             }
-
         }
-
+        
         if (CollectionUtils.isEmpty(exportGroup.getExportMasks())
                 && !exportGroup.checkInternalFlags(DataObject.Flag.INTERNAL_OBJECT)) {
             // COP-27689 - Even if all the export masks got cleared, the export Group still remains with initiators and volumes.
-            // Clean up all the initiators, volumes and ports as there are no available export masks or we could delete the export Group
-            // too.
-            _log.info("There are no masks in the export Group {}-->{} , hence deleting export group...", exportGroup.getId(),
+            // Clean up all the initiators, volumes and ports as there are no available export masks.
+            _log.info("There are no masks in the export Group {}-->{} after cleaning up stale masks.", exportGroup.getId(),
                     exportGroup.getLabel());
-            dbClient.markForDeletion(exportGroup);
+            resetExportGroup(exportGroup, dbClient);
         }
     }
 
@@ -2061,15 +2122,14 @@ public class ExportUtils {
                 }
             }
         }
-
+        
         if (CollectionUtils.isEmpty(exportGroup.getInitiators())
                 && !exportGroup.checkInternalFlags(DataObject.Flag.INTERNAL_OBJECT)) {
             // COP-27689 - Even if all the export masks got cleared, the export Group still remains with initiators and volumes.
-            // Clean up all the initiators, volumes and ports as there are no available export masks or we could delete the export Group
-            // too.
-            _log.info("There are no initiators in the export Group {}-->{} , hence deleting export group...", exportGroup.getId(),
+            // Clean up all the initiators, volumes and ports as there are no available export masks.
+            _log.info("There are no initiators in the export Group {}-->{} after cleaning up stale initiators.", exportGroup.getId(),
                     exportGroup.getLabel());
-            dbClient.markForDeletion(exportGroup);
+            resetExportGroup(exportGroup, dbClient);
         }
     }
 
@@ -2097,24 +2157,24 @@ public class ExportUtils {
                     volumesInAllMasks.addAll(maskObj.getUserAddedVolumes().values());
                 }
             }
-            // To Avoid concurrent modfication exception created new set instance
+            // To Avoid concurrent modification exception created new set instance
             Set<String> volumeDiff = new HashSet<>(Sets.difference(exportGroupVolumes, volumesInAllMasks));
             if (!CollectionUtils.isEmpty(volumeDiff)) {
                 exportGroup.removeVolumes(new HashSet<String>(volumeDiff));
                 _log.info("Stale volumes {}  removed from Export Group {}", volumeDiff, exportGroup.getId());
             }
         }
+        
         if (CollectionUtils.isEmpty(exportGroup.getVolumes())
                 && !exportGroup.checkInternalFlags(DataObject.Flag.INTERNAL_OBJECT)) {
             // COP-27689 - Even if all the export masks got cleared, the export
             // Group still remains with initiators and volumes.
             // Clean up all the initiators, volumes and ports as there are no
-            // available export masks or we could delete the export Group too.
-            _log.info("There are no volumes in the export Group {}-->{} , hence deleting export group...", exportGroup.getId(),
+            // available export masks.
+            _log.info("There are no volumes in the export Group {}-->{} after cleaning up stale volumes.", exportGroup.getId(),
                     exportGroup.getLabel());
-            dbClient.markForDeletion(exportGroup);
+            resetExportGroup(exportGroup, dbClient);
         }
-
     }
 
     /**
@@ -2151,19 +2211,17 @@ public class ExportUtils {
                         Joiner.on(',').join(staleHostURIs), exportGroup.getId()));
                 exportGroup.removeHosts(new ArrayList<>(staleHostURIs));
             }
-
         }
+        
         if (!ExportGroupType.Initiator.toString().equalsIgnoreCase(exportGroup.getType())
                 && CollectionUtils.isEmpty(exportGroup.getHosts())
                 && !exportGroup.checkInternalFlags(DataObject.Flag.INTERNAL_OBJECT)) {
             // COP-27689 - Even if all the export masks got cleared, the export Group still remains with initiators and volumes.
-            // Clean up all the initiators, volumes and ports as there are no available export masks or we could delete the export Group
-            // too.
-            _log.info("There are no hosts in the export Group {}-->{} , hence deleting export group...", exportGroup.getId(),
+            // Clean up all the initiators, volumes and ports as there are no available export masks.
+            _log.info("There are no hosts in the export Group {}-->{} after cleaning up stale hosts.", exportGroup.getId(),
                     exportGroup.getLabel());
-            dbClient.markForDeletion(exportGroup);
+            resetExportGroup(exportGroup, dbClient);
         }
-
     }
 
     /**
@@ -2196,16 +2254,29 @@ public class ExportUtils {
             }
 
         }
+        
         if (ExportGroupType.Cluster.toString().equalsIgnoreCase(exportGroup.getType())
                 && CollectionUtils.isEmpty(exportGroup.getClusters())
                 && !exportGroup.checkInternalFlags(DataObject.Flag.INTERNAL_OBJECT)) {
             // COP-27689 - Even if all the export masks got cleared, the export Group still remains with initiators and volumes.
-            // Clean up all the initiators, volumes and ports as there are no available export masks or we could delete the export Group
-            // too.
-            _log.info("There are no clusters in the export Group {}-->{} , hence deleting export group...", exportGroup.getId(),
+            // Clean up all the initiators, volumes and ports as there are no available export masks.
+            _log.info("There are no clusters in the export Group {}-->{} , after cleaning slate clusters.", exportGroup.getId(),
                     exportGroup.getLabel());
-            dbClient.markForDeletion(exportGroup);
+            resetExportGroup(exportGroup, dbClient);
         }
+    }
+    
+    private static  void resetExportGroup(ExportGroup exportGroup, DbClient dbClient) {
+        // Clean everything out of the group if there are no longer any
+        // masks after cleaning the stale masks. Note that we specifically
+        // do not delete the export group. This must be retained so that
+        // a reference is available to the northbound API.
+        exportGroup.removeInitiators(URIUtil.toURIList(exportGroup.getInitiators()));
+        exportGroup.removeHosts(URIUtil.toURIList(exportGroup.getHosts()));
+        exportGroup.removeClusters(URIUtil.toURIList(exportGroup.getClusters()));
+        exportGroup.removeVolumes(URIUtil.toURIList(exportGroup.getVolumes().keySet()));
+        exportGroup.removeExportMasks(URIUtil.toURIList(exportGroup.getExportMasks()));
+        dbClient.updateObject(exportGroup);   
     }
 
     /**

@@ -24,6 +24,7 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.StringReader;
 import java.io.StringWriter;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.net.URI;
 import java.nio.file.Files;
@@ -61,6 +62,7 @@ import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 
 import org.apache.commons.beanutils.BeanUtils;
+import org.apache.commons.beanutils.BeanUtilsBean;
 import org.apache.commons.beanutils.ConvertUtils;
 import org.apache.commons.beanutils.converters.CalendarConverter;
 import org.apache.commons.beanutils.converters.DateConverter;
@@ -1242,15 +1244,7 @@ public class DBClient {
             DbConsistencyChecker checker = new DbConsistencyChecker(helper, true);
             int corruptedCount = checker.check();
 
-            String msg = "\nAll the checks have been done, ";
-            if (corruptedCount != 0) {
-                String fileMsg = String.format(
-                        "inconsistent data found.\nClean up files [%s] are created. please read into them for futher operations.",
-                        DbCheckerFileWriter.getGeneratedFileNames());
-                msg += fileMsg;
-            } else {
-                msg += "no inconsistent data found.";
-            }
+            String msg = generateSummaryForDBChecker(corruptedCount != 0);
             System.out.println(msg);
             log.info(msg);
         } catch (ConnectionException e) {
@@ -1273,27 +1267,35 @@ public class DBClient {
         }
         DataObjectType dataCf = TypeMap.getDoType(clazz);
         DbConsistencyCheckerHelper helper = new DbConsistencyCheckerHelper(_dbClient);
+        int corruptedCount = 0;
         try {
-
-            logMsg("\nStart to check DataObject records id that is illegal.\n");
+            logMsg(DbConsistencyCheckerHelper.MSG_OBJECT_ID_START);
             int illegalCount = helper.checkDataObject(dataCf, true);
-            logMsg(String.format("\nFinish to check DataObject records id for CF %s "
-                    + "%d corrupted rows found.\n", dataCf.getCF().getName(), illegalCount));
+            logMsg(String.format(DbConsistencyCheckerHelper.MSG_OBJECT_ID_END_SPECIFIED, dataCf.getCF().getName(), illegalCount));
+            corruptedCount += illegalCount;
 
-            logMsg("\nStart to check DataObject records that the related index is missing.\n");
+            logMsg(DbConsistencyCheckerHelper.MSG_OBJECT_INDICES_START);
             CheckResult checkResult = new CheckResult();
             helper.checkCFIndices(dataCf, true, checkResult);
-            logMsg(String.format("\nFinish to check DataObject records index for CF %s, "
-                    + "%d corrupted rows found.\n", dataCf.getCF().getName(), checkResult.getTotal()));
+            logMsg(checkResult.toString());
+            logMsg(String.format(DbConsistencyCheckerHelper.MSG_OBJECT_INDICES_END_SPECIFIED, dataCf.getCF().getName(),
+                    checkResult.getTotal()));
+            corruptedCount += checkResult.getTotal();
 
-            logMsg("\nStart to check INDEX data that the related object records are missing.\n");
+            logMsg(DbConsistencyCheckerHelper.MSG_INDEX_OBJECTS_START);
             Collection<DbConsistencyCheckerHelper.IndexAndCf> idxCfs = helper.getIndicesOfCF(dataCf).values();
             checkResult = new CheckResult();
             for (DbConsistencyCheckerHelper.IndexAndCf indexAndCf : idxCfs) {
                 helper.checkIndexingCF(indexAndCf, true, checkResult);
             }
-            logMsg(String.format("\nFinish to check INDEX records: totally checked %d indices for CF %s and %d corrupted rows found.\n",
-                    idxCfs.size(), dataCf.getCF().getName(), checkResult.getTotal()));
+            logMsg(checkResult.toString());
+            logMsg(String.format(DbConsistencyCheckerHelper.MSG_INDEX_OBJECTS_END_SPECIFIED, idxCfs.size(), dataCf.getCF().getName(),
+                    checkResult.getTotal()));
+            corruptedCount += checkResult.getTotal();
+
+            String msg = generateSummaryForDBChecker(corruptedCount != 0);
+            System.out.println(msg);
+            log.info(msg);
         } catch (ConnectionException e) {
             log.error("Database connection exception happens, fail to connect: ", e);
             System.err.println("The checker has been stopped by database connection exception. "
@@ -1301,6 +1303,19 @@ public class DBClient {
         } finally {
             DbCheckerFileWriter.close();
         }
+    }
+    
+    private String generateSummaryForDBChecker(boolean success) {
+        String msg = "\nAll the checks have been done, ";
+        if (success) {
+            String fileMsg = String.format(
+                    "inconsistent data found.\nClean up files [%s] are created. please read into them for further operations.",
+                    DbCheckerFileWriter.getGeneratedFileNames());
+            msg += fileMsg;
+        } else {
+            msg += "no inconsistent data found.";
+        }
+        return msg;
     }
     
     public void printDependencies(String cfName, URI uri) {
@@ -1389,7 +1404,18 @@ public class DBClient {
         }
         return runResult;
     }
-    
+
+    private class NullAwareBeanUtilsBean extends BeanUtilsBean {
+        @Override
+        public void copyProperty(Object bean, String name, Object value) throws IllegalAccessException, InvocationTargetException {
+            if (value == null) {
+                log.info("The property value of {} {} is null, ignore it.", bean, name);
+                return;
+            }
+            super.copyProperty(bean, name, value);
+        }
+    }
+
     public boolean rebuildIndex(URI id, Class clazz) {
         boolean runResult = false;
         try {
@@ -1399,7 +1425,8 @@ public class DBClient {
                 newObject.trackChanges();
                 ConvertUtils.register(new CalendarConverter(null), Calendar.class);
                 ConvertUtils.register(new DateConverter(null), Date.class);
-                BeanUtils.copyProperties(newObject, queryObject);
+                BeanUtilsBean notNull = new NullAwareBeanUtilsBean();
+                notNull.copyProperties(newObject, queryObject);
 
                 // special change tracking for customized types
                 BeanInfo bInfo;
@@ -1464,6 +1491,9 @@ public class DBClient {
     }
     
     private void logMsg(String msg, boolean isError, Exception e) {
+        if (isEmptyStr(msg)) {
+            return;
+        }
         if (isError) {
             log.error(msg, e);
             System.err.println(msg);

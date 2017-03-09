@@ -59,7 +59,6 @@ import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DataObject.Flag;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.ExportGroup;
-import com.emc.storageos.db.client.model.ExportGroup.ExportGroupType;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.ExportPathParams;
 import com.emc.storageos.db.client.model.Host;
@@ -2113,7 +2112,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
              * If found throw exception.
              * This condition is valid only for boot volume vblock export.
              */
-            if (exportGroup.forHost() && ExportMaskUtils.isVblockHost(initiators, _dbClient) && ExportMaskUtils.isBootVolume(blockObjectMap)) {
+            if (exportGroup.forHost() && ExportMaskUtils.isVblockHost(initiators, _dbClient) && ExportMaskUtils.isBootVolume(_dbClient, blockObjectMap)) {
                 _log.info("VBlock Boot volume Export : Validating the Vplex Cluster {} to find existing storage views", vplexClusterName);
                 List<Initiator> initiatorList = _dbClient.queryObject(Initiator.class, initiators);
                 
@@ -2136,7 +2135,6 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
                     _log.info("No Storage views found for cluster {}", vplexClusterName);
                 }
                 
-                
                 if (!CollectionUtils.isEmpty(maskNames)) {
                     Set<URI> computeResourceSet = hostInitiatorMap.keySet();
                     throw VPlexApiException.exceptions.existingMaskFoundDuringBootVolumeExport(Joiner.on(", ").join(maskNames),
@@ -2145,10 +2143,6 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
                     _log.info("VBlock Boot volume Export : Validation passed");
                 }
             }
-            
-            
-
-            
 
             for (URI hostUri : hostInitiatorMap.keySet()) {
                 _log.info("assembling export masks workflow, now looking at host URI: " + hostUri);

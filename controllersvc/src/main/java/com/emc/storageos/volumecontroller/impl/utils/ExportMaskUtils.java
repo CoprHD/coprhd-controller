@@ -1832,14 +1832,37 @@ public class ExportMaskUtils {
     }
     
     /**
+     * Method to determine if a volume in a volume map is a boot volume for compute services.
      * 
-     * @param volumeMap
-     * @return
+     * @param dbClient db client
+     * @param volumeMap volume map (should just be one volume)
+     * @return true if this volume is a boot volume
      */
-    public static boolean isBootVolume(Map<URI, Integer> volumeMap) {
-        // TODO Auto-generated method stub
+    public static boolean isBootVolume(DbClient dbClient, Map<URI, Integer> volumeMap) {
+        // First, check to make sure we have a valid map
+        if (volumeMap == null) {
+            return false;
+        }
+       
+        // Second, check to make sure we only have one volume in our map. 
+        // It doesn't make sense to have two boot volumes.
+        if (volumeMap.size() != 1) {
+            return false;
+        }
         
-        return true;
+        // Make sure we have a valid volume object
+        Volume volume = dbClient.queryObject(Volume.class, volumeMap.keySet().iterator().next());
+        if (volume == null) {
+            return false;
+        }
+        
+        // Now make sure the boot volume tag is filled-in.
+        if (volume.bootVolumeTagValue() != null) {
+            return true;
+        }
+        
+        // Otherwise return false
+        return false;
     }
 
 }

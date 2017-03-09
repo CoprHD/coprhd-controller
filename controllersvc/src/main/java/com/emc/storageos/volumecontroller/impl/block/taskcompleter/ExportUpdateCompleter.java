@@ -104,7 +104,6 @@ public class ExportUpdateCompleter extends ExportTaskCompleter {
             }
             
             exportGroup.getOpStatus().updateTaskStatus(getOpId(), operation);
-            dbClient.updateObject(exportGroup);
             
             // Update the export group data.
             if ((status.equals(Operation.Status.ready)) || (status.equals(Operation.Status.error))) {
@@ -113,6 +112,8 @@ public class ExportUpdateCompleter extends ExportTaskCompleter {
                     // Clean stale references from EG if the status is ready
                     ExportUtils.cleanStaleReferences(exportGroup.getId(), dbClient);
                 }
+            } else {
+                dbClient.updateObject(exportGroup);
             }
             _log.info("export_update completer: done");
             _log.info(String.format("Done ExportMaskUpdate - Id: %s, OpId: %s, status: %s",

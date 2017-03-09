@@ -120,6 +120,12 @@ public class UcsComputeDevice implements ComputeDevice {
 
     private static final String ASSOC_STATE_UNASSOCIATED = "unassociated";
 
+    /*
+     * When a new Host is being assigned the same UUID as a previously existing Host, set the UUID value to
+     * 'reclaimed' on the existing Host.
+     */
+    private static final String RECLAIMED = "reclaimed";
+
     /**
      * 10 Mins is the default time out if one is not set...
      */
@@ -269,7 +275,7 @@ public class UcsComputeDevice implements ComputeDevice {
          * it:
          */
         if (dbClient.queryObject(ComputeElement.class, computeElement.getId()) != null) {
-            dbClient.persistObject(computeElement);
+            dbClient.updateObject(computeElement);
         }
     }
 
@@ -840,15 +846,30 @@ public class UcsComputeDevice implements ComputeDevice {
     private void validateNewServiceProfile(ComputeSystem cs, UCSServiceProfile serviceProfile, Host newHost){
         Collection<URI> allHostUris = _dbClient.queryByType(Host.class, true);
         Collection<Host> hosts = _dbClient.queryObjectFields(Host.class,
-                Arrays.asList("uuid", "computeElement", "registrationStatus", "inactive"), getFullyImplementedCollection(allHostUris));
-        for (Host host: hosts) {
-            if (host.getUuid()!=null && host.getUuid().equals(serviceProfile.getUuid()) && !host.getId().equals(newHost.getId()) && (host.getInactive()!=true)){
-                LOGGER.error("Newly created service profile :"+ serviceProfile.getLabel() + " shares same uuid "+ serviceProfile.getUuid() +" as existing active host: " + host.getLabel());
-                throw ComputeSystemControllerException.exceptions.newServiceProfileDuplicateUuid(serviceProfile.getLabel(),  serviceProfile.getUuid(), host.getLabel());
+                Arrays.asList("uuid", "computeElement", "registrationStatus", "inactive", "label"), getFullyImplementedCollection(allHostUris));
+        for (Host host : hosts) {
+            if (host.getUuid()!=null && host.getUuid().equals(serviceProfile.getUuid()) &&
+                    !host.getId().equals(newHost.getId()) && (host.getInactive()!=true)){
+                LOGGER.warn("Newly created service profile :"+ serviceProfile.getLabel() + " shares same uuid "+
+                        serviceProfile.getUuid() +" as existing active host: " + host.getLabel());
+                hostUUIDReclaimed(host);
             }
         }
 
+    }
 
+    /**
+     * Mark the UUID field as "reclaimed" and nullify the service profile for an existing Host.
+     * This method would be called in scenarios where a previous Provision order failed, leaving behind a partially
+     * updated Host.
+     *
+     * @param host  Host to be marked as reclaimed.
+     */
+    private void hostUUIDReclaimed(Host host) {
+        LOGGER.warn("Marking UUID field for Host {} as reclaimed.  You may want to remove this host.", host.getLabel());
+        host.setUuid(RECLAIMED);
+        host.setServiceProfile(NullColumnValueGetter.getNullURI());
+        _dbClient.updateObject(host);
     }
 
     private static <T> Collection<T> getFullyImplementedCollection(Collection<T> collectionIn) {

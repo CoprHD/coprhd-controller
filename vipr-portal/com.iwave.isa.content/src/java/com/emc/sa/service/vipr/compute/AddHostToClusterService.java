@@ -264,15 +264,16 @@ public class AddHostToClusterService extends ViPRService {
         hosts = ComputeUtils.setHostBootVolumes(hostToBootVolumeIdMap, false);
 
         logInfo("compute.cluster.exports.installing.os");
-        List<HostRestRep> hostsWithOs = installOSForHosts(hostToIPs, ComputeUtils.getHostNameBootVolume(hosts));
-        logInfo("compute.cluster.exports.installed.os", ComputeUtils.nonNull(hostsWithOs).size());
+        installOSForHosts(hostToIPs, ComputeUtils.getHostNameBootVolume(hosts));
+        hosts = ComputeUtils.deactivateHostsWithNoOS(hosts);
+        logInfo("compute.cluster.exports.installed.os", ComputeUtils.nonNull(hosts).size());
 
         // VBDU TODO: COP-28433: Deactivate Host without OS installed (when rollback is added, this should be addressed)
         ComputeUtils.addHostsToCluster(hosts, cluster);
 
         pushToVcenter();
 
-        ComputeUtils.discoverHosts(hostsWithOs);
+        ComputeUtils.discoverHosts(hosts);
 
         String orderErrors = ComputeUtils.getOrderErrors(cluster, copyOfHostNames, computeImage, vcenterId);
         if (orderErrors.length() > 0) { // fail order so user can resubmit
@@ -308,7 +309,7 @@ public class AddHostToClusterService extends ViPRService {
         this.fqdnToIps = safeArrayCopy(fqdnToIps);
     }
 
-    private List<HostRestRep> installOSForHosts(Map<String, String> hostToIps, Map<String, URI> hostNameToBootVolumeMap) {
+    private void installOSForHosts(Map<String, String> hostToIps, Map<String, URI> hostNameToBootVolumeMap) {
         List<HostRestRep> hosts = ComputeUtils.getHostsInCluster(cluster.getId(), cluster.getLabel());
 
         List<OsInstallParam> osInstallParams = Lists.newArrayList();
@@ -346,15 +347,14 @@ public class AddHostToClusterService extends ViPRService {
                 osInstallParams.add(null);
             }
         }
-        List<HostRestRep> installedHosts = Lists.newArrayList();
+
         try {
             // Attempt an OS Install only on the list of hosts that are a part of the order
             // This does check if the hosts already have a OS before attempting the install
-            installedHosts = ComputeUtils.installOsOnHosts(newHosts, osInstallParams);
+            ComputeUtils.installOsOnHosts(newHosts, osInstallParams);
         } catch (Exception e) {
             logError(e.getMessage());
         }
-        return installedHosts;
     }
 
     private void pushToVcenter() {

@@ -282,13 +282,14 @@ public class CreateComputeClusterService extends ViPRService {
             ComputeUtils.deactivateCluster(cluster);
         } else {
             logInfo("compute.cluster.exports.installing.os");
-            List<HostRestRep> hostsWithOs = installOSForHosts(hostToIPs, ComputeUtils.getHostNameBootVolume(hosts));
-            logInfo("compute.cluster.exports.installed.os", ComputeUtils.nonNull(hostsWithOs).size());
+            installOSForHosts(hostToIPs, ComputeUtils.getHostNameBootVolume(hosts));
+            hosts = ComputeUtils.deactivateHostsWithNoOS(hosts);
+            logInfo("compute.cluster.exports.installed.os", ComputeUtils.nonNull(hosts).size());
 
             ComputeUtils.addHostsToCluster(hosts, cluster);
             pushToVcenter();
 
-            ComputeUtils.discoverHosts(hostsWithOs);
+            ComputeUtils.discoverHosts(hosts);
         }
 
         String orderErrors = ComputeUtils.getOrderErrors(cluster, copyOfHostNames, computeImage, vcenterId);
@@ -312,7 +313,7 @@ public class CreateComputeClusterService extends ViPRService {
         this.rootPassword = rootPassword;
     }
 
-    private List<HostRestRep> installOSForHosts(Map<String, String> hostToIps, Map<String, URI> hostNameToBootVolumeMap) {
+    private void installOSForHosts(Map<String, String> hostToIps, Map<String, URI> hostNameToBootVolumeMap) {
         List<HostRestRep> hosts = ComputeUtils.getHostsInCluster(cluster.getId(), cluster.getLabel());
 
         List<OsInstallParam> osInstallParams = Lists.newArrayList();
@@ -340,13 +341,13 @@ public class CreateComputeClusterService extends ViPRService {
                 osInstallParams.add(null);
             }
         }
-        List<HostRestRep> installedHosts = Lists.newArrayList();
+
         try {
-            installedHosts = ComputeUtils.installOsOnHosts(hosts, osInstallParams);
+            ComputeUtils.installOsOnHosts(hosts, osInstallParams);
         } catch (Exception e) {
             logError(e.getMessage());
         }
-        return installedHosts;
+        return;
     }
 
     private void pushToVcenter() {

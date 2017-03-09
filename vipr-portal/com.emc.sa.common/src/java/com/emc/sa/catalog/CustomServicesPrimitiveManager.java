@@ -20,23 +20,16 @@ import java.net.URI;
 import java.util.List;
 
 import com.emc.storageos.db.client.constraint.NamedElementQueryResultList.NamedElement;
-import com.emc.storageos.db.client.model.uimodels.CustomServicesAnsiblePrimitive;
-import com.emc.storageos.db.client.model.uimodels.CustomServicesPrimitiveResource;
-import com.emc.storageos.db.client.model.uimodels.CustomServicesScriptPrimitive;
-import com.emc.storageos.db.client.model.uimodels.CustomServicesUserPrimitive;
+import com.emc.storageos.db.client.model.uimodels.CustomServicesDBPrimitive;
+import com.emc.storageos.db.client.model.uimodels.CustomServicesDBResource;
 
 public interface CustomServicesPrimitiveManager {
 
-    public void save(final CustomServicesUserPrimitive primitive);
-    public void save(final CustomServicesPrimitiveResource resource);
-    public void deactivate(final URI id);
-    
-    public CustomServicesUserPrimitive findById(final URI id);
-    public CustomServicesPrimitiveResource findResource(final URI id);
-    public List<URI> findAllAnsibleIds();
-    public List<CustomServicesAnsiblePrimitive> findAllAnsible();
-    public List<URI> findAllScriptPrimitiveIds();
-    public List<CustomServicesScriptPrimitive> findAllScriptPrimitives();
-    public <T extends CustomServicesPrimitiveResource> List<NamedElement> getResources(
+    public void save(final CustomServicesDBPrimitive primitive);
+    public void save(final CustomServicesDBResource resource);
+    public  <T extends CustomServicesDBPrimitive> void deactivate(final Class<T> clazz, final URI id);
+    public <T extends CustomServicesDBPrimitive> T findById(final Class<T> clazz, final URI id);
+    public <T extends CustomServicesDBResource> T findResource(final Class<T> clazz, final URI id);
+    public <T extends CustomServicesDBResource> List<NamedElement> getResources(
             Class<T> type);
 }

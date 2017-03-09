@@ -16,26 +16,42 @@
  */
 package com.emc.storageos.db.client.model.uimodels;
 
-import com.emc.storageos.db.client.model.ModelObject;
+import java.util.Set;
+
 import com.emc.storageos.db.client.model.Name;
+import com.emc.storageos.db.client.model.NamedURI;
+import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
+import com.emc.storageos.db.client.model.StringSetMap;
 
 /**
+ * Base class for primitives that will be stored in the database
  *
  */
-public abstract class CustomServicesUserPrimitive extends ModelObject {
+public abstract class CustomServicesDBPrimitive extends CustomServicesPrimitiveModel {
 
     private static final long serialVersionUID = 1L;
     
     private static final String FRIENDLY_NAME = "friendlyName";
     private static final String DESCRIPTION = "description";
     private static final String SUCCESS_CRITERIA = "successCriteria";
+    private static final String ATTRIBUTES = "attributes";
+    private static final String INPUT = "input";
     private static final String OUTPUT = "output";
-
+    private static final String RESOURCE = "resource";
+    
     private String friendlyName;
     private String description;
     private String successCriteria;
+    private StringMap attributes;
+    private StringSetMap input;
     private StringSet output;
+    private NamedURI resource;
+
+    public CustomServicesDBPrimitive() {}
+    
+    public abstract Set<String> attributeKeys();
+    public abstract Set<String> inputTypes();
 
     @Name(FRIENDLY_NAME)
     public String getFriendlyName() {
@@ -72,13 +88,39 @@ public abstract class CustomServicesUserPrimitive extends ModelObject {
         return output;
 
     }
+    
+    @Name(ATTRIBUTES)
+    public StringMap getAttributes() {
+        return attributes;
+    }
+    
+    public void setAttributes(final StringMap attributes) {
+        this.attributes = attributes;
+        setChanged(ATTRIBUTES);
+    }
 
     public void setOutput(final StringSet output) {
         this.output = output;
+        setChanged(OUTPUT);
     }
-
-    public abstract boolean isCustomServiceAnsiblePrimitive();
-    public abstract CustomServicesAnsiblePrimitive asCustomServiceAnsiblePrimitive(); 
-    public abstract boolean isCustomServiceScriptPrimitive();
-    public abstract CustomServicesScriptPrimitive asCustomServiceScriptPrimitive();
+    
+    @Name(INPUT)
+    public StringSetMap getInput() {
+        return input;
+    }
+    
+    public void setInput(final StringSetMap input) {
+        this.input = input;
+        setChanged(INPUT);
+    }
+    
+    @Name(RESOURCE)
+    public NamedURI getResource() {
+        return resource;
+    }
+    
+    public void setResource( final NamedURI resource ) {
+        this.resource = resource;
+        setChanged(RESOURCE);
+    }
 }

@@ -55,7 +55,7 @@ import com.emc.storageos.model.customservices.InputParameterRestRep;
 import com.emc.storageos.model.customservices.InputUpdateParam;
 import com.emc.storageos.model.customservices.OutputParameterRestRep;
 import com.emc.storageos.model.customservices.OutputUpdateParam;
-import com.emc.storageos.primitives.Primitive;
+import com.emc.storageos.primitives.CustomServicesPrimitive;
 import com.emc.vipr.model.catalog.WFBulkRep;
 import com.emc.vipr.model.catalog.WFDirectoryParam;
 import com.emc.vipr.model.catalog.WFDirectoryRestRep;
@@ -813,8 +813,8 @@ public class WorkflowBuilder extends Controller {
 
     private static List<String> convertInputGroupsToList(final Map<String, CustomServicesPrimitiveRestRep.InputGroup> inputGroups) {
         final List<String> inputNameList = new ArrayList<String>();
-        if (null != inputGroups && !inputGroups.isEmpty() && inputGroups.containsKey(Primitive.InputType.INPUT_PARAMS)) {
-            final List<InputParameterRestRep> inputParameterRestRepList = inputGroups.get(Primitive.InputType.INPUT_PARAMS).getInputGroup();
+        if (null != inputGroups && !inputGroups.isEmpty() && inputGroups.containsKey(CustomServicesPrimitive.InputType.INPUT_PARAMS)) {
+            final List<InputParameterRestRep> inputParameterRestRepList = inputGroups.get(CustomServicesPrimitive.InputType.INPUT_PARAMS).getInputGroup();
             for (InputParameterRestRep inputParameterRestRep : inputParameterRestRepList) {
                 inputNameList.add(inputParameterRestRep.getName());
             }

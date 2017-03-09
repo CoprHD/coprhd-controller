@@ -27,7 +27,7 @@ import org.slf4j.LoggerFactory;
 import com.emc.storageos.model.customservices.CustomServicesWorkflowDocument;
 import com.emc.storageos.model.customservices.CustomServicesWorkflowDocument.Input;
 import com.emc.storageos.model.customservices.CustomServicesWorkflowDocument.Step;
-import com.emc.storageos.primitives.Primitive;
+import com.emc.storageos.primitives.CustomServicesPrimitive.StepType;
 import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorException;
 
 public class ValidateCustomServiceWorkflow {
@@ -43,7 +43,7 @@ public class ValidateCustomServiceWorkflow {
 
     public void validate() throws InternalServerErrorException, IOException {
 
-        if (stepsHash.get(Primitive.StepType.START.toString()) == null || stepsHash.get(Primitive.StepType.END.toString()) == null) {
+        if(stepsHash.get(StepType.START.toString()) == null || stepsHash.get(StepType.END.toString()) == null) {
             throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed("Start or End Step not defined");
         }
 
@@ -189,7 +189,7 @@ public class ValidateCustomServiceWorkflow {
         if (step == null || step.getId() == null) {
             throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed("Workflow Step is null");
         }
-        if (step.getId().equals(Primitive.StepType.END.toString())) {
+        if (step.getId().equals(StepType.END.toString())) {
             return;
         }
         if (step.getNext() == null) {

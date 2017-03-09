@@ -17,8 +17,6 @@
 package com.emc.storageos.api.service.impl.response;
 
 import static com.emc.storageos.model.ResourceTypeEnum.ACTIONABLE_EVENT;
-import static com.emc.storageos.model.ResourceTypeEnum.ANSIBLE;
-import static com.emc.storageos.model.ResourceTypeEnum.ANSIBLE_PACKAGE;
 import static com.emc.storageos.model.ResourceTypeEnum.AUTHN_PROVIDER;
 import static com.emc.storageos.model.ResourceTypeEnum.AUTO_TIERING_POLICY;
 import static com.emc.storageos.model.ResourceTypeEnum.BLOCK_CONSISTENCY_GROUP;
@@ -38,8 +36,9 @@ import static com.emc.storageos.model.ResourceTypeEnum.COMPUTE_IMAGESERVER;
 import static com.emc.storageos.model.ResourceTypeEnum.COMPUTE_SYSTEM;
 import static com.emc.storageos.model.ResourceTypeEnum.COMPUTE_VPOOL;
 import static com.emc.storageos.model.ResourceTypeEnum.CUSTOM_CONFIG;
+import static com.emc.storageos.model.ResourceTypeEnum.CUSTOM_SERVICES_PRIMTIVES;
+import static com.emc.storageos.model.ResourceTypeEnum.CUSTOM_SERVICES_PRIMTIVE_RESOURCES;
 import static com.emc.storageos.model.ResourceTypeEnum.CUSTOM_SERVICES_WORKFLOW;
-import static com.emc.storageos.model.ResourceTypeEnum.CUSTOM_SERVICE_PRIMITIVE;
 import static com.emc.storageos.model.ResourceTypeEnum.DATA_STORE;
 import static com.emc.storageos.model.ResourceTypeEnum.EXECUTION_WINDOW;
 import static com.emc.storageos.model.ResourceTypeEnum.EXPORT_GROUP;
@@ -63,8 +62,6 @@ import static com.emc.storageos.model.ResourceTypeEnum.PROTECTION_SYSTEM;
 import static com.emc.storageos.model.ResourceTypeEnum.QUOTA_DIR;
 import static com.emc.storageos.model.ResourceTypeEnum.RDF_GROUP;
 import static com.emc.storageos.model.ResourceTypeEnum.SCHEDULE_POLICY;
-import static com.emc.storageos.model.ResourceTypeEnum.SCRIPT_PRIMITIVE;
-import static com.emc.storageos.model.ResourceTypeEnum.SCRIPT_RESOURCE;
 import static com.emc.storageos.model.ResourceTypeEnum.SMIS_PROVIDER;
 import static com.emc.storageos.model.ResourceTypeEnum.STORAGE_POOL;
 import static com.emc.storageos.model.ResourceTypeEnum.STORAGE_PORT;
@@ -156,18 +153,15 @@ import com.emc.storageos.db.client.model.Workflow;
 import com.emc.storageos.db.client.model.WorkflowStep;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFileSystem;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
-import com.emc.storageos.db.client.model.uimodels.CustomServicesAnsiblePrimitive;
-import com.emc.storageos.db.client.model.uimodels.CustomServicesAnsiblePackage;
 import com.emc.storageos.db.client.model.uimodels.CatalogCategory;
 import com.emc.storageos.db.client.model.uimodels.CatalogImage;
 import com.emc.storageos.db.client.model.uimodels.CatalogService;
 import com.emc.storageos.db.client.model.uimodels.CatalogServiceField;
-import com.emc.storageos.db.client.model.uimodels.CustomServicesScriptPrimitive;
-import com.emc.storageos.db.client.model.uimodels.CustomServicesScriptResource;
+import com.emc.storageos.db.client.model.uimodels.CustomServicesPrimitiveModel;
+import com.emc.storageos.db.client.model.uimodels.CustomServicesPrimitiveResourceModel;
 import com.emc.storageos.db.client.model.uimodels.CustomServicesWorkflow;
 import com.emc.storageos.db.client.model.uimodels.ExecutionWindow;
 import com.emc.storageos.db.client.model.uimodels.Order;
-import com.emc.storageos.db.client.model.uimodels.CustomServicesUserPrimitive;
 import com.emc.storageos.db.client.model.uimodels.WFDirectory;
 import com.emc.storageos.model.ResourceTypeEnum;
 
@@ -249,12 +243,9 @@ public class ResourceTypeMapping {
         classMapping.put(ACTIONABLE_EVENT, ActionableEvent.class);
         classMapping.put(EXECUTION_WINDOW, ExecutionWindow.class);
         classMapping.put(CUSTOM_SERVICES_WORKFLOW, CustomServicesWorkflow.class);
-        classMapping.put(ANSIBLE_PACKAGE, CustomServicesAnsiblePackage.class);
-        classMapping.put(ANSIBLE, CustomServicesAnsiblePrimitive.class);
-        classMapping.put(SCRIPT_PRIMITIVE, CustomServicesScriptPrimitive.class);
-        classMapping.put(SCRIPT_RESOURCE, CustomServicesScriptResource.class);
+        classMapping.put(CUSTOM_SERVICES_PRIMTIVES, CustomServicesPrimitiveModel.class);
+        classMapping.put(CUSTOM_SERVICES_PRIMTIVE_RESOURCES, CustomServicesPrimitiveResourceModel.class);
         classMapping.put(WF_DIRECTORY, WFDirectory.class);
-        classMapping.put(CUSTOM_SERVICE_PRIMITIVE, CustomServicesUserPrimitive.class);
 
         for (Map.Entry<ResourceTypeEnum, Class<? extends DataObject>> entry : classMapping
                 .entrySet()) {
@@ -271,10 +262,22 @@ public class ResourceTypeMapping {
         return getResourceType(object.getClass());
     }
 
-    public static ResourceTypeEnum getResourceType(Class objectClazz) {
-        if (!resourceMapping.containsKey(objectClazz)) {
+    public static ResourceTypeEnum getResourceType(final Class<?> objectClazz) {
+        ResourceTypeEnum type = getResourceTypeInternal(objectClazz); 
+        if(null == type ) {
             _log.error("No resourceMapping for type " + objectClazz.getName());
+            return null;
         }
-        return resourceMapping.get(objectClazz);
+        return type;
+    }
+    
+    private static ResourceTypeEnum getResourceTypeInternal(final Class<?> objectClazz) {
+        if(objectClazz == null ) {
+            return null;
+        } else if (!resourceMapping.containsKey(objectClazz)) {
+            return getResourceTypeInternal(objectClazz.getSuperclass());
+        } else {
+            return resourceMapping.get(objectClazz);
+        }
     }
 }

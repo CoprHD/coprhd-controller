@@ -29,7 +29,7 @@ import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.uimodels.CustomServicesWorkflow;
 import com.emc.storageos.model.customservices.CustomServicesWorkflowDocument;
 import com.emc.storageos.model.customservices.CustomServicesWorkflowDocument.Step;
-import com.emc.storageos.primitives.Primitive.StepType;
+import com.emc.storageos.primitives.CustomServicesPrimitive.StepType;
 
 /**
  * Helper class to perform CRUD operations on a workflow

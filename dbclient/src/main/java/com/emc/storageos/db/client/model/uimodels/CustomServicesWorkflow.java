@@ -102,7 +102,7 @@ public class CustomServicesWorkflow extends ModelObjectWithACLs {
         setChanged(STATE);
     }
     
-    @RelationIndex(cf = "CustomServicesWorkflowPrimitives", type = CustomServicesUserPrimitive.class)
+    @RelationIndex(cf = "CustomServicesWorkflowPrimitives", type = CustomServicesDBPrimitive.class)
     @IndexByKey
     @Name(PRIMITIVES)
     public StringSet getPrimitives() {

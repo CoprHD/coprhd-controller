@@ -449,7 +449,7 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
 
             // Update the virtual nas association with virtual arrays!!!
             // For existing virtual nas ports!!
-            StoragePortAssociationHelper.runUpdateVirtualNasAssociationsProcess(null, allExistingPorts, null, _dbClient);
+            StoragePortAssociationHelper.runUpdateVirtualNasAssociationsProcess(allExistingPorts, null, _dbClient);
 
             // discovery succeeds
             detailedStatusMessage = String.format("Discovery completed successfully for Storage System: %s",

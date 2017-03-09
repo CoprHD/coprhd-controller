@@ -435,14 +435,10 @@ public class StoragePortAssociationHelper {
      * @param coordinator
      * @throws IOException
      */
-    public static void runUpdateVirtualNasAssociationsProcess(Network net, Collection<StoragePort> ports, Collection<StoragePort> remPorts,
+    public static void runUpdateVirtualNasAssociationsProcess(Collection<StoragePort> ports, Collection<StoragePort> remPorts,
             DbClient dbClient) {
         try {
-            if (net != null && ports.isEmpty()) {
-                // In Some scenario while updating network we update only VARRAY not ports,
-                // so in that case ports to add/remove will be empty..
-                ports = NetworkAssociationHelper.getNetworkStoragePorts(net.getId().toString(), null, dbClient);
-            }
+
             List<VirtualNAS> modifiedServers = new ArrayList<VirtualNAS>();
 
             if (ports != null && !ports.isEmpty()) {
@@ -550,13 +546,15 @@ public class StoragePortAssociationHelper {
         for (StoragePort sport : sports) {
             if (TransportType.IP.name().equalsIgnoreCase(sport.getTransportType())) {
                 StorageSystem system = dbClient.queryObject(StorageSystem.class, sport.getStorageDevice());
-                if (DiscoveredDataObject.Type.vnxfile.name().equals(system.getSystemType()) || DiscoveredDataObject.Type.isilon.name().equals(system.getSystemType()) || DiscoveredDataObject.Type.unity.name().equals(system.getSystemType())) {
+                if (DiscoveredDataObject.Type.vnxfile.name().equals(system.getSystemType())
+                        || DiscoveredDataObject.Type.isilon.name().equals(system.getSystemType())
+                        || DiscoveredDataObject.Type.unity.name().equals(system.getSystemType())) {
                     network = NetworkUtil.getEndpointNetworkLite(sport.getPortNetworkId(), dbClient);
                     vNasList = getStoragePortVirtualNAS(sport, dbClient);
                     if (network != null && network.getInactive() == false
                             && network.getTransportType().equals(sport.getTransportType())
                             && vNasList != null && !vNasList.isEmpty()) {
-                        for(VirtualNAS vNas : vNasList) {
+                        for (VirtualNAS vNas : vNasList) {
                             list = vNasNetwork.get(vNas.getNativeGuid());
                             if (list == null) {
                                 list = new ArrayList<NetworkLite>();

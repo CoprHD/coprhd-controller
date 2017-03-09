@@ -146,6 +146,7 @@ public class StoragePortAssociationHelper {
 
     /**
      * This method executes process to update varrays for the passed port parameter.
+     * 
      * @param port storage port for which varrays have been changed
      * @param dbClient
      * @param coordinator
@@ -153,8 +154,8 @@ public class StoragePortAssociationHelper {
      * @param varrayAssignmentChanges varray changes for the port
      */
     public static void runUpdatePortAssociationsProcessForVArrayChange(StoragePort port,
-                                                                       DbClient dbClient, CoordinatorClient coordinator, List<StoragePool> pools,
-                                                                       VirtualArrayAssignmentChanges varrayAssignmentChanges) {
+            DbClient dbClient, CoordinatorClient coordinator, List<StoragePool> pools,
+            VirtualArrayAssignmentChanges varrayAssignmentChanges) {
         try {
             // If there was no change in connection between virtual array and storage system which owns port,
             // we will run only NumPathsMatcher. Even when varray to storage system connectivity had not changed,
@@ -179,7 +180,8 @@ public class StoragePortAssociationHelper {
             varraysWithOutChangedConnectivity.addAll(varraysToRemoveIds);
 
             // Set of varrays which changed connection to our storage system as result of storage port to varrays assignment change.
-            Set<String> varraysWithChangedConnectivity = StoragePortAssociationHelper.getVArraysWithChangedConnectivityToStorageSystem(port, varraysToAddIds,
+            Set<String> varraysWithChangedConnectivity = StoragePortAssociationHelper.getVArraysWithChangedConnectivityToStorageSystem(port,
+                    varraysToAddIds,
                     varraysToRemoveIds, dbClient);
             varraysWithOutChangedConnectivity.removeAll(varraysWithChangedConnectivity);
 
@@ -203,10 +205,12 @@ public class StoragePortAssociationHelper {
             }
 
             if (!varraysWithChangedConnectivity.isEmpty()) {
-                // If there are varrays which changed connectivity to our storage system, we need to process all their vpools to match them to
+                // If there are varrays which changed connectivity to our storage system, we need to process all their vpools to match them
+                // to
                 // our system's storage pools.
                 // Match the VPools defined in VArrays with changed connectivity to the StoragePools with all vpool matchers
-                _log.info("Varrays which changed connectivity to storage system {} are {}", storageSystemURI, varraysWithChangedConnectivity);
+                _log.info("Varrays which changed connectivity to storage system {} are {}", storageSystemURI,
+                        varraysWithChangedConnectivity);
                 List<URI> vpoolURIs = getVpoolsForVarrays(varraysWithChangedConnectivity, dbClient);
                 _log.info("There are {} vpools for varrays. Execute all vpool matchers for vpools {}", vpoolURIs.size(), vpoolURIs);
                 StringBuffer errorMessage = new StringBuffer();
@@ -214,7 +218,8 @@ public class StoragePortAssociationHelper {
                         AttributeMatcher.VPOOL_MATCHERS, errorMessage);
             }
             if (!varraysWithOutChangedConnectivity.isEmpty()) {
-                _log.info("Varrays which did not change connection to storage system {} are {}", storageSystemURI, varraysWithOutChangedConnectivity);
+                _log.info("Varrays which did not change connection to storage system {} are {}", storageSystemURI,
+                        varraysWithOutChangedConnectivity);
                 // Match the VPools defined in VArrays without changed connectivity to the StoragePools only with num paths matcher
                 List<URI> vpoolURIs = getVpoolsForVarrays(varraysWithOutChangedConnectivity, dbClient);
                 _log.info("There are {} vpools for varrays. Execute num paths matcher for vpools {}", vpoolURIs.size(), vpoolURIs);
@@ -231,7 +236,6 @@ public class StoragePortAssociationHelper {
             _log.error("Update Port Association process failed", e);
         }
     }
-
 
     /**
      * This method is responsible for
@@ -287,15 +291,16 @@ public class StoragePortAssociationHelper {
     /**
      * This method finds varrays which change connection (either are newly connected or lost old connection) to storage
      * system of the passed port parameter.
+     * 
      * @param port storage port for which varrays were added/removed
-     * @param varraysToAddIds  set of added varrays to port
+     * @param varraysToAddIds set of added varrays to port
      * @param varraysToRemoveIds set of removed varrays from port
      * @param dbClient
      * @return set of varrays which changed connection to port's storage system
      */
 
-    private static Set<String>  getVArraysWithChangedConnectivityToStorageSystem(StoragePort port, Set<String> varraysToAddIds,
-                                                                                Set<String> varraysToRemoveIds, DbClient dbClient) {
+    private static Set<String> getVArraysWithChangedConnectivityToStorageSystem(StoragePort port, Set<String> varraysToAddIds,
+            Set<String> varraysToRemoveIds, DbClient dbClient) {
         // This is our storage system.
         URI storageSystemURI = port.getStorageDevice();
         _log.info("Port {} belongs to storage system {}", port.getId(), storageSystemURI);
@@ -325,7 +330,8 @@ public class StoragePortAssociationHelper {
                         // system and varray.
                         // We can stop here processing varray ports.
                         varraysToAddWithChangedConnectivity.remove(varrayId);
-                        _log.info("Varray {} already has connection to storage system {} through port {}", varrayId, storageSystemURI, portURI);
+                        _log.info("Varray {} already has connection to storage system {} through port {}", varrayId, storageSystemURI,
+                                portURI);
                         break;
                     }
                 }
@@ -334,7 +340,7 @@ public class StoragePortAssociationHelper {
             varraysWithChangedConnectivity.addAll(varraysToAddWithChangedConnectivity);
         }
 
-        // Check which varrays "ToRemove" have at least one other  port from our storage system.
+        // Check which varrays "ToRemove" have at least one other port from our storage system.
         // For these varrays there is no connection change to our storage system when port in the request is removed from
         // the varray.
         if (varraysToRemoveIds != null && !varraysToRemoveIds.isEmpty()) {
@@ -357,13 +363,13 @@ public class StoragePortAssociationHelper {
                     }
                 }
             }
-            _log.info("Varrays which lost connection to storage system {} are {}", storageSystemURI, varraysToRemoveWithChangedConnectivity);
+            _log.info("Varrays which lost connection to storage system {} are {}", storageSystemURI,
+                    varraysToRemoveWithChangedConnectivity);
             varraysWithChangedConnectivity.addAll(varraysToRemoveWithChangedConnectivity);
         }
         _log.info("Varrays with changed connection to storage system {} are {}", storageSystemURI, varraysWithChangedConnectivity);
         return varraysWithChangedConnectivity;
     }
-
 
     /**
      * This method return list of VirtualPoll URIs defined in the past set of VirtualArray(s)
@@ -394,7 +400,6 @@ public class StoragePortAssociationHelper {
         }
         return vpoolURIs;
     }
-
 
     /**
      * it return VirtualNAS from database using NativeId
@@ -471,6 +476,26 @@ public class StoragePortAssociationHelper {
         } catch (Exception e) {
             _log.error("Update Port Association process failed", e);
         }
+    }
+
+    /**
+     * This method is responsible for
+     * Assign the virtual arrays of storage port to virtual nas
+     * 
+     * @param ports
+     * @param remPorts
+     * @param dbClient
+     * @param coordinator
+     * @throws IOException
+     */
+    public static void runUpdateVirtualNasAssociationsProcess(Network net, Collection<StoragePort> ports, Collection<StoragePort> remPorts,
+            DbClient dbClient) {
+        if (net != null && ports.isEmpty()) {
+            // In Some scenario while updating network we update only VARRAY not ports,
+            // so in that case ports to add/remove will be empty..
+            ports = NetworkAssociationHelper.getNetworkStoragePorts(net.getId().toString(), null, dbClient);
+        }
+        runUpdateVirtualNasAssociationsProcess(ports, remPorts, dbClient);
     }
 
     /**

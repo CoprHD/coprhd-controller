@@ -1023,7 +1023,6 @@ public class UcsComputeDevice implements ComputeDevice {
 
         WorkflowStepCompleter.stepExecuting(stepId);
         try {
-
             if (!NullColumnValueGetter.isNullURI(host.getComputeElement())) {
 
                 Map<Network, List<String>> networkToInitiatorMap = Collections
@@ -1061,6 +1060,13 @@ public class UcsComputeDevice implements ComputeDevice {
                     initiator.setProtocol(computeElementHBA.getProtocol() != null ? computeElementHBA.getProtocol()
                             .toUpperCase() : null);
 
+                    // Search against the database, fail if you see the wwn in the database already.
+                    Initiator dbInitiator = ExportUtils.getInitiator(initiator.getInitiatorPort(), _dbClient);
+                    if (dbInitiator != null) {
+                        throw ComputeSystemControllerException.exceptions.illegalInitiator(
+                                host.getHostName(), dbInitiator.getInitiatorPort(), dbInitiator.getHostName());
+                    }
+                    
                     Network network = networkIdNetworkMapInVarray.get(computeElementHBA.getVsanId());
 
                     // Test mechanism to invoke a failure. No-op on production systems.
@@ -1091,7 +1097,7 @@ public class UcsComputeDevice implements ComputeDevice {
 
                     network.addEndpoints(networkToInitiatorMap.get(network), false);
 
-                    _dbClient.persistObject(network);
+                    _dbClient.updateObject(network);
 
                     handleEndpointsAdded(network, networkToInitiatorMap.get(network), _dbClient, _coordinator);
                 }

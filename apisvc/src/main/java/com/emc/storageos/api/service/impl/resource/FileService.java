@@ -4345,6 +4345,23 @@ public class FileService extends TaskResourceService {
     private TaskResourceRep assignFileReplicationPolicyToFS(FileShare fs, FilePolicy filePolicy,
             FilePolicyFileSystemAssignParam param, String task) {
 
+        StringBuffer notSuppReasonBuff = new StringBuffer();
+        // Verify the fs has replication attributes!!!
+        if (fs.getPersonality() != null && PersonalityTypes.SOURCE.name().equalsIgnoreCase(fs.getPersonality())
+                && fs.getMirrorfsTargets() != null && !fs.getMirrorfsTargets().isEmpty()) {
+            notSuppReasonBuff.append(String.format("File system %s has active target file systems", fs.getLabel()));
+            _log.error(notSuppReasonBuff.toString());
+            throw APIException.badRequests.unableToProcessRequest(notSuppReasonBuff.toString());
+        }
+
+        // File system should not be the target file system..
+        if (fs.getPersonality() != null && fs.getPersonality().equalsIgnoreCase(PersonalityTypes.TARGET.name())) {
+            notSuppReasonBuff.append(String.format("File system - %s given in request is an active Target file system.",
+                    fs.getLabel()));
+            _log.error(notSuppReasonBuff.toString());
+            throw APIException.badRequests.unableToProcessRequest(notSuppReasonBuff.toString());
+        }
+
         ArgValidator.checkFieldNotNull(param.getTargetVArrays(), "target_varrays");
         Set<URI> targertVarrayURIs = param.getTargetVArrays();
 

@@ -906,6 +906,11 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             if (args.getFs().getPersonality() != null && args.getFs().getPersonality().equalsIgnoreCase(PersonalityTypes.TARGET.name())) {
                 FileShare fsParent = _dbClient.queryObject(FileShare.class, args.getFs().getParentFileShare().getURI());
                 fsName = fsParent.getName();
+                // Add if there is any suffic in target fs label!!
+                String[] fsNameSuffix = args.getFs().getLabel().split(fsParent.getName() + "-target");
+                if (fsNameSuffix[1] != null && !fsNameSuffix[1].isEmpty()) {
+                    fsName = fsName + fsNameSuffix[1];
+                }
             }
             // Update the mount path as required
             if (vNASPath != null && !vNASPath.trim().isEmpty()) {
@@ -1442,7 +1447,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         // set quota - save the quota id to extensions
         String qid = isi.createQuota(qDirPath, fsSize, bThresholdsIncludeOverhead,
                 bIncludeSnapshots, qDirSize, notificationLimitSize != null ? notificationLimitSize : 0L,
-                        softLimitSize != null ? softLimitSize : 0L, softGracePeriod != null ? softGracePeriod : 0L);
+                softLimitSize != null ? softLimitSize : 0L, softGracePeriod != null ? softGracePeriod : 0L);
         return qid;
     }
 
@@ -3458,7 +3463,6 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         return builder.toString();
 
     }
-
 
     private Integer getIsilonSnapshotExpireValue(FilePolicy policy) {
         Long seconds = 0L;

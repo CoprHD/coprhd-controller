@@ -2616,6 +2616,15 @@ public interface BadRequestExceptions {
     public BadRequestException consistencyGroupContainsNoVolumes(final URI id);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException consistencyGroupContainsDifferentRRVolumes(final URI id);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException consistencyGroupContainsVolsInDifferentRRSets(final URI id);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException consistencyGroupContainsNonRRVolumes(final URI id);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException targetVirtualArrayDoesNotMatch(final URI consistencyGroup, final URI virtualArray);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
@@ -2632,6 +2641,12 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException consistencyGroupMustBeRPProtected(final URI consistencyGroupId);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException consistencyGroupMustOnlyBeRRProtected(final URI consistencyGroupId);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException consistencyGroupOnlySupportRRVolProvisioning(final URI consistencyGroupId);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException cannotRemoveTenant(final String resource, final String name, final Set<String> tenants);

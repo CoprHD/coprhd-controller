@@ -390,6 +390,14 @@ public class BlockConsistencyGroup extends DataObject implements ProjectResource
         }
     }
 
+    public boolean checkForRequestedType(Types type) {
+        if (requestedTypes == null) {
+            return false;
+        } else {
+            return requestedTypes.contains(type.toString());
+        }
+    }
+
     /**
      * Add a mapping of storage systems to consistency group names.
      *

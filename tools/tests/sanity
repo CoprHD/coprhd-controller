@@ -6729,7 +6729,7 @@ isilon_replication_setup_once()
 	--description 'Virtual-Pool-for-Isilon' true 	\
                             --protocols NFS CIFS --max_snapshots 10 \
                             --provisionType 'Thin' \
-			    --neighborhoods $REMOTE_NH --schedule_snapshots true --replication_supported true --allow_policy_at_project_level true --allow_policy_at_fs_level true
+			    --neighborhoods $REMOTE_NH --schedule_snapshot true --replication_support true --filepolicy_at_project true --filepolicy_at_fs true
     ROOT_TENANT=`tenant root|tail -1`
     run cos allow $REM_COS_ISIFILE file $ROOT_TENANT
     if [ "$EXTRA_PARAM" = "search" ] ; then

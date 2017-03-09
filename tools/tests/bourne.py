@@ -1514,7 +1514,7 @@ class Bourne:
                    standbyJournalVpool, rp_copy_mode, rp_rpo_value, rp_rpo_type, protectionCoS,
                    multiVolumeConsistency, max_snapshots, max_mirrors, thin_volume_preallocation_percentage,
                    long_term_retention, drive_type, system_type, srdf, auto_tiering_policy_name, host_io_limit_bandwidth, host_io_limit_iops,
-		   auto_cross_connect, placement_policy, compressionEnabled, schedule_snapshots, replication_supported, allow_policy_at_project_level, allow_policy_at_fs_level):
+		   auto_cross_connect, placement_policy, compressionEnabled, snapshot_schedule, replication_support, filepolicy_at_project, filepolicy_at_fs):
 
         if (type != 'block' and type != 'file' and type != "object" ):
             raise Exception('wrong type for vpool: ' + str(type))
@@ -1655,10 +1655,17 @@ class Bourne:
                 cos_protection_snapshot_params['max_native_snapshots'] = max_snapshots
                 cos_protection_params['snapshots'] = cos_protection_snapshot_params
 	    
-            cos_protection_params['schedule_snapshots'] = schedule_snapshots
-            cos_protection_params['replication_supported'] = replication_supported
-            cos_protection_params['allow_policy_at_project_level'] = allow_policy_at_project_level
-            cos_protection_params['allow_policy_at_fs_level'] = allow_policy_at_fs_level
+            if(snapshot_schedule is not None):
+		cos_protection_params['schedule_snapshots'] = snapshot_schedule
+
+	    if(replication_support is not None):
+		cos_protection_params['replication_supported'] = replication_support
+
+	    if(filepolicy_at_project is not None):
+		cos_protection_params['allow_policy_at_project_level'] = filepolicy_at_project
+
+	    if(filepolicy_at_fs is not None):
+		cos_protection_params['allow_policy_at_fs_level'] = filepolicy_at_fs
 
             parms['protection'] = cos_protection_params
 

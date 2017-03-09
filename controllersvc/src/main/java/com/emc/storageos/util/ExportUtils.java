@@ -1627,6 +1627,69 @@ public class ExportUtils {
         }
         return clusterInitaitors;
     }
+    
+    /**
+     * Returns a list of ExportGroups that reference the given ExportMask,
+     * minus the given ExportGroup
+     *
+     * @param exportGroup
+     *            the ExportGroup to exclude
+     * @param exportMask
+     *            the ExportMask to locate in other ExportGroups
+     * @return a list of other ExportGroups containing the ExportMask
+     */
+    public static List<ExportGroup> getOtherExportGroups(ExportGroup exportGroup, ExportMask exportMask, DbClient dbClient) {
+
+        List<ExportGroup> otherExportGroups = ExportMaskUtils.getExportGroups(dbClient, exportMask);
+
+        ExportGroup egToSkip = null;
+        for (ExportGroup eg : otherExportGroups) {
+            // do not include the ExportGroup requested for delete
+            if (eg.getId().equals(exportGroup.getId())) {
+                egToSkip = eg;
+                break;
+            }
+        }
+        otherExportGroups.remove(egToSkip);
+
+        if (!otherExportGroups.isEmpty()) {
+            _log.info("ExportMask {} is in use by these other ExportGroups: {}",
+                    exportMask.getMaskName(), Joiner.on(',').join(otherExportGroups));
+        } else {
+            _log.info("ExportMask {} is not in use by any other ExportGroups.", exportMask.getMaskName());
+        }
+
+        return otherExportGroups;
+    }
+    
+    /**
+     * Export Mask can be shared with multiple ExportGroups in the below case.
+     * 
+     * 1. Create volumes from different projects and export to same compute resource.
+     * 2. Export Mask has both exclusive and shared volumes.
+     * 
+     * A storage view for a host can be deleted, if there are shared volumes from multiple projects.
+     * A storage view cannot be deleted, if there are excluisve volumes on the storage view along with shared volumes.
+     * We have to return true only for Case 2.
+     * 
+     * @return
+     */
+    public static boolean exportMaskHasBothExclusiveAndSharedVolumes(ExportGroup current, List<ExportGroup> otherExportGroups,
+            ExportMask exportMask) {
+        for (ExportGroup exportGroup : otherExportGroups) {
+            // This piece of code gets executed only when all the initiators of
+            // Host are being asked to remove and the export mask is being shared.
+            if (ExportGroupType.Cluster.toString().equalsIgnoreCase(current.getType())
+                    && ExportGroupType.Host.toString().equalsIgnoreCase(exportGroup.getType()) &&
+                    !CollectionUtils.isEmpty(exportGroup.getInitiators())) {
+                _log.info(
+                        "Export Mask is being shared with other Export Groups, and the export Group {} type is different from the current processed {}."
+                                + "Assuming this mask contains both shared and exclusive volumes ,removing the initiators might affect.");
+                return true;
+            }
+        }
+        return false;
+    }
 
     /**
      * Returns true if the storage system implementation supports consistent HLU generation for cluster export.

@@ -28,6 +28,12 @@ public class UnexportVolumeService extends ViPRService {
     protected URI exportId;
 
     @Override
+    public void precheck() throws Exception {
+        super.precheck();
+        checkForBootVolume(volumeId);
+    }
+    
+    @Override
     public void execute() throws Exception {
         BlockStorageUtils.removeBlockResourcesFromExport(Collections.singletonList(volumeId), exportId);
     }

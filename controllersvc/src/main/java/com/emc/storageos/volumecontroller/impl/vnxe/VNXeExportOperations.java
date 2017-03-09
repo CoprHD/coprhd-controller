@@ -56,6 +56,7 @@ import com.emc.storageos.vnxe.models.VNXeBase;
 import com.emc.storageos.vnxe.models.VNXeExportResult;
 import com.emc.storageos.vnxe.models.VNXeHost;
 import com.emc.storageos.vnxe.models.VNXeHostInitiator;
+import com.emc.storageos.vnxe.models.VNXeHostInitiator.HostInitiatorTypeEnum;
 import com.emc.storageos.vnxe.models.VNXeLunSnap;
 import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.VolumeURIHLU;
@@ -1188,7 +1189,13 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
         URI hostId = null;
         if (initiatorList != null) {
             for (VNXeHostInitiator initiator : initiatorList) {
-                String portWWN = initiator.getPortWWN();
+                String portWWN = null;
+                if (HostInitiatorTypeEnum.INITIATOR_TYPE_ISCSI.equals(initiator.getType())) {
+                    portWWN = initiator.getInitiatorId();
+                } else {
+                    portWWN = initiator.getPortWWN();
+                }
+
                 Initiator viprInitiator = NetworkUtil.findInitiatorInDB(portWWN, dbClient);
                 if (viprInitiator != null) {
                     if (NullColumnValueGetter.isNullURI(hostId)) {

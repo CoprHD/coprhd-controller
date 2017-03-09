@@ -120,7 +120,11 @@ public class VMwareSupport {
     }
 
     public HostSystem getHostSystem(String datacenterName, String esxHostName) {
-        return execute(new FindESXHost(datacenterName, esxHostName));
+        return getHostSystem(datacenterName, esxHostName, true);
+    }
+
+    public HostSystem getHostSystem(String datacenterName, String esxHostName, boolean failIfNotFound) {
+        return execute(new FindESXHost(datacenterName, esxHostName, failIfNotFound));
     }
 
     public ClusterComputeResource getCluster(String datacenterName, String clusterName) {

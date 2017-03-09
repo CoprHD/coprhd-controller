@@ -59,7 +59,11 @@ public class RemoveBlockVolumeService extends VMwareHostService {
             vmware.detachLuns(host, cluster, volume);
         }
 
+        vmware.disconnect();
+
         BlockStorageUtils.removeBlockResources(uris(volumeIds), deletionType);
+
+        connectAndInitializeHost();
 
         vmware.refreshStorage(host, cluster);
 

@@ -343,7 +343,7 @@ public class Workflow implements Serializable {
         }
 
         public void checkSerialization() throws WorkflowException {
-            byte[] bytes = GenericSerializer.serialize(this);
+            byte[] bytes = GenericSerializer.serialize(this, methodName, false);
         }
     }
     

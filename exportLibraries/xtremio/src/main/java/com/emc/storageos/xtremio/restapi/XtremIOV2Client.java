@@ -13,6 +13,7 @@ import org.apache.commons.httpclient.util.URIUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.xtremio.restapi.errorhandling.XtremIOApiException;
 import com.emc.storageos.xtremio.restapi.model.request.XtremIOConsistencyGroupRequest;
 import com.emc.storageos.xtremio.restapi.model.request.XtremIOConsistencyGroupVolumeRequest;
@@ -228,7 +229,8 @@ public class XtremIOV2Client extends XtremIOClient {
             XtremIOTagRequest tagCreate = new XtremIOTagRequest();
             tagCreate.setEntity(entityType);
             tagCreate.setTagName(tagName);
-            postIgnoreResponse(XtremIOConstants.XTREMIO_V2_TAGS_URI, getJsonForEntity(tagCreate));
+            ClientResponse response = post(XtremIOConstants.XTREMIO_V2_TAGS_URI,
+                    getJsonForEntity(tagCreate));
         } catch (Exception ex) {
             log.warn("Tag  {} already available", tagName);
         }
@@ -296,7 +298,7 @@ public class XtremIOV2Client extends XtremIOClient {
             tagRequest.setEntityDetails(entity);
             tagRequest.setClusterId(clusterName);
             log.info("Calling tag object with URI: {} and parameters: {}", uriString, tagRequest.toString());
-            put(URI.create(uriString), getJsonForEntity(tagRequest));
+            ClientResponse response = put(URI.create(uriString), getJsonForEntity(tagRequest));
         } catch (Exception ex) {
             log.warn("Error tagging object {} with tag {}", entity, tagName);
         }
@@ -360,7 +362,7 @@ public class XtremIOV2Client extends XtremIOClient {
         List<String> tags = new ArrayList<String>();
         tags.add(XtremIOConstants.V2_INITIATOR_GROUP_ROOT_FOLDER.concat(parentFolderId));
         initiatorGroupCreate.setTagList(tags);
-        postIgnoreResponse(XtremIOConstants.XTREMIO_V2_INITIATOR_GROUPS_URI, getJsonForEntity(initiatorGroupCreate));
+        post(XtremIOConstants.XTREMIO_V2_INITIATOR_GROUPS_URI, getJsonForEntity(initiatorGroupCreate));
     }
 
     @Override
@@ -374,7 +376,7 @@ public class XtremIOV2Client extends XtremIOClient {
         lunMapCreate.setClusterName(clusterName);
         log.info("Calling lun map Create {}", lunMapCreate.toString());
         try {
-            postIgnoreResponse(XtremIOConstants.XTREMIO_V2_LUNMAPS_URI, getJsonForEntity(lunMapCreate));
+            post(XtremIOConstants.XTREMIO_V2_LUNMAPS_URI, getJsonForEntity(lunMapCreate));
         } catch (Exception e) {
             // TODO Right now making the fix very simple ,instead of trying to acquire a lock on Storage System
             if (null != e.getMessage() && !e.getMessage().contains(XtremIOConstants.VOLUME_MAPPED)) {

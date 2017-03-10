@@ -34,7 +34,6 @@ public abstract class StandardRestClient implements RestClientItf {
         ClientResponse response = setResourceHeaders(_client.resource(requestURI)).type(MediaType.APPLICATION_JSON).get(
                 ClientResponse.class);
         if (authenticationFailed(response)) {
-            closeResponse(response);
             authenticate();
             response = setResourceHeaders(_client.resource(requestURI)).type(MediaType.APPLICATION_JSON).get(ClientResponse.class);
         }
@@ -48,7 +47,6 @@ public abstract class StandardRestClient implements RestClientItf {
         ClientResponse response = setResourceHeaders(_client.resource(requestURI)).type(MediaType.APPLICATION_JSON)
                 .put(ClientResponse.class, body);
         if (authenticationFailed(response)) {
-            closeResponse(response);
             authenticate();
             response = setResourceHeaders(_client.resource(requestURI)).type(MediaType.APPLICATION_JSON)
                     .put(ClientResponse.class, body);
@@ -63,7 +61,6 @@ public abstract class StandardRestClient implements RestClientItf {
         ClientResponse response = setResourceHeaders(_client.resource(requestURI)).type(MediaType.APPLICATION_JSON)
                 .post(ClientResponse.class, body);
         if (authenticationFailed(response)) {
-            closeResponse(response);
             authenticate();
             response = setResourceHeaders(_client.resource(requestURI)).type(MediaType.APPLICATION_JSON)
                     .post(ClientResponse.class, body);
@@ -78,7 +75,6 @@ public abstract class StandardRestClient implements RestClientItf {
         ClientResponse response = setResourceHeaders(_client.resource(requestURI)).type(MediaType.APPLICATION_JSON)
                 .delete(ClientResponse.class);
         if (authenticationFailed(response)) {
-            closeResponse(response);
             authenticate();
             response = setResourceHeaders(_client.resource(requestURI)).type(MediaType.APPLICATION_JSON)
                     .delete(ClientResponse.class);
@@ -92,24 +88,12 @@ public abstract class StandardRestClient implements RestClientItf {
         ClientResponse response = setResourceHeaders(_client.resource(requestURI)).type(MediaType.APPLICATION_JSON)
                 .delete(ClientResponse.class, body);
         if (authenticationFailed(response)) {
-            closeResponse(response);
             authenticate();
             response = setResourceHeaders(_client.resource(requestURI)).type(MediaType.APPLICATION_JSON)
                     .delete(ClientResponse.class);
         }
         checkResponse(uri, response);
         return response;
-    }
-
-    /**
-     * Close the entity input stream
-     *
-     * @param clientRespopnse ClientResponse to be closed
-     */
-    public void closeResponse(ClientResponse clientResp) {
-        if (clientResp != null) {
-            clientResp.close();
-        }
     }
 
     @Override

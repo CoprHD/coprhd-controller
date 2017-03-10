@@ -2966,15 +2966,14 @@ public class BlockService extends TaskResourceService {
         // operation against the volume
         checkForPendingTasks(Arrays.asList(volume.getTenant().getURI()), Arrays.asList(volume));
 
-        String task = UUID.randomUUID().toString();
-        Operation status = new Operation();
-        status.setResourceType(ProtectionOp.getResourceOperationTypeEnum(op));
-        _dbClient.createTaskOpStatus(Volume.class, volume.getId(), task, status);
-
         if (Volume.isSRDFProtectedVolume(copyVolume)) {
 
             if (op.equalsIgnoreCase(ProtectionOp.FAILOVER_TEST_CANCEL.getRestOp()) ||
                     op.equalsIgnoreCase(ProtectionOp.FAILOVER_TEST.getRestOp())) {
+                String task = UUID.randomUUID().toString();
+                Operation status = new Operation();
+                status.setResourceType(ProtectionOp.getResourceOperationTypeEnum(op));
+                _dbClient.createTaskOpStatus(Volume.class, volume.getId(), task, status);
                 _dbClient.ready(Volume.class, volume.getId(), task);
                 return toTask(volume, task, status);
             }
@@ -3002,6 +3001,17 @@ public class BlockService extends TaskResourceService {
                 }
             }
 
+            // COP-25377. We need to block failover and swap operations for SRDF ACTIVE COPY MODE
+            if (Mode.ACTIVE.toString().equalsIgnoreCase(copyVolume.getSrdfCopyMode())
+                    && (op.equalsIgnoreCase(ProtectionOp.FAILOVER_CANCEL.getRestOp()) ||
+                            op.equalsIgnoreCase(ProtectionOp.FAILOVER.getRestOp()) || op.equalsIgnoreCase(ProtectionOp.SWAP.getRestOp()))) {
+                throw BadRequestException.badRequests.operationNotPermittedOnSRDFActiveCopyMode(op);
+            }
+
+            String task = UUID.randomUUID().toString();
+            Operation status = new Operation();
+            status.setResourceType(ProtectionOp.getResourceOperationTypeEnum(op));
+            _dbClient.createTaskOpStatus(Volume.class, volume.getId(), task, status);
             /*
              * CTRL-6972: In the absence of a /restore API, we re-use /sync with a syncDirection parameter for
              * specifying either SMI-S Resume or Restore:
@@ -3019,12 +3029,12 @@ public class BlockService extends TaskResourceService {
             StorageSystem system = _dbClient.queryObject(StorageSystem.class,
                     copyVolume.getStorageController());
             protectionController.performSRDFProtectionOperation(system.getId(), copy, op, task);
+            return toTask(volume, task, status);
         } else {
             throw new ServiceCodeException(ServiceCode.IO_ERROR,
                     "Volume {0} is not SRDF protected",
                     new Object[] { copyVolume.getNativeGuid() });
         }
-        return toTask(volume, task, status);
     }
 
     private void validateVpoolCopyModeSetting(Volume srcVolume, String newCopyMode) {

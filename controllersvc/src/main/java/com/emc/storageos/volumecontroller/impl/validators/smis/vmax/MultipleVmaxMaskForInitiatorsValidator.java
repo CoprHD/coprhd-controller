@@ -27,6 +27,7 @@ import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.volumecontroller.impl.smis.SmisConstants;
+import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
 
 /**
  * Sub-class for {@link AbstractMultipleVmaxMaskValidator} in order to validate that a given
@@ -78,10 +79,10 @@ class MultipleVmaxMaskForInitiatorsValidator extends AbstractMultipleVmaxMaskVal
 
         log.info("MV {} is sharing an initiator with MV {}", name, assocName);
 
-        URI assocMaskURI = getExportMaskURI(assocName);
+        ExportMask exportMask = ExportMaskUtils.getExportMaskByName(getDbClient(), storage.getId(), assocName);
 
         // Associated mask is under ViPR management
-        if (assocMaskURI == null) {
+        if (exportMask == null) {
             logFailure("associated mask is not under ViPR management");
             return false;
         }
@@ -153,12 +154,6 @@ class MultipleVmaxMaskForInitiatorsValidator extends AbstractMultipleVmaxMaskVal
                 // throw new IllegalArgumentException(msg);
             }
         }
-    }
-    
-    private URI getExportMaskURI(String maskName) {
-        QueryResultList<URI> result = new URIQueryResultList();
-        getDbClient().queryByConstraint(AlternateIdConstraint.Factory.getExportMaskByNameConstraint(maskName), result);
-        return result.iterator().next();
     }
     
     private void logFailure(String reason) {

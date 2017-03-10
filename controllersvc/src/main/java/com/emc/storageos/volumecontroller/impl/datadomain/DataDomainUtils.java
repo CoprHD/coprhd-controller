@@ -18,7 +18,6 @@ import com.emc.storageos.datadomain.restapi.errorhandling.DataDomainApiException
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.StorageProvider;
 import com.emc.storageos.db.client.model.StorageProvider.ConnectionStatus;
-import com.emc.storageos.util.ConnectivityUtil;
 
 public class DataDomainUtils {
 
@@ -57,18 +56,16 @@ public class DataDomainUtils {
         List<URI> activeProviders = new ArrayList<URI>();
         for (StorageProvider storageProvider : ddProviderList) {
             try {
-                if (ConnectivityUtil.ping(storageProvider.getIPAddress())) {
-                    // Is the DDMC reachable
-                    DataDomainClient ddClient = getDataDomainClient(storageProvider, ddClientFactory);
-                    if (ddClient == null) {
-                        storageProvider.setConnectionStatus(ConnectionStatus.NOTCONNECTED.name());
-                        _log.error("Storage Provider {} is not reachable", storageProvider.getIPAddress());
-                    } else {
-                        ddClient.getManagementSystemInfo();
-                        storageProvider.setConnectionStatus(ConnectionStatus.CONNECTED.name());
-                        activeProviders.add(storageProvider.getId());
-                        _log.info("Storage Provider {} is reachable", storageProvider.getIPAddress());
-                    }
+                // Is the DDMC reachable
+                DataDomainClient ddClient = getDataDomainClient(storageProvider, ddClientFactory);
+                if (ddClient == null) {
+                    storageProvider.setConnectionStatus(ConnectionStatus.NOTCONNECTED.name());
+                    _log.error("Storage Provider {} is not reachable", storageProvider.getIPAddress());
+                } else {
+                    ddClient.getManagementSystemInfo();
+                    storageProvider.setConnectionStatus(ConnectionStatus.CONNECTED.name());
+                    activeProviders.add(storageProvider.getId());
+                    _log.info("Storage Provider {} is reachable", storageProvider.getIPAddress());
                 }
             } catch (Exception e) {
                 storageProvider.setConnectionStatus(ConnectionStatus.NOTCONNECTED.name());

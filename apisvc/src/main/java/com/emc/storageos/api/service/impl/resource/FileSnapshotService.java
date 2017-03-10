@@ -234,6 +234,12 @@ public class FileSnapshotService extends TaskResourceService {
                             throw APIException.badRequests.updatingSnapshotExportNotAllowed("root_user");
                         }
                     }
+
+                    String rootUserMapping = param.getRootUserMapping();
+                    String currentlyLoggedInUsername = getUserFromContext().getName();
+                    if (!"nobody".equals(rootUserMapping) && !currentlyLoggedInUsername.equals(rootUserMapping)) {
+                        throw APIException.forbidden.onlyCurrentUserCanBeSetInRootUserMapping(currentlyLoggedInUsername);
+                    }
                 }
             }
         }
@@ -1241,7 +1247,7 @@ public class FileSnapshotService extends TaskResourceService {
         try {
 
             // Validate the input
-            ExportVerificationUtility exportVerificationUtility = new ExportVerificationUtility(_dbClient);
+            ExportVerificationUtility exportVerificationUtility = new ExportVerificationUtility(_dbClient, getUserFromContext());
             exportVerificationUtility.verifyExports(fs, snap, param);
 
             _log.info("No Errors found proceeding further {}, {}, {}", new Object[] { _dbClient, fs, param });
@@ -1269,5 +1275,4 @@ public class FileSnapshotService extends TaskResourceService {
 
         return toTask(snap, task, op);
     }
-
 }

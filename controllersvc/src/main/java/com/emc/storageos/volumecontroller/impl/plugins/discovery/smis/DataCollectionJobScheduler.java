@@ -7,7 +7,10 @@ package com.emc.storageos.volumecontroller.impl.plugins.discovery.smis;
 import static com.emc.storageos.db.client.util.CustomQueryUtility.queryActiveResourcesByAltId;
 
 import java.net.URI;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
@@ -37,6 +40,7 @@ import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.ComputeSystem;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.CompatibilityStatus;
+import com.emc.storageos.db.client.model.DiscoveredDataObject.DataCollectionJobStatus;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
 import com.emc.storageos.db.client.model.DiscoveredSystemObject;
 import com.emc.storageos.db.client.model.Host;
@@ -48,11 +52,13 @@ import com.emc.storageos.db.client.model.StorageSystem.Discovery_Namespaces;
 import com.emc.storageos.db.client.model.StorageSystemType;
 import com.emc.storageos.db.client.model.Vcenter;
 import com.emc.storageos.db.client.model.remotereplication.RemoteReplicationConfigProvider;
+import com.emc.storageos.db.client.model.util.TaskUtils;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.exceptions.DeviceControllerErrors;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.hds.api.HDSApiFactory;
+import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.model.property.PropertyConstants;
 import com.emc.storageos.services.util.PlatformUtils;
 import com.emc.storageos.services.util.StorageDriverManager;
@@ -90,6 +96,7 @@ public class DataCollectionJobScheduler {
     private static final String ENABLE_AUTO_OPS_SINGLENODE = "enable-auto-discovery-metering-scan-single-node-deployments";
     private static final String TOLERANCE = "time-tolerance";
     private static final String PROP_HEADER_CONTROLLER = "controller_";
+    private static final String SYSTEM_TENANT_ID = "urn:storageos:TenantOrg:system:";
 
     private static final int initialScanDelay = 30;
     private static final int initialDiscoveryDelay = 90;
@@ -401,15 +408,16 @@ public class DataCollectionJobScheduler {
         _logger.info("Started Loading Storage Providers from DB");
         List<StorageProvider> providers = _dbClient.queryObject(StorageProvider.class, _dbClient.queryByType(StorageProvider.class, true));
 
-        Map<String, List<StorageProvider>> providersByType = new HashMap<String, List<StorageProvider>>();
+        Map<String, DataCollectionScanJob> scanJobByInterfaceType = new HashMap<String, DataCollectionScanJob>();
         for (StorageProvider provider : providers) {
-            if (providersByType.get(provider.getInterfaceType()) == null) {
-                providersByType.put(provider.getInterfaceType(), new ArrayList<StorageProvider>());
+            if (scanJobByInterfaceType.get(provider.getInterfaceType()) == null) {
+                scanJobByInterfaceType.put(provider.getInterfaceType(), new DataCollectionScanJob(DataCollectionJob.JobOrigin.SCHEDULER));
             }
-            providersByType.get(provider.getInterfaceType()).add(provider);
+            String taskId = UUID.randomUUID().toString();
+            scanJobByInterfaceType.get(provider.getInterfaceType()).addCompleter(new ScanTaskCompleter(StorageProvider.class, provider.getId(), taskId));
         }
-        for (List<StorageProvider> providersSameType : providersByType.values()) {
-            scheduleScannerJobs(providersSameType);
+        for (DataCollectionScanJob scanJob : scanJobByInterfaceType.values()) {
+            scheduleScannerJobs(scanJob);
         }
     }
 
@@ -419,19 +427,14 @@ public class DataCollectionJobScheduler {
      * @param providers
      * @throws Exception
      */
-    private void scheduleScannerJobs(List<StorageProvider> providers) throws Exception {
+    public void scheduleScannerJobs(DataCollectionScanJob scanJob) throws Exception {
+        List<StorageProvider> providers = _dbClient.queryObject(StorageProvider.class, scanJob.getProviders());
         if (providers == null || providers.isEmpty()) {
             _logger.info("No scanning needed: provider list is empty");
             return;
         }
+        
         _logger.info("Starting scan of providers of type {}", providers.iterator().next().getInterfaceType());
-        DataCollectionScanJob scanJob = new DataCollectionScanJob(DataCollectionJob.JobOrigin.SCHEDULER);
-
-        for (StorageProvider provider : providers) {
-            URI providerURI = provider.getId();
-            String taskId = UUID.randomUUID().toString();
-            scanJob.addCompleter(new ScanTaskCompleter(StorageProvider.class, providerURI, taskId));
-        }
 
         long lastScanTime = 0;
 
@@ -447,11 +450,27 @@ public class DataCollectionJobScheduler {
                     // Find the last scan time from the provider whose scan status is not in progress or scheduled
                     if (!inProgress) {
                         lastScanTime = providers.iterator().next().getLastScanTime();
+                        
+                        // if there are any pending tasks clear them; look for pending tasks more than an hour old. That will exclude the 
+                        // tasks created for the jobs currently being scheduled
+                        for (StorageProvider provider: providers) {
+                            Calendar oneHourAgo = Calendar.getInstance();
+                            oneHourAgo.setTime(Date.from(LocalDateTime.now().minusHours(1).atZone(ZoneId.systemDefault()).toInstant()));
+                            TaskUtils.cleanupPendingTasks(_dbClient, provider.getId(), ResourceOperationTypeEnum.SCAN_STORAGEPROVIDER.getName(), URI.create(SYSTEM_TENANT_ID),
+                                    oneHourAgo);
+                        }
                     }
                     
                     if (isDataCollectionScanJobSchedulingNeeded(lastScanTime, inProgress)) {
+                        for (StorageProvider provider : providers) {
+                            provider.setScanStatus(DataCollectionJobStatus.SCHEDULED.toString());
+                            _dbClient.updateObject(provider);
+                        }
                         _logger.info("Added Scan job to the Distributed Queue");
                         ControllerServiceImpl.enqueueDataCollectionJob(scanJob);
+                    } else {
+                        // clear the task that was created for this job but don't set the provider to not in progress
+                        scanJob.setTaskReady(_dbClient, "Scan job was not run because it is either in progress or was run recently");
                     }
                 } catch (Exception e) {
                     _logger.error(e.getMessage(), e);
@@ -771,8 +790,6 @@ public class DataCollectionJobScheduler {
     private boolean isInProgress(StorageProvider provider) {
         // if inprogress,
         return DiscoveredDataObject.DataCollectionJobStatus.IN_PROGRESS.toString()
-                .equalsIgnoreCase(provider.getScanStatus()) ||
-                DiscoveredDataObject.DataCollectionJobStatus.SCHEDULED.toString()
                         .equalsIgnoreCase(provider.getScanStatus());
     }
 
@@ -889,6 +906,13 @@ public class DataCollectionJobScheduler {
                 _logger.warn(type + " job for " + system.getLabel() + " is not queued or in progress; correcting the ViPR DB status");
                 updateDataCollectionStatus(system, type, DiscoveredDataObject.DataCollectionJobStatus.ERROR);
             }
+            
+            // check for any pending tasks; if there are any, they're orphaned and should be cleaned up
+            // look for tasks older than one hour; this will exclude the discovery job currently being scheduled
+            Calendar oneHourAgo = Calendar.getInstance();
+            oneHourAgo.setTime(Date.from(LocalDateTime.now().minusHours(1).atZone(ZoneId.systemDefault()).toInstant()));
+            TaskUtils.cleanupPendingTasks(_dbClient, system.getId(), ResourceOperationTypeEnum.DISCOVER_STORAGE_SYSTEM.getName(), URI.create(SYSTEM_TENANT_ID),
+                    oneHourAgo);
         } else {
             // log a message if the discovery job has been runnig for longer than expected
             long currentTime = System.currentTimeMillis();

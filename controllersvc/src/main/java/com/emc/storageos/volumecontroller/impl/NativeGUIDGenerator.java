@@ -35,6 +35,7 @@ import com.emc.storageos.db.client.model.StorageHADomain;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageSystem;
+import com.emc.storageos.db.client.model.UCSServiceProfile;
 import com.emc.storageos.db.client.model.UCSServiceProfileTemplate;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.plugins.common.Constants;
@@ -202,6 +203,18 @@ public class NativeGUIDGenerator {
     public static String generateNativeGuid(UCSServiceProfileTemplate serviceProfileTemplate, String systemType) {
         return String.format("%s+%s", _deviceTypeMap.get(systemType), serviceProfileTemplate.getDn());
     }
+
+     /**
+     * The format of this native guid is ComputeSystemLabel+ServiceProfileDn
+     *
+     * @param computeSystem
+     * @param serviceProfile
+     * @return
+     */
+    public static String generateNativeGuid(ComputeSystem cs, UCSServiceProfile serviceProfile) {
+        return String.format("%s+%s", cs.getLabel(), serviceProfile.getDn());
+    }
+
 
     /**
      * The format of this native guid is ComputeSystemType+Protocol+ComputeElementHBA

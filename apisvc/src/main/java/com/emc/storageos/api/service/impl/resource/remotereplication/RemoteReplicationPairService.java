@@ -23,6 +23,9 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 
+import com.emc.storageos.remotereplicationcontroller.RemoteReplicationController;
+import com.emc.storageos.remotereplicationcontroller.RemoteReplicationUtils;
+import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -54,8 +57,8 @@ import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.impl.externaldevice.RemoteReplicationElement;
 
 @Path("/vdc/block/remotereplicationpairs")
-@DefaultPermissions(readRoles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, readAcls = {
-        ACL.OWN, ACL.ALL }, writeRoles = { Role.TENANT_ADMIN }, writeAcls = { ACL.OWN,
+@DefaultPermissions(readRoles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, readAcls = {
+        ACL.OWN, ACL.ALL }, writeRoles = { Role.SYSTEM_ADMIN, Role.TENANT_ADMIN }, writeAcls = { ACL.OWN,
         ACL.ALL })
 public class RemoteReplicationPairService extends TaskResourceService {
 
@@ -160,30 +163,30 @@ public class RemoteReplicationPairService extends TaskResourceService {
     }
 
     public TaskList failoverRemoteReplicationCGLink(List<URI> ids) throws InternalException {
-        _log.info("Called: failoverRemoteReplicationCGLing() with ids {}", ids);
-        // todo:
-        // ArgValidator.checkFieldUriType(id, RemoteReplicationPair.class, "id");
-        String taskId = UUID.randomUUID().toString();
-        TaskList taskList = new TaskList();
-        List<RemoteReplicationPair> rrPairs = _dbClient.queryObject(RemoteReplicationPair.class, ids);
+        _log.info("Called: failoverRemoteReplicationCGLink() with ids {}", ids);
+        for (URI id : ids) {
+            ArgValidator.checkFieldUriType(id, RemoteReplicationPair.class, "id");
+        }
 
-        // todo: validate that this operation is valid:
-        // if all pairs are in the same consistency group (source volumes are in the same consistency group)
-        // if operations are allowed on subset of group or set pairs,
-        // if Pair state is valid for the operation, if the Pair is reachable, etc.
+        List<RemoteReplicationPair> rrPairs = _dbClient.queryObject(RemoteReplicationPair.class, ids);
         URI sourceElementURI = rrPairs.get(0).getSourceElement().getURI();
         ArgValidator.checkFieldUriType(sourceElementURI, Volume.class, "id");
         Volume sourceElement = _dbClient.queryObject(Volume.class, sourceElementURI);
         URI cgURI = sourceElement.getConsistencyGroup();
         BlockConsistencyGroup cg = _dbClient.queryObject(BlockConsistencyGroup.class, cgURI);
 
+        RemoteReplicationElement rrElement =
+                new RemoteReplicationElement(RemoteReplicationSet.ElementType.CONSISTENCY_GROUP, cgURI);
+
+        RemoteReplicationUtils.validateRemoteReplicationOperation(rrElement, RemoteReplicationController.RemoteReplicationOperations.FAIL_OVER);
+
+        String taskId = UUID.randomUUID().toString();
+        TaskList taskList = new TaskList();
         Operation op = _dbClient.createTaskOpStatus(RemoteReplicationPair.class, cg.getId(),
                 taskId, ResourceOperationTypeEnum.FAILOVER_REMOTE_REPLICATION_CG_LINK);
         TaskResourceRep volumeTaskResourceRep = toTask(cg, taskId, op);
         taskList.getTaskList().add(volumeTaskResourceRep);
 
-        RemoteReplicationElement rrElement =
-                new RemoteReplicationElement(RemoteReplicationSet.ElementType.CONSISTENCY_GROUP, cgURI);
         // send request to controller
         try {
             RemoteReplicationBlockServiceApiImpl rrServiceApi = getRemoteReplicationServiceApi();
@@ -220,14 +223,15 @@ public class RemoteReplicationPairService extends TaskResourceService {
         _log.info("Called: failoverRemoteReplicationPairLink() with id {} and task {}", id, taskId);
         ArgValidator.checkFieldUriType(id, RemoteReplicationPair.class, "id");
         RemoteReplicationPair rrPair = queryResource(id);
+        RemoteReplicationElement rrElement =
+                new RemoteReplicationElement(com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationSet.ElementType.REPLICATION_PAIR, id);
 
-        // todo: validate that this operation is valid: if operations are allowed on Pairs, if Pair state is valid for the operation, if the Pair is reachable, etc.
+        RemoteReplicationUtils.validateRemoteReplicationOperation(rrElement, RemoteReplicationController.RemoteReplicationOperations.FAIL_OVER);
+
         // Create a task for the failover remote replication Pair operation
         Operation op = _dbClient.createTaskOpStatus(RemoteReplicationPair.class, rrPair.getId(),
                 taskId, ResourceOperationTypeEnum.FAILOVER_REMOTE_REPLICATION_PAIR_LINK);
 
-        RemoteReplicationElement rrElement =
-                new RemoteReplicationElement(com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationSet.ElementType.REPLICATION_PAIR, id);
         // send request to controller
         try {
             RemoteReplicationBlockServiceApiImpl rrServiceApi = getRemoteReplicationServiceApi();
@@ -251,30 +255,30 @@ public class RemoteReplicationPairService extends TaskResourceService {
 
 
     public TaskList failbackRemoteReplicationCGLink(List<URI> ids) throws InternalException {
-        _log.info("Called: failbackRemoteReplicationCGLing() with ids {}", ids);
-        // todo:
-        // ArgValidator.checkFieldUriType(id, RemoteReplicationPair.class, "id");
-        String taskId = UUID.randomUUID().toString();
-        TaskList taskList = new TaskList();
-        List<RemoteReplicationPair> rrPairs = _dbClient.queryObject(RemoteReplicationPair.class, ids);
+        _log.info("Called: failbackRemoteReplicationCGLink() with ids {}", ids);
+        for (URI id : ids) {
+            ArgValidator.checkFieldUriType(id, RemoteReplicationPair.class, "id");
+        }
 
-        // todo: validate that this operation is valid:
-        // if all pairs are in the same consistency group (source volumes are in the same consistency group)
-        // if operations are allowed on subset of group or set pairs,
-        // if Pair state is valid for the operation, if the Pair is reachable, etc.
+        List<RemoteReplicationPair> rrPairs = _dbClient.queryObject(RemoteReplicationPair.class, ids);
         URI sourceElementURI = rrPairs.get(0).getSourceElement().getURI();
         ArgValidator.checkFieldUriType(sourceElementURI, Volume.class, "id");
         Volume sourceElement = _dbClient.queryObject(Volume.class, sourceElementURI);
         URI cgURI = sourceElement.getConsistencyGroup();
         BlockConsistencyGroup cg = _dbClient.queryObject(BlockConsistencyGroup.class, cgURI);
 
+        RemoteReplicationElement rrElement =
+                new RemoteReplicationElement(RemoteReplicationSet.ElementType.CONSISTENCY_GROUP, cgURI);
+
+        RemoteReplicationUtils.validateRemoteReplicationOperation(rrElement, RemoteReplicationController.RemoteReplicationOperations.FAIL_BACK);
+
+        String taskId = UUID.randomUUID().toString();
+        TaskList taskList = new TaskList();
         Operation op = _dbClient.createTaskOpStatus(RemoteReplicationPair.class, cg.getId(),
                 taskId, ResourceOperationTypeEnum.FAILBACK_REMOTE_REPLICATION_CG_LINK);
         TaskResourceRep volumeTaskResourceRep = toTask(cg, taskId, op);
         taskList.getTaskList().add(volumeTaskResourceRep);
 
-        RemoteReplicationElement rrElement =
-                new RemoteReplicationElement(RemoteReplicationSet.ElementType.CONSISTENCY_GROUP, cgURI);
         // send request to controller
         try {
             RemoteReplicationBlockServiceApiImpl rrServiceApi = getRemoteReplicationServiceApi();
@@ -313,13 +317,14 @@ public class RemoteReplicationPairService extends TaskResourceService {
         ArgValidator.checkFieldUriType(id, RemoteReplicationPair.class, "id");
         RemoteReplicationPair rrPair = queryResource(id);
 
-        // todo: validate that this operation is valid: if operations are allowed on Pairs, if Pair state is valid for the operation, if the Pair is reachable, etc.
+        RemoteReplicationElement rrElement =
+                new RemoteReplicationElement(com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationSet.ElementType.REPLICATION_PAIR, id);
+        RemoteReplicationUtils.validateRemoteReplicationOperation(rrElement, RemoteReplicationController.RemoteReplicationOperations.FAIL_BACK);
+
         // Create a task for the failback remote replication Pair operation
         Operation op = _dbClient.createTaskOpStatus(RemoteReplicationPair.class, rrPair.getId(),
                 taskId, ResourceOperationTypeEnum.FAILBACK_REMOTE_REPLICATION_PAIR_LINK);
 
-        RemoteReplicationElement rrElement =
-                new RemoteReplicationElement(com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationSet.ElementType.REPLICATION_PAIR, id);
         // send request to controller
         try {
             RemoteReplicationBlockServiceApiImpl rrServiceApi = getRemoteReplicationServiceApi();
@@ -343,30 +348,30 @@ public class RemoteReplicationPairService extends TaskResourceService {
 
 
     public TaskList establishRemoteReplicationCGLink(List<URI> ids) throws InternalException {
-        _log.info("Called: establishRemoteReplicationCGLing() with ids {}", ids);
-        // todo:
-        // ArgValidator.checkFieldUriType(id, RemoteReplicationPair.class, "id");
-        String taskId = UUID.randomUUID().toString();
-        TaskList taskList = new TaskList();
-        List<RemoteReplicationPair> rrPairs = _dbClient.queryObject(RemoteReplicationPair.class, ids);
+        _log.info("Called: establishRemoteReplicationCGLink() with ids {}", ids);
+        for (URI id : ids) {
+            ArgValidator.checkFieldUriType(id, RemoteReplicationPair.class, "id");
+        }
 
-        // todo: validate that this operation is valid:
-        // if all pairs are in the same consistency group (source volumes are in the same consistency group)
-        // if operations are allowed on subset of group or set pairs,
-        // if Pair state is valid for the operation, if the Pair is reachable, etc.
+        List<RemoteReplicationPair> rrPairs = _dbClient.queryObject(RemoteReplicationPair.class, ids);
         URI sourceElementURI = rrPairs.get(0).getSourceElement().getURI();
         ArgValidator.checkFieldUriType(sourceElementURI, Volume.class, "id");
         Volume sourceElement = _dbClient.queryObject(Volume.class, sourceElementURI);
         URI cgURI = sourceElement.getConsistencyGroup();
         BlockConsistencyGroup cg = _dbClient.queryObject(BlockConsistencyGroup.class, cgURI);
 
+        RemoteReplicationElement rrElement =
+                new RemoteReplicationElement(RemoteReplicationSet.ElementType.CONSISTENCY_GROUP, cgURI);
+        RemoteReplicationUtils.validateRemoteReplicationOperation(rrElement, RemoteReplicationController.RemoteReplicationOperations.ESTABLISH);
+
+        String taskId = UUID.randomUUID().toString();
+        TaskList taskList = new TaskList();
+
         Operation op = _dbClient.createTaskOpStatus(RemoteReplicationPair.class, cg.getId(),
                 taskId, ResourceOperationTypeEnum.ESTABLISH_REMOTE_REPLICATION_CG_LINK);
         TaskResourceRep volumeTaskResourceRep = toTask(cg, taskId, op);
         taskList.getTaskList().add(volumeTaskResourceRep);
 
-        RemoteReplicationElement rrElement =
-                new RemoteReplicationElement(RemoteReplicationSet.ElementType.CONSISTENCY_GROUP, cgURI);
         // send request to controller
         try {
             RemoteReplicationBlockServiceApiImpl rrServiceApi = getRemoteReplicationServiceApi();
@@ -404,13 +409,14 @@ public class RemoteReplicationPairService extends TaskResourceService {
         ArgValidator.checkFieldUriType(id, RemoteReplicationPair.class, "id");
         RemoteReplicationPair rrPair = queryResource(id);
 
-        // todo: validate that this operation is valid: if operations are allowed on Pairs, if Pair state is valid for the operation, if the Pair is reachable, etc.
+        RemoteReplicationElement rrElement =
+                new RemoteReplicationElement(com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationSet.ElementType.REPLICATION_PAIR, id);
+        RemoteReplicationUtils.validateRemoteReplicationOperation(rrElement, RemoteReplicationController.RemoteReplicationOperations.ESTABLISH);
+
         // Create a task for the establish remote replication Pair operation
         Operation op = _dbClient.createTaskOpStatus(RemoteReplicationPair.class, rrPair.getId(),
                 taskId, ResourceOperationTypeEnum.ESTABLISH_REMOTE_REPLICATION_PAIR_LINK);
 
-        RemoteReplicationElement rrElement =
-                new RemoteReplicationElement(com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationSet.ElementType.REPLICATION_PAIR, id);
         // send request to controller
         try {
             RemoteReplicationBlockServiceApiImpl rrServiceApi = getRemoteReplicationServiceApi();
@@ -433,22 +439,77 @@ public class RemoteReplicationPairService extends TaskResourceService {
     }
 
 
+    public TaskList splitRemoteReplicationCGLink(List<URI> ids) throws InternalException {
+        _log.info("Called: splitRemoteReplicationCGLink() with ids {}", ids);
+        for (URI id : ids) {
+            ArgValidator.checkFieldUriType(id, RemoteReplicationPair.class, "id");
+        }
+
+        List<RemoteReplicationPair> rrPairs = _dbClient.queryObject(RemoteReplicationPair.class, ids);
+        URI sourceElementURI = rrPairs.get(0).getSourceElement().getURI();
+        ArgValidator.checkFieldUriType(sourceElementURI, Volume.class, "id");
+        Volume sourceElement = _dbClient.queryObject(Volume.class, sourceElementURI);
+        URI cgURI = sourceElement.getConsistencyGroup();
+        BlockConsistencyGroup cg = _dbClient.queryObject(BlockConsistencyGroup.class, cgURI);
+
+        RemoteReplicationElement rrElement =
+                new RemoteReplicationElement(RemoteReplicationSet.ElementType.CONSISTENCY_GROUP, cgURI);
+
+        RemoteReplicationUtils.validateRemoteReplicationOperation(rrElement, RemoteReplicationController.RemoteReplicationOperations.SPLIT);
+
+        String taskId = UUID.randomUUID().toString();
+        TaskList taskList = new TaskList();
+        Operation op = _dbClient.createTaskOpStatus(RemoteReplicationPair.class, cg.getId(),
+                taskId, ResourceOperationTypeEnum.SPLIT_REMOTE_REPLICATION_CG_LINK);
+        TaskResourceRep volumeTaskResourceRep = toTask(cg, taskId, op);
+        taskList.getTaskList().add(volumeTaskResourceRep);
+
+        // send request to controller
+        try {
+            RemoteReplicationBlockServiceApiImpl rrServiceApi = getRemoteReplicationServiceApi();
+            rrServiceApi.splitRemoteReplicationElementLink(rrElement, taskId);
+        } catch (final ControllerException e) {
+            _log.error("Controller Error", e);
+            op = cg.getOpStatus().get(taskId);
+            op.error(e);
+            cg.getOpStatus().updateTaskStatus(taskId, op);
+            cg.setInactive(true);
+            _dbClient.updateObject(cg);
+
+            throw e;
+        }
+
+        auditOp(OperationTypeEnum.SPLIT_REMOTE_REPLICATION_CG_LINK, true, AuditLogManager.AUDITOP_BEGIN,
+                cg.getLabel());
+
+        return taskList;
+    }
+
+
     @POST
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/split")
     public TaskResourceRep splitRemoteReplicationPairLink(@PathParam("id") URI id) throws InternalException {
         _log.info("Called: splitRemoteReplicationPairLink() with id {}", id);
+
+        String taskId = UUID.randomUUID().toString();
+        return splitRemoteReplicationPairLink(id, taskId);
+    }
+
+    public TaskResourceRep splitRemoteReplicationPairLink(URI id, String taskId) throws InternalException {
+        _log.info("Called: splitRemoteReplicationPairLink() with id {} and task {}", id, taskId);
         ArgValidator.checkFieldUriType(id, RemoteReplicationPair.class, "id");
         RemoteReplicationPair rrPair = queryResource(id);
 
-        // todo: validate that this operation is valid: if operations are allowed on pairs, if pair state is valid for the operation, if the pair is reachable, etc.
-        // Create a task for the split remote replication pair operation
-        String taskId = UUID.randomUUID().toString();
+        RemoteReplicationElement rrElement =
+                new RemoteReplicationElement(com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationSet.ElementType.REPLICATION_PAIR, id);
+        RemoteReplicationUtils.validateRemoteReplicationOperation(rrElement, RemoteReplicationController.RemoteReplicationOperations.SPLIT);
+
+        // Create a task for the split remote replication Pair operation
         Operation op = _dbClient.createTaskOpStatus(RemoteReplicationPair.class, rrPair.getId(),
                 taskId, ResourceOperationTypeEnum.SPLIT_REMOTE_REPLICATION_PAIR_LINK);
 
-        RemoteReplicationElement rrElement = new RemoteReplicationElement(com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationSet.ElementType.REPLICATION_PAIR, id);
         // send request to controller
         try {
             RemoteReplicationBlockServiceApiImpl rrServiceApi = getRemoteReplicationServiceApi();
@@ -470,22 +531,41 @@ public class RemoteReplicationPairService extends TaskResourceService {
         return toTask(rrPair, taskId, op);
     }
 
+
+    /**
+     * TODO:
+     * @param ids
+     * @return
+     * @throws InternalException
+     */
+    public TaskList suspendRemoteReplicationCGLink(List<URI> ids) throws InternalException {
+        return null;
+    }
+
     @POST
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/suspend")
     public TaskResourceRep suspendRemoteReplicationPairLink(@PathParam("id") URI id) throws InternalException {
         _log.info("Called: suspendRemoteReplicationPairLink() with id {}", id);
+
+        String taskId = UUID.randomUUID().toString();
+        return suspendRemoteReplicationPairLink(id, taskId);
+    }
+
+    public TaskResourceRep suspendRemoteReplicationPairLink(URI id, String taskId) throws InternalException {
+        _log.info("Called: suspendRemoteReplicationPairLink() with id {} and task {}", id, taskId);
         ArgValidator.checkFieldUriType(id, RemoteReplicationPair.class, "id");
         RemoteReplicationPair rrPair = queryResource(id);
 
-        // todo: validate that this operation is valid: if operations are allowed on pairs, if pair state is valid for the operation, if the pair is reachable, etc.
-        // Create a task for the suspend remote replication pair operation
-        String taskId = UUID.randomUUID().toString();
+        RemoteReplicationElement rrElement =
+                new RemoteReplicationElement(com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationSet.ElementType.REPLICATION_PAIR, id);
+        RemoteReplicationUtils.validateRemoteReplicationOperation(rrElement, RemoteReplicationController.RemoteReplicationOperations.SUSPEND);
+
+        // Create a task for the suspend remote replication Pair operation
         Operation op = _dbClient.createTaskOpStatus(RemoteReplicationPair.class, rrPair.getId(),
                 taskId, ResourceOperationTypeEnum.SUSPEND_REMOTE_REPLICATION_PAIR_LINK);
 
-        RemoteReplicationElement rrElement = new RemoteReplicationElement(com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationSet.ElementType.REPLICATION_PAIR, id);
         // send request to controller
         try {
             RemoteReplicationBlockServiceApiImpl rrServiceApi = getRemoteReplicationServiceApi();
@@ -507,6 +587,16 @@ public class RemoteReplicationPairService extends TaskResourceService {
         return toTask(rrPair, taskId, op);
     }
 
+    /**
+     * TODO:
+     * @param ids
+     * @return
+     * @throws InternalException
+     */
+    public TaskList resumeRemoteReplicationCGLink(List<URI> ids) throws InternalException {
+        return null;
+    }
+
 
     @POST
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
@@ -514,16 +604,24 @@ public class RemoteReplicationPairService extends TaskResourceService {
     @Path("/{id}/resume")
     public TaskResourceRep resumeRemoteReplicationPairLink(@PathParam("id") URI id) throws InternalException {
         _log.info("Called: resumeRemoteReplicationPairLink() with id {}", id);
+
+        String taskId = UUID.randomUUID().toString();
+        return resumeRemoteReplicationPairLink(id, taskId);
+    }
+
+    public TaskResourceRep resumeRemoteReplicationPairLink(URI id, String taskId) throws InternalException {
+        _log.info("Called: resumeRemoteReplicationPairLink() with id {} and task {}", id, taskId);
         ArgValidator.checkFieldUriType(id, RemoteReplicationPair.class, "id");
         RemoteReplicationPair rrPair = queryResource(id);
 
-        // todo: validate that this operation is valid: if operations are allowed on pairs, if pair state is valid for the operation, if the pair is reachable, etc.
-        // Create a task for the resume remote replication pair operation
-        String taskId = UUID.randomUUID().toString();
+        RemoteReplicationElement rrElement =
+                new RemoteReplicationElement(com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationSet.ElementType.REPLICATION_PAIR, id);
+        RemoteReplicationUtils.validateRemoteReplicationOperation(rrElement, RemoteReplicationController.RemoteReplicationOperations.RESUME);
+
+        // Create a task for the resume remote replication Pair operation
         Operation op = _dbClient.createTaskOpStatus(RemoteReplicationPair.class, rrPair.getId(),
                 taskId, ResourceOperationTypeEnum.RESUME_REMOTE_REPLICATION_PAIR_LINK);
 
-        RemoteReplicationElement rrElement = new RemoteReplicationElement(com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationSet.ElementType.REPLICATION_PAIR, id);
         // send request to controller
         try {
             RemoteReplicationBlockServiceApiImpl rrServiceApi = getRemoteReplicationServiceApi();
@@ -545,22 +643,42 @@ public class RemoteReplicationPairService extends TaskResourceService {
         return toTask(rrPair, taskId, op);
     }
 
+
+    /**
+     * TODO:
+     * @param ids
+     * @return
+     * @throws InternalException
+     */
+    public TaskList swapRemoteReplicationCGLink(List<URI> ids) throws InternalException {
+        return null;
+    }
+
     @POST
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/swap")
     public TaskResourceRep swapRemoteReplicationPairLink(@PathParam("id") URI id) throws InternalException {
         _log.info("Called: swapRemoteReplicationPairLink() with id {}", id);
+
+        String taskId = UUID.randomUUID().toString();
+        return swapRemoteReplicationPairLink(id, taskId);
+    }
+
+    public TaskResourceRep swapRemoteReplicationPairLink(URI id, String taskId) throws InternalException {
+        _log.info("Called: swapRemoteReplicationPairLink() with id {} and task {}", id, taskId);
         ArgValidator.checkFieldUriType(id, RemoteReplicationPair.class, "id");
         RemoteReplicationPair rrPair = queryResource(id);
 
-        // todo: validate that this operation is valid: if operations are allowed on pairs, if pair state is valid for the operation, if the pair is reachable, etc.
-        // Create a task for the swap remote replication pair operation
-        String taskId = UUID.randomUUID().toString();
+        RemoteReplicationElement rrElement =
+                new RemoteReplicationElement(com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationSet.ElementType.REPLICATION_PAIR, id);
+
+        RemoteReplicationUtils.validateRemoteReplicationOperation(rrElement, RemoteReplicationController.RemoteReplicationOperations.SWAP);
+
+        // Create a task for the swap remote replication Pair operation
         Operation op = _dbClient.createTaskOpStatus(RemoteReplicationPair.class, rrPair.getId(),
                 taskId, ResourceOperationTypeEnum.SWAP_REMOTE_REPLICATION_PAIR_LINK);
 
-        RemoteReplicationElement rrElement = new RemoteReplicationElement(com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationSet.ElementType.REPLICATION_PAIR, id);
         // send request to controller
         try {
             RemoteReplicationBlockServiceApiImpl rrServiceApi = getRemoteReplicationServiceApi();
@@ -582,6 +700,17 @@ public class RemoteReplicationPairService extends TaskResourceService {
         return toTask(rrPair, taskId, op);
     }
 
+
+    /**
+     * TODO:
+     * @param ids
+     * @return
+     * @throws InternalException
+     */
+    public TaskList changeRemoteReplicationCGMode(List<URI> ids) throws InternalException {
+        return null;
+    }
+
     @POST
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
@@ -591,16 +720,17 @@ public class RemoteReplicationPairService extends TaskResourceService {
         _log.info("Called: changeRemoteReplicationPairMode() with id {}", id);
         ArgValidator.checkFieldUriType(id, RemoteReplicationPair.class, "id");
         RemoteReplicationPair rrPair = queryResource(id);
+        RemoteReplicationElement rrElement = new RemoteReplicationElement(RemoteReplicationSet.ElementType.REPLICATION_PAIR, id);
 
         String newMode = param.getNewMode();
 
-        // todo: validate that this operation is valid: if operations are allowed on pairs, if pair state is valid for the operation, if the pair is reachable, etc.
-        // Create a task for the create remote replication pair operation
+        RemoteReplicationUtils.validateRemoteReplicationModeChange(rrElement, newMode);
+
+        // Create a task for the remote replication mode change
         String taskId = UUID.randomUUID().toString();
         Operation op = _dbClient.createTaskOpStatus(RemoteReplicationPair.class, rrPair.getId(),
                 taskId, ResourceOperationTypeEnum.CHANGE_REMOTE_REPLICATION_MODE);
 
-        RemoteReplicationElement rrElement = new RemoteReplicationElement(RemoteReplicationSet.ElementType.REPLICATION_PAIR, id);
         // send request to controller
         try {
             RemoteReplicationBlockServiceApiImpl rrServiceApi = getRemoteReplicationServiceApi();
@@ -639,17 +769,14 @@ public class RemoteReplicationPairService extends TaskResourceService {
         _log.info("Called: moveRemoteReplicationPair() with id {} and new group {}", id, param.getRemoteReplicationGroup());
         ArgValidator.checkFieldUriType(id, RemoteReplicationPair.class, "id");
         RemoteReplicationPair rrPair = queryResource(id);
-
         URI newGroup = param.getRemoteReplicationGroup();
 
-        // todo: validate that this operation is valid: if operations are allowed on pair, if pair state is valid for the operation, if the pair is reachable,
-        // todo: if new group has the same source, target and mode as the original group, etc.
-        // Create a task for the create remote replication pair operation
+        validateMovePairOperation(rrPair, newGroup);
+        // Create a task for the move remote replication pair operation
         String taskId = UUID.randomUUID().toString();
         Operation op = _dbClient.createTaskOpStatus(RemoteReplicationPair.class, rrPair.getId(),
                 taskId, ResourceOperationTypeEnum.CHANGE_REMOTE_REPLICATION_MODE);
 
-        RemoteReplicationElement rrElement = new RemoteReplicationElement(RemoteReplicationSet.ElementType.REPLICATION_PAIR, id);
         // send request to controller
         try {
             RemoteReplicationBlockServiceApiImpl rrServiceApi = getRemoteReplicationServiceApi();
@@ -672,6 +799,17 @@ public class RemoteReplicationPairService extends TaskResourceService {
     }
 
 
+    /**
+     * Validate if pair can be moved to a new group
+     * @param rrPair remote replication pair
+     * @param targetGroup new group
+     */
+    public void validateMovePairOperation(RemoteReplicationPair rrPair, URI targetGroup) {
+        // todo: validate that this operation is valid:
+        //   if pair is in a group
+        //   if new group has the same source system, the same target system as current group of the pair
+
+    }
 
     @Override
     protected ResourceTypeEnum getResourceType() {
@@ -692,4 +830,5 @@ public class RemoteReplicationPairService extends TaskResourceService {
     }
 
 }
+
 

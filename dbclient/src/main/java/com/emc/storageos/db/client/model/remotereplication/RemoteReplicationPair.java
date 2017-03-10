@@ -28,16 +28,12 @@ public class RemoteReplicationPair extends DataObject implements ProjectResource
         FILE_SYSTEM
     }
 
-    public enum ReplicationDirection {
-        SOURCE_TO_TARGET,
-        TARGET_TO_SOURCE
-    }
 
     // Element type (block or file element)
     private ElementType elementType;
 
     // Replication direction for the pair
-    private ReplicationDirection replicationDirection = ReplicationDirection.SOURCE_TO_TARGET;
+    private String replicationDirection;
 
     // Device nativeId of replication pair.
     private String nativeId;
@@ -180,12 +176,13 @@ public class RemoteReplicationPair extends DataObject implements ProjectResource
 
 
     @Name("replicationDirection")
-    public ReplicationDirection getReplicationDirection() {
+    public String getReplicationDirection() {
         return replicationDirection;
     }
 
-    public void setReplicationDirection(ReplicationDirection replicationDirection) {
+    public void setReplicationDirection(String replicationDirection) {
         this.replicationDirection = replicationDirection;
+        setChanged("replicationDirection");
     }
 
     @Name("properties")

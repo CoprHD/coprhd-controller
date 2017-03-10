@@ -3264,4 +3264,10 @@ public interface BadRequestExceptions {
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException operationNotPermittedOnSRDFActiveCopyMode(final String operation);
 
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException invalidRemoteReplicationContext(final String context);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException remoteReplicationLinkOperationIsNotAllowed(final String elementType, final String elementId, final String operation);
+
 }

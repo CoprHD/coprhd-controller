@@ -23,6 +23,8 @@ import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 
+import com.emc.storageos.remotereplicationcontroller.RemoteReplicationController;
+import com.emc.storageos.remotereplicationcontroller.RemoteReplicationUtils;
 import com.emc.storageos.security.authorization.ACL;
 
 import org.slf4j.Logger;
@@ -60,8 +62,8 @@ import com.emc.storageos.volumecontroller.impl.externaldevice.RemoteReplicationE
 
 
 @Path("/vdc/block/remotereplicationgroups")
-@DefaultPermissions(readRoles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, readAcls = {
-        ACL.OWN, ACL.ALL }, writeRoles = { Role.TENANT_ADMIN }, writeAcls = { ACL.OWN,
+@DefaultPermissions(readRoles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, readAcls = {
+        ACL.OWN, ACL.ALL }, writeRoles = { Role.SYSTEM_ADMIN, Role.TENANT_ADMIN }, writeAcls = { ACL.OWN,
         ACL.ALL })
 public class RemoteReplicationGroupService extends TaskResourceService {
 
@@ -217,13 +219,14 @@ public class RemoteReplicationGroupService extends TaskResourceService {
         ArgValidator.checkFieldUriType(id, RemoteReplicationGroup.class, "id");
         RemoteReplicationGroup rrGroup = queryResource(id);
 
-        // todo: validate that this operation is valid: if operations are allowed on groups, if group state is valid for the operation, if the group is reachable, etc.
+        RemoteReplicationElement rrElement = new RemoteReplicationElement(RemoteReplicationSet.ElementType.REPLICATION_GROUP, id);
+        RemoteReplicationUtils.validateRemoteReplicationOperation(rrElement, RemoteReplicationController.RemoteReplicationOperations.FAIL_OVER);
+
         // Create a task for the create remote replication group operation
         String taskId = UUID.randomUUID().toString();
         Operation op = _dbClient.createTaskOpStatus(RemoteReplicationGroup.class, rrGroup.getId(),
                 taskId, ResourceOperationTypeEnum.FAILOVER_REMOTE_REPLICATION_GROUP_LINK);
 
-        RemoteReplicationElement rrElement = new RemoteReplicationElement(RemoteReplicationSet.ElementType.REPLICATION_GROUP, id);
         // send request to controller
         try {
             RemoteReplicationBlockServiceApiImpl rrServiceApi = getRemoteReplicationServiceApi();
@@ -254,13 +257,14 @@ public class RemoteReplicationGroupService extends TaskResourceService {
         ArgValidator.checkFieldUriType(id, RemoteReplicationGroup.class, "id");
         RemoteReplicationGroup rrGroup = queryResource(id);
 
-        // todo: validate that this operation is valid: if operations are allowed on groups, if group state is valid for the operation, if the group is reachable, etc.
+        RemoteReplicationElement rrElement = new RemoteReplicationElement(RemoteReplicationSet.ElementType.REPLICATION_GROUP, id);
+        RemoteReplicationUtils.validateRemoteReplicationOperation(rrElement, RemoteReplicationController.RemoteReplicationOperations.FAIL_BACK);
+
         // Create a task for the create remote replication group operation
         String taskId = UUID.randomUUID().toString();
         Operation op = _dbClient.createTaskOpStatus(RemoteReplicationGroup.class, rrGroup.getId(),
                 taskId, ResourceOperationTypeEnum.FAILBACK_REMOTE_REPLICATION_GROUP_LINK);
 
-        RemoteReplicationElement rrElement = new RemoteReplicationElement(RemoteReplicationSet.ElementType.REPLICATION_GROUP, id);
         // send request to controller
         try {
             RemoteReplicationBlockServiceApiImpl rrServiceApi = getRemoteReplicationServiceApi();
@@ -291,13 +295,13 @@ public class RemoteReplicationGroupService extends TaskResourceService {
         ArgValidator.checkFieldUriType(id, RemoteReplicationGroup.class, "id");
         RemoteReplicationGroup rrGroup = queryResource(id);
 
-        // todo: validate that this operation is valid: if operations are allowed on groups, if group state is valid for the operation, if the group is reachable, etc.
-        // Create a task for the create remote replication group operation
+        RemoteReplicationElement rrElement = new RemoteReplicationElement(RemoteReplicationSet.ElementType.REPLICATION_GROUP, id);
+        RemoteReplicationUtils.validateRemoteReplicationOperation(rrElement, RemoteReplicationController.RemoteReplicationOperations.ESTABLISH);
+
         String taskId = UUID.randomUUID().toString();
         Operation op = _dbClient.createTaskOpStatus(RemoteReplicationGroup.class, rrGroup.getId(),
                 taskId, ResourceOperationTypeEnum.ESTABLISH_REMOTE_REPLICATION_GROUP_LINK);
 
-        RemoteReplicationElement rrElement = new RemoteReplicationElement(RemoteReplicationSet.ElementType.REPLICATION_GROUP, id);
         // send request to controller
         try {
             RemoteReplicationBlockServiceApiImpl rrServiceApi = getRemoteReplicationServiceApi();
@@ -328,13 +332,14 @@ public class RemoteReplicationGroupService extends TaskResourceService {
         ArgValidator.checkFieldUriType(id, RemoteReplicationGroup.class, "id");
         RemoteReplicationGroup rrGroup = queryResource(id);
 
-        // todo: validate that this operation is valid: if operations are allowed on groups, if group state is valid for the operation, if the group is reachable, etc.
-        // Create a task for the create remote replication group operation
+        RemoteReplicationElement rrElement = new RemoteReplicationElement(RemoteReplicationSet.ElementType.REPLICATION_GROUP, id);
+        RemoteReplicationUtils.validateRemoteReplicationOperation(rrElement, RemoteReplicationController.RemoteReplicationOperations.SPLIT);
+
+        // Create a task for split remote replication group operation
         String taskId = UUID.randomUUID().toString();
         Operation op = _dbClient.createTaskOpStatus(RemoteReplicationGroup.class, rrGroup.getId(),
                 taskId, ResourceOperationTypeEnum.SPLIT_REMOTE_REPLICATION_GROUP_LINK);
 
-        RemoteReplicationElement rrElement = new RemoteReplicationElement(RemoteReplicationSet.ElementType.REPLICATION_GROUP, id);
         // send request to controller
         try {
             RemoteReplicationBlockServiceApiImpl rrServiceApi = getRemoteReplicationServiceApi();
@@ -365,13 +370,13 @@ public class RemoteReplicationGroupService extends TaskResourceService {
         ArgValidator.checkFieldUriType(id, RemoteReplicationGroup.class, "id");
         RemoteReplicationGroup rrGroup = queryResource(id);
 
-        // todo: validate that this operation is valid: if operations are allowed on groups, if group state is valid for the operation, if the group is reachable, etc.
-        // Create a task for the create remote replication group operation
+        RemoteReplicationElement rrElement = new RemoteReplicationElement(RemoteReplicationSet.ElementType.REPLICATION_GROUP, id);
+        RemoteReplicationUtils.validateRemoteReplicationOperation(rrElement, RemoteReplicationController.RemoteReplicationOperations.SUSPEND);
+
         String taskId = UUID.randomUUID().toString();
         Operation op = _dbClient.createTaskOpStatus(RemoteReplicationGroup.class, rrGroup.getId(),
                 taskId, ResourceOperationTypeEnum.SUSPEND_REMOTE_REPLICATION_GROUP_LINK);
 
-        RemoteReplicationElement rrElement = new RemoteReplicationElement(RemoteReplicationSet.ElementType.REPLICATION_GROUP, id);
         // send request to controller
         try {
             RemoteReplicationBlockServiceApiImpl rrServiceApi = getRemoteReplicationServiceApi();
@@ -403,13 +408,13 @@ public class RemoteReplicationGroupService extends TaskResourceService {
         ArgValidator.checkFieldUriType(id, RemoteReplicationGroup.class, "id");
         RemoteReplicationGroup rrGroup = queryResource(id);
 
-        // todo: validate that this operation is valid: if operations are allowed on groups, if group state is valid for the operation, if the group is reachable, etc.
-        // Create a task for the create remote replication group operation
+        RemoteReplicationElement rrElement = new RemoteReplicationElement(RemoteReplicationSet.ElementType.REPLICATION_GROUP, id);
+        RemoteReplicationUtils.validateRemoteReplicationOperation(rrElement, RemoteReplicationController.RemoteReplicationOperations.RESUME);
+
         String taskId = UUID.randomUUID().toString();
         Operation op = _dbClient.createTaskOpStatus(RemoteReplicationGroup.class, rrGroup.getId(),
                 taskId, ResourceOperationTypeEnum.RESUME_REMOTE_REPLICATION_GROUP_LINK);
 
-        RemoteReplicationElement rrElement = new RemoteReplicationElement(RemoteReplicationSet.ElementType.REPLICATION_GROUP, id);
         // send request to controller
         try {
             RemoteReplicationBlockServiceApiImpl rrServiceApi = getRemoteReplicationServiceApi();
@@ -440,13 +445,14 @@ public class RemoteReplicationGroupService extends TaskResourceService {
         ArgValidator.checkFieldUriType(id, RemoteReplicationGroup.class, "id");
         RemoteReplicationGroup rrGroup = queryResource(id);
 
-        // todo: validate that this operation is valid: if operations are allowed on groups, if group state is valid for the operation, if the group is reachable, etc.
-        // Create a task for the create remote replication group operation
+
+        RemoteReplicationElement rrElement = new RemoteReplicationElement(RemoteReplicationSet.ElementType.REPLICATION_GROUP, id);
+        RemoteReplicationUtils.validateRemoteReplicationOperation(rrElement, RemoteReplicationController.RemoteReplicationOperations.SWAP);
+
         String taskId = UUID.randomUUID().toString();
         Operation op = _dbClient.createTaskOpStatus(RemoteReplicationGroup.class, rrGroup.getId(),
                 taskId, ResourceOperationTypeEnum.SWAP_REMOTE_REPLICATION_GROUP_LINK);
 
-        RemoteReplicationElement rrElement = new RemoteReplicationElement(RemoteReplicationSet.ElementType.REPLICATION_GROUP, id);
         // send request to controller
         try {
             RemoteReplicationBlockServiceApiImpl rrServiceApi = getRemoteReplicationServiceApi();
@@ -480,13 +486,13 @@ public class RemoteReplicationGroupService extends TaskResourceService {
 
         String newMode = param.getNewMode();
 
-        // todo: validate that this operation is valid: if operations are allowed on groups, if group state is valid for the operation, if the group is reachable, etc.
-        // Create a task for the create remote replication group operation
+        RemoteReplicationElement rrElement = new RemoteReplicationElement(RemoteReplicationSet.ElementType.REPLICATION_GROUP, id);
+        RemoteReplicationUtils.validateRemoteReplicationModeChange(rrElement, newMode);
+
         String taskId = UUID.randomUUID().toString();
         Operation op = _dbClient.createTaskOpStatus(RemoteReplicationGroup.class, rrGroup.getId(),
                 taskId, ResourceOperationTypeEnum.CHANGE_REMOTE_REPLICATION_MODE);
 
-        RemoteReplicationElement rrElement = new RemoteReplicationElement(RemoteReplicationSet.ElementType.REPLICATION_GROUP, id);
         // send request to controller
         try {
             RemoteReplicationBlockServiceApiImpl rrServiceApi = getRemoteReplicationServiceApi();

@@ -52,7 +52,7 @@ public class CatalogServiceMapper {
     }
 
     public static CatalogServiceRestRep map(CatalogService from, ServiceDescriptor descriptor,
-            List<CatalogServiceField> catalogServiceFields, String workflowDocument) {
+            List<CatalogServiceField> catalogServiceFields) {
         if (from == null) {
             return null;
         }
@@ -71,9 +71,6 @@ public class CatalogServiceMapper {
         }
         if (from.getExecutionWindowRequired() != null) {
             to.setExecutionWindowRequired(from.getExecutionWindowRequired());
-        }
-        if(null != workflowDocument && !workflowDocument.isEmpty()) {
-            to.setWorkflowDocument(workflowDocument);
         }
         
         to.setBaseService(from.getBaseService());

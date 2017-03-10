@@ -70,11 +70,6 @@ public class WorkflowServiceDescriptor {
             throw new IllegalStateException(String.format("Multiple workflows with the name %s", serviceName));
         }
         CustomServicesWorkflow customServicesWorkflow = results.get(0);
-        // Return service only if its PUBLISHED
-        if (!CustomServicesWorkflowStatus.PUBLISHED.toString().equals(customServicesWorkflow.getState())) {
-            log.debug("Not returning workflow service because its state ({}) is not published", customServicesWorkflow.getState());
-            return null;
-        }
         return mapWorkflowToServiceDescriptor(customServicesWorkflow);
     }
 

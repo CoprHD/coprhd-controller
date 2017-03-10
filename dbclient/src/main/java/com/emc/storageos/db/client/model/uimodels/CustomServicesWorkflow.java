@@ -30,6 +30,8 @@ import com.emc.storageos.model.valid.EnumType;
 @Cf("CustomServicesWorkflow")
 public class CustomServicesWorkflow extends ModelObjectWithACLs {
 
+    public static final String ID_PREFIX = "urn:storageos:CustomServicesWorkflow:";
+
     public static final String NAME = "name";
     public static final String DESCRIPTION = "description";
     public static final String STEPS = "steps";

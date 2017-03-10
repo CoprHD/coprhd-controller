@@ -57,10 +57,19 @@ public class DefaultExecutionServiceFactory implements ExecutionServiceFactory, 
 
     @Override
     public ExecutionService createService(Order order, CatalogService catalogService) throws ServiceNotFoundException {
-        String serviceName = catalogService.getBaseService();
+        String serviceName;
+        if (null == catalogService) {
+            // This is case of "Test Orders".
+            // Getting service name from workflow (as there is no catalog service)
+            final CustomServicesWorkflow customServicesWorkflow = customServicesWorkflowManager.getById(order.getCatalogServiceId());
+            serviceName = customServicesWorkflow.getName();
+        }
+        else {
+            serviceName = catalogService.getBaseService();
+        }
         Class<? extends ExecutionService> serviceClass = services.get(serviceName);
         if (serviceClass == null) {
-            // Check if service is created from workflow base serivce.
+            // Check if service is created from workflow base service.
             // For these services there is only one executor - CustomServicesService
             if (isWorkflowService(serviceName)) {
                 serviceClass = services.get("CustomServicesService");

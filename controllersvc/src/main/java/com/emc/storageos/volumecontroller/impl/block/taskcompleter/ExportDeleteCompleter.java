@@ -69,9 +69,12 @@ public class ExportDeleteCompleter extends ExportTaskCompleter {
             }
             dbClient.updateObject(exportGroup);
 
+            if (Operation.isTerminalState(status)) {
+                // Clean stale references from EG if the status is either ready or error.
+                ExportUtils.cleanStaleReferences(exportGroup, dbClient);
+            }
+
             if (operation.getStatus().equals(Operation.Status.ready.name())) {
-                // Clean stale references from EG if the status is ready.
-                ExportUtils.cleanStaleReferences(exportGroup.getId(), dbClient);
                 if (!checkForActiveMasks) {
                     dbClient.markForDeletion(exportGroup);
                 } else { // Check if the associated ExportMasks as a condition of the markForDeletion();

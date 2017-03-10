@@ -104,14 +104,15 @@ public class ExportUpdateCompleter extends ExportTaskCompleter {
             }
             exportGroup.getOpStatus().updateTaskStatus(getOpId(), operation);
             // Update the export group data.
-            if ((status.equals(Operation.Status.ready)) || (status.equals(Operation.Status.error))) {
+            if (status.equals(Operation.Status.ready)) {
                 updateExportGroup(exportGroup, dbClient);
-                if (needToRunExportGroupCleanup(dbClient)) {
-                    // Clean stale references from EG if the status is ready
-                    ExportUtils.cleanStaleReferences(exportGroup.getId(), dbClient);
-                }
             }
             dbClient.updateObject(exportGroup);
+
+            if (Operation.isTerminalState(status)) {
+                // Clean stale references from EG if the status is either ready or error.
+                ExportUtils.cleanStaleReferences(exportGroup, dbClient);
+            }
             _log.info("export_update completer: done");
             _log.info(String.format("Done ExportMaskUpdate - Id: %s, OpId: %s, status: %s",
                     getId().toString(), getOpId(), status.name()));
@@ -174,36 +175,5 @@ public class ExportUpdateCompleter extends ExportTaskCompleter {
             exportGroup.removeVolumes(_removedBlockObjects);
         }
         dbClient.updateObject(exportGroup);
-    }
-
-    /**
-     * If the initiators and hosts are added, but there are no volumes in the export Group, then no need to run.
-     * If the initiators and hosts and clusters are added, but there are no volumes in the export Group, then no need to run.
-     * If volumes are added, but there are no initiators, no need to cleanup
-     *
-     * This is needed to handle CLI scenarios like Create Empty Export Group, Add host to Export Group, Add Volume to Export Group.
-     * the 1st 2 cases doesn't need to run Cleanup, but the 3rd needs to, as real export happens.
-     *
-     * Other case : Create Empty Export Group, Add Volume to Export Group, Add Host to Export Group.
-     * the 1st 2 cases doesn't need to run Cleanup, but the 3rd needs to, as real export happens.
-     * @return
-     */
-    private boolean needToRunExportGroupCleanup(DbClient dbClient) {
-        boolean needtoRunExportCleanupTask = true;
-        ExportGroup exportGroup = dbClient.queryObject(ExportGroup.class, getId());
-        if (null == exportGroup.getVolumes() || exportGroup.getVolumes().isEmpty()) {
-            if ((_addedInitiators != null && !_addedInitiators.isEmpty()) ||
-                    (_addedHosts != null && !_addedHosts.isEmpty())
-                    || (_addedClusters != null && !_addedClusters.isEmpty())) {
-                _log.info("No need to run Export Clean up, as export Group contains no volumes and the request includes to add compute resource.");
-                needtoRunExportCleanupTask = false;
-            }
-        } else if (null == exportGroup.getInitiators() || exportGroup.getInitiators().isEmpty()) {
-            if (_addedBlockObjects != null && !_addedBlockObjects.isEmpty()) {
-                needtoRunExportCleanupTask = false;
-                _log.info("No need to run Export Clean up, as export Group contains no initiators and the request includes to add volumes.");
-            }
-        }
-        return needtoRunExportCleanupTask;
     }
 }

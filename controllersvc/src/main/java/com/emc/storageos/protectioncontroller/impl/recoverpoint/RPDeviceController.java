@@ -1883,7 +1883,6 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
         StorageSystem targetStorageSystem = null;
 
         for (VolumeDescriptor targetVolumeDescriptor : targets) {
-
             targetVolume = _dbClient.queryObject(Volume.class, targetVolumeDescriptor.getVolumeURI());
             targetStorageSystem = _dbClient.queryObject(StorageSystem.class, targetVolume.getStorageController());
 

@@ -649,43 +649,34 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
         Volume sourceJournal = null;
         Volume standbyJournal = null;
 
-        List<Volume> cgSourceVolumes = new ArrayList<Volume>();
-        List<Volume> cgTargetVolumes = new ArrayList<Volume>();
-
         // This boolean indicates that the operation is only for adding additional journals.
         // When adding additional journals, there is the option to add multiple new journals,
         // however, for all other creates we are either re-using an existing journal or
         // just creating a single journal.
         // i.e. the majority of the time we are only creating a single journal.
         boolean journalOnlyCreate = capabilities.getAddJournalCapacity();
-
+        
+        RPRecommendation sourceJournalRec = rpProtectionRec.getSourceJournalRecommendation();
+        RPRecommendation standbyJournalRec = rpProtectionRec.getStandbyJournalRecommendation();
+        
         // Only check for existing source journals if this is not a direct journal add operation.
         if (!journalOnlyCreate) {
-            // If the CG already contains RP volumes, then we need to check if new/additional journal
-            // volumes need to be created, based on the journal policy specified.
-            cgSourceVolumes = RPHelper.getCgVolumes(_dbClient, consistencyGroup.getId(), Volume.PersonalityTypes.SOURCE.toString());
-            cgTargetVolumes = RPHelper.getCgVolumes(_dbClient, consistencyGroup.getId(), Volume.PersonalityTypes.TARGET.toString());
+            if (sourceJournalRec == null) {
+                _log.info(String.format("Re-use existing Source Journal for copy [%s]", sourceCopyName));
+                // If the CG contains volumes already and no new additional journals are provisioned,
+                // then we simply update the reference on the source for the journal volume.
+                List<Volume> existingSourceJournals = RPHelper.findExistingJournalsForCopy(_dbClient, consistencyGroup.getId(),
+                        sourceCopyName);
+                sourceJournal = existingSourceJournals.get(0);
+                _log.info(String.format("Existing Primary Source Journal: [%s] (%s)", sourceJournal.getLabel(), sourceJournal.getId()));
 
-            if (!cgSourceVolumes.isEmpty()) {
-                boolean isAdditionalSourceJournalRequired = _rpHelper.isAdditionalJournalRequiredForRPCopy(vpool.getJournalSize(),
-                        consistencyGroup, param.getSize(), numberOfVolumesInRequest, sourceCopyName);
-                if (!isAdditionalSourceJournalRequired) {
-                    _log.info(String.format("Re-use existing Source Journal for copy [%s]", sourceCopyName));
-                    // If the CG contains volumes already and no new additional journals are provisioned,
-                    // then we simply update the reference on the source for the journal volume.
-                    List<Volume> existingSourceJournals = RPHelper.findExistingJournalsForCopy(_dbClient, consistencyGroup.getId(),
-                            sourceCopyName);
-                    sourceJournal = existingSourceJournals.get(0);
-                    _log.info(String.format("Existing Primary Source Journal: [%s] (%s)", sourceJournal.getLabel(), sourceJournal.getId()));
-
-                    if (VirtualPool.vPoolSpecifiesMetroPoint(vpool) && !isChangeVpoolForProtectedVolume) {
-                        _log.info(String.format("Re-use existing Standby Journal for copy [%s]", standbySourceCopyName));
-                        List<Volume> existingStandbyJournals = RPHelper.findExistingJournalsForCopy(_dbClient, consistencyGroup.getId(),
-                                standbySourceCopyName);
-                        standbyJournal = existingStandbyJournals.get(0);
-                        _log.info(String.format("Existing Standby Source Journal: [%s] (%s)", standbyJournal.getLabel(),
-                                standbyJournal.getId()));
-                    }
+                if (VirtualPool.vPoolSpecifiesMetroPoint(vpool) && !isChangeVpoolForProtectedVolume) {
+                    _log.info(String.format("Re-use existing Standby Journal for copy [%s]", standbySourceCopyName));
+                    List<Volume> existingStandbyJournals = RPHelper.findExistingJournalsForCopy(_dbClient, consistencyGroup.getId(),
+                            standbySourceCopyName);
+                    standbyJournal = existingStandbyJournals.get(0);
+                    _log.info(String.format("Existing Standby Source Journal: [%s] (%s)", standbyJournal.getLabel(),
+                            standbyJournal.getId()));
                 }
             }
         }
@@ -693,22 +684,20 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
         // /////// ACTIVE SOURCE JOURNAL ///////////
         if (!isChangeVpoolForProtectedVolume
                 && (sourceJournal == null)
-                && rpProtectionRec.getSourceJournalRecommendation() != null) {
+                && sourceJournalRec != null) {
             _log.info("Create Active Source Journal...");
 
             // varray is used to get unique journal volume names
-            VirtualArray varray = _dbClient.queryObject(VirtualArray.class, rpProtectionRec.getSourceJournalRecommendation()
+            VirtualArray varray = _dbClient.queryObject(VirtualArray.class, sourceJournalRec
                     .getVirtualArray());
 
             // Number of journals to create - will only be greater than 1 when doing add journal operation.
-            int numberOfJournalVolumesInRequest = rpProtectionRec.getSourceJournalRecommendation().getResourceCount();
-
-            // Let's not get into multiple of multiples, this class will handle multi volume creates.
-            // So force the incoming VolumeCreate param to be set to 1 always from here on.
-            rpProtectionRec.getSourceJournalRecommendation().setResourceCount(1);
+            int numberOfJournalVolumesInRequest = sourceJournalRec.getResourceCount();
+            
+            // Force resource count to 1
+            sourceJournalRec.setResourceCount(1);
 
             for (int volumeCount = 0; volumeCount < numberOfJournalVolumesInRequest; volumeCount++) {
-
                 // acquire a lock so it's possible to get a unique name for the volume
                 String lockKey = new StringBuilder(consistencyGroup.getLabel()).append("-").append(varray.getLabel()).toString();
                 InterProcessLockHolder lock = null;
@@ -719,7 +708,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                     String journalName = _rpHelper.createJournalVolumeName(varray, consistencyGroup);
 
                     // Create source journal
-                    sourceJournal = createRecoverPointVolume(rpProtectionRec.getSourceJournalRecommendation(), journalName, project,
+                    sourceJournal = createRecoverPointVolume(sourceJournalRec, journalName, project,
                             capabilities, consistencyGroup, param, protectionSystemURI, Volume.PersonalityTypes.METADATA,
                             JOURNAL_RSET, null, null, taskList, task, sourceCopyName, descriptors, null, false, false, true);
                 } finally {
@@ -733,20 +722,18 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
         }
 
         // /////// STANDBY SOURCE JOURNAL ///////////
-        if (standbyJournal == null && rpProtectionRec.getStandbyJournalRecommendation() != null) {
+        if (standbyJournal == null && standbyJournalRec != null) {
             _log.info("Create Standby Source Journal...");
 
             // varray is used to get unique journal volume names
-            VirtualArray varray = _dbClient.queryObject(VirtualArray.class,
-                    rpProtectionRec.getStandbyJournalRecommendation().getVirtualArray());
+            VirtualArray varray = _dbClient.queryObject(VirtualArray.class, standbyJournalRec.getVirtualArray());
 
             // Number of journals to create - will only be greater than 1 when doing add journal operation.
-            int numberOfJournalVolumesInRequest = rpProtectionRec.getStandbyJournalRecommendation().getResourceCount();
-
-            // Let's not get into multiple of multiples, this class will handle multi volume creates.
-            // So force the incoming VolumeCreate param to be set to 1 always from here on.
-            rpProtectionRec.getStandbyJournalRecommendation().setResourceCount(1);
-
+            int numberOfJournalVolumesInRequest = standbyJournalRec.getResourceCount();
+            
+            // Force resource count to 1
+            standbyJournalRec.setResourceCount(1);
+           
             for (int volumeCount = 0; volumeCount < numberOfJournalVolumesInRequest; volumeCount++) {
 
                 // acquire a lock so it's possible to get a unique name for the volume
@@ -759,7 +746,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                     String journalName = _rpHelper.createJournalVolumeName(varray, consistencyGroup);
 
                     // If MetroPoint is enabled we need to create the standby journal volume
-                    standbyJournal = createRecoverPointVolume(rpProtectionRec.getStandbyJournalRecommendation(), journalName, project,
+                    standbyJournal = createRecoverPointVolume(standbyJournalRec, journalName, project,
                             capabilities, consistencyGroup, param, protectionSystemURI, Volume.PersonalityTypes.METADATA,
                             JOURNAL_RSET, null, null, taskList, task, standbySourceCopyName, descriptors, null, false, false, true);
                 } finally {
@@ -792,44 +779,43 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                 if (targetCopyVarray == null) {
                     targetCopyVarray = targetJournalVarray;
                 }
-
-                // Only need to enter this block if we already have existing journals in the CG
-                // and we want to see if more space is required or if we are performing an add
-                // journal volume operation
-                if (!cgTargetVolumes.isEmpty() && !capabilities.getAddJournalCapacity()) {
-                    VpoolProtectionVarraySettings protectionSettings = _rpHelper.getProtectionSettings(originalVpool, targetCopyVarray);
-                    String targetCopyName = targetJournalRec.getRpCopyName();
-                    if (targetCopyName == null) {
-                        // Target RP copy name was not set on the recommendation, find it from the CG.
-                        targetCopyName = RPHelper.getCgCopyName(_dbClient, consistencyGroup, targetCopyVarray.getId(), false);
-                    }
-                    boolean isAdditionalTargetJournalRequired = _rpHelper.isAdditionalJournalRequiredForRPCopy(
-                            protectionSettings.getJournalSize(), consistencyGroup, param.getSize(),
-                            numberOfVolumesInRequest,
-                            targetCopyName);
-                    if (!isAdditionalTargetJournalRequired) {
-                        // If the CG contains volumes already and no new additional journals are provisioned,
-                        // then we simply update the reference on the source for the journal volume.
-                        _log.info(String.format("Re-use existing Target Journal for copy [%s]", targetCopyName));
-                        List<Volume> existingTargetJournals = RPHelper.findExistingJournalsForCopy(_dbClient, consistencyGroup.getId(),
-                                targetCopyName);
-                        Volume existingTargetJournalVolume = existingTargetJournals.get(0);
-                        _log.info(String.format("Existing Target Journal: [%s] (%s)", existingTargetJournalVolume.getLabel(),
-                                existingTargetJournalVolume.getId()));
-                        continue;
-                    }
-                }
+//
+//                // Only need to enter this block if we already have existing journals in the CG
+//                // and we want to see if more space is required or if we are performing an add
+//                // journal volume operation
+//                if (!cgTargetVolumes.isEmpty() && !capabilities.getAddJournalCapacity()) {
+//// BBB                    
+////                     VpoolProtectionVarraySettings protectionSettings = _rpHelper.getProtectionSettings(originalVpool, targetCopyVarray);
+//                    String targetCopyName = targetJournalRec.getRpCopyName();
+//                    if (targetCopyName == null) {
+//                        // Target RP copy name was not set on the recommendation, find it from the CG.
+//                        targetCopyName = RPHelper.getCgCopyName(_dbClient, consistencyGroup, targetCopyVarray.getId(), false);
+//                    }
+////                    boolean isAdditionalTargetJournalRequired = _rpHelper.isAdditionalJournalRequiredForRPCopy(
+////                            protectionSettings.getJournalSize(), consistencyGroup, param.getSize(),
+////                            numberOfVolumesInRequest,
+////                            targetCopyName, targetJournalRec);
+////                    if (!isAdditionalTargetJournalRequired) {
+//                        // If the CG contains volumes already and no new additional journals are provisioned,
+//                        // then we simply update the reference on the source for the journal volume.
+//                        _log.info(String.format("Re-use existing Target Journal for copy [%s]", targetCopyName));
+//                        List<Volume> existingTargetJournals = RPHelper.findExistingJournalsForCopy(_dbClient, consistencyGroup.getId(),
+//                                targetCopyName);
+//                        Volume existingTargetJournalVolume = existingTargetJournals.get(0);
+//                        _log.info(String.format("Existing Target Journal: [%s] (%s)", existingTargetJournalVolume.getLabel(),
+//                                existingTargetJournalVolume.getId()));
+//                        continue;
+//                    //}
+//                }
 
                 _log.info(String.format("Create Target Journal (%s)...", targetJournalVarray.getLabel()));
                 // Number of journals to create - will only be greater than 1 when doing add journal operation.
                 int numberOfJournalVolumesInRequest = targetJournalRec.getResourceCount();
 
-                // Let's not get into multiple of multiples, this class will handle multi volume creates.
-                // So force the incoming VolumeCreate param to be set to 1 always from here on.
+                // Force resource count to 1
                 targetJournalRec.setResourceCount(1);
 
                 for (int volumeCount = 0; volumeCount < numberOfJournalVolumesInRequest; volumeCount++) {
-
                     // acquire a lock so it's possible to get a unique name for the volume
                     String lockKey = new StringBuilder(consistencyGroup.getLabel()).append("-").append(targetCopyVarray.getLabel())
                             .toString();
@@ -854,7 +840,13 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                     }
                 }
             }
+        } else {
+            _log.info("Re-use existing Target journals.");
         }
+        
+//        if (true) {
+//            throw new NullPointerException("STOP!!!");
+//        }
     }
 
     /**

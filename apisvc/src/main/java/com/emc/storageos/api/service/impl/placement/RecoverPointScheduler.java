@@ -556,6 +556,7 @@ public class RecoverPointScheduler implements Scheduler {
                     RPRecommendation sourceJournalRecommendation = null;
                     if (rpProtectionRecommendation.getSourceJournalRecommendation() == null) {
                         _log.info(String.format("RP Placement : Build RP Source Journal Recommendation..."));
+                        //int journalCount = 
                         sourceJournalRecommendation = buildJournalRecommendation(rpProtectionRecommendation,
                                 candidateSourceInternalSiteName,
                                 vpool.getJournalSize(), journalVarray, journalVpool, candidateProtectionSystem,
@@ -2111,42 +2112,57 @@ public class RecoverPointScheduler implements Scheduler {
         recommendation.setVpoolChangeProtectionAlreadyExists(vpoolChangeVolume != null ? vpoolChangeVolume.checkForRp() : false);
         recommendation.setResourceCount(capabilities.getResourceCount());
 
-        // ACTIVE SOURCE JOURNAL Recommendation
-        List<Volume> sourceJournals = RPHelper.findExistingJournalsForCopy(dbClient, sourceVolume.getConsistencyGroup(), sourceVolume.getRpCopyName());
-        Volume sourceJournal = sourceJournals.get(0);
-        if (sourceJournal == null) {
-            _log.error(String.format("No existing source journal found in CG [%s] for copy [%s], returning false", 
-                    sourceVolume.getConsistencyGroup(), sourceVolume.getRpCopyName()));
-            throw APIException.badRequests.unableToFindSuitableJournalRecommendation();
-        }
-        
-                
-        VirtualPool sourceJournalVpool = NullColumnValueGetter.isNotNullValue(vpool.getJournalVpool()) ? dbClient.queryObject(
-                VirtualPool.class, URI.create(vpool.getJournalVpool())) : vpool;
-        Long sourceJournalSize = getJournalCapabilities(vpool.getJournalSize(), capabilities, 1).getSize();
-        
-        RPRecommendation sourceJournalRecommendation = 
-                buildRpRecommendationFromExistingVolume(sourceJournal, sourceJournalVpool, capabilities, sourceJournalSize);        
-        recommendation.setSourceJournalRecommendation(sourceJournalRecommendation);
-
-        // STANDBY SOURCE JOURNAL Recommendation
-        String standbyCopyName = RPHelper.getStandbyProductionCopyName(dbClient, sourceVolume);                        
-        if (standbyCopyName != null) {            
-            List<Volume> existingStandbyJournals = RPHelper.findExistingJournalsForCopy(dbClient, sourceVolume.getConsistencyGroup(), standbyCopyName);                        
-            Volume standbyJournal = existingStandbyJournals.get(0);
-            if (standbyJournal == null) {
-                _log.error(String.format("No existing standby journal found in CG [%s] for copy [%s], returning false", 
-                        sourceVolume.getConsistencyGroup(), standbyCopyName));
+        // Check to see if we need an additional journal for Source
+        Map<Integer, Long> additionalJournalForSource = RPHelper.additionalJournalRequiredForRPCopy(vpool.getJournalSize(), cg, 
+                capabilities.getSize(), capabilities.getResourceCount(), sourceVolume.getRpCopyName(), dbClient);
+        if (additionalJournalForSource != null) {
+            // ACTIVE SOURCE JOURNAL Recommendation
+            List<Volume> sourceJournals = RPHelper.findExistingJournalsForCopy(dbClient, sourceVolume.getConsistencyGroup(), sourceVolume.getRpCopyName());
+            Volume sourceJournal = sourceJournals.get(0);
+            if (sourceJournal == null) {
+                _log.error(String.format("No existing source journal found in CG [%s] for copy [%s], returning false", 
+                        sourceVolume.getConsistencyGroup(), sourceVolume.getRpCopyName()));
                 throw APIException.badRequests.unableToFindSuitableJournalRecommendation();
             }
-                        
-            VirtualPool haVpool = (null != VirtualPool.getHAVPool(vpool, dbClient)) ? VirtualPool.getHAVPool(vpool, dbClient) : vpool;
-            VirtualPool standbyJournalVpool = NullColumnValueGetter.isNotNullValue(vpool.getStandbyJournalVpool()) ? dbClient.queryObject(
-                    VirtualPool.class, URI.create(vpool.getStandbyJournalVpool())) : haVpool;
+                    
+            VirtualPool sourceJournalVpool = NullColumnValueGetter.isNotNullValue(vpool.getJournalVpool()) ? dbClient.queryObject(
+                    VirtualPool.class, URI.create(vpool.getJournalVpool())) : vpool;
+            Long sourceJournalSize = getJournalCapabilities(vpool.getJournalSize(), capabilities, 1).getSize();
+            
+            RPRecommendation sourceJournalRecommendation = 
+                    buildRpRecommendationFromExistingVolume(sourceJournal, sourceJournalVpool, capabilities, sourceJournalSize);  
+            
+            // Override values with journal specific count and size
+            Map.Entry<Integer, Long> entry = additionalJournalForSource.entrySet().iterator().next();
+            sourceJournalRecommendation.setResourceCount(entry.getKey());
+            sourceJournalRecommendation.setSize(entry.getValue());
+            
+            recommendation.setSourceJournalRecommendation(sourceJournalRecommendation);
+    
+            // STANDBY SOURCE JOURNAL Recommendation
+            String standbyCopyName = RPHelper.getStandbyProductionCopyName(dbClient, sourceVolume);                        
+            if (standbyCopyName != null) {            
+                List<Volume> existingStandbyJournals = RPHelper.findExistingJournalsForCopy(dbClient, sourceVolume.getConsistencyGroup(), standbyCopyName);                        
+                Volume standbyJournal = existingStandbyJournals.get(0);
+                if (standbyJournal == null) {
+                    _log.error(String.format("No existing standby journal found in CG [%s] for copy [%s], returning false", 
+                            sourceVolume.getConsistencyGroup(), standbyCopyName));
+                    throw APIException.badRequests.unableToFindSuitableJournalRecommendation();
+                }
                             
-            RPRecommendation standbyJournalRecommendation = 
-                    buildRpRecommendationFromExistingVolume(standbyJournal, standbyJournalVpool, capabilities, sourceJournalSize);
-            recommendation.setStandbyJournalRecommendation(standbyJournalRecommendation);
+                VirtualPool haVpool = (null != VirtualPool.getHAVPool(vpool, dbClient)) ? VirtualPool.getHAVPool(vpool, dbClient) : vpool;
+                VirtualPool standbyJournalVpool = NullColumnValueGetter.isNotNullValue(vpool.getStandbyJournalVpool()) ? dbClient.queryObject(
+                        VirtualPool.class, URI.create(vpool.getStandbyJournalVpool())) : haVpool;
+                                
+                RPRecommendation standbyJournalRecommendation = 
+                        buildRpRecommendationFromExistingVolume(standbyJournal, standbyJournalVpool, capabilities, sourceJournalSize);
+                
+                // Override values with journal specific count and size                
+                sourceJournalRecommendation.setResourceCount(entry.getKey());
+                sourceJournalRecommendation.setSize(entry.getValue());
+                
+                recommendation.setStandbyJournalRecommendation(standbyJournalRecommendation);
+            }
         }
 
         // SOURCE Recommendation
@@ -2172,25 +2188,36 @@ public class RecoverPointScheduler implements Scheduler {
             }
             sourceRecommendation.getTargetRecommendations().add(targetRecommendation);
 
-            // TARGET JOURNAL Recommendation
-            List<Volume> targetJournals = RPHelper.findExistingJournalsForCopy(dbClient, targetVolume.getConsistencyGroup(), targetVolume.getRpCopyName());
-            Volume targetJournal = targetJournals.get(0);         
-            if (targetJournal == null) {
-                _log.error(String.format("No existing target journal found in CG [%s] for copy [%s], returning false", 
-                        targetVolume.getConsistencyGroup(), targetVolume.getRpCopyName()));
-                throw APIException.badRequests.unableToFindSuitableJournalRecommendation();
-            }                        
-           
-            VirtualPool targetJournalVpool = protectionSettings.get(protectionVarray.getId()).getJournalVpool() != null ? dbClient
-                    .queryObject(VirtualPool.class, protectionSettings.get(protectionVarray.getId()).getJournalVpool()) : targetVpool;
-            Long targetJournalSize = getJournalCapabilities(protectionSettings.get(protectionVarray.getId()).getJournalSize(),
-                          capabilities, 1).getSize(); 
-            RPRecommendation targetJournalRecommendation = 
-                     buildRpRecommendationFromExistingVolume(targetJournal, targetJournalVpool, capabilities, targetJournalSize);
-            if (recommendation.getTargetJournalRecommendations() == null) {
-                recommendation.setTargetJournalRecommendations(new ArrayList<RPRecommendation>());
+            // Check to see if we need an additional journal for Target
+            Map<Integer, Long> additionalJournalForTarget = RPHelper.additionalJournalRequiredForRPCopy(vpool.getJournalSize(), cg, 
+                    capabilities.getSize(), capabilities.getResourceCount(), targetVolume.getRpCopyName(), dbClient);
+            if (additionalJournalForTarget != null) {
+                // TARGET JOURNAL Recommendation
+                List<Volume> targetJournals = RPHelper.findExistingJournalsForCopy(dbClient, targetVolume.getConsistencyGroup(), targetVolume.getRpCopyName());
+                Volume targetJournal = targetJournals.get(0);         
+                if (targetJournal == null) {
+                    _log.error(String.format("No existing target journal found in CG [%s] for copy [%s], returning false", 
+                            targetVolume.getConsistencyGroup(), targetVolume.getRpCopyName()));
+                    throw APIException.badRequests.unableToFindSuitableJournalRecommendation();
+                }                        
+               
+                VirtualPool targetJournalVpool = protectionSettings.get(protectionVarray.getId()).getJournalVpool() != null ? dbClient
+                        .queryObject(VirtualPool.class, protectionSettings.get(protectionVarray.getId()).getJournalVpool()) : targetVpool;
+                Long targetJournalSize = getJournalCapabilities(protectionSettings.get(protectionVarray.getId()).getJournalSize(),
+                              capabilities, 1).getSize(); 
+                RPRecommendation targetJournalRecommendation = 
+                         buildRpRecommendationFromExistingVolume(targetJournal, targetJournalVpool, capabilities, targetJournalSize);
+                
+                // Override values with journal specific count and size
+                Map.Entry<Integer, Long> entry = additionalJournalForTarget.entrySet().iterator().next();
+                targetJournalRecommendation.setResourceCount(entry.getKey());
+                targetJournalRecommendation.setSize(entry.getValue());
+                
+                if (recommendation.getTargetJournalRecommendations() == null) {
+                    recommendation.setTargetJournalRecommendations(new ArrayList<RPRecommendation>());
+                }
+                recommendation.getTargetJournalRecommendations().add(targetJournalRecommendation);
             }
-            recommendation.getTargetJournalRecommendations().add(targetJournalRecommendation);
         }
         
         _log.info(String.format("Produced recommendations based on existing source volume [%s](%s) from " +
@@ -2453,6 +2480,7 @@ public class RecoverPointScheduler implements Scheduler {
                 }
             }
         }
+        
         return cgPoolsHaveAvailableCapacity;
     }
 
@@ -2896,7 +2924,6 @@ public class RecoverPointScheduler implements Scheduler {
      * @param haVarray - HA Virtual Array
      * @param haVpool - HA Virtual Pool
      * @param capabilities - Virtual Pool capabilities
-     * @param journalPolicy - RP journal policy as defined in the corresponding RP source/target Virtual Pool.
      * @param personality - Volume personality
      * @param internalSiteName - RP internal site name
      * @return - List of recommendations
@@ -2960,7 +2987,7 @@ public class RecoverPointScheduler implements Scheduler {
         }
 
         if (!recommendations.isEmpty()) {
-            // There is atleast one pool that is capable of satisfying the request, return the list.
+            // There is at least one pool that is capable of satisfying the request, return the list.
             printPoolRecommendations(recommendations);
             return recommendations;
         }
@@ -3014,7 +3041,7 @@ public class RecoverPointScheduler implements Scheduler {
             }
 
             if (recommendations.isEmpty()) {
-                // Couldnt find a free pool or used pool, return all the pools that sees the same RP site as the one we are trying for a
+                // Couldn't find a free pool or used pool, return all the pools that sees the same RP site as the one we are trying for a
                 // recommendation for.
                 journalRecs = rpProtectionRecommendation.getPoolsInAllRecommendations();
                 for (RPRecommendation journalRec : journalRecs) {

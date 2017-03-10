@@ -3242,14 +3242,14 @@ orders.warning=Based on the current filter, %s orders were found in the database
 orders.delete=Delete Orders
 orders.delete.description=Click Confirm to delete the selected (checked) orders.
 orders.delete.all=All rows are checked, all <b style="color:red">%s</b> orders will be deleted.
-orders.delete.all.threshold=(Only %,d orders could be deleted done in every five days).
-orders.delete.help=We strongly recommend that you download the orders before deleting them. <p>Only one 'Download/Delete' orders job is allowed at any given time. Only orders whose status are in '%s' can be deleted.</p>
+orders.delete.all.threshold=(You may delete a maximum of %,d orders every five days).
+orders.delete.help=Please download orders before deletion. <p>In order to be deleted, orders must be over 30 days old and have status equal to '%s'. Orders can't be deleted while a download or another deletion is in progress.</p>
 orders.delete.submitted=Orders deletion submitted successfully.
 orders.delete.status=Deleting orders from %s to %s is in progress: %s of %s orders have been successfully deleted, %s orders failed.
 orders.download=Download Orders
 orders.download.description=Click Confirm to delete the selected (checked) orders.
 orders.download.all=All rows are checked, all <b style="color:red">%s</b> orders will be downloaded.
-orders.download.help=Only one 'Download/Delete' orders job is allowed at any given time.
+orders.download.help=Orders can't be downloaded while a deletion or another download is in progress.
 orders.download.status=Downloading orders from %s to %s is in progress: %s of %s orders have been successfully downloaded, %s orders failed.
 orders.download.status.notime=Downloading orders is in progress: %s of %s orders have been successfully downloaded, %s orders failed.
 

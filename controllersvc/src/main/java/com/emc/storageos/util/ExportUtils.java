@@ -1964,21 +1964,14 @@ public class ExportUtils {
      * @param exportGroup
      * @param dbClient
      */
-    public static void cleanStaleReferences(URI exportGroupURI, DbClient dbClient) {
-        ExportGroup exportGroup = dbClient.queryObject(ExportGroup.class, exportGroupURI);
-        
-        cleanStaleMaskReferences(exportGroup, dbClient);
-        
-        cleanStaleInitiatorReferences(exportGroup, dbClient);
-        
-        cleanStaleHostReferences(exportGroup, dbClient);
-        
-        cleanStaleClusterReferences(exportGroup, dbClient);
-        
-        cleanStaleVolumeReferences(exportGroup, dbClient);
-        
-        // Export Group might have been marked to deletion already
+    public static void cleanStaleReferences(ExportGroup exportGroup, DbClient dbClient) {
         if (null != exportGroup && !exportGroup.getInactive()) {
+            cleanStaleMaskReferences(exportGroup, dbClient);
+            cleanStaleInitiatorReferences(exportGroup, dbClient);
+            cleanStaleHostReferences(exportGroup, dbClient);
+            cleanStaleClusterReferences(exportGroup, dbClient);
+            cleanStaleVolumeReferences(exportGroup, dbClient);
+
             dbClient.updateObject(exportGroup);
         }
     }

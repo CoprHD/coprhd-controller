@@ -86,7 +86,7 @@ public class WorkflowDataManagerImpl implements DistributedDataManager {
     @Override
     public void putData(String path, Object object) throws Exception {
         Stat stat = checkExists(path);
-        byte[] data = GenericSerializer.serialize(object);
+        byte[] data = GenericSerializer.serialize(object, path, true);
         if (stat == null) {
             _zkClient.create().creatingParentsIfNeeded().withMode(CreateMode.PERSISTENT).forPath(path, data);
         } else {

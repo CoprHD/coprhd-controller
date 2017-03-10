@@ -158,6 +158,7 @@ import com.emc.storageos.model.vpool.VirtualPoolChangeOperationEnum;
 import com.emc.storageos.protectioncontroller.ProtectionController;
 import com.emc.storageos.protectioncontroller.RPController;
 import com.emc.storageos.protectionorchestrationcontroller.ProtectionOrchestrationController;
+import com.emc.storageos.remotereplicationcontroller.RemoteReplicationUtils;
 import com.emc.storageos.security.audit.AuditLogManager;
 import com.emc.storageos.security.authentication.StorageOSUser;
 import com.emc.storageos.security.authorization.ACL;
@@ -1014,10 +1015,14 @@ public class BlockService extends TaskResourceService {
                 throw APIException.badRequests.requiredParameterMissingOrEmpty("remoteReplicationParameters");
             }
             validateRemoteReplicationParameters(rrParameters);
+            validateCGForRemoteReplication(consistencyGroup, rrParameters, blockServiceImpl);
             capabilities.put(VirtualPoolCapabilityValuesWrapper.REMOTE_REPLICATION_SET, rrParameters.getRemoteReplicationSet());
             capabilities.put(VirtualPoolCapabilityValuesWrapper.REMOTE_REPLICATION_GROUP, rrParameters.getRemoteReplicationGroup());
             capabilities.put(VirtualPoolCapabilityValuesWrapper.REMOTE_REPLICATION_MODE, rrParameters.getRemoteReplicationMode());
             capabilities.put(VirtualPoolCapabilityValuesWrapper.REMOTE_REPLICATION_CREATE_INACTIVE, rrParameters.getCreateInactive());
+        } else if (consistencyGroup != null && cgOnlySupportRR(consistencyGroup)) {
+            _log.error("Consistency group {} should only be used to provision RR volumes", consistencyGroup.getId());
+            throw APIException.badRequests.consistencyGroupOnlySupportRRVolProvisioning(consistencyGroup.getId());
         }
 
 
@@ -1042,6 +1047,48 @@ public class BlockService extends TaskResourceService {
 
         _log.info("Kicked off thread to perform placement and scheduling.  Returning " + taskList.getTaskList().size() + " tasks");
         return taskList;
+    }
+
+    private void validateCGForRemoteReplication(BlockConsistencyGroup cGroup, RemoteReplicationParameters params,
+            BlockServiceApi blockService) {
+        if (cGroup == null) {
+            _log.info("No consistency group is specified for this RR volume creating request, skip validating");
+            return;
+        }
+
+        // Consistency group should only be empty or only contain RR type volume(s)
+        if (!cGroup.getRequestedTypes().isEmpty() && !cgOnlySupportRR(cGroup)) {
+            throw APIException.badRequests.consistencyGroupMustOnlyBeRRProtected(cGroup.getId());
+        }
+
+        List<Volume> volumes = blockService.getActiveCGVolumes(cGroup);
+        if (volumes.isEmpty()) {
+            _log.info("Specified consistency group: {} is an empty one (contains no volume), skip validating", cGroup.getId());
+            return;
+        }
+
+        // Consistency group can only hold RR volumes and only of single type (in RR group or in RR set)
+        boolean shouldInGroup = (params.getRemoteReplicationGroup() != null);
+        URI rrSet = params.getRemoteReplicationSet();
+        List<RemoteReplicationPair> pairs = RemoteReplicationUtils.getRemoteReplicationPairsForCG(cGroup, _dbClient);
+        if (pairs.isEmpty()) {
+            throw APIException.badRequests.consistencyGroupMustOnlyBeRRProtected(cGroup.getId());
+        }
+        for (RemoteReplicationPair pair : pairs) {
+            if (shouldInGroup ^ (pair.getReplicationGroup() != null)) {
+                throw APIException.badRequests.consistencyGroupContainsDifferentRRVolumes(cGroup.getId());
+            }
+            if (!pair.getReplicationSet().equals(rrSet)) {
+                throw APIException.badRequests.consistencyGroupContainsVolsInDifferentRRSets(cGroup.getId());
+            }
+        }
+    }
+
+    private boolean cgOnlySupportRR(BlockConsistencyGroup cGroup) {
+        if (cGroup == null || cGroup.getRequestedTypes() == null) {
+            return false;
+        }
+        return cGroup.getRequestedTypes().size() == 1 && cGroup.checkForRequestedType(Types.RR);
     }
 
     /**

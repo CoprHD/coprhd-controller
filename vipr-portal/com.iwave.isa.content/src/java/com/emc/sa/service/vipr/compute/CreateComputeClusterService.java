@@ -350,7 +350,6 @@ public class CreateComputeClusterService extends ViPRService {
         } catch (Exception e) {
             logError(e.getMessage());
         }
-        return;
     }
 
     private void pushToVcenter() {

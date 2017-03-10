@@ -7,7 +7,6 @@ package com.emc.storageos.volumecontroller.impl.file;
 import java.net.URI;
 import java.util.List;
 
-import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.volumecontroller.TaskCompleter;
 
@@ -32,25 +31,5 @@ public interface RemoteFileMirrorOperation {
      * @param opId
      */
     void doRollbackMirrorLink(StorageSystem system, List<URI> sources, List<URI> targets, TaskCompleter completer, String opId);
-
-    /**
-     * Failback replication links.
-     *
-     * @param system
-     * @param target
-     * @param completer
-     */
-    void doFailbackLink(StorageSystem system, FileShare target, TaskCompleter completer);
-
-    /**
-     * Resync replication links
-     * 
-     * @param primarySystem
-     * @param secondarySystem
-     * @param Target
-     * @param completer
-     */
-    void doResyncLink(StorageSystem primarySystem, StorageSystem secondarySystem, FileShare Target, TaskCompleter completer,
-            String policyName);
 
 }

@@ -260,6 +260,7 @@ public enum ResourceOperationTypeEnum {
     DEACTIVATE_VOLUME_MIRROR("DEACTIVATE VOLUME MIRROR", "deactivate a volume mirror"),
     DISCOVER_HOST("DISCOVER HOST", "discover a compute host"),
     DISCOVER_HOST_ARRAY_AFFINITY("DISCOVER HOST_ARRAY_AFFINITY", "discover host array affinity"),
+    UPDATE_HOST_BOOT_VOLUME("UPDATE HOST BOOT VOLUME", "update a compute host's boot volume"),
     UPDATE_HOST("UPDATE HOST", "update a compute host"),
     CREATE_HOST("CREATE HOST", "create a compute host"),
     DELETE_CLUSTER("DELETE CLUSTER", "delete a compute cluster"),

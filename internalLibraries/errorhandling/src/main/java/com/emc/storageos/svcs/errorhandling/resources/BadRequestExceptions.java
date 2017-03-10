@@ -712,6 +712,9 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException osInstallAlreadyInProgress();
+     
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException noBootVolumeSpecified(final String hostName);
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException invalidHostName(String hostName);
@@ -1193,6 +1196,9 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException moreThanOneRemoteCopiesSpecified();
+
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException moreThanOneReplicationPolicySpecified();
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException remoteCopyDoesNotExists(URI varray, URI vpool);
@@ -3248,4 +3254,8 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException deprecatedRestCall(final String uri, final String replacementUri);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException operationNotPermittedOnSRDFActiveCopyMode(final String operation);
+
 }

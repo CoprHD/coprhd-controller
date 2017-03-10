@@ -864,10 +864,15 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
             // List of storage system Guids
             List<String> storageSystemGuids = new ArrayList<String>();
 
+            boolean searchAllClustersForStorageVolumes = false;
             for (URI vplexVolumeURI : vplexVolumeURIs) {
                 Volume vplexVolume = getDataObject(Volume.class, vplexVolumeURI, _dbClient);
                 volumeLabels.append(vplexVolume.getLabel()).append(" ");
                 volumeMap.put(vplexVolume, new ArrayList<Volume>());
+                if (vplexVolume.getAssociatedVolumes().size() >= VPlexApiConstants.DISTRIBUTED_BACKEND_VOLUME_COUNT ||
+                        RPHelper.isAssociatedToAnyRpVplexTypes(vplexVolume, _dbClient)) {
+                    searchAllClustersForStorageVolumes = true;
+                }
                 // Find the underlying Storage Volumes
                 for (String associatedVolume : vplexVolume.getAssociatedVolumes()) {
                     Volume storageVolume = getDataObject(Volume.class, new URI(associatedVolume), _dbClient);
@@ -884,8 +889,38 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
             }
             _log.info(String.format("Request to create: %s virtual volume(s) %s", volumeMap.size(), volumeLabels));
             long startTime = System.currentTimeMillis();
-            // Make a call to re-discover storage system for storageSystemGuids
-            client.rediscoverStorageSystems(storageSystemGuids);
+
+            // If a new backend system is connected to a VPLEX and the VPLEX does not
+            // yet know about the system i.e., the system does not show up in the path 
+            // /clusters/cluster-x/storage-elements/storage-arrays, and a user attempts
+            // to create a virtual volume, the request may fail because we cannot find 
+            // the storage system. When the backend volume on the new system is created 
+            // and exported to the VPLEX, the VPLEX will recognize new system. However, 
+            // this may not occur immediately. So, when we go to create the vplex volume 
+            // using that backend volume, we may not find that system and volume on the 
+            // first try. We saw this in development. As such there was a retry loop 
+            // added when finding the backend volumes in the discovery that is performed
+            // in the method to create the virtual volume.
+            //
+            // However changes for CTRL-12826 were merged on 7/31/2015 that circumvented 
+            // that retry code. Changes were made to do the array re-discover here prior
+            // to virtual volume creation, rather than during virtual volume creation and 
+            // false was passed to the create virtual volume routine for the discovery 
+            // required flag. The newly added call does not do any kind of retry if the 
+            // system is not found and so a failure will occur in the scenario described 
+            // above. If a system is not found an exception is thrown. Now we will catch
+            // that exception and re-enable discovery in the volume creation routine. 
+            // Essentially we revert to what was happening before the 12826 changes if there
+            // is an issue discovering the systems on the initial try here.
+            boolean discoveryRequired = false;
+            try {
+                client.rediscoverStorageSystems(storageSystemGuids);
+            } catch (Exception e) {
+                String warnMsg = String.format("Initial discovery of one or more of these backend systems %s failed: %s."
+                        + "Discovery is required during virtual volume creation", storageSystemGuids, e.getMessage()); 
+                _log.warn(warnMsg);
+                discoveryRequired = true;
+            }
 
             // Now make a call to the VPlexAPIClient.createVirtualVolume for each vplex volume.
             StringBuilder buf = new StringBuilder();
@@ -933,15 +968,19 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
 
                 // Make a call to get cluster info
                 if (null == clusterInfoList) {
-                    clusterInfoList = new ArrayList<VPlexClusterInfo>();
+                    if (searchAllClustersForStorageVolumes) {
+                        clusterInfoList = client.getClusterInfoDetails();
+                    } else {
+                        clusterInfoList = new ArrayList<VPlexClusterInfo>();
+                    }
                 }
 
                 // Make the call to create a virtual volume. It is distributed if there are two (or more?)
                 // physical volumes.
                 boolean isDistributed = (vinfos.size() >= 2);
                 thinEnabled = thinEnabled && verifyVplexSupportsThinProvisioning(vplex);
-                VPlexVirtualVolumeInfo vvInfo = client.createVirtualVolume(vinfos, isDistributed, false, false, clusterId, clusterInfoList,
-                        false, thinEnabled);
+                VPlexVirtualVolumeInfo vvInfo = client.createVirtualVolume(vinfos, isDistributed,
+                        discoveryRequired, false, clusterId, clusterInfoList, false, thinEnabled, searchAllClustersForStorageVolumes);
 
                 // Note: according to client.createVirtualVolume, this will never be the case.
                 if (vvInfo == null) {
@@ -1072,7 +1111,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
             WorkflowStepCompleter.stepFailed(stepId, serviceError);
         }
     }
-
+    
     /**
      * Records a VPLEX volume event.
      *
@@ -1875,6 +1914,12 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
                     exportGroup.getInitiators());
 
             initiators = VPlexUtil.filterInitiatorsForVplex(_dbClient, initiators);
+
+            if (initiators == null || initiators.isEmpty()) {
+                _log.info("ExportGroup created with no initiators connected to VPLEX supplied, no need to orchestrate VPLEX further.");
+                completer.ready(_dbClient);
+                return;
+            }
 
             // Determine whether this export will be done across both VPLEX clusters, or just one.
             // If both, we will set up some data structures to handle both exports.
@@ -3121,7 +3166,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
                             _dbClient, storageView, exportMask, targetPortToPwwnMap, _networkDeviceController);
 
                     // assemble a list of other ExportGroups that reference this ExportMask
-                    List<ExportGroup> otherExportGroups = getOtherExportGroups(exportGroup, exportMask);
+                    List<ExportGroup> otherExportGroups = ExportUtils.getOtherExportGroups(exportGroup, exportMask, _dbClient);
 
                     boolean existingVolumes = exportMask.hasAnyExistingVolumes();
                     boolean existingInitiators = exportMask.hasAnyExistingInitiators();
@@ -3680,7 +3725,8 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
                     // situation in which this export mask is in use by other
                     // export groups... see CTRL-3941
                     // assemble a list of other ExportGroups that reference this ExportMask
-                    List<ExportGroup> otherExportGroups = getOtherExportGroups(exportGroup, exportMask);
+                    List<ExportGroup> otherExportGroups = ExportUtils.getOtherExportGroups(exportGroup, exportMask,
+                            _dbClient);
 
                     if (otherExportGroups != null && !otherExportGroups.isEmpty()) {
                         // Gets the list of volume URIs that are not other Export Groups
@@ -4027,7 +4073,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
 
         Map<String, Integer> volumeHluPair = new HashMap<String, Integer>();
         // For 'add host to cluster' operation, validate and fail beforehand if HLU conflict is detected
-        if (exportGroup.forCluster() && exportGroup.getVolumes() != null) {
+        if (!exportGroup.checkInternalFlags(Flag.INTERNAL_OBJECT) && exportGroup.forCluster() && exportGroup.getVolumes() != null) {
             // get HLUs from ExportGroup as these are the volumes that will be exported to new Host.
             Collection<String> egHlus = exportGroup.getVolumes().values();
             Collection<Integer> clusterHlus = Collections2.transform(egHlus, CommonTransformerFunctions.FCTN_STRING_TO_INTEGER);
@@ -4848,7 +4894,8 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
         String lastStep = previousStep;
 
         // assemble a list of other ExportGroups that reference this ExportMask
-        List<ExportGroup> otherExportGroups = getOtherExportGroups(exportGroup, exportMask);
+        List<ExportGroup> otherExportGroups = ExportUtils.getOtherExportGroups(exportGroup, exportMask,
+                _dbClient);
 
         _log.info(String.format("will be removing initiators %s for host %s mask %s (%s)",
                 getInitiatorsWwnsString(initiators), hostURI.toString(), exportMask.getMaskName(), exportMask.getId()));
@@ -4893,7 +4940,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
         boolean canDeleteMask = removeAllInits && !exportMask.hasAnyExistingInitiators();
 
         if (canDeleteMask) {
-            if (!exportMaskHasBothExclusiveAndSharedVolumes(exportGroup, otherExportGroups, exportMask)) {
+            if (!ExportUtils.exportMaskHasBothExclusiveAndSharedVolumes(exportGroup, otherExportGroups, exportMask)) {
                 _log.info("all initiators are being removed and no " + "other ExportGroups reference ExportMask {}",
                         exportMask.getMaskName());
                 _log.info("creating a deleteStorageView workflow step for " + exportMask.getMaskName());
@@ -4961,34 +5008,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
         return lastStep;
     }
 
-    /**
-     * Export Mask can be shared with multiple ExportGroups in the below case.
-     * 
-     * 1. Create volumes from different projects and export to same compute resource.
-     * 2. Export Mask has both exclusive and shared volumes.
-     * 
-     * A storage view for a host can be deleted, if there are shared volumes from multiple projects.
-     * A storage view cannot be deleted, if there are excluisve volumes on the storage view along with shared volumes.
-     * We have to return true only for Case 2.
-     * 
-     * @return
-     */
-    private boolean exportMaskHasBothExclusiveAndSharedVolumes(ExportGroup current, List<ExportGroup> otherExportGroups,
-            ExportMask exportMask) {
-        for (ExportGroup exportGroup : otherExportGroups) {
-            // This piece of code gets executed only when all the initiators of
-            // Host are being asked to remove and the export mask is being shared.
-            if (ExportGroupType.Cluster.toString().equalsIgnoreCase(current.getType())
-                    && ExportGroupType.Host.toString().equalsIgnoreCase(exportGroup.getType()) &&
-                    !CollectionUtils.isEmpty(exportGroup.getInitiators())) {
-                _log.info(
-                        "Export Mask is being shared with other Export Groups, and the export Group {} type is different from the current processed {}."
-                                + "Assuming this mask contains both shared and exclusive volumes ,removing the initiators might affect.");
-                return true;
-            }
-        }
-        return false;
-    }
+   
 
     /**
      * Adds workflow steps for the final removal of a set of Initiators
@@ -5212,7 +5232,8 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
     public void findAndUpdateFreeHLUsForClusterExport(StorageSystem storage, ExportGroup exportGroup, List<URI> initiatorURIs,
             Map<URI, Integer> volumeMap) {
         try {
-            if (exportGroup.forCluster() && volumeMap.values().contains(ExportGroup.LUN_UNASSIGNED)
+            if (!exportGroup.checkInternalFlags(Flag.INTERNAL_OBJECT) && exportGroup.forCluster()
+                    && volumeMap.values().contains(ExportGroup.LUN_UNASSIGNED)
                     && ExportUtils.systemSupportsConsistentHLUGeneration(storage)) {
                 _log.info("Find and update free HLUs for Cluster Export START..");
                 /**
@@ -5339,6 +5360,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
                     _log.info("mapping new initiator name {} to storage system key {}", vplexInitiatorName, initiatorNameMapKey);
                     initiator.mapInitiatorName(initiatorNameMapKey, vplexInitiatorName);
                     initsToUpdate.add(initiator);
+                    viprInitiatorName = vplexInitiatorName;
                 }
             }
             if (viprInitiatorName != null && !viprInitiatorName.startsWith(VPlexApiConstants.UNREGISTERED_INITIATOR_PREFIX)) {
@@ -7266,7 +7288,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
                         existingVolume.getNativeId(), thinEnabled, itls);
                 vinfos.add(vinfo);
                 thinEnabled = thinEnabled && verifyVplexSupportsThinProvisioning(vplex);
-                virtvinfo = client.createVirtualVolume(vinfos, false, true, true, null, null, true, thinEnabled);
+                virtvinfo = client.createVirtualVolume(vinfos, false, true, true, null, null, true, thinEnabled, true);
                 // Note: According to client.createVirtualVolume code, this will never be the case (null)
                 if (virtvinfo == null) {
                     String opName = ResourceOperationTypeEnum.CREATE_VVOLUME_FROM_IMPORT.getName();
@@ -11257,39 +11279,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
         return volumeURIList;
     }
 
-    /**
-     * Returns a list of ExportGroups that reference the given ExportMask,
-     * minus the given ExportGroup
-     *
-     * @param exportGroup
-     *            the ExportGroup to exclude
-     * @param exportMask
-     *            the ExportMask to locate in other ExportGroups
-     * @return a list of other ExportGroups containing the ExportMask
-     */
-    private List<ExportGroup> getOtherExportGroups(ExportGroup exportGroup, ExportMask exportMask) {
-
-        List<ExportGroup> otherExportGroups = ExportMaskUtils.getExportGroups(_dbClient, exportMask);
-
-        ExportGroup egToSkip = null;
-        for (ExportGroup eg : otherExportGroups) {
-            // do not include the ExportGroup requested for delete
-            if (eg.getId().equals(exportGroup.getId())) {
-                egToSkip = eg;
-                break;
-            }
-        }
-        otherExportGroups.remove(egToSkip);
-
-        if (!otherExportGroups.isEmpty()) {
-            _log.info("ExportMask {} is in use by these other ExportGroups: {}",
-                    exportMask.getMaskName(), Joiner.on(',').join(otherExportGroups));
-        } else {
-            _log.info("ExportMask {} is not in use by any other ExportGroups.", exportMask.getMaskName());
-        }
-
-        return otherExportGroups;
-    }
+   
 
     /**
      * Validate a VPLEX Storage Provider connection.

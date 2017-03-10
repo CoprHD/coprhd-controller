@@ -26,9 +26,6 @@ public class MountPoint {
     @MultiPosition(value = { 5, 6, 7 }, formatter = MountPointDateFormatter.class)
     private Date date;
 
-    @Position(8)
-    private String options;
-
     public String getDevice() {
         return device;
     }
@@ -45,14 +42,10 @@ public class MountPoint {
         return date;
     }
 
-    public String getOptions() {
-        return options;
-    }
-
     @Override
     public String toString() {
         return "MountPoint [device=" + device + ", path=" + path + ", vfs="
-                + vfs + ", date=" + date + ", options=" + options + "]\n";
+                + vfs + ", date=" + date + "]\n";
     }
 
 }

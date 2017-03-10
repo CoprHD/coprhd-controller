@@ -59,6 +59,7 @@ public class SupportPackageCreator {
 
     private static final String VIPR_LOG_DATE_FORMAT = "yyyy-MM-dd_HH:mm:ss";
     private static final Integer LOG_MINTUES_PREVIOUSLY = 60;
+    private static final Integer ORDER_EARLIEST_START_DATE = 30;
 
     public enum OrderTypes {
         NONE, ERROR, ALL
@@ -110,6 +111,11 @@ public class SupportPackageCreator {
     public void setStartTime(String startTime) {
         this.startTime = startTime;
     }
+    
+    public void setStartTimeWithRestriction(String startTime) {
+        long restrictEarliestTimestamp = getTimestampOfDaysAgo(ORDER_EARLIEST_START_DATE);
+        this.startTime = restrictEarliestTimestamp > Long.parseLong(startTime) ? String.valueOf(restrictEarliestTimestamp) : startTime;
+    }
 
     public void setOrderTypes(OrderTypes orderTypes) {
         this.orderTypes = orderTypes;
@@ -124,6 +130,11 @@ public class SupportPackageCreator {
         DateTime startTimeInUTC = currentTimeInUTC.minusMinutes(LOG_MINTUES_PREVIOUSLY);
         DateTimeFormatter fmt = DateTimeFormat.forPattern(VIPR_LOG_DATE_FORMAT);
         return fmt.print(startTimeInUTC);
+    }
+    
+    private long getTimestampOfDaysAgo(int days) {
+        DateTime currentTimeInUTC = new DateTime(DateTimeZone.UTC);
+        return currentTimeInUTC.minusDays(days).getMillis();
     }
 
     public static String formatTimestamp(Calendar cal) {

@@ -105,6 +105,7 @@ import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.file.MirrorFilePauseTaskCompleter;
 import com.emc.storageos.volumecontroller.impl.file.MirrorFileRefreshTaskCompleter;
 import com.emc.storageos.volumecontroller.impl.file.MirrorFileResumeTaskCompleter;
+import com.emc.storageos.volumecontroller.impl.file.MirrorFileResyncTaskCompleter;
 import com.emc.storageos.volumecontroller.impl.file.MirrorFileStartTaskCompleter;
 import com.emc.storageos.volumecontroller.impl.monitoring.RecordableBourneEvent;
 import com.emc.storageos.volumecontroller.impl.monitoring.RecordableEventManager;
@@ -3746,7 +3747,6 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
         return waitFor = CREATE_FILESYSTEMS_STEP;
     }
 
-    @Override
     public String addStepsForDeleteFileSystems(Workflow workflow,
             String waitFor, List<FileDescriptor> filesystems, String taskId)
             throws InternalException {
@@ -4476,6 +4476,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                                 targetFs.setMirrorStatus(NullColumnValueGetter.getNullStr());
                                 targetFs.setAccessState(NullColumnValueGetter.getNullStr());
                                 targetFs.setParentFileShare(NullColumnValueGetter.getNullNamedURI());
+                                targetFs.setPersonality(NullColumnValueGetter.getNullStr());
                                 modifiedFileshares.add(targetFs);
                             }
                             targets.clear();
@@ -4738,6 +4739,8 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
         FileShare fileShare = _dbClient.queryObject(FileShare.class, sourceFSURI);
         TaskCompleter completer = null;
         BiosCommandResult result = new BiosCommandResult();
+        WorkflowStepCompleter.stepExecuting(opId);
+        _log.info("file replication operation {} started for file systerm {}", opType, fileShare.getName());
         try {
             if ("pause".equalsIgnoreCase(opType)) {
                 completer = new MirrorFilePauseTaskCompleter(FileShare.class, sourceFSURI, opId);
@@ -4754,8 +4757,13 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             } else if ("refresh".equalsIgnoreCase(opType)) {
                 completer = new MirrorFileRefreshTaskCompleter(FileShare.class, sourceFSURI, opId);
                 result = getDevice(system.getSystemType()).doRefreshMirrorLink(system, fileShare);
+
+            } else if ("resync".equalsIgnoreCase(opType)) {
+                completer = new MirrorFileResyncTaskCompleter(FileShare.class, sourceFSURI, opId);
+                result = getDevice(system.getSystemType()).doResyncLink(system, fileShare, completer);
             }
             if (result.getCommandSuccess()) {
+                _log.info("file replication operation {} finished successfully for file systerm {}", opType, fileShare.getName());
                 completer.ready(_dbClient);
             } else if (result.getCommandPending()) {
                 completer.statusPending(_dbClient, result.getMessage());
@@ -4765,6 +4773,8 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
         } catch (Exception e) {
             _log.error("unable to perform mirror operation {} on file system {} ", opType, sourceFSURI, e);
             updateTaskStatus(opId, fileShare, e);
+            ServiceError error = DeviceControllerException.errors.jobFailed(e);
+            WorkflowStepCompleter.stepFailed(opId, error);
         }
     }
 
@@ -4801,4 +4811,52 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
         }
     }
 
+    @Override
+    public void checkFilePolicyPathHasResourceLabel(URI storage, URI filePolicyURI, URI nasURI, URI vpoolURI, URI projectURI, String opId) {
+
+        try {
+            WorkflowStepCompleter.stepExecuting(opId);
+            StorageSystem system = _dbClient.queryObject(StorageSystem.class, storage);
+
+            FileDeviceInputOutput args = new FileDeviceInputOutput();
+            FilePolicy filePolicy = _dbClient.queryObject(FilePolicy.class, filePolicyURI);
+            args.setFileProtectionPolicy(filePolicy);
+
+            if (vpoolURI != null) {
+                VirtualPool vpool = _dbClient.queryObject(VirtualPool.class, vpoolURI);
+                args.setVPool(vpool);
+            }
+            if (projectURI != null) {
+                Project project = _dbClient.queryObject(Project.class, projectURI);
+                TenantOrg tenant = _dbClient.queryObject(TenantOrg.class, project.getTenantOrg());
+                args.setProject(project);
+                args.setTenantOrg(tenant);
+            }
+
+            if (nasURI != null) {
+                if (URIUtil.isType(nasURI, VirtualNAS.class)) {
+                    VirtualNAS vNAS = _dbClient.queryObject(VirtualNAS.class, nasURI);
+                    args.setvNAS(vNAS);
+                }
+            }
+
+            BiosCommandResult result = getDevice(system.getSystemType()).checkFilePolicyPathHasResourceLabel(system, args);
+
+            if (result.getCommandPending()) {
+                return;
+            }
+            if (!result.isCommandSuccess() && !result.getCommandPending()) {
+                WorkflowStepCompleter.stepFailed(opId, result.getServiceCoded());
+            }
+            if (result.isCommandSuccess()) {
+                WorkflowStepCompleter.stepSucceded(opId);
+            }
+
+        } catch (Exception e) {
+            ServiceError error = DeviceControllerException.errors.jobFailed(e);
+            _log.error("Error occured while checking policy path has resorce label.", e);
+            WorkflowStepCompleter.stepFailed(opId, error);
+        }
+
+    }
 }

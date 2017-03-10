@@ -962,7 +962,7 @@ public class UCSMServiceImpl implements UCSMService {
     }
 
     private LsbootDef createLsBootDef(BootType bootType, String spDN, String version, LsServer lsServerCurrent,
-            Map<String, Map<String, Integer>> hbaToStoragePortMap) {
+            Map<String, Map<String, Integer>> hbaToStoragePortMap) throws ClientGeneralException {
 
         LsbootDef lsbootDef = new LsbootDef();
         lsbootDef.setRn("boot-policy");
@@ -994,7 +994,7 @@ public class UCSMServiceImpl implements UCSMService {
 
     }
 
-    private LsbootSan createLsbootSan(String spDN, Map<String, Map<String, Integer>> hbaToStoragePortMap, LsServer lsServerCurrent) {
+    private LsbootSan createLsbootSan(String spDN, Map<String, Map<String, Integer>> hbaToStoragePortMap, LsServer lsServerCurrent) throws ClientGeneralException {
 
         Map<String, String> hbaToSwitchIdMap = getHBAToSwitchIdMap(lsServerCurrent);
         LsbootSan lsbootSan = new LsbootSan();
@@ -1010,7 +1010,7 @@ public class UCSMServiceImpl implements UCSMService {
         return lsbootSan;
     }
 
-    private LsbootSanCatSanImage createLsbootSanCatSanImage(Map<String, Integer> ports, String hba, Map<String, String> hbaToSwitchIdMap) {
+    private LsbootSanCatSanImage createLsbootSanCatSanImage(Map<String, Integer> ports, String hba, Map<String, String> hbaToSwitchIdMap) throws ClientGeneralException {
         LsbootSanCatSanImage lsbootSanCatSanImage = new LsbootSanCatSanImage();
         lsbootSanCatSanImage.setType(BootType.SAN.toString().toLowerCase());
 
@@ -1022,7 +1022,12 @@ public class UCSMServiceImpl implements UCSMService {
             lsbootSanCatSanImage.setRn("sanimg-" + SanImagePathType.secondary.toString());
             lsbootSanCatSanImage.setType(SanImagePathType.secondary.toString());
             lsbootSanCatSanImage.setVnicName(hba);
+        }else {
+            log.error("Unable to determine fabric A or B for initiator {}",hba);
+            String[] s = {"Unable to determine fabric A or B for initiator " + hba};
+            throw new ClientGeneralException(ClientMessageKeys.UNEXPECTED_FAILURE, s);
         }
+
 
         /**
          * Only interested in first 2 ports - or just the one port if that's all
@@ -1047,7 +1052,12 @@ public class UCSMServiceImpl implements UCSMService {
                 lsbootSanCatSanImage.getContent().add(factory.createLsbootSanCatSanImagePath(lsbootSanImagePath));
 
             }
+        }else {
+            log.error("Unable to determine array targets for initiator {}",hba);
+            String[] s = {"Unable to determine array targets for initiator " + hba};
+            throw new ClientGeneralException(ClientMessageKeys.UNEXPECTED_FAILURE, s);
         }
+
 
         return lsbootSanCatSanImage;
 
@@ -1206,7 +1216,7 @@ public class UCSMServiceImpl implements UCSMService {
         primary, secondary;
     }
 
-    private LsbootStorage createLsbootStorage(String spDn, Map<String, Map<String, Integer>> hbaToStoragePortMap, LsServer lsServer) {
+    private LsbootStorage createLsbootStorage(String spDn, Map<String, Map<String, Integer>> hbaToStoragePortMap, LsServer lsServer) throws ClientGeneralException { 
 
         Map<String, String> hbaToSwitchIdMap = getHBAToSwitchIdMap(lsServer);
         LsbootStorage lsbootStorage = new LsbootStorage();
@@ -1224,7 +1234,7 @@ public class UCSMServiceImpl implements UCSMService {
     }
 
     private LsbootSanImage createLsbootSanImage(Map<String, Integer> ports, String hba,
-            Map<String, String> hbaToSwitchIdMap) {
+            Map<String, String> hbaToSwitchIdMap)  throws ClientGeneralException {
 
         LsbootSanImage lsbootSanImage = new LsbootSanImage();
 
@@ -1262,7 +1272,12 @@ public class UCSMServiceImpl implements UCSMService {
                 lsbootSanImage.getContent().add(factory.createLsbootSanImagePath(lsbootSanImagePath));
 
             }
+        }else {
+            log.error("Unable to determine array targets for initiator {}",hba);
+            String[] s = {"Unable to determine array targets for initiator " + hba};
+            throw new ClientGeneralException(ClientMessageKeys.UNEXPECTED_FAILURE, s);
         }
+    
 
         return lsbootSanImage;
 

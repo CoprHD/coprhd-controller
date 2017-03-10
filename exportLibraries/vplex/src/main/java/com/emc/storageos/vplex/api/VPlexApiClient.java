@@ -205,7 +205,8 @@ public class VPlexApiClient {
             s_logger.info("refreshed lightweight cluster info list is " + _vplexClusterInfoLiteCache.toString());
         }
 
-        return _vplexClusterInfoLiteCache;
+        // return a copy
+        return new ArrayList<VPlexClusterInfo>(_vplexClusterInfoLiteCache);
     }
 
     /**
@@ -453,6 +454,8 @@ public class VPlexApiClient {
      *            clusters.
      * @param findVirtualVolume If true findVirtualVolume method is called after virtual volume is created.
      * @param thinEnabled If true, the virtual volume should be created as a thin-enabled virtual volume.
+     * @param searchAllClustersForStorageVolumes If true, search all clusters for backend volumes; If false,
+     *            search for backend volumes will be restricted to the value of winningClusterId
      * 
      * @return The information for the created virtual volume.
      * 
@@ -462,12 +465,13 @@ public class VPlexApiClient {
     public VPlexVirtualVolumeInfo createVirtualVolume(
             List<VolumeInfo> nativeVolumeInfoList, boolean isDistributed,
             boolean discoveryRequired, boolean preserveData, String winningClusterId, List<VPlexClusterInfo> clusterInfoList,
-            boolean findVirtualVolume, boolean thinEnabled)
+            boolean findVirtualVolume, boolean thinEnabled, boolean searchAllClustersForStorageVolumes)
                     throws VPlexApiException {
         s_logger.info("Request for virtual volume creation on VPlex at {}", _baseURI);
         String clusterName = null;
-        if (!isDistributed) {
-            // if this is a local volume, we can restrict work to just the local cluster
+        if (!searchAllClustersForStorageVolumes && (null != winningClusterId)) {
+            // if all the volumes in the whole request are local volumes, 
+            // we can restrict work to just the local cluster
             clusterName = getClusterNameForId(winningClusterId);
         }
         return _virtualVolumeMgr.createVirtualVolume(nativeVolumeInfoList, isDistributed,
@@ -1450,7 +1454,8 @@ public class VPlexApiClient {
             s_logger.info("refreshed cluster id to name map is " + _vplexClusterIdToNameCache.toString());
         }
 
-        return _vplexClusterIdToNameCache;
+        // return a copy
+        return new HashMap<String, String>(_vplexClusterIdToNameCache);
     }
 
     /**
@@ -2127,7 +2132,7 @@ public class VPlexApiClient {
      * 
      * @param vplexClusterName the cluster initiator cache to clear
      */
-    public void clearInitiatorCache(String vplexClusterName) {
+    public synchronized void clearInitiatorCache(String vplexClusterName) {
         _discoveryMgr.clearInitiatorCache(vplexClusterName);
     }
 

@@ -106,8 +106,10 @@ public class ExportUpdateCompleter extends ExportTaskCompleter {
             // Update the export group data.
             if (status.equals(Operation.Status.ready)) {
                 updateExportGroup(exportGroup, dbClient);
+            } else {
+                dbClient.updateObject(exportGroup);
             }
-            dbClient.updateObject(exportGroup);
+
 
             if (Operation.isTerminalState(status) && needToRunExportGroupCleanup(dbClient)) {
                 // Clean stale references from EG if the status is either ready or error.

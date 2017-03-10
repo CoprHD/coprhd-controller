@@ -24,4 +24,10 @@ public class RemoteReplicationAttributes extends CapabilityDefinition {
     public RemoteReplicationAttributes() {
         super(CAPABILITY_UID);
     }
+
+    // System values for create state
+    public static enum CREATE_STATE {
+        ACTIVE,
+        INACTIVE
+    }
 }

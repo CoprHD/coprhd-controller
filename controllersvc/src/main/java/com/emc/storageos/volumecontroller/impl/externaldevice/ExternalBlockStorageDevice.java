@@ -1835,7 +1835,7 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice implem
                 String errorMsg = String.format("createGroupReplicationPairs -- Failed to create group replication pairs: %s .", task.getMessage());
                 _log.error(errorMsg);
                 ServiceError serviceError = ExternalDeviceException.errors.createGroupRemoteReplicationPairsFailed(
-                 driverRRPairs.get(0).getReplicationGroupNativeId(), errorMsg);
+                        driverRRPairs.get(0).getReplicationGroupNativeId(), errorMsg);
                 taskCompleter.error(dbClient, serviceError);
             }
         } catch (Exception e) {
@@ -2055,7 +2055,26 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice implem
 
                     break;
                 case REPLICATION_PAIR:
+                    RemoteReplicationPair remoteReplicationPair = dbClient.queryObject(RemoteReplicationPair.class, elementURI);
+                    systemRRPairs = new ArrayList<>();
+                    systemRRPairs.add(remoteReplicationPair);
+                    URI sourceVolumeURI = remoteReplicationPair.getSourceElement().getURI();
+                    Volume sourceVolume = dbClient.queryObject(Volume.class, sourceVolumeURI);
+                    sourceSystem = dbClient.queryObject(StorageSystem.class, sourceVolume.getStorageController());
+                    driver = (RemoteReplicationDriver)getDriver(sourceSystem.getSystemType());
+                    context = initializeContext(systemRRPairs.get(0),com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationSet.ElementType.REPLICATION_PAIR);
+
                     break;
+
+                case CONSISTENCY_GROUP:
+                    BlockConsistencyGroup cg = dbClient.queryObject(BlockConsistencyGroup.class, elementURI);
+                    sourceSystem = dbClient.queryObject(StorageSystem.class, cg.getStorageController());
+                    driver = (RemoteReplicationDriver)getDriver(sourceSystem.getSystemType());
+                    systemRRPairs = RemoteReplicationUtils.getRemoteReplicationPairsForCG(cg, dbClient);
+                    context = initializeContext(systemRRPairs.get(0),com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationSet.ElementType.REPLICATION_PAIR);
+
+                    break;
+
                 case REPLICATION_SET:
                     break;
                 default:
@@ -2295,18 +2314,25 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice implem
         if(properties != null) {
             // build capability property map
             for (Map.Entry<String, String> property : properties.entrySet()) {
-                if (property.getKey().equals(RemoteReplicationSet.CREATE_STATE_PROPERTY_NAME)) {
+                if (property.getKey().equals(RemoteReplicationAttributes.PROPERTY_NAME.CREATE_STATE.toString())) {
                     createState = property.getValue();
-                    capabilityProperties.put(RemoteReplicationAttributes.PROPERTY_NAME.CREATE_STATE.name(),
+                    capabilityProperties.put(RemoteReplicationAttributes.PROPERTY_NAME.CREATE_STATE.toString(),
                             Collections.singletonList(createState));
-                    String msg = String.format("Capability name: %s, value: %s .", RemoteReplicationAttributes.PROPERTY_NAME.CREATE_STATE.name(),
+                    String msg = String.format("Capability name: %s, value: %s .", RemoteReplicationAttributes.PROPERTY_NAME.CREATE_STATE.toString(),
                             createState);
                     _log.info(msg);
                 } else {
-                    String msg = String.format("Not supported property: %s, value: %s .", RemoteReplicationSet.CREATE_STATE_PROPERTY_NAME, createState);
+                    String msg = String.format("Not supported property: %s, value: %s .", property.getKey(), property.getValue());
                     _log.warn(msg);
                 }
             }
+
+            if (capabilityProperties.isEmpty()) {
+                String msg = String.format("There is no capabilities for RemoteReplicaionAttributes");
+                _log.info(msg);
+                return;
+            }
+
             CapabilityInstance pairAttributes = new CapabilityInstance(capabilityDefinition.getId(),
                     capabilityDefinition.getId(), capabilityProperties);
 

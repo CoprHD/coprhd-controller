@@ -18,6 +18,7 @@ import com.emc.storageos.db.client.model.remotereplication.RemoteReplicationPair
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.exceptions.DeviceControllerException;
+import com.emc.storageos.storagedriver.storagecapabilities.RemoteReplicationAttributes;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
@@ -493,9 +494,9 @@ public class RemoteReplicationDeviceController implements RemoteReplicationContr
             rrPair.setReplicationSet(capabilities.getRemoteReplicationSet());
             rrPair.setReplicationMode(capabilities.getRemoteReplicationMode());
             if (capabilities.getRemoteReplicationCreateInactive()) {
-                rrPair.addProperty(com.emc.storageos.db.client.model.remotereplication.RemoteReplicationSet.CREATE_STATE_PROPERTY_NAME, "INACTIVE");
+                rrPair.addProperty(RemoteReplicationAttributes.PROPERTY_NAME.CREATE_STATE.toString(), RemoteReplicationAttributes.CREATE_STATE.INACTIVE.toString());
             } else {
-                rrPair.addProperty(com.emc.storageos.db.client.model.remotereplication.RemoteReplicationSet.CREATE_STATE_PROPERTY_NAME, "ACTIVE");
+                rrPair.addProperty(RemoteReplicationAttributes.PROPERTY_NAME.CREATE_STATE.toString(), RemoteReplicationAttributes.CREATE_STATE.INACTIVE.toString());
             }
 
             rrPair.setSourceElement(new NamedURI(sourceDescriptor.getVolumeURI(), RemoteReplicationPair.ElementType.VOLUME.toString()));

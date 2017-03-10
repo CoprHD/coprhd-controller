@@ -27,6 +27,7 @@ import com.emc.storageos.remotereplicationcontroller.RemoteReplicationController
 import com.emc.storageos.remotereplicationcontroller.RemoteReplicationUtils;
 import com.emc.storageos.security.authorization.ACL;
 
+import com.emc.storageos.storagedriver.storagecapabilities.RemoteReplicationAttributes;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -525,7 +526,7 @@ public class RemoteReplicationGroupService extends TaskResourceService {
 
         remoteReplicationGroup.setDisplayName(param.getDisplayName());
         if (param.getReplicationState() != null ) {
-            remoteReplicationGroup.addProperty(com.emc.storageos.db.client.model.remotereplication.RemoteReplicationSet.CREATE_STATE_PROPERTY_NAME, param.getReplicationState());
+            remoteReplicationGroup.addProperty(RemoteReplicationAttributes.PROPERTY_NAME.CREATE_STATE.toString(), param.getReplicationState());
         }
         remoteReplicationGroup.setIsGroupConsistencyEnforced(param.getIsGroupConsistencyEnforced());
 

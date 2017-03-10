@@ -18,6 +18,9 @@ import java.util.UUID;
 import com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationGroup;
 import com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationOperationContext;
 import com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationPair;
+import com.emc.storageos.storagedriver.storagecapabilities.CommonStorageCapabilities;
+import com.emc.storageos.storagedriver.storagecapabilities.DataProtectionServiceOption;
+import com.emc.storageos.storagedriver.storagecapabilities.RemoteReplicationAttributes;
 import org.apache.commons.lang.mutable.MutableBoolean;
 import org.apache.commons.lang.mutable.MutableInt;
 import org.slf4j.Logger;
@@ -1128,10 +1131,26 @@ public class StorageDriverSimulator extends DefaultStorageDriver implements Bloc
 
     @Override
     public DriverTask createGroupReplicationPairs(List<RemoteReplicationPair> replicationPairs, StorageCapabilities capabilities) {
+
+        // By default create in active state according to driver definition. Driver controls state.
+        String createState = "ACTIVE"; // driver specific state for active link
+        // Check if there are capabilities for remote replication passed from the controller
+        Map<String, List<String>> remoteReplicationAttributes = processRemoteReplicationAttributes(capabilities);
+        // get create_state attribute
+        List<String> createStateList = remoteReplicationAttributes.get(RemoteReplicationAttributes.PROPERTY_NAME.CREATE_STATE.toString());
+        if (createStateList != null && !createStateList.isEmpty()) {
+            createState = createStateList.get(0);
+            if (createState.equals(RemoteReplicationAttributes.CREATE_STATE.ACTIVE.toString())) {
+                createState = "ACTIVE"; // driver specific state for active link
+            } else {
+                createState = "INACTIVE"; // driver specific state for inactive link
+            }
+        }
+
         Set<String> driverPairs = new HashSet<>();
         for (RemoteReplicationPair pair : replicationPairs) {
             pair.setNativeId("driverSimulatorPair" + UUID.randomUUID().toString());
-            pair.setReplicationState("ACTIVE");
+            pair.setReplicationState(createState);
 
             driverPairs.add(pair.getNativeId());
         }
@@ -1149,10 +1168,25 @@ public class StorageDriverSimulator extends DefaultStorageDriver implements Bloc
 
     @Override
     public DriverTask createSetReplicationPairs(List<RemoteReplicationPair> replicationPairs, StorageCapabilities capabilities) {
+        // By default create in active state according to driver definition. Driver controls state.
+        String createState = "ACTIVE"; // driver specific state for active link
+        // Check if there are capabilities for remote replication passed from the controller
+        Map<String, List<String>> remoteReplicationAttributes = processRemoteReplicationAttributes(capabilities);
+        // get create_state attribute
+        List<String> createStateList = remoteReplicationAttributes.get(RemoteReplicationAttributes.PROPERTY_NAME.CREATE_STATE.toString());
+        if (createStateList != null && !createStateList.isEmpty()) {
+            createState = createStateList.get(0);
+            if (createState.equals(RemoteReplicationAttributes.CREATE_STATE.ACTIVE.toString())) {
+                createState = "ACTIVE"; // driver specific state for active link
+            } else {
+                createState = "INACTIVE"; // driver specific state for inactive link
+            }
+        }
+
         Set<String> driverPairs = new HashSet<>();
         for (RemoteReplicationPair pair : replicationPairs) {
             pair.setNativeId("driverSimulatorPair" + UUID.randomUUID().toString());
-            pair.setReplicationState("ACTIVE");
+            pair.setReplicationState(createState);
 
             driverPairs.add(pair.getNativeId());
         }
@@ -1193,12 +1227,78 @@ public class StorageDriverSimulator extends DefaultStorageDriver implements Bloc
         task.setStatus(DriverTask.TaskStatus.READY);
         List<String> nativeIds = new ArrayList<>();
         for (RemoteReplicationPair pair : replicationPairs) {
+            pair.setReplicationState("failedover");
             nativeIds.add(pair.getNativeId());
         }
         String msg = String.format("%s: %s --- failed over replication pairs %s.", driverName, "failover", nativeIds);
         _log.info(msg);
         task.setMessage(msg);
         return task;
+    }
+
+    @Override
+    public DriverTask failback(List<RemoteReplicationPair> replicationPairs, RemoteReplicationOperationContext context, StorageCapabilities capabilities) {
+        String driverName = this.getClass().getSimpleName();
+        String taskId = String.format("%s+%s+%s", driverName, "-failbackReplicationLink-", UUID.randomUUID().toString());
+        DriverTask task = new DriverSimulatorTask(taskId);
+        task.setStatus(DriverTask.TaskStatus.READY);
+        List<String> nativeIds = new ArrayList<>();
+        for (RemoteReplicationPair pair : replicationPairs) {
+            pair.setReplicationState("active");
+            nativeIds.add(pair.getNativeId());
+        }
+        String msg = String.format("%s: %s --- failed back replication pairs %s.", driverName, "failback", nativeIds);
+        _log.info(msg);
+        task.setMessage(msg);
+        return task;
+    }
+
+    @Override
+    public DriverTask establish(List<RemoteReplicationPair> replicationPairs, RemoteReplicationOperationContext context, StorageCapabilities capabilities) {
+        String driverName = this.getClass().getSimpleName();
+        String taskId = String.format("%s+%s+%s", driverName, "-establishReplicationLink-", UUID.randomUUID().toString());
+        DriverTask task = new DriverSimulatorTask(taskId);
+        task.setStatus(DriverTask.TaskStatus.READY);
+        List<String> nativeIds = new ArrayList<>();
+        for (RemoteReplicationPair pair : replicationPairs) {
+            pair.setReplicationState("active");
+            pair.setReplicationDirection("S-T-T");
+            nativeIds.add(pair.getNativeId());
+        }
+        String msg = String.format("%s: %s --- established replication pairs %s.", driverName, "establish", nativeIds);
+        _log.info(msg);
+        task.setMessage(msg);
+        return task;
+    }
+
+
+
+    private Map<String, List<String>> processRemoteReplicationAttributes(StorageCapabilities storageCapabilities) {
+        Map<String, List<String>> remoteReplicationAttributes = new HashMap<>();
+
+        // Get the common capabilities for the passed storage capabilities.
+        CommonStorageCapabilities commonCapabilities = storageCapabilities.getCommonCapabilitis();
+        if (commonCapabilities != null) {
+            // Get the data protection service options for the common capabilities.
+            List<DataProtectionServiceOption> dataProtectionSvcOptions = commonCapabilities.getDataProtection();
+            if (dataProtectionSvcOptions != null) {
+                for (DataProtectionServiceOption dataProtectionServiceOption : dataProtectionSvcOptions) {
+                    List<CapabilityInstance> dataProtectionCapabilities = dataProtectionServiceOption.getCapabilities();
+                    if (dataProtectionCapabilities != null) {
+                        for (CapabilityInstance capabilityInstance : dataProtectionCapabilities) {
+                            // check for remote replication attributes capability instance
+                            if (capabilityInstance.getCapabilityDefinitionUid().equals(RemoteReplicationAttributes.CAPABILITY_UID)) {
+                                Map<String, List<String>> properties = capabilityInstance.getProperties();
+                                if (properties != null) {
+                                    remoteReplicationAttributes.putAll(properties);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        return remoteReplicationAttributes;
     }
 
 }

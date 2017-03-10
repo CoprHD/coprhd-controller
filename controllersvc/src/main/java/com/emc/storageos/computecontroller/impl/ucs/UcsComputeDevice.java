@@ -748,8 +748,11 @@ public class UcsComputeDevice implements ComputeDevice {
         Collection<Host> hosts = _dbClient.queryObjectFields(Host.class,
                 Arrays.asList("uuid", "computeElement", "registrationStatus", "inactive", "label"), getFullyImplementedCollection(allHostUris));
         for (Host host : hosts) {
-            if (host.getUuid()!=null && host.getUuid().equals(serviceProfile.getUuid()) &&
-                    !host.getId().equals(newHost.getId()) && (host.getInactive()!=true)){
+            if (newHost.getId().equals(host.getId())) {
+                continue;
+            }
+
+            if (host.getUuid() != null && host.getUuid().equals(serviceProfile.getUuid())){
                 LOGGER.warn("Newly created service profile :"+ serviceProfile.getLabel() + " shares same uuid "+
                         serviceProfile.getUuid() +" as existing active host: " + host.getLabel());
                 hostUUIDReclaimed(host);

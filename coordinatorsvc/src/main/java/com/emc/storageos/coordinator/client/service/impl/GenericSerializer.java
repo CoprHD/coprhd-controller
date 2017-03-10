@@ -30,11 +30,11 @@ public class GenericSerializer {
      * Will serialize any serializable object.
      * @param object -- Java object that is serializable.
      * @param logName -- Name of object for log messages (can be null)
-     * @param enforceLimit -- if true, will impose a maximum size limit of MAX_ZK_OBJECT_SIZE_IN_BYTES, which is maximum size for zookeeper data
+     * @param zkData -- if true, will impose a maximum size limit of MAX_ZK_OBJECT_SIZE_IN_BYTES, which is maximum size for zookeeper data
      * @return byte[] representing serialized data
      * @throws CoordinatorException for exceedingLimit if checked
      */
-    static public byte[] serialize(Object object, String logName, boolean enforceLimit) {
+    static public byte[] serialize(Object object, String logName, boolean zkData) {
         String className = object.getClass().getSimpleName();
         String label = (logName != null) ? logName : "";
         try {
@@ -42,7 +42,7 @@ public class GenericSerializer {
             ObjectOutputStream ostream = new ObjectOutputStream(stream);
             ostream.writeObject(object);
             byte[] byteArray = stream.toByteArray();
-            if (enforceLimit && byteArray.length > MAX_ZK_OBJECT_SIZE_IN_BYTES) {
+            if (zkData && byteArray.length > MAX_ZK_OBJECT_SIZE_IN_BYTES) {
                 _log.error(String.format("Serialization failure: Class %s %s Byte Array length is %d limit is %d", 
                         className, label, byteArray.length, MAX_ZK_OBJECT_SIZE_IN_BYTES));
                 throw CoordinatorException.fatals.exceedingLimit("byte array size", MAX_ZK_OBJECT_SIZE_IN_BYTES);

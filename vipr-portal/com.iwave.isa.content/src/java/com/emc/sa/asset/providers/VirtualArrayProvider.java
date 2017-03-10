@@ -162,7 +162,7 @@ public class VirtualArrayProvider extends BaseAssetOptionsProvider {
     }
 
     @Asset("fileTargetVirtualArray")
-    @AssetDependencies("fileFilePolicy")
+    @AssetDependencies({ "fileFilePolicy", "fileFilesystemAssociation" })
     public List<AssetOption> getFileTargetVirtualArrays(AssetOptionsContext context, URI filePolicy, URI fsId) {
         ViPRCoreClient client = api(context);
         FilePolicyRestRep policyRest = client.fileProtectionPolicies().getFilePolicy(filePolicy);

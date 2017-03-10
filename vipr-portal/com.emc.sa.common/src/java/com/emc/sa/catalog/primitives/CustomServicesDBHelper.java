@@ -63,15 +63,15 @@ import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMap.Builder;
-
+import com.google.common.collect.Sets;
 
 /**
- * Helper class to access primitives and resources that are stored in the 
+ * Helper class to access primitives and resources that are stored in the
  * database
  *
  */
 public final class CustomServicesDBHelper {
-    
+
     @SuppressWarnings("rawtypes")
     private static final Class<Map> INPUT_ARG = Map.class;
     @SuppressWarnings("rawtypes")
@@ -80,11 +80,12 @@ public final class CustomServicesDBHelper {
     private static final Class<List> OUTPUT_ARG = List.class;
     @SuppressWarnings("rawtypes")
     private static final Class<Map> RESOURCE_ATTRIBUTES_ARG = Map.class;
-    
-    private CustomServicesDBHelper() {}
-    
+
+    private CustomServicesDBHelper() {
+    }
+
     /**
-     * Given a DB column family and an ID get the primitive from the database and return it 
+     * Given a DB column family and an ID get the primitive from the database and return it
      * as a primitive type java object
      * 
      * @param type The primitive type
@@ -100,14 +101,14 @@ public final class CustomServicesDBHelper {
         final CustomServicesDBPrimitive primitive = primitiveManager.findById(clazz, id);
         return primitive == null ? null : makePrimitiveType(type, primitive);
     }
-    
+
     /**
      * Given a creation param, DB column family, and primitive type save a new primitive to the DB
      * and return the primitive type java object
      * 
      * @param type The primitive type java object
      * @param dbModel The database column family java class
-     * @param resourceType The resource 
+     * @param resourceType The resource
      * @param primitiveManager The database access component
      * @param param The primitive creation param
      * @return The primitive type java object
@@ -116,7 +117,7 @@ public final class CustomServicesDBHelper {
             final Class<? extends CustomServicesDBPrimitive> dbModel,
             final Class<? extends CustomServicesDBResource> resourceType,
             final CustomServicesPrimitiveManager primitiveManager,
-            final CustomServicesPrimitiveCreateParam param ) {
+            final CustomServicesPrimitiveCreateParam param) {
         final CustomServicesDBPrimitive primitive;
         try {
             primitive = dbModel.newInstance();
@@ -132,7 +133,7 @@ public final class CustomServicesDBHelper {
         primitive.setAttributes(createAttributes(primitive.attributeKeys(), param.getAttributes()));
         primitive.setInput(createInput(primitive.inputTypes(), param.getInput()));
         primitive.setOutput(createOutput(param.getOutput()));
-        
+
         primitiveManager.save(primitive);
         return makePrimitiveType(type, primitive);
     }
@@ -159,13 +160,13 @@ public final class CustomServicesDBHelper {
             final CustomServicesPrimitiveUpdateParam param,
             final URI id) {
         final CustomServicesDBPrimitive primitive = primitiveManager.findById(clazz, id);
-        
-        if( null == primitive ) {
+
+        if (null == primitive) {
             throw APIException.notFound.unableToFindEntityInURL(id);
         }
-        
+
         checkNotInUse(client, id, primitive);
-        
+
         if (null != param.getName()) {
             primitive.setLabel(param.getName());
         }
@@ -175,33 +176,32 @@ public final class CustomServicesDBHelper {
         if (null != param.getDescription()) {
             primitive.setDescription(param.getDescription());
         }
-        
+
         updateInput(param.getInput(), primitive);
         updateAttributes(param.getAttributes(), primitive);
         updateOutput(param.getOutput(), primitive);
         client.save(primitive);
         return makePrimitiveType(type, primitive);
-        
+
     }
-    
-    
+
     private static void updateAttributes(final Map<String, String> attributes,
             final CustomServicesDBPrimitive primitive) {
-        
-        if( attributes == null ) {
+
+        if (attributes == null) {
             return;
         }
-        
+
         final StringMap update = primitive.getAttributes() == null ? new StringMap() : primitive.getAttributes();
-        
-        for(final Entry<String, String> entry : attributes.entrySet()) {
-            if(!primitive.attributeKeys().contains(entry.getKey())) {
+
+        for (final Entry<String, String> entry : attributes.entrySet()) {
+            if (!primitive.attributeKeys().contains(entry.getKey())) {
                 throw APIException.badRequests.invalidParameter("attributes", entry.getKey());
             }
             update.put(entry.getKey(), entry.getValue());
         }
         primitive.setAttributes(update);
-        
+
     }
 
     /**
@@ -210,36 +210,36 @@ public final class CustomServicesDBHelper {
      */
     private static void updateInput(final InputUpdateParam param,
             final CustomServicesDBPrimitive primitive) {
-        if(param == null ) {
+        if (param == null) {
             return;
         }
-        
+
         final StringSetMap update = primitive.getInput() == null ? new StringSetMap() : primitive.getInput();
-        
+
         addInput(primitive.inputTypes(), param.getAdd(), update);
         removeInput(primitive.inputTypes(), param.getRemove(), update);
-    } 
+    }
 
     private static void addInput(final Set<String> keys, final Map<String, InputUpdateList> map,
             final StringSetMap update) {
-        for(final Entry<String, InputUpdateList> entry : map.entrySet()) {
-            if(!keys.contains(entry.getKey())) {
+        for (final Entry<String, InputUpdateList> entry : map.entrySet()) {
+            if (!keys.contains(entry.getKey())) {
                 throw APIException.badRequests.invalidParameter("input", entry.getKey());
             }
-            if( null != entry.getValue().getInput()) {
+            if (null != entry.getValue().getInput()) {
                 final StringSet group = null == update.get(entry.getKey()) ? new StringSet() : update.get(entry.getKey());
                 group.addAll(entry.getValue().getInput());
                 update.put(entry.getKey(), group);
             }
         }
     }
-    
+
     private static void removeInput(final Set<String> keys, final Map<String, InputUpdateList> remove,
             final StringSetMap update) {
-        for(final Entry<String, InputUpdateList> entry : remove.entrySet()) {
+        for (final Entry<String, InputUpdateList> entry : remove.entrySet()) {
             final StringSet group = update.get(entry.getKey());
-            
-            if( null != group && null != entry.getValue().getInput()) {
+
+            if (null != group && null != entry.getValue().getInput()) {
                 group.removeAll(entry.getValue().getInput());
                 update.put(entry.getKey(), group);
             }
@@ -253,20 +253,21 @@ public final class CustomServicesDBHelper {
      * @param primitive The primitive instance to update
      */
     private static void updateOutput(final OutputUpdateParam param, final CustomServicesDBPrimitive primitive) {
-        if( null == param ) {
+        if (null == param) {
             return;
         }
         final StringSet output = primitive.getOutput() == null ? new StringSet() : primitive.getOutput();
- 
+
         addOutputKeys(param.getAdd(), output);
-        
+
         removeOutputKeys(param.getRemove(), output);
-        
+
         primitive.setOutput(output);
     }
 
     /**
      * Add a given list of output keys to a the set
+     * 
      * @param add List of keys to add
      * @param output updated StringSet
      */
@@ -274,12 +275,12 @@ public final class CustomServicesDBHelper {
         if (null == add) {
             return;
         }
-        
+
         for (final String addOutput : add) {
             output.add(addOutput);
         }
     }
-    
+
     /**
      * Remove a given list of output keys from the given set
      * 
@@ -290,7 +291,7 @@ public final class CustomServicesDBHelper {
         if (null == rm) {
             return;
         }
-        
+
         for (final String rmOutput : rm) {
             output.remove(rmOutput);
         }
@@ -309,17 +310,18 @@ public final class CustomServicesDBHelper {
             final ModelClient client,
             final URI id) {
         final CustomServicesDBPrimitive primitive = primitiveManager.findById(clazz, id);
-        if( null == primitive ) {
+        if (null == primitive) {
             throw APIException.notFound.unableToFindEntityInURL(id);
         }
-        
+
         checkNotInUse(client, id, primitive);
-        
+
         client.delete(primitive);
     }
-    
+
     /**
      * Get a list of IDs of the given database column family
+     * 
      * @param clazz The database column family class
      * @param client The model client
      * @return A list of IDs of primitives
@@ -331,51 +333,54 @@ public final class CustomServicesDBHelper {
     public static <T extends CustomServicesPrimitiveResourceType> T getResource(
             final Class<T> type,
             final Class<? extends CustomServicesDBResource> clazz,
-            final CustomServicesPrimitiveManager primitiveManager, 
+            final CustomServicesPrimitiveManager primitiveManager,
             final URI id) {
         final CustomServicesDBResource resource = primitiveManager.findResource(clazz, id);
         return null == resource ? null : makeResourceType(type, resource);
-        
+
     }
-    
+
     /**
      * Map input of a given primitive from a StringSet map to the input paramater map
+     * 
      * @param primitive A primitive instance
      * @return An input parameter map
      */
     private static Map<InputType, List<InputParameter>> mapInput(final CustomServicesDBPrimitive primitive) {
-        final Builder<InputType, List<InputParameter>> inputMap = ImmutableMap.<InputType, List<InputParameter>>builder();
-        if( null != primitive.getInput() ) {
-            for(final Entry<String, AbstractChangeTrackingSet<String>> inputGroup : primitive.getInput().entrySet()) {
+        final Builder<InputType, List<InputParameter>> inputMap = ImmutableMap.<InputType, List<InputParameter>> builder();
+        if (null != primitive.getInput()) {
+            for (final Entry<String, AbstractChangeTrackingSet<String>> inputGroup : primitive.getInput().entrySet()) {
                 inputMap.put(inputGroup(inputGroup.getKey(), primitive.inputTypes()), mapInputParameters(inputGroup.getValue()));
             }
         }
         return inputMap.build();
     }
-    
+
     /**
      * Get an input type given a string and the supported set of input types
+     * 
      * @param key The name of the input type as a string
      * @param inputTypes The supported input types
      * @return The InputType enum of the given string
      */
     private static InputType inputGroup(final String key, final Set<String> inputTypes) {
         final InputType type = InputType.fromString(key);
-        if( key == null || !inputTypes.contains(key)) {
+        if (key == null || !inputTypes.contains(key)) {
             throw new IllegalStateException("Unknown input type: " + key);
         }
         return type;
     }
-    
+
     /**
      * Convert an AbstractChangeTrackingSet of strings to a List of InputParameters
+     * 
      * @param inputSet The set of strings to convert
      * @return A list of input parameters
      */
     private static final List<InputParameter> mapInputParameters(final AbstractChangeTrackingSet<String> inputSet) {
-        final ImmutableList.Builder<InputParameter> parameters = ImmutableList.<InputParameter>builder();
-        if( null != inputSet ) {
-            for( final String parameter : inputSet ) {
+        final ImmutableList.Builder<InputParameter> parameters = ImmutableList.<InputParameter> builder();
+        if (null != inputSet) {
+            for (final String parameter : inputSet) {
                 parameters.add(makeInputParameter(parameter));
             }
         }
@@ -384,13 +389,14 @@ public final class CustomServicesDBHelper {
 
     /**
      * Convert a given primitive instance's out from a StringSet into a list of OutputParameter
-     * @param primitive The primitive instance 
+     * 
+     * @param primitive The primitive instance
      * @return The converted List of output parameters
      */
     private static List<OutputParameter> mapOutput(final CustomServicesDBPrimitive primitive) {
-        final ImmutableList.Builder<OutputParameter> output = ImmutableList.<OutputParameter>builder();
-        if( null != primitive.getOutput()) {
-            for(final String outputName : primitive.getOutput()) {
+        final ImmutableList.Builder<OutputParameter> output = ImmutableList.<OutputParameter> builder();
+        if (null != primitive.getOutput()) {
+            for (final String outputName : primitive.getOutput()) {
                 output.add(makeOutputParameter(outputName));
             }
         }
@@ -399,14 +405,15 @@ public final class CustomServicesDBHelper {
 
     /**
      * Convert a given primitive instance's StringMap attributes to a Map
+     * 
      * @param primitive The primitive instance
      * @return The converted attributes map
      */
     private static Map<String, String> mapAttributes(final CustomServicesDBPrimitive primitive) {
-        ImmutableMap.Builder<String, String> attributeMap = ImmutableMap.<String,String>builder();
-        if( null != primitive.getAttributes()) {
-            for(final Entry<String, String> attribute : primitive.getAttributes().entrySet()) {
-                if(!primitive.attributeKeys().contains(attribute.getKey())) {
+        ImmutableMap.Builder<String, String> attributeMap = ImmutableMap.<String, String> builder();
+        if (null != primitive.getAttributes()) {
+            for (final Entry<String, String> attribute : primitive.getAttributes().entrySet()) {
+                if (!primitive.attributeKeys().contains(attribute.getKey())) {
                     throw new IllegalStateException("Unknow attribute key: " + attribute.getKey());
                 }
                 attributeMap.put(attribute.getKey(), attribute.getValue());
@@ -417,25 +424,27 @@ public final class CustomServicesDBHelper {
 
     /**
      * Make a string key into an InputParameter object
+     * 
      * @param parameter The name of the input parameter
      * @return The input parameter
      */
     private static InputParameter makeInputParameter(String parameter) {
         return new BasicInputParameter.StringParameter(parameter, false, null);
     }
-    
+
     /**
      * Convert a string key into an OutputParameter
+     * 
      * @param name The name of the output parameter
      * @return The output parameter
      */
     private static OutputParameter makeOutputParameter(String name) {
         return new StringOutputParameter(name);
     }
-    
+
     private static StringSet createOutput(List<String> list) {
         final StringSet output = new StringSet();
-        if(list != null ) {
+        if (list != null) {
             output.addAll(list);
         }
         return output;
@@ -444,34 +453,36 @@ public final class CustomServicesDBHelper {
     private static StringMap createAttributes(final Set<String> attributeKeys,
             final Map<String, String> attributes) {
         final StringMap attributesMap = new StringMap();
-        
-        if(null != attributes ) {
-            if( !attributes.keySet().containsAll(attributeKeys)) {
-                throw APIException.badRequests.invalidParameter("attributes", "missing: " + attributeKeys);
+
+        if (null != attributes) {
+            if (!attributes.keySet().containsAll(attributeKeys)) {
+                throw APIException.badRequests.invalidParameter("attributes",
+                        "missing: " + Sets.difference(attributeKeys, attributes.keySet()));
             }
-            for( final Entry<String, String> attribute :  attributes.entrySet()) {
-                if(attributeKeys.contains(attribute.getKey())) {
+            
+            for (final Entry<String, String> attribute : attributes.entrySet()) {
+                if (attributeKeys.contains(attribute.getKey())) {
                     attributes.put(attribute.getKey(), attribute.getValue());
                 } else {
                     throw BadRequestException.badRequests.invalidParameter("attributes", attribute.getKey());
                 }
             }
-        } else if( !attributeKeys.isEmpty() ) {
+        } else if (!attributeKeys.isEmpty()) {
             throw APIException.badRequests.invalidParameter("attributes", "missing: " + attributeKeys);
         }
-        
+
         return attributesMap;
     }
 
     private static StringSetMap createInput(final Set<String> keys, final Map<String, InputCreateList> map) {
         final StringSetMap inputMap = new StringSetMap();
-        if( null != map ) {
-            for( Entry<String, InputCreateList> entry : map.entrySet()) {
-                if( keys.contains(entry.getKey())) {
+        if (null != map) {
+            for (Entry<String, InputCreateList> entry : map.entrySet()) {
+                if (keys.contains(entry.getKey())) {
                     inputMap.put(entry.getKey(), createInputStringSet(entry.getValue().getInput()));
                 } else {
                     throw APIException.badRequests.unknownParameter("input", entry.getKey());
-                }  
+                }
             }
         }
         return inputMap;
@@ -480,41 +491,45 @@ public final class CustomServicesDBHelper {
     private static AbstractChangeTrackingSet<String> createInputStringSet(
             List<String> from) {
         final StringSet inputStringSet = new StringSet();
-        if( from != null ) {
+        if (from != null) {
             inputStringSet.addAll(from);
         }
         return inputStringSet;
     }
 
     /**
-     * Check if a primitive is in use in a workflow.  Throw a bad request exception if it is being used.
-     * @param client ModelClient 
+     * Check if a primitive is in use in a workflow. Throw a bad request exception if it is being used.
+     * 
+     * @param client ModelClient
      * @param id The ID of the primitive
      * @param primitive The primitive instance
      */
     private static <T extends CustomServicesDBPrimitive> void checkNotInUse(
             final ModelClient client, final URI id, final T primitive) {
         final List<NamedElement> workflows = client.customServicesWorkflows().getByPrimitive(id);
-        if( null != workflows && !workflows.isEmpty()) {
-            throw APIException.badRequests.resourceHasActiveReferencesWithType(primitive.getClass().getSimpleName(), id, CustomServicesWorkflow.class.getSimpleName());
+        if (null != workflows && !workflows.isEmpty()) {
+            throw APIException.badRequests.resourceHasActiveReferencesWithType(primitive.getClass().getSimpleName(), id,
+                    CustomServicesWorkflow.class.getSimpleName());
         }
     }
-    
+
     /**
      * Given a primitive type java class and the database column family instance
      * Create an insteance of the primitive type
+     * 
      * @param clazz The primitive type java class
      * @param primitive The instance of the database column family
      * @return The primitive type instance
      */
-    private static <T extends CustomServicesDBPrimitiveType> T makePrimitiveType(final Class<T> clazz, final CustomServicesDBPrimitive primitive) {
+    private static <T extends CustomServicesDBPrimitiveType> T makePrimitiveType(final Class<T> clazz,
+            final CustomServicesDBPrimitive primitive) {
         Constructor<T> constructor;
         try {
             constructor = clazz.getConstructor(primitive.getClass(), INPUT_ARG, ATTRIBUTES_ARG, OUTPUT_ARG);
         } catch (final NoSuchMethodException | SecurityException e) {
             throw new RuntimeException("Primitive type " + clazz.getSimpleName() + " is missing the constructor implementation", e);
         }
-       
+
         try {
             return constructor.newInstance(primitive, mapInput(primitive), mapAttributes(primitive), mapOutput(primitive));
         } catch (final InstantiationException | IllegalAccessException
@@ -522,21 +537,23 @@ public final class CustomServicesDBHelper {
             throw new RuntimeException("Primitive type " + clazz.getSimpleName() + " failed to invoke constructor", e);
         }
     }
-    
+
     /**
      * Given a primitive resource type java class and the database column family instance
+     * 
      * @param type The type of the resource java class
      * @param resource The resource database column family instance
      * @return The resource type class instance
      */
-    private static <T extends CustomServicesPrimitiveResourceType> T makeResourceType(final Class<T> type, final CustomServicesDBResource resource) {
+    private static <T extends CustomServicesPrimitiveResourceType> T makeResourceType(final Class<T> type,
+            final CustomServicesDBResource resource) {
         Constructor<T> constructor;
         try {
             constructor = type.getConstructor(resource.getClass(), RESOURCE_ATTRIBUTES_ARG);
         } catch (final NoSuchMethodException | SecurityException e) {
             throw new RuntimeException("Primitive resource type " + type.getSimpleName() + " is missing the constructor implementation", e);
         }
-       
+
         try {
             return constructor.newInstance(resource, mapResourceAttributes(resource));
         } catch (final InstantiationException | IllegalAccessException
@@ -547,13 +564,14 @@ public final class CustomServicesDBHelper {
 
     /**
      * Given a resource database instance convert its StringSetMap of attributes to a Map
+     * 
      * @param resource The resource database instance
      * @return The Map representation of the attributes
      */
     private static Map<String, Set<String>> mapResourceAttributes(final CustomServicesDBResource resource) {
-        final ImmutableMap.Builder<String, Set<String>> attributes = ImmutableMap.<String, Set<String>>builder();
-        if(resource.getAttributes() != null) {
-            for(final Entry<String, AbstractChangeTrackingSet<String>> entry : resource.getAttributes().entrySet()) {
+        final ImmutableMap.Builder<String, Set<String>> attributes = ImmutableMap.<String, Set<String>> builder();
+        if (resource.getAttributes() != null) {
+            for (final Entry<String, AbstractChangeTrackingSet<String>> entry : resource.getAttributes().entrySet()) {
                 attributes.put(entry);
             }
         }
@@ -561,7 +579,7 @@ public final class CustomServicesDBHelper {
     }
 
     /**
-     * Given the name and bytes of a resource save the database instance 
+     * Given the name and bytes of a resource save the database instance
      * 
      * @param type The class type of the resource
      * @param dbModel The database column family of the resource
@@ -613,16 +631,16 @@ public final class CustomServicesDBHelper {
             final byte[] stream,
             final StringSetMap attributes) {
         final CustomServicesDBResource resource = primitiveManager.findResource(dbModel, id);
-        if( null == resource ) {
+        if (null == resource) {
             throw APIException.notFound.unableToFindEntityInURL(id);
         }
-        if(null != name ) {
+        if (null != name) {
             resource.setLabel(name);
         }
-        if(null != attributes ) {
+        if (null != attributes) {
             resource.setAttributes(attributes);
         }
-        if(null != stream ) {
+        if (null != stream) {
             resource.setResource(Base64.encodeBase64(stream));
         }
         primitiveManager.save(resource);
@@ -642,12 +660,12 @@ public final class CustomServicesDBHelper {
             final CustomServicesPrimitiveManager primitiveManager,
             final ModelClient client, final URI id) {
         final CustomServicesDBResource resource = primitiveManager.findResource(dbModel, id);
-        if( null == resource ) {
+        if (null == resource) {
             throw APIException.notFound.unableToFindEntityInURL(id);
         }
-        
+
         // TODO add in use check
-        
+
         client.delete(resource);
     }
 
@@ -660,18 +678,19 @@ public final class CustomServicesDBHelper {
      * @param dbClient DBClient to query the database
      * @return An Iterator of rest response entities of the given type
      */
-    public static <Type extends CustomServicesDBPrimitiveType, Model extends CustomServicesDBPrimitive> Iterator<CustomServicesPrimitiveRestRep> bulk(
-            final Collection<URI> ids, 
-            Class<Type> type,
-            Class<Model> dbModel,
-            final DbClient dbClient) {
+    public static <Type extends CustomServicesDBPrimitiveType, Model extends CustomServicesDBPrimitive>
+            Iterator<CustomServicesPrimitiveRestRep> bulk(
+                    final Collection<URI> ids,
+                    Class<Type> type,
+                    Class<Model> dbModel,
+                    final DbClient dbClient) {
         return BulkList.wrapping(dbClient.queryIterativeObjects(dbModel, ids), new Function<Model, CustomServicesPrimitiveRestRep>() {
 
             @Override
             public CustomServicesPrimitiveRestRep apply(final Model from) {
                 return CustomServicesPrimitiveMapper.map(makePrimitiveType(type, from));
             }
-            
+
         }).iterator();
     }
 }

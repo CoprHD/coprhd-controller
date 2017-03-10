@@ -19,8 +19,13 @@ import com.emc.storageos.db.client.model.ScopedLabel;
 import com.emc.storageos.db.client.model.Task;
 import com.google.common.collect.Maps;
 
+/**
+ * Utility class to retrieve tags from data objects.
+ */
 public class TagUtils {
-    public static String ISA_NAMESPACE = "vipr";
+    private TagUtils(){};
+    
+    private static String ISA_NAMESPACE = "vipr";
 
     private static String MOUNTPOINT = fqnName(ISA_NAMESPACE, "mountPoint");
     private static String VMFS_DATASTORE = fqnName(ISA_NAMESPACE, "vmfsDatastore");
@@ -34,35 +39,27 @@ public class TagUtils {
         return namespace + ":" + name;
     }
     
-    public static String getHostMountPointTagName(URI hostId) {
+    private static String getHostMountPointTagName(URI hostId) {
         return MOUNTPOINT + "-" + hostId;
     }
 
-    public static String getHostMountPointTagName() {
-        return MOUNTPOINT;
-    }
-
-    public static String getVMFSDatastoreTagName(URI hostId) {
+    private static String getVMFSDatastoreTagName(URI hostId) {
         return VMFS_DATASTORE + "-" + hostId;
     }
 
-    public static String getVmfsDatastoreTagName() {
-        return VMFS_DATASTORE;
-    }
-
-    public static String getBootVolumeTagName() {
+    private static String getBootVolumeTagName() {
         return BOOT_VOLUME;
     }
 
-    public static String getOrderIdTagName() {
+    private static String getOrderIdTagName() {
         return ORDER_ID;
     }
 
-    public static String getOrderNumberTagName() {
+    private static String getOrderNumberTagName() {
         return ORDER_NUMBER;
     }
 
-    public static Map<String, String> parseTags(Collection<String> tags) {
+    private static Map<String, String> parseTags(Collection<String> tags) {
         Map<String, String> machineTags = Maps.newHashMap();
         for (String tag : tags) {
             Matcher matcher = MACHINE_TAG_REGEX.matcher(tag);
@@ -73,7 +70,7 @@ public class TagUtils {
         return machineTags;
     }
 
-    public static String getTagValue(DataObject dataObject, String tagName) {
+    private static String getTagValue(DataObject dataObject, String tagName) {
         if (dataObject == null || (dataObject.getTag() == null)) {
             return null;
         }

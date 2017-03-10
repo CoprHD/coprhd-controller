@@ -849,14 +849,14 @@ public interface VPlexApiExceptions {
     public VPlexApiException failedGettingDistributedDevice(final String name);
 
     @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
-    VPlexApiException hluRetrievalFailed(final String message, final Throwable cause);
+    public VPlexApiException hluRetrievalFailed(final String message, final Throwable cause);
 
     @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
-    VPlexApiException cannotAddVolumesToExportGroupWithoutInitiators(String exportGroupName);
+    public VPlexApiException cannotAddVolumesToExportGroupWithoutInitiators(final String exportGroupName);
 
     @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
-    VPlexApiException forgetVolumesFailed(final String volumeWWNs, final String vplexName, final String errMsg, final Throwable cause);
+    public VPlexApiException forgetVolumesFailed(final String volumeWWNs, final String vplexName, final String errMsg, final Throwable cause);
 
     @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
-    public Exception existingMaskFoundDuringBootVolumeExport(String maskNames, String computeResource, String vplexClusterName);
+    public Exception existingMaskFoundDuringBootVolumeExport(final String maskNames, final String computeResource, final String vplexClusterName);
 }

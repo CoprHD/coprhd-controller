@@ -9,6 +9,14 @@ import play.libs.IO;
 import java.util.Properties;
 import play.mvc.Http;
 import play.vfs.VirtualFile;
+import play.Logger;
+
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.DocumentBuilder;
+import org.w3c.dom.Document;
+import org.w3c.dom.NodeList;
+import org.w3c.dom.Node;
+import org.w3c.dom.Element;
 
 /**
  * Utility to map the controller to the corresponding documentation link. This is driven by a file
@@ -18,7 +26,8 @@ import play.vfs.VirtualFile;
  */
 public class DocUtils {
     // Path to documentation
-    public static final String documentationBaseUrl = "/public/docs/en_US/index.html";
+    public static final String documentationBaseUrl = "/public/docs/en_US/index.html#";
+    
     // GUID of documentation document. This should not change
     public static final String guid = "GUID-59FAE703-DF72-4FF8-81D2-4DE332A9C927";
 
@@ -36,7 +45,16 @@ public class DocUtils {
         if (topic == null) {
             return documentationBaseUrl;
         }
-        return String.format("%s?topic=%s&context=%s", documentationBaseUrl, topic, guid);
+        
+        // Added for Context Sensitive Help(CSH) for HTML5 using the map.xml file
+        String topicHtmlFilename = getHtmlHelpFile(topic);
+        
+        if (topicHtmlFilename != null && !topicHtmlFilename.isEmpty()) 
+        	return String.format("%s%s", documentationBaseUrl, topicHtmlFilename);
+        else {
+	    	String unknownDocumentationBaseUrl = documentationBaseUrl.substring(0, documentationBaseUrl.length()-1);
+	    	return String.format("%s?topic=%s", unknownDocumentationBaseUrl, topic);
+        }
     }
 
     private static String getDocumentationTopic() {
@@ -61,4 +79,45 @@ public class DocUtils {
         }
         return null;
     }
+    
+    /**
+     * Method returns the relative HTML file for the Help Topic
+     * @param topic
+     * @return topicHtmlFilename
+     */
+	private static String getHtmlHelpFile(String topic) {
+		String topicHtmlFilename = null;
+				
+		try {
+		    VirtualFile helpMapXmlFile = Play.getVirtualFile("public/docs/en_US/map.xml");
+		    DocumentBuilderFactory dbFactory = DocumentBuilderFactory.newInstance();
+		    DocumentBuilder dBuilder = dbFactory.newDocumentBuilder();
+		    Document doc = dBuilder.parse(helpMapXmlFile.inputstream());
+		    doc.getDocumentElement().normalize();
+		
+		    NodeList nList = doc.getElementsByTagName("mapID");
+		
+		    for (int temp = 0; temp < nList.getLength(); temp++) {
+		        
+		    	Node nNode = nList.item(temp);
+		        
+		    	if (nNode.getNodeType() == Node.ELEMENT_NODE) {
+		           
+		    	    Element eElement = (Element) nNode;
+		            String topicValue = eElement.getAttribute("target");
+
+		            if (topicValue.equals(topic)) {
+		            	topicHtmlFilename = eElement.getAttribute("href");
+		            	break;
+		            }
+		        }
+		    }
+		    
+	    } catch (Exception e) {
+		    Logger.error(e, e.getMessage());
+	    }
+		
+	    return topicHtmlFilename;
+	}
+
 }

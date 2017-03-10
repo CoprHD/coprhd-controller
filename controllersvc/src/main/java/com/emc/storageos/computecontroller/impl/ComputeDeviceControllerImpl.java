@@ -5,7 +5,7 @@
 package com.emc.storageos.computecontroller.impl;
 
 import java.net.URI;
-import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -24,20 +24,25 @@ import com.emc.storageos.db.client.model.Cluster;
 import com.emc.storageos.db.client.model.ComputeElement;
 import com.emc.storageos.db.client.model.ComputeSystem;
 import com.emc.storageos.db.client.model.ComputeVirtualPool;
+import com.emc.storageos.db.client.model.ExportGroup;
+import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.Host;
+import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.Operation.Status;
-import com.emc.storageos.db.client.model.StoragePool;
+import com.emc.storageos.db.client.model.UCSServiceProfile;
 import com.emc.storageos.db.client.model.UCSServiceProfileTemplate;
 import com.emc.storageos.db.client.model.VcenterDataCenter;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.imageservercontroller.exceptions.ImageServerControllerException;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
+import com.emc.storageos.util.ExportUtils;
 import com.emc.storageos.util.InvokeTestFailure;
 import com.emc.storageos.vcentercontroller.VcenterController;
 import com.emc.storageos.vcentercontroller.exceptions.VcenterControllerException;
@@ -62,6 +67,7 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
     private VcenterController vcenterController;
 
     private static final String DEACTIVATION_MAINTENANCE_MODE = "DEACTIVATION_MAINTENANCE_MODE";
+    private static final String CHECK_HOST_INITIATORS = "CHECK_HOST_INITIATORS";
     private static final String DEACTIVATION_REMOVE_HOST_VCENTER = "DEACTIVATION_REMOVE_HOST_VCENTER";
     private static final String DEACTIVATION_COMPUTE_SYSTEM_HOST = "DEACTIVATION_COMPUTE_SYSTEM_HOST";
     private static final String DEACTIVATION_COMPUTE_SYSTEM_BOOT_VOLUME = "DEACTIVATION_COMPUTE_SYSTEM_BOOT_VOLUME";
@@ -77,6 +83,7 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
     private static final String POST_OS_INSTALL_POWER_DOWN_STEP = "POST_OS_INSTALL_POWER_DOWN_STEP";
     private static final String POST_OS_INSTALL_POWER_ON_STEP = "POST_OS_INSTALL_POWER_ON_STEP";
     private static final String REBIND_HOST_TO_TEMPLATE = "REBIND_HOST_TO_TEMPLATE";
+    private static final String CHECK_VMS_ON_BOOT_VOLUME = "CHECK_VMS_ON_BOOT_VOLUME";
 
     private static final String ROLLBACK_NOTHING_METHOD = "rollbackNothingMethod";
 
@@ -774,6 +781,12 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
         if (computeElement != null) {
             ComputeSystem cs = _dbClient.queryObject(ComputeSystem.class, computeElement.getComputeSystem());
 
+            waitFor = workflow.createStep(CHECK_HOST_INITIATORS,
+                    "Check for host initiators", waitFor, cs.getId(),
+                    cs.getSystemType(), this.getClass(), new Workflow.Method("checkHostInitiators", hostId),
+                    new Workflow.Method(ROLLBACK_NOTHING_METHOD),
+                    null);
+
             waitFor = workflow.createStep(DEACTIVATION_MAINTENANCE_MODE,
                     "If synced with vCenter, put the host in maintenance mode", waitFor, cs.getId(),
                     cs.getSystemType(), this.getClass(), new Workflow.Method("putHostInMaintenanceMode", hostId),
@@ -808,55 +821,113 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
      * @return waitFor step name
      */
     @Override
-    public String addStepsDeactivateHost(Workflow workflow, String waitFor, URI hostId, boolean deactivateBootVolume)
-            throws InternalException {
+    public String addStepsDeactivateHost(Workflow workflow, String waitFor, URI hostId,
+            boolean deactivateBootVolume, List<VolumeDescriptor> volumeDescriptors) throws InternalException {
 
         Host host = _dbClient.queryObject(Host.class, hostId);
 
         if (host == null) {
             log.error("No host found with Id: {}", hostId);
             return waitFor;
-        } else if (NullColumnValueGetter.isNullURI(host.getComputeElement())) {
+        } else if (NullColumnValueGetter.isNullURI(host.getServiceProfile()) && NullColumnValueGetter.isNullURI(host.getComputeElement())) {
             /**
              * No steps need to be added - as this was not a host that we
-             * created in ViPR. If it was computeElement property of the host
+             * created in ViPR. If it was serviceProfile or computeElement property of the host
              * would have been set.
              */
             log.info(
-                    "Host: {} has no associated computeElement. So skipping service profile and boot volume deletion steps",
+                    "Host: {} has no associated serviceProfile or computeElement. So skipping service profile and boot volume deletion steps",
                     host.getLabel());
             return waitFor;
         }
-
-        ComputeElement computeElement = _dbClient.queryObject(ComputeElement.class, host.getComputeElement());
-
-        if (computeElement != null) {
-            ComputeSystem cs = _dbClient.queryObject(ComputeSystem.class, computeElement.getComputeSystem());
-            if (cs == null){
-                log.error("ComputeElement " + computeElement.getLabel() + " has an invalid computeSystem reference: " + computeElement.getComputeSystem());
-                return waitFor;
+        ComputeSystem cs = null;
+        if (!NullColumnValueGetter.isNullURI(host.getServiceProfile())){
+            UCSServiceProfile serviceProfile = _dbClient.queryObject(UCSServiceProfile.class, host.getServiceProfile());
+            if (serviceProfile !=null){
+                cs = _dbClient.queryObject(ComputeSystem.class, serviceProfile.getComputeSystem());
+                if (cs == null){
+                    log.error("ServiceProfile " + serviceProfile.getDn() + " has an invalid computeSystem reference: " + serviceProfile.getComputeSystem());
+                    return waitFor;
+                }
             }
+        } else if (!NullColumnValueGetter.isNullURI(host.getComputeElement())){
+            ComputeElement computeElement = _dbClient.queryObject(ComputeElement.class, host.getComputeElement());
+            if (computeElement !=null){
+                cs = _dbClient.queryObject(ComputeSystem.class, computeElement.getComputeSystem());
+                if (cs == null){
+                    log.error("ComputeElement " + computeElement.getDn() + " has an invalid computeSystem reference: " + computeElement.getComputeSystem());
+                    return waitFor;
+                }
+            }
+        }
+        if (cs == null){
+            log.error("Could not determine the Compute System the host {} is provisioned on. Skipping service profile and boot volume deletion steps", host.getLabel());
+            return waitFor;
+        }else {
+
             //TODO: need to break this up into individual smaller steps so that we can try to recover using rollback if decommission failed
             waitFor = workflow.createStep(DEACTIVATION_COMPUTE_SYSTEM_HOST, "Unbind blade from service profile",
                     waitFor, cs.getId(), cs.getSystemType(), this.getClass(), new Workflow.Method(
                             "deactiveComputeSystemHost", cs.getId(), hostId),
                     new Workflow.Method(ROLLBACK_NOTHING_METHOD), null);
 
-            if (deactivateBootVolume && host.getBootVolumeId() != null) {
+            if (deactivateBootVolume && !NullColumnValueGetter.isNullURI(host.getBootVolumeId())) {
                 waitFor = workflow.createStep(DEACTIVATION_COMPUTE_SYSTEM_BOOT_VOLUME,
                         "Delete the boot volume for the host", waitFor, cs.getId(), cs.getSystemType(),
-                        this.getClass(), new Workflow.Method("deleteBlockBootVolume", hostId),
+                        this.getClass(), new Workflow.Method("deleteBlockBootVolume", hostId, volumeDescriptors),
                         new Workflow.Method(ROLLBACK_NOTHING_METHOD), null);
             } else if (!deactivateBootVolume) {
                 log.info("flag deactivateBootVolume set to false");
-            } else if (host.getBootVolumeId() == null){
+            } else if (!NullColumnValueGetter.isNullURI(host.getBootVolumeId())){
                 log.info("Host "+ host.getLabel() + " has no bootVolume association");
             }
-        } else {
-            log.error("Host "+ host.getLabel()+ " has associated computeElementURI: "+ host.getComputeElement()+ " which is an invalid reference");
         }
 
         return waitFor;
+    }
+    /**
+     * Validates that the specified boot volume is exported to the only this host in ViPR and that array target ports are in the ExportMask
+     * @param hostId URI of the host
+     * @param volumeId URI of the volume
+     * @return boolean true if the boot volume is exported to the host
+     */
+    @Override
+    public boolean validateBootVolumeExport(URI hostId, URI volumeId) throws InternalException{
+        boolean valid = false;
+        Host host = _dbClient.queryObject(Host.class, hostId);
+        Volume volume = _dbClient.queryObject(Volume.class, volumeId);
+        List<Initiator> initiators = CustomQueryUtility.queryActiveResourcesByRelation(_dbClient, hostId,
+                Initiator.class, "host");
+        Map<ExportMask, ExportGroup> exportMasks = ExportUtils.getExportMasks(volume, _dbClient);
+        for (ExportMask exportMask : exportMasks.keySet()) {
+            log.info("Inspecting initiators for mask : " + exportMask.getId());
+            List<Initiator> initiatorsForMask = ExportUtils.getExportMaskInitiators(exportMask.getId(), _dbClient);
+            for (Initiator initiator : initiatorsForMask){
+                if (!initiators.contains(initiator)){
+                    log.error("Volume is exported to initiator " + initiator.getLabel() + "which does not belong to host "+ host.getLabel());
+                    return false;
+                }
+            }
+        }
+        Map<Initiator,List<URI>> initiatorPortMap = new HashMap<Initiator,List<URI>>();
+        for (Initiator initiator : initiators) {
+            for (ExportMask exportMask : exportMasks.keySet()) {
+                List<URI> storagePorts = ExportUtils.getInitiatorPortsInMask(exportMask, initiator, _dbClient);
+
+                if (storagePorts != null && !storagePorts.isEmpty()) {
+                    log.info("Initiator " + initiator.getLabel() + " mapped to "+ storagePorts.size()+ " array ports");
+                    initiatorPortMap.put(initiator, storagePorts);
+                }else {
+                    log.info("Initiator " + initiator.getLabel() + " not mapped to any array ports");
+                }
+            }
+        }
+        if (!initiatorPortMap.isEmpty()){
+            valid = true;
+        }else {
+            log.error("no array ports mapped to the hosts initiators!");
+        }
+        return valid;
     }
 
     /**
@@ -869,7 +940,7 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
      * VMs may endup decommissioned.
      */
     @Override
-    public String addStepsVcenterClusterCleanup(Workflow workflow, String waitFor, URI clusterId)
+    public String addStepsVcenterClusterCleanup(Workflow workflow, String waitFor, URI clusterId, boolean deactivateCluster)
             throws InternalException {
         Cluster cluster = _dbClient.queryObject(Cluster.class, clusterId);
         if (null == cluster) {
@@ -883,7 +954,11 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
         }
         List<URI> clusterHosts = ComputeSystemHelper.getChildrenUris(_dbClient, clusterId, Host.class, "cluster");
         // Check if cluster has hosts, if cluster is empty then safely remove from vcenter.
-        if (null == clusterHosts || clusterHosts.isEmpty()) {
+
+        // VBDU [DONE]: COP-28400, Cluster without any hosts is kind of negative case, and this information is not
+        // verified against the environment, do we need to take liberty of removing the cluster from VCenter?
+        // Before we get to this cluster removal, ClusterService has a precheck to verify the matching environments
+        if (deactivateCluster && (null == clusterHosts || clusterHosts.isEmpty())) {
             VcenterDataCenter vcenterDataCenter = _dbClient.queryObject(VcenterDataCenter.class,
                     cluster.getVcenterDataCenter());
             log.info("Cluster has no hosts, removing empty cluster : {}, from vCenter : {}", cluster.getLabel(),
@@ -922,7 +997,7 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
         /*
          * Remove cluster from vcenter only if all hosts are provisioned.
          */
-        if (hasProvisionedHosts && !hasDiscoveredHosts) {
+        if (hasProvisionedHosts && !hasDiscoveredHosts && deactivateCluster) {
             waitFor = workflow.createStep(REMOVE_VCENTER_CLUSTER, "If synced with vCenter, remove the cluster", waitFor,
                     clusterId, clusterId.toString(), this.getClass(),
                     new Workflow.Method("removeVcenterCluster", cluster.getId(), cluster.getVcenterDataCenter()),
@@ -940,7 +1015,7 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
      * @param stepId
      *            {@link String} step id
      */
-    public void deleteBlockBootVolume(URI hostId, String stepId) {
+    public void deleteBlockBootVolume(URI hostId, List<VolumeDescriptor> volumeDescriptors, String stepId) {
 
         log.info("deleteBlockBootVolume");
 
@@ -952,40 +1027,16 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
 
             host = _dbClient.queryObject(Host.class, hostId);
 
-            List<VolumeDescriptor> volumeDescriptors = new ArrayList<VolumeDescriptor>();
+            if (host != null && host.getBootVolumeId() != null) {
 
-            if (host != null && !NullColumnValueGetter.isNullURI(host.getBootVolumeId())) {
-
-                Volume bootVolume = _dbClient.queryObject(Volume.class, host.getBootVolumeId());
-                if (bootVolume.getPool() != null) {
-                    StoragePool storagePool = _dbClient.queryObject(StoragePool.class, bootVolume.getPool());
-                    if (storagePool != null && storagePool.getStorageDevice() != null) {
-                        volumeDescriptors.add(new VolumeDescriptor(VolumeDescriptor.Type.BLOCK_DATA,
-                                storagePool.getStorageDevice(), host.getBootVolumeId(), null, null));
-                    }
-                } //TODO: below commented code is delete for vplex boot volume and this will be removed
-                /* else if (bootVolume.isVPlexVolume(_dbClient)) {
-                    URI systemURI = bootVolume.getProtectionController();
-                    if(NullColumnValueGetter.isNullURI(systemURI)) {
-                        systemURI = bootVolume.getStorageController();
-                    }
-                    VolumeDescriptor descriptor = new VolumeDescriptor(VolumeDescriptor.Type.VPLEX_VIRT_VOLUME,
-                            systemURI, bootVolume.getId(), null, null);
-                    volumeDescriptors.add(descriptor);
-                    // Add descriptors for each of the associated volume
-                    if(null != bootVolume.getAssociatedVolumes()) {
-                        for (String  associatedVolumeId : bootVolume.getAssociatedVolumes()) {
-                            Volume associatedVolume = _dbClient.queryObject(Volume.class, URI.create(associatedVolumeId));
-                            if (null != associatedVolume && !associatedVolume.getInactive() && associatedVolume.getNativeId() != null) {
-                                VolumeDescriptor assocDesc = new VolumeDescriptor(VolumeDescriptor.Type.BLOCK_DATA,
-                                        associatedVolume.getStorageController(), associatedVolume.getId(), null, null);
-                                volumeDescriptors.add(assocDesc);
-                            }
-                        }
-                    }
-                }*/
+                if(volumeDescriptors.isEmpty()) {
+                    throw new IllegalStateException("Could not locate VolumeDescriptor(s) for boot volume " +
+                            host.getLabel() + " [" + host.getBootVolumeId() + "]");
+                }
 
                 String task = UUID.randomUUID().toString();
+
+                Volume bootVolume = _dbClient.queryObject(Volume.class, host.getBootVolumeId());
 
                 Operation op = _dbClient.createTaskOpStatus(Volume.class, bootVolume.getId(), task,
                         ResourceOperationTypeEnum.DELETE_BLOCK_VOLUME);
@@ -1040,6 +1091,30 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
             WorkflowStepCompleter.stepFailed(stepId, serviceCoded);
         }
 
+    }
+
+    /**
+     * Validates that the host has initiators and fails the workflow if no initiators are found.
+     *
+     * @param hostId the host to check
+     * @param stepId the workflow step id
+     */
+    public void checkHostInitiators(URI hostId, String stepId) {
+        log.info("checkHostInitiators {}", hostId);
+        try {
+            WorkflowStepCompleter.stepExecuting(stepId);
+
+            List<Initiator> initiators = CustomQueryUtility.queryActiveResourcesByRelation(_dbClient, hostId, Initiator.class, "host");
+
+            if (initiators == null || initiators.isEmpty()) {
+                WorkflowStepCompleter.stepFailed(stepId, ComputeSystemControllerException.exceptions.noHostInitiators(hostId.toString()));
+            } else {
+                WorkflowStepCompleter.stepSucceded(stepId);
+            }
+        } catch (InternalException e) {
+            log.error("InternalException when trying to checkHostInitiators: " + e.getMessage(), e);
+            WorkflowStepCompleter.stepFailed(stepId, e);
+        }
     }
 
     /**
@@ -1127,6 +1202,7 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
             vcenterController.updateVcenterCluster(task, host.getCluster(), null, new URI[] { host.getId() }, null);
 
             log.info("Monitor remove host " + host.getHostName() + " update vCenter task...");
+            // VBDU TODO: COP-28456, Anti pattern - completers are responsible for updating step status.
             while (true) {
                 Thread.sleep(TASK_STATUS_POLL_FREQUENCY);
                 VcenterDataCenter vcenterDataCenter = _dbClient.queryObject(VcenterDataCenter.class,
@@ -1280,20 +1356,14 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
 
             host = _dbClient.queryObject(Host.class, hostId);
             if (null != host) {
-                if (NullColumnValueGetter.isNullURI(host.getComputeElement())) {
+                // VBDU [DONE]: COP-28452: Need to check initiators inside the host as well
+                // Added check before we get here
+                if (NullColumnValueGetter.isNullURI(host.getComputeElement())
+                        && NullColumnValueGetter.isNullURI(host.getServiceProfile())) {
                     // NO-OP
-                    log.info("Host " + host.getLabel() + " has no computeElement association");
+                    log.info("Host " + host.getLabel() + " has no computeElement association and no service profile association");
                     WorkflowStepCompleter.stepSucceded(stepId);
                     return;
-                } else {
-                    ComputeElement computeElement = _dbClient.queryObject(ComputeElement.class,
-                            host.getComputeElement());
-                    if (NullColumnValueGetter.isNullValue(computeElement.getDn())) {
-                        log.info("Host " + host.getLabel() + " has computeElement " + host.getComputeElement()
-                        + " with label " + computeElement.getLabel() + " and Dn " + computeElement.getDn());
-                        WorkflowStepCompleter.stepSucceded(stepId);
-                        return;
-                    }
                 }
 
                 getDevice(cs.getSystemType()).deactivateHost(cs, host);
@@ -1302,6 +1372,7 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
             }
 
         } catch (Exception exception) {
+            log.error("Error on deactivate ComputeSystemHost with hostid {} and computementid {}",hostId, csId, exception);
             ServiceCoded serviceCoded = ComputeSystemControllerException.exceptions
                     .unableToDeactivateHost(host != null ? host.getHostName() : hostId.toString(), exception);
             WorkflowStepCompleter.stepFailed(stepId, serviceCoded);
@@ -1310,5 +1381,63 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
 
         WorkflowStepCompleter.stepSucceded(stepId);
 
+    }
+
+    @Override
+    public String addStepsCheckVMsOnHostBootVolume(Workflow workflow, String waitFor, URI hostId) {
+        log.info("CheckVMsOnBootVolume step");
+        Host hostObj = _dbClient.queryObject(Host.class, hostId);
+        if (null != hostObj) {
+            if (NullColumnValueGetter.isNullURI(hostObj.getVcenterDataCenter())) {
+                log.info("datacenter is null, nothing to do");
+                return waitFor;
+            }
+            if (NullColumnValueGetter.isNullURI(hostObj.getCluster())) {
+                log.warn("cluster is null, nothing to do");
+                return waitFor;
+            }
+            waitFor = workflow.createStep(CHECK_VMS_ON_BOOT_VOLUME,
+                    "Check if there are any VMs on the boot volume of the host being decommissioned.", waitFor,
+                    hostObj.getId(), hostObj.getType(), this.getClass(),
+                    new Workflow.Method("checkVMsOnHostBootVolume", hostObj),
+                    new Workflow.Method(ROLLBACK_NOTHING_METHOD), null);
+        } else {
+            throw new RuntimeException("Host null for uri " + hostId);
+        }
+        return waitFor;
+    }
+
+    /**
+     * Verifies if host has any VMs (powered on/off) on it's boot volume
+     *
+     * @param host
+     *            {@link Host}
+     * @param stepId
+     *            {@link String} step id
+     */
+    public void checkVMsOnHostBootVolume(Host host, String stepId) {
+        try {
+            boolean isVMsPresent = vcenterController.checkVMsOnHostBootVolume(host.getVcenterDataCenter(),
+                    host.getCluster(), host.getId(), host.getBootVolumeId());
+            // if there are any VMs on the boot volume fail step
+            if (isVMsPresent) {
+                log.error("There are VMs on boot volume {} of host {}, cannot proceed with deactivating host.", host.getBootVolumeId(), host.getHostName());
+                throw ComputeSystemControllerException.exceptions.hostHasVmsOnBootVolume(
+                        host.getBootVolumeId().toString(), host.getHostName());
+            } else {
+                log.info("There are no VMs on bootVolume {} for host {}, step successful.", host.getBootVolumeId(),
+                        host.getHostName());
+                WorkflowStepCompleter.stepSucceded(stepId);
+            }
+        } catch (InternalException e) {
+            log.error("InternalException when trying to checkVMsOnHostBootVolume: " + e.getMessage(), e);
+            WorkflowStepCompleter.stepFailed(stepId, e);
+        } catch (Exception exception) {
+            log.error("Unexpected exception while checking if VMs exist on boot volume {} for host {} .",
+                    host.getHostName(), host.getBootVolumeId(), exception);
+            ServiceCoded serviceCoded = ComputeSystemControllerException.exceptions
+                    .unableToCheckVMsOnHostBootVolume(host.getBootVolumeId().toString(), host.getHostName(), exception);
+            WorkflowStepCompleter.stepFailed(stepId, serviceCoded);
+        }
     }
 }

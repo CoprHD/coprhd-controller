@@ -851,7 +851,7 @@ class ExportGroup(object):
 	 	print ' '
 
 	# If opeation is path_adjustment and wait is true and no verbose option selected, then display the task id of the suspended task
-	if (not verbose and self.PATH_ADJ_OPERATION):
+	if (not verbose and wait and self.PATH_ADJ_OPERATION):
 		if (output.get('id')) :
     		    print operation
 		    print 'There are tasks (URIs listed below) that are suspended as part of this operation. Manually resume the tasks.'

@@ -4,15 +4,14 @@
  */
 package com.emc.storageos.db.client.model;
 
-import com.emc.storageos.db.client.upgrade.AddIndexMigrationCallback;
-import com.emc.storageos.db.client.upgrade.callbacks.TimeSeriesIndexMigration;
+import com.emc.storageos.db.client.upgrade.BaseDefaultMigrationCallback;
 
 import java.lang.annotation.*;
 
 @Documented
 @Target({ ElementType.METHOD })
 @Retention(RetentionPolicy.RUNTIME)
-@UpgradeAllowed(migrationCallback = TimeSeriesIndexMigration.class)
+@UpgradeAllowed(migrationCallback = BaseDefaultMigrationCallback.class)
 public @interface TimeSeriesAlternateId {
     String value() default "";
 }

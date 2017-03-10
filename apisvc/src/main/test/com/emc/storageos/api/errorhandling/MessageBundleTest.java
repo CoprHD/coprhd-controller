@@ -3,7 +3,7 @@
  * All Rights Reserved
  */
 
-package com.emc.storageos.svcs.errorhandling.annotations;
+package com.emc.storageos.api.errorhandling;
 
 import static java.text.MessageFormat.format;
 import static org.junit.Assert.assertNotNull;
@@ -22,6 +22,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
+import com.emc.storageos.svcs.errorhandling.annotations.DeclareServiceCode;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.svcs.errorhandling.utils.AbstractBundleTest;

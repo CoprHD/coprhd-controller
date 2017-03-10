@@ -4649,6 +4649,9 @@ recoverpoint_export_bookmark_tests()
         blocksnapshot show ${PROJECT}/${volume}${volume_name_modifier}/${rpsnap}-failtest2-${rp_tgt_varrays[0]}
     
         run export_group create $PROJECT ${RP_EXPORT_GROUP} ${rp_tgt_varrays[0]} --type Host --volspec ${PROJECT}/${volume}${volume_name_modifier}/${rpsnap}-failtest1-${rp_tgt_varrays[0]} --hosts "${RP_HOSTNAME}1"
+        secho 'Verifying the access state of the target volume is set to READWRITE'
+        run volume verify ${PROJECT}/${volume}-target-${rp_tgt_varrays[0]} access_state READWRITE        
+
         export_group show ${rpexport}
         secho 'Exporting RP bookmark for the same target copy as a bookmark already exported - expected failure'
         fail export_group update ${rpexport} --addVolspec ${PROJECT}/${volume}${volume_name_modifier}/${rpsnap}-failtest2-${rp_tgt_varrays[0]}
@@ -4658,18 +4661,29 @@ recoverpoint_export_bookmark_tests()
         fail volume change_link ${PROJECT}/${volume}${volume_name_modifier} swap ${PROJECT}/${volume}-target-${rp_tgt_varrays[0]} rp 
 
         run export_group delete ${rpexport}
-    
+        secho 'Verifying the access state of the target volume is set to NOT_READY'
+        run volume verify ${PROJECT}/${volume}-target-${rp_tgt_varrays[0]} access_state NOT_READY   
+
         secho 'Finished running export RP bookmark failure tests'
 
         secho 'Exporting RP bookmark to 2 different hosts'
         run export_group create $PROJECT ${RP_EXPORT_GROUP} ${rp_tgt_varrays[0]} --type Host --volspec ${PROJECT}/${volume}${volume_name_modifier}/${rpsnap}-${rp_tgt_varrays[0]} --hosts "${RP_HOSTNAME}1"
         run export_group create $PROJECT ${RP_EXPORT_GROUP}2 ${rp_tgt_varrays[0]} --type Host --volspec ${PROJECT}/${volume}${volume_name_modifier}/${rpsnap}-${rp_tgt_varrays[0]} --hosts "${RP_HOSTNAME}2"        
 
+        secho 'Verifying the access state of the target volume is set to READWRITE'
+        run volume verify ${PROJECT}/${volume}-target-${rp_tgt_varrays[0]} access_state READWRITE
+
         secho 'Unexport RP bookmark from host '${RP_HOSTNAME}2
         run export_group delete ${rpexport}2
 
+        secho 'Verifying the access state of the target volume is set to READWRITE'
+        run volume verify ${PROJECT}/${volume}-target-${rp_tgt_varrays[0]} access_state READWRITE
+
         secho 'Unexport RP bookmark from host '${RP_HOSTNAME}1
         run export_group delete ${rpexport}
+
+        secho 'Verifying the access state of the target volume is set to NOT_READY'
+        run volume verify ${PROJECT}/${volume}-target-${rp_tgt_varrays[0]} access_state NOT_READY
 
         secho 'Finished with export RP bookmark tests, cleaning up'
 
@@ -12238,7 +12252,7 @@ application_createvols()
     secho cg1volid3 is ${VG_CG1VOLID3}
 
     # create volumes in cg2
-    run blockconsistencygroup create ${PROJECT} ${VG_CGNAME2}
+    run blockconsistencygroup create ${PROJECT} ${VG_CGNAME2} --noarrayconsistency
     a=`blockconsistencygroup show ${VG_CGNAME2} | grep '"id":' | grep BlockConsistencyGroup | awk '{print $2}'`
     b=${a:1}
     VG_CGID2=${b%'"'*}
@@ -12391,6 +12405,37 @@ application_multi_sub_group_copy_tests()
 }
 
 
+application_export_snapshot_tests()
+{
+    hostseed="${RANDOM}"
+    apphostname="apphost-${hostseed}"
+    appexportname="host${hostseed}.sanity.com"
+    volspec=$1
+    copysetname=$2
+
+    # get snapshot names
+    snapshotname=`blocksnapshot list ${volspec} | grep ${copysetname} | awk '{print $1}'`
+
+    snapspec=$volspec/$snapshotname
+
+    PWWN1=`pwwn 6F`;
+    NWWN1=`pwwn 7F`;
+    run hosts create ${apphostname} $TENANT Windows ${apphostname} --port 8111 --username $RP_HOST_USER --password '${RP_HOST_PW}' --osversion 1.0
+    run initiator create ${apphostname} FC $PWWN1 --node $NWWN1
+    run transportzone add ${VG_VARRAY_CG}/${SIMULATOR_VSAN_11} $PWWN1
+
+    sleep 20
+
+    run export_group create $PROJECT ${appexportname} ${VG_VARRAY_CG} --volspec ${snapspec} --inits "${apphostname}/$PWWN1"
+
+    # delete copy should fail because one of the snapshots is exported to a host
+    fail volumegroup delete-copy $copy_type $VG_COPYVG1 $VG_FCNAME
+
+    run export_group delete $PROJECT/${appexportname}
+    run hosts delete ${apphostname}
+
+}
+
 application_full_copy_tests()
 {
     secho "application_full_copy_tests()"
@@ -12442,11 +12487,14 @@ application_full_copy_tests()
         if [[ $APPLICATION_LINK_COPY_SUPPORTED -eq 1 ]]; then
             target_name="tgt-${VG_FCNAME}"
             run volumegroup link-copy $copy_type $VG_COPYVG1 $VG_FCNAME 1 $target_name nocopy
+            application_export_snapshot_tests $PROJECT/$VG_CG1VOL1 $target_name
             if [[ $APP_RESTORE_SUPPORTED -eq 1 ]]; then
                 run volumegroup restore-copy $copy_type $VG_COPYVG1 $VG_FCNAME
             fi
             run volumegroup relink-copy $copy_type $VG_COPYVG1 $VG_FCNAME ${target_name}-1
             run volumegroup unlink-copy $copy_type $VG_COPYVG1 $VG_FCNAME ${target_name}-1
+        else
+            application_export_snapshot_tests $PROJECT/$VG_CG1VOL1 $VG_FCNAME
         fi
         run volumegroup delete-copy $copy_type $VG_COPYVG1 $VG_FCNAME
         fail volumegroup verify-copy-set $copy_type $VG_COPYVG1 $VG_FCNAME

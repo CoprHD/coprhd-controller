@@ -25,7 +25,6 @@ import com.emc.storageos.db.client.model.StorageProvider;
 import com.emc.storageos.db.client.model.StorageProvider.ConnectionStatus;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringMap;
-import com.emc.storageos.util.ConnectivityUtil;
 import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
 import com.jcraft.jsch.Channel;
 import com.jcraft.jsch.ChannelSftp;
@@ -164,13 +163,11 @@ public class CinderUtils {
         List<URI> activeProviders = new ArrayList<URI>();
         for (StorageProvider storageProvider : cinderProviderList) {
             try {
-                if (ConnectivityUtil.ping(storageProvider.getIPAddress())) {
-                    // Makes sure Cinder Provider is reachable
-                    checkProviderConnection(storageProvider);
-                    storageProvider.setConnectionStatus(ConnectionStatus.CONNECTED.name());
-                    activeProviders.add(storageProvider.getId());
-                    _log.info("Storage Provider {} is reachable", storageProvider.getIPAddress());
-                }
+                // Makes sure Cinder Provider is reachable
+                checkProviderConnection(storageProvider);
+                storageProvider.setConnectionStatus(ConnectionStatus.CONNECTED.name());
+                activeProviders.add(storageProvider.getId());
+                _log.info("Storage Provider {} is reachable", storageProvider.getIPAddress());
             } catch (Exception e) {
                 storageProvider.setConnectionStatus(ConnectionStatus.NOTCONNECTED.name());
                 _log.error("Storage Provider {} is not reachable", storageProvider.getIPAddress());

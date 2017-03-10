@@ -31,9 +31,6 @@ public class FilePolicyAssignParam implements Serializable {
     // Project assignment parameters.
     private FilePolicyProjectAssignParam projectAssignParams;
 
-    // File System assignment parameters.
-    private FilePolicyFileSystemAssignParam fileSystemAssignParams;
-
     // File replication topology information
     // Applicable only for replication type policies
     private Set<FileReplicationTopologyParam> fileReplicationtopologies;
@@ -64,16 +61,7 @@ public class FilePolicyAssignParam implements Serializable {
     public void setProjectAssignParams(FilePolicyProjectAssignParam projectAssignParams) {
         this.projectAssignParams = projectAssignParams;
     }
-
-    @XmlElement(name = "filesystem_assign_param")
-    public FilePolicyFileSystemAssignParam getFileSystemAssignParams() {
-        return this.fileSystemAssignParams;
-    }
-
-    public void setFileSystemAssignParams(FilePolicyFileSystemAssignParam fileSystemAssignParams) {
-        this.fileSystemAssignParams = fileSystemAssignParams;
-    }
-
+    
     @XmlElementWrapper(name = "file_replication_topologies")
     @XmlElement(name = "file_replication_topology")
     public Set<FileReplicationTopologyParam> getFileReplicationtopologies() {

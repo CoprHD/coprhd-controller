@@ -20,6 +20,8 @@ import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.FilePolicy;
 import com.emc.storageos.db.client.model.FilePolicy.FilePolicyApplyLevel;
 import com.emc.storageos.db.client.model.FilePolicy.FilePolicyType;
+import com.emc.storageos.db.client.model.FileReplicaPolicyTarget;
+import com.emc.storageos.db.client.model.FileReplicaPolicyTargetMap;
 import com.emc.storageos.db.client.model.FileReplicationTopology;
 import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.model.FileShare.PersonalityTypes;
@@ -81,6 +83,7 @@ public class VirtualPoolFileReplicationPolicyMigration extends BaseCustomMigrati
                     String polName = virtualPool.getLabel() + "_Replication_Policy";
                     replPolicy.setLabel(polName);
                     replPolicy.setFilePolicyName(polName);
+                    replPolicy.setLabel(polName);
                     replPolicy.setFilePolicyType(FilePolicyType.file_replication.name());
                     replPolicy.setFilePolicyVpool(virtualPool.getId());
                     // Replication policy was created always at file system level!!
@@ -94,7 +97,7 @@ public class VirtualPoolFileReplicationPolicyMigration extends BaseCustomMigrati
                     if (virtualPool.getFrRpoValue() != null && virtualPool.getFrRpoType() != null) {
                         replPolicy.setScheduleRepeat((long) virtualPool.getFrRpoValue());
                         replPolicy.setScheduleTime("00:00AM");
-                        replPolicy.setScheduleFrequency(virtualPool.getFrRpoType().toUpperCase());
+                        replPolicy.setScheduleFrequency(virtualPool.getFrRpoType().toLowerCase());
                         // Virtual pool was supporting only Minutes/Hours/Days for RPO type
                         // Day of the week and month is not applicable!!
                         replPolicy.setScheduleDayOfWeek(NullColumnValueGetter.getNullStr());
@@ -196,6 +199,7 @@ public class VirtualPoolFileReplicationPolicyMigration extends BaseCustomMigrati
         policyStorageResource.setStorageSystem(system.getId());
         policyStorageResource.setPolicyNativeId(fs.getName());
         policyStorageResource.setAppliedAt(fs.getId());
+        policyStorageResource.setResourcePath(fs.getNativeId());
         NASServer nasServer = null;
         if (fs.getVirtualNAS() != null) {
             nasServer = dbClient.queryObject(VirtualNAS.class, fs.getVirtualNAS());
@@ -211,6 +215,41 @@ public class VirtualPoolFileReplicationPolicyMigration extends BaseCustomMigrati
             policyStorageResource.setNasServer(nasServer.getId());
             policyStorageResource.setNativeGuid(generateNativeGuidForFilePolicyResource(system,
                     nasServer.getNasName(), filePolicy.getFilePolicyType(), fs.getNativeId()));
+        }
+
+        if (fs.getMirrorfsTargets() != null && !fs.getMirrorfsTargets().isEmpty()) {
+            String[] targetFSs = fs.getMirrorfsTargets().toArray(new String[fs.getMirrorfsTargets().size()]);
+            // Today we support single target!!
+            FileShare fsTarget = dbClient.queryObject(FileShare.class, URI.create(targetFSs[0]));
+            // In older release, policy name was set to target file system lable!!
+            policyStorageResource.setPolicyNativeId(fsTarget.getLabel());
+            // Update the target resource details!!!
+            FileReplicaPolicyTargetMap fileReplicaPolicyTargetMap = new FileReplicaPolicyTargetMap();
+            FileReplicaPolicyTarget target = new FileReplicaPolicyTarget();
+
+            target.setAppliedAt(filePolicy.getApplyAt());
+            target.setStorageSystem(fsTarget.getStorageDevice().toString());
+            target.setPath(fsTarget.getNativeId());
+
+            NASServer targetNasServer = null;
+            if (fsTarget.getVirtualNAS() != null) {
+                targetNasServer = dbClient.queryObject(VirtualNAS.class, fsTarget.getVirtualNAS());
+            } else {
+                StorageSystem targetSystem = dbClient.queryObject(StorageSystem.class, fsTarget.getStorageDevice());
+                // Get the physical NAS for the storage system!!
+                PhysicalNAS pNAS = getSystemPhysicalNAS(targetSystem);
+                if (pNAS != null) {
+                    targetNasServer = pNAS;
+                }
+            }
+            if (targetNasServer != null) {
+                target.setNasServer(targetNasServer.getId().toString());
+            }
+
+            String key = target.getFileTargetReplicaKey();
+            fileReplicaPolicyTargetMap.put(key, target);
+            policyStorageResource.setFileReplicaPolicyTargetMap(fileReplicaPolicyTargetMap);
+
         }
 
         dbClient.createObject(policyStorageResource);

@@ -59,9 +59,13 @@ public class VirtualPoolCapabilityValuesWrapper implements Serializable {
     public static final String FILE_SYSTEM_CREATE_MIRROR_COPY = "file_system_create_mirror_copy";
     public static final String EXISTING_SOURCE_FILE_SYSTEM = "existing_source_file_system";
     public static final String SOURCE_STORAGE_SYSTEM = "source_storage_system";
+    public static final String FILE_PROTECTION_SOURCE_STORAGE_SYSTEM = "file_protection_source_storage_system";
     public static final String EXCLUDED_STORAGE_SYSTEM = "excluded_storage_system";
     public static final String FILE_TARGET_COPY_NAME = "file_target_copy_name";
     public static final String CHANGE_VPOOL_VOLUME = "changeVpoolVolume";
+    public static final String SOURCE_VIRTUAL_NAS_SERVER = "source_virtual_nas_server";
+    public static final String TARGET_NAS_SERVER = "target_nas_server";
+    public static final String TARGET_STORAGE_SYSTEM = "target_storage_system";
 
     // meta volume capabilities
     public static final String IS_META_VOLUME = "isMetaVolume";
@@ -78,6 +82,7 @@ public class VirtualPoolCapabilityValuesWrapper implements Serializable {
     public static final String SNAPSHOT_SESSION_COPY_MODE = "snapshotSessionCopyMode";
 
     public static final String VPOOL_PROJECT_POLICY_ASSIGN = "vpoolProjectPolicyAssign";
+    public static final String GET_ALL_SOURCE_RECOMMENDATIONS = "getallsourcerecommendations";
 
     private final Map<String, Object> _vpoolCapabilities = new HashMap<String, Object>();
 
@@ -432,9 +437,29 @@ public class VirtualPoolCapabilityValuesWrapper implements Serializable {
         return value != null ? (FileShare) value : null;
     }
 
+    public URI getSourceVirtualNasServer() {
+        Object value = _vpoolCapabilities.get(SOURCE_VIRTUAL_NAS_SERVER);
+        return value != null ? (URI) value : null;
+    }
+
+    public URI getTargetNasServer() {
+        Object value = _vpoolCapabilities.get(TARGET_NAS_SERVER);
+        return value != null ? (URI) value : null;
+    }
+
+    public URI getTargetStorageSystem() {
+        Object value = _vpoolCapabilities.get(TARGET_STORAGE_SYSTEM);
+        return value != null ? (URI) value : null;
+    }
+
     public StorageSystem getSourceStorageDevice() {
         Object value = _vpoolCapabilities.get(SOURCE_STORAGE_SYSTEM);
         return value != null ? (StorageSystem) value : null;
+    }
+
+    public URI getFileProtectionSourceStorageDevice() {
+        Object value = _vpoolCapabilities.get(FILE_PROTECTION_SOURCE_STORAGE_SYSTEM);
+        return value != null ? (URI) value : null;
     }
 
     public StorageSystem getExcludedStorageDevice() {
@@ -478,8 +503,13 @@ public class VirtualPoolCapabilityValuesWrapper implements Serializable {
         }
     }
 
-    public boolean getVpoolProjectPolicyAssign() {
+    public boolean isVpoolProjectPolicyAssign() {
         Object value = _vpoolCapabilities.get(VPOOL_PROJECT_POLICY_ASSIGN);
+        return value != null ? (Boolean) value : false;
+    }
+
+    public boolean getAllSourceRecommnedations() {
+        Object value = _vpoolCapabilities.get(GET_ALL_SOURCE_RECOMMENDATIONS);
         return value != null ? (Boolean) value : false;
     }
 }

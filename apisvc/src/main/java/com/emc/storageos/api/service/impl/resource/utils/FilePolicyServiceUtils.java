@@ -63,11 +63,15 @@ public class FilePolicyServiceUtils {
         if (policyScheduleparams != null) {
 
             // check schedule frequency is valid or not
+            if(policyScheduleparams.getScheduleFrequency() == null){
+                errorMsg.append("required parameter schedule_frequency is missing");
+                return false;
+            }
             ArgValidator.checkFieldValueFromEnum(policyScheduleparams.getScheduleFrequency().toUpperCase(), "schedule_frequency",
                     EnumSet.allOf(FilePolicy.ScheduleFrequency.class));
 
             // validating schedule repeat period
-            if (policyScheduleparams.getScheduleRepeat() < 1) {
+            if (policyScheduleparams.getScheduleRepeat() == null || policyScheduleparams.getScheduleRepeat() < 1) {
                 errorMsg.append("required parameter schedule_repeat is missing or value: " + policyScheduleparams.getScheduleRepeat()
                         + " is invalid");
                 return false;
@@ -78,7 +82,11 @@ public class FilePolicyServiceUtils {
             int hour;
             int minute;
             boolean isValid = true;
-            if (policyScheduleparams.getScheduleTime().contains(":")) {
+            if (policyScheduleparams.getScheduleTime() == null){
+                errorMsg.append("required parameter schedule_time is missing");
+                return false;
+            }
+            if (policyScheduleparams.getScheduleTime() != null && policyScheduleparams.getScheduleTime().contains(":")) {
                 String splitTime[] = policyScheduleparams.getScheduleTime().split(":");
                 hour = Integer.parseInt(splitTime[0]);
                 minute = Integer.parseInt(splitTime[1]);
@@ -101,6 +109,8 @@ public class FilePolicyServiceUtils {
             ScheduleFrequency scheduleFreq = ScheduleFrequency.valueOf(policyScheduleparams.getScheduleFrequency().toUpperCase());
             switch (scheduleFreq) {
 
+                case MINUTES:
+                case HOURS:
                 case DAYS:
                     schedulePolicy.setScheduleRepeat((long) policyScheduleparams.getScheduleRepeat());
                     schedulePolicy.setScheduleTime(policyScheduleparams.getScheduleTime() + period);
@@ -153,13 +163,14 @@ public class FilePolicyServiceUtils {
     }
 
     public static void validateSnapshotPolicyExpireParam(FileSnapshotPolicyParam param) {
-        boolean isValidSnapshotExpire;
+        boolean isValidSnapshotExpire = false;
+        if(param.getSnapshotExpireParams().getExpireType()!= null){
+         // check snapshot expire type is valid or not
+            ArgValidator.checkFieldValueFromEnum(param.getSnapshotExpireParams().getExpireType().toUpperCase(), "expire_type",
+                    EnumSet.allOf(FilePolicy.SnapshotExpireType.class));
 
-        // check snapshot expire type is valid or not
-        ArgValidator.checkFieldValueFromEnum(param.getSnapshotExpireParams().getExpireType().toUpperCase(), "expire_type",
-                EnumSet.allOf(FilePolicy.SnapshotExpireType.class));
-
-        isValidSnapshotExpire = validateSnapshotExpireParam(param.getSnapshotExpireParams());
+            isValidSnapshotExpire = validateSnapshotExpireParam(param.getSnapshotExpireParams());
+        }
         if (!isValidSnapshotExpire) {
             int expireTime = param.getSnapshotExpireParams().getExpireValue();
             _log.error("Invalid schedule snapshot expire time {}. Try an expire time between {} hours to {} years",
@@ -220,6 +231,10 @@ public class FilePolicyServiceUtils {
 
             ScheduleFrequency scheduleFreq = ScheduleFrequency.valueOf(policyScheduleparams.getScheduleFrequency().toUpperCase());
             switch (scheduleFreq) {
+                case MINUTES:
+                    break;
+                case HOURS:
+                    break;
                 case DAYS:
                     break;
                 case WEEKS:
@@ -491,10 +506,65 @@ public class FilePolicyServiceUtils {
             for (String strPolicy : project.getFilePolicies()) {
                 FilePolicy policy = dbClient.queryObject(FilePolicy.class, URI.create(strPolicy));
                 if (policy.getFilePolicyType().equalsIgnoreCase(FilePolicyType.file_replication.name())
-                        && policy.getFilePolicyVpool() != null && vpoolURI != null
+                        && !NullColumnValueGetter.isNullURI(policy.getFilePolicyVpool()) && vpoolURI != null
                         && policy.getFilePolicyVpool().toString().equalsIgnoreCase(vpoolURI.toString())) {
                     _log.info("Replication policy found for vpool {} and project {}", vpoolURI.toString(), project.getLabel());
                     return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Verifies the vpool assigned policies with similar schedule as given policy
+     * 
+     * 
+     * @param dbClient
+     * @param vpoolURI
+     * @param newPolicy
+     * @return true/false
+     */
+    public static boolean vPoolHasSnapshotPolicyWithSameSchedule(DbClient dbClient, URI vpoolURI, FilePolicy newPolicy) {
+        VirtualPool vPool = dbClient.queryObject(VirtualPool.class, vpoolURI);
+        if (vPool != null && vPool.getFilePolicies() != null && !vPool.getFilePolicies().isEmpty()) {
+            for (String strPolicy : vPool.getFilePolicies()) {
+                FilePolicy policy = dbClient.queryObject(FilePolicy.class, URI.create(strPolicy));
+                if (policy.getFilePolicyType().equalsIgnoreCase(FilePolicyType.file_snapshot.name())) {
+                    if (policy.getScheduleFrequency().equalsIgnoreCase(newPolicy.getScheduleFrequency())
+                            && policy.getScheduleRepeat().longValue() == newPolicy.getScheduleRepeat().longValue()) {
+                        _log.info("Snapshot policy found for vpool {} with similar schedule ", vPool.getLabel());
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Verifies the project assigned policies with similar schedule as given policy
+     * 
+     * 
+     * @param dbClient
+     * @param vpoolURI
+     * @param projectURI
+     * @param newPolicy
+     * @return true/false
+     */
+    public static boolean projectHasSnapshotPolicyWithSameSchedule(DbClient dbClient, URI projectURI, URI vpoolURI, FilePolicy newPolicy) {
+        Project project = dbClient.queryObject(Project.class, projectURI);
+        if (project != null && project.getFilePolicies() != null && !project.getFilePolicies().isEmpty()) {
+            for (String strPolicy : project.getFilePolicies()) {
+                FilePolicy policy = dbClient.queryObject(FilePolicy.class, URI.create(strPolicy));
+                if (policy.getFilePolicyType().equalsIgnoreCase(FilePolicyType.file_snapshot.name())
+                        && !NullColumnValueGetter.isNullURI(policy.getFilePolicyVpool()) && vpoolURI != null
+                        && policy.getFilePolicyVpool().toString().equalsIgnoreCase(vpoolURI.toString())) {
+                    if (policy.getScheduleFrequency().equalsIgnoreCase(newPolicy.getScheduleFrequency())
+                            && policy.getScheduleRepeat().longValue() == newPolicy.getScheduleRepeat().longValue()) {
+                        _log.info("Snapshot policy found for project {} with similar schedule ", project.getLabel());
+                        return true;
+                    }
                 }
             }
         }

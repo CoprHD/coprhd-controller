@@ -282,6 +282,10 @@ angular.module("portalApp").controller({
 	
             // if a required field has no value, disable the order button
             var result = false;
+
+            // if any field in serviceForm is invalid like max number of copies
+            result = ! $scope.serviceForm.$valid;
+
             angular.forEach(requiredFields, function(field) {
                 if (field.value == null || field.value.length < 1) {
                     result = true;
@@ -296,12 +300,33 @@ angular.module("portalApp").controller({
                 }  
             });
 
-            // if any field in serviceForm is invalid like max number of copies
-            result = ! $scope.serviceForm.$valid;
-
             // if we make it out, enable the order button
             return result;
+        };
+        $scope.dismissAssetError = function() {
+            $scope.$root.assetError = undefined;
         }
+        $scope.showModalDialog = function() {
+            $('#serviceModal').modal({backdrop: 'static', keyboard: false});
+            $scope.enableModalFields();
+        }
+        $scope.hideModalDialog = function() {
+            $('#serviceModal').modal('hide');
+            $scope.dismissAssetError();
+            $scope.disableModalFields();
+        }
+        $scope.disableModalButton = function() {
+            if ($scope.$root.errorCount > 0) {
+                return true
+            }
+            return false;
+        };
+        $scope.enableModalFields = function() {
+            $scope.updateModalFields = true;
+        };
+        $scope.disableModalFields = function() {
+            $scope.updateModalFields = false;
+        };
     },
     
     FileRessourceCtrl: function($scope, $http, $window, translate) {
@@ -387,23 +412,66 @@ angular.module("portalApp").controller({
               $scope.root = root.toString();
        }, true);
     },
+    filePolicyUnassignCtrl: function($scope, $http, $window, translate) {
+        $scope.topologies = []       
+        $http.get(routes.VirtualArrays_list()).success(function(data) {
+        	$scope.virtualArrayOptions = data.aaData;
+        });  
+        $scope.$watch('policyId', function () {
+            $http.get(routes.FileProtectionPolicy_details({id:$scope.policyId})).success(function(data) {             	            	 
+                if ( (typeof data.replicationSettings != 'undefined') &&  (typeof data.replicationSettings.replicationTopologies != 'undefined') ) {
+                    var protectionPolicyJson = data.replicationSettings.replicationTopologies;
+                    angular.forEach(protectionPolicyJson, function(topology) {
+                        var source =topology.sourceVArray.id.toString();
+                        //for now api support only one target for each source.
+                        var target=  topology.targetVArrays[0].id.toString();       	           
+                        var topo = {sourceVArray:source, targetVArray:target};
+                        $scope.topologies.push(angular.copy(topo));   
+                    });
+                }
+            });
+        });
+     },
     
     filePolicyCtrl: function($scope, $http, $window, translate) {
         $scope.add = {sourceVArray:'', targetVArray:''};
         $scope.topologies = []
-        
         $scope.deleteTopology = function(idx) { $scope.topologies.splice(idx, 1); }
         $scope.addTopology = function() { $scope.topologies.push(angular.copy($scope.add)); }
         
-        $http.get(routes.VirtualArrays_list()).success(function(data) {
-        	$scope.virtualArrayOptions = data.aaData;
-        });  
-        
+        $scope.populateVarray = function(selected) { 
+            $http.get(routes.FileProtectionPolicy_getVarraysAssociatedWithPools({id:selected.value})).success(function(data) {     		 
+            $scope.virtualArrayOptions = data;
+        		
+        });
+       }
+        $scope.$watch('policyId', function () {
+        	
+           $http.get(routes.FileProtectionPolicy_getVpoolForProtectionPolicy({id:$scope.policyId})).success(function(data) { 
+              	$scope.vPoolOptions = data;
+             });
+        	
+        	
+            $http.get(routes.FileProtectionPolicy_details({id:$scope.policyId})).success(function(data) {             	            	 
+                if ( (typeof data.replicationSettings != 'undefined') &&  (typeof data.replicationSettings.replicationTopologies != 'undefined') ) {
+                    var protectionPolicyJson = data.replicationSettings.replicationTopologies;
+                    angular.forEach(protectionPolicyJson, function(topology) {
+                        var source =topology.sourceVArray.id.toString();
+                        //for now api support only one target for each source.
+                        var target=  topology.targetVArrays[0].id.toString();       	           
+                        var topo = {sourceVArray:source, targetVArray:target};
+                        $scope.topologies.push(angular.copy(topo));   
+                    });
+                }
+            });
+                                                                                            
+        });   
         $scope.$watch('topologies', function(newVal) {
         	$scope.topologiesString = angular.toJson($scope.topologies, false);
         }, true);
+      
      },
-    
+     
     FileShareAclCtrl: function($scope, $http, $window, translate) {
     	
     	$scope.add = {type:'User', name:'', domain:'', permission:'Change'};

@@ -57,7 +57,7 @@ public class FilePolicyParam implements Serializable {
         this.policyName = policyName;
     }
 
-    @XmlElement(name = "policy_description")
+    @XmlElement(name = "policy_description", required = false)
     public String getPolicyDescription() {
         return this.policyDescription;
     }

@@ -258,6 +258,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
     private static final String IMPORT_COPY_STEP = "importCopy";
     private static final String VOLUME_FORGET_STEP = "forgetVolumes";
     private static final String ZONING_STEP = "zoning";
+    private static final String INITIATOR_REGISTRATION = "initiatorRegistration";
     private static final String RESTORE_VOLUME_STEP = "restoreVolume";
     private static final String RESTORE_VPLEX_VOLUME_STEP = "restoreVPlexVolume";
     private static final String INVALIDATE_CACHE_STEP = "invalidateCache";
@@ -307,6 +308,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
     private static final String RB_FORGET_VOLUMES_METHOD_NAME = "rollbackForgetVolumes";
     private static final String CREATE_STORAGE_VIEW = "createStorageView";
     private static final String DELETE_STORAGE_VIEW = "deleteStorageView";
+    private static final String REGISTER_INITIATORS_METHOD_NAME = "registerInitiators";
     private static final String RESTORE_VOLUME_METHOD_NAME = "restoreVolume";
     private static final String INVALIDATE_CACHE_METHOD_NAME = "invalidateCache";
     private static final String DETACH_MIRROR_METHOD_NAME = "detachMirror";
@@ -862,10 +864,15 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
             // List of storage system Guids
             List<String> storageSystemGuids = new ArrayList<String>();
 
+            boolean searchAllClustersForStorageVolumes = false;
             for (URI vplexVolumeURI : vplexVolumeURIs) {
                 Volume vplexVolume = getDataObject(Volume.class, vplexVolumeURI, _dbClient);
                 volumeLabels.append(vplexVolume.getLabel()).append(" ");
                 volumeMap.put(vplexVolume, new ArrayList<Volume>());
+                if (vplexVolume.getAssociatedVolumes().size() >= VPlexApiConstants.DISTRIBUTED_BACKEND_VOLUME_COUNT ||
+                        RPHelper.isAssociatedToAnyRpVplexTypes(vplexVolume, _dbClient)) {
+                    searchAllClustersForStorageVolumes = true;
+                }
                 // Find the underlying Storage Volumes
                 for (String associatedVolume : vplexVolume.getAssociatedVolumes()) {
                     Volume storageVolume = getDataObject(Volume.class, new URI(associatedVolume), _dbClient);
@@ -882,8 +889,38 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
             }
             _log.info(String.format("Request to create: %s virtual volume(s) %s", volumeMap.size(), volumeLabels));
             long startTime = System.currentTimeMillis();
-            // Make a call to re-discover storage system for storageSystemGuids
-            client.rediscoverStorageSystems(storageSystemGuids);
+
+            // If a new backend system is connected to a VPLEX and the VPLEX does not
+            // yet know about the system i.e., the system does not show up in the path 
+            // /clusters/cluster-x/storage-elements/storage-arrays, and a user attempts
+            // to create a virtual volume, the request may fail because we cannot find 
+            // the storage system. When the backend volume on the new system is created 
+            // and exported to the VPLEX, the VPLEX will recognize new system. However, 
+            // this may not occur immediately. So, when we go to create the vplex volume 
+            // using that backend volume, we may not find that system and volume on the 
+            // first try. We saw this in development. As such there was a retry loop 
+            // added when finding the backend volumes in the discovery that is performed
+            // in the method to create the virtual volume.
+            //
+            // However changes for CTRL-12826 were merged on 7/31/2015 that circumvented 
+            // that retry code. Changes were made to do the array re-discover here prior
+            // to virtual volume creation, rather than during virtual volume creation and 
+            // false was passed to the create virtual volume routine for the discovery 
+            // required flag. The newly added call does not do any kind of retry if the 
+            // system is not found and so a failure will occur in the scenario described 
+            // above. If a system is not found an exception is thrown. Now we will catch
+            // that exception and re-enable discovery in the volume creation routine. 
+            // Essentially we revert to what was happening before the 12826 changes if there
+            // is an issue discovering the systems on the initial try here.
+            boolean discoveryRequired = false;
+            try {
+                client.rediscoverStorageSystems(storageSystemGuids);
+            } catch (Exception e) {
+                String warnMsg = String.format("Initial discovery of one or more of these backend systems %s failed: %s."
+                        + "Discovery is required during virtual volume creation", storageSystemGuids, e.getMessage()); 
+                _log.warn(warnMsg);
+                discoveryRequired = true;
+            }
 
             // Now make a call to the VPlexAPIClient.createVirtualVolume for each vplex volume.
             StringBuilder buf = new StringBuilder();
@@ -931,15 +968,19 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
 
                 // Make a call to get cluster info
                 if (null == clusterInfoList) {
-                    clusterInfoList = client.getClusterInfoDetails();
+                    if (searchAllClustersForStorageVolumes) {
+                        clusterInfoList = client.getClusterInfoDetails();
+                    } else {
+                        clusterInfoList = new ArrayList<VPlexClusterInfo>();
+                    }
                 }
 
                 // Make the call to create a virtual volume. It is distributed if there are two (or more?)
                 // physical volumes.
                 boolean isDistributed = (vinfos.size() >= 2);
                 thinEnabled = thinEnabled && verifyVplexSupportsThinProvisioning(vplex);
-                VPlexVirtualVolumeInfo vvInfo = client.createVirtualVolume(vinfos, isDistributed, false, false, clusterId, clusterInfoList,
-                        false, thinEnabled);
+                VPlexVirtualVolumeInfo vvInfo = client.createVirtualVolume(vinfos, isDistributed,
+                        discoveryRequired, false, clusterId, clusterInfoList, false, thinEnabled, searchAllClustersForStorageVolumes);
 
                 // Note: according to client.createVirtualVolume, this will never be the case.
                 if (vvInfo == null) {
@@ -1070,7 +1111,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
             WorkflowStepCompleter.stepFailed(stepId, serviceError);
         }
     }
-
+    
     /**
      * Records a VPLEX volume event.
      *
@@ -1413,7 +1454,6 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
                         cgVolsMap.put(vplexVolume.getConsistencyGroup(), cgVols);
                     }
                     cgVols.add(vplexVolumeURI);
-                    cgVols.addAll(forgetVolumeURIs);
                 }
                 // Adding the VPLEX mirror backend volume to forgetVolumeURIs
                 if (vplexVolume.getMirrors() != null && !(vplexVolume.getMirrors().isEmpty())) {
@@ -1451,10 +1491,22 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
         Volume vol = getDataObject(Volume.class, allVplexVolumeURIs.get(0), _dbClient);
         ConsistencyGroupManager consistencyGroupManager = getConsistencyGroupManager(vol);
 
+        // Generate step(s) to delete the VPLEX consistency groups
         for (URI cgURI : cgVolsMap.keySet()) {
+
+            // Skip volumes that are part of a VPlex SRDF target CG, as it will
+            // be deleted earlier
+            List<URI> volURIs = new ArrayList<URI>(cgVolsMap.get(cgURI));
+            volURIs = VPlexSrdfUtil.filterOutVplexSrdfTargets(_dbClient, volURIs);
+            if (volURIs.isEmpty()) {
+                _log.info(String.format("CG %s has all VPLEX SRDF targets, skipping as CG should already be deleted",
+                        cgURI));
+                continue;
+            }
+
             // find member volumes in the group
             List<Volume> volumeList = new ArrayList<Volume>();
-            Iterator<Volume> volumeIterator = _dbClient.queryIterativeObjects(Volume.class, cgVolsMap.get(cgURI), true);
+            Iterator<Volume> volumeIterator = _dbClient.queryIterativeObjects(Volume.class, volURIs, true);
             while (volumeIterator.hasNext()) {
                 volumeList.add(volumeIterator.next());
             }
@@ -1463,7 +1515,8 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
             // delete replication group from array
             if (ControllerUtils.cgHasNoOtherVolume(_dbClient, cgURI, volumeList)) {
                 _log.info(String.format("Adding step to delete the consistency group %s", cgURI));
-                returnWaitFor = consistencyGroupManager.addStepsForDeleteConsistencyGroup(workflow, returnWaitFor, storage, cgURI, false);
+                returnWaitFor = consistencyGroupManager.addStepsForDeleteConsistencyGroup(workflow, returnWaitFor,
+                        storage, cgURI, false);
             }
         }
 
@@ -1478,7 +1531,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
      * A workflow step that marks Volumes inactive after all the delete volume
      * workflow steps have completed.
      *
-     * @param volumes
+     c* @param volumes
      *            -- List<URI> of volumes
      * @param stepId
      *            -- Workflow Step Id.
@@ -1862,6 +1915,12 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
 
             initiators = VPlexUtil.filterInitiatorsForVplex(_dbClient, initiators);
 
+            if (initiators == null || initiators.isEmpty()) {
+                _log.info("ExportGroup created with no initiators connected to VPLEX supplied, no need to orchestrate VPLEX further.");
+                completer.ready(_dbClient);
+                return;
+            }
+
             // Determine whether this export will be done across both VPLEX clusters, or just one.
             // If both, we will set up some data structures to handle both exports.
             // Distributed volumes can be exported to both clusters.
@@ -2031,21 +2090,24 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
         // sort initiators in a host to initiator map
         Map<URI, List<Initiator>> hostInitiatorMap = VPlexUtil.makeHostInitiatorsMap(initiators, _dbClient);
 
-        // These variables will be used to cache information from the VPlex
-        Map<String, String> initiatorWwnToNameMap = null;
-
         // This Set will be used to track shared export mask in database.
         Set<ExportMask> sharedExportMasks = new HashSet<ExportMask>();
 
         // look at each host
         String lockName = null;
         boolean lockAcquired = false;
+        String vplexClusterId = ConnectivityUtil.getVplexClusterForVarray(varrayUri, vplexURI, _dbClient);
+        String vplexClusterName = VPlexUtil.getVplexClusterName(varrayUri, vplexURI, client, _dbClient);
         try {
-            String vplexClusterId = ConnectivityUtil.getVplexClusterForVarray(varrayUri, vplexURI, _dbClient);
             lockName = _vplexApiLockManager.getLockName(vplexURI, vplexClusterId);
-            String vplexClusterName = VPlexUtil.getVplexClusterName(varrayUri, vplexURI, client, _dbClient);
+            lockAcquired = _vplexApiLockManager.acquireLock(lockName, LockTimeoutValue.get(LockType.VPLEX_API_LIB));
+            if (!lockAcquired) {
+                throw VPlexApiException.exceptions.couldNotObtainConcurrencyLock(vplexSystem.getLabel());
+            }
 
             Map<String, String> targetPortToPwwnMap = VPlexControllerUtils.getTargetPortToPwwnMap(client, vplexClusterName);
+
+            Boolean[] doInitiatorRefresh =  new Boolean[] { new Boolean(true) };
 
             for (URI hostUri : hostInitiatorMap.keySet()) {
                 _log.info("assembling export masks workflow, now looking at host URI: " + hostUri);
@@ -2089,19 +2151,6 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
                             foundMatchingStorageView = true;
                             break;
                         } else {
-                            // Read the initiators from the VPLEX if we have not already done so and add them to the method-local cache.
-                            if (initiatorWwnToNameMap == null) {
-                                _log.info("Reading all Initiator information into cache");
-                                long start = new Date().getTime();
-                                lockAcquired = _vplexApiLockManager.acquireLock(lockName, LockTimeoutValue.get(LockType.VPLEX_API_LIB));
-                                if (!lockAcquired) {
-                                    throw VPlexApiException.exceptions.couldNotObtainConcurrencyLock(vplexSystem.getLabel());
-                                }
-                                initiatorWwnToNameMap = client.getInitiatorWwnToNameMap(vplexClusterName);
-                                long elapsed = new Date().getTime() - start;
-                                _log.info("TIMER: assembling the initiator wwn to name map took {} ms", elapsed);
-                            }
-
                             _log.info("could not find an existing matching ExportMask in ViPR, "
                                     + "so ViPR will see if there is one already on the VPLEX system");
 
@@ -2109,10 +2158,10 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
                             // on the VPLEX and set it up as a new ExportMask.
                             long start = new Date().getTime();
                             foundMatchingStorageView = checkForExistingStorageViews(client, targetPortToPwwnMap,
-                                    initiatorWwnToNameMap, vplexSystem, vplexClusterName, inits, exportGroup,
+                                    vplexSystem, vplexClusterName, inits, exportGroup,
                                     varrayUri, blockObjectMap,
                                     exportMasksToUpdateOnDevice, exportMasksToUpdateOnDeviceWithInitiators,
-                                    exportMasksToUpdateOnDeviceWithStoragePorts, opId);
+                                    exportMasksToUpdateOnDeviceWithStoragePorts, doInitiatorRefresh, opId);
                             long elapsed = new Date().getTime() - start;
                             _log.info("TIMER: finding an existing storage view took {} ms and returned {}",
                                     elapsed, foundMatchingStorageView);
@@ -2189,15 +2238,17 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
         }
 
         _log.info("updating zoning if necessary for both new and updated export masks");
-        String zoningStepId = handleZoningUpdate(export, initiators,
+        String zoningStepId = addStepsForZoningUpdate(export, initiators,
                 blockObjectMap, workflow, waitFor, exportMasksToCreateOnDevice,
                 exportMasksToUpdateOnDevice);
 
-        String storageViewStepId = zoningStepId;
+        _log.info("set up initiator pre-registration step");
+        String storageViewStepId = 
+                addStepsForInitiatorRegistration(initiators, vplexSystem, vplexClusterName, workflow, zoningStepId);
 
         _log.info("processing the export masks to be created");
         for (ExportMask exportMask : exportMasksToCreateOnDevice) {
-            storageViewStepId = handleExportMaskCreate(blockObjectMap, workflow, vplexSystem, exportGroup,
+            storageViewStepId = addStepsForExportMaskCreate(blockObjectMap, workflow, vplexSystem, exportGroup,
                     storageViewStepId, exportMask);
         }
 
@@ -2208,7 +2259,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
                 shared = true;
             }
 
-            storageViewStepId = handleExportMaskUpdate(export,
+            storageViewStepId = addStepsForExportMaskUpdate(export,
                     blockObjectMap, workflow, vplexSystem,
                     exportMasksToUpdateOnDeviceWithInitiators,
                     exportMasksToUpdateOnDeviceWithStoragePorts,
@@ -2302,8 +2353,6 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
      *            a VPLEX API client instance
      * @param targetPortToPwwnMap
      *            cached storage port data from the VPLEX API
-     * @param initiatorWwnToNameMap
-     *            cached initiator data from the VPLEX API
      * @param vplexSystem
      *            a StorageSystem object representing the VPLEX system
      * @param vplexCluster
@@ -2327,22 +2376,17 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
      * @return whether or not a storage view was actually found on the device
      */
     private boolean checkForExistingStorageViews(VPlexApiClient client,
-            Map<String, String> targetPortToPwwnMap, Map<String, String> initiatorWwnToNameMap,
+            Map<String, String> targetPortToPwwnMap,
             StorageSystem vplexSystem, String vplexCluster, List<Initiator> inits,
             ExportGroup exportGroup, URI varrayUri, Map<URI, Integer> blockObjectMap,
             List<ExportMask> exportMasksToUpdateOnDevice,
             Map<URI, List<Initiator>> exportMasksToUpdateOnDeviceWithInitiators,
-            Map<URI, List<URI>> exportMasksToUpdateOnDeviceWithStoragePorts, String opId) throws Exception {
+            Map<URI, List<URI>> exportMasksToUpdateOnDeviceWithStoragePorts, 
+            Boolean[] doInitiatorRefresh, String opId) throws Exception {
         boolean foundMatchingStorageView = false;
 
-        List<String> initiatorNames = new ArrayList<String>();
-        for (Initiator initiator : inits) {
-            String portWwn = initiator.getInitiatorPort();
-            String initiatorName = initiatorWwnToNameMap.get(WWNUtility.getUpperWWNWithNoColons(portWwn));
-            if (initiatorName != null) {
-                initiatorNames.add(initiatorName);
-            }
-        }
+        List<String> initiatorNames = getInitiatorNames(
+                vplexSystem.getSerialNumber(), vplexCluster, client, inits.iterator(), doInitiatorRefresh);
 
         long start = new Date().getTime();
         List<VPlexStorageViewInfo> storageViewInfos = client.getStorageViewsContainingInitiators(
@@ -2417,6 +2461,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
             exportMask.setStorageDevice(vplexSystem.getId());
             exportMask.setId(URIUtil.createId(ExportMask.class));
             exportMask.setCreatedBySystem(false);
+            exportMask.setNativeId(storageView.getPath());
 
             List<Initiator> initsToAdd = new ArrayList<Initiator>();
             for (Initiator init : inits) {
@@ -2662,7 +2707,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
      *            collection of ExportMasks to update on the device
      * @return
      */
-    private String handleZoningUpdate(URI export, List<URI> initiators,
+    private String addStepsForZoningUpdate(URI export, List<URI> initiators,
             Map<URI, Integer> blockObjectMap, Workflow workflow,
             String waitFor,
             List<ExportMask> exportMasksToCreateOnDevice,
@@ -2688,6 +2733,29 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
     }
 
     /**
+     * Handles setting up workflow step for registering any unregistered initiators.
+     * 
+     * @param initiators the initiators to check for registration
+     * @param vplexSystem the VPLEX StorageSystem object
+     * @param vplexClusterName the VPLEX cluster name (like cluster-1 or cluster-2)
+     * @param workflow the workflow
+     * @param previousStepId the previous workflow step id to wait for
+     * @return the id of the initiator registration step
+     */
+    private String addStepsForInitiatorRegistration(List<URI> initiators,
+            StorageSystem vplexSystem, String vplexClusterName, Workflow workflow, String previousStepId) {
+
+        Workflow.Method executeMethod = registerInitiatorsMethod(initiators, vplexSystem.getId(), vplexClusterName);
+        // if rollback occurs, the unzoning step will cause any previously unregistered inits
+        // to go back to unregistered when zoning disappears -- so, a null rollback method is fine here.
+        Workflow.Method rollbackMethod = rollbackMethodNullMethod();
+        String stepId = workflow.createStep(INITIATOR_REGISTRATION, "Register any unregistered initiators on VPLEX",
+                previousStepId, vplexSystem.getId(), vplexSystem.getSystemType(), this.getClass(),
+                executeMethod, rollbackMethod, null);
+        return stepId;
+    }
+
+    /**
      * Handles adding ExportMask creation into the export workflow.
      *
      * @param blockObjectMap
@@ -2704,7 +2772,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
      *            the ExportMask object to be created
      * @return the workflow step id
      */
-    private String handleExportMaskCreate(Map<URI, Integer> blockObjectMap, Workflow workflow,
+    private String addStepsForExportMaskCreate(Map<URI, Integer> blockObjectMap, Workflow workflow,
             StorageSystem vplexSystem, ExportGroup exportGroup,
             String storageViewStepId, ExportMask exportMask) {
         _log.info("adding step to create export mask: " + exportMask.getMaskName());
@@ -2761,7 +2829,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
      *            boolean that indicates whether passed exportMask is shared for multiple host
      * @return
      */
-    private String handleExportMaskUpdate(URI export,
+    private String addStepsForExportMaskUpdate(URI export,
             Map<URI, Integer> blockObjectMap, Workflow workflow, StorageSystem vplexSystem,
             Map<URI, List<Initiator>> exportMasksToUpdateOnDeviceWithInitiators,
             Map<URI, List<URI>> exportMasksToUpdateOnDeviceWithStoragePorts,
@@ -2941,6 +3009,56 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
     }
 
     /**
+     * Returns a Workflow.Method for registering initiators.
+     *
+     * @param initiatorUris the initiator URIs to check for registration
+     * @param vplexURI the VPLEX URI
+     * @param vplexClusterName the VPLEX cluster name (like cluster-1 or cluster-2)
+     *
+     * @return The register initiators method.
+     */
+    private Workflow.Method registerInitiatorsMethod(List<URI> initiatorUris, URI vplexURI, String vplexClusterName ) {
+        return new Workflow.Method(REGISTER_INITIATORS_METHOD_NAME, initiatorUris, vplexURI, vplexClusterName);
+    }
+
+    /**
+     * A Workflow Step to register initiators on the VPLEX, if not already found registered.
+     * 
+     * @param initiatorUris the initiator URIs to check for registration
+     * @param vplexURI the VPLEX URI
+     * @param vplexClusterName the VPLEX cluster name (like cluster-1 or cluster-2)
+     * @param stepId the workflow step id
+     * @throws ControllerException if something went wrong
+     */
+    public void registerInitiators(List<URI> initiatorUris, URI vplexURI, String vplexClusterName, String stepId) throws ControllerException {
+        try {
+            WorkflowStepCompleter.stepExecuting(stepId);
+            StorageSystem vplex = getDataObject(StorageSystem.class, vplexURI, _dbClient);
+            VPlexApiClient client = getVPlexAPIClient(_vplexApiFactory, vplex, _dbClient);
+            client.clearInitiatorCache(vplexClusterName);
+
+            List<PortInfo> initiatorPortInfos = new ArrayList<PortInfo>();
+            List<Initiator> inits = _dbClient.queryObject(Initiator.class, initiatorUris);
+            for (Initiator initiator : inits) {
+                PortInfo pi = new PortInfo(initiator.getInitiatorPort().toUpperCase()
+                        .replaceAll(":", ""), initiator.getInitiatorNode().toUpperCase()
+                                .replaceAll(":", ""),
+                        initiator.getLabel(),
+                        getVPlexInitiatorType(initiator));
+                initiatorPortInfos.add(pi);
+            }
+            client.registerInitiators(initiatorPortInfos, vplexClusterName);
+
+            WorkflowStepCompleter.stepSucceded(stepId);
+        } catch (Exception ex) {
+            _log.error("Exception registering initiators: " + ex.getMessage(), ex);
+            String opName = ResourceOperationTypeEnum.REGISTER_EXPORT_INITIATOR.getName();
+            ServiceError serviceError = VPlexApiException.errors.registerInitiatorsStepFailed(opName, ex);
+            WorkflowStepCompleter.stepFailed(stepId, serviceError);
+        }
+    }
+
+    /**
      * Gets the VPLEX initiator type for the passed initiator.
      *
      * @param initiator
@@ -3048,7 +3166,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
                             _dbClient, storageView, exportMask, targetPortToPwwnMap, _networkDeviceController);
 
                     // assemble a list of other ExportGroups that reference this ExportMask
-                    List<ExportGroup> otherExportGroups = getOtherExportGroups(exportGroup, exportMask);
+                    List<ExportGroup> otherExportGroups = ExportUtils.getOtherExportGroups(exportGroup, exportMask, _dbClient);
 
                     boolean existingVolumes = exportMask.hasAnyExistingVolumes();
                     boolean existingInitiators = exportMask.hasAnyExistingInitiators();
@@ -3607,7 +3725,8 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
                     // situation in which this export mask is in use by other
                     // export groups... see CTRL-3941
                     // assemble a list of other ExportGroups that reference this ExportMask
-                    List<ExportGroup> otherExportGroups = getOtherExportGroups(exportGroup, exportMask);
+                    List<ExportGroup> otherExportGroups = ExportUtils.getOtherExportGroups(exportGroup, exportMask,
+                            _dbClient);
 
                     if (otherExportGroups != null && !otherExportGroups.isEmpty()) {
                         // Gets the list of volume URIs that are not other Export Groups
@@ -3892,8 +4011,6 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
                 }
             }
 
-            checkForConsistentLunViolation(vplex, exportGroup, initiatorURIs);
-
             // Process each host separately.
             String previousStep = null;
             for (URI hostURI : hostInitiatorsMap.keySet()) {
@@ -3956,7 +4073,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
 
         Map<String, Integer> volumeHluPair = new HashMap<String, Integer>();
         // For 'add host to cluster' operation, validate and fail beforehand if HLU conflict is detected
-        if (exportGroup.forCluster() && exportGroup.getVolumes() != null) {
+        if (!exportGroup.checkInternalFlags(Flag.INTERNAL_OBJECT) && exportGroup.forCluster() && exportGroup.getVolumes() != null) {
             // get HLUs from ExportGroup as these are the volumes that will be exported to new Host.
             Collection<String> egHlus = exportGroup.getVolumes().values();
             Collection<Integer> clusterHlus = Collections2.transform(egHlus, CommonTransformerFunctions.FCTN_STRING_TO_INTEGER);
@@ -4255,6 +4372,15 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
 
                 // Determine host of ExportMask
                 Set<URI> exportMaskHosts = VPlexUtil.getExportMaskHosts(_dbClient, exportMask, sharedExportMask);
+                List<Initiator> inits = _dbClient.queryObject(Initiator.class, initiatorURIs);
+                if (sharedExportMask) {
+                    for (Initiator initUri : inits) {
+                        URI hostUri = VPlexUtil.getInitiatorHost(initUri);
+                        if (null != hostUri) {
+                            exportMaskHosts.add(hostUri);
+                        }
+                    }
+                }
 
                 // Invoke artificial failure to simulate invalid storageview name on vplex
                 InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_060);
@@ -4295,8 +4421,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
                 List<PortInfo> initiatorPortInfos = new ArrayList<PortInfo>();
                 List<String> initiatorPortWwns = new ArrayList<String>();
                 Map<PortInfo, Initiator> portInfosToInitiatorMap = new HashMap<PortInfo, Initiator>();
-                for (URI initiatorURI : initiatorURIs) {
-                    Initiator initiator = getDataObject(Initiator.class, initiatorURI, _dbClient);
+                for (Initiator initiator : inits) {
                     // Only add this initiator if it's for the same host as other initiators in mask
                     if (!exportMaskHosts.contains(VPlexUtil.getInitiatorHost(initiator))) {
                         continue;
@@ -4769,7 +4894,8 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
         String lastStep = previousStep;
 
         // assemble a list of other ExportGroups that reference this ExportMask
-        List<ExportGroup> otherExportGroups = getOtherExportGroups(exportGroup, exportMask);
+        List<ExportGroup> otherExportGroups = ExportUtils.getOtherExportGroups(exportGroup, exportMask,
+                _dbClient);
 
         _log.info(String.format("will be removing initiators %s for host %s mask %s (%s)",
                 getInitiatorsWwnsString(initiators), hostURI.toString(), exportMask.getMaskName(), exportMask.getId()));
@@ -4790,7 +4916,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
         // What is about to happen...
         //
         // 1. if all the initiators in the storage view are getting removed
-        // and there are no existing (external) initiators or volumes in the Export Mask
+        // and there are no existing (external) initiators in the Export Mask
         // then delete the storage view
         //
         // 2. if there are other ExportGroups referencing this ExportMask
@@ -4811,10 +4937,10 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
         // all initiators, also remove any volumes present in the ExportGroup
 
         boolean removeAllInits = (hostInitiatorURIs.size() >= exportMask.getInitiators().size());
-        boolean canDeleteMask = removeAllInits && !exportMask.hasAnyExistingInitiators() && !exportMask.hasAnyExistingVolumes();
+        boolean canDeleteMask = removeAllInits && !exportMask.hasAnyExistingInitiators();
 
         if (canDeleteMask) {
-            if (!exportMaskHasBothExclusiveAndSharedVolumes(exportGroup, otherExportGroups, exportMask)) {
+            if (!ExportUtils.exportMaskHasBothExclusiveAndSharedVolumes(exportGroup, otherExportGroups, exportMask)) {
                 _log.info("all initiators are being removed and no " + "other ExportGroups reference ExportMask {}",
                         exportMask.getMaskName());
                 _log.info("creating a deleteStorageView workflow step for " + exportMask.getMaskName());
@@ -4874,7 +5000,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
             }
         } else {
             // this is just a simple initiator removal, so just do it...
-            lastStep = handleInitiatorRemoval(vplex, workflow, completer, exportGroup,
+            lastStep = addStepsForInitiatorRemoval(vplex, workflow, completer, exportGroup,
                     exportMask, hostInitiatorURIs, targetURIs, lastStep,
                     removeAllInits, hostURI, errorMessages);
         }
@@ -4882,37 +5008,10 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
         return lastStep;
     }
 
-    /**
-     * Export Mask can be shared with multiple ExportGroups in the below case.
-     * 
-     * 1. Create volumes from different projects and export to same compute resource.
-     * 2. Export Mask has both exclusive and shared volumes.
-     * 
-     * A storage view for a host can be deleted, if there are shared volumes from multiple projects.
-     * A storage view cannot be deleted, if there are excluisve volumes on the storage view along with shared volumes.
-     * We have to return true only for Case 2.
-     * 
-     * @return
-     */
-    private boolean exportMaskHasBothExclusiveAndSharedVolumes(ExportGroup current, List<ExportGroup> otherExportGroups,
-            ExportMask exportMask) {
-        for (ExportGroup exportGroup : otherExportGroups) {
-            // This piece of code gets executed only when all the initiators of
-            // Host are being asked to remove and the export mask is being shared.
-            if (ExportGroupType.Cluster.toString().equalsIgnoreCase(current.getType())
-                    && ExportGroupType.Host.toString().equalsIgnoreCase(exportGroup.getType()) &&
-                    !CollectionUtils.isEmpty(exportGroup.getInitiators())) {
-                _log.info(
-                        "Export Mask is being shared with other Export Groups, and the export Group {} type is different from the current processed {}."
-                                + "Assuming this mask contains both shared and exclusive volumes ,removing the initiators might affect.");
-                return true;
-            }
-        }
-        return false;
-    }
+   
 
     /**
-     * Method for handling the final removal of a set of Initiators
+     * Adds workflow steps for the final removal of a set of Initiators
      * from a given ExportMask (Storage View) on the VPLEX.
      *
      * @param vplex
@@ -4938,7 +5037,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
      *            -- collector for any validation-related error messages
      * @return a workflow step id
      */
-    private String handleInitiatorRemoval(StorageSystem vplex, Workflow workflow,
+    private String addStepsForInitiatorRemoval(StorageSystem vplex, Workflow workflow,
             ExportRemoveInitiatorCompleter completer, ExportGroup exportGroup, ExportMask exportMask,
             List<URI> hostInitiatorURIs, List<URI> targetURIs, String zoneStep,
             boolean removeAllInits, URI computeResourceId, StringBuffer errorMessages) {
@@ -5133,7 +5232,8 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
     public void findAndUpdateFreeHLUsForClusterExport(StorageSystem storage, ExportGroup exportGroup, List<URI> initiatorURIs,
             Map<URI, Integer> volumeMap) {
         try {
-            if (exportGroup.forCluster() && volumeMap.values().contains(ExportGroup.LUN_UNASSIGNED)
+            if (!exportGroup.checkInternalFlags(Flag.INTERNAL_OBJECT) && exportGroup.forCluster()
+                    && volumeMap.values().contains(ExportGroup.LUN_UNASSIGNED)
                     && ExportUtils.systemSupportsConsistentHLUGeneration(storage)) {
                 _log.info("Find and update free HLUs for Cluster Export START..");
                 /**
@@ -5183,18 +5283,9 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
         String vplexClusterName = VPlexUtil.getVplexClusterName(srcVarrayURI, vplexStorageSystem.getId(), client, _dbClient);
         _log.info("vplexClusterName :{}", vplexClusterName);
 
-        Map<String, String> initiatorWwnToNameMap = null;
-        initiatorWwnToNameMap = client.getInitiatorWwnToNameMap(vplexClusterName);
         Iterator<Initiator> inits = _dbClient.queryIterativeObjects(Initiator.class, initiatorURIs);
-        List<String> initiatorNames = new ArrayList<String>();
-        while (inits.hasNext()) {
-            Initiator ini = inits.next();
-            String portWwn = ini.getInitiatorPort();
-            String initiatorName = initiatorWwnToNameMap.get(WWNUtility.getUpperWWNWithNoColons(portWwn));
-            if (initiatorName != null) {
-                initiatorNames.add(initiatorName);
-            }
-        }
+        Boolean[] doRefresh =  new Boolean[] { new Boolean(true) };
+        List<String> initiatorNames = getInitiatorNames(vplexStorageSystem.getSerialNumber(), vplexClusterName, client, inits, doRefresh);
 
         List<VPlexStorageViewInfo> storageViewInfos = client.getStorageViewsContainingInitiators(
                 vplexClusterName, initiatorNames);
@@ -5206,17 +5297,9 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
             String vplexHAClusterName = VPlexUtil.getVplexClusterName(haVarrayURI, vplexStorageSystem.getId(), client, _dbClient);
             _log.info("vplexHAClusterName :{}", vplexHAClusterName);
 
-            initiatorWwnToNameMap = client.getInitiatorWwnToNameMap(vplexHAClusterName);
             inits = _dbClient.queryIterativeObjects(Initiator.class, initiatorURIs);
-            List<String> haInitiatorNames = new ArrayList<String>();
-            while (inits.hasNext()) {
-                Initiator ini = inits.next();
-                String portWwn = ini.getInitiatorPort();
-                String initiatorName = initiatorWwnToNameMap.get(WWNUtility.getUpperWWNWithNoColons(portWwn));
-                if (initiatorName != null) {
-                    haInitiatorNames.add(initiatorName);
-                }
-            }
+            Boolean[] doRefreshHa =  new Boolean[] { new Boolean(true) };
+            List<String> haInitiatorNames = getInitiatorNames(vplexStorageSystem.getSerialNumber(), vplexHAClusterName, client, inits, doRefreshHa);
             storageViewInfos.addAll(client.getStorageViewsContainingInitiators(
                     vplexHAClusterName, haInitiatorNames));
         }
@@ -5233,6 +5316,61 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
         long totalTime = System.currentTimeMillis() - startTime;
         _log.info(String.format("find used HLUs for Initiators took %f seconds", (double) totalTime / (double) 1000));
         return usedHLUs;
+    }
+
+    /**
+     * Get the registered initiator names for the given initiators on the given VPLEX cluster.
+     * 
+     * If the registered initiator name cannot be found in the Initiator.initiatorNames map in
+     * the database, then the VPLEX API will be checked and the Initiator object will be updated
+     * with the value from the VPLEX API, if found.  If the name is still not found, that means 
+     * it's unregistered and no name for the initiator will be returned in the list.
+     * 
+     * This will also update the Initiator.initiatorMap if the registered name has been
+     * manually changed on the VPLEX since the last system discovery (but cache has refreshed).
+     * 
+     * The auto discovery process would update it when it refreshes all Initiators 
+     * in the database (see VPlexCommunicationInterface.updateHostInitiators).
+     * 
+     * @param vplexSerialNumber the VPLEX system serial number
+     * @param vplexClusterName the VPLEX cluster name to look at
+     * @param client the VPLEX api client
+     * @param initiators an iterator of Initiator objects to check
+     * @param doRefresh an out flag to indicate whether refresh has been done 
+     *                  (will be updated to false after first call to getInitiatorNameForWwn)
+     * @return a List of initiator names registered on the VPLEX for the initiators given (any
+     *              initiators that are not currently registered will not be returned in the list).
+     */
+    private List<String> getInitiatorNames(String vplexSerialNumber, String vplexClusterName, VPlexApiClient client, 
+            Iterator<Initiator> initiators, Boolean[] doRefresh) {
+        List<String> initiatorNames = new ArrayList<String>();
+        List<Initiator> initsToUpdate = new ArrayList<Initiator>();
+        // this is the key to look up the name saved in the Initiator.initiatorNames map
+        String initiatorNameMapKey = vplexSerialNumber + VPlexApiConstants.INITIATOR_CLUSTER_NAME_DELIM + vplexClusterName;
+        while (initiators.hasNext()) {
+            Initiator initiator = initiators.next();
+            String portWwn = initiator.getInitiatorPort();
+            String viprInitiatorName = initiator.getInitiatorNames().get(initiatorNameMapKey);
+            String vplexInitiatorName = client.getInitiatorNameForWwn(
+                    vplexClusterName, WWNUtility.getUpperWWNWithNoColons(portWwn), doRefresh);
+            // if the initiator name couldn't be found in the Initiator.initiatorNames map, use the one from the VPLEX API
+            if (viprInitiatorName == null || !viprInitiatorName.equals(vplexInitiatorName)) {
+                if (null != vplexInitiatorName) {
+                    // if a new initiator name was found, update the Initiator map.
+                    _log.info("mapping new initiator name {} to storage system key {}", vplexInitiatorName, initiatorNameMapKey);
+                    initiator.mapInitiatorName(initiatorNameMapKey, vplexInitiatorName);
+                    initsToUpdate.add(initiator);
+                    viprInitiatorName = vplexInitiatorName;
+                }
+            }
+            if (viprInitiatorName != null && !viprInitiatorName.startsWith(VPlexApiConstants.UNREGISTERED_INITIATOR_PREFIX)) {
+                initiatorNames.add(viprInitiatorName);
+            }
+        }
+
+        _dbClient.updateObject(initsToUpdate);
+        _log.info("initiator names are " + initiatorNames);
+        return initiatorNames;
     }
 
     public void setVplexApiFactory(VPlexApiFactory _vplexApiFactory) {
@@ -7150,7 +7288,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
                         existingVolume.getNativeId(), thinEnabled, itls);
                 vinfos.add(vinfo);
                 thinEnabled = thinEnabled && verifyVplexSupportsThinProvisioning(vplex);
-                virtvinfo = client.createVirtualVolume(vinfos, false, true, true, null, null, true, thinEnabled);
+                virtvinfo = client.createVirtualVolume(vinfos, false, true, true, null, null, true, thinEnabled, true);
                 // Note: According to client.createVirtualVolume code, this will never be the case (null)
                 if (virtvinfo == null) {
                     String opName = ResourceOperationTypeEnum.CREATE_VVOLUME_FROM_IMPORT.getName();
@@ -9793,13 +9931,11 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
                         StorageProvider.InterfaceType.vplex.name());
         for (StorageProvider vplexMnmgtServer : vplexMnmgtServers) {
             try {
-                if (ConnectivityUtil.ping(vplexMnmgtServer.getIPAddress())) {
-                    VPlexApiClient client = getVPlexAPIClient(_vplexApiFactory,
-                            vplexMnmgtServer, _dbClient);
-                    client.verifyConnectivity();
-                    activeMgmntServers.add(vplexMnmgtServer.getId());
-                    vplexMnmgtServer.setConnectionStatus(StorageProvider.ConnectionStatus.CONNECTED.toString());
-                }
+                VPlexApiClient client = getVPlexAPIClient(_vplexApiFactory,
+                        vplexMnmgtServer, _dbClient);
+                client.verifyConnectivity();
+                activeMgmntServers.add(vplexMnmgtServer.getId());
+                vplexMnmgtServer.setConnectionStatus(StorageProvider.ConnectionStatus.CONNECTED.toString());
             } catch (Exception e) {
                 _log.warn("Can't connect to VPLEX management server {}", vplexMnmgtServer.getIPAddress());
                 vplexMnmgtServer.setConnectionStatus(StorageProvider.ConnectionStatus.NOTCONNECTED.toString());
@@ -11143,39 +11279,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
         return volumeURIList;
     }
 
-    /**
-     * Returns a list of ExportGroups that reference the given ExportMask,
-     * minus the given ExportGroup
-     *
-     * @param exportGroup
-     *            the ExportGroup to exclude
-     * @param exportMask
-     *            the ExportMask to locate in other ExportGroups
-     * @return a list of other ExportGroups containing the ExportMask
-     */
-    private List<ExportGroup> getOtherExportGroups(ExportGroup exportGroup, ExportMask exportMask) {
-
-        List<ExportGroup> otherExportGroups = ExportMaskUtils.getExportGroups(_dbClient, exportMask);
-
-        ExportGroup egToSkip = null;
-        for (ExportGroup eg : otherExportGroups) {
-            // do not include the ExportGroup requested for delete
-            if (eg.getId().equals(exportGroup.getId())) {
-                egToSkip = eg;
-                break;
-            }
-        }
-        otherExportGroups.remove(egToSkip);
-
-        if (!otherExportGroups.isEmpty()) {
-            _log.info("ExportMask {} is in use by these other ExportGroups: {}",
-                    exportMask.getMaskName(), Joiner.on(',').join(otherExportGroups));
-        } else {
-            _log.info("ExportMask {} is not in use by any other ExportGroups.", exportMask.getMaskName());
-        }
-
-        return otherExportGroups;
-    }
+   
 
     /**
      * Validate a VPLEX Storage Provider connection.
@@ -12937,6 +13041,11 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
     private boolean verifyVplexSupportsThinProvisioning(StorageSystem vplex) {
         if (vplex == null) {
             return false;
+        }
+
+        if (VPlexApiConstants.FIRMWARE_MIXED_VERSIONS.equalsIgnoreCase(vplex.getFirmwareVersion().trim())) {
+            _log.error("VPLEX indicates its that directors have mixed firmware versions, so could not determine thin provisioning support");
+            throw VPlexApiException.exceptions.thinProvisioningVerificationFailed(vplex.getLabel());
         }
 
         int versionValue = VersionChecker.verifyVersionDetails(VPlexApiConstants.MIN_VERSION_THIN_PROVISIONING, vplex.getFirmwareVersion());

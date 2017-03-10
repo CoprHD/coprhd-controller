@@ -16,6 +16,7 @@ import json
 import socket
 import commands
 from project import Project
+import fileshare
 from common import SOSError
 from threading import Timer
 from virtualpool import VirtualPool
@@ -132,13 +133,12 @@ class FilePolicy(object):
         description,
         priority,
         num_worker_threads,
-	policyschedulefrequency,
+        policyschedulefrequency,
         policyschedulerepeat,
         policyscheduletime,
         policyscheduleweek,
         policyschedulemonth,
         replicationtype,
-        replicationcopymode,
         replicationconfiguration,
         snapshotnamepattern,
         snapshotexpiretype,
@@ -157,7 +157,6 @@ class FilePolicy(object):
         policyscheduletime Time when policy run,
         policyscheduleweek day of week when policy run,
         policyschedulemonth day of month when policy run,
-        replicationcopymode,
         replicationconfiguration,
         replicationtype,
         snapshotnamepattern,
@@ -184,25 +183,20 @@ class FilePolicy(object):
         policy_schedule['schedule_day_of_month'] = policyschedulemonth
 
         if type == 'file_replication':
-	    replication_params['replication_type'] = \
-                replicationtype
-            replication_params['replication_copy_mode'] = \
-                replicationcopymode
-            replication_params['replicate_configuration'] = \
-                replicationconfiguration
+            replication_params['replication_type'] = replicationtype
+            replication_params['replication_copy_mode'] = 'ASYNC'
+            replication_params['replicate_configuration'] = replicationconfiguration
             replication_params['policy_schedule'] = policy_schedule
-	    create_request['priority'] = priority
-	    create_request['num_worker_threads'] = num_worker_threads
+            create_request['priority'] = priority
+            create_request['num_worker_threads'] = num_worker_threads
             create_request['replication_params'] = replication_params
-	elif type == 'file_snapshot':
+        elif type == 'file_snapshot':
             snapshot_expire_params['expire_type'] = snapshotexpiretype
             snapshot_expire_params['expire_value'] = snapshotexpirevalue
             if (snapshotnamepattern is None):
-		raise SOSError(SOSError.VALUE_ERR,"File policy create error:"+ "Snapshotshot name pattern should be provided")
-	    snapshot_params['snapshot_name_pattern'] = \
-                snapshotnamepattern
-            snapshot_params['snapshot_expire_params'] = \
-                snapshot_expire_params
+                raise SOSError(SOSError.VALUE_ERR,"File policy create error:"+ "Snapshotshot name pattern should be provided")
+            snapshot_params['snapshot_name_pattern'] = snapshotnamepattern
+            snapshot_params['snapshot_expire_params'] = snapshot_expire_params
             snapshot_params['policy_schedule'] = policy_schedule
             create_request['snapshot_params'] = snapshot_params
 
@@ -222,17 +216,17 @@ class FilePolicy(object):
 
     def filepolicy_update(
         self,
+        label,
         name,
-        tenants_access,
         description,
         priority,
+        num_worker_threads,
         policyschedulefrequency,
         policyschedulerepeat,
         policyscheduletime,
         policyscheduleweek,
         policyschedulemonth,
         replicationtype,
-        replicationcopymode,
         replicationconfiguration,
         snapshotnamepattern,
         snapshotexpiretype,
@@ -258,52 +252,77 @@ class FilePolicy(object):
         snapshotexpirevalue
         '''
 
-        filepolicy = self.filepolicy_query(name)
+        filepolicy = self.filepolicy_query(label)
 
+        (s, h) = common.service_json_request(
+                self.__ipAddr,
+                self.__port,
+                'GET',
+                FilePolicy.URI_FILE_POLICY_SHOW.format(filepolicy['id']),
+                None,
+                None,
+                False,
+                )
+        o = common.json_decode(s)
+        pol_type = common.get_node_value(o,"type")
         update_request = {}
-        update_request['policy_name'] = name
-        update_request['policy_description'] = description
-        update_request['priority'] = priority
-        update_request['is_access_to_tenants'] = tenants_access
-        update_request['apply_at'] = applyat
+        if name is not None:
+            update_request['policy_name'] = name
+        if description is not None:
+            update_request['policy_description'] = description
+        if priority is not None:
+            update_request['priority'] = priority
+        if applyat is not None:
+            update_request['apply_at'] = applyat
 
         policy_schedule = {}
         snapshot_params = {}
         replication_params = {}
         snapshot_expire_params = {}
 
-        policy_schedule['schedule_frequency'] = policyschedulefrequency
-        policy_schedule['schedule_repeat'] = policyschedulerepeat
-        policy_schedule['schedule_time'] = policyscheduletime
-        policy_schedule['schedule_day_of_week'] = policyscheduleweek
-        policy_schedule['schedule_day_of_month'] = policyschedulemonth
+        if policyschedulefrequency is not None:
+            policy_schedule['schedule_frequency'] = policyschedulefrequency
+        if policyschedulerepeat is not None:
+            policy_schedule['schedule_repeat'] = policyschedulerepeat
+        if policyscheduletime is not None:
+            policy_schedule['schedule_time'] = policyscheduletime
+        if policyscheduleweek is not None:
+            policy_schedule['schedule_day_of_week'] = policyscheduleweek
+        if policyschedulemonth is not None:
+            policy_schedule['schedule_day_of_month'] = policyschedulemonth
 
-        if type == 'file_replication':
-            replication_params['replication_type'] = \
-                replicationtype
-            replication_params['replication_copy_mode'] = \
-                replicationcopymode
-            replication_params['replicate_configuration'] = \
-                replicationconfiguration
-            replication_params['policy_schedule'] = policy_schedule
-        elif type == 'file_snapshot':
-            snapshot_expire_params['expire_type'] = snapshot_expire_type
-            snapshot_expire_value['expire_value'] = \
-                snapshot_expire_value
-            snapshot_params['snapshot_name_pattern'] = \
-                snapshotnamepattern
-            snapshot_params['snapshot_expire_params'] = \
-                snapshot_expire_params
-            snapshot_params['policy_schedule'] = policy_schedule
-
-        update_request['replication_params'] = \
-            replication_params
-        update_request['snapshot_params'] = snapshot_params
+        if pol_type == 'file_replication':
+            if replicationtype is not None:
+                replication_params['replication_type'] = replicationtype
+            if replicationconfiguration is not None:
+                replication_params['replicate_configuration'] = replicationconfiguration
+            if policy_schedule is not None and (len(policy_schedule) >0):
+                replication_params['policy_schedule'] = policy_schedule
+            if priority is not None:
+                update_request['priority'] = priority
+            if num_worker_threads is not None:
+                update_request['num_worker_threads'] = num_worker_threads
+            if replication_params is not None and (len(replication_params) >0):
+                replication_params['replication_copy_mode'] = 'ASYNC'
+                update_request['replication_params'] = replication_params
+        elif pol_type == 'file_snapshot':
+            if snapshotexpiretype is not None:
+                snapshot_expire_params['expire_type'] = snapshotexpiretype
+            if snapshotexpirevalue is not None:
+                snapshot_expire_params['expire_value'] = snapshotexpirevalue
+            if snapshotnamepattern is not None:
+                snapshot_params['snapshot_name_pattern'] = snapshotnamepattern
+            if snapshot_expire_params is not None and (len(snapshot_expire_params) >0):
+                snapshot_params['snapshot_expire_params'] = snapshot_expire_params
+            if policy_schedule is not None and (len(policy_schedule) >0):
+                snapshot_params['policy_schedule'] = policy_schedule
+            if snapshot_params is not None and (len(snapshot_params) >0):
+                update_request['snapshot_params'] = snapshot_params
 
         try:
-            body = json.dumps(create_request)
+            body = json.dumps(update_request)
             (s, h) = common.service_json_request(self.__ipAddr,
-                    self.__port, 'POST',
+                    self.__port, 'PUT',
                     FilePolicy.URI_FILE_POLICY_UPDATE.format(filepolicy['id']),
                     body)
             if not s:
@@ -313,7 +332,7 @@ class FilePolicy(object):
         except SOSError, e:
             errorMessage = str(e)
         if common.is_uri(filepolicy['id']):
-            errorMessage = str(e).replace(filepolicy['id'], name)
+            errorMessage = str(e).replace(filepolicy['id'], label)
         common.format_err_msg_and_raise('update', 'filepolicy',
                 errorMessage, e.err_code)
 
@@ -324,9 +343,8 @@ class FilePolicy(object):
         assign_to_vpools,
         project_assign_vpool,
         assign_to_projects,
-	source_varray,
-	target_varrays,
-        filesystem_assign_vpool,
+        source_varray,
+        target_varrays,
         ):
 
         filepolicy = self.filepolicy_query(name)
@@ -384,16 +402,6 @@ class FilePolicy(object):
             	project_assign_param['vpool'] = uri
         	project_assign_param['assign_to_projects'] = assign_request_projects
 		assign_request['project_assign_param'] = project_assign_param
-	else:
-		filesystem_assign_param = {}
-		      		
-		if filesystem_assign_vpool is None:
-           		raise SOSError(SOSError.VALUE_ERR,"File policyassign error:"+ "Vpool (filesystem_assign_vpool) value should be provided")
-        
-        	vpool_obj = VirtualPool(self.__ipAddr, self.__port)
-        	uri = vpool_obj.vpool_query(filesystem_assign_vpool, 'file')
-            	filesystem_assign_param['vpool'] = uri
-        	assign_request['filesystem_assign_param'] = filesystem_assign_param
 
 	if (pol_type == "file_replication"):
 		if (source_varray is not None and target_varrays is not None):
@@ -444,8 +452,10 @@ class FilePolicy(object):
         name,
         unassign_resource_type,
         unassign_from_vpools,
-        unassign_from_filesystem_vpool,
         unassign_from_projects,
+        unassign_from_filesystem,
+        tenant,
+        project
         ):
 
         filepolicy = self.filepolicy_query(name)
@@ -454,41 +464,54 @@ class FilePolicy(object):
         projects_uris = []
         vpools_uris = []
         
-	if unassign_resource_type == 'vpools':
-	    if unassign_from_vpools is None :
-		raise SOSError(SOSError.VALUE_ERR,"File policy unassign error:"+ "Vpools value should be provided")
-
-	    vpool_obj = VirtualPool(self.__ipAddr, self.__port)
-	    if( len(unassign_from_vpools) > 1 ):
+        if unassign_resource_type == 'vpools':
+            if unassign_from_vpools is None :
+                raise SOSError(SOSError.VALUE_ERR,"File policy unassign error:"+ "Vpools value should be provided")
+            
+            vpool_obj = VirtualPool(self.__ipAddr, self.__port)
+            if( len(unassign_from_vpools) > 1 ):
                 vpools = unassign_from_vpools.split(',')
                 for vpool in vpools:
-        	        uri = vpool_obj.vpool_query(vpool, 'file')
-                	vpools_uris.append(uri)
-	    else :
-		uri = vpool_obj.vpool_query(unassign_from_vpools, 'file')
+                    uri = vpool_obj.vpool_query(vpool, 'file')
+                    vpools_uris.append(uri)
+            else :
+                uri = vpool_obj.vpool_query(unassign_from_vpools, 'file')
                 vpools_uris.append(uri)
-	    unassign_request['unassign_from'] = vpools_uris
-        elif unassign_resource_type == 'project':
-	    if unassign_from_projects is None :
-		 raise SOSError(SOSError.VALUE_ERR,"File policy unassign error:"+ "Project value should be provided")
-
-	    project_obj = Project(self.__ipAddr, self.__port)
-	    if( len(unassign_from_projects) > 1):
-	            projects = unassign_from_projects.split(',')
-        	    for project in projects:
-                	uri = project_obj.project_query(project)            
- 			projects_uris.append(uri)
-	    else :
-		 uri = project_obj.project_query(unassign_from_projects)
-                 projects_uris.append(uri)  
+            unassign_request['unassign_from'] = vpools_uris
+        elif unassign_resource_type == 'projects':
+            if unassign_from_projects is None :
+                raise SOSError(SOSError.VALUE_ERR,"File policy unassign error:"+ "Project value should be provided")
+            
+            project_obj = Project(self.__ipAddr, self.__port)
+            if( len(unassign_from_projects) > 1):
+                projects = unassign_from_projects.split(',')
+                for project in projects:
+                    uri = project_obj.project_query(project)
+                    projects_uris.append(uri)
+            else :
+                uri = project_obj.project_query(unassign_from_projects)
+                projects_uris.append(uri)
             unassign_request['unassign_from'] = projects_uris
         elif unassign_resource_type == 'filesystem':
-	    if unassign_from_filesystem_vpool is None :
-		raise SOSError(SOSError.VALUE_ERR,"File policy unassign error:"+ "Vpools value should be provided")
-
-	    vpool_obj = VirtualPool(self.__ipAddr, self.__port)
-       	    vpool_uri = vpool_obj.vpool_query(unassign_from_filesystem_vpool, 'file')
-            unassign_request['unassign_from'] = vpool_uri
+	    filesystem_uris = []
+            if unassign_from_filesystem is None or project is None :
+                raise SOSError(SOSError.VALUE_ERR,"File policy unassign error:"+ "Filesystem and project value should be provided")
+            
+            fs_obj = fileshare.Fileshare(self.__ipAddr, self.__port)
+            resourcepath = "/" + project + "/"
+            if(tenant is not None):
+                resourcepath = tenant + resourcepath
+            if( len(unassign_from_filesystem) > 1):
+                filesystems = unassign_from_filesystem.split(',')
+                for filesystem in filesystems:
+                    uri = fs_obj.fileshare_query(resourcepath + filesystem)
+                    filesystem_uris.append(uri)
+            else :
+                uri = fs_obj.fileshare_query(resourcepath + filesystem)
+                filesystem_uris.append(uri)
+                
+            unassign_request['unassign_from'] = filesystem_uris
+            
 	
         try:
             body = json.dumps(unassign_request)
@@ -622,22 +645,23 @@ def create_parser(subcommand_parsers, common_parser):
         required=False,
         )
     create_parser.add_argument('-apply_at','-aplat',
-		               metavar='<apply_at>',
-		               dest='apply_at',
-	  	               help='Level at which policy has to applied. Valid values are vpool, project, file_system. Default: vpool',
-	 	               default ='vpool',)
+                               metavar='<apply_at>',
+                               dest='apply_at',
+                               help='Level at which policy has to applied. Valid values are vpool, project, file_system. Default: vpool',
+                               default ='vpool',)
     create_parser.add_argument('-description', '-dc',
                                metavar='<policy_description>',
                                dest='description',
                                help='Policy Description')
     create_parser.add_argument('-priority', '-pr', metavar='<priority>'
                                , dest='priority',
-                               help='Priority of the policy',)
+                               help='Priority of the policy. Valid values are: HIGH, LOW',
+                               choices=['HIGH', 'LOW'])
     create_parser.add_argument('-num_worker_threads','-wt',
-			       metavar='<num_worker_threads>',
-			       dest='num_worker_threads',
-			       help = 'Number of worker threads range:3-10, Default: 3',
-			       choices = xrange(3,10), default = 3,)
+                               metavar='<num_worker_threads>',
+                               dest='num_worker_threads',
+                               help = 'Number of worker threads range:3-10, Default: 3',
+                               choices = xrange(3,10), default = 3,)
     create_parser.add_argument('-policyscheduleweek', '-plscwk',
                                metavar='<policy_schedule_week>',
                                dest='policy_schedule_week',
@@ -646,55 +670,47 @@ def create_parser(subcommand_parsers, common_parser):
                                metavar='<policy_schedule_month>',
                                dest='policy_schedule_month',
                                help='Day of month when policy run')
-    create_parser.add_argument(
-        		       '-replicationconfiguration',
-        		       '-repconf',
-        		       metavar='<replicate_configuration>',
-        		       dest='replicate_configuration',
-        		       help='Whether to replicate File System configurations i.e CIFS shares, NFS Exports at the time of failover/failback. Default value is False',
-        		       choices=['True', 'False', 'true', 'false'])
+    create_parser.add_argument('-replicationconfiguration','-repconf',
+                               metavar='<replicate_configuration>',
+                               dest='replicate_configuration',
+                               help='Whether to replicate File System configurations i.e CIFS shares, NFS Exports at the time of failover/failback. Default value is False',
+                               choices=['True', 'False', 'true', 'false'])
     create_parser.add_argument('-snapshotnamepattern', '-snpnmptrn',
                                metavar='<snapshot_name_pattern>',
                                dest='snapshot_name_pattern',
                                help='Snapshot pattern ')
     create_parser.add_argument('-snapshotexpiretype','-snpexptp',
-			       metavar='<snapshot_expire_type>',
-        		       dest='snapshot_expire_type',
-        		       help='Snapshot expire type e.g hours, days, weeks, months or never. Default: days',
-    			       choices=['hours', 'days', 'weeks', 'months', 'never'], 
-			       default ='days')
+                               metavar='<snapshot_expire_type>',
+                               dest='snapshot_expire_type',
+                               help='Snapshot expire type e.g hours, days, weeks, months or never. Default: days',
+                               choices=['hours', 'days', 'weeks', 'months', 'never'],
+                               default ='days')
     create_parser.add_argument('-snapshotexpirevalue', '-snpexpvl',
                                metavar='<snapshot_expire_value>',
                                dest='snapshot_expire_value',
                                help='Snapshot expire after this value. Default: 2',
-        		       default = 2)
+                               default = 2)
     create_parser.add_argument('-policyschedulefrequency','-plscfr',
-        		       metavar='<policy_schedule_frequency>',
-        		       dest='policy_sched_frequnecy',
-        		       help='Type of schedule policy e.g days, weeks or months. Default: days',
-        		       default = 'days',)
+                               metavar='<policy_schedule_frequency>',
+                               dest='policy_sched_frequnecy',
+                               help='Type of schedule policy e.g days, weeks or months. Default: days',
+                               default = 'days',)
     create_parser.add_argument('-policyschedulerepeat','-plscrp',
-		               metavar='<policy_schedule_repeat>',
-		               dest='policy_schedule_repeat',
-        		       help='Policy run on every. Default: 1',
-        		       default = 1,)
+        		               metavar='<policy_schedule_repeat>',
+        		               dest='policy_schedule_repeat',
+                		       help='Policy run on every. Default: 1',
+                		       default = 1,)
     create_parser.add_argument('-policyscheduletime','-plsctm',
-		               metavar='<policy_schedule_time>',
-		               dest='policy_schedule_time',
-        		       help='Time when policy run. Default: 00:00',
-       			       default='00:00',)
+        		               metavar='<policy_schedule_time>',
+        		               dest='policy_schedule_time',
+                		       help='Time when policy run. Default: 00:00',
+               			       default='00:00',)
     create_parser.add_argument('-replicationtype','-reptype',
-		               metavar='<replication_type>',
-		               dest='replication_type',
-        		       help='File Replication type Valid values are: LOCAL, REMOTE. Default: REMOTE',
-        		       choices=['LOCAL', 'REMOTE'],
-        		       default = 'REMOTE',)
-    create_parser.add_argument('-replicationcopymode','-repcpmode',
-		               metavar='<replication_copy_mode>',
-		               dest='replication_copy_mode',
-        		       help='File Replication copy type Valid values are: SYNC, ASYNC. Default: ASYNC',
-		               choices=['SYNC', 'ASYNC'],
-      		               default = 'ASYNC',)
+        		               metavar='<replication_type>',
+        		               dest='replication_type',
+                		       help='File Replication type Valid values are: LOCAL, REMOTE. Default: REMOTE',
+                		       choices=['LOCAL', 'REMOTE'],
+                		       default = 'REMOTE',)
     create_parser.set_defaults(func=filepolicy_create)
 
 
@@ -710,14 +726,13 @@ def filepolicy_create(args):
                 args.tenants_access,
                 args.description,
                 args.priority,
-		args.num_worker_threads,
+                args.num_worker_threads,
                 args.policy_sched_frequnecy,
                 args.policy_schedule_repeat,
                 args.policy_schedule_time,
                 args.policy_schedule_week,
                 args.policy_schedule_month,
                 args.replication_type,
-                args.replication_copy_mode,
                 args.replicate_configuration,
                 args.snapshot_name_pattern,
                 args.snapshot_expire_type,
@@ -735,116 +750,102 @@ def update_parser(subcommand_parsers, common_parser):
             description='ViPR FilePolicy Update CLI usage.',
             parents=[common_parser], conflict_handler='resolve',
             help='Update a filepolicy')
-    mandatory_args = \
-        update_parser.add_argument_group('mandatory arguments')
+    mandatory_args = update_parser.add_argument_group('mandatory arguments')
     mandatory_args.add_argument(
-        '-name',
-        '-n',
-        metavar='<policy_name>',
-        dest='name',
-        help='Name of the policy',
+        '-existingpolname',
+        '-epn',
+        metavar='<existing_policy_name>',
+        dest='label',
+        help='Name of the existing policy to be changed',
         required=True,
         )
-    mandatory_args.add_argument(
-        '-type',
-        '-t',
-        metavar='<policy_type>',
-        dest='policy_type',
-        help='Type of the policy, valid values are : file_snapshot, file_replication, file_quota'
-            ,
-        required=True,
-        )
+    update_parser.add_argument('-name','-n',
+                               metavar='<policy_name>',
+                               dest='name',
+                               help='Name of the policy')
+    update_parser.add_argument('-apply_at','-aplat',
+                               metavar='<apply_at>',
+                               dest='apply_at',
+                               help='Level at which policy has to applied. Valid values are vpool, project, file_system')
     update_parser.add_argument('-description', '-dc',
                                metavar='<policy_description>',
                                dest='description',
                                help='Policy Description')
     update_parser.add_argument('-priority', '-pr', metavar='<priority>'
                                , dest='priority',
-                               help='Priority of the policy')
-
-    update_parser.add_argument('-policyschedulefrequency', '-plscfr',
-                               metavar='<policy_schedule_frequency>',
-                               dest='policy_sched_frequnecy',
-                               help='Type of schedule policy e.g days, weeks or months'
-                               )
-    update_parser.add_argument('-policyschedulerepeat', '-plscrp',
-                               metavar='<policy_schedule_repeat>',
-                               dest='policy_sched_repeat',
-                               help='Policy run on every')
-    update_parser.add_argument('-policyscheduletime', '-plsctm',
-                               metavar='<policy_schedule_time>',
-                               dest='policy_sched_time',
-                               help='Time when policy run')
+                               help='Priority of the policy. Valid value: LOW, HIGH',
+                               choices = ['LOW','HIGH'])
+    update_parser.add_argument('-num_worker_threads','-wt',
+                               metavar='<num_worker_threads>',
+                               dest='num_worker_threads',
+                               help = 'Number of worker threads',
+                               choices = xrange(3,10))
     update_parser.add_argument('-policyscheduleweek', '-plscwk',
                                metavar='<policy_schedule_week>',
-                               dest='policy_sched_week',
+                               dest='policy_schedule_week',
                                help='Day of week when policy run')
     update_parser.add_argument('-policyschedulemonth', '-plscmn',
                                metavar='<policy_schedule_month>',
-                               dest='policy_sched_month',
+                               dest='policy_schedule_month',
                                help='Day of month when policy run')
-
-    update_parser.add_argument('-replicationtype', '-reptype',
-                               metavar='<replication_type>',
-                               dest='replication_type',
-                               help='File Replication type Valid values are: LOCAL, REMOTE'
-                               )
-    update_parser.add_argument('-replicationcopymode', '-repcpmode',
-                               metavar='<replication_copy_mode>',
-                               dest='replication_copy_mode',
-                               help='File Replication copy type Valid values are: SYNC, ASYNC'
-                               )
-    update_parser.add_argument('-replicationconfiguration', '-repconf',
+    update_parser.add_argument('-replicationconfiguration','-repconf',
                                metavar='<replicate_configuration>',
                                dest='replicate_configuration',
-                               help='Whether to replicate File System configurations i.e CIFS shares, NFS Exports at the time of failover/failback. Default value is False'
-                               )
-
+                               help='Whether to replicate File System configurations i.e CIFS shares, NFS Exports at the time of failover/failback. Default value is False',
+                               choices=['True', 'False', 'true', 'false'])
     update_parser.add_argument('-snapshotnamepattern', '-snpnmptrn',
                                metavar='<snapshot_name_pattern>',
                                dest='snapshot_name_pattern',
                                help='Snapshot pattern ')
-    update_parser.add_argument('-snapshotexpiretype', '-snpexptp',
+    update_parser.add_argument('-snapshotexpiretype','-snpexptp',
                                metavar='<snapshot_expire_type>',
                                dest='snapshot_expire_type',
-                               help='Snapshot expire type e.g hours, days, weeks, months or never'
-                               )
+                               help='Snapshot expire type e.g hours, days, weeks, months or never',
+                               choices=['hours', 'days', 'weeks', 'months', 'never'])
     update_parser.add_argument('-snapshotexpirevalue', '-snpexpvl',
                                metavar='<snapshot_expire_value>',
                                dest='snapshot_expire_value',
                                help='Snapshot expire after this value')
-
-    mandatory_args.add_argument(
-        '-tenants_access',
-        '-ta',
-        metavar='<is_access_to_tenants>',
-        dest='tenants_access',
-        help='Tenants access',
-        required=False,
-        )
-
+    update_parser.add_argument('-policyschedulefrequency','-plscfr',
+                               metavar='<policy_schedule_frequency>',
+                               dest='policy_sched_frequnecy',
+                               help='Type of schedule policy e.g days, weeks or months')
+    update_parser.add_argument('-policyschedulerepeat','-plscrp',
+                               metavar='<policy_schedule_repeat>',
+                               dest='policy_schedule_repeat',
+                               help='Policy run on every')
+    update_parser.add_argument('-policyscheduletime','-plsctm',
+                               metavar='<policy_schedule_time>',
+                               dest='policy_schedule_time',
+                               help='Time when policy run')
+    update_parser.add_argument('-replicationtype','-reptype',
+                               metavar='<replication_type>',
+                               dest='replication_type',
+                               help='File Replication type Valid values are: LOCAL, REMOTE',
+                               choices=['LOCAL', 'REMOTE'])
     update_parser.set_defaults(func=filepolicy_update)
 
 
-def filepolicy_update(subcommand_parsers, common_parser):
+def filepolicy_update(args):
     obj = FilePolicy(args.ip, args.port)
     try:
         obj.filepolicy_update(
-            args.name,
-            args.tenants_access,
-            args.description,
-            args.priority,
-            args.policyschedulefrequency,
-            args.policyschedulerepeat,
-            args.policyscheduletime,
-            args.policyscheduleweek,
-            args.policyschedulemonth,
-            args.replication_type,
-            args.replication_copy_mode,
-            args.replicate_configuration,
-            args.snapshotnamepattern,
-            args.snapshotexpiretype,
-            args.snapshotexpirevalue,
+                args.label,
+                args.name,
+                args.description,
+                args.priority,
+                args.num_worker_threads,
+                args.policy_sched_frequnecy,
+                args.policy_schedule_repeat,
+                args.policy_schedule_time,
+                args.policy_schedule_week,
+                args.policy_schedule_month,
+                args.replication_type,
+                args.replicate_configuration,
+                args.snapshot_name_pattern,
+                args.snapshot_expire_type,
+                args.snapshot_expire_value,
+                args.apply_at,
             )
     except SOSError, e:
 
@@ -893,7 +894,7 @@ def assign_parser(subcommand_parsers, common_parser):
     update_parser = subcommand_parsers.add_parser('assign',
             description='ViPR FilePolicy assign CLI usage.',
             parents=[common_parser], conflict_handler='resolve',
-            help='Assign FilePolicy to vpool, project, file system')
+            help='Assign FilePolicy to vpool, project')
     mandatory_args = \
         update_parser.add_argument_group('mandatory arguments')
     mandatory_args.add_argument(
@@ -905,14 +906,14 @@ def assign_parser(subcommand_parsers, common_parser):
         required=True,
         )
     update_parser.add_argument('-applyontargetsite','-aptrgtsite',
-			       metavar='<apply_on_target_site>',
+                               metavar='<apply_on_target_site>',
                                dest='apply_on_target_site',
                                help='Appply on target site true/false',
                                )
     update_parser.add_argument('-assigntovpools', '-asignvpls',
-        		       metavar='<assign_to_vpools>',
-       			       dest='assign_to_vpools',
-        		       help='assign to vpools. Required for assigning file policies to vpool')
+                		       metavar='<assign_to_vpools>',
+               			       dest='assign_to_vpools',
+                		       help='assign to vpools. Required for assigning file policies to vpool')
     update_parser.add_argument('-assigntoprojects', '-asignprjs',
                                metavar='<assign_to_projects>',
                                dest='assign_to_projects',
@@ -921,24 +922,15 @@ def assign_parser(subcommand_parsers, common_parser):
                                '-asignprjvpool',
                                metavar='<project_assign_vpool>',
                                dest='project_assign_vpool',
-                               help='vpool of to-be asssigned projects. Required for assigning file policies to project '
-                               )
+                               help='vpool of to-be asssigned projects. Required for assigning file policies to project ')
     update_parser.add_argument('-sourcevarray', '-srcvarray',
-			       metavar='<source_varray>',
-			       dest='source_varray',
-			       help='source varray for file replication'
-			       )
+                               metavar='<source_varray>',
+                               dest='source_varray',
+                               help='source varray for file replication')
     update_parser.add_argument('-targetvarrays', '-trgvarrays',
-			       metavar='<target_varrays>',
+                               metavar='<target_varrays>',
                                dest='target_varrays',
-                               help='target varrays for file replication'
-                               )
-    update_parser.add_argument('-filesystemvpool', '-fsvpool',
-                               metavar='<filesystem_assign_vpool>',
-                               dest='filesystem_assign_vpool',
-                               help='filesystem vpool to be assigned. Required for assigning filepolicies to filesysytem'
-                               )
-
+                               help='target varrays for file replication')
     update_parser.set_defaults(func=filepolicy_assign)
 
 
@@ -954,8 +946,7 @@ def filepolicy_assign(args):
             args.project_assign_vpool,
             args.assign_to_projects,
             args.source_varray,
-	    args.target_varrays,
-	    args.filesystem_assign_vpool,
+            args.target_varrays,
             )
     except SOSError, e:
         if e.err_code == SOSError.NOT_FOUND_ERR:
@@ -971,7 +962,7 @@ def unassign_parser(subcommand_parsers, common_parser):
     update_parser = subcommand_parsers.add_parser('unassign',
             description='ViPR FilePolicy unassign CLI usage.',
             parents=[common_parser], conflict_handler='resolve',
-            help='Unassign FilePolicy from vpool, project, file system')
+            help='Unassign FilePolicy from vpool, project, filesystem')
     mandatory_args = \
         update_parser.add_argument_group('mandatory arguments')
     mandatory_args.add_argument(
@@ -987,23 +978,30 @@ def unassign_parser(subcommand_parsers, common_parser):
         '-unasngrestp',
         metavar='<unassign_resource_type>',
         dest='unassign_resource_type',
-        help='Resource type to be unassigned from. type values : vpools or projects or filesystem'
-            ,
+        help='Resource type to be unassigned from. type values : vpools or projects or filesystem',
+        choices=['vpools', 'projects', 'filesystem'],
         required=True,
         )
     update_parser.add_argument('-unassignvpools', '-unasignvpls',
                                metavar='<unassign_from_vpools>',
                                dest='unassign_from_vpools',
                                help='unassign from vpools')
-    update_parser.add_argument('-unassignfsvpool', '-unasignfsvpl',
-                               metavar='<unassign_from_filesystem_vpool>',
-                               dest='unassign_from_filesystem_vpool',
-                               help='unassign from filesystem\'s vpool'
-                               )
     update_parser.add_argument('-unassignfromprojects', '-unasignprjs',
                                metavar='<unassign_from_projects>',
                                dest='unassign_from_projects',
                                help='unassign from projects')
+    update_parser.add_argument('-unassignfromfs', '-unasignfs',
+                               metavar='<unassign_from_filesystem>',
+                               dest='unassign_from_filesystem',
+                               help='unassign from filesystem')
+    update_parser.add_argument('-tenant', '-tn',
+                               metavar='<tenantname>',
+                               dest='tenant',
+                               help='Name of tenant')
+    update_parser.add_argument('-project', '-pr',
+                               metavar='<projectname>',
+                               dest='project',
+                               help='Name of Project')
 
     update_parser.set_defaults(func=filepolicy_unassign)
 
@@ -1015,8 +1013,7 @@ def filepolicy_unassign(args):
             args.name = ''
         obj.filepolicy_unassign(args.name, args.unassign_resource_type,
                                 args.unassign_from_vpools,
-                                args.unassign_from_filesystem_vpool,
-                                args.unassign_from_projects)
+                                args.unassign_from_projects, args.unassign_from_filesystem, args.tenant, args.project)
     except SOSError, e:
         if e.err_code == SOSError.NOT_FOUND_ERR:
             raise SOSError(SOSError.NOT_FOUND_ERR,

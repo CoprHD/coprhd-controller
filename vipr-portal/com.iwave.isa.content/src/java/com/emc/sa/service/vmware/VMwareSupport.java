@@ -120,7 +120,11 @@ public class VMwareSupport {
     }
 
     public HostSystem getHostSystem(String datacenterName, String esxHostName) {
-        return execute(new FindESXHost(datacenterName, esxHostName));
+        return getHostSystem(datacenterName, esxHostName, true);
+    }
+
+    public HostSystem getHostSystem(String datacenterName, String esxHostName, boolean failIfNotFound) {
+        return execute(new FindESXHost(datacenterName, esxHostName, failIfNotFound));
     }
 
     public ClusterComputeResource getCluster(String datacenterName, String clusterName) {
@@ -169,6 +173,20 @@ public class VMwareSupport {
      */
     public void verifyDatastoreForRemoval(Datastore datastore) {
         execute(new VerifyDatastoreForRemoval(datastore));
+    }
+
+    /**
+     * Performs various checks to see if the datatore should be able to be removed.
+     *
+     * @param datastore
+     *            the datastore.
+     * @param datacenterName
+     *            the name of the datacenter that we will use to check hosts that can access the datastore.
+     * @param hosts
+     *            the hosts that we will check to see if any VMs are running on this datastore.
+     */ 
+    public void verifyDatastoreForRemoval(Datastore datastore, String datacenterName, List<Host> hosts) {
+        execute(new VerifyDatastoreForRemoval(datastore, datacenterName, hosts));
     }
 
     /**
@@ -248,8 +266,8 @@ public class VMwareSupport {
      *            true to enable storage io control or false to disable storage io control
      */
     public void setStorageIOControl(Datastore datastore, Boolean enabled) {
-        if (enabled != null) {
-            if (datastore.getCapability().storageIORMSupported) {
+        if (enabled != null && datastore != null) {
+            if (datastore.getCapability() != null && datastore.getCapability().storageIORMSupported) {
                 execute(new SetStorageIOControl(datastore, enabled));
             } else {
                 logWarn("vmware.support.storage.io.control.not.supported", datastore.getName());
@@ -584,21 +602,43 @@ public class VMwareSupport {
     /**
      * Finds the SCSI disk on the host system that matches the volume.
      * 
-     * @param host the host system
-     * @param cluster if specified, find disk on all hosts in the cluster
-     * @param volume the volume to find
-     * @param availableDiskOnly if true, only find available disk for VMFS. if false, find disk even if it's not available for VMFS.
-     * @return the disk for the volume
+     * @param host
+     *            the host system.
+     * @param volume
+     *            the volume to find.
+     * @param availableDiskOnly
+     *            if true, only find available disk for VMFS. if false, find disk even if it's not available for VMFS.
+     * @return the disk for the volume.
      */
     public HostScsiDisk findScsiDisk(HostSystem host, ClusterComputeResource cluster, BlockObjectRestRep volume,
             boolean availableDiskOnly) {
+        return findScsiDisk(host, cluster, volume, availableDiskOnly, true);
+    }
+
+    /**
+     * Finds the SCSI disk on the host system that matches the volume.
+     * 
+     * @param host
+     *            the host system
+     * @param cluster
+     *            if specified, find disk on all hosts in the cluster
+     * @param volume
+     *            the volume to find
+     * @param availableDiskOnly
+     *            if true, only find available disk for VMFS. if false, find disk even if it's not available for VMFS.
+     * @param throwIfNotFound
+     *            throw exception if the lun is not found. (defaults to true)
+     * @return the disk for the volume
+     */
+    public HostScsiDisk findScsiDisk(HostSystem host, ClusterComputeResource cluster, BlockObjectRestRep volume,
+            boolean availableDiskOnly, boolean throwIfNotFound) {
         // Ensure that the volume has a WWN set or we won't be able to find the disk
         if (StringUtils.isBlank(volume.getWwn())) {
             String volumeId = ResourceUtils.stringId(volume);
             String volumeName = ResourceUtils.name(volume);
             ExecutionUtils.fail("failTask.VMwareSupport.findLun", new Object[] { volumeId }, new Object[] { volumeName });
         }
-        HostScsiDisk disk = execute(new FindHostScsiDiskForLun(host, volume, availableDiskOnly));
+        HostScsiDisk disk = execute(new FindHostScsiDiskForLun(host, volume, availableDiskOnly, throwIfNotFound));
 
         // Find the volume on all other hosts in the cluster
         if (cluster != null) {
@@ -612,7 +652,7 @@ public class VMwareSupport {
                 if (StringUtils.equals(host.getName(), otherHost.getName())) {
                     continue;
                 }
-                HostScsiDisk otherDisk = execute(new FindHostScsiDiskForLun(otherHost, volume, availableDiskOnly));
+                HostScsiDisk otherDisk = execute(new FindHostScsiDiskForLun(otherHost, volume, availableDiskOnly, throwIfNotFound));
                 disks.put(otherHost, otherDisk);
             }
         }
@@ -708,17 +748,30 @@ public class VMwareSupport {
      * 
      * @param host
      *            the actual host system
+     * @param hostId
+     *            host ID
      * @param datastore
      *            the datastore.
      * @return the volumes backing the host system.
      */
-    public List<VolumeRestRep> findVolumesBackingDatastore(HostSystem host, Datastore datastore) {
+    public List<VolumeRestRep> findVolumesBackingDatastore(HostSystem host, URI hostId, Datastore datastore) {
         Set<String> luns = execute(new FindLunsBackingDatastore(host, datastore));
         List<VolumeRestRep> volumes = Lists.newArrayList();
         for (String lun : luns) {
             VolumeRestRep volume = execute(new GetBlockVolumeByWWN(lun));
             if (volume != null) {
+                // VBDU: Check to ensure the correct datastore tag is in the volume returned
+                String tagValue = KnownMachineTags.getBlockVolumeVMFSDatastore(hostId, volume);
+                if (!tagValue.equalsIgnoreCase(datastore.getName())) {
+                    logError("vmware.support.datastore.doesntmatchvolume", datastore.getName());
+                    return null;
+                }
+
                 volumes.add(volume);
+            } else {
+                logError("vmware.support.datastore.volumenotfound", datastore.getName());
+                // Don't return any volume objects to quickly report there's an issue to the caller.
+                return null;
             }
         }
         return volumes;

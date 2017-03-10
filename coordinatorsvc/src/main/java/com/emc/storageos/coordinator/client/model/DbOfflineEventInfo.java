@@ -101,4 +101,8 @@ public class DbOfflineEventInfo {
         }
         log.info("Get DB offline event info from ZK config: {}", eventInfo);
     }
+
+    public Map<String,Long> getEventInfo() {
+        return eventInfo;
+    }
 }

@@ -690,7 +690,7 @@ public class UcsComputeDevice implements ComputeDevice {
      * @param stepId Id of step being executed.
      * @return LsServer instance
      */
-    public LsServer createLsServer(ComputeSystem cs, String sptDn, Host host, String stepId) {
+    public boolean createLsServer(ComputeSystem cs, String sptDn, Host host, String stepId) {
 
         WorkflowStepCompleter.stepExecuting(stepId);
         LOGGER.info("Creating Service Profile : " + host.getHostName() + " from Service Profile Template : " + sptDn);
@@ -721,11 +721,12 @@ public class UcsComputeDevice implements ComputeDevice {
             LOGGER.error("Unable to createLsServer...", e);
             WorkflowStepCompleter.stepFailed(stepId,
                     ComputeSystemControllerException.exceptions.unableToProvisionHost(host.getHostName(), cs.getNativeGuid(), e));
+            return false;
         }
 
         WorkflowStepCompleter.stepSucceded(stepId);
         LOGGER.info("Done Creating Service Profile : " + lsServer.getDn() + " from Service Profile Template : " + sptDn);
-        return lsServer;
+        return true;
     }
 
     private void validateNewServiceProfile(ComputeSystem cs, UCSServiceProfile serviceProfile, Host newHost){
@@ -913,7 +914,6 @@ public class UcsComputeDevice implements ComputeDevice {
 
         WorkflowStepCompleter.stepExecuting(stepId);
         try {
-
             if (!NullColumnValueGetter.isNullURI(host.getComputeElement())) {
 
                 Map<Network, List<String>> networkToInitiatorMap = Collections
@@ -951,6 +951,13 @@ public class UcsComputeDevice implements ComputeDevice {
                     initiator.setProtocol(computeElementHBA.getProtocol() != null ? computeElementHBA.getProtocol()
                             .toUpperCase() : null);
 
+                    // Search against the database, fail if you see the wwn in the database already.
+                    Initiator dbInitiator = ExportUtils.getInitiator(initiator.getInitiatorPort(), _dbClient);
+                    if (dbInitiator != null) {
+                        throw ComputeSystemControllerException.exceptions.illegalInitiator(
+                                host.getHostName(), dbInitiator.getInitiatorPort(), dbInitiator.getHostName());
+                    }
+                    
                     Network network = networkIdNetworkMapInVarray.get(computeElementHBA.getVsanId());
 
                     // Test mechanism to invoke a failure. No-op on production systems.
@@ -981,7 +988,7 @@ public class UcsComputeDevice implements ComputeDevice {
 
                     network.addEndpoints(networkToInitiatorMap.get(network), false);
 
-                    _dbClient.persistObject(network);
+                    _dbClient.updateObject(network);
 
                     handleEndpointsAdded(network, networkToInitiatorMap.get(network), _dbClient, _coordinator);
                 }

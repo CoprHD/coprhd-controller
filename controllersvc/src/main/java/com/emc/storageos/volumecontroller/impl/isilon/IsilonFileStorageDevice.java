@@ -3865,7 +3865,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                 break;
             case file_system:
                 if (args.getFs() != null) {
-                    resourceName = args.getFSNameWithNoSpecialCharacters().replaceAll("_", "");
+                    resourceName = args.getFsLabel();
                     if (!filePolicyBasePath.contains(resourceName)) {
                         _log.error("File policy base path does not contain fileshare: {}", resourceName);
                         throw DeviceControllerException.exceptions.assignFilePolicyFailed(filePolicy.getFilePolicyName(),

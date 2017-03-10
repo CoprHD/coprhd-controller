@@ -675,14 +675,13 @@ public class StoragePortService extends TaggedResource {
      * Updates the virtual arrays to which the port of virtual nas is assigned.
      * 
      * @param storagePort A reference to the storage port.
-     * @param varrayChanges The virtual array changes.
-     * 
+     * @param newNetwork Network service assicated with varray
+     * @param varrayAssignmentChanges The virtual array changes.
+     * @param removePort - is port remove or add
      * @return true if there was a virtual array assignment change, false otherwise.
      */
     private boolean updatevNasVirtualArrays(StoragePort storagePort, Network newNetwork,
             VirtualArrayAssignmentChanges varrayAssignmentChanges, boolean removePort) {
-
-                    VirtualArrayAssignmentChanges varrayAssignmentChanges, boolean removePort) {
         _log.info("StoragePort:updatevNasVirtualArrays {} ", storagePort.getLabel());
         // Validate that the virtual arrays to be assigned to the vnas
         // reference existing virtual arrays in the database and add them to

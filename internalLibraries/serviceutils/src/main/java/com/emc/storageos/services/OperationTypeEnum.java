@@ -554,7 +554,7 @@ public enum OperationTypeEnum {
     FAILOVER_REMOTE_REPLICATION_CG_LINK("FAILOVER REMOTE REPLICATION CG LINK", "FailoverRemoteReplicationCGLinkFailed", "failover remote replication cg link"),
     ESTABLISH_REMOTE_REPLICATION_CG_LINK("ESTABLISH REMOTE REPLICATION CG LINK", "EstablishRemoteReplicationCGLinkFailed", "establish remote replication cg link"),
     FAILBACK_REMOTE_REPLICATION_CG_LINK("FAILBACK REMOTE REPLICATION CG LINK", "FailbackRemoteReplicationCGLinkFailed", "failback remote replication cg link"),
-
+    SPLIT_REMOTE_REPLICATION_CG_LINK("SPLIT REMOTE REPLICATION CG LINK", "SplitRemoteReplicationCGLinkFailed", "split remote replication cg link"),
     //
     EXPORT_PATH_ADJUSTMENT("EXPORT PATH ADJUSTMENT", "", "operation to adjust export paths"),
 

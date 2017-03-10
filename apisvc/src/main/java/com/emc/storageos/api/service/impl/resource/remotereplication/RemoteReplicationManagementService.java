@@ -15,8 +15,11 @@ import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 
+import com.emc.storageos.api.service.impl.resource.ArgValidator;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationOperationContext;
+import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -34,8 +37,8 @@ import com.emc.storageos.security.authorization.Role;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 
 @Path("/vdc/block/remotereplicationmanagement")
-@DefaultPermissions(readRoles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, readAcls = {
-        ACL.OWN, ACL.ALL }, writeRoles = { Role.TENANT_ADMIN }, writeAcls = { ACL.OWN,
+@DefaultPermissions(readRoles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, readAcls = {
+        ACL.OWN, ACL.ALL }, writeRoles = { Role.SYSTEM_ADMIN, Role.TENANT_ADMIN }, writeAcls = { ACL.OWN,
         ACL.ALL })
 public class RemoteReplicationManagementService extends TaskResourceService {
 
@@ -43,16 +46,6 @@ public class RemoteReplicationManagementService extends TaskResourceService {
     public static final String SERVICE_TYPE = "remote_replication_management";
 
 
-    public enum RemoteReplicationOperations {
-        ESTABLISH,
-        SUSPEND,
-        RESUME,
-        SPLIT,
-        FAIL_OVER,
-        FAIL_BACK,
-        RESTORE,
-        SWAP
-    }
     // remote replication service api implementations
     private RemoteReplicationBlockServiceApiImpl remoteReplicationServiceApi;
 
@@ -120,8 +113,7 @@ public class RemoteReplicationManagementService extends TaskResourceService {
         _log.info("Called: establishRemoteReplicationLink() with context {} and ids {}",
                 operationParam.getOperationContext(), operationParam.getIds());
 
-        // TODO:
-        checkOperationParameters(operationParam);
+        validateContainmentForContext(operationParam);
 
         RemoteReplicationOperationParam.OperationContext operationContext =
                 RemoteReplicationOperationParam.OperationContext.valueOf(operationParam.getOperationContext());
@@ -172,8 +164,7 @@ public class RemoteReplicationManagementService extends TaskResourceService {
         _log.info("Called: failbackRemoteReplicationLink() with context {} and ids {}",
                 operationParam.getOperationContext(), operationParam.getIds());
 
-        // TODO:
-        checkOperationParameters(operationParam);
+        validateContainmentForContext(operationParam);
 
         RemoteReplicationOperationParam.OperationContext operationContext =
                 RemoteReplicationOperationParam.OperationContext.valueOf(operationParam.getOperationContext());
@@ -223,8 +214,7 @@ public class RemoteReplicationManagementService extends TaskResourceService {
         _log.info("Called: failoverRemoteReplicationLink() with context {} and ids {}",
                 operationParam.getOperationContext(), operationParam.getIds());
 
-        // TODO:
-        checkOperationParameters(operationParam);
+        validateContainmentForContext(operationParam);
 
         RemoteReplicationOperationParam.OperationContext operationContext =
                 RemoteReplicationOperationParam.OperationContext.valueOf(operationParam.getOperationContext());
@@ -276,11 +266,11 @@ public class RemoteReplicationManagementService extends TaskResourceService {
      * Validate parameters according to context of the operation.
      * @param operationParam
      */
-    void checkOperationParameters(RemoteReplicationOperationParam operationParam) {
+    void validateContainmentForContext(RemoteReplicationOperationParam operationParam) {
         /*
-         * Validate that parameters have valid context.
+         * Validate that remote replication pairs and context are valid with regard to containment.
          * Validate that parameters have valid remote replication pair ids.
-         * Validate that ids match context:
+         * Validate that ids match context from containment point of view:
          *   --- if context is RR_SET, all ids should be in the same remote replication set and contain all set pairs
          *        (group pairs and set pairs)
          *   --- if context is RR_GROUP, all ids should be in the same group and contain all group pairs
@@ -292,6 +282,20 @@ public class RemoteReplicationManagementService extends TaskResourceService {
          *
          *
          */
+        // TODO: complete
+        String context = operationParam.getOperationContext();
+        List<URI> elementURIs = operationParam.getIds();
+        try {
+            RemoteReplicationOperationParam.OperationContext contextValue = RemoteReplicationOperationParam.OperationContext.valueOf(context);
+        } catch (Exception ex) {
+            // error
+            throw APIException.badRequests.invalidRemoteReplicationContext(context);
+        }
+
+        for (URI id : elementURIs) {
+            ArgValidator.checkFieldUriType(id, RemoteReplicationPair.class, "id");
+        }
+
     }
 
     TaskList processSrdfLinkRequest(RemoteReplicationOperationParam.OperationContext operationContext, List<URI> pairURIs) {

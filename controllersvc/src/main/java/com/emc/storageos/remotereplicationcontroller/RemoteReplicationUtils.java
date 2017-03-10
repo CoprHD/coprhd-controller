@@ -8,6 +8,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+import com.emc.storageos.svcs.errorhandling.resources.APIException;
+import com.emc.storageos.volumecontroller.impl.externaldevice.RemoteReplicationElement;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -87,5 +89,55 @@ public class RemoteReplicationUtils {
            rrPairs.addAll(getRemoteReplicationPairsForSourceElement(volume.getId(), dbClient));
         }
         return rrPairs;
+    }
+
+
+    /**
+     * Validate that remote replication link operation is valid based on the remote replication configuration discovered on the device.
+     *
+     * @param rrElement remote replication element (pair, cg, group, set)
+     * @param operation operation
+     * @return true/false
+     */
+    public static  void validateRemoteReplicationOperation(RemoteReplicationElement rrElement, RemoteReplicationController.RemoteReplicationOperations operation) {
+        boolean isOperationValid = true;
+        // todo: validate that this operation is valid (operational validity):
+        //   For rr pairs:
+        //     parent set supports operations on pairs;
+        //     if pair is in a group, check that group consistency is not enforced (operations are allowed on subset of pairs);
+        //   For rr cgs:
+        //     parent set supports operations on pairs;
+        //     if pairs are in groups, check that group consistency is not enforced (operations are allowed on subset of pairs);
+        //   For groups:
+        //     parent set supports operations on groups;
+        //   For sets:
+        //     set supports operations on sets;
+        //
+        if (!isOperationValid) {
+            // bad request
+            throw APIException.badRequests.remoteReplicationLinkOperationIsNotAllowed(rrElement.getType().toString(), rrElement.getElementUri().toString(),
+                    operation.toString());
+        }
+    }
+
+    public static void validateRemoteReplicationModeChange(RemoteReplicationElement rrElement, String newMode) {
+
+        // todo: validate that this operation is valid:
+        //   For rr pair and cgs:
+        //       validate that parent set supports operations on pairs;
+        //       validate that pair is not in rr group;
+        //       validate that set supports new replication mode;
+        //       check that set/group parents are reachable
+        //   For rr group:
+        //       check if group is reachable;
+        //       validate that parent set supports operation on groups;
+        //       validate that parent set supports new replication mode;
+        //   For rr set:
+        //       check id set is reachable;
+        //       validate that set supports operations on sets;
+        //       validate that set supports new replication mode;
+        //
+
+
     }
 }

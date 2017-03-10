@@ -40,9 +40,17 @@ public class RemoteReplicationPair {
      * Replication state of the pair. Type: Input/Output.
      * When Input --- state as known to the system.
      * When Output --- state on device.
-     * Should be set by driver.
+     * State managed by driver.
      */
     private String replicationState;
+
+    /**
+     * Replication direction of the pair. Type: Input/Output.
+     * When Input --- direction as known to the system.
+     * When Output --- direction on device.
+     * Direction managed by driver.
+     */
+    private String replicationDirection;
 
     /**
      * Source volume of replication pair. Type: Input.
@@ -121,5 +129,13 @@ public class RemoteReplicationPair {
 
     public void setCapabilities(List<CapabilityInstance> capabilities) {
         this.capabilities = capabilities;
+    }
+
+    public String getReplicationDirection() {
+        return replicationDirection;
+    }
+
+    public void setReplicationDirection(String replicationDirection) {
+        this.replicationDirection = replicationDirection;
     }
 }

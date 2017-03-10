@@ -66,7 +66,6 @@ public class RemoteReplicationMapper {
         to.setId(from.getId());
         to.setNativeId(from.getNativeId());
         to.setElementType(from.getElementType().toString());
-        to.setReplicationDirection(from.getReplicationDirection().toString());
         to.setReplicationMode(from.getReplicationMode());
         to.setReplicationState(from.getReplicationState());
         to.setSourceElement(from.getSourceElement().getURI());
@@ -80,6 +79,7 @@ public class RemoteReplicationMapper {
         to.setTenant(toRelatedResource(ResourceTypeEnum.TENANT, from.getTenant().getURI()));
         to.setProject(toRelatedResource(ResourceTypeEnum.PROJECT, from.getProject().getURI()));
 
+        to.setReplicationDirection(from.getReplicationDirection());
         return to;
     }
 }

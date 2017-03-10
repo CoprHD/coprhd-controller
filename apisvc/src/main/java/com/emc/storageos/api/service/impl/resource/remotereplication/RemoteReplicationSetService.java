@@ -28,6 +28,8 @@ import javax.ws.rs.core.MediaType;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.remotereplication.RemoteReplicationPair;
 import com.emc.storageos.model.remotereplication.RemoteReplicationPairList;
+import com.emc.storageos.remotereplicationcontroller.RemoteReplicationController;
+import com.emc.storageos.remotereplicationcontroller.RemoteReplicationUtils;
 import com.emc.storageos.security.authorization.ACL;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -61,9 +63,10 @@ import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.impl.externaldevice.RemoteReplicationElement;
 
 @Path("/vdc/block/remotereplicationsets")
-@DefaultPermissions(readRoles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, readAcls = {
-        ACL.OWN, ACL.ALL }, writeRoles = { Role.TENANT_ADMIN }, writeAcls = { ACL.OWN,
-        ACL.ALL })public class RemoteReplicationSetService extends TaskResourceService {
+@DefaultPermissions(readRoles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, readAcls = {
+        ACL.OWN, ACL.ALL }, writeRoles = { Role.SYSTEM_ADMIN, Role.TENANT_ADMIN }, writeAcls = { ACL.OWN,
+        ACL.ALL })
+public class RemoteReplicationSetService extends TaskResourceService {
 
     private static final Logger _log = LoggerFactory.getLogger(RemoteReplicationSetService.class);
     public static final String SERVICE_TYPE = "remote_replication";
@@ -261,13 +264,14 @@ import com.emc.storageos.volumecontroller.impl.externaldevice.RemoteReplicationE
         ArgValidator.checkFieldUriType(id, RemoteReplicationSet.class, "id");
         RemoteReplicationSet rrSet = queryResource(id);
 
-        // todo: validate that this operation is valid: if operations are allowed on Sets, if Set state is valid for the operation, if the Set is reachable, etc.
+        RemoteReplicationElement rrElement = new RemoteReplicationElement(com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationSet.ElementType.REPLICATION_SET, id);
+        RemoteReplicationUtils.validateRemoteReplicationOperation(rrElement, RemoteReplicationController.RemoteReplicationOperations.FAIL_OVER);
+
         // Create a task for the failover remote replication Set operation
         String taskId = UUID.randomUUID().toString();
         Operation op = _dbClient.createTaskOpStatus(RemoteReplicationSet.class, rrSet.getId(),
                 taskId, ResourceOperationTypeEnum.SPLIT_REMOTE_REPLICATION_SET_LINK);
 
-        RemoteReplicationElement rrElement = new RemoteReplicationElement(com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationSet.ElementType.REPLICATION_SET, id);
         // send request to controller
         try {
             RemoteReplicationBlockServiceApiImpl rrServiceApi = getRemoteReplicationServiceApi();
@@ -298,13 +302,14 @@ import com.emc.storageos.volumecontroller.impl.externaldevice.RemoteReplicationE
         ArgValidator.checkFieldUriType(id, RemoteReplicationSet.class, "id");
         RemoteReplicationSet rrSet = queryResource(id);
 
-        // todo: validate that this operation is valid: if operations are allowed on sets, if set state is valid for the operation, if the set is reachable, etc.
+        RemoteReplicationElement rrElement = new RemoteReplicationElement(com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationSet.ElementType.REPLICATION_SET, id);
+        RemoteReplicationUtils.validateRemoteReplicationOperation(rrElement, RemoteReplicationController.RemoteReplicationOperations.FAIL_BACK);
+
         // Create a task for the failback remote replication set operation
         String taskId = UUID.randomUUID().toString();
         Operation op = _dbClient.createTaskOpStatus(RemoteReplicationSet.class, rrSet.getId(),
                 taskId, ResourceOperationTypeEnum.FAILBACK_REMOTE_REPLICATION_SET_LINK);
 
-        RemoteReplicationElement rrElement = new RemoteReplicationElement(com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationSet.ElementType.REPLICATION_SET, id);
         // send request to controller
         try {
             RemoteReplicationBlockServiceApiImpl rrServiceApi = getRemoteReplicationServiceApi();
@@ -335,13 +340,14 @@ import com.emc.storageos.volumecontroller.impl.externaldevice.RemoteReplicationE
         ArgValidator.checkFieldUriType(id, RemoteReplicationSet.class, "id");
         RemoteReplicationSet rrSet = queryResource(id);
 
-        // todo: validate that this operation is valid: if operations are allowed on sets, if set state is valid for the operation, if the set is reachable, etc.
+        RemoteReplicationElement rrElement = new RemoteReplicationElement(com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationSet.ElementType.REPLICATION_SET, id);
+        RemoteReplicationUtils.validateRemoteReplicationOperation(rrElement, RemoteReplicationController.RemoteReplicationOperations.ESTABLISH);
+
         // Create a task for the establish remote replication set operation
         String taskId = UUID.randomUUID().toString();
         Operation op = _dbClient.createTaskOpStatus(RemoteReplicationSet.class, rrSet.getId(),
                 taskId, ResourceOperationTypeEnum.ESTABLISH_REMOTE_REPLICATION_SET_LINK);
 
-        RemoteReplicationElement rrElement = new RemoteReplicationElement(com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationSet.ElementType.REPLICATION_SET, id);
         // send request to controller
         try {
             RemoteReplicationBlockServiceApiImpl rrServiceApi = getRemoteReplicationServiceApi();
@@ -372,13 +378,14 @@ import com.emc.storageos.volumecontroller.impl.externaldevice.RemoteReplicationE
         ArgValidator.checkFieldUriType(id, RemoteReplicationSet.class, "id");
         RemoteReplicationSet rrSet = queryResource(id);
 
-        // todo: validate that this operation is valid: if operations are allowed on sets, if set state is valid for the operation, if the set is reachable, etc.
+        RemoteReplicationElement rrElement = new RemoteReplicationElement(com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationSet.ElementType.REPLICATION_SET, id);
+        RemoteReplicationUtils.validateRemoteReplicationOperation(rrElement, RemoteReplicationController.RemoteReplicationOperations.SPLIT);
+
         // Create a task for the split remote replication set operation
         String taskId = UUID.randomUUID().toString();
         Operation op = _dbClient.createTaskOpStatus(RemoteReplicationSet.class, rrSet.getId(),
                 taskId, ResourceOperationTypeEnum.SPLIT_REMOTE_REPLICATION_SET_LINK);
 
-        RemoteReplicationElement rrElement = new RemoteReplicationElement(com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationSet.ElementType.REPLICATION_SET, id);
         // send request to controller
         try {
             RemoteReplicationBlockServiceApiImpl rrServiceApi = getRemoteReplicationServiceApi();
@@ -409,13 +416,14 @@ import com.emc.storageos.volumecontroller.impl.externaldevice.RemoteReplicationE
         ArgValidator.checkFieldUriType(id, RemoteReplicationSet.class, "id");
         RemoteReplicationSet rrSet = queryResource(id);
 
-        // todo: validate that this operation is valid: if operations are allowed on sets, if set state is valid for the operation, if the set is reachable, etc.
+        RemoteReplicationElement rrElement = new RemoteReplicationElement(com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationSet.ElementType.REPLICATION_SET, id);
+        RemoteReplicationUtils.validateRemoteReplicationOperation(rrElement, RemoteReplicationController.RemoteReplicationOperations.SUSPEND);
+
         // Create a task for the suspend remote replication set operation
         String taskId = UUID.randomUUID().toString();
         Operation op = _dbClient.createTaskOpStatus(RemoteReplicationSet.class, rrSet.getId(),
                 taskId, ResourceOperationTypeEnum.SUSPEND_REMOTE_REPLICATION_SET_LINK);
 
-        RemoteReplicationElement rrElement = new RemoteReplicationElement(com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationSet.ElementType.REPLICATION_SET, id);
         // send request to controller
         try {
             RemoteReplicationBlockServiceApiImpl rrServiceApi = getRemoteReplicationServiceApi();
@@ -447,13 +455,14 @@ import com.emc.storageos.volumecontroller.impl.externaldevice.RemoteReplicationE
         ArgValidator.checkFieldUriType(id, RemoteReplicationSet.class, "id");
         RemoteReplicationSet rrSet = queryResource(id);
 
-        // todo: validate that this operation is valid: if operations are allowed on sets, if set state is valid for the operation, if the set is reachable, etc.
+        RemoteReplicationElement rrElement = new RemoteReplicationElement(com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationSet.ElementType.REPLICATION_SET, id);
+        RemoteReplicationUtils.validateRemoteReplicationOperation(rrElement, RemoteReplicationController.RemoteReplicationOperations.RESUME);
+
         // Create a task for the resume remote replication set operation
         String taskId = UUID.randomUUID().toString();
         Operation op = _dbClient.createTaskOpStatus(RemoteReplicationSet.class, rrSet.getId(),
                 taskId, ResourceOperationTypeEnum.RESUME_REMOTE_REPLICATION_SET_LINK);
 
-        RemoteReplicationElement rrElement = new RemoteReplicationElement(com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationSet.ElementType.REPLICATION_SET, id);
         // send request to controller
         try {
             RemoteReplicationBlockServiceApiImpl rrServiceApi = getRemoteReplicationServiceApi();
@@ -484,13 +493,14 @@ import com.emc.storageos.volumecontroller.impl.externaldevice.RemoteReplicationE
         ArgValidator.checkFieldUriType(id, RemoteReplicationSet.class, "id");
         RemoteReplicationSet rrSet = queryResource(id);
 
-        // todo: validate that this operation is valid: if operations are allowed on sets, if set state is valid for the operation, if the set is reachable, etc.
+        RemoteReplicationElement rrElement = new RemoteReplicationElement(com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationSet.ElementType.REPLICATION_SET, id);
+        RemoteReplicationUtils.validateRemoteReplicationOperation(rrElement, RemoteReplicationController.RemoteReplicationOperations.SWAP);
+
         // Create a task for the swap remote replication set operation
         String taskId = UUID.randomUUID().toString();
         Operation op = _dbClient.createTaskOpStatus(RemoteReplicationSet.class, rrSet.getId(),
                 taskId, ResourceOperationTypeEnum.SWAP_REMOTE_REPLICATION_SET_LINK);
 
-        RemoteReplicationElement rrElement = new RemoteReplicationElement(com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationSet.ElementType.REPLICATION_SET, id);
         // send request to controller
         try {
             RemoteReplicationBlockServiceApiImpl rrServiceApi = getRemoteReplicationServiceApi();
@@ -524,13 +534,13 @@ import com.emc.storageos.volumecontroller.impl.externaldevice.RemoteReplicationE
 
         String newMode = param.getNewMode();
 
-        // todo: validate that this operation is valid: if operations are allowed on sets, if set state is valid for the operation, if the set is reachable, etc.
-        // Create a task for the create remote replication set operation
+        RemoteReplicationElement rrElement = new RemoteReplicationElement(com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationSet.ElementType.REPLICATION_SET, id);
+        RemoteReplicationUtils.validateRemoteReplicationModeChange(rrElement, newMode);
+
         String taskId = UUID.randomUUID().toString();
         Operation op = _dbClient.createTaskOpStatus(RemoteReplicationSet.class, rrSet.getId(),
                 taskId, ResourceOperationTypeEnum.CHANGE_REMOTE_REPLICATION_MODE);
 
-        RemoteReplicationElement rrElement = new RemoteReplicationElement(com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationSet.ElementType.REPLICATION_SET, id);
         // send request to controller
         try {
             RemoteReplicationBlockServiceApiImpl rrServiceApi = getRemoteReplicationServiceApi();

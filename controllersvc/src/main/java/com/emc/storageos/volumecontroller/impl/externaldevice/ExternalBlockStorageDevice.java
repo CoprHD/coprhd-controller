@@ -1930,12 +1930,7 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice implem
     }
 
     @Override
-    public void start(RemoteReplicationElement replicationElement, TaskCompleter taskCompleter) {
-
-    }
-
-    @Override
-    public void stop(RemoteReplicationElement replicationElement, TaskCompleter taskCompleter) {
+    public void establish(RemoteReplicationElement replicationElement, TaskCompleter taskCompleter) {
 
     }
 
@@ -2106,11 +2101,6 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice implem
 
     }
 
-    @Override
-    public void synchronize(RemoteReplicationElement replicationElement, TaskCompleter taskCompleter) {
-
-    }
-
     public boolean validateStorageProviderConnection(String ipAddress, Integer portNumber) {
         // call driver to validate provider connection
         boolean isConnectionValid = false;
@@ -2234,13 +2224,8 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice implem
                  driverPair.setNativeId(systemPair.getNativeId());
              }
 
-             // Set source/target elements for a driver based on system pair replication direction.
-             if (systemPair.getReplicationDirection() == RemoteReplicationPair.ReplicationDirection.SOURCE_TO_TARGET) {
-                 driverPair.setSourceVolume(driverSourceVolume);
-                 driverPair.setTargetVolume(driverTargetVolume);
-             } else {
-                 driverPair.setSourceVolume(driverTargetVolume);
-                 driverPair.setTargetVolume(driverSourceVolume);
+             if (systemPair.getReplicationDirection() != null) {
+                 driverPair.setReplicationDirection(systemPair.getReplicationDirection());
              }
 
              // set replication mode
@@ -2353,9 +2338,11 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice implem
                                         List<com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationPair> driverRRPairs,
                                         RemoteReplicationSet systemSet, RemoteReplicationGroup systemGroup) {
         // set state in system pairs as set by driver
+        // set replication direction in system pairs as set by driver
         if (systemRRPairs != null && !systemRRPairs.isEmpty()) {
             for (int i = 0; i < driverRRPairs.size(); i++) {
-                systemRRPairs.get(i).setReplicationState(driverRRPairs.get(0).getReplicationState());
+                systemRRPairs.get(i).setReplicationState(driverRRPairs.get(i).getReplicationState());
+                systemRRPairs.get(i).setReplicationDirection(driverRRPairs.get(i).getReplicationDirection());
             }
             dbClient.updateObject(systemRRPairs);
         }

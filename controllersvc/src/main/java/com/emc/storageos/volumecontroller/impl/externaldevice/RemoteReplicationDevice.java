@@ -20,12 +20,10 @@ public interface RemoteReplicationDevice {
     public void deleteReplicationPairs(List<URI> replicationPairs, TaskCompleter taskCompleter);
 
     // replication link operations
-    public void start(RemoteReplicationElement replicationArgument, TaskCompleter taskCompleter);
-    public void stop(RemoteReplicationElement replicationArgument, TaskCompleter taskCompleter);
+    public void establish(RemoteReplicationElement replicationArgument, TaskCompleter taskCompleter);
     public void suspend(RemoteReplicationElement replicationArgument, TaskCompleter taskCompleter);
     public void resume(RemoteReplicationElement replicationArgument, TaskCompleter taskCompleter);
     public void split(RemoteReplicationElement replicationArgument, TaskCompleter taskCompleter);
-    public void synchronize(RemoteReplicationElement replicationArgument, TaskCompleter taskCompleter);
     public void failover(RemoteReplicationElement replicationArgument, RemoteReplicationFailoverCompleter taskCompleter);
     public void failback(RemoteReplicationElement replicationArgument, TaskCompleter taskCompleter);
     public void swap(RemoteReplicationElement replicationArgument, TaskCompleter taskCompleter);

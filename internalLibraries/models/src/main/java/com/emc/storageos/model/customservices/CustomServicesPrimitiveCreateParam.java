@@ -30,7 +30,7 @@ public class CustomServicesPrimitiveCreateParam {
     private String friendlyName;
     private String description;
     private String type;
-    private List<String> input;
+    private Map<String, InputCreateList> input;
     private List<String> output;
     private Map<String,String> attributes;
     private URI resource;
@@ -72,11 +72,11 @@ public class CustomServicesPrimitiveCreateParam {
     }
     
     @XmlElement(name = "input")
-    public List<String> getInput() {
+    public Map<String,InputCreateList> getInput() {
         return input;
     }
 
-    public void setInput(final List<String> input) {
+    public void setInput(final Map<String,InputCreateList>  input) {
         this.input = input;
     }
 
@@ -105,6 +105,21 @@ public class CustomServicesPrimitiveCreateParam {
     
     public void setType(final String type) {
         this.type = type;
+    }
+    
+    public static class InputCreateList {
+        private List<String> input;
+
+        @XmlElement(name = "input")
+        public List<String> getInput() {
+            return input;
+        }
+
+        public void setInput(List<String> input) {
+            this.input = input;
+        }
+        
+      
     }
     
 }

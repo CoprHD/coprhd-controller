@@ -43,8 +43,11 @@ import com.emc.storageos.db.client.model.uimodels.CustomServicesDBPrimitive;
 import com.emc.storageos.db.client.model.uimodels.CustomServicesDBResource;
 import com.emc.storageos.db.client.model.uimodels.CustomServicesWorkflow;
 import com.emc.storageos.model.customservices.CustomServicesPrimitiveCreateParam;
+import com.emc.storageos.model.customservices.CustomServicesPrimitiveCreateParam.InputCreateList;
 import com.emc.storageos.model.customservices.CustomServicesPrimitiveRestRep;
 import com.emc.storageos.model.customservices.CustomServicesPrimitiveUpdateParam;
+import com.emc.storageos.model.customservices.InputUpdateParam;
+import com.emc.storageos.model.customservices.InputUpdateParam.InputUpdateList;
 import com.emc.storageos.model.customservices.OutputUpdateParam;
 import com.emc.storageos.primitives.CustomServicesPrimitive.InputType;
 import com.emc.storageos.primitives.CustomServicesPrimitiveResourceType;
@@ -126,39 +129,14 @@ public final class CustomServicesDBHelper {
         primitive.setDescription(param.getDescription());
         final CustomServicesDBResource resource = primitiveManager.findResource(resourceType, param.getResource());
         primitive.setResource(new NamedURI(resource.getId(), resource.getLabel()));
-        final StringMap attributes = new StringMap();
-        //TODO need validation e.g. playbook needs to be in resource
-        if( null != param.getAttributes() ) {
-            for( final Entry<String, String> attribute :  param.getAttributes().entrySet()) {
-                if(primitive.attributeKeys().contains(attribute.getKey())) {
-                    attributes.put(attribute.getKey(), attribute.getValue());
-                } else {
-                    throw BadRequestException.badRequests.invalidParameter("attributes", attribute.getKey());
-                }
-            }
-        }
-        primitive.setAttributes(attributes);
-        
-        final StringSetMap inputMap = new StringSetMap();
-        final StringSet inputs = new StringSet();
-        if( null != param.getInput() ) {
-            for(String input : param.getInput()) {
-                inputs.add(input);
-            } 
-        }
-        inputMap.put(InputType.INPUT_PARAMS.toString(), inputs);
-        primitive.setInput(inputMap);
-        
-        final StringSet output = new StringSet();
-        if(param.getOutput() != null ) {
-            output.addAll(param.getOutput());
-        }
-        primitive.setOutput(output);
+        primitive.setAttributes(createAttributes(primitive.attributeKeys(), param.getAttributes()));
+        primitive.setInput(createInput(primitive.inputTypes(), param.getInput()));
+        primitive.setOutput(createOutput(param.getOutput()));
         
         primitiveManager.save(primitive);
         return makePrimitiveType(type, primitive);
     }
-    
+
     /**
      * Given an ID, update param, DB column family, and primitive type save a new primitive to the DB
      * and return the primitive type java object
@@ -197,15 +175,77 @@ public final class CustomServicesDBHelper {
         if (null != param.getDescription()) {
             primitive.setDescription(param.getDescription());
         }
-        // TODO missing attributes and input updates 
         
-        
+        updateInput(param.getInput(), primitive);
+        updateAttributes(param.getAttributes(), primitive);
         updateOutput(param.getOutput(), primitive);
-        
+        client.save(primitive);
         return makePrimitiveType(type, primitive);
         
     }
     
+    
+    private static void updateAttributes(final Map<String, String> attributes,
+            final CustomServicesDBPrimitive primitive) {
+        
+        if( attributes == null ) {
+            return;
+        }
+        
+        final StringMap update = primitive.getAttributes() == null ? new StringMap() : primitive.getAttributes();
+        
+        for(final Entry<String, String> entry : attributes.entrySet()) {
+            if(!primitive.attributeKeys().contains(entry.getKey())) {
+                throw APIException.badRequests.invalidParameter("attributes", entry.getKey());
+            }
+            update.put(entry.getKey(), entry.getValue());
+        }
+        primitive.setAttributes(update);
+        
+    }
+
+    /**
+     * @param input
+     * @param primitive
+     */
+    private static void updateInput(final InputUpdateParam param,
+            final CustomServicesDBPrimitive primitive) {
+        if(param == null ) {
+            return;
+        }
+        
+        final StringSetMap update = primitive.getInput() == null ? new StringSetMap() : primitive.getInput();
+        
+        addInput(primitive.inputTypes(), param.getAdd(), update);
+        removeInput(primitive.inputTypes(), param.getRemove(), update);
+    } 
+
+    private static void addInput(final Set<String> keys, final Map<String, InputUpdateList> map,
+            final StringSetMap update) {
+        for(final Entry<String, InputUpdateList> entry : map.entrySet()) {
+            if(!keys.contains(entry.getKey())) {
+                throw APIException.badRequests.invalidParameter("input", entry.getKey());
+            }
+            if( null != entry.getValue().getInput()) {
+                final StringSet group = null == update.get(entry.getKey()) ? new StringSet() : update.get(entry.getKey());
+                group.addAll(entry.getValue().getInput());
+                update.put(entry.getKey(), group);
+            }
+        }
+    }
+    
+    private static void removeInput(final Set<String> keys, final Map<String, InputUpdateList> remove,
+            final StringSetMap update) {
+        for(final Entry<String, InputUpdateList> entry : remove.entrySet()) {
+            final StringSet group = update.get(entry.getKey());
+            
+            if( null != group && null != entry.getValue().getInput()) {
+                group.removeAll(entry.getValue().getInput());
+                update.put(entry.getKey(), group);
+            }
+        }
+    }
+
     /**
      * Given an output update parameter update the output key set for the primitive
      * 
@@ -393,6 +433,58 @@ public final class CustomServicesDBHelper {
         return new StringOutputParameter(name);
     }
     
+    private static StringSet createOutput(List<String> list) {
+        final StringSet output = new StringSet();
+        if(list != null ) {
+            output.addAll(list);
+        }
+        return output;
+    }
+
+    private static StringMap createAttributes(final Set<String> attributeKeys,
+            final Map<String, String> attributes) {
+        final StringMap attributesMap = new StringMap();
+        
+        if(null != attributes ) {
+            if( !attributes.keySet().containsAll(attributeKeys)) {
+                throw APIException.badRequests.invalidParameter("attributes", "missing: " + attributeKeys);
+            }
+            for( final Entry<String, String> attribute :  attributes.entrySet()) {
+                if(attributeKeys.contains(attribute.getKey())) {
+                    attributes.put(attribute.getKey(), attribute.getValue());
+                } else {
+                    throw BadRequestException.badRequests.invalidParameter("attributes", attribute.getKey());
+                }
+            }
+        } else if( !attributeKeys.isEmpty() ) {
+            throw APIException.badRequests.invalidParameter("attributes", "missing: " + attributeKeys);
+        }
+        
+        return attributesMap;
+    }
+
+    private static StringSetMap createInput(final Set<String> keys, final Map<String, InputCreateList> map) {
+        final StringSetMap inputMap = new StringSetMap();
+        if( null != map ) {
+            for( Entry<String, InputCreateList> entry : map.entrySet()) {
+                if( keys.contains(entry.getKey())) {
+                    inputMap.put(entry.getKey(), createInputStringSet(entry.getValue().getInput()));
+                } else {
+                    throw APIException.badRequests.unknownParameter("input", entry.getKey());
+                }  
+            }
+        }
+        return inputMap;
+    }
+
+    private static AbstractChangeTrackingSet<String> createInputStringSet(
+            List<String> from) {
+        final StringSet inputStringSet = new StringSet();
+        if( from != null ) {
+            inputStringSet.addAll(from);
+        }
+        return inputStringSet;
+    }
 
     /**
      * Check if a primitive is in use in a workflow.  Throw a bad request exception if it is being used.

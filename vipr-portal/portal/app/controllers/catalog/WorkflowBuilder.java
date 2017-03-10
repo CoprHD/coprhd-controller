@@ -42,6 +42,7 @@ import util.StringOption;
 
 import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.customservices.CustomServicesPrimitiveCreateParam;
+import com.emc.storageos.model.customservices.CustomServicesPrimitiveCreateParam.InputCreateList;
 import com.emc.storageos.model.customservices.CustomServicesPrimitiveList;
 import com.emc.storageos.model.customservices.CustomServicesPrimitiveResourceRestRep;
 import com.emc.storageos.model.customservices.CustomServicesPrimitiveRestRep;
@@ -53,14 +54,17 @@ import com.emc.storageos.model.customservices.CustomServicesWorkflowRestRep;
 import com.emc.storageos.model.customservices.CustomServicesWorkflowUpdateParam;
 import com.emc.storageos.model.customservices.InputParameterRestRep;
 import com.emc.storageos.model.customservices.InputUpdateParam;
+import com.emc.storageos.model.customservices.InputUpdateParam.InputUpdateList;
 import com.emc.storageos.model.customservices.OutputParameterRestRep;
 import com.emc.storageos.model.customservices.OutputUpdateParam;
 import com.emc.storageos.primitives.CustomServicesPrimitive;
+import com.emc.storageos.primitives.CustomServicesPrimitive.InputType;
 import com.emc.vipr.model.catalog.WFBulkRep;
 import com.emc.vipr.model.catalog.WFDirectoryParam;
 import com.emc.vipr.model.catalog.WFDirectoryRestRep;
 import com.emc.vipr.model.catalog.WFDirectoryUpdateParam;
 import com.emc.vipr.model.catalog.WFDirectoryWorkflowsUpdateParam;
+import com.google.common.collect.ImmutableMap;
 import com.google.gson.annotations.SerializedName;
 
 import controllers.Common;
@@ -485,8 +489,9 @@ public class WorkflowBuilder extends Controller {
                 final List<String> newInputs = getListFromInputOutputString(shellPrimitive.getInputs());
                 final List<String> existingInputs = convertInputGroupsToList(primitiveRestRep.getInputGroups());
                 final InputUpdateParam inputUpdateParam = new InputUpdateParam();
-                inputUpdateParam.setRemove((List<String>) CollectionUtils.subtract(existingInputs, newInputs));
-                inputUpdateParam.setAdd((List<String>) CollectionUtils.subtract(newInputs, existingInputs));
+                
+                inputUpdateParam.setRemove(getInputDiff(existingInputs, newInputs));
+                inputUpdateParam.setAdd(getInputDiff(newInputs, existingInputs));
                 primitiveUpdateParam.setInput(inputUpdateParam);
 
                 // Get and update differences between existing and new outputs
@@ -517,6 +522,15 @@ public class WorkflowBuilder extends Controller {
         }
     }
 
+    private static Map<String, InputUpdateList> getInputDiff(
+            final List<String> left, final List<String> right) {
+        final InputUpdateList update = new InputUpdateList();
+        update.setInput((List<String>) CollectionUtils.subtract(left, right));
+        return ImmutableMap.<String, InputUpdateList>builder()
+                .put(InputType.INPUT_PARAMS.toString(), update)
+                .build();
+    }
+
     private static List<String> getListFromInputOutputString(final String param) {
         return StringUtils.isNotBlank(param) ? Arrays.asList(param.split(",")) : new ArrayList<String>();
     }
@@ -535,7 +549,12 @@ public class WorkflowBuilder extends Controller {
                 primitiveCreateParam.setDescription(shellPrimitive.getDescription());
                 primitiveCreateParam.setResource(primitiveResourceRestRep.getId());
                 if (StringUtils.isNotEmpty(shellPrimitive.getInputs())) {
-                    primitiveCreateParam.setInput(getListFromInputOutputString(shellPrimitive.getInputs()));
+                    final List<String> list = getListFromInputOutputString(shellPrimitive.getInputs());
+                    final InputCreateList input = new InputCreateList();
+                    input.setInput(list);
+                    final ImmutableMap.Builder<String, InputCreateList> builder = ImmutableMap.<String, InputCreateList>builder()
+                            .put(InputType.INPUT_PARAMS.toString(), input);
+                    primitiveCreateParam.setInput(builder.build());
                 }
                 if (StringUtils.isNotEmpty(shellPrimitive.getOutputs())) {
                     primitiveCreateParam.setOutput(getListFromInputOutputString(shellPrimitive.getOutputs()));
@@ -714,8 +733,8 @@ public class WorkflowBuilder extends Controller {
                 final List<String> newInputs = getListFromInputOutputString(localAnsible.getInputs());
                 final List<String> existingInputs = convertInputGroupsToList(primitiveRestRep.getInputGroups());
                 final InputUpdateParam inputUpdateParam = new InputUpdateParam();
-                inputUpdateParam.setRemove((List<String>) CollectionUtils.subtract(existingInputs, newInputs));
-                inputUpdateParam.setAdd((List<String>) CollectionUtils.subtract(newInputs, existingInputs));
+                inputUpdateParam.setRemove(getInputDiff(existingInputs, newInputs));
+                inputUpdateParam.setAdd(getInputDiff(newInputs, existingInputs));
                 primitiveUpdateParam.setInput(inputUpdateParam);
 
                 // Get and update differences between existing and new outputs
@@ -775,7 +794,12 @@ public class WorkflowBuilder extends Controller {
                 primitiveCreateParam.setAttributes(new HashMap<String, String>());
                 primitiveCreateParam.getAttributes().put("playbook", localAnsible.getAnsiblePlaybook());
                 if (StringUtils.isNotEmpty(localAnsible.getInputs())) {
-                    primitiveCreateParam.setInput(getListFromInputOutputString(localAnsible.getInputs()));
+                    final List<String> list = getListFromInputOutputString(localAnsible.getInputs());
+                    final InputCreateList input = new InputCreateList();
+                    input.setInput(list);
+                    final ImmutableMap.Builder<String, InputCreateList> builder = ImmutableMap.<String, InputCreateList>builder()
+                            .put(InputType.INPUT_PARAMS.toString(), input);
+                    primitiveCreateParam.setInput(builder.build());
                 }
                 if (StringUtils.isNotEmpty(localAnsible.getOutputs())) {
                     primitiveCreateParam.setOutput(getListFromInputOutputString(localAnsible.getOutputs()));
@@ -813,8 +837,8 @@ public class WorkflowBuilder extends Controller {
 
     private static List<String> convertInputGroupsToList(final Map<String, CustomServicesPrimitiveRestRep.InputGroup> inputGroups) {
         final List<String> inputNameList = new ArrayList<String>();
-        if (null != inputGroups && !inputGroups.isEmpty() && inputGroups.containsKey(CustomServicesPrimitive.InputType.INPUT_PARAMS)) {
-            final List<InputParameterRestRep> inputParameterRestRepList = inputGroups.get(CustomServicesPrimitive.InputType.INPUT_PARAMS).getInputGroup();
+        if (null != inputGroups && !inputGroups.isEmpty() && inputGroups.containsKey(CustomServicesPrimitive.InputType.INPUT_PARAMS.toString())) {
+            final List<InputParameterRestRep> inputParameterRestRepList = inputGroups.get(CustomServicesPrimitive.InputType.INPUT_PARAMS.toString()).getInputGroup();
             for (InputParameterRestRep inputParameterRestRep : inputParameterRestRepList) {
                 inputNameList.add(inputParameterRestRep.getName());
             }

@@ -74,9 +74,6 @@ public final class DbInfoUtils {
                 errMsgSb.append("poweroff this node and ");
             }
             errMsgSb.append("follow our node recovery procedure to recover this node");
-/*            String errMsg = String.format("This node is offline for more than %s days. It may bring stale data into " +
-                    "database, so the service cannot continue to boot. Please poweroff this node and follow our " +
-                    "node recovery procedure to recover this node", offlineTime/TimeUtils.DAYS);*/
             if (enableAlert) AlertsLogger.getAlertsLogger().error(errMsgSb.toString());
             throw new java.lang.IllegalStateException(errMsgSb.toString());
         }

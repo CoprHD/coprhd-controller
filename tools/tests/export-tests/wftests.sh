@@ -1135,7 +1135,7 @@ snap_db() {
 
     IFS=' ' read -ra cfs_array <<< "$column_families"
     for cf in "${cfs_array[@]}"; do
-       execute="/opt/storageos/bin/dbutils list ${cf} $base_filter > results/${item}/${cf}-${slot}.txt"
+       execute="/opt/storageos/bin/dbutils list -sortByURI ${cf} $base_filter > results/${item}/${cf}-${slot}.txt"
        eval $execute
     done
 }      

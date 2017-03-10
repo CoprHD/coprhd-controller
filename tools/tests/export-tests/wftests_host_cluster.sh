@@ -2236,7 +2236,7 @@ test_vblock_provision_bare_metal_host() {
         set_artificial_failure ${failure}
         #sleep 5
         # will be externalising the hardcoded values to properties file.
-        run vblockcatalog provisionbaremetalhost $TENANT $VBLOCK_CLUSTER_NAME $VBLOCK_BOOT_VOL_SIZE $VBLOCK_HOST_NAME $PROJECT $NH $VPOOL_BASE $VBLOCK_COMPUTE_VIRTUAL_POOL_NAME $VBLOCK_BOOT_VOL_HLU $VBLOCK_CATALOG_PROVISION_BARE_METAL_CLUSTER
+        run vblockcatalog provisionbaremetalhost $TENANT $VBLOCK_BARE_CLUSTER_NAME $VBLOCK_BOOT_VOL_SIZE $VBLOCK_BARE_HOST_NAME $PROJECT $NH $VPOOL_BASE $VBLOCK_COMPUTE_VIRTUAL_POOL_NAME $VBLOCK_BOOT_VOL_HLU $VBLOCK_CATALOG_PROVISION_BARE_METAL_CLUSTER
 
         # Verify injected failures were hit
         verify_failures ${failure}
@@ -2255,13 +2255,10 @@ test_vblock_provision_bare_metal_host() {
     run computesystem discover $VBLOCK_COMPUTE_SYSTEM_NAME
     sleep 15
     # Perform happy path now
-    # Snap DB
-    #snap_db 3 "${column_family[@]}"
     # Turn off failure
     set_artificial_failure none
 
-    run vblockcatalog provisionbaremetalhost $TENANT $VBLOCK_CLUSTER_NAME $VBLOCK_BOOT_VOL_SIZE $VBLOCK_HOST_NAME $PROJECT $NH $VPOOL_BASE $VBLOCK_COMPUTE_VIRTUAL_POOL_NAME $VBLOCK_BOOT_VOL_HLU $VBLOCK_CATALOG_PROVISION_BARE_METAL_CLUSTER
-    # need to verify if cluster, host and boot volume was created.
+    run vblockcatalog provisionbaremetalhost $TENANT $VBLOCK_BARE_CLUSTER_NAME $VBLOCK_BOOT_VOL_SIZE $VVBLOCK_BARE_HOST_NAME $PROJECT $NH $VPOOL_BASE $VBLOCK_COMPUTE_VIRTUAL_POOL_NAME $VBLOCK_BOOT_VOL_HLU $VBLOCK_CATALOG_PROVISION_BARE_METAL_CLUSTER
 }
 
 test_vblock_add_bare_metal_host() {
@@ -2291,7 +2288,7 @@ test_vblock_add_bare_metal_host() {
         set_artificial_failure ${failure}
         sleep 5
         # will be externalising the hardcoded values to properties file.
-        run vblockcatalog addbaremetalhost $TENANT $VBLOCK_CLUSTER_NAME $VBLOCK_BOOT_VOL_SIZE $VBLOCK_HOST_NAME $PROJECT $NH $VPOOL_BASE $VBLOCK_COMPUTE_VIRTUAL_POOL_NAME $VBLOCK_BOOT_VOL_HLU $VBLOCK_CATALOG_ADD_BARE_METAL_HOSTS_TO_CLUSTER
+        run vblockcatalog addbaremetalhost $TENANT $VBLOCK_BARE_CLUSTER_NAME $VBLOCK_BOOT_VOL_SIZE $VBLOCK_BARE_ADD_HOST_NAME $PROJECT $NH $VPOOL_BASE $VBLOCK_COMPUTE_VIRTUAL_POOL_NAME $VBLOCK_BOOT_VOL_HLU $VBLOCK_CATALOG_ADD_BARE_METAL_HOSTS_TO_CLUSTER
 
         # Verify injected failures were hit
         verify_failures ${failure}
@@ -2310,13 +2307,10 @@ test_vblock_add_bare_metal_host() {
     run computesystem discover $VBLOCK_COMPUTE_SYSTEM_NAME
     sleep 15
     # Perform happy path now
-    # Snap DB
-    #snap_db 3 "${column_family[@]}"
     # Turn off failure
     set_artificial_failure none
 
-    run vblockcatalog addbaremetalhost $TENANT $VBLOCK_CLUSTER_NAME $VBLOCK_BOOT_VOL_SIZE $VBLOCK_HOST_NAME $PROJECT $NH $VPOOL_BASE $VBLOCK_COMPUTE_VIRTUAL_POOL_NAME $VBLOCK_BOOT_VOL_HLU $VBLOCK_CATALOG_ADD_BARE_METAL_HOSTS_TO_CLUSTER
-    # need to verify if cluster, host and boot volume was created.
+    run vblockcatalog addbaremetalhost $TENANT $VBLOCK_BARE_CLUSTER_NAME $VBLOCK_BOOT_VOL_SIZE $VBLOCK_BARE_ADD_HOST_NAME $PROJECT $NH $VPOOL_BASE $VBLOCK_COMPUTE_VIRTUAL_POOL_NAME $VBLOCK_BOOT_VOL_HLU $VBLOCK_CATALOG_ADD_BARE_METAL_HOSTS_TO_CLUSTER
 }
 
 test_vblock_add_host_withOS_to_cluster() {
@@ -2344,7 +2338,7 @@ test_vblock_add_host_withOS_to_cluster() {
         set_artificial_failure ${failure}
         sleep 5
         # will be externalising the hardcoded values to properties file.
-        run vblockcatalog addhosttocluster $TENANT $VBLOCK_CLUSTER_NAME 16 $VBLOCK_HOST_NAME $PROJECT $NH $VPOOL_BASE $VBLOCK_COMPUTE_VIRTUAL_POOL_NAME $VBLOCK_BOOT_VOL_HLU $VBLOCK_CATALOG_ADD_HOSTS_TO_CLUSTER $VBLOCK_COMPUTE_IMAGE_NAME "10.247.86.90" "255.255.252.0" "10.247.84.1" 84 "10.254.140.21" "10.254.66.23" "AeDWBDWQfRocZScyeQqQ9iA=" $VBLOCK_VCENTER_NAME "VBLOCK_VCENTER/MANOJ-VRO-DC"
+        run vblockcatalog addhosttocluster $TENANT $VBLOCK_PROVISION_CLUSTER_NAME $VBLOCK_BOOT_VOL_SIZE $VBLOCK_PROVISION_ADD_HOST_NAME $PROJECT $NH $VPOOL_BASE $VBLOCK_COMPUTE_VIRTUAL_POOL_NAME $VBLOCK_BOOT_VOL_HLU $VBLOCK_CATALOG_ADD_HOSTS_TO_CLUSTER $VBLOCK_COMPUTE_IMAGE_NAME $VBLOCK_PROVISION_ADD_HOST_IP $VBLOCK_NETMASK $VBLOCK_GATEWAY $VBLOCK_MGMT_NETWORK $VBLOCK_NTPSERVER $VBLOCK_DNS $VBLOCK_HOST_ENC_PWD $VBLOCK_VCENTER_NAME $VBLOCK_VCENTER_DATACENTER_NAME
 
         # Verify injected failures were hit
         verify_failures ${failure}
@@ -2363,11 +2357,57 @@ test_vblock_add_host_withOS_to_cluster() {
     run computesystem discover $VBLOCK_COMPUTE_SYSTEM_NAME
     sleep 15
     # Perform happy path now
-    # Snap DB
-    #snap_db 3 "${column_family[@]}"
     # Turn off failure
     set_artificial_failure none
 
-    run vblockcatalog addhosttocluster $TENANT $VBLOCK_CLUSTER_NAME 16 $VBLOCK_HOST_NAME $PROJECT $NH $VPOOL_BASE $VBLOCK_COMPUTE_VIRTUAL_POOL_NAME $VBLOCK_BOOT_VOL_HLU $VBLOCK_CATALOG_ADD_HOSTS_TO_CLUSTER $VBLOCK_COMPUTE_IMAGE_NAME "10.247.86.90" "255.255.252.0" "10.247.84.1" 84 "10.254.140.21" "10.254.66.23" "AeDWBDWQfRocZScyeQqQ9iA=" $VBLOCK_VCENTER_NAME "VBLOCK_VCENTER/MANOJ-VRO-DC"
-    # need to verify if cluster, host and boot volume was created.
+    #run vblockcatalog addhosttocluster $TENANT $VBLOCK_PROVISION_CLUSTER_NAME $VBLOCK_BOOT_VOL_SIZE $VBLOCK_PROVISION_ADD_HOST_NAME $PROJECT $NH $VPOOL_BASE $VBLOCK_COMPUTE_VIRTUAL_POOL_NAME $VBLOCK_BOOT_VOL_HLU $VBLOCK_CATALOG_ADD_HOSTS_TO_CLUSTER $VBLOCK_COMPUTE_IMAGE_NAME $VBLOCK_PROVISION_ADD_HOST_IP $VBLOCK_NETMASK $VBLOCK_GATEWAY $VBLOCK_MGMT_NETWORK $VBLOCK_NTPSERVER $VBLOCK_DNS $VBLOCK_HOST_ENC_PWD $VBLOCK_VCENTER_NAME $VBLOCK_VCENTER_DATACENTER_NAME
+}
+
+test_vblock_provision_cluster_with_host() {
+    test_name="test_vblock_provision_bare_metal_host"
+    echot "Test vblock_provision_bare_metal_host Begins"
+    vblock_failure_injections="failure_070_ComputeDeviceControllerImpl.addStepsPreOsInstall_setLanBootTargetStep \
+                               failure_071_ComputeDeviceControllerImpl.addStepsPreOsInstall_prepareOsInstallNetworkStep \
+                               failure_072_ComputeDeviceControllerImpl.addStepsPostOsInstall_setSanBootTargetStep"
+
+    failure_injections="${vblock_failure_injections}"
+
+    for failure in ${failure_injections}
+    do
+        secho "Running test_vblock_provision_bare_metal_host with failure scenario: ${failure}..."
+        TEST_OUTPUT_FILE=test_output_${RANDOM}.log
+        reset_counts
+        column_family="Host Volume ExportGroup ExportMask Cluster"
+        random_number=${RANDOM}
+        mkdir -p results/${random_number}
+        run computesystem discover $VBLOCK_COMPUTE_SYSTEM_NAME
+        # Snap DB
+        snap_db 1 "${column_family[@]}"
+        # Turn on failure at a specific point
+        set_artificial_failure ${failure}
+        #sleep 5
+        # will be externalising the hardcoded values to properties file.
+        run vblockcatalog provisionclusterwithhost $TENANT $VBLOCK_PROVISION_CLUSTER_NAME $VBLOCK_BOOT_VOL_SIZE $VBLOCK_PROVISION_HOST_NAME $PROJECT $NH $VPOOL_BASE $VBLOCK_COMPUTE_VIRTUAL_POOL_NAME $VBLOCK_BOOT_VOL_HLU $VBLOCK_CATALOG_PROVISION_CLUSTER $VBLOCK_COMPUTE_IMAGE_NAME $VBLOCK_PROVISION_HOST_IP $VBLOCK_NETMASK $VBLOCK_GATEWAY $VBLOCK_MGMT_NETWORK $VBLOCK_NTPSERVER $VBLOCK_DNS $VBLOCK_HOST_ENC_PWD $VBLOCK_VCENTER_NAME $VBLOCK_VCENTER_DATACENTER_NAME
+
+        # Verify injected failures were hit
+        verify_failures ${failure}
+
+        # Snap DB
+        snap_db 2 "${column_family[@]}"
+
+        # Validate DB
+        validate_db 1 2 "${column_family[@]}"
+        # Report results
+        report_results ${test_name} ${failure}
+
+        # Add a break in the output
+        echo " "
+    done
+    run computesystem discover $VBLOCK_COMPUTE_SYSTEM_NAME
+    sleep 15
+    # Perform happy path now
+    # Turn off failure
+    set_artificial_failure none
+
+    run vblockcatalog provisionclusterwithhost $TENANT $VBLOCK_PROVISION_CLUSTER_NAME $VBLOCK_BOOT_VOL_SIZE $VBLOCK_PROVISION_HOST_NAME $PROJECT $NH $VPOOL_BASE $VBLOCK_COMPUTE_VIRTUAL_POOL_NAME $VBLOCK_BOOT_VOL_HLU $VBLOCK_CATALOG_PROVISION_CLUSTER $VBLOCK_COMPUTE_IMAGE_NAME $VBLOCK_PROVISION_HOST_IP $VBLOCK_NETMASK $VBLOCK_GATEWAY $VBLOCK_MGMT_NETWORK $VBLOCK_NTPSERVER $VBLOCK_DNS $VBLOCK_HOST_ENC_PWD $VBLOCK_VCENTER_NAME $VBLOCK_VCENTER_DATACENTER_NAME
 }

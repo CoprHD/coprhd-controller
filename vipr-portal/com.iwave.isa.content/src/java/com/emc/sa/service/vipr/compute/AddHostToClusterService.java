@@ -246,7 +246,7 @@ public class AddHostToClusterService extends ViPRService {
 
         Map<Host, URI> hostToBootVolumeIdMap = ComputeUtils.makeBootVolumes(project, virtualArray, virtualPool, size, hosts,
                 getClient());
-        logInfo("compute.cluster.boot.volumes.created", 
+        logInfo("compute.cluster.boot.volumes.created",
                 hostToBootVolumeIdMap != null ? ComputeUtils.nonNull(hostToBootVolumeIdMap.values()).size() : 0);
 
         // Deactivate hosts with no boot volume, return list of hosts remaining.
@@ -254,12 +254,12 @@ public class AddHostToClusterService extends ViPRService {
 
         // Export the boot volume, return a map of hosts and their EG IDs
         Map<Host, URI> hostToEgIdMap = ComputeUtils.exportBootVols(hostToBootVolumeIdMap, project, virtualArray, hlu);
-        logInfo("compute.cluster.exports.created", 
+        logInfo("compute.cluster.exports.created",
                 hostToEgIdMap != null ? ComputeUtils.nonNull(hostToEgIdMap.values()).size(): 0);
-        
+
         // Deactivate any hosts where the export failed, return list of hosts remaining
         hostToBootVolumeIdMap = ComputeUtils.deactivateHostsWithNoExport(hostToBootVolumeIdMap, hostToEgIdMap, cluster);
-        
+
         // Set host boot volume ids, but do not set san boot targets. They will get set post os install.
         hosts = ComputeUtils.setHostBootVolumes(hostToBootVolumeIdMap, false);
 
@@ -268,12 +268,14 @@ public class AddHostToClusterService extends ViPRService {
         hosts = ComputeUtils.deactivateHostsWithNoOS(hosts);
         logInfo("compute.cluster.exports.installed.os", ComputeUtils.nonNull(hosts).size());
 
-        // VBDU TODO: COP-28433: Deactivate Host without OS installed (when rollback is added, this should be addressed)
-        ComputeUtils.addHostsToCluster(hosts, cluster);
-
-        pushToVcenter();
-
-        ComputeUtils.discoverHosts(hosts);
+        if (!ComputeUtils.nonNull(hosts).isEmpty()) {
+            // VBDU DONE: COP-28433: Deactivate Host without OS installed (Rollback is in place and this is addressed)
+            ComputeUtils.addHostsToCluster(hosts, cluster);
+            pushToVcenter();
+            ComputeUtils.discoverHosts(hosts);
+        } else {
+            logWarn("compute.cluster.installed.os.none");
+        }
 
         String orderErrors = ComputeUtils.getOrderErrors(cluster, copyOfHostNames, computeImage, vcenterId);
         if (orderErrors.length() > 0) { // fail order so user can resubmit

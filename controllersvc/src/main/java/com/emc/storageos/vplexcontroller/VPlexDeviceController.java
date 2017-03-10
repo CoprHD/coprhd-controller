@@ -2108,12 +2108,11 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
             Boolean[] doInitiatorRefresh =  new Boolean[] { new Boolean(true) };
             
             /**
-             * COP-28674 : During Vblock Boot volume export, if existing storage views are found then check for existing volumes
-             * If found throw exception.
-             * This condition is valid only for boot volume vblock export.
+             * COP-28674: During Vblock boot volume export, if existing storage views are found then check for existing volumes
+             * If found throw exception. This condition is valid only for boot volume vblock export.
              */
             if (exportGroup.forHost() && ExportMaskUtils.isVblockHost(initiators, _dbClient) && ExportMaskUtils.isBootVolume(_dbClient, blockObjectMap)) {
-                _log.info("VBlock Boot volume Export : Validating the Vplex Cluster {} to find existing storage views", vplexClusterName);
+                _log.info("VBlock boot volume Export: Validating the Vplex Cluster {} to find existing storage views", vplexClusterName);
                 List<Initiator> initiatorList = _dbClient.queryObject(Initiator.class, initiators);
                 
                 List<String> initiatorNames = getInitiatorNames(vplexSystem.getSerialNumber(), vplexClusterName, client,

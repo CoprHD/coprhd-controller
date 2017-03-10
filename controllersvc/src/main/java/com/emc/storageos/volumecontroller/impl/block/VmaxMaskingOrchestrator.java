@@ -809,13 +809,11 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                 initiatorHelper.getPortNameToInitiatorURI(), partialMasks);
         
         /**
-         * COP-28674 : During Vblock Boot volume export, if existing masking views are found then check for existing volumes
-         * If found throw exception.
-         * This condition is valid only for boot volume vblock export.
+         * COP-28674: During Vblock boot volume export, if existing masking views are found then check for existing volumes
+         * If found throw exception. This condition is valid only for boot volume vblock export.
          */
-        
         if (exportGroup.forHost() && ExportMaskUtils.isVblockHost(initiatorURIs, _dbClient) && ExportMaskUtils.isBootVolume(_dbClient, volumeMap)) {
-            _log.info("VBlock Boot volume Export : Validating the storage system {}  to find existing storage views",
+            _log.info("VBlock boot volume Export: Validating the storage system {} to find existing masking views",
                     storage.getNativeGuid());
             if (CollectionUtils.isEmpty(matchingMasks)) {
                 _log.info("No existing masking views found, passed validation..");

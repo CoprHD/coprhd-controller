@@ -14,6 +14,7 @@ import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -152,6 +153,8 @@ import com.emc.storageos.volumecontroller.AsyncTask;
 import com.emc.storageos.volumecontroller.BlockController;
 import com.emc.storageos.volumecontroller.ControllerException;
 
+import com.google.common.base.Function;
+
 /**
  * A service that provides APIs for viewing, updating and removing hosts and their
  * interfaces by authorized users.
@@ -224,7 +227,22 @@ public class HostService extends TaskResourceService {
         Host host = queryObject(Host.class, id, false);
         // check the user permissions
         verifyAuthorizedInTenantOrg(host.getTenant(), getUserFromContext());
-        return map(host);
+        ComputeElement computeElement = null;
+        UCSServiceProfile serviceProfile = null;
+        ComputeSystem computeSystem = null;
+        if (!NullColumnValueGetter.isNullURI(host.getComputeElement())){
+           computeElement = queryObject(ComputeElement.class, host.getComputeElement(),false);
+        }
+        if (!NullColumnValueGetter.isNullURI(host.getServiceProfile())){
+           serviceProfile = queryObject(UCSServiceProfile.class, host.getServiceProfile(), false);
+        }
+        if (serviceProfile!=null){
+           computeSystem = queryObject(ComputeSystem.class, serviceProfile.getComputeSystem(), false);
+        }else if (computeElement !=null){
+           computeSystem = queryObject(ComputeSystem.class, computeElement.getComputeSystem(), false);
+        }
+       
+        return map(host, computeElement, serviceProfile, computeSystem);
     }
 
     /**
@@ -682,43 +700,42 @@ public class HostService extends TaskResourceService {
         ComputeElement computeElement = null;
         Volume bootVolume = null;
         UCSServiceProfile serviceProfile = null;
-        if (!NullColumnValueGetter.isNullURI(host.getServiceProfile())) {
-            serviceProfile = _dbClient.queryObject(UCSServiceProfile.class, host.getServiceProfile());
-            if (serviceProfile != null && !NullColumnValueGetter.isNullURI(serviceProfile.getComputeSystem())) {
-                ComputeSystem ucs = _dbClient.queryObject(ComputeSystem.class, serviceProfile.getComputeSystem());
-                if (ucs != null && ucs.getDiscoveryStatus().equals(DataCollectionJobStatus.ERROR.name())) {
-                    throw APIException.badRequests
-                            .resourceCannotBeDeleted("Host has service profile on a Compute System that failed to discover; ");
-                }
-            }
+        if (!NullColumnValueGetter.isNullURI(host.getServiceProfile())){
+             serviceProfile = _dbClient.queryObject(UCSServiceProfile.class, host.getServiceProfile());
+             if (serviceProfile!=null && !NullColumnValueGetter.isNullURI(serviceProfile.getComputeSystem())){
+                  ComputeSystem ucs = _dbClient.queryObject(ComputeSystem.class, serviceProfile.getComputeSystem());
+                  if ( ucs!=null && ucs.getDiscoveryStatus().equals(DataCollectionJobStatus.ERROR.name())){
+                      throw APIException.badRequests.resourceCannotBeDeleted("Host has service profile on a Compute System that failed to discover; ");
+                  }
+             }               
         }
+        Collection<URI> hostIds = _dbClient.queryByType(Host.class, true);
+        Collection<Host> hosts = _dbClient.queryObjectFields(Host.class,
+                Arrays.asList("label", "uuid", "serviceProfile", "computeElement","registrationStatus", "inactive"), getFullyImplementedCollection(hostIds));
+        for (Host tempHost : hosts){
+             if (!tempHost.getId().equals(host.getId()) && !tempHost.getInactive()){
+                 if (tempHost.getUuid()!=null && tempHost.getUuid().equals(host.getUuid())) {
+                      throw APIException.badRequests.resourceCannotBeDeleted("Host "+ host.getLabel()+ " shares same uuid "+ host.getUuid() +
+                              " with another active host " + tempHost.getLabel() + " with URI: "+ tempHost.getId().toString()+ " and ");
+                 }
+                 if (!NullColumnValueGetter.isNullURI(host.getComputeElement()) && host.getComputeElement()== tempHost.getComputeElement()){
+                      throw APIException.badRequests.resourceCannotBeDeleted("Host "+ host.getLabel() + " shares same computeElement "+ host.getComputeElement() +
+                              " with another active host " + tempHost.getLabel() + " with URI: "+ tempHost.getId().toString()+ " and ");
+                 }
+                 if (!NullColumnValueGetter.isNullURI(host.getServiceProfile()) && host.getServiceProfile()== tempHost.getServiceProfile()){
+                      throw APIException.badRequests.resourceCannotBeDeleted("Host "+ host.getLabel()+ " shares same serviceProfile "+ host.getServiceProfile() +
+                              " with another active host " + tempHost.getLabel() + " with URI: "+ tempHost.getId().toString()+ " and ");
+                 }
 
-        List<Initiator> initiators = CustomQueryUtility.queryActiveResourcesByRelation(_dbClient, host.getId(), Initiator.class, "host");
-
+             }             
+        } 
+        if (!NullColumnValueGetter.isNullURI(host.getComputeElement()) && NullColumnValueGetter.isNullURI(host.getServiceProfile())){
+                throw APIException.badRequests.resourceCannotBeDeleted("Host "+ host.getLabel()+ " has a computeElement, but no serviceProfile."
+                                          +" Please re-discover the Vblock Compute System and retry");
+        }
         // VBDU [DONE]: COP-28452, Running host deactivate even if initiators == null or list empty seems risky
         // If initiators are empty, we will not perform any export updates
-        if (StringUtils.equalsIgnoreCase(host.getType(), HostType.No_OS.toString()) && (initiators == null || initiators.isEmpty())) {
-            if (!NullColumnValueGetter.isNullURI(host.getComputeElement())) {
-                computeElement = _dbClient.queryObject(ComputeElement.class, host.getComputeElement());
-            }
-            if (!NullColumnValueGetter.isNullURI(host.getBootVolumeId())){
-                bootVolume =  _dbClient.queryObject(Volume.class, host.getBootVolumeId());
-            }
-            if (computeElement != null) {
-                _log.error("No OS host: " + host.getLabel() +" with no initiators, but with compute element association found. Cannot deactivate.");
-                throw APIException.badRequests.resourceCannotBeDeleted("No OS host with no initiators, but with compute element association found. Please contact DELL EMC support to resolve inconsistency detected. Host ");
-            } else if (bootVolume != null ) {
-                _log.error("No OS host: " + host.getLabel() +" with no initiators, but with boot volume association found. Cannot deactivate.");
-                throw APIException.badRequests.resourceCannotBeDeleted("No OS host with no initiators, but with boot volume association found. Please contact DELL EMC support to resolve inconsistency detected. Host ");
-            }else if ( serviceProfile != null) {
-                 _log.error("No OS host: " + host.getLabel() +" with no initiators, but with service profile association found. Cannot deactivate.");
-                throw APIException.badRequests.resourceCannotBeDeleted("No OS host with no initiators, but with service profile association found. Please contact DELL EMC support to resolve inconsistency detected. Host ");
 
-            } else {
-                _log.info("No OS host: " + host.getLabel() +" with no initiators and without valid computeElement, service profile or boot volume associations found. Will proceed with deactivation.");
-            }
-        }
-        
         String taskId = UUID.randomUUID().toString();
         Operation op = _dbClient.createTaskOpStatus(Host.class, host.getId(), taskId,
                 ResourceOperationTypeEnum.DELETE_HOST);
@@ -749,6 +766,17 @@ public class HostService extends TaskResourceService {
         auditOp(OperationTypeEnum.DELETE_HOST, true, op.getStatus(),
                 host.auditParameters());
         return toTask(host, taskId, op);
+    }
+   
+    private static <T> Collection<T> getFullyImplementedCollection(Collection<T> collectionIn) {
+        // Convert objects (like URIQueryResultList) that only implement iterator to
+        // fully implemented Collection
+        Collection<T> collectionOut = new ArrayList<>();
+        Iterator<T> iter = collectionIn.iterator();
+        while (iter.hasNext()) {
+            collectionOut.add(iter.next());
+        }
+        return collectionOut;
     }
 
     /**
@@ -1198,8 +1226,9 @@ public class HostService extends TaskResourceService {
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Override
     public HostBulkRep getBulkResources(BulkIdParam param) {
-        return (HostBulkRep) super.getBulkResources(param);
+       return (HostBulkRep) super.getBulkResources(param);
     }
+        
 
     @Override
     protected DataObject queryResource(URI id) {
@@ -1227,14 +1256,39 @@ public class HostService extends TaskResourceService {
     public HostBulkRep queryBulkResourceReps(List<URI> ids) {
 
         Iterator<Host> _dbIterator = _dbClient.queryIterativeObjects(getResourceClass(), ids);
-        return new HostBulkRep(BulkList.wrapping(_dbIterator, MapHost.getInstance()));
+        return new HostBulkRep(BulkList.wrapping(_dbIterator, new MapHostWithBladeAndProfile()));
     }
 
     @Override
     public HostBulkRep queryFilteredBulkResourceReps(List<URI> ids) {
         Iterator<Host> _dbIterator = _dbClient.queryIterativeObjects(getResourceClass(), ids);
         BulkList.ResourceFilter filter = new BulkList.HostFilter(getUserFromContext(), _permissionsHelper);
-        return new HostBulkRep(BulkList.wrapping(_dbIterator, MapHost.getInstance(), filter));
+        return new HostBulkRep(BulkList.wrapping(_dbIterator, new MapHostWithBladeAndProfile(), filter));
+    }
+    
+    private class MapHostWithBladeAndProfile implements Function<Host, HostRestRep> {
+        @Override
+        public HostRestRep apply(Host host) {
+            ComputeElement computeElement = null;
+            UCSServiceProfile serviceProfile = null;
+            ComputeSystem computeSystem = null;
+            if (host!=null){
+              if (!NullColumnValueGetter.isNullURI(host.getComputeElement())){
+                  computeElement = queryObject(ComputeElement.class, host.getComputeElement(),false);
+              }
+              if (!NullColumnValueGetter.isNullURI(host.getServiceProfile())){
+                  serviceProfile = queryObject(UCSServiceProfile.class, host.getServiceProfile(), false);
+              }
+              if (serviceProfile!=null){
+                  computeSystem = queryObject(ComputeSystem.class, serviceProfile.getComputeSystem(), false);
+              }else if (computeElement !=null){
+                  computeSystem = queryObject(ComputeSystem.class, computeElement.getComputeSystem(), false);
+              }
+            }
+            HostRestRep rep = map(host,computeElement, serviceProfile, computeSystem);
+            return rep;
+        }
+
     }
 
     @Override

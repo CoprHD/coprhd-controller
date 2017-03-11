@@ -124,7 +124,7 @@ public class ExportGroup extends DataObject implements ProjectResource {
     }
 
     public void removeVolumes(List<URI> volumes) {
-        if (_volumes != null) {
+        if (_volumes != null && volumes != null) {
             for (URI uri : volumes) {
                 _volumes.remove(uri.toString());
             }

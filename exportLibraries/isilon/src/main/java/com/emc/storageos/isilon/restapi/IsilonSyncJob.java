@@ -19,6 +19,7 @@ public class IsilonSyncJob {
     private IsilonSyncPolicy policy;
     private String id; // same as policy name
     private Action action;
+    private String state;
 
     public String getId() {
         return id;
@@ -47,6 +48,14 @@ public class IsilonSyncJob {
     @Override
     public String toString() {
         return "IsilonSyncJob [policy_name=" + policy_name + ", policy=" + policy + ", id=" + id + ", Action=" + action + "]";
+    }
+
+    public String getState() {
+        return state;
+    }
+
+    public void setState(String state) {
+        this.state = state;
     }
 
 }

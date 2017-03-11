@@ -853,6 +853,10 @@ public class FileService extends TaskResourceService {
 
         String rootUserMapping = param.getRootUserMapping();
 
+        if (rootUserMapping != null) {
+            rootUserMapping = rootUserMapping.toLowerCase();
+        }
+
         if (!"nobody".equals(rootUserMapping)) {
             StorageOSUser user = getUserFromContext();
             if (!user.getName().equals(rootUserMapping)) {
@@ -3533,9 +3537,8 @@ public class FileService extends TaskResourceService {
         ArgValidator.checkUri(filePolicyUri);
         FilePolicy fp = _permissionsHelper.getObjectById(filePolicyUri, FilePolicy.class);
         ArgValidator.checkEntityNotNull(fp, filePolicyUri, isIdEmbeddedInURL(filePolicyUri));
-
         // verify the schedule policy is associated with file system or not.
-        if (!fs.getFilePolicies().contains(filePolicyUri.toString())) {
+        if (!fs.getFilePolicies().isEmpty() && !fs.getFilePolicies().contains(filePolicyUri.toString())) {
             throw APIException.badRequests.cannotFindAssociatedPolicy(filePolicyUri);
         }
 

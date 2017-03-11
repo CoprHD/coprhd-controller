@@ -256,16 +256,29 @@ public class CreateComputeClusterService extends ViPRService {
 
         logInfo("compute.cluster.hosts.created", ComputeUtils.nonNull(hosts).size());
 
-        List<URI> bootVolumeIds = ComputeUtils.makeBootVolumes(project, virtualArray, virtualPool, size, hosts,
+        Map<Host, URI> hostToBootVolumeIdMap = ComputeUtils.makeBootVolumes(project, virtualArray, virtualPool, size, hosts,
                 getClient());
-        logInfo("compute.cluster.boot.volumes.created", ComputeUtils.nonNull(bootVolumeIds).size());
-        hosts = ComputeUtils.deactivateHostsWithNoBootVolume(hosts, bootVolumeIds, cluster);
+        logInfo("compute.cluster.boot.volumes.created",
+                hostToBootVolumeIdMap != null ? ComputeUtils.nonNull(hostToBootVolumeIdMap.values()).size() : 0);
 
-        List<URI> exportIds = ComputeUtils.exportBootVols(bootVolumeIds, hosts, project, virtualArray, hlu);
-        logInfo("compute.cluster.exports.created", ComputeUtils.nonNull(exportIds).size());
-        hosts = ComputeUtils.deactivateHostsWithNoExport(hosts, exportIds, bootVolumeIds, cluster);
+        // Deactivate hosts with no boot volume, return list of hosts remaining.
+        hostToBootVolumeIdMap = ComputeUtils.deactivateHostsWithNoBootVolume(hostToBootVolumeIdMap, cluster);
 
-        hosts = ComputeUtils.setHostBootVolumes(hosts, bootVolumeIds, false);
+        // Export the boot volume, return a map of hosts and their EG IDs
+        Map<Host, URI> hostToEgIdMap = ComputeUtils.exportBootVols(hostToBootVolumeIdMap, project, virtualArray, hlu);
+        logInfo("compute.cluster.exports.created",
+                hostToEgIdMap != null ? ComputeUtils.nonNull(hostToEgIdMap.values()).size(): 0);
+
+        // Deactivate any hosts where the export failed, return list of hosts remaining
+        hostToBootVolumeIdMap = ComputeUtils.deactivateHostsWithNoExport(hostToBootVolumeIdMap, hostToEgIdMap, cluster);
+
+        // Set host boot volume ids, but do not set san boot targets. They will get set post os install.
+        hosts = ComputeUtils.setHostBootVolumes(hostToBootVolumeIdMap, false);
+
+        logInfo("compute.cluster.exports.installing.os");
+        installOSForHosts(hostToIPs, ComputeUtils.getHostNameBootVolume(hosts));
+        hosts = ComputeUtils.deactivateHostsWithNoOS(hosts);
+        logInfo("compute.cluster.exports.installed.os", ComputeUtils.nonNull(hosts).size());
 
         // VBDU [DONE]: COP-28400, Potential DU if external host is added to vCenter cluster not under ViPR mgmt.
         // ClusterService has a precheck to verify the matching environments before deactivating
@@ -273,14 +286,13 @@ public class CreateComputeClusterService extends ViPRService {
             logInfo("compute.cluster.removing.empty.cluster");
             ComputeUtils.deactivateCluster(cluster);
         } else {
-            logInfo("compute.cluster.exports.installing.os");
-            List<HostRestRep> hostsWithOs = installOSForHosts(hostToIPs, ComputeUtils.getHostNameBootVolume(hosts));
-            logInfo("compute.cluster.exports.installed.os", ComputeUtils.nonNull(hostsWithOs).size());
-
-            ComputeUtils.addHostsToCluster(hosts, cluster);
-            pushToVcenter();
-
-            ComputeUtils.discoverHosts(hostsWithOs);
+            if (!ComputeUtils.nonNull(hosts).isEmpty()) {
+                ComputeUtils.addHostsToCluster(hosts, cluster);
+                pushToVcenter();
+                ComputeUtils.discoverHosts(hosts);
+            } else {
+                logWarn("compute.cluster.installed.os.none");
+            }
         }
 
         String orderErrors = ComputeUtils.getOrderErrors(cluster, copyOfHostNames, computeImage, vcenterId);
@@ -304,7 +316,7 @@ public class CreateComputeClusterService extends ViPRService {
         this.rootPassword = rootPassword;
     }
 
-    private List<HostRestRep> installOSForHosts(Map<String, String> hostToIps, Map<String, URI> hostNameToBootVolumeMap) {
+    private void installOSForHosts(Map<String, String> hostToIps, Map<String, URI> hostNameToBootVolumeMap) {
         List<HostRestRep> hosts = ComputeUtils.getHostsInCluster(cluster.getId(), cluster.getLabel());
 
         List<OsInstallParam> osInstallParams = Lists.newArrayList();
@@ -332,13 +344,12 @@ public class CreateComputeClusterService extends ViPRService {
                 osInstallParams.add(null);
             }
         }
-        List<HostRestRep> installedHosts = Lists.newArrayList();
+
         try {
-            installedHosts = ComputeUtils.installOsOnHosts(hosts, osInstallParams);
+            ComputeUtils.installOsOnHosts(hosts, osInstallParams);
         } catch (Exception e) {
             logError(e.getMessage());
         }
-        return installedHosts;
     }
 
     private void pushToVcenter() {

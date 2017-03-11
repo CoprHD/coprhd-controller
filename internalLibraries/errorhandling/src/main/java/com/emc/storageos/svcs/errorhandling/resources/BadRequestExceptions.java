@@ -1269,6 +1269,9 @@ public interface BadRequestExceptions {
     @DeclareServiceCode(ServiceCode.API_CANNOT_DELETE)
     public BadRequestException resourceCannotBeDeleted(final String resource);
 
+    @DeclareServiceCode(ServiceCode.API_CANNOT_DELETE)
+    public BadRequestException resourceCannotBeDeletedVblock(final String resource, final String reason);
+
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException resourcedoesNotBelongToClusterTenantOrg(String resource);
 

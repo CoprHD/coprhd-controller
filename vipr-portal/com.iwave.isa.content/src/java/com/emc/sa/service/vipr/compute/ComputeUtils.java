@@ -49,6 +49,7 @@ import com.emc.sa.service.vipr.tasks.GetHost;
 import com.emc.sa.service.vmware.VMwareSupport;
 import com.emc.sa.service.vmware.tasks.GetVcenter;
 import com.emc.sa.service.vmware.tasks.GetVcenterDataCenter;
+import com.emc.storageos.computesystemcontroller.impl.adapter.EsxHostDiscoveryAdapter;
 import com.emc.storageos.db.client.model.Cluster;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Vcenter;
@@ -71,6 +72,8 @@ import com.emc.vipr.client.core.filters.NameIgnoreCaseFilter;
 import com.emc.vipr.client.exceptions.TimeoutException;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.iwave.ext.vmware.VCenterAPI;
+import com.iwave.ext.vmware.VMwareUtils;
 import com.vmware.vim25.mo.HostSystem;
 
 // VBDU TODO COP-28437: In general, this module needs javadoc.  Many methods are using List objects and returning List objects that correspond to the incoming list that
@@ -1029,7 +1032,133 @@ public class ComputeUtils {
         return execute(new GetVcenterDataCenter(datacenterId));
     }
 
-    /**
+
+	/**
+	 * Validate that the hosts are in their respective cluster.  Typically used before
+	 * performing destructive operations, such as decommissioning a host or cluster.
+	 * 
+	 * @param hostIds host IDs
+	 * @return false if any host still exists in the vCenter, but is NOT in the cluster assigned to the host in our DB.
+	 */
+	public static boolean verifyHostInVcenterCluster(Cluster cluster, List<URI> hostIds) {
+        // If the cluster isn't returned properly, not found in DB, it's already disassociated with the 
+		// vCenter, and validation is OK.
+        if (cluster == null || cluster.getInactive()) {
+            ExecutionUtils.currentContext().logWarn("The cluster is not active in ViPR DB, therefore no validation can occur against a vCenter.");
+            return true;
+        }
+
+        // If this cluster is not part of a virtual center/datacenter, then we cannot perform validation.
+        // So log it and return.
+        if (NullColumnValueGetter.isNullURI(cluster.getVcenterDataCenter())) {
+            ExecutionUtils.currentContext().logInfo("computeutils.decommission.validation.skipped.noVcenterDataCenter", cluster.forDisplay());
+            return true;
+        }
+
+        VcenterDataCenter dataCenter = execute(new GetVcenterDataCenter(cluster.getVcenterDataCenter()));
+
+        // If the datacenter isn't returned properly, not found in DB, but the cluster has a reference to
+        // it, there's an issue with the sync of the DB object. Do not allow the validation to pass
+        // until that's fixed.
+        if (dataCenter == null || dataCenter.getInactive() || NullColumnValueGetter.isNullURI(dataCenter.getVcenter())) {
+            ExecutionUtils.currentContext().logError("computeutils.decommission.failure.datacenter", cluster.forDisplay());
+            return false;
+        }
+
+        Vcenter vcenter = execute(new GetVcenter(dataCenter.getVcenter()));
+
+        // If the vcenter isn't returned properly, not found in DB, but the cluster has a reference to
+        // it, there's an issue with the sync of the DB object. Do not allow the validation to pass
+        // until that's fixed.
+        if (vcenter == null || vcenter.getInactive()) {
+            ExecutionUtils.currentContext().logError("computeutils.decommission.failure.vcenter", cluster.forDisplay());
+            return false;
+        }
+
+        VMwareSupport vmware = null;
+        try {
+            vmware = new VMwareSupport();
+            vmware.connect(vcenter.getId());
+
+            for (URI hostId : hostIds) {
+                Host host = BlockStorageUtils.getHost(hostId);
+
+                // Do not validate a host no longer in our database
+                if (host == null || host.getInactive()) {
+                    ExecutionUtils.currentContext().logError("computeutils.decommission.failure.host", "N/A",
+                            "host not found or inactive");
+                    return false;
+                }
+
+                // If there's no vcenter associated with the host, then this host is in the ViPR cluster, but is not
+                // in the vCenter cluster, and therefore we can not perform a deep validation.
+                if (NullColumnValueGetter.isNullURI(host.getVcenterDataCenter())) {
+                    ExecutionUtils.currentContext().logInfo("computeutils.decommission.validation.skipped.vcenternotinhost",
+                            host.getHostName());
+                    continue;
+                }
+
+                // If host has a vcenter associated and OS type is NO_OS then skip validation of checking on vcenter, because
+                // NO_OS host types cannot be pushed to vcenter, the host has got its vcenterdatacenter association, because
+                // any update to the host using the hostService automatically adds this association.
+                if (!NullColumnValueGetter.isNullURI(host.getVcenterDataCenter()) && host.getType() != null
+                        && host.getType().equalsIgnoreCase((Host.HostType.No_OS).name())) {
+                    ExecutionUtils.currentContext().logInfo(
+                            "computeutils.decommission.validation.skipped.noOShost", host.getHostName());
+                    continue;
+                }
+
+                HostSystem hostSystem = null;
+                try {
+                	// Keeping in mind if people are sneaky and change hostnames and labels, we'll see it as a validation
+                	// success.  Is there a better way for us to track these things, like maybe the boot volume?
+                    hostSystem = vmware.getHostSystem(dataCenter.getLabel(), host.getHostName(), false);
+
+                    // Make sure the host system is still part of the cluster in vcenter. If it isn't, hostSystem will be null and
+                    // we'll need to hunt it down elsewhere.
+                    if (hostSystem == null) {
+                    	// Now look for the host system in other datacenters and clusters.  If you find it, return false.
+                    	// If you do not find it, return true because it couldn't be found.
+                    	VCenterAPI api = EsxHostDiscoveryAdapter.createVCenterAPI(host);
+                    	List<HostSystem> hostSystems = api.listAllHostSystems();
+                    	if (hostSystems == null || hostSystems.isEmpty()) {
+                    		// No host systems were found.  We'll assume this is a lie and report a validation failure.
+                    		// But the error can be clear that we can not decommission if we're getting empty responses
+                    		// from the vSphere API.
+                    		ExecutionUtils.currentContext().logError("computeutils.decommission.failure.host.nohostsatall");
+                    		return false;
+                    	}
+                    	
+                    	for (HostSystem foundHostSystem : hostSystems) {
+                    		// Is this the proper way to identify a match?  Doesn't seem like it would be.
+                    		// Is there some UUID or something else I can go off of at the HostSystem level?
+                    		if (foundHostSystem.getName().equals(host.getHostName())) {
+                    			// We found a match someplace else in the vcenter.  Post an error and return false.
+                    			ExecutionUtils.currentContext().logError("computeutils.decommission.failure.host.moved");
+                    			return false;
+                    		}
+                    	}
+                    }
+                } catch (ExecutionException e) {
+                    if (e.getCause() instanceof IllegalStateException) {
+                        ExecutionUtils.currentContext().logInfo("computeutils.decommission.validation.skipped.hostnotinvcenter",
+                                host.getHostName());
+                        continue;
+                    }
+                    // If it's anything other than the IllegalStateException, re-throw the base exception
+                    throw e;
+                }
+            }
+        } finally {
+            if (vmware != null) {
+                vmware.disconnect();
+            }
+        }
+
+        return true;
+	}
+
+	/**
      * Validate that the boot volume for this host is still on the server.
      * This prevents us from deleting a re-purposed volume that was originally
      * a boot volume.

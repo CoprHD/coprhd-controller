@@ -39,6 +39,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import com.emc.sa.api.mapper.CustomServicesWorkflowFilter;
 import com.emc.sa.api.mapper.CustomServicesWorkflowMapper;
 import com.emc.sa.catalog.CustomServicesWorkflowManager;
+import com.emc.sa.workflow.ValidationHelper;
 import com.emc.sa.workflow.WorkflowHelper;
 import com.emc.storageos.api.service.impl.resource.ArgValidator;
 import com.emc.storageos.api.service.impl.response.BulkList;
@@ -48,8 +49,10 @@ import com.emc.storageos.db.client.model.uimodels.CustomServicesWorkflow;
 import com.emc.storageos.db.client.model.uimodels.CustomServicesWorkflow.CustomServicesWorkflowStatus;
 import com.emc.storageos.model.BulkIdParam;
 import com.emc.storageos.model.ResourceTypeEnum;
+import com.emc.storageos.model.customservices.CustomServicesValidationResponse;
 import com.emc.storageos.model.customservices.CustomServicesWorkflowBulkRep;
 import com.emc.storageos.model.customservices.CustomServicesWorkflowCreateParam;
+import com.emc.storageos.model.customservices.CustomServicesWorkflowDocument;
 import com.emc.storageos.model.customservices.CustomServicesWorkflowList;
 import com.emc.storageos.model.customservices.CustomServicesWorkflowRestRep;
 import com.emc.storageos.model.customservices.CustomServicesWorkflowUpdateParam;
@@ -67,7 +70,7 @@ public class CustomServicesWorkflowService extends CatalogTaggedResourceService 
 
     @Autowired
     private CustomServicesWorkflowManager customServicesWorkflowManager;
-    
+
     @GET
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     public CustomServicesWorkflowList getWorkflows(@QueryParam("status") String status) {
@@ -192,12 +195,20 @@ public class CustomServicesWorkflowService extends CatalogTaggedResourceService 
     @POST
     @Path("/{id}/validate")
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    public CustomServicesWorkflowRestRep validateWorkflow(@PathParam("id") final URI id) {
-        //TODO: Placeholder for validating workflow
-        // For now just setting status to VALID
-        CustomServicesWorkflow updated = WorkflowHelper.updateState(getCustomServicesWorkflow(id), CustomServicesWorkflowStatus.VALID.toString());
-        customServicesWorkflowManager.save(updated);
-        return map(updated);
+    public CustomServicesValidationResponse validateWorkflow(@PathParam("id") final URI id) {
+        try {
+            CustomServicesWorkflowDocument wfDocument = WorkflowHelper.toWorkflowDocument(getCustomServicesWorkflow(id));
+            ValidationHelper customServicesValidationHelper = new ValidationHelper(wfDocument);
+            CustomServicesValidationResponse validationResponse = customServicesValidationHelper.validate();
+            // update the status of workflow VALID / INVALID in the DB
+            CustomServicesWorkflow wfstatusUpdated = WorkflowHelper.updateState(getCustomServicesWorkflow(id),
+                    validationResponse.getStatus());
+            customServicesWorkflowManager.save(wfstatusUpdated);
+            return validationResponse;
+
+        } catch (final IOException e) {
+            throw new RuntimeException("Failed to deserialize workflow document " + id, e);
+        }
     }
 
     @POST

@@ -33,13 +33,6 @@ import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.owasp.esapi.ESAPI;
 
-import play.Logger;
-import play.data.validation.Required;
-import play.data.validation.Valid;
-import play.mvc.Controller;
-import play.mvc.With;
-import util.StringOption;
-
 import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.customservices.CustomServicesPrimitiveCreateParam;
 import com.emc.storageos.model.customservices.CustomServicesPrimitiveCreateParam.InputCreateList;
@@ -47,6 +40,7 @@ import com.emc.storageos.model.customservices.CustomServicesPrimitiveList;
 import com.emc.storageos.model.customservices.CustomServicesPrimitiveResourceRestRep;
 import com.emc.storageos.model.customservices.CustomServicesPrimitiveRestRep;
 import com.emc.storageos.model.customservices.CustomServicesPrimitiveUpdateParam;
+import com.emc.storageos.model.customservices.CustomServicesValidationResponse;
 import com.emc.storageos.model.customservices.CustomServicesWorkflowCreateParam;
 import com.emc.storageos.model.customservices.CustomServicesWorkflowDocument;
 import com.emc.storageos.model.customservices.CustomServicesWorkflowList;
@@ -68,6 +62,12 @@ import com.google.common.collect.ImmutableMap;
 import com.google.gson.annotations.SerializedName;
 
 import controllers.Common;
+import play.Logger;
+import play.data.validation.Required;
+import play.data.validation.Valid;
+import play.mvc.Controller;
+import play.mvc.With;
+import util.StringOption;
 
 /**
  * @author Nick Aquino
@@ -296,9 +296,9 @@ public class WorkflowBuilder extends Controller {
     }
 
     public static void validateWorkflow(final URI workflowId) {
-        CustomServicesWorkflowRestRep customServicesWorkflowRestRep = getCatalogClient()
+        CustomServicesValidationResponse customServicesWorkflowValidationResponse = getCatalogClient()
                 .customServicesPrimitives().validateWorkflow(workflowId);
-        renderJSON(customServicesWorkflowRestRep);
+        renderJSON(customServicesWorkflowValidationResponse);
     }
 
     public static void publishWorkflow(final URI workflowId) {

@@ -64,6 +64,8 @@ public class VirtualPoolCapabilityValuesWrapper implements Serializable {
     public static final String FILE_TARGET_COPY_NAME = "file_target_copy_name";
     public static final String CHANGE_VPOOL_VOLUME = "changeVpoolVolume";
     public static final String SOURCE_VIRTUAL_NAS_SERVER = "source_virtual_nas_server";
+    public static final String TARGET_NAS_SERVER = "target_nas_server";
+    public static final String TARGET_STORAGE_SYSTEM = "target_storage_system";
 
     // meta volume capabilities
     public static final String IS_META_VOLUME = "isMetaVolume";
@@ -80,6 +82,7 @@ public class VirtualPoolCapabilityValuesWrapper implements Serializable {
     public static final String SNAPSHOT_SESSION_COPY_MODE = "snapshotSessionCopyMode";
 
     public static final String VPOOL_PROJECT_POLICY_ASSIGN = "vpoolProjectPolicyAssign";
+    public static final String GET_ALL_SOURCE_RECOMMENDATIONS = "getallsourcerecommendations";
 
     private final Map<String, Object> _vpoolCapabilities = new HashMap<String, Object>();
 
@@ -439,6 +442,16 @@ public class VirtualPoolCapabilityValuesWrapper implements Serializable {
         return value != null ? (URI) value : null;
     }
 
+    public URI getTargetNasServer() {
+        Object value = _vpoolCapabilities.get(TARGET_NAS_SERVER);
+        return value != null ? (URI) value : null;
+    }
+
+    public URI getTargetStorageSystem() {
+        Object value = _vpoolCapabilities.get(TARGET_STORAGE_SYSTEM);
+        return value != null ? (URI) value : null;
+    }
+
     public StorageSystem getSourceStorageDevice() {
         Object value = _vpoolCapabilities.get(SOURCE_STORAGE_SYSTEM);
         return value != null ? (StorageSystem) value : null;
@@ -492,6 +505,11 @@ public class VirtualPoolCapabilityValuesWrapper implements Serializable {
 
     public boolean isVpoolProjectPolicyAssign() {
         Object value = _vpoolCapabilities.get(VPOOL_PROJECT_POLICY_ASSIGN);
+        return value != null ? (Boolean) value : false;
+    }
+
+    public boolean getAllSourceRecommnedations() {
+        Object value = _vpoolCapabilities.get(GET_ALL_SOURCE_RECOMMENDATIONS);
         return value != null ? (Boolean) value : false;
     }
 }

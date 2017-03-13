@@ -853,6 +853,10 @@ public class FileService extends TaskResourceService {
 
         String rootUserMapping = param.getRootUserMapping();
 
+        if (rootUserMapping != null) {
+            rootUserMapping = rootUserMapping.toLowerCase();
+        }
+
         if (!"nobody".equals(rootUserMapping)) {
             StorageOSUser user = getUserFromContext();
             if (!user.getName().equals(rootUserMapping)) {
@@ -1940,11 +1944,11 @@ public class FileService extends TaskResourceService {
         quotaDirectory.setProject(new NamedURI(fs.getProject().getURI(), origQtreeName));
         quotaDirectory.setTenant(new NamedURI(fs.getTenant().getURI(), origQtreeName));
         quotaDirectory.setSoftLimit(
-                param.getSoftLimit()>0 ? param.getSoftLimit() : fs.getSoftLimit().intValue()>0? fs.getSoftLimit().intValue() : 0);
+                param.getSoftLimit() > 0 ? param.getSoftLimit() : fs.getSoftLimit().intValue() > 0 ? fs.getSoftLimit().intValue() : 0);
         quotaDirectory.setSoftGrace(
-                param.getSoftGrace()>0 ? param.getSoftGrace() : fs.getSoftGracePeriod()>0 ? fs.getSoftGracePeriod() : 0);
-        quotaDirectory.setNotificationLimit(param.getNotificationLimit()>0 ? param.getNotificationLimit()
-                : fs.getNotificationLimit().intValue()>0 ? fs.getNotificationLimit().intValue() : 0);
+                param.getSoftGrace() > 0 ? param.getSoftGrace() : fs.getSoftGracePeriod() > 0 ? fs.getSoftGracePeriod() : 0);
+        quotaDirectory.setNotificationLimit(param.getNotificationLimit() > 0 ? param.getNotificationLimit()
+                : fs.getNotificationLimit().intValue() > 0 ? fs.getNotificationLimit().intValue() : 0);
 
         String convertedName = origQtreeName.replaceAll("[^\\dA-Za-z_]", "");
         _log.info("FileService::QuotaDirectory Original name {} and converted name {}", origQtreeName, convertedName);
@@ -3522,11 +3526,11 @@ public class FileService extends TaskResourceService {
         FilePolicy fp = _permissionsHelper.getObjectById(filePolicyUri, FilePolicy.class);
         ArgValidator.checkEntityNotNull(fp, filePolicyUri, isIdEmbeddedInURL(filePolicyUri));
         // verify the file system tenant is same as policy tenant
-        if(!(fp.getTenantOrg().contains(fs.getTenant().getURI().toString()))){
+        if (!fp.getTenantOrg().isEmpty() && !(fp.getTenantOrg().contains(fs.getTenant().getURI().toString()))) {
             throw APIException.badRequests.associatedPolicyTenantMismatch(filePolicyUri, id);
         }
         // verify the schedule policy is associated with file system or not.
-        if (!fs.getFilePolicies().contains(filePolicyUri.toString())) {
+        if (!fs.getFilePolicies().isEmpty() && !fs.getFilePolicies().contains(filePolicyUri.toString())) {
             throw APIException.badRequests.cannotFindAssociatedPolicy(filePolicyUri);
         }
 

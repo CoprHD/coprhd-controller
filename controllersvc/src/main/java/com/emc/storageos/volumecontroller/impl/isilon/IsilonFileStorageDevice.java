@@ -1442,7 +1442,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         // set quota - save the quota id to extensions
         String qid = isi.createQuota(qDirPath, fsSize, bThresholdsIncludeOverhead,
                 bIncludeSnapshots, qDirSize, notificationLimitSize != null ? notificationLimitSize : 0L,
-                        softLimitSize != null ? softLimitSize : 0L, softGracePeriod != null ? softGracePeriod : 0L);
+                softLimitSize != null ? softLimitSize : 0L, softGracePeriod != null ? softGracePeriod : 0L);
         return qid;
     }
 
@@ -3459,7 +3459,6 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
 
     }
 
-
     private Integer getIsilonSnapshotExpireValue(FilePolicy policy) {
         Long seconds = 0L;
         String snapshotExpire = policy.getSnapshotExpireType();
@@ -3866,7 +3865,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                 break;
             case file_system:
                 if (args.getFs() != null) {
-                    resourceName = args.getFSNameWithNoSpecialCharacters().replaceAll("_", "");
+                    resourceName = args.getFsLabel();
                     if (!filePolicyBasePath.contains(resourceName)) {
                         _log.error("File policy base path does not contain fileshare: {}", resourceName);
                         throw DeviceControllerException.exceptions.assignFilePolicyFailed(filePolicy.getFilePolicyName(),
@@ -3921,12 +3920,6 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             }
         }
         return null;
-    }
-
-    @Override
-    public void doFailbackLink(StorageSystem system, FileShare target, TaskCompleter completer) {
-        // TODO Auto-generated method stub
-
     }
 
     @Override

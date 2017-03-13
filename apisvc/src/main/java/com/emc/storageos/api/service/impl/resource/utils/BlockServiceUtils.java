@@ -437,17 +437,11 @@ public class BlockServiceUtils {
         }
 
         // We also need to check BlockSnapshot instances created on the source
-        // using the existing Create Snapshot service. We only need to check
-        // those BlockSnapshot instances which are not a linked target of a
-        // BlockSnapshotSession instance.
+        // using the existing Create Snapshot service.
         List<BlockSnapshot> sourceSnapshots = CustomQueryUtility.queryActiveResourcesByConstraint(dbClient,
                 BlockSnapshot.class, ContainmentConstraint.Factory.getVolumeSnapshotConstraint(sourceURI));
         for (BlockSnapshot snapshot : sourceSnapshots) {
-            URIQueryResultList queryResults = new URIQueryResultList();
-            dbClient.queryByConstraint(ContainmentConstraint.Factory.getLinkedTargetSnapshotSessionConstraint(
-                    snapshot.getId()), queryResults);
-            Iterator<URI> queryResultsIter = queryResults.iterator();
-            if ((!queryResultsIter.hasNext()) && (modifiedRequestedName.equals(snapshot.getSnapsetLabel()))) {
+            if (modifiedRequestedName.equals(snapshot.getSnapsetLabel())) {
                 throw APIException.badRequests.duplicateLabel(requestedName);
             }
         }

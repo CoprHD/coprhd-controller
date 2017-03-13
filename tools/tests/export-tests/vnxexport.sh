@@ -964,9 +964,13 @@ test_22() {
     verify_export ${HOST1} 2 2
     verify_export ${HOST2} 2 1
     verify_export ${HOST3} 2 1
-    echot "Removal of Host from Export Group will trigger Host Removal from all associated Export Groups"
+    echot "Removal of Host from Export Group will trigger Export Group Deletion and Host Removal from all associated Export Groups"
     runcmd export_group update ${PROJECT}/$hostXP --remHosts "${HOST1ID}"
     verify_export ${HOST1} gone
+    verify_export ${HOST2} 2 1
+    verify_export ${HOST3} 2 1
+    runcmd export_group create ${PROJECT} $hostXP nh --volspec ${PROJECT}/${VOLNAME}-2 --hosts "${HOST1ID}" --type Host
+    verify_export ${HOST1} 2 1
     verify_export ${HOST2} 2 1
     verify_export ${HOST3} 2 1
     runcmd export_group delete ${PROJECT}/$clusterXP

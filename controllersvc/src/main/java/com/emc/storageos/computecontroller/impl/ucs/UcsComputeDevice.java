@@ -22,7 +22,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.UUID;
 
 import javax.xml.bind.JAXBElement;
 
@@ -44,11 +43,9 @@ import com.emc.cloud.ucsm.service.UCSMService;
 import com.emc.storageos.computecontroller.ComputeDevice;
 import com.emc.storageos.computesystemcontroller.exceptions.ComputeSystemControllerException;
 import com.emc.storageos.computesystemcontroller.exceptions.ComputeSystemControllerTimeoutException;
-import com.emc.storageos.computesystemcontroller.impl.ComputeSystemHelper;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
-import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.Cluster;
@@ -62,8 +59,6 @@ import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.Network;
-import com.emc.storageos.db.client.model.Operation;
-import com.emc.storageos.db.client.model.Operation.Status;
 import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.UCSServiceProfile;
@@ -72,13 +67,10 @@ import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
-import com.emc.storageos.db.client.util.StringSetUtil;
 import com.emc.storageos.exceptions.DeviceControllerException;
-import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.networkcontroller.impl.NetworkAssociationHelper;
 import com.emc.storageos.security.audit.AuditLogManager;
 import com.emc.storageos.services.OperationTypeEnum;
-import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.util.ExportUtils;
 import com.emc.storageos.util.InvokeTestFailure;
@@ -874,9 +866,9 @@ public class UcsComputeDevice implements ComputeDevice {
                 // systems.
                 InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_063);
                 if (serviceProfile == null || ASSOC_STATE_UNASSOCIATED.equals(serviceProfile.getAssocState())) {
-                    LOGGER.info("SP {} AssocState is marked unassociated. Bind ServiceProfileToBlade failed", spDn);
-                    throw new Exception(BIND_SERVICE_PROFILE_TO_BLADE_STEP + " failed.  ServiceProfile state is "
-                            + serviceProfile == null ? "null" : serviceProfile.getAssocState());
+                    LOGGER.info("SP {} AssocState is marked unassociated or null. Bind ServiceProfileToBlade failed", spDn);
+                    throw new RuntimeException(BIND_SERVICE_PROFILE_TO_BLADE_STEP + " failed.  ServiceProfile state is "
+                            + (serviceProfile == null ? "null" : serviceProfile.getAssocState()));
                 }
 
                 // Test mechanism to invoke a failure. No-op on production
@@ -889,7 +881,7 @@ public class UcsComputeDevice implements ComputeDevice {
                 WorkflowStepCompleter.stepSucceded(stepId);
             } else {
                 LOGGER.info("Unable to associate computeElement and LsServer/serviceProfile attribute.  ComputeElement is null.");
-                throw new Exception(BIND_SERVICE_PROFILE_TO_BLADE_STEP + " failed.");
+                throw new RuntimeException(BIND_SERVICE_PROFILE_TO_BLADE_STEP + " failed.");
             }
         } catch (Exception e) {
             LOGGER.error("Step : " + BIND_SERVICE_PROFILE_TO_BLADE_STEP + " Failed...", e);

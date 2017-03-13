@@ -595,7 +595,7 @@ public interface VPlexApiExceptions {
             final String cause);
 
     @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
-    public VPlexApiException setRebuildSetTransferSpeeFailureStatus(final String status,
+    public VPlexApiException setRebuildSetTransferSpeedFailureStatus(final String status,
             final String cause);
 
     @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)

@@ -1883,6 +1883,10 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
             // target must be equal to or larger than the source
             if (Long.compare(targetVolume.getProvisionedCapacity(), sourceVolume.getProvisionedCapacity()) < 0) {
+                _log.error(String.format("Source volume [%s - %s] has provisioned capacity of [%s] and Target volume [%s - %s] has provisioned capacity of [%s]. "
+                        + "Source capacity cannot be > Target capacity.",
+                        sourceVolume.getLabel(), sourceVolume.getId(), sourceVolume.getProvisionedCapacity(),
+                        targetVolume.getLabel(), targetVolume.getId(), targetVolume.getProvisionedCapacity()));
                 throw DeviceControllerExceptions.recoverpoint.cgCannotBeCreatedInvalidVolumeSizes(sourceStorageSystem.getSystemType(),
                         String.valueOf(sourceVolume.getProvisionedCapacity()), targetStorageSystem.getSystemType(),
                         String.valueOf(targetVolume.getProvisionedCapacity()));

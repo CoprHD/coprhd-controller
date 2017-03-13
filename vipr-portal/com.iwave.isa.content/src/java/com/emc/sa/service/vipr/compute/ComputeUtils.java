@@ -286,17 +286,32 @@ public class ComputeUtils {
         }
 
         // monitor tasks
+       List<URI> bootVolsToRemove = new ArrayList<URI>();
         while (!tasks.isEmpty()) {
             waitAndRefresh(tasks);
             for (Task<VolumeRestRep> successfulTask : getSuccessfulTasks(tasks)) {
                 URI volumeId = successfulTask.getResourceId();
-                String taskResourceName = successfulTask.getResource().getName();
-                hostToBootVolumeIdMap.put(volumeNameToHostMap.get(taskResourceName), volumeId);
-                volumeNameToHostMap.get(taskResourceName).setBootVolumeId(volumeId);
+                String volumeName = successfulTask.getResource().getName();
+                Host tempHost = volumeNameToHostMap.get(volumeName);
+                tempHost.setBootVolumeId(volumeId);
                 addAffectedResource(volumeId);
                 tasks.remove(successfulTask);
-                //TODO: boot volume tagging seems to be best effort here. Even if it fails, the host and volume are set in hostToBootVolumeIdMap.
-                addBootVolumeTag(volumeId, volumeNameToHostMap.get(taskResourceName).getId());
+                addBootVolumeTag(volumeId, tempHost.getId());
+                BlockObjectRestRep volume = BlockStorageUtils.getBlockResource(volumeId);
+                if (BlockStorageUtils.isVolumeBootVolume(volume)) {
+                    hostToBootVolumeIdMap.put(tempHost, volumeId);
+                } else {
+                    bootVolsToRemove.add(volumeId);
+                    hostToBootVolumeIdMap.put(tempHost, null);
+                }
+            } 
+            if (!bootVolsToRemove.isEmpty()){
+                try {
+                    BlockStorageUtils.deactivateVolumes(bootVolsToRemove, VolumeDeleteTypeEnum.FULL);
+                }catch (Exception e) {
+                    ExecutionUtils.currentContext().logError("computeutils.bootvolume.deactivate.failure",
+                        e.getMessage());
+                }
             }
             for (Task<VolumeRestRep> failedTask : getFailedTasks(tasks)) {
                 String volumeName = failedTask.getResource().getName();

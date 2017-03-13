@@ -202,7 +202,7 @@ public class DbDowntimeTracker {
         params.put("serviceName",serviceName);
         params.put("offlineDays", Long.toString(offlineDays));
         if (nodeRecoveryRequired) {
-            params.put("url",coordinator.getPropertyInfo().getProperty("NETWORK_VIP"));
+            params.put("url",coordinator.getPropertyInfo().getProperty("network_vip"));
         }
         String titile = String.format("ATTENTION - DataBase service(%s) of %s has been down for %s days",
                 nodeId, serviceName, offlineDays);

@@ -15,6 +15,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.Set;
 import java.util.UUID;
 
@@ -584,6 +585,34 @@ public class ExportUtils {
                     exportMask.getStorageDevice().equals(curExportMask.getStorageDevice()) &&
                     !exportMaskURIs.contains(exportMask.getId())
                     && StringSetUtil.areEqual(exportMask.getInitiators(), curExportMask.getInitiators())) {
+                _log.info(String.format("Initiator %s is shared with mask %s.",
+                        initiatorUri, exportMask.getMaskName()));
+                sharedExportMaskNameList.add(exportMask.forDisplay());
+            }
+        }
+        return sharedExportMaskNameList;
+    }
+    
+    /**
+     * Check if the initiator is being shared across masks and check if the mask has unmanaged volumes.
+     * 
+     * @param dbClient
+     * @param initiatorUri
+     * @param curExportMask
+     * @param exportMaskURIs
+     * @return
+     */
+    public static List<String> isinitiatorSharedBetweenMasksAndHasUnManagedVolumes(DbClient dbClient, URI initiatorUri, ExportMask curExportMask,
+            Collection<URI> exportMaskURIs) {
+        List<ExportMask> results = CustomQueryUtility.queryActiveResourcesByConstraint(dbClient, ExportMask.class,
+                ContainmentConstraint.Factory.getConstraint(ExportMask.class, "initiators", initiatorUri));
+        List<String> sharedExportMaskNameList = new ArrayList<>();
+        for (ExportMask exportMask : results) {
+            if (exportMask != null && !exportMask.getId().equals(curExportMask.getId()) &&
+                    exportMask.getStorageDevice().equals(curExportMask.getStorageDevice()) &&
+                    !exportMaskURIs.contains(exportMask.getId())
+                    && StringSetUtil.areEqual(exportMask.getInitiators(), curExportMask.getInitiators()) &&
+                    !exportMask.hasAnyExistingVolumes()) {
                 _log.info(String.format("Initiator %s is shared with mask %s.",
                         initiatorUri, exportMask.getMaskName()));
                 sharedExportMaskNameList.add(exportMask.forDisplay());
@@ -1743,6 +1772,37 @@ public class ExportUtils {
         }
         _log.info("Ports {} are going to be removed", portUris);
         return new ArrayList<URI>(portUris);
+    }
+    
+    public static Map<String, List<URI>> mapInitiatorsToHostResource(
+            ExportGroup exportGroup, Collection<URI> initiatorURIs, DbClient dbClient) {
+        Map<String, List<URI>> hostInitiatorMap = new ConcurrentHashMap<String, List<URI>>();
+        // Bogus URI for those initiators without a host object, helps maintain a good map.
+        // We want to put bunch up the non-host initiators together.
+        URI fillerHostURI = URIUtil.createId(Host.class); // could just be NullColumnValueGetter.getNullURI()
+        if (!initiatorURIs.isEmpty()) {
+
+            for (URI newExportMaskInitiator : initiatorURIs) {
+
+                Initiator initiator = dbClient.queryObject(Initiator.class, newExportMaskInitiator);
+                // Not all initiators have hosts, be sure to handle either case.
+                URI hostURI = initiator.getHost();
+                if (hostURI == null) {
+                    hostURI = fillerHostURI;
+                }
+                String hostURIStr = hostURI.toString();
+                List<URI> initiatorSet = hostInitiatorMap.get(hostURIStr);
+                if (initiatorSet == null) {
+                    initiatorSet = new ArrayList<URI>();
+                }
+                initiatorSet.add(initiator.getId());
+                hostInitiatorMap.get(hostURIStr).addAll(initiatorSet);
+
+                _log.info(String.format("host = %s, initiators to add: %d, ",
+                        hostURI, hostInitiatorMap.get(hostURIStr).size()));
+            }
+        }
+        return hostInitiatorMap;
     }
 
     /**

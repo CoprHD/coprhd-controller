@@ -246,7 +246,7 @@ public class AddHostToClusterService extends ViPRService {
 
         Map<Host, URI> hostToBootVolumeIdMap = ComputeUtils.makeBootVolumes(project, virtualArray, virtualPool, size, hosts,
                 getClient());
-        logInfo("compute.cluster.boot.volumes.created", 
+        logInfo("compute.cluster.boot.volumes.created",
                 hostToBootVolumeIdMap != null ? ComputeUtils.nonNull(hostToBootVolumeIdMap.values()).size() : 0);
 
         // Deactivate hosts with no boot volume, return list of hosts remaining.
@@ -254,25 +254,28 @@ public class AddHostToClusterService extends ViPRService {
 
         // Export the boot volume, return a map of hosts and their EG IDs
         Map<Host, URI> hostToEgIdMap = ComputeUtils.exportBootVols(hostToBootVolumeIdMap, project, virtualArray, hlu);
-        logInfo("compute.cluster.exports.created", 
+        logInfo("compute.cluster.exports.created",
                 hostToEgIdMap != null ? ComputeUtils.nonNull(hostToEgIdMap.values()).size(): 0);
-        
+
         // Deactivate any hosts where the export failed, return list of hosts remaining
         hostToBootVolumeIdMap = ComputeUtils.deactivateHostsWithNoExport(hostToBootVolumeIdMap, hostToEgIdMap, cluster);
-        
+
         // Set host boot volume ids, but do not set san boot targets. They will get set post os install.
         hosts = ComputeUtils.setHostBootVolumes(hostToBootVolumeIdMap, false);
 
         logInfo("compute.cluster.exports.installing.os");
-        List<HostRestRep> hostsWithOs = installOSForHosts(hostToIPs, ComputeUtils.getHostNameBootVolume(hosts));
-        logInfo("compute.cluster.exports.installed.os", ComputeUtils.nonNull(hostsWithOs).size());
+        installOSForHosts(hostToIPs, ComputeUtils.getHostNameBootVolume(hosts));
+        hosts = ComputeUtils.deactivateHostsWithNoOS(hosts);
+        logInfo("compute.cluster.exports.installed.os", ComputeUtils.nonNull(hosts).size());
 
-        // VBDU TODO: COP-28433: Deactivate Host without OS installed (when rollback is added, this should be addressed)
-        ComputeUtils.addHostsToCluster(hosts, cluster);
-
-        pushToVcenter();
-
-        ComputeUtils.discoverHosts(hostsWithOs);
+        if (!ComputeUtils.nonNull(hosts).isEmpty()) {
+            // VBDU DONE: COP-28433: Deactivate Host without OS installed (Rollback is in place and this is addressed)
+            ComputeUtils.addHostsToCluster(hosts, cluster);
+            pushToVcenter();
+            ComputeUtils.discoverHosts(hosts);
+        } else {
+            logWarn("compute.cluster.installed.os.none");
+        }
 
         String orderErrors = ComputeUtils.getOrderErrors(cluster, copyOfHostNames, computeImage, vcenterId);
         if (orderErrors.length() > 0) { // fail order so user can resubmit
@@ -308,7 +311,7 @@ public class AddHostToClusterService extends ViPRService {
         this.fqdnToIps = safeArrayCopy(fqdnToIps);
     }
 
-    private List<HostRestRep> installOSForHosts(Map<String, String> hostToIps, Map<String, URI> hostNameToBootVolumeMap) {
+    private void installOSForHosts(Map<String, String> hostToIps, Map<String, URI> hostNameToBootVolumeMap) {
         List<HostRestRep> hosts = ComputeUtils.getHostsInCluster(cluster.getId(), cluster.getLabel());
 
         List<OsInstallParam> osInstallParams = Lists.newArrayList();
@@ -346,15 +349,14 @@ public class AddHostToClusterService extends ViPRService {
                 osInstallParams.add(null);
             }
         }
-        List<HostRestRep> installedHosts = Lists.newArrayList();
+
         try {
             // Attempt an OS Install only on the list of hosts that are a part of the order
             // This does check if the hosts already have a OS before attempting the install
-            installedHosts = ComputeUtils.installOsOnHosts(newHosts, osInstallParams);
+            ComputeUtils.installOsOnHosts(newHosts, osInstallParams);
         } catch (Exception e) {
             logError(e.getMessage());
         }
-        return installedHosts;
     }
 
     private void pushToVcenter() {

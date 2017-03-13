@@ -13,6 +13,7 @@ import static com.emc.storageos.api.mapper.TaskMapper.toTask;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -46,7 +47,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.emc.storageos.api.mapper.TaskMapper;
-import com.emc.storageos.api.mapper.functions.MapHost;
 import com.emc.storageos.api.service.authorization.PermissionsHelper;
 import com.emc.storageos.api.service.impl.resource.utils.AsyncTaskExecutorIntf;
 import com.emc.storageos.api.service.impl.resource.utils.DiscoveredObjectTaskScheduler;
@@ -77,7 +77,6 @@ import com.emc.storageos.db.client.model.DiscoveredDataObject.DataCollectionJobS
 import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
 import com.emc.storageos.db.client.model.Host;
-import com.emc.storageos.db.client.model.Host.HostType;
 import com.emc.storageos.db.client.model.Host.ProvisioningJobStatus;
 import com.emc.storageos.db.client.model.HostInterface;
 import com.emc.storageos.db.client.model.Initiator;
@@ -98,7 +97,6 @@ import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedExportMask;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
 import com.emc.storageos.db.client.model.util.TaskUtils;
-import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.EndpointUtility;
 import com.emc.storageos.db.client.util.FileOperationUtils;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
@@ -151,7 +149,6 @@ import com.emc.storageos.volumecontroller.ArrayAffinityAsyncTask;
 import com.emc.storageos.volumecontroller.AsyncTask;
 import com.emc.storageos.volumecontroller.BlockController;
 import com.emc.storageos.volumecontroller.ControllerException;
-
 import com.google.common.base.Function;
 
 /**
@@ -696,46 +693,43 @@ public class HostService extends TaskResourceService {
             throw APIException.badRequests.resourceHasActiveReferences(Host.class.getSimpleName(), id);
         }
         
-        ComputeElement computeElement = null;
-        Volume bootVolume = null;
         UCSServiceProfile serviceProfile = null;
-        if (!NullColumnValueGetter.isNullURI(host.getServiceProfile())) {
-            serviceProfile = _dbClient.queryObject(UCSServiceProfile.class, host.getServiceProfile());
-            if (serviceProfile != null && !NullColumnValueGetter.isNullURI(serviceProfile.getComputeSystem())) {
-                ComputeSystem ucs = _dbClient.queryObject(ComputeSystem.class, serviceProfile.getComputeSystem());
-                if (ucs != null && ucs.getDiscoveryStatus().equals(DataCollectionJobStatus.ERROR.name())) {
-                    throw APIException.badRequests
-                            .resourceCannotBeDeleted("Host has service profile on a Compute System that failed to discover; ");
-                }
-            }
+        if (!NullColumnValueGetter.isNullURI(host.getServiceProfile())){
+             serviceProfile = _dbClient.queryObject(UCSServiceProfile.class, host.getServiceProfile());
+             if (serviceProfile!=null && !NullColumnValueGetter.isNullURI(serviceProfile.getComputeSystem())){
+                  ComputeSystem ucs = _dbClient.queryObject(ComputeSystem.class, serviceProfile.getComputeSystem());
+                  if ( ucs!=null && ucs.getDiscoveryStatus().equals(DataCollectionJobStatus.ERROR.name())){
+                      throw APIException.badRequests.resourceCannotBeDeleted("Host has service profile on a Compute System that failed to discover; ");
+                  }
+             }               
         }
+        Collection<URI> hostIds = _dbClient.queryByType(Host.class, true);
+        Collection<Host> hosts = _dbClient.queryObjectFields(Host.class,
+                Arrays.asList("label", "uuid", "serviceProfile", "computeElement","registrationStatus", "inactive"), getFullyImplementedCollection(hostIds));
+        for (Host tempHost : hosts){
+             if (!tempHost.getId().equals(host.getId()) && !tempHost.getInactive()){
+                 if (tempHost.getUuid()!=null && tempHost.getUuid().equals(host.getUuid())) {
+                      throw APIException.badRequests.resourceCannotBeDeleted("Host "+ host.getLabel()+ " shares same uuid "+ host.getUuid() +
+                              " with another active host " + tempHost.getLabel() + " with URI: "+ tempHost.getId().toString()+ " and ");
+                 }
+                 if (!NullColumnValueGetter.isNullURI(host.getComputeElement()) && host.getComputeElement()== tempHost.getComputeElement()){
+                      throw APIException.badRequests.resourceCannotBeDeleted("Host "+ host.getLabel() + " shares same computeElement "+ host.getComputeElement() +
+                              " with another active host " + tempHost.getLabel() + " with URI: "+ tempHost.getId().toString()+ " and ");
+                 }
+                 if (!NullColumnValueGetter.isNullURI(host.getServiceProfile()) && host.getServiceProfile()== tempHost.getServiceProfile()){
+                      throw APIException.badRequests.resourceCannotBeDeleted("Host "+ host.getLabel()+ " shares same serviceProfile "+ host.getServiceProfile() +
+                              " with another active host " + tempHost.getLabel() + " with URI: "+ tempHost.getId().toString()+ " and ");
+                 }
 
-        List<Initiator> initiators = CustomQueryUtility.queryActiveResourcesByRelation(_dbClient, host.getId(), Initiator.class, "host");
-
+             }             
+        } 
+        if (!NullColumnValueGetter.isNullURI(host.getComputeElement()) && NullColumnValueGetter.isNullURI(host.getServiceProfile())){
+                throw APIException.badRequests.resourceCannotBeDeletedVblock(host.getLabel(), "Host "+ host.getLabel()+ " has a compute element, but no service profile."
+                                          +" Please re-discover the Vblock Compute System and retry.");
+        }
         // VBDU [DONE]: COP-28452, Running host deactivate even if initiators == null or list empty seems risky
         // If initiators are empty, we will not perform any export updates
-        if (StringUtils.equalsIgnoreCase(host.getType(), HostType.No_OS.toString()) && (initiators == null || initiators.isEmpty())) {
-            if (!NullColumnValueGetter.isNullURI(host.getComputeElement())) {
-                computeElement = _dbClient.queryObject(ComputeElement.class, host.getComputeElement());
-            }
-            if (!NullColumnValueGetter.isNullURI(host.getBootVolumeId())){
-                bootVolume =  _dbClient.queryObject(Volume.class, host.getBootVolumeId());
-            }
-            if (computeElement != null) {
-                _log.error("No OS host: " + host.getLabel() +" with no initiators, but with compute element association found. Cannot deactivate.");
-                throw APIException.badRequests.resourceCannotBeDeleted("No OS host with no initiators, but with compute element association found. Please contact DELL EMC support to resolve inconsistency detected. Host ");
-            } else if (bootVolume != null ) {
-                _log.error("No OS host: " + host.getLabel() +" with no initiators, but with boot volume association found. Cannot deactivate.");
-                throw APIException.badRequests.resourceCannotBeDeleted("No OS host with no initiators, but with boot volume association found. Please contact DELL EMC support to resolve inconsistency detected. Host ");
-            }else if ( serviceProfile != null) {
-                 _log.error("No OS host: " + host.getLabel() +" with no initiators, but with service profile association found. Cannot deactivate.");
-                throw APIException.badRequests.resourceCannotBeDeleted("No OS host with no initiators, but with service profile association found. Please contact DELL EMC support to resolve inconsistency detected. Host ");
 
-            } else {
-                _log.info("No OS host: " + host.getLabel() +" with no initiators and without valid computeElement, service profile or boot volume associations found. Will proceed with deactivation.");
-            }
-        }
-        
         String taskId = UUID.randomUUID().toString();
         Operation op = _dbClient.createTaskOpStatus(Host.class, host.getId(), taskId,
                 ResourceOperationTypeEnum.DELETE_HOST);
@@ -766,6 +760,17 @@ public class HostService extends TaskResourceService {
         auditOp(OperationTypeEnum.DELETE_HOST, true, op.getStatus(),
                 host.auditParameters());
         return toTask(host, taskId, op);
+    }
+   
+    private static <T> Collection<T> getFullyImplementedCollection(Collection<T> collectionIn) {
+        // Convert objects (like URIQueryResultList) that only implement iterator to
+        // fully implemented Collection
+        Collection<T> collectionOut = new ArrayList<>();
+        Iterator<T> iter = collectionIn.iterator();
+        while (iter.hasNext()) {
+            collectionOut.add(iter.next());
+        }
+        return collectionOut;
     }
 
     /**

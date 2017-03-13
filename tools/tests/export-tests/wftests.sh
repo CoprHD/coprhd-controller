@@ -1135,7 +1135,7 @@ snap_db() {
 
     IFS=' ' read -ra cfs_array <<< "$column_families"
     for cf in "${cfs_array[@]}"; do
-       execute="/opt/storageos/bin/dbutils list ${cf} $base_filter > results/${item}/${cf}-${slot}.txt"
+       execute="/opt/storageos/bin/dbutils list -sortByURI ${cf} $base_filter > results/${item}/${cf}-${slot}.txt"
        eval $execute
     done
 }      
@@ -2975,8 +2975,7 @@ vblock_setup() {
     run cos allow $VPOOL_BASE block $TENANT
     run project create $PROJECT --tenant $TENANT
     secho "Project $PROJECT created."
-
-    #run bourne.catalog_order $VBLOCK_CATALOG_PROVISION_CLUSTER $TENANT
+    run vcenter create $VBLOCK_VCENTER_NAME $TENANT $VBLOCK_VCENTER_IP $VBLOCK_VCENTER_PORT $VBLOCK_VCENTER_USER $VBLOCK_VCENTER_PASSWORD
 
     echo "======= vBlock base setup done ======="
 }

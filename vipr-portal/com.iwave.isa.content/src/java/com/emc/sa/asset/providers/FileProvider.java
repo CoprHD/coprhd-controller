@@ -159,7 +159,8 @@ public class FileProvider extends BaseAssetOptionsProvider {
 
             if (!uriToBool.containsKey(vpoolId)) {
                 FileVirtualPoolRestRep vpool = client.fileVpools().get(vpoolId);
-                uriToBool.put(vpoolId, (vpool.getProtection() != null && vpool.getProtection().getScheduleSnapshots()));
+                uriToBool.put(vpoolId, (vpool.getProtection() != null && vpool.getProtection().getAllowFilePolicyAtFSLevel()
+                        && (vpool.getProtection().getReplicationSupported() || vpool.getProtection().getScheduleSnapshots())));
             }
 
             if (uriToBool.get(vpoolId)) {
@@ -429,11 +430,11 @@ public class FileProvider extends BaseAssetOptionsProvider {
         List<FileShareRestRep> fileSystems = client.fileSystems().findByProject(project);
 
         for (FileShareRestRep fileShare : fileSystems) {
-            if (fileShare.getProtection() != null && 
-                    StringUtils.equals(FileShare.PersonalityTypes.SOURCE.toString(), fileShare.getProtection().getPersonality())){ 
-                    options.add(new AssetOption(fileShare.getId(), fileShare.getName()));
-                }
+            if (fileShare.getProtection() != null &&
+                    StringUtils.equals(FileShare.PersonalityTypes.SOURCE.toString(), fileShare.getProtection().getPersonality())) {
+                options.add(new AssetOption(fileShare.getId(), fileShare.getName()));
             }
+        }
         AssetOptionsUtils.sortOptionsByLabel(options);
         return options;
     }

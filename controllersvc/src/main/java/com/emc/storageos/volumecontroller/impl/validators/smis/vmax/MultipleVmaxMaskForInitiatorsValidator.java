@@ -94,7 +94,7 @@ class MultipleVmaxMaskForInitiatorsValidator extends AbstractMultipleVmaxMaskVal
         ExportMask exportMask = ExportMaskUtils.getExportMaskByName(getDbClient(), storage.getId(), assocName);
 
         // Associated mask is under ViPR management
-        if (exportMask == null || hasExistingVolumes(getVolumesFromLunMaskingInstance(mask),exportMask)) {
+        if (exportMask == null || hasExistingVolumes(getVolumesFromLunMaskingInstance(assocMask),exportMask)) {
             logFailure("associated mask is not under ViPR management");
             return false;
         }

@@ -57,6 +57,10 @@ public class WorkflowScrubberExecutor {
                 if (workflow == null) {
                     continue;
                 }
+                if (null == workflow.getCreationTime()) {
+                    log.warn("workflow {} with null creation time will be deleted", workflow.getId());
+                    dbClient.removeObject(workflow);
+                }
                 Long creationTime = workflow.getCreationTime().getTimeInMillis();
                 Long age = currentTime - creationTime;
                 if ((age) >= WORKFLOW_HOLDING_TIME_MSEC) {

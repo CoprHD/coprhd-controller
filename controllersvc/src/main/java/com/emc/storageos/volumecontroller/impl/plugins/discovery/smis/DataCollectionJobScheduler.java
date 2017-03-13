@@ -417,7 +417,7 @@ public class DataCollectionJobScheduler {
             ControllerServiceImpl.Lock lock = ControllerServiceImpl.Lock.getLock(ControllerServiceImpl.SCANNER);
             if (lock.acquire(lock.getRecommendedTimeout())) {
                 try {
-                    _logger.info("Acquired a lock {} to schedule {} scanner Jobs", providers.iterator().next().getInterfaceType(), lock.toString());
+                    _logger.info("Acquired a lock {} to schedule {} scanner Jobs", lock.toString(), providers.iterator().next().getInterfaceType());
                     
                     boolean inProgress = ControllerServiceImpl.isDataCollectionJobInProgress(scanJob) || ControllerServiceImpl.isDataCollectionJobQueued(scanJob);
 
@@ -661,6 +661,7 @@ public class DataCollectionJobScheduler {
                 DataCollectionTaskCompleter completer = job.getCompleter();
                 DiscoveredSystemObject system = (DiscoveredSystemObject)
                         _dbClient.queryObject(completer.getType(), completer.getId());
+                _logger.info(String.format("Enqueing %s job for storage sysem %s", job.getType(), system.getLabel()));
                 if (isDataCollectionJobSchedulingNeeded(system, job)) {
                     job.schedule(_dbClient);
                     if (job instanceof DataCollectionArrayAffinityJob) {
@@ -811,6 +812,7 @@ public class DataCollectionJobScheduler {
         boolean queued = ControllerServiceImpl.isDataCollectionJobQueued(job);
 
         if (!queued && !inProgress) {
+            _logger.info(String.format("%s job for %s is not in progress or queued", type, system.getLabel()));
             // the job does not appear on the queue in either active or queued state
             // check the storage system database status; if it shows that it's scheduled or in progress, something
             // went wrong with a previous discovery. Set it to error and allow it to be rescheduled.
@@ -824,14 +826,16 @@ public class DataCollectionJobScheduler {
             // look for tasks older than one hour; this will exclude the discovery job currently being scheduled
             Calendar oneHourAgo = Calendar.getInstance();
             oneHourAgo.setTime(Date.from(LocalDateTime.now().minusHours(1).atZone(ZoneId.systemDefault()).toInstant()));
+            _logger.info(String.format("cleaning up pending %s tasks for %s", type, system.getLabel()));
             if (ControllerServiceImpl.DISCOVERY.equalsIgnoreCase(type)) {
                 TaskUtils.cleanupPendingTasks(_dbClient, system.getId(), ResourceOperationTypeEnum.DISCOVER_STORAGE_SYSTEM.getName(), URI.create(SYSTEM_TENANT_ID),
                         oneHourAgo);
             } else if (ControllerServiceImpl.METERING.equalsIgnoreCase(type)) {
-                TaskUtils.cleanupPendingTasks(_dbClient, system.getId(), ResourceOperationTypeEnum.METERING_STORAGE_SYSTEM.getName(), URI.create(SYSTEM_TENANT_ID),
-                        oneHourAgo);
+//                TaskUtils.cleanupPendingTasks(_dbClient, system.getId(), ResourceOperationTypeEnum.METERING_STORAGE_SYSTEM.getName(), URI.create(SYSTEM_TENANT_ID),
+//                        oneHourAgo);
             }
         } else {
+            _logger.info(String.format("%s job for %s is %s", type, system.getLabel(), (inProgress ? "in progress" : "queued")));
             // log a message if the discovery job has been runnig for longer than expected
             long currentTime = System.currentTimeMillis();
             long maxIdleTime = JobIntervals.getMaxIdleInterval() * 1000;

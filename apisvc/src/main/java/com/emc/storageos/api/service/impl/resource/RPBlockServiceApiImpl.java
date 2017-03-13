@@ -3086,7 +3086,6 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
             String storageType = storageSystem.getSystemType();
             if (storageSystem.isV3AllFlashArray()) {
                 storageType = DiscoveredDataObject.Type.vmax3AFA.name();
-                ;
             } else if (storageSystem.checkIfVmax3()) {
                 storageType = DiscoveredDataObject.Type.vmax3.name();
             }
@@ -3896,7 +3895,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
 
     /*
      * (non-Javadoc)
-     *
+     * 
      * @see
      * com.emc.storageos.api.service.impl.resource.BlockServiceApi#getReplicationGroupNames(com.emc.storageos.db.client.
      * model.VolumeGroup)

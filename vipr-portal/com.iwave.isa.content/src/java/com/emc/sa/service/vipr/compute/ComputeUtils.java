@@ -73,7 +73,6 @@ import com.emc.vipr.client.exceptions.TimeoutException;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.iwave.ext.vmware.VCenterAPI;
-import com.iwave.ext.vmware.VMwareUtils;
 import com.vmware.vim25.mo.HostSystem;
 
 // VBDU TODO COP-28437: In general, this module needs javadoc.  Many methods are using List objects and returning List objects that correspond to the incoming list that
@@ -1110,6 +1109,8 @@ public class ComputeUtils {
 
                 HostSystem hostSystem = null;
                 try {
+                    // TREVOR: you can start in here
+                    
                 	// Keeping in mind if people are sneaky and change hostnames and labels, we'll see it as a validation
                 	// success.  Is there a better way for us to track these things, like maybe the boot volume?
                     hostSystem = vmware.getHostSystem(dataCenter.getLabel(), host.getHostName(), false);

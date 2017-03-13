@@ -295,6 +295,7 @@ public class ComputeUtils {
                 volumeNameToHostMap.get(taskResourceName).setBootVolumeId(volumeId);
                 addAffectedResource(volumeId);
                 tasks.remove(successfulTask);
+                //TODO: boot volume tagging seems to be best effort here. Even if it fails, the host and volume are set in hostToBootVolumeIdMap.
                 addBootVolumeTag(volumeId, volumeNameToHostMap.get(taskResourceName).getId());
             }
             for (Task<VolumeRestRep> failedTask : getFailedTasks(tasks)) {
@@ -450,13 +451,13 @@ public class ComputeUtils {
             try {
                 List<Host> hostsRemoved = deactivateHosts(hostsToRemove);
                 for (Host hostCreated : hostToVolumeIdMap.keySet()) {
-                    boolean found = false;
+                    boolean isRemovedHost = false;
                     for (Host hostRemoved : hostsRemoved) {
                         if(hostCreated.getId().equals(hostRemoved.getId())) {
-                            found = true;
+                            isRemovedHost = true;
                         }
                     }
-                    if (!found) {
+                    if (isRemovedHost) {
                         hostsToVolumeIdNotRemovedMap.remove(hostCreated);
                     }
                 }

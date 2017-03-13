@@ -2391,7 +2391,7 @@ public class RecoverPointScheduler implements Scheduler {
             if (sourceVolume.getRpTargets() != null) {
                 for (VirtualArray protectionVarray : protectionVarrays) {
                     // Find the pools that apply to this virtual
-                    VpoolProtectionVarraySettings settings = rpHelper.getProtectionSettings(vpool, protectionVarray);
+                    VpoolProtectionVarraySettings settings = RPHelper.getProtectionSettings(vpool, protectionVarray, dbClient);
                     // If there was no vpool specified with the protection settings, use the base vpool for this varray.
                     VirtualPool protectionVpool = vpool;
                     if (settings.getVirtualPool() != null) {
@@ -3580,7 +3580,7 @@ public class RecoverPointScheduler implements Scheduler {
 
         // Find the correct target vpool. It is either implicitly the same as the source vpool or has been
         // explicitly set by the user.
-        VpoolProtectionVarraySettings protectionSettings = rpHelper.getProtectionSettings(vpool, targetVarray);
+        VpoolProtectionVarraySettings protectionSettings = RPHelper.getProtectionSettings(vpool, targetVarray, dbClient);
         // If there was no vpool specified with the protection settings, use the base vpool for this varray.
         VirtualPool targetVpool = vpool;
         if (protectionSettings.getVirtualPool() != null) {

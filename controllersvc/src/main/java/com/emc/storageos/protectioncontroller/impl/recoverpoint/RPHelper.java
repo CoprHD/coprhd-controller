@@ -171,10 +171,11 @@ public class RPHelper {
      *
      * @param vpool VirtualPool to look for
      * @param varray VirtualArray to protect to
+     * @param dbClient DbClient reference
      * @return the stored protection settings object
      * @throws InternalException
      */
-    public VpoolProtectionVarraySettings getProtectionSettings(VirtualPool vpool, VirtualArray varray) throws InternalException {
+    public static VpoolProtectionVarraySettings getProtectionSettings(VirtualPool vpool, VirtualArray varray, DbClient dbClient) throws InternalException {
         if (vpool.getProtectionVarraySettings() != null) {
             String settingsID = vpool.getProtectionVarraySettings().get(varray.getId().toString());
             try {
@@ -194,7 +195,7 @@ public class RPHelper {
      * @return
      */
     public VirtualPool getTargetVirtualPool(VirtualArray tgtVarray, VirtualPool srcVpool) {
-        VpoolProtectionVarraySettings settings = getProtectionSettings(srcVpool, tgtVarray);
+        VpoolProtectionVarraySettings settings = getProtectionSettings(srcVpool, tgtVarray, dbClient);
         // If there was no vpool specified use the source vpool for this varray.
         VirtualPool tgtVpool = srcVpool;
         if (settings.getVirtualPool() != null) {
@@ -204,10 +205,10 @@ public class RPHelper {
     }
 
     /**
-     * given one volume in an rset (either source or any target) return all source and target volumes in that rset
+     * Given one volume in an rset (either source or any target) return all source and target volumes in that rset
      *
-     * @param vol
-     * @return
+     * @param vol RP volume, either Source or if a Target then the Source volume will be derived
+     * @return all Source and Target volumes in the rset
      */
     private List<Volume> getVolumesInRSet(Volume volume) {
         List<Volume> allVolumesInRSet = new ArrayList<Volume>();

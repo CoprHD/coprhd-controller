@@ -26,25 +26,21 @@ import com.google.common.collect.ImmutableMap;
  * Bean class that has maps of the primitive DAO types
  *
  */
-public class CustomServicesPrimitiveDAOs {
-    
-    private final ImmutableMap<String, CustomServicesPrimitiveDAO<?>> typeMap;
-    
-    private final ImmutableMap<String, CustomServicesPrimitiveDAO<?>>  modelMap;
-    
-    public CustomServicesPrimitiveDAOs(final List<CustomServicesPrimitiveDAO<?>> daos) {
-        final ImmutableMap.Builder<String, CustomServicesPrimitiveDAO<?>> typeMapBuilder = ImmutableMap.<String, CustomServicesPrimitiveDAO<?>>builder();
-        final ImmutableMap.Builder<String, CustomServicesPrimitiveDAO<?>> modelMapBuilder= ImmutableMap.<String, CustomServicesPrimitiveDAO<?>>builder();
-        for( final CustomServicesPrimitiveDAO<?> dao : daos ) {
+public class CustomServicesResourceDAOs {
+
+    private final ImmutableMap<String, CustomServicesResourceDAO<?>> typeMap;
+
+
+    public CustomServicesResourceDAOs(final List<CustomServicesResourceDAO<?>> daos) {
+        final ImmutableMap.Builder<String, CustomServicesResourceDAO<?>> typeMapBuilder = ImmutableMap.<String, CustomServicesResourceDAO<?>>builder();
+        for( final CustomServicesResourceDAO<?> dao : daos ) {
             typeMapBuilder.put(dao.getType().toLowerCase(), dao);
-            modelMapBuilder.put(dao.getPrimitiveModel(), dao);
         }
 
         typeMap = typeMapBuilder.build();
-        modelMap = modelMapBuilder.build();
     }
 
-    public CustomServicesPrimitiveDAO<?> get(final String type) {
+    public CustomServicesResourceDAO<?> get(final String type) {
         return typeMap.get(type.toLowerCase());
     }
     
@@ -52,8 +48,5 @@ public class CustomServicesPrimitiveDAOs {
         return typeMap.keySet();
     }
 
-    public CustomServicesPrimitiveDAO<?> getByModel(String typeName) {
-        return modelMap.get(typeName);
-    }
-    
+
 }

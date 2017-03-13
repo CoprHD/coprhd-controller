@@ -49,8 +49,7 @@ import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorExcepti
  * Data access object for Ansible primitives
  *
  */
-public class CustomServicesAnsiblePrimitiveDAO implements
-        CustomServicesPrimitiveDAO<CustomServicesAnsiblePrimitive>, CustomServicesResourceDAO<CustomServicesAnsibleResource> {
+public class CustomServicesAnsibleResourceDAO implements CustomServicesResourceDAO<CustomServicesAnsibleResource> {
     
     @Autowired
     private CustomServicesPrimitiveManager primitiveManager;
@@ -64,38 +63,6 @@ public class CustomServicesAnsiblePrimitiveDAO implements
         return CustomServicesAnsiblePrimitive.TYPE;
     }
     
-    @Override
-    public CustomServicesAnsiblePrimitive get(final URI id) {
-        return CustomServicesDBHelper.get(CustomServicesAnsiblePrimitive.class, CustomServicesDBAnsiblePrimitive.class, primitiveManager, id);
-    }
-
-    @Override
-    public CustomServicesAnsiblePrimitive create(
-            CustomServicesPrimitiveCreateParam param) {
-        return CustomServicesDBHelper.create(CustomServicesAnsiblePrimitive.class, CustomServicesDBAnsiblePrimitive.class, 
-                CustomServicesDBAnsibleResource.class, primitiveManager, param);
-    }
-
-    @Override
-    public CustomServicesAnsiblePrimitive update(URI id,
-            CustomServicesPrimitiveUpdateParam param) {
-        return CustomServicesDBHelper.update(CustomServicesAnsiblePrimitive.class, CustomServicesDBAnsiblePrimitive.class, CustomServicesDBAnsibleResource.class, primitiveManager, client, param, id);
-    }
-
-    @Override
-    public void deactivate(URI id) {
-        CustomServicesDBHelper.deactivate(CustomServicesDBAnsiblePrimitive.class, primitiveManager, client, id);
-    }
-
-    @Override
-    public String getPrimitiveModel() {
-        return CustomServicesDBAnsiblePrimitive.class.getSimpleName();
-    }
-
-    @Override
-    public List<URI> list() {
-        return CustomServicesDBHelper.list(CustomServicesDBAnsiblePrimitive.class, client);
-    }
 
     @Override
     public CustomServicesAnsibleResource getResource(URI id) {
@@ -170,8 +137,5 @@ public class CustomServicesAnsiblePrimitiveDAO implements
         }
     }
 
-    @Override
-    public Iterator<CustomServicesPrimitiveRestRep> bulk(Collection<URI> ids) { 
-        return CustomServicesDBHelper.bulk(ids, CustomServicesAnsiblePrimitive.class, CustomServicesDBAnsiblePrimitive.class, dbClient);
-        }
+
 }

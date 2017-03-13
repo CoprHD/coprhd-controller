@@ -42,77 +42,14 @@ import com.google.common.collect.ImmutableMap.Builder;
  * Data access object for ViPR primitives
  *
  */
-public class CustomServicesViprPrimitiveDAO implements
-        CustomServicesPrimitiveDAO<CustomServicesViPRPrimitive>, CustomServicesResourceDAO<CustomServicesNoResourceType> {
+public class CustomServicesViprResourceDAO implements CustomServicesResourceDAO<CustomServicesNoResourceType> {
 
     private static final List<NamedElement> EMPTY_RESOURCE_LIST = ImmutableList.<NamedElement>builder().build();
-    private final ImmutableMap<URI, CustomServicesViPRPrimitive> PRIMITIVES_MAP;
-    
-    public CustomServicesViprPrimitiveDAO() {
-     
-        final Set<Class<? extends CustomServicesViPRPrimitive>> primitives = 
-                new Reflections("com.emc.storageos", new SubTypesScanner()).getSubTypesOf(CustomServicesViPRPrimitive.class);
-        final Builder<URI, CustomServicesViPRPrimitive> builder = ImmutableMap.<URI, CustomServicesViPRPrimitive>builder();
-        for( final Class<? extends CustomServicesViPRPrimitive> primitive : primitives) {
-            final CustomServicesViPRPrimitive instance;
-            try {
-                instance = primitive.newInstance();
-            } catch (final IllegalAccessException | InstantiationException e) {
-                throw new RuntimeException("Failed to create instance of primitive: "+primitive.getName(), e);
-            }
 
-            builder.put(instance.id(), instance);
-        }
-        PRIMITIVES_MAP = builder.build();
-    }
-  
-    @Override 
+
+    @Override
     public String getType() {
         return CustomServicesViPRPrimitive.TYPE;
-    }
-    
-    @Override
-    public CustomServicesViPRPrimitive get(URI id) {
-        return PRIMITIVES_MAP.get(id);
-    }
-
-
-    @Override
-    public CustomServicesViPRPrimitive create(CustomServicesPrimitiveCreateParam param) {
-        throw APIException.methodNotAllowed.notSupported();
-    }
-
-    @Override
-    public CustomServicesViPRPrimitive update(URI id, CustomServicesPrimitiveUpdateParam param) {
-        throw APIException.methodNotAllowed.notSupported();
-    }
-
-    @Override
-    public void deactivate(URI id) {
-        throw APIException.methodNotAllowed.notSupported();
-    }
-
-    @Override
-    public List<URI> list() {
-        return PRIMITIVES_MAP.keySet().asList();
-    }
-
-    @Override
-    public String getPrimitiveModel() {
-        return CustomServicesViPRPrimitive.class.getSimpleName();
-    }
-
-    @Override
-    public Iterator<CustomServicesPrimitiveRestRep> bulk(final Collection<URI> ids) {
-        ImmutableList.Builder<CustomServicesPrimitiveRestRep> primitives = ImmutableList.<CustomServicesPrimitiveRestRep>builder();
-        for(final URI id : ids ) {
-            final CustomServicesViPRPrimitive primitive = PRIMITIVES_MAP.get(id);
-            final ModelObject model = primitive == null ? null : primitive.asModelObject(); 
-            ArgValidator.checkEntityNotNull(model, id, false);
-            primitives.add(CustomServicesPrimitiveMapper.map(primitive));
-        }
-        
-        return primitives.build().iterator();
     }
 
     @Override

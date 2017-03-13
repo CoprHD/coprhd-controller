@@ -40,7 +40,7 @@ import com.emc.storageos.primitives.db.script.CustomServicesScriptResource;
  * Data access object for script primitives
  *
  */
-public class CustomServicesScriptPrimitiveDAO implements CustomServicesPrimitiveDAO<CustomServicesScriptPrimitive>, CustomServicesResourceDAO<CustomServicesScriptResource>{
+public class CustomServicesScriptResourceDAO implements CustomServicesResourceDAO<CustomServicesScriptResource>{
 
     @Autowired
     private CustomServicesPrimitiveManager primitiveManager;
@@ -52,39 +52,6 @@ public class CustomServicesScriptPrimitiveDAO implements CustomServicesPrimitive
     @Override 
     public String getType() {
         return CustomServicesScriptPrimitive.TYPE;
-    }
-    
-    @Override
-    public CustomServicesScriptPrimitive get(final URI id) {
-        return CustomServicesDBHelper.get(CustomServicesScriptPrimitive.class, CustomServicesDBScriptPrimitive.class, primitiveManager, id);
-    }
-
-    @Override
-    public CustomServicesScriptPrimitive create(
-            CustomServicesPrimitiveCreateParam param) {
-        return CustomServicesDBHelper.create(CustomServicesScriptPrimitive.class, CustomServicesDBScriptPrimitive.class, 
-                CustomServicesDBScriptResource.class, primitiveManager, param);
-    }
-
-    @Override
-    public CustomServicesScriptPrimitive update(URI id,
-            CustomServicesPrimitiveUpdateParam param) {
-        return CustomServicesDBHelper.update(CustomServicesScriptPrimitive.class, CustomServicesDBScriptPrimitive.class, CustomServicesDBScriptResource.class, primitiveManager, client, param, id);
-    }
-
-    @Override
-    public void deactivate(URI id) {
-        CustomServicesDBHelper.deactivate(CustomServicesDBScriptPrimitive.class, primitiveManager, client, id);
-    }
-
-    @Override
-    public String getPrimitiveModel() {
-        return CustomServicesDBScriptPrimitive.class.getSimpleName();
-    }
-
-    @Override
-    public List<URI> list() {
-        return CustomServicesDBHelper.list(CustomServicesDBScriptPrimitive.class, client);
     }
 
     @Override
@@ -127,9 +94,5 @@ public class CustomServicesScriptPrimitiveDAO implements CustomServicesPrimitive
         return true;
     }
 
-    @Override
-    public Iterator<CustomServicesPrimitiveRestRep> bulk(Collection<URI> ids) {
-        return CustomServicesDBHelper.bulk(ids, CustomServicesScriptPrimitive.class, CustomServicesDBScriptPrimitive.class, dbClient);
-    }
 
 }

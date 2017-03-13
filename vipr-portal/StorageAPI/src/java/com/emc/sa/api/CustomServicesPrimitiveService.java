@@ -42,6 +42,9 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
+import com.emc.sa.catalog.primitives.CustomServicesResourceDAO;
+import com.emc.sa.catalog.primitives.CustomServicesResourceDAOs;
+import com.emc.storageos.db.client.model.uimodels.CustomServicesAnsibleInventoryResource;
 import org.apache.commons.codec.binary.Base64;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -89,6 +92,8 @@ public class CustomServicesPrimitiveService extends CatalogTaggedResourceService
     private CustomServicesPrimitiveManager primitiveManager;
     @Autowired
     private CustomServicesPrimitiveDAOs daos;
+    @Autowired
+    private CustomServicesResourceDAOs resourceDAOs;
     
     private static final Logger _log = LoggerFactory
             .getLogger(CustomServicesPrimitiveManager.class);
@@ -113,7 +118,7 @@ public class CustomServicesPrimitiveService extends CatalogTaggedResourceService
 
         final List<URI> list = new ArrayList<URI>();
         for( final String primitiveType : types ) {
-            final CustomServicesPrimitiveDAO<?,?> dao = getDAO(primitiveType, false);
+            final CustomServicesPrimitiveDAO<?> dao = getDAO(primitiveType, false);
             final List<URI> ids = dao.list();
             for(final URI id : ids) {
                 list.add(id);
@@ -137,7 +142,7 @@ public class CustomServicesPrimitiveService extends CatalogTaggedResourceService
     @POST
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     public CustomServicesPrimitiveRestRep makePrimitive(CustomServicesPrimitiveCreateParam param) {
-        final CustomServicesPrimitiveDAO<?,?> dao = getDAO(param.getType(), false);
+        final CustomServicesPrimitiveDAO<?> dao = getDAO(param.getType(), false);
         return CustomServicesPrimitiveMapper.map(dao.create(param));
     }
 
@@ -173,7 +178,7 @@ public class CustomServicesPrimitiveService extends CatalogTaggedResourceService
     @Path("/resource/{type}")
     public CustomServicesPrimitiveResourceList getResources(@PathParam("type") final String type) {
         
-        final CustomServicesPrimitiveDAO<?, ?> dao = daos.get(type);
+        final CustomServicesResourceDAO<?> dao = resourceDAOs.get(type);
         final List<NamedElement> resources = dao.listResources();
         
         return CustomServicesPrimitiveMapper.toCustomServicesPrimitiveResourceList(type, resources);
@@ -195,11 +200,44 @@ public class CustomServicesPrimitiveService extends CatalogTaggedResourceService
             @PathParam("type") String type, @QueryParam("name") String name) {
 
         ArgValidator.checkFieldNotNull(name, "name");
-        CustomServicesPrimitiveDAO<?,?> dao = getDAO(type, true);
+        CustomServicesResourceDAO<?> dao = getResourceDAO(type, true);
 
         final byte[] stream = read(request);
         CustomServicesPrimitiveResourceType resource = dao.createResource(name, stream);
         return CustomServicesPrimitiveMapper.map(resource);
+    }
+
+    /**
+     * Upload a resource
+     * @param request HttpServletRequest containing the file octet stream
+     * @param id The type of the primitive file resource
+     * @param name The user defined name of the resource
+     * @return A rest response containing details of the resource that was created
+     */
+    @POST
+    @Consumes({ MediaType.APPLICATION_OCTET_STREAM })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/resource/{id}/inventory")
+    public CustomServicesPrimitiveResourceRestRep uploadInventoryFile(
+            @Context HttpServletRequest request,
+            @PathParam("id") final URI id, @QueryParam("name") String name) {
+
+        ArgValidator.checkFieldNotNull(name, "name");
+        String type = "ANSIBLE";
+        CustomServicesPrimitiveDAO<?> dao = getDAO(type, true);
+
+        final byte[] stream = read(request);
+//        CustomServicesPrimitiveResourceType resource = dao.createResource(name, stream);
+
+        final CustomServicesAnsibleInventoryResource inventoryResource = new CustomServicesAnsibleInventoryResource();
+        inventoryResource.setId(URIUtil.createId(CustomServicesAnsibleInventoryResource.class));
+        inventoryResource.setAnsiblePackage(id);
+        inventoryResource.setLabel(name);
+        inventoryResource.setResource(Base64.encodeBase64(stream));
+        primitiveManager.save(inventoryResource);
+
+
+        return CustomServicesPrimitiveMapper.map(inventoryResource);
     }
 
     /**
@@ -214,7 +252,7 @@ public class CustomServicesPrimitiveService extends CatalogTaggedResourceService
     @Path("/{id}")
     public CustomServicesPrimitiveRestRep updatePrimitive(@PathParam("id") final URI id,
             final CustomServicesPrimitiveUpdateParam param) {
-        final CustomServicesPrimitiveDAO<?,?> dao = daos.getByModel(URIUtil.getTypeName(id));
+        final CustomServicesPrimitiveDAO<?> dao = daos.getByModel(URIUtil.getTypeName(id));
         if(null == dao) {
             throw APIException.notFound.unableToFindEntityInURL(id);
         }
@@ -234,7 +272,7 @@ public class CustomServicesPrimitiveService extends CatalogTaggedResourceService
             @PathParam("id") final URI id,
             @Context final HttpServletResponse response) {
 
-        CustomServicesPrimitiveDAO<?,?> dao = getDAO(type, true);
+        CustomServicesResourceDAO<?> dao = getResourceDAO(type, true);
 
         CustomServicesPrimitiveResourceType resource = getResourceNullSafe(id, dao);
         final ModelObject model = toModelObject(resource);
@@ -262,7 +300,7 @@ public class CustomServicesPrimitiveService extends CatalogTaggedResourceService
     @Path("/{id}/deactivate")
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     public Response deactivatePrimitive(@PathParam("id") final URI id) {
-        CustomServicesPrimitiveDAO<?,?> dao = getDAOFromID(id);
+        CustomServicesPrimitiveDAO<?> dao = getDAOFromID(id);
         if(null == dao ) {
             throw APIException.notFound.unableToFindEntityInURL(id);
         }
@@ -287,7 +325,7 @@ public class CustomServicesPrimitiveService extends CatalogTaggedResourceService
 
     @Override
     protected DataObject queryResource(URI id) {
-        final CustomServicesPrimitiveDAO<?, ?> dao = getDAOFromID(id);
+        final CustomServicesPrimitiveDAO<?> dao = getDAOFromID(id);
         return dao == null ? null : asModelObjectNullSafe(dao.get(id));
     }
 
@@ -319,10 +357,10 @@ public class CustomServicesPrimitiveService extends CatalogTaggedResourceService
     }
     
     private List<CustomServicesPrimitiveRestRep> getPrimitiveRestReps(final List<URI> ids) {
-        final ImmutableListMultimap<CustomServicesPrimitiveDAO<?,?>, URI> idGroups = Multimaps.index(ids, new Function<URI, CustomServicesPrimitiveDAO<?,?>>() {
+        final ImmutableListMultimap<CustomServicesPrimitiveDAO<?>, URI> idGroups = Multimaps.index(ids, new Function<URI, CustomServicesPrimitiveDAO<?>>() {
             @Override
-            public CustomServicesPrimitiveDAO<?,?> apply(final URI id) {
-                CustomServicesPrimitiveDAO<?,?> dao = getDAOFromID(id);
+            public CustomServicesPrimitiveDAO<?> apply(final URI id) {
+                CustomServicesPrimitiveDAO<?> dao = getDAOFromID(id);
                 if( null == dao) {
                     throw BadRequestException.badRequests.invalidParameter("id", id.toString());
                 }
@@ -331,14 +369,14 @@ public class CustomServicesPrimitiveService extends CatalogTaggedResourceService
         });
         
         final ImmutableList.Builder<CustomServicesPrimitiveRestRep> builder = ImmutableList.<CustomServicesPrimitiveRestRep>builder();
-        for( final Entry<CustomServicesPrimitiveDAO<?,?>, Collection<URI>> entry : idGroups.asMap().entrySet()) {
+        for( final Entry<CustomServicesPrimitiveDAO<?>, Collection<URI>> entry : idGroups.asMap().entrySet()) {
             builder.addAll(entry.getKey().bulk(entry.getValue()));
         }
         return builder.build();
     }
     
-    private CustomServicesPrimitiveDAO<?,?> getDAO(final String type, final boolean embedded) {
-        final CustomServicesPrimitiveDAO<?,?> dao = daos.get(type);
+    private CustomServicesPrimitiveDAO<?> getDAO(final String type, final boolean embedded) {
+        final CustomServicesPrimitiveDAO<?> dao = daos.get(type);
         
         if( null == dao) {
             if(embedded) {
@@ -350,16 +388,32 @@ public class CustomServicesPrimitiveService extends CatalogTaggedResourceService
         
         return dao;
     }
+
+    private CustomServicesResourceDAO<?> getResourceDAO(final String type, final boolean embedded) {
+        final CustomServicesResourceDAO<?> dao = resourceDAOs.get(type);
+
+        if( null == dao) {
+            if(embedded) {
+                throw NotFoundException.notFound.unableToFindEntityInURL(URIUtil.uri(type));
+            } else {
+                throw BadRequestException.badRequests.unableToFindEntity(URIUtil.uri(type));
+            }
+        }
+
+        return dao;
+    }
+
+
     
     private CustomServicesPrimitiveType getPrimitiveType(final URI id) {
-        final CustomServicesPrimitiveDAO<?,?> dao = getDAOFromID(id);
+        final CustomServicesPrimitiveDAO<?> dao = getDAOFromID(id);
         final CustomServicesPrimitiveType primitive = (null == dao) ? null : dao.get(id);
         ArgValidator.checkEntityNotNull(asModelObjectNullSafe(primitive), id, true);
         return primitive;
     }
     
 
-    private CustomServicesPrimitiveDAO<?, ?> getDAOFromID(final URI id) {
+    private CustomServicesPrimitiveDAO<?> getDAOFromID(final URI id) {
         return  daos.getByModel(URIUtil.getTypeName(id));
     }
     
@@ -369,12 +423,12 @@ public class CustomServicesPrimitiveService extends CatalogTaggedResourceService
     }
     
     private CustomServicesPrimitiveType getNullSafe(final URI id,
-            final CustomServicesPrimitiveDAO<?, ?> dao) {
+            final CustomServicesPrimitiveDAO<?> dao) {
         return dao == null ? null : dao.get(id);
     }
     
     private CustomServicesPrimitiveResourceType getResourceNullSafe(final URI id,
-            final CustomServicesPrimitiveDAO<?, ?> dao) {
+            final CustomServicesResourceDAO<?> dao) {
         return dao == null ? null : dao.getResource(id);
     }
     

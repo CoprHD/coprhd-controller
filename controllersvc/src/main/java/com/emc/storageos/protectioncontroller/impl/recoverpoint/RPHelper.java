@@ -105,7 +105,7 @@ public class RPHelper {
     public static final String JOURNAL = "journal";
     public static final Long DEFAULT_RP_JOURNAL_SIZE_IN_BYTES = 10737418240L; // default minimum journal size is 10GB (in bytes)
 
-    private DbClient dbClient;
+    private DbClient _dbClient;
     private static final Logger _log = LoggerFactory.getLogger(RPHelper.class);
 
     private static final String HTTPS = "https";
@@ -120,7 +120,7 @@ public class RPHelper {
     public static final String REMOVE_PROTECTION = "REMOVE_PROTECTION";
 
     public void setDbClient(DbClient dbClient) {
-        dbClient = dbClient;
+        _dbClient = dbClient;
     }
 
     /**
@@ -195,11 +195,11 @@ public class RPHelper {
      * @return
      */
     public VirtualPool getTargetVirtualPool(VirtualArray tgtVarray, VirtualPool srcVpool) {
-        VpoolProtectionVarraySettings settings = getProtectionSettings(srcVpool, tgtVarray, dbClient);
+        VpoolProtectionVarraySettings settings = getProtectionSettings(srcVpool, tgtVarray, _dbClient);
         // If there was no vpool specified use the source vpool for this varray.
         VirtualPool tgtVpool = srcVpool;
         if (settings.getVirtualPool() != null) {
-            tgtVpool = dbClient.queryObject(VirtualPool.class, settings.getVirtualPool());
+            tgtVpool = _dbClient.queryObject(VirtualPool.class, settings.getVirtualPool());
         }
         return tgtVpool;
     }
@@ -217,7 +217,7 @@ public class RPHelper {
         if (Volume.PersonalityTypes.SOURCE.name().equalsIgnoreCase(volume.getPersonality())) {
             sourceVol = volume;
         } else {
-            sourceVol = getRPSourceVolumeFromTarget(dbClient, volume);
+            sourceVol = getRPSourceVolumeFromTarget(_dbClient, volume);
         }
 
         if (sourceVol != null) {
@@ -228,13 +228,13 @@ public class RPHelper {
                     if (tgtVolId.equals(volume.getId().toString())) {
                         allVolumesInRSet.add(volume);
                     } else {
-                        Volume tgt = dbClient.queryObject(Volume.class, URI.create(tgtVolId));
+                        Volume tgt = _dbClient.queryObject(Volume.class, URI.create(tgtVolId));
                         if (tgt != null && !tgt.getInactive()) {
                             allVolumesInRSet.add(tgt);
                         }
 
                         // if this target was previously the Metropoint active source, go out and get the standby copy
-                        if (tgt != null && RPHelper.isMetroPointVolume(dbClient, tgt)) {
+                        if (tgt != null && RPHelper.isMetroPointVolume(_dbClient, tgt)) {
                             allVolumesInRSet.addAll(getMetropointStandbyCopies(tgt));
                         }
                     }
@@ -284,7 +284,7 @@ public class RPHelper {
         Set<URI> volumeIDs = new HashSet<URI>();
         Set<URI> protectionSetIds = new HashSet<URI>();
 
-        Iterator<Volume> volumes = dbClient.queryIterativeObjects(Volume.class, reqDeleteVolumes, true);
+        Iterator<Volume> volumes = _dbClient.queryIterativeObjects(Volume.class, reqDeleteVolumes, true);
 
         // Divide the RP volumes by BlockConsistencyGroup so we can determine if all volumes in the
         // RP consistency group are being removed.
@@ -318,13 +318,13 @@ public class RPHelper {
                     protectionSetIds.add(vol.getProtectionSet().getURI());
                 }
                 // If this is a partially ingested RP volume, clean up the corresponding unmanaged protection set
-                List<UnManagedProtectionSet> umpsets = CustomQueryUtility.getUnManagedProtectionSetByManagedVolumeId(dbClient,
+                List<UnManagedProtectionSet> umpsets = CustomQueryUtility.getUnManagedProtectionSetByManagedVolumeId(_dbClient,
                         vol.getId().toString());
                 for (UnManagedProtectionSet umpset : umpsets) {
                     umpset.getManagedVolumeIds().remove(vol.getId().toString());
                     // Clean up the volume's reference, if any, in the unmanaged volumes associated with the unmanaged protection set
                     for (String umv : umpset.getUnManagedVolumeIds()) {
-                        UnManagedVolume umVolume = dbClient.queryObject(UnManagedVolume.class, URI.create(umv));
+                        UnManagedVolume umVolume = _dbClient.queryObject(UnManagedVolume.class, URI.create(umv));
                         StringSet rpManagedSourceVolumeInfo = umVolume.getVolumeInformation()
                                 .get(SupportedVolumeInformation.RP_MANAGED_SOURCE_VOLUME.toString());
                         StringSet rpManagedTargetVolumeInfo = umVolume.getVolumeInformation()
@@ -336,9 +336,9 @@ public class RPHelper {
                         if (rpManagedTargetVolumeInfo != null && !rpManagedTargetVolumeInfo.isEmpty()) {
                             rpManagedTargetVolumeInfo.remove(vol.getId().toString());
                         }
-                        dbClient.updateObject(umVolume);
+                        _dbClient.updateObject(umVolume);
                     }
-                    dbClient.updateObject(umpset);
+                    _dbClient.updateObject(umpset);
                 }
             }
 
@@ -364,8 +364,8 @@ public class RPHelper {
         for (Map.Entry<URI, Set<URI>> cgToVolumesForDelete : cgsToVolumesForDelete.entrySet()) {
             BlockConsistencyGroup cg = null;
             URI cgURI = cgToVolumesForDelete.getKey();
-            cg = dbClient.queryObject(BlockConsistencyGroup.class, cgURI);
-            List<Volume> cgVolumes = getAllCgVolumes(cgURI, dbClient);
+            cg = _dbClient.queryObject(BlockConsistencyGroup.class, cgURI);
+            List<Volume> cgVolumes = getAllCgVolumes(cgURI, _dbClient);
 
             // determine if all of the source and target volumes in the consistency group are on the list
             // of volumes to delete; if so, we will add the journal volumes to the list.
@@ -394,7 +394,7 @@ public class RPHelper {
                 // We are removing the CG, determine all the journal volumes in it and
                 // add them to the list of volumes to be removed
                 if (cg != null) {
-                    List<Volume> allJournals = getCgVolumes(dbClient, cg.getId(), Volume.PersonalityTypes.METADATA.toString());
+                    List<Volume> allJournals = getCgVolumes(_dbClient, cg.getId(), Volume.PersonalityTypes.METADATA.toString());
                     if (allJournals != null && !allJournals.isEmpty()) {
                         Set<URI> allJournalURIs = new HashSet<URI>();
                         for (Volume journalVolume : allJournals) {
@@ -421,13 +421,13 @@ public class RPHelper {
         // "bad things" from happening.
         for (URI protSetId : protectionSetIds) {
             List<String> staleVolumes = new ArrayList<String>();
-            ProtectionSet protectionSet = dbClient.queryObject(ProtectionSet.class, protSetId);
+            ProtectionSet protectionSet = _dbClient.queryObject(ProtectionSet.class, protSetId);
 
             if (protectionSet.getVolumes() != null) {
                 for (String protSetVol : protectionSet.getVolumes()) {
                     URI protSetVolUri = URI.create(protSetVol);
                     if (!volumeIDs.contains(protSetVolUri)) {
-                        Volume vol = dbClient.queryObject(Volume.class, protSetVolUri);
+                        Volume vol = _dbClient.queryObject(Volume.class, protSetVolUri);
                         if (vol == null || vol.getInactive()) {
                             // The ProtectionSet references a stale volume that no longer exists in the DB.
                             _log.info("ProtectionSet " + protectionSet.getLabel() + " references volume " + protSetVol
@@ -443,7 +443,7 @@ public class RPHelper {
                 for (String vol : staleVolumes) {
                     protectionSet.getVolumes().remove(vol);
                 }
-                dbClient.updateObject(protectionSet);
+                _dbClient.updateObject(protectionSet);
             }
         }
 
@@ -468,7 +468,7 @@ public class RPHelper {
             Set<URI> allVolumeIds = getVolumesToDelete(volumeURIs);
 
             for (URI volumeURI : allVolumeIds) {
-                Volume volume = dbClient.queryObject(Volume.class, volumeURI);
+                Volume volume = _dbClient.queryObject(Volume.class, volumeURI);
                 VolumeDescriptor descriptor = null;
                 boolean isSourceVolume = false;
 
@@ -502,7 +502,7 @@ public class RPHelper {
                 }
 
                 // If this is a virtual volume, add a descriptor for the virtual volume
-                if (RPHelper.isVPlexVolume(volume, dbClient)) {
+                if (RPHelper.isVPlexVolume(volume, _dbClient)) {
                     // VPLEX virtual volume
                     descriptor = new VolumeDescriptor(VolumeDescriptor.Type.VPLEX_VIRT_VOLUME, volume.getStorageController(),
                             volume.getId(), null, null);
@@ -523,7 +523,7 @@ public class RPHelper {
                     // Next, add all the BLOCK volume descriptors for the VPLEX back-end volumes
                     for (String associatedVolumeId : volume.getAssociatedVolumes()) {
                         operationType = LOG_MSG_OPERATION_TYPE_DELETE;
-                        Volume associatedVolume = dbClient.queryObject(Volume.class, URI.create(associatedVolumeId));
+                        Volume associatedVolume = _dbClient.queryObject(Volume.class, URI.create(associatedVolumeId));
                         // a previous failed delete may have already removed associated volumes
                         if (associatedVolume != null && !associatedVolume.getInactive()) {
                             descriptor = new VolumeDescriptor(VolumeDescriptor.Type.BLOCK_DATA, associatedVolume.getStorageController(),
@@ -785,7 +785,7 @@ public class RPHelper {
     public boolean isInitiatorInVarray(VirtualArray varray, String wwn) throws InternalException {
         // Get the networks assigned to the virtual array.
         List<Network> networks = CustomQueryUtility.queryActiveResourcesByRelation(
-                dbClient, varray.getId(), Network.class, "connectedVirtualArrays");
+                _dbClient, varray.getId(), Network.class, "connectedVirtualArrays");
 
         for (Network network : networks) {
             if (network == null || network.getInactive() == true) {
@@ -821,18 +821,18 @@ public class RPHelper {
         // Determine what network the StorageSystem is part of and verify that the RP site initiators
         // are part of that network.
         // Then get the front end ports on the Storage array.
-        Map<URI, List<StoragePort>> arrayTargetMap = ConnectivityUtil.getStoragePortsOfType(dbClient,
+        Map<URI, List<StoragePort>> arrayTargetMap = ConnectivityUtil.getStoragePortsOfType(_dbClient,
                 storageSystemURI, StoragePort.PortType.frontend);
         Set<URI> arrayTargetNetworks = new HashSet<URI>();
         arrayTargetNetworks.addAll(arrayTargetMap.keySet());
 
-        ProtectionSystem protectionSystem = dbClient.queryObject(ProtectionSystem.class, protectionSystemURI);
+        ProtectionSystem protectionSystem = _dbClient.queryObject(ProtectionSystem.class, protectionSystemURI);
         StringSet siteInitiators = protectionSystem.getSiteInitiators().get(siteId);
 
         // Build a List of RP site initiator networks
         Set<URI> rpSiteInitiatorNetworks = new HashSet<URI>();
         for (String wwn : siteInitiators) {
-            NetworkLite rpSiteInitiatorNetwork = NetworkUtil.getEndpointNetworkLite(wwn, dbClient);
+            NetworkLite rpSiteInitiatorNetwork = NetworkUtil.getEndpointNetworkLite(wwn, _dbClient);
             if (rpSiteInitiatorNetwork != null) {
                 rpSiteInitiatorNetworks.add(rpSiteInitiatorNetwork.getId());
             }
@@ -885,11 +885,11 @@ public class RPHelper {
      */
     public boolean containsActiveRpVolumes(URI id) {
         URIQueryResultList result = new URIQueryResultList();
-        dbClient.queryByConstraint(ContainmentConstraint.Factory.getStorageDeviceVolumeConstraint(id), result);
+        _dbClient.queryByConstraint(ContainmentConstraint.Factory.getStorageDeviceVolumeConstraint(id), result);
         Iterator<URI> volumeUriItr = result.iterator();
 
         while (volumeUriItr.hasNext()) {
-            Volume volume = dbClient.queryObject(Volume.class, volumeUriItr.next());
+            Volume volume = _dbClient.queryObject(Volume.class, volumeUriItr.next());
             // Is this an active RP volume?
             if (volume != null && !volume.getInactive()
                     && volume.getRpCopyName() != null && !volume.getRpCopyName().isEmpty()) {
@@ -912,12 +912,12 @@ public class RPHelper {
     public Long computeVmaxVolumeProvisionedCapacity(long requestedSize,
             Volume volume, StorageSystem storageSystem) {
         Long vmaxPotentialProvisionedCapacity = 0L;
-        StoragePool expandVolumePool = dbClient.queryObject(StoragePool.class, volume.getPool());
+        StoragePool expandVolumePool = _dbClient.queryObject(StoragePool.class, volume.getPool());
         long metaMemberSize = volume.getIsComposite() ? volume.getMetaMemberSize() : volume.getCapacity();
         long metaCapacity = volume.getIsComposite() ? volume.getTotalMetaMemberCapacity() : volume.getCapacity();
         MetaVolumeRecommendation metaRecommendation = MetaVolumeUtils.getExpandRecommendation(storageSystem, expandVolumePool,
                 metaCapacity, requestedSize, metaMemberSize, volume.getThinlyProvisioned(),
-                dbClient.queryObject(VirtualPool.class, volume.getVirtualPool()).getFastExpansion());
+                _dbClient.queryObject(VirtualPool.class, volume.getVirtualPool()).getFastExpansion());
 
         if (metaRecommendation.isCreateMetaVolumes()) {
             long metaMemberCount = volume.getIsComposite() ? metaRecommendation.getMetaMemberCount() + volume.getMetaMemberCount()
@@ -1436,14 +1436,14 @@ public class RPHelper {
             return standbyCopies;
         }
 
-        ProtectionSet protectionSet = dbClient.queryObject(ProtectionSet.class, volume.getProtectionSet());
+        ProtectionSet protectionSet = _dbClient.queryObject(ProtectionSet.class, volume.getProtectionSet());
 
         if (protectionSet.getVolumes() == null) {
             return standbyCopies;
         }
 
         // look for the standby varray in the volume's vpool
-        VirtualPool vpool = dbClient.queryObject(VirtualPool.class, volume.getVirtualPool());
+        VirtualPool vpool = _dbClient.queryObject(VirtualPool.class, volume.getVirtualPool());
 
         if (vpool == null) {
             return standbyCopies;
@@ -1455,10 +1455,10 @@ public class RPHelper {
 
             // now loop through the replication set volumes and look for any copies from the standby varray
             for (String rsetVolId : protectionSet.getVolumes()) {
-                Volume rsetVol = dbClient.queryObject(Volume.class, URI.create(rsetVolId));
+                Volume rsetVol = _dbClient.queryObject(Volume.class, URI.create(rsetVolId));
                 if (rsetVol != null && !rsetVol.getInactive() && rsetVol.getRpTargets() != null) {
                     for (String targetVolId : rsetVol.getRpTargets()) {
-                        Volume targetVol = dbClient.queryObject(Volume.class, URI.create(targetVolId));
+                        Volume targetVol = _dbClient.queryObject(Volume.class, URI.create(targetVolId));
                         if (targetVol.getVirtualArray().equals(standbyVarrayId)) {
                             standbyCopies.add(targetVol);
                         }
@@ -1857,7 +1857,7 @@ public class RPHelper {
      */
     private List<Volume> getJournalVolumesForSite(VirtualArray varray, BlockConsistencyGroup consistencyGroup) {
         List<Volume> journalVols = new ArrayList<Volume>();
-        List<Volume> volsInCg = getAllCgVolumes(consistencyGroup.getId(), dbClient);
+        List<Volume> volsInCg = getAllCgVolumes(consistencyGroup.getId(), _dbClient);
         if (volsInCg != null) {
             for (Volume volInCg : volsInCg) {
                 if (Volume.PersonalityTypes.METADATA.toString().equals(volInCg.getPersonality())
@@ -1924,8 +1924,8 @@ public class RPHelper {
             // we could end up with a duplicate name error when we go to prepare the backend
             // volume for a new journal volume, such as when journal capacity is added to
             // an RP protected volume. See Jira COP-24930.
-            if (journalVol.isVPlexVolume(dbClient)) {
-                Volume journalBackendVol = VPlexUtil.getVPLEXBackendVolume(journalVol, true, dbClient);
+            if (journalVol.isVPlexVolume(_dbClient)) {
+                Volume journalBackendVol = VPlexUtil.getVPLEXBackendVolume(journalVol, true, _dbClient);
                 if (journalBackendVol != null) {
                     journalVolName = journalBackendVol.getLabel();
                     journalVolName = journalVolName.substring(0, journalVolName.lastIndexOf("-0"));

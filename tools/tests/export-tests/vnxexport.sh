@@ -969,10 +969,6 @@ test_22() {
     verify_export ${HOST1} gone
     verify_export ${HOST2} 2 1
     verify_export ${HOST3} 2 1
-    runcmd export_group update ${PROJECT}/$hostXP --addHosts "${HOST1ID}"
-    verify_export ${HOST1} 2 1
-    verify_export ${HOST2} 2 1
-    verify_export ${HOST3} 2 1
     runcmd export_group delete ${PROJECT}/$clusterXP
     runcmd export_group delete ${PROJECT}/$hostXP
     verify_export ${HOST1} gone

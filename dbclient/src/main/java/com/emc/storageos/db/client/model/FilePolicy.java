@@ -110,7 +110,7 @@ public class FilePolicy extends DataObjectWithACLs {
     }
 
     public static enum FilePolicyPriority {
-        HIGH, LOW;
+        Normal, High;
     }
 
     @Name("fileReplicationType")

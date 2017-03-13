@@ -617,6 +617,10 @@ public class FilePolicyService extends TaskResourceService {
 
         ArgValidator.checkFieldValueFromEnum(param.getReplicationPolicyParams().getReplicationCopyMode(), "replicationCopyMode",
                 EnumSet.allOf(FilePolicy.FileReplicationCopyMode.class));
+        
+        ArgValidator.checkFieldValueFromEnum(param.getPriority(), "priority",
+                    EnumSet.allOf(FilePolicyPriority.class));
+           
 
         fileReplicationPolicy.setId(URIUtil.createId(FilePolicy.class));
         fileReplicationPolicy.setFilePolicyName(param.getPolicyName());

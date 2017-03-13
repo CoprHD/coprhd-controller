@@ -177,10 +177,11 @@ public class ValidateCustomServiceWorkflow {
             validateOtherStepInput(step1, in, attribute);
         } else if (in.getType().equals(CustomServicesConstants.InputType.FROM_STEP_OUTPUT.toString())) {
             validateOtherStepOutput(step1, in, attribute);
-        }
+        } else {
 
         throw InternalServerErrorException.internalServerErrors.
                 customServiceExecutionFailed("Cannot find value for input param" + in.getName());
+	}
     }
 
     private void validateStep(final Step step) {

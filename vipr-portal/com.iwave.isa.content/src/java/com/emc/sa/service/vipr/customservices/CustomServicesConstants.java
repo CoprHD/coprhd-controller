@@ -67,6 +67,7 @@ public final class CustomServicesConstants {
     public static final String INPUT_PARAMS = "input_params";
     public static final String CONNECTION_DETAILS = "connection_details";
     public static final String ANSIBLE_OPTIONS = "ansible_options";
+    public static final String REST_OPTIONS = "rest_options";
 
     public enum InputType {
         FROM_USER("InputFromUser"),

@@ -22,6 +22,8 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.*;
+import com.emc.sa.service.vipr.customservices.tasks.*;
 
 import org.apache.commons.lang.StringUtils;
 import org.codehaus.jackson.JsonNode;
@@ -34,6 +36,7 @@ import org.springframework.expression.ExpressionParser;
 import org.springframework.expression.spel.standard.SpelExpressionParser;
 import org.springframework.expression.spel.support.StandardEvaluationContext;
 
+import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.engine.service.Service;
 import com.emc.sa.service.vipr.ViPRExecutionUtils;
@@ -41,6 +44,7 @@ import com.emc.sa.service.vipr.ViPRService;
 import com.emc.sa.service.vipr.customservices.CustomServicesConstants.InputType;
 import com.emc.sa.service.vipr.customservices.gson.ViprOperation;
 import com.emc.sa.service.vipr.customservices.gson.ViprTask;
+import com.emc.sa.service.vipr.customservices.tasks.CustomServicesRESTExecution;
 import com.emc.sa.service.vipr.customservices.tasks.CustomServicesTaskResult;
 import com.emc.sa.service.vipr.customservices.tasks.RunAnsible;
 import com.emc.sa.service.vipr.customservices.tasks.RunViprREST;
@@ -66,6 +70,8 @@ public class CustomServicesService extends ViPRService {
     final private Map<String, Map<String, List<String>>> outputPerStep = new HashMap<String, Map<String, List<String>>>();
     private Map<String, Object> params;
     private String oeOrderJson;
+    @Autowired
+    private CoordinatorClient coordinatorClient;
     @Autowired
     private DbClient dbClient;
     private ImmutableMap<String, Step> stepsHash;
@@ -148,11 +154,11 @@ public class CustomServicesService extends ViPRService {
 
                         break;
                     }
-                    case REST: {
-                        // TODO implement other REST Execution
-                        res = null;
+                    case REST:
+		    case REST_LOGIN: 
+			logger.info("Start REST execution");
+			res = ViPRExecutionUtils.execute(new CustomServicesRESTExecution(coordinatorClient, inputPerStep.get(step.getId()), step));
                         break;
-                    }
                     case LOCAL_ANSIBLE:
                     case SHELL_SCRIPT:
                         res = ViPRExecutionUtils.execute(new RunAnsible(step, inputPerStep.get(step.getId()), params, dbClient));
@@ -173,7 +179,7 @@ public class CustomServicesService extends ViPRService {
                 boolean isSuccess = isSuccess(step, res);
                 if (isSuccess) {
                     try {
-                        updateOutputPerStep(step, res.getOut());
+                        updateOutputPerStep(step, res);
                     } catch (final Exception e) {
                         logger.info("Failed to parse output" + e);
 
@@ -231,25 +237,24 @@ public class CustomServicesService extends ViPRService {
             return;
         }
 
-        final List<Input> input = step.getInputGroups().get(CustomServicesConstants.INPUT_PARAMS).getInputGroup();
-
-        if (input == null) {
-            return;
-        }
-
         final Map<String, List<String>> inputs = new HashMap<String, List<String>>();
-
-        for (final Input value : input) {
+        for (final CustomServicesWorkflowDocument.InputGroup inputGroup : step.getInputGroups().values()) {
+            for (final Input value : inputGroup.getInputGroup()) {
             final String name = value.getName();
-
+                logger.info("name is:{}", name);
             switch (InputType.fromString(value.getType())) {
                 case FROM_USER:
                 case OTHERS:
                 case ASSET_OPTION: {
-                    if (params.get(name) != null) {
-                        inputs.put(name, Arrays.asList(params.get(name).toString()));
+		    final String friendlyName = value.getFriendlyName();
+                        logger.info("friendlyName:{}", friendlyName);
+                    if (params.get(friendlyName) != null) {
+                           logger.info("friendlyName is not null. value is:{}", params.get(friendlyName).toString());
+                        inputs.put(name, Arrays.asList(params.get(friendlyName).toString()));
                     } else {
+			logger.info("friendlyName is null");
                         if (value.getDefaultValue() != null) {
+				logger.info("default value is not null:{}", Arrays.asList(value.getDefaultValue()));
                             inputs.put(name, Arrays.asList(value.getDefaultValue()));
                         }
                     }
@@ -279,12 +284,15 @@ public class CustomServicesService extends ViPRService {
                         logger.info("value default is:{}", Arrays.asList(value.getDefaultValue()));
                         break;
                     }
+
+		    break;
                 }
                 default:
                     throw InternalServerErrorException.internalServerErrors
                             .customServiceExecutionFailed("Invalid input type:" + value.getType());
             }
         }
+	}
 
         inputPerStep.put(step.getId(), inputs);
     }
@@ -320,20 +328,36 @@ public class CustomServicesService extends ViPRService {
      * @param step
      * @param result
      */
-    private void updateOutputPerStep(final Step step, final String result) throws Exception {
+    private void updateOutputPerStep(final Step step, final CustomServicesTaskResult res) throws Exception {
         final List<CustomServicesWorkflowDocument.Output> output = step.getOutput();
         if (output == null)
             return;
-
+	String result = res.getOut();
         final Map<String, List<String>> out = new HashMap<String, List<String>>();
 
         for (CustomServicesWorkflowDocument.Output o : output) {
             if (isAnsible(step)) {
                 out.put(o.getName(), evaluateAnsibleOut(result, o.getName()));
+            } else if (step.getType().equals(StepType.REST_LOGIN.toString())) {
+                if (o.getName().equals("token")) {
+
+                    logger.info("get the token:{}", o.getTable());
+
+                    CustomServicesRestTaskResult restResult = (CustomServicesRestTaskResult)res;
+                    Set<Map.Entry<String, List<String>>> headers =  restResult.getHeaders();
+                    for (Map.Entry<String, List<String>> entry : headers) {
+                        logger.info("header name:{}", entry.getKey());
+                        logger.info("header value:{}", entry.getValue());
+                        if (entry.getKey().equals(o.getTable())) {
+                            logger.info("value matched:{} :{}", entry.getKey(), entry.getValue());
+                            out.put(o.getTable(), entry.getValue());
+                        }
+                    }
+                }
             } else {
-                // TODO: Remove this after parsing output is fully implemented
-                // out.put(o.getName(), evaluateValue(result, o.getName()));
-                return;
+                    // TODO: Remove this after parsing output is fully implemented
+                    // out.put(o.getName(), evaluateValue(result, o.getName()));
+                    return;
             }
         }
 

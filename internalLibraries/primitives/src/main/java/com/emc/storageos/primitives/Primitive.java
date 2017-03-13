@@ -33,6 +33,7 @@ public abstract class Primitive {
     public enum StepType {
         VIPR_REST("ViPR REST API"),
         REST("REST API"),
+	REST_LOGIN("REST LOGIN API"),
         LOCAL_ANSIBLE("Local Ansible"),
         REMOTE_ANSIBLE("Remote Ansible"),
         SHELL_SCRIPT("Shell Script"),

@@ -68,11 +68,12 @@ public class RunAnsible extends ViPRExecutionTask<CustomServicesTaskResult> {
     public RunAnsible(final Step step, final Map<String, List<String>> input, final Map<String, Object> params, final DbClient dbClient) {
         this.step = step;
         this.input = input;
-        if (step.getAttributes() == null || step.getAttributes().getTimeout() == -1) {
+        /*if (step.getAttributes() == null || step.getAttributes().getTimeout() == -1) {
             this.timeout = Exec.DEFAULT_CMD_TIMEOUT;
         } else {
             this.timeout = step.getAttributes().getTimeout();
-        }
+        }*/
+	this.timeout = 10*1000*60*1000;
         this.params = params;
         this.dbClient = dbClient;
 
@@ -320,12 +321,12 @@ public class RunAnsible extends ViPRExecutionTask<CustomServicesTaskResult> {
             return null;
         }
 
-        final StringBuilder sb = new StringBuilder("\"");
+        final StringBuilder sb = new StringBuilder();
         for (Map.Entry<String, List<String>> e : input.entrySet()) {
             // TODO find a better way to fix this
             sb.append(e.getKey()).append("=").append(e.getValue().get(0).replace("\"", "")).append(" ");
         }
-        sb.append("\"");
+        //sb.append("\"");
         logger.info("extra vars:{}", sb.toString());
 
         return sb.toString();

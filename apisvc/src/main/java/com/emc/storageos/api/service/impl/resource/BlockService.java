@@ -2058,7 +2058,7 @@ public class BlockService extends TaskResourceService {
      *
      * If "?force=true" is added to the path, it will force the delete of internal
      * volumes that have the SUPPORTS_FORCE flag.
-     * 
+     *
      * If "?type=VIPR_ONLY" is added to the path, it will delete volumes only from ViPR data base and leaves the volume on storage array as
      * it is.
      * Possible value for the attribute type : FULL, VIPR_ONLY
@@ -3112,6 +3112,15 @@ public class BlockService extends TaskResourceService {
 
         if (op.equalsIgnoreCase(ProtectionOp.SWAP.getRestOp()) && !NullColumnValueGetter.isNullURI(volume.getConsistencyGroup())) {
             ExportUtils.validateConsistencyGroupBookmarksExported(_dbClient, volume.getConsistencyGroup());
+        }
+
+        // Make sure the source and failover target share the same consistency group (applies to change access mode, failover, and failover
+        // cancel operations)
+        if ((op.equalsIgnoreCase(ProtectionOp.CHANGE_ACCESS_MODE.getRestOp()) || op.equalsIgnoreCase(ProtectionOp.FAILOVER.getRestOp()) || op
+                .equalsIgnoreCase(ProtectionOp.FAILOVER_CANCEL.getRestOp()))
+                && !NullColumnValueGetter.isNullURI(volume.getConsistencyGroup())
+                && !volume.getConsistencyGroup().equals(copyVolume.getConsistencyGroup())) {
+            throw APIException.badRequests.invalidConsistencyGroupsForProtectionOperation();
         }
 
         // Catch any attempts to use an invalid access mode
@@ -5418,9 +5427,9 @@ public class BlockService extends TaskResourceService {
     /*
      * Validate if the physical array that the consistency group bonded to is associated
      * with the virtual array
-     * 
+     *
      * @param consistencyGroup
-     * 
+     *
      * @param varray virtual array
      */
     private void validateCGValidWithVirtualArray(BlockConsistencyGroup consistencyGroup,
@@ -5573,7 +5582,7 @@ public class BlockService extends TaskResourceService {
      * Validate volume being expanded is not an SRDF volume with snapshots attached,
      * which isn't handled.
      * Also make sure that the SRDF Copy Mode is not Active.
-     * 
+     *
      * @param volume
      *            -- Volume being expanded
      * @throws Exception

@@ -4,17 +4,6 @@
  */
 package com.emc.storageos.volumecontroller.impl.plugins.metering.smis.processor;
 
-import java.util.List;
-import java.util.Map;
-
-import javax.cim.CIMArgument;
-import javax.cim.CIMDataType;
-import javax.cim.CIMObjectPath;
-import javax.cim.CIMProperty;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.emc.storageos.cimadapter.connections.cim.CimObjectPathCreator;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.Stat;
@@ -26,6 +15,15 @@ import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.emc.storageos.volumecontroller.impl.plugins.metering.CassandraInsertion;
 import com.google.common.base.Splitter;
 import com.google.common.collect.Lists;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import javax.cim.CIMArgument;
+import javax.cim.CIMDataType;
+import javax.cim.CIMObjectPath;
+import javax.cim.CIMProperty;
+import java.util.List;
+import java.util.Map;
 
 /**
  * VolumeProcessor used in retrieving ReadIOs,WriteIOs,nativeGuid

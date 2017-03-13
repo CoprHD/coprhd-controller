@@ -406,7 +406,7 @@ public class WorkflowService implements WorkflowController {
             dataRecord.setLabel(key);
             created = true;
         }
-        dataRecord.setData(GenericSerializer.serialize(data));
+        dataRecord.setData(GenericSerializer.serialize(data, key, false));
         if (created) {
             _dbClient.createObject(dataRecord);
             _log.info(String.format("Created WorkflowStepData for %s %s %s", workflowURI, stepId, key));
@@ -1883,10 +1883,10 @@ public class WorkflowService implements WorkflowController {
 
             // Save the execute and rollback method arguments in the database.
             // We don't want to waste precious ZK space for this.
-            byte[] executeMethodData = GenericSerializer.serialize(step.executeMethod);
+            byte[] executeMethodData = GenericSerializer.serialize(step.executeMethod, step.executeMethod.methodName, false);
             logStep.setExecuteMethodData(executeMethodData);
             if (step.rollbackMethod != null) {
-                byte[] rollbackMethodData = GenericSerializer.serialize(step.rollbackMethod);
+                byte[] rollbackMethodData = GenericSerializer.serialize(step.rollbackMethod, step.rollbackMethod.methodName, false);
                 logStep.setRollbackMethodData(rollbackMethodData);
             }
 

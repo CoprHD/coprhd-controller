@@ -166,7 +166,7 @@ ext {
 
     ]
     guava = [
-        "com.google.guava:guava:15.0",
+        "com.google.guava:guava:16.0",
 
     ]
     jersey = [

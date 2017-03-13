@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013 EMC Corporation
+ * Copyright (c) 2013 EMC Corporation
  * All Rights Reserved
  */
 
@@ -2808,7 +2808,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
         String stepId = workflow.createStepId();
         Workflow.Method enableImageAccessExecuteMethod = new Workflow.Method(METHOD_ENABLE_IMAGE_ACCESS_STEP, rpSystem.getId(), snapshots);
         Workflow.Method enableImageAccessExecutionRollbackMethod = new Workflow.Method(METHOD_ENABLE_IMAGE_ACCESS_ROLLBACK_STEP,
-                rpSystem.getId(), snapshots, false);
+                rpSystem.getId(), snapshots);
 
         workflow.createStep(STEP_ENABLE_IMAGE_ACCESS, "Enable image access subtask for export group: " + snapshots.keySet(), waitFor,
                 rpSystem.getId(), rpSystem.getSystemType(), this.getClass(), enableImageAccessExecuteMethod,
@@ -2862,13 +2862,11 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
      *            RP System
      * @param snapshots
      *            list of snapshots to rollback
-     * @param setSnapshotsInactive
-     *            true if this is a rollback operation. Should be true for any method calling this.
      * @param stepId
      * @return
      * @throws ControllerException
      */
-    public boolean enableImageAccessStepRollback(URI rpSystemId, Map<URI, Integer> snapshots, boolean setSnapshotsInactive, String stepId)
+    public boolean enableImageAccessStepRollback(URI rpSystemId, Map<URI, Integer> snapshots, String stepId)
             throws ControllerException {
         try {
             WorkflowStepCompleter.stepExecuting(stepId);
@@ -2878,7 +2876,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
             // The sync active field is irrelevant but we will set it to false anyway. This rollback call to
             // disableImageForSnapshots will mark the snapshots inactive.
             boolean setSnapshotSyncActive = false;
-            disableImageForSnapshots(rpSystemId, new ArrayList<URI>(snapshots.keySet()), setSnapshotsInactive, setSnapshotSyncActive,
+            disableImageForSnapshots(rpSystemId, new ArrayList<URI>(snapshots.keySet()), setSnapshotSyncActive,
                     stepId);
 
             // Update the workflow state.
@@ -3032,7 +3030,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
         String stepId = workflow.createStepId();
 
         Workflow.Method disableImageAccessExecuteMethod = new Workflow.Method(METHOD_SNAPSHOT_DISABLE_IMAGE_ACCESS_SINGLE_STEP,
-                rpSystem.getId(), snapshots, false);
+                rpSystem.getId(), snapshots);
 
         workflow.createStep(STEP_DISABLE_IMAGE_ACCESS, "Disable image access subtask for snapshots ", waitFor, rpSystem.getId(),
                 rpSystem.getSystemType(), this.getClass(), disableImageAccessExecuteMethod, null, stepId);
@@ -3048,14 +3046,12 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
      *            RP system
      * @param snapshots
      *            List of snapshot URIs
-     * @param isRollback
-     *            true if this method is invoked as part of rollback, false otherwise
      * @param token
      *            step Id
      * @return
      * @throws ControllerException
      */
-    public boolean snapshotDisableImageAccessSingleStep(URI rpSystemId, List<URI> snapshots, boolean isRollback, String token)
+    public boolean snapshotDisableImageAccessSingleStep(URI rpSystemId, List<URI> snapshots, String token)
             throws ControllerException {
         try {
             WorkflowStepCompleter.stepExecuting(token);
@@ -3063,7 +3059,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
             // access call for a snapshot create request that is part local array snap and part
             // RP bookmark.
             boolean setSnapshotSyncActive = true;
-            disableImageForSnapshots(rpSystemId, snapshots, isRollback, setSnapshotSyncActive, token);
+            disableImageForSnapshots(rpSystemId, snapshots, setSnapshotSyncActive, token);
             // Update the workflow state.
             WorkflowStepCompleter.stepSucceded(token);
         } catch (Exception e) {
@@ -3130,7 +3126,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                 }
             }
 
-            disableImageForSnapshots(rpSystemId, new ArrayList<URI>(snapshots), false, false, token);
+            disableImageForSnapshots(rpSystemId, new ArrayList<URI>(snapshots), false, token);
 
             // Update the workflow state.
             WorkflowStepCompleter.stepSucceded(token);
@@ -3160,7 +3156,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
         String stepId = workflow.createStepId();
 
         Workflow.Method disableImageAccessExecuteMethod = new Workflow.Method(METHOD_DISABLE_IMAGE_ACCESS_SINGLE_STEP, rpSystem.getId(),
-                exportGroupID, snapshotIDs, false);
+                exportGroupID, snapshotIDs);
 
         workflow.createStep(STEP_EXPORT_GROUP_DISABLE, "Disable image access subtask for export group: " + exportGroupID, null,
                 rpSystem.getId(), rpSystem.getSystemType(), this.getClass(), disableImageAccessExecuteMethod, null, stepId);
@@ -3177,18 +3173,16 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
      *            ExportGroup URI
      * @param snapshots
      *            list of snapshots to disable
-     * @param isRollback
-     *            True if this is invoked as part of a rollback operation.
      * @param token
      * @return boolean
      * @throws ControllerException
      */
-    public boolean disableImageAccessSingleStep(URI rpSystemId, URI exportGroupURI, List<URI> snapshots, boolean isRollback, String token)
+    public boolean disableImageAccessSingleStep(URI rpSystemId, URI exportGroupURI, List<URI> snapshots, String token)
             throws ControllerException {
         try {
             WorkflowStepCompleter.stepExecuting(token);
 
-            disableImageForSnapshots(rpSystemId, snapshots, isRollback, false, token);
+            disableImageForSnapshots(rpSystemId, snapshots, false, token);
 
             // Update the workflow state.
             WorkflowStepCompleter.stepSucceded(token);
@@ -4230,7 +4224,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
     /**
      * Workflow step to perform RP protection operation
-     * 
+     *
      * @param protectionSystem
      * @param cgId
      * @param volId
@@ -5684,14 +5678,30 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                 }
             }
 
-            Set<String> volumeWWNs = new HashSet<String>();
-            String emName = null;
+            // Keep a mapping of the emNames(bookmark names) to target copy volume WWNs
+            Map<String, Set<String>> emNamesToVolumeWWNs = new HashMap<String, Set<String>>();
+            // Keep a mapping of the emNames(bookmark names) to BlockSnapshot objects
+            Map<String, Set<URI>> emNamesToSnapshots = new HashMap<String, Set<URI>>();
+
             for (URI snapshotID : snapshotList) {
-                // Get the volume associated with this snapshot
                 BlockSnapshot snapshot = _dbClient.queryObject(BlockSnapshot.class, snapshotID);
-                if (snapshot.getEmName() != null) {
-                    emName = snapshot.getEmName();
+
+                String emName = snapshot.getEmName();
+                if (NullColumnValueGetter.isNotNullValue(emName)) {
+                    if (!emNamesToVolumeWWNs.containsKey(emName)) {
+                        emNamesToVolumeWWNs.put(emName, new HashSet<String>());
+                    }
+
+                    if (!emNamesToSnapshots.containsKey(emName)) {
+                        emNamesToSnapshots.put(emName, new HashSet<URI>());
+                    }
+
+                    emNamesToSnapshots.get(emName).add(snapshotID);
+                } else {
+                    throw DeviceControllerExceptions.recoverpoint.failedToActivateSnapshotEmNameMissing(snapshotID);
                 }
+
+                // Get the volume associated with this snapshot
                 Volume volume = _dbClient.queryObject(Volume.class, snapshot.getParent().getURI());
                 // For RP+VPLEX volumes, we need to fetch the VPLEX volume.
                 // The snapshot objects references the block/back-end volume as its parent.
@@ -5700,40 +5710,39 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                     volume = Volume.fetchVplexVolume(_dbClient, volume);
                 }
 
+                String wwn = null;
                 // If the volume type is TARGET, then the enable image access request is part of snapshot create, just
                 // add the volumeWWN to
                 // the list.
                 // If the personality is SOURCE, then the enable image access request is part of export operation.
                 if (volume.checkPersonality(Volume.PersonalityTypes.TARGET.toString())) {
-                    volumeWWNs.add(RPHelper.getRPWWn(volume.getId(), _dbClient));
+                    wwn = RPHelper.getRPWWn(volume.getId(), _dbClient);
                 } else {
                     // Now determine the target volume that corresponds to the site of the snapshot
                     ProtectionSet protectionSet = _dbClient.queryObject(ProtectionSet.class, volume.getProtectionSet());
                     Volume targetVolume = ProtectionSet.getTargetVolumeFromSourceAndInternalSiteName(_dbClient, protectionSet, volume,
                             snapshot.getEmInternalSiteName());
-                    volumeWWNs.add(RPHelper.getRPWWn(targetVolume.getId(), _dbClient));
+                    wwn = RPHelper.getRPWWn(targetVolume.getId(), _dbClient);
                 }
+
+                // Add the volume WWN
+                emNamesToVolumeWWNs.get(emName).add(wwn);
             }
 
             // Now enable image access to that bookmark
             RecoverPointClient rp = RPHelper.getRecoverPointClient(system);
-            MultiCopyEnableImageRequestParams request = new MultiCopyEnableImageRequestParams();
-            request.setVolumeWWNSet(volumeWWNs);
-            request.setBookmark(emName);
-            MultiCopyEnableImageResponse response = rp.enableImageCopies(request);
 
-            if (response == null) {
-                throw DeviceControllerExceptions.recoverpoint.failedEnableAccessOnRP();
-            }
+            // Iterate over the the emNames and call RP to enableImageCopies for the WWNs
+            // correponding to each emName.
+            for (Map.Entry<String, Set<String>> emNameEntry : emNamesToVolumeWWNs.entrySet()) {
+                MultiCopyEnableImageRequestParams request = new MultiCopyEnableImageRequestParams();
+                request.setVolumeWWNSet(emNameEntry.getValue());
+                request.setBookmark(emNameEntry.getKey());
+                MultiCopyEnableImageResponse response = rp.enableImageCopies(request);
 
-            // Mark the snapshots
-            StringSet snapshots = new StringSet();
-            for (URI snapshotID : snapshotList) {
-                BlockSnapshot snapshot = _dbClient.queryObject(BlockSnapshot.class, snapshotID);
-                snapshot.setInactive(false);
-                snapshot.setIsSyncActive(true);
-                snapshots.add(snapshot.getNativeId());
-                _dbClient.updateObject(snapshot);
+                if (response == null) {
+                    throw DeviceControllerExceptions.recoverpoint.failedEnableAccessOnRP();
+                }
             }
 
             completer.ready(_dbClient);
@@ -5948,20 +5957,18 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
      *            protection system
      * @param snapshotList
      *            list of snapshots to enable
-     * @param setSnapshotsInactive
-     *            true if this is called during rollback and BlockSnapshots should be marked inactive, false otherwise.
      * @param setSnapshotSyncActive
      *            true if the isSyncActive field on BlockSnapshot should be true, false otherwise.
      * @param opId
      * @throws ControllerException
      */
-    private void disableImageForSnapshots(URI protectionDevice, List<URI> snapshotList, boolean setSnapshotsInactive,
+    private void disableImageForSnapshots(URI protectionDevice, List<URI> snapshotList,
             boolean setSnapshotSyncActive, String opId) throws ControllerException {
-        TaskCompleter completer = null;
+        BlockSnapshotDeactivateCompleter completer = null;
         try {
             _log.info("Deactivating a bookmark on the RP CG(s)");
 
-            completer = new BlockSnapshotDeactivateCompleter(snapshotList, opId);
+            completer = new BlockSnapshotDeactivateCompleter(snapshotList, setSnapshotSyncActive, opId);
 
             ProtectionSystem system = null;
             try {
@@ -5974,14 +5981,40 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                 throw DeviceControllerExceptions.recoverpoint.databaseExceptionDeactivateSnapshot(protectionDevice);
             }
 
-            Set<String> volumeWWNs = new HashSet<String>();
-            String emName = "";
+            // Keep a mapping of the emNames(bookmark names) to target copy volume WWNs
+            Map<String, Set<String>> emNamesToVolumeWWNs = new HashMap<String, Set<String>>();
+            // Keep a mapping of the emNames(bookmark names) to BlockSnapshot objects
+            Map<String, Set<URI>> emNamesToSnapshots = new HashMap<String, Set<URI>>();
+
             for (URI snapshotID : snapshotList) {
-                // Get the volume associated with this snapshot
                 BlockSnapshot snapshot = _dbClient.queryObject(BlockSnapshot.class, snapshotID);
-                if (snapshot.getEmName() != null) {
-                    emName = snapshot.getEmName();
+
+                // Determine if we can actually disable image access to the copy associated with the snapshot first
+                if (!doDisableImageCopies(snapshot)) {
+                    // Skip this snapshot because we cannot disable image access. Likely due to the snapshot
+                    // being exported to multiple hosts.
+                    _log.warn(String
+                            .format("Cannot disable image access for snapshot %s so it will be skipped.  Likely due to the snapshot being exported to multiple hosts",
+                                    snapshot.getId()));
+                    continue;
                 }
+
+                String emName = snapshot.getEmName();
+                if (NullColumnValueGetter.isNotNullValue(emName)) {
+                    if (!emNamesToVolumeWWNs.containsKey(emName)) {
+                        emNamesToVolumeWWNs.put(emName, new HashSet<String>());
+                    }
+
+                    if (!emNamesToSnapshots.containsKey(emName)) {
+                        emNamesToSnapshots.put(emName, new HashSet<URI>());
+                    }
+
+                    emNamesToSnapshots.get(emName).add(snapshotID);
+                } else {
+                    throw DeviceControllerExceptions.recoverpoint.failedToDeactivateSnapshotEmNameMissing(snapshotID);
+                }
+
+                // Get the volume associated with this snapshot
                 Volume volume = _dbClient.queryObject(Volume.class, snapshot.getParent().getURI());
 
                 // For RP+VPLEX volumes, we need to fetch the VPLEX volume.
@@ -5991,45 +6024,45 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                     volume = Volume.fetchVplexVolume(_dbClient, volume);
                 }
 
+                String wwn = null;
                 // If the volume type is TARGET, then the enable image access request is part of snapshot create, just
                 // add the volumeWWN to the list.
                 // If the personality is SOURCE, then the enable image access request is part of export operation.
                 if (volume.checkPersonality(Volume.PersonalityTypes.TARGET.toString())) {
-                    volumeWWNs.add(RPHelper.getRPWWn(volume.getId(), _dbClient));
+                    wwn = RPHelper.getRPWWn(volume.getId(), _dbClient);
                 } else {
                     // Now determine the target volume that corresponds to the site of the snapshot
                     ProtectionSet protectionSet = _dbClient.queryObject(ProtectionSet.class, volume.getProtectionSet());
                     Volume targetVolume = ProtectionSet.getTargetVolumeFromSourceAndInternalSiteName(_dbClient, protectionSet, volume,
                             snapshot.getEmInternalSiteName());
-
-                    volumeWWNs.add(RPHelper.getRPWWn(targetVolume.getId(), _dbClient));
+                    wwn = RPHelper.getRPWWn(targetVolume.getId(), _dbClient);
                 }
 
-                // Now disable image access to that bookmark
-                RecoverPointClient rp = RPHelper.getRecoverPointClient(system);
-                MultiCopyDisableImageRequestParams request = new MultiCopyDisableImageRequestParams();
-                request.setVolumeWWNSet(volumeWWNs);
-                request.setEmName(emName);
-                if (doDisableImageCopies(snapshot)) {
-                    MultiCopyDisableImageResponse response = rp.disableImageCopies(request);
-
-                    if (response == null) {
-                        throw DeviceControllerExceptions.recoverpoint.failedDisableAccessOnRP();
-                    }
-                }
+                // Add the volume WWN
+                emNamesToVolumeWWNs.get(emName).add(wwn);
             }
 
-            // Mark the snapshots
-            StringSet snapshots = new StringSet();
-            for (URI snapshotID : snapshotList) {
-                BlockSnapshot snapshot = _dbClient.queryObject(BlockSnapshot.class, snapshotID);
-                snapshot.setInactive(setSnapshotsInactive);
-                // If we are performing the disable as part of a snapshot create for an array snapshot + RP bookmark,
-                // we want to set the syncActive field to true. This will enable us to perform snapshot exports and
-                // remove snapshots from exports.
-                snapshot.setIsSyncActive(setSnapshotSyncActive);
-                snapshots.add(snapshot.getNativeId());
-                _dbClient.updateObject(snapshot);
+            // Now disable image access on the bookmark copies
+            RecoverPointClient rp = RPHelper.getRecoverPointClient(system);
+
+            // Iterate over the the emNames and call RP to disableImageCopies for the WWNs
+            // correponding to each emName.
+            for (Map.Entry<String, Set<String>> emNameEntry : emNamesToVolumeWWNs.entrySet()) {
+                MultiCopyDisableImageRequestParams request = new MultiCopyDisableImageRequestParams();
+                request.setVolumeWWNSet(emNameEntry.getValue());
+                request.setEmName(emNameEntry.getKey());
+                MultiCopyDisableImageResponse response = rp.disableImageCopies(request);
+
+                if (response == null) {
+                    throw DeviceControllerExceptions.recoverpoint.failedDisableAccessOnRP();
+                }
+
+                // Let the completer know about the deactivated snapshots (ones who's associated copies
+                // had image access disabled). This will be used to update the BlockSnapshot fields accordingly.
+                // This is done because not all snapshots used when creating the completer will be deactivated.
+                // We need to maintain a collection of snapshots so that those exported to multiple hosts to not
+                // get deactivated.
+                completer.addDeactivatedSnapshots(emNamesToSnapshots.get(emNameEntry.getKey()));
             }
 
             completer.ready(_dbClient);
@@ -7257,7 +7290,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
         return copyAccessStates;
     }
-    
+
     @Override
     public void portRebalance(URI storageSystem, URI exportGroup, URI varray, URI exportMask, Map<URI, List<URI>> adjustedpaths,
             Map<URI, List<URI>> removedPaths, boolean isAdd, String token) throws Exception

@@ -2161,7 +2161,7 @@ abstract public class AbstractDefaultMaskingOrchestrator {
          * TODO Should not remove volume from mask for the EG remove initiator call.
          */
         // We only care about Host exports for this processing
-        if (exportGroup.forHost()) {
+        if (exportGroup.forCluster()) {
             // Get a mapping of compute resource to its list of Initiator URIs
             // for the initiatorURIs list
             Map<String, List<URI>> computeResourceMapForRequest = mapInitiatorsToComputeResource(exportGroup, initiatorURIs);

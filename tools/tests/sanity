@@ -1070,7 +1070,11 @@ project_setup()
 isilon_cos_setup()
 {
     echo "setting up isilon COS"
-    run cos create file $COS_ISIFILE --description 'Virtual-Pool-for-Isilon' true --protocols NFS CIFS --max_snapshots 10 --provisionType 'Thin' --neighborhoods $NH
+	run cos create file $COS_ISIFILE 				\
+	--description 'Virtual-Pool-Isilon' true \
+                         --protocols NFS CIFS --max_snapshots 10    \
+                         --provisionType 'Thin' \
+		         --neighborhoods $NH
     ROOT_TENANT=`tenant root|tail -1`
     run cos allow $COS_ISIFILE file $ROOT_TENANT
     if [ "$EXTRA_PARAM" = "search" ] ; then
@@ -4800,14 +4804,12 @@ SNAPSHOT_TYPE="file_snapshot"
 REPLICATION_TYPE="file_replication"
 APPLY_AT_VPOOL="vpool"
 APPLY_AT_PROJECT="project"
-PRIORITY=4
-NUM_WORKER_THREAD=4
 REPLICATION_CONFIGURATION='false'
 SNAPSHOT_EXPIRE_TYPE="days"
 SNAPSHOT_EXPIRE_VALUE=3
 POLICY_SCHEDULE_FREQUENCY="days"
 POLICY_SCHEDULE_REPEAT=2
-POLICY_SCHEDULE_TIME=03:00
+POLICY_SCHEDULE_TIME="03:00"
 LOCAL_REPLICATION_TYPE="LOCAL"
 REMOTE_REPLICATION_TYPE="REMOTE"
 REPLICATION_COPY_MODE="ASYNC"
@@ -4824,13 +4826,17 @@ filepolicy_tests()
     echo $fpname
     
     echo "Creating snapshot file policy $fpname"
-    run filepolicy create_pol $fpname $SNAPSHOT_TYPE $APPLY_AT_VPOOL --snapshotexpiretype $SNAPSHOT_EXPIRE_TYPE --snapshotexpirevalue $SNAPSHOT_EXPIRE_VALUE --policyschedulefrequency $POLICY_SCHEDULE_FREQUENCY --policyschedulerepeat $POLICY_SCHEDULE_REPEAT --policyscheduletime $POLICY_SCHEDULE_TIME
+    run filepolicy create_pol $fpname $SNAPSHOT_TYPE $APPLY_AT_VPOOL \
+                          --snapshotexpiretype $SNAPSHOT_EXPIRE_TYPE \
+                          --snapshotexpirevalue $SNAPSHOT_EXPIRE_VALUE \
+                          --policyschedulefrequency $POLICY_SCHEDULE_FREQUENCY \
+                          --policyschedulerepeat $POLICY_SCHEDULE_REPEAT \
+                          --policyscheduletime $POLICY_SCHEDULE_TIME
 	
 	run filepolicy show $fpname
 	
 	echo "Assigning filepolicy $fpname to vpool $cos"
 	run filepolicy vpool_assign $fpname --apply_on_target_site $APPLY_ON_TARGET_SITE --assign_to_vpools $cos
-	run filepolicy show $fpname
 	
 	echo "Unassigning filepolicy $fpname from vpool $cos"
     run filepolicy vpool_unassign $fpname $cos
@@ -4838,47 +4844,49 @@ filepolicy_tests()
 	echo "Deleting the file policy $fpname"
 	run filepolicy delete $fpname
 
-	fpname=$SNAPSHOT_TYPE$APPLY_AT_PROJECT
-    echo $fpname
-    
-    echo "Creating snapshot file policy $fpname"
-	run filepolicy create_pol $fpname $SNAPSHOT_TYPE $APPLY_AT_PROJECT --snapshotexpiretype $SNAPSHOT_EXPIRE_TYPE --snapshotexpirevalue $SNAPSHOT_EXPIRE_VALUE --policyschedulefrequency $POLICY_SCHEDULE_FREQUENCY --policyschedulerepeat $POLICY_SCHEDULE_REPEAT --policyscheduletime $POLICY_SCHEDULE_TIME
-	
-	run filepolicy show $fpname
-	
-	echo "Assigning filepolicy $fpname to project $PROJECT"
-	run filepolicy project_assign $fpname --apply_on_target_site $APPLY_ON_TARGET_SITE --project_assign_vpool $cos --assign_to_projects $PROJECT
-	run filepolicy show $fpname
-	
-	echo "Unassigning filepolicy $fpname from project $PROJECT"
-    run filepolicy project_unassign $fpname $PROJECT
-    
-    echo "Deleting the file policy $fpname"
-	run filepolicy delete $fpname
-	
-
 
 	fpname=$REPLICATION_TYPE$APPLY_AT_PROJECT
     echo $fpname
     
     echo "Creating replication file policy $fpname"
 	
-	run filepolicy create_pol $fpname $REPLICATION_TYPE $APPLY_AT_PROJECT --replicationtype $REMOTE_REPLICATION_TYPE --replicationcopymode $REPLICATION_COPY_MODE --replicationconfiguration $REPLICATION_CONFIGURATION --policyschedulefrequency $POLICY_SCHEDULE_FREQUENCY --policyschedulerepeat $POLICY_SCHEDULE_REPEAT --policyscheduletime $POLICY_SCHEDULE_TIME
+	run filepolicy create_pol $fpname $REPLICATION_TYPE $APPLY_AT_PROJECT \
+                          --replicationtype $REMOTE_REPLICATION_TYPE \
+                          --replicationcopymode $REPLICATION_COPY_MODE \
+                          --replicationconfiguration $REPLICATION_CONFIGURATION \
+                          --policyschedulefrequency $POLICY_SCHEDULE_FREQUENCY \
+                          --policyschedulerepeat $POLICY_SCHEDULE_REPEAT \
+                          --policyscheduletime $POLICY_SCHEDULE_TIME
 	
 	sleep 15
 	run filepolicy show $fpname
 	
 	echo "Assigning filepolicy $fpname to project $PROJECT"
-	run filepolicy project_assign $fpname --apply_on_target_site $APPLY_ON_TARGET_SITE --project_assign_vpool $cos --assign_to_projects $PROJECT --source_varray $NH --target_varrays $REMOTE_NH
-	#run filepolicy show $fpname
-    
+	run filepolicy project_assign $fpname  \
+                         --apply_on_target_site $APPLY_ON_TARGET_SITE \
+                          --project_assign_vpool $cos \
+                          --assign_to_projects $PROJECT \
+                          --source_varray $REMOTE_NH \
+                          --target_varrays $NH
+	
+	fsname=FilePolicyTest-$cos
+	
+	echo "Creating filesystem $fsname"
+	run fileshare create $fsname $PROJECT $REMOTE_NH $cos $FS_SIZEMB
+	
+	echo "Displaying the filesystem created"
+	run fileshare show $PROJECT/$fsname
+	
+	echo "Deleting the filesystem"
+	run fileshare delete $PROJECT/$fsname
+	
     echo "Unassigning filepolicy $fpname from project $PROJECT"
     run filepolicy project_unassign $fpname $PROJECT
     
     echo "Deleting the file policy $fpname"
 	run filepolicy delete $fpname
 	
-	echo "File Policy Completed."
+	echo "File Policy Test Completed."
 
 }
 recoverpoint_auto_snapshot_cleanup_test()

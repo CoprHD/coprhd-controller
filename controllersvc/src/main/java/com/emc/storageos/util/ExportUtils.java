@@ -2200,8 +2200,17 @@ public class ExportUtils {
         }
         // Clean Stale Mask references will delete export Group if export masks is empty, therefore at this point the masks will not be
         // empty
-        if (!CollectionUtils.isEmpty(exportGroup.getVolumes()) && !CollectionUtils.isEmpty(exportGroup.getExportMasks())) {
-            Set<String> exportGroupVolumes = exportGroup.getVolumes().keySet();
+        if ((!CollectionUtils.isEmpty(exportGroup.getVolumes()) || !CollectionUtils.isEmpty(exportGroup.getSnapshots()))
+                && !CollectionUtils.isEmpty(exportGroup.getExportMasks())) {
+            Set<String> exportGroupVolumes = new HashSet<>();
+            if (!CollectionUtils.isEmpty(exportGroup.getVolumes())) {
+                exportGroupVolumes.addAll(exportGroup.getVolumes().keySet());
+            }
+
+            if (!CollectionUtils.isEmpty(exportGroup.getSnapshots())) {
+                exportGroupVolumes.addAll(exportGroup.getSnapshots());
+            }
+
             Set<String> volumesInAllMasks = new HashSet<String>();
             // Export masks inside export Group will be limited in number
             for (String mask : exportGroup.getExportMasks()) {
@@ -2214,17 +2223,17 @@ public class ExportUtils {
             Set<String> volumeDiff = new HashSet<>(Sets.difference(exportGroupVolumes, volumesInAllMasks));
             if (!CollectionUtils.isEmpty(volumeDiff)) {
                 exportGroup.removeVolumes(new HashSet<String>(volumeDiff));
-                _log.info("Stale volumes {}  removed from Export Group {}", volumeDiff, exportGroup.getId());
+                _log.info("Stale volumes/snapshots {}  removed from Export Group {}", volumeDiff, exportGroup.getId());
             }
         }
         
-        if (CollectionUtils.isEmpty(exportGroup.getVolumes())
+        if (CollectionUtils.isEmpty(exportGroup.getVolumes()) && CollectionUtils.isEmpty(exportGroup.getSnapshots())
                 && !exportGroup.checkInternalFlags(DataObject.Flag.INTERNAL_OBJECT)) {
             // COP-27689 - Even if all the export masks got cleared, the export
             // Group still remains with initiators and volumes.
             // Clean up all the initiators, volumes and ports as there are no
             // available export masks.
-            _log.info("There are no volumes in the export Group {}-->{} after cleaning up stale volumes.", exportGroup.getId(),
+            _log.info("There are no volume/snapshot in the export Group {}-->{} after cleaning up stale volumes.", exportGroup.getId(),
                     exportGroup.getLabel());
             resetExportGroup(exportGroup, dbClient);
         }

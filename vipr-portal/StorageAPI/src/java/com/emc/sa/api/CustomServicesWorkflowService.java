@@ -197,11 +197,11 @@ public class CustomServicesWorkflowService extends CatalogTaggedResourceService 
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     public CustomServicesValidationResponse validateWorkflow(@PathParam("id") final URI id) {
         try {
-            CustomServicesWorkflowDocument wfDocument = WorkflowHelper.toWorkflowDocument(getCustomServicesWorkflow(id));
-            ValidationHelper customServicesValidationHelper = new ValidationHelper(wfDocument);
-            CustomServicesValidationResponse validationResponse = customServicesValidationHelper.validate();
+            final CustomServicesWorkflowDocument wfDocument = WorkflowHelper.toWorkflowDocument(getCustomServicesWorkflow(id));
+            final ValidationHelper customServicesValidationHelper = new ValidationHelper(wfDocument);
+            final CustomServicesValidationResponse validationResponse = customServicesValidationHelper.validate();
             // update the status of workflow VALID / INVALID in the DB
-            CustomServicesWorkflow wfstatusUpdated = WorkflowHelper.updateState(getCustomServicesWorkflow(id),
+            final CustomServicesWorkflow wfstatusUpdated = WorkflowHelper.updateState(getCustomServicesWorkflow(id),
                     validationResponse.getStatus());
             customServicesWorkflowManager.save(wfstatusUpdated);
             return validationResponse;

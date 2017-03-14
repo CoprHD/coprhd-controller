@@ -34,7 +34,6 @@ import com.emc.storageos.model.customservices.CustomServicesWorkflowDocument.Inp
 import com.emc.storageos.model.customservices.CustomServicesWorkflowDocument.Step;
 import com.emc.storageos.primitives.CustomServicesConstants;
 import com.emc.storageos.primitives.CustomServicesPrimitive.StepType;
-import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorException;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Sets;
 
@@ -169,7 +168,7 @@ public class ValidationHelper {
     }
 
     private Map<String, CustomServicesValidationResponse.InputGroup> validateStepInput(final Step step)
-            throws InternalServerErrorException {
+    {
         final Map<String, CustomServicesWorkflowDocument.InputGroup> input = step.getInputGroups();
         final Map<String, CustomServicesValidationResponse.InputGroup> errorInputGroup = new HashMap<>();
 

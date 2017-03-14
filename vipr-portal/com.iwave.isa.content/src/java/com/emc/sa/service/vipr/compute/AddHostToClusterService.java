@@ -39,7 +39,6 @@ import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Vcenter;
 import com.emc.storageos.db.client.model.VcenterDataCenter;
 import com.emc.storageos.model.compute.OsInstallParam;
-import com.emc.storageos.model.host.HostRestRep;
 import com.emc.storageos.model.vpool.ComputeVirtualPoolRestRep;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
@@ -264,7 +263,7 @@ public class AddHostToClusterService extends ViPRService {
         hosts = ComputeUtils.setHostBootVolumes(hostToBootVolumeIdMap, false);
 
         logInfo("compute.cluster.exports.installing.os");
-        installOSForHosts(hostToIPs, ComputeUtils.getHostNameBootVolume(hosts));
+        installOSForHosts(hostToIPs, ComputeUtils.getHostNameBootVolume(hosts), hosts);
         hosts = ComputeUtils.deactivateHostsWithNoOS(hosts);
         logInfo("compute.cluster.exports.installed.os", ComputeUtils.nonNull(hosts).size());
 
@@ -311,21 +310,10 @@ public class AddHostToClusterService extends ViPRService {
         this.fqdnToIps = safeArrayCopy(fqdnToIps);
     }
 
-    private void installOSForHosts(Map<String, String> hostToIps, Map<String, URI> hostNameToBootVolumeMap) {
-        List<HostRestRep> hosts = ComputeUtils.getHostsInCluster(cluster.getId(), cluster.getLabel());
-
+    private void installOSForHosts(Map<String, String> hostToIps, Map<String, URI> hostNameToBootVolumeMap, List<Host> createdHosts) {
         List<OsInstallParam> osInstallParams = Lists.newArrayList();
 
-        // Filter out everything except the hosts that were created and
-        // added to the cluster from the current order.
-        List<HostRestRep> newHosts = Lists.newArrayList();
-        for (HostRestRep host : hosts) {
-            if (hostToIps.get(host.getHostName()) != null) {
-                newHosts.add(host);
-            }
-        }
-
-        for (HostRestRep host : newHosts) {
+        for (Host host : createdHosts) {
             if ((host != null) && (
                     (host.getType() == null) ||
                     host.getType().isEmpty() ||
@@ -353,7 +341,7 @@ public class AddHostToClusterService extends ViPRService {
         try {
             // Attempt an OS Install only on the list of hosts that are a part of the order
             // This does check if the hosts already have a OS before attempting the install
-            ComputeUtils.installOsOnHosts(newHosts, osInstallParams);
+            ComputeUtils.installOsOnHosts(createdHosts, osInstallParams);
         } catch (Exception e) {
             logError(e.getMessage());
         }

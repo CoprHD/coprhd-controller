@@ -38,7 +38,6 @@ import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Vcenter;
 import com.emc.storageos.db.client.model.VcenterDataCenter;
 import com.emc.storageos.model.compute.OsInstallParam;
-import com.emc.storageos.model.host.HostRestRep;
 import com.emc.storageos.model.host.cluster.ClusterRestRep;
 import com.emc.storageos.model.vpool.ComputeVirtualPoolRestRep;
 import com.google.common.collect.ImmutableList;
@@ -276,7 +275,7 @@ public class CreateComputeClusterService extends ViPRService {
         hosts = ComputeUtils.setHostBootVolumes(hostToBootVolumeIdMap, false);
 
         logInfo("compute.cluster.exports.installing.os");
-        installOSForHosts(hostToIPs, ComputeUtils.getHostNameBootVolume(hosts));
+        installOSForHosts(hostToIPs, ComputeUtils.getHostNameBootVolume(hosts), hosts);
         hosts = ComputeUtils.deactivateHostsWithNoOS(hosts);
         logInfo("compute.cluster.exports.installed.os", ComputeUtils.nonNull(hosts).size());
 
@@ -316,11 +315,9 @@ public class CreateComputeClusterService extends ViPRService {
         this.rootPassword = rootPassword;
     }
 
-    private void installOSForHosts(Map<String, String> hostToIps, Map<String, URI> hostNameToBootVolumeMap) {
-        List<HostRestRep> hosts = ComputeUtils.getHostsInCluster(cluster.getId(), cluster.getLabel());
-
+    private void installOSForHosts(Map<String, String> hostToIps, Map<String, URI> hostNameToBootVolumeMap, List<Host> createdHosts) {
         List<OsInstallParam> osInstallParams = Lists.newArrayList();
-        for (HostRestRep host : hosts) {
+        for (Host host : createdHosts) {
             if ((host != null) && (
                     (host.getType() == null) ||
                     host.getType().isEmpty() ||
@@ -346,7 +343,7 @@ public class CreateComputeClusterService extends ViPRService {
         }
 
         try {
-            ComputeUtils.installOsOnHosts(hosts, osInstallParams);
+            ComputeUtils.installOsOnHosts(createdHosts, osInstallParams);
         } catch (Exception e) {
             logError(e.getMessage());
         }

@@ -69,6 +69,7 @@ import com.emc.vipr.client.Tasks;
 import com.emc.vipr.client.ViPRCoreClient;
 import com.emc.vipr.client.core.filters.NameIgnoreCaseFilter;
 import com.emc.vipr.client.exceptions.TimeoutException;
+import com.emc.vipr.client.exceptions.ViPRException;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.vmware.vim25.mo.HostSystem;
@@ -96,11 +97,10 @@ public class ComputeUtils {
 
         List<Host> createdHosts = new ArrayList<>();
         Tasks<HostRestRep> tasks = null;
-        List<String> hostsToDeactivate = Lists.newArrayList();
         try {
             tasks = execute(new CreateHosts(vcp, cluster.getId(), hostNames, varray));
         } catch (Exception e) {
-            ExecutionUtils.currentContext().logError("computeutils.createhosts.failure",
+            ExecutionUtils.currentContext().logError("computeutils.createhosts.failure",hostNames,
                     e.getMessage());
         }
         // Some tasks could succeed while others could error out.
@@ -110,36 +110,35 @@ public class ComputeUtils {
 
         // VBDU TODO: COP-28453, We should only rely on the task resource id and not base it on the hostname. We should
         // not delete a host just based on the hostname in case there are duplicates.
-        List<HostRestRep> hostsInCluster = ComputeUtils.getHostsInCluster(cluster.getId(), cluster.getLabel());
         Map<URI,String> hostDeactivateMap = new HashMap<URI, String>();
-        List<String> succeededHosts = Lists.newArrayList();
         if ((tasks != null) && (tasks.getTasks() != null)) {
-            for (Task<HostRestRep> task : tasks.getTasks()) {
-                URI hostUri = task.getResourceId();
-                addAffectedResource(hostUri);
-                Host host = execute(new GetHost(hostUri));
-                succeededHosts.add(host.getHostName());
-                createdHosts.add(host);
-            }
-            for (String hostName : hostNames) {
-                if (!succeededHosts.contains(hostName)) {
-                    hostsToDeactivate.add(hostName);
-                }
-            }
+            List<Task<HostRestRep>> tasklist = tasks.getTasks();
+            List<Task<HostRestRep>> oritasklist = tasks.getTasks();
+            while (!tasklist.isEmpty()) {
+                tasklist = waitAndRefresh(tasklist);
 
-            for (HostRestRep hostRep : hostsInCluster) {
-                if (hostsToDeactivate.contains(hostRep.getName())) {
-                    hostDeactivateMap.put(hostRep.getId(), hostRep.getName());
+                for (Task<HostRestRep> successfulTask : getSuccessfulTasks(tasklist)) {
+                    URI hostUri = successfulTask.getResourceId();
+                    addAffectedResource(hostUri);
+                    Host host = execute(new GetHost(hostUri));
+                    createdHosts.add(host);
+                    tasklist.remove(successfulTask);
+                    oritasklist.remove(successfulTask);
+                }
+
+                for (Task<HostRestRep> failedTask : getFailedTasks(tasklist)) {
+                    ExecutionUtils.currentContext().logError("computeutils.createhosts.failure.task",
+                            failedTask.getResource().getName(), failedTask.getMessage());
+                    hostDeactivateMap.put(failedTask.getResourceId(), failedTask.getResource().getName());
+                    tasklist.remove(failedTask);
+                    oritasklist.remove(failedTask);
                 }
             }
-        }
-        else { // If all the hosts failed, then the tasks are returned as null.
-            // In this case we need to deactivate all the hosts that we wanted to create.
-            for (HostRestRep hostRep : hostsInCluster) {
-                if (hostNames.contains(hostRep.getName())) {
-                    hostDeactivateMap.put(hostRep.getId(), hostRep.getName());
-                }
+            for(Task<HostRestRep> hostToRemove : oritasklist) {
+                hostDeactivateMap.put(hostToRemove.getResourceId(), hostToRemove.getResource().getName());
             }
+        } else {
+            ExecutionUtils.currentContext().logError("computeutils.createhosts.noTasks,created", hostNames);
         }
 
         for (Entry<URI, String> hostEntry : hostDeactivateMap.entrySet()){
@@ -257,7 +256,7 @@ public class ComputeUtils {
             return Maps.newHashMap();
         }
 
-        ArrayList<Task<VolumeRestRep>> tasks = new ArrayList<>();
+        List<Task<VolumeRestRep>> tasks = new ArrayList<>();
         ArrayList<String> volumeNames = new ArrayList<>();
         for (Host host : hosts) {
             if (host == null) {
@@ -287,7 +286,7 @@ public class ComputeUtils {
 
         // monitor tasks
         while (!tasks.isEmpty()) {
-            waitAndRefresh(tasks);
+            tasks = waitAndRefresh(tasks);
             for (Task<VolumeRestRep> successfulTask : getSuccessfulTasks(tasks)) {
                 URI volumeId = successfulTask.getResourceId();
                 String taskResourceName = successfulTask.getResource().getName();
@@ -330,17 +329,28 @@ public class ComputeUtils {
         return failedTasks;
     }
 
-    private static <T> void waitAndRefresh(List<Task<T>> tasks) {
+    private static <T> List<Task<T>> waitAndRefresh(List<Task<T>> tasks) {
         long t = 100;  // >0 to keep waitFor(t) from waiting until task completes
+        List<Task<T>> refreshedTasks = Lists.newArrayList(tasks);
         for (Task<T> task : tasks) {
             try {
                 task.waitFor(t); // internal polling interval overrides (typically ~10 secs)
             } catch (TimeoutException te) {
                 // ignore timeout after polling interval
-            } catch (Exception e) {
+            } catch (ViPRException ex) {
+                //COP-26348 - Deleted tasks leave an order in pending/execution state.  Fixed by
+                // handling such a case and refreshing the tasklist being used to check state of task.
+                String exMessage = "Error 2000: Unable to find entity specified in URL with the given id %s";
+                exMessage = String.format(exMessage, task.getTaskResource().getId());
+                if(ex.getMessage().equalsIgnoreCase(exMessage) || ex.getMessage().equalsIgnoreCase("Task has no link")) {
+                    refreshedTasks.remove(task);
+                }
+                ExecutionUtils.currentContext().logError("computeutils.task.exception", ex.getMessage());
+            }catch (Exception e) {
                 ExecutionUtils.currentContext().logError("computeutils.task.exception", e.getMessage());
             }
         }
+        return refreshedTasks;
     }
 
     /**
@@ -383,7 +393,7 @@ public class ComputeUtils {
         Map<Host, URI> hostToEgIdMap = new HashMap<>();
         List<Task<ExportGroupRestRep>> tasks = new ArrayList<>(taskToHostMap.keySet());
         while (!tasks.isEmpty()) {
-            waitAndRefresh(tasks);
+            tasks = waitAndRefresh(tasks);
             for (Task<ExportGroupRestRep> successfulTask : getSuccessfulTasks(tasks)) {
                 URI exportId = successfulTask.getResourceId();
                 addAffectedResource(exportId);
@@ -554,7 +564,7 @@ public class ComputeUtils {
     // VBDU TODO: COP-28437, These methods need to be rewritten to use maps. Assuming stable indexing of
     // hostURIs->return List is poor programming practice.
     public static List<URI> deactivateHostURIs(Map<URI,String> hostURIs) {
-        ArrayList<Task<HostRestRep>> tasks = new ArrayList<>();
+        List<Task<HostRestRep>> tasks = new ArrayList<>();
         ExecutionUtils.currentContext().logInfo("computeutils.deactivatehost.inprogress", hostURIs.values());
         // monitor tasks
         List<URI> successfulHostIds = Lists.newArrayList();
@@ -563,7 +573,7 @@ public class ComputeUtils {
         }
         List<String> removedHosts = Lists.newArrayList();
         while (!tasks.isEmpty()) {
-            waitAndRefresh(tasks);
+            tasks = waitAndRefresh(tasks);
             for (Task<HostRestRep> successfulTask : getSuccessfulTasks(tasks)) {
                 successfulHostIds.add(successfulTask.getResourceId());
                 addAffectedResource(successfulTask.getResourceId());
@@ -582,7 +592,7 @@ public class ComputeUtils {
 
     // VBDU TODO: COP-28437, These methods need to be rewritten to use maps. Assuming stable indexing of
     // hosts->osInstallParams and hosts/osInstallParams->return List is poor programming practice.
-    public static void installOsOnHosts(List<HostRestRep> hosts, List<OsInstallParam> osInstallParams) {
+    public static void installOsOnHosts(List<Host> hosts, List<OsInstallParam> osInstallParams) {
 
         if ((hosts == null) || hosts.isEmpty()) {
             return;
@@ -590,7 +600,7 @@ public class ComputeUtils {
 
         // execute all tasks (no waiting)
         List<Task<HostRestRep>> tasks = Lists.newArrayList();
-        for (HostRestRep host : hosts) {
+        for (Host host : hosts) {
             if (host != null) {
                 int hostIndex = hosts.indexOf(host);
                 if (hostIndex > (osInstallParams.size() - 1)) {
@@ -609,7 +619,7 @@ public class ComputeUtils {
         }
         // monitor tasks
         while (!tasks.isEmpty()) {
-            waitAndRefresh(tasks);
+            tasks = waitAndRefresh(tasks);
             for (Task<HostRestRep> successfulTask : getSuccessfulTasks(tasks)) {
                 tasks.remove(successfulTask);
                 URI hostId = successfulTask.getResource().getId();
@@ -891,7 +901,7 @@ public class ComputeUtils {
         List<URI> hostsToRemove = Lists.newArrayList();
         List<URI> bootVolumesToRemove = Lists.newArrayList();
         while (!tasks.isEmpty()) {
-            waitAndRefresh(tasks);
+            tasks = waitAndRefresh(tasks);
             for (Task<HostRestRep> successfulTask : getSuccessfulTasks(tasks)) {
                 tasks.remove(successfulTask);
                 URI hostId = successfulTask.getResource().getId();

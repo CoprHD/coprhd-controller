@@ -272,6 +272,7 @@ public class DbClientContext {
                                 .setTargetCassandraVersion("2.0").setPartitioners(partitioners)
                                 .setRetryPolicy(retryPolicy))
                 .withConnectionPoolConfiguration(cfg)
+                .withTracerFactory(new KeyspaceTracerFactoryImpl())
                 .withConnectionPoolMonitor(new CustomConnectionPoolMonitor(monitorIntervalSecs))
                 .buildKeyspace(ThriftFamilyFactory.getInstance());
         keyspaceContext.start();

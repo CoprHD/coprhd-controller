@@ -609,7 +609,8 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
         }
         snapshot.setProject(new NamedURI(project.getURI(), project.getName()));
 
-        String existingSnapSnapSetLabel = ControllerUtils.getSnapSetLabelFromExistingSnaps(repGroupName, volume, _dbClient);
+        String existingSnapSnapSetLabel = ControllerUtils.getSnapSetLabelFromExistingSnaps(repGroupName, volume.getStorageController(),
+                _dbClient);
         if (null == existingSnapSnapSetLabel) {
             log.warn("Not able to find any snapshots with group {}", repGroupName);
             existingSnapSnapSetLabel = repGroupName;

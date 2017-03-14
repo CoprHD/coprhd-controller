@@ -1583,12 +1583,12 @@ public class ControllerUtils {
      * This is required when we try to create a new snapshot when the existing source volumes have snapshots.
      * 
      * @param repGroupName
-     * @param source
+     * @param storage
      * @param dbClient
      * @return
      */
-    public static String getSnapSetLabelFromExistingSnaps(String repGroupName, BlockObject source, DbClient dbClient) {
-        List<BlockSnapshot> snapshots = getSnapshotsPartOfReplicationGroup(repGroupName, source.getStorageController(), dbClient);
+    public static String getSnapSetLabelFromExistingSnaps(String repGroupName, URI storage, DbClient dbClient) {
+        List<BlockSnapshot> snapshots = getSnapshotsPartOfReplicationGroup(repGroupName, storage, dbClient);
         String existingSnapSnapSetLabel = null;
         if (!CollectionUtils.isEmpty(snapshots)) {
             existingSnapSnapSetLabel = snapshots.get(0).getSnapsetLabel();

@@ -6,7 +6,6 @@ package com.emc.storageos.volumecontroller.impl;
 
 import static com.emc.storageos.db.client.constraint.AlternateIdConstraint.Factory.getBlockSnapshotSessionBySessionInstance;
 import static com.emc.storageos.db.client.constraint.ContainmentConstraint.Factory.getVolumesByConsistencyGroup;
-import static com.emc.storageos.db.client.util.CommonTransformerFunctions.fctnBlockObjectToLabel;
 import static com.emc.storageos.db.client.util.CommonTransformerFunctions.fctnDataObjectToID;
 import static com.google.common.collect.Collections2.transform;
 import static com.google.common.collect.Lists.newArrayList;
@@ -30,6 +29,7 @@ import java.util.regex.Pattern;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.util.CollectionUtils;
 
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.DbClient;
@@ -81,7 +81,6 @@ import com.google.common.base.Joiner;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.ListMultimap;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Table;
 
 /**
@@ -1584,22 +1583,28 @@ public class ControllerUtils {
      * This is required when we try to create a new snapshot when the existing source volumes have snapshots.
      * 
      * @param repGroupName
-     * @param storage
+     * @param source
      * @param dbClient
      * @return
      */
-    public static String getSnapSetLabelFromExistingSnaps(String repGroupName, URI storage, DbClient dbClient) {
-        List<BlockSnapshot> snapshots = getSnapshotsPartOfReplicationGroup(repGroupName, storage, dbClient);
+    public static String getSnapSetLabelFromExistingSnaps(String repGroupName, BlockObject source, DbClient dbClient) {
+        List<BlockSnapshot> snapshots = getSnapshotsPartOfReplicationGroup(repGroupName, source.getStorageController(), dbClient);
         String existingSnapSnapSetLabel = null;
-        if (null != snapshots && !snapshots.isEmpty()) {
-            existingSnapSnapSetLabel = snapshots.get(0).getSnapsetLabel();
+        if (!CollectionUtils.isEmpty(snapshots)) {
+            existingSnapSnapSetLabel = String.format("%s-%s", snapshots.get(0).getSnapsetLabel(), source.getLabel());
         }
         return existingSnapSnapSetLabel;
     }
 
-    public static Set<String> getSnapshotLabelsFromExistingSnaps(String repGroupName, URI storage, DbClient dbClient) {
-        List<BlockSnapshot> snapshots = getSnapshotsPartOfReplicationGroup(repGroupName, storage, dbClient);
-        return new HashSet(transform(snapshots, fctnBlockObjectToLabel()));
+    public static Set<String> getSnapshotLabelsFromExistingSnaps(String repGroupName, BlockObject source, DbClient dbClient) {
+        List<BlockSnapshot> snapshots = getSnapshotsPartOfReplicationGroup(repGroupName, source.getStorageController(), dbClient);
+        Set<String> snapLables = new HashSet<>();
+        if (!CollectionUtils.isEmpty(snapshots)) {
+            for (BlockSnapshot snapshot : snapshots) {
+                snapLables.add(String.format("%s-%s", snapshot.getSnapsetLabel(), source.getLabel()));
+            }
+        }
+        return snapLables;
     }
 
     /**

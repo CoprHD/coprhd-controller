@@ -2372,7 +2372,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
                 replicaObject.setConsistencyGroup(consistencyGroup.getId());
             } else if (replicaObject instanceof BlockSnapshot) {
                 String snapSetLabel = ControllerUtils.getSnapSetLabelFromExistingSnaps(replicationGroupName,
-                        replicaObject.getStorageController(), _dbClient);
+                        replicaObject, _dbClient);
                 // set the snapsetLabel for the snapshots to add
                 if (null != snapSetLabel) {
                     ((BlockSnapshot) replicaObject).setSnapsetLabel(snapSetLabel);

@@ -284,7 +284,7 @@ public class CustomServicesService extends ViPRService {
 
             switch (CustomServicesConstants.InputType.fromString(value.getType())) {
                 case FROM_USER:
-                case ASSET_OPTION_SINGLE_VALUE: {
+                case ASSET_OPTION: {
                     if (params.get(name) != null) {
                         inputs.put(name, Arrays.asList(params.get(name).toString()));
                     } else {
@@ -295,7 +295,7 @@ public class CustomServicesService extends ViPRService {
                     break;
                 }
                 // TODO: Handle multi value
-                case ASSET_OPTION_MULTI_VALUE:
+                // case ASSET_OPTION_MULTI_VALUE:
                 case FROM_STEP_INPUT:
                 case FROM_STEP_OUTPUT: {
                     final String[] paramVal = value.getValue().split("\\.");

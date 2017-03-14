@@ -71,8 +71,9 @@ public final class CustomServicesConstants {
 
     public enum InputType {
         FROM_USER("InputFromUser"),
-        ASSET_OPTION_SINGLE_VALUE("AssetOptionSingleValue"),
-        ASSET_OPTION_MULTI_VALUE("AssetOptionMultiValue"),
+//        ASSET_OPTION_SINGLE_VALUE("AssetOptionSingleValue"),
+//        ASSET_OPTION_MULTI_VALUE("AssetOptionMultiValue"),
+        ASSET_OPTION("AssetOption"), // TODO: Change this to the above values.
         HARDCODEDVALUE("HardcodedValue"),
         FROM_STEP_INPUT("FromOtherStepInput"),
         FROM_STEP_OUTPUT("FromOtherStepOutput"),

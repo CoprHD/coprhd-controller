@@ -75,6 +75,10 @@ public class ExportUtils {
 
     public static final String NO_VIPR = "NO_VIPR";   // used to exclude VIPR use of export mask
     private static final String MAX_ALLOWED_HLU_KEY = "controller_%s_max_allowed_HLU";
+    // System Property. If this is false, it's OK to run validation checks, but don't fail out when they fail.
+    // This may be a dangerous thing to do, so we see this as a "kill switch" when service is in a desperate
+    // situation and they need to disable the feature.
+    private static final String VALIDATION_CHECK_PROPERTY = "validation_check";
 
     private static CoordinatorClient coordinator;
 
@@ -1702,6 +1706,22 @@ public class ExportUtils {
         return (DiscoveredDataObject.Type.vmax.name().equals(systemType) || DiscoveredDataObject.Type.vnxblock.name().equals(systemType)
                 || DiscoveredDataObject.Type.xtremio.name().equals(systemType) || DiscoveredDataObject.Type.unity.name().equals(systemType)
                 || DiscoveredDataObject.Type.vplex.name().equals(systemType));
+    }
+
+    /**
+     * Check to see if the validation variable is set. Default to true.
+     *
+     * @return true if the validation check is on.
+     */
+    public static boolean isValidationEnabled() {
+        if (coordinator != null) {
+            return Boolean.valueOf(ControllerUtils
+                    .getPropertyValueFromCoordinator(coordinator, VALIDATION_CHECK_PROPERTY));
+        } else {
+            _log.error("Bean wiring error: Coordinator not set, therefore validation will default to true.");
+        }
+
+        return true;
     }
 
     /**

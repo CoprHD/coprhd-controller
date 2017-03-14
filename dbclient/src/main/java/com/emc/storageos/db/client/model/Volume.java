@@ -20,6 +20,7 @@ import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.BlockSnapshot.TechnologyType;
+import com.emc.storageos.db.client.model.util.TagUtils;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 
 /**
@@ -1154,4 +1155,13 @@ public class Volume extends BlockObject implements ProjectResource {
         setChanged("backingReplicationGroupInstance");
     }
 
+    /**
+     * Return the volume's boot volume tag, if available.
+     * 
+     * @return usually the Host URI of the volume, but it's really a string.  Let the caller cast it.
+     */
+    public String bootVolumeTagValue() {
+        return TagUtils.getBlockVolumeBootVolume(this);
+    }
+    
 }

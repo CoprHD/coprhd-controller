@@ -88,8 +88,11 @@ public class VirtualPoolFileReplicationPolicyMigration extends BaseCustomMigrati
                     replPolicy.setFilePolicyVpool(virtualPool.getId());
                     // Replication policy was created always at file system level!!
                     replPolicy.setApplyAt(FilePolicyApplyLevel.file_system.name());
-                    replPolicy.setFileReplicationCopyMode(virtualPool.getFileReplicationCopyMode());
-
+                    if(virtualPool.getFileReplicationCopyMode().equals(VirtualPool.RPCopyMode.ASYNCHRONOUS.name())){
+                        replPolicy.setFileReplicationCopyMode(FilePolicy.FileReplicationCopyMode.ASYNC.name());  
+                    }else{
+                        replPolicy.setFileReplicationCopyMode(FilePolicy.FileReplicationCopyMode.SYNC.name()); 
+                    }
                     replPolicy.setFileReplicationType(virtualPool.getFileReplicationType());
                     replPolicy.setPriority("LOW");
 

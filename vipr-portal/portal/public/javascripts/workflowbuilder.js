@@ -29,7 +29,7 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
     var workflowNodeType = "WORKFLOW";
     var shellNodeType = "SCRIPT";
     var localAnsibleNodeType = "ANSIBLE"
-    var fileNodeTypes = [shellNodeType, localAnsibleNodeType]
+    var fileNodeTypes = [shellNodeType, localAnsibleNodeType, workflowNodeType]
     var viprLibIDs = ["viprrest", "viprLib"]
 
     initializeJsTree();
@@ -163,7 +163,6 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
         }
     };
 
-    var validActions = [];
     // default preview
     $scope.shellPreview = false;
     $scope.noPreview = true;
@@ -228,13 +227,15 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
             $scope.noPreview = false;
         }
 
+        console.log(data.node.type);
         // If current node is vipr library or its parent is vipr library, disable all
         if($.inArray(data.node.id, viprLibIDs) > -1 || $.inArray(data.node.parent, viprLibIDs) > -1 || $.inArray(data.node.type, fileNodeTypes) > -1) {
             // ViPR Library nodes - disable all buttons
-            validActions = [];
+            console.log('disable');
             $('#addWorkflow').prop("disabled",true);
         }
         else {
+            console.log('false');
             $('#addWorkflow').prop("disabled",false);
         }
     };

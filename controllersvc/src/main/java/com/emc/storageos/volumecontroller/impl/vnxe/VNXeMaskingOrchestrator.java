@@ -142,7 +142,7 @@ public class VNXeMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
             TaskCompleter taskCompleter = new ExportOrchestrationTask(exportGroupURI,
                     token);
 
-            if (exportGroup == null || exportGroup.getInactive() || ExportMaskUtils.getExportMasks(_dbClient, exportGroup).isEmpty()) {
+            if (exportGroup == null || exportGroup.getInactive() || ExportMaskUtils.getExportMasks(_dbClient, exportGroup, storageURI).isEmpty()) {
                 taskCompleter.ready(_dbClient);
                 return;
             }
@@ -358,7 +358,7 @@ public class VNXeMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
             /**
              * export mask must exist since both volume & initiator exist
              */
-            Map<ExportMask, List<Initiator>> exportMasksMap = getInitiatorExportMasks(initiators, _dbClient, exportGroup);
+            Map<ExportMask, List<Initiator>> exportMasksMap = getInitiatorExportMasks(initiators, _dbClient, exportGroup, storageURI);
             Map<URI, List<URI>> maskToInitiatorsMap = new HashMap<URI, List<URI>>();
             for (Entry<ExportMask, List<Initiator>> entry : exportMasksMap.entrySet()) {
                 ExportMask mask = entry.getKey();
@@ -676,10 +676,10 @@ public class VNXeMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
     }
 
     private Map<ExportMask, List<Initiator>> getInitiatorExportMasks(
-            List<Initiator> initiators, DbClient dbClient, ExportGroup exportGroup) {
+            List<Initiator> initiators, DbClient dbClient, ExportGroup exportGroup, URI ssysURI) {
         Map<ExportMask, List<Initiator>> exportMasksMap = new HashMap<ExportMask, List<Initiator>>();
 
-        List<ExportMask> exportMasks = ExportMaskUtils.getExportMasks(dbClient, exportGroup);
+        List<ExportMask> exportMasks = ExportMaskUtils.getExportMasks(dbClient, exportGroup, ssysURI);
         for (ExportMask exportMask : exportMasks) {
             List<Initiator> maskInitiators = new ArrayList<Initiator>();
             for (Initiator initiator : initiators) {

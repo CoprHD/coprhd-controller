@@ -906,6 +906,11 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             if (args.getFs().getPersonality() != null && args.getFs().getPersonality().equalsIgnoreCase(PersonalityTypes.TARGET.name())) {
                 FileShare fsParent = _dbClient.queryObject(FileShare.class, args.getFs().getParentFileShare().getURI());
                 fsName = fsParent.getName();
+                // Add if there is any suffix in target fs label!!
+                String[] fsNameSuffix = args.getFs().getLabel().split(fsParent.getName() + "-target");
+                if (fsNameSuffix != null && fsNameSuffix.length > 1 && !fsNameSuffix[1].isEmpty()) {
+                    fsName = fsName + fsNameSuffix[1];
+                }
             }
             // Update the mount path as required
             if (vNASPath != null && !vNASPath.trim().isEmpty()) {

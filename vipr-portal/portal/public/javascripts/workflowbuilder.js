@@ -17,12 +17,20 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
 })
 .controller('treeController', function($element, $scope, $compile, $http, $rootScope) { //NOSONAR ("Suppressing Sonar violations of max 100 lines in a function and function complexity")
 
+    // if True, will enable menus on jstree
+    $scope.libraryMenu = true;
+
+    $scope.initializeTreeConfig = function(library) {
+        $scope.libraryMenu = library;
+    }
+
     var jstreeContainer = $element.find('#jstree_demo');
     var folderNodeType = "FOLDER";
     var workflowNodeType = "WORKFLOW";
     var shellNodeType = "SCRIPT";
     var localAnsibleNodeType = "ANSIBLE"
     var fileNodeTypes = [shellNodeType, localAnsibleNodeType]
+    var viprLibIDs = ["viprrest", "viprLib"]
 
     initializeJsTree();
 
@@ -41,7 +49,7 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
             "core": {
                 "animation": 0,
                 "check_callback": true,
-                "themes": {"stripes": false},
+                "themes": {"stripes": false, "ellipsis": true},
                 "data": {
                     "url" : "getWFDirectories",
                     "type":"get"
@@ -50,7 +58,7 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
             "types": {
                 "#": {
                     "max_children": 1,
-                    "max_depth": 10,
+                    "max_depth": 4,
                     "valid_children": ["root"]
                 },
                 "root": {
@@ -58,32 +66,32 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
                     "valid_children": ["default"]
                 },
                 "FOLDER": {
-                    "icon": "glyphicon glyphicon-folder-close",
+
                     "valid_children": ["WORKFLOW","FOLDER", "SCRIPT", "ANSIBLE"]
                 },
                 "WORKFLOW": {
-                    "icon": "glyphicon glyphicon-file",
+                    "icon": "/public/img/customServices/UserDefinedWF.png",
                     "valid_children": [],
                     "li_attr": {"class": "draggable-card"}
                 },
                 "SCRIPT": {
-                    "icon": "glyphicon glyphicon-file",
+                    "icon": "/public/img/customServices/UserDefinedOperation.png",
                     "valid_children": [],
                     "li_attr": {"class": "draggable-card"}
                 },
                 "ANSIBLE": {
-                    "icon": "glyphicon glyphicon-file",
+                    "icon": "/public/img/customServices/UserDefinedOperation.png",
                     "valid_children": [],
                     "li_attr": {"class": "draggable-card"}
                 },
-                "default": {
-                    "icon": "glyphicon glyphicon-file",
+                "VIPR": {
+                    "icon": "/public/img/customServices/ViPROperation.png",
                     "valid_children": [],
                     "li_attr": {"class": "draggable-card"}
                 }
             },
             "plugins": [
-                "search", "state", "types", "wholerow"
+                "search", "state", "types", "wholerow", "themes"
             ],
             "search" : {
                   'case_sensitive' : false,
@@ -93,7 +101,7 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
             jstreeContainer.find( ".draggable-card" ).draggable({handle: "a",scroll: false,helper: getDraggableStepHTML,appendTo: 'body',cursorAt: { top: 8, left: -16 }});
         }).bind("rename_node.jstree clear_search.jstree search.jstree open_node.jstree", function() {
             jstreeContainer.find( ".draggable-card" ).draggable({handle: "a",scroll: false,helper: getDraggableStepHTML,appendTo: 'body',cursorAt: { top: 0, left: 0 }});
-        })
+        });
     }
 
     var getDraggableStepHTML= function(event){
@@ -155,59 +163,81 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
         }
     };
 
-    var validActionsOnMyLib = ["addFolder", "addWorkflow"]
-    var validActionsOnDirectory = ["addFolder", "addWorkflow", "deleteNode", "editNode"]
-    var validActionsOnWorkflow = ["deleteNode", "editNode", "openEditor"]
-    var validActionsOnMyPrimitives = ["deleteNode", "editNode"]
-    var allActions = ["addFolder", "addWorkflow", "deleteNode", "editNode", "openEditor"]
-    var viprLibIDs = ["viprrest", "viprLib"]
-
     var validActions = [];
     // default preview
     $scope.shellPreview = false;
     $scope.noPreview = true;
 
-    function selectDir(event, data) {
-        $scope.shellPreview = false;
-        $scope.noPreview = true;
-        // If current node is vipr library or its parent is vipr library, disable all
-        if($.inArray(data.node.id, viprLibIDs) > -1 || $.inArray(data.node.parent, viprLibIDs) > -1) {
-            // ViPR Library nodes - disable all buttons
-            validActions = [];
-        }
-        else if("myLib" === data.node.id) {
-            // My Library root
-            validActions = validActionsOnMyLib;
-        }
-        else if(workflowNodeType === data.node.type){
-            // For workflows
-            validActions = validActionsOnWorkflow
-        }
-        else if ($.inArray(data.node.type, fileNodeTypes) > -1) {
-            // shell script, ansible
-            validActions = validActionsOnMyPrimitives;
-            if (shellNodeType === data.node.type) {
-                //preview Shell script
-                $scope.shellPreview = true;
-                $scope.noPreview = false;
-            }
-        }
-        else {
-            // Other directories in My Library
-            validActions = validActionsOnDirectory;
-        }
-
-        // Enable all validActions, disable others
-        $.each(allActions, function( index, value ) {
-            if($.inArray(value, validActions)!== -1) {
-                $('#'+value).prop("disabled",false);
-            }
-            else {
-                $('#'+value).prop("disabled",true);
-            }
-        });
+    $scope.showMoreOptions = function() {
+        var data = $scope.selectedNode;
+        setTimeout(function() {
+            data.instance.show_contextmenu(data.node)
+        }, 100);
     };
 
+    var optionsHTML = `
+    <div id="treeMoreOptions" class="btn-group" style="float:right;padding-right:5px;">
+       <button type="button" class="btn btn-xs btn-default dropdown-toggle" title="More Options" data-toggle="dropdown" style="background-color:#4794cd; border-color:#4794cd;">
+           <span class="glyphicon glyphicon-chevron-down"></span>
+       </button>
+       <ul class="dropdown-menu dropdown-menu-right" role="menu">
+           <li><a  href="#" ng-click="editNode();"><span class="glyphicon glyphicon-pencil" style="padding-right:5px;"></span>Edit</a></li>
+           <li><a  href="#" ng-click="deleteNode();"><span class="glyphicon glyphicon-trash" style="padding-right:5px;"></span>Delete</a></li>
+           <li id="openWFMenu"><a  href="#" ng-click="openWorkflow();"><span class="glyphicon glyphicon-new-window" style="padding-right:5px;"></span>Open</a></li>
+       </ul>
+    </div>
+    `;
+
+    function addMoreOptions(data) {
+        if(!$scope.libraryMenu) return;
+
+        //remove any previous element
+        $("#treeMoreOptions").remove();
+
+        // Do not show 'More options' on ViPR Library nodes & My Library
+        if($.inArray(data.node.id, viprLibIDs) > -1 || $.inArray(data.node.parent, viprLibIDs) > -1 || "myLib" === data.node.id) {
+            return;
+        }
+
+        //find anchor with this id and append "more options"
+        $scope.selectedNode = data;
+        var anchorSelector = data.node.id+"_anchor";
+        $('[id="'+anchorSelector+'"]').after(optionsHTML);
+
+        // Hiding 'Open' menu for non-workflow types
+        if(workflowNodeType !== data.node.type){
+            $('#openWFMenu').hide();
+        }
+
+        //TODO: check if we can avoid this search on ID
+        var generated = jstreeContainer.jstree(true).get_node(data.node.id, true);
+        $compile(generated.contents())($scope);
+    }
+
+
+    function selectDir(event, data) {
+
+        addMoreOptions(data);
+
+        // Enable/Disable Preview Option
+        $scope.shellPreview = false;
+        $scope.noPreview = true;
+        if (shellNodeType === data.node.type) {
+            //preview Shell script
+            $scope.shellPreview = true;
+            $scope.noPreview = false;
+        }
+
+        // If current node is vipr library or its parent is vipr library, disable all
+        if($.inArray(data.node.id, viprLibIDs) > -1 || $.inArray(data.node.parent, viprLibIDs) > -1 || $.inArray(data.node.type, fileNodeTypes) > -1) {
+            // ViPR Library nodes - disable all buttons
+            validActions = [];
+            $('#addWorkflow').prop("disabled",true);
+        }
+        else {
+            $('#addWorkflow').prop("disabled",false);
+        }
+    };
 
     // Methods for JSTree actions
     $scope.addFolder = function() {

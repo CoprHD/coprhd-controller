@@ -82,6 +82,7 @@ public class WorkflowBuilder extends Controller {
     private static final String MY_LIBRARY = "My Library";
     private static final String VIPR_LIBRARY = "ViPR Library";
     private static final String VIPR_PRIMITIVE_LIBRARY = "ViPR REST Primitives";
+    private static final String JSTREE_A_ATTR_TITLE = "title";
 
     public static void view() {
         setAnsibleResources();
@@ -107,6 +108,8 @@ public class WorkflowBuilder extends Controller {
         private String parentID;
         private CustomServicesPrimitiveRestRep data;
         private String type;
+        @SerializedName("a_attr")
+        private Map<String, String> anchorAttr = new HashMap<String, String>();
 
         Node() {
         }
@@ -116,6 +119,7 @@ public class WorkflowBuilder extends Controller {
             this.text = text;
             this.parentID = parentID;
             this.type = type;
+            anchorAttr.put(JSTREE_A_ATTR_TITLE, text);
         }
     }
 

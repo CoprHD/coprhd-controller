@@ -594,15 +594,15 @@ public class ExportUtils {
     }
     
     /**
-     * Check if the initiator is being shared across masks and check if the mask has unmanaged volumes.
+     * Check if the initiator is being shared across masks and check if the mask has only vipr managed volumes.
      * 
      * @param dbClient
      * @param initiatorUri
      * @param curExportMask
      * @param exportMaskURIs
-     * @return
+     * @return List of other shared masks name if the initiator is found in other export masks.
      */
-    public static List<String> isinitiatorSharedBetweenMasksAndHasUnManagedVolumes(DbClient dbClient, URI initiatorUri, ExportMask curExportMask,
+    public static List<String> getExportMasksSharingInitiatorAndHasOnlyViPRManagedVolumes(DbClient dbClient, URI initiatorUri, ExportMask curExportMask,
             Collection<URI> exportMaskURIs) {
         List<ExportMask> results = CustomQueryUtility.queryActiveResourcesByConstraint(dbClient, ExportMask.class,
                 ContainmentConstraint.Factory.getConstraint(ExportMask.class, "initiators", initiatorUri));

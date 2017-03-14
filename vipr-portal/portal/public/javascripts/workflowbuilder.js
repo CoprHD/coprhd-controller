@@ -227,15 +227,12 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
             $scope.noPreview = false;
         }
 
-        console.log(data.node.type);
         // If current node is vipr library or its parent is vipr library, disable all
         if($.inArray(data.node.id, viprLibIDs) > -1 || $.inArray(data.node.parent, viprLibIDs) > -1 || $.inArray(data.node.type, fileNodeTypes) > -1) {
             // ViPR Library nodes - disable all buttons
-            console.log('disable');
             $('#addWorkflow').prop("disabled",true);
         }
         else {
-            console.log('false');
             $('#addWorkflow').prop("disabled",false);
         }
     };

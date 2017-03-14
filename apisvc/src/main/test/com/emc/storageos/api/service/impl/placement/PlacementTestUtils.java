@@ -247,10 +247,7 @@ public class PlacementTestUtils {
         rpScheduler.setVplexScheduler(vplexScheduler);
         rpScheduler.setBlockScheduler(storageScheduler);
         PermissionsHelper permHelper = new PermissionsHelper(dbClient);
-        rpScheduler._permissionsHelper = permHelper;
-        RPHelper rpHelper = new RPHelper();
-        rpHelper.setDbClient(dbClient);
-        rpScheduler.setRpHelper(rpHelper);
+        rpScheduler._permissionsHelper = permHelper;       
     
         schedulerMap.put("srdf", srdfScheduler);
         schedulerMap.put("vplex", vplexScheduler);

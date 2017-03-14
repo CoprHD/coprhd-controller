@@ -834,9 +834,12 @@ public class BlockService extends TaskResourceService {
                         volumeCount.intValue(), cgMaxVolCount, consistencyGroup.getLabel());
             }
 
+            // Get the requested types for provisioning (RP, VPlex, etc.)
+            requestedTypes = getRequestedTypes(vpool);
+
             // If the consistency group is not yet created, verify the name is OK.
             if (!consistencyGroup.created()) {
-                blockServiceImpl.validateConsistencyGroupName(consistencyGroup);
+                blockServiceImpl.validateConsistencyGroupName(consistencyGroup, requestedTypes);
             }
 
             // Consistency Group is already a Target, hence cannot be used to create source volume
@@ -865,8 +868,6 @@ public class BlockService extends TaskResourceService {
 
             // check if CG's storage system is associated to the requested virtual array
             validateCGValidWithVirtualArray(consistencyGroup, varray);
-
-            requestedTypes = getRequestedTypes(vpool);
 
             // Validate the CG type. We want to make sure the volume create request is appropriate
             // the CG's previously requested types.
@@ -2004,13 +2005,18 @@ public class BlockService extends TaskResourceService {
     }
 
     /**
-     * Deactivate a volume, this will move the volume to a "marked-for-delete"
-     * state after the deletion happens on the array side. The volume will be
-     * deleted from the database when all references to this volume of type
-     * BlockSnapshot and ExportGroup are deleted.
+     * Deactivate a volume, will result in permanent deletion of the requested volume(s) from the storage system it was created on and will
+     * move the volume to a "marked-for-delete" state after the deletion happens on the array side. The volume will be
+     * deleted from the database when all references to this volume of type BlockSnapshot and ExportGroup are deleted.
      *
      * If "?force=true" is added to the path, it will force the delete of internal
      * volumes that have the SUPPORTS_FORCE flag.
+     *
+     * If "?type=VIPR_ONLY" is added to the path, it will delete volumes only from ViPR data base and leaves the volume on storage array as
+     * it is.
+     * Possible value for the attribute type : FULL, VIPR_ONLY
+     * FULL : Deletes the volumes permanently on array and ViPR data base.
+     * VIPR_ONLY : Deletes the volumes only from ViPR data base and leaves the volumes on array as it is.
      *
      * NOTE: This is an asynchronous operation.
      *
@@ -2019,6 +2025,8 @@ public class BlockService extends TaskResourceService {
      *
      * @param id
      *            the URN of a ViPR volume to delete
+     * @param force {@link DefaultValue} false
+     * @param type {@link DefaultValue} FULL
      *
      * @brief Delete volume
      * @return Volume information
@@ -2052,6 +2060,13 @@ public class BlockService extends TaskResourceService {
      * If "?force=true" is added to the path, it will force the delete of internal
      * volumes that have the SUPPORTS_FORCE flag.
      *
+     * If "?type=VIPR_ONLY" is added to the path, it will delete volumes only from ViPR data base and leaves the volume on storage array as
+     * it is.
+     * Possible value for the attribute type : FULL, VIPR_ONLY
+     * FULL : Deletes the volumes permanently on array and ViPR data base.
+     * VIPR_ONLY : Deletes the volumes only from ViPR data base and leaves the volumes on array as it is.
+     *
+     *
      * NOTE: This is an asynchronous operation.
      *
      *
@@ -2060,6 +2075,8 @@ public class BlockService extends TaskResourceService {
      * @param volumeURIs
      *            The POST data specifying the ids of the volume(s) to be
      *            deleted.
+     * @param force {@link DefaultValue} false
+     * @param type {@link DefaultValue} FULL
      *
      * @brief Delete multiple volumes
      * @return A reference to a BlockTaskList containing a list of
@@ -2797,8 +2814,15 @@ public class BlockService extends TaskResourceService {
      *            the URN of a ViPR Source volume
      * @param param
      *            List of copies to deactivate
-     * @param deleteType
-     *            the type of deletion
+     * @param type {@link DefaultValue} FULL
+     *            Possible type of deletion
+     *            <ul>
+     *            <li>FULL</li>
+     *            <li>VIPR_ONLY</li>
+     *            </ul>
+     *            if type is FULL, ViPR deletes the continuous copy from storage array and removes from ViPR data base.
+     *            if type is VIPR_ONLY, ViPR removes the continuous copy only from ViPR data base and leaves the continuous copy on storage
+     *            array as it is.
      *
      * @brief Delete continuous copies
      * @return TaskList
@@ -5395,9 +5419,9 @@ public class BlockService extends TaskResourceService {
     /*
      * Validate if the physical array that the consistency group bonded to is associated
      * with the virtual array
-     * 
+     *
      * @param consistencyGroup
-     * 
+     *
      * @param varray virtual array
      */
     private void validateCGValidWithVirtualArray(BlockConsistencyGroup consistencyGroup,
@@ -5550,7 +5574,7 @@ public class BlockService extends TaskResourceService {
      * Validate volume being expanded is not an SRDF volume with snapshots attached,
      * which isn't handled.
      * Also make sure that the SRDF Copy Mode is not Active.
-     * 
+     *
      * @param volume
      *            -- Volume being expanded
      * @throws Exception

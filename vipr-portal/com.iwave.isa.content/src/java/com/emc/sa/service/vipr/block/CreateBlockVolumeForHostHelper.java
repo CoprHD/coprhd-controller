@@ -91,20 +91,22 @@ public class CreateBlockVolumeForHostHelper extends CreateBlockVolumeHelper {
                 }
                 // If did not find export group for the host/cluster, try find existing empty export with
                 // host/cluster name
-                boolean isEmptyExport = false;
+                boolean createExport = export == null;
+                boolean isEmptyExport = export != null && BlockStorageUtils.isEmptyExport(export);
                 String exportName = cluster != null ? cluster.getLabel() : host.getHostName();
                 if (export == null) {
                     export = BlockStorageUtils.findExportsByName(exportName, project, virtualArray);
                     isEmptyExport = export != null && BlockStorageUtils.isEmptyExport(export);
+                    createExport = export == null || !isEmptyExport;
                     // If there is an existing non-empty export with the same name, append a time stamp to the name to make it unique
-                    if (!isEmptyExport) {
+                    if (export != null && !isEmptyExport) {
                         exportName = exportName + BlockStorageUtils.UNDERSCORE
                                 + new SimpleDateFormat("yyyyMMddhhmmssSSS").format(new Date());
                     }
                 }
 
                 // If the export does not exist or there is a non-empty export with the same name, create a new one
-                if (export == null || !isEmptyExport) {
+                if (createExport) {
                     URI exportId = null;
                     if (cluster != null) {
                         exportId = BlockStorageUtils.createClusterExport(exportName, project, virtualArray, batchVolumeIds, hlu, cluster,

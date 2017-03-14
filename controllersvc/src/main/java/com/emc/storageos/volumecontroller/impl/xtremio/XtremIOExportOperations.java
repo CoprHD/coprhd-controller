@@ -1160,7 +1160,9 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
 
             _log.info("Finding re-usable IGs available on Array {}", storage.getNativeGuid());
 
+            List<URI> initiatorIds = new ArrayList<>();
             for (Initiator initiator : initiators) {
+                initiatorIds.add(initiator.getId());
                 if (null != initiator.getHostName()) {
                     // initiators already grouped by Host
                     hostName = initiator.getHostName();
@@ -1198,15 +1200,42 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
                 return;
             }
 
+            // Small block of declarations/initializations to assist with vblock boot volume check in below block.
+            Set<String> vblockConflictIgNames = new HashSet<>();
+            Map<URI, Integer> volumeMap = new HashMap<>();
+            for (VolumeURIHLU volumeIdHlu : volumeURIHLUs) {
+                volumeMap.put(volumeIdHlu.getVolumeURI(), Integer.valueOf(volumeIdHlu.getHLU()));
+            }
+            
             // Check for volumes which are already mapped to the IG. We do not need to create lun map for them.
             ArrayListMultimap<String, String> volumesToIGMap = ArrayListMultimap.create();
             for (String igName : igNames) {
                 List<XtremIOVolume> igVols = XtremIOProvUtils.getInitiatorGroupVolumes(igName, xioClusterName, client);
                 for (XtremIOVolume igVolume : igVols) {
                     volumesToIGMap.put(igName, igVolume.getVolInfo().get(1));
+                    
+                    /**
+                     * COP-28674: During Vblock Boot volume export, if existing masking views are found then check for existing volumes
+                     * If found throw exception. This condition is valid only for boot volume vblock export.
+                     */
+                    if (ExportMaskUtils.isVblockHost(initiatorIds, dbClient) && ExportMaskUtils.isBootVolume(dbClient, volumeMap)) {
+                        _log.error(String.format("VBlock boot volume Export: found existing IG (%s) with volumes in it on %s.", igName,  
+                                storage.getNativeGuid()));
+                        vblockConflictIgNames.add(igName);
+                    }
                 }
             }
 
+            // If we collected any conflicting IG names (because we're about to export a boot volume to a vblock host, and 
+            // there are additional volumes also visible to any of the initiators associated with that host), post a verbose
+            // error for the customer.
+            if (!vblockConflictIgNames.isEmpty()) {
+                ServiceError serviceError = DeviceControllerException.errors.existingMaskFoundDuringBootVolumeExportXio(
+                        Joiner.on(',').join(vblockConflictIgNames), hostName); 
+                taskCompleter.error(dbClient, serviceError);
+                return;
+            }
+            
             InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_052);
 
             // create Lun Maps

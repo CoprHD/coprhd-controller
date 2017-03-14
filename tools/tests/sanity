@@ -4875,7 +4875,7 @@ filepolicy_tests()
 	run fileshare create $fsname $PROJECT $REMOTE_NH $cos $FS_SIZEMB
 	
 	echo "Displaying the filesystem created"
-	run fileshare show $PROJECT/$fsname
+	run fileshare show $PROJECT/$fsname 
 	
 	echo "Deleting the filesystem"
 	run fileshare delete $PROJECT/$fsname
@@ -8051,9 +8051,9 @@ file_tests()
             snap_share_args="--perm read"
             ;;
         root)
-            exp_args="$FSEXP_ROOT_EPS --perm root --rootuser root --comments TESTCOMMENTS"
+            exp_args="$FSEXP_ROOT_EPS --perm root --comments TESTCOMMENTS"
             exp_upd_args="--roothosts $FSEXP3"
-            snap_exp_args="$FSEXP_ROOT_EPS --perm ro --rootuser root"
+            snap_exp_args="$FSEXP_ROOT_EPS --perm ro"
             snap_share_args="--perm read"
             ;;
         default)
@@ -8433,7 +8433,7 @@ quick_file_tests()
             snap_share_args="--perm read"
             ;;
         root)
-            exp_args="$FSEXP_ROOT_EPS --perm root --rootuser root"
+            exp_args="$FSEXP_ROOT_EPS --perm root --rootuser nobody"
             snap_share_args="--perm read"
             ;;
         default)
@@ -8501,7 +8501,6 @@ quick_file_tests()
 #
 isilon_tests()
 {
-	filepolicy_tests $REM_COS_ISIFILE
     file_tests $COS_ISIFILE default ro rw root
 
     if [ "$AUTH" != 'local' && "$AUTH" != 'ipv6' ] ; then
@@ -8520,6 +8519,9 @@ isilon_tests()
         bulkapi filecos $LOCAL_LDAP_SUPERUSER_USERNAME $LOCAL_LDAP_SUPERUSER_PASSWORD $LOCAL_LDAP_USER_PASSWORD_1
         bulkapi fileshares $LOCAL_LDAP_SUPERUSER_USERNAME $LOCAL_LDAP_SUPERUSER_PASSWORD $LOCAL_LDAP_USER_PASSWORD_1 $NH $COS_ISIFILE $FS_SIZE
     fi
+    
+    filepolicy_tests $REM_COS_ISIFILE
+
 }
 
 ecs_tests()

@@ -4870,12 +4870,16 @@ filepolicy_tests()
                           --target_varrays $NH
 	
 	fsname=FilePolicyTest-$cos
+	targetfsname=$fsname-target
 	
 	echo "Creating filesystem $fsname"
 	run fileshare create $fsname $PROJECT $REMOTE_NH $cos $FS_SIZEMB
 	
 	echo "Displaying the filesystem created"
 	run fileshare show $PROJECT/$fsname 
+	
+	echo "Displaying the filesystem created at target"
+	run fileshare show $PROJECT/$targetfsname 
 	
 	echo "Deleting the filesystem"
 	run fileshare delete $PROJECT/$fsname
@@ -6751,7 +6755,7 @@ isilon_replication_setup_once()
 	--description 'Virtual-Pool-for-Isilon' true 	\
                             --protocols NFS CIFS --max_snapshots 10 \
                             --provisionType 'Thin' \
-			    --neighborhoods $REMOTE_NH --schedule_snapshot true --replication_support true --filepolicy_at_project true --filepolicy_at_fs true
+			    --neighborhoods $REMOTE_NH $NH --schedule_snapshot true --replication_support true --filepolicy_at_project true --filepolicy_at_fs true
     ROOT_TENANT=`tenant root|tail -1`
     run cos allow $REM_COS_ISIFILE file $ROOT_TENANT
     if [ "$EXTRA_PARAM" = "search" ] ; then

@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 Dell Inc. or its subsidiaries.
+ * Copyright 2017 Dell Inc. or its subsidiaries.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -162,9 +162,8 @@ public class CustomServicesService extends ViPRService {
                         break;
                     }
                     case REST:
-		    case REST_LOGIN: 
-			logger.info("Start REST execution");
-			res = ViPRExecutionUtils.execute(new CustomServicesRESTExecution(coordinatorClient, inputPerStep.get(step.getId()), step));
+                        logger.info("Start REST execution");
+                        res = ViPRExecutionUtils.execute(new CustomServicesRESTExecution(coordinatorClient, inputPerStep.get(step.getId()), step));
                         break;
                     case LOCAL_ANSIBLE:
                         logger.info("Executing Local Ansible step");
@@ -187,6 +186,7 @@ public class CustomServicesService extends ViPRService {
                         throw InternalServerErrorException.internalServerErrors
                                 .customServiceExecutionFailed("Operation Type not supported" + type);
                 }
+
                 boolean isSuccess = isSuccess(step, res);
                 if (isSuccess) {
                     try {
@@ -368,7 +368,7 @@ public class CustomServicesService extends ViPRService {
      * "task.state"
      *
      * @param step
-     * @param result
+     * @param res
      */
     private void updateOutputPerStep(final Step step, final CustomServicesTaskResult res) throws Exception {
         final List<CustomServicesWorkflowDocument.Output> output = step.getOutput();
@@ -380,7 +380,7 @@ public class CustomServicesService extends ViPRService {
         for (CustomServicesWorkflowDocument.Output o : output) {
             if (isAnsible(step)) {
                 out.put(o.getName(), evaluateAnsibleOut(result, o.getName()));
-            } else if (step.getType().equals(StepType.REST_LOGIN.toString())) {
+            } else if (step.getType().equals(StepType.REST.toString())) {
                 if (o.getName().equals("token")) {
 
                     logger.info("get the token:{}", o.getTable());

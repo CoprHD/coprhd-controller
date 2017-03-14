@@ -69,6 +69,21 @@ public final class CustomServicesConstants {
     public static final String ANSIBLE_OPTIONS = "ansible_options";
     public static final String REST_OPTIONS = "rest_options";
 
+    //REST options
+    public static final String PROTOCOL = "protocol";
+    public static final String AUTH_TYPE = "AuthType";
+    public static final String BASIC_AUTH = "BasicAuth";
+    public static final String USER = "user";
+    public static final String PASSWORD = "password";
+    public static final String ACCEPT_TYPE = "Accept-Type";
+    public static final String CONTENT_TYPE = "Content-Type";
+    public static final String BODY = "body";
+    public static final String METHOD = "method";
+    public static final String TARGET = "target";
+    public static final String PATH = "path";
+    public static final String PORT = "port";
+    public static final String HEADERS = "headers";
+
     public enum InputType {
         FROM_USER("InputFromUser"),
         FROM_STEP_INPUT("FromOtherStepInput"),

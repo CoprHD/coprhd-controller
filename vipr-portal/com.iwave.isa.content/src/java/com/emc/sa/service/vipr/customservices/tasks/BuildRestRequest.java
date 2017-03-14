@@ -1,5 +1,21 @@
-package com.emc.sa.service.vipr.customservices.tasks;
+/*
+ * Copyright 2017 Dell Inc. or its subsidiaries.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ */
 
+package com.emc.sa.service.vipr.customservices.tasks;
 
 import com.emc.storageos.model.customservices.CustomServicesWorkflowDocument;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
@@ -8,29 +24,25 @@ import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorExcepti
 import com.sun.jersey.api.client.Client;
 import com.sun.jersey.api.client.*;
 import com.sun.jersey.api.client.config.ClientConfig;
-import com.sun.jersey.api.client.config.DefaultClientConfig;
 import com.sun.jersey.api.client.filter.HTTPBasicAuthFilter;
 import com.sun.jersey.client.urlconnection.HTTPSProperties;
-import io.netty.util.internal.StringUtil;
-import org.apache.http.impl.client.HttpClientBuilder;
 import org.slf4j.LoggerFactory;
 
 import org.apache.commons.io.IOUtils;
 import com.emc.sa.service.vipr.customservices.CustomServicesConstants;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManager;
-import javax.ws.rs.core.MediaType;
 import java.util.List;
 import java.util.Map;
 
 public class BuildRestRequest {
 
     private Client client;
-    WebResource.Builder builder = null;
-    WebResource resource;
-    final private ClientConfig config;
+    private WebResource.Builder builder = null;
+    private WebResource resource;
+    private final ClientConfig config;
     private final CoordinatorClient coordinator;
-    private String body;
+
     private static final org.slf4j.Logger logger = LoggerFactory.getLogger(BuildRestRequest.class);
 
     public BuildRestRequest(ClientConfig config, CoordinatorClient coordinator) {
@@ -38,42 +50,46 @@ public class BuildRestRequest {
         this.coordinator = coordinator;
     }
 
-    public WebResource.Builder getResource() {
-        return resource.getRequestBuilder();
+    private WebResource.Builder getBuilder() {
+        if (builder != null) {
+            return builder;
+        }
+        builder = resource.getRequestBuilder();
+
+        return builder;
     }
 
     public BuildRestRequest setSSL(final String protocol) throws Exception {
 
+        if (protocol.isEmpty()) {
+            throw InternalServerErrorException.internalServerErrors.
+                    customServiceExecutionFailed("Protocol not defined" + protocol);
+
+        }
         if (!protocol.equals("https")) {
             logger.error("Only Https is supported. Protocol:{} is not supported", protocol);
 
-            InternalServerErrorException.internalServerErrors.
+            throw InternalServerErrorException.internalServerErrors.
                     customServiceExecutionFailed("Protocol not supported" + protocol);
         }
 
         final SSLContext context = SSLContext.getInstance("SSL");
         final ViPRX509TrustManager trustManager = new ViPRX509TrustManager(coordinator);
 
-        context.init(null, new TrustManager[]{trustManager}, null);
+        context.init(null, new TrustManager[] { trustManager }, null);
         config.getProperties().put(HTTPSProperties.PROPERTY_HTTPS_PROPERTIES, new HTTPSProperties(null, context));
 
         client = Client.create(config);
 
         return this;
     }
-    public WebResource.Builder getBuilder() {
-        if (builder!= null) {
-            return builder;
-        }
-        builder = resource.getRequestBuilder();
-        return builder;
-    }
 
-   public BuildRestRequest setHeaders(final CustomServicesWorkflowDocument.Step step, final Map<String, List<String>> input){
-        if (step.getInputGroups() == null || step.getInputGroups().get("headers") == null) {
-            return  this;
+    public BuildRestRequest setHeaders(final CustomServicesWorkflowDocument.Step step, final Map<String, List<String>> input) {
+        if (step.getInputGroups() == null || step.getInputGroups().get(CustomServicesConstants.HEADERS) == null) {
+            return this;
         }
-        final List<CustomServicesWorkflowDocument.Input> inputs = step.getInputGroups().get("headers").getInputGroup();
+        final List<CustomServicesWorkflowDocument.Input> inputs = step.getInputGroups().get(CustomServicesConstants.HEADERS)
+                .getInputGroup();
         if (inputs == null) {
             return this;
         }
@@ -83,85 +99,40 @@ public class BuildRestRequest {
 
             logger.info("header name:{} value:{}", name, value);
             if (value.isEmpty()) {
-                //Throw exception
+                logger.error("Cannot set value for header:{}", name);
+
+                throw InternalServerErrorException.internalServerErrors.
+                        customServiceExecutionFailed("Cannot set value for header");
             }
-		getBuilder().header(name, value);
-            /*if (builder != null) {
-                logger.info("builder header");
-                builder.header(name, value);
+
+            if (name.equals(CustomServicesConstants.ACCEPT_TYPE)) {
+                setAccept(value);
+            } else if (name.equals(CustomServicesConstants.CONTENT_TYPE)) {
+                setContentType(value);
             } else {
-                logger.info("resource header");
-                this.builder = resource.header(name, value);
-            }*/
+                getBuilder().header(name, value);
+            }
         }
 
         return this;
     }
 
-    public BuildRestRequest setContentType(String type) {
-	getBuilder().type(MediaType.APPLICATION_JSON_TYPE);
-        /*if (builder != null) {
-            logger.info("accept builder");
-            builder.type(MediaType.APPLICATION_JSON_TYPE);
-        } else {
-            logger.info("accept resource");
-            this.builder = resource.type(MediaType.APPLICATION_JSON_TYPE);
-        }*/
-
-
-        return this;
-    }
-
-    public BuildRestRequest setAccept(final String mediaType) {
-	getBuilder().accept(MediaType.APPLICATION_JSON_TYPE);
-        /*if (builder != null) {
-            logger.info("accept builder");
-            builder.accept(MediaType.APPLICATION_JSON_TYPE);
-        } else {
-            logger.info("accept resource");
-            this.builder = resource.accept(MediaType.APPLICATION_JSON_TYPE);
-        }*/
-
-        return this;
-    }
-
-    public CustomServicesRestTaskResult executeRest(CustomServicesConstants.restMethods method, final String input) throws Exception {
-
-	logger.info("executing rest");
-        ClientResponse response = null;
-        switch (method) {
-            case GET:
-		logger.info("executing rest get");
-		response = getBuilder().get(ClientResponse.class);
-		logger.info("done get exec1");
-                /*if (builder!=null) {
-                    response = builder.get(ClientResponse.class);
-                } else {
-                    response = resource.get(ClientResponse.class);
-                }*/
-		break;
-            case PUT:
-                response = getBuilder().put(ClientResponse.class, input);
-                break;
-            case POST:
-		response = getBuilder().post(ClientResponse.class, input);
-               // response = resource.post(ClientResponse.class, getOptions("body", input));
-                break;
-            case DELETE:
-		logger.info("calling delete");
-		try {
-                response = getBuilder().delete(ClientResponse.class);
-		} catch(Exception e) {
-			logger.info("got exception :{}", e);
-		}
-                break;
-            default:
-                logger.error("Rest method type not supported");
+    private BuildRestRequest setContentType(final String contentType) {
+        if (contentType.isEmpty()) {
+            return this;
         }
-        String output =  IOUtils.toString(response.getEntityInputStream(), "UTF-8");
+        getBuilder().type(contentType);
 
-        logger.info("result is:{} headers:{}", output, response.getHeaders());
-        return new CustomServicesRestTaskResult(response.getHeaders().entrySet(), output, output, response.getStatus());
+        return this;
+    }
+
+    private BuildRestRequest setAccept(final String acceptType) {
+        if (acceptType.isEmpty()) {
+            return this;
+        }
+        getBuilder().accept(acceptType);
+
+        return this;
     }
 
     public BuildRestRequest setQueryparam(final Map<String, String> queries) {
@@ -184,9 +155,49 @@ public class BuildRestRequest {
 
         if (!(user.isEmpty() && password.isEmpty())) {
             client.addFilter(new HTTPBasicAuthFilter(user, password));
+
+            return this;
         }
 
-        return this;
+        logger.error("user:{} or password:{} not defined", user, password);
+        throw InternalServerErrorException.internalServerErrors.
+                customServiceExecutionFailed("User or password not defined");
+    }
+
+    public CustomServicesRestTaskResult executeRest(final CustomServicesConstants.restMethods method, final String input) throws Exception {
+
+        logger.info("executing rest");
+        ClientResponse response = null;
+        switch (method) {
+            case GET:
+                logger.info("executing rest get");
+                response = getBuilder().get(ClientResponse.class);
+                logger.info("done get exec1");
+
+                break;
+            case PUT:
+                response = getBuilder().put(ClientResponse.class, input);
+                break;
+            case POST:
+                response = getBuilder().post(ClientResponse.class, input);
+
+                break;
+            case DELETE:
+                logger.info("calling delete");
+                try {
+                    response = getBuilder().delete(ClientResponse.class);
+                } catch (Exception e) {
+                    logger.info("got exception :{}", e);
+                }
+                break;
+            default:
+                logger.error("Rest method type not supported");
+        }
+        String output = IOUtils.toString(response.getEntityInputStream(), "UTF-8");
+
+        logger.info("result is:{} headers:{}", output, response.getHeaders());
+        return new CustomServicesRestTaskResult(response.getHeaders().entrySet(), output, output, response.getStatus());
     }
 }
+
 

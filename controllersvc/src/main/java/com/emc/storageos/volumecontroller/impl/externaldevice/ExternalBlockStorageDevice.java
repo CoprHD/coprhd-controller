@@ -18,6 +18,7 @@ import java.util.Map;
 import java.util.Set;
 
 import com.emc.storageos.storagedriver.HostExportInfo;
+import com.emc.storageos.storagedriver.model.StorageBlockObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -1823,39 +1824,31 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
     }
 
     /**
-     * Check if volume has exports on device
+     * Check if block object has exports on device
      *
-     * @param driver
-     * @param driverVolume
+     * @param driver storage driver
+     * @param driverBlockObject driver block object
      * @return true/false
      */
-    private boolean hasExports(BlockStorageDriver driver, StorageVolume driverVolume) {
-        // get VolumeToHostExportInfo data for this volume from driver
-        Map<String, HostExportInfo> volumeToHostExportInfo = driver.getVolumeExportInfoForHosts(driverVolume);
-        _log.info("Export info for volume {} is {}:", driverVolume, volumeToHostExportInfo);
-        if (volumeToHostExportInfo != null && !volumeToHostExportInfo.isEmpty()) {
-            return true;
-        } else {
-            return false;
-        }
-    }
+    private boolean hasExports(BlockStorageDriver driver, StorageBlockObject driverBlockObject) {
+        Map<String, HostExportInfo> blocObjectToHostExportInfo = null;
 
-    /**
-     * Check if clone has exports on device
-     *
-     * @param driver
-     * @param driverClone
-     * @return
-     */
-    private boolean hasExports(BlockStorageDriver driver, VolumeClone driverClone) {
-        // get VolumeToHostExportInfo data for this clone from driver
-        Map<String, HostExportInfo> volumeToHostExportInfo = driver.getVolumeExportInfoForHosts(driverClone);
-        _log.info("Export info for clone {} is {}:", driverClone, volumeToHostExportInfo);
-        if (volumeToHostExportInfo != null && !volumeToHostExportInfo.isEmpty()) {
-            return true;
+        // get HostExportInfo data for this block object from the driver
+        if (driverBlockObject instanceof VolumeClone) {
+            VolumeClone driverClone = (VolumeClone)driverBlockObject;
+            blocObjectToHostExportInfo = driver.getCloneExportInfoForHosts(driverClone);
+            _log.info("Export info for clone {} is {}:", driverClone, blocObjectToHostExportInfo);
+        } else if (driverBlockObject instanceof StorageVolume) {
+            StorageVolume driverVolume = (StorageVolume)driverBlockObject;
+            blocObjectToHostExportInfo = driver.getVolumeExportInfoForHosts(driverVolume);
+            _log.info("Export info for volume {} is {}:", driverVolume, blocObjectToHostExportInfo);
         } else {
-            return false;
+            // not supported type in this method
+            String errorMsg = String.format("Method is not supported for %s objects.", driverBlockObject.getClass().getSimpleName());
+            throw new RuntimeException(errorMsg);
         }
+
+        return !(blocObjectToHostExportInfo == null || blocObjectToHostExportInfo.isEmpty());
     }
 
 }

@@ -377,11 +377,13 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
         BlockStorageDriver driver = getDriver(storageSystem.getSystemType());
 
         List<Volume> deletedVolumes = new ArrayList<>();
-        List<String> failedToDelete = new ArrayList<>();
+        List<String> failedToDeleteVolumes = new ArrayList<>();
         List<Volume> deletedClones = new ArrayList<>();
         List<String> failedToDeleteClones = new ArrayList<>();
         boolean exception = false;
 
+        StringBuffer errorMsgForVolumes = new StringBuffer();
+        StringBuffer errorMsgForClones = new StringBuffer();
         try {
             for (Volume volume : volumes) {
                 DriverTask task = null;
@@ -400,9 +402,10 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
                     // check for exports
                     if (hasExports(driver, driverClone)) {
                         failedToDeleteClones.add(volume.getNativeId());
-                        String errorMsgVolumes = String.format("Cannot delete clone %s; clone has exports on array.",
-                                driverClone.getNativeId());
-                        _log.error(errorMsgVolumes);
+                        String errorMsgClone = String.format("Cannot delete clone %s on storage system %s, clone has exports on array.",
+                                driverClone.getNativeId(), storageSystem.getNativeId());
+                        _log.error(errorMsgClone);
+                        errorMsgForClones.append(errorMsgClone +"\n");
                         continue;
                     }
                     task = driver.deleteVolumeClone(driverClone);
@@ -417,10 +420,11 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
                     driverVolume.setConsistencyGroup(volume.getReplicationGroupInstance());
                     // check for exports
                     if (hasExports(driver, driverVolume)) {
-                        failedToDelete.add(volume.getNativeId());
-                        String errorMsgVolumes = String.format("Cannot delete volume %s, volume has exports on array.",
-                                driverVolume.getNativeId());
-                        _log.error(errorMsgVolumes);
+                        failedToDeleteVolumes.add(volume.getNativeId());
+                        String errorMsgVolume = String.format("Cannot delete volume %s on storage system %s, volume has exports on array.",
+                                driverVolume.getNativeId(), storageSystem.getNativeId());
+                        _log.error(errorMsgVolume);
+                        errorMsgForVolumes.append(errorMsgVolume + "\n");
                         continue;
                     }
                     task = driver.deleteVolume(driverVolume);
@@ -436,7 +440,7 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
                     if (volume.getAssociatedSourceVolume() != null) {
                         failedToDeleteClones.add(volume.getNativeId());
                     } else {
-                        failedToDelete.add(volume.getNativeId());
+                        failedToDeleteVolumes.add(volume.getNativeId());
                     }
                 }
             }
@@ -458,21 +462,19 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
                 dbClient.updateObject(deletedClones);
             }
 
-            if(!(failedToDelete.isEmpty() && failedToDeleteClones.isEmpty())) {
-                String errorMsgVolumes = "";
-                String errorMsgClones = "";
-                if(!failedToDelete.isEmpty()) {
-                    errorMsgVolumes = String.format("Failed to delete volumes on storage system %s, volumes: %s . ",
-                            storageSystem.getNativeId(), failedToDelete.toString());
+            if(!(failedToDeleteVolumes.isEmpty() && failedToDeleteClones.isEmpty())) {
+                if(!failedToDeleteVolumes.isEmpty()) {
+                    String errorMsgVolumes = String.format("Failed to delete volumes on storage system %s, volumes: %s . ",
+                            storageSystem.getNativeId(), failedToDeleteVolumes.toString());
                     _log.error(errorMsgVolumes);
                 } else {
-                    errorMsgClones = String.format("Failed to delete volume clones on storage system %s, clones: %s .",
+                    String errorMsgClones = String.format("Failed to delete volume clones on storage system %s, clones: %s .",
                             storageSystem.getNativeId(), failedToDeleteClones.toString());
                     _log.error(errorMsgClones);
                 }
 
                 ServiceError serviceError = ExternalDeviceException.errors.deleteVolumesFailed("doDeleteVolumes",
-                        errorMsgVolumes + errorMsgClones);
+                        errorMsgForVolumes.append(errorMsgForClones).toString());
                 taskCompleter.error(dbClient, serviceError);
             } else if (!exception){
                 taskCompleter.ready(dbClient);

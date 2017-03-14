@@ -1838,6 +1838,10 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
             VolumeClone driverClone = (VolumeClone)driverBlockObject;
             blocObjectToHostExportInfo = driver.getCloneExportInfoForHosts(driverClone);
             _log.info("Export info for clone {} is {}:", driverClone, blocObjectToHostExportInfo);
+        } else if (driverBlockObject instanceof VolumeSnapshot) {
+            VolumeSnapshot driverSnapshot = (VolumeSnapshot) driverBlockObject;
+            blocObjectToHostExportInfo = driver.getSnapshotExportInfoForHosts(driverSnapshot);
+            _log.info("Export info for snapshot {} is {}:", driverSnapshot, blocObjectToHostExportInfo);
         } else if (driverBlockObject instanceof StorageVolume) {
             StorageVolume driverVolume = (StorageVolume)driverBlockObject;
             blocObjectToHostExportInfo = driver.getVolumeExportInfoForHosts(driverVolume);

@@ -442,7 +442,7 @@ public class FileMirrorServiceApiImpl extends AbstractFileServiceApiImpl<FileMir
         FileShare fs = new FileShare();
         fs.setId(URIUtil.createId(FileShare.class));
 
-        validateFileShareLabel(newFileLabel, project);
+        newFileLabel = validateAndGetFileShareLabel(newFileLabel, project);
 
         fs.setLabel(newFileLabel);
 
@@ -574,17 +574,33 @@ public class FileMirrorServiceApiImpl extends AbstractFileServiceApiImpl<FileMir
     }
 
     /**
-     * Validate the given fileshare label is not a duplicate within given project. If so, throw exception
+     * Validate and generate label for target fil system
      * 
      * @param label - label to validate
      * @param project - project where label is being validate.
+     * @return
      */
-    protected void validateFileShareLabel(String label, Project project) {
+    protected String validateAndGetFileShareLabel(String label, Project project) {
         List<FileShare> fileShareList = CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient, FileShare.class,
                 ContainmentPrefixConstraint.Factory.getFullMatchConstraint(FileShare.class, "project", project.getId(), label));
+        String fsName = label;
         if (!fileShareList.isEmpty()) {
-            throw APIException.badRequests.duplicateLabel(label);
+            StringSet existingFsNames = new StringSet();
+            for (FileShare fs : fileShareList) {
+                existingFsNames.add(fs.getLabel());
+            }
+            // cancatenate the number!!!
+            int numFs = fileShareList.size();
+            do {
+                String fsLabelWithNumberSuffix = label + numFs;
+                if (!existingFsNames.contains(fsLabelWithNumberSuffix)) {
+                    fsName = fsLabelWithNumberSuffix;
+                    break;
+                }
+                numFs++;
+            } while (true);
         }
+        return fsName;
     }
 
     @Override

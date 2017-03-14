@@ -3551,6 +3551,11 @@ public class FileService extends TaskResourceService {
 
         op.setDescription("Filesystem unassign policy");
 
+        // As the action done by tenant admin
+        // Set current tenant as task's tenant!!!
+        Task taskObj = op.getTask(fp.getId());
+        FilePolicyServiceUtils.updateTaskTenant(_dbClient, fp, "assign", taskObj, fs.getTenant().getURI());
+
         try {
             Set<URI> unassignFrom = new HashSet<URI>();
             unassignFrom.add(id);
@@ -4325,6 +4330,10 @@ public class FileService extends TaskResourceService {
         Operation op = _dbClient.createTaskOpStatus(FileShare.class, fs.getId(), task,
                 ResourceOperationTypeEnum.ASSIGN_FILE_POLICY_TO_FILE_SYSTEM);
         op.setDescription("assign file policy to file system");
+        // As the action done by tenant admin
+        // Set current tenant as task's tenant!!!
+        Task taskObj = op.getTask(fs.getId());
+        FilePolicyServiceUtils.updateTaskTenant(_dbClient, filePolicy, "assign", taskObj, fs.getTenant().getURI());
         try {
             _log.info("No Errors found proceeding further {}, {}, {}", new Object[] { _dbClient, fs, filePolicy });
             List<FileDescriptor> fileDescriptors = new ArrayList<>();
@@ -4386,6 +4395,11 @@ public class FileService extends TaskResourceService {
         Operation op = _dbClient.createTaskOpStatus(FileShare.class, fs.getId(), task,
                 ResourceOperationTypeEnum.ASSIGN_FILE_POLICY_TO_FILE_SYSTEM);
         op.setDescription("assign file policy to file system");
+
+        // As the action done by tenant admin
+        // Set current tenant as task's tenant!!!
+        Task taskObj = op.getTask(fs.getId());
+        FilePolicyServiceUtils.updateTaskTenant(_dbClient, filePolicy, "assign", taskObj, fs.getTenant().getURI());
 
         TaskResourceRep fileShareTask = toTask(fs, task, op);
         taskList.getTaskList().add(fileShareTask);

@@ -906,9 +906,9 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             if (args.getFs().getPersonality() != null && args.getFs().getPersonality().equalsIgnoreCase(PersonalityTypes.TARGET.name())) {
                 FileShare fsParent = _dbClient.queryObject(FileShare.class, args.getFs().getParentFileShare().getURI());
                 fsName = fsParent.getName();
-                // Add if there is any suffic in target fs label!!
+                // Add if there is any suffix in target fs label!!
                 String[] fsNameSuffix = args.getFs().getLabel().split(fsParent.getName() + "-target");
-                if (fsNameSuffix[1] != null && !fsNameSuffix[1].isEmpty()) {
+                if (fsNameSuffix != null && fsNameSuffix.length > 1 && !fsNameSuffix[1].isEmpty()) {
                     fsName = fsName + fsNameSuffix[1];
                 }
             }

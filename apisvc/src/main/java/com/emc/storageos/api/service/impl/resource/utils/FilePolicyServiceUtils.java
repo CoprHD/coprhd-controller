@@ -18,12 +18,15 @@ import org.slf4j.LoggerFactory;
 import com.emc.storageos.api.service.impl.resource.ArgValidator;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.FilePolicy;
+import com.emc.storageos.db.client.model.FilePolicy.FilePolicyApplyLevel;
 import com.emc.storageos.db.client.model.FilePolicy.FilePolicyType;
 import com.emc.storageos.db.client.model.FilePolicy.ScheduleFrequency;
 import com.emc.storageos.db.client.model.FilePolicy.SnapshotExpireType;
 import com.emc.storageos.db.client.model.FileReplicationTopology;
 import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.model.Project;
+import com.emc.storageos.db.client.model.Task;
+import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.VirtualPool.FileReplicationType;
@@ -82,7 +85,7 @@ public class FilePolicyServiceUtils {
             int hour;
             int minute;
             boolean isValid = true;
-            if (policyScheduleparams.getScheduleTime() == null){
+            if (policyScheduleparams.getScheduleTime() == null) {
                 errorMsg.append("required parameter schedule_time is missing");
                 return false;
             }
@@ -164,8 +167,8 @@ public class FilePolicyServiceUtils {
 
     public static void validateSnapshotPolicyExpireParam(FileSnapshotPolicyParam param) {
         boolean isValidSnapshotExpire = false;
-        if(param.getSnapshotExpireParams().getExpireType()!= null){
-         // check snapshot expire type is valid or not
+        if (param.getSnapshotExpireParams().getExpireType() != null) {
+            // check snapshot expire type is valid or not
             ArgValidator.checkFieldValueFromEnum(param.getSnapshotExpireParams().getExpireType().toUpperCase(), "expire_type",
                     EnumSet.allOf(FilePolicy.SnapshotExpireType.class));
 
@@ -628,5 +631,21 @@ public class FilePolicyServiceUtils {
             }
         }
         return false;
+    }
+
+    public static void updateTaskTenant(DbClient dbClient, FilePolicy policy, String policyAction, Task task,
+            URI tenantId) {
+        if (task != null) {
+            if (policyAction != null && policyAction.equalsIgnoreCase("assign") || policyAction.equalsIgnoreCase("unassign")) {
+                if (policy.getApplyAt() != null && FilePolicyApplyLevel.vpool.name().equalsIgnoreCase(policy.getApplyAt())) {
+                    task.setTenant(TenantOrg.SYSTEM_TENANT);
+                } else {
+                    task.setTenant(tenantId);
+                }
+            } else {
+                task.setTenant(TenantOrg.SYSTEM_TENANT);
+            }
+            dbClient.updateObject(task);
+        }
     }
 }

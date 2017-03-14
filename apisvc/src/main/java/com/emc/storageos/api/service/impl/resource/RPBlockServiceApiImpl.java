@@ -137,13 +137,6 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
     private static final String JOURNAL_RSET = "rp_journal";
 
     // Spring injected
-    private RPHelper _rpHelper;
-
-    public void setRpHelper(RPHelper rpHelper) {
-        _rpHelper = rpHelper;
-    }
-
-    // Spring injected
     protected VPlexBlockServiceApiImpl vplexBlockServiceApiImpl;
 
     public VPlexBlockServiceApiImpl getVplexBlockServiceApiImpl() {
@@ -667,8 +660,8 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
             cgTargetVolumes = RPHelper.getCgVolumes(_dbClient, consistencyGroup.getId(), Volume.PersonalityTypes.TARGET.toString());
 
             if (!cgSourceVolumes.isEmpty()) {
-                boolean isAdditionalSourceJournalRequired = _rpHelper.isAdditionalJournalRequiredForRPCopy(vpool.getJournalSize(),
-                        consistencyGroup, param.getSize(), numberOfVolumesInRequest, sourceCopyName);
+                boolean isAdditionalSourceJournalRequired = RPHelper.isAdditionalJournalRequiredForRPCopy(vpool.getJournalSize(),
+                        consistencyGroup, param.getSize(), numberOfVolumesInRequest, sourceCopyName, _dbClient);
                 if (!isAdditionalSourceJournalRequired) {
                     _log.info(String.format("Re-use existing Source Journal for copy [%s]", sourceCopyName));
                     // If the CG contains volumes already and no new additional journals are provisioned,
@@ -716,7 +709,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                     _log.info("Attempting to acquire lock: " + lockKey);
                     lock = InterProcessLockHolder.acquire(_coordinator, lockKey, _log, LOCK_WAIT_MILLISECONDS);
                     // get a unique journal volume name
-                    String journalName = _rpHelper.createJournalVolumeName(varray, consistencyGroup);
+                    String journalName = RPHelper.createJournalVolumeName(varray, consistencyGroup, _dbClient);
 
                     // Create source journal
                     sourceJournal = createRecoverPointVolume(rpProtectionRec.getSourceJournalRecommendation(), journalName, project,
@@ -756,7 +749,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                     _log.info("Attempting to acquire lock: " + lockKey);
                     lock = InterProcessLockHolder.acquire(_coordinator, lockKey, _log, LOCK_WAIT_MILLISECONDS);
                     // get a unique journal volume name
-                    String journalName = _rpHelper.createJournalVolumeName(varray, consistencyGroup);
+                    String journalName = RPHelper.createJournalVolumeName(varray, consistencyGroup, _dbClient);
 
                     // If MetroPoint is enabled we need to create the standby journal volume
                     standbyJournal = createRecoverPointVolume(rpProtectionRec.getStandbyJournalRecommendation(), journalName, project,
@@ -797,16 +790,16 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                 // and we want to see if more space is required or if we are performing an add
                 // journal volume operation
                 if (!cgTargetVolumes.isEmpty() && !capabilities.getAddJournalCapacity()) {
-                    VpoolProtectionVarraySettings protectionSettings = _rpHelper.getProtectionSettings(originalVpool, targetCopyVarray);
+                    VpoolProtectionVarraySettings protectionSettings = RPHelper.getProtectionSettings(originalVpool, targetCopyVarray, _dbClient);
                     String targetCopyName = targetJournalRec.getRpCopyName();
                     if (targetCopyName == null) {
                         // Target RP copy name was not set on the recommendation, find it from the CG.
                         targetCopyName = RPHelper.getCgCopyName(_dbClient, consistencyGroup, targetCopyVarray.getId(), false);
                     }
-                    boolean isAdditionalTargetJournalRequired = _rpHelper.isAdditionalJournalRequiredForRPCopy(
+                    boolean isAdditionalTargetJournalRequired = RPHelper.isAdditionalJournalRequiredForRPCopy(
                             protectionSettings.getJournalSize(), consistencyGroup, param.getSize(),
                             numberOfVolumesInRequest,
-                            targetCopyName);
+                            targetCopyName, _dbClient);
                     if (!isAdditionalTargetJournalRequired) {
                         // If the CG contains volumes already and no new additional journals are provisioned,
                         // then we simply update the reference on the source for the journal volume.
@@ -838,7 +831,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                         _log.info("Attempting to acquire lock: " + lockKey);
                         lock = InterProcessLockHolder.acquire(_coordinator, lockKey, _log, LOCK_WAIT_MILLISECONDS);
                         // get a unique journal volume name
-                        String journalName = _rpHelper.createJournalVolumeName(targetCopyVarray, consistencyGroup);
+                        String journalName = RPHelper.createJournalVolumeName(targetCopyVarray, consistencyGroup, _dbClient);
 
                         // Create target journal
                         Volume targetJournalVolume = createRecoverPointVolume(targetJournalRec, journalName, project, capabilities,
@@ -1900,7 +1893,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
             throw APIException.badRequests.cannotDeleteVolumeBlockSnapShotExists(String.valueOf(dependencies));
         }
 
-        List<URI> volumeIDs = _rpHelper.getReplicationSetVolumes((Volume) object);
+        List<URI> volumeIDs = RPHelper.getReplicationSetVolumes((Volume) object, _dbClient);
 
         // Do a relatively "normal" check, as long as it's a "broken"
         // protection set.
@@ -2245,7 +2238,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
     @Override
     public void expandVolume(Volume volume, long newSize, String taskId) throws InternalException {
         Long originalVolumeSize = volume.getCapacity();
-        List<URI> replicationSetVolumes = _rpHelper.getReplicationSetVolumes(volume);
+        List<URI> replicationSetVolumes = RPHelper.getReplicationSetVolumes(volume, _dbClient);
         Map<URI, StorageSystem> volumeStorageSystems = new HashMap<URI, StorageSystem>();
         // Step1 : Determine if either the backing volume of the VPLEX RP source or target is on VMAX. If yes, then set
         // the requested volume size to the size as determined by if the VMAX volume is meta volume or not.
@@ -2281,7 +2274,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                 // Set the requested size to what the VMAX Meta utils determines will possibly be the provisioned
                 // capacity.
                 // All the other volumes, will need to be the same size as well or else RP will have a fit.
-                newSize = _rpHelper.computeVmaxVolumeProvisionedCapacity(newSize, vmaxVolume, vmaxStorageSystem);
+                newSize = RPHelper.computeVmaxVolumeProvisionedCapacity(newSize, vmaxVolume, vmaxStorageSystem, _dbClient);
                 _log.info(String.format("VMAX volume detected, expand size re-calculated to [%d]", newSize));
                 // No need to continue, newSize has been calculated.
                 break;
@@ -2913,7 +2906,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
     @Override
     public List<VolumeDescriptor> getDescriptorsForVolumesToBeDeleted(URI systemURI, List<URI> volumeURIs, String deletionType) {
         // Get descriptors for all volumes impacted by the deletion of the requested volumes.
-        List<VolumeDescriptor> volumeDescriptors = _rpHelper.getDescriptorsForVolumesToBeDeleted(systemURI, volumeURIs, deletionType, null);
+        List<VolumeDescriptor> volumeDescriptors = RPHelper.getDescriptorsForVolumesToBeDeleted(systemURI, volumeURIs, deletionType, null, _dbClient);
 
         // Filter these descriptors for a block volumes and VPLEX volumes.
         List<VolumeDescriptor> filteredDescriptors = VolumeDescriptor.filterByType(volumeDescriptors,
@@ -2959,7 +2952,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
 
         // If we're deleting the last volume, we can delete the ProtectionSet object.
         // This list of volumes may contain volumes from many protection sets
-        Set<URI> volumesToDelete = _rpHelper.getVolumesToDelete(sourceVolumeURIs);
+        Set<URI> volumesToDelete = RPHelper.getVolumesToDelete(sourceVolumeURIs, _dbClient);
         Map<URI, Set<URI>> psetToVolumesToDelete = new HashMap<URI, Set<URI>>();
 
         // Group volumes to delete by their protectionsets
@@ -2987,10 +2980,9 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                 _log.info(String.format("Deleting protection %s because there are no volumes in it any longer", pset.getLabel()));
             } else if (volumesToDelete.size() != pset.getVolumes().size()) {
                 // For debugging: log conditions that caused us to not delete the protection set
-                _log.info(String
-                        .format(
-                                "Not deleting protection %s because there are %d volumes to delete in the request, however there are %d volumes in the pset",
-                                pset.getLabel(), _rpHelper.getVolumesToDelete(sourceVolumeURIs).size(), pset.getVolumes().size()));
+                _log.info(String.format(
+                        "Not deleting protection %s because there are %d volumes to delete in the request, however there are %d volumes in the pset",
+                        pset.getLabel(), RPHelper.getVolumesToDelete(sourceVolumeURIs, _dbClient).size(), pset.getVolumes().size()));
             }
         }
     }
@@ -3750,8 +3742,8 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
         }
 
         // Get volume descriptors for all volumes to remove protection from.
-        List<VolumeDescriptor> volumeDescriptors = _rpHelper.getDescriptorsForVolumesToBeDeleted(null, volumeURIs,
-                RPHelper.REMOVE_PROTECTION, newVpool);
+        List<VolumeDescriptor> volumeDescriptors = RPHelper.getDescriptorsForVolumesToBeDeleted(null, volumeURIs,
+                RPHelper.REMOVE_PROTECTION, newVpool, _dbClient);
 
         BlockOrchestrationController controller = getController(BlockOrchestrationController.class,
                 BlockOrchestrationController.BLOCK_ORCHESTRATION_DEVICE);

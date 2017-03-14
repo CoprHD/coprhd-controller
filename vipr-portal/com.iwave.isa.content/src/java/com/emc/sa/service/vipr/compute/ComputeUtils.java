@@ -1132,10 +1132,11 @@ public class ComputeUtils {
                         }
 
                         for (HostSystem foundHostSystem : hostSystems) {
-                            if (foundHostSystem != null && foundHostSystem.getHardware() != null
-                                    && foundHostSystem.getHardware().systemInfo != null
-                                    && foundHostSystem.getHardware().systemInfo.uuid != null
-                                    && foundHostSystem.getHardware().systemInfo.uuid.equalsIgnoreCase(host.getUuid())) {
+                            if (foundHostSystem != null && (foundHostSystem.getName().equalsIgnoreCase(host.getLabel())
+                                    || (foundHostSystem.getHardware() != null
+                                            && foundHostSystem.getHardware().systemInfo != null
+                                            && foundHostSystem.getHardware().systemInfo.uuid != null
+                                            && foundHostSystem.getHardware().systemInfo.uuid.equalsIgnoreCase(host.getUuid())))) {
                                 // We found a match someplace else in the vcenter. Post an error and return false.
                                 ExecutionUtils.currentContext().logError("computeutils.decommission.failure.host.moved",
                                         host.getHostName());

@@ -1591,7 +1591,7 @@ public class ControllerUtils {
         List<BlockSnapshot> snapshots = getSnapshotsPartOfReplicationGroup(repGroupName, source.getStorageController(), dbClient);
         String existingSnapSnapSetLabel = null;
         if (!CollectionUtils.isEmpty(snapshots)) {
-            existingSnapSnapSetLabel = String.format("%s-%s", snapshots.get(0).getSnapsetLabel(), source.getLabel());
+            existingSnapSnapSetLabel = snapshots.get(0).getSnapsetLabel();
         }
         return existingSnapSnapSetLabel;
     }

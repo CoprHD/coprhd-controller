@@ -1150,7 +1150,14 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
                 }
             }
 
+            // If we are deleting a boot volume, there may still be a reference to the volume
+            // in the decommissioned host.  We will clear out this reference in the host.
+            host.setBootVolumeId(NullColumnValueGetter.getNullURI());
+
+            _dbClient.updateObject(host);
             _dbClient.updateObject(bootVolume);
+
+            WorkflowStepCompleter.stepSucceded(stepId);
         } catch (Exception exception) {
             ServiceCoded serviceCoded = ComputeSystemControllerException.exceptions
                     .unableToUntagVolume(bootVolume != null ? bootVolume.forDisplay() : "none found", 

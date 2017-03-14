@@ -626,7 +626,7 @@ public class FilePolicyService extends TaskResourceService {
         fileReplicationPolicy.setFilePolicyName(param.getPolicyName());
         fileReplicationPolicy.setLabel(param.getPolicyName());
         fileReplicationPolicy.setFilePolicyType(param.getPolicyType());
-        fileReplicationPolicy.setPriority(FilePolicyPriority.valueOf(param.getPriority()));
+        fileReplicationPolicy.setPriority(param.getPriority());
         fileReplicationPolicy.setNumWorkerThreads((long) param.getNumWorkerThreads());
         if (param.getPolicyDescription() != null && !param.getPolicyDescription().isEmpty()) {
             fileReplicationPolicy.setFilePolicyDescription(param.getPolicyDescription());
@@ -709,7 +709,7 @@ public class FilePolicyService extends TaskResourceService {
         if (param.getPriority() != null) {
             ArgValidator.checkFieldValueFromEnum(param.getPriority(), "priority",
                     EnumSet.allOf(FilePolicyPriority.class));
-            fileReplicationPolicy.setPriority(FilePolicyPriority.valueOf(param.getPriority()));
+            fileReplicationPolicy.setPriority(param.getPriority());
         }
 
         if (param.getNumWorkerThreads() > 0) {

@@ -68,7 +68,7 @@ public class FilePolicy extends DataObjectWithACLs {
     private URI filePolicyVpool;
 
     // Policy priority Normal / High
-    private FilePolicyPriority priority;
+    private String priority;
 
     // Policy priority Number of worker thread
     private Long numWorkerThreads;
@@ -294,11 +294,11 @@ public class FilePolicy extends DataObjectWithACLs {
     }
 
     @Name("priority")
-    public FilePolicyPriority getPriority() {
+    public String getPriority() {
         return priority;
     }
 
-    public void setPriority(FilePolicyPriority priority) {
+    public void setPriority(String priority) {
         this.priority = priority;
         setChanged("priority");
     }

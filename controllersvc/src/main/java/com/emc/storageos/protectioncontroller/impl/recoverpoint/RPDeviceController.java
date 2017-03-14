@@ -295,7 +295,6 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
     private Map<String, BlockStorageDevice> _devices;
     private NameGenerator _nameGenerator;
     private WorkflowService _workflowService;
-    private RPHelper _rpHelper;
     private ExportWorkflowUtils _exportWfUtils;
     private RPStatisticsHelper _rpStatsHelper;
     private RecordableEventManager _eventManager;
@@ -405,10 +404,6 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
     public void setEventManager(RecordableEventManager eventManager) {
         _eventManager = eventManager;
-    }
-
-    public void setRpHelper(RPHelper rpHelper) {
-        _rpHelper = rpHelper;
     }
 
     public void setCoordinator(CoordinatorClient locator) {
@@ -818,8 +813,8 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
             }
 
             boolean isMetroPoint = RPHelper.isMetroPointVolume(_dbClient, volume);
-            boolean isRPSource = _rpHelper.isRPSource(volumeDescriptor);
-            boolean isRPTarget = _rpHelper.isRPTarget(volumeDescriptor);
+            boolean isRPSource = RPHelper.isRPSource(volumeDescriptor);
+            boolean isRPTarget = RPHelper.isRPTarget(volumeDescriptor);
             boolean extraParamsGathered = false;
 
             if (volumeDescriptor.getCapabilitiesValues() != null) {
@@ -892,7 +887,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                     }
                 }
                 CreateVolumeParams volumeParams = populateVolumeParams(volume.getId(), volume.getStorageController(),
-                        volume.getVirtualArray(), volume.getInternalSiteName(), _rpHelper.isProductionJournal(productionCopies, volume),
+                        volume.getVirtualArray(), volume.getInternalSiteName(), RPHelper.isProductionJournal(productionCopies, volume),
                         volume.getRpCopyName(), RPHelper.getRPWWn(volume.getId(), _dbClient), maxNumberOfSnapShots);
                 String key = volume.getRpCopyName();
                 _log.info(String.format("Creating Copy Param for RP JOURNAL: VOLUME - [%s] Name: [%s]", volume.getLabel(), key));
@@ -2314,7 +2309,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                         removeVolumeIDs.add(volume.getId().toString());
                     }
                     // All Target volumes to be removed from Protection Set
-                    List<Volume> targetVolumes = _rpHelper.getTargetVolumes(volume);
+                    List<Volume> targetVolumes = RPHelper.getTargetVolumes(volume, _dbClient);
                     for (Volume targetVol : targetVolumes) {
                         removeVolumeIDs.add(targetVol.getId().toString());
                     }
@@ -2527,7 +2522,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
             throws InternalException {
         _log.info("Adding steps to remove volumes from export groups.");
         String returnStep = waitFor;
-        Set<URI> volumeURIs = _rpHelper.getVolumesToDelete(VolumeDescriptor.getVolumeURIs(filteredSourceVolumeDescriptors));
+        Set<URI> volumeURIs = RPHelper.getVolumesToDelete(VolumeDescriptor.getVolumeURIs(filteredSourceVolumeDescriptors), _dbClient);
 
         _log.info(String.format("Following volume(s) will be unexported from their RP export groups :  [%s]",
                 Joiner.on("--").join(volumeURIs)));
@@ -4375,7 +4370,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                                         "Adding back standby production copy after swap back to original VPlex Metro for Metropoint volume %s (%s)",
                                         protectionVolume.getLabel(), protectionVolume.getId().toString()));
 
-                        List<Volume> standbyLocalCopyVols = _rpHelper.getMetropointStandbyCopies(protectionVolume);
+                        List<Volume> standbyLocalCopyVols = RPHelper.getMetropointStandbyCopies(protectionVolume, _dbClient);
                         CreateCopyParams standbyLocalCopyParams = null;
                         List<CreateRSetParams> rSets = new ArrayList<CreateRSetParams>();
                         Set<URI> journalVolumes = new HashSet<URI>();

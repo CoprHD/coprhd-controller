@@ -142,14 +142,20 @@ public class ExportBlockVolumeHelper {
         List<BlockObjectRestRep> blockResources = BlockStorageUtils.getBlockResources(resourceIds, parentId);
         URI virtualArrayId = null;
         String exportName = cluster != null ? cluster.getLabel() : host.getHostName();
-        boolean isEmptyExport = false;
+        boolean isEmptyExport = true;
+        ExportGroupRestRep export = null;
         for (BlockObjectRestRep blockResource : blockResources) {
             virtualArrayId = getVirtualArrayId(blockResource);
             // see if we can find an export that uses this block resource
-            ExportGroupRestRep export = findExistingExportGroup(blockResource, virtualArrayId, exportName);
-            isEmptyExport = export != null && BlockStorageUtils.isEmptyExport(export);
-            // If the export does not exist for this volume
+            export = findExistingExportGroup(blockResource, virtualArrayId);
+            isEmptyExport = true;
+            // If did not find export group for the host/cluster, try find existing empty export with
+            // host/cluster name
             if (export == null) {
+                export = BlockStorageUtils.findExportsByName(exportName, projectId, virtualArrayId);
+                isEmptyExport = export != null && BlockStorageUtils.isEmptyExport(export);
+            }
+            if (export == null || !isEmptyExport) {
                 newVolumes.add(blockResource.getId());
             }
             // Export exists, check if volume belongs to it
@@ -172,7 +178,7 @@ public class ExportBlockVolumeHelper {
             }
         }
         // If there is an existing non-empty export with the same name, append a time stamp to the name to make it unique
-        if (!isEmptyExport) {
+        if (export != null && !isEmptyExport) {
             exportName = exportName + BlockStorageUtils.UNDERSCORE + new SimpleDateFormat("yyyyMMddhhmmssSSS").format(new Date());
         }
 
@@ -215,10 +221,10 @@ public class ExportBlockVolumeHelper {
                 exportId = BlockStorageUtils.createHostExport(exportName, projectId, virtualArrayId, newVolumes, currentHlu, host, volumeHlus,
                         minPaths, maxPaths, pathsPerInitiator);
             }
-            ExportGroupRestRep export = BlockStorageUtils.getExport(exportId);
+            ExportGroupRestRep exportGroup = BlockStorageUtils.getExport(exportId);
 
             // add this export to the list of exports we will return to the caller
-            exports.add(export);
+            exports.add(exportGroup);
         }
 
         // add host or cluster to the affected resources
@@ -255,17 +261,9 @@ public class ExportBlockVolumeHelper {
         }
     }
 
-    private ExportGroupRestRep findExistingExportGroup(BlockObjectRestRep volume, URI virtualArrayId, String exportName) {
+    private ExportGroupRestRep findExistingExportGroup(BlockObjectRestRep volume, URI virtualArrayId) {
         if (cluster != null) {
-            ExportGroupRestRep export = BlockStorageUtils.findExportByCluster(cluster, projectId, virtualArrayId, volume.getId());
-            if (export == null) {
-                // try to find an empty export group with same name as the cluster.
-                ExportGroupRestRep exportByName = BlockStorageUtils.findExportsByName(exportName, projectId, virtualArrayId);
-                if (exportByName != null && BlockStorageUtils.isEmptyExport(exportByName)) {
-                    export = exportByName;
-                }
-            }
-            return export;
+            return BlockStorageUtils.findExportByCluster(cluster, projectId, virtualArrayId, volume.getId());
         }
 
         // Attempt to find one (regardless of type) that contains the Volume
@@ -281,11 +279,6 @@ public class ExportBlockVolumeHelper {
             if (!exportGroup.getType().equals("Cluster")) {
                 return exportGroup;
             }
-        }
-        // try to find an empty export group with same name as the host.
-        ExportGroupRestRep exportByName = BlockStorageUtils.findExportsByName(exportName, projectId, virtualArrayId);
-        if (exportByName != null && BlockStorageUtils.isEmptyExport(exportByName)) {
-            return exportByName;
         }
 
         return null;

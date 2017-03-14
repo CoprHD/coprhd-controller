@@ -2180,7 +2180,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
             }
 
             CIMInstance initiatorGroupInstance = _helper.getInstance(storage, igPath, false, false,
-                    new String[] { SmisConstants.CP_CONSISTENT_LUNS });
+                    new String[] { SmisConstants.CP_CONSISTENT_LUNS, SmisConstants.CP_INSTANCE_ID });
             String consistentLuns = CIMPropertyFactory.getPropertyValue(initiatorGroupInstance,
                     SmisConstants.CP_CONSISTENT_LUNS);
             if (consistentLuns != null && consistentLuns.equalsIgnoreCase("false")) {

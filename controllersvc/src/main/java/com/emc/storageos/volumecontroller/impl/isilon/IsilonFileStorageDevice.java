@@ -516,13 +516,15 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         SMBFileShare fileShare = currentShares.get(smbFileShare.getName());
         if (fileShare != null) {
 
+
             String nativeId = fileShare.getNativeId();
             String zoneName = getZoneName(args.getvNAS());
-
             if (zoneName != null) {
-                isi.deleteShare(nativeId, zoneName);
+                isi.deleteShare(smbFileShare.getName(), zoneName);
+                _log.info("delete the share {} on access zone {}", smbFileShare.getName(), zoneName);
             } else {
-                isi.deleteShare(nativeId);
+                _log.info("delete the share {} with native id {}", smbFileShare.getName(), nativeId);
+                isi.deleteShare(smbFileShare.getName());
             }
 
             currentShares.remove(smbFileShare.getName());

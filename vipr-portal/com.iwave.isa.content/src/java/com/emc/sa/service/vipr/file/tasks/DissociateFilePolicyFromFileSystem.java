@@ -28,11 +28,6 @@ public class DissociateFilePolicyFromFileSystem extends WaitForTask<FilePolicyRe
 
     @Override
     protected Task<FilePolicyRestRep> doExecute() throws Exception {
-        /*
-         * FilePolicyUnAssignParam input = new FilePolicyUnAssignParam();
-         * Set<URI> fileSystems = new HashSet<URI>();
-         * fileSystems.add(fileSystemId);
-         */
         // Get the task and covert it to PolicyRestRep
         TaskResourceRep task = getClient().fileSystems().dissociateFilePolicy(fileSystemId, filePolicyId);
         return getClient().fileProtectionPolicies().getTask(filePolicyId, task.getId());

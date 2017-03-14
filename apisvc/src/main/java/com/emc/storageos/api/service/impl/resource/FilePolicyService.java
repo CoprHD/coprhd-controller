@@ -560,7 +560,7 @@ public class FilePolicyService extends TaskResourceService {
         Task taskObj = op.getTask(filePolicy.getId());
         StorageOSUser user = getUserFromContext();
         URI userTenantUri = URI.create(user.getTenantId());
-        FilePolicyServiceUtils.updateTaskTenant(_dbClient, filePolicy, "unassign", taskObj, userTenantUri);
+        FilePolicyServiceUtils.updateTaskTenant(_dbClient, filePolicy, "update", taskObj, userTenantUri);
 
         if (filePolicy.getPolicyStorageResources() != null && !filePolicy.getPolicyStorageResources().isEmpty()) {
             _log.info("Updating the storage system policy started..");

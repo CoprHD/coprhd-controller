@@ -3554,7 +3554,7 @@ public class FileService extends TaskResourceService {
         // As the action done by tenant admin
         // Set current tenant as task's tenant!!!
         Task taskObj = op.getTask(fp.getId());
-        FilePolicyServiceUtils.updateTaskTenant(_dbClient, fp, "assign", taskObj, fs.getTenant().getURI());
+        FilePolicyServiceUtils.updateTaskTenant(_dbClient, fp, "unassign", taskObj, fs.getTenant().getURI());
 
         try {
             Set<URI> unassignFrom = new HashSet<URI>();

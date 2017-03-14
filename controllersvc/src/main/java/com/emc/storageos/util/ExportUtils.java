@@ -15,9 +15,9 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.http.conn.util.InetAddressUtils;
 import org.slf4j.Logger;
@@ -1794,6 +1794,7 @@ public class ExportUtils {
                 List<URI> initiatorSet = hostInitiatorMap.get(hostURIStr);
                 if (initiatorSet == null) {
                     initiatorSet = new ArrayList<URI>();
+                    hostInitiatorMap.put(hostURIStr, initiatorSet);
                 }
                 initiatorSet.add(initiator.getId());
                 hostInitiatorMap.get(hostURIStr).addAll(initiatorSet);

@@ -1142,6 +1142,16 @@ public class ComputeUtils {
                             }
                         }
                     } else {
+                        // Make sure the UUID of the host matches what we have in our database.
+                        if (hostSystem.getHardware() != null
+                                && hostSystem.getHardware().systemInfo != null
+                                && hostSystem.getHardware().systemInfo.uuid != null
+                                && !hostSystem.getHardware().systemInfo.uuid.equalsIgnoreCase(host.getUuid())) {
+                            // The host UUID doesn't match what we have in our database. The host may have been renamed.
+                            ExecutionUtils.currentContext().logError("computeutils.decommission.failure.host.uuidmismatch",
+                                    host.getHostName());
+                            return false;
+                        }
                         // We found the host, so now we check that the host belongs to the correct cluster
                         if (hostSystem.getParent() != null && hostSystem.getParent() instanceof ClusterComputeResource) {
                             ClusterComputeResource clusterResource = (ClusterComputeResource) hostSystem.getParent();

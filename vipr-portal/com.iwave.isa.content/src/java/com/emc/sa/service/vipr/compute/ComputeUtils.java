@@ -305,14 +305,6 @@ public class ComputeUtils {
                     hostToBootVolumeIdMap.put(tempHost, null);
                 }
             } 
-            if (!bootVolsToRemove.isEmpty()){
-                try {
-                    BlockStorageUtils.deactivateVolumes(bootVolsToRemove, VolumeDeleteTypeEnum.FULL);
-                }catch (Exception e) {
-                    ExecutionUtils.currentContext().logError("computeutils.bootvolume.deactivate.failure",
-                        e.getMessage());
-                }
-            }
             for (Task<VolumeRestRep> failedTask : getFailedTasks(tasks)) {
                 String volumeName = failedTask.getResource().getName();
                 hostToBootVolumeIdMap.put(volumeNameToHostMap.get(volumeName), null);
@@ -322,6 +314,15 @@ public class ComputeUtils {
                 tasks.remove(failedTask);
             }
         }
+        if (!bootVolsToRemove.isEmpty()){
+             try {
+                 BlockStorageUtils.deactivateVolumes(bootVolsToRemove, VolumeDeleteTypeEnum.FULL);
+             }catch (Exception e) {
+                 ExecutionUtils.currentContext().logError("computeutils.bootvolume.deactivate.failure",
+                     e.getMessage());
+             }
+         }
+
 
         return hostToBootVolumeIdMap;
     }

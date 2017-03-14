@@ -2938,11 +2938,15 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                     bModifyPolicy = true;
                 }
 
-                if (policyUpdateParam.getPriority() != null
-                        && !policyUpdateParam.getPriority().equalsIgnoreCase(syncpolicyAtPath.getPriority())) {
-                    modifiedPolicy.setPriority(policyUpdateParam.getPriority());
-                    bModifyPolicy = true;
+                if (policyUpdateParam.getPriority() != null){
+                    IsilonSyncPolicy.Priority updatePriority = IsilonSyncPolicy.Priority.valueOf(policyUpdateParam.getPriority());
+                    IsilonSyncPolicy.Priority existingPriority = syncpolicyAtPath.getPriority();
+                    if(!updatePriority.equals(existingPriority)){
+                        modifiedPolicy.setPriority(IsilonSyncPolicy.Priority.valueOf(policyUpdateParam.getPriority()));
+                        bModifyPolicy = true;
+                    }
                 }
+                    
 
                 if (policyUpdateParam.getPolicyDescription() != null && !policyUpdateParam.getPolicyDescription().isEmpty()
                         && !policyUpdateParam.getPolicyDescription().equalsIgnoreCase(syncpolicyAtPath.getDescription())) {
@@ -2950,11 +2954,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                     bModifyPolicy = true;
                 }
 
-                // Priority needs to be changed
-                if (policyUpdateParam.getPriority() != null && !policyUpdateParam.getPriority().isEmpty()) {
-
-                }
-
+      
                 if (policyUpdateParam.getReplicationPolicyParams() != null) {
                     FileReplicationPolicyParam replParam = policyUpdateParam.getReplicationPolicyParams();
 
@@ -3230,7 +3230,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                         policy.setWorkersPerNode(filePolicy.getNumWorkerThreads().intValue());
                     }
                     if (filePolicy.getPriority() != null){
-                        policy.setPriority(filePolicy.getPriority());
+                        policy.setPriority(IsilonSyncPolicy.Priority.valueOf(filePolicy.getPriority().name()));
                     }
                     policy.setEnabled(true);
                     String policyId = isi.createReplicationPolicy(policy);
@@ -3725,7 +3725,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                 replicationPolicy.setWorkersPerNode(filePolicy.getNumWorkerThreads().intValue());
             }
             if(filePolicy.getPriority() != null){
-                replicationPolicy.setPriority(filePolicy.getPriority());
+                replicationPolicy.setPriority(IsilonSyncPolicy.Priority.valueOf(filePolicy.getPriority().name()));
             }
             replicationPolicy.setEnabled(true);
             replicationPolicy.setSchedule(scheduleValue);

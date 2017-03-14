@@ -67,10 +67,10 @@ public class FilePolicy extends DataObjectWithACLs {
     // File Policy associated Virtual Pool - this is being used for project and file system policy
     private URI filePolicyVpool;
 
-    // Policy priority Low/High
-    private String priority;
+    // Policy priority Normal / High
+    private FilePolicyPriority priority;
 
-    // Policy priority Low/High
+    // Policy priority Number of worker thread
     private Long numWorkerThreads;
 
     // Actual resources where is being applied
@@ -294,11 +294,11 @@ public class FilePolicy extends DataObjectWithACLs {
     }
 
     @Name("priority")
-    public String getPriority() {
+    public FilePolicyPriority getPriority() {
         return priority;
     }
 
-    public void setPriority(String priority) {
+    public void setPriority(FilePolicyPriority priority) {
         this.priority = priority;
         setChanged("priority");
     }

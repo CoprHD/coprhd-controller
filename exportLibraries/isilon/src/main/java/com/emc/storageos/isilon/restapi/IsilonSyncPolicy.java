@@ -16,6 +16,10 @@ public class IsilonSyncPolicy {
         copy, // for archival
         sync // for fail over
     }
+    
+    public static enum Priority {
+        Normal, High;
+    }
 
     public static enum JobState {
         scheduled,
@@ -40,7 +44,7 @@ public class IsilonSyncPolicy {
     private String description;
     private JobState last_job_state;
     private Integer workers_per_node;
-    private String priority;
+    private Priority priority;
 
     /*
      * If set to true, replication jobs are automatically run based on the
@@ -158,16 +162,16 @@ public class IsilonSyncPolicy {
                 + source_root_path + ", action=" + action + ", target_path="
                 + target_path + ", target_host=" + target_host + ", schedule="
                 + schedule + ", description=" + description
-                + ", priority=" + priority
+                + ", priority=" + priority.name()
                 + ", last_job_state=" + last_job_state + ", enabled=" + enabled
                 + "]";
     }
 
-    public String getPriority() {
+    public Priority getPriority() {
         return priority;
     }
 
-    public void setPriority(String priority) {
+    public void setPriority(Priority priority) {
         this.priority = priority;
     }
 

@@ -66,7 +66,7 @@ public class RemoveComputeClusterService extends ViPRService {
         }
 
         // Verify the hosts are still part of the cluster we have reported for it on ESX.
-        if (ComputeUtils.verifyHostInVcenterCluster(cluster, hostURIs)) {
+        if (!ComputeUtils.verifyHostInVcenterCluster(cluster, hostURIs)) {
             logError("computeutils.deactivatecluster.deactivate.hostmovedcluster", Joiner.on(',').join(hostURIs));
             preCheckErrors.append("Cluster ").append(cluster.getLabel())
             .append(" no longer contains one or more of the hosts requesting decommission.  Cannot decomission in current state.  Recommended " +

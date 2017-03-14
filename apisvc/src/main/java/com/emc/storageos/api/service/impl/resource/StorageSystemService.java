@@ -165,9 +165,6 @@ public class StorageSystemService extends TaskResourceService {
     private RecordableEventManager _evtMgr;
 
     @Autowired
-    private RPHelper rpHelper;
-
-    @Autowired
     private PortMetricsProcessor portMetricsProcessor;
 
     @Override
@@ -442,7 +439,7 @@ public class StorageSystemService extends TaskResourceService {
         }
 
         // Ensure the storage system has no active RecoverPoint volumes under management.
-        if (rpHelper.containsActiveRpVolumes(id)) {
+        if (RPHelper.containsActiveRpVolumes(id, _dbClient)) {
             throw APIException.badRequests.cannotDeactivateStorageSystemActiveRpVolumes();
         }
 

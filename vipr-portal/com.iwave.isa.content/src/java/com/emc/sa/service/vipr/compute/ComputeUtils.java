@@ -49,7 +49,7 @@ import com.emc.sa.service.vipr.tasks.GetHost;
 import com.emc.sa.service.vmware.VMwareSupport;
 import com.emc.sa.service.vmware.tasks.GetVcenter;
 import com.emc.sa.service.vmware.tasks.GetVcenterDataCenter;
-import com.emc.storageos.computesystemcontroller.impl.adapter.EsxHostDiscoveryAdapter;
+import com.emc.storageos.computesystemcontroller.impl.adapter.VcenterDiscoveryAdapter;
 import com.emc.storageos.db.client.model.Cluster;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Vcenter;
@@ -1109,6 +1109,7 @@ public class ComputeUtils {
                 }
 
                 HostSystem hostSystem = null;
+                VCenterAPI api = null;
                 try {
                     // Keeping in mind if people are sneaky and change hostnames and labels, we'll see it as a validation
                     // success. Is there a better way for us to track these things, like maybe the boot volume?
@@ -1119,7 +1120,7 @@ public class ComputeUtils {
                     if (hostSystem == null) {
                         // Now look for the host system in other datacenters and clusters. If you find it, return false.
                         // If you do not find it, return true because it couldn't be found.
-                        VCenterAPI api = EsxHostDiscoveryAdapter.createVCenterAPI(host);
+                        api = VcenterDiscoveryAdapter.createVCenterAPI(vcenter);
                         List<HostSystem> hostSystems = api.listAllHostSystems();
                         if (hostSystems == null || hostSystems.isEmpty()) {
                             // No host systems were found. We'll assume this is a lie and report a validation failure.
@@ -1178,6 +1179,10 @@ public class ComputeUtils {
                     }
                     // If it's anything other than the IllegalStateException, re-throw the base exception
                     throw e;
+                } finally {
+                    if (api != null) {
+                        api.logout();
+                    }
                 }
             }
         } finally {

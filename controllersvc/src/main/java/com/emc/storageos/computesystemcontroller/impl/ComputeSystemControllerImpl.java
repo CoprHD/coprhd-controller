@@ -1594,6 +1594,12 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
             VCenterAPI api = VcenterDiscoveryAdapter.createVCenterAPI(vCenter);
             HostSystem host = api.findHostSystem(vCenterDataCenter.getLabel(), esxHostname);
 
+            if (host == null) {
+                _log.info("Not able to find host " + esxHostname + " in vCenter. Unable to validate");
+                WorkflowStepCompleter.stepSucceded(stepId);
+                return;
+            }
+
             Map<String, Datastore> wwnDatastores = getWwnDatastoreMap(host);
 
             if (exportGroup != null && exportGroup.getVolumes() != null) {
@@ -1682,6 +1688,13 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
             ExportGroup exportGroup = _dbClient.queryObject(ExportGroup.class, exportGroupId);
             VCenterAPI api = VcenterDiscoveryAdapter.createVCenterAPI(vCenter);
             HostSystem hostSystem = api.findHostSystem(vCenterDataCenter.getLabel(), esxHost.getLabel());
+
+            if (hostSystem == null) {
+                _log.info("Not able to find host " + esxHost.getLabel() + " in vCenter. Unable to validate");
+                WorkflowStepCompleter.stepSucceded(stepId);
+                return;
+            } 
+
             HostStorageAPI storageAPI = new HostStorageAPI(hostSystem);
 
             Map<String, Datastore> wwnDatastores = getWwnDatastoreMap(hostSystem);
@@ -1871,6 +1884,8 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
             if (checkVms) {
                 waitFor = computeDeviceController.addStepsVcenterClusterCleanup(workflow, waitFor, cluster, deactivateOnComplete);
             }
+  
+            waitFor = unmountClusterStorage(workflow, waitFor, cluster);
 
             waitFor = addStepsForClusterExportGroups(workflow, waitFor, cluster);
 

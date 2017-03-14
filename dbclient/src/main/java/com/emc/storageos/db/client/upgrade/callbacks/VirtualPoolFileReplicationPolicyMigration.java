@@ -145,6 +145,8 @@ public class VirtualPoolFileReplicationPolicyMigration extends BaseCustomMigrati
                                 && fs.getPersonality().equalsIgnoreCase(PersonalityTypes.SOURCE.name())) {
                             StorageSystem system = dbClient.queryObject(StorageSystem.class, fs.getStorageDevice());
                             updatePolicyStorageResouce(system, replPolicy, fs);
+                            fs.addFilePolicy(replPolicy.getId());
+                            dbClient.updateObject(fs);
                         }
 
                     }

@@ -96,16 +96,14 @@ public enum ResourceTypeEnum {
     COMPUTE_IMAGESERVER("compute_imageserver", "/compute/imageservers"),
     BLOCK_SNAPSHOT_SESSION("block_snapshot_session", "/block/snapshot-sessions"),
     SCHEDULE_POLICY("schedule_policy", "/schedule-policies"),
+    FILE_POLICY("file_policy", "/file/file-policies"),
     STORAGE_SYSTEM_TYPE("storage_system_type", "/vdc/storage-system-types"),
     OBJECT_NAMESPACE("object_namespaces", "/vdc/object-namespaces"),
     ACTIONABLE_EVENT("actionable_event", "/vdc/events"),
     CUSTOM_SERVICES_WORKFLOW("custom_services_workflow", "/workflows"),
-    ANSIBLE("ansible", "/primitives"),
-    ANSIBLE_PACKAGE("ansible_package", "/primitives/resource/ansible"),
-    SCRIPT_PRIMITIVE("script_primitive","/primitives"),
-    SCRIPT_RESOURCE("script_resource", "/primitives/resource/script"),
-    WF_DIRECTORY("wf_directory","/workflow/directory"),
-    CUSTOM_SERVICE_PRIMITIVE("primitive", "/primitives");
+    WF_DIRECTORY("wf_directory","/workflow/directory"), 
+    CUSTOM_SERVICES_PRIMTIVES("custom_services_primitives", "/primitives"), 
+    CUSTOM_SERVICES_PRIMTIVE_RESOURCES("custom_services_primitive_resources", "/primitives/resource/");
     
     private final String type;
     private final String service;

@@ -5,8 +5,8 @@
 package com.emc.storageos.api.mapper.functions;
 
 import com.emc.storageos.api.mapper.VirtualPoolMapper;
-import com.emc.storageos.model.vpool.FileVirtualPoolRestRep;
 import com.emc.storageos.db.client.model.VirtualPool;
+import com.emc.storageos.model.vpool.FileVirtualPoolRestRep;
 import com.google.common.base.Function;
 
 public class MapFileVirtualPool implements Function<VirtualPool, FileVirtualPoolRestRep> {
@@ -21,6 +21,6 @@ public class MapFileVirtualPool implements Function<VirtualPool, FileVirtualPool
 
     @Override
     public FileVirtualPoolRestRep apply(VirtualPool vpool) {
-        return VirtualPoolMapper.toFileVirtualPool(vpool, null);
+        return VirtualPoolMapper.toFileVirtualPool(vpool);
     }
 }

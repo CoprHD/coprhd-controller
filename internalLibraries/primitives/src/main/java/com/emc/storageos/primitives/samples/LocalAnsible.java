@@ -17,40 +17,47 @@
 package com.emc.storageos.primitives.samples;
 
 import java.net.URI;
+import java.util.List;
+import java.util.Map;
 
 import javax.xml.bind.annotation.XmlRootElement;
 
-import com.emc.storageos.primitives.Primitive;
+import com.emc.storageos.primitives.CustomServicesPrimitive.InputType;
 import com.emc.storageos.primitives.input.BasicInputParameter.StringParameter;
 import com.emc.storageos.primitives.input.InputParameter;
+import com.emc.storageos.primitives.java.CustomServicesStaticPrimitiveModel;
 import com.emc.storageos.primitives.output.BasicOutputParameter;
 import com.emc.storageos.primitives.output.BasicOutputParameter.NameValueListParameter;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 
 /**
  * Class that represents primitive meta data for an ansible script that can be
  * executed locally
  */
 @XmlRootElement(name = "primitive")
-public class LocalAnsible extends Primitive {
+public class LocalAnsible extends CustomServicesStaticPrimitiveModel {
 
     private final static URI id = URI.create(String.format(
             "urn:storageos:%1$s:%2$s:", LocalAnsible.class.getSimpleName(),
             LocalAnsible.class.getName()));
     private final static String FRIENDLY_NAME = "Ansible playbook";
-    private final static StepType TYPE = StepType.LOCAL_ANSIBLE;
     private final static String DESCRIPTION = "Locally executed ansible playbook";
     private final static String SUCCESS_CRITERIA = "code = 0";
 
     private final static StringParameter CONTENT = new StringParameter(
             "content", true, null);
-    private final static InputParameter INPUT[] = { CONTENT };
-
+    //private final static InputParameter INPUT[] = { CONTENT };
+    
+    private final static List<InputParameter> INPUT_LIST = ImmutableList.<InputParameter>builder().add(CONTENT).build();
+    private final static Map<InputType, List<InputParameter>> INPUT = ImmutableMap.<InputType, List<InputParameter>>builder().put(InputType.INPUT_PARAMS, INPUT_LIST).build();
     private final static NameValueListParameter OUTPUT = new NameValueListParameter(
             "output");
     private final static BasicOutputParameter OUTPUT_LIST[] = { OUTPUT };
 
     public LocalAnsible() {
-        super(id, LocalAnsible.class.getName(), FRIENDLY_NAME, DESCRIPTION, SUCCESS_CRITERIA, INPUT, OUTPUT_LIST,TYPE);
+        super(id, LocalAnsible.class.getName());
 }
+
 
 }

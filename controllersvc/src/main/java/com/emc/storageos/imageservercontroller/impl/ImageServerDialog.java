@@ -249,6 +249,11 @@ public class ImageServerDialog extends SSHDialog {
                 result = true;
             }
         }
+
+        if (!result) {
+            log.warn(buf.toString());
+        }
+
         return result;
     }
 

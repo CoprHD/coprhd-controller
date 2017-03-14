@@ -4,10 +4,8 @@
  */
 package util.support;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.io.StringWriter;
+import java.io.*;
+import java.net.URI;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Collections;
@@ -22,7 +20,10 @@ import java.util.zip.ZipOutputStream;
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBException;
 
+import com.emc.storageos.model.tenant.TenantOrgRestRep;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import controllers.security.Security;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.io.output.CloseShieldOutputStream;
 import org.apache.commons.lang.StringUtils;
@@ -41,6 +42,7 @@ import util.ConfigPropertyUtils;
 import util.MonitorUtils;
 
 import com.emc.storageos.db.client.model.uimodels.OrderStatus;
+import com.emc.storageos.db.client.util.OrderTextCreator;
 import com.emc.vipr.client.ViPRCatalogClient2;
 import com.emc.vipr.client.ViPRSystemClient;
 import com.emc.vipr.client.core.filters.DefaultResourceFilter;
@@ -50,6 +52,7 @@ import com.emc.vipr.model.sys.healthmonitor.HealthRestRep;
 import com.emc.vipr.model.sys.healthmonitor.NodeHealth;
 import com.emc.vipr.model.sys.healthmonitor.StatsRestRep;
 import com.google.common.collect.Sets;
+import util.TenantUtils;
 
 public class SupportPackageCreator {
     private static final String TIMESTAMP = "ddMMyy-HHmm";
@@ -74,6 +77,8 @@ public class SupportPackageCreator {
     private ViPRSystemClient client;
     private String tenantId;
     private ViPRCatalogClient2 catalogClient;
+
+    private List<URI> tenantIds;//if is set, means need to get orders for these tenants
 
     public SupportPackageCreator(Http.Request request, ViPRSystemClient client, String tenantId, ViPRCatalogClient2 catalogClient) {
         this.request = request;
@@ -108,6 +113,10 @@ public class SupportPackageCreator {
 
     public void setOrderTypes(OrderTypes orderTypes) {
         this.orderTypes = orderTypes;
+    }
+
+    public void setTenantIds(List<URI> tenantIds) {
+        this.tenantIds = tenantIds;
     }
 
     private String getDefaultStartTime() {
@@ -170,16 +179,29 @@ public class SupportPackageCreator {
 
     private List<OrderRestRep> getOrders() {
         if ((orderTypes == OrderTypes.ALL) || (orderTypes == OrderTypes.ERROR)) {
-            SearchBuilder<OrderRestRep> search = catalogApi().orders().search().byTimeRange(
-                    this.startTime, this.endTime);
-            if (orderTypes == OrderTypes.ERROR) {
-                search.filter(new FailedOrderFilter());
+            List<OrderRestRep> orders = Lists.newArrayList();
+            if (tenantIds != null) {
+                for (URI tenantId : tenantIds) {
+                    SearchBuilder<OrderRestRep> search = catalogApi().orders().search().byTimeRange(
+                            this.startTime, this.endTime, tenantId);
+                    if (orderTypes == OrderTypes.ERROR) {
+                        search.filter(new FailedOrderFilter());
+                    }
+                    List<OrderRestRep> tenantOrders = search.run();
+                    Logger.info("Found %s Orders for tenantId %s", tenantOrders.size(), tenantId);
+                    orders.addAll(tenantOrders);
+                }
+            } else {
+                SearchBuilder<OrderRestRep> search = catalogApi().orders().search().byTimeRange(
+                        this.startTime, this.endTime);
+                if (orderTypes == OrderTypes.ERROR) {
+                    search.filter(new FailedOrderFilter());
+                }
+                orders = search.run();
+                Logger.info("Found %s Orders", orders.size());
             }
-            List<OrderRestRep> orders = search.run();
-            Logger.debug("Found %s Orders", orders.size());
             return orders;
-        }
-        else {
+        } else {
             return Collections.emptyList();
         }
     }
@@ -262,12 +284,20 @@ public class SupportPackageCreator {
     }
 
     private void writeOrder(ZipOutputStream zip, OrderRestRep order) throws IOException {
-        String timestamp = formatTimestamp(order.getCreationTime());
-        String path = String.format("orders/Order-%s-%s-%s.txt", order.getOrderNumber(), order.getOrderStatus(),
-                timestamp);
-        TextOrderCreator creator = new TextOrderCreator(catalogApi(), order);
-        addStringEntry(zip, path, creator.getText());
+        String path = String.format("orders/%s", OrderTextCreator.genereateOrderFileName(order));
+        addStringEntry(zip, path, getOrderTextCreator(order).getText());
         Logger.debug("Written Order " + order.getId() + " to archive");
+    }
+
+    private OrderTextCreator getOrderTextCreator(OrderRestRep order) {
+        ViPRCatalogClient2 client = catalogApi();
+        OrderTextCreator creator = new OrderTextCreator();
+        creator.setOrder(order);
+        creator.setService(client.services().get(order.getCatalogService()));
+        creator.setState(client.orders().getExecutionState(order.getId()));
+        creator.setLogs(client.orders().getLogs(order.getId()));
+        creator.setExeLogs(client.orders().getExecutionLogs(order.getId()));
+        return creator;
     }
 
     private void writeLogs(ZipOutputStream zip) throws IOException {
@@ -285,18 +315,36 @@ public class SupportPackageCreator {
     }
 
     private void writeLog(ZipOutputStream zip, String nodeId, String nodeName, String logName) throws IOException {
-        String path = String.format("logs/%s_%s_%s.log", logName, nodeId, nodeName);
-        OutputStream stream = nextEntry(zip, path);
-
         Set<String> nodeIds = Collections.singleton(nodeId);
         Set<String> logNames = Collections.singleton(logName);
+        OutputStream stream = null;
 
         InputStream in = api().logs().getAsText(nodeIds, null, logNames, logSeverity, startTime, endTime, msgRegex, null);
+        long size = 1024*1024*300L;
+        int partId = 2;
+        long writeSize = 0L;
+        String line = null;
+        String path = String.format("logs/%s_%s_%s.log", logName, nodeId, nodeName);
+        stream = nextEntry(zip, path);
+        BufferedReader br = new BufferedReader(new InputStreamReader(in));
+        BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(stream));
         try {
-            IOUtils.copy(in, stream);
+            while ((line = br.readLine()) != null) {
+                bw.write(line);
+                bw.newLine();
+                writeSize = writeSize + line.length();
+                if (writeSize > size) {
+                    bw.close();
+                    path = String.format("logs/%s_%s_%s_%d.log", logName, nodeId, nodeName,partId);
+                    stream = nextEntry(zip, path);
+                    bw = new BufferedWriter(new OutputStreamWriter(stream));
+                    writeSize = 0L;
+                    partId++;
+                }
+            }
         } finally {
-            in.close();
-            stream.close();
+            br.close();
+            IOUtils.closeQuietly(bw);
         }
     }
 

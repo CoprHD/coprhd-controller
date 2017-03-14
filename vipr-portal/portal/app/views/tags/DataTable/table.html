@@ -45,19 +45,21 @@ table.${id}.renderExpand = function(o, val) {
     return '<span class="expand-indicator"></span>'
 }
 
-table.${id}.updateSelection = function(checkbox) {
+table.${id}.updateSelection = function(checkbox,selectAll) {
     var data = table.${id}.dataTable.getRowData(checkbox);
     if (data) {
         data.selected = $(checkbox).is(':checked');
     }
 #{if selectable}
-    table.${id}.dataTable.updateSelectedFooter();
+    if (!selectAll) {
+      table.${id}.dataTable.updateSelectedFooter();
+    }
  #{/if}
 }
 
 table.${id}.renderSelection = function(o, val) {
     var id = o.aData.id;
-    var checkbox = '<input type="checkbox" name="selected" value="'+id+'" onchange="table.${id}.updateSelection(this)"';
+    var checkbox = '<input type="checkbox" name="selected" value="'+id+'" onchange="table.${id}.updateSelection(this,arguments[1])"';
     if (o.aData.selected) {
         checkbox += ' checked="checked"';
     }

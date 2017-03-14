@@ -156,23 +156,7 @@ public abstract class AbstractSMISValidatorFactory implements StorageSystemValid
     }
 
     @Override
-    public Validator removeVolumes(StorageSystem storage, URI exportMaskURI,
-            Collection<Initiator> initiators) {
-        return removeVolumes(storage, exportMaskURI, initiators, null);
-    }
-
-    @Override
-    public Validator removeVolumes(StorageSystem storage, URI exportMaskURI, Collection<Initiator> initiators,
-                                   Collection<? extends BlockObject> volumes) {
-        ExportMask exportMask = dbClient.queryObject(ExportMask.class, exportMaskURI);  // FIXME
-
-        // TODO Update removeVolumes to accept a ctx
-        ExportMaskValidationContext ctx = new ExportMaskValidationContext();
-        ctx.setStorage(storage);
-        ctx.setExportMask(exportMask);
-        ctx.setInitiators(initiators);
-        ctx.setBlockObjects(volumes);
-
+    public Validator removeVolumes(ExportMaskValidationContext ctx) {
         ValidatorLogger sharedLogger = createValidatorLogger(ctx.getExportMask().forDisplay(), ctx.getStorage().forDisplay());
 
         AbstractSMISValidator initiatorValidator = createExportMaskInitiatorValidator(ctx);
@@ -181,6 +165,7 @@ public abstract class AbstractSMISValidatorFactory implements StorageSystemValid
         configureValidators(sharedLogger, initiatorValidator, maskValidator);
 
         ChainingValidator chain = new ChainingValidator(sharedLogger, config, "Export Mask");
+        chain.setExceptionContext(ctx);
         chain.addValidator(initiatorValidator);
         chain.addValidator(maskValidator);
 

@@ -11,10 +11,13 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.curator.framework.recipes.locks.InterProcessLock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeansException;
@@ -30,7 +33,6 @@ import com.emc.storageos.db.client.model.StorageProvider;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StorageSystem.Discovery_Namespaces;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
-import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.exceptions.DeviceControllerErrors;
 import com.emc.storageos.exceptions.DeviceControllerException;
@@ -43,6 +45,8 @@ import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.volumecontroller.ControllerLockingService;
 import com.emc.storageos.volumecontroller.impl.ControllerServiceImpl;
+import com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.DataCollectionJob.JobOrigin;
+import com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.DataCollectionJobScheduler.JobIntervals;
 import com.emc.storageos.volumecontroller.impl.smis.CIMConnectionFactory;
 
 /**
@@ -119,11 +123,17 @@ public class DataCollectionJobConsumer extends
         if (job instanceof DataCollectionScanJob) {
             throw new DeviceControllerException("Invoked wrong job type : " + job.getType());
         }
-
+        
         DataCollectionTaskCompleter completer = job.getCompleter();
+        // set the next run time based on the time this discovery job is started (not the time it's queued)
+        completer.setNextRunTime(_dbClient,
+                System.currentTimeMillis() + JobIntervals.get(job.getType()).getInterval() * 1000);
         completer.updateObjectState(_dbClient, DiscoveredDataObject.DataCollectionJobStatus.IN_PROGRESS);
+        
+        // get the node that this discovery is being run on so it is displayed in the UI
         String jobType = job.getType();
-        job.updateTask(_dbClient, "Started " + jobType);
+        String nodeId = _coordinator.getInetAddessLookupMap().getNodeId();
+        job.updateTask(_dbClient, "Started " + jobType + " on node " + nodeId);
 
         /**
          * TODO ISILON or VNXFILE
@@ -173,7 +183,7 @@ public class DataCollectionJobConsumer extends
      * @param storageSystemsCache
      */
     public void triggerDiscoveryNew(
-            Map<String, StorageSystemViewObject> storageSystemsCache) throws Exception {
+            Map<String, StorageSystemViewObject> storageSystemsCache, JobOrigin origin) throws Exception {
         Set<String> sysNativeGuidSet = storageSystemsCache.keySet();
         ArrayList<DataCollectionJob> jobs = new ArrayList<DataCollectionJob>();
         for (String sysNativeGuid : sysNativeGuidSet) {
@@ -191,7 +201,7 @@ public class DataCollectionJobConsumer extends
 
                     DiscoverTaskCompleter completer = new DiscoverTaskCompleter(system.getClass(), system.getId(), taskId,
                             ControllerServiceImpl.DISCOVERY);
-                    jobs.add(new DataCollectionDiscoverJob(completer, Discovery_Namespaces.ALL.toString()));
+                    jobs.add(new DataCollectionDiscoverJob(completer, origin, Discovery_Namespaces.ALL.toString()));
                 }
             } catch (Exception e) {
                 _logger.error("Triggering Manual Array Discovery Failed {}:", system, e);
@@ -211,15 +221,24 @@ public class DataCollectionJobConsumer extends
      */
     private void triggerScanning(DataCollectionScanJob job) throws Exception {
         _logger.info("Started scanning Providers : triggerScanning()");
-
-        _jobScheduler.refreshProviderConnections();
+        
         List<URI> providerList = job.getProviders();
+        String providerType = null;
+        if (!providerList.isEmpty()) {
+            providerType = _dbClient.queryObject(StorageProvider.class, providerList.iterator().next()).getInterfaceType();
+        }
+
+        _jobScheduler.refreshProviderConnections(providerType);
         List<URI> allProviderURI = _dbClient.queryByType(StorageProvider.class, true);
-        List<StorageProvider> allProviders = _dbClient.queryObject(StorageProvider.class, allProviderURI);
+        List<StorageProvider> allProvidersAllTypes = _dbClient.queryObject(StorageProvider.class, allProviderURI);
+        List<StorageProvider> allProviders = new ArrayList<StorageProvider>();
         // since dbQuery does not return a normal list required by bookkeeping, we need to rebuild it.
         allProviderURI = new ArrayList<URI>();
-        for (StorageProvider provider : allProviders) {
-            allProviderURI.add(provider.getId());
+        for (StorageProvider provider : allProvidersAllTypes) {
+            if (providerType == null || providerType.equals(provider.getInterfaceType())) {
+                allProviderURI.add(provider.getId());
+                allProviders.add(provider);
+            }
         }
 
         Map<String, StorageSystemViewObject> storageSystemsCache = Collections
@@ -234,9 +253,17 @@ public class DataCollectionJobConsumer extends
          * Compare the list against the ones in DB, and decide the physicalStorageSystem's
          * state REACHABLE
          */
-        if (ControllerServiceImpl.Lock.SCAN_COLLECTION_LOCK
-                .acquire(ControllerServiceImpl.Lock.SCAN_COLLECTION_LOCK.getRecommendedTimeout())) {
+        String lockKey = ControllerServiceImpl.Lock.SCAN_COLLECTION_LOCK.toString();
+        if (providerType != null) {
+            lockKey += providerType;
+        }
+        InterProcessLock scanLock = _coordinator.getLock(lockKey);
+        if (scanLock.acquire(ControllerServiceImpl.Lock.SCAN_COLLECTION_LOCK.getRecommendedTimeout(), TimeUnit.SECONDS)) {
 
+            _logger.info("Acquired a lock {} to run scanning Job", ControllerServiceImpl.Lock.SCAN_COLLECTION_LOCK.toString()+providerType);
+            
+            List<URI> cacheProviders = new ArrayList<URI>();
+            Map<URI, Exception> cacheErrorProviders = new HashMap<URI, Exception>();
             try {
                 boolean scanIsNeeded = false;
                 boolean hasProviders = false;
@@ -259,13 +286,13 @@ public class DataCollectionJobConsumer extends
                             continue;
                         }
                         if (provider.connected() || provider.initializing()) {
-                            scanCompleter.statusReady(_dbClient, "SCAN is not needed");
+                            scanCompleter.ready(_dbClient);
                         }
                         else {
                             String errMsg = "Failed to establish connection to the storage provider";
                             scanCompleter.error(_dbClient, DeviceControllerErrors.smis.unableToCallStorageProvider(errMsg));
                             provider.setLastScanStatusMessage(errMsg);
-                            _dbClient.persistObject(provider);
+                            _dbClient.updateObject(provider);
                         }
                     }
                     if (!hasProviders) {
@@ -274,9 +301,10 @@ public class DataCollectionJobConsumer extends
                     _logger.info("Scan is not needed");
                 }
                 else {
-                    List<URI> cacheProviders = new ArrayList<URI>();
                     // If scan is needed for a single system,
                     // it must be performed for all available providers in the database at the same time.
+                    // update each provider that is reachable to scan in progress
+                    List<StorageProvider> connectedProviders = new ArrayList<StorageProvider>();
                     for (StorageProvider provider : allProviders) {
                         if (provider.connected() || provider.initializing()) {
                             ScanTaskCompleter scanCompleter = job.findProviderTaskCompleter(provider.getId());
@@ -285,21 +313,14 @@ public class DataCollectionJobConsumer extends
                                 scanCompleter = new ScanTaskCompleter(StorageProvider.class, provider.getId(), taskId);
                                 job.addCompleter(scanCompleter);
                             }
-                            try {
-                                scanCompleter.updateObjectState(_dbClient, DiscoveredDataObject.DataCollectionJobStatus.IN_PROGRESS);
-                                scanCompleter.setNextRunTime(_dbClient, System.currentTimeMillis()
-                                        + DataCollectionJobScheduler.JobIntervals.get(ControllerServiceImpl.SCANNER).getInterval() * 1000);
-                                provider.setLastScanStatusMessage("");
-                                _dbClient.persistObject(provider);
-                                _logger.info("provider.getInterfaceType():{}", provider.getInterfaceType());
-                                performScan(provider.getId(), scanCompleter, storageSystemsCache);
-                                cacheProviders.add(provider.getId());
-                            } catch (Exception ex) {
-                                _logger.error("Scan failed for {}--->", provider.getId(), ex);
-                                scanCompleter.error(_dbClient, DeviceControllerErrors.dataCollectionErrors.scanFailed(ex.getLocalizedMessage(), ex));
-                            }
-                        }
-                        else {
+                            scanCompleter.createDefaultOperation(_dbClient);
+                            scanCompleter.updateObjectState(_dbClient, DiscoveredDataObject.DataCollectionJobStatus.IN_PROGRESS);
+                            scanCompleter.setNextRunTime(_dbClient, System.currentTimeMillis()
+                                    + DataCollectionJobScheduler.JobIntervals.get(ControllerServiceImpl.SCANNER).getInterval() * 1000);
+                            provider.setLastScanStatusMessage("");
+                            _dbClient.updateObject(provider);
+                            connectedProviders.add(provider);
+                        } else {
                             if (null != provider.getStorageSystems() &&
                                     !provider.getStorageSystems().isEmpty()) {
                                 provider.getStorageSystems().clear();
@@ -310,7 +331,19 @@ public class DataCollectionJobConsumer extends
                                 job.findProviderTaskCompleter(provider.getId()).
                                         error(_dbClient, DeviceControllerErrors.smis.unableToCallStorageProvider(errMsg));
                             }
-                            _dbClient.persistObject(provider);
+                            _dbClient.updateObject(provider);
+                        }
+                    }
+                    // now scan each connected provider
+                    for (StorageProvider provider : connectedProviders) {
+                        try {
+                            _logger.info("provider.getInterfaceType():{}", provider.getInterfaceType());
+                            ScanTaskCompleter scanCompleter = job.findProviderTaskCompleter(provider.getId());
+                            performScan(provider.getId(), scanCompleter, storageSystemsCache);
+                            cacheProviders.add(provider.getId());
+                        } catch (Exception ex) {
+                            _logger.error("Scan failed for {}--->", provider.getId(), ex);
+                            cacheErrorProviders.put(provider.getId(), ex);
                         }
                     }
                     // Perform BooKKeeping
@@ -318,21 +351,36 @@ public class DataCollectionJobConsumer extends
                     // for now we assume that this operation can not fail.
                     _util.performBookKeeping(storageSystemsCache, allProviderURI);
 
+                }
+            } catch (final Exception ex) {
+                _logger.error("Scan failed for {} ", ex.getMessage());
+                exceptionIntercepted = true;
+                for (URI provider : cacheProviders) {
+                    job.findProviderTaskCompleter(provider).error(_dbClient, DeviceControllerErrors.dataCollectionErrors.scanFailed(ex.getLocalizedMessage(), ex));
+                    _logger.error("Scan failed for {}--->", provider, ex);
+                }
+                throw ex;
+            } finally {
+                if (!exceptionIntercepted) {
                     for (URI provider : cacheProviders) {
                         job.findProviderTaskCompleter(provider).ready(_dbClient);
                         _logger.info("Scan complete successfully for " + provider);
                     }
                 }
-            } catch (final Exception ex) {
-                _logger.error("Scan failed for {} ", ex.getMessage());
-                exceptionIntercepted = true;
-                throw ex;
-            } finally {
-                ControllerServiceImpl.Lock.SCAN_COLLECTION_LOCK.release();
+                for (Entry<URI, Exception> entry : cacheErrorProviders.entrySet()) {
+                    URI provider = entry.getKey();
+                    Exception ex = entry.getValue();
+                    job.findProviderTaskCompleter(provider).error(_dbClient, DeviceControllerErrors.dataCollectionErrors.scanFailed(ex.getLocalizedMessage(), ex));
+                }
+                
+                scanLock.release();
+                _logger.info("Released a lock {} to run scanning Job", lockKey);
+                
                 try {
                     if (!exceptionIntercepted /* && job.isSchedulerJob() */) {
                         // Manually trigger discoveries, if any new Arrays detected
-                        triggerDiscoveryNew(storageSystemsCache);
+                        triggerDiscoveryNew(storageSystemsCache, 
+                                (job.isSchedulerJob() ? DataCollectionJob.JobOrigin.SCHEDULER : DataCollectionJob.JobOrigin.USER_API));
                     }
                 } catch (Exception ex) {
                     _logger.error("Exception occurred while triggering discovery of new systems", ex);
@@ -341,7 +389,7 @@ public class DataCollectionJobConsumer extends
         }
         else {
             job.setTaskError(_dbClient, DeviceControllerErrors.dataCollectionErrors.scanLockFailed());
-            _logger.debug("Not able to Acquire Scanning lock-->{}", Thread
+            _logger.error("Not able to Acquire Scanning {} lock-->{}", lockKey, Thread
                     .currentThread().getId());
         }
     }
@@ -417,5 +465,4 @@ public class DataCollectionJobConsumer extends
             NetworkDeviceController networkDeviceController) {
         this._networkDeviceController = networkDeviceController;
     }
-
 }

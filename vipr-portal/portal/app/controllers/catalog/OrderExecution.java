@@ -51,6 +51,7 @@ import com.emc.vipr.model.catalog.ScheduleInfo;
 import com.emc.vipr.model.catalog.ScheduledEventCreateParam;
 import com.emc.vipr.model.catalog.ServiceDescriptorRestRep;
 import com.emc.vipr.model.catalog.ServiceFieldGroupRestRep;
+import com.emc.vipr.model.catalog.ServiceFieldModalRestRep;
 import com.emc.vipr.model.catalog.ServiceFieldRestRep;
 import com.emc.vipr.model.catalog.ServiceFieldTableRestRep;
 import com.emc.vipr.model.catalog.ServiceItemRestRep;
@@ -113,6 +114,9 @@ public class OrderExecution extends Controller {
             }
             else if (item instanceof ServiceFieldGroupRestRep) {
                 addFieldValues(service, ((ServiceFieldGroupRestRep) item).getItems(), values, locked);
+            }
+            else if (item instanceof ServiceFieldModalRestRep) {
+                addFieldValues(service, ((ServiceFieldModalRestRep) item).getItems(), values, locked);
             }
             else if (item instanceof ServiceFieldRestRep) {
                 ServiceFieldRestRep field = (ServiceFieldRestRep) item;
@@ -260,8 +264,7 @@ public class OrderExecution extends Controller {
         OrderCreateParam order = new OrderCreateParam();
         order.setTenantId(uri(Models.currentAdminTenant()));
         order.setCatalogService(service.getId());
-        order.setWorkflowDocument(service.getWorkflowDocument());
-        
+
         List<Parameter> orderParameters = Lists.newArrayList();
         List<ServiceFieldRestRep> fields = ServiceDescriptorUtils.getAllFieldList(descriptor.getItems());
         for (ServiceFieldRestRep field : fields) {

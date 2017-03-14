@@ -195,13 +195,6 @@ public class ComputeVirtualPools extends ViprResourceController {
     }
 
     private static void handleError(ComputeVirtualPoolsForm computeVirtualPool) {
-        // JiRA CTRL-7628
-        // Only flash compute parameters to reduce amount stored in flash scope
-        for (String param : params.all().keySet()) {
-            if (param.startsWith("compute")) {
-                params.flash(param);
-            }
-        }
         Validation.keep();
         if (computeVirtualPool.isNew()) {
             createx(computeVirtualPool.selectedTemplates);

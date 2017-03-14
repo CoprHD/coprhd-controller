@@ -63,7 +63,14 @@ public class StorageSystemTypesInitUtils {
     private static final Map<String, String> DISPLAY_NAME_MAP;
     private static final Map<String, String> SSL_PORT_MAP;
     private static final Map<String, String> NON_SSL_PORT_MAP;
-    private static final Map<String, String> STORAGE_PROVIDER_MAP;
+
+    /*
+     * Some storage systems should only be discovered by provider, not be added directly.
+       For these storage systems, providers of them are shown on storage system adding page.
+       This map is to store the mapping relation between storage system name and its storage
+       provider display name.
+     */
+    private static final Map<String, String> STORAGE_SYSTEM_PROVIDER_DISP_NAME_MAP;
 
     static {
         SYSTEMS_AND_PROVIDERS = new HashMap<META_TYPE, List<String>>();
@@ -152,18 +159,18 @@ public class StorageSystemTypesInitUtils {
         NON_SSL_PORT_MAP.put(UNITY, "443");
         NON_SSL_PORT_MAP.put(CEPH, "6789");
 
-        STORAGE_PROVIDER_MAP = new HashMap<String, String>();
-        STORAGE_PROVIDER_MAP.put(VMAX, "Storage Provider for EMC VMAX, VNX Block");
-        STORAGE_PROVIDER_MAP.put(SCALEIOAPI, "ScaleIO Gateway");
-        STORAGE_PROVIDER_MAP.put(HITACHI, "Storage Provider for Hitachi storage systems");
-        STORAGE_PROVIDER_MAP.put(VPLEX, "Storage Provider for EMC VPLEX");
-        STORAGE_PROVIDER_MAP.put(OPENSTACK, "Storage Provider for Third-party block storage systems");
-        STORAGE_PROVIDER_MAP.put(SCALEIO, "Block Storage Powered by ScaleIO");
-        STORAGE_PROVIDER_MAP.put(DATA_DOMAIN, "Storage Provider for Data Domain Management Center");
-        STORAGE_PROVIDER_MAP.put(IBMXIV, "Storage Provider for IBM XIV");
-        STORAGE_PROVIDER_MAP.put(XTREMIO, "Storage Provider for EMC XtremIO");
-        STORAGE_PROVIDER_MAP.put(CEPH, "Block Storage powered by Ceph");
-        STORAGE_PROVIDER_MAP.put(DELLSCPROVIDER, "Storage Provider for Dell SC Storage");
+        STORAGE_SYSTEM_PROVIDER_DISP_NAME_MAP = new HashMap<String, String>();
+        STORAGE_SYSTEM_PROVIDER_DISP_NAME_MAP.put(VMAX, "Storage Provider for EMC VMAX, VNX Block");
+        STORAGE_SYSTEM_PROVIDER_DISP_NAME_MAP.put(SCALEIOAPI, "ScaleIO Gateway");
+        STORAGE_SYSTEM_PROVIDER_DISP_NAME_MAP.put(HITACHI, "Storage Provider for Hitachi storage systems");
+        STORAGE_SYSTEM_PROVIDER_DISP_NAME_MAP.put(VPLEX, "Storage Provider for EMC VPLEX");
+        STORAGE_SYSTEM_PROVIDER_DISP_NAME_MAP.put(OPENSTACK, "Storage Provider for Third-party block storage systems");
+        STORAGE_SYSTEM_PROVIDER_DISP_NAME_MAP.put(SCALEIO, "Block Storage Powered by ScaleIO");
+        STORAGE_SYSTEM_PROVIDER_DISP_NAME_MAP.put(DATA_DOMAIN, "Storage Provider for Data Domain Management Center");
+        STORAGE_SYSTEM_PROVIDER_DISP_NAME_MAP.put(IBMXIV, "Storage Provider for IBM XIV");
+        STORAGE_SYSTEM_PROVIDER_DISP_NAME_MAP.put(XTREMIO, "Storage Provider for EMC XtremIO");
+        STORAGE_SYSTEM_PROVIDER_DISP_NAME_MAP.put(CEPH, "Block Storage powered by Ceph");
+        STORAGE_SYSTEM_PROVIDER_DISP_NAME_MAP.put(DELLSCSYSTEM, "Storage Provider for Dell SC Storage");
     }
 
     public StorageSystemTypesInitUtils(DbClient dbClient) {
@@ -206,7 +213,7 @@ public class StorageSystemTypesInitUtils {
     }
 
     public static Map<String, String> getProviderDsiplayNameMap() {
-        return STORAGE_PROVIDER_MAP;
+        return STORAGE_SYSTEM_PROVIDER_DISP_NAME_MAP;
     }
 
     /**
@@ -249,6 +256,7 @@ public class StorageSystemTypesInitUtils {
                 type.setIsSecretKey(SECREAT_KEY_ENABLE_LIST.contains(system));
                 type.setSslPort(SSL_PORT_MAP.get(system));
                 type.setNonSslPort(NON_SSL_PORT_MAP.get(system));
+                type.setIsNative(true);
 
                 if (alreadyExists(type)) {
                     log.info("Meta data for {} already exist", type.getStorageTypeName());

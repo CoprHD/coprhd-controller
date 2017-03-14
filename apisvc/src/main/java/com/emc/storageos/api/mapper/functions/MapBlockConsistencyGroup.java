@@ -8,16 +8,13 @@ import static com.emc.storageos.api.mapper.BlockMapper.map;
 import static com.emc.storageos.db.client.constraint.ContainmentConstraint.Factory.getVolumesByConsistencyGroup;
 
 import java.net.URI;
-import java.util.ArrayList;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 
 import com.emc.storageos.api.mapper.BlockMapper;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
-import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.model.block.BlockConsistencyGroupRestRep;
 import com.google.common.base.Function;
 
@@ -56,20 +53,9 @@ public class MapBlockConsistencyGroup implements Function<BlockConsistencyGroup,
         }
 
         final Set<URI> volumes = new HashSet<URI>();
-        final List<URI> cgVolumesURIs = new ArrayList<URI>();
 
         while (cgVolumesResults.iterator().hasNext()) {
-            final URI volumeId = cgVolumesResults.iterator().next();
-            cgVolumesURIs.add(volumeId);
-        }
-
-        final List<Volume> cgVolumes = dbClient.queryObject(Volume.class, cgVolumesURIs);
-
-        // Only display active volumes
-        for (Volume volume : cgVolumes) {
-            if (!volume.getInactive()) {
-                volumes.add(volume.getId());
-            }
+            volumes.add(cgVolumesResults.iterator().next());
         }
 
         return BlockMapper.map(consistencyGroup, volumes, dbClient);

@@ -17,7 +17,6 @@
 
 package com.emc.sa.service.vipr.customservices.tasks;
 
-import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.HashMap;
@@ -35,7 +34,7 @@ import com.emc.sa.service.vipr.customservices.CustomServicesConstants;
 import com.emc.sa.service.vipr.customservices.CustomServicesUtils;
 import com.emc.sa.service.vipr.customservices.gson.ViprOperation;
 import com.emc.sa.service.vipr.tasks.ViPRExecutionTask;
-import com.emc.storageos.primitives.ViPRPrimitive;
+import com.emc.storageos.primitives.java.vipr.CustomServicesViPRPrimitive;
 import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorException;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
 import com.emc.vipr.client.impl.RestClient;
@@ -50,9 +49,9 @@ public class RunViprREST extends ViPRExecutionTask<CustomServicesTaskResult> {
 
     private final Map<String, List<String>> input;
     private final RestClient client;
-    private final ViPRPrimitive primitive;
+    private final CustomServicesViPRPrimitive primitive;
 
-    public RunViprREST(final ViPRPrimitive primitive, final RestClient client, final Map<String, List<String>> input) {
+    public RunViprREST(final CustomServicesViPRPrimitive primitive, final RestClient client, final Map<String, List<String>> input) {
         this.input = input;
         this.client = client;
         this.primitive = primitive;
@@ -75,11 +74,11 @@ public class RunViprREST extends ViPRExecutionTask<CustomServicesTaskResult> {
 
         String path = makePath(templatePath);
 
-        ExecutionUtils.currentContext().logInfo("runViprREST.startInfo", primitive.getFriendlyName());
+        ExecutionUtils.currentContext().logInfo("runViprREST.startInfo", primitive.friendlyName());
 
         CustomServicesTaskResult result = makeRestCall(path, requestBody, method);
 
-        ExecutionUtils.currentContext().logInfo("runViprREST.doneInfo", primitive.getFriendlyName());
+        ExecutionUtils.currentContext().logInfo("runViprREST.doneInfo", primitive.friendlyName());
 
         return result;
     }
@@ -128,7 +127,7 @@ public class RunViprREST extends ViPRExecutionTask<CustomServicesTaskResult> {
                         customServiceExecutionFailed("REST Execution Failed. Response returned is null");
             }
 
-            logger.info("Status of ViPR REST Operation:{} is :{}", primitive.getName(), response.getStatus());
+            logger.info("Status of ViPR REST Operation:{} is :{}", primitive.name(), response.getStatus());
 
 
             responseString = IOUtils.toString(response.getEntityInputStream(), "UTF-8");

@@ -7,6 +7,7 @@ package com.emc.storageos.db.client.constraint.impl;
 import com.emc.storageos.db.client.impl.ColumnField;
 import com.emc.storageos.db.client.impl.CompositeColumnNameSerializer;
 import com.emc.storageos.db.client.impl.IndexColumnName;
+import com.emc.storageos.db.client.impl.IndexColumnNameSerializer;
 import com.emc.storageos.db.client.impl.RelationDbIndex;
 import com.emc.storageos.db.client.model.DataObject;
 import com.netflix.astyanax.Keyspace;
@@ -20,7 +21,7 @@ import java.net.URI;
 /**
  * A containment constraint that returns only those elements from the index that were added between startTime and endTime
  */
-public class TimedContainmentConstraintImpl extends ConstraintImpl {
+public class TimedContainmentConstraintImpl extends ConstraintImpl<IndexColumnName> {
     private static final long MILLIS_TO_MICROS = 1000L;
 
     private final long startTimeMicros;
@@ -34,6 +35,8 @@ public class TimedContainmentConstraintImpl extends ConstraintImpl {
     public TimedContainmentConstraintImpl(URI indexKey, long startTimeMicros, long endTimeMicros, Class<? extends DataObject> entryType,
             ColumnField field) {
         super(indexKey, entryType, field);
+        indexSerializer = IndexColumnNameSerializer.get();
+
         this.startTimeMicros = startTimeMicros * MILLIS_TO_MICROS;
         this.endTimeMicros = endTimeMicros * MILLIS_TO_MICROS;
 
@@ -56,7 +59,7 @@ public class TimedContainmentConstraintImpl extends ConstraintImpl {
                                 .greaterThanEquals(entryType.getSimpleName())
                                 .lessThanEquals(entryType.getSimpleName()));
 
-        QueryHitIterator<T> it = createQueryHitIterator(query, result);
+        QueryHitIterator<T, IndexColumnName> it = createQueryHitIterator(query, result);
         query.autoPaginate(true);
         it.prime();
         result.setResult(it);
@@ -76,9 +79,9 @@ public class TimedContainmentConstraintImpl extends ConstraintImpl {
 
     }
 
-    protected <T> QueryHitIterator<T> createQueryHitIterator(RowQuery<String, IndexColumnName> query, final QueryResult<T> result) {
+    protected <T> QueryHitIterator<T,IndexColumnName> createQueryHitIterator(RowQuery<String, IndexColumnName> query, final QueryResult<T> result) {
 
-        return new FilteredQueryHitIterator<T>(query) {
+        return new FilteredQueryHitIterator<T, IndexColumnName>(query) {
             @Override
             protected T createQueryHit(Column<IndexColumnName> column) {
                 return result.createQueryHit(getURI(column), column.getName().getThree(), column.getName().getTimeUUID());
@@ -121,7 +124,7 @@ public class TimedContainmentConstraintImpl extends ConstraintImpl {
     public Class<? extends DataObject> getDataObjectType() {
         return field.getDataObjectType();
     }
-    
+
 	@Override
 	public boolean isValid() {
         return this.indexKey!=null && !this.indexKey.toString().isEmpty();

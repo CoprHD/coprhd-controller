@@ -64,6 +64,21 @@ public class SecurityUtils {
     }
 
     /**
+     * Removes any potential XSS threats from the value without damaging file path string.
+     *
+     * Jsoup clean will remove any HTML tags or attributes which should not be allowed within this property
+     *
+     * @param value data to be cleaned
+     * @return cleaned data
+     */
+    public static String stripPathXSS(String value) {
+        if (value == null) {
+            return null;
+        }
+        return Jsoup.clean(value, "", Whitelist.none(), new Document.OutputSettings().prettyPrint(false));
+    }
+
+    /**
      * Uses stripXSS method to sanitize a map of Strings
      * 
      * @param Map data to be cleaned

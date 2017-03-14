@@ -28,6 +28,7 @@ import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.uimodels.CatalogCategory;
 import com.emc.storageos.db.client.model.uimodels.CatalogService;
 import com.emc.storageos.db.client.model.uimodels.CatalogServiceField;
+import com.emc.storageos.db.client.upgrade.callbacks.AllowRecurringSchedulerForApplicationServicesMigration;
 import com.emc.storageos.db.client.upgrade.callbacks.AllowRecurringSchedulerMigration;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -134,10 +135,9 @@ public class CatalogBuilder {
         service.setImage(def.image);
         service.setCatalogCategoryId(parentId);
         service.setSortedIndex(sortedIndexCounter++);
-        //TODO fix this hack
-        service.setWorkflowName("demo");
         log.info("Create new service" + def.baseService);
-        if (AllowRecurringSchedulerMigration.RECURRING_ALLOWED_CATALOG_SERVICES.contains(def.baseService)){
+        if (AllowRecurringSchedulerMigration.RECURRING_ALLOWED_CATALOG_SERVICES.contains(def.baseService) 
+                || AllowRecurringSchedulerForApplicationServicesMigration.RECURRING_ALLOWED_CATALOG_SERVICES.contains(def.baseService)){
             service.setRecurringAllowed(true);
         }
         models.save(service);

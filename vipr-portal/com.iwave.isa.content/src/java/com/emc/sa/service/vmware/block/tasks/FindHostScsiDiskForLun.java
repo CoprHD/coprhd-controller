@@ -4,6 +4,8 @@
  */
 package com.emc.sa.service.vmware.block.tasks;
 
+import java.util.List;
+
 import org.apache.commons.lang.StringUtils;
 
 import com.emc.sa.engine.ExecutionTask;
@@ -28,13 +30,52 @@ public class FindHostScsiDiskForLun extends ExecutionTask<HostScsiDisk> {
     private String lunDiskName;
     private HostStorageAPI storageAPI;
     private BlockObjectRestRep volume;
+    private boolean availableDiskOnly = false;
+    // By default, fail if the lun isn't found. Some other operations (like validate boot volume before delete)
+    // would like to control the failure handling.
+    private boolean throwIfNotFound = true;
 
+    /**
+     * Finds the SCSI disk on the host system that matches the volume.
+     * 
+     * @param host the host system
+     * @param volume the volume to find
+     */
     public FindHostScsiDiskForLun(HostSystem host, BlockObjectRestRep volume) {
         this.host = host;
         this.volume = volume;
         this.storageAPI = new HostStorageAPI(host);
         this.lunDiskName = VMwareUtils.CANONICAL_NAME_PREFIX + StringUtils.lowerCase(volume.getWwn());
         provideDetailArgs(host.getName(), lunDiskName);
+    }
+
+    /**
+     * Finds the SCSI disk on the host system that matches the volume.
+     * 
+     * @param host the host system
+     * @param volume the volume to find
+     * @param availableDiskOnly if true, only find available disk for VMFS. if false, find disk even if it's not available for VMFS.
+     */
+    public FindHostScsiDiskForLun(HostSystem host, BlockObjectRestRep volume, boolean availableDiskOnly) {
+        this(host, volume);
+        this.availableDiskOnly = availableDiskOnly;
+    }
+
+    /**
+     * Finds the SCSI disk on the host system that matches the volume.
+     * 
+     * @param host
+     *            the host system
+     * @param volume
+     *            the volume to find
+     * @param availableDiskOnly
+     *            if true, only find available disk for VMFS. if false, find disk even if it's not available for VMFS.
+     * @param throwIfNotFound
+     *            throws an exception if the lun is not found. (defaults to true)
+     */
+    public FindHostScsiDiskForLun(HostSystem host, BlockObjectRestRep volume, boolean availableDiskOnly, boolean throwIfNotFound) {
+        this(host, volume, availableDiskOnly);
+        this.throwIfNotFound = throwIfNotFound;
     }
 
     @Override
@@ -66,7 +107,15 @@ public class FindHostScsiDiskForLun extends ExecutionTask<HostScsiDisk> {
     }
 
     private HostScsiDisk getLunDisk() {
-        for (HostScsiDisk entry : storageAPI.listScsiDisks()) {
+
+        List<HostScsiDisk> scsiDisks = null;
+        if (availableDiskOnly) {
+            scsiDisks = storageAPI.queryAvailableDisksForVmfs(null);
+        } else {
+            scsiDisks = storageAPI.listScsiDisks();
+        }
+
+        for (HostScsiDisk entry : scsiDisks) {
             if (VolumeWWNUtils.wwnMatches(VMwareUtils.getDiskWwn(entry), volume.getWwn())) {
                 return entry;
             }
@@ -160,7 +209,7 @@ public class FindHostScsiDiskForLun extends ExecutionTask<HostScsiDisk> {
     }
 
     private void diskNotFound(boolean fail) {
-        if (fail) {
+        if (fail && this.throwIfNotFound) {
             throw stateException("FindHostScsiDiskForLun.illegalState.diskNotFound", lunDiskName, host.getName());
         } else {
             logInfo("FindHostScsiDiskForLun.illegalState.diskNotFound", lunDiskName, host.getName());

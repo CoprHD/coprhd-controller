@@ -527,6 +527,8 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
     $scope.validateWorkflow = function() {
         $http.post(routes.Workflow_validate({workflowId : $scope.workflowData.id})).then(function (resp) {
             checkStateResponse(resp);
+            var url = routes.ServiceCatalog_showService({serviceId: $scope.workflowData.id});
+            window.location.href = url;
         });
     }
 

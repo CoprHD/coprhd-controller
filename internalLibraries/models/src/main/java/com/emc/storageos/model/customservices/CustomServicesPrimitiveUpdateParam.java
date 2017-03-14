@@ -86,4 +86,13 @@ public class CustomServicesPrimitiveUpdateParam {
     public void setOutput(final OutputUpdateParam output) {
         this.output = output;
     }
+    
+    @XmlElement(name = "resource")
+    public URI getResource() {
+        return resource;
+    }
+    
+    public void setResource( final URI resource ) {
+        this.resource = resource;
+    }
 }

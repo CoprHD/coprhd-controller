@@ -17,6 +17,7 @@
 
 package com.emc.sa.service.vipr.customservices;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -37,6 +38,7 @@ import org.springframework.expression.spel.standard.SpelExpressionParser;
 import org.springframework.expression.spel.support.StandardEvaluationContext;
 
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
+import com.emc.sa.catalog.primitives.CustomServicesPrimitiveDAOs;
 import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.engine.service.Service;
 import com.emc.sa.service.vipr.ViPRExecutionUtils;
@@ -53,10 +55,10 @@ import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.model.customservices.CustomServicesWorkflowDocument;
 import com.emc.storageos.model.customservices.CustomServicesWorkflowDocument.Input;
 import com.emc.storageos.model.customservices.CustomServicesWorkflowDocument.Step;
-import com.emc.storageos.primitives.Primitive;
-import com.emc.storageos.primitives.Primitive.StepType;
-import com.emc.storageos.primitives.PrimitiveHelper;
-import com.emc.storageos.primitives.ViPRPrimitive;
+import com.emc.storageos.primitives.CustomServicesPrimitive.StepType;
+import com.emc.storageos.primitives.CustomServicesPrimitiveType;
+import com.emc.storageos.primitives.java.vipr.CustomServicesViPRPrimitive;
+import com.emc.storageos.services.util.Exec;
 import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorException;
 import com.google.common.collect.ImmutableMap;
 import com.google.gson.Gson;
@@ -74,6 +76,9 @@ public class CustomServicesService extends ViPRService {
     private CoordinatorClient coordinatorClient;
     @Autowired
     private DbClient dbClient;
+    @Autowired
+    private CustomServicesPrimitiveDAOs daos;
+    
     private ImmutableMap<String, Step> stepsHash;
     private CustomServicesWorkflowDocument obj;
     private int code;
@@ -84,10 +89,10 @@ public class CustomServicesService extends ViPRService {
         // get input params from order form
         params = ExecutionUtils.currentContext().getParameters();
         final String raw = ExecutionUtils.currentContext().getOrder().getWorkflowDocument();
-        
-        if( null == raw) {
-            throw InternalServerErrorException.internalServerErrors.
-                    customServiceExecutionFailed("Invalid custom service.  Workflow document cannot be null");
+
+        if (null == raw) {
+            throw InternalServerErrorException.internalServerErrors
+                    .customServiceExecutionFailed("Invalid custom service.  Workflow document cannot be null");
         }
 
         obj = WorkflowHelper.toWorkflowDocument(raw);
@@ -122,8 +127,10 @@ public class CustomServicesService extends ViPRService {
     public void wfExecutor() throws Exception {
 
         logger.info("Parsing Workflow Definition");
-        
+
         ExecutionUtils.currentContext().logInfo("customServicesService.status", obj.getName(), obj.getDescription());
+        final String orderDir = String.format("%s%s/", CustomServicesConstants.ORDER_DIR_PATH,
+                ExecutionUtils.currentContext().getOrder().getOrderNumber());
 
         Step step = stepsHash.get(StepType.START.toString());
         String next = step.getNext().getDefaultStep();
@@ -141,15 +148,15 @@ public class CustomServicesService extends ViPRService {
                 StepType type = StepType.fromString(step.getType());
                 switch (type) {
                     case VIPR_REST: {
-                        // TODO move this outside the try after we have primitives for others. Except Remote Ansible
-                        Primitive primitive = PrimitiveHelper.get(step.getOperation());
+
+                        final CustomServicesPrimitiveType primitive = daos.get("vipr").get(step.getOperation());
 
                         if (null == primitive) {
                             throw InternalServerErrorException.internalServerErrors
                                     .customServiceExecutionFailed("Primitive not found: " + step.getOperation());
                         }
 
-                        res = ViPRExecutionUtils.execute(new RunViprREST((ViPRPrimitive) (primitive),
+                        res = ViPRExecutionUtils.execute(new RunViprREST((CustomServicesViPRPrimitive) (primitive),
                                 getClient().getRestClient(), inputPerStep.get(step.getId())));
 
                         break;
@@ -160,14 +167,18 @@ public class CustomServicesService extends ViPRService {
 			res = ViPRExecutionUtils.execute(new CustomServicesRESTExecution(coordinatorClient, inputPerStep.get(step.getId()), step));
                         break;
                     case LOCAL_ANSIBLE:
+                        logger.info("Executing Local Ansible step");
+                        createOrderDir(orderDir);
+                        res = ViPRExecutionUtils.execute(new RunAnsible(step, inputPerStep.get(step.getId()), params, dbClient, orderDir));
+                        break;
                     case SHELL_SCRIPT:
-                        res = ViPRExecutionUtils.execute(new RunAnsible(step, inputPerStep.get(step.getId()), params, dbClient));
-                        logger.error("Result from shell script execution", step.getType());
-
+                        logger.info("Executing Shell Script step");
+                        createOrderDir(orderDir);
+                        res = ViPRExecutionUtils.execute(new RunAnsible(step, inputPerStep.get(step.getId()), params, dbClient, orderDir));
                         break;
                     case REMOTE_ANSIBLE: {
-                        res = ViPRExecutionUtils.execute(new RunAnsible(step, inputPerStep.get(step.getId()), params, dbClient));
-
+                        logger.info("Executing remote ansible step");
+                        res = ViPRExecutionUtils.execute(new RunAnsible(step, inputPerStep.get(step.getId()), params, dbClient, orderDir));
                         break;
                     }
                     default:
@@ -190,6 +201,8 @@ public class CustomServicesService extends ViPRService {
             } catch (final Exception e) {
                 logger.info("failed to execute step. Try to get rollback step");
                 next = getNext(false, null, step);
+            } finally {
+                orderDirCleanup(orderDir);
             }
 
             if (next == null) {
@@ -198,6 +211,35 @@ public class CustomServicesService extends ViPRService {
             if ((System.currentTimeMillis() - timeout) > CustomServicesConstants.TIMEOUT) {
                 throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed("Operation Timed out");
             }
+        }
+    }
+
+    private boolean createOrderDir(final String orderDir) {
+        try {
+            final File file = new File(orderDir);
+            if (!file.exists()) {
+                return file.mkdir();
+            } else {
+                logger.info("Order directory already exists: {}", orderDir);
+                return true;
+            }
+        } catch (final Exception e) {
+            logger.error("Failed to create directory" + e);
+            throw InternalServerErrorException.internalServerErrors
+                    .customServiceExecutionFailed("Failed to create Order directory " + orderDir);
+        }
+
+    }
+
+    private void orderDirCleanup(final String orderDir) {
+        try {
+            final File file = new File(orderDir);
+            if (file.exists()) {
+                final String[] cmd = { CustomServicesConstants.REMOVE, CustomServicesConstants.REMOVE_OPTION, orderDir };
+                Exec.exec(Exec.DEFAULT_CMD_TIMEOUT, cmd);
+            }
+        } catch (final Exception e) {
+            logger.error("Failed to cleanup OrderDir directory" + e);
         }
     }
 

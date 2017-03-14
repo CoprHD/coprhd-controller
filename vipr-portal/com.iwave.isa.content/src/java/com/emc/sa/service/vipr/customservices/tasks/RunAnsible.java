@@ -17,9 +17,11 @@
 
 package com.emc.sa.service.vipr.customservices.tasks;
 
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.net.URI;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
@@ -32,7 +34,10 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.apache.commons.codec.binary.Base64;
-import org.apache.commons.io.FilenameUtils;
+import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
+import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
+import org.apache.commons.compress.compressors.gzip.GzipCompressorInputStream;
+import org.apache.commons.compress.utils.IOUtils;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.LoggerFactory;
 
@@ -40,17 +45,19 @@ import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.service.vipr.customservices.CustomServicesConstants;
 import com.emc.sa.service.vipr.tasks.ViPRExecutionTask;
 import com.emc.storageos.db.client.DbClient;
-import com.emc.storageos.db.client.model.uimodels.CustomServicesScriptPrimitive;
-import com.emc.storageos.db.client.model.uimodels.CustomServicesScriptResource;
+import com.emc.storageos.db.client.model.uimodels.CustomServicesDBAnsiblePrimitive;
+import com.emc.storageos.db.client.model.uimodels.CustomServicesDBAnsibleResource;
+import com.emc.storageos.db.client.model.uimodels.CustomServicesDBScriptPrimitive;
+import com.emc.storageos.db.client.model.uimodels.CustomServicesDBScriptResource;
 import com.emc.storageos.model.customservices.CustomServicesWorkflowDocument;
 import com.emc.storageos.model.customservices.CustomServicesWorkflowDocument.Input;
 import com.emc.storageos.model.customservices.CustomServicesWorkflowDocument.Step;
-import com.emc.storageos.primitives.Primitive.StepType;
+import com.emc.storageos.primitives.CustomServicesPrimitive.StepType;
 import com.emc.storageos.services.util.Exec;
 import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorException;
 
 /**
- * Runs Custom Services Shell script or Ansible Playbook.
+ * Runs CustomServices Primitives - Shell script or Ansible Playbook.
  * It can run Ansible playbook on local node as well as on Remote node
  *
  */
@@ -65,7 +72,8 @@ public class RunAnsible extends ViPRExecutionTask<CustomServicesTaskResult> {
     private final Map<String, Object> params;
     private final DbClient dbClient;
 
-    public RunAnsible(final Step step, final Map<String, List<String>> input, final Map<String, Object> params, final DbClient dbClient) {
+    public RunAnsible(final Step step, final Map<String, List<String>> input, final Map<String, Object> params, final DbClient dbClient,
+            final String orderDir) {
         this.step = step;
         this.input = input;
         /*if (step.getAttributes() == null || step.getAttributes().getTimeout() == -1) {
@@ -76,22 +84,14 @@ public class RunAnsible extends ViPRExecutionTask<CustomServicesTaskResult> {
 	this.timeout = 10*1000*60*1000;
         this.params = params;
         this.dbClient = dbClient;
-
-        orderDir = String.format("%sCS%s/", CustomServicesConstants.PATH, ExecutionUtils.currentContext().getOrder().getOrderNumber());
-
+        this.orderDir = orderDir;
     }
 
     @Override
     public CustomServicesTaskResult executeTask() throws Exception {
 
-        // TODO: change the message for shell script. The following is for ansible. will refactor after the local ansible work
-        ExecutionUtils.currentContext().logInfo("runAnsible.statusInfo", step.getId());
+        ExecutionUtils.currentContext().logInfo("runCustomScript.statusInfo", step.getId());
         final URI scriptid = step.getOperation();
-        if (!createOrderDir(orderDir)) {
-            logger.error("Failed to create Order directory:{}", orderDir);
-            throw InternalServerErrorException.internalServerErrors
-                    .customServiceExecutionFailed("Failed to create Order directory " + orderDir);
-        }
 
         final StepType type = StepType.fromString(step.getType());
 
@@ -100,21 +100,22 @@ public class RunAnsible extends ViPRExecutionTask<CustomServicesTaskResult> {
             switch (type) {
                 case SHELL_SCRIPT:
                     // get the resource database
-                    final CustomServicesScriptPrimitive primitive = dbClient.queryObject(CustomServicesScriptPrimitive.class, scriptid);
+                    final CustomServicesDBScriptPrimitive primitive = dbClient.queryObject(CustomServicesDBScriptPrimitive.class, scriptid);
+
                     if (null == primitive) {
                         logger.error("Error retrieving the script primitive from DB. {} not found in DB", scriptid);
                         throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed(scriptid + " not found in DB");
                     }
 
-                    final CustomServicesScriptResource script = dbClient.queryObject(CustomServicesScriptResource.class,
-                            primitive.getScript());
+                    final CustomServicesDBScriptResource script = dbClient.queryObject(CustomServicesDBScriptResource.class,
+                            primitive.getResource());
 
                     if (null == script) {
                         logger.error("Error retrieving the resource for the script primitive from DB. {} not found in DB",
-                                primitive.getScript());
+                                primitive.getResource());
 
                         throw InternalServerErrorException.internalServerErrors
-                                .customServiceExecutionFailed(primitive.getScript() + " not found in DB");
+                                .customServiceExecutionFailed(primitive.getResource() + " not found in DB");
                     }
 
                     // Currently, the stepId is set to random hash values in the UI. If this changes then we have to change the following to
@@ -122,39 +123,41 @@ public class RunAnsible extends ViPRExecutionTask<CustomServicesTaskResult> {
                     final String scriptFileName = String.format("%s%s.sh", orderDir, step.getId());
 
                     final byte[] bytes = Base64.decodeBase64(script.getResource());
-                    try (FileOutputStream fileOuputStream = new FileOutputStream(scriptFileName)) {
-                        fileOuputStream.write(bytes);
-                    } catch (IOException e) {
-                        logger.error("Creating Shell Script file failed with exception: {}",
-                                e.getMessage());
-                        throw InternalServerErrorException.internalServerErrors
-                                .customServiceExecutionFailed("Creating Shell Script file failed with exception:" +
-                                        e.getMessage());
-                    }
+                    writeShellScripttoFile(bytes, scriptFileName);
 
                     final String inputToScript = makeParam(input);
                     logger.debug("input is {}", inputToScript);
 
                     result = executeCmd(scriptFileName, inputToScript);
-
-                    // TODO: refactor after local ansible work
-                    cleanUp(orderDir, false);
-
                     break;
                 case LOCAL_ANSIBLE:
-                    untarPackage("ansi.tar");
-                    final String hosts = getHostFile();
-                    result = executeLocal(hosts, makeExtraArg(input), CustomServicesConstants.PATH +
-                            FilenameUtils.removeExtension("ansi.tar") + "/" + "helloworld.yml", "root");
-                    // TODO: refactor after local ansible work
-                    cleanUp("ansi.tar", true);
+                    final CustomServicesDBAnsiblePrimitive ansiblePrimitive = dbClient.queryObject(CustomServicesDBAnsiblePrimitive.class,
+                            scriptid);
+                    final CustomServicesDBAnsibleResource ansiblePackageId = dbClient.queryObject(CustomServicesDBAnsibleResource.class,
+                            ansiblePrimitive.getResource());
+
+                    // get the playbook which the user has specified during primitive creation from DB.
+                    // The playbook (resolved to the path in the archive) represents the playbook to execute
+                    final String playbook = ansiblePrimitive.getAttributes().get("playbook");
+
+                    // get the archive from AnsiblePackage CF
+                    final byte[] ansibleArchive = Base64.decodeBase64(ansiblePackageId.getResource());
+
+                    // uncompress Ansible archive to orderDir
+                    uncompressArchive(ansibleArchive);
+
+                    // TODO: Hard coded for testing. The following will be removed after completing COP-27888
+                    final String hosts = "/opt/storageos/ansi_logs/hosts";
+
+                    final String user = ExecutionUtils.currentContext().getOrder().getSubmittedByUserId();
+                    result = executeLocal(hosts, makeExtraArg(input), String.format("%s%s", orderDir, playbook), user);
                     break;
                 case REMOTE_ANSIBLE:
                     result = executeRemoteCmd(makeExtraArg(input));
 
                     break;
                 default:
-                    logger.error("Ansible Operation type:{} not supported", type);
+                    logger.error("Step type:{} not supported", type);
 
                     throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed("Unsupported Operation");
             }
@@ -162,16 +165,52 @@ public class RunAnsible extends ViPRExecutionTask<CustomServicesTaskResult> {
             throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed("Custom Service Task Failed" + e);
         }
 
-        ExecutionUtils.currentContext().logInfo("runAnsible.doneInfo", step.getId());
+        ExecutionUtils.currentContext().logInfo("runCustomScript.doneInfo", step.getId());
 
         if (result == null) {
             throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed("Script/Ansible execution Failed");
         }
 
-        logger.info("Ansible Execution result:output{} error{} exitValue:{}", result.getStdOutput(), result.getStdError(),
+        logger.info("CustomScript Execution result:output{} error{} exitValue:{}", result.getStdOutput(), result.getStdError(),
                 result.getExitValue());
 
         return new CustomServicesTaskResult(parseOut(result.getStdOutput()), result.getStdError(), result.getExitValue(), null);
+    }
+
+    private void writeShellScripttoFile(final byte[] bytes, final String scriptFileName){
+        try (FileOutputStream fileOuputStream = new FileOutputStream(scriptFileName)) {
+            fileOuputStream.write(bytes);
+        } catch (final IOException e) {
+            throw InternalServerErrorException.internalServerErrors
+                    .customServiceExecutionFailed("Creating Shell Script file failed with exception:" +
+                            e.getMessage());
+        }
+    }
+
+    private void uncompressArchive(final byte[] ansibleArchive) {
+        try (final TarArchiveInputStream tarIn = new TarArchiveInputStream(
+                new GzipCompressorInputStream(new ByteArrayInputStream(
+                        ansibleArchive)))) {
+            TarArchiveEntry entry = tarIn.getNextTarEntry();
+            while (entry != null) {
+                final File curTarget = new File(orderDir, entry.getName());
+                if (entry.isDirectory()) {
+                    curTarget.mkdirs();
+                } else {
+                    final File parent = curTarget.getParentFile();
+                    if (!parent.exists()) {
+                        parent.mkdirs();
+                    }
+                    final OutputStream out = new FileOutputStream(curTarget);
+                    IOUtils.copy(tarIn, out);
+                    out.close();
+
+                }
+                entry = tarIn.getNextTarEntry();
+            }
+        } catch (final IOException e) {
+            throw InternalServerErrorException.internalServerErrors.genericApisvcError("Invalid ansible archive", e);
+        }
     }
 
     private String parseOut(final String out) {
@@ -191,19 +230,9 @@ public class RunAnsible extends ViPRExecutionTask<CustomServicesTaskResult> {
         return out;
     }
 
-    private boolean createOrderDir(String dir) {
-        File file = new File(dir);
-        if (!file.exists()) {
-            return file.mkdir();
-        } else {
-            logger.error("Cannot create directory. Already exists. Dir:{}", dir);
-            return false;
-        }
-    }
-
-    // TODO Hard coded everything for testing.
+    // TODO: Hard coded everything for testing. The following will be removed after completing COP-27888
     // During upload of primitive, user will specify if hosts file is already present or not?
-    // If already present, then get it from the param
+    // If already present, then get it from the param. currently the host file is not stored in DB
     // If not present, dynamically create one with the given hostgroups and IpAddress(e.g: webservers, linuxhosts ...etc)
     // If nothing is given by user default to localhost
 
@@ -266,12 +295,11 @@ public class RunAnsible extends ViPRExecutionTask<CustomServicesTaskResult> {
         return Exec.exec(timeout, cmds);
     }
 
-    // Execute Ansible playbook on localhost
+    // Execute Shell Script resource
     private Exec.Result executeCmd(final String playbook, final String extraVars) {
         final AnsibleCommandLine cmd = new AnsibleCommandLine(CustomServicesConstants.SHELL_BIN, playbook);
         cmd.setShellArgs(extraVars);
         final String[] cmds = cmd.build();
-
         return Exec.exec(timeout, cmds);
     }
 
@@ -292,22 +320,6 @@ public class RunAnsible extends ViPRExecutionTask<CustomServicesTaskResult> {
         return null;
     }
 
-    private Exec.Result untarPackage(final String tarFile) throws IOException {
-        final String[] cmds = { CustomServicesConstants.UNTAR, CustomServicesConstants.UNTAR_OPTION,
-                CustomServicesConstants.PATH + tarFile, "-C", CustomServicesConstants.PATH };
-        Exec.Result result = Exec.exec(timeout, cmds);
-
-        if (result == null || result.getExitValue() != 0) {
-            logger.error("Failed to Untar package. Error:{}", result.getStdError());
-
-            throw new IOException("Unable to untar package" + result.getStdError());
-        }
-        logger.info("Ansible Execution untar result:output{} error{} exitValue:{}", result.getStdOutput(), result.getStdError(),
-                result.getExitValue());
-
-        return result;
-    }
-
     /**
      * Ansible extra Argument format:
      * --extra_vars "key1=value1 key2=value2"
@@ -326,10 +338,9 @@ public class RunAnsible extends ViPRExecutionTask<CustomServicesTaskResult> {
             // TODO find a better way to fix this
             sb.append(e.getKey()).append("=").append(e.getValue().get(0).replace("\"", "")).append(" ");
         }
-        //sb.append("\"");
         logger.info("extra vars:{}", sb.toString());
 
-        return sb.toString();
+        return sb.toString().trim();
     }
 
     private String makeParam(final Map<String, List<String>> input) throws Exception {
@@ -339,26 +350,5 @@ public class RunAnsible extends ViPRExecutionTask<CustomServicesTaskResult> {
             sb.append(value.get(0).replace("\"", "")).append(" ");
         }
         return sb.toString();
-    }
-
-    private Exec.Result cleanUp(final String path, final boolean isTar) {
-        final String[] cmds = { CustomServicesConstants.REMOVE, CustomServicesConstants.REMOVE_OPTION,
-                CustomServicesConstants.PATH + path };
-        Exec.Result result = Exec.exec(timeout, cmds);
-        if (isTar) {
-            String[] rmDir = { CustomServicesConstants.REMOVE, CustomServicesConstants.REMOVE_OPTION,
-                    CustomServicesConstants.PATH + FilenameUtils.removeExtension(path) };
-
-            if (!Exec.exec(timeout, rmDir).exitedNormally())
-                logger.error("Failed to remove directory:{}", FilenameUtils.removeExtension(path));
-        }
-
-        if (!result.exitedNormally())
-            logger.error("Failed to cleanup:{} error:{}", path, result.getStdError());
-
-        // cleanup order context dir
-        final String[] cmd = { CustomServicesConstants.REMOVE, CustomServicesConstants.REMOVE_OPTION, orderDir };
-
-        return Exec.exec(timeout, cmd);
     }
 }

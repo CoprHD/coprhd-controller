@@ -42,8 +42,7 @@ public class CatalogServiceRestRep extends SortedIndexRestRep {
     private List<CatalogServiceFieldRestRep> catalogServiceFields;
     private ServiceDescriptorRestRep serviceDescriptor;
     private boolean recurringAllowed = false; 
-    private String workflowDocument;
-    
+
     @XmlElement(name = "title")
     public String getTitle() {
         return title;
@@ -153,15 +152,6 @@ public class CatalogServiceRestRep extends SortedIndexRestRep {
     
     public void setRecurringAllowed(boolean schedulerAllowed) {
         this.recurringAllowed = schedulerAllowed;
-    }
-
-    @XmlElement(name = "workflow_document")
-    public String getWorkflowDocument() {
-        return workflowDocument;
-    }
-    
-    public void setWorkflowDocument( final String workflowDocument ) {
-        this.workflowDocument = workflowDocument;
     }
     
 }

@@ -33,6 +33,7 @@ import com.emc.storageos.systemservices.impl.resource.BackupService;
 import com.emc.storageos.systemservices.impl.upgrade.CoordinatorClientExt;
 import com.emc.storageos.systemservices.impl.util.SkipOutputStream;
 
+import com.emc.vipr.model.sys.backup.BackupOperationStatus;
 import org.apache.curator.framework.recipes.leader.LeaderSelector;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -165,16 +166,21 @@ public class BackupScheduler extends Notifier implements Runnable, Callable<Obje
     }
 
     private void scheduleNextRun() {
-        Calendar now = this.cfg.now();
-        ScheduleTimeRange cur = new ScheduleTimeRange(this.cfg.interval, this.cfg.intervalMultiple, now);
-        Date coming = cur.minuteOffset(this.cfg.startOffsetMinutes);
-        if (coming.before(now.getTime())) {
-            coming = cur.next().minuteOffset(this.cfg.startOffsetMinutes);
-        }
-
+        Date coming = getNextScheduledRunTime();
         long millisToSleep = coming.getTime() - System.currentTimeMillis();
-        log.info("schedule next backup run at {}", coming);
         this.scheduledTask = this.service.schedule((Runnable) this, millisToSleep, TimeUnit.MILLISECONDS);
+    }
+
+    public Date getNextScheduledRunTime() {
+        SchedulerConfig schedulerConfig = getCfg();
+        Calendar now = schedulerConfig.now();
+        ScheduleTimeRange cur = new ScheduleTimeRange(schedulerConfig.interval, schedulerConfig.intervalMultiple, now);
+        Date coming = cur.minuteOffset(schedulerConfig.startOffsetMinutes);
+        if (coming.before(now.getTime())) {
+            coming = cur.next().minuteOffset(schedulerConfig.startOffsetMinutes);
+        }
+        log.info("schedule next backup run at {}", coming);
+        return coming;
     }
 
     @Override
@@ -232,6 +238,15 @@ public class BackupScheduler extends Notifier implements Runnable, Callable<Obje
 
     public void deleteBackup(String tag) {
         this.backupService.deleteBackup(tag);
+    }
+
+    public void updateBackupUploadStatus(String backupName, long operationTime, boolean success) {
+        log.info(String.format("Updating backup upload status(name=%s, time=%s, success=%s) to ZK",
+                backupName, operationTime, success));
+        BackupOperationStatus backupOperationStatus = backupOps.queryBackupOperationStatus();
+        backupOperationStatus.setLastUpload(backupName, operationTime,
+                (success) ? BackupOperationStatus.OpMessage.OP_SUCCESS : BackupOperationStatus.OpMessage.OP_FAILED);
+        backupOps.persistBackupOperationStatus(backupOperationStatus);
     }
 
     /**

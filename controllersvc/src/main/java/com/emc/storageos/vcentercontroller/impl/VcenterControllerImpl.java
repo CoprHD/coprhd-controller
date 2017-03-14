@@ -303,37 +303,6 @@ public class VcenterControllerImpl implements VcenterController {
                             null,
                             null);
                 }
-
-                if (!volumes.isEmpty()) {
-                    // Once all hosts in cluster select a host to use for shared storage operations
-                    String selectHostForStorageOperationsStep = workflow.createStep(
-                            "VCENTER_CLUSTER_SELECT_HOST",
-                            String.format("vCenter cluster select host for storage operations operation vCenter datacenter %s",
-                                    vcenterDataCenterId),
-                            "VCENTER_CLUSTER_ADD_HOST",
-                            vcenterDataCenterId,
-                            vcenterDataCenterId.toString(),
-                            this.getClass(),
-                            new Workflow.Method("vcenterClusterSelectHostOperation", vcenter.getId(), vcenterDataCenter.getId(), cluster
-                                    .getId(), addHostUris),
-                            null,
-                            null);
-
-                    // Do not run datastore creation in parallel
-                    // First datastore waits on selectHostForStorageOperationsStep step then next wait on the previous datastore operation
-                    String volumeStep = null;
-                    for (Volume volume : volumes) {
-                        volumeStep = workflow.createStep("VCENTER_CLUSTER_CREATE_DATASTORE",
-                                String.format("vCenter cluster create datastore operation %s", volume.getId()),
-                                volumeStep == null ? selectHostForStorageOperationsStep : volumeStep,
-                                vcenterDataCenterId, vcenterDataCenterId.toString(),
-                                this.getClass(),
-                                new Workflow.Method("vcenterClusterCreateDatastoreOperation", vcenter.getId(), vcenterDataCenter.getId(),
-                                        cluster.getId(), volume.getId(), selectHostForStorageOperationsStep),
-                                null,
-                                null);
-                    }
-                }
             }
 
             workflow.executePlan(completer, "Success");
@@ -415,7 +384,7 @@ public class VcenterControllerImpl implements VcenterController {
 
             WorkflowStepCompleter.stepSucceded(stepId);
         } catch (Exception e) {
-            _log.error("vcenterClusterAddHostOperation exception " + e);
+            _log.error("vcenterClusterRemoveHostOperation exception ", e);
             WorkflowStepCompleter.stepFailed(stepId, VcenterControllerException.exceptions.hostException(e.getLocalizedMessage(), e));
         } finally {
             if (vcenterApiClient != null) {

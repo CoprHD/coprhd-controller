@@ -80,6 +80,17 @@ public class CatalogServiceManagerImpl implements CatalogServiceManager {
 
         CatalogService catalogService = client.catalogServices().findById(id);
 
+        // For "Test Workflow" CustomServiceWorkflow ID is set as CatalogService.
+        if (null == catalogService && id.toString().startsWith(CustomServicesWorkflow.ID_PREFIX)) {
+            final CustomServicesWorkflow customServicesWorkflow = customServicesWorkflowManager.getById(id);
+            catalogService = new CatalogService();
+            catalogService.setId(id);
+            catalogService.setTitle(customServicesWorkflow.getName());
+            catalogService.setDescription(customServicesWorkflow.getName());
+            catalogService.setImage("icon_orchestration.png");
+            catalogService.setBaseService(customServicesWorkflow.getName());
+        }
+
         return catalogService;
     }
 

@@ -39,7 +39,6 @@ public class CatalogService extends ModelObjectWithACLs implements Cloneable, So
     public static final String CATALOG_CATEGORY_ID = "catalogCategoryId";
     public static final String SORTED_INDEX = "sortedIndex";
     public static final String RECURRING_ALLOWED = "recurringAllowed";
-    public static final String WORKFLOW_NAME = "workflowName";
 
     private String title;
 
@@ -63,8 +62,6 @@ public class CatalogService extends ModelObjectWithACLs implements Cloneable, So
     
     private Boolean recurringAllowed = DEFAULT_SCHEDULER_ALLOWED;
     
-    private String workflowName;
-
     @Name(TITLE)
     public String getTitle() {
         return title;
@@ -169,17 +166,7 @@ public class CatalogService extends ModelObjectWithACLs implements Cloneable, So
         this.sortedIndex = sortedIndex;
         setChanged(SORTED_INDEX);
     }
-    
-    @Name(WORKFLOW_NAME)
-    public String getWorkflowName() {
-        return workflowName;
-    }
-    
-    public void setWorkflowName(final String workflowName) {
-        this.workflowName = workflowName;
-        setChanged(WORKFLOW_NAME);
-    }
-    
+
     @Name(RECURRING_ALLOWED)
     public Boolean getRecurringAllowed() {
         return recurringAllowed;

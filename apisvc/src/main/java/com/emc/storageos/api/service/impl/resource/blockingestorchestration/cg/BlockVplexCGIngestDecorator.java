@@ -108,7 +108,10 @@ public class BlockVplexCGIngestDecorator extends BlockCGIngestDecorator {
             // the virtual volume's replicationGroupInstance reference.  This does not impact the backing volumes.
             if (blockObj instanceof Volume) {
                 Volume volume = (Volume) blockObj;
-                logger.info(String.format("Removing replication group instance information from volume %s", volume.getLabel()));
+                logger.info(String.format(
+                        "Moving replication group instance name %s on virtual volume %s to backingReplicationGroupInstance", 
+                        volume.getReplicationGroupInstance(), volume.getLabel()));
+                volume.setBackingReplicationGroupInstance(volume.getReplicationGroupInstance());
                 volume.setReplicationGroupInstance(NullColumnValueGetter.getNullStr());
                 requestContext.addDataObjectToUpdate(volume, unManagedVolume);
 

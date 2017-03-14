@@ -1202,6 +1202,7 @@ public class ComputeSystemService extends TaskResourceService {
                     }
                 }
             } else {
+                // Compute system can live without an image server, such as bare metal.
                 cs.setComputeImageServer(NullColumnValueGetter.getNullURI());
             }
         }

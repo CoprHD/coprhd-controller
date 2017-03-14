@@ -256,6 +256,8 @@ public class BlockConsistencyGroupService extends TaskResourceService {
             final BlockConsistencyGroupCreate param) {
         checkForDuplicateName(param.getName(), BlockConsistencyGroup.class);
 
+        ArgValidator.checkIsAlphaNumeric(param.getName());
+
         // Validate name
         ArgValidator.checkFieldNotEmpty(param.getName(), "name");
 
@@ -2312,6 +2314,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         return taskList;
     }
 
+
     /**
      * Since all of the protection operations are very similar, this method does all of the work.
      * We keep the actual REST methods separate mostly for the purpose of documentation generators.
@@ -2476,16 +2479,12 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         String task = UUID.randomUUID().toString();
         Operation status = new Operation();
         status.setResourceType(ProtectionOp.getResourceOperationTypeEnum(op));
-        _dbClient.createTaskOpStatus(Volume.class, targetVolume.getId(), task, status);
+        _dbClient.createTaskOpStatus(BlockConsistencyGroup.class, targetCg.getId(), task, status);
 
         if (op.equalsIgnoreCase(ProtectionOp.FAILOVER_TEST_CANCEL.getRestOp()) ||
                 op.equalsIgnoreCase(ProtectionOp.FAILOVER_TEST.getRestOp())) {
-            _dbClient.ready(BlockConsistencyGroup.class, consistencyGroupId, task);
-            // Task is associated to the first target volume we find in the target CG.
-            // TODO: Task should reference the BlockConsistencyGroup. This requires several
-            // changes to the SRDF protection completers to handle both volumes and
-            // consistency groups.
-            return toTask(targetVolume, task, status);
+            _dbClient.ready(BlockConsistencyGroup.class, targetCg.getId(), task);
+            return toTask(targetCg, task, status);
         }
 
         /*
@@ -2515,7 +2514,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
 
         controller.performSRDFProtectionOperation(system.getId(), updatedCopy, op, task);
 
-        return toTask(targetVolume, task, status);
+        return toTask(targetCg, task, status);
     }
 
     /**

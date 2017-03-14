@@ -88,12 +88,19 @@
 	<bean id="executionWindowService" class="com.emc.sa.api.ExecutionWindowService">
         <property name="dbClient" ref="dbclient"/>
         <property name="coordinator" ref="coordinator"/>	
-	</bean>	
-	<bean id="orderService" class="com.emc.sa.api.OrderService" init-method="init">
+	</bean>
+
+    <bean id="orderManager" class="com.emc.sa.catalog.OrderManagerImpl" init-method="init">
+        <property name="noDeletePeriod" value="2592000000"/>
+    </bean>
+
+    <bean id="orderService" class="com.emc.sa.api.OrderService" init-method="init">
         <property name="dbClient" ref="dbclient"/>
         <property name="coordinator" ref="coordinator"/>
         <property name="scheduleInterval" value="60"/>
+        <property name="maxOrderDeletedPerGC" value="300000"/>
 	</bean>
+
     <bean id="scheduledEventService" class="com.emc.sa.api.ScheduledEventService">
         <property name="dbClient" ref="dbclient"/>
         <property name="coordinator" ref="coordinator"/>
@@ -247,6 +254,22 @@
     			<value>OrderExecutionQueue</value>
     		</list>
     	</property>
+    </bean>
+    
+    <bean id="customServicesAnsibleDao" class="com.emc.sa.catalog.primitives.CustomServicesAnsiblePrimitiveDAO"/>
+    
+    <bean id="customServicesScriptDao" class="com.emc.sa.catalog.primitives.CustomServicesScriptPrimitiveDAO" />
+    
+    <bean id="customServicesViprDao" class="com.emc.sa.catalog.primitives.CustomServicesViprPrimitiveDAO" />
+    
+    <bean id="customServicesDaos" class="com.emc.sa.catalog.primitives.CustomServicesPrimitiveDAOs" >
+    <constructor-arg>
+    	<list>
+    		<ref bean="customServicesAnsibleDao"/>
+    		<ref bean="customServicesScriptDao"/>
+    		<ref bean="customServicesViprDao"/>
+    	</list>
+    </constructor-arg>
     </bean>
     
 </beans>

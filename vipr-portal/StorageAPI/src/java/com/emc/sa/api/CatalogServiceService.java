@@ -188,8 +188,7 @@ public class CatalogServiceService extends CatalogTaggedResourceService {
         CatalogService catalogService = queryResource(id);
         ServiceDescriptor serviceDescriptor = getServiceDescriptor(catalogService);
         List<CatalogServiceField> catalogServiceFields = catalogServiceManager.getCatalogServiceFields(catalogService.getId());
-        final String workflowDocument = catalogServiceManager.getWorkflowDocument(catalogService.getWorkflowName());
-        return map(catalogService, serviceDescriptor, catalogServiceFields, workflowDocument);
+        return map(catalogService, serviceDescriptor, catalogServiceFields);
     }
 
     /**
@@ -224,8 +223,7 @@ public class CatalogServiceService extends CatalogTaggedResourceService {
         catalogService = catalogServiceManager.getCatalogServiceById(catalogService.getId());
         catalogServiceFields = catalogServiceManager.getCatalogServiceFields(catalogService.getId());
         ServiceDescriptor serviceDescriptor = getServiceDescriptor(catalogService);
-        String workflowName = catalogServiceManager.getWorkflowDocument(catalogService.getWorkflowName());
-        return map(catalogService, serviceDescriptor, catalogServiceFields, workflowName);
+        return map(catalogService, serviceDescriptor, catalogServiceFields);
     }
 
     /**
@@ -262,10 +260,9 @@ public class CatalogServiceService extends CatalogTaggedResourceService {
         // Refresh Objects
         catalogService = catalogServiceManager.getCatalogServiceById(catalogService.getId());
         catalogServiceFields = catalogServiceManager.getCatalogServiceFields(catalogService.getId());
-        final String workflowDocument = catalogServiceManager.getWorkflowDocument(param.getWorkflowName());
         ServiceDescriptor serviceDescriptor = getServiceDescriptor(catalogService);
 
-        return map(catalogService, serviceDescriptor, catalogServiceFields, workflowDocument);
+        return map(catalogService, serviceDescriptor, catalogServiceFields);
     }
 
     @GET
@@ -474,8 +471,7 @@ public class CatalogServiceService extends CatalogTaggedResourceService {
                 CatalogService service = catalogServiceAndField.getCatalogService();
                 ServiceDescriptor descriptor = descriptors.get(service.getBaseService());
                 List<CatalogServiceField> serviceFields = catalogServiceAndField.getCatalogServiceFields();
-                String workflowDocument = catalogServiceManager.getWorkflowDocument(service.getWorkflowName());
-                catalogServiceRestReps.add(map(service, descriptor, serviceFields, workflowDocument));
+                catalogServiceRestReps.add(map(service, descriptor, serviceFields));
             }
         }
 

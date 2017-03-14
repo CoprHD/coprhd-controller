@@ -3264,4 +3264,7 @@ public interface BadRequestExceptions {
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException operationNotPermittedOnSRDFActiveCopyMode(final String operation);
 
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException notSupportedForBootVolumes();
+
 }

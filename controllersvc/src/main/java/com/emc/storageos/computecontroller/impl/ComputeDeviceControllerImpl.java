@@ -6,6 +6,7 @@ package com.emc.storageos.computecontroller.impl;
 
 import java.net.URI;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -30,11 +31,13 @@ import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.Operation.Status;
+import com.emc.storageos.db.client.model.ScopedLabel;
 import com.emc.storageos.db.client.model.UCSServiceProfile;
 import com.emc.storageos.db.client.model.UCSServiceProfileTemplate;
 import com.emc.storageos.db.client.model.VcenterDataCenter;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.db.client.model.util.TagUtils;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.imageservercontroller.exceptions.ImageServerControllerException;
@@ -71,6 +74,7 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
     private static final String DEACTIVATION_REMOVE_HOST_VCENTER = "DEACTIVATION_REMOVE_HOST_VCENTER";
     private static final String DEACTIVATION_COMPUTE_SYSTEM_HOST = "DEACTIVATION_COMPUTE_SYSTEM_HOST";
     private static final String DEACTIVATION_COMPUTE_SYSTEM_BOOT_VOLUME = "DEACTIVATION_COMPUTE_SYSTEM_BOOT_VOLUME";
+    private static final String DEACTIVATION_COMPUTE_SYSTEM_BOOT_VOLUME_UNTAG = "DEACTIVATION_COMPUTE_SYSTEM_BOOT_VOLUME_UNTAG";
     private static final String CHECK_CLUSTER_VMS = "CHECK_CLUSTER_VMS";
     private static final String REMOVE_VCENTER_CLUSTER = "REMOVE_VCENTER_CLUSTER";
     private static final String UNBIND_HOST_FROM_TEMPLATE = "UNBIND_HOST_FROM_TEMPLATE";
@@ -872,6 +876,11 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
                     new Workflow.Method(ROLLBACK_NOTHING_METHOD), null);
 
             if (deactivateBootVolume && !NullColumnValueGetter.isNullURI(host.getBootVolumeId())) {
+                waitFor = workflow.createStep(DEACTIVATION_COMPUTE_SYSTEM_BOOT_VOLUME_UNTAG,
+                        "Untag the boot volume for the host", waitFor, cs.getId(), cs.getSystemType(),
+                        this.getClass(), new Workflow.Method("untagBlockBootVolume", hostId, volumeDescriptors),
+                        new Workflow.Method(ROLLBACK_NOTHING_METHOD), null);
+
                 waitFor = workflow.createStep(DEACTIVATION_COMPUTE_SYSTEM_BOOT_VOLUME,
                         "Delete the boot volume for the host", waitFor, cs.getId(), cs.getSystemType(),
                         this.getClass(), new Workflow.Method("deleteBlockBootVolume", hostId, volumeDescriptors),
@@ -1093,6 +1102,64 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
 
     }
 
+    /**
+     * Untags the boot volume before it is deleted.
+     *
+     * @param hostId
+     *            {@link URI} hostId URI
+     * @param volumeDescriptors 
+     *            {@link List<VolumeDescriptor>} list of boot volumes to untag
+     * @param stepId
+     *            {@link String} step id
+     */
+    public void untagBlockBootVolume(URI hostId, List<VolumeDescriptor> volumeDescriptors, String stepId) {
+
+        log.info("untagBlockBootVolume");
+
+        Host host = null;
+        Volume bootVolume = null;
+        
+        try {
+            WorkflowStepCompleter.stepExecuting(stepId);
+
+            host = _dbClient.queryObject(Host.class, hostId);
+
+            if (host == null || host.getBootVolumeId() == null) {
+                WorkflowStepCompleter.stepSucceded(stepId);
+                return;
+            }
+
+            if(volumeDescriptors.isEmpty()) {
+                throw new IllegalStateException("Could not locate VolumeDescriptor(s) for boot volume " +
+                        host.getLabel() + " [" + host.getBootVolumeId() + "]");
+            }
+
+            bootVolume = _dbClient.queryObject(Volume.class, host.getBootVolumeId());
+
+            if (bootVolume == null || (bootVolume.getTag() == null)) {
+                WorkflowStepCompleter.stepSucceded(stepId);
+                return;
+            }
+
+            // Untag volume
+            Iterator<ScopedLabel> slIter = bootVolume.getTag().iterator();
+            while (slIter.hasNext()) {
+                ScopedLabel sl = slIter.next();
+                if (sl.getLabel().startsWith(TagUtils.getBootVolumeTagName())) {
+                    slIter.remove();
+                }
+            }
+
+            _dbClient.updateObject(bootVolume);
+        } catch (Exception exception) {
+            ServiceCoded serviceCoded = ComputeSystemControllerException.exceptions
+                    .unableToUntagVolume(bootVolume != null ? bootVolume.forDisplay() : "none found", 
+                            host != null ? host.getHostName() : hostId.toString(), exception);
+            WorkflowStepCompleter.stepFailed(stepId, serviceCoded);
+        }
+
+    }
+    
     /**
      * Validates that the host has initiators and fails the workflow if no initiators are found.
      *

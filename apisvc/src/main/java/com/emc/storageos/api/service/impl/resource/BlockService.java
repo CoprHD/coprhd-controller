@@ -2104,6 +2104,9 @@ public class BlockService extends TaskResourceService {
             // Don't operate on VPLEX backend or RP Journal volumes (unless forced to).
             BlockServiceUtils.validateNotAnInternalBlockObject(vol, force);
 
+            // Don't operate on volumes with boot volume tags (unless forced to).
+            BlockServiceUtils.validateNotABootVolume(vol, force);
+
             if (!_permissionsHelper.userHasGivenRole(user, vol.getTenant().getURI(), Role.TENANT_ADMIN)
                     && !_permissionsHelper.userHasGivenACL(user, vol.getProject().getURI(), ACL.OWN, ACL.ALL)) {
                 throw APIException.forbidden.insufficientPermissionsForUser(user.getName());

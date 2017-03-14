@@ -19,6 +19,7 @@ public class CifsShareCreateForSnapParam extends ParamBase {
     private Boolean isReadOnly;
     private Boolean isContinuousAvailabilityEnabled;
     private Boolean isEncryptionEnabled;
+    private Boolean autoDelete = false;
 
     public String getPath() {
         return path;

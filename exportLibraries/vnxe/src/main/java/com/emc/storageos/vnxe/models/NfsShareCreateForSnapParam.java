@@ -16,6 +16,7 @@ public class NfsShareCreateForSnapParam extends ParamBase {
     private VNXeBase snap; // argument name changed in latest firmware
     private String description;
     private Boolean isReadOnly;
+    private Boolean autoDelete = false;
     private int defaultAccess;
     private List<VNXeBase> noAccessHosts;
     private List<VNXeBase> readOnlyHosts;

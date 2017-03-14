@@ -712,7 +712,7 @@ public class VNXeApiClient {
      * @return VNXeCommandJob
      */
     public VNXeCommandJob createFileSystemSnap(String fsId, String name) {
-        _logger.info("creating file system snap:" + fsId);
+        _logger.info("VNXeCommandJob:createFileSystemSnap- creating file system snap:" + fsId);
         String resourceId = getStorageResourceId(fsId);
         FileSystemSnapCreateParam parm = new FileSystemSnapCreateParam();
         VNXeBase resource = new VNXeBase();

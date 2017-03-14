@@ -12,7 +12,7 @@ public class FileSystemSnapCreateParam extends ParamBase {
     private VNXeBase storageResource;
     private String name;
     private String description;
-    private Boolean autoDelete;
+    private Boolean autoDelete = false;
     private Boolean isReadOnly;
     private Long retentionDuration;
 

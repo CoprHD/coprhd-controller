@@ -2319,10 +2319,10 @@ public class VmaxExportOperations implements ExportMaskOperations {
                             String.format("XM refresh: %s user added initiators; add:{%s} remove:{%s}%n",
                                     name, Joiner.on(',').join(userAddedInitiators),
                                     Joiner.on(',').join(initiatorIdsToRemove)));
-
-                    mask.addToExistingInitiatorsIfAbsent(initiatorsToAdd);
                     mask.addInitiators(initiatorObjectsForComputeResource);
                     mask.addToUserCreatedInitiators(initiatorObjectsForComputeResource);
+
+                    mask.addToExistingInitiatorsIfAbsent(initiatorsToAdd);
                     mask.removeFromExistingVolumes(volumesToRemove);
                     mask.addToExistingVolumesIfAbsent(volumesToAdd);
                     mask.getStoragePorts().addAll(storagePortsToAdd);

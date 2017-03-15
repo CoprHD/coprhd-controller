@@ -882,7 +882,7 @@ public class BlockService extends TaskResourceService {
 
             // RP consistency group validation
             if (VirtualPool.vPoolSpecifiesProtection(vpool)) {
-                // Check to see if the CG has any RecoverPoint provisioned volumes. This is done by looking at the nativeId field.
+                // Check to see if the CG has any RecoverPoint provisioned volumes. This is done by looking at the protectionSet field.
                 // The protectionSet field won't be set until the volume is provisioned in RP so this check allows concurrent
                 // requests to go through.
                 boolean cgHasRpProvisionedVolumes = false;
@@ -5441,9 +5441,9 @@ public class BlockService extends TaskResourceService {
     /*
      * Validate if the physical array that the consistency group bonded to is associated
      * with the virtual array
-     *
+     * 
      * @param consistencyGroup
-     *
+     * 
      * @param varray virtual array
      */
     private void validateCGValidWithVirtualArray(BlockConsistencyGroup consistencyGroup,

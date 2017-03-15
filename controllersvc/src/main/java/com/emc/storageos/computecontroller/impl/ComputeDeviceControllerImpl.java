@@ -1050,6 +1050,11 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
 
             URI bootVolumeId = volumeDescriptors.get(0).getVolumeURI();
             Volume bootVolume = _dbClient.queryObject(Volume.class, bootVolumeId);
+            if(bootVolume == null) {
+                // No boot volume found, so it was already deleted.
+                WorkflowStepCompleter.stepSucceded(stepId);
+                return;
+            }
 
             Operation op = _dbClient.createTaskOpStatus(Volume.class, bootVolume.getId(), task,
                     ResourceOperationTypeEnum.DELETE_BLOCK_VOLUME);

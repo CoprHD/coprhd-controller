@@ -60,6 +60,8 @@ public class RemoteReplicationGroup extends DiscoveredDataObject {
     // Properties of replication group
     private StringMap properties;
 
+    @Deprecated
+    private URI replicationSet;
 
     @Name("nativeId")
     public String getNativeId() {
@@ -188,4 +190,16 @@ public class RemoteReplicationGroup extends DiscoveredDataObject {
         return getLabel()+"/"+_id;
     }
 
+    @Deprecated
+    @RelationIndex(cf = "RelationIndex", type = RemoteReplicationSet.class)
+    @Name("replicationSet")
+    public URI getReplicationSet() {
+        return replicationSet;
+    }
+
+    @Deprecated
+    public void setReplicationSet(URI replicationSet) {
+        this.replicationSet = replicationSet;
+        setChanged("replicationSet");
+    }
 }

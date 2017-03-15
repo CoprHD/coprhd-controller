@@ -1774,6 +1774,8 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
             StorageSystem system = getStorageSystem(systemURI);
             Volume target = dbClient.queryObject(Volume.class, targetURI);
             List<URI> combined = Arrays.asList(sourceURI, targetURI);
+            Volume sourceVolume = dbClient.queryObject(Volume.class, sourceURI);
+            SRDFUtils.getSRDFCGVolumesForTaskCompleter(sourceVolume, dbClient, combined);
             completer = new SRDFLinkPauseCompleter(combined, opId);
             getRemoteMirrorDevice().doSuspendLink(system, target, consExempt, false, completer);
         } catch (Exception e) {
@@ -1801,6 +1803,8 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
             StorageSystem system = getStorageSystem(systemURI);
             Volume targetVolume = dbClient.queryObject(Volume.class, targetURI);
             List<URI> combined = Arrays.asList(sourceURI, targetURI);
+            Volume sourceVolume = dbClient.queryObject(Volume.class, sourceURI);
+            SRDFUtils.getSRDFCGVolumesForTaskCompleter(sourceVolume, dbClient, combined);
             completer = new SRDFLinkPauseCompleter(combined, opId);
             getRemoteMirrorDevice().doSplitLink(system, targetVolume, rollback, completer);
         } catch (Exception e) {
@@ -1968,20 +1972,8 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
                     }
                 }
             }
-            /**
-             * Needs to add all SRDF source volumes id to change the linkStatus and accessState
-             * for Sync/Async with CG. Take care not to add Vplex volume.
-             */
-            if (sourceVol != null && sourceVol.hasConsistencyGroup()) {
-                List<URI> srcVolumeUris = dbClient.queryByConstraint(
-                        getVolumesByConsistencyGroup(sourceVol.getConsistencyGroup()));
-                for (URI uri : srcVolumeUris) {
-                    Volume cgVolume =  dbClient.queryObject(Volume.class, uri);
-                    if (volume != null && volume.checkForSRDF() &&  !combined.contains(uri)) {
-                        combined.add(uri);
-                    }
-                }
-            }
+
+            SRDFUtils.getSRDFCGVolumesForTaskCompleter(sourceVol, dbClient, combined);
             log.info("Combined ids : {}", Joiner.on("\t").join(combined));
             if (op.equalsIgnoreCase("failover")) {
                 completer = new SRDFLinkFailOverCompleter(combined, task);

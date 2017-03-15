@@ -273,7 +273,7 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
                 String boReplicationGroup = bo.getReplicationGroupInstance();
                 for (BlockSnapshotSession session : cgSnapSessions) {
                     String sessionReplicationGroup = session.getReplicationGroupInstance();
-                    if (boReplicationGroup.equals(sessionReplicationGroup)) {
+                    if (NullColumnValueGetter.isNotNullValue(boReplicationGroup) && boReplicationGroup.equals(sessionReplicationGroup)) {
                         List<Volume> replicationGroupVolumes = CustomQueryUtility.queryActiveResourcesByConstraint(
                                 _dbClient, Volume.class, AlternateIdConstraint.Factory.getVolumeReplicationGroupInstanceConstraint(boReplicationGroup));
                         if (replicationGroupVolumes.size() == 1) {

@@ -380,6 +380,7 @@ public class ComputeUtils {
                     if (export != null && !isEmptyExport) {
                         exportName = BlockStorageUtils.UNDERSCORE
                                 + new SimpleDateFormat("yyyyMMddhhmmssSSS").format(new Date());
+                        createExport = true;
                     }
                     Task<ExportGroupRestRep> task = null;
                     

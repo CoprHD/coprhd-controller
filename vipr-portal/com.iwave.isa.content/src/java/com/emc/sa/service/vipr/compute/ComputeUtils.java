@@ -10,10 +10,12 @@ import static com.emc.sa.service.vipr.ViPRExecutionUtils.execute;
 import static com.emc.sa.service.vipr.ViPRExecutionUtils.getOrderTenant;
 
 import java.net.URI;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.ListIterator;
@@ -364,11 +366,23 @@ public class ComputeUtils {
             URI volumeId = hostToVolumeIdEntry.getValue();
             if (!NullColumnValueGetter.isNullURI(volumeId) && (host != null) && !(host.getInactive())) {
                 try {
-                    /**
-                     * Don't determine HLUs at all, even for the boot volumes. Let the system decide them for you. Hence passing -1
-                     */
-                    Task<ExportGroupRestRep> task = BlockStorageUtils.createHostExportNoWait(project,
-                            virtualArray, Arrays.asList(volumeId), hlu, host);
+                    ExportGroupRestRep export = BlockStorageUtils.findExportByHost(host, project, virtualArray, volumeId);
+                    boolean createExport = export == null;
+                    boolean isEmptyExport = export != null && BlockStorageUtils.isEmptyExport(export);
+                    String exportName = host.getHostName();
+                    if (export != null && !isEmptyExport) {
+                        exportName = BlockStorageUtils.UNDERSCORE
+                                + new SimpleDateFormat("yyyyMMddhhmmssSSS").format(new Date());
+                    }
+                    Task<ExportGroupRestRep> task = null;
+                    
+                    if (createExport) {
+                        // Don't determine HLUs at all, even for the boot volumes. Let the system decide them for you. Hence passing -1
+                        task = BlockStorageUtils.createHostExportNoWait(exportName,
+                                project, virtualArray, Arrays.asList(volumeId), hlu, host);
+                    } else {
+                        task = BlockStorageUtils.addHostToExportNoWait(export.getId(), host.getId()); 
+                    }
                     taskToHostMap.put(task, host);
                 } catch (ExecutionException e) {
                     String errorMessage = e.getMessage() == null ? "" : e.getMessage();

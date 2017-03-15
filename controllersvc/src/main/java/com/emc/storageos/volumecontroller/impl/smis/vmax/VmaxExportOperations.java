@@ -2097,6 +2097,10 @@ public class VmaxExportOperations implements ExportMaskOperations {
             HashMap<String, CIMObjectPath> initiatorPathsMap = _cimPath.getInitiatorToInitiatorPath(storage, initiatorNames);
             List<String> maskNames = new ArrayList<String>();
 
+            if (ExportUtils.isValidationEnabled()) {
+                findIfAnyIGHasConsistentLunFlagNotSet(storage, initiatorPathsMap.values());
+            }
+
             // Iterate through each initiator port name ...
             for (String initiatorName : initiatorPathsMap.keySet()) {
                 CIMObjectPath initiatorPath = initiatorPathsMap.get(initiatorName);
@@ -2151,6 +2155,40 @@ public class VmaxExportOperations implements ExportMaskOperations {
             _log.info(String.format("find used HLUs for Initiators took %f seconds", (double) totalTime / (double) 1000));
         }
         return usedHLUs;
+    }
+
+    /**
+     * For the given initiators, find if any of the IG or cascaded IG has consistent Lun flag not set.
+     *
+     * @param storage the storage
+     * @param initiatorPaths the initiator paths
+     * @throws Exception the exception
+     */
+    private void findIfAnyIGHasConsistentLunFlagNotSet(StorageSystem storage, Collection<CIMObjectPath> initiatorPaths)
+            throws Exception {
+        List<CIMObjectPath> igPaths = new ArrayList<CIMObjectPath>();
+        for (CIMObjectPath initiatorPath : initiatorPaths) {
+            getInitiatorGroupsFromMvOrIg(storage, initiatorPath, igPaths);
+        }
+
+        for (CIMObjectPath igPath : igPaths) {
+            if (!igPath.toString().contains(storage.getSerialNumber())) {
+                // If this igPath is for another array that's being managed by the
+                // same provider, then skip it
+                _log.info("Skipping {} since it is for a different array", igPath);
+                continue;
+            }
+
+            CIMInstance initiatorGroupInstance = _helper.getInstance(storage, igPath, false, false,
+                    new String[] { SmisConstants.CP_CONSISTENT_LUNS, SmisConstants.CP_INSTANCE_ID });
+            String consistentLuns = CIMPropertyFactory.getPropertyValue(initiatorGroupInstance,
+                    SmisConstants.CP_CONSISTENT_LUNS);
+            if (consistentLuns != null && consistentLuns.equalsIgnoreCase("false")) {
+                String instanceID = CIMPropertyFactory.getPropertyValue(initiatorGroupInstance,
+                        SmisConstants.CP_INSTANCE_ID);
+                throw DeviceControllerException.exceptions.consistentLunFlagNotSetOnInitiatorGroup(instanceID);
+            }
+        }
     }
 
     @Override

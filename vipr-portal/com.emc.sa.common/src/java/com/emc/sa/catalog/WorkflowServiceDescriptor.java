@@ -116,7 +116,9 @@ public class WorkflowServiceDescriptor {
                                 String inputName = wfInput.getName();
                                 // TODO: change this to get description
                                 serviceField.setDescription(wfInput.getFriendlyName());
-				final String friendlyName = StringUtils.isBlank(wfInput.getFriendlyName()) ? inputName : wfInput.getFriendlyName();
+                                final String friendlyName = StringUtils.isBlank(wfInput.getFriendlyName()) ?
+                                        inputName :
+                                        wfInput.getFriendlyName();
                                 serviceField
                                         .setLabel(friendlyName);
                                 serviceField.setName(friendlyName);
@@ -130,6 +132,7 @@ public class WorkflowServiceDescriptor {
                                 to.getItems().put(friendlyName, serviceField);
                             }
                         }
+
                     }
 
                 }

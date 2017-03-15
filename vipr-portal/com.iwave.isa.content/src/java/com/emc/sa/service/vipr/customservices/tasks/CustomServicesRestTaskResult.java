@@ -10,7 +10,7 @@ public class CustomServicesRestTaskResult extends CustomServicesTaskResult {
 
     private final Set<Map.Entry<String, List<String>>> headers;
 
-    public CustomServicesRestTaskResult(Set<Map.Entry<String, List<String>>> headers, String out, String err, int retCode) {
+    public CustomServicesRestTaskResult(final Set<Map.Entry<String, List<String>>> headers, final String out, final String err, final int retCode) {
         super(out, err, retCode, null);
         this.headers = headers;
     }

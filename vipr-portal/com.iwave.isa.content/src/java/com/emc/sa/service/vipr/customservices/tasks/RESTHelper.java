@@ -31,47 +31,35 @@ public final class RESTHelper {
     private static final org.slf4j.Logger logger = LoggerFactory.getLogger(RESTHelper.class);
     /**
      * POST body format:
-     *  "{\n" +
-     "  \"consistency_group\": \"$consistency_group\",\n" +
-     "  \"count\": \"$count\",\n" +
-     "  \"name\": \"$name\",\n" +
-     "  \"project\": \"$project\",\n" +
-     "  \"size\": \"$size\",\n" +
-     "  \"varray\": \"$varray\",\n" +
-     "  \"vpool\": \"$vpool\"\n" +
-     "}";
+     body = "{\n" +
+     "  \"consistency_group\": $consistency_group,\n" +
+     "  \"count\": $count,\n" +
+     "  \"name\": $name,\n" +
+     "  \"project\": $project,\n" +
+     "  \"size\": $size,\n" +
+     "  \"varray\": $varray,\n" +
+     "  \"vpool\": $vpool\n" +
+     "}"
+     body = "{\n" +
+     "  \"name\": $name,\n" +
+     "  \"owner\": $owner\n" +
+     "}\n";
      * @param body
      * @return
      */
     public static String makePostBody(String body, Map<String, List<String>> input) {
-      /*body = "{\n" +
-                "  \"consistency_group\": $consistency_group,\n" +
-                "  \"count\": $count,\n" +
-                "  \"name\": $name,\n" +
-                "  \"project\": $project,\n" +
-                "  \"size\": $size,\n" +
-                "  \"varray\": $varray,\n" +
-                "  \"vpool\": $vpool\n" +
-                "}";*/
-        body = "{\n" +
-                "  \"name\": $name,\n" +
-                "  \"owner\": $owner\n" +
-                "}\n";
-        logger.info("Body is:{}", body);
         Matcher m = Pattern.compile("\\$(\\w+)").matcher(body);
 
         while (m.find()) {
             String pat = m.group(1);
             String newpat = "$" + pat;
             if (input.get(pat) == null || input.get(pat).get(0) == null) {
-                logger.info("input.get(pat) is null for pat:{}", pat);
                 body = body.replace(newpat, "\"" + " " + "\"");
             } else {
-                logger.info("pat:{} new pat:{}", input.get(pat).get(0), newpat);
                 body = body.replace(newpat, "\"" + input.get(pat).get(0).replace("\"", "") + "\"");
             }
         }
-        logger.info("New body:{}", body);
+        logger.debug("Rest body:{}", body);
         return body;
     }
 
@@ -81,14 +69,12 @@ public final class RESTHelper {
      * @return
      */
     public static String makePath(String templatePath, Map<String, List<String>> input) {
-        logger.info("path is:{}", templatePath);
         final UriTemplate template = new UriTemplate(templatePath);
         final List<String> pathParameters = template.getVariableNames();
         final Map<String, Object> pathParameterMap = new HashMap<String, Object>();
 
         for(final String key : pathParameters) {
             List<String> value = input.get(key);
-            logger.info("path key:{} value:{}", key, value);
             if(null == value) {
                 logger.info("value is null");
                 throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed("Unfulfilled path parameter: " + key);
@@ -99,7 +85,7 @@ public final class RESTHelper {
 
         final String path = template.expand(pathParameterMap).getPath();
 
-        logger.info("URI string is: {}", path);
+        logger.debug("URI string is: {}", path);
 
         return path;
     }

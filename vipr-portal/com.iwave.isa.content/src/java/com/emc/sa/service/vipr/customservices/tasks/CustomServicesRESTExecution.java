@@ -17,19 +17,20 @@
 
 package com.emc.sa.service.vipr.customservices.tasks;
 
+import java.util.List;
+import java.util.Map;
+
+import com.emc.sa.engine.ExecutionUtils;
+import org.apache.commons.lang.StringUtils;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+
 import com.emc.sa.service.vipr.customservices.CustomServicesConstants;
 import com.emc.sa.service.vipr.tasks.ViPRExecutionTask;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.model.customservices.CustomServicesWorkflowDocument;
 import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorException;
 import com.sun.jersey.api.client.config.DefaultClientConfig;
-
-import org.apache.commons.lang.StringUtils;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-
-import java.util.List;
-import java.util.Map;
 
 public class CustomServicesRESTExecution extends ViPRExecutionTask<CustomServicesTaskResult> {
 
@@ -51,7 +52,8 @@ public class CustomServicesRESTExecution extends ViPRExecutionTask<CustomService
     @Override
     public CustomServicesTaskResult executeTask() throws Exception {
         try {
-            logger.info("url is:{}", getUrl());
+            ExecutionUtils.currentContext().logInfo("customServicesRESTExecution.startInfo", step.getId());
+
             BuildRestRequest b = buildrest.setSSL(getOptions(CustomServicesConstants.PROTOCOL, input)).setUrl(getUrl());
 
             //TODO get it from primitive which are not runtime variable
@@ -70,11 +72,12 @@ public class CustomServicesRESTExecution extends ViPRExecutionTask<CustomService
             switch (CustomServicesConstants.restMethods.valueOf(getOptions(CustomServicesConstants.METHOD, input))) {
                 case PUT:
                 case POST:
-                    logger.info("building post body");
                     final String body = RESTHelper.makePostBody(getOptions(CustomServicesConstants.BODY, input), input);
                     return b.executeRest(CustomServicesConstants.restMethods.valueOf(getOptions(CustomServicesConstants.METHOD, input)),
                             body);
             }
+
+            ExecutionUtils.currentContext().logInfo("customServicesRESTExecution.doneInfo", step.getId());
 
             return b.executeRest(CustomServicesConstants.restMethods.valueOf(getOptions(CustomServicesConstants.METHOD, input)),
                     null);
@@ -85,13 +88,6 @@ public class CustomServicesRESTExecution extends ViPRExecutionTask<CustomService
     }
 
     public String getUrl() {
-        String mypath = String.format("%s://%s:%s/%s", getOptions(CustomServicesConstants.PROTOCOL,
-                        input), getOptions(CustomServicesConstants.TARGET, input),
-                getOptions(CustomServicesConstants.PORT, input), RESTHelper.makePath(
-                        getOptions(CustomServicesConstants.PATH, input), input)
-        );
-        logger.info("mypath:{}", mypath);
-
         //TODO get from primitive.
         final String target = getOptions(CustomServicesConstants.TARGET, input);
         final String path = getOptions(CustomServicesConstants.PATH, input);
@@ -109,11 +105,10 @@ public class CustomServicesRESTExecution extends ViPRExecutionTask<CustomService
 
     private String getOptions(final String key, final Map<String, List<String>> input) {
         if (input.get(key) != null) {
-            logger.info("found key:{}", key);
             return StringUtils.strip(input.get(key).get(0).toString(), "\"");
         }
 
-        logger.info("key not defined. key:{}"+ key);
+        logger.info("key not defined. key:{}", key);
 
         return null;
     }

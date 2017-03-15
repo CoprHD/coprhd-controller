@@ -17,36 +17,39 @@
 
 package com.emc.sa.service.vipr.customservices.tasks;
 
+import java.util.List;
+import java.util.Map;
+
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.TrustManager;
+
+import org.apache.commons.lang.StringUtils;
+import org.apache.commons.io.IOUtils;
+import org.slf4j.LoggerFactory;
+
+import com.emc.sa.service.vipr.customservices.CustomServicesConstants;
 import com.emc.storageos.model.customservices.CustomServicesWorkflowDocument;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.security.ssl.ViPRX509TrustManager;
 import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorException;
 import com.sun.jersey.api.client.Client;
-import com.sun.jersey.api.client.*;
+import com.sun.jersey.api.client.ClientResponse;
+import com.sun.jersey.api.client.WebResource;
 import com.sun.jersey.api.client.config.ClientConfig;
 import com.sun.jersey.api.client.filter.HTTPBasicAuthFilter;
 import com.sun.jersey.client.urlconnection.HTTPSProperties;
-import org.apache.commons.lang.StringUtils;
-import org.slf4j.LoggerFactory;
-
-import org.apache.commons.io.IOUtils;
-import com.emc.sa.service.vipr.customservices.CustomServicesConstants;
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.TrustManager;
-import java.util.List;
-import java.util.Map;
 
 public class BuildRestRequest {
 
+    private final ClientConfig config;
+    private final CoordinatorClient coordinator;
     private Client client;
     private WebResource.Builder builder = null;
     private WebResource resource;
-    private final ClientConfig config;
-    private final CoordinatorClient coordinator;
 
     private static final org.slf4j.Logger logger = LoggerFactory.getLogger(BuildRestRequest.class);
 
-    public BuildRestRequest(ClientConfig config, CoordinatorClient coordinator) {
+    public BuildRestRequest(final ClientConfig config, final CoordinatorClient coordinator) {
         this.config = config;
         this.coordinator = coordinator;
     }
@@ -98,21 +101,20 @@ public class BuildRestRequest {
             final String name = header.getName();
             final String value = input.get(name).get(0);
 
-            logger.info("header name:{} value:{}", name, value);
             if (value.isEmpty()) {
                 logger.error("Cannot set value for header:{}", name);
 
                 throw InternalServerErrorException.internalServerErrors.
-                        customServiceExecutionFailed("Cannot set value for header");
+                        customServiceExecutionFailed("Cannot set value for header:" + name);
             }
 
-
+            final String headerValue = StringUtils.strip(input.get(name).get(0).toString(), "\"");
             if (name.equals(CustomServicesConstants.ACCEPT_TYPE)) {
-                setAccept(StringUtils.strip(input.get(name).get(0).toString(), "\""));
+                setAccept(headerValue);
             } else if (name.equals(CustomServicesConstants.CONTENT_TYPE)) {
-                setContentType(StringUtils.strip(input.get(name).get(0).toString(), "\""));
+                setContentType(headerValue);
             } else {
-                getBuilder().header(name, StringUtils.strip(input.get(name).get(0).toString(), "\""));
+                getBuilder().header(name, headerValue);
             }
         }
 
@@ -137,6 +139,7 @@ public class BuildRestRequest {
         return this;
     }
 
+    //TODO Implement this.
     public BuildRestRequest setQueryparam(final Map<String, String> queries) {
         for (final Map.Entry<String, String> entry : queries.entrySet()) {
             resource.queryParam(entry.getKey(), entry.getValue());
@@ -154,7 +157,6 @@ public class BuildRestRequest {
     }
 
     public BuildRestRequest setFilter(final String user, final String password) {
-
         if (!(user.isEmpty() && password.isEmpty())) {
             client.addFilter(new HTTPBasicAuthFilter(user, password));
 
@@ -162,44 +164,35 @@ public class BuildRestRequest {
         }
 
         logger.error("user:{} or password:{} not defined", user, password);
+
         throw InternalServerErrorException.internalServerErrors.
                 customServiceExecutionFailed("User or password not defined");
     }
 
     public CustomServicesRestTaskResult executeRest(final CustomServicesConstants.restMethods method, final String input) throws Exception {
-
-        logger.info("executing rest");
         ClientResponse response = null;
         switch (method) {
             case GET:
-                logger.info("executing rest get");
                 response = getBuilder().get(ClientResponse.class);
-                logger.info("done get exec1");
-
                 break;
             case PUT:
                 response = getBuilder().put(ClientResponse.class, input);
                 break;
             case POST:
                 response = getBuilder().post(ClientResponse.class, input);
-
                 break;
             case DELETE:
-                logger.info("calling delete");
-                try {
-                    response = getBuilder().delete(ClientResponse.class);
-                } catch (Exception e) {
-                    logger.info("got exception :{}", e);
-                }
+                response = getBuilder().delete(ClientResponse.class);
                 break;
             default:
-                logger.error("Rest method type not supported");
+                logger.error("Rest method:{} type not supported", method.toString());
+                throw InternalServerErrorException.internalServerErrors.
+                        customServiceExecutionFailed("Rest method type not supported. Method:" + method.toString());
         }
-        String output = IOUtils.toString(response.getEntityInputStream(), "UTF-8");
+        final String output = IOUtils.toString(response.getEntityInputStream(), "UTF-8");
 
         logger.info("result is:{} headers:{}", output, response.getHeaders());
+
         return new CustomServicesRestTaskResult(response.getHeaders().entrySet(), output, output, response.getStatus());
     }
 }
-
-

@@ -23,7 +23,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.*;
+import java.util.Set;
 import com.emc.sa.service.vipr.customservices.tasks.*;
 
 import org.apache.commons.lang.StringUtils;
@@ -78,7 +78,7 @@ public class CustomServicesService extends ViPRService {
     private DbClient dbClient;
     @Autowired
     private CustomServicesPrimitiveDAOs daos;
-    
+
     private ImmutableMap<String, Step> stepsHash;
     private CustomServicesWorkflowDocument obj;
     private int code;
@@ -163,7 +163,8 @@ public class CustomServicesService extends ViPRService {
                     }
                     case REST:
                         logger.info("Start REST execution");
-                        res = ViPRExecutionUtils.execute(new CustomServicesRESTExecution(coordinatorClient, inputPerStep.get(step.getId()), step));
+                        res = ViPRExecutionUtils
+                                .execute(new CustomServicesRESTExecution(coordinatorClient, inputPerStep.get(step.getId()), step));
                         break;
                     case LOCAL_ANSIBLE:
                         logger.info("Executing Local Ansible step");
@@ -282,59 +283,53 @@ public class CustomServicesService extends ViPRService {
         final Map<String, List<String>> inputs = new HashMap<String, List<String>>();
         for (final CustomServicesWorkflowDocument.InputGroup inputGroup : step.getInputGroups().values()) {
             for (final Input value : inputGroup.getInputGroup()) {
-            final String name = value.getName();
-                logger.info("name is:{}", name);
-            switch (InputType.fromString(value.getType())) {
-                case FROM_USER:
-                case OTHERS:
-                case ASSET_OPTION: {
-		    final String friendlyName = value.getFriendlyName();
-                        logger.info("friendlyName:{}", friendlyName);
-                    if (params.get(friendlyName) != null) {
-                           logger.info("friendlyName is not null. value is:{}", params.get(friendlyName).toString());
-                        inputs.put(name, Arrays.asList(params.get(friendlyName).toString()));
-                    } else {
-			logger.info("friendlyName is null");
-                        if (value.getDefaultValue() != null) {
-				logger.info("default value is not null:{}", Arrays.asList(value.getDefaultValue()));
-                            inputs.put(name, Arrays.asList(value.getDefaultValue()));
-                        }
-                    }
-                    break;
-                }
-                case FROM_STEP_INPUT:
-                case FROM_STEP_OUTPUT: {
-                    final String[] paramVal = value.getValue().split("\\.");
-                    final String stepId = paramVal[CustomServicesConstants.STEP_ID];
-                    final String attribute = paramVal[CustomServicesConstants.INPUT_FIELD];
+                final String name = value.getName();
+                switch (InputType.fromString(value.getType())) {
+                    case FROM_USER:
+                    case OTHERS:
+                    case ASSET_OPTION: {
+                        final String friendlyName = value.getFriendlyName();
+                        if (params.get(friendlyName) != null) {
 
-                    Map<String, List<String>> stepInput;
-                    if (value.getType().equals(InputType.FROM_STEP_INPUT.toString()))
-                        stepInput = inputPerStep.get(stepId);
-                    else
-                        stepInput = outputPerStep.get(stepId);
-
-                    if (stepInput != null) {
-                        logger.info("value is:{}", stepInput.get(attribute));
-                        if (stepInput.get(attribute) != null) {
-                            inputs.put(name, stepInput.get(attribute));
-                            break;
+                            inputs.put(name, Arrays.asList(params.get(friendlyName).toString()));
+                        } else {
+                            if (value.getDefaultValue() != null) {
+                                inputs.put(name, Arrays.asList(value.getDefaultValue()));
+                            }
                         }
-                    }
-                    if (value.getDefaultValue() != null) {
-                        inputs.put(name, Arrays.asList(value.getDefaultValue()));
-                        logger.info("value default is:{}", Arrays.asList(value.getDefaultValue()));
                         break;
                     }
+                    case FROM_STEP_INPUT:
+                    case FROM_STEP_OUTPUT: {
+                        final String[] paramVal = value.getValue().split("\\.");
+                        final String stepId = paramVal[CustomServicesConstants.STEP_ID];
+                        final String attribute = paramVal[CustomServicesConstants.INPUT_FIELD];
 
-		    break;
+                        Map<String, List<String>> stepInput;
+                        if (value.getType().equals(InputType.FROM_STEP_INPUT.toString()))
+                            stepInput = inputPerStep.get(stepId);
+                        else
+                            stepInput = outputPerStep.get(stepId);
+
+                        if (stepInput != null) {
+                            if (stepInput.get(attribute) != null) {
+                                inputs.put(name, stepInput.get(attribute));
+                                break;
+                            }
+                        }
+                        if (value.getDefaultValue() != null) {
+                            inputs.put(name, Arrays.asList(value.getDefaultValue()));
+                            break;
+                        }
+
+                        break;
+                    }
+                    default:
+                        throw InternalServerErrorException.internalServerErrors
+                                .customServiceExecutionFailed("Invalid input type:" + value.getType());
                 }
-                default:
-                    throw InternalServerErrorException.internalServerErrors
-                            .customServiceExecutionFailed("Invalid input type:" + value.getType());
             }
         }
-	}
 
         inputPerStep.put(step.getId(), inputs);
     }
@@ -374,31 +369,24 @@ public class CustomServicesService extends ViPRService {
         final List<CustomServicesWorkflowDocument.Output> output = step.getOutput();
         if (output == null)
             return;
-	String result = res.getOut();
+        final String result = res.getOut();
         final Map<String, List<String>> out = new HashMap<String, List<String>>();
 
-        for (CustomServicesWorkflowDocument.Output o : output) {
+        for (final CustomServicesWorkflowDocument.Output o : output) {
             if (isAnsible(step)) {
                 out.put(o.getName(), evaluateAnsibleOut(result, o.getName()));
             } else if (step.getType().equals(StepType.REST.toString())) {
-
-                logger.info("get the headers:{}", o.getName());
-
                 final CustomServicesRestTaskResult restResult = (CustomServicesRestTaskResult) res;
                 final Set<Map.Entry<String, List<String>>> headers = restResult.getHeaders();
                 for (final Map.Entry<String, List<String>> entry : headers) {
-                    logger.info("header name:{}", entry.getKey());
-                    logger.info("header value:{}", entry.getValue());
                     if (entry.getKey().equals(o.getName())) {
-                        logger.info("value matched:{} :{}", entry.getKey(), entry.getValue());
                         out.put(o.getTable(), entry.getValue());
                     }
                 }
-
             } else {
-                    // TODO: Remove this after parsing output is fully implemented
-                    // out.put(o.getName(), evaluateValue(result, o.getName()));
-                    return;
+                // TODO: Remove this after parsing output is fully implemented
+                // out.put(o.getName(), evaluateValue(result, o.getName()));
+                return;
             }
         }
 
@@ -577,3 +565,4 @@ public class CustomServicesService extends ViPRService {
         }
     }
 }
+

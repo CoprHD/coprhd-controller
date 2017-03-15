@@ -76,12 +76,11 @@ public class RunAnsible extends ViPRExecutionTask<CustomServicesTaskResult> {
             final String orderDir) {
         this.step = step;
         this.input = input;
-        /*if (step.getAttributes() == null || step.getAttributes().getTimeout() == -1) {
+        if (step.getAttributes() == null || step.getAttributes().getTimeout() == -1) {
             this.timeout = Exec.DEFAULT_CMD_TIMEOUT;
         } else {
             this.timeout = step.getAttributes().getTimeout();
-        }*/
-	this.timeout = 10*1000*60*1000;
+        }
         this.params = params;
         this.dbClient = dbClient;
         this.orderDir = orderDir;

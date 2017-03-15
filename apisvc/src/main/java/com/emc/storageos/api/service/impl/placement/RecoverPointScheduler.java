@@ -2127,10 +2127,14 @@ public class RecoverPointScheduler implements Scheduler {
             RPRecommendation sourceJournalRecommendation = 
                     buildRpRecommendationFromExistingVolume(sourceJournal, sourceJournalVpool, capabilities, sourceJournalSize);  
             
-            // Override values with journal specific count and size
+            // Parse out the calculated values
             Map.Entry<Integer, Long> entry = additionalJournalForSource.entrySet().iterator().next();
-            sourceJournalRecommendation.setResourceCount(entry.getKey());
-            sourceJournalRecommendation.setSize(entry.getValue());
+            Integer journalCount = entry.getKey();
+            Long journalSize = entry.getValue(); 
+            
+            // Override values in recommendation with calculated journal count and size
+            sourceJournalRecommendation.setResourceCount(journalCount);
+            sourceJournalRecommendation.setSize(journalSize);
             
             recommendation.setSourceJournalRecommendation(sourceJournalRecommendation);
     
@@ -2152,9 +2156,9 @@ public class RecoverPointScheduler implements Scheduler {
                 RPRecommendation standbyJournalRecommendation = 
                         buildRpRecommendationFromExistingVolume(standbyJournal, standbyJournalVpool, capabilities, sourceJournalSize);
                 
-                // Override values with journal specific count and size                
-                sourceJournalRecommendation.setResourceCount(entry.getKey());
-                sourceJournalRecommendation.setSize(entry.getValue());
+                // Override values in recommendation with calculated journal count and size                
+                standbyJournalRecommendation.setResourceCount(journalCount);
+                standbyJournalRecommendation.setSize(journalSize);
                 
                 recommendation.setStandbyJournalRecommendation(standbyJournalRecommendation);
             }
@@ -2203,21 +2207,26 @@ public class RecoverPointScheduler implements Scheduler {
                 RPRecommendation targetJournalRecommendation = 
                          buildRpRecommendationFromExistingVolume(targetJournal, targetJournalVpool, capabilities, targetJournalSize);
                 
-                // Override values with journal specific count and size
-                Map.Entry<Integer, Long> entry = additionalJournalForTarget.entrySet().iterator().next();
-                targetJournalRecommendation.setResourceCount(entry.getKey());
-                targetJournalRecommendation.setSize(entry.getValue());
+                // Parse out the calculated values
+                Map.Entry<Integer, Long> entry = additionalJournalForSource.entrySet().iterator().next();
+                Integer journalCount = entry.getKey();
+                Long journalSize = entry.getValue();
+                
+                // Override values in recommendation with calculated journal count and size
+                targetJournalRecommendation.setResourceCount(journalCount);
+                targetJournalRecommendation.setSize(journalSize);
                 
                 if (recommendation.getTargetJournalRecommendations() == null) {
                     recommendation.setTargetJournalRecommendations(new ArrayList<RPRecommendation>());
                 }
+                
                 recommendation.getTargetJournalRecommendations().add(targetJournalRecommendation);
             }
         }
         
         _log.info(String.format("Produced recommendations based on existing source volume [%s](%s) from " +
-                "RecoverPoint consistency group %s: %n %s", sourceVolume.getLabel(), sourceVolume.getId(), 
-                cg.getLabel(), recommendation.toString(dbClient)));
+                "RecoverPoint consistency group [%s].", sourceVolume.getLabel(), sourceVolume.getId(), 
+                cg.getLabel()));
 
         recommendations.add(recommendation);
         return recommendations;

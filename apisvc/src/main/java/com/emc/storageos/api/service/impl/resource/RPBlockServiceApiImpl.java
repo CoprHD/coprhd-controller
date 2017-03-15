@@ -772,34 +772,6 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                 if (targetCopyVarray == null) {
                     targetCopyVarray = targetJournalVarray;
                 }
-//
-//                // Only need to enter this block if we already have existing journals in the CG
-//                // and we want to see if more space is required or if we are performing an add
-//                // journal volume operation
-//                if (!cgTargetVolumes.isEmpty() && !capabilities.getAddJournalCapacity()) {
-//// BBB                    
-////                     VpoolProtectionVarraySettings protectionSettings = _rpHelper.getProtectionSettings(originalVpool, targetCopyVarray);
-//                    String targetCopyName = targetJournalRec.getRpCopyName();
-//                    if (targetCopyName == null) {
-//                        // Target RP copy name was not set on the recommendation, find it from the CG.
-//                        targetCopyName = RPHelper.getCgCopyName(_dbClient, consistencyGroup, targetCopyVarray.getId(), false);
-//                    }
-////                    boolean isAdditionalTargetJournalRequired = _rpHelper.isAdditionalJournalRequiredForRPCopy(
-////                            protectionSettings.getJournalSize(), consistencyGroup, param.getSize(),
-////                            numberOfVolumesInRequest,
-////                            targetCopyName, targetJournalRec);
-////                    if (!isAdditionalTargetJournalRequired) {
-//                        // If the CG contains volumes already and no new additional journals are provisioned,
-//                        // then we simply update the reference on the source for the journal volume.
-//                        _log.info(String.format("Re-use existing Target Journal for copy [%s]", targetCopyName));
-//                        List<Volume> existingTargetJournals = RPHelper.findExistingJournalsForCopy(_dbClient, consistencyGroup.getId(),
-//                                targetCopyName);
-//                        Volume existingTargetJournalVolume = existingTargetJournals.get(0);
-//                        _log.info(String.format("Existing Target Journal: [%s] (%s)", existingTargetJournalVolume.getLabel(),
-//                                existingTargetJournalVolume.getId()));
-//                        continue;
-//                    //}
-//                }
 
                 _log.info(String.format("Create Target Journal (%s)...", targetJournalVarray.getLabel()));
                 // Number of journals to create - will only be greater than 1 when doing add journal operation.
@@ -836,10 +808,6 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
         } else {
             _log.info("Re-use existing Target journals.");
         }
-        
-//        if (true) {
-//            throw new NullPointerException("STOP!!!");
-//        }
     }
 
     /**

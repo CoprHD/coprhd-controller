@@ -11,8 +11,10 @@ import static com.emc.storageos.db.client.util.CustomQueryUtility.queryActiveRes
 
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.UUID;
 
@@ -31,6 +33,8 @@ import com.emc.storageos.model.remotereplication.RemoteReplicationPairList;
 import com.emc.storageos.remotereplicationcontroller.RemoteReplicationController;
 import com.emc.storageos.remotereplicationcontroller.RemoteReplicationUtils;
 import com.emc.storageos.security.authorization.ACL;
+
+import org.apache.commons.collections.CollectionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -39,8 +43,11 @@ import com.emc.storageos.api.service.impl.resource.TaskResourceService;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.OpStatusMap;
 import com.emc.storageos.db.client.model.Operation;
+import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StorageSystemType;
 import com.emc.storageos.db.client.model.StringSet;
+import com.emc.storageos.db.client.model.VirtualArray;
+import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.remotereplication.RemoteReplicationGroup;
 import com.emc.storageos.db.client.model.remotereplication.RemoteReplicationSet;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
@@ -61,6 +68,8 @@ import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.impl.externaldevice.RemoteReplicationElement;
+import com.emc.storageos.volumecontroller.impl.utils.ObjectLocalCache;
+import com.emc.storageos.volumecontroller.impl.utils.attrmatchers.NeighborhoodsMatcher;
 
 @Path("/vdc/block/remotereplicationsets")
 @DefaultPermissions(readRoles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, readAcls = {
@@ -107,6 +116,86 @@ public class RemoteReplicationSetService extends TaskResourceService {
             rrSetList.getRemoteReplicationSets().add(toNamedRelatedResource(iter.next()));
         }
         return rrSetList;
+    }
+
+    /**
+     * @return all remote replication sets with storage in specified varray and vpool
+     */
+    @GET
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/{varray}/{vpool}")
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR })
+    public RemoteReplicationSetList getRemoteReplicationSetsForVarrayVpool(@PathParam("varray") URI varrayURI, @PathParam("vpool") URI vpoolURI) {
+        _log.info("Called: getRemoteReplicationSets() with params: (varray: {}, vpool: {})", varrayURI, vpoolURI);
+        ArgValidator.checkFieldUriType(varrayURI, VirtualArray.class, "virtual array id");
+        ArgValidator.checkFieldUriType(vpoolURI, VirtualPool.class, "virtual pool id");
+        VirtualPool vpool = _dbClient.queryObject(VirtualPool.class, vpoolURI);
+        if (vpool == null || vpool.getRemoteReplicationProtectionSettings() == null) {
+            throw APIException.badRequests.invalidVirtualPoolUriOrNotSupportRemoteReplication(vpoolURI);
+        }
+
+        Set<String> sourceDevices = getStorageSystemsForVarrayVpool(varrayURI, vpoolURI);
+
+        RemoteReplicationSetList result = new RemoteReplicationSetList();
+        List<URI> uris = _dbClient.queryByType(RemoteReplicationSet.class, true);
+        if (uris == null || uris.isEmpty()) {
+            return result;
+        }
+        Iterator<RemoteReplicationSet> it = _dbClient.queryIterativeObjects(RemoteReplicationSet.class, uris);
+        outloop:
+        while (it.hasNext()) {
+            RemoteReplicationSet rrSet = it.next();
+            Set<String> sourcesOfrrSet = rrSet.getSourceSystems();
+            if (!sourcesOfrrSet.containsAll(sourceDevices)) {
+                continue; // filter out rr sets that do not contain all source systems
+            }
+
+            Set<String> targetsOfrrSet = rrSet.getTargetSystems();
+            Set<String> allTargetDevices = new HashSet<>();
+            for (Entry<String, String> pair : vpool.getRemoteReplicationProtectionSettings().entrySet()) {
+                URI targetvArrayURI = URI.create(pair.getKey());
+                URI targetvPoolURI = URI.create(pair.getValue());
+                Set<String> targetDevices = getStorageSystemsForVarrayVpool(targetvArrayURI, targetvPoolURI);
+
+                if (!CollectionUtils.containsAny(targetsOfrrSet, targetDevices)) {
+                    continue outloop; // filter out rr sets that have no overlap with target devices or current pair
+                }
+                allTargetDevices.addAll(targetDevices);
+            }
+
+            if (targetsOfrrSet.size() > allTargetDevices.size() || !allTargetDevices.containsAll(targetsOfrrSet)) {
+                continue; // filter out rr sets that have target systems outside of target devices
+            }
+
+            /* Finally, a rr set is qualified and put in result collection only if it meets following conditions:
+               - Its source systems contain all storage systems filtered by given varray and vpool;
+               - Its target systems only contain storage systems that are subset of ones of all target varray/vpool pairs;
+               - Its target systems contain at least one of the storage systems for each target varray/vpool pair.
+             */
+            result.getRemoteReplicationSets().add(toNamedRelatedResource(rrSet));
+        }
+        return result;
+    }
+
+    private Set<String> getStorageSystemsForVarrayVpool(URI varrayURI, URI vpoolURI) {
+        VirtualPool vpool = _dbClient.queryObject(VirtualPool.class, vpoolURI);
+        List<StoragePool> vpoolPools = VirtualPool.getValidStoragePools(vpool, _dbClient, true);
+        Set<URI> varrayPools = getStoragePoolsForVarray(varrayURI);
+        Set<String> result = new HashSet<>();
+        for (StoragePool pool : vpoolPools) {
+            if (varrayPools.contains(pool.getId())) {
+                result.add(pool.getId().toString());
+            }
+        }
+        return result;
+    }
+
+    private Set<URI> getStoragePoolsForVarray(URI varrayURI) {
+        NeighborhoodsMatcher matcher = new NeighborhoodsMatcher();
+        matcher.setCoordinatorClient(_coordinator);
+        matcher.setObjectCache(new ObjectLocalCache(_dbClient));
+        List<URI> vArrayStoragePoolURIs = matcher.getVarrayPools(varrayURI.toString());
+        return new HashSet<>(vArrayStoragePoolURIs);
     }
 
     /**

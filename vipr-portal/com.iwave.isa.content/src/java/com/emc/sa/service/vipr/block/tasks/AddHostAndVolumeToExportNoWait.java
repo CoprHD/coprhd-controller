@@ -10,6 +10,7 @@ import java.util.List;
 
 import com.emc.sa.service.vipr.block.ExportVMwareBlockVolumeHelper;
 import com.emc.sa.service.vipr.tasks.WaitForTask;
+import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.model.block.export.ExportGroupRestRep;
 import com.emc.storageos.model.block.export.ExportUpdateParam;
 import com.emc.storageos.model.block.export.HostsUpdateParam;
@@ -36,27 +37,23 @@ public class AddHostAndVolumeToExportNoWait extends WaitForTask<ExportGroupRestR
     @Override
     protected Task<ExportGroupRestRep> doExecute() throws Exception {
         ExportUpdateParam exportUpdateParam = new ExportUpdateParam();
+
         List<VolumeParam> volumes = new ArrayList<VolumeParam>();
-        Integer currentHlu = hlu;
-        VolumeParam volume = new VolumeParam(volumeId);
-        if (currentHlu != null) {
-            if (currentHlu.equals(ExportVMwareBlockVolumeHelper.USE_EXISTING_HLU) && hlu != null) {
-                if (hlu == null) {
-                    volume.setLun(-1);
-                } else {
-                    volume.setLun(hlu);
-                }
-            } else {
-                volume.setLun(currentHlu);
+        if (!NullColumnValueGetter.isNullURI(volumeId)) {
+            VolumeParam volume = new VolumeParam(volumeId);
+            volume.setLun(-1);
+            if (hlu != null && !hlu.equals(ExportVMwareBlockVolumeHelper.USE_EXISTING_HLU)) {
+                volume.setLun(hlu);
             }
+
+            volumes.add(volume);
+            exportUpdateParam.setVolumes(new VolumeUpdateParam(volumes, new ArrayList<URI>()));
         }
-        if ((currentHlu != null) && (currentHlu > -1)) {
-            currentHlu++;
+
+        if (!NullColumnValueGetter.isNullURI(hostId)) {
+            exportUpdateParam.setHosts(new HostsUpdateParam());
+            exportUpdateParam.getHosts().getAdd().add(hostId);
         }
-        volumes.add(volume);
-        exportUpdateParam.setVolumes(new VolumeUpdateParam(volumes, new ArrayList<URI>()));
-        exportUpdateParam.setHosts(new HostsUpdateParam());
-        exportUpdateParam.getHosts().getAdd().add(hostId);
 
         return getClient().blockExports().update(exportId, exportUpdateParam);
     }

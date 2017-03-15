@@ -347,6 +347,14 @@ public class ComputeUtils {
 
     /**
      * Exports all boot volumes to respective hosts.
+     * 
+     * Since exporting to boot volumes requires only one volume be exported for OS install, we have extra checks
+     * in here:
+     * - If there is an existing EG with the same name, we need to make additional checks:
+     *   - If the EG has no initiators and volumes, re-use it.  Add the host and volume.
+     *   - If the EG has our initiators and a volume (or more), error out.
+     *   - If the EG has different initiators, create an EG with a different name.
+     *   - If the EG has our initiators and no volumes, re-use it.  Add the volume only.
      *
      * @param hostToVolumeIdMap host to boot volume ID map
      * @param project project
@@ -367,6 +375,11 @@ public class ComputeUtils {
             if (!NullColumnValueGetter.isNullURI(volumeId) && (host != null) && !(host.getInactive())) {
                 try {
                     ExportGroupRestRep export = BlockStorageUtils.findExportByHost(host, project, virtualArray, null);
+                    if (export != null && !export.getVolumes().isEmpty()) {
+                        throw new IllegalStateException(new Throwable(
+                                "Existing export contains other volumes.  Controller supports only the boot volume visible to host."
+                                        + host.getHostName()));
+                    }
                     
                     // If we didn't find an export with our host, look for an export with the name of the host. 
                     // We can add the host to that export group if it's empty.
@@ -389,7 +402,10 @@ public class ComputeUtils {
                         task = BlockStorageUtils.createHostExportNoWait(exportName,
                                 project, virtualArray, Arrays.asList(volumeId), hlu, host);
                     } else {
-                        task = BlockStorageUtils.addHostAndVolumeToExportNoWait(export.getId(), host.getId(), volumeId, hlu); 
+                        task = BlockStorageUtils.addHostAndVolumeToExportNoWait(export.getId(),
+                                    // Don't add the host if there are already initiators in this export group.
+                                    export.getInitiators() != null && !export.getInitiators().isEmpty() ? null : host.getId(), 
+                                    volumeId, hlu); 
                     }
                     taskToHostMap.put(task, host);
                 } catch (ExecutionException e) {

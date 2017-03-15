@@ -26,6 +26,7 @@ import com.sun.jersey.api.client.*;
 import com.sun.jersey.api.client.config.ClientConfig;
 import com.sun.jersey.api.client.filter.HTTPBasicAuthFilter;
 import com.sun.jersey.client.urlconnection.HTTPSProperties;
+import org.apache.commons.lang.StringUtils;
 import org.slf4j.LoggerFactory;
 
 import org.apache.commons.io.IOUtils;
@@ -105,12 +106,13 @@ public class BuildRestRequest {
                         customServiceExecutionFailed("Cannot set value for header");
             }
 
+
             if (name.equals(CustomServicesConstants.ACCEPT_TYPE)) {
-                setAccept(value);
+                setAccept(StringUtils.strip(input.get(name).get(0).toString(), "\""));
             } else if (name.equals(CustomServicesConstants.CONTENT_TYPE)) {
-                setContentType(value);
+                setContentType(StringUtils.strip(input.get(name).get(0).toString(), "\""));
             } else {
-                getBuilder().header(name, value);
+                getBuilder().header(name, StringUtils.strip(input.get(name).get(0).toString(), "\""));
             }
         }
 

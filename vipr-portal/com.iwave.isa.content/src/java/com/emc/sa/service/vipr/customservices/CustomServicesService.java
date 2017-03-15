@@ -381,21 +381,20 @@ public class CustomServicesService extends ViPRService {
             if (isAnsible(step)) {
                 out.put(o.getName(), evaluateAnsibleOut(result, o.getName()));
             } else if (step.getType().equals(StepType.REST.toString())) {
-                if (o.getName().equals("token")) {
 
-                    logger.info("get the token:{}", o.getTable());
+                logger.info("get the headers:{}", o.getName());
 
-                    CustomServicesRestTaskResult restResult = (CustomServicesRestTaskResult)res;
-                    Set<Map.Entry<String, List<String>>> headers =  restResult.getHeaders();
-                    for (Map.Entry<String, List<String>> entry : headers) {
-                        logger.info("header name:{}", entry.getKey());
-                        logger.info("header value:{}", entry.getValue());
-                        if (entry.getKey().equals(o.getTable())) {
-                            logger.info("value matched:{} :{}", entry.getKey(), entry.getValue());
-                            out.put(o.getTable(), entry.getValue());
-                        }
+                final CustomServicesRestTaskResult restResult = (CustomServicesRestTaskResult) res;
+                final Set<Map.Entry<String, List<String>>> headers = restResult.getHeaders();
+                for (final Map.Entry<String, List<String>> entry : headers) {
+                    logger.info("header name:{}", entry.getKey());
+                    logger.info("header value:{}", entry.getValue());
+                    if (entry.getKey().equals(o.getName())) {
+                        logger.info("value matched:{} :{}", entry.getKey(), entry.getValue());
+                        out.put(o.getTable(), entry.getValue());
                     }
                 }
+
             } else {
                     // TODO: Remove this after parsing output is fully implemented
                     // out.put(o.getName(), evaluateValue(result, o.getName()));

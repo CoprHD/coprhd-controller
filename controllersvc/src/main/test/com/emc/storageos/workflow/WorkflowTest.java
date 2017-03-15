@@ -10,6 +10,8 @@ import static org.junit.Assert.assertTrue;
 
 import java.io.Serializable;
 import java.net.URI;
+import java.util.Calendar;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -1325,6 +1327,94 @@ public class WorkflowTest extends ControllersvcTestBase implements Controller {
         task = requeryTask(resource, taskId3, op);
         assertTrue(task.getStatus().equals("ready"));
         assertTrue(task.getCompletedFlag());
+    }
+    
+    @Test
+    /**
+     * workflow scrubber does the following:
+     * deletes workflows older than some predetermined amount of time
+     * deletes all associated workflow steps if the workflow is deleted
+     * deletes all orphaned workflow steps
+     * 
+     */
+    public void test24_test_workflow_scrubber() {
+        final String testname = new Object() {
+        }.getClass().getEnclosingMethod().getName();
+        printLog(testname + " started");
+        
+        WorkflowScrubberExecutor scrubber = new WorkflowScrubberExecutor();
+        scrubber.setDbClient(dbClient);
+        
+        Object[] args = new Object[1];
+        String taskId = UUID.randomUUID().toString();
+        args[0] = taskId;
+        
+        long maxWFAge = WorkflowScrubberExecutor.WORKFLOW_HOLDING_TIME_MSEC;
+        Long currentTime = System.currentTimeMillis();
+        Calendar dateInPast = Calendar.getInstance();
+        dateInPast.setTime(new Date(currentTime-maxWFAge));
+        
+        // create a completed workflow (scrubber should leave this one alone)
+        com.emc.storageos.db.client.model.Workflow completedWorkflow = new com.emc.storageos.db.client.model.Workflow();
+        completedWorkflow.setId(URIUtil.createId(com.emc.storageos.db.client.model.Workflow.class));
+        completedWorkflow.setCompleted(true);
+        dbClient.createObject(completedWorkflow);
+        
+        WorkflowStep completedWorkflowStep = new WorkflowStep();
+        completedWorkflowStep.setId(URIUtil.createId(WorkflowStep.class));
+        completedWorkflowStep.setWorkflowId(completedWorkflow.getId());
+        dbClient.createObject(completedWorkflowStep);
+        
+        // Create a workflow older than max age
+        com.emc.storageos.db.client.model.Workflow dbWorkflow = new com.emc.storageos.db.client.model.Workflow();
+        dbWorkflow.setCreationTime(dateInPast);
+        dbWorkflow.setId(URIUtil.createId(com.emc.storageos.db.client.model.Workflow.class));
+        dbWorkflow.setCompleted(true);
+        dbClient.createObject(dbWorkflow);
+        
+        WorkflowStep step = new WorkflowStep();
+        step.setId(URIUtil.createId(WorkflowStep.class));
+        step.setWorkflowId(dbWorkflow.getId());
+        dbClient.createObject(step);
+        
+        List<URI> wfUris = dbClient.queryByType(com.emc.storageos.db.client.model.Workflow.class, true);
+        assertTrue(wfUris.size()==1);
+        
+        List<URI> wfStepUris = dbClient.queryByType(WorkflowStep.class, true);
+        assertTrue(wfStepUris.size()==1);
+        
+        // test that orphaned steps are deleted
+        dbWorkflow = new com.emc.storageos.db.client.model.Workflow();
+        dbWorkflow.setId(URIUtil.createId(com.emc.storageos.db.client.model.Workflow.class));
+        dbClient.createObject(dbWorkflow);
+        
+        step = new WorkflowStep();
+        step.setId(URIUtil.createId(WorkflowStep.class));
+        step.setWorkflowId(dbWorkflow.getId());
+        dbClient.createObject(step);
+        
+        step = new WorkflowStep();
+        step.setId(URIUtil.createId(WorkflowStep.class));
+        dbClient.createObject(step);
+        
+        step = new WorkflowStep();
+        step.setId(URIUtil.createId(WorkflowStep.class));
+        step.setWorkflowId(URIUtil.createId(com.emc.storageos.db.client.model.Workflow.class));
+        dbClient.createObject(step);
+        
+        dbClient.removeObject(dbWorkflow);
+        
+        scrubber.deleteOldWorkflows();
+        
+        wfUris = dbClient.queryByType(com.emc.storageos.db.client.model.Workflow.class, true);
+        assertTrue(wfUris.size()==1);
+        assertTrue(wfUris.get(0).equals(completedWorkflow.getId()));
+        
+        wfStepUris = dbClient.queryByType(WorkflowStep.class, true);
+        assertTrue(wfStepUris.size()==1);
+        assertTrue(wfStepUris.get(0).equals(completedWorkflowStep.getId()));
+        
+        printLog(testname + " completed");
     }
 
     /**

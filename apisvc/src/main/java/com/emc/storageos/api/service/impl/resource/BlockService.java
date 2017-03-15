@@ -85,6 +85,7 @@ import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.ExportPathParams;
+import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Migration;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.Project;
@@ -2104,6 +2105,9 @@ public class BlockService extends TaskResourceService {
             // Don't operate on VPLEX backend or RP Journal volumes (unless forced to).
             BlockServiceUtils.validateNotAnInternalBlockObject(vol, force);
 
+            // Don't operate on volumes with boot volume tags (unless forced to).
+            BlockServiceUtils.validateNotABootVolume(vol, force);
+
             if (!_permissionsHelper.userHasGivenRole(user, vol.getTenant().getURI(), Role.TENANT_ADMIN)
                     && !_permissionsHelper.userHasGivenACL(user, vol.getProject().getURI(), ACL.OWN, ACL.ALL)) {
                 throw APIException.forbidden.insufficientPermissionsForUser(user.getName());
@@ -2160,6 +2164,20 @@ public class BlockService extends TaskResourceService {
                     excludeTypes.add(ExportGroup.class);
                     excludeTypes.add(ExportMask.class);
                 }
+
+                // If we are deleting a boot volume, there may still be a reference to the volume
+                // in the decommissioned host.  Since the force flag is used, we will clear out this
+                // reference in the host so the volume can be deleted.
+                List<Host> hosts = CustomQueryUtility.queryActiveResourcesByRelation(_dbClient, volume.getId(),
+                        Host.class, "bootVolumeId");
+                if (hosts != null) {
+                    for (Host host : hosts) {
+                        host.setBootVolumeId(NullColumnValueGetter.getNullURI());
+                        _log.info("Removing boot volume ID from host: {}", host.forDisplay());
+                        _dbClient.updateObject(host);
+                    }
+                }                
+                
                 ArgValidator.checkReference(Volume.class, volumeURI, blockServiceApi.checkForDelete(volume, excludeTypes));
             }
 
@@ -2238,7 +2256,7 @@ public class BlockService extends TaskResourceService {
                 volume.setInactive(true);
                 _dbClient.persistObject(volume);
             }
-
+            
         }
 
         // Try and delete the volumes on each system.

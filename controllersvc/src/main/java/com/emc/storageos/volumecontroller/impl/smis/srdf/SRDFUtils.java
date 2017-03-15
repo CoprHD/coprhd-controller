@@ -803,7 +803,7 @@ public class SRDFUtils implements SmisConstants {
      * Need to add all SRDF source volumes id to change the linkStatus and accessState
      * for Sync/Async with CG. Take care not to add Vplex volume.
      */
-    public static void getSRDFCGVolumesForTaskCompleter(Volume sourceVol, DbClient dbClient, List<URI> combined) {
+    public static void addSRDFCGVolumesForTaskCompleter(Volume sourceVol, DbClient dbClient, List<URI> combined) {
         if (sourceVol != null && sourceVol.hasConsistencyGroup()) {
             URIQueryResultList uriQueryResultList = new URIQueryResultList();
             dbClient.queryByConstraint(getVolumesByConsistencyGroup(sourceVol.getConsistencyGroup()),

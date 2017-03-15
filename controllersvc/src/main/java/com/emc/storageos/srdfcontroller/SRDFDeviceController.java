@@ -1775,7 +1775,7 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
             Volume target = dbClient.queryObject(Volume.class, targetURI);
             List<URI> combined = Arrays.asList(sourceURI, targetURI);
             Volume sourceVolume = dbClient.queryObject(Volume.class, sourceURI);
-            SRDFUtils.getSRDFCGVolumesForTaskCompleter(sourceVolume, dbClient, combined);
+            SRDFUtils.addSRDFCGVolumesForTaskCompleter(sourceVolume, dbClient, combined);
             completer = new SRDFLinkPauseCompleter(combined, opId);
             getRemoteMirrorDevice().doSuspendLink(system, target, consExempt, false, completer);
         } catch (Exception e) {
@@ -1804,7 +1804,7 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
             Volume targetVolume = dbClient.queryObject(Volume.class, targetURI);
             List<URI> combined = Arrays.asList(sourceURI, targetURI);
             Volume sourceVolume = dbClient.queryObject(Volume.class, sourceURI);
-            SRDFUtils.getSRDFCGVolumesForTaskCompleter(sourceVolume, dbClient, combined);
+            SRDFUtils.addSRDFCGVolumesForTaskCompleter(sourceVolume, dbClient, combined);
             completer = new SRDFLinkPauseCompleter(combined, opId);
             getRemoteMirrorDevice().doSplitLink(system, targetVolume, rollback, completer);
         } catch (Exception e) {
@@ -1973,7 +1973,7 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
                 }
             }
 
-            SRDFUtils.getSRDFCGVolumesForTaskCompleter(sourceVol, dbClient, combined);
+            SRDFUtils.addSRDFCGVolumesForTaskCompleter(sourceVol, dbClient, combined);
             log.info("Combined ids : {}", Joiner.on("\t").join(combined));
             if (op.equalsIgnoreCase("failover")) {
                 completer = new SRDFLinkFailOverCompleter(combined, task);

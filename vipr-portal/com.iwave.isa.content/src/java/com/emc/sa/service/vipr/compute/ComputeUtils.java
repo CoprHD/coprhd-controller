@@ -302,6 +302,7 @@ public class ComputeUtils {
                     hostToBootVolumeIdMap.put(tempHost, volumeId);
                 } else {
                     bootVolsToRemove.add(volumeId);
+                    tempHost.setBootVolumeId(NullColumnValueGetter.getNullURI());
                     hostToBootVolumeIdMap.put(tempHost, null);
                 }
             } 

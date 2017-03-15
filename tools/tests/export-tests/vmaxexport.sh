@@ -1286,6 +1286,7 @@ test_25() {
     runcmd export_group update ${PROJECT}/$clusterXP --remHosts ${HOST1},${HOST2},${HOST3}
     verify_export $clusterXP -x- gone
     verify_export $hostXP $HOST1 2 1
+    runcmd export_group delete ${PROJECT}/$clusterXP # Delete empty EG
     runcmd export_group create ${PROJECT} $clusterXP nh --volspec ${PROJECT}/${VOLNAME}-1 --clusters "${TENANT}/${CLUSTER}" --type Cluster
     verify_export $clusterXP -x- 6 1
     verify_export $hostXP $HOST1 2 1
@@ -1293,6 +1294,7 @@ test_25() {
     verify_export $clusterXP -x- 6 1
     verify_export $hostXP $HOST1 gone
     runcmd export_group delete ${PROJECT}/$clusterXP
+    runcmd export_group delete ${PROJECT}/$hostXP
     verify_export $clusterXP -x- gone
     verify_export $hostXP $HOST1 gone
 }
@@ -1315,6 +1317,7 @@ test_26() {
     runcmd export_group update ${PROJECT}/$hostXP2 --remVols ${PROJECT}/${VOLNAME}-2
     verify_export $hostXP1 $HOST1 gone
     runcmd export_group delete ${PROJECT}/$hostXP1
+    runcmd export_group delete ${PROJECT}/$hostXP2
 }
 
 #
@@ -1354,8 +1357,9 @@ test_27() {
     runcmd export_group update ${PROJECT}/$hostXP --remInits ${HOST1}/${H1PI1}
     runcmd export_group update ${PROJECT}/$hostXP --remInits ${HOST1}/${H1PI2}
     verify_export $hostXP $HOST1 gone
+    
 
-
+    runcmd export_group delete ${PROJECT}/$hostXP
     # Test removal of all initiators in one host, but partial removal in another
     runcmd export_group create ${PROJECT} $hostXP nh --volspec ${PROJECT}/${VOLNAME}-2 --hosts "${HOST1},${HOST2}" --type Host
     verify_export $hostXP $HOST1 2 1

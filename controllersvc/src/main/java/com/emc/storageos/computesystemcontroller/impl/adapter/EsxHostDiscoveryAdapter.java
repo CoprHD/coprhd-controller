@@ -18,13 +18,13 @@ import com.emc.storageos.computesystemcontroller.exceptions.ComputeSystemControl
 import com.emc.storageos.computesystemcontroller.impl.DiscoveryStatusUtils;
 import com.emc.storageos.computesystemcontroller.impl.HostToComputeElementMatcher;
 import com.emc.storageos.db.client.constraint.PrefixConstraint;
-import com.emc.storageos.db.client.model.Host;
-import com.emc.storageos.db.client.model.Initiator;
-import com.emc.storageos.db.client.model.IpInterface;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.CompatibilityStatus;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus;
+import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Host.HostType;
 import com.emc.storageos.db.client.model.HostInterface.Protocol;
+import com.emc.storageos.db.client.model.Initiator;
+import com.emc.storageos.db.client.model.IpInterface;
 import com.emc.storageos.db.client.util.CommonTransformerFunctions;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.util.SanUtils;
@@ -305,7 +305,7 @@ public class EsxHostDiscoveryAdapter extends AbstractHostDiscoveryAdapter {
     }
 
     /**
-     * Discovers connected Host's Initiators and Ipinterfcaes
+     * Discovers connected Host's Initiators and Ipinterfaces
      * 
      * @param hostSystem
      *            - {@link HostSystem} VI SDK managedObject instance

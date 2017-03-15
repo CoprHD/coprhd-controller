@@ -74,6 +74,7 @@ import com.emc.storageos.model.block.VolumeDeleteTypeEnum;
 import com.emc.storageos.model.block.VolumeRestRep;
 import com.emc.storageos.model.block.VolumeRestRep.MirrorRestRep;
 import com.emc.storageos.model.block.VolumeRestRep.ProtectionRestRep;
+import com.emc.storageos.model.block.VolumeRestRep.SRDFRestRep;
 import com.emc.storageos.model.block.export.ExportBlockParam;
 import com.emc.storageos.model.block.export.ExportGroupRestRep;
 import com.emc.storageos.model.block.export.ExportPathParameters;
@@ -156,6 +157,9 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     // Failover option keys
     public static final String LATEST_IMAGE_OPTION_KEY = "latest";
     public static final String PIT_IMAGE_OPTION_KEY = "pit";
+
+    // SRDF METRO filter
+    public static final String ACTIVE = "ACTIVE";
 
     private static final AssetOption LATEST_IMAGE_OPTION = newAssetOption(LATEST_IMAGE_OPTION_KEY, "failover.image.type.latest");
     private static final AssetOption PIT_IMAGE_OPTION = newAssetOption(PIT_IMAGE_OPTION_KEY, "failover.image.type.pit");
@@ -1287,26 +1291,68 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     @Asset("protectedBlockVolume")
     @AssetDependencies({ "project", "blockVolumeOrConsistencyType" })
     public List<AssetOption> getProtectedVolumes(AssetOptionsContext ctx, URI project, String volumeOrConsistencyType) {
+        ViPRCoreClient client = api(ctx);
         if (isVolumeType(volumeOrConsistencyType)) {
             debug("getting protected volumes (project=%s)", project);
             // Allow recoverpoint or SRDF sources
             ResourceFilter<VolumeRestRep> filter = RecoverPointPersonalityFilter.SOURCE.or(new SRDFSourceFilter());
-            ViPRCoreClient client = api(ctx);
             List<VolumeRestRep> volumes = client.blockVolumes().findByProject(project, filter);
-            return createVolumeOptions(client, volumes);
+            // We need to filter out SRDF Metro volumes as they are not eligible for FAILOVER or SWAP
+            List<VolumeRestRep> filteredVols = new ArrayList<>();
+            for (VolumeRestRep currentVolume : volumes) {
+                ProtectionRestRep protection = currentVolume.getProtection();
+                if (protection != null && protection.getSrdfRep() != null && protection.getSrdfRep().getSRDFTargetVolumes() != null
+                        && !protection.getSrdfRep().getSRDFTargetVolumes().isEmpty()) {
+                    for (VolumeRestRep srdfTarget : client.blockVolumes().getByRefs(protection.getSrdfRep().getSRDFTargetVolumes(),
+                            new SRDFTargetFilter())) {
+                        SRDFRestRep srdf = (srdfTarget.getProtection() != null) ? srdfTarget.getProtection().getSrdfRep() : null;
+                        if (srdf != null && (srdf.getAssociatedSourceVolume() != null) &&
+                                (srdf.getSrdfCopyMode() != null) && (!ACTIVE.equalsIgnoreCase(srdf.getSrdfCopyMode()))) {
+                            filteredVols.add(currentVolume);
+                            break;
+                        }
+                    }
+                } else { // Add the volume as before
+                    filteredVols.add(currentVolume);
+                }
+            }
+            return createVolumeOptions(client, filteredVols);
         } else {
             debug("getting protected consistency groups (project=%s)", project);
             // Allow recoverpoint or SRDF sources
             ResourceFilter<BlockConsistencyGroupRestRep> filter = new ConsistencyGroupFilter(BlockConsistencyGroup.Types.RP.name(),
                     false).or(new ConsistencyGroupFilter(BlockConsistencyGroup.Types.SRDF.name(),
                     false));
-            List<BlockConsistencyGroupRestRep> consistencyGroups = api(ctx).blockConsistencyGroups()
+            List<BlockConsistencyGroupRestRep> consistencyGroups = client.blockConsistencyGroups()
                     .search()
                     .byProject(project)
                     .filter(filter)
                     .run();
-
-            return createBaseResourceOptions(consistencyGroups);
+            // We need to filter out SRDF Metro volumes as they are not eligible for FAILOVER or SWAP
+            List<BlockConsistencyGroupRestRep> filteredCgs = new ArrayList<>();
+            for (BlockConsistencyGroupRestRep cg : consistencyGroups) {
+                // Get SRDF source volumes
+                if (cg.getTypes().contains(BlockConsistencyGroup.Types.SRDF.name())) {
+                    List<VolumeRestRep> srcVolumes = client.blockVolumes().getByRefs(cg.getVolumes(), new SRDFSourceFilter());
+                    if (srcVolumes != null && !srcVolumes.isEmpty()) {
+                        // Get the first source volume and obtain its target references
+                        VolumeRestRep srcVolume = srcVolumes.get(0);
+                        for (VolumeRestRep srdfTarget : client.blockVolumes().getByRefs(
+                                srcVolume.getProtection().getSrdfRep().getSRDFTargetVolumes(),
+                                new SRDFTargetFilter())) {
+                            SRDFRestRep srdf = (srdfTarget.getProtection() != null) ? srdfTarget.getProtection().getSrdfRep() : null;
+                            if (srdf != null && (srdf.getAssociatedSourceVolume() != null) &&
+                                    (srdf.getSrdfCopyMode() != null) && (!ACTIVE.equalsIgnoreCase(srdf.getSrdfCopyMode()))) {
+                                filteredCgs.add(cg);
+                                break;
+                            }
+                        }
+                    }
+                } else { // Add the cg as before
+                    filteredCgs.add(cg);
+                }
+            }
+            return createBaseResourceOptions(filteredCgs);
         }
     }
 
@@ -2364,7 +2410,9 @@ public class BlockProvider extends BaseAssetOptionsProvider {
 
             List<AssetOption> options = Lists.newArrayList();
             for (VolumeDetail detail : volumeDetails) {
-
+                if (detail.vpool == null ) {
+                    continue;
+                }
                 boolean localSnapSupported = isLocalSnapshotSupported(detail.vpool);
                 boolean isRPTargetVolume = isRPTargetVolume(detail.volume);
                 boolean isRPSourceVolume = isRPSourceVolume(detail.volume);

@@ -43,6 +43,8 @@ public class UpdateVcenterClusterService extends ViPRService {
         if (cluster == null) {
             preCheckErrors.append(
                     ExecutionUtils.getMessage("compute.vcenter.cluster.does.not.exist.update", clusterId) + " ");
+        } else {
+            BlockStorageUtils.checkEvents(cluster);
         }
 
         if (preCheckErrors.length() > 0) {

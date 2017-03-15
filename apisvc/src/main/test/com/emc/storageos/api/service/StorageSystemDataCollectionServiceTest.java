@@ -72,22 +72,22 @@ public class StorageSystemDataCollectionServiceTest extends ApiTestBase {
     }
 
     @Mock
-    ScaleIORestClientFactory mockFactory;
+    private ScaleIORestClientFactory mockFactory;
 
     @Mock
-    ScaleIORestClient restClient;
+    private ScaleIORestClient restClient;
 
     @Mock
-    ScaleIOCollectDataParam sioParam;
+    private ScaleIOCollectDataParam sioParam;
 
     @Mock
-    ScaleIOSystem sioSystem;
+    private ScaleIOSystem sioSystem;
 
     @Mock
-    ScaleIOSDS sds;
+    private ScaleIOSDS sds;
 
     @Mock
-    ScaleIODevice device;
+    private ScaleIODevice device;
 
     @Test
     /*
@@ -98,10 +98,7 @@ public class StorageSystemDataCollectionServiceTest extends ApiTestBase {
         Mockito.when(mockFactory.getRESTClient(Mockito.any(URI.class), Mockito.anyString(), Mockito.anyString())).thenReturn(restClient);
 
         service.setScaleIORestClientFactory(mockFactory);
-        ScaleIOSystemDataRestRep sio = service.discoverScaleIO(sioParam);
-
-        Gson gson = new GsonBuilder().setPrettyPrinting().create();
-        System.out.println(gson.toJson(sio));
+        service.discoverScaleIO(sioParam);
     }
 
     @Test
@@ -117,10 +114,7 @@ public class StorageSystemDataCollectionServiceTest extends ApiTestBase {
         Mockito.when(mockFactory.getRESTClient(Mockito.any(URI.class), Mockito.anyString(), Mockito.anyString())).thenReturn(restClient);
 
         service.setScaleIORestClientFactory(mockFactory);
-        ScaleIOSystemDataRestRep sio = service.discoverScaleIO(sioParam);
-
-        Gson gson = new GsonBuilder().setPrettyPrinting().create();
-        System.out.println(gson.toJson(sio));
+        service.discoverScaleIO(sioParam);
 
     }
 
@@ -140,10 +134,6 @@ public class StorageSystemDataCollectionServiceTest extends ApiTestBase {
         Mockito.when(mockFactory.getRESTClient(Mockito.any(URI.class), Mockito.anyString(), Mockito.anyString())).thenReturn(restClient);
 
         service.setScaleIORestClientFactory(mockFactory);
-        ScaleIOSystemDataRestRep sio = service.discoverScaleIO(sioParam);
-
-        Gson gson = new GsonBuilder().setPrettyPrinting().create();
-        System.out.println(gson.toJson(sio));
-
+        service.discoverScaleIO(sioParam);
     }
 }

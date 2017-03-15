@@ -29,7 +29,6 @@ import com.emc.storageos.db.client.model.FileObject;
 import com.emc.storageos.db.client.model.FilePolicy;
 import com.emc.storageos.db.client.model.FilePolicy.FilePolicyApplyLevel;
 import com.emc.storageos.db.client.model.FilePolicy.FilePolicyType;
-import com.emc.storageos.db.client.model.FileReplicationTopology;
 import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.model.FileShare.PersonalityTypes;
 import com.emc.storageos.db.client.model.PhysicalNAS;
@@ -1834,24 +1833,10 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
                     filePolicy.removeAssignedResources(uri);
                     FileOrchestrationUtils.updateUnAssignedResource(filePolicy, uri, s_dbClient);
                 }
+
                 // If no other resources are assigned to replication policy
                 // Remove the replication topology from the policy
-                if (filePolicy.getFilePolicyType().equalsIgnoreCase(FilePolicyType.file_replication.name())
-                        && (filePolicy.getAssignedResources() == null || filePolicy.getAssignedResources().isEmpty())) {
-                    if (filePolicy.getReplicationTopologies() != null && !filePolicy.getReplicationTopologies().isEmpty()) {
-                        for (String uriTopology : filePolicy.getReplicationTopologies()) {
-                            FileReplicationTopology topology = s_dbClient.queryObject(FileReplicationTopology.class,
-                                    URI.create(uriTopology));
-                            if (topology != null) {
-                                topology.setInactive(true);
-                                filePolicy.removeReplicationTopology(uriTopology);
-                                s_dbClient.updateObject(topology);
-                            }
-                        }
-                        s_logger.info("Removed replication topology from policy {}", filePolicy.getFilePolicyName());
-                    }
-
-                }
+                FileOrchestrationUtils.removeTopologyInfo(filePolicy, s_dbClient);
                 s_dbClient.updateObject(filePolicy);
                 s_logger.info("Unassigning file policy: {} from resources: {} finished successfully", policy.toString(),
                         unassignFrom.toString());
@@ -2218,9 +2203,11 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
             String successMessage = String.format("Assigning file policy : %s, to vpool(s) successful.",
                     filePolicy.getId());
             workflow.executePlan(completer, successMessage);
-        } catch (
+        } catch (Exception ex) {
+            // If no other resources are assigned to replication policy
+            // Remove the replication topology from the policy
+            FileOrchestrationUtils.removeTopologyInfo(filePolicy, s_dbClient);
 
-        Exception ex) {
             s_logger.error(String.format("Assigning file policy : %s to vpool(s) failed", filePolicy.getId()), ex);
             ServiceError serviceError = DeviceControllerException.errors
                     .assignFilePolicyFailed(filePolicyToAssign.toString(), filePolicy.getApplyAt(), ex);
@@ -2310,9 +2297,11 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
             String successMessage = String.format("Assigning file policy : %s, to project(s) successful.",
                     filePolicy.getId());
             workflow.executePlan(completer, successMessage);
-        } catch (
+        } catch (Exception ex) {
+            // If no other resources are assigned to replication policy
+            // Remove the replication topology from the policy
+            FileOrchestrationUtils.removeTopologyInfo(filePolicy, s_dbClient);
 
-        Exception ex) {
             s_logger.error(String.format("Assigning file policy : %s to project(s) failed", filePolicy.getId()), ex);
             ServiceError serviceError = DeviceControllerException.errors
                     .assignFilePolicyFailed(filePolicyToAssign.toString(), filePolicy.getApplyAt(), ex);

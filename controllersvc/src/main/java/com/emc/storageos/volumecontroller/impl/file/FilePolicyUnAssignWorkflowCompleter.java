@@ -14,8 +14,6 @@ import org.slf4j.LoggerFactory;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.FilePolicy;
 import com.emc.storageos.db.client.model.FilePolicy.FilePolicyApplyLevel;
-import com.emc.storageos.db.client.model.FilePolicy.FilePolicyType;
-import com.emc.storageos.db.client.model.FileReplicationTopology;
 import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.Operation.Status;
@@ -23,6 +21,7 @@ import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.exceptions.DeviceControllerException;
+import com.emc.storageos.fileorchestrationcontroller.FileOrchestrationUtils;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 
@@ -109,21 +108,8 @@ public class FilePolicyUnAssignWorkflowCompleter extends FilePolicyWorkflowCompl
 
             // If no other resources are assigned to replication policy
             // Remove the replication topology from the policy
-            if (filePolicy.getFilePolicyType().equalsIgnoreCase(FilePolicyType.file_replication.name())
-                    && filePolicy.getReplicationTopologies() != null && !filePolicy.getReplicationTopologies().isEmpty()) {
-                for (String uriTopology : filePolicy.getReplicationTopologies()) {
-                    FileReplicationTopology topology = dbClient.queryObject(FileReplicationTopology.class,
-                            URI.create(uriTopology));
-                    if (topology != null) {
-                        topology.setInactive(true);
-                        filePolicy.removeReplicationTopology(uriTopology);
-                        dbClient.updateObject(topology);
-                    }
-                }
-                _log.info("Removed replication topology from policy {}", filePolicy.getFilePolicyName());
-            }
+            FileOrchestrationUtils.removeTopologyInfo(filePolicy, dbClient);
         }
         dbClient.updateObject(filePolicy);
-
     }
 }

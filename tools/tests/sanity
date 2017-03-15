@@ -4821,6 +4821,8 @@ APPLY_ON_TARGET_SITE="false"
 filepolicy_tests()
 {
     echo "File policy tests started"
+    ISI_PROJECT=isiproject
+    run project create $ISI_PROJECT
     cos=$1; shift
     fpname=$SNAPSHOT_TYPE$APPLY_AT_VPOOL
     echo $fpname
@@ -4856,36 +4858,36 @@ filepolicy_tests()
                           --replicationconfiguration $REPLICATION_CONFIGURATION \
                           --policyschedulefrequency $POLICY_SCHEDULE_FREQUENCY \
                           --policyschedulerepeat $POLICY_SCHEDULE_REPEAT \
-                          --policyscheduletime $POLICY_SCHEDULE_TIME
+                          --policyscheduletime $POLICY_SCHEDULE_TIME \
+                          --is_access_to_tenants true
 	
 	sleep 15
 	run filepolicy show $fpname
 	
-	echo "Assigning filepolicy $fpname to project $PROJECT"
+	echo "Assigning filepolicy $fpname to project $ISI_PROJECT"
 	run filepolicy project_assign $fpname  \
-                         --apply_on_target_site $APPLY_ON_TARGET_SITE \
+                         --apply_on_target_site true \
                           --project_assign_vpool $cos \
-                          --assign_to_projects $PROJECT \
+                          --assign_to_projects $ISI_PROJECT \
                           --source_varray $REMOTE_NH \
-                          --target_varrays $NH
-	
-	fsname=FilePolicyTest-$cos
-	targetfsname=$fsname-target
+                          --target_varrays $NH	
+						  
+	datetime=`date +%m%d%y%H%M%S`
+	fsname=FilePolicyTest-$cos-$datetime
 	
 	echo "Creating filesystem $fsname"
-	run fileshare create $fsname $PROJECT $REMOTE_NH $cos $FS_SIZEMB
+	run fileshare create $fsname $ISI_PROJECT $REMOTE_NH $cos $FS_SIZEMB
 	
+    sleep 15
 	echo "Displaying the filesystem created"
-	run fileshare show $PROJECT/$fsname 
+	run fileshare show $ISI_PROJECT/$fsname 
 	
-	echo "Displaying the filesystem created at target"
-	run fileshare show $PROJECT/$targetfsname 
-	
+	sleep 15
 	echo "Deleting the filesystem"
-	run fileshare delete $PROJECT/$fsname
+	run fileshare delete $ISI_PROJECT/$fsname
 	
     echo "Unassigning filepolicy $fpname from project $PROJECT"
-    run filepolicy project_unassign $fpname $PROJECT
+    run filepolicy project_unassign $fpname $ISI_PROJECT
     
     echo "Deleting the file policy $fpname"
 	run filepolicy delete $fpname

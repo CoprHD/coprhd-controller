@@ -3265,5 +3265,8 @@ public interface BadRequestExceptions {
     public BadRequestException operationNotPermittedOnSRDFActiveCopyMode(final String operation);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException invalidConsistencyGroupsForProtectionOperation();
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException hostWithDuplicateIP(final String newHost, final String ipAddress, final String duplicateHost);
 }

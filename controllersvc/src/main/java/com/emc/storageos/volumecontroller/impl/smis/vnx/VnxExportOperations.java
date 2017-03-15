@@ -893,9 +893,9 @@ public class VnxExportOperations implements ExportMaskOperations {
                 // NOTE/TODO: We are not modifying the storage ports upon refresh like we do for VMAX.
                 // Refer to CTRL-6982.
                 builder.append(
-                        String.format("XM refresh: %s initiators; add:{%s} remove:{%s}%n",
+                        String.format("XM refresh: %s initiators; add:{%s} initiatorIdsToAdd:{%s} remove:{%s}%n",
                                 name, Joiner.on(',').join(initiatorsToAdd),
-                                Joiner.on(',').join(initiatorsToRemove)));
+                                Joiner.on(',').join(initiatorIdsToAdd), Joiner.on(',').join(initiatorsToRemove)));
                 builder.append(
                         String.format("XM refresh: %s volumes; add:{%s} remove:{%s}%n",
                                 name, Joiner.on(',').join(volumesToAdd.keySet()),
@@ -907,20 +907,11 @@ public class VnxExportOperations implements ExportMaskOperations {
                     builder.append("XM refresh: There are changes to mask, " +
                             "updating it...\n");
                     mask.removeFromExistingInitiators(initiatorsToRemove);
+                    mask.addInitiators(initiatorIdsToAdd);
+                    mask.addToUserCreatedInitiators(initiatorIdsToAdd);
                     mask.addToExistingInitiatorsIfAbsent(initiatorsToAdd);
                     mask.removeFromExistingVolumes(volumesToRemove);
                     mask.addToExistingVolumesIfAbsent(volumesToAdd);
-
-                    // Update the initiator list to include existing initiators if we know about them.
-                    if (addInitiators) {
-                        for (String port : initiatorsToAdd) {
-                            Initiator existingInitiator = ExportUtils.getInitiator(Initiator.toPortNetworkId(port), _dbClient);
-                            // Don't add additional initiator to initiators list if it belongs to different host/cluster
-                            if (existingInitiator != null && !ExportMaskUtils.checkIfDifferentResource(mask, existingInitiator)) {
-                                mask.addInitiator(existingInitiator);
-                            }
-                        }
-                    }
 
                     // Update the volume list to include existing volumes if know about them.
                     if (addVolumes) {

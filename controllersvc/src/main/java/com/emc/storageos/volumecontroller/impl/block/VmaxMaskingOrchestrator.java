@@ -605,7 +605,8 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                     List<URI> initiatorsToRemoveOnStorage = new ArrayList<URI>();
                     for (URI initiatorURI : initiatorsToRemove) {
                         Initiator initiator = _dbClient.queryObject(Initiator.class, initiatorURI);
-                        List<String> sharedMaskNames = ExportUtils.getExportMasksSharingInitiator(_dbClient, initiatorURI, mask,
+                        //COP-28729 - We can allow remove initiator or host if the shared mask doesn't have any existing volumes.
+                        List<String> sharedMaskNames = ExportUtils.getExportMasksSharingInitiatorAndHasOnlyViPRManagedVolumes(_dbClient, initiatorURI, mask,
                                 existingMasksToRemoveInitiator.keySet());
                         if (!CollectionUtils.isEmpty(sharedMaskNames)) {
                             String normalizedName = Initiator.normalizePort(initiator.getInitiatorPort());

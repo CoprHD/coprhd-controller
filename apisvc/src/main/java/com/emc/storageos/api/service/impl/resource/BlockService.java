@@ -3115,6 +3115,15 @@ public class BlockService extends TaskResourceService {
             ExportUtils.validateConsistencyGroupBookmarksExported(_dbClient, volume.getConsistencyGroup());
         }
 
+        // Make sure the source and failover target share the same consistency group (applies to change access mode, failover, and failover
+        // cancel operations)
+        if ((op.equalsIgnoreCase(ProtectionOp.CHANGE_ACCESS_MODE.getRestOp()) || op.equalsIgnoreCase(ProtectionOp.FAILOVER.getRestOp()) || op
+                .equalsIgnoreCase(ProtectionOp.FAILOVER_CANCEL.getRestOp()))
+                && !NullColumnValueGetter.isNullURI(volume.getConsistencyGroup())
+                && !volume.getConsistencyGroup().equals(copyVolume.getConsistencyGroup())) {
+            throw APIException.badRequests.invalidConsistencyGroupsForProtectionOperation();
+        }
+
         // Catch any attempts to use an invalid access mode
         if (op.equalsIgnoreCase(ProtectionOp.CHANGE_ACCESS_MODE.getRestOp()) &&
                 !Copy.ImageAccessMode.DIRECT_ACCESS.name().equalsIgnoreCase(copy.getAccessMode())) {

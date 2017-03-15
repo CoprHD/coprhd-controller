@@ -21,6 +21,7 @@ import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.exceptions.DeviceControllerException;
+import com.emc.storageos.fileorchestrationcontroller.FileOrchestrationUtils;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 
@@ -97,14 +98,18 @@ public class FilePolicyUnAssignWorkflowCompleter extends FilePolicyWorkflowCompl
                     _log.error("Not a valid policy apply level: " + applyLevel);
             }
         }
+
         if (filePolicy.getAssignedResources() == null || filePolicy.getAssignedResources().isEmpty()) {
             // if no resources are attached to policy
             // remove the file policy vpool
             if (!NullColumnValueGetter.isNullURI(filePolicy.getFilePolicyVpool())) {
                 filePolicy.setFilePolicyVpool(NullColumnValueGetter.getNullURI());
             }
+
+            // If no other resources are assigned to replication policy
+            // Remove the replication topology from the policy
+            FileOrchestrationUtils.removeTopologyInfo(filePolicy, dbClient);
         }
         dbClient.updateObject(filePolicy);
-
     }
 }

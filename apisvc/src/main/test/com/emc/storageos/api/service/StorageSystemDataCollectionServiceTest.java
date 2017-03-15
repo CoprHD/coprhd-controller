@@ -14,6 +14,7 @@ import com.emc.storageos.scaleio.api.restapi.ScaleIORestClientFactory;
 import com.emc.storageos.scaleio.api.restapi.response.ScaleIODevice;
 import com.emc.storageos.scaleio.api.restapi.response.ScaleIOSDS;
 import com.emc.storageos.scaleio.api.restapi.response.ScaleIOSystem;
+import com.emc.storageos.services.util.EnvConfig;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import java.net.URI;
@@ -40,9 +41,9 @@ public class StorageSystemDataCollectionServiceTest extends ApiTestBase {
     private static StorageSystemDataCollectionService service;
     private static ScaleIORestClientFactory factory;
     private static final String UNIT_TEST_CONFIG_FILE = "sanity";
-    private static final String HOST = "mcr1-sio-gw.mdmz.lab.vce.com";//EnvConfig.get(UNIT_TEST_CONFIG_FILE, "scaleio.host.api.ipaddress");
-    private static final String USER = "admin";//EnvConfig.get(UNIT_TEST_CONFIG_FILE, "scaleio.host.api.user");
-    private static final String PASSWORD = "1vBlock9!";//EnvConfig.get(UNIT_TEST_CONFIG_FILE, "scaleio.host.api.password");
+    private static final String HOST = EnvConfig.get(UNIT_TEST_CONFIG_FILE, "scaleio.host.api.ipaddress");
+    private static final String USER = EnvConfig.get(UNIT_TEST_CONFIG_FILE, "scaleio.host.api.user");
+    private static final String PASSWORD = EnvConfig.get(UNIT_TEST_CONFIG_FILE, "scaleio.host.api.password");
     private static int PORT = 443;
 
     @BeforeClass

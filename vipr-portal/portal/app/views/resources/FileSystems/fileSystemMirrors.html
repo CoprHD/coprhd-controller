@@ -20,10 +20,18 @@
     <tr>
     <td></td>
       <td style="text-align:right;">
-        <a class="btn btn-info btn-xs" href="@{mirrorOperationFileSystem(params.fileSystemId,'pause')}">&{'button.mirroring.pause'}</a>
-        <a class="btn btn-info btn-xs" href="@{mirrorOperationFileSystem(params.fileSystemId,'resume')}">&{'button.mirroring.resume'}</a>
-        <a class="btn btn-xs btn-success" href="@{mirrorOperationFileSystem(params.fileSystemId,'refresh')}">&{'button.mirroring.refresh'}</a>
-        <a class="btn btn-danger btn-xs" href="@{mirrorOperationFileSystem(params.fileSystemId,'stop')}">&{'button.mirroring.stop'}</a>
+        #{if replicationAtFsLevel}
+           <a class="btn btn-info btn-xs" href="@{mirrorOperationFileSystem(params.fileSystemId,'pause')}">&{'button.mirroring.pause'}</a>
+           <a class="btn btn-info btn-xs" href="@{mirrorOperationFileSystem(params.fileSystemId,'resume')}">&{'button.mirroring.resume'}</a>
+           <a class="btn btn-xs btn-success" href="@{mirrorOperationFileSystem(params.fileSystemId,'refresh')}">&{'button.mirroring.refresh'}</a>
+           <a class="btn btn-danger btn-xs" href="@{mirrorOperationFileSystem(params.fileSystemId,'stop')}">&{'button.mirroring.stop'}</a>
+        #{/if}
+        #{else}
+           <a class="btn btn-info btn-xs"    disabled href="@{mirrorOperationFileSystem(params.fileSystemId,'pause')}">&{'button.mirroring.pause'}</a>
+           <a class="btn btn-info btn-xs"    disabled href="@{mirrorOperationFileSystem(params.fileSystemId,'resume')}">&{'button.mirroring.resume'}</a>
+           <a class="btn btn-xs btn-success" disabled href="@{mirrorOperationFileSystem(params.fileSystemId,'refresh')}">&{'button.mirroring.refresh'}</a>
+           <a class="btn btn-danger btn-xs"  disabled href="@{mirrorOperationFileSystem(params.fileSystemId,'stop')}">&{'button.mirroring.stop'}</a>
+        #{/else}
       </td>
     </tr>
   </tbody>

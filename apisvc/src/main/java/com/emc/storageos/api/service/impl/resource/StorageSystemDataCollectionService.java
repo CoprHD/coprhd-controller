@@ -101,13 +101,15 @@ public class StorageSystemDataCollectionService {
                 //map device data
                 List<ScaleIODevice> devices = client.getSdsDevices(sds.getId());
                 List<ScaleIODeviceDataRestRep> scaleIODeviceDataRestReps = new ArrayList<ScaleIODeviceDataRestRep>();
-                for(ScaleIODevice device : devices){
-                    ScaleIODeviceDataRestRep scaleIODeviceDataRestRep = ScaleIODataMapper.map(device);
-                    //map storagepool data
-                    scaleIODeviceDataRestRep.setStoragePool(ScaleIODataMapper.map(spMap.get(device.getStoragePoolId())));
-                    scaleIODeviceDataRestReps.add(scaleIODeviceDataRestRep);
+                if (null != devices) {
+                    for (ScaleIODevice device : devices) {
+                        ScaleIODeviceDataRestRep scaleIODeviceDataRestRep = ScaleIODataMapper.map(device);
+                        //map storagepool data
+                        scaleIODeviceDataRestRep.setStoragePool(ScaleIODataMapper.map(spMap.get(device.getStoragePoolId())));
+                        scaleIODeviceDataRestReps.add(scaleIODeviceDataRestRep);
+                    }
+                    sdsData.setDevices(scaleIODeviceDataRestReps);
                 }
-                sdsData.setDevices(scaleIODeviceDataRestReps);
 
                 //map fault set data
                 if (null != fsMap) {

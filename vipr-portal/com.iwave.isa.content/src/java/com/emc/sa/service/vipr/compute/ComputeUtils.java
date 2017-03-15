@@ -391,7 +391,7 @@ public class ComputeUtils {
                     boolean isEmptyExport = export != null && BlockStorageUtils.isEmptyExport(export);
                     String exportName = host.getHostName();
                     if (export != null && !isEmptyExport) {
-                        exportName = BlockStorageUtils.UNDERSCORE
+                        exportName = exportName + BlockStorageUtils.UNDERSCORE
                                 + new SimpleDateFormat("yyyyMMddhhmmssSSS").format(new Date());
                         createExport = true;
                     }

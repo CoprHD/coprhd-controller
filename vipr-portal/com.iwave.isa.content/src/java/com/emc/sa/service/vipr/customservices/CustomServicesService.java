@@ -24,7 +24,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import com.emc.sa.service.vipr.customservices.tasks.*;
 
 import org.apache.commons.lang.StringUtils;
 import org.codehaus.jackson.JsonNode;
@@ -37,7 +36,6 @@ import org.springframework.expression.ExpressionParser;
 import org.springframework.expression.spel.standard.SpelExpressionParser;
 import org.springframework.expression.spel.support.StandardEvaluationContext;
 
-import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.sa.catalog.primitives.CustomServicesPrimitiveDAOs;
 import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.engine.service.Service;
@@ -46,11 +44,13 @@ import com.emc.sa.service.vipr.ViPRService;
 import com.emc.sa.service.vipr.customservices.CustomServicesConstants.InputType;
 import com.emc.sa.service.vipr.customservices.gson.ViprOperation;
 import com.emc.sa.service.vipr.customservices.gson.ViprTask;
+import com.emc.sa.service.vipr.customservices.tasks.CustomServicesRestTaskResult;
 import com.emc.sa.service.vipr.customservices.tasks.CustomServicesRESTExecution;
 import com.emc.sa.service.vipr.customservices.tasks.CustomServicesTaskResult;
-import com.emc.sa.service.vipr.customservices.tasks.RunAnsible;
 import com.emc.sa.service.vipr.customservices.tasks.RunViprREST;
+import com.emc.sa.service.vipr.customservices.tasks.RunAnsible;
 import com.emc.sa.workflow.WorkflowHelper;
+import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.model.customservices.CustomServicesWorkflowDocument;
 import com.emc.storageos.model.customservices.CustomServicesWorkflowDocument.Input;
@@ -384,6 +384,7 @@ public class CustomServicesService extends ViPRService {
                     }
                 }
             } else {
+
                 // TODO: Remove this after parsing output is fully implemented
                 // out.put(o.getName(), evaluateValue(result, o.getName()));
                 return;

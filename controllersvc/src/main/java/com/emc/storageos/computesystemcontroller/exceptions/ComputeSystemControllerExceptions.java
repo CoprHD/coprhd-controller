@@ -163,6 +163,9 @@ public interface ComputeSystemControllerExceptions {
     public ComputeSystemControllerException newServiceProfileDuplicateUuid(final String serviceProfile, final String uuid, final String host);
 
     @DeclareServiceCode(ServiceCode.CONTROLLER_COMPUTESYSTEM_ERROR)
+    public ComputeSystemControllerException hostMatcherError(final String msg);
+
+    @DeclareServiceCode(ServiceCode.CONTROLLER_COMPUTESYSTEM_ERROR)
     public ComputeSystemControllerException invalidServiceProfileReference(final String serviceProfileId);
 
     @DeclareServiceCode(ServiceCode.CONTROLLER_COMPUTESYSTEM_ERROR)

@@ -5,13 +5,6 @@
 package com.emc.storageos.db.client.model;
 
 import java.net.URI;
-import java.nio.ByteBuffer;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.UUID;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
 import com.emc.storageos.db.client.util.EndpointUtility;
 
 /**
@@ -52,68 +45,6 @@ public class Host extends AbstractComputeSystem {
     private String bios;
     public static String ALTER_ID_FIELD = "hostName";
     private URI _serviceProfile;
-
-    /**
-     * Older hosts report UUID in Big-Endian or "network-byte-order" (Most Significant Byte first)
-     *     e.g.: {00112233-4455-6677-8899-AABBCCDDEEFF}
-     * Newer Hosts' BIOSs supporting SMBIOS 2.6 or later report UUID in Little-Endian or "wire-format", where
-     *   first 3 parts are in byte revered order (aka: 'mixed-endian')
-     *     e.g.: {33221100-5544-7766-8899-AABBCCDDEEFF}
-     **/
-    public static String getUuidOldFormat(String uuid, String bios) {
-
-        if(uuid == null || bios == null) {
-            return null;
-        }
-
-        //TODO: decide based on matrix when available from Cisco
-        /**
-        final Map<String,Double> biosToSmBiosMap = new HashMap<>();
-        biosToSmBiosMap.put("BIOS1-V2.2",2.2);
-        biosToSmBiosMap.put("BIOS2-V2.4",2.4);
-        biosToSmBiosMap.put("BIOS3-V2.5",2.5);
-        biosToSmBiosMap.put("B200M4.2.2.4a.0.041620151912",2.6);
-        **/
-
-        // use blade model number to determine UUID format (TEMPORARY!!)
-        try {
-            final String biosVersionPattern = "^B\\d+M(\\d)";
-            Pattern r = Pattern.compile(biosVersionPattern);
-            String biosModel = "0"; // default is old model, since old BIOS's may not follow pattern
-            Matcher m = r.matcher(bios);
-            if(m.find()) {
-                biosModel = m.group(1);
-            }
-            if(Integer.parseInt(biosModel) < 3 ) {
-                return uuid; // do not reverse bytes for older blades
-            }
-        } catch (NumberFormatException|IllegalStateException e) {
-            return null;  // cannot determine desired format
-        }
-
-        // reverse bytes
-        UUID uuidObj = UUID.fromString(uuid);
-        ByteBuffer bb = ByteBuffer.wrap(new byte[16]);
-        bb.putLong(uuidObj.getMostSignificantBits());
-        bb.putLong(uuidObj.getLeastSignificantBits());
-        byte[] reorderedUuid = new byte[16];
-        reorderedUuid[0] = bb.get(3); // reverse bytes in 1st part
-        reorderedUuid[1] = bb.get(2);
-        reorderedUuid[2] = bb.get(1);
-        reorderedUuid[3] = bb.get(0);
-        reorderedUuid[4] = bb.get(5); // reverse bytes in 2nd part
-        reorderedUuid[5] = bb.get(4);
-        reorderedUuid[6] = bb.get(7); // reverse bytes in 3rd part
-        reorderedUuid[7] = bb.get(6);
-        for(int byteIndex = 8; byteIndex < 16; byteIndex++ ) {
-            reorderedUuid[byteIndex] = bb.get(byteIndex); // copy 4th & 5th parts unchanged
-        }
-        bb = ByteBuffer.wrap(reorderedUuid);
-        UUID uuidNew = new UUID(bb.getLong(), bb.getLong());
-        return uuidNew.toString();
-    }
-    
-
 
     /**
      * This is for recording the volumeId that was used in the OsInstallation phase. Will be used to remove the associated volume when

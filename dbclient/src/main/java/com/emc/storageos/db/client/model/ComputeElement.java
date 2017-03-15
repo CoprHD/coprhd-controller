@@ -87,16 +87,6 @@ public class ComputeElement extends DiscoveredSystemObject {
         setChanged("originalUuid");
     }
 
-    @Name("bios")
-    public String getBios() {
-        return _bios;
-    }
-
-    public void setBios(String bios) {
-        this._bios = bios;
-        setChanged("bios");
-    }
-
     /**
      * This is currently the dn of the Service Profile that's bound If this is
      * not set, that means that there isn't a SP bound to he blade

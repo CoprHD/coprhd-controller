@@ -10,7 +10,6 @@ import java.net.URI;
 import java.net.URL;
 import java.text.NumberFormat;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Collection;
 import java.util.HashMap;
@@ -58,7 +57,6 @@ import com.emc.cloud.platform.ucs.out.model.VnicSanConnTempl;
 import com.emc.cloud.ucsm.service.UCSMService;
 import com.emc.storageos.computesystemcontroller.exceptions.ComputeSystemControllerException;
 import com.emc.storageos.computesystemcontroller.impl.HostToComputeElementMatcher;
-import com.emc.storageos.computesystemcontroller.impl.HostToServiceProfileMatcher;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
@@ -81,7 +79,6 @@ import com.emc.storageos.db.client.model.ComputeVirtualPool;
 import com.emc.storageos.db.client.model.ComputeVnic;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
-import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus;
 import com.emc.storageos.db.client.model.DiscoveredSystemObject;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.StringSet;
@@ -208,13 +205,12 @@ public class UcsDiscoveryWorker {
             reconcileUplinkPortChannels(cs, portChannelMap, unpinnedVsans);
             reconcileVlans(cs, vlanList);
     
+            associateComputeImageServer(cs);
             matchComputeBladesToHosts(cs);
-            matchServiceProfilesToHosts(cs);
-    
+
             cs.setLastDiscoveryRunTime(Calendar.getInstance().getTimeInMillis());
             cs.setSuccessDiscoveryTime(Calendar.getInstance().getTimeInMillis());
             cs.setDiscoveryStatus(DiscoveredDataObject.DataCollectionJobStatus.COMPLETE.name());
-            associateComputeImageServer(cs);
         } catch (ComputeSystemControllerException e){
             cs.setLastDiscoveryStatusMessage(e.getMessage());
             throw ComputeSystemControllerException.exceptions.discoverFailed(cs.getId().toString(), e);
@@ -2268,10 +2264,6 @@ public class UcsDiscoveryWorker {
 
     private void matchComputeBladesToHosts(ComputeSystem cs) {
         HostToComputeElementMatcher.matchHostsToComputeElements(_dbClient);
-    }
- 
-    private void matchServiceProfilesToHosts(ComputeSystem cs) {
-        HostToServiceProfileMatcher.matchServiceProfilesToHosts(cs, _dbClient);
     }
 
     /**

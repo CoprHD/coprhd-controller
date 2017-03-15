@@ -5,359 +5,319 @@
 package com.emc.storageos.computesystemcontroller.impl;
 
 import java.net.URI;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 import java.util.regex.Pattern;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.emc.storageos.computesystemcontroller.exceptions.ComputeSystemControllerException;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.ComputeElement;
+import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus;
+import com.emc.storageos.db.client.model.DiscoveredSystemObject;
 import com.emc.storageos.db.client.model.Host;
+import com.emc.storageos.db.client.model.UCSServiceProfile;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 
-public class HostToComputeElementMatcher {
+public final class HostToComputeElementMatcher {
 
-    private static final Logger _log = LoggerFactory.getLogger(HostToComputeElementMatcher.class);
-
-    private static StringBuffer discoveryFailureMessages = new StringBuffer();
-
-    private static Collection<Host> allHosts;
-
-    private static Collection<ComputeElement> eligibleComputeElements;
-    private static Collection<Host> eligibleHosts;
-
-    private static HostToComputeElementMatches hostToComputeElementMatches;
-
+    private final static Logger _log = LoggerFactory.getLogger(HostToComputeElementMatcher.class);
+    private static StringBuffer failureMessages;
     private static DbClient dbClient;
+    private static Map<URI,Host> hostMap = new HashMap<>();
+    private static Map<URI,ComputeElement> computeElementMap = new HashMap<>();
+    private static Map<URI,UCSServiceProfile> serviceProfileMap = new HashMap<>();
+
+    private final static String UUID_REGEX = "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$";
+    private final static Pattern UUID_PATTERN = Pattern.compile(UUID_REGEX,Pattern.CASE_INSENSITIVE);
+
+    private HostToComputeElementMatcher(){}
 
     public static void matchHostsToComputeElements(DbClient _dbClient) {
 
-        /**
-         * Note: it's possible a UUID can change in UCS and Host discovery will get new UUID in ViPR,
-         * and matcher will run before UCS discovery completes, so blade in UCS will have old UUID
-         * until UCS discovery completes.  Same if UCS discovers & matcher is run, Host UUID will be stale.
-         * (Consider only matching on UCS discovery)
-         */
-
         dbClient = _dbClient;                  // set our client
-        discoveryFailureMessages.setLength(0); // clear error message buffer
+        failureMessages = new StringBuffer();
 
-        load();                                // load all active hosts & computeElements
+        load();                                // load all active hosts, computeElements &SPs
+        matchHostsToBladesAndSPs();            // find hosts & blades whose UUIDs match
+        catchDuplicateMatches();               // validate matches (check for duplicates)
+        updateDb();                            // persist changed Hosts & ServiceProfiles
 
-        filterEligibleHosts();                 // filter out unregistered hosts & hosts with bad UUIDs **
-        filterEligibleComputeElements();       // filter out unregistered blades & blades with bad UUIDs **
-
-        removeMissingBladeRefs();              // remove references in hosts to missing blades **
-
-        filterHostsWithSameUuid();             // filter out hosts with duplicate UUIDs **
-        filterCEsWithSameUuid();               // filter out blades with duplicate UUIDs **
-
-        findUuidMatches();                     // find remaining hosts & blades whose UUIDs match
-
-        removeMatchConflicts();                // remove conflicting matches (matching multiple hosts or blades)
-
-        applyMatchesToHosts();                 // apply matches to hosts in DB
-
-        // ** Host association(s) removed
-
-        if (discoveryFailureMessages.length() > 0) {
-            throw new IllegalStateException("Conflicts detected while matching hosts to blades.  " +
-                    "Please correct or contact customer support. Conflicts are:" + discoveryFailureMessages);
+        // after correcting all associations possible, cause discovery failure with message
+        if (failureMessages.length() > 0) {
+            throw ComputeSystemControllerException.exceptions.hostMatcherError("Errors detected " +
+                    "while matching hosts to blades. Please correct or contact customer support. " +
+                    failureMessages);
         }
     }
 
     private static void load() {
-        _log.debug("Loading");
-        Collection<URI> allHostUris =
-                dbClient.queryByType(Host.class, true); // active only
 
-        allHosts = dbClient.queryObjectFields(Host.class,
-                Arrays.asList("uuid", "computeElement", "registrationStatus", "hostName","bios","label"),
+        Collection<URI> allHostUris = dbClient.queryByType(Host.class, true); // active only
+        Collection<URI> allComputeElementUris = dbClient.queryByType(ComputeElement.class, true); // active only
+        Collection<URI> allUCSServiceProfileUris = dbClient.queryByType(UCSServiceProfile.class, true); // active only
+
+        Collection<Host> allHosts = dbClient.queryObjectFields(Host.class,
+                Arrays.asList("uuid", "computeElement", "registrationStatus", "hostName","serviceProfile","label"),
                 getFullyImplementedCollection(allHostUris));
-
-        Collection<URI> allComputeElementUris =
-                dbClient.queryByType(ComputeElement.class, true); // active only
 
         Collection<ComputeElement> allComputeElements =
                 dbClient.queryObjectFields(ComputeElement.class,
-                        Arrays.asList("uuid", "registrationStatus", "available","label"),
+                        Arrays.asList("uuid", "registrationStatus", "dn", "available","label"),
                         getFullyImplementedCollection(allComputeElementUris));
 
-        // initialize lists of eligible hosts & blades (to be filtered before matching)
-        eligibleHosts = new ArrayList<Host>(allHosts);
+        Collection<UCSServiceProfile> allUCSServiceProfiles =
+                dbClient.queryObjectFields(UCSServiceProfile.class,
+                        Arrays.asList("uuid", "registrationStatus", "dn", "label"),
+                        getFullyImplementedCollection(allUCSServiceProfileUris));
 
-        eligibleComputeElements = new ArrayList<ComputeElement>(allComputeElements);
-
-        _log.debug("Locating matches among " + allHosts.size() + " Hosts and " +
-                allComputeElements.size() + " ComputeElements");
+        hostMap = makeUriMap(allHosts);
+        computeElementMap = makeUriMap(allComputeElements);
+        serviceProfileMap = makeUriMap(allUCSServiceProfiles);
     }
 
-    private static Collection<Host> filterEligibleHosts() {
-        _log.debug("filtering out unregistered hosts & hosts with invalid UUID (and remove blade assoc's)");
-        for (Iterator<Host> eligibleHostsIter = eligibleHosts.iterator(); eligibleHostsIter.hasNext(); ) {
-            Host host = eligibleHostsIter.next();
-            _log.debug("Checking eligibility of host '" + host.getLabel() + "'(" + host.getId() + ")");
-            if ( (!isValidUuid(host.getUuid())) ||
-                    RegistrationStatus.UNREGISTERED.name().equals(host.getRegistrationStatus())) {
-                String hostCeMsg = "";
-                if( !NullColumnValueGetter.isNullURI(host.getComputeElement()) ) {
-                    hostCeMsg = "Removing association to (" + host.getComputeElement() + "). ";
-                    host.setComputeElement(NullColumnValueGetter.getNullURI());
-                    dbClient.updateObject(host);
-                }
-                _log.debug("Host is unregistered or has an invalid UUID.  " + hostCeMsg + "Ignoring Host '" +
-                        host.getLabel() + "'(" + host.getId() + ")[" + host.getUuid() + "]");
-                eligibleHostsIter.remove();
+    private static void matchHostsToBladesAndSPs() {
+
+        // lookup map (to find CEs by their UUID)
+        Map<String,ComputeElement> ceMap = new HashMap<>();
+        for(ComputeElement ce : computeElementMap.values()) {
+            if (isValidUuid(ce.getUuid())) {
+                ceMap.put(ce.getUuid(),ce);
             }
         }
-        return eligibleHosts;
-    }
 
-    private static void filterEligibleComputeElements() {
-        _log.debug("filter out unregistered blades & blades with invalid UUID (removing all host assoc's)");
-        // filter out unregistered blades & blades with invalid UUID (removing all host assoc's)
-        for (Iterator<ComputeElement> eligibleComputeElementsIter = eligibleComputeElements.iterator();
-                eligibleComputeElementsIter.hasNext(); ) {
-            ComputeElement computeElement = eligibleComputeElementsIter.next();
-            _log.debug("Checking for eligibility of ComputeElement '" + computeElement.getLabel() +
-                    "'(" +computeElement.getId() + ")");
-            if ((!isValidUuid(computeElement.getUuid()) ||
-                    RegistrationStatus.UNREGISTERED.name().equals(computeElement.getRegistrationStatus()))) {
-                _log.debug("ComputeElement '" +
-                        computeElement.getLabel() + "'(" +
-                        computeElement.getId() + ")[" +
-                        computeElement.getUuid() + "] is unregistered or has an invalid UUID.");
-                for (Host hostToCheck:allHosts) { // remove associations to this blade
-                    if ( !NullColumnValueGetter.isNullURI(hostToCheck.getComputeElement()) &&
-                            hostToCheck.getComputeElement().equals(computeElement.getId()) ) {
-                        _log.warn("Removing association of Host '" + hostToCheck.getLabel() +
-                                "'(" + hostToCheck.getId() + ") with ComputeElement '" +
-                                computeElement.getLabel() + "'(" +
-                                computeElement.getId() + ")[" +
-                                computeElement.getUuid() + "] which is unregistered or has invalid UUID.");
-                        hostToCheck.setComputeElement(NullColumnValueGetter.getNullURI());
-                        dbClient.updateObject(hostToCheck);
-                    }
-                }
-                eligibleComputeElementsIter.remove();
+        // lookup map (to find SPs by their UUID)
+        Map<String,UCSServiceProfile> spMap = new HashMap<>();
+        for(UCSServiceProfile sp : serviceProfileMap.values()) {
+            if (isValidUuid(sp.getUuid())) {
+                spMap.put(sp.getUuid(),sp);
+            }
+        }
+
+        for (Host host: hostMap.values()) {
+            _log.info("matching host " + info(host));
+
+            // clear blade & SP associations for hosts that are unregistered or have bad UUIDs
+            if(isUnregistered(host) || !hasValidUuid(host)) {
+                _log.info("skipping host (unregistered or bad UUID); " + info(host));
+                clearHostAssociations(host);
+                continue;  // next host
+            }
+
+            // find matching blade & SP
+            ComputeElement ce = getMatchingComputeElement(host,ceMap);
+            UCSServiceProfile sp = getMatchingServiceProfile(host,spMap);
+
+            // update Host & ServiceProfile
+            if ((ce != null) & (sp != null)) {
+                _log.info("matched host to SP & CE " + info(host) + ", " + info(sp) + ", " + info(ce));
+                setHostAssociations(host,ce,sp);
+            } else {
+                _log.info("no match for host " + info(host));
+                clearHostAssociations(host);  // clear associations if no match
             }
         }
     }
 
-    private static void removeMissingBladeRefs() {
-        _log.debug("Removing associations from Hosts to missing blades(i.e.: associated computeElement is not in DB)");
-        Collection<Host> hostsToUpdate = new ArrayList<>();
-        hostLoop:
-            for(Host host : eligibleHosts) {
-                if(!NullColumnValueGetter.isNullURI(host.getComputeElement())) {
-                    for(ComputeElement ce : eligibleComputeElements) {
-                        if(host.getComputeElement().equals(ce.getId())) {
-                            continue hostLoop; // host assoc'd to valid, eligible blade.  Skip to next host
-                        }
-                    }
-                    _log.info("Host associated to unknown ComputeElement.  Host '" + host.getLabel() + "'(" +
-                            host.getId() + ") is associated to ComputeElement " +
-                            host.getComputeElement() + " which is not in ViPR DB.  Removing this association.");
-                    host.setComputeElement(NullColumnValueGetter.getNullURI());
-                    hostsToUpdate.add(host);
+    private static void catchDuplicateMatches() {
+        // safety checks to prevent DL/DU
+        Map<URI,URI> ceToHostMap = new HashMap<>();
+        Map<URI,URI> spToHostMap = new HashMap<>();
+
+        for(Host host : hostMap.values() ){
+
+            if(!NullColumnValueGetter.isNullURI(host.getComputeElement())) {
+                if(!ceToHostMap.containsKey(host.getComputeElement())) {
+                    ceToHostMap.put(host.getComputeElement(),host.getId());
+                } else {
+                    String msg = "The hosts " + info(host) + " and " +
+                            info(hostMap.get(ceToHostMap.get(host.getComputeElement()))) +
+                            " will not be associated to a ComputeElement since they both match the same one: " +
+                            info(computeElementMap.get(host.getComputeElement()));
+                    failureMessages.append(msg);
+                    _log.warn(msg);
+                    clearHostAssociations(host);
+                    clearHostAssociations(hostMap.get(ceToHostMap.get(host.getComputeElement())));
                 }
             }
-        dbClient.updateObject(hostsToUpdate);
-    }
 
-    private static Collection<Host> filterHostsWithSameUuid() {
-        _log.debug("Filtering out hosts with duplicate UUIDs");
-        HashMap<String,List<Host>> uuidHostMap = new HashMap<>(); // key=uuid, value=list of hosts with that uuid
-        for (Host host : eligibleHosts) {
-            if(!uuidHostMap.containsKey(host.getUuid())) {
-                uuidHostMap.put(host.getUuid(),new ArrayList<Host>(Arrays.asList(host)));
-            } else { // host has same uuid as another host already seen
-                List<Host> hostsForUuid = uuidHostMap.get(host.getUuid());
-                hostsForUuid.add(host); // add host to list for this uuid
-                uuidHostMap.put(host.getUuid(),hostsForUuid); // put back in map
-            }
-        }
-        for( String uuid : uuidHostMap.keySet()) {
-            if(uuidHostMap.get(uuid).size() > 1) { // if >1 host for this uuid
-                String errMsg = "";
-                Collection<Host> hostsToUpdate = new ArrayList<>();
-                for(Host host : uuidHostMap.get(uuid)) {
-                    errMsg += "Host UUID conflict.  Host '" +
-                            host.getLabel() + "'(" +
-                            host.getId() + ")[" +
-                            uuid + "] has same UUID as other Host(s). ";
-                    if( !NullColumnValueGetter.isNullURI(host.getComputeElement()) ) {
-                        _log.error("Host UUID conflict.  Host has same UUID as other hosts.  " +
-                                "Removing blade association for host '" +
-                                host.getLabel() + "'(" +
-                                host.getId() + ")[" +
-                                host.getUuid() + "] to ComputeElement (" +
-                                host.getComputeElement() + "). ");
-                        host.setComputeElement(NullColumnValueGetter.getNullURI());
-                        hostsToUpdate.add(host);
-                    }
-                    eligibleHosts.remove(host);
-                }
-                dbClient.updateObject(hostsToUpdate);
-                _log.error(errMsg);
-                discoveryFailureMessages.append(errMsg);
-            }
-        }
-        return eligibleHosts;
-    }
-
-    private static Collection<ComputeElement> filterCEsWithSameUuid() {
-        _log.debug("Filtering out blades with duplicate UUIDs (UCS UUIDs are always old format)");
-        HashMap<String,List<ComputeElement>> uuidComputeElementMap = new HashMap<>();
-        for (ComputeElement computeElement : eligibleComputeElements) {
-            if(!uuidComputeElementMap.containsKey(computeElement.getUuid())) {
-                uuidComputeElementMap.put(computeElement.getUuid(),
-                        new ArrayList<ComputeElement>(Arrays.asList(computeElement)));
-            } else { // computeElements with same UUID found
-                List<ComputeElement> computeElementsForUuid = uuidComputeElementMap.get(computeElement.getUuid());
-                computeElementsForUuid.add(computeElement);
-                uuidComputeElementMap.put(computeElement.getUuid(),computeElementsForUuid);
-            }
-        }
-        for( String uuid : uuidComputeElementMap.keySet()) {
-            if(uuidComputeElementMap.get(uuid).size() > 1) {
-                String errMsg = "";
-                Collection<Host> hostsToUpdate = new ArrayList<>();
-                for(ComputeElement computeElement : uuidComputeElementMap.get(uuid)) {
-                    errMsg += "ComputeElement '" +
-                            computeElement.getLabel() + "'(" +
-                            computeElement.getId() + ") has the same UUID [" +
-                            computeElement.getUuid() + "] as other ComputeElements.  UUID is ";
-                    for(Host hostToCheck : eligibleHosts) {
-                        if( !NullColumnValueGetter.isNullURI(hostToCheck.getComputeElement()) &&
-                                hostToCheck.getComputeElement().equals(computeElement.getId()) ) {
-                            _log.error("UUID conflict.  Removing ComputeElement association for Host '" +
-                                hostToCheck.getLabel() + "'(" + hostToCheck.getId() + ") to ComputeElement '" +
-                                    computeElement.getLabel() + "'(" + computeElement.getId() + ") because " +
-                                "ComputeElement UUID [" + computeElement.getUuid() + "] is not unique. ");
-                            hostToCheck.setComputeElement(NullColumnValueGetter.getNullURI());
-                            hostsToUpdate.add(hostToCheck);
-                        }
-                    }
-                    eligibleComputeElements.remove(computeElement);
-                }
-                dbClient.updateObject(hostsToUpdate);
-                _log.error(errMsg);
-                discoveryFailureMessages.append(errMsg);
-            }
-        }
-        return eligibleComputeElements;
-    }
-
-    private static void findUuidMatches() {
-        _log.debug("Checking for UUID matches between " + eligibleHosts.size() +
-                " hosts and " + eligibleComputeElements.size() + " ComputeElements.");
-        hostToComputeElementMatches = new HostToComputeElementMatches();
-        for(Host host : eligibleHosts) {
-            for(ComputeElement computeElement : eligibleComputeElements) {
-                _log.debug("Checking match for '" +
-                        host.getLabel() +"'(" +
-                        host.getId() + ")[" +
-                        host.getUuid() +"] and '" +
-                        computeElement.getLabel() + "'(" +
-                        computeElement.getId() + ")[" +
-                        computeElement.getUuid() + "]");
-                if (uuidsMatch(host,computeElement)) {
-                    hostToComputeElementMatches.add(host, computeElement);
-                    _log.debug("UUID matched for Host '" +
-                            host.getLabel() + "'(" +
-                            host.getId() + ") [" +
-                            host.getUuid() + "] and ComputeElement '" +
-                            computeElement.getLabel() + "'(" +
-                            computeElement.getId() + ") [" +
-                            computeElement.getUuid() + "]");
+            if(!NullColumnValueGetter.isNullURI(host.getServiceProfile())) {
+                if(!spToHostMap.containsKey(host.getServiceProfile())) {
+                    spToHostMap.put(host.getServiceProfile(),host.getId());
+                } else {
+                    String msg = "The hosts " + info(host) + " and " +
+                            info(hostMap.get(spToHostMap.get(host.getServiceProfile()))) +
+                            " will not be associated to a UCS ServiceProfile since they both match the same one: " +
+                            info(serviceProfileMap.get(host.getServiceProfile()));
+                    failureMessages.append(msg);
+                    _log.warn(msg);
+                    clearHostAssociations(host);
+                    clearHostAssociations(hostMap.get(spToHostMap.get(host.getServiceProfile())));
                 }
             }
         }
     }
 
-    private static void removeMatchConflicts() {
-        _log.debug("Checking for match conflicts");
-        for (HostComputeElementPair match : hostToComputeElementMatches.getMatches()) {
-            Host matchedHost = match.getHost();
-            if (hostToComputeElementMatches.getComputeElements(matchedHost).size() > 1) {
-                String bladeList = "";
-                for(HostComputeElementPair removedMatch :
-                    hostToComputeElementMatches.removeMatches(matchedHost)) {
-                    bladeList += "'" + removedMatch.getComputeElement().getLabel() +
-                            "'(" + removedMatch.getComputeElement().getId() + ") ";
-                }
-                String errMsg = "Host '" + matchedHost.getLabel() + "'(" +
-                        matchedHost.getId() + ") matched multiple ComputeElements: " + bladeList;
-                discoveryFailureMessages.append(errMsg);
-                _log.error(errMsg);
-            }
-
-            ComputeElement matchedBlade = match.getComputeElement();
-            if (hostToComputeElementMatches.getHosts(matchedBlade).size() > 1) {
-                String hostList = "";
-                for(HostComputeElementPair removedMatch :
-                    hostToComputeElementMatches.removeMatches(matchedBlade)) {
-                    hostList += "'" + removedMatch.getHost().getLabel() +
-                            "'(" + removedMatch.getHost().getId() + ") ";
-                }
-                String errMsg = "ComputeElement '" + matchedBlade.getLabel() + "'(" +
-                        matchedBlade.getId() + ") matched multiple Hosts: " + hostList;
-                discoveryFailureMessages.append(errMsg);
-                _log.error(errMsg);
-            }
-        }
-    }
-
-    private static void applyMatchesToHosts() {
-        _log.debug("Applying matches to hosts in database");
-        Collection<Host> hostsToUpdate = new ArrayList<>();
-        for (HostComputeElementPair match : hostToComputeElementMatches.getMatches()) {
-            if(  (match.getHost().getComputeElement() == null) ||
-                    !match.getHost().getComputeElement().equals(match.getComputeElement().getId())) {
-                match.getHost().setComputeElement(match.getComputeElement().getId());
-                hostsToUpdate.add(match.getHost());
-                _log.info("Matching host '" +
-                        match.getHost().getLabel() + "'(" +
-                        match.getHost().getId() + ")[" +
-                        match.getHost().getUuid() + "] to ComputeElement '" +
-                        match.getComputeElement().getLabel() + "'(" +
-                        match.getComputeElement().getId() + ")[" +
-                        match.getComputeElement().getUuid() + "]");
+    private static void updateDb() {
+        List<Host> hostsToUpdate = new ArrayList<>();
+        for(Host host : hostMap.values()) {
+            if(host.isChanged("computeElement") || host.isChanged("serviceProfile")) {
+                hostsToUpdate.add(host);
             }
         }
         dbClient.updateObject(hostsToUpdate);
+
+        List<UCSServiceProfile> spsToUpdate = new ArrayList<>();
+        for(UCSServiceProfile sp : serviceProfileMap.values()) {
+            if(sp.isChanged("host")) {
+                spsToUpdate.add(sp);
+            }
+        }
+        dbClient.updateObject(spsToUpdate);
     }
 
-    private static boolean uuidsMatch(Host host, ComputeElement computeElement) {
-        if( NullColumnValueGetter.isNullValue(host.getUuid()) ||
-                NullColumnValueGetter.isNullValue(computeElement.getUuid()) ) {
-            return false;
+    private static ComputeElement getMatchingComputeElement(Host host, Map<String, ComputeElement> ceMap) {
+
+        if(!isValidUuid(host.getUuid())) {
+            return null;
         }
-        if(host.getUuid().equals(computeElement.getUuid())) {
-            return true;
+
+        // check for matching UUID
+        String uuid = host.getUuid();
+        ComputeElement ceWithSameUuid = null;
+        if (ceMap.containsKey(uuid) &&
+                hostNameMatches(ceMap.get(uuid).getDn(),host) &&
+                !isUnregistered(ceMap.get(uuid))) {
+            ceWithSameUuid = ceMap.get(uuid);
         }
-        return false;
+
+        // check for matching UUID in mixed-endian format
+        String uuidReversed = reverseUuidBytes(host.getUuid());
+        ComputeElement ceWithReversedUuid = null;
+        if (ceMap.containsKey(uuidReversed) &&
+                hostNameMatches(ceMap.get(uuidReversed).getDn(),host) &&
+                !isUnregistered(ceMap.get(uuidReversed))) {
+            ceWithReversedUuid = ceMap.get(uuidReversed);
+        }
+
+        if( (ceWithSameUuid != null) && (ceWithReversedUuid != null)) {
+            String errMsg = "Host match failed for ComputeElement because host " +
+                    info(host) + " matches multiple blades " + info(ceWithSameUuid) +
+                    " and " + info(ceWithReversedUuid);
+            _log.error(errMsg);
+            failureMessages.append(errMsg);
+            return null;
+        }
+
+        return ceWithSameUuid != null ? ceWithSameUuid : ceWithReversedUuid;
+    }
+
+    private static UCSServiceProfile getMatchingServiceProfile(Host host, Map<String, UCSServiceProfile> spMap) {
+
+        if(!isValidUuid(host.getUuid())) {
+            return null;
+        }
+
+        // check for matching UUID
+        String uuid = host.getUuid();
+        UCSServiceProfile spWithSameUuid = null;
+        if (spMap.containsKey(uuid) &&
+                hostNameMatches(spMap.get(uuid).getDn(),host) &&
+                !isUnregistered(spMap.get(uuid))) {
+            spWithSameUuid = spMap.get(uuid);
+        }
+
+        // check for matching UUID in mixed-endian format
+        String uuidReversed = reverseUuidBytes(host.getUuid());
+        UCSServiceProfile spWithReversedUuid = null;
+        if (spMap.containsKey(uuidReversed) &&
+                hostNameMatches(spMap.get(uuidReversed).getDn(),host) &&
+                !isUnregistered(spMap.get(uuidReversed))) {
+            spWithReversedUuid = spMap.get(uuidReversed);
+        }
+
+        if( (spWithSameUuid != null) && (spWithReversedUuid != null)) {
+            String errMsg = "Host match failed for UCS Service Profile because host " +
+                    info(host) + " matches multiple Service Profiles " + info(spWithSameUuid) +
+                    " and " + info(spWithReversedUuid);
+            _log.error(errMsg);
+            failureMessages.append(errMsg);
+            return null;
+        }
+
+        return spWithSameUuid != null ? spWithSameUuid : spWithReversedUuid;
+    }
+
+    private static void setHostAssociations(Host hostIn, ComputeElement ceIn, UCSServiceProfile spIn) {
+
+        Host host = hostMap.get(hostIn.getId());
+
+        if( (host.getComputeElement() == null) ||
+                (!host.getComputeElement().equals(ceIn.getId()))) {
+            host.setComputeElement(ceIn.getId());  // set new CE for host
+        }
+
+        if( (host.getServiceProfile() == null) ||
+                (!host.getServiceProfile().equals(spIn.getId()))) {
+            host.setServiceProfile(spIn.getId());  // set new SP for host
+        }
+
+        if(host.isChanged("computeElement") || host.isChanged("serviceProfile")) {
+            hostMap.put(host.getId(), host);
+        }
+
+        UCSServiceProfile sp = serviceProfileMap.get(spIn.getId());
+
+        if( (sp.getHost() == null) ||
+                (!sp.getHost().equals(host.getId()))) {
+            sp.setHost(host.getId());  // set new host in SP
+            serviceProfileMap.put(sp.getId(), sp);
+        }
+    }
+
+    private static void clearHostAssociations(Host host) {
+        Host h = hostMap.get(host.getId());
+
+        if(!NullColumnValueGetter.isNullURI(h.getComputeElement())) {
+            h.setComputeElement(NullColumnValueGetter.getNullURI());
+        }
+
+        if(!NullColumnValueGetter.isNullURI(h.getServiceProfile())) {
+            h.setServiceProfile(NullColumnValueGetter.getNullURI());
+        }
+
+        if(host.isChanged("computeElement") || host.isChanged("serviceProfile")) {
+            hostMap.put(host.getId(), host);
+        }
+
+        // clear reference from SPs back to this Host
+        for(UCSServiceProfile sp : serviceProfileMap.values()) {
+            if( (sp.getHost() != null) && sp.getHost().equals(host.getId())) {
+                sp.setHost(NullColumnValueGetter.getNullURI());
+                serviceProfileMap.put(sp.getId(),sp);
+            }
+        }
+    }
+
+    private static boolean hasValidUuid(Host h) {
+        return isValidUuid(h.getUuid());
     }
 
     private static boolean isValidUuid(String uuid) {
-        if ( NullColumnValueGetter.isNullValue(uuid) ) {
+        if ( uuid == null ) {
             return false;
         }
-        final String uuidPattern = "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$";
-        Pattern r = Pattern.compile(uuidPattern,Pattern.CASE_INSENSITIVE);
-        boolean isValid = r.matcher(uuid).matches();
-        if (!isValid) {
-            _log.warn("Invalid UUID: " + uuid);
-        }
-        return isValid;
+        return UUID_PATTERN.matcher(uuid).matches();
     }
 
     private static <T> Collection<T> getFullyImplementedCollection(Collection<T> collectionIn) {
@@ -371,88 +331,73 @@ public class HostToComputeElementMatcher {
         return collectionOut;
     }
 
-    private static class HostComputeElementPair {
-        private Host host;
-        private ComputeElement computeElement;
+    private static String reverseUuidBytes(String uuid) {
+    /**
+     * Older hosts report UUID in Big-Endian or "network-byte-order" (Most Significant Byte first)
+     *     e.g.: {00112233-4455-6677-8899-AABBCCDDEEFF}
+     * Newer Hosts' BIOSs supporting SMBIOS 2.6 or later report UUID in Little-Endian or "wire-format", where
+     *   first 3 parts are in byte revered order (aka: 'mixed-endian')
+     *     e.g.: {33221100-5544-7766-8899-AABBCCDDEEFF}
+     **/
 
-        private HostComputeElementPair(Host host, ComputeElement computeElement) {
-            setHost(host);
-            setComputeElement(computeElement);
+        // reverse bytes
+        UUID uuidObj = UUID.fromString(uuid);
+        ByteBuffer bb = ByteBuffer.wrap(new byte[16]);
+        bb.putLong(uuidObj.getMostSignificantBits());
+        bb.putLong(uuidObj.getLeastSignificantBits());
+        byte[] reorderedUuid = new byte[16];
+        reorderedUuid[0] = bb.get(3); // reverse bytes in 1st part
+        reorderedUuid[1] = bb.get(2);
+        reorderedUuid[2] = bb.get(1);
+        reorderedUuid[3] = bb.get(0);
+        reorderedUuid[4] = bb.get(5); // reverse bytes in 2nd part
+        reorderedUuid[5] = bb.get(4);
+        reorderedUuid[6] = bb.get(7); // reverse bytes in 3rd part
+        reorderedUuid[7] = bb.get(6);
+        for(int byteIndex = 8; byteIndex < 16; byteIndex++ ) {
+            reorderedUuid[byteIndex] = bb.get(byteIndex); // copy 4th & 5th parts unchanged
         }
-        private Host getHost() {
-            return host;
-        }
-        private void setHost(Host host) {
-            this.host = host;
-        }
-        private ComputeElement getComputeElement() {
-            return computeElement;
-        }
-        private void setComputeElement(ComputeElement computeElement) {
-            this.computeElement = computeElement;
-        }
+        bb = ByteBuffer.wrap(reorderedUuid);
+        UUID uuidNew = new UUID(bb.getLong(), bb.getLong());
+        return uuidNew.toString();
     }
 
-    private static class HostToComputeElementMatches {
-
-        private List<HostComputeElementPair> hostComputeElementPairs;
-
-        private HostToComputeElementMatches() {
-            hostComputeElementPairs = new ArrayList<>();
+    private static <T extends DataObject> Map<URI,T> makeUriMap(Collection<T> c) {
+        Map<URI,T> map = new HashMap<>();
+        for(T dataObj : c) {
+            map.put(dataObj.getId(), dataObj);
         }
-        
-        private void add(Host host, ComputeElement computeElement) {
-            hostComputeElementPairs.add(new HostComputeElementPair(host,computeElement));
-        }
+        return map;
+    }
 
-        private List<HostComputeElementPair> getMatches() {
-            return hostComputeElementPairs;
-        }
+    private static String info(Host h) {
+        return h == null ? "" :
+            (h.getLabel() != null ? "'" + h.getLabel() + "' " : "") +
+            "(" + h.getId() + ")" +
+            (h.getUuid() != null ? " [" + h.getUuid() + "]" : "");
+    }
 
-        private List<Host> getHosts(ComputeElement computeElement){
-            List<Host> hostList = new ArrayList<>();
-            for (HostComputeElementPair p: hostComputeElementPairs) {
-                if (p.getComputeElement().getId().equals(computeElement.getId())) {
-                    hostList.add(p.getHost());
-                }
-            }
-            return hostList;
-        }
+    private static String info(ComputeElement ce) {
+        return ce == null ? "" :
+            (ce.getLabel() != null ? "'" + ce.getLabel() + "' " : "") +
+            "(" + ce.getId() + ")" +
+            (ce.getUuid() != null ? " [" + ce.getUuid() + "]" : "");
+    }
 
-        private List<ComputeElement> getComputeElements(Host host){
-            List<ComputeElement> computeElementList = new ArrayList<>();
-            for (HostComputeElementPair p: hostComputeElementPairs) {
-                if (p.getHost().getId().equals(host.getId())) {
-                    computeElementList.add(p.getComputeElement());
-                }
-            }
-            return computeElementList;
-        }
+    private static String info(UCSServiceProfile sp) {
+        return sp == null ? "" :
+            (sp.getLabel() != null ? "'" + sp.getLabel() + "' " : "") +
+            "(" + sp.getId() + ")" +
+            (sp.getUuid() != null ? " [" + sp.getUuid() + "]" : "");
+    }
 
-        private List<HostComputeElementPair> removeMatches(Host host) {
-            List<HostComputeElementPair> removedMatches = new ArrayList<>();
-            for (Iterator<HostComputeElementPair> matchIter = hostComputeElementPairs.iterator();
-                    matchIter.hasNext(); ) {
-                HostComputeElementPair match = matchIter.next();
-                if (match.getHost().getId().equals(host.getId())) {
-                    removedMatches.add(match);
-                    matchIter.remove();
-                }
-            }
-            return removedMatches;
-        }
+    private static boolean isUnregistered(DiscoveredSystemObject o) {
+        return RegistrationStatus.UNREGISTERED.name().equals(o.getRegistrationStatus());
+    }
 
-        private List<HostComputeElementPair> removeMatches(ComputeElement computeElement) {
-            List<HostComputeElementPair> removedMatches = new ArrayList<>();
-            for (Iterator<HostComputeElementPair> matchIter = hostComputeElementPairs.iterator();
-                    matchIter.hasNext(); ) {
-                HostComputeElementPair match = matchIter.next();
-                if (match.getComputeElement().getId().equals(computeElement.getId())) {
-                    removedMatches.add(match);
-                    matchIter.remove();
-                }
-            }
-            return removedMatches;
-        }
+    private static boolean hostNameMatches(String dn, Host h) {
+        // dn for CE & SP should end with Host's hostName
+        return (dn != null) && (h.getHostName() != null) &&
+                !h.getHostName().isEmpty() && dn.endsWith(h.getHostName());
     }
 }

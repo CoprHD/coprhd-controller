@@ -1108,7 +1108,7 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
      * @param stepId
      *            {@link String} step id
      */
-    public void untagBlockBootVolumeInternal(URI hostId, List<VolumeDescriptor> volumeDescriptors, String stepId) {
+    public void untagBlockBootVolume(URI hostId, List<VolumeDescriptor> volumeDescriptors, String stepId) {
         log.info("untagBlockBootVolume");
 
         Host host = null;

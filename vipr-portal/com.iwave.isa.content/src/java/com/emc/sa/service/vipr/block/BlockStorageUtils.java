@@ -50,8 +50,8 @@ import com.emc.sa.service.vipr.application.tasks.GetBlockSnapshotSessionList;
 import com.emc.sa.service.vipr.application.tasks.GetBlockSnapshotSet;
 import com.emc.sa.service.vipr.application.tasks.GetFullCopyList;
 import com.emc.sa.service.vipr.block.tasks.AddClusterToExport;
+import com.emc.sa.service.vipr.block.tasks.AddHostAndVolumeToExportNoWait;
 import com.emc.sa.service.vipr.block.tasks.AddHostToExport;
-import com.emc.sa.service.vipr.block.tasks.AddHostToExportNoWait;
 import com.emc.sa.service.vipr.block.tasks.AddJournalCapacity;
 import com.emc.sa.service.vipr.block.tasks.AddVolumesToConsistencyGroup;
 import com.emc.sa.service.vipr.block.tasks.AddVolumesToExport;
@@ -536,8 +536,8 @@ public class BlockStorageUtils {
         addAffectedResource(task);
     }
 
-    public static Task<ExportGroupRestRep> addHostToExportNoWait(URI exportId, URI host) {
-        return execute(new AddHostToExportNoWait(exportId, host));
+    public static Task<ExportGroupRestRep> addHostAndVolumeToExportNoWait(URI exportId, URI host, URI volumeId, Integer hlu) {
+        return execute(new AddHostAndVolumeToExportNoWait(exportId, host, volumeId, hlu));
     }
     
     public static void addClusterToExport(URI exportId, URI cluster, Integer minPaths, Integer maxPaths, Integer pathsPerInitiator) {

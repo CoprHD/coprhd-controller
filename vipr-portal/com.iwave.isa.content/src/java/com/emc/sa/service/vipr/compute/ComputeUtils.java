@@ -366,7 +366,14 @@ public class ComputeUtils {
             URI volumeId = hostToVolumeIdEntry.getValue();
             if (!NullColumnValueGetter.isNullURI(volumeId) && (host != null) && !(host.getInactive())) {
                 try {
-                    ExportGroupRestRep export = BlockStorageUtils.findExportByHost(host, project, virtualArray, volumeId);
+                    ExportGroupRestRep export = BlockStorageUtils.findExportByHost(host, project, virtualArray, null);
+                    
+                    // If we didn't find an export with our host, look for an export with the name of the host. 
+                    // We can add the host to that export group if it's empty.
+                    if (export == null) {
+                        export = BlockStorageUtils.findExportsByName(host.getHostName(), project, virtualArray);
+                    }
+                    
                     boolean createExport = export == null;
                     boolean isEmptyExport = export != null && BlockStorageUtils.isEmptyExport(export);
                     String exportName = host.getHostName();
@@ -381,7 +388,7 @@ public class ComputeUtils {
                         task = BlockStorageUtils.createHostExportNoWait(exportName,
                                 project, virtualArray, Arrays.asList(volumeId), hlu, host);
                     } else {
-                        task = BlockStorageUtils.addHostToExportNoWait(export.getId(), host.getId()); 
+                        task = BlockStorageUtils.addHostAndVolumeToExportNoWait(export.getId(), host.getId(), volumeId, hlu); 
                     }
                     taskToHostMap.put(task, host);
                 } catch (ExecutionException e) {

@@ -5,6 +5,8 @@ import java.util.Arrays;
 import java.util.List;
 import javax.xml.bind.annotation.XmlAccessType;
 import javax.xml.bind.annotation.XmlAccessorType;
+import javax.xml.bind.annotation.XmlElement;
+import javax.xml.bind.annotation.XmlElementWrapper;
 import javax.xml.bind.annotation.XmlRootElement;
 
 
@@ -129,6 +131,8 @@ public class ScaleIOSystemDataRestRep {
         return systemVersionName;
     }
 
+    @XmlElementWrapper(name = "sdsList")
+    @XmlElement(name = "sds")
     public List<ScaleIOSDSDataRestRep> getSdsList() {
         return sdsList;
     }
@@ -137,6 +141,8 @@ public class ScaleIOSystemDataRestRep {
         this.sdsList = sdsList;
     }
 
+    @XmlElementWrapper(name = "sdcList")
+    @XmlElement(name = "sdc")
     public List<ScaleIOSDCDataRestRep> getSdcList() {
         return sdcList;
     }

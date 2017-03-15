@@ -2185,6 +2185,7 @@ public class HostService extends TaskResourceService {
             throw APIException.badRequests.invalidParameterComputeImageIsNotAvailable(img.getId());
         }
 
+        ArgValidator.checkFieldNotEmpty(param.getHostIp(), "host_ip");
         Host host = queryObject(Host.class, hostId, true);
         ArgValidator.checkEntity(host, hostId, isIdEmbeddedInURL(hostId));
         // COP-28718 Fixed by making sure that the host we are installing OS does not cause an IP conflict
@@ -2359,11 +2360,10 @@ public class HostService extends TaskResourceService {
         Collection<IpInterface> ipInterfaces = _dbClient.queryObjectFields(IpInterface.class,
                 Arrays.asList("ipAddress", "host"), getFullyImplementedCollection(ipInterfaceURIS));
 
-        if (CollectionUtils.isNotEmpty(ipInterfaces)) {
+        if (CollectionUtils.isNotEmpty(ipInterfaces) && StringUtils.isNotEmpty(param.getHostIp())) {
             _log.info("Validating host {} for duplicate IPs.", host.getLabel());
             for (IpInterface ipInterface : ipInterfaces) {
-                if (ipInterface.getIpAddress() != null && param.getHostIp() != null
-                        && ipInterface.getIpAddress().equals(param.getHostIp())) {
+                if (ipInterface.getIpAddress() != null && ipInterface.getIpAddress().equals(param.getHostIp())) {
                     if (!NullColumnValueGetter.isNullURI(ipInterface.getHost())) {
                         Host hostWithSameIp = queryObject(Host.class, ipInterface.getHost(), true);
                         if (hostWithSameIp != null) {

@@ -1773,7 +1773,7 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
             WorkflowStepCompleter.stepExecuting(opId);
             StorageSystem system = getStorageSystem(systemURI);
             Volume target = dbClient.queryObject(Volume.class, targetURI);
-            List<URI> combined = Arrays.asList(sourceURI, targetURI);
+            List<URI> combined = new ArrayList<URI>(Arrays.asList(sourceURI, targetURI));
             Volume sourceVolume = dbClient.queryObject(Volume.class, sourceURI);
             SRDFUtils.addSRDFCGVolumesForTaskCompleter(sourceVolume, dbClient, combined);
             completer = new SRDFLinkPauseCompleter(combined, opId);
@@ -1802,7 +1802,7 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
             WorkflowStepCompleter.stepExecuting(opId);
             StorageSystem system = getStorageSystem(systemURI);
             Volume targetVolume = dbClient.queryObject(Volume.class, targetURI);
-            List<URI> combined = Arrays.asList(sourceURI, targetURI);
+            List<URI> combined = new ArrayList<URI>(Arrays.asList(sourceURI, targetURI));
             Volume sourceVolume = dbClient.queryObject(Volume.class, sourceURI);
             SRDFUtils.addSRDFCGVolumesForTaskCompleter(sourceVolume, dbClient, combined);
             completer = new SRDFLinkPauseCompleter(combined, opId);

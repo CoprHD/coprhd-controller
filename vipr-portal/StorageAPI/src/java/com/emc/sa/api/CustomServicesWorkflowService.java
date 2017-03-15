@@ -207,7 +207,7 @@ public class CustomServicesWorkflowService extends CatalogTaggedResourceService 
             return validationResponse;
 
         } catch (final IOException e) {
-            throw new RuntimeException("Failed to deserialize workflow document " + id, e);
+            throw APIException.internalServerErrors.genericApisvcError("Failed to deserialize workflow document", e);
         }
     }
 

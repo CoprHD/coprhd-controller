@@ -628,10 +628,8 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                     }
 
                     // Also check for snapshot sessions.
-                    List<BlockSnapshotSession> snapSessions = CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient,
-                            BlockSnapshotSession.class,
-                            ContainmentConstraint.Factory.getParentSnapshotSessionConstraint(snapshotSourceVolume.getId()));
-                    if (!snapSessions.isEmpty()) {
+                    List<BlockSnapshotSession> dependentSnapSessions = getDependentSnapshotSessions(snapshotSourceVolume);
+                    if (!dependentSnapSessions.isEmpty()) {
                         return BlockSnapshotSession.class.getSimpleName();
                     }
                 }

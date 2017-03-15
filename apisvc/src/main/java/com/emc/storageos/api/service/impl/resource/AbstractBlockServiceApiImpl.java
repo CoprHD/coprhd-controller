@@ -39,6 +39,7 @@ import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.exceptions.RetryableCoordinatorException;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
+import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.ContainmentPrefixConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
@@ -218,13 +219,74 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
         // BlockSnapshotSession because the containment constraint
         // use the base class BlockObject as the parent i.e., source
         // for a BlockSnapshotSession could be a Volume or BlockSnapshot.
-        List<BlockSnapshotSession> snapSessions = CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient,
-                BlockSnapshotSession.class, ContainmentConstraint.Factory.getParentSnapshotSessionConstraint(objectURI));
-        if (!snapSessions.isEmpty()) {
-            return BlockSnapshotSession.class.getSimpleName();
+        if (object instanceof BlockObject) {
+            List<BlockSnapshotSession> dependentSnapSessions = getDependentSnapshotSessions((BlockObject)object);
+            if (!dependentSnapSessions.isEmpty()) {
+                return BlockSnapshotSession.class.getSimpleName();
+            }
         }
 
         return object.canBeDeleted();
+    }
+    
+    /**
+     * Get the snapshot sessions for the passed volume only, do not retrieve any of the related snap sessions.
+     *
+     * @param volume A reference to a volume.
+     * 
+     * @return The snapshot sessions for the passed volume.
+     */
+    public List<BlockSnapshotSession> getSnapshotSessionsForVolume(Volume volume) {
+        List<BlockSnapshotSession> snapsSessions = new ArrayList<>();
+        boolean vplex = VPlexUtil.isVplexVolume(volume, _dbClient);
+        if (vplex) {
+            Volume snapSessionSourceVolume = VPlexUtil.getVPLEXBackendVolume(volume, true, _dbClient, false);
+            if (snapSessionSourceVolume != null) {
+                snapsSessions.addAll(getDependentSnapshotSessions(snapSessionSourceVolume));
+            }
+        } else {
+            snapsSessions.addAll(getDependentSnapshotSessions(volume));
+        }
+        return snapsSessions;
+    }
+
+    /**
+     * Returns the active snapshot sessions associated with the passed block object.
+     * 
+     * @param bo A reference to the block object
+     * 
+     * @return The list of dependent snapshot sessions.
+     */
+    public List<BlockSnapshotSession> getDependentSnapshotSessions(BlockObject bo) {
+        List<BlockSnapshotSession> dependantSnapSessions = new ArrayList<>();
+        URI cgURI = bo.getConsistencyGroup();
+        if (NullColumnValueGetter.isNullURI(cgURI)) {
+            // If the Object is not is a CG, then we need to find all snapshots sessions
+            // whose parent is the passed object.
+            dependantSnapSessions.addAll(CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient,
+                    BlockSnapshotSession.class, ContainmentConstraint.Factory.getParentSnapshotSessionConstraint(bo.getId())));
+        } else {
+            // Otherwise, get all the consistency group snapshot sessions.
+            List<BlockSnapshotSession> cgSnapSessions = CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient,
+                    BlockSnapshotSession.class, ContainmentConstraint.Factory.getBlockSnapshotSessionByConsistencyGroup(cgURI));
+            if (!cgSnapSessions.isEmpty()) {
+                String boReplicationGroup = bo.getReplicationGroupInstance();
+                for (BlockSnapshotSession session : cgSnapSessions) {
+                    String sessionReplicationGroup = session.getReplicationGroupInstance();
+                    if (boReplicationGroup.equals(sessionReplicationGroup)) {
+                        List<Volume> replicationGroupVolumes = CustomQueryUtility.queryActiveResourcesByConstraint(
+                                _dbClient, Volume.class, AlternateIdConstraint.Factory.getVolumeReplicationGroupInstanceConstraint(boReplicationGroup));
+                        if (replicationGroupVolumes.size() == 1) {
+                            // This is the only volume in the replication group, so
+                            // this snapshot session is essentially dependent on this
+                            // block object.
+                            dependantSnapSessions.add(session);
+                        }
+                    }
+                }
+            }           
+        }
+        return dependantSnapSessions;
     }
 
     /**

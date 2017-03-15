@@ -52,6 +52,7 @@ import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup.Types;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.BlockSnapshot.TechnologyType;
+import com.emc.storageos.db.client.model.BlockSnapshotSession;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DataObject.Flag;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
@@ -1892,6 +1893,22 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                 }
             }
         }
+        
+        // Get all of the snapshot sessions associated with the volume
+        for (BlockSnapshotSession snapshotSession : getSnapshotSessionsForVolume(sourceVolume)) {
+            dependencies.put(sourceVolume.getId(), snapshotSession.getId());
+        }
+
+        // Get all the snapshot sessions of the corresponding target volumes
+        if (Volume.PersonalityTypes.SOURCE.name().equals(sourceVolume.getPersonality())) {
+            StringSet rpTargets = sourceVolume.getRpTargets();
+            for (String rpTarget : rpTargets) {
+                Volume rpTargetVolume = _dbClient.queryObject(Volume.class, URI.create(rpTarget));
+                for (BlockSnapshotSession targetSnapshotSession : getSnapshotSessionsForVolume(rpTargetVolume)) {
+                    dependencies.put(rpTargetVolume.getId(), targetSnapshotSession.getId());
+                }
+            }
+        }
 
         if (!dependencies.isEmpty()) {
             throw APIException.badRequests.cannotDeleteVolumeBlockSnapShotExists(String.valueOf(dependencies));
@@ -2906,7 +2923,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
 
         return snapshots;
     }
-
+    
     @Override
     public List<VolumeDescriptor> getDescriptorsForVolumesToBeDeleted(URI systemURI, List<URI> volumeURIs, String deletionType) {
         // Get descriptors for all volumes impacted by the deletion of the requested volumes.

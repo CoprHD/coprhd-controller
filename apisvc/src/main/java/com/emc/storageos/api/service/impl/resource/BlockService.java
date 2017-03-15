@@ -2150,7 +2150,8 @@ public class BlockService extends TaskResourceService {
              * 8.0.3.
              * Hence we don't require reference check for vmax.
              */
-            if (!volume.isInCG() || !BlockServiceUtils.checkCGVolumeCanBeAddedOrRemoved(null, volume, _dbClient)) {
+            if ((VolumeDeleteTypeEnum.VIPR_ONLY.name().equals(type)) || (!volume.isInCG())
+                    || (!BlockServiceUtils.checkCGVolumeCanBeAddedOrRemoved(null, volume, _dbClient))) {
                 List<Class<? extends DataObject>> excludeTypes = null;
                 if (VolumeDeleteTypeEnum.VIPR_ONLY.name().equals(type)) {
                     // For ViPR-only delete of exported volumes, We will clean up any

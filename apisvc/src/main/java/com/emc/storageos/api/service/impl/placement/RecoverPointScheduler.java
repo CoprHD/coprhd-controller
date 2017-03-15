@@ -551,7 +551,6 @@ public class RecoverPointScheduler implements Scheduler {
                     RPRecommendation sourceJournalRecommendation = null;
                     if (rpProtectionRecommendation.getSourceJournalRecommendation() == null) {
                         _log.info(String.format("RP Placement : Build RP Source Journal Recommendation..."));
-                        //int journalCount = 
                         sourceJournalRecommendation = buildJournalRecommendation(rpProtectionRecommendation,
                                 candidateSourceInternalSiteName,
                                 vpool.getJournalSize(), journalVarray, journalVpool, candidateProtectionSystem,

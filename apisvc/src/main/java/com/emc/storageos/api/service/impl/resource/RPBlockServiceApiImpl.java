@@ -684,10 +684,11 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
             VirtualArray varray = _dbClient.queryObject(VirtualArray.class, sourceJournalRec
                     .getVirtualArray());
 
-            // Number of journals to create - will only be greater than 1 when doing add journal operation.
+            // Number of journals to create
             int numberOfJournalVolumesInRequest = sourceJournalRec.getResourceCount();
             
-            // Force resource count to 1
+            // Force resource count to 1 here because we're using numberOfJournalVolumesInRequest to create the 
+            // correct number of journal resources.
             sourceJournalRec.setResourceCount(1);
 
             for (int volumeCount = 0; volumeCount < numberOfJournalVolumesInRequest; volumeCount++) {
@@ -721,10 +722,11 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
             // varray is used to get unique journal volume names
             VirtualArray varray = _dbClient.queryObject(VirtualArray.class, standbyJournalRec.getVirtualArray());
 
-            // Number of journals to create - will only be greater than 1 when doing add journal operation.
+            // Number of journals to create
             int numberOfJournalVolumesInRequest = standbyJournalRec.getResourceCount();
             
-            // Force resource count to 1
+            // Force resource count to 1 here because we're using numberOfJournalVolumesInRequest to create the 
+            // correct number of journal resources.
             standbyJournalRec.setResourceCount(1);
            
             for (int volumeCount = 0; volumeCount < numberOfJournalVolumesInRequest; volumeCount++) {
@@ -774,10 +776,12 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                 }
 
                 _log.info(String.format("Create Target Journal (%s)...", targetJournalVarray.getLabel()));
-                // Number of journals to create - will only be greater than 1 when doing add journal operation.
+
+                // Number of journals to create
                 int numberOfJournalVolumesInRequest = targetJournalRec.getResourceCount();
 
-                // Force resource count to 1
+                // Force resource count to 1 here because we're using numberOfJournalVolumesInRequest to create the 
+                // correct number of journal resources.
                 targetJournalRec.setResourceCount(1);
 
                 for (int volumeCount = 0; volumeCount < numberOfJournalVolumesInRequest; volumeCount++) {

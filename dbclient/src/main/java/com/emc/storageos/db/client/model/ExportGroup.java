@@ -127,6 +127,11 @@ public class ExportGroup extends DataObject implements ProjectResource {
         if (_volumes != null && volumes != null) {
             for (URI uri : volumes) {
                 _volumes.remove(uri.toString());
+                if (URIUtil.isType(uri, BlockSnapshot.class)) {
+                    if (_snapshots != null) {
+                        _snapshots.remove(uri.toString());
+                    }
+                }
             }
         }
     }
@@ -136,6 +141,11 @@ public class ExportGroup extends DataObject implements ProjectResource {
 
             for (String uriString : volumeURIStrings) {
                 _volumes.remove(uriString);
+                if (URIUtil.isType(URI.create(uriString), BlockSnapshot.class)) {
+                    if (_snapshots != null) {
+                        _snapshots.remove(uriString);
+                    }
+                }
             }
         }
     }

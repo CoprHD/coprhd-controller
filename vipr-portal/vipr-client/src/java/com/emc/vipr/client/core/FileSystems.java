@@ -761,10 +761,10 @@ public class FileSystems extends ProjectResources<FileShareRestRep> implements T
      *            the ID of the file policy.
      * @return a task for monitoring the progress of the operation.
      */
-    public Task<FileShareRestRep> dissociateFilePolicy(URI fileSystemId, URI filePolicyId) {
+    public TaskResourceRep dissociateFilePolicy(URI fileSystemId, URI filePolicyId) {
         UriBuilder builder = client.uriBuilder(getIdUrl() + "/unassign-file-policy/{file_policy_uri}");
         URI targetUri = builder.build(fileSystemId, filePolicyId);
-        return putTaskURI(null, targetUri);
+        return client.putURI(TaskResourceRep.class, null, targetUri);
     }
 
     /**

@@ -89,8 +89,11 @@ public class VirtualPoolFileReplicationPolicyMigration extends BaseCustomMigrati
                     replPolicy.setFilePolicyVpool(virtualPool.getId());
                     // Replication policy was created always at file system level!!
                     replPolicy.setApplyAt(FilePolicyApplyLevel.file_system.name());
-                    replPolicy.setFileReplicationCopyMode(virtualPool.getFileReplicationCopyMode());
-
+                    if(virtualPool.getFileReplicationCopyMode().equals(VirtualPool.RPCopyMode.ASYNCHRONOUS.name())){
+                        replPolicy.setFileReplicationCopyMode(FilePolicy.FileReplicationCopyMode.ASYNC.name());  
+                    }else{
+                        replPolicy.setFileReplicationCopyMode(FilePolicy.FileReplicationCopyMode.SYNC.name()); 
+                    }
                     replPolicy.setFileReplicationType(virtualPool.getFileReplicationType());
                     replPolicy.setPriority(FilePolicyPriority.Normal.toString());
 
@@ -146,6 +149,8 @@ public class VirtualPoolFileReplicationPolicyMigration extends BaseCustomMigrati
                                 && fs.getPersonality().equalsIgnoreCase(PersonalityTypes.SOURCE.name())) {
                             StorageSystem system = dbClient.queryObject(StorageSystem.class, fs.getStorageDevice());
                             updatePolicyStorageResouce(system, replPolicy, fs);
+                            fs.addFilePolicy(replPolicy.getId());
+                            dbClient.updateObject(fs);
                         }
 
                     }

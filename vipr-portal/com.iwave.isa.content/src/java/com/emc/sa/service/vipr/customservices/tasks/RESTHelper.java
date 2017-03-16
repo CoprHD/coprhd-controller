@@ -29,6 +29,8 @@ import java.util.regex.Pattern;
 
 public final class RESTHelper {
     private static final org.slf4j.Logger logger = LoggerFactory.getLogger(RESTHelper.class);
+
+    private RESTHelper() {};
     /**
      * POST body format:
      body = "{\n" +

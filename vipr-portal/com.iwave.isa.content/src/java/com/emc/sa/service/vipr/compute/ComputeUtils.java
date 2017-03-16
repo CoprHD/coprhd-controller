@@ -362,7 +362,7 @@ public class ComputeUtils {
                 // handling such a case and refreshing the tasklist being used to check state of task.
                 String exMessage = "Error 2000: Unable to find entity specified in URL with the given id %s";
                 exMessage = String.format(exMessage, task.getTaskResource().getId());
-                if(ex.getMessage().equalsIgnoreCase(exMessage) || ex.getMessage().equalsIgnoreCase("Task has no link")) {
+                if(ex.getMessage().contains(exMessage) || ex.getMessage().equalsIgnoreCase("Task has no link")) {
                     refreshedTasks.remove(task);
                 }
                 ExecutionUtils.currentContext().logError("computeutils.task.exception", ex.getMessage());

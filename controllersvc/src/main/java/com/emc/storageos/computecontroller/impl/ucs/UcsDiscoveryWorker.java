@@ -419,23 +419,20 @@ public class UcsDiscoveryWorker {
     }
 
     private static String getBios(ComputeBlade computeBlade) {
-        String biosVersion = null;
-        biosLoop:
-            for(Serializable bladeContent : computeBlade.getContent()){
-                if((bladeContent != null) && (bladeContent instanceof JAXBElement<?>) &&
-                        (((JAXBElement)bladeContent).getValue() instanceof BiosUnit)) {
-                    BiosUnit biosUnit = (BiosUnit) ((JAXBElement)bladeContent).getValue();
-                    for(Serializable biosUnitContent : biosUnit.getContent()) {
-                        if((biosUnitContent != null) && (biosUnitContent instanceof JAXBElement<?>) &&
-                                (((JAXBElement)biosUnitContent).getValue() instanceof FirmwareRunning)) {
-                            FirmwareRunning firmwareRunning = (FirmwareRunning) ((JAXBElement)biosUnitContent).getValue();
-                            biosVersion = firmwareRunning.getVersion();
-                            break biosLoop;
-                        }
+        for(Serializable bladeContent : computeBlade.getContent()){
+            if((bladeContent != null) && (bladeContent instanceof JAXBElement<?>) &&
+                    (((JAXBElement)bladeContent).getValue() instanceof BiosUnit)) {
+                BiosUnit biosUnit = (BiosUnit) ((JAXBElement)bladeContent).getValue();
+                for(Serializable biosUnitContent : biosUnit.getContent()) {
+                    if((biosUnitContent != null) && (biosUnitContent instanceof JAXBElement<?>) &&
+                            (((JAXBElement)biosUnitContent).getValue() instanceof FirmwareRunning)) {
+                        FirmwareRunning firmwareRunning = (FirmwareRunning) ((JAXBElement)biosUnitContent).getValue();
+                        return firmwareRunning.getVersion();
                     }
                 }
             }
-        return biosVersion;
+        }
+        return null;
     }
 
     private void reconcileServiceProfiles(ComputeSystem cs, List<LsServer> allLsServers){

@@ -1129,8 +1129,6 @@ public class ComputeUtils {
                 HostSystem hostSystem = null;
                 VCenterAPI api = null;
                 try {
-                    // Keeping in mind if people are sneaky and change hostnames and labels, we'll see it as a validation
-                    // success. Is there a better way for us to track these things, like maybe the boot volume?
                     hostSystem = vmware.getHostSystem(dataCenter.getLabel(), host.getHostName(), false);
 
                     // Make sure the host system is still part of the cluster in vcenter. If it isn't, hostSystem will be null and
@@ -1161,6 +1159,11 @@ public class ComputeUtils {
                                 return false;
                             }
                         }
+                        // If we get to here, we can't find the host in this vCenter at all and we are going to fail. We don't want to
+                        // delete this host from a vCenter outside of our control.
+                        ExecutionUtils.currentContext().logInfo("computeutils.decommission.failure.host.notinvcenter",
+                                host.getHostName());
+                        return false;
                     } else {
                         // Make sure the UUID of the host matches what we have in our database.
                         if (hostSystem.getHardware() != null
@@ -1189,15 +1192,6 @@ public class ComputeUtils {
                             return false;
                         }
                     }
-
-                } catch (ExecutionException e) {
-                    if (e.getCause() instanceof IllegalStateException) {
-                        ExecutionUtils.currentContext().logInfo("computeutils.decommission.validation.skipped.hostnotinvcenter",
-                                host.getHostName());
-                        continue;
-                    }
-                    // If it's anything other than the IllegalStateException, re-throw the base exception
-                    throw e;
                 } finally {
                     if (api != null) {
                         api.logout();

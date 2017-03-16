@@ -379,9 +379,10 @@ public class CustomServicesService extends ViPRService {
                 final Set<Map.Entry<String, List<String>>> headers = restResult.getHeaders();
                 for (final Map.Entry<String, List<String>> entry : headers) {
                     if (entry.getKey().equals(o.getName())) {
-                        out.put(o.getTable(), entry.getValue());
+                        out.put(o.getName(), entry.getValue());
                     }
                 }
+
             } else {
 
                 // TODO: Remove this after parsing output is fully implemented
@@ -389,7 +390,10 @@ public class CustomServicesService extends ViPRService {
                 return;
             }
         }
-
+        //set the default result.
+        out.put(CustomServicesConstants.OPERATION_OUTPUT, Arrays.asList(res.getOut()));
+        out.put(CustomServicesConstants.OPERATION_ERROR, Arrays.asList(res.getErr()));
+        out.put(CustomServicesConstants.OPERATION_RETURNCODE, Arrays.asList(String.valueOf(res.getReturnCode())));
         outputPerStep.put(step.getId(), out);
     }
 

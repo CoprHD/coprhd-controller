@@ -84,6 +84,11 @@ public final class CustomServicesConstants {
     public static final String PORT = "port";
     public static final String HEADERS = "headers";
 
+    //Execution Result
+    public static final String OPERATION_OUTPUT = "operation_output";
+    public static final String OPERATION_ERROR = "operation_error";
+    public static final String OPERATION_RETURNCODE = "operation_returncode";
+
     public enum restMethods {
         GET, POST, PUT, DELETE;
     }

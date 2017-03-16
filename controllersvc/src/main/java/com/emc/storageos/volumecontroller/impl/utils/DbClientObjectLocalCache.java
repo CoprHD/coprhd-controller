@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2012 EMC Corporation
+ * Copyright (c) 2017 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.volumecontroller.impl.utils;

@@ -834,9 +834,10 @@ public class PortMetricsProcessor {
 
     /**
      * Determines if all the ports have valid (dynamic) metrics. If so
-     * returns true; other returns false, which would cause static usage
+     * returns true; otherwise returns false, which would cause static usage
      * data to be used for metric.
      * 
+     * @param system storage system where candidate ports are
      * @param candidatePorts - List<StoragePort>
      * @return boolean true if all ports have valid metrics
      */
@@ -868,9 +869,10 @@ public class PortMetricsProcessor {
 
     /**
      * Determines if all the storage HADomains have valid (dynamic) metrics. If so
-     * returns true; other returns false, which would cause static usage
+     * returns true; otherwise returns false, which would cause static usage
      * data to be used for metric.
      * 
+     * @param system storage system where candidate adapters are
      * @param candidateAdapters - List<StorageHADomain>
      * @return boolean true if all storage HADomains have valid metrics
      */

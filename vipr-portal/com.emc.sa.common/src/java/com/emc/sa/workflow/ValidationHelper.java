@@ -113,7 +113,7 @@ public class ValidationHelper {
 
             if (StringUtils.isNotBlank(errorString)) {
                 if (errorSteps.containsKey(step.getId())) {
-                    List<String> errorMsgs = errorStep.getErrorMessages();
+                    final List<String> errorMsgs = errorStep.getErrorMessages();
                     errorMsgs.add(errorString);
                 } else {
                     errorStep.setErrorMessages(new ArrayList<>(Arrays.asList(errorString)));
@@ -140,7 +140,6 @@ public class ValidationHelper {
         // For the steps which does not have parent, add the error to response
         for (final String stepId : stepWithoutParent) {
             if (errorSteps.containsKey(stepId)) {
-                errorSteps.get(stepId);
                 final List<String> errorMsgs = errorSteps.get(stepId).getErrorMessages();
                 errorMsgs.add(CustomServicesConstants.ERROR_MSG_WORKFLOW_PREVIOUS_STEP_NOT_DEFINED);
             } else {

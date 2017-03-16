@@ -121,16 +121,8 @@ public class VMwareSupport {
         return execute(new GetCluster(clusterId));
     }
 
-    public HostSystem getHostSystem(String datacenterName, String esxHostName, boolean failIfNotFound) {
-        return getHostSystem(datacenterName, esxHostName, failIfNotFound, true);
-    }
-
-    public HostSystem getHostSystem(String datacenterName, String esxHostName) {
-        return getHostSystem(datacenterName, esxHostName, true, true);
-    }
-
-    public HostSystem getHostSystem(String datacenterName, String esxHostName, boolean failIfNotFound, boolean checkConnection) {
-        return execute(new FindESXHost(datacenterName, esxHostName, failIfNotFound, checkConnection));
+    public HostSystem getHostSystem(String datacenterName, String esxHostName, boolean verifyHostExists) {
+        return execute(new FindESXHost(datacenterName, esxHostName, verifyHostExists));
     }
 
     public ClusterComputeResource getCluster(String datacenterName, String clusterName) {

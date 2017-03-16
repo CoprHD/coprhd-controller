@@ -55,9 +55,7 @@ public final class HostToComputeElementMatcher {
 
         // after correcting all associations possible, cause discovery failure with message
         if (failureMessages.length() > 0) {
-            throw ComputeSystemControllerException.exceptions.hostMatcherError("Errors detected " +
-                    "while matching hosts to blades. Please correct or contact customer support. " +
-                    failureMessages);
+            throw ComputeSystemControllerException.exceptions.hostMatcherError(failureMessages.toString());
         }
     }
 

@@ -566,6 +566,7 @@ public class VPlexControllerUtils {
             boolean addInitiators = false;
             List<String> initiatorPortWwnsToAddToExisting = new ArrayList<String>();
             List<Initiator> initiatorToAddedToUserAddedAndInitiatorList = new ArrayList<Initiator>();
+            List<String> initiatorsRemovedFromExistingAnduserAdded = new ArrayList<>();
             for (String port : discoveredInitiators) {
                 String normalizedPort = Initiator.normalizePort(port);
                 Initiator knownInitiator = ExportUtils.getInitiator(Initiator.toPortNetworkId(port), dbClient);
@@ -596,6 +597,7 @@ public class VPlexControllerUtils {
                                 existingInitiator.getId());
                         initiatorToAddedToUserAddedAndInitiatorList.add(existingInitiator);
                         initiatorsToRemoveFromExistingList.add(existingInitiatorStr);
+                        initiatorsRemovedFromExistingAnduserAdded.add(existingInitiatorStr);
                     } else {
                         log.info("Initiator {} not found in database or not belonging to same compute, no changes ot existing list",existingInitiatorStr );
                     }
@@ -614,6 +616,7 @@ public class VPlexControllerUtils {
                     Initiator existingInitiator = ExportUtils.getInitiator(Initiator.toPortNetworkId(port), dbClient);
                     if (existingInitiator != null) {
                         initiatorsToremoveFromUserAddedandInitiatorList.remove(existingInitiator.getId());
+                        initiatorsRemovedFromExistingAnduserAdded.add(Initiator.normalizePort(port));
                     }else {
                         log.info("Initiator {} not found in database, removing from user Added and initiator list. Added to existing list",port );
                         initiatorPortWwnsToAddToExisting.add( Initiator.normalizePort(port));
@@ -693,10 +696,11 @@ public class VPlexControllerUtils {
             }
 
             log.info(
-                    String.format("ExportMask %s refresh initiators; addToExisting:{%s} removeAndUpdateZoning:{%s} removeFromExistingOnly:{%s}%n",
+                    String.format("ExportMask %s refresh initiators; addToExisting:{%s} removeAndUpdateZoning:{%s} removeFromExistingOnly:{%s}  removeFromExistingAndUserAdded:{%s}%n",
                             name, Joiner.on(',').join(initiatorPortWwnsToAddToExisting),
                             Joiner.on(',').join(initiatorsToRemoveFromExistingList), 
-                            Joiner.on(',').join(initiatorsToRemoveFromExistingList)));
+                            Joiner.on(',').join(initiatorsToRemoveFromExistingList),
+                            Joiner.on(',').join(initiatorsRemovedFromExistingAnduserAdded)));
             
             log.info(
                     String.format("XM refresh: %s user Added and initiator List; add:{%s} remove:{%s}%n",
@@ -738,7 +742,7 @@ public class VPlexControllerUtils {
                 log.info("ExportMask refresh: There are no changes to the mask\n");
             }
             networkDeviceController.refreshZoningMap(exportMask,
-                    initiatorsToRemoveFromExistingList, Collections.emptyList(),
+                    initiatorsRemovedFromExistingAnduserAdded, Collections.emptyList(),
                     (addInitiators || removeInitiators), true);
         } catch (Exception ex) {
             log.error("Failed to refresh VPLEX Storage View: " + ex.getLocalizedMessage(), ex);

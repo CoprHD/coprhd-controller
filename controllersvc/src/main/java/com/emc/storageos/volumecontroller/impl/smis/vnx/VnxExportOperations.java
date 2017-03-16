@@ -4,6 +4,8 @@
  */
 package com.emc.storageos.volumecontroller.impl.smis.vnx;
 
+import static com.google.common.collect.Collections2.transform;
+
 import java.net.URI;
 import java.text.MessageFormat;
 import java.util.ArrayList;
@@ -832,33 +834,101 @@ public class VnxExportOperations implements ExportMaskOperations {
                 builder.append(String.format("XM discovered: %s I:{%s} V:{%s}%n", name,
                         Joiner.on(',').join(discoveredPorts),
                         Joiner.on(',').join(discoveredVolumes.keySet())));
-
-                // Check the initiators and update the lists as necessary
+                
+                List<String> initiatorsToAddToExisting = new ArrayList<String>();
+                List<Initiator> initiatorsToGetAddedToUserAddedAndInitiatorList = new ArrayList<>();
                 boolean addInitiators = false;
-                List<String> initiatorsToAdd = new ArrayList<String>();
-                List<Initiator> initiatorIdsToAdd = new ArrayList<>();
+                
                 for (String port : discoveredPorts) {
                     String normalizedPort = Initiator.normalizePort(port);
+                    /**
+                     * Case 1: If the mask has only initiators but doesn't have existing and user Added, then
+                     * initiatorsToGetAddedToUserAddedList will add the initiator to user added if same compute resource
+                     * else initiatorsToAdd will add the initiator to existing.
+                     * 
+                     * case 1a: If mask is empty, then this code will make sure to add the 
+                     * 
+                     * Case 2:  If the mask has only user Added initiators but doesn't have initiators. (TODO )
+                     * 
+                     * Case 3:  If the mask has only existing initiators and initiators but doesn't have user Added. (TODO )
+                     * if the initiators belong to same compute resource then the initiators has to be moved from existing to user Added.
+                     * 
+                     */
+                    
+                   
                     if (!mask.hasExistingInitiator(normalizedPort) &&
                             !mask.hasUserInitiator(normalizedPort)) {
-                        initiatorsToAdd.add(normalizedPort);
+                        initiatorsToAddToExisting.add(normalizedPort);
                         Initiator existingInitiator = ExportUtils.getInitiator(Initiator.toPortNetworkId(port), _dbClient);
                         // Don't add additional initiator to initiators list if it belongs to different host/cluster
                         if (existingInitiator != null && !ExportMaskUtils.checkIfDifferentResource(mask, existingInitiator)) {
-                            initiatorIdsToAdd.add(existingInitiator);
+                            _log.info("Initiator {}->{} belonging to same compute,  adding to  userAdded and initiator list",normalizedPort,
+                                    existingInitiator.getId());
+                            initiatorsToGetAddedToUserAddedAndInitiatorList.add(existingInitiator);
                         }
-                        addInitiators = true;
+                        
                     }
                 }
 
                 boolean removeInitiators = false;
-                List<String> initiatorsToRemove = new ArrayList<String>();
+                /**
+                 * Get all existing initiators from the mask and remove all the discovered ports.
+                 * The remaining list has to be removed from existing, because they are not discovered and are stale.
+                 * 
+                 * If the mask has existing initiators but all are discovered and belongs to same compute resource, then the
+                 * initiators has to get added to user Added and initiators and removed from existing.
+                 */
+                
+                List<String> initiatorsRemovedFromExistingAnduserAdded = new ArrayList<>();
+                
+                List<String> initiatorsToRemovefromExistingList = new ArrayList<String>();
                 if (mask.getExistingInitiators() != null &&
                         !mask.getExistingInitiators().isEmpty()) {
-                    initiatorsToRemove.addAll(mask.getExistingInitiators());
-                    initiatorsToRemove.removeAll(discoveredPorts);
-                    removeInitiators = !initiatorsToRemove.isEmpty();
+                    for(String existingInitiatorStr : mask.getExistingInitiators()) {
+                        Initiator existingInitiator = ExportUtils.getInitiator(Initiator.toPortNetworkId(existingInitiatorStr), _dbClient);
+                        if (existingInitiator != null && !ExportMaskUtils.checkIfDifferentResource(mask, existingInitiator)) {
+                            _log.info("Initiator {}->{} belonging to same compute, removing from existing and adding to  userAdded and initiator list",existingInitiatorStr,
+                                    existingInitiator.getId());
+                            initiatorsToGetAddedToUserAddedAndInitiatorList.add(existingInitiator);
+                            initiatorsToRemovefromExistingList.add(existingInitiatorStr);
+                            initiatorsRemovedFromExistingAnduserAdded.add(existingInitiatorStr);
+                        } else {
+                            _log.info("Initiator {} not found in database or not belonging to same compute, no changes ot existing list",existingInitiatorStr );
+                        }
+                    }
                 }
+
+                /**
+                 * Get all  initiators from the mask and remove all the ViPR discovered ports.
+                 * The remaining list has to be removed from user Added and initiator list, because they are not available in ViPR
+                 * but has to be moved to existing.
+                 * 
+                 *
+                 */
+                List<URI> initiatorsToRemoveFromUserAddedandInitiatorList = new ArrayList<>();
+               
+                
+                if (mask.getInitiators() != null &&
+                        !mask.getInitiators().isEmpty()) {
+                    initiatorsToRemoveFromUserAddedandInitiatorList.addAll(transform(mask.getInitiators(),
+                            CommonTransformerFunctions.FCTN_STRING_TO_URI));
+                    for (String port : discoveredPorts) {
+                        Initiator initiatorDiscoveredInViPr = ExportUtils.getInitiator(Initiator.toPortNetworkId(port), _dbClient);
+                        if (initiatorDiscoveredInViPr != null) {
+                            initiatorsToRemoveFromUserAddedandInitiatorList.remove(initiatorDiscoveredInViPr.getId());
+                            initiatorsRemovedFromExistingAnduserAdded.add(Initiator.normalizePort(port));
+                        } else {
+                            _log.info("Initiator {} not found in database, removing from user Added and initiator list. Added to existing list",port );
+                            initiatorsToAddToExisting.add( Initiator.normalizePort(port));
+                        }
+                    }
+                }
+
+                removeInitiators = !initiatorsToRemovefromExistingList.isEmpty() || !initiatorsToRemoveFromUserAddedandInitiatorList.isEmpty();
+
+                addInitiators = !initiatorsToGetAddedToUserAddedAndInitiatorList.isEmpty() || !initiatorsToAddToExisting.isEmpty();
+
+                
 
                 // Check the volumes and update the lists as necessary
                 Map<String, Integer> volumesToAdd = ExportMaskUtils.diffAndFindNewVolumes(mask, discoveredVolumes);
@@ -893,23 +963,27 @@ public class VnxExportOperations implements ExportMaskOperations {
                 // NOTE/TODO: We are not modifying the storage ports upon refresh like we do for VMAX.
                 // Refer to CTRL-6982.
                 builder.append(
-                        String.format("XM refresh: %s initiators; add:{%s} initiatorIdsToAdd:{%s} remove:{%s}%n",
-                                name, Joiner.on(',').join(initiatorsToAdd),
-                                Joiner.on(',').join(initiatorIdsToAdd), Joiner.on(',').join(initiatorsToRemove)));
+                        String.format("XM refresh: %s existing initiators; add:{%s} remove:{%s}  removeFromuserAddedAndExisting:{%s}%n",
+                                name, Joiner.on(',').join(initiatorsToAddToExisting),
+                                Joiner.on(',').join(initiatorsToRemovefromExistingList),
+                                Joiner.on(',').join(initiatorsRemovedFromExistingAnduserAdded)));
+                
                 builder.append(
-                        String.format("XM refresh: %s volumes; add:{%s} remove:{%s}%n",
-                                name, Joiner.on(',').join(volumesToAdd.keySet()),
-                                Joiner.on(',').join(volumesToRemove)));
+                        String.format("XM refresh: %s user Added and initiator List; add:{%s} remove:{%s}%n",
+                                name, Joiner.on(',').join(initiatorsToGetAddedToUserAddedAndInitiatorList),
+                                Joiner.on(',').join(initiatorsToRemoveFromUserAddedandInitiatorList)));
 
                 // Any changes indicated, then update the mask and persist it
                 if (addInitiators || removeInitiators || addVolumes ||
                         removeVolumes) {
                     builder.append("XM refresh: There are changes to mask, " +
                             "updating it...\n");
-                    mask.removeFromExistingInitiators(initiatorsToRemove);
-                    mask.addInitiators(initiatorIdsToAdd);
-                    mask.addToUserCreatedInitiators(initiatorIdsToAdd);
-                    mask.addToExistingInitiatorsIfAbsent(initiatorsToAdd);
+                    mask.removeFromExistingInitiators(initiatorsToRemovefromExistingList);
+                    mask.removeInitiatorURIs(initiatorsToRemoveFromUserAddedandInitiatorList);
+                    mask.removeFromUserAddedInitiatorsByURI(initiatorsToRemoveFromUserAddedandInitiatorList);
+                    mask.addInitiators(initiatorsToGetAddedToUserAddedAndInitiatorList);
+                    mask.addToUserCreatedInitiators(initiatorsToGetAddedToUserAddedAndInitiatorList);
+                    mask.addToExistingInitiatorsIfAbsent(initiatorsToAddToExisting);
                     mask.removeFromExistingVolumes(volumesToRemove);
                     mask.addToExistingVolumesIfAbsent(volumesToAdd);
 
@@ -936,7 +1010,7 @@ public class VnxExportOperations implements ExportMaskOperations {
                     builder.append("XM refresh: There are no changes to the mask\n");
                 }
                 _networkDeviceController.refreshZoningMap(mask,
-                        initiatorsToRemove, Collections.<String>emptyList(),
+                        initiatorsRemovedFromExistingAnduserAdded, Collections.<String>emptyList(),
                         (addInitiators || removeInitiators), true);
                 _log.info(builder.toString());
             }

@@ -2216,10 +2216,10 @@ public class VmaxExportOperations implements ExportMaskOperations {
                         Joiner.on(',').join(discoveredPorts),
                         Joiner.on(',').join(discoveredVolumes.keySet())));
 
-                // Check the initiators and update the lists as necessary
-                boolean addInitiators = false;
                 List<String> initiatorsToAddToExisting = new ArrayList<String>();
                 List<Initiator> initiatorsToGetAddedToUserAddedAndInitiatorList = new ArrayList<>();
+                boolean addInitiators = false;
+                
                 for (String port : discoveredPorts) {
                     String normalizedPort = Initiator.normalizePort(port);
                     /**
@@ -2260,6 +2260,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
                  * initiators has to get added to user Added and initiators and removed from existing.
                  */
                 
+                List<String> initiatorsRemovedFromExistingAnduserAdded = new ArrayList<>();
                 
                 List<String> initiatorsToRemovefromExistingList = new ArrayList<String>();
                 if (mask.getExistingInitiators() != null &&
@@ -2271,6 +2272,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
                                     existingInitiator.getId());
                             initiatorsToGetAddedToUserAddedAndInitiatorList.add(existingInitiator);
                             initiatorsToRemovefromExistingList.add(existingInitiatorStr);
+                            initiatorsRemovedFromExistingAnduserAdded.add(existingInitiatorStr);
                         } else {
                             _log.info("Initiator {} not found in database or not belonging to same compute, no changes ot existing list",existingInitiatorStr );
                         }
@@ -2285,6 +2287,8 @@ public class VmaxExportOperations implements ExportMaskOperations {
                  *
                  */
                 List<URI> initiatorsToRemoveFromUserAddedandInitiatorList = new ArrayList<>();
+               
+                
                 if (mask.getInitiators() != null &&
                         !mask.getInitiators().isEmpty()) {
                     initiatorsToRemoveFromUserAddedandInitiatorList.addAll(transform(mask.getInitiators(),
@@ -2293,6 +2297,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
                         Initiator initiatorDiscoveredInViPr = ExportUtils.getInitiator(Initiator.toPortNetworkId(port), _dbClient);
                         if (initiatorDiscoveredInViPr != null) {
                             initiatorsToRemoveFromUserAddedandInitiatorList.remove(initiatorDiscoveredInViPr.getId());
+                            initiatorsRemovedFromExistingAnduserAdded.add(Initiator.normalizePort(port));
                         } else {
                             _log.info("Initiator {} not found in database, removing from user Added and initiator list. Added to existing list",port );
                             initiatorsToAddToExisting.add( Initiator.normalizePort(port));
@@ -2303,6 +2308,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
                 removeInitiators = !initiatorsToRemovefromExistingList.isEmpty() || !initiatorsToRemoveFromUserAddedandInitiatorList.isEmpty();
 
                 addInitiators = !initiatorsToGetAddedToUserAddedAndInitiatorList.isEmpty() || !initiatorsToAddToExisting.isEmpty();
+
                 
                 // Check the volumes and update the lists as necessary
                 Map<String, Integer> volumesToAdd = ExportMaskUtils.diffAndFindNewVolumes(mask, discoveredVolumes);
@@ -2367,9 +2373,10 @@ public class VmaxExportOperations implements ExportMaskOperations {
                 }
 
                 builder.append(
-                        String.format("XM refresh: %s existing initiators; add:{%s} remove:{%s}%n",
+                        String.format("XM refresh: %s existing initiators; add:{%s} remove:{%s}  removeFromuserAddedAndExisting:{%s}%n",
                                 name, Joiner.on(',').join(initiatorsToAddToExisting),
-                                Joiner.on(',').join(initiatorsToRemovefromExistingList)));
+                                Joiner.on(',').join(initiatorsToRemovefromExistingList),
+                                Joiner.on(',').join(initiatorsRemovedFromExistingAnduserAdded)));
                 
                 builder.append(
                         String.format("XM refresh: %s user Added and initiator List; add:{%s} remove:{%s}%n",
@@ -2425,7 +2432,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
                     builder.append("XM refresh: There are no changes to the mask\n");
                 }
                 _networkDeviceController.refreshZoningMap(mask,
-                        initiatorsToRemovefromExistingList, Collections.EMPTY_LIST,
+                        initiatorsRemovedFromExistingAnduserAdded, Collections.EMPTY_LIST,
                         (addInitiators || removeInitiators), true);
                 _log.info(builder.toString());
             }

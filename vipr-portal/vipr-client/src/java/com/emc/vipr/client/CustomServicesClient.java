@@ -33,6 +33,7 @@ import com.emc.storageos.model.customservices.CustomServicesPrimitiveList;
 import com.emc.storageos.model.customservices.CustomServicesPrimitiveResourceRestRep;
 import com.emc.storageos.model.customservices.CustomServicesPrimitiveRestRep;
 import com.emc.storageos.model.customservices.CustomServicesPrimitiveUpdateParam;
+import com.emc.storageos.model.customservices.CustomServicesValidationResponse;
 import com.emc.storageos.model.customservices.CustomServicesWorkflowCreateParam;
 import com.emc.storageos.model.customservices.CustomServicesWorkflowList;
 import com.emc.storageos.model.customservices.CustomServicesWorkflowRestRep;
@@ -104,8 +105,8 @@ public class CustomServicesClient extends AbstractCatalogBulkResources<CustomSer
         return client.get(CustomServicesWorkflowRestRep.class, PathConstants.CUSTOM_SERVICES_WORKFLOW, id);
     }
 
-    public CustomServicesWorkflowRestRep validateWorkflow(final URI id) {
-        return client.post(CustomServicesWorkflowRestRep.class,PathConstants.CUSTOM_SERVICES_WORKFLOW_VALIDATE,id);
+    public CustomServicesValidationResponse validateWorkflow(final URI id) {
+        return client.post(CustomServicesValidationResponse.class,PathConstants.CUSTOM_SERVICES_WORKFLOW_VALIDATE,id);
     }
 
     public CustomServicesWorkflowRestRep publishWorkflow(final URI id) {

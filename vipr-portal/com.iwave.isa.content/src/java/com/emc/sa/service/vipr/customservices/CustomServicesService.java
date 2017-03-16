@@ -41,7 +41,6 @@ import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.engine.service.Service;
 import com.emc.sa.service.vipr.ViPRExecutionUtils;
 import com.emc.sa.service.vipr.ViPRService;
-import com.emc.sa.service.vipr.customservices.CustomServicesConstants.InputType;
 import com.emc.sa.service.vipr.customservices.gson.ViprOperation;
 import com.emc.sa.service.vipr.customservices.gson.ViprTask;
 import com.emc.sa.service.vipr.customservices.tasks.CustomServicesRestTaskResult;
@@ -55,6 +54,7 @@ import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.model.customservices.CustomServicesWorkflowDocument;
 import com.emc.storageos.model.customservices.CustomServicesWorkflowDocument.Input;
 import com.emc.storageos.model.customservices.CustomServicesWorkflowDocument.Step;
+import com.emc.storageos.primitives.CustomServicesConstants;
 import com.emc.storageos.primitives.CustomServicesPrimitive.StepType;
 import com.emc.storageos.primitives.CustomServicesPrimitiveType;
 import com.emc.storageos.primitives.java.vipr.CustomServicesViPRPrimitive;
@@ -102,8 +102,6 @@ public class CustomServicesService extends ViPRService {
             builder.put(step.getId(), step);
         }
         stepsHash = builder.build();
-        ValidateCustomServiceWorkflow validate = new ValidateCustomServiceWorkflow(params, stepsHash);
-        validate.validate();
     }
 
     @Override
@@ -284,9 +282,8 @@ public class CustomServicesService extends ViPRService {
         for (final CustomServicesWorkflowDocument.InputGroup inputGroup : step.getInputGroups().values()) {
             for (final Input value : inputGroup.getInputGroup()) {
                 final String name = value.getName();
-                switch (InputType.fromString(value.getType())) {
+                switch (CustomServicesConstants.InputType.fromString(value.getType())) {
                     case FROM_USER:
-                    case OTHERS:
                     case ASSET_OPTION: {
                         final String friendlyName = value.getFriendlyName();
                         if (params.get(friendlyName) != null) {
@@ -319,6 +316,28 @@ public class CustomServicesService extends ViPRService {
                         }
                         if (value.getDefaultValue() != null) {
                             inputs.put(name, Arrays.asList(value.getDefaultValue()));
+=======
+                    break;
+                }
+                // TODO: Handle multi value
+                // case ASSET_OPTION_MULTI_VALUE:
+                case FROM_STEP_INPUT:
+                case FROM_STEP_OUTPUT: {
+                    final String[] paramVal = value.getValue().split("\\.");
+                    final String stepId = paramVal[CustomServicesConstants.STEP_ID];
+                    final String attribute = paramVal[CustomServicesConstants.INPUT_FIELD];
+
+                    Map<String, List<String>> stepInput;
+                    if (value.getType().equals(CustomServicesConstants.InputType.FROM_STEP_INPUT.toString()))
+                        stepInput = inputPerStep.get(stepId);
+                    else
+                        stepInput = outputPerStep.get(stepId);
+
+                    if (stepInput != null) {
+                        logger.info("value is:{}", stepInput.get(attribute));
+                        if (stepInput.get(attribute) != null) {
+                            inputs.put(name, stepInput.get(attribute));
+>>>>>>> a7e8d93623cf1f2846418fdc24780015f81f91ad
                             break;
                         }
 

@@ -2560,25 +2560,18 @@ public class FileService extends TaskResourceService {
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/vpool-change")
     @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.OWN, ACL.ALL })
-    public TaskResourceRep changeFileSystemVirtualPool(@PathParam("id") URI id, FileSystemVirtualPoolChangeParam param)
-            throws InternalException, APIException {
-
+    public TaskResourceRep changeFileSystemVirtualPool(@PathParam("id") URI id, FileSystemVirtualPoolChangeParam param) {
         _log.info("Request to change VirtualPool for filesystem {}", id);
 
         // Validate the FS id.
         ArgValidator.checkFieldUriType(id, FileShare.class, "id");
         FileShare fs = queryResource(id);
-        FileShare orgFs = queryResource(id);
         String task = UUID.randomUUID().toString();
         ArgValidator.checkEntity(fs, id, isIdEmbeddedInURL(id));
-        TaskList taskList = new TaskList();
 
         // Make sure that we don't have some pending
         // operation against the file system!!!
         checkForPendingTasks(Arrays.asList(fs.getTenant().getURI()), Arrays.asList(fs));
-
-        // target vPool
-        VirtualPool newVpool = null;
 
         // Get the project.
         URI projectURI = fs.getProject().getURI();
@@ -2587,13 +2580,9 @@ public class FileService extends TaskResourceService {
         ArgValidator.checkEntity(project, projectURI, false);
         _log.info("Found filesystem project {}", projectURI);
 
-        // Verify the user is authorized for the volume's project.
-        // BlockServiceUtils.verifyUserIsAuthorizedForRequest(project, getUserFromContext(), _permissionsHelper);
-        _log.info("User is authorized for volume's project");
-
         // Get the VirtualPool for the request and verify that the
         // project's tenant has access to the VirtualPool.
-        newVpool = getVirtualPoolForRequest(project, param.getVirtualPool(),
+        VirtualPool newVpool = getVirtualPoolForRequest(project, param.getVirtualPool(),
                 _dbClient, _permissionsHelper);
         _log.info("Found new VirtualPool {}", newVpool.getId());
 
@@ -2605,21 +2594,9 @@ public class FileService extends TaskResourceService {
             throw APIException.badRequests.invalidVirtualPoolForVirtualPoolChange(
                     newVpool.getLabel(), notSuppReasonBuff.toString());
         }
-
-        // Get the virtual array!!!
-        VirtualArray varray = _dbClient.queryObject(VirtualArray.class, fs.getVirtualArray());
-
-        // Total provisioned capacity to check for vPool quota.
-        long totalProvisionedCapacity = fs.getCapacity();
-        // verify target vPool quota
-        if (!CapacityUtils.validateVirtualPoolQuota(_dbClient, newVpool,
-                totalProvisionedCapacity)) {
-            throw APIException.badRequests.insufficientQuotaForVirtualPool(
-                    newVpool.getLabel(), "filesystem");
-        }
         // Change the virtual pool of source file system!!
         fs.setVirtualPool(newVpool.getId());
-        // New operation
+
         Operation op = new Operation();
         op.setResourceType(ResourceOperationTypeEnum.CHANGE_FILE_SYSTEM_VPOOL);
         op.setDescription("Change vpool operation");
@@ -2629,62 +2606,11 @@ public class FileService extends TaskResourceService {
         _dbClient.updateObject(fs);
 
         TaskResourceRep fileSystemTask = toTask(fs, task, op);
-        taskList.getTaskList().add(fileSystemTask);
-        StorageSystem device = _dbClient.queryObject(StorageSystem.class, fs.getStorageDevice());
-
-        // prepare vpool capability values
-        VirtualPoolCapabilityValuesWrapper capabilities = new VirtualPoolCapabilityValuesWrapper();
-        capabilities.put(VirtualPoolCapabilityValuesWrapper.SIZE, fs.getCapacity());
-        capabilities.put(VirtualPoolCapabilityValuesWrapper.RESOURCE_COUNT, new Integer(1));
-        if (VirtualPool.ProvisioningType.Thin.toString().equalsIgnoreCase(newVpool.getSupportedProvisioningType())) {
-            capabilities.put(VirtualPoolCapabilityValuesWrapper.THIN_PROVISIONING, Boolean.TRUE);
-        }
-        // Set the source file system details
-        // source fs details used in finding recommendations for target fs!!
-        capabilities.put(VirtualPoolCapabilityValuesWrapper.FILE_SYSTEM_CREATE_MIRROR_COPY, Boolean.TRUE);
-        capabilities.put(VirtualPoolCapabilityValuesWrapper.EXISTING_SOURCE_FILE_SYSTEM, fs);
-        capabilities.put(VirtualPoolCapabilityValuesWrapper.SOURCE_STORAGE_SYSTEM, device);
-
-        StringBuilder errorMsg = new StringBuilder();
-        if (!FilePolicyServiceUtils.updatePolicyCapabilities(_dbClient, varray, newVpool, project, null, capabilities, errorMsg)) {
-            _log.error("File system can not be created, ", errorMsg.toString());
-            throw APIException.badRequests.unableToProcessRequest(errorMsg.toString());
-        }
-
-        FileServiceApi fileServiceApi = getFileServiceImpl(capabilities, _dbClient);
-
-        try {
-            // Call out placementManager to get the recommendation for placement.
-            List recommendations = _filePlacementManager.getRecommendationsForFileCreateRequest(
-                    varray, project, newVpool, capabilities);
-
-            // Verify the source virtual pool recommendations meets source fs storage!!!
-            fileServiceApi.createTargetsForExistingSource(fs, project,
-                    newVpool, varray, taskList, task, recommendations, capabilities);
-        } catch (BadRequestException e) {
-            // Revert the file system to original state!!!
-            restoreFromOriginalFs(orgFs, fs);
-            _dbClient.updateObject(fs);
-            op = _dbClient.error(FileShare.class, fs.getId(), task, e);
-            _log.error("Change file system virtual pool failed {}, {}", e.getMessage(), e);
-            throw e;
-        } catch (InternalException e) {
-            // Revert the file system to original state!!!
-            restoreFromOriginalFs(orgFs, fs);
-            _dbClient.updateObject(fs);
-            op = _dbClient.error(FileShare.class, fs.getId(), task, e);
-            _log.error("Change file system virtual pool failed {}, {}", e.getMessage(), e);
-            throw e;
-        } catch (Exception e) {
-            _log.error("Change file system virtual pool failed {}, {}", e.getMessage(), e);
-            throw APIException.badRequests.unableToProcessRequest(e.getMessage());
-        }
-
+        _dbClient.ready(FileShare.class, fs.getId(), task);
         auditOp(OperationTypeEnum.CHANGE_FILE_SYSTEM_VPOOL, true, AuditLogManager.AUDITOP_BEGIN,
                 fs.getLabel(), currentVpool.getLabel(), newVpool.getLabel(),
                 project == null ? null : project.getId().toString());
-
-        return taskList.getTaskList().get(0);
+        return fileSystemTask;
     }
 
     @POST

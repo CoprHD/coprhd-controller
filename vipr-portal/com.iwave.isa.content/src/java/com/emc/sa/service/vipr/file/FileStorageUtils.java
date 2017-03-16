@@ -159,6 +159,11 @@ public class FileStorageUtils {
         return fileSystemId;
     }
 
+    public static void changeFileVirtualPoolAndAssignPolicy(URI fileId, URI targetVirtualPool, URI filePolicy, URI targetVirtualArray) {
+        changeFileVirtualPool(fileId, targetVirtualPool);
+        associateFilePolicy(fileId, filePolicy, targetVirtualArray);
+    }
+
     public static void deleteFileSystem(URI fileSystemId, FileControllerConstants.DeleteTypeEnum fileDeletionType) {
 
         if (FileControllerConstants.DeleteTypeEnum.FULL.equals(fileDeletionType)) {

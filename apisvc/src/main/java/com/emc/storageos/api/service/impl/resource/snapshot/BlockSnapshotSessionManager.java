@@ -777,6 +777,11 @@ public class BlockSnapshotSessionManager {
         List<Volume> volumes = ControllerUtils.getVolumesPartOfCG(group.getId(), _dbClient);
 
         if (volumes.isEmpty()) {
+            s_logger.info("No volumes in CG");
+            List<BlockSnapshotSession> snapSessions = getPlatformSpecificImplOfType(SnapshotSessionImpl.dflt).getSnapshotSessionsForConsistencyGroup(group);
+            for (BlockSnapshotSession snapSession : snapSessions) {
+                result.getSnapSessionRelatedResourceList().add(toNamedRelatedResource(snapSession));
+            }
             return result;
         }
         
@@ -812,7 +817,8 @@ public class BlockSnapshotSessionManager {
         List<Volume> volumes = ControllerUtils.getVolumesPartOfCG(group.getId(), _dbClient);
 
         if (volumes.isEmpty()) {
-            return Collections.<BlockSnapshotSession> emptyList();
+            s_logger.info("No volumes in CG");
+            return getPlatformSpecificImplOfType(SnapshotSessionImpl.dflt).getSnapshotSessionsForConsistencyGroup(group);
         }
 
         Volume sourceVolume = volumes.get(0);

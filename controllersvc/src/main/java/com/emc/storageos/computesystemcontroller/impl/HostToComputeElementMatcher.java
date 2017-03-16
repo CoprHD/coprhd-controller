@@ -21,6 +21,8 @@ import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.computesystemcontroller.exceptions.ComputeSystemControllerException;
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.constraint.ContainmentConstraint;
+import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.ComputeElement;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus;
@@ -43,15 +45,43 @@ public final class HostToComputeElementMatcher {
 
     private HostToComputeElementMatcher(){}
 
-    public static void matchHostsToComputeElements(DbClient _dbClient) {
+    public static void matchHostToComputeElements(DbClient _dbClient, URI hostId) {
+        Collection<URI> hostIds = Arrays.asList(hostId);  // single host
+        Collection<URI> computeElementIds = dbClient.queryByType(ComputeElement.class, true); // all active
+        Collection<URI> serviceProfileIds = dbClient.queryByType(UCSServiceProfile.class, true); // all active
+        matchHostsToComputeElements(_dbClient,hostIds,computeElementIds,serviceProfileIds);
+    }
 
-        dbClient = _dbClient;                  // set our client
+    public static void matchHostsToComputeElements(DbClient _dbClient, Collection<URI> hostIds) {
+        Collection<URI> computeElementIds = dbClient.queryByType(ComputeElement.class, true); // all active
+        Collection<URI> serviceProfileIds = dbClient.queryByType(UCSServiceProfile.class, true); // all active
+        matchHostsToComputeElements(_dbClient,hostIds,computeElementIds,serviceProfileIds);
+    }
+
+    public static void matchUcsComputeElements(DbClient _dbClient, URI computeSystemId) {
+        Collection<URI> hostIds = dbClient.queryByType(Host.class, true); // all active hosts
+
+        URIQueryResultList computeElementIds = new URIQueryResultList(); // CEs for this UCS
+        _dbClient.queryByConstraint(ContainmentConstraint.Factory
+                .getComputeSystemComputeElemetsConstraint(computeSystemId), computeElementIds);
+
+        URIQueryResultList serviceProfileIds = new URIQueryResultList(); // SPs for this UCS
+        _dbClient.queryByConstraint(ContainmentConstraint.Factory.
+                getComputeSystemServiceProfilesConstraint(computeSystemId), serviceProfileIds);
+
+         matchHostsToComputeElements(_dbClient,hostIds,computeElementIds,serviceProfileIds);
+    }    
+
+    private static void matchHostsToComputeElements(DbClient _dbClient,Collection<URI> hostIds,
+            Collection<URI> computeElementIds,Collection<URI> serviceProfileIds) {
+
+        dbClient = _dbClient;                              // set our client
         failureMessages = new StringBuffer();
 
-        load();                                // load all active hosts, computeElements &SPs
-        matchHostsToBladesAndSPs();            // find hosts & blades whose UUIDs match
-        catchDuplicateMatches();               // validate matches (check for duplicates)
-        updateDb();                            // persist changed Hosts & ServiceProfiles
+        load(hostIds,computeElementIds,serviceProfileIds); // load hosts, computeElements &SPs
+        matchHostsToBladesAndSPs();                        // find hosts & blades whose UUIDs match
+        catchDuplicateMatches();                           // validate matches (check for duplicates)
+        updateDb();                                        // persist changed Hosts & ServiceProfiles
 
         // after correcting all associations possible, cause discovery failure with message
         if (failureMessages.length() > 0) {
@@ -59,25 +89,21 @@ public final class HostToComputeElementMatcher {
         }
     }
 
-    private static void load() {
-
-        Collection<URI> allHostUris = dbClient.queryByType(Host.class, true); // active only
-        Collection<URI> allComputeElementUris = dbClient.queryByType(ComputeElement.class, true); // active only
-        Collection<URI> allUCSServiceProfileUris = dbClient.queryByType(UCSServiceProfile.class, true); // active only
+    private static void load(Collection<URI> hostIds, Collection<URI> computeElementIds, Collection<URI> serviceProfileIds) {
 
         Collection<Host> allHosts = dbClient.queryObjectFields(Host.class,
                 Arrays.asList("uuid", "computeElement", "registrationStatus", "hostName","serviceProfile","label"),
-                getFullyImplementedCollection(allHostUris));
+                getFullyImplementedCollection(hostIds));
 
         Collection<ComputeElement> allComputeElements =
                 dbClient.queryObjectFields(ComputeElement.class,
                         Arrays.asList("uuid", "registrationStatus", "dn", "available","label"),
-                        getFullyImplementedCollection(allComputeElementUris));
+                        getFullyImplementedCollection(computeElementIds));
 
         Collection<UCSServiceProfile> allUCSServiceProfiles =
                 dbClient.queryObjectFields(UCSServiceProfile.class,
                         Arrays.asList("uuid", "registrationStatus", "dn", "label"),
-                        getFullyImplementedCollection(allUCSServiceProfileUris));
+                        getFullyImplementedCollection(serviceProfileIds));
 
         hostMap = makeUriMap(allHosts);
         computeElementMap = makeUriMap(allComputeElements);

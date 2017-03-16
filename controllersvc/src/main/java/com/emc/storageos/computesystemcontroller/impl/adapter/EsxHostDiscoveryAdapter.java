@@ -140,7 +140,7 @@ public class EsxHostDiscoveryAdapter extends AbstractHostDiscoveryAdapter {
             changes.setNewCluster(host.getCluster());
             discoverHost(host, changes);
             processHostChanges(changes);
-            matchHostsToComputeElements();
+            matchHostToComputeElements(host);
         } else {
             host.setCompatibilityStatus(CompatibilityStatus.INCOMPATIBLE.name());
             save(host);
@@ -155,8 +155,8 @@ public class EsxHostDiscoveryAdapter extends AbstractHostDiscoveryAdapter {
      * Match hosts to compute elements
      */
     @Override
-    public void matchHostsToComputeElements() {
-        HostToComputeElementMatcher.matchHostsToComputeElements(getDbClient());
+    public void matchHostToComputeElements(Host host) {
+        HostToComputeElementMatcher.matchHostToComputeElements(getDbClient(),host.getId());
     }
 
     /**

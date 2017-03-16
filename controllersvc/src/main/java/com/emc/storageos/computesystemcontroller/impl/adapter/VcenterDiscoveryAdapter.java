@@ -100,6 +100,7 @@ public class VcenterDiscoveryAdapter extends EsxHostDiscoveryAdapter {
             List<URI> deletedClusters = Lists.newArrayList();
             Set<URI> discoveredHosts = Sets.newHashSet();
             processor.discover(changes, deletedHosts, deletedClusters, discoveredHosts);
+            matchHostsToComputeElements(discoveredHosts) ;
             deletedHosts.removeAll(discoveredHosts);
             processor.setCompatibilityStatus(CompatibilityStatus.COMPATIBLE.name());
             // only update registration status of hosts if the vcenter is unregistered
@@ -115,6 +116,10 @@ public class VcenterDiscoveryAdapter extends EsxHostDiscoveryAdapter {
             throw ComputeSystemControllerException.exceptions.incompatibleHostVersion(
                     "Vcenter", version.toString(), getVersionValidator().getVcenterMinimumVersion(false).toString());
         }
+    }
+
+    private void matchHostsToComputeElements(Set<URI> hostIds) {
+        HostToComputeElementMatcher.matchHostsToComputeElements(getDbClient(),hostIds);
     }
 
     @Override
@@ -387,7 +392,6 @@ public class VcenterDiscoveryAdapter extends EsxHostDiscoveryAdapter {
                 try {
                     discoverHost(source, sourceHost, uuid, bios, target, targetHost, newClusters, changes);
                     discoveredHosts.add(targetHost.getId());
-                    matchHostsToComputeElements(targetHost.getId());
                     DiscoveryStatusUtils.markAsSucceeded(getModelClient(), targetHost);
                 } catch (RuntimeException e) {
                     warn(e, "Problem discovering host %s", targetHost.getLabel());
@@ -410,17 +414,6 @@ public class VcenterDiscoveryAdapter extends EsxHostDiscoveryAdapter {
                     CommonTransformerFunctions.fctnDataObjectToID()));
             deletedHosts.addAll(oldHostIds);
         }
-
-       /**
-        * Match hosts to compute elements
-        *
-        * @param hostId The ID of the host to find a matching ComputeElement (blade) for
-        *
-        */
-        private void matchHostsToComputeElements(URI hostId) {
-            HostToComputeElementMatcher.matchHostsToComputeElements(getDbClient());
-        }
-
 
         /**
          * Get all clusters for the datacenter.

@@ -50,6 +50,7 @@ import com.emc.sa.service.vipr.application.tasks.GetBlockSnapshotSessionList;
 import com.emc.sa.service.vipr.application.tasks.GetBlockSnapshotSet;
 import com.emc.sa.service.vipr.application.tasks.GetFullCopyList;
 import com.emc.sa.service.vipr.block.tasks.AddClusterToExport;
+import com.emc.sa.service.vipr.block.tasks.AddHostAndVolumeToExportNoWait;
 import com.emc.sa.service.vipr.block.tasks.AddHostToExport;
 import com.emc.sa.service.vipr.block.tasks.AddJournalCapacity;
 import com.emc.sa.service.vipr.block.tasks.AddVolumesToConsistencyGroup;
@@ -72,9 +73,9 @@ import com.emc.sa.service.vipr.block.tasks.DeactivateVolumes;
 import com.emc.sa.service.vipr.block.tasks.DetachFullCopy;
 import com.emc.sa.service.vipr.block.tasks.ExpandVolume;
 import com.emc.sa.service.vipr.block.tasks.FindBlockVolumeHlus;
-import com.emc.sa.service.vipr.block.tasks.FindEmptyExportByName;
 import com.emc.sa.service.vipr.block.tasks.FindExportByCluster;
 import com.emc.sa.service.vipr.block.tasks.FindExportByHost;
+import com.emc.sa.service.vipr.block.tasks.FindExportByName;
 import com.emc.sa.service.vipr.block.tasks.FindExportsContainingCluster;
 import com.emc.sa.service.vipr.block.tasks.FindExportsContainingHost;
 import com.emc.sa.service.vipr.block.tasks.FindVirtualArrayInitiators;
@@ -164,6 +165,7 @@ public class BlockStorageUtils {
     public static final String COPY_NATIVE = "native";
     public static final String COPY_RP = "rp";
     public static final String COPY_SRDF = "srdf";
+    public static final String UNDERSCORE = "_";
 
     public static boolean isHost(URI id) {
         return StringUtils.startsWith(id.toString(), "urn:storageos:Host");
@@ -401,8 +403,8 @@ public class BlockStorageUtils {
         return execute(new FindExportsContainingHost(host, projectId, varrayId));
     }
 
-    public static ExportGroupRestRep findEmptyExportsByName(String name, URI projectId, URI varrayId) {
-        return execute(new FindEmptyExportByName(name, projectId, varrayId));
+    public static ExportGroupRestRep findExportsByName(String name, URI projectId, URI varrayId) {
+        return execute(new FindExportByName(name, projectId, varrayId));
     }
     
     public static URI adjustExportPaths(URI vArray, Integer minPaths, Integer maxPaths, Integer pathsPerInitiator,
@@ -479,6 +481,14 @@ public class BlockStorageUtils {
     public static URI createHostExport(URI projectId, URI virtualArrayId, List<URI> volumeIds, Integer hlu, Host host,
             Map<URI, Integer> volumeHlus, Integer minPaths, Integer maxPaths, Integer pathsPerInitiator) {
         String exportName = host.getHostName();
+        URI exportId = createHostExport(exportName, projectId, virtualArrayId, volumeIds, hlu, host, volumeHlus, minPaths, maxPaths,
+                pathsPerInitiator);
+        return exportId;
+    }
+
+    public static URI createHostExport(String name, URI projectId, URI virtualArrayId, List<URI> volumeIds, Integer hlu, Host host,
+            Map<URI, Integer> volumeHlus, Integer minPaths, Integer maxPaths, Integer pathsPerInitiator) {
+        String exportName = name != null ? name : host.getHostName();
         Task<ExportGroupRestRep> task = execute(new CreateExport(exportName, virtualArrayId, projectId, volumeIds, hlu,
                 host.getHostName(), host.getId(), null, volumeHlus, minPaths, maxPaths, pathsPerInitiator));
         URI exportId = task.getResourceId();
@@ -487,16 +497,23 @@ public class BlockStorageUtils {
         return exportId;
     }
 
-    public static Task<ExportGroupRestRep> createHostExportNoWait(URI projectId, URI virtualArrayId,
-            List<URI> volumeIds, Integer hlu, Host host) {
-        String exportName = host.getHostName();
-        return execute(new CreateExportNoWait(exportName, virtualArrayId, projectId,
-                volumeIds, hlu, host.getHostName(), host.getId(), null));
+    public static Task<ExportGroupRestRep> createHostExportNoWait(String exportName, URI projectId,
+            URI virtualArrayId, List<URI> volumeIds, Integer hlu, Host host) {
+        return execute(new CreateExportNoWait(exportName == null ? host.getHostName() : exportName, 
+                virtualArrayId, projectId, volumeIds, hlu, host.getHostName(), host.getId(), null));
     }
 
     public static URI createClusterExport(URI projectId, URI virtualArrayId, List<URI> volumeIds, Integer hlu, Cluster cluster,
             Map<URI, Integer> volumeHlus, Integer minPaths, Integer maxPaths, Integer pathsPerInitiator) {
         String exportName = cluster.getLabel();
+        URI exportId = createClusterExport(exportName, projectId, virtualArrayId, volumeIds, hlu, cluster, volumeHlus, minPaths, maxPaths,
+                pathsPerInitiator);
+        return exportId;
+    }
+
+    public static URI createClusterExport(String name, URI projectId, URI virtualArrayId, List<URI> volumeIds, Integer hlu,
+            Cluster cluster, Map<URI, Integer> volumeHlus, Integer minPaths, Integer maxPaths, Integer pathsPerInitiator) {
+        String exportName = name != null ? name : cluster.getLabel();
         Task<ExportGroupRestRep> task = execute(new CreateExport(exportName, virtualArrayId, projectId, volumeIds, hlu,
                 cluster.getLabel(), null, cluster.getId(), volumeHlus, minPaths, maxPaths, pathsPerInitiator));
         URI exportId = task.getResourceId();
@@ -519,6 +536,10 @@ public class BlockStorageUtils {
         addAffectedResource(task);
     }
 
+    public static Task<ExportGroupRestRep> addHostAndVolumeToExportNoWait(URI exportId, URI host, URI volumeId, Integer hlu) {
+        return execute(new AddHostAndVolumeToExportNoWait(exportId, host, volumeId, hlu));
+    }
+    
     public static void addClusterToExport(URI exportId, URI cluster, Integer minPaths, Integer maxPaths, Integer pathsPerInitiator) {
         Task<ExportGroupRestRep> task = execute(new AddClusterToExport(exportId, cluster, minPaths, maxPaths, pathsPerInitiator));
         addRollback(new DeactivateBlockExport(exportId));

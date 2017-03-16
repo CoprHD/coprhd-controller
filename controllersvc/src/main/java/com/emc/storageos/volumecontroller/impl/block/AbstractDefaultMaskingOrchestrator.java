@@ -2164,12 +2164,12 @@ abstract public class AbstractDefaultMaskingOrchestrator {
         if (exportGroup.forCluster()) {
             // Get a mapping of compute resource to its list of Initiator URIs
             // for the initiatorURIs list
-            Map<String, List<URI>> computeResourceMapForRequest = mapInitiatorsToComputeResource(exportGroup, initiatorURIs);
+            Map<String, List<URI>> computeResourceMapForRequest = ExportUtils.mapInitiatorsToHostResource(exportGroup, initiatorURIs, _dbClient);
             // Get a mapping of compute resource to its list of Initiator URIs
             // for the ExportGroup's initiator list
             Collection<URI> egInitiators = Collections2.transform(exportGroup.getInitiators(),
                     CommonTransformerFunctions.FCTN_STRING_TO_URI);
-            Map<String, List<URI>> computeResourcesMapForExport = mapInitiatorsToComputeResource(exportGroup, egInitiators);
+            Map<String, List<URI>> computeResourcesMapForExport = ExportUtils.mapInitiatorsToHostResource(exportGroup, egInitiators, _dbClient);
             // For each compute resource, get the list of initiators and compare
             // that with the passed in initiators, grouped by compute resource.
             // If all the initiators for a compute resource are found, then the

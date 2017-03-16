@@ -39,6 +39,7 @@ public final class HostToComputeElementMatcher {
     private static Map<URI,Host> hostMap = new HashMap<>();
     private static Map<URI,ComputeElement> computeElementMap = new HashMap<>();
     private static Map<URI,UCSServiceProfile> serviceProfileMap = new HashMap<>();
+    private static boolean allHostsLoaded = false;
 
     private final static String UUID_REGEX = "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$";
     private final static Pattern UUID_PATTERN = Pattern.compile(UUID_REGEX,Pattern.CASE_INSENSITIVE);
@@ -60,6 +61,7 @@ public final class HostToComputeElementMatcher {
 
     public static void matchUcsComputeElements(DbClient _dbClient, URI computeSystemId) {
         Collection<URI> hostIds = dbClient.queryByType(Host.class, true); // all active hosts
+        allHostsLoaded = true;
 
         URIQueryResultList computeElementIds = new URIQueryResultList(); // CEs for this UCS
         _dbClient.queryByConstraint(ContainmentConstraint.Factory
@@ -155,6 +157,11 @@ public final class HostToComputeElementMatcher {
 
     private static void catchDuplicateMatches() {
         // safety checks to prevent DL/DU
+
+        if(!allHostsLoaded) {
+            return; // only complete if we loaded all hosts
+        }
+
         Map<URI,URI> ceToHostMap = new HashMap<>();
         Map<URI,URI> spToHostMap = new HashMap<>();
 

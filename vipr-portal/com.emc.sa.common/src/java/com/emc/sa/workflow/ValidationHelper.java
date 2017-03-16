@@ -46,7 +46,6 @@ public class ValidationHelper {
     final private Set<String> childSteps = new HashSet<>();
     final private Set<String> uniqueFriendlyInputNames = new HashSet<>();
     final private ImmutableMap<String, Step> stepsHash;
-    final private CustomServicesWorkflowDocument wfDocument;
 
     public ValidationHelper(final CustomServicesWorkflowDocument wfDocument) {
         final List<Step> steps = wfDocument.getSteps();
@@ -56,8 +55,6 @@ public class ValidationHelper {
         }
 
         this.stepsHash = builder.build();
-        this.wfDocument = wfDocument;
-
     }
 
     private static boolean isInputEmpty(final Map<String, CustomServicesWorkflowDocument.InputGroup> input, final String type) {
@@ -83,7 +80,7 @@ public class ValidationHelper {
     public CustomServicesValidationResponse validate(final URI id) {
         final CustomServicesValidationResponse validationResponse = new CustomServicesValidationResponse();
         validationResponse.setId(id);
-        final CustomServicesValidationResponse.Error error = validateSteps(stepsHash);
+        final CustomServicesValidationResponse.Error error = validateSteps();
         if (StringUtils.isNotBlank(error.getErrorMessage()) || MapUtils.isNotEmpty(error.getErrorSteps())) {
             validationResponse.setError(error);
             validationResponse.setStatus(CustomServicesWorkflow.CustomServicesWorkflowStatus.INVALID.toString());
@@ -95,7 +92,7 @@ public class ValidationHelper {
         return validationResponse;
     }
 
-    private CustomServicesValidationResponse.Error validateSteps(final ImmutableMap<String, Step> stepsHash) {
+    private CustomServicesValidationResponse.Error validateSteps() {
         final CustomServicesValidationResponse.Error workflowError = new CustomServicesValidationResponse.Error();
         final Map<String, CustomServicesValidationResponse.ErrorStep> errorSteps = new HashMap<>();
         if (stepsHash.get(StepType.START.toString()) == null || stepsHash.get(StepType.END.toString()) == null) {
@@ -134,10 +131,15 @@ public class ValidationHelper {
             }
 
         }
+        if (MapUtils.isNotEmpty(addErrorStepsWithoutParent(errorSteps))) {
+            workflowError.setErrorSteps(errorSteps);
+        }
+        return workflowError;
+    }
 
+    // For the steps which does not have parent, add the error to response
+    private Map<String, CustomServicesValidationResponse.ErrorStep> addErrorStepsWithoutParent(final Map<String, CustomServicesValidationResponse.ErrorStep> errorSteps){
         final Set<String> stepWithoutParent = Sets.difference(stepsHash.keySet(), childSteps);
-
-        // For the steps which does not have parent, add the error to response
         for (final String stepId : stepWithoutParent) {
             if (errorSteps.containsKey(stepId)) {
                 final List<String> errorMsgs = errorSteps.get(stepId).getErrorMessages();
@@ -149,11 +151,7 @@ public class ValidationHelper {
                 errorSteps.put(stepId, errorStep);
             }
         }
-
-        if (MapUtils.isNotEmpty(errorSteps)) {
-            workflowError.setErrorSteps(errorSteps);
-        }
-        return workflowError;
+        return errorSteps;
     }
 
     private String validateCurrentStep(final Step step) {
@@ -251,8 +249,9 @@ public class ValidationHelper {
                 }
             }
 
-            if (errorInput.getName() != null)
+            if (errorInput.getName() != null){
                 errorInputList.add(errorInput);
+            }
         }
         return errorInputList;
     }

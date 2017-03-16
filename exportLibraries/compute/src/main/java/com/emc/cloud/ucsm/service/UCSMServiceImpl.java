@@ -119,12 +119,10 @@ public class UCSMServiceImpl implements UCSMService {
                                 if (managedObject.getValue() instanceof ComputeBlade) {
                                     blades.add((ComputeBlade) managedObject.getValue());
                                 }
-                                //TODO add an 'else' clause and log a warning (managedObject not Compute Blade)
                             }
                         }
 
                     }
-                    //TODO add an 'else' clause and log a warning (object not JAXBElement)
                 }
             }
         } catch (ClientGeneralException e) {

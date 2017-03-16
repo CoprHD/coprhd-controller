@@ -718,6 +718,7 @@ angular.module("portalApp").controller({
     	
     	var resetModal = function() {
     		$scope.policyOptions = [];
+    		$scope.targetVarrayOptions = [];
     	}
     	
     	$scope.populateModal = function() {
@@ -726,6 +727,10 @@ angular.module("portalApp").controller({
     		
     		$http.get(routes.FileSystems_getScheculePolicies()).success(function(data) {
             	$scope.policyOptions = data;
+            });
+            
+            $http.get(routes.FileSystems_getTargetVArrys()).success(function(varrays) {
+            	$scope.targetVarrayOptions = varrays;
             });
             
     	    $scope.$apply();

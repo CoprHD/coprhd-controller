@@ -3,6 +3,8 @@
   <thead>
     <tr>
       <th>&{'resources.filesystem.mirroring.fileSystem'}</th>
+      <th>&{'resources.filesystem.policy.name'}</th>
+      <th>&{'resources.filesystem.policy.applyAt'}</th>
       <th style="text-align:right;">&{'resources.filesystem.mirroring.status'}</th>
     </tr>
   </thead>
@@ -11,6 +13,12 @@
       <tr>
         <td>
 		${fileShare.name}
+        </td>
+        <td>
+		${replicationPolicy.name}
+        </td>
+        <td>
+		${replicationPolicy.appliedAt}
         </td>
         <td style="text-align:right;">
         ${fileShare.protection.mirrorStatus}

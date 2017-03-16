@@ -20,6 +20,7 @@ import java.util.TreeSet;
 import org.apache.commons.lang.StringUtils;
 
 import com.emc.sa.util.DiskSizeConversionUtils;
+import com.emc.storageos.db.client.model.FilePolicy.FilePolicyApplyLevel;
 import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.VirtualArrayRelatedResourceRep;
 import com.emc.storageos.model.file.ExportRule;
@@ -49,6 +50,7 @@ import com.emc.storageos.model.file.SmbShareResponse;
 import com.emc.storageos.model.file.policy.FilePolicyRestRep;
 import com.emc.storageos.model.pools.StoragePoolRestRep;
 import com.emc.storageos.model.ports.StoragePortRestRep;
+import com.emc.storageos.model.project.ProjectRestRep;
 import com.emc.storageos.model.systems.StorageSystemRestRep;
 import com.emc.storageos.model.varray.VirtualArrayRestRep;
 import com.emc.storageos.model.vpool.FileVirtualPoolRestRep;
@@ -197,6 +199,43 @@ public class FileSystems extends ResourceController {
         render(exports, exportsParam);
     }
 
+    private static FilePolicyRestRep getReplicationPolicy(ViPRCoreClient client, FileShareRestRep fs) {
+        if (fs != null) {
+            // Check file system vpool has replication policy!!!
+            FileVirtualPoolRestRep vpool = client.fileVpools().get(fs.getVirtualPool().getId());
+            if (vpool != null && vpool.getFileProtectionPolicies() != null && !vpool.getFileProtectionPolicies().isEmpty()) {
+                for (String uriPolicy : vpool.getFileProtectionPolicies()) {
+                    FilePolicyRestRep policyRestRep = client.fileProtectionPolicies().get(uri(uriPolicy));
+                    if (policyRestRep != null && "file_replication".equalsIgnoreCase(policyRestRep.getType())) {
+                        return policyRestRep;
+                    }
+                }
+            }
+
+            // Check file system project has replication policy!!!
+            ProjectRestRep project = client.projects().get(fs.getProject().getId());
+            if (project != null && project.getFileProtectionPolicies() != null && !project.getFileProtectionPolicies().isEmpty()) {
+                for (String uriPolicy : project.getFileProtectionPolicies()) {
+                    FilePolicyRestRep policyRestRep = client.fileProtectionPolicies().get(uri(uriPolicy));
+                    if (policyRestRep != null && "file_replication".equalsIgnoreCase(policyRestRep.getType())) {
+                        return policyRestRep;
+                    }
+                }
+            }
+
+            // Check file system has replication policy!!!
+            if (fs.getFilePolicies() != null && !fs.getFilePolicies().isEmpty()) {
+                for (String uriPolicy : fs.getFilePolicies()) {
+                    FilePolicyRestRep policyRestRep = client.fileProtectionPolicies().get(uri(uriPolicy));
+                    if (policyRestRep != null && "file_replication".equalsIgnoreCase(policyRestRep.getType())) {
+                        return policyRestRep;
+                    }
+                }
+            }
+        }
+        return null;
+    }
+
     public static void fileSystemMirrors(String fileSystemId) {
         URI id = uri(fileSystemId);
         ViPRCoreClient client = BourneUtil.getViprClient();
@@ -214,18 +253,17 @@ public class FileSystems extends ResourceController {
             fsRestRep.getProtection().setMirrorStatus(targetFileSystems.getMirrorStatus());
         }
 
+        // Verify the replication is at fs level or not
+        boolean replicationAtFs = false;
+
         FileShareRestRep fs = client.fileSystems().get(id);
         if (fs != null) {
-            // Verify the replication is at fs level or not
-            boolean replicationAtFs = false;
-            if (fs.getFilePolicies() != null && !fs.getFilePolicies().isEmpty()) {
-                for (String uriPolicy : fs.getFilePolicies()) {
-                    FilePolicyRestRep policyRestRep = client.fileProtectionPolicies().get(uri(uriPolicy));
-                    if (policyRestRep != null && "file_replication".equalsIgnoreCase(policyRestRep.getType())) {
-                        replicationAtFs = true;
-                        break;
-                    }
+            FilePolicyRestRep replicationPolicy = getReplicationPolicy(client, fs);
+            if (replicationPolicy != null) {
+                if (FilePolicyApplyLevel.file_system.name().equalsIgnoreCase(replicationPolicy.getAppliedAt())) {
+                    replicationAtFs = true;
                 }
+                renderArgs.put("replicationPolicy", replicationPolicy);
             }
             renderArgs.put("replicationAtFsLevel", replicationAtFs);
         }
@@ -629,7 +667,7 @@ public class FileSystems extends ResourceController {
             if (fs.getFilePolicies() != null && !fs.getFilePolicies().isEmpty()) {
                 for (String uriPolicy : fs.getFilePolicies()) {
                     FilePolicyRestRep policyRestRep = client.fileProtectionPolicies().get(uri(uriPolicy));
-                    if (policyRestRep != null && "file_snapshot".equalsIgnoreCase(policyRestRep.getType())) {
+                    if (policyRestRep != null) {
                         filePolicies.add(policyRestRep);
                     }
                 }
@@ -641,15 +679,24 @@ public class FileSystems extends ResourceController {
     @FlashException(referrer = { "fileSystem" })
     public static void assignPolicyToFileSystem(String fileSystemId, String policyId) {
         ViPRCoreClient client = BourneUtil.getViprClient();
-        client.fileSystems().associateFilePolicy(uri(fileSystemId), uri(policyId), null);
-        fileSystem(fileSystemId);
+        try {
+            client.fileSystems().associateFilePolicy(uri(fileSystemId), uri(policyId), null);
+            fileSystem(fileSystemId);
+        } catch (Exception ex) {
+            flash.error(MessagesUtils.get("schedulePolicy.assign.error"), null);
+        }
+
     }
 
     @FlashException(referrer = { "fileSystem" })
     public static void unassignPolicyToFileSystem(String fileSystemId, String policyId) {
         ViPRCoreClient client = BourneUtil.getViprClient();
-        client.fileSystems().dissociateFilePolicy(uri(fileSystemId), uri(policyId));
-        fileSystem(fileSystemId);
+        try {
+            client.fileSystems().dissociateFilePolicy(uri(fileSystemId), uri(policyId));
+            fileSystem(fileSystemId);
+        } catch (Exception ex) {
+            flash.error(MessagesUtils.get("schedulePolicy.unassign.error"), null);
+        }
     }
 
     @FlashException(referrer = { "fileSystem" })
@@ -684,12 +731,24 @@ public class FileSystems extends ResourceController {
         List<StringOption> policyOptions = Lists.newArrayList();
         for (NamedRelatedResourceRep filePolicy : filePolicies) {
             FilePolicyRestRep policyRestRep = client.fileProtectionPolicies().get(filePolicy.getId());
-            if (policyRestRep != null && "file_snapshot".equalsIgnoreCase(policyRestRep.getType())) {
+            if (policyRestRep != null && "file_system".equalsIgnoreCase(policyRestRep.getAppliedAt())) {
                 policyOptions.add(new StringOption(policyRestRep.getId().toString(), filePolicy.getName()));
             }
-
         }
         renderJSON(policyOptions);
+    }
+
+    public static void getTargetVArrys() {
+        ViPRCoreClient client = BourneUtil.getViprClient();
+        List<StringOption> targetVarrayOptions = Lists.newArrayList();
+        List<VirtualArrayRestRep> virtualArrays = client.varrays().getAll();
+        if (virtualArrays != null && !virtualArrays.isEmpty()) {
+            for (VirtualArrayRestRep varray : virtualArrays) {
+                targetVarrayOptions.add(new StringOption(varray.getId().toString(), varray.getName()));
+            }
+        }
+        renderArgs.put("targetVarrayOptions", targetVarrayOptions);
+        renderJSON(targetVarrayOptions);
     }
 
     @FlashException(referrer = { "fileSystem" })

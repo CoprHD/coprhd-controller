@@ -564,78 +564,67 @@ public class VPlexControllerUtils {
 
             // Check the initiators and update the lists as necessary
             boolean addInitiators = false;
-            List<String> initiatorPortWwnsToAdd = new ArrayList<String>();
-            List<Initiator> initiatorObjectsForComputeResourceToAdd = new ArrayList<Initiator>();
+            List<String> initiatorPortWwnsToAddToExisting = new ArrayList<String>();
+            List<Initiator> initiatorToAddedToUserAddedAndInitiatorList = new ArrayList<Initiator>();
             for (String port : discoveredInitiators) {
                 String normalizedPort = Initiator.normalizePort(port);
                 Initiator knownInitiator = ExportUtils.getInitiator(Initiator.toPortNetworkId(port), dbClient);
                 if (!exportMask.hasExistingInitiator(normalizedPort) &&
-                        (!exportMask.hasUserInitiator(normalizedPort) ||
-                                !exportMask.hasInitiator(knownInitiator != null ? knownInitiator.getId().toString()
-                                        : NullColumnValueGetter.getNullURI().toString()))) {
+                        !exportMask.hasUserInitiator(normalizedPort) ) {
 
                     // If the initiator is in our DB, and it's in our compute resource, it gets added to to the initiator list.
                     // Otherwise it gets added to the existing list.
                     if (knownInitiator != null && !ExportMaskUtils.checkIfDifferentResource(exportMask, knownInitiator)) {
-                        initiatorObjectsForComputeResourceToAdd.add(knownInitiator);
+                        initiatorToAddedToUserAddedAndInitiatorList.add(knownInitiator);
                     } else {
-                        initiatorPortWwnsToAdd.add(normalizedPort);
+                        initiatorPortWwnsToAddToExisting.add(normalizedPort);
                     }
-                    addInitiators = true;
+                    
                 }
             }
 
             boolean removeInitiators = false;
             // Existing Initiators that are not part of the Storage View discovered initiators
-            List<String> initiatorsToRemove = new ArrayList<String>();
+            List<String> initiatorsToRemoveFromExistingList= new ArrayList<String>();
             if (exportMask.getExistingInitiators() != null &&
                     !exportMask.getExistingInitiators().isEmpty()) {
-                initiatorsToRemove.addAll(exportMask.getExistingInitiators());
-                initiatorsToRemove.removeAll(discoveredInitiators);
-            }
-
-            // a) Existing Initiators that are also part of UserAddedInitiators or Initiators List have to be removed
-            // b) Existing Initiators belonging to ViPR DB and NOT from different Compute resource need to added to
-            // initiator list if absent.
-            // c) Existing Initiators belonging to ViPR DB and from different Compute resource need to remain as existing.
-            List<String> initiatorsToRemoveFromExisting = new ArrayList<String>();
-            if (!isRemoveOperation) {
-                for (String initWwn : discoveredInitiators) {
-                    Initiator managedInitiator = ExportUtils.getInitiator(Initiator.toPortNetworkId(initWwn), dbClient);
-                    if (exportMask.hasExistingInitiator(initWwn) && (managedInitiator != null)) {
-                        if ((exportMask.hasUserInitiator(initWwn)) || (exportMask.hasInitiator(managedInitiator.getId().toString()))) {
-                            log.info("\texisting initiators contain id {}, but it is also in "
-                                    + "user added inits, removing from existing inits", initWwn);
-                            initiatorsToRemoveFromExisting.add(initWwn);
-                        } else if (!ExportMaskUtils.checkIfDifferentResource(exportMask, managedInitiator)) {
-                            log.info(String.format(
-                                    "Existing initiators contained id {%s}. This initiator is in our DB and "
-                                            + "does not belong to a different compute resource. Moving it to Initiator List"
-                                            + "from existing list",
-                                    initWwn));
-                            initiatorObjectsForComputeResourceToAdd.add(managedInitiator);
-                            initiatorsToRemoveFromExisting.add(initWwn);
-                        }
+                
+                for(String existingInitiatorStr : exportMask.getExistingInitiators()) {
+                    Initiator existingInitiator = ExportUtils.getInitiator(Initiator.toPortNetworkId(existingInitiatorStr), dbClient);
+                    if (existingInitiator != null && !ExportMaskUtils.checkIfDifferentResource(exportMask, existingInitiator)) {
+                        log.info("Initiator {}->{} belonging to same compute, removing from existing and adding to  userAdded and initiator list",existingInitiatorStr,
+                                existingInitiator.getId());
+                        initiatorToAddedToUserAddedAndInitiatorList.add(existingInitiator);
+                        initiatorsToRemoveFromExistingList.add(existingInitiatorStr);
+                    } else {
+                        log.info("Initiator {} not found in database or not belonging to same compute, no changes ot existing list",existingInitiatorStr );
                     }
                 }
+                
             }
 
+            
             // Initiators that are not part of the Storage View discovered initiators
-            List<URI> initiatorIdsToRemove = new ArrayList<URI>();
+            List<URI> initiatorsToremoveFromUserAddedandInitiatorList = new ArrayList<URI>();
             if (exportMask.getInitiators() != null &&
                     !exportMask.getInitiators().isEmpty()) {
-                initiatorIdsToRemove.addAll(Collections2.transform(exportMask.getInitiators(),
+                initiatorsToremoveFromUserAddedandInitiatorList.addAll(Collections2.transform(exportMask.getInitiators(),
                         CommonTransformerFunctions.FCTN_STRING_TO_URI));
                 for (String port : discoveredInitiators) {
                     Initiator existingInitiator = ExportUtils.getInitiator(Initiator.toPortNetworkId(port), dbClient);
                     if (existingInitiator != null) {
-                        initiatorIdsToRemove.remove(existingInitiator.getId());
+                        initiatorsToremoveFromUserAddedandInitiatorList.remove(existingInitiator.getId());
+                    }else {
+                        log.info("Initiator {} not found in database, removing from user Added and initiator list. Added to existing list",port );
+                        initiatorPortWwnsToAddToExisting.add( Initiator.normalizePort(port));
                     }
                 }
+                
             }
 
-            removeInitiators = !initiatorsToRemove.isEmpty() || !initiatorIdsToRemove.isEmpty()
-                    || !initiatorsToRemoveFromExisting.isEmpty();
+            removeInitiators = !initiatorsToRemoveFromExistingList.isEmpty() || !initiatorsToremoveFromUserAddedandInitiatorList.isEmpty();
+                 
+            addInitiators = !initiatorToAddedToUserAddedAndInitiatorList.isEmpty() || !initiatorPortWwnsToAddToExisting.isEmpty();
 
             // Check the volumes and update the lists as necessary
             Map<String, Integer> volumesToAdd = ExportMaskUtils.diffAndFindNewVolumes(exportMask, discoveredVolumes);
@@ -705,9 +694,14 @@ public class VPlexControllerUtils {
 
             log.info(
                     String.format("ExportMask %s refresh initiators; addToExisting:{%s} removeAndUpdateZoning:{%s} removeFromExistingOnly:{%s}%n",
-                            name, Joiner.on(',').join(initiatorPortWwnsToAdd),
-                            Joiner.on(',').join(initiatorsToRemove), 
-                            Joiner.on(',').join(initiatorsToRemoveFromExisting)));
+                            name, Joiner.on(',').join(initiatorPortWwnsToAddToExisting),
+                            Joiner.on(',').join(initiatorsToRemoveFromExistingList), 
+                            Joiner.on(',').join(initiatorsToRemoveFromExistingList)));
+            
+            log.info(
+                    String.format("XM refresh: %s user Added and initiator List; add:{%s} remove:{%s}%n",
+                            name, Joiner.on(',').join(initiatorToAddedToUserAddedAndInitiatorList),
+                            Joiner.on(',').join(initiatorsToremoveFromUserAddedandInitiatorList)));
             log.info(
                     String.format("ExportMask %s refresh volumes; addToExisting:{%s} removeFromExistingOnly:{%s}%n",
                             name, Joiner.on(',').join(volumesToAdd.keySet()),
@@ -721,16 +715,15 @@ public class VPlexControllerUtils {
             if (addInitiators || removeInitiators || addVolumes ||
                     removeVolumes || addStoragePorts || removeStoragePorts) {
                 log.info("ExportMask refresh: There are changes to mask, updating it...\n");
-                exportMask.removeFromExistingInitiators(initiatorsToRemove);
-                exportMask.removeFromExistingInitiators(initiatorsToRemoveFromExisting);
-                if (initiatorIdsToRemove != null && !initiatorIdsToRemove.isEmpty()) {
-                    exportMask.removeInitiators(dbClient.queryObject(Initiator.class, initiatorIdsToRemove));
-                    exportMask.removeFromUserCreatedInitiators(dbClient.queryObject(Initiator.class, initiatorIdsToRemove));
+                exportMask.removeFromExistingInitiators(initiatorsToRemoveFromExistingList);
+                if (initiatorsToremoveFromUserAddedandInitiatorList != null && !initiatorsToremoveFromUserAddedandInitiatorList.isEmpty()) {
+                    exportMask.removeInitiators(dbClient.queryObject(Initiator.class, initiatorsToremoveFromUserAddedandInitiatorList));
+                    exportMask.removeFromUserCreatedInitiators(dbClient.queryObject(Initiator.class, initiatorsToremoveFromUserAddedandInitiatorList));
                 }
 
-                exportMask.addToUserCreatedInitiators(initiatorObjectsForComputeResourceToAdd);
-                exportMask.addInitiators(initiatorObjectsForComputeResourceToAdd);
-                exportMask.addToExistingInitiatorsIfAbsent(initiatorPortWwnsToAdd);
+                exportMask.addToUserCreatedInitiators(initiatorToAddedToUserAddedAndInitiatorList);
+                exportMask.addInitiators(initiatorToAddedToUserAddedAndInitiatorList);
+                exportMask.addToExistingInitiatorsIfAbsent(initiatorPortWwnsToAddToExisting);
 
                 exportMask.removeFromExistingVolumes(volumesToRemoveFromExisting);
                 exportMask.addToExistingVolumesIfAbsent(volumesToAdd);
@@ -745,7 +738,7 @@ public class VPlexControllerUtils {
                 log.info("ExportMask refresh: There are no changes to the mask\n");
             }
             networkDeviceController.refreshZoningMap(exportMask,
-                    initiatorsToRemove, Collections.emptyList(),
+                    initiatorsToRemoveFromExistingList, Collections.emptyList(),
                     (addInitiators || removeInitiators), true);
         } catch (Exception ex) {
             log.error("Failed to refresh VPLEX Storage View: " + ex.getLocalizedMessage(), ex);

@@ -106,6 +106,11 @@ public class SystemAudit implements Runnable {
                 Matcher m = null;
 
                 Timestamp currlogTimestamp = null;
+                while (lastAuditedlog != null && (line = br.readLine()) != null) {
+                    if (line.equals(lastAuditedlog)) {
+                        break;
+                    }
+                }
                 while ((line = br.readLine()) != null) {
                     m = auditlogPattern.matcher(line);
                     if (m.find()) {

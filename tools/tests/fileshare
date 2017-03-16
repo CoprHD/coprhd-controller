@@ -257,7 +257,7 @@ export_update = argparse.ArgumentParser(parents = [parser], conflict_handler='re
 export_update.add_argument('name', help = 'name of fileshare for exportModify')
 export_update.add_argument('--operation', help = 'operation to performed add, modify, delete')
 export_update.add_argument('--securityflavor', help = 'security type (sys | krb5 | krb5i | krb5p)', default = 'krb5')
-export_update.add_argument('--user', help = 'user for the export , default anon', default = 'root')
+export_update.add_argument('--user', help = 'user for the export , default anon', default = 'nobody')
 export_update.add_argument('--roothosts', help = 'root hosts',default = '', nargs='*')
 export_update.add_argument('--readonlyhosts', help = 'readonly hosts',default = '',nargs='*')
 export_update.add_argument('--readwritehosts', help = 'readwrite hosts',default = '', nargs='*')

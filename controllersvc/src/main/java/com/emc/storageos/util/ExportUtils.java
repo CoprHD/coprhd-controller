@@ -1547,7 +1547,7 @@ public class ExportUtils {
                         // This ExportMask has the volume we're interested in.
                         String hlu = thisMask.returnVolumeHLU(volumeURI);
                         // Let's apply its HLU if it's not the 'Unassigned' value ...
-                        if (hlu != ExportGroup.LUN_UNASSIGNED_DECIMAL_STR) {
+                        if (!hlu.equals(ExportGroup.LUN_UNASSIGNED_DECIMAL_STR)) {
                             _log.info(String.format("ExportGroup %s (%s) update volume HLU: %s -> %s", exportGroup.getLabel(),
                                     exportGroup.getId(), volumeURI, hlu));
                             exportGroup.addVolume(volumeURI, Integer.valueOf(hlu));

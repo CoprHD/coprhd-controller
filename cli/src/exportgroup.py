@@ -771,7 +771,7 @@ class ExportGroup(object):
 	   return parms
 
 	if (dorealloc):
-	        if (wait):
+ 		if (wait):
 		    parms['wait_before_remove_paths'] = "true"
 		else:
 		    parms['wait_before_remove_paths'] = "false"

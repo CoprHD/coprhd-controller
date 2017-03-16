@@ -15,8 +15,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
@@ -134,7 +132,6 @@ public class VolumeService extends TaskResourceService {
 
     private static final int STATUS_OK = 200;
 
-
     private PlacementManager _placementManager;
     private CinderHelpers helper;// = new CinderHelpers(_dbClient , _permissionsHelper);
 
@@ -154,15 +151,15 @@ public class VolumeService extends TaskResourceService {
     private QuotaHelper getQuotaHelper() {
         return QuotaHelper.getInstance(_dbClient, _permissionsHelper);
     }
-    
+
     /**
      * Get the summary list of all volumes for the given tenant
-     * 
-     * 
+     *
+     *
      * @prereq none
-     * 
+     *
      * @param tenant_id the URN of the tenant
-     * 
+     *
      * @brief List volumes
      * @return Volume list
      */
@@ -176,7 +173,7 @@ public class VolumeService extends TaskResourceService {
         URIQueryResultList uris = getVolumeUris(openstackTenantId);
         if (uris != null) {
             while (uris.iterator().hasNext()) {
-            	URI volumeUri = uris.iterator().next();
+                URI volumeUri = uris.iterator().next();
                 Volume volume = _dbClient.queryObject(Volume.class, volumeUri);
                 if (volume != null && !volume.getInactive()) {
                     CinderVolume cinder_volume = new CinderVolume();
@@ -187,17 +184,17 @@ public class VolumeService extends TaskResourceService {
                 }
             }
         }
-        return CinderApiUtils.getCinderResponse(volumes, header, false,STATUS_OK);
+        return CinderApiUtils.getCinderResponse(volumes, header, false, STATUS_OK);
     }
 
     /**
      * Get the detailed list of all volumes for the given tenant
-     * 
-     * 
+     *
+     *
      * @prereq none
-     * 
+     *
      * @param tenant_id the URN of the tenant
-     * 
+     *
      * @brief List volumes in detail
      * @return Volume detailed list
      */
@@ -220,18 +217,18 @@ public class VolumeService extends TaskResourceService {
                 }
             }
         }
-        return CinderApiUtils.getCinderResponse(volumeDetails, header, false,STATUS_OK);
+        return CinderApiUtils.getCinderResponse(volumeDetails, header, false, STATUS_OK);
     }
 
     /**
      * Get the details of a specific volume
-     * 
-     * 
+     *
+     *
      * @prereq none
-     * 
+     *
      * @param tenant_id the URN of the tenant
      * @param volume_id the URN of the volume
-     * 
+     *
      * @brief Show volume
      * @return Volume details
      */
@@ -243,19 +240,19 @@ public class VolumeService extends TaskResourceService {
             @PathParam("volume_id") String volumeId, @HeaderParam("X-Cinder-V1-Call") String isV1Call, @Context HttpHeaders header) {
 
         VolumeDetail response = new VolumeDetail();
-        if (volumeId == null){
-        	_log.info("Volume id is empty ");
-        	return CinderApiUtils.createErrorResponse(404, "Not Found : volume id is empty");  	
+        if (volumeId == null) {
+            _log.info("Volume id is empty ");
+            return CinderApiUtils.createErrorResponse(404, "Not Found : volume id is empty");
         }
         Volume vol = findVolume(volumeId, openstackTenantId);
 
         if (vol != null) {
             response = getVolumeDetail(vol, isV1Call, openstackTenantId);
         } else {
-        	_log.info("Invalid volume id ={} ",volumeId);
-        	return CinderApiUtils.createErrorResponse(404, "Not Found : Invalid volume id");
+            _log.info("Invalid volume id ={} ", volumeId);
+            return CinderApiUtils.createErrorResponse(404, "Not Found : Invalid volume id");
         }
-        return CinderApiUtils.getCinderResponse(response, header, true,STATUS_OK);
+        return CinderApiUtils.getCinderResponse(response, header, true, STATUS_OK);
     }
 
     /**
@@ -264,14 +261,14 @@ public class VolumeService extends TaskResourceService {
      * allocated by a consumer to a project. This API allows the user to
      * create one or more volumes. The volumes are created in the same
      * storage pool.
-     * 
+     *
      * NOTE: This is an asynchronous operation.
-     * 
-     * 
+     *
+     *
      * @prereq none
-     * 
+     *
      * @param param POST data containing the volume creation information.
-     * 
+     *
      * @brief Create volume
      * @return Details of the newly created volume
      * @throws InternalException
@@ -308,31 +305,30 @@ public class VolumeService extends TaskResourceService {
 
         if (param.volume.size <= 0)
         {
-        	_log.error("volume size should not be zero or negative ={} ",param.volume.size);
-        	return CinderApiUtils.createErrorResponse(400, "Bad Request : Invalid Volume size");
+            _log.error("volume size should not be zero or negative ={} ", param.volume.size);
+            return CinderApiUtils.createErrorResponse(400, "Bad Request : Invalid Volume size");
         }
         long requestedSize = param.volume.size * GB;
         // convert volume type from name to vpool
         VirtualPool vpool = getVpool(param.volume.volume_type);
-        
+
         Volume sourceVolume = null;
-        
-        if (vpool == null){
-        	if(sourceVolId != null){
-        		sourceVolume = findVolume(sourceVolId, openstackTenantId);
-        		if(sourceVolume == null){
-            		_log.error("Invalid Source Volume ID ={} ",sourceVolId);
-            		return CinderApiUtils.createErrorResponse(404, "Not Found : Invalid Source Volume ID " + sourceVolId);
-        		}
-        		vpool = _dbClient.queryObject(VirtualPool.class, sourceVolume.getVirtualPool());        		
-        	}
-        	else{
-        		_log.error("Invalid Volume Type ={} ",volume_type);
-        		return CinderApiUtils.createErrorResponse(404, "Not Found : Invalid Volume Type " + volume_type);
-        	}
+
+        if (vpool == null) {
+            if (sourceVolId != null) {
+                sourceVolume = findVolume(sourceVolId, openstackTenantId);
+                if (sourceVolume == null) {
+                    _log.error("Invalid Source Volume ID ={} ", sourceVolId);
+                    return CinderApiUtils.createErrorResponse(404, "Not Found : Invalid Source Volume ID " + sourceVolId);
+                }
+                vpool = _dbClient.queryObject(VirtualPool.class, sourceVolume.getVirtualPool());
+            }
+            else {
+                _log.error("Invalid Volume Type ={} ", volume_type);
+                return CinderApiUtils.createErrorResponse(404, "Not Found : Invalid Volume Type " + volume_type);
+            }
         }
-        
-        
+
         if (!validateVolumeCreate(openstackTenantId, null, requestedSize)) {
             _log.info("The volume can not be created because of insufficient project quota.");
             throw APIException.badRequests.insufficientQuotaForProject(project.getLabel(), "volume");
@@ -342,13 +338,12 @@ public class VolumeService extends TaskResourceService {
             throw APIException.badRequests.insufficientQuotaForVirtualPool(vpool.getLabel(), "virtual pool");
         }
 
-        
         _log.debug("Create volume: vpool = {}", vpool.getLabel());
         VirtualArray varray = getCinderHelper().getVarray(param.volume.availability_zone, getUserFromContext());
         if ((snapshotId == null) && (sourceVolId == null) && (varray == null)) {
-        	//snapshotId and sourceVolId is optional can be null
-        	//when snapshotId and sourceVolId values are absent varry values has to be provided
-        	//otherwise availability_zone exception will be thrown
+            // snapshotId and sourceVolId is optional can be null
+            // when snapshotId and sourceVolId values are absent varry values has to be provided
+            // otherwise availability_zone exception will be thrown
             throw APIException.badRequests.parameterIsNotValid(param.volume.availability_zone);
         }
 
@@ -357,8 +352,9 @@ public class VolumeService extends TaskResourceService {
         BlockConsistencyGroup blockConsistencyGroup = null;
         if (consistencygroup_id != null) {
             _log.info("Verifying for consistency group : " + consistencygroup_id);
-            blockConsistencyGroup = (BlockConsistencyGroup) getCinderHelper().queryByTag(URI.create(consistencygroup_id), getUserFromContext(), BlockConsistencyGroup.class);
-            if(getCinderHelper().verifyConsistencyGroupHasSnapshot(blockConsistencyGroup)){
+            blockConsistencyGroup = (BlockConsistencyGroup) getCinderHelper().queryByTag(URI.create(consistencygroup_id),
+                    getUserFromContext(), BlockConsistencyGroup.class);
+            if (getCinderHelper().verifyConsistencyGroupHasSnapshot(blockConsistencyGroup)) {
                 _log.error("Bad Request : Consistency Group has Snapshot ");
                 return CinderApiUtils.createErrorResponse(400, "Bad Request : Consistency Group has Snapshot ");
             }
@@ -376,7 +372,7 @@ public class VolumeService extends TaskResourceService {
                     }
                 }
             } else {
-            	return CinderApiUtils.createErrorResponse(404, "Invalid Consistency Group Id : No Such Consistency group exists");
+                return CinderApiUtils.createErrorResponse(404, "Invalid Consistency Group Id : No Such Consistency group exists");
             }
         }
 
@@ -384,10 +380,10 @@ public class VolumeService extends TaskResourceService {
         URI snapUri = null;
 
         if (snapshotId != null) {
-            snapshot = (BlockSnapshot) getCinderHelper().queryByTag(URI.create(snapshotId), getUserFromContext(),BlockSnapshot.class);
+            snapshot = (BlockSnapshot) getCinderHelper().queryByTag(URI.create(snapshotId), getUserFromContext(), BlockSnapshot.class);
             if (snapshot == null) {
-            	_log.error("Invalid snapshot id ={} ",snapshotId);
-            	return CinderApiUtils.createErrorResponse(404, "Not Found : Invalid snapshot id" + snapshotId);
+                _log.error("Invalid snapshot id ={} ", snapshotId);
+                return CinderApiUtils.createErrorResponse(404, "Not Found : Invalid snapshot id" + snapshotId);
             } else {
                 snapUri = snapshot.getId();
                 URI varrayUri = snapshot.getVirtualArray();
@@ -416,10 +412,11 @@ public class VolumeService extends TaskResourceService {
 
         if (name == null)
         {
-        	name = "volume-" + RandomStringUtils.random(10);
+            name = "volume-" + RandomStringUtils.random(10);
         }
-        _log.info("param.volume.name = {}, param.volume.display_name = {}", param.volume.name,param.volume.display_name);
-        _log.info("param.volume.description = {}, param.volume.display_description = {}", param.volume.description, param.volume.display_description);
+        _log.info("param.volume.name = {}, param.volume.display_name = {}", param.volume.name, param.volume.display_name);
+        _log.info("param.volume.description = {}, param.volume.display_description = {}", param.volume.description,
+                param.volume.display_description);
 
         if (name == null || (name.length() <= 2))
             throw APIException.badRequests.parameterIsNotValid(name);
@@ -468,13 +465,13 @@ public class VolumeService extends TaskResourceService {
             if (sourceVolume != null) {
                 Volume vol = findVolume(sourceVolId, openstackTenantId);
                 if (vol == null) {
-                	_log.debug("Creating Clone Volume failed : Invalid source volume id ");
+                    _log.debug("Creating Clone Volume failed : Invalid source volume id ");
                     return CinderApiUtils.createErrorResponse(404, "Not Found : Invalid source volume id" + sourceVolId);
                 }
                 tasklist = volumeClone(name, project, sourceVolId, varray, volumeCount, sourceVolume, blkFullCpManager);
             } else {
                 _log.debug("Creating Clone Volume failed : Null Source volume ");
-                return CinderApiUtils.createErrorResponse(404, "Not Found : Null source volume " );
+                return CinderApiUtils.createErrorResponse(404, "Not Found : Null source volume ");
             }
 
         } else if (snapshotId != null)
@@ -523,10 +520,12 @@ public class VolumeService extends TaskResourceService {
 
                     _dbClient.updateAndReindexObject(vol);
                     if (isV1Call != null) {
-                    	_log.debug("Inside V1 call");
-                    	return CinderApiUtils.getCinderResponse(getVolumeDetail(vol, isV1Call, openstackTenantId), header, true,CinderConstants.STATUS_OK);
+                        _log.debug("Inside V1 call");
+                        return CinderApiUtils.getCinderResponse(getVolumeDetail(vol, isV1Call, openstackTenantId), header, true,
+                                CinderConstants.STATUS_OK);
                     } else {
-                         return CinderApiUtils.getCinderResponse(getVolumeDetail(vol, isV1Call, openstackTenantId), header, true,CinderConstants.STATUS_ACCEPT);
+                        return CinderApiUtils.getCinderResponse(getVolumeDetail(vol, isV1Call, openstackTenantId), header, true,
+                                CinderConstants.STATUS_ACCEPT);
                     }
                 }
                 else {
@@ -539,13 +538,13 @@ public class VolumeService extends TaskResourceService {
 
     /**
      * Update a specific volume
-     * 
-     * 
+     *
+     *
      * @prereq none
-     * 
+     *
      * @param tenant_id the URN of the tenant
      * @param volume_id the URN of the volume
-     * 
+     *
      * @brief Update volume
      * @return Volume details
      */
@@ -556,24 +555,23 @@ public class VolumeService extends TaskResourceService {
     public Response updateVolume(@PathParam("tenant_id") String openstackTenantId,
             @PathParam("volume_id") String volumeId, @HeaderParam("X-Cinder-V1-Call") String isV1Call,
             VolumeUpdateRequestGen param, @Context HttpHeaders header) {
-    	
 
-    	 boolean ishex = volumeId.matches("[a-fA-F0-9\\-]+");
-         _log.debug(" Matcher  {}",ishex);
-         if (!ishex){
-         	_log.info("Update volume is failed : Invalid source volume id ");
-         	return CinderApiUtils.createErrorResponse(404, "Not Found : Invalid source volume id"); 
-         }
-    	
-        if (volumeId == null){
-        	_log.debug("Update volume is failed : Volume id is empty ");
-        	return CinderApiUtils.createErrorResponse(404, "Not Found : volume id is empty");
-        }  
-        
+        boolean ishex = volumeId.matches("[a-fA-F0-9\\-]+");
+        _log.debug(" Matcher  {}", ishex);
+        if (!ishex) {
+            _log.info("Update volume is failed : Invalid source volume id ");
+            return CinderApiUtils.createErrorResponse(404, "Not Found : Invalid source volume id");
+        }
+
+        if (volumeId == null) {
+            _log.debug("Update volume is failed : Volume id is empty ");
+            return CinderApiUtils.createErrorResponse(404, "Not Found : volume id is empty");
+        }
+
         Volume vol = findVolume(volumeId, openstackTenantId);
-        if (vol == null){
-        	_log.debug("Update volume is failed : Non existent source volume id ");
-        	return CinderApiUtils.createErrorResponse(404, "Not Found : Non existent source volume id");
+        if (vol == null) {
+            _log.debug("Update volume is failed : Non existent source volume id ");
+            return CinderApiUtils.createErrorResponse(404, "Not Found : Non existent source volume id");
         }
         _log.debug("Update volume {}: ", vol.getLabel());
         String label = null;
@@ -607,19 +605,19 @@ public class VolumeService extends TaskResourceService {
             vol.setExtensions(extensions);
         }
         _dbClient.updateObject(vol);
-        return CinderApiUtils.getCinderResponse(getVolumeDetail(vol, isV1Call, openstackTenantId), header, true,STATUS_OK);
+        return CinderApiUtils.getCinderResponse(getVolumeDetail(vol, isV1Call, openstackTenantId), header, true, STATUS_OK);
     }
 
     /**
      * Delete a specific volume
-     * 
-     * 
+     *
+     *
      * @prereq none
-     * 
+     *
      * @param tenant_id the URN of the tenant
      * @param volume_id the URN of the volume
      * @return
-     * 
+     *
      * @brief Delete volume
      * @return Task result
      */
@@ -630,14 +628,14 @@ public class VolumeService extends TaskResourceService {
     public Response deleteVolume(@PathParam("tenant_id") String openstackTenantId,
             @PathParam("volume_id") String volumeId) {
         _log.info("Delete volume: id = {} tenant: id ={}", volumeId, openstackTenantId);
-        if (volumeId == null){
-        	_log.debug("Delete volume is failed : Volume id is empty ");
-        	return CinderApiUtils.createErrorResponse(404, "Not Found : volume id is empty");
-        }        
+        if (volumeId == null) {
+            _log.debug("Delete volume is failed : Volume id is empty ");
+            return CinderApiUtils.createErrorResponse(404, "Not Found : volume id is empty");
+        }
         Volume vol = findVolume(volumeId, openstackTenantId);
         if (vol == null) {
             return CinderApiUtils.createErrorResponse(404, "Not Found : Invalid volume id");
-        }else if(vol.hasConsistencyGroup()){
+        } else if (vol.hasConsistencyGroup()) {
             return CinderApiUtils.createErrorResponse(400, "Invalid volume: Volume belongs to consistency group");
         }
         BlockServiceApi api = BlockService.getBlockServiceImpl(vol, _dbClient);
@@ -657,7 +655,7 @@ public class VolumeService extends TaskResourceService {
             vol.setExtensions(new StringMap());
         }
 
-        vol.getExtensions().put("status",CinderConstants.ComponentStatus.DELETING.getStatus().toLowerCase());
+        vol.getExtensions().put("status", CinderConstants.ComponentStatus.DELETING.getStatus().toLowerCase());
         vol.getExtensions().put(DELETE_TASK_ID, task);
         _dbClient.updateObject(vol);
 
@@ -847,7 +845,7 @@ public class VolumeService extends TaskResourceService {
 
         _log.info(String.format("VolumesLimit():%s ,TotalQuota:%s , TotalSizeUsed:%s, TotalVolumesUsed:%s, RequestedConsumption:%s",
                 objQuota.getVolumesLimit(), objQuota.getTotalQuota(), totalSizeUsed, totalVolumesUsed,
-                (totalSizeUsed + (long) (requestedSize / GB))));
+                (totalSizeUsed + requestedSize / GB)));
 
         if ((objQuota.getVolumesLimit() != QuotaService.DEFAULT_VOLUME_TYPE_VOLUMES_QUOTA)
                 && (objQuota.getVolumesLimit() <= totalVolumesUsed))
@@ -855,13 +853,13 @@ public class VolumeService extends TaskResourceService {
             return isValidVolume;
         }
         else if ((objQuota.getTotalQuota() != QuotaService.DEFAULT_VOLUME_TYPE_TOTALGB_QUOTA)
-                && (objQuota.getTotalQuota() <= (totalSizeUsed + (long) (requestedSize / GB))))
+                && (objQuota.getTotalQuota() <= (totalSizeUsed + requestedSize / GB)))
         {
             return isValidVolume;
         }
         else
         {
-        	isValidVolume = true;
+            isValidVolume = true;
             return isValidVolume;
         }
     }
@@ -910,7 +908,7 @@ public class VolumeService extends TaskResourceService {
 
     /* Get vpool from the given label */
     private VirtualPool getVpool(String vpoolName) {
-        if ( (vpoolName == null) || (vpoolName.length()==0) )
+        if ((vpoolName == null) || (vpoolName.length() == 0))
             return null;
 
         URIQueryResultList uris = new URIQueryResultList();
@@ -928,11 +926,11 @@ public class VolumeService extends TaskResourceService {
 
     /**
      * Verify the user is authorized for a volume creation request.
-     * 
+     *
      * @param project The reference to the Project.
      * @param vpool The reference to the Virtual Pool.
      * @param varray The reference to the Virtual Array.
-     * 
+     *
      * @throws APIException when the user is not authorized.
      */
     private void verifyUserIsAuthorizedForRequest(Project project, VirtualPool vpool, VirtualArray varray) {
@@ -958,7 +956,7 @@ public class VolumeService extends TaskResourceService {
     }
 
     protected Volume findVolume(String volume_id, String openstackTenantId) {
-        Volume vol = (Volume)getCinderHelper().queryByTag(URI.create(volume_id), getUserFromContext(), Volume.class);
+        Volume vol = (Volume) getCinderHelper().queryByTag(URI.create(volume_id), getUserFromContext(), Volume.class);
         Project project = getCinderHelper().getProject(openstackTenantId, getUserFromContext());
         if (project == null) {
             throw APIException.badRequests.projectWithTagNonexistent(openstackTenantId);
@@ -1003,7 +1001,7 @@ public class VolumeService extends TaskResourceService {
 
     /**
      * Get object specific permissions filter
-     * 
+     *
      */
     @Override
     protected ResRepFilter<? extends RelatedResourceRep> getPermissionFilter(StorageOSUser user,
@@ -1117,11 +1115,10 @@ public class VolumeService extends TaskResourceService {
                 capabilities);
     }
 
-
     /**
      * Verify that the snapshot is not on vmax and hds, and not in a consistency group
      * and the array has full copy enabled
-     * 
+     *
      * @param snapshot
      */
     private void verifyFullCopySupportedOnSnapshot(BlockSnapshot snapshot) {
@@ -1227,7 +1224,7 @@ public class VolumeService extends TaskResourceService {
 
     /**
      * Method to support consistency group for a volume
-     * 
+     *
      * @param vpool
      * @param consistencyGroup
      * @param project
@@ -1282,28 +1279,6 @@ public class VolumeService extends TaskResourceService {
                         volumeCount.intValue(), cgMaxVolCount, consistencyGroup.getLabel());
             }
 
-            // If the consistency group is not yet created, verify the name is OK.
-            if (!consistencyGroup.created()) {
-                blockServiceImpl.validateConsistencyGroupName(consistencyGroup);
-            }
-
-            // Consistency Group is already a Target, hence cannot be used to create source volume
-            if (consistencyGroup.srdfTarget()) {
-                throw APIException.badRequests.consistencyGroupBelongsToTarget(consistencyGroup.getId());
-            }
-
-            if (VirtualPool.vPoolSpecifiesSRDF(vpool)
-                    && (consistencyGroup.getLabel().length() > 8 || !isAlphaNumeric(consistencyGroup.getLabel()))) {
-                throw APIException.badRequests.groupNameCannotExceedEightCharactersoronlyAlphaNumericAllowed();
-            }
-
-            if (!VirtualPool.vPoolSpecifiesSRDF(vpool) && consistencyGroup.checkForType(Types.SRDF)) {
-                throw APIException.badRequests.nonSRDFVolumeCannotbeAddedToSRDFCG();
-            }
-
-            // check if CG's storage system is associated to the requested virtual array
-            validateCGValidWithVirtualArray(consistencyGroup, varray);
-
             if (VirtualPool.vPoolSpecifiesProtection(vpool)) {
                 requestedTypes.add(Types.RP.name());
             }
@@ -1327,6 +1302,28 @@ public class VolumeService extends TaskResourceService {
                     && vpool.getMultivolumeConsistency()) {
                 requestedTypes.add(Types.LOCAL.name());
             }
+
+            // If the consistency group is not yet created, verify the name is OK.
+            if (!consistencyGroup.created()) {
+                blockServiceImpl.validateConsistencyGroupName(consistencyGroup, requestedTypes);
+            }
+
+            // Consistency Group is already a Target, hence cannot be used to create source volume
+            if (consistencyGroup.srdfTarget()) {
+                throw APIException.badRequests.consistencyGroupBelongsToTarget(consistencyGroup.getId());
+            }
+
+            if (VirtualPool.vPoolSpecifiesSRDF(vpool)
+                    && (consistencyGroup.getLabel().length() > 8 || !isAlphaNumeric(consistencyGroup.getLabel()))) {
+                throw APIException.badRequests.groupNameCannotExceedEightCharactersoronlyAlphaNumericAllowed();
+            }
+
+            if (!VirtualPool.vPoolSpecifiesSRDF(vpool) && consistencyGroup.checkForType(Types.SRDF)) {
+                throw APIException.badRequests.nonSRDFVolumeCannotbeAddedToSRDFCG();
+            }
+
+            // check if CG's storage system is associated to the requested virtual array
+            validateCGValidWithVirtualArray(consistencyGroup, varray);
 
             // Validate the CG type. We want to make sure the volume create request is appropriate
             // the CG's previously requested types.
@@ -1439,9 +1436,9 @@ public class VolumeService extends TaskResourceService {
     /*
      * Validate if the physical array that the consistency group bonded to is associated
      * with the virtual array
-     * 
+     *
      * @param consistencyGroup
-     * 
+     *
      * @param varray virtual array
      */
     private void validateCGValidWithVirtualArray(BlockConsistencyGroup consistencyGroup,
@@ -1476,7 +1473,7 @@ public class VolumeService extends TaskResourceService {
 
     /**
      * Check if any port in the list is from the storage system
-     * 
+     *
      * @param ports
      * @param systemUri
      * @return
@@ -1508,7 +1505,7 @@ public class VolumeService extends TaskResourceService {
     /**
      * Checks existing CG for non-RP snapshots. If non-RP snapshots exist,
      * we cannot create/add a volume to the CG.
-     * 
+     *
      * @param consistencyGroup the consistency group to validate.
      */
     private void checkCGForSnapshots(BlockConsistencyGroup consistencyGroup) {
@@ -1532,7 +1529,7 @@ public class VolumeService extends TaskResourceService {
 
     /**
      * Returns the bean responsible for servicing the request
-     * 
+     *
      * @param vpool Virtual Pool
      * @return block service implementation object
      */
@@ -1552,6 +1549,5 @@ public class VolumeService extends TaskResourceService {
 
         return BlockService.getBlockServiceImpl("default");
     }
-    
 
 }

@@ -1620,11 +1620,11 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
                     for (String initiatorNetworkId : storageView.getInitiatorPwwns()) {
 
                         s_logger.info("looking at initiator network id " + initiatorNetworkId);
-                        if (initiatorNetworkId.matches(ISCSI_PATTERN)
+                        if (initiatorNetworkId != null && initiatorNetworkId.matches(ISCSI_PATTERN)
                                 && (iSCSIUtility.isValidIQNPortName(initiatorNetworkId)
                                         || iSCSIUtility.isValidEUIPortName(initiatorNetworkId))) {
                             s_logger.info("\tiSCSI network id normalized to " + initiatorNetworkId);
-                        } else if (initiatorNetworkId.matches(REGISTERED_PATTERN)) {
+                        } else if (initiatorNetworkId != null && initiatorNetworkId.matches(REGISTERED_PATTERN)) {
                             initiatorNetworkId = initiatorNetworkId.substring(REGISTERED_PORT_PREFIX.length());
                             initiatorNetworkId = WWNUtility.getWWNWithColons(initiatorNetworkId);
                             s_logger.info("\tRegistered network id normalized to " + initiatorNetworkId);

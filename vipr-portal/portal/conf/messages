@@ -3092,11 +3092,11 @@ computeImageServers.selected=Selected
 computeImageServers.name=Name
 computeImageServers.userName=Username
 computeImageServers.password=Password
-computeImageServers.imageServerIp=Image Server Address
+computeImageServers.imageServerIp=Image Server IP Address
 computeImageServers.tftpBootDir=TFTPBOOT Directory
 computeImageServers.confirmPassword=Comfirm Password
 computeImageServers.computeImageServerStatus=Image Server Status
-computeImageServers.osInstallNetworkAddress=OS Install Network Address
+computeImageServers.osInstallNetworkAddress=OS Install Network IP Address
 computeImageServers.osInstallTimeOut=OS Install Timeout in seconds
 computeImageServers.sshTimeout=Timeout in seconds for SSH commands sent to Image Server
 computeImageServers.imageImportTimeout=Image Import Timeout in seconds
@@ -3249,14 +3249,14 @@ orders.warning=Based on the current filter, %s orders were found in the database
 orders.delete=Delete Orders
 orders.delete.description=Click Confirm to delete the selected (checked) orders.
 orders.delete.all=All rows are checked, all <b style="color:red">%s</b> orders will be deleted.
-orders.delete.all.threshold=(Only %,d orders could be deleted done in every five days).
-orders.delete.help=We strongly recommend that you download the orders before deleting them. <p>Only one 'Download/Delete' orders job is allowed at any given time. Only orders whose status are in '%s' can be deleted.</p>
+orders.delete.all.threshold=(You may delete a maximum of %,d orders every five days).
+orders.delete.help=Please download orders before deletion. <p>In order to be deleted, orders must be over 30 days old and have status equal to '%s'. Orders can't be deleted while a download or another deletion is in progress.</p>
 orders.delete.submitted=Orders deletion submitted successfully.
 orders.delete.status=Deleting orders from %s to %s is in progress: %s of %s orders have been successfully deleted, %s orders failed.
 orders.download=Download Orders
 orders.download.description=Click Confirm to delete the selected (checked) orders.
 orders.download.all=All rows are checked, all <b style="color:red">%s</b> orders will be downloaded.
-orders.download.help=Only one 'Download/Delete' orders job is allowed at any given time.
+orders.download.help=Orders can't be downloaded while a deletion or another download is in progress.
 orders.download.status=Downloading orders from %s to %s is in progress: %s of %s orders have been successfully downloaded, %s orders failed.
 orders.download.status.notime=Downloading orders is in progress: %s of %s orders have been successfully downloaded, %s orders failed.
 
@@ -4741,7 +4741,7 @@ renderFunctions.storageDriver.status.inUse=In Use
 renderFunctions.storageDriver.status.unknown=Unknown
 
 renderFunctions.recovery.result.done=Last node recovery was successfully completed at 
-renderFunctions.recovery.result.failed=Last node recovery failed at 
+renderFunctions.recovery.result.failed=Latest recover status have error at
 renderFunctions.recovery.result.reason=The reason was: 
 renderFunctions.recovery.error.repair=Database repair failed
 renderFunctions.recovery.error.sync=Database rebuild failed

@@ -758,10 +758,6 @@
         <property name="dbClient" ref="dbclient"/>
     </bean>
 
-    <bean id="rphelper" class="com.emc.storageos.protectioncontroller.impl.recoverpoint.RPHelper">
-      	<property name="dbClient" ref="dbclient"/>
-    </bean>
-
 	<bean id="rpStatsHelper"
 		class="com.emc.storageos.volumecontroller.impl.plugins.RPStatisticsHelper">
 	</bean>
@@ -776,7 +772,6 @@
         <property name="locker" ref="locker"/>
         <property name="dbClient" ref="dbclient"/>
         <property name="eventManager" ref="recordableEventMgr"/>
-        <property name="rpHelper" ref="rphelper"/>
         <property name="nameGenerator" ref="defaultNameGenerator"/>
 		<property name="coordinator" ref="coordinator"/>
       	<property name="workflowService" ref="workflowService" />
@@ -1254,7 +1249,6 @@
     	<property name="deviceOperationPollFrequency" value="15"/>
     	<property name="workflowService" ref="workflowService"/>
     	<property name="coordinator" ref="coordinator" />
-    	<property name="blockExportController" ref="blockExportController"></property>
     </bean>
 
     <bean id="pxeIntegrationService" class="com.emc.storageos.imageservercontroller.impl.PxeIntegrationService">

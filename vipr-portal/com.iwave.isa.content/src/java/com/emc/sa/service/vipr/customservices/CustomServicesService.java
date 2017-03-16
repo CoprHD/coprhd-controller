@@ -55,6 +55,7 @@ import com.emc.storageos.model.customservices.CustomServicesWorkflowDocument;
 import com.emc.storageos.model.customservices.CustomServicesWorkflowDocument.Input;
 import com.emc.storageos.model.customservices.CustomServicesWorkflowDocument.Step;
 import com.emc.storageos.primitives.CustomServicesConstants;
+import com.emc.storageos.primitives.CustomServicesConstants.InputType;
 import com.emc.storageos.primitives.CustomServicesPrimitive.StepType;
 import com.emc.storageos.primitives.CustomServicesPrimitiveType;
 import com.emc.storageos.primitives.java.vipr.CustomServicesViPRPrimitive;
@@ -287,7 +288,6 @@ public class CustomServicesService extends ViPRService {
                     case ASSET_OPTION: {
                         final String friendlyName = value.getFriendlyName();
                         if (params.get(friendlyName) != null) {
-
                             inputs.put(name, Arrays.asList(params.get(friendlyName).toString()));
                         } else {
                             if (value.getDefaultValue() != null) {
@@ -296,6 +296,8 @@ public class CustomServicesService extends ViPRService {
                         }
                         break;
                     }
+                    // TODO: Handle multi value
+                    // case ASSET_OPTION_MULTI_VALUE:
                     case FROM_STEP_INPUT:
                     case FROM_STEP_OUTPUT: {
                         final String[] paramVal = value.getValue().split("\\.");
@@ -303,11 +305,11 @@ public class CustomServicesService extends ViPRService {
                         final String attribute = paramVal[CustomServicesConstants.INPUT_FIELD];
 
                         Map<String, List<String>> stepInput;
-                        if (value.getType().equals(InputType.FROM_STEP_INPUT.toString()))
+                        if (value.getType().equals(InputType.FROM_STEP_INPUT.toString())) {
                             stepInput = inputPerStep.get(stepId);
-                        else
+                        } else {
                             stepInput = outputPerStep.get(stepId);
-
+                        }
                         if (stepInput != null) {
                             if (stepInput.get(attribute) != null) {
                                 inputs.put(name, stepInput.get(attribute));
@@ -316,28 +318,6 @@ public class CustomServicesService extends ViPRService {
                         }
                         if (value.getDefaultValue() != null) {
                             inputs.put(name, Arrays.asList(value.getDefaultValue()));
-=======
-                    break;
-                }
-                // TODO: Handle multi value
-                // case ASSET_OPTION_MULTI_VALUE:
-                case FROM_STEP_INPUT:
-                case FROM_STEP_OUTPUT: {
-                    final String[] paramVal = value.getValue().split("\\.");
-                    final String stepId = paramVal[CustomServicesConstants.STEP_ID];
-                    final String attribute = paramVal[CustomServicesConstants.INPUT_FIELD];
-
-                    Map<String, List<String>> stepInput;
-                    if (value.getType().equals(CustomServicesConstants.InputType.FROM_STEP_INPUT.toString()))
-                        stepInput = inputPerStep.get(stepId);
-                    else
-                        stepInput = outputPerStep.get(stepId);
-
-                    if (stepInput != null) {
-                        logger.info("value is:{}", stepInput.get(attribute));
-                        if (stepInput.get(attribute) != null) {
-                            inputs.put(name, stepInput.get(attribute));
->>>>>>> a7e8d93623cf1f2846418fdc24780015f81f91ad
                             break;
                         }
 

@@ -111,6 +111,11 @@ public class Events extends Controller {
         renderJSON(activeCount);
     }
 
+    /**
+     * Returns the tenants that the logged in user has access to
+     * 
+     * @return list of tenants
+     */
     private static Set<URI> getAccessibleTenants() {
         List<StringOption> tenants = Lists.newArrayList();
         if (Security.isSecurityAdmin()) {

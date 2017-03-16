@@ -181,6 +181,26 @@ public class VirtualArrayProvider extends BaseAssetOptionsProvider {
         }
     }
 
+    @Asset("fileTargetVirtualArray")
+    @AssetDependencies({ "fileFilePolicy", "unprotectedFilesystem" })
+    public List<AssetOption> getTargetVirtualArrays(AssetOptionsContext context, URI filePolicy, URI fsId) {
+        ViPRCoreClient client = api(context);
+        FilePolicyRestRep policyRest = client.fileProtectionPolicies().getFilePolicy(filePolicy);
+        if (policyRest.getType().equals("file_snapshot")) {
+            VirtualArrayRestRep vArray = null;
+
+            List<AssetOption> options = Lists.newArrayList();
+            FileShareRestRep fsObj = client.fileSystems().get(fsId);
+            if (fsObj != null) {
+                vArray = client.varrays().get(fsObj.getVirtualArray().getId());
+                options.add(createBaseResourceOption(vArray));
+            }
+            return options;
+        } else {
+            return getFileVirtualArrays(context);
+        }
+    }
+
     @Asset("blockVirtualArray")
     public List<AssetOption> getBlockVirtualArrays(AssetOptionsContext context) {
         ViPRCoreClient client = api(context);

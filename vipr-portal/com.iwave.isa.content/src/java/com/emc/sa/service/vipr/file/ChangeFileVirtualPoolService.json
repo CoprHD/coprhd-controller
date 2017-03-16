@@ -14,15 +14,21 @@
     sourceVirtualPool:{
       type:"assetType.vipr.fileSourceVirtualPool"
     },
-    
-    virtualPoolChangeOperation:{
-      type:"assetType.vipr.fileVirtualPoolChangeOperation",
-      lockable: true
+ 
+    filePolicy:{
+      type:"assetType.vipr.fileFilePolicy",
+      select:"one"
     },
     
     targetVirtualPool:{
       type:"assetType.vipr.fileTargetVirtualPool",
       lockable: true
+    },
+   
+     targetVirtualArray:{
+      type:"assetType.vipr.fileTargetVirtualArray",
+      select:"one"
     }
+    
   }
 }

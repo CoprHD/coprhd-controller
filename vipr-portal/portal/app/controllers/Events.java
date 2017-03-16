@@ -100,12 +100,16 @@ public class Events extends Controller {
         Set<URI> tenants = getAccessibleTenants();
         for (URI tenant : tenants) {
             EventStatsRestRep eventStats = client.events().getStatsByTenant(tenant);
-            activeCount += eventStats.getPending() + eventStats.getFailed();
+            if (eventStats != null) {
+                activeCount += eventStats.getPending() + eventStats.getFailed();
+            }
         }
 
         if (Security.isSystemAdmin()) {
             EventStatsRestRep systemEventStats = client.events().getStatsByTenant(SYSTEM_TENANT);
-            activeCount += systemEventStats.getPending() + systemEventStats.getFailed();
+            if (systemEventStats != null) {
+                activeCount += systemEventStats.getPending() + systemEventStats.getFailed();
+            }
         }
 
         renderJSON(activeCount);

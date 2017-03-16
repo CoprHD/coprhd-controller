@@ -10,10 +10,12 @@ import static com.emc.sa.service.vipr.ViPRExecutionUtils.execute;
 import static com.emc.sa.service.vipr.ViPRExecutionUtils.getOrderTenant;
 
 import java.net.URI;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.ListIterator;
@@ -373,6 +375,14 @@ public class ComputeUtils {
 
     /**
      * Exports all boot volumes to respective hosts.
+     * 
+     * Since exporting to boot volumes requires only one volume be exported for OS install, we have extra checks
+     * in here:
+     * - If there is an existing EG with the same name, we need to make additional checks:
+     *   - If the EG has no initiators and volumes, re-use it.  Add the host and volume.
+     *   - If the EG has our initiators and a volume (or more), error out.
+     *   - If the EG has different initiators, create an EG with a different name.
+     *   - If the EG has our initiators and no volumes, re-use it.  Add the volume only.
      *
      * @param hostToVolumeIdMap host to boot volume ID map
      * @param project project
@@ -392,11 +402,38 @@ public class ComputeUtils {
             URI volumeId = hostToVolumeIdEntry.getValue();
             if (!NullColumnValueGetter.isNullURI(volumeId) && (host != null) && !(host.getInactive())) {
                 try {
-                    /**
-                     * Don't determine HLUs at all, even for the boot volumes. Let the system decide them for you. Hence passing -1
-                     */
-                    Task<ExportGroupRestRep> task = BlockStorageUtils.createHostExportNoWait(project,
-                            virtualArray, Arrays.asList(volumeId), hlu, host);
+                    ExportGroupRestRep export = BlockStorageUtils.findExportByHost(host, project, virtualArray, null);
+                    if (export != null && !export.getVolumes().isEmpty()) {
+                        throw new IllegalStateException(new Throwable(
+                                "Existing export contains other volumes.  Controller supports only the boot volume visible to host."
+                                        + host.getHostName()));
+                    }
+                    
+                    // If we didn't find an export with our host, look for an export with the name of the host. 
+                    // We can add the host to that export group if it's empty.
+                    if (export == null) {
+                        export = BlockStorageUtils.findExportsByName(host.getHostName(), project, virtualArray);
+                    }
+                    
+                    boolean createExport = export == null;
+                    boolean isEmptyExport = export != null && BlockStorageUtils.isEmptyExport(export);
+                    String exportName = host.getHostName();
+                    if (export != null && !isEmptyExport) {
+                        exportName = exportName + BlockStorageUtils.UNDERSCORE
+                                + new SimpleDateFormat("yyyyMMddhhmmssSSS").format(new Date());
+                        createExport = true;
+                    }
+                    Task<ExportGroupRestRep> task = null;
+                    
+                    if (createExport) {
+                        task = BlockStorageUtils.createHostExportNoWait(exportName,
+                                project, virtualArray, Arrays.asList(volumeId), hlu, host);
+                    } else {
+                        task = BlockStorageUtils.addHostAndVolumeToExportNoWait(export.getId(),
+                                    // Don't add the host if there are already initiators in this export group.
+                                    export.getInitiators() != null && !export.getInitiators().isEmpty() ? null : host.getId(), 
+                                    volumeId, hlu); 
+                    }
                     taskToHostMap.put(task, host);
                 } catch (ExecutionException e) {
                     String errorMessage = e.getMessage() == null ? "" : e.getMessage();

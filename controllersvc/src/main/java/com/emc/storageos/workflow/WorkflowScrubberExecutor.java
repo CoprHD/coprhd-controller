@@ -18,6 +18,7 @@ import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.Workflow;
 import com.emc.storageos.db.client.model.WorkflowStep;
+import com.emc.storageos.db.client.model.WorkflowStepData;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.services.util.NamedScheduledThreadPoolExecutor;
 
@@ -56,7 +57,7 @@ public class WorkflowScrubberExecutor {
         List<URI> workflowURIs = dbClient.queryByType(Workflow.class, true);
         Iterator<Workflow> workflowItr = dbClient.queryIterativeObjects(Workflow.class, workflowURIs);
         Long currentTime = System.currentTimeMillis();
-        int workflowCount=0, workflowsDeletedCount=0, stepsDeletedCount=0;
+        int workflowCount = 0, workflowsDeletedCount = 0, stepsDeletedCount = 0, stepDataDeletedCount = 0;
         while (workflowItr.hasNext()) {
             workflowCount++;
             Workflow workflow = workflowItr.next();
@@ -94,6 +95,11 @@ public class WorkflowScrubberExecutor {
         while (workflowStepItr.hasNext()) {
             WorkflowStep step = workflowStepItr.next();
             if (NullColumnValueGetter.isNullURI(step.getWorkflowId())) {
+                // step is orphaned -- delete it
+                stepsDeletedCount++;
+                dbClient.removeObject(step);
+                log.info("Orphaned workflow step {} marked inactive", step.getId());
+            } else {
                 Workflow wf = dbClient.queryObject(Workflow.class, step.getWorkflowId());
                 if (wf == null || wf.getInactive()) {
                     // step is orphaned -- delete it
@@ -103,8 +109,30 @@ public class WorkflowScrubberExecutor {
                 }
             }
         }
-        log.info("Done scanning for old workflows; {} workflows analyzed; {} old workflows deleted; {} workflow steps deleted",
-                workflowCount, workflowsDeletedCount, stepsDeletedCount);
+
+        // now query workflow steps and clean up any orphaned steps
+        Iterator<WorkflowStepData> workflowStepDataItr = dbClient.queryIterativeObjects(WorkflowStepData.class,
+                dbClient.queryByType(WorkflowStepData.class, true));
+        while (workflowStepDataItr.hasNext()) {
+            WorkflowStepData stepData = workflowStepDataItr.next();
+            if (NullColumnValueGetter.isNullURI(stepData.getWorkflowId())) {
+                // step data is orphaned -- delete it
+                stepDataDeletedCount++;
+                dbClient.removeObject(stepData);
+                log.info("Orphaned workflow step data {} marked inactive", stepData.getId());
+            } else {
+                Workflow wf = dbClient.queryObject(Workflow.class, stepData.getWorkflowId());
+                if (wf == null || wf.getInactive()) {
+                    // step data is orphaned -- delete it
+                    stepDataDeletedCount++;
+                    dbClient.removeObject(stepData);
+                    log.info("Orphaned workflow step data {} marked inactive", stepData.getId());
+                }
+            }
+        }
+        log.info(
+                "Done scanning for old workflows; {} workflows analyzed; {} old workflows deleted; {} workflow steps deleted; {} workflow step data deleted",
+                workflowCount, workflowsDeletedCount, stepsDeletedCount, stepDataDeletedCount);
     }
 
     public DbClient getDbClient() {

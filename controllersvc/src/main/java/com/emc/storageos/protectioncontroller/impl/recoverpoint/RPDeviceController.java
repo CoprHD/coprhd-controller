@@ -163,6 +163,7 @@ import com.emc.storageos.vplexcontroller.completers.VolumeGroupUpdateTaskComplet
 import com.emc.storageos.workflow.Workflow;
 import com.emc.storageos.workflow.WorkflowException;
 import com.emc.storageos.workflow.WorkflowService;
+import com.emc.storageos.workflow.WorkflowState;
 import com.emc.storageos.workflow.WorkflowStepCompleter;
 import com.google.common.base.Joiner;
 
@@ -1356,6 +1357,24 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                 // Mark this workflow as created/executed so we don't do it again on retry/resume
                 WorkflowService.getInstance().markWorkflowBeenCreated(taskId, workflowKey);
             }
+        } catch (LockRetryException ex) {
+            /**
+             * Added this catch block to mark the current workflow as completed so that lock retry will not get exception while creating new
+             * workflow using the same taskid.
+             */
+            _log.info(String.format("Lock retry exception key: %s remaining time %d", ex.getLockIdentifier(),
+                    ex.getRemainingWaitTimeSeconds()));
+            if (workflow != null && !NullColumnValueGetter.isNullURI(workflow.getWorkflowURI())
+                    && workflow.getWorkflowState() == WorkflowState.CREATED) {
+                com.emc.storageos.db.client.model.Workflow wf = _dbClient.queryObject(com.emc.storageos.db.client.model.Workflow.class,
+                        workflow.getWorkflowURI());
+                if (!wf.getCompleted()) {
+                    _log.error("Marking the status to completed for the newly created workflow {}", wf.getId());
+                    wf.setCompleted(true);
+                    _dbClient.updateObject(wf);
+                }
+            }
+            throw ex;
         } catch (Exception ex) {
             _log.error("Could not create volumes: " + volUris, ex);
 
@@ -2651,24 +2670,24 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
     /*
      * RPDeviceController.exportGroupCreate()
-     * 
+     *
      * This method is a mini-orchestration of all of the steps necessary to create an export based on
      * a Bourne Snapshot object associated with a RecoverPoint bookmark.
-     * 
+     *
      * This controller does not service block devices for export, only RP bookmark snapshots.
-     * 
+     *
      * The method is responsible for performing the following steps:
      * - Enable the volumes to a specific bookmark.
      * - Call the block controller to export the target volume
-     * 
+     *
      * @param protectionDevice The RP System used to manage the protection
-     * 
+     *
      * @param exportgroupID The export group
-     * 
+     *
      * @param snapshots snapshot list
-     * 
+     *
      * @param initatorURIs initiators to send to the block controller
-     * 
+     *
      * @param token The task object
      */
     @Override
@@ -2884,19 +2903,19 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
     /*
      * RPDeviceController.exportGroupDelete()
-     * 
+     *
      * This method is a mini-orchestration of all of the steps necessary to delete an export group.
-     * 
+     *
      * This controller does not service block devices for export, only RP bookmark snapshots.
-     * 
+     *
      * The method is responsible for performing the following steps:
      * - Call the block controller to delete the export of the target volumes
      * - Disable the bookmarks associated with the snapshots.
-     * 
+     *
      * @param protectionDevice The RP System used to manage the protection
-     * 
+     *
      * @param exportgroupID The export group
-     * 
+     *
      * @param token The task object associated with the volume creation task that we piggy-back our events on
      */
     @Override
@@ -3009,15 +3028,15 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
     /*
      * Method that adds the steps to the workflow to disable image access (for BLOCK snapshots)
-     * 
+     *
      * @param workflow Workflow
-     * 
+     *
      * @param waitFor waitFor step id
-     * 
+     *
      * @param snapshots list of snapshot to disable
-     * 
+     *
      * @param rpSystem RP system
-     * 
+     *
      * @throws InternalException
      */
     private void addBlockSnapshotDisableImageAccessStep(Workflow workflow, String waitFor, List<URI> snapshots, ProtectionSystem rpSystem)
@@ -3192,24 +3211,24 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
     /*
      * RPDeviceController.exportAddVolume()
-     * 
+     *
      * This method is a mini-orchestration of all of the steps necessary to add a volume to an export group
      * that is based on a Bourne Snapshot object associated with a RecoverPoint bookmark.
-     * 
+     *
      * This controller does not service block devices for export, only RP bookmark snapshots.
-     * 
+     *
      * The method is responsible for performing the following steps:
      * - Enable the volumes to a specific bookmark.
      * - Call the block controller to export the target volume
-     * 
+     *
      * @param protectionDevice The RP System used to manage the protection
-     * 
+     *
      * @param exportGroupID The export group
-     * 
+     *
      * @param snapshot RP snapshot
-     * 
+     *
      * @param lun HLU
-     * 
+     *
      * @param token The task object associated with the volume creation task that we piggy-back our events on
      */
     @Override
@@ -4138,7 +4157,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
     /*
      * (non-Javadoc)
-     * 
+     *
      * @see com.emc.storageos.volumecontroller.RPController#stopProtection(java.net.URI, java.net.URI, java.lang.String)
      */
     @Override
@@ -4687,7 +4706,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
     /*
      * (non-Javadoc)
-     * 
+     *
      * @see com.emc.storageos.protectioncontroller.RPController#createSnapshot(java.net.URI, java.net.URI, java.util.List,
      * java.lang.Boolean, java.lang.Boolean, java.lang.String)
      */
@@ -4788,7 +4807,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
     /*
      * (non-Javadoc)
-     *
+     * 
      * @see
      * com.emc.storageos.blockorchestrationcontroller.BlockOrchestrationInterface#addStepsForPreCreateReplica(com.emc.
      * storageos.workflow
@@ -6866,7 +6885,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
     /*
      * (non-Javadoc)
-     * 
+     *
      * @see com.emc.storageos.protectioncontroller.RPController#updateApplication(java.net.URI,
      * com.emc.storageos.volumecontroller.ApplicationAddVolumeList, java.util.List, java.net.URI, java.lang.String)
      */
@@ -7236,7 +7255,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
     /*
      * (non-Javadoc)
-     *
+     * 
      * @see
      * com.emc.storageos.blockorchestrationcontroller.BlockOrchestrationInterface#addStepsForCreateFullCopy(com.emc.
      * storageos.workflow.Workflow

@@ -65,7 +65,7 @@ public class BuildRestRequest {
 
     public BuildRestRequest setSSL(final String protocol) throws Exception {
 
-        if (protocol.isEmpty()) {
+        if (StringUtils.isEmpty(protocol)) {
             throw InternalServerErrorException.internalServerErrors.
                     customServiceExecutionFailed("Protocol not defined" + protocol);
 
@@ -99,16 +99,15 @@ public class BuildRestRequest {
         }
         for (final CustomServicesWorkflowDocument.Input header : inputs) {
             final String name = header.getName();
-            final String value = input.get(name).get(0);
+            final List<String> value = input.get(name);
 
-            if (value.isEmpty()) {
+            if (value == null || StringUtils.isEmpty(value.get(0))) {
                 logger.error("Cannot set value for header:{}", name);
 
                 throw InternalServerErrorException.internalServerErrors.
                         customServiceExecutionFailed("Cannot set value for header:" + name);
             }
-
-            final String headerValue = StringUtils.strip(input.get(name).get(0).toString(), "\"");
+            final String headerValue = StringUtils.strip(value.get(0).toString(), "\"");
             if (name.equals(CustomServicesConstants.ACCEPT_TYPE)) {
                 setAccept(headerValue);
             } else if (name.equals(CustomServicesConstants.CONTENT_TYPE)) {
@@ -122,7 +121,7 @@ public class BuildRestRequest {
     }
 
     private BuildRestRequest setContentType(final String contentType) {
-        if (contentType.isEmpty()) {
+        if (StringUtils.isEmpty(contentType)) {
             return this;
         }
         getBuilder().type(contentType);
@@ -131,7 +130,7 @@ public class BuildRestRequest {
     }
 
     private BuildRestRequest setAccept(final String acceptType) {
-        if (acceptType.isEmpty()) {
+        if (StringUtils.isEmpty(acceptType)) {
             return this;
         }
         getBuilder().accept(acceptType);
@@ -149,7 +148,7 @@ public class BuildRestRequest {
     }
 
     public BuildRestRequest setUrl(final String url) {
-        if (!url.isEmpty()) {
+        if (!StringUtils.isEmpty(url)) {
             this.resource = client.resource(url);
         }
 
@@ -157,7 +156,7 @@ public class BuildRestRequest {
     }
 
     public BuildRestRequest setFilter(final String user, final String password) {
-        if (!(user.isEmpty() && password.isEmpty())) {
+        if (!(StringUtils.isEmpty(user) && StringUtils.isEmpty(password))) {
             client.addFilter(new HTTPBasicAuthFilter(user, password));
 
             return this;

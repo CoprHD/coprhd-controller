@@ -58,7 +58,7 @@ public class CustomServicesRESTExecution extends ViPRExecutionTask<CustomService
 
             //TODO get it from primitive which are not runtime variable
             final String authType = getOptions(CustomServicesConstants.AUTH_TYPE, input);
-            if (authType.isEmpty()) {
+            if (StringUtils.isEmpty(authType)) {
                 logger.error("Auth type cannot be undefined");
                 throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed("Cannot find Auth type");
             }
@@ -69,18 +69,18 @@ public class CustomServicesRESTExecution extends ViPRExecutionTask<CustomService
 
             b.setHeaders(step, input);
 
-            switch (CustomServicesConstants.restMethods.valueOf(getOptions(CustomServicesConstants.METHOD, input))) {
+            final CustomServicesConstants.restMethods method =
+                    CustomServicesConstants.restMethods.valueOf(getOptions(CustomServicesConstants.METHOD, input));
+            switch (method) {
                 case PUT:
                 case POST:
                     final String body = RESTHelper.makePostBody(getOptions(CustomServicesConstants.BODY, input), input);
-                    return b.executeRest(CustomServicesConstants.restMethods.valueOf(getOptions(CustomServicesConstants.METHOD, input)),
-                            body);
+                    return b.executeRest(method, body);
             }
 
             ExecutionUtils.currentContext().logInfo("customServicesRESTExecution.doneInfo", step.getId());
 
-            return b.executeRest(CustomServicesConstants.restMethods.valueOf(getOptions(CustomServicesConstants.METHOD, input)),
-                    null);
+            return b.executeRest(method, null);
         } catch (final Exception e) {
             logger.error("Received Exception:{}", e);
             throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed("Custom Service Task Failed" + e);
@@ -94,7 +94,7 @@ public class CustomServicesRESTExecution extends ViPRExecutionTask<CustomService
         final String port = getOptions(CustomServicesConstants.PORT, input);
         final String protocol =  getOptions(CustomServicesConstants.PROTOCOL, input);
 
-        if (target.isEmpty() || path.isEmpty() || port.isEmpty() || protocol.isEmpty()) {
+        if (StringUtils.isEmpty(target) || StringUtils.isEmpty(path) || StringUtils.isEmpty(port) || StringUtils.isEmpty(protocol)) {
             logger.error("target/path/port is not defined. target:{}, path:{}, port:{}", target, path, port);
 
             throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed("Cannot build URL");

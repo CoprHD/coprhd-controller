@@ -76,7 +76,7 @@ public final class RESTHelper {
         final Map<String, Object> pathParameterMap = new HashMap<String, Object>();
 
         for(final String key : pathParameters) {
-            List<String> value = input.get(key);
+            final List<String> value = input.get(key);
             if(null == value) {
                 logger.info("value is null");
                 throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed("Unfulfilled path parameter: " + key);

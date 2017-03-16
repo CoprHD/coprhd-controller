@@ -80,7 +80,7 @@ public class ValidationHelper {
         return false;
     }
 
-    public CustomServicesValidationResponse validate(URI id) {
+    public CustomServicesValidationResponse validate(final URI id) {
         final CustomServicesValidationResponse validationResponse = new CustomServicesValidationResponse();
         validationResponse.setId(id);
         final CustomServicesValidationResponse.Error error = validateSteps(stepsHash);
@@ -141,10 +141,10 @@ public class ValidationHelper {
         for (final String stepId : stepWithoutParent) {
             if (errorSteps.containsKey(stepId)) {
                 errorSteps.get(stepId);
-                List<String> errorMsgs = errorSteps.get(stepId).getErrorMessages();
+                final List<String> errorMsgs = errorSteps.get(stepId).getErrorMessages();
                 errorMsgs.add(CustomServicesConstants.ERROR_MSG_WORKFLOW_PREVIOUS_STEP_NOT_DEFINED);
             } else {
-                CustomServicesValidationResponse.ErrorStep errorStep = new CustomServicesValidationResponse.ErrorStep();
+                final CustomServicesValidationResponse.ErrorStep errorStep = new CustomServicesValidationResponse.ErrorStep();
                 errorStep.setErrorMessages(
                         new ArrayList<>(Arrays.asList(CustomServicesConstants.ERROR_MSG_WORKFLOW_PREVIOUS_STEP_NOT_DEFINED)));
                 errorSteps.put(stepId, errorStep);

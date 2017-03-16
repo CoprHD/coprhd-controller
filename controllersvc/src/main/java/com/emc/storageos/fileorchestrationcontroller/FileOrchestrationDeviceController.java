@@ -1833,6 +1833,10 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
                     filePolicy.removeAssignedResources(uri);
                     FileOrchestrationUtils.updateUnAssignedResource(filePolicy, uri, s_dbClient);
                 }
+
+                // If no other resources are assigned to replication policy
+                // Remove the replication topology from the policy
+                FileOrchestrationUtils.removeTopologyInfo(filePolicy, s_dbClient);
                 s_dbClient.updateObject(filePolicy);
                 s_logger.info("Unassigning file policy: {} from resources: {} finished successfully", policy.toString(),
                         unassignFrom.toString());
@@ -2199,9 +2203,11 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
             String successMessage = String.format("Assigning file policy : %s, to vpool(s) successful.",
                     filePolicy.getId());
             workflow.executePlan(completer, successMessage);
-        } catch (
+        } catch (Exception ex) {
+            // If no other resources are assigned to replication policy
+            // Remove the replication topology from the policy
+            FileOrchestrationUtils.removeTopologyInfo(filePolicy, s_dbClient);
 
-        Exception ex) {
             s_logger.error(String.format("Assigning file policy : %s to vpool(s) failed", filePolicy.getId()), ex);
             ServiceError serviceError = DeviceControllerException.errors
                     .assignFilePolicyFailed(filePolicyToAssign.toString(), filePolicy.getApplyAt(), ex);
@@ -2291,9 +2297,11 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
             String successMessage = String.format("Assigning file policy : %s, to project(s) successful.",
                     filePolicy.getId());
             workflow.executePlan(completer, successMessage);
-        } catch (
+        } catch (Exception ex) {
+            // If no other resources are assigned to replication policy
+            // Remove the replication topology from the policy
+            FileOrchestrationUtils.removeTopologyInfo(filePolicy, s_dbClient);
 
-        Exception ex) {
             s_logger.error(String.format("Assigning file policy : %s to project(s) failed", filePolicy.getId()), ex);
             ServiceError serviceError = DeviceControllerException.errors
                     .assignFilePolicyFailed(filePolicyToAssign.toString(), filePolicy.getApplyAt(), ex);

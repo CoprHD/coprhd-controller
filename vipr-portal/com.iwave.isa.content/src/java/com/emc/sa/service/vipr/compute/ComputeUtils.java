@@ -285,17 +285,26 @@ public class ComputeUtils {
         }
 
         // monitor tasks
+       List<URI> bootVolsToRemove = new ArrayList<URI>();
         while (!tasks.isEmpty()) {
             tasks = waitAndRefresh(tasks);
             for (Task<VolumeRestRep> successfulTask : getSuccessfulTasks(tasks)) {
                 URI volumeId = successfulTask.getResourceId();
-                String taskResourceName = successfulTask.getResource().getName();
-                hostToBootVolumeIdMap.put(volumeNameToHostMap.get(taskResourceName), volumeId);
-                volumeNameToHostMap.get(taskResourceName).setBootVolumeId(volumeId);
+                String volumeName = successfulTask.getResource().getName();
+                Host tempHost = volumeNameToHostMap.get(volumeName);
+                tempHost.setBootVolumeId(volumeId);
                 addAffectedResource(volumeId);
                 tasks.remove(successfulTask);
-                addBootVolumeTag(volumeId, volumeNameToHostMap.get(taskResourceName).getId());
-            }
+                addBootVolumeTag(volumeId, tempHost.getId());
+                BlockObjectRestRep volume = BlockStorageUtils.getBlockResource(volumeId);
+                if (BlockStorageUtils.isVolumeBootVolume(volume)) {
+                    hostToBootVolumeIdMap.put(tempHost, volumeId);
+                } else {
+                    bootVolsToRemove.add(volumeId);
+                    tempHost.setBootVolumeId(NullColumnValueGetter.getNullURI());
+                    hostToBootVolumeIdMap.put(tempHost, null);
+                }
+            } 
             for (Task<VolumeRestRep> failedTask : getFailedTasks(tasks)) {
                 String volumeName = failedTask.getResource().getName();
                 hostToBootVolumeIdMap.put(volumeNameToHostMap.get(volumeName), null);
@@ -305,6 +314,15 @@ public class ComputeUtils {
                 tasks.remove(failedTask);
             }
         }
+        if (!bootVolsToRemove.isEmpty()){
+             try {
+                 BlockStorageUtils.deactivateVolumes(bootVolsToRemove, VolumeDeleteTypeEnum.FULL);
+             }catch (Exception e) {
+                 ExecutionUtils.currentContext().logError("computeutils.bootvolume.deactivate.failure",
+                     e.getMessage());
+             }
+         }
+
 
         return hostToBootVolumeIdMap;
     }
@@ -460,13 +478,13 @@ public class ComputeUtils {
             try {
                 List<Host> hostsRemoved = deactivateHosts(hostsToRemove);
                 for (Host hostCreated : hostToVolumeIdMap.keySet()) {
-                    boolean found = false;
+                    boolean isRemovedHost = false;
                     for (Host hostRemoved : hostsRemoved) {
                         if(hostCreated.getId().equals(hostRemoved.getId())) {
-                            found = true;
+                            isRemovedHost = true;
                         }
                     }
-                    if (!found) {
+                    if (isRemovedHost) {
                         hostsToVolumeIdNotRemovedMap.remove(hostCreated);
                     }
                 }

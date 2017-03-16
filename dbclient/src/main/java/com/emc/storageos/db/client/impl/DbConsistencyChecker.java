@@ -257,7 +257,7 @@ public class DbConsistencyChecker {
     }
 
     private void cancel(DbConsistencyStatus status) {
-        helper.logMessage("db consistency check is canceled", true, false);
+        helper.logMessage("db consistency check is canceled", false, false);
         throw new CancellationException("db consistency has been cancelled");
     }
 

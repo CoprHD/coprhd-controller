@@ -17,6 +17,7 @@ import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.upgrade.BaseCustomMigrationCallback;
+import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.svcs.errorhandling.resources.MigrationCallbackException;
 
 /**
@@ -44,15 +45,17 @@ public class VplexVolumeAllocatedCapacityMigration extends BaseCustomMigrationCa
                 Volume volume = volumes.next();
 
                 URI storageURI = volume.getStorageController();
-                StorageSystem storage = dbClient.queryObject(StorageSystem.class, storageURI);
-                if (DiscoveredDataObject.Type.vplex.name().equals(storage.getSystemType())) {
-                    Long allocatedCapacity = volume.getAllocatedCapacity();
-                    // For Vplex virtual volumes set allocated capacity to 0 (cop-18608)
-                    if (allocatedCapacity != null && allocatedCapacity != 0) {
-                        log.info("migrating allocated capacity from {} to 0 on VPLEX volume {}",
-                                allocatedCapacity, volume.getLabel());
-                        volume.setAllocatedCapacity(0L);
-                        dbClient.persistObject(volume);
+                if (!NullColumnValueGetter.isNullURI(storageURI)) {
+                    StorageSystem storage = dbClient.queryObject(StorageSystem.class, storageURI);
+                    if (DiscoveredDataObject.Type.vplex.name().equals(storage.getSystemType())) {
+                        Long allocatedCapacity = volume.getAllocatedCapacity();
+                        // For Vplex virtual volumes set allocated capacity to 0 (cop-18608)
+                        if (allocatedCapacity != null && allocatedCapacity != 0) {
+                            log.info("migrating allocated capacity from {} to 0 on VPLEX volume {}",
+                                    allocatedCapacity, volume.getLabel());
+                            volume.setAllocatedCapacity(0L);
+                            dbClient.persistObject(volume);
+                        }
                     }
                 }
             }

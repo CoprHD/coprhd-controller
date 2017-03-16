@@ -44,6 +44,7 @@ public class MountBlockVolumeService extends LinuxService {
         if (BlockStorageUtils.isVolumeVMFSDatastore(volume)) {
             ExecutionUtils.fail("failTask.verifyVMFSDatastore", volume.getName(), volume.getName());
         }
+        checkForBootVolume(volumeId);
         acquireHostsLock();
         mountBlockVolumeHelper.verifyMountConfiguration(volume);
         mountBlockVolumeHelper.precheck();

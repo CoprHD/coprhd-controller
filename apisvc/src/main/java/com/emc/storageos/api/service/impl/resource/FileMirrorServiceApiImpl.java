@@ -21,6 +21,7 @@ import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.ContainmentPrefixConstraint;
 import com.emc.storageos.db.client.constraint.PrefixConstraint;
 import com.emc.storageos.db.client.model.DataObject;
+import com.emc.storageos.db.client.model.FilePolicy;
 import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.model.FileShare.FileAccessState;
 import com.emc.storageos.db.client.model.NamedURI;
@@ -441,7 +442,7 @@ public class FileMirrorServiceApiImpl extends AbstractFileServiceApiImpl<FileMir
         FileShare fs = new FileShare();
         fs.setId(URIUtil.createId(FileShare.class));
 
-        validateFileShareLabel(newFileLabel, project);
+        newFileLabel = validateAndGetFileShareLabel(newFileLabel, project);
 
         fs.setLabel(newFileLabel);
 
@@ -573,16 +574,70 @@ public class FileMirrorServiceApiImpl extends AbstractFileServiceApiImpl<FileMir
     }
 
     /**
-     * Validate the given fileshare label is not a duplicate within given project. If so, throw exception
+     * Validate and generate label for target fil system
      * 
      * @param label - label to validate
      * @param project - project where label is being validate.
+     * @return
      */
-    protected void validateFileShareLabel(String label, Project project) {
+    protected String validateAndGetFileShareLabel(String label, Project project) {
         List<FileShare> fileShareList = CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient, FileShare.class,
                 ContainmentPrefixConstraint.Factory.getFullMatchConstraint(FileShare.class, "project", project.getId(), label));
+        String fsName = label;
         if (!fileShareList.isEmpty()) {
-            throw APIException.badRequests.duplicateLabel(label);
+            StringSet existingFsNames = new StringSet();
+            for (FileShare fs : fileShareList) {
+                existingFsNames.add(fs.getLabel());
+            }
+            // cancatenate the number!!!
+            int numFs = fileShareList.size();
+            do {
+                String fsLabelWithNumberSuffix = label + numFs;
+                if (!existingFsNames.contains(fsLabelWithNumberSuffix)) {
+                    fsName = fsLabelWithNumberSuffix;
+                    break;
+                }
+                numFs++;
+            } while (true);
+        }
+        return fsName;
+    }
+
+    @Override
+    public void assignFilePolicyToFileSystem(FileShare fs, FilePolicy filePolicy, Project project, VirtualPool vpool,
+            VirtualArray varray, TaskList taskList, String task, List<Recommendation> recommendations,
+            VirtualPoolCapabilityValuesWrapper vpoolCapabilities) throws InternalException {
+        List<FileShare> fileList = null;
+        List<FileShare> fileShares = new ArrayList<>();
+
+        FileSystemParam fsParams = new FileSystemParam();
+        fsParams.setFsId(fs.getId().toString());
+        fsParams.setLabel(fs.getLabel());
+        fsParams.setVarray(fs.getVirtualArray());
+        fsParams.setVpool(fs.getVirtualPool());
+
+        TenantOrg tenant = _dbClient.queryObject(TenantOrg.class, project.getTenantOrg().getURI());
+
+        // Prepare the FileShares
+        fileList = prepareFileSystems(fsParams, task, taskList, project, tenant, null,
+                varray, vpool, recommendations, vpoolCapabilities, false);
+        fileShares.addAll(fileList);
+
+        // prepare the file descriptors
+        final List<FileDescriptor> fileDescriptors = prepareFileDescriptors(fileShares, vpoolCapabilities, null);
+        final FileOrchestrationController controller = getController(FileOrchestrationController.class,
+                FileOrchestrationController.FILE_ORCHESTRATION_DEVICE);
+        try {
+            // Execute the create mirror copies of file share!!!
+            controller.assignFilePolicyToFileSystem(filePolicy, fileDescriptors, task);
+        } catch (InternalException e) {
+            _log.error("Controller error when creating mirror filesystems", e);
+            failFileShareCreateRequest(task, taskList, fileShares, e.getMessage());
+            throw e;
+        } catch (Exception e) {
+            _log.error("Controller error when creating mirror filesystems", e);
+            failFileShareCreateRequest(task, taskList, fileShares, e.getMessage());
+            throw e;
         }
     }
 

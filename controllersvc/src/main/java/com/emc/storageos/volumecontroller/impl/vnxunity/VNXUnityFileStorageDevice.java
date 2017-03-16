@@ -52,6 +52,7 @@ import com.emc.storageos.volumecontroller.FileDeviceInputOutput;
 import com.emc.storageos.volumecontroller.FileSMBShare;
 import com.emc.storageos.volumecontroller.FileShareExport;
 import com.emc.storageos.volumecontroller.FileStorageDevice;
+import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.BiosCommandResult;
 import com.emc.storageos.volumecontroller.impl.ControllerServiceImpl;
 import com.emc.storageos.volumecontroller.impl.job.QueueJob;
@@ -74,7 +75,7 @@ import com.emc.storageos.volumecontroller.impl.vnxunity.job.VNXUnityUpdateFileSy
 import com.google.common.collect.Sets;
 
 public class VNXUnityFileStorageDevice extends VNXUnityOperations
-        implements FileStorageDevice {
+implements FileStorageDevice {
 
     private static final Logger _logger = LoggerFactory.getLogger(VNXUnityFileStorageDevice.class);
 
@@ -1730,6 +1731,12 @@ public class VNXUnityFileStorageDevice extends VNXUnityOperations
     }
 
     @Override
+    public BiosCommandResult updateStorageSystemFileProtectionPolicy(StorageSystem storageObj, FileDeviceInputOutput args) {
+        return BiosCommandResult.createErrorResult(
+                DeviceControllerErrors.vnxe.operationNotSupported("Update storage system protection policy", "Unity"));
+    }
+
+    @Override
     public BiosCommandResult updateNfsACLs(StorageSystem storage, FileDeviceInputOutput args) {
         return BiosCommandResult.createErrorResult(
                 DeviceControllerErrors.vnxe.operationNotSupported(" Add or Update NFS Share ACLs", "Unity"));
@@ -1750,14 +1757,61 @@ public class VNXUnityFileStorageDevice extends VNXUnityOperations
     @Override
     public BiosCommandResult doUnassignFilePolicy(StorageSystem storage, FileDeviceInputOutput fd) throws ControllerException {
         return BiosCommandResult.createErrorResult(
-                DeviceControllerErrors.vnxe.operationNotSupported("Unassign File Policy", "VNXUnity"));
+                DeviceControllerErrors.vnxe.operationNotSupported("Unassign File Policy", "Unity"));
     }
 
     @Override
-    public BiosCommandResult
-            checkFilePolicyExistsOrCreate(StorageSystem storageObj, FileDeviceInputOutput args) {
+    public BiosCommandResult checkFilePolicyExistsOrCreate(StorageSystem storageObj, FileDeviceInputOutput args) {
         return BiosCommandResult.createErrorResult(
-                DeviceControllerErrors.vnxe.operationNotSupported("Assign File Policy", "VNXUnity"));
+                DeviceControllerErrors.vnxe.operationNotSupported("Assign File Policy", "Unity"));
     }
 
+    @Override
+    public BiosCommandResult checkFileReplicationPolicyExistsOrCreate(StorageSystem sourceStorageObj, StorageSystem targetStorageObj,
+            FileDeviceInputOutput sourceSytemArgs, FileDeviceInputOutput targetSytemArgs) {
+        return BiosCommandResult.createErrorResult(
+                DeviceControllerErrors.vnxe.operationNotSupported("Assign File Policy", "Unity"));
+    }
+
+    @Override
+    public BiosCommandResult doStartMirrorLink(StorageSystem system, FileShare source, TaskCompleter completer) {
+        return BiosCommandResult.createErrorResult(
+                DeviceControllerErrors.vnxe.operationNotSupported("start the mirror link", "Unity"));
+    }
+
+    @Override
+    public BiosCommandResult doRefreshMirrorLink(StorageSystem system, FileShare source) {
+        return BiosCommandResult.createErrorResult(
+                DeviceControllerErrors.vnxe.operationNotSupported("refresh the mirror link", "Unity"));
+    }
+
+    @Override
+    public BiosCommandResult doPauseLink(StorageSystem system, FileShare source) {
+        return BiosCommandResult.createErrorResult(
+                DeviceControllerErrors.vnxe.operationNotSupported("pause the mirror link", "Unity"));
+    }
+
+    @Override
+    public BiosCommandResult doResumeLink(StorageSystem system, FileShare target, TaskCompleter completer) {
+        return BiosCommandResult.createErrorResult(
+                DeviceControllerErrors.vnxe.operationNotSupported("resume the mirror link", "Unity"));
+    }
+
+    @Override
+    public BiosCommandResult doFailoverLink(StorageSystem system, FileShare target, TaskCompleter completer) {
+        return BiosCommandResult.createErrorResult(
+                DeviceControllerErrors.vnxe.operationNotSupported("failover the mirror link", "Unity"));
+    }
+
+    @Override
+    public BiosCommandResult checkFilePolicyPathHasResourceLabel(StorageSystem system, FileDeviceInputOutput args) {
+        return BiosCommandResult.createErrorResult(
+                DeviceControllerErrors.vnxe.operationNotSupported("check file policy path", "Unity"));
+    }
+
+    @Override
+    public BiosCommandResult doResyncLink(StorageSystem system, FileShare source, TaskCompleter completer) {
+        return BiosCommandResult.createErrorResult(
+                DeviceControllerErrors.vnxe.operationNotSupported("resync the mirror link", "Unity"));
+    }
 }

@@ -8,6 +8,7 @@ import static com.emc.sa.service.ServiceParams.CLUSTER;
 
 import java.net.URI;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.commons.collections.CollectionUtils;
 
@@ -19,6 +20,7 @@ import com.emc.sa.service.vipr.block.BlockStorageUtils;
 import com.emc.sa.service.vipr.compute.tasks.DeactivateCluster;
 import com.emc.storageos.db.client.model.Cluster;
 import com.emc.storageos.model.block.BlockObjectRestRep;
+import com.emc.storageos.model.host.HostRestRep;
 import com.google.common.collect.Lists;
 
 @Service("RemoveComputeCluster")
@@ -30,6 +32,7 @@ public class RemoveComputeClusterService extends ViPRService {
     private Cluster cluster;
 
     private List<URI> vblockHostURIs = null;
+    private Map<URI, String> vblockHostMap = null;
     private List<URI> hostURIs = null;
     @Override
     public void precheck() throws Exception {
@@ -39,14 +42,28 @@ public class RemoveComputeClusterService extends ViPRService {
             preCheckErrors.append("Cluster doesn't exist for ID " + clusterId);
         }
         hostURIs = ComputeUtils.getHostURIsByCluster(getClient(), clusterId);
-        vblockHostURIs = ComputeUtils.getVblockHostURIsByCluster(clusterId);
-
-        if (!CollectionUtils.isEmpty(hostURIs) && !CollectionUtils.isEmpty(vblockHostURIs)
+        vblockHostMap = ComputeUtils.getVblockHostURIsByCluster(clusterId);
+        vblockHostURIs = Lists.newArrayList(vblockHostMap.keySet());
+        //Additional check to verify if cluster is vblock cluster
+        if (!CollectionUtils.isEmpty(hostURIs) && CollectionUtils.isEmpty(vblockHostURIs)) {
+            logError("computeutils.deactivatecluster.deactivate.notpossible.nonvblockcluster", cluster.getLabel());
+            preCheckErrors.append("Cluster ").append(cluster.getLabel())
+            .append(" is a non-Vblock cluster, cannot decommission a non-Vblock cluster.");
+        } // verify if cluster is a mixed cluster, if so do not proceed further, only pure vblock clusters should be decommissioned.
+        else if (!CollectionUtils.isEmpty(hostURIs) && !CollectionUtils.isEmpty(vblockHostURIs)
                 && (hostURIs.size() > vblockHostURIs.size() || !vblockHostURIs.containsAll(hostURIs))) {
             logError("computeutils.deactivatecluster.deactivate.notpossible", cluster.getLabel());
             preCheckErrors.append("Cluster ").append(cluster.getLabel())
             .append(" is a mixed cluster, cannot decommission a mixed cluster.");
         }
+
+        // Validate all of the boot volumes are still valid.
+        if (!validateBootVolumes()) {
+            logError("computeutils.deactivatecluster.deactivate.bootvolumes", cluster.getLabel());
+            preCheckErrors.append("Cluster ").append(cluster.getLabel())
+            .append(" has different boot volumes than what controller provisioned.  Cannot delete original boot volume in case it was re-purposed.");
+        }
+
         if (preCheckErrors.length() > 0) {
             throw new IllegalStateException(preCheckErrors.toString());
         }
@@ -58,6 +75,9 @@ public class RemoveComputeClusterService extends ViPRService {
         // removing cluster checks for running VMs first for ESX hosts
         addAffectedResource(clusterId);
 
+        // VBDU [DONE] COP-28400: Looks like this will decommission an entire cluster if there are hosts in it that we are
+        // not managing.
+        // ClusterService has a precheck to verify the matching environments before deactivating
         if (vblockHostURIs.isEmpty() && hostURIs.isEmpty()) {
             execute(new DeactivateCluster(cluster));
             return;
@@ -66,6 +86,9 @@ public class RemoveComputeClusterService extends ViPRService {
         // get boot vols to be deleted (so we can check afterwards)
         List<URI> bootVolsToBeDeleted = Lists.newArrayList();
         for (URI hostURI : vblockHostURIs) {
+            // VBDU TODO: COP-28447, We're assuming the volume we're deleting is still the boot volume, but it could
+            // have been manually dd'd (migrated) to another volume and this volume could be re-purposed elsewhere.
+            // We should verify this is the boot volume on the server before attempting to delete it.
             URI bootVolURI = BlockStorageUtils.getHost(hostURI).getBootVolumeId();
             if (bootVolURI != null) {
                 BlockObjectRestRep bootVolRep = null;
@@ -81,7 +104,7 @@ public class RemoveComputeClusterService extends ViPRService {
         }
 
         // removing hosts also removes associated boot volumes and exports
-        List<URI> successfulHostIds = ComputeUtils.deactivateHostURIs(vblockHostURIs);
+        List<URI> successfulHostIds = ComputeUtils.deactivateHostURIs(vblockHostMap);
 
         // fail order if no hosts removed
         if (successfulHostIds.isEmpty()) {
@@ -96,7 +119,7 @@ public class RemoveComputeClusterService extends ViPRService {
         if (successfulHostIds.size() < vblockHostURIs.size()) {
             for (URI hostURI : vblockHostURIs) {
                 if (!successfulHostIds.contains(hostURI)) {
-                    logError("computeutils.deactivatehost.failure", hostURI, clusterId);
+                    logError("computeutils.deactivatehost.failure", vblockHostMap.get(hostURI), cluster.getLabel());
                 }
             }
             setPartialSuccess();
@@ -105,12 +128,31 @@ public class RemoveComputeClusterService extends ViPRService {
             for (URI bootVolURI : bootVolsToBeDeleted) {
                 BlockObjectRestRep bootVolRep = BlockStorageUtils.getBlockResource(bootVolURI);
                 if ((bootVolRep != null) && !bootVolRep.getInactive()) {
-                    logError("computeutils.removebootvolumes.failure", bootVolRep.getId());
+                    logError("computeutils.removebootvolumes.failure", bootVolRep.getDeviceLabel());
                     setPartialSuccess();
                 }
             }
         }
 
+    }
+
+    /**
+     * Validate that the boot volume for this host is still on the server.
+     * This prevents us from deleting a re-purposed volume that was originally
+     * a boot volume.
+     *
+     * @return false if we can reach the server and determine the boot volume is no longer there.
+     */
+    private boolean validateBootVolumes() {
+        // If the cluster isn't returned properly, not found in DB, do not delete the boot volume until
+        // the references are fixed.
+        if (cluster == null || cluster.getInactive()) {
+            logError("computeutils.removebootvolumes.failure.cluster");
+            return false;
+        }
+
+        List<HostRestRep> clusterHosts = ComputeUtils.getHostsInCluster(cluster.getId());
+        return ComputeUtils.validateBootVolumes(cluster, clusterHosts);
     }
 
     /**
@@ -139,5 +181,19 @@ public class RemoveComputeClusterService extends ViPRService {
      */
     public void setHostURIs(List<URI> hostURIs) {
         this.hostURIs = hostURIs;
+    }
+
+    /**
+     * @return the vblockHostMap
+     */
+    public Map<URI, String> getVblockHostMap() {
+        return vblockHostMap;
+    }
+
+    /**
+     * @param vblockHostMap the vblockHostMap to set
+     */
+    public void setVblockHostMap(Map<URI, String> vblockHostMap) {
+        this.vblockHostMap = vblockHostMap;
     }
 }

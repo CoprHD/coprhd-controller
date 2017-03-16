@@ -48,7 +48,7 @@ public class FilePolicyParam implements Serializable {
      * 
      * @return
      */
-    @XmlElement(required = true, name = "policy_name")
+    @XmlElement(name = "policy_name")
     public String getPolicyName() {
         return this.policyName;
     }
@@ -57,7 +57,7 @@ public class FilePolicyParam implements Serializable {
         this.policyName = policyName;
     }
 
-    @XmlElement(name = "policy_description")
+    @XmlElement(name = "policy_description", required = false)
     public String getPolicyDescription() {
         return this.policyDescription;
     }
@@ -113,7 +113,7 @@ public class FilePolicyParam implements Serializable {
      * 
      * @return
      */
-    @XmlElement(required = true, name = "apply_at")
+    @XmlElement(name = "apply_at")
     public String getApplyAt() {
         return this.applyAt;
     }

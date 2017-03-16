@@ -49,6 +49,7 @@ import com.emc.storageos.db.client.model.Migration;
 import com.emc.storageos.db.client.model.NFSShareACL;
 import com.emc.storageos.db.client.model.ObjectBucketACL;
 import com.emc.storageos.db.client.model.ObjectNamespace;
+import com.emc.storageos.db.client.model.PolicyStorageResource;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.ProtectionSet;
 import com.emc.storageos.db.client.model.ProxyToken;
@@ -64,6 +65,7 @@ import com.emc.storageos.db.client.model.StorageTier;
 import com.emc.storageos.db.client.model.Task;
 import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.Token;
+import com.emc.storageos.db.client.model.UCSServiceProfile;
 import com.emc.storageos.db.client.model.UCSServiceProfileTemplate;
 import com.emc.storageos.db.client.model.UCSVhbaTemplate;
 import com.emc.storageos.db.client.model.UCSVnicTemplate;
@@ -509,6 +511,13 @@ public interface ContainmentConstraint extends Constraint {
             ColumnField field = doType.getColumnField(COMPUTE_SYSTEM);
             return new ContainmentConstraintImpl(csId, ComputeElement.class, field);
         }
+        
+        public static ContainmentConstraint getComputeSystemServiceProfilesConstraint(URI csId) {
+            DataObjectType doType = TypeMap.getDoType(UCSServiceProfile.class);
+            ColumnField field = doType.getColumnField(COMPUTE_SYSTEM);
+            return new ContainmentConstraintImpl(csId, UCSServiceProfile.class, field);
+        }
+
 
         public static ContainmentConstraint getComputeImageJobsByComputeImageConstraint(URI ciId) {
             DataObjectType doType = TypeMap.getDoType(ComputeImageJob.class);
@@ -712,6 +721,12 @@ public interface ContainmentConstraint extends Constraint {
             DataObjectType doType = TypeMap.getDoType(FileReplicationTopology.class);
             ColumnField field = doType.getColumnField(FILE_PROTECTION_POLICY_ID);
             return new ContainmentConstraintImpl(policy, FileReplicationTopology.class, field);
+        }
+
+        public static ContainmentConstraint getFilePolicyStorageResourceConstraint(URI policy) {
+            DataObjectType doType = TypeMap.getDoType(PolicyStorageResource.class);
+            ColumnField field = doType.getColumnField("filePolicyId");
+            return new ContainmentConstraintImpl(policy, PolicyStorageResource.class, field);
         }
 
         public static ContainmentConstraint getUnManagedFileExportRulesConstraint(URI fs) {

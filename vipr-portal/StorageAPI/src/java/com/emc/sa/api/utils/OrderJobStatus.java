@@ -124,6 +124,14 @@ public class OrderJobStatus implements CoordinatorSerializable {
         return status;
     }
 
+    public long getNCompleted() {
+        return nCompleted;
+    }
+
+    public void setNCompleted(long n) {
+        nCompleted = n;
+    }
+
     @JsonIgnore
     private long getCompletedNumber() {
         long completed = 0;

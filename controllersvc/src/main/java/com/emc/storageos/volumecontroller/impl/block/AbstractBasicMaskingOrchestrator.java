@@ -22,11 +22,14 @@ import org.springframework.util.StringUtils;
 
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.BlockObject;
+import com.emc.storageos.db.client.model.DataObject.Flag;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.StorageSystem;
+import com.emc.storageos.db.client.model.StringSet;
+import com.emc.storageos.db.client.model.StringSetMap;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.util.CommonTransformerFunctions;
 import com.emc.storageos.db.client.util.StringSetUtil;
@@ -99,7 +102,8 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
      */
     public void findUpdateFreeHLUsForClusterExport(StorageSystem storage, ExportGroup exportGroup,
             List<URI> initiatorURIs, Map<URI, Integer> volumeMap) {
-        if (exportGroup.forCluster() && volumeMap.values().contains(ExportGroup.LUN_UNASSIGNED)
+        if (!exportGroup.checkInternalFlags(Flag.INTERNAL_OBJECT) && exportGroup.forCluster()
+                && volumeMap.values().contains(ExportGroup.LUN_UNASSIGNED)
                 && ExportUtils.systemSupportsConsistentHLUGeneration(storage)) {
             _log.info("Find and update free HLUs for Cluster Export START..");
             /**
@@ -157,7 +161,7 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
 
         Map<String, Integer> volumeHluPair = new HashMap<String, Integer>();
         // For 'add host to cluster' operation, validate and fail beforehand if HLU conflict is detected
-        if (exportGroup.forCluster() && exportGroup.getVolumes() != null
+        if (!exportGroup.checkInternalFlags(Flag.INTERNAL_OBJECT) && exportGroup.forCluster() && exportGroup.getVolumes() != null
                 && ExportUtils.systemSupportsConsistentHLUGeneration(storage)) {
             // get HLUs from ExportGroup as these are the volumes that will be exported to new Host.
             Collection<String> egHlus = exportGroup.getVolumes().values();
@@ -699,36 +703,48 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
                         mask = getDevice().refreshExportMask(storage, mask);
                         _log.info(String.format("mask %s has initiator %s", mask.getMaskName(),
                                 initiator.getInitiatorPort()));
-                        if (mask.getCreatedBySystem()) {
+                        
                             // We cannot remove initiator if there are existing volumes in the mask.
                             if (!mask.hasAnyExistingVolumes()) {
-                                // If there's more than one export group, that means there's my export group plus another one.
-                                // Best to just leave that initiator alone.
-                                Set<URI> exportGroupURIs = new HashSet<URI>();
-                                if (ExportUtils.isExportMaskShared(_dbClient, mask.getId(), exportGroupURIs)) {
-                                    // Need to do another check against the initiator. If the initiator is not in any of
-                                    // the other ExportGroups, then we can remove it.
-                                    exportGroupURIs.remove(exportGroupURI);
-                                    if (ExportUtils.checkIfAnyExportGroupsContainInitiator(_dbClient, exportGroupURIs, initiator)) {
-                                        _log.info(String.format(
-                                                "Initiator %s is in an ExportMask that is shared by ExportGroups %s, so we will not remove it",
-                                                initiator.getInitiatorPort(), Joiner.on(',').join(exportGroupURIs)));
+                                
+                                /**
+                                 * If user asked to remove Host from Cluster
+                                 * 1. Check if the export mask is shared across other export Groups, if not remove the host.
+                                 * 2. If shared, check whether all the initiators of host is being asked to remove
+                                 * 3. If yes, check if atleast one of the other shared export Group is EXCLUSIVE
+                                 * 4. If yes, then remove the shared volumes
+                                 * 
+                                 * In all other cases, remove the initiators.
+                                 */
+                                
+                                List<ExportGroup> otherExportGroups = ExportUtils.getOtherExportGroups(exportGroup, mask, _dbClient);
+                                if (!otherExportGroups.isEmpty() && initiatorIsPartOfFullListFlags.get(initiatorURI) &&
+                                        ExportUtils.exportMaskHasBothExclusiveAndSharedVolumes(exportGroup, otherExportGroups, mask)) {
+                                    
+                                    if (!exportGroup.forInitiator()) {
+                                        List<URI> removeVolumesList = existingMasksToRemoveVolumes.get(mask.getId());
+                                        if (removeVolumesList == null) {
+                                            removeVolumesList = new ArrayList<URI>();
+                                            existingMasksToRemoveVolumes.put(mask.getId(),
+                                                    removeVolumesList);
+                                        }
+                                        for (String volumeIdStr : exportGroup.getVolumes().keySet()) {
+                                            URI egVolumeID = URI.create(volumeIdStr);
+                                            if (mask.getUserAddedVolumes().containsValue(volumeIdStr) && 
+                                                    !removeVolumesList.contains(egVolumeID)) {
+                                                removeVolumesList.add(egVolumeID);
+                                            }
+                                        }
+                                       
                                     } else {
-                                        _log.info(String.format("Initiator %s is in an ExportMask that is shared by ExportGroups %s, " +
-                                                "but the initiator is not in any of them. Will remove it from the ExportMask.",
-                                                initiator.getInitiatorPort(), Joiner.on(',').join(exportGroupURIs)));
-                                        List<URI> initiators = existingMasksToRemoveInitiator.get(mask.getId());
-                                        if (initiators == null) {
-                                            initiators = new ArrayList<URI>();
-                                            existingMasksToRemoveInitiator.put(mask.getId(), initiators);
-                                        }
-                                        if (!initiators.contains(initiator.getId())) {
-                                            initiators.add(initiator.getId());
-                                        }
+                                        // Just a reminder to the world in the case where Initiator is used in this odd situation.
+                                        _log.info(
+                                                "Removing volumes from an Initiator type export group as part of an initiator removal is not supported.");
                                     }
                                 } else {
-                                    _log.info(String.format("We can remove initiator %s from mask %s", initiator.getInitiatorPort(),
-                                            mask.getMaskName()));
+                                    _log.info(
+                                            String.format("We can remove initiator %s from mask %s", initiator.getInitiatorPort(),
+                                                    mask.getMaskName()));
                                     List<URI> initiators = existingMasksToRemoveInitiator.get(mask.getId());
                                     if (initiators == null) {
                                         initiators = new ArrayList<URI>();
@@ -739,160 +755,12 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
                                     }
                                 }
 
-                                // Remove volumes from masks that aren't in our export group if our initiator was involved.
-                                // Also check to see if that volume is already in another export group with that initiator.
-                                List<URI> volumesToRemove = new ArrayList<URI>();
-                                for (String volumeIdStr : exportGroup.getVolumes().keySet()) {
-                                    URI egVolumeID = URI.create(volumeIdStr);
-                                    BlockObject bo = Volume.fetchExportMaskBlockObject(_dbClient, egVolumeID);
-                                    // Volumes cannot be removed if there are existing initiators in the mask.
-                                    if (bo != null && mask.getUserAddedVolumes().containsValue(bo.getId().toString())
-                                            && !mask.hasAnyExistingInitiators()) {
-                                        int exportGroupsWithVolume = ExportUtils.getNumberOfExportGroupsWithVolume(initiator, egVolumeID,
-                                                _dbClient);
-                                        if (exportGroupsWithVolume > 1) {
-                                            _log.info(String
-                                                    .format("Found that my volume %s is in another export group with this initiator %s, so we shouldn't remove it from the mask",
-                                                            volumeIdStr, initiator.getInitiatorPort()));
-                                        } else {
-                                            // If this initiator is part of the full list of initiators for
-                                            // compute resource, then it implies, that we will be removing
-                                            // it from the export. In such case, we would need to remove the
-                                            // related volumes from the export.
-                                            // If the initiator is part of partial list of initiators for
-                                            // a compute resource, then we should only bother to remove the
-                                            // initiator and not touch the volumes
-                                            if (initiatorIsPartOfFullListFlags.get(initiatorURI)) {
-                                                _log.info(String.format("We can potentially remove volume %s from mask %s", volumeIdStr,
-                                                        mask.getMaskName()));
-                                                if (!volumesToRemove.contains(egVolumeID)) {
-                                                    volumesToRemove.add(egVolumeID);
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-
-                                // Place the volumes to remove into the map corresponding to the map we're currently processing.
-                                if (!volumesToRemove.isEmpty()) {
-                                    // Only remove volumes from masks as a side-effect of initiator removal for non-initiator export group
-                                    // types.
-                                    // Otherwise this logic may remove volumes from masks that have references to other initiators to the
-                                    // same
-                                    // host.
-                                    if (!exportGroup.forInitiator()) {
-                                        List<URI> removeVolumesList = existingMasksToRemoveVolumes.get(mask.getId());
-                                        if (removeVolumesList == null) {
-                                            removeVolumesList = new ArrayList<URI>();
-                                            existingMasksToRemoveVolumes.put(mask.getId(),
-                                                    removeVolumesList);
-                                        }
-                                        removeVolumesList.addAll(volumesToRemove);
-                                    } else {
-                                        // Just a reminder to the world in the case where Initiator is used in this odd situation.
-                                        _log.info(
-                                                "Removing volumes from an Initiator type export group as part of an initiator removal is not supported.");
-                                    }
-                                }
+                                
                             } else {
                                 errorMessage.append(String.format("Mask %s has existing volumes %s", mask.forDisplay(),
                                         Joiner.on(", ").join(mask.getExistingVolumes().keySet())));
                             }
-                        } else {
-                            // Loop through all the block objects that have been
-                            // exported to the storage system and place only those that
-                            // are not already in the masks to the remove list
-                            for (BlockObject blockObject : blockObjects) {
-                                // Volumes cannot be removed if there are existing initiators in the mask
-                                if (mask.hasUserCreatedVolume(blockObject.getWWN())) {
-                                    // If any system-created initiator in the mask is not in our list to remove, then we shouldn't remove
-                                    // the block object because another initiator in a ViPR export group is depending on that object being
-                                    // there.
-                                    //
-                                    // Once all user-added initiators are slated for removal, the block volume can be removed
-                                    // as well.
-
-                                    // CTRL-8804- Volumes can be removed, if there are no user Added initiators.
-                                    boolean okToRemove = true;
-                                    if (mask.getUserAddedInitiators() != null) {
-                                        for (URI maskInitiatorId : URIUtil.toURIList(mask.getUserAddedInitiators().values())) {
-                                            if (!initiatorURIs.contains(maskInitiatorId)) {
-                                                okToRemove = false;
-                                                _log.info("Will not remove block object {} because there are initiators " +
-                                                        "remaining in the export mask that were created by the system [1]",
-                                                        String.valueOf(blockObject.getId()));
-                                                break;
-                                            }
-                                        }
-                                    }
-
-                                    // CTRL-10018 - Volumes can not be removed if any initiators in the mask that AREN'T
-                                    // being removed are in the export group (or any other export group). If so, those
-                                    // initiators are still relying on the volume to be there.
-                                    if (mask.getInitiators() != null && exportGroup.getInitiators() != null) {
-                                        for (URI maskInitiatorId : URIUtil.toURIList(mask.getInitiators())) {
-
-                                            // We are only concerned about initiators in the mask that are NOT the ones being removed.
-                                            if (!initiatorURIs.contains(maskInitiatorId)) {
-
-                                                // This block will check to see if the export group we're currently referring to
-                                                // has any initiators that are still part of the export group, even after removing
-                                                // consideration of initiators we are removing from the export group.
-                                                if (exportGroup.getInitiators().contains(maskInitiatorId.toString())) {
-                                                    okToRemove = false;
-                                                    _log.info("Will not remove block object {} because there are initiators " +
-                                                            "remaining in the export mask that were created by the system [2]",
-                                                            String.valueOf(blockObject.getId()));
-                                                    break;
-                                                }
-
-                                                // This block will make sure the volumes/initiator combination is not in any other export
-                                                // group.
-                                                // This is far less likely to be the case, but we do support overlapping export groups, so
-                                                // this
-                                                // check is necessary.
-                                                Initiator maskInitiator = _dbClient.queryObject(Initiator.class, maskInitiatorId);
-                                                Set<URI> exportGroupURIs = new HashSet<URI>();
-
-                                                // Collect all the export groups that contain this mask
-                                                ExportUtils.isExportMaskShared(_dbClient, mask.getId(), exportGroupURIs);
-
-                                                // Remove our export group from the list
-                                                exportGroupURIs.remove(exportGroup.getId());
-
-                                                // If there are any other export groups that reference this mask, do they contain the
-                                                // initiator
-                                                // and block object as well?
-                                                if (!exportGroupURIs.isEmpty()
-                                                        && ExportUtils.checkIfAnyExportGroupsContainInitiatorAndBlockObject(_dbClient,
-                                                                exportGroupURIs, maskInitiator, blockObject)) {
-                                                    _log.info(String
-                                                            .format("Volume %s and Initiator %s is in an ExportMask that is shared by ExportGroups %s, so we will not remove it",
-                                                                    blockObject.getId(), initiator.getInitiatorPort(),
-                                                                    Joiner.on(',').join(exportGroupURIs)));
-                                                    okToRemove = false;
-                                                    break;
-                                                }
-                                            }
-                                        }
-                                    }
-
-                                    if (okToRemove) {
-                                        List<URI> removeVolumesList = existingMasksToRemoveVolumes
-                                                .get(mask.getId());
-                                        if (removeVolumesList == null) {
-                                            removeVolumesList = new ArrayList<URI>();
-                                            existingMasksToRemoveVolumes.put(mask.getId(),
-                                                    removeVolumesList);
-                                        }
-
-                                        if (!removeVolumesList.contains(blockObject.getId())) {
-                                            removeVolumesList.add(blockObject.getId());
-                                        }
-                                    }
-                                }
-                            }
-                        }
+                        
                     }
                 }
                 // At this point we have a mapping of masks to objects that we want to remove
@@ -1561,4 +1429,89 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
         throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
     }
 
+    @Override
+    public void portRebalance(URI storageSystem, URI exportGroupURI, URI varray, URI exportMaskURI, 
+            Map<URI, List<URI>> adjustedPaths,
+            Map<URI, List<URI>> removedPaths, boolean isAdd, String token) throws Exception
+    {
+        String workflowKey = "exportMaskExportPathAdjustment";
+        if (_workflowService.hasWorkflowBeenCreated(token, workflowKey)) {
+            return;
+        }
+        Workflow workflow = _workflowService.getNewWorkflow(
+                MaskingWorkflowEntryPoints.getInstance(),
+                workflowKey, false, token);
+        ExportOrchestrationTask taskCompleter = new ExportOrchestrationTask(exportGroupURI, token);
+        try {
+            StorageSystem storage = _dbClient.queryObject(StorageSystem.class,
+                    storageSystem);
+
+            ExportMask exportMask = _dbClient.queryObject(ExportMask.class, exportMaskURI);
+            
+            if (isAdd) {
+                Map<URI, List<URI>> newPaths = getNewPathsForExportMask(exportMask, adjustedPaths);
+                generateExportMaskAddPathsWorkflow(workflow, storage, exportGroupURI, exportMaskURI,
+                        newPaths, null);
+            } else {
+                generateExportMaskRemovePathsWorkflow(workflow, storage, exportGroupURI, exportMaskURI, adjustedPaths, 
+                        removedPaths, null);
+            }
+            
+            if (!workflow.getAllStepStatus().isEmpty()) {
+                _log.info("The port rebalance workflow has {} steps. Starting the workflow.",
+                        workflow.getAllStepStatus().size());
+                workflow.executePlan(taskCompleter, "Update the export group on all export masks successfully.");
+                _workflowService.markWorkflowBeenCreated(token, workflowKey);
+            } else {
+                taskCompleter.ready(_dbClient);
+            }
+
+        } catch (Exception ex) {
+            _log.error("ExportGroup port rebalance failed.", ex);
+            ServiceError serviceError = DeviceControllerException.errors.jobFailedMsg(ex.getMessage(), ex);
+            taskCompleter.error(_dbClient, serviceError);
+        }       
+        
+    }
+    
+    /**
+     * Get new paths that need to be added to the export mask, by comparing the zoning map in the exportMask, 
+     * and making sure the initiators in the new path belong to the exportMask.
+     *  
+     * @param exportMask - Export mask 
+     * @param existingAndNewPaths -- Include existing and new paths for all export masks belonging to the same export group
+     * @return The new paths to be added to the export mask
+     */
+    protected Map<URI, List<URI>> getNewPathsForExportMask(ExportMask exportMask, Map<URI, List<URI>> existingAndNewPaths) {
+        Map<URI, List<URI>> result = new HashMap<URI, List<URI>>();
+        StringSetMap zoningMap = exportMask.getZoningMap();
+        StringSet maskInitiators = exportMask.getInitiators();
+        if (existingAndNewPaths == null || existingAndNewPaths.isEmpty()) {
+            return result;
+        }
+        for (Map.Entry<URI, List<URI>> entry : existingAndNewPaths.entrySet()) {
+            URI initiator = entry.getKey();
+            if (!maskInitiators.contains(initiator.toString())) {
+                _log.info(String.format("The initiator %s does not belong to the exportMask, it will be ignored", initiator.toString()));
+                continue;
+            }
+            List<URI> ports = entry.getValue();
+            List<URI> newPorts = new ArrayList<URI> ();
+            StringSet targets = zoningMap.get(initiator.toString());
+            if (targets != null && !targets.isEmpty()) {
+                for (URI port : ports) {
+                    if (!targets.contains(port.toString())) {
+                        newPorts.add(port);
+                    }
+                }
+                if (!newPorts.isEmpty()) {
+                    result.put(initiator, newPorts);
+                }
+            } else {
+                result.put(initiator, ports);
+            }
+        }
+        return result;
+    }
+    
 }

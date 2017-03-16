@@ -44,6 +44,7 @@ import com.emc.storageos.db.client.model.StringSetMap;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.util.CommonTransformerFunctions;
+import com.emc.storageos.db.client.util.StringSetUtil;
 import com.emc.storageos.db.client.util.WWNUtility;
 import com.emc.storageos.exceptions.DeviceControllerErrors;
 import com.emc.storageos.exceptions.DeviceControllerException;
@@ -1443,7 +1444,7 @@ public class HDSExportOperations implements ExportMaskOperations {
                 for (URI hostURI : hostToInitiatorMap.keySet()) {
                     Set<URI> hostInitiators = hostToInitiatorMap.get(hostURI);
                     boolean isNewExportMask = false;
-                    // Create single ExportMask for each hsd having host initiators
+                    //Create single ExportMask for each host-varray combination
                     List<ExportMask> exportMaskWithHostInitiators = fetchExportMasksFromDB(activeMasks,
                             hostInitiators, storage);
                     for (HostStorageDomain hsd : matchedHostHSDsMap.get(hostURI)) {
@@ -1456,17 +1457,50 @@ public class HDSExportOperations implements ExportMaskOperations {
                             }
                         }
                         if (null == maskForHSD) {
-                            isNewExportMask = true;
-                            maskForHSD = new ExportMask();
-                            maskForHSD.setId(URIUtil.createId(ExportMask.class));
-                            maskForHSD.setStorageDevice(storage.getId());
-                            maskForHSD.setCreatedBySystem(false);
+							//first get the varrays associated with the storage port of the HSD and then check if
+                        	//any of the export masks have storage ports, which have virtual arrays overlapping with the virtual
+                        	//arrays of the HSD storage port
+							//NOTE: If the storageport is assigned to multiple varrays, then maintaining one
+							//export mask per varray is not possible. Proper seggregation has to be done.
+                        	StringSet  varraysAssociatedWithHSDStoragePort = getTaggedVarrays(storagePortOFHDSURI);	                        	                  	
+                        	if(!varraysAssociatedWithHSDStoragePort.isEmpty()){
+                        		boolean bMaskFound = false;
+                        		for (ExportMask exportMaskhavingInitiators : exportMaskWithHostInitiators) {
+                                    for(String storagePortUriIter : exportMaskhavingInitiators.getStoragePorts()) {
+                                        //get the storage port entity
+                                    	StringSet  varraysOfStoragePort = getTaggedVarrays(storagePortUriIter);
+                                    	if (StringSetUtil.hasIntersection(varraysOfStoragePort, varraysAssociatedWithHSDStoragePort)){
+                                    		maskForHSD = exportMaskhavingInitiators;
+                                    		//Ingest the foreign HSD into a matching export mask with same host and varray combination
+                                    		bMaskFound = true;
+                                    		break;
+                                    	}
+                                    }
+                                    if(bMaskFound){
+                                    	break;
+                                    }
+                                }
+                        	}
+                        	else{
+                        		//Since this HSD port is not tagged to any varray, we will not ingest it
+                        		continue;
+                        	}
+
+                        	if(null == maskForHSD){
+                            	//No matching export mask found for the same host and varray combination. Creating a new export mask.
+                        		isNewExportMask = true;
+                                maskForHSD = new ExportMask();
+                                maskForHSD.setId(URIUtil.createId(ExportMask.class));
+                                maskForHSD.setStorageDevice(storage.getId());
+                                maskForHSD.setCreatedBySystem(false);	
+                        	}                  
                         }
                         Set<HostStorageDomain> hsdSet = new HashSet<>();
                         hsdSet.add(hsd);
                         updateHSDInfoInExportMask(maskForHSD, hostInitiators, hsdSet, storage, matchingMasks);
                         if (isNewExportMask) {
                             dbClient.createObject(maskForHSD);
+                            exportMaskWithHostInitiators.add(maskForHSD); 
                         } else {
                             ExportMaskUtils.sanitizeExportMaskContainers(dbClient, maskForHSD);
                             dbClient.updateAndReindexObject(maskForHSD);
@@ -1512,6 +1546,29 @@ public class HDSExportOperations implements ExportMaskOperations {
 
     }
 
+    
+    
+    
+    /**
+     * Returns the set of taggervirtualArray arrays for the storage port object. 
+     * 
+     * @param storagePortId
+     * @return string set of tagged virtual arrays
+     */
+    private StringSet getTaggedVarrays(String storagePortId){
+    	URI storagePortURI = URI.create(storagePortId);
+    	StoragePort objStoragePort = dbClient.queryObject(StoragePort.class, storagePortURI);
+    	    	
+    	if(objStoragePort != null){
+	    	if( (objStoragePort.getTaggedVirtualArrays() != null) && 
+	    			(!objStoragePort.getTaggedVirtualArrays().isEmpty()) ){
+	    		return objStoragePort.getTaggedVirtualArrays();
+	    	}
+    	}
+    	return new StringSet();
+    }
+    
+    
     /**
      * Updates the HSD information in the ExportMask.
      * 
@@ -1560,21 +1617,25 @@ public class HDSExportOperations implements ExportMaskOperations {
                 exportMask
                         .addToExistingInitiatorsIfAbsent(initiatorsExistsOnHSD);
 
+                String strExistingInitiators = "";
+                String strExistingVolumes = "";
+                
+                if(exportMask.getExistingInitiators() !=null ){
+                	strExistingInitiators = Joiner.on(',').join(
+                        exportMask.getExistingInitiators());
+                }
+                if(exportMask.getExistingVolumes() != null){
+                	strExistingVolumes = Joiner.on(',').join(
+                        exportMask.getExistingVolumes()
+                        .keySet());
+                }
+                
                 builder.append(String
                         .format("XM is matching. " + "EI: { %s }, EV: { %s }\n",
-                                Joiner.on(',').join(
-                                        exportMask.getExistingInitiators()),
-                                Joiner.on(',').join(
-                                        exportMask.getExistingVolumes()
-                                                .keySet())));
+                        		strExistingInitiators, strExistingVolumes));
 
             }
-            if (null == exportMask.getDeviceDataMap()
-                    || exportMask.getDeviceDataMap().isEmpty()) {
-                exportMask.addDeviceDataMap(deviceDataMapEntries);
-            } else {
-                exportMask.replaceDeviceDataMapEntries(deviceDataMapEntries);
-            }
+            exportMask.addDeviceDataMap(deviceDataMapEntries);
         }
 
         log.info(builder.toString());
@@ -1951,5 +2012,17 @@ public class HDSExportOperations implements ExportMaskOperations {
     @Override
     public Map<URI, Integer> getExportMaskHLUs(StorageSystem storage, ExportMask exportMask) {
         return Collections.emptyMap();
+    }
+    
+    @Override
+    public void addPaths(StorageSystem storage, URI exportMask, Map<URI, List<URI>> newPaths, TaskCompleter taskCompleter)
+            throws DeviceControllerException {
+        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+    }
+
+    @Override
+    public void removePaths(StorageSystem storage, URI exportMask, Map<URI, List<URI>> adjustedPaths, Map<URI, List<URI>> removePaths, TaskCompleter taskCompleter)
+            throws DeviceControllerException {
+        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
     }
 }

@@ -198,6 +198,10 @@ public class ComputeMapper {
             for (String computeimage : from.getComputeImages()) {
                 ComputeImage image = dbclient.queryObject(ComputeImage.class,
                         URIUtil.uri(computeimage));
+                if (image == null) {
+                    LOG.warn("Could not find compute image in database with id '" + computeimage + "'");
+                    continue;
+                }
                 to.getComputeImages().add(
                         DbObjectMapper.toNamedRelatedResource(
                                 ResourceTypeEnum.COMPUTE_IMAGE, image.getId(),
@@ -208,6 +212,10 @@ public class ComputeMapper {
             for (String failedImageID : from.getFailedComputeImages()) {
                 ComputeImage failedImage = dbclient.queryObject(
                         ComputeImage.class, URIUtil.uri(failedImageID));
+                if (failedImage == null) {
+                    LOG.warn("Could not find failed compute image in database with id '" + failedImageID + "'");
+                    continue;
+                }
                 to.getFailedImages().add(
                         DbObjectMapper.toNamedRelatedResource(
                                 ResourceTypeEnum.COMPUTE_IMAGE,

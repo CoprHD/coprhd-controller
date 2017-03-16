@@ -77,11 +77,12 @@ public class IsilonApi {
     private static final URI URI_REPLICATION_LICENSE_INFO = URI.create("/platform/1/sync/license");
     private static final URI URI_REPLICATION_POLICIES = URI.create("/platform/1/sync/policies/");
     private static final URI URI_REPLICATION_JOBS = URI.create("/platform/1/sync/jobs");
+    private static final URI URI_REPLICATION_JOB = URI.create("/platform/1/sync/jobs/");
     private static final URI URI_TARGET_REPLICATION_POLICIES = URI.create("platform/1/sync/target/policies/");
     private static final URI URI_REPLICATION_POLICY_REPORTS = URI.create("/platform/1/sync/reports?policy_name=");
     private static final URI URI_TARGET_REPLICATION_POLICY_REPORTS = URI.create("/platform/1/sync/target/reports?policy_name=");
     private static final URI URI_SNAPSHOTIQ_LICENSE_INFO = URI.create("/platform/1/snapshot/license");
-    private static final URI URI_SNAPSHOT_SCHEDULES = URI.create("/platform/1/snapshot/schedules");
+    private static final URI URI_SNAPSHOT_SCHEDULES = URI.create("/platform/1/snapshot/schedules/");
 
     private static Logger sLogger = LoggerFactory.getLogger(IsilonApi.class);
 
@@ -676,7 +677,7 @@ public class IsilonApi {
         try {
             id = URLEncoder.encode(id, "UTF-8");
         } catch (UnsupportedEncodingException e) {
-            e.printStackTrace();
+            sLogger.error("UnsupportedEncodingException occured", e);
         }
         modify(_baseUrl.resolve(URI_SNAPSHOT_SCHEDULES), id, "schedule", s);
     }
@@ -692,7 +693,7 @@ public class IsilonApi {
         try {
             id = URLEncoder.encode(id, "UTF-8");
         } catch (UnsupportedEncodingException e) {
-            e.printStackTrace();
+            sLogger.error("UnsupportedEncodingException occured", e);
         }
         deleteSnapshotSchedule(_baseUrl.resolve(URI_SNAPSHOT_SCHEDULES + "/" + id));
     }
@@ -1488,7 +1489,7 @@ public class IsilonApi {
             fspath = fspath.concat("?acl");// add suffix ?acl
 
         } catch (UnsupportedEncodingException e) {
-            e.printStackTrace();
+            sLogger.error("UnsupportedEncodingException occured", e);
         }
 
         put(_baseUrl.resolve(URI_IFS), fspath, "ACL", acl);
@@ -1508,7 +1509,7 @@ public class IsilonApi {
             fspath = URLEncoder.encode(fspath, "UTF-8");
             fspath = fspath.concat("?acl");// add suffix ?acl
         } catch (UnsupportedEncodingException e) {
-            e.printStackTrace();
+            sLogger.error("UnsupportedEncodingException occured", e);
         }
         return getObj(_baseUrl.resolve(URI_IFS), fspath, IsilonNFSACL.class);
     }
@@ -1767,7 +1768,7 @@ public class IsilonApi {
                             statValueCurrent.error.toString());
                 }
                 statValueCurrent.value = new Gson()
-                .fromJson(SecurityUtils.sanitizeJsonString(entryObj.getString("value")), valueType);
+                        .fromJson(SecurityUtils.sanitizeJsonString(entryObj.getString("value")), valueType);
                 retMap.put(entryKey, statValueCurrent);
             }
             return retMap;
@@ -2095,6 +2096,19 @@ public class IsilonApi {
      */
     public String modifyReplicationJob(IsilonSyncJob job) throws IsilonException {
         return create(_baseUrl.resolve(URI_REPLICATION_JOBS), "jobs", job);
+    }
+
+    /**
+     * Modify Replication Job
+     * 
+     * @param id
+     *            identifier/name of the Replication Policy to modify
+     * @param syncPolicy
+     *            IsilonSyncPolicy object with the modified properties
+     * @throws IsilonException
+     */
+    public void modifyReplicationJob(String id, IsilonSyncJob job) throws IsilonException {
+        modify(_baseUrl.resolve(URI_REPLICATION_JOB), id, "jobs", job);
     }
 
     /**

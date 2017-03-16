@@ -866,19 +866,21 @@ public class VPlexUtil {
             // This indicates which cluster this is part of.
             boolean clusterMatch = false;
             _log.info("this ExportMask contains these storage ports: " + mask.getStoragePorts());
-            for (String portUri : mask.getStoragePorts()) {
-                StoragePort port = dbClient.queryObject(StoragePort.class, URI.create(portUri));
-                if (port != null && !port.getInactive()) {
-                    if (clusterMatch == false) {
-                        // We need to match the VPLEX cluster for the exportMask
-                        // as the exportMask for the same host can be in both VPLEX clusters
-                        String vplexClusterForMask = ConnectivityUtil.getVplexClusterOfPort(port);
-                        clusterMatch = vplexClusterForMask.equals(vplexCluster);
-                        if (clusterMatch) {
-                            _log.info("a matching ExportMask " + mask.getMaskName()
-                                    + " was found on this VPLEX " + varrayURI
-                                    + " on  cluster " + vplexCluster);
-                            exportMasksForVplexCluster.add(mask);
+            if (mask.getStoragePorts() != null) {
+                for (String portUri : mask.getStoragePorts()) {
+                    StoragePort port = dbClient.queryObject(StoragePort.class, URI.create(portUri));
+                    if (port != null && !port.getInactive()) {
+                        if (clusterMatch == false) {
+                            // We need to match the VPLEX cluster for the exportMask
+                            // as the exportMask for the same host can be in both VPLEX clusters
+                            String vplexClusterForMask = ConnectivityUtil.getVplexClusterOfPort(port);
+                            clusterMatch = vplexClusterForMask.equals(vplexCluster);
+                            if (clusterMatch) {
+                                _log.info("a matching ExportMask " + mask.getMaskName()
+                                        + " was found on this VPLEX " + varrayURI
+                                        + " on  cluster " + vplexCluster);
+                                exportMasksForVplexCluster.add(mask);
+                            }
                         }
                     }
                 }
@@ -1517,7 +1519,8 @@ public class VPlexUtil {
         String vplexClusterId = ConnectivityUtil.getVplexClusterForVarray(varrayUri, vplexUri, dbClient);
         if (vplexClusterId.equals(ConnectivityUtil.CLUSTER_UNKNOWN)) {
             _log.error("Unable to find VPLEX cluster for the varray " + varrayUri);
-            throw VPlexApiException.exceptions.failedToFindCluster(vplexClusterId);
+            String details = "Does the virtual array contain VPLEX storage ports?";
+            throw VPlexApiException.exceptions.failedToFindCluster(vplexClusterId, details);
         }
 
         return client.getClusterNameForId(vplexClusterId);
@@ -1538,8 +1541,14 @@ public class VPlexUtil {
 
         String vplexClusterId = ConnectivityUtil.getVplexClusterForExportMask(exportMask, vplexUri, dbClient);
         if (vplexClusterId.equals(ConnectivityUtil.CLUSTER_UNKNOWN)) {
+            String details = "";
             _log.error("Unable to find VPLEX cluster for the ExportMask " + exportMask.getMaskName());
-            throw VPlexApiException.exceptions.failedToFindCluster(vplexClusterId);
+            if (exportMask.getStoragePorts() == null || exportMask.getStoragePorts().isEmpty()) {
+                details = "The export mask " + exportMask.forDisplay() 
+                    + " contains no storage ports, so VPLEX cluster connectivity cannot be determined.";
+                _log.error(details);
+            }
+            throw VPlexApiException.exceptions.failedToFindCluster(vplexClusterId, details);
         }
 
         return client.getClusterNameForId(vplexClusterId);

@@ -348,6 +348,13 @@ URI_NETWORK_DEREGISTER    = URI_NETWORK   + '/deregister'
 URI_SMISPROVIDERS               = URI_SERVICES_BASE   + '/vdc/smis-providers'
 URI_SMISPROVIDER                = URI_SMISPROVIDERS   + '/{0}'
 
+URI_FILE_POLICIES = '/file/file-policies'
+URI_FILE_POLICY_SHOW = URI_FILE_POLICIES + '/{0}'
+URI_FILE_POLICY_DELETE = URI_FILE_POLICIES + '/{0}'
+URI_FILE_POLICY_UPDATE = URI_FILE_POLICIES + '/{0}'
+URI_FILE_POLICY_ASSIGN = URI_FILE_POLICIES + '/{0}/assign-policy'
+URI_FILE_POLICY_UNASSIGN = URI_FILE_POLICIES + '/{0}/unassign-policy'
+
 URI_STORAGEPROVIDERS               = URI_SERVICES_BASE   + '/vdc/storage-providers'
 URI_STORAGEPROVIDER                = URI_STORAGEPROVIDERS   + '/{0}'
 
@@ -362,6 +369,8 @@ URI_EXPORTGROUP_VOLUMES_REMOVE  = URI_SERVICES_BASE   + '/block/exports/{0}/remo
 URI_EXPORTGROUP_INITS           = URI_SERVICES_BASE   + '/block/exports/{0}/initiators'
 URI_EXPORTGROUP_INIT_DELETE     = URI_SERVICES_BASE   + '/block/exports/{0}/initiators/{1},{2}'
 URI_EXPORTGROUP_INITS_REMOVE    = URI_SERVICES_BASE   + '/block/exports/{0}/remove-initiators'
+URI_EXPORTGROUP_REALLOC		= URI_SERVICES_BASE   + '/block/exports/{0}/paths-adjustment-preview' 
+URI_EXPORTGROUP_REBALANCE	= URI_SERVICES_BASE   + '/block/exports/{0}/paths-adjustment' 
 URI_EXPORTGROUP_SEARCH_PROJECT  = URI_EXPORTGROUP_LIST + '/search?project={0}'
 
 URI_HOSTS                       = URI_SERVICES_BASE   + '/compute/hosts'
@@ -1501,11 +1510,12 @@ class Bourne:
     def cos_create(self, type, name, description, useMatchedPools,
                    protocols, numpaths, minpaths, pathsperinitiator, systemtype,
                    highavailability, haNhUri, haCosUri, activeProtectionAtHASite, metropoint, file_cos, provisionType,
-                   mirrorCosUri, neighborhoods, expandable, sourceJournalSize, journalVarray, journalVpool, standbyJournalVarray, 
+                   mirrorCosUri, neighborhoods, expandable, sourceJournalSize, journalVarray, journalVpool, standbyJournalVarray,
                    standbyJournalVpool, rp_copy_mode, rp_rpo_value, rp_rpo_type, protectionCoS,
                    multiVolumeConsistency, max_snapshots, max_mirrors, thin_volume_preallocation_percentage,
-                   long_term_retention, system_type, srdf, auto_tiering_policy_name, host_io_limit_bandwidth, host_io_limit_iops,
-		   auto_cross_connect, placement_policy, compressionEnabled):
+                   long_term_retention, drive_type, system_type, srdf, auto_tiering_policy_name, host_io_limit_bandwidth, host_io_limit_iops,
+                   auto_cross_connect, placement_policy, compressionEnabled, snapshot_schedule, replication_support, 
+                   filepolicy_at_project, filepolicy_at_fs):
 
         if (type != 'block' and type != 'file' and type != "object" ):
             raise Exception('wrong type for vpool: ' + str(type))
@@ -1520,6 +1530,8 @@ class Bourne:
             parms['use_matched_pools'] = useMatchedPools
         if (protocols):
             parms['protocols'] = protocols
+        if (drive_type):
+        	parms['drive_type'] = drive_type                        
         if (system_type):
             parms['system_type'] = system_type
 
@@ -1643,6 +1655,18 @@ class Bourne:
                 cos_protection_snapshot_params = dict()
                 cos_protection_snapshot_params['max_native_snapshots'] = max_snapshots
                 cos_protection_params['snapshots'] = cos_protection_snapshot_params
+	    
+            if(snapshot_schedule is not None):
+                cos_protection_params['schedule_snapshots'] = snapshot_schedule
+
+    	    if(replication_support is not None):
+                cos_protection_params['replication_supported'] = replication_support
+    
+    	    if(filepolicy_at_project is not None):
+                cos_protection_params['allow_policy_at_project_level'] = filepolicy_at_project
+    
+    	    if(filepolicy_at_fs is not None):
+                cos_protection_params['allow_policy_at_fs_level'] = filepolicy_at_fs
 
             parms['protection'] = cos_protection_params
 
@@ -1668,7 +1692,7 @@ class Bourne:
                    protocols, numpaths, highavailability, haNhUri, haCosUri, activeProtectionAtHASite, metropoint, file_cos, provisionType,
                    mirrorCosUri, neighborhoods, expandable, sourceJournalSize, journalVarray, journalVpool, standbyJournalVarray, 
                    standbyJournalVpool, rp_copy_mode, rp_rpo_value, rp_rpo_type, protectionCoS,
-                   multiVolumeConsistency, max_snapshots, max_mirrors, thin_volume_preallocation_percentage,
+                   multiVolumeConsistency, max_snapshots, max_mirrors, thin_volume_preallocation_percentage, drive_type,
                    system_type, srdf, compressionEnabled):
 
         if (type != 'block' and type != 'file' and type != "object" ):
@@ -1680,6 +1704,8 @@ class Bourne:
             parms['use_matched_pools'] = useMatchedPools
         if (protocols):
             parms['protocols'] = protocols
+        if (drive_type):
+        	parms['drive_type'] = drive_type            
         if (system_type):
             parms['system_type'] = system_type
 
@@ -5259,6 +5285,39 @@ class Bourne:
             s = 'error'
         return (o, s)
 
+    def export_group_pathadj_preview(self, groupId, systemId, varrayId, useExisting, pathParam, hosts):
+        parms = {}
+
+	# Optionally add path parameters
+        if (pathParam['max_paths'] > 0):
+            print 'Path parameters', pathParam
+	    parms['path_parameters'] = pathParam
+        if varrayId != "":
+            parms['virtual_array'] = varrayId
+        parms['storage_system'] = systemId
+        if useExisting:
+            parms['use_existing_paths'] = 'true'
+        if hosts:
+            parms['hosts'] = hosts;
+
+        if(BOURNE_DEBUG == '1'):
+	    print str(parms)
+        o = self.api('POST', URI_EXPORTGROUP_REALLOC.format(groupId), parms)
+        return o
+
+    def export_group_pathadj(self, groupId, parms):
+        if(BOURNE_DEBUG == '1'):
+	    print str(parms)
+        o = self.api('PUT', URI_EXPORTGROUP_REBALANCE.format(groupId), parms)
+        self.assert_is_dict(o)
+        if(BOURNE_DEBUG == '1'):
+	    print 'OOO: ' + str(o) + ' :OOO'
+	try:
+            s = self.api_sync_2(o['resource']['id'], o['op_id'], self.export_show_task)
+	except:
+	    print o
+        return (o, s)
+
     #
     # block snapshot
     #
@@ -6899,7 +6958,7 @@ class Bourne:
         self._headers['date'] = date
         #_headers['x-emc-date'] = date
         self._headers['x-emc-uid'] = uid
-        self._headers['x-emc-meta'] = 'color=red,city=seattle,key=é'
+        self._headers['x-emc-meta'] = 'color=red,city=seattle,key=ï¿½'
         self._headers['x-emc-signature'] = self.atmos_hmac_base64_sig(method, content_type, uri, date, secret)
 
         response = self.coreapi(method, uri, value, None, None, content_type)
@@ -8571,9 +8630,12 @@ class Bourne:
                   'initiator_port'    : port,
                   'initiator_node'    : node,
                    }
-        o = self.api('POST', URI_HOST_INITIATORS.format(uri), parms)
-        self.assert_is_dict(o)
-        s = self.api_sync_2(o['resource']['id'], o['op_id'], self.initiator_show_task)
+        try:
+            o = self.api('POST', URI_HOST_INITIATORS.format(uri), parms)
+            self.assert_is_dict(o)
+            s = self.api_sync_2(o['resource']['id'], o['op_id'], self.initiator_show_task)
+        except:
+            print o, s
         return (o, s)
 
     def initiator_list(self, host):
@@ -9537,3 +9599,150 @@ class Bourne:
             return {};
         else:
             return o
+
+	# shows the filepolicy
+    def filepolicy_show(self, uri):
+        return self.api('GET', URI_FILE_POLICY_SHOW.format(uri))
+    
+    # lists all filepolicies
+    def filepolicy_list(self):
+        o = self.api('GET', URI_FILE_POLICIES)
+        if (not o):
+            return {};
+        returnlst = o['file_policy'];
+        if(type(returnlst) != list):
+            return [returnlst];
+        return returnlst;
+    
+    # queries filepolicy
+    def filepolicy_query(self, name):
+        if (self.__is_uri(name)):
+            return name
+        filepolicies = self.filepolicy_list()
+        for filepolicy in filepolicies:
+            try:
+                if (filepolicy['name'] == name):
+                    return filepolicy['id']
+            except KeyError:
+                print 'no name key'
+                raise Exception('bad filepolicy name: ' + name)
+    
+    # deletes the filepolicy
+    def filepolicy_delete(self, uri):
+        return self.api('DELETE', URI_FILE_POLICY_DELETE.format(uri))
+    
+    # creates the filepolicy
+    def filepolicy_create_pol(self, name, policy_type, apply_at, description, policyscheduleweek, policyschedulemonth, snapshotnamepattern, snapshotexpiretype, snapshotexpirevalue, policyschedulefrequency, policyschedulerepeat, policyscheduletime, replicationconfiguration, replicationtype, replicationcopymode, priority, num_worker_threads, is_access_to_tenants):
+	create_request = {}
+        policy_schedule = {}
+        snapshot_params = {}
+        replication_params = {}
+        snapshot_expire_params = {}
+
+        create_request['policy_type'] = policy_type
+        create_request['policy_name'] = name
+        create_request['policy_description'] = description
+        create_request['apply_at'] = apply_at
+
+        policy_schedule['schedule_frequency'] = policyschedulefrequency
+        policy_schedule['schedule_repeat'] = policyschedulerepeat
+        policy_schedule['schedule_time'] = policyscheduletime
+        policy_schedule['schedule_day_of_week'] = policyscheduleweek
+        policy_schedule['schedule_day_of_month'] = policyschedulemonth
+	if(policy_type =='file_snapshot'):
+		snapshot_expire_params['expire_type'] = snapshotexpiretype
+		snapshot_expire_params['expire_value'] = snapshotexpirevalue
+		snapshot_params['snapshot_name_pattern'] = snapshotnamepattern
+		snapshot_params['snapshot_expire_params'] = snapshot_expire_params
+		snapshot_params['policy_schedule'] = policy_schedule
+		create_request['snapshot_params'] = snapshot_params
+	elif(policy_type =='file_replication'):
+		create_request['is_access_to_tenants'] = is_access_to_tenants
+		replication_params['replication_type'] = replicationtype
+		replication_params['replication_copy_mode'] = replicationcopymode
+		replication_params['replicate_configuration'] = replicationconfiguration
+		replication_params['policy_schedule'] = policy_schedule
+		create_request['priority'] = priority
+		create_request['num_worker_threads'] = num_worker_threads
+		create_request['replication_params'] = replication_params
+        return self.api('POST', URI_FILE_POLICIES, create_request)
+    
+    
+    # assigns thefilepolicy to vPool
+    def filepolicy_vpool_assign(self, name, apply_on_target_site, assign_to_vpools, source_varray, target_varrays) :
+        assign_request = {}
+        assign_request['apply_on_target_site'] = apply_on_target_site
+        vpool_assign_param = {}
+        assign_request_vpools = []
+        if( assign_to_vpools is not None):
+            uri =  self.cos_query("file", assign_to_vpools).strip()
+            assign_request_vpools.append(uri)
+            vpool_assign_param['assign_to_vpools'] = assign_request_vpools
+            assign_request['vpool_assign_param'] = vpool_assign_param
+        
+        if (source_varray is not None and target_varrays is not None):
+            file_replication_topologies = []
+            file_replication_topology = {}
+            assign_target_varrays = []
+            src_varray_uri = self.neighborhood_query(source_varray).strip()
+            file_replication_topology['source_varray']= src_varray_uri
+            uri = self.neighborhood_query(target_varrays).strip()
+            assign_target_varrays.append(uri)
+            file_replication_topology['target_varrays']= assign_target_varrays
+            file_replication_topologies.append(file_replication_topology)
+            assign_request['file_replication_topologies']= file_replication_topologies
+        
+        filepolicy = self.filepolicy_query(name)
+        return self.api('POST', URI_FILE_POLICY_ASSIGN.format(filepolicy), assign_request)
+    
+    # assigns the filepolicy to project
+    def filepolicy_project_assign(self, name, apply_on_target_site, project_assign_vpool, assign_to_projects, source_varray, target_varrays):
+        assign_request = {}
+        assign_request['apply_on_target_site'] = apply_on_target_site
+        project_assign_param = {}
+        assign_request_projects = []
+        assign_request_project_vpools = []
+        if( project_assign_vpool is not None and assign_to_projects is not None):
+            uri =  self.project_query(assign_to_projects).strip()
+            assign_request_projects.append(uri)
+            vpooluri =  self.cos_query("file", project_assign_vpool).strip()
+            project_assign_param['vpool'] = uri
+            project_assign_param['assign_to_projects'] = assign_request_projects
+            assign_request['project_assign_param'] = project_assign_param
+        
+        if (source_varray is not None and target_varrays is not None):
+    	    file_replication_topologies = []
+            file_replication_topology = {}
+            assign_target_varrays = []
+            src_varray_uri = self.neighborhood_query(source_varray).strip()
+            file_replication_topology['source_varray']= src_varray_uri
+            uri = self.neighborhood_query(target_varrays).strip()
+            assign_target_varrays.append(uri)
+            file_replication_topology['target_varrays']= assign_target_varrays
+            file_replication_topologies.append(file_replication_topology)
+            assign_request['file_replication_topologies']= file_replication_topologies
+        
+        filepolicy = self.filepolicy_query(name)
+        return self.api('POST', URI_FILE_POLICY_ASSIGN.format(filepolicy), assign_request)
+    
+     # unassigns the filepolicy from vpool
+    def filepolicy_vpool_unassign(self, name, unassign_from_vpools):
+        parms={}
+        unassign_request_vpools = []
+        if( unassign_from_vpools is not None):
+            uri =  self.cos_query("file", unassign_from_vpools).strip()
+            unassign_request_vpools.append(uri)
+            parms['unassign_from'] = unassign_request_vpools
+        filepolicy = self.filepolicy_query(name)
+        return self.api('POST', URI_FILE_POLICY_UNASSIGN.format(filepolicy), parms)
+    
+    # unassigns the filepolicy from project
+    def filepolicy_project_unassign(self, name, unassign_from_projects):
+        parms={}
+        unassign_request_projects = []
+        if( unassign_from_projects is not None):
+            uri =  self.project_query(unassign_from_projects).strip()        
+            unassign_request_projects.append(uri)
+            parms['unassign_from'] = unassign_request_projects
+        filepolicy = self.filepolicy_query(name)
+        return self.api('POST', URI_FILE_POLICY_UNASSIGN.format(filepolicy), parms)

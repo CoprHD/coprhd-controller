@@ -205,6 +205,8 @@
         <property name="dbClient" ref="dbclient"/>
         <property name="workflowService" ref="workflowService"/>
         <property name="exportWorkflowEntryPoints" ref="exportWorkflowEntryPoints"/>
+        <property name="networkDeviceController" ref="networkDeviceController" />
+        <property name="hostRescanDeviceController" ref="hostRescanDeviceController"/>
     </bean>
 
     <bean id="locker" class="com.emc.storageos.volumecontroller.impl.ControllerLockingServiceImpl">
@@ -756,10 +758,6 @@
         <property name="dbClient" ref="dbclient"/>
     </bean>
 
-    <bean id="rphelper" class="com.emc.storageos.protectioncontroller.impl.recoverpoint.RPHelper">
-      	<property name="dbClient" ref="dbclient"/>
-    </bean>
-
 	<bean id="rpStatsHelper"
 		class="com.emc.storageos.volumecontroller.impl.plugins.RPStatisticsHelper">
 	</bean>
@@ -774,7 +772,6 @@
         <property name="locker" ref="locker"/>
         <property name="dbClient" ref="dbclient"/>
         <property name="eventManager" ref="recordableEventMgr"/>
-        <property name="rpHelper" ref="rphelper"/>
         <property name="nameGenerator" ref="defaultNameGenerator"/>
 		<property name="coordinator" ref="coordinator"/>
       	<property name="workflowService" ref="workflowService" />
@@ -800,9 +797,7 @@
         <property name="blockOrchestrationDeviceController" ref="blockOrchestrationDeviceController" />
         <property name="vplexApiFactory" ref="vplexapifactory" />
         <property name="networkDeviceController" ref="networkDeviceController" />
-        <property name="networkScheduler" ref="networkScheduler"/>
-        <property name="exportWorkflowUtils" ref="exportWorkflowUtils" />
-        <property name="vplexApiLockManager" ref="vplexlockmgr" />
+    	<property name="vplexApiLockManager" ref="vplexlockmgr" />
 	    <property name="blockScheduler" ref="blockscheduler"/>
 	    <property name="coordinator" ref="coordinator"/>
 	    <property name="consistencyGroupManagers">
@@ -1101,6 +1096,7 @@
                 <ref bean="objectDeviceController"/>
 		<ref bean="workflowService"/>
                 <ref bean="computeSystemOrchestrationDeviceController"/>
+                <ref bean="hostRescanDeviceController"/>
             </set>
         </property>
         <property name="deviceMaxConnectionMap">
@@ -1253,7 +1249,6 @@
     	<property name="deviceOperationPollFrequency" value="15"/>
     	<property name="workflowService" ref="workflowService"/>
     	<property name="coordinator" ref="coordinator" />
-    	<property name="blockExportController" ref="blockExportController"></property>
     </bean>
 
     <bean id="pxeIntegrationService" class="com.emc.storageos.imageservercontroller.impl.PxeIntegrationService">
@@ -1452,9 +1447,10 @@
 
   <bean id="dataCollectionJobUtil"
 	class="com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.DataCollectionJobUtil">
-	<property name="dbClient" ref="dbclient" />
-	<property name="configInfo" ref="configinfo" />
-         <property name="eventManager" ref="recordableEventMgr" />
+        <property name="dbClient" ref="dbclient" />
+        <property name="configInfo" ref="configinfo" />
+        <property name="eventManager" ref="recordableEventMgr" />
+        <property name="jobScheduler" ref="dataCollectionJobScheduler" />
     </bean>
 
     <bean id="dataCollectionJobScheduler"
@@ -1652,6 +1648,7 @@
         <property name="fileDeviceController" ref="fileDeviceController" />
         <property name="fileReplicationDeviceController" ref="fileReplicationDeviceController" />
         <property name="locker" ref="locker"/>
+        <property name="customConfigHandler" ref="customConfigHandler" />
     </bean>
 
     <bean id="fileOrchestrationController" class="com.emc.storageos.fileorchestrationcontroller.FileOrchestrationControllerImpl">
@@ -1800,6 +1797,10 @@
         <property name="serviceInterface" value="com.emc.storageos.computesystemorchestrationcontroller.ComputeSystemOrchestrationController"/>
         <property name="registryPort" value="10099"/>
         <property name="servicePort" value="40201"/>
+    </bean>
+
+    <bean id="hostRescanDeviceController" class="com.emc.storageos.computecontroller.impl.HostRescanDeviceController">
+        <property name="dbClient" ref="dbclient"/>
     </bean>
 </beans>
 

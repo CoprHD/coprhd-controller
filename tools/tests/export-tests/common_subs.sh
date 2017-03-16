@@ -123,6 +123,7 @@ verify_export() {
     shift 2
 
     masking_view_name=`get_masking_view_name ${export_name} ${host_name} false`
+    arrayhelper verify_export ${SERIAL_NUMBER} "${masking_view_name}" $*
     VERIFY_COUNT=`expr $VERIFY_COUNT + 1`
 }
 
@@ -697,7 +698,8 @@ run() {
 # A method to run a command that continues on failure.
 runcmd() {
     cmd=$*
-    echo === $cmd | tee -a ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
+    datetime=`date +"%Y-%m-%d %H:%M:%S"`
+    echo === $datetime : $cmd | tee -a ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
     rm -f ${CMD_OUTPUT}
     if [ "${HIDE_OUTPUT}" = "" -o "${HIDE_OUTPUT}" = "1" ]; then
 	"$@" &> ${CMD_OUTPUT}
@@ -762,7 +764,8 @@ fail(){
       # TODO When the cmd fails, we can check if the failure output contains this expected error message
     fi
     cmd=$*
-    echo === $cmd | tee -a ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
+    datetime=`date +"%Y-%m-%d %H:%M:%S"`
+    echo === $datetime : $cmd | tee -a ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
     if [ "${HIDE_OUTPUT}" = "" -o "${HIDE_OUTPUT}" = "1" ]; then
         $cmd &> ${CMD_OUTPUT}
     else
@@ -819,8 +822,6 @@ setup_yaml() {
     sstype=${SS:0:3}
     if [ "${SS}" = "xio" ]; then
 	sstype="xtremio"
-    elif [ "${SS}" = "unity" ]; then
-        sstype="unity"
     fi
 
     # create the yml file to be used for array tooling
@@ -837,7 +838,7 @@ setup_yaml() {
 
 setup_provider() {
     DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-    tools_file="${DIR}/preExistingConfig.properties"
+    tools_file="preExistingConfig.properties"
     if [ -f "$tools_file" ]; then
 	echo "stale $tools_file found. Deleting it."
 	rm $tools_file
@@ -913,7 +914,7 @@ getwwn() {
 }
 
 cleanup() {
-    if [ "${docleanup}" = "1" ]; then
+    if [ "${DO_CLEANUP}" = "1" ]; then
 	for id in `export_group list $PROJECT | grep YES | awk '{print $5}'`
 	do
 	  runcmd export_group delete ${id} > /dev/null

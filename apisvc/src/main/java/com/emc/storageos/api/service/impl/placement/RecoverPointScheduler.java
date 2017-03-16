@@ -84,7 +84,6 @@ public class RecoverPointScheduler implements Scheduler {
 
     DbClient dbClient;
     protected CoordinatorClient coordinator;
-    private RPHelper rpHelper;
     private StorageScheduler blockScheduler;
     private VPlexScheduler vplexScheduler;
 
@@ -111,10 +110,6 @@ public class RecoverPointScheduler implements Scheduler {
 
     public void setBlockScheduler(StorageScheduler blockScheduler) {
         this.blockScheduler = blockScheduler;
-    }
-
-    public void setRpHelper(RPHelper rpHelper) {
-        this.rpHelper = rpHelper;
     }
 
     public void setDbClient(DbClient dbClient) {
@@ -1598,7 +1593,7 @@ public class RecoverPointScheduler implements Scheduler {
         Map<VirtualArray, List<StoragePool>> tgtVarrayStoragePoolMap = new HashMap<VirtualArray, List<StoragePool>>();
 
         for (VirtualArray tgtVarray : tgtVarrays) {
-            VirtualPool tgtVpool = rpHelper.getTargetVirtualPool(tgtVarray, srcVpool);
+            VirtualPool tgtVpool = RPHelper.getTargetVirtualPool(tgtVarray, srcVpool, dbClient);
             List<StoragePool> tgtVarrayMatchingPools = new ArrayList<StoragePool>();
 
             // Check to see if this is a change vpool request for an existing RP+VPLEX/MetroPoint protected volume.
@@ -2364,7 +2359,7 @@ public class RecoverPointScheduler implements Scheduler {
             if (sourceVolume.getRpTargets() != null) {
                 for (VirtualArray protectionVarray : protectionVarrays) {
                     // Find the pools that apply to this virtual
-                    VpoolProtectionVarraySettings settings = rpHelper.getProtectionSettings(vpool, protectionVarray);
+                    VpoolProtectionVarraySettings settings = RPHelper.getProtectionSettings(vpool, protectionVarray, dbClient);
                     // If there was no vpool specified with the protection settings, use the base vpool for this varray.
                     VirtualPool protectionVpool = vpool;
                     if (settings.getVirtualPool() != null) {
@@ -3499,7 +3494,7 @@ public class RecoverPointScheduler implements Scheduler {
                 continue;
             }
 
-            if (rpHelper.isInitiatorInVarray(varray, endpoint)) {
+            if (RPHelper.isInitiatorInVarray(varray, endpoint, dbClient)) {
                 _log.info(String.format(
                         "RP Placement : Qualifying use of RP Cluster : %s because it is not excluded explicitly and there's "
                                 + "connectivity to varray : %s.", translatedInternalSiteName, varray.getLabel()));
@@ -3553,7 +3548,7 @@ public class RecoverPointScheduler implements Scheduler {
 
         // Find the correct target vpool. It is either implicitly the same as the source vpool or has been
         // explicitly set by the user.
-        VpoolProtectionVarraySettings protectionSettings = rpHelper.getProtectionSettings(vpool, targetVarray);
+        VpoolProtectionVarraySettings protectionSettings = RPHelper.getProtectionSettings(vpool, targetVarray, dbClient);
         // If there was no vpool specified with the protection settings, use the base vpool for this varray.
         VirtualPool targetVpool = vpool;
         if (protectionSettings.getVirtualPool() != null) {
@@ -4155,15 +4150,15 @@ public class RecoverPointScheduler implements Scheduler {
         for (String wwn : siteInitiators) {
             NetworkLite network = NetworkUtil.getEndpointNetworkLite(wwn, dbClient);
             // The network is connected if it is assigned or implicitly connected to the varray
-            if (rpHelper.isNetworkConnectedToVarray(network, virtualArray)) {
+            if (RPHelper.isNetworkConnectedToVarray(network, virtualArray)) {
                 connected = true;
                 break;
             }
         }
 
         // Check to make sure the RP site is connected to the varray
-        return (connected && rpHelper.rpInitiatorsInStorageConnectedNework(
-                storageSystemURI, protectionSystemURI, siteId, virtualArray.getId()));
+        return (connected && RPHelper.rpInitiatorsInStorageConnectedNework(
+                storageSystemURI, protectionSystemURI, siteId, virtualArray.getId(), dbClient));
     }
 
     /**

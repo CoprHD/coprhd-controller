@@ -136,6 +136,8 @@ public enum ResourceOperationTypeEnum {
             "assign snapshot schedule policy to a filesystem"),
     GET_FILE_SYSTEM_SNAPSHOT_BY_SCHEDULE("GET SNAPSHOT  CREATED BY SCHEDULE POLICY ",
             "get  snapshot created by schedule policy "),
+    UPDATE_FILE_POLICY_BY_POLICY_STORAGE_RESOURCE("UPDATE FILE POLICY BY POLICY STORAGE RESOURCE ",
+            "Update  file protection policy by policy storage resource "),
     UNASSIGN_FILE_SYSTEM_SNAPSHOT_SCHEDULE("UNASSIGN SNAPSHOT SCHEDULE POLICY TO A FILESYSTEM",
             "unassign snapshot schedule policy to a filesystem"),
     UNEXPORT_FILE_SYSTEM("UNEXPORT FILESYSTEM", "unexport filesystem operation"),
@@ -258,6 +260,7 @@ public enum ResourceOperationTypeEnum {
     DEACTIVATE_VOLUME_MIRROR("DEACTIVATE VOLUME MIRROR", "deactivate a volume mirror"),
     DISCOVER_HOST("DISCOVER HOST", "discover a compute host"),
     DISCOVER_HOST_ARRAY_AFFINITY("DISCOVER HOST_ARRAY_AFFINITY", "discover host array affinity"),
+    UPDATE_HOST_BOOT_VOLUME("UPDATE HOST BOOT VOLUME", "update a compute host's boot volume"),
     UPDATE_HOST("UPDATE HOST", "update a compute host"),
     CREATE_HOST("CREATE HOST", "create a compute host"),
     DELETE_CLUSTER("DELETE CLUSTER", "delete a compute cluster"),
@@ -295,6 +298,7 @@ public enum ResourceOperationTypeEnum {
     RESYNCHRONIZE_CONSISTENCY_GROUP_SNAPSHOT("RESYNCHRONIZE CONSISTENCY GROUP SNAPSHOT", "resynchronize a consistency group snapshot"),
     CREATE_STORAGE_VIEW("CREATE STORAGE VIEW", "create a storage view"),
     DELETE_STORAGE_VIEW("DELETE STORAGE VIEW", "delete a storage view"),
+    REGISTER_EXPORT_INITIATOR("REGISTER INITIATOR IN STORAGE SYSTEM", "register initiator in storage system"),
     ADD_EXPORT_INITIATOR("ADD INITIATOR TO EXPORT GROUP", "add initiator to export group"),
     DELETE_EXPORT_INITIATOR("DELETE INITIATOR FROM EXPORT GROUP", "delete initiator from export group"),
     ADD_STORAGE_VIEW_INITIATOR("ADD INITIATOR TO STORAGE VIEW", "add initiator to storage view"),
@@ -355,7 +359,10 @@ public enum ResourceOperationTypeEnum {
     MOUNT_NFS_EXPORT("MOUNT NFS EXPORT", "mount nfs export operation"),
     UNMOUNT_NFS_EXPORT("UNMOUNT NFS EXPORT", "unmount nfs export operation"),
     LIST_MOUNTED_EXPORTS("LIST MOUNTED EXPORTS", "list mounted exports operation"),
-    ASSIGN_FILE_POLICY("ASSIGN FILE POLICY", "assign file policy to resource");
+    EXPORT_PATHS_ADJUSTMENT("EXPORT PATHS ADJUSTMENT", "export paths adjustment operation"),
+    ASSIGN_FILE_POLICY("ASSIGN FILE POLICY", "assign file policy to resource"),
+    UPDATE_FILE_PROTECTION_POLICY("UPDATE FILE PROTECTION POLICY", "Update file protection policy"),
+    ASSIGN_FILE_POLICY_TO_FILE_SYSTEM("ASSIGN FILE POLICY TO FILE SYSTEM", "assign file policy to existing file system");
 
     private final String name;
     private final String description;

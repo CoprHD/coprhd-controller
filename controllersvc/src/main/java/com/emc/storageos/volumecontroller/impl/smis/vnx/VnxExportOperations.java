@@ -817,6 +817,9 @@ public class VnxExportOperations implements ExportMaskOperations {
                         SmisConstants.CP_ELEMENT_NAME);
                 // Get volumes and initiators for the masking instance
                 Map<String, Integer> discoveredVolumes = _helper.getVolumesFromLunMaskingInstance(client, instance);
+
+                // Update user added volume's HLU information in ExportMask and ExportGroup
+                ExportMaskUtils.updateHLUsInExportMask(mask, discoveredVolumes, _dbClient);
                 List<String> discoveredPorts = _helper.getInitiatorsFromLunMaskingInstance(client, instance);
 
                 Set existingInitiators = (mask.getExistingInitiators() != null) ? mask.getExistingInitiators() : Collections.emptySet();
@@ -890,9 +893,9 @@ public class VnxExportOperations implements ExportMaskOperations {
                 // NOTE/TODO: We are not modifying the storage ports upon refresh like we do for VMAX.
                 // Refer to CTRL-6982.
                 builder.append(
-                        String.format("XM refresh: %s initiators; add:{%s} remove:{%s}%n",
+                        String.format("XM refresh: %s initiators; add:{%s} initiatorIdsToAdd:{%s} remove:{%s}%n",
                                 name, Joiner.on(',').join(initiatorsToAdd),
-                                Joiner.on(',').join(initiatorsToRemove)));
+                                Joiner.on(',').join(initiatorIdsToAdd), Joiner.on(',').join(initiatorsToRemove)));
                 builder.append(
                         String.format("XM refresh: %s volumes; add:{%s} remove:{%s}%n",
                                 name, Joiner.on(',').join(volumesToAdd.keySet()),
@@ -904,20 +907,11 @@ public class VnxExportOperations implements ExportMaskOperations {
                     builder.append("XM refresh: There are changes to mask, " +
                             "updating it...\n");
                     mask.removeFromExistingInitiators(initiatorsToRemove);
+                    mask.addInitiators(initiatorIdsToAdd);
+                    mask.addToUserCreatedInitiators(initiatorIdsToAdd);
                     mask.addToExistingInitiatorsIfAbsent(initiatorsToAdd);
                     mask.removeFromExistingVolumes(volumesToRemove);
                     mask.addToExistingVolumesIfAbsent(volumesToAdd);
-
-                    // Update the initiator list to include existing initiators if we know about them.
-                    if (addInitiators) {
-                        for (String port : initiatorsToAdd) {
-                            Initiator existingInitiator = ExportUtils.getInitiator(Initiator.toPortNetworkId(port), _dbClient);
-                            // Don't add additional initiator to initiators list if it belongs to different host/cluster
-                            if (existingInitiator != null && !ExportMaskUtils.checkIfDifferentResource(mask, existingInitiator)) {
-                                mask.addInitiator(existingInitiator);
-                            }
-                        }
-                    }
 
                     // Update the volume list to include existing volumes if know about them.
                     if (addVolumes) {
@@ -1747,5 +1741,19 @@ public class VnxExportOperations implements ExportMaskOperations {
         Map<String, Set<URI>> foundMasks = findExportMasks(storage, portNames, false);
         // Return true when there was a match found (i.e., when foundMasks is not empty)
         return !foundMasks.isEmpty();
+    }
+    
+    @Override
+    public void addPaths(StorageSystem storage, URI exportMask, Map<URI, List<URI>> newPaths, TaskCompleter taskCompleter)
+            throws DeviceControllerException {
+        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+        
+    }
+
+    @Override
+    public void removePaths(StorageSystem storage, URI exportMask, Map<URI, List<URI>> adjustedPaths, Map<URI, List<URI>> removePaths, TaskCompleter taskCompleter)
+            throws DeviceControllerException {
+        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+        
     }
 }

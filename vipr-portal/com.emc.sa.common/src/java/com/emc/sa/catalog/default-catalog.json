@@ -173,6 +173,10 @@
         {
           "image": "icon_consistency_group_add_volumes.png",
           "baseService": "AddVolumesToConsistencyGroup"
+        },
+        {
+          "image": "icon_export_path_adjustment.png",
+          "baseService": "ExportPathAdjustment"
         }
       ]
     },

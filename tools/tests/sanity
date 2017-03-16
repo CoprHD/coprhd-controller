@@ -325,9 +325,11 @@ NH=nh
 NH2=nh2
 NH3=nh3
 NH4=nh4
+REMOTE_NH=remotenh
 FC_ZONE_A=fctz_a
 FC_ZONE_B=fctz_b
 IP_ZONE=iptz
+REM_IP_ZONE=remiptz
 IP_ZONE2=iptz2
 IP_ZONE3=iptz3
 
@@ -435,6 +437,7 @@ COS_VNXE=cosvnxe
 COS_UNITY=cosunity
 COS_UNITY_CIFS=cosunitycifs
 COS_ISIFILE=cosisi
+REM_COS_ISIFILE=remotecosisi
 COS_NETAPP=cosnetappf
 COS_NETAPPC=cosnetappcf
 COS_DDFILE=cosdatadomainf
@@ -475,6 +478,9 @@ HOST_ARRAYAFFINITY_URI=""
 ISI_DEV=isilon_device
 ISI_SMARTCONNECT_IP=${ISI_IP}
 ISI_NATIVEGUID=ISILON+$ISI_SN
+REM_ISI_DEV=remote_isilon_device
+REM_ISI_SMARTCONNECT_IP=${REM_ISI_IP}
+REM_ISI_NATIVEGUID=ISILON+$REM_ISI_SN
 ISI_SMBFILESHARE1=smbfileshare1$(date +%Y%m%d%H%M%S) 
 ISI_SMBFILESHARE2=smbfileshare2$(date +%Y%m%d%H%M%S)
 ISI_SMBSNAPSHARE1=smbsnapshare1$(date +%Y%m%d%H%M%S)
@@ -607,6 +613,39 @@ srdf_generate_rdfg_name() {
 SRDF_SLEEPING_SECONDS=180
 srdf_sleep() {
     ssleep ${SRDF_SLEEPING_SECONDS}
+}
+
+setup_yaml() {
+    storage_type=$1
+    tools_file="${BASEDIR}/export-tests/tools.yml"
+    if [ -f "$tools_file" ]; then
+	echo "Stale $tools_file found. Deleting it."
+	rm $tools_file
+    fi
+
+    echo "Creating ${tools_file}"
+    touch $tools_file
+
+    if [ "$storage_type" = "unity" ]; then
+        printf 'array:\n  %s:\n  - ip: %s:%s\n    username: %s\n    password: %s' "$storage_type" "$UNITY_IP" "$UNITY_PORT" "$UNITY_USER" "$UNITY_PW" >> $tools_file
+        return
+    fi
+
+    storage_sn=$2
+    storage_password=$3
+    if [ "${storage_password}" = "" ]; then
+	echo "storage_password is not set. Cannot make a valid tools.yml file without a storage_password"
+	exit;
+    fi
+
+    storage_id=`storagedevice list | grep COMPLETE | grep ${storage_sn} | awk '{print $5}'`
+    storage_version=`storagedevice show ${storage_id} | grep firmware_version | awk '{print $2}' | cut -d '"' -f2`
+    storage_ip=`storagedevice show ${storage_id} | grep smis_provider_ip | awk '{print $2}' | cut -d '"' -f2`
+    storage_port=`storagedevice show ${storage_id} | grep port_number | awk '{print $2}' | cut -d ',' -f1`
+    storage_user=`storagedevice show ${storage_id} | grep user_name | awk '{print $2}' | cut -d '"' -f2`
+
+    # create the yml file to be used for array tooling
+    printf 'array:\n  %s:\n  - ip: %s:%s\n    id: %s\n    username: %s\n    password: %s\n    version: %s' "$storage_type" "$storage_ip" "$storage_port" "$storage_sn" "$storage_user" "$storage_password" "$storage_version" >> $tools_file
 }
 
 #
@@ -877,6 +916,7 @@ zone_setup()
         run transportzone add $FCTZ_B $wwn
     done
     trap '_failure $LINENO' ERR
+	
 }
 
 brocade_setup_once() 
@@ -1030,11 +1070,11 @@ project_setup()
 isilon_cos_setup()
 {
     echo "setting up isilon COS"
-    run cos create file $COS_ISIFILE 				\
-	--description 'Virtual-Pool-for-Isilon' true 	\
-                            --protocols NFS CIFS --max_snapshots 10 \
-                            --provisionType 'Thin' \
-			    --neighborhoods $NH
+	run cos create file $COS_ISIFILE 				\
+	--description 'Virtual-Pool-Isilon' true \
+                         --protocols NFS CIFS --max_snapshots 10    \
+                         --provisionType 'Thin' \
+		         --neighborhoods $NH
     ROOT_TENANT=`tenant root|tail -1`
     run cos allow $COS_ISIFILE file $ROOT_TENANT
     if [ "$EXTRA_PARAM" = "search" ] ; then
@@ -1042,6 +1082,7 @@ isilon_cos_setup()
         cos tag "$COS_ISIFILE" "file" $TAG
         cos search $SEARCH_PREFIX --tag true --resource_type file_vpool
     fi
+	
 }
 
 ecs_cos_setup()
@@ -1239,10 +1280,10 @@ xtremio_port_setup()
 
 xtremio_storage_setup() {
     secho "Starting XtremIO 3.x storageprovider create"
-    storageprovider create xtremio3x $XTREMIO_3X_IP 443 $XTREMIO_3X_USER $XTREMIO_3X_PASSWD xtremio 
+    run storageprovider create xtremio3x $XTREMIO_3X_IP 443 $XTREMIO_3X_USER $XTREMIO_3X_PASSWD xtremio
 
     secho "Starting XtremIO 4.x storageprovider create"
-    storageprovider create xtremio4x $XTREMIO_4X_IP 443 $XTREMIO_4X_USER $XTREMIO_4X_PASSWD xtremio
+    run storageprovider create xtremio4x $XTREMIO_4X_IP 443 $XTREMIO_4X_USER $XTREMIO_4X_PASSWD xtremio
 
     secho 'XtremIO discover storage systems'
     storagedevice discover_all
@@ -1253,7 +1294,7 @@ xtremio_network_setup()
 {
     secho "XtremIO network setup"
     networksystem show $BROCADE_NETWORK &> /dev/null && return $?
-    networksystem create $BROCADE_NETWORK brocade --smisip $BROCADE_IP --smisport 5988 --smisuser $BROCADE_USER --smispw $BROCADE_PW --smisssl false
+    run networksystem create $BROCADE_NETWORK brocade --smisip $BROCADE_IP --smisport 5988 --smisuser $BROCADE_USER --smispw $BROCADE_PW --smisssl false
     run transportzone assign ${SRDF_VMAXA_VSAN} $NH
 }
 
@@ -1527,14 +1568,13 @@ xtremio_ingest_export_test()
 
     # Real removal of volume/CG
     run_noundo export_group update ${PROJECT}/${XTREMIO_INGEST_HOST} --remVols "${PROJECT}/${XIO_INGEST_VOL1}/${XIO_INGEST_SNAP1_ARRAY_LABEL},${PROJECT}/${XIO_INGEST_VOL2}/${XIO_INGEST_SNAP2_ARRAY_LABEL}"
+    # Export group will be deleted implicitly when all its volumes get removed, no further cleanup needed for the export group afterwards
     run_noundo export_group update ${PROJECT}/${XTREMIO_INGEST_HOST} --remVols "${PROJECT}/${XIO_INGEST_VOL1},${PROJECT}/${XIO_INGEST_VOL2}"
     run_noundo blocksnapshot delete ${PROJECT}/${XIO_INGEST_VOL1}/${XIO_INGEST_SNAP1_ARRAY_LABEL}
     run_noundo volume delete ${PROJECT}/"${XIO_INGEST_VOL1}" --wait
 
     run_noundo blocksnapshot delete ${PROJECT}/${XIO_INGEST_VOL2}/${XIO_INGEST_SNAP2_ARRAY_LABEL}
     run_noundo volume delete ${PROJECT}/"${XIO_INGEST_VOL2}" --wait
-    run_noundo export_group delete ${PROJECT}/${XTREMIO_INGEST_HOST}
-
 }
 
 
@@ -1544,13 +1584,13 @@ xtremio_simulator_setup()
     xtremio_varray_setup   
     
     run syssvc $CONFIG_FILE $BOURNE_IPADDR set_prop controller_discovery_refresh_interval 5
- 
-    storageprovider create xtremio3x $XIO_SIMULATOR_IP 4431 root root xtremio
-    storageprovider create xtremio4x $XIO_SIMULATOR_IP 4430 root root xtremio
+
+    run storageprovider create xtremio3x $XIO_SIMULATOR_IP $XIO_3X_SIMULATOR_PORT root root xtremio
+    run storageprovider create xtremio4x $XIO_SIMULATOR_IP $XIO_4X_SIMULATOR_PORT root root xtremio
     run networksystem create $FABRIC_SIMULATOR  mds --devip $SIMULATOR_CISCO_MDS --devport 22 --username $RP_FABRIC_SIM_USER --password $RP_FABRIC_SIM_PW
     
     storagedevice discover_all
-    storagedevice list    
+    storagedevice list
     run transportzone assign VSAN_11 ${NH}
 
     # Make sure all of the pools are updated and matched
@@ -1558,7 +1598,6 @@ xtremio_simulator_setup()
 
     run storagepool update $XIO_3X_SIM_NATIVEGUID --nhadd $NH --type block
     run storagepool update $XIO_4X_SIM_NATIVEGUID --nhadd $NH --type block
-
     
     run storageport update $XIO_3X_SIM_NATIVEGUID FC --addvarrays $NH
     run storageport update $XIO_4X_SIM_NATIVEGUID FC --addvarrays $NH
@@ -1623,7 +1662,6 @@ xtremio_setup()
         secho "XtremIO setup"
         xtremio_common_setup
     fi
-    
 }
 
 xtremio_tests()
@@ -1631,9 +1669,19 @@ xtremio_tests()
    echo 'xtremio tests invoked'
 
    # HLU specific tests
-   if [ $XIO_HLU_PARAM -eq 1 ]; then
+   if [ "$XIO_HLU_PARAM" = "1" ]; then
+       secho "Creating tools.yml"
+
+       storage_sn=$XTREMIO_4X_SN
+       storage_password=$XTREMIO_4X_PASSWD
+       if [ "$XIO_QUICK_PARAM" = "quick" ]; then
+           storage_sn=$XIO_4X_SIM_SN
+       fi
+
+       setup_yaml xtremio $storage_sn $storage_password
+
        xtremio_export_test_hlu
-	   return
+       return
    fi
 
    if [ "$XIO_BLOCK_TESTS" = "1" ]; then
@@ -1777,15 +1825,10 @@ xtremio_export_test()
     run export_group update $exp --addVolspec "$vol2" --remVols $vol1
     run export_group show $exp
     run export_group update $exp --remInits "$hostname/$pwwn1"
-    run export_group show $exp
-    run export_group update $exp --remVols $vol2,$snap1,$snap2
-    run export_group show $exp
 
     if [ "$BOURNE_SECURITY_DISABLED" != '1' ] ; then
         run bulkapi exportgroups $LOCAL_LDAP_SUPERUSER_USERNAME $LOCAL_LDAP_SUPERUSER_PASSWORD $LOCAL_LDAP_USER_PASSWORD_1
     fi
-
-    run export_group delete $exp
 }
 
 xtremio_export_test_hlu() {
@@ -2909,6 +2952,7 @@ vplex_sim_variable_setup()
 
 vplex_setup_once()
 {
+    run syssvc $CONFIG_FILE $BOURNE_IPADDR set_prop controller_vplex_director_min_port_count 1
     if [ "$AUTH" == 'ipv6' ] ; then
         echo "Setting up VPLEX environment for IPv6"
         # Discover the storage systems 
@@ -4613,6 +4657,9 @@ recoverpoint_export_bookmark_tests()
         blocksnapshot show ${PROJECT}/${volume}${volume_name_modifier}/${rpsnap}-failtest2-${rp_tgt_varrays[0]}
     
         run export_group create $PROJECT ${RP_EXPORT_GROUP} ${rp_tgt_varrays[0]} --type Host --volspec ${PROJECT}/${volume}${volume_name_modifier}/${rpsnap}-failtest1-${rp_tgt_varrays[0]} --hosts "${RP_HOSTNAME}1"
+        secho 'Verifying the access state of the target volume is set to READWRITE'
+        run volume verify ${PROJECT}/${volume}-target-${rp_tgt_varrays[0]} access_state READWRITE        
+
         export_group show ${rpexport}
         secho 'Exporting RP bookmark for the same target copy as a bookmark already exported - expected failure'
         fail export_group update ${rpexport} --addVolspec ${PROJECT}/${volume}${volume_name_modifier}/${rpsnap}-failtest2-${rp_tgt_varrays[0]}
@@ -4622,30 +4669,29 @@ recoverpoint_export_bookmark_tests()
         fail volume change_link ${PROJECT}/${volume}${volume_name_modifier} swap ${PROJECT}/${volume}-target-${rp_tgt_varrays[0]} rp 
 
         run export_group delete ${rpexport}
-    
-        secho 'Finished running export RP bookmark failure tests'
+        secho 'Verifying the access state of the target volume is set to NOT_READY'
+        run volume verify ${PROJECT}/${volume}-target-${rp_tgt_varrays[0]} access_state NOT_READY   
 
-        secho 'Running export RP bookmark tests'
-        for tgt_varray in ${rp_tgt_varrays}
-        do
-            secho 'Running RP bookmark export tests for target copy '${tgt_varray}
-            run export_group create $PROJECT ${RP_EXPORT_GROUP}-${tgt_varray} ${tgt_varray} --type Host --volspec ${PROJECT}/${volume}${volume_name_modifier}/${rpsnap}-${tgt_varray} --hosts "${RP_HOSTNAME}1"
-            export_group show ${rpexport}-${tgt_varray}
-            run export_group update ${rpexport}-${tgt_varray} --remVol ${PROJECT}/${volume}${volume_name_modifier}/${rpsnap}-${tgt_varray}
-            run export_group update ${rpexport}-${tgt_varray} --addVolspec ${PROJECT}/${volume}${volume_name_modifier}/${rpsnap}-${tgt_varray}
-            export_group show ${rpexport}-${tgt_varray}
-            run export_group delete ${rpexport}-${tgt_varray}
-        done
+        secho 'Finished running export RP bookmark failure tests'
 
         secho 'Exporting RP bookmark to 2 different hosts'
         run export_group create $PROJECT ${RP_EXPORT_GROUP} ${rp_tgt_varrays[0]} --type Host --volspec ${PROJECT}/${volume}${volume_name_modifier}/${rpsnap}-${rp_tgt_varrays[0]} --hosts "${RP_HOSTNAME}1"
         run export_group create $PROJECT ${RP_EXPORT_GROUP}2 ${rp_tgt_varrays[0]} --type Host --volspec ${PROJECT}/${volume}${volume_name_modifier}/${rpsnap}-${rp_tgt_varrays[0]} --hosts "${RP_HOSTNAME}2"        
 
+        secho 'Verifying the access state of the target volume is set to READWRITE'
+        run volume verify ${PROJECT}/${volume}-target-${rp_tgt_varrays[0]} access_state READWRITE
+
         secho 'Unexport RP bookmark from host '${RP_HOSTNAME}2
         run export_group delete ${rpexport}2
 
+        secho 'Verifying the access state of the target volume is set to READWRITE'
+        run volume verify ${PROJECT}/${volume}-target-${rp_tgt_varrays[0]} access_state READWRITE
+
         secho 'Unexport RP bookmark from host '${RP_HOSTNAME}1
         run export_group delete ${rpexport}
+
+        secho 'Verifying the access state of the target volume is set to NOT_READY'
+        run volume verify ${PROJECT}/${volume}-target-${rp_tgt_varrays[0]} access_state NOT_READY
 
         secho 'Finished with export RP bookmark tests, cleaning up'
 
@@ -4751,6 +4797,104 @@ recoverpoint_export_host_setup()
     fi
 }
 
+#
+# filepolicy tests configuration
+#
+SNAPSHOT_TYPE="file_snapshot"
+REPLICATION_TYPE="file_replication"
+APPLY_AT_VPOOL="vpool"
+APPLY_AT_PROJECT="project"
+REPLICATION_CONFIGURATION='false'
+SNAPSHOT_EXPIRE_TYPE="days"
+SNAPSHOT_EXPIRE_VALUE=3
+POLICY_SCHEDULE_FREQUENCY="days"
+POLICY_SCHEDULE_REPEAT=2
+POLICY_SCHEDULE_TIME="03:00"
+LOCAL_REPLICATION_TYPE="LOCAL"
+REMOTE_REPLICATION_TYPE="REMOTE"
+REPLICATION_COPY_MODE="ASYNC"
+APPLY_ON_TARGET_SITE="false"
+
+#
+# filepolicy tests
+#
+filepolicy_tests()
+{
+    echo "File policy tests started"
+    ISI_PROJECT=isiproject
+    run project create $ISI_PROJECT
+    cos=$1; shift
+    fpname=$SNAPSHOT_TYPE$APPLY_AT_VPOOL
+    echo $fpname
+    
+    echo "Creating snapshot file policy $fpname"
+    run filepolicy create_pol $fpname $SNAPSHOT_TYPE $APPLY_AT_VPOOL \
+                          --snapshotexpiretype $SNAPSHOT_EXPIRE_TYPE \
+                          --snapshotexpirevalue $SNAPSHOT_EXPIRE_VALUE \
+                          --policyschedulefrequency $POLICY_SCHEDULE_FREQUENCY \
+                          --policyschedulerepeat $POLICY_SCHEDULE_REPEAT \
+                          --policyscheduletime $POLICY_SCHEDULE_TIME
+	
+	run filepolicy show $fpname
+	
+	echo "Assigning filepolicy $fpname to vpool $cos"
+	run filepolicy vpool_assign $fpname --apply_on_target_site $APPLY_ON_TARGET_SITE --assign_to_vpools $cos
+	
+	echo "Unassigning filepolicy $fpname from vpool $cos"
+    run filepolicy vpool_unassign $fpname $cos
+	
+	echo "Deleting the file policy $fpname"
+	run filepolicy delete $fpname
+
+
+	fpname=$REPLICATION_TYPE$APPLY_AT_PROJECT
+    echo $fpname
+    
+    echo "Creating replication file policy $fpname"
+	
+	run filepolicy create_pol $fpname $REPLICATION_TYPE $APPLY_AT_PROJECT \
+                          --replicationtype $REMOTE_REPLICATION_TYPE \
+                          --replicationcopymode $REPLICATION_COPY_MODE \
+                          --replicationconfiguration $REPLICATION_CONFIGURATION \
+                          --policyschedulefrequency $POLICY_SCHEDULE_FREQUENCY \
+                          --policyschedulerepeat $POLICY_SCHEDULE_REPEAT \
+                          --policyscheduletime $POLICY_SCHEDULE_TIME \
+                          --is_access_to_tenants true
+	
+	sleep 15
+	run filepolicy show $fpname
+	
+	echo "Assigning filepolicy $fpname to project $ISI_PROJECT"
+	run filepolicy project_assign $fpname  \
+                         --apply_on_target_site true \
+                          --project_assign_vpool $cos \
+                          --assign_to_projects $ISI_PROJECT \
+                          --source_varray $REMOTE_NH \
+                          --target_varrays $NH	
+						  
+	datetime=`date +%m%d%y%H%M%S`
+	fsname=FilePolicyTest-$cos-$datetime
+	
+	echo "Creating filesystem $fsname"
+	run fileshare create $fsname $ISI_PROJECT $REMOTE_NH $cos $FS_SIZEMB
+	
+    sleep 15
+	echo "Displaying the filesystem created"
+	run fileshare show $ISI_PROJECT/$fsname 
+	
+	sleep 15
+	echo "Deleting the filesystem"
+	run fileshare delete $ISI_PROJECT/$fsname
+	
+    echo "Unassigning filepolicy $fpname from project $PROJECT"
+    run filepolicy project_unassign $fpname $ISI_PROJECT
+    
+    echo "Deleting the file policy $fpname"
+	run filepolicy delete $fpname
+	
+	echo "File Policy Test Completed."
+
+}
 recoverpoint_auto_snapshot_cleanup_test()
 {
     if [ "$RP_AUTO_SNAP_CLEANUP_TESTS" = "1" ]; then    
@@ -6568,13 +6712,73 @@ isilon_setup_once()
     storageport   update $ISI_NATIVEGUID IP --tzone $NH/$IP_ZONE
 
     run cos update file $COS_ISIFILE --storage $ISI_NATIVEGUID
-    #isilon_cos_setup
+	
+}
+
+isilon_replication_setup_once()
+{
+####ZoneSetup
+
+    run neighborhood create $REMOTE_NH
+    if [ "$EXTRA_PARAM" = "search" ] ; then
+        neighborhood search $(echo $REMOTE_NH | head -c 2)
+        run neighborhood tag $REMOTE_NH $TAG
+        neighborhood search $SEARCH_PREFIX --tag true
+    fi
+
+
+    run transportzone create $REM_IP_ZONE $REMOTE_NH --type IP
+    if [ "$EXTRA_PARAM" = "search" ] ; then
+        transportzone search $(echo $IP_ZONE | head -c 2)
+        run transportzone tag $REMOTE_NH/$REM_IP_ZONE $TAG
+        transportzone search $SEARCH_PREFIX --tag true
+    fi
+
+    run transportzone add $REMOTE_NH/$REM_IP_ZONE $FSEXP1
+    run transportzone add $REMOTE_NH/$REM_IP_ZONE $FSEXP2
+    run transportzone add $REMOTE_NH/$REM_IP_ZONE $FSEXP3
+    
+	run neighborhood allow $REMOTE_NH $TENANT
+	run neighborhood allow $REMOTE_NH $ROOT_TENANT
+	
+####device discovery
+
+    discoveredsystem create $REM_ISI_DEV isilon $REM_ISI_IP 8080 $REM_ISI_USER $REM_ISI_PASSWD --serialno=$REM_ISI_SN
+    
+
+    storagepool   update $REM_ISI_NATIVEGUID --type file
+    storageport   update $REM_ISI_NATIVEGUID IP --tzone $REMOTE_NH/$REM_IP_ZONE
+
+
+
+####Cos setup
+    echo "setting up remote isilon COS"
+    run cos create file $REM_COS_ISIFILE 				\
+	--description 'Virtual-Pool-for-Isilon' true 	\
+                            --protocols NFS CIFS --max_snapshots 10 \
+                            --provisionType 'Thin' \
+			    --neighborhoods $REMOTE_NH $NH --schedule_snapshot true --replication_support true --filepolicy_at_project true --filepolicy_at_fs true
+    ROOT_TENANT=`tenant root|tail -1`
+    run cos allow $REM_COS_ISIFILE file $ROOT_TENANT
+    if [ "$EXTRA_PARAM" = "search" ] ; then
+        cos search $(echo $REM_COS_ISIFILE | head -c 2) --resource_type file_vpool
+        cos tag "$REM_COS_ISIFILE" "file" $TAG
+        cos search $SEARCH_PREFIX --tag true --resource_type file_vpool
+    fi
+    
+	run cos update file $REM_COS_ISIFILE --storage $REM_ISI_NATIVEGUID
+	
+    run cos allow $REM_COS_ISIFILE file $TENANT
+	
+    trap '_failure $LINENO' ERR
+
 }
 
 isilon_setup()
 {
     isilon_setup_once
     run cos allow $COS_ISIFILE file $TENANT
+    isilon_replication_setup_once
 }
 
 sbsdk_setup()
@@ -7477,7 +7681,7 @@ common_setup()
 
         # RecoverPoint doesn't need zone setup, it uses its own zone setup
         if [ "${SS}" != "recoverpoint" -a "${SS}" != "srdf" ]; then
-          secho "Skipping zone setup"
+          secho "Run zone setup"
           zone_setup
           run transportzone add $NH/$IP_ZONE $BLK_CLIENT_iSCSI
         fi
@@ -7853,9 +8057,9 @@ file_tests()
             snap_share_args="--perm read"
             ;;
         root)
-            exp_args="$FSEXP_ROOT_EPS --perm root --rootuser root --comments TESTCOMMENTS"
+            exp_args="$FSEXP_ROOT_EPS --perm root --comments TESTCOMMENTS"
             exp_upd_args="--roothosts $FSEXP3"
-            snap_exp_args="$FSEXP_ROOT_EPS --perm ro --rootuser root"
+            snap_exp_args="$FSEXP_ROOT_EPS --perm ro"
             snap_share_args="--perm read"
             ;;
         default)
@@ -8235,7 +8439,7 @@ quick_file_tests()
             snap_share_args="--perm read"
             ;;
         root)
-            exp_args="$FSEXP_ROOT_EPS --perm root --rootuser root"
+            exp_args="$FSEXP_ROOT_EPS --perm root --rootuser nobody"
             snap_share_args="--perm read"
             ;;
         default)
@@ -8321,6 +8525,9 @@ isilon_tests()
         bulkapi filecos $LOCAL_LDAP_SUPERUSER_USERNAME $LOCAL_LDAP_SUPERUSER_PASSWORD $LOCAL_LDAP_USER_PASSWORD_1
         bulkapi fileshares $LOCAL_LDAP_SUPERUSER_USERNAME $LOCAL_LDAP_SUPERUSER_PASSWORD $LOCAL_LDAP_USER_PASSWORD_1 $NH $COS_ISIFILE $FS_SIZE
     fi
+    
+    filepolicy_tests $REM_COS_ISIFILE
+
 }
 
 ecs_tests()
@@ -12214,7 +12421,7 @@ application_createvols()
     secho cg1volid3 is ${VG_CG1VOLID3}
 
     # create volumes in cg2
-    run blockconsistencygroup create ${PROJECT} ${VG_CGNAME2}
+    run blockconsistencygroup create ${PROJECT} ${VG_CGNAME2} --noarrayconsistency
     a=`blockconsistencygroup show ${VG_CGNAME2} | grep '"id":' | grep BlockConsistencyGroup | awk '{print $2}'`
     b=${a:1}
     VG_CGID2=${b%'"'*}
@@ -12367,6 +12574,37 @@ application_multi_sub_group_copy_tests()
 }
 
 
+application_export_snapshot_tests()
+{
+    hostseed="${RANDOM}"
+    apphostname="apphost-${hostseed}"
+    appexportname="host${hostseed}.sanity.com"
+    volspec=$1
+    copysetname=$2
+
+    # get snapshot names
+    snapshotname=`blocksnapshot list ${volspec} | grep ${copysetname} | awk '{print $1}'`
+
+    snapspec=$volspec/$snapshotname
+
+    PWWN1=`pwwn 6F`;
+    NWWN1=`pwwn 7F`;
+    run hosts create ${apphostname} $TENANT Windows ${apphostname} --port 8111 --username $RP_HOST_USER --password '${RP_HOST_PW}' --osversion 1.0
+    run initiator create ${apphostname} FC $PWWN1 --node $NWWN1
+    run transportzone add ${VG_VARRAY_CG}/${SIMULATOR_VSAN_11} $PWWN1
+
+    sleep 20
+
+    run export_group create $PROJECT ${appexportname} ${VG_VARRAY_CG} --volspec ${snapspec} --inits "${apphostname}/$PWWN1"
+
+    # delete copy should fail because one of the snapshots is exported to a host
+    fail volumegroup delete-copy $copy_type $VG_COPYVG1 $VG_FCNAME
+
+    run export_group delete $PROJECT/${appexportname}
+    run hosts delete ${apphostname}
+
+}
+
 application_full_copy_tests()
 {
     secho "application_full_copy_tests()"
@@ -12418,11 +12656,14 @@ application_full_copy_tests()
         if [[ $APPLICATION_LINK_COPY_SUPPORTED -eq 1 ]]; then
             target_name="tgt-${VG_FCNAME}"
             run volumegroup link-copy $copy_type $VG_COPYVG1 $VG_FCNAME 1 $target_name nocopy
+            application_export_snapshot_tests $PROJECT/$VG_CG1VOL1 $target_name
             if [[ $APP_RESTORE_SUPPORTED -eq 1 ]]; then
                 run volumegroup restore-copy $copy_type $VG_COPYVG1 $VG_FCNAME
             fi
             run volumegroup relink-copy $copy_type $VG_COPYVG1 $VG_FCNAME ${target_name}-1
             run volumegroup unlink-copy $copy_type $VG_COPYVG1 $VG_FCNAME ${target_name}-1
+        else
+            application_export_snapshot_tests $PROJECT/$VG_CG1VOL1 $VG_FCNAME
         fi
         run volumegroup delete-copy $copy_type $VG_COPYVG1 $VG_FCNAME
         fail volumegroup verify-copy-set $copy_type $VG_COPYVG1 $VG_FCNAME
@@ -13271,14 +13512,14 @@ unityfile_cos_setup()
 unityblock_setup()
 {
     secho "Starting unity storage system create"
-    discoveredsystem create $UNITY_DEV unity $UNITY_IP $UNITY_PORT $UNITY_USER $UNITY_PW --serialno=$UNITY_SN
-    storagedevice list
+    run discoveredsystem create $UNITY_DEV unity $UNITY_IP $UNITY_PORT $UNITY_USER $UNITY_PW --serialno=$UNITY_SN
+    run storagedevice list
 
     secho "Setup ACLs on neighborhood for $TENANT"
     run neighborhood allow $NH $TENANT
-    run neighborhood allow $NH $TENANT
+
     run transportzone assign ${SRDF_VMAXA_VSAN} $NH
-    storagepool update $UNITY_NATIVEGUID --type block --volume_type THIN_AND_THICK
+    run storagepool update $UNITY_NATIVEGUID --type block --volume_type THIN_AND_THICK
     run transportzone add ${SRDF_VMAXA_VSAN} $UNITY_INIT_PWWN1
     run transportzone add ${SRDF_VMAXA_VSAN} $UNITY_INIT_PWWN2
     unityblock_cos_setup
@@ -13314,6 +13555,9 @@ unityblock_tests()
     fi
 
     if [ "${UNITY_OPTION}" = "hlu" ]; then
+        secho "Creating tools.yml"
+        setup_yaml unity
+
         unityblock_export_consistent_hlu_tests
     fi
 }

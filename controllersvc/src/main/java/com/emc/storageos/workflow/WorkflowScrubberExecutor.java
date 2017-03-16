@@ -47,10 +47,13 @@ public class WorkflowScrubberExecutor {
     }
 
     /**
-     * Scan all the workflows, delete:
-     *       workflows older than WORKFLOW_HOLDING_TIME_MSEC
-     *       workflow steps associated with any workflow deleted
-     *       orphaned workflow steps (steps without a valid workflow)
+     * Scan all the workflows, delete: 
+     *     workflows older than WORKFLOW_HOLDING_TIME_MSEC 
+     *     workflow steps associated with any workflow deleted
+     *     workflowStepData associated with any workflow deleted 
+     * Also finds and deletes: 
+     *     orphaned workflow steps (steps without a valid workflow) 
+     *     orphaned workflowStepData (without a workflow)
      */
     public void deleteOldWorkflows() {
         log.info("Scanning for old workflows to be deleted");
@@ -67,6 +70,7 @@ public class WorkflowScrubberExecutor {
                 Long age = currentTime - creationTime;
                 if (age >= WORKFLOW_HOLDING_TIME_MSEC) {
                     log.info("Processing workflow {} age (msec) {}", uri, age);
+
                     // Find all the WorkflowSteps for this Workflow, and them mark them for deletion.
                     URIQueryResultList stepURIs = new URIQueryResultList();
                     dbClient.queryByConstraint(ContainmentConstraint.Factory.getWorkflowWorkflowStepConstraint(uri), stepURIs);
@@ -78,6 +82,18 @@ public class WorkflowScrubberExecutor {
                         dbClient.removeObject(step);
                         log.info("Workflow step {} for workflow {} marked inactive", stepURI, uri);
                     }
+
+                    // Find all the WorkflowStepData for this Workflow, and them mark them for deletion.
+                    URIQueryResultList stepDataURIs = new URIQueryResultList();
+                    dbClient.queryByConstraint(ContainmentConstraint.Factory.getWorkflowStepDataConstraint(uri), stepDataURIs);
+                    Iterator<WorkflowStepData> wfStepDataItr = dbClient.queryIterativeObjects(WorkflowStepData.class, stepDataURIs);
+                    while (wfStepDataItr.hasNext()) {
+                        WorkflowStepData stepData = wfStepDataItr.next();
+                        stepDataDeletedCount++;
+                        dbClient.removeObject(stepData);
+                        log.info("Workflow step data {} for workflow {} marked inactive", stepData.getId(), uri);
+                    }
+
                     // Mark the workflow itself for deletion
                     if (!workflow.getInactive()) {
                         workflowsDeletedCount++;
@@ -110,7 +126,7 @@ public class WorkflowScrubberExecutor {
             }
         }
 
-        // now query workflow steps and clean up any orphaned steps
+        // now query workflow step data and clean up any orphaned step data
         Iterator<WorkflowStepData> workflowStepDataItr = dbClient.queryIterativeObjects(WorkflowStepData.class,
                 dbClient.queryByType(WorkflowStepData.class, true));
         while (workflowStepDataItr.hasNext()) {

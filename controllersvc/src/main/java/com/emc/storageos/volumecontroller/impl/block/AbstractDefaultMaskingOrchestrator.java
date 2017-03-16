@@ -636,6 +636,9 @@ abstract public class AbstractDefaultMaskingOrchestrator {
         Collection<URI> volumeURIs = (exportMask.getVolumes() == null) ? newVolumeURIs
                 : (Collection<URI>) (Collections2.transform(exportMask.getVolumes().keySet(),
                         CommonTransformerFunctions.FCTN_STRING_TO_URI));
+        if(null == volumeURIs) {
+            volumeURIs = new ArrayList<URI>();
+        }
         ExportPathParams pathParams = _blockScheduler.calculateExportPathParamForVolumes(
                 volumeURIs, exportGroup.getNumPaths(), storageURI, exportGroupURI);
         if (exportGroup.getType() != null) {
@@ -1945,7 +1948,10 @@ abstract public class AbstractDefaultMaskingOrchestrator {
 
                 Map<String, String> storagePortToNetworkName = new HashMap<String, String>();
                 if (mask.getCreatedBySystem()) {
-                    if (mask.getResource().equals(computeResource)) {
+                    //For DU tests to work, the code modified system created to TRUE after a volume gets added to co-existed mask.
+                    //Now even if its system created = true, the mask will not have any resource field, this null check would consider the mask too for exports rather
+                    //skipping the same .
+                    if (NullColumnValueGetter.isNullValue(mask.getResource()) || mask.getResource().equals(computeResource)) {
                         if (maskHasStoragePortsInExportVarray(exportGroup, mask, initiator, storagePortToNetworkName)) {
                             _log.info(String
                                     .format("determineInitiatorToExportMaskPlacements - ViPR-created mask %s qualifies for consideration for re-use",
@@ -1963,6 +1969,9 @@ abstract public class AbstractDefaultMaskingOrchestrator {
                                     .format("determineInitiatorToExportMaskPlacements - ViPR-created mask %s does not qualify for consideration for re-use due to storage ports mismatch with varray.",
                                             mask.getMaskName()));
                         }
+                    } else{
+                        _log.info("Skipping Mask {} from processing because resource {} is different from expected {}", new Object[] {mask.getMaskName(), computeResource,
+                                mask.getResource()});
                     }
                 } else if (maskHasInitiatorsBasedOnExportType(exportGroup, mask, initiator, portsForComputeResource) ||
                         maskHasInitiatorsBasedOnExportType(exportGroup, mask, allExportMaskURIs, portsForComputeResource, partialMasks)) {

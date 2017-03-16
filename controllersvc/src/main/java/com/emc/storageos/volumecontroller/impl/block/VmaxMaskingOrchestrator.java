@@ -348,7 +348,7 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                             } else {
                                 _log.info(String.format(
                                         "not adding initiator to %s mask %s because it doesn't belong to the same compute resource",
-                                        initiatorURI, mask.getMaskName()));
+                                        existingInitiator.getId(), mask.getMaskName()));
                             }
                         }
                     }
@@ -606,13 +606,14 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                     for (URI initiatorURI : initiatorsToRemove) {
                         Initiator initiator = _dbClient.queryObject(Initiator.class, initiatorURI);
                         //COP-28729 - We can allow remove initiator or host if the shared mask doesn't have any existing volumes.
-                        List<String> sharedMaskNames = ExportUtils.getExportMasksSharingInitiatorAndHasOnlyViPRManagedVolumes(_dbClient, initiatorURI, mask,
+                        //Shared masks will have atleast one unmanaged volume.
+                        List<String> sharedMaskNamesWithUnManagedVolumes = ExportUtils.getExportMasksSharingInitiatorAndHasUnManagedVolumes(_dbClient, initiatorURI, mask,
                                 existingMasksToRemoveInitiator.keySet());
-                        if (!CollectionUtils.isEmpty(sharedMaskNames)) {
+                        if (!CollectionUtils.isEmpty(sharedMaskNamesWithUnManagedVolumes)) {
                             String normalizedName = Initiator.normalizePort(initiator.getInitiatorPort());
                             errorMessage.append(
-                                    String.format(" Initiator %s is shared between other Export Masks  %s.",
-                                            normalizedName, Joiner.on(", ").join(sharedMaskNames)));
+                                    String.format(" Initiator %s is shared between other Export Masks  %s and has unmanaged volumes.Removing initiator will affect the other masking view",
+                                            normalizedName, Joiner.on(", ").join(sharedMaskNamesWithUnManagedVolumes)));
                         }
                         initiatorsToRemoveOnStorage.add(initiatorURI);
                     }

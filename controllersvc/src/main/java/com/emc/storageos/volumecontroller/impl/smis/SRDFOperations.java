@@ -186,7 +186,7 @@ public class SRDFOperations implements SmisConstants {
                 Collection<CIMObjectPath> elementSynchronizations = utils
                         .getSynchronizations(systemWithCg, firstSource, firstTarget);
                 inArgs = helper.getCreateGroupReplicaFromElementSynchronizationsForSRDFInputArguments(srcCGPath,
-                        tgtCGPath, elementSynchronizations);
+                        tgtCGPath, elementSynchronizations, sourceGroupName);
                 helper.invokeMethod(systemWithCg, srcRepSvcPath,
                         SmisConstants.CREATE_GROUP_REPLICA_FROM_ELEMENT_SYNCHRONIZATIONS, inArgs, outArgs);
                 // No Job returned

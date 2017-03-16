@@ -98,7 +98,7 @@ public class SecretsManager extends AbstractManager {
                 dhInitDone = genDHParam();
             }
 
-            // Step2: sleep
+            // Step3: sleep
             log.info("Step3: sleep");
             longSleep();
         }

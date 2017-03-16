@@ -398,7 +398,6 @@ public class ComputeUtils {
                     Task<ExportGroupRestRep> task = null;
                     
                     if (createExport) {
-                        // Don't determine HLUs at all, even for the boot volumes. Let the system decide them for you. Hence passing -1
                         task = BlockStorageUtils.createHostExportNoWait(exportName,
                                 project, virtualArray, Arrays.asList(volumeId), hlu, host);
                     } else {

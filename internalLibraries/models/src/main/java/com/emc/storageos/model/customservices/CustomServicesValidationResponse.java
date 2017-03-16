@@ -16,6 +16,7 @@
  */
 package com.emc.storageos.model.customservices;
 
+import java.net.URI;
 import java.util.List;
 import java.util.Map;
 
@@ -24,18 +25,15 @@ import javax.xml.bind.annotation.XmlElementWrapper;
 import javax.xml.bind.annotation.XmlRootElement;
 
 /**
- * JAXB model for Custom Services workflow Definition
+ * JAXB model for Custom Services workflow Validation Response
  */
 
-@XmlRootElement(name = "validation_response")
+@XmlRootElement(name = "custom_services_workflow_validation_response")
 public class CustomServicesValidationResponse {
 
-    private String name;
-    private String description;
+    private URI id;
     private String status;
     private Error error;
-
-
 
     @XmlElement(name = "status")
     public String getStatus() {
@@ -46,22 +44,13 @@ public class CustomServicesValidationResponse {
         this.status = status;
     }
 
-    @XmlElement(name = "name")
-    public String getName() {
-        return name;
+    @XmlElement(name = "id")
+    public URI getId() {
+        return id;
     }
 
-    public void setName(String name) {
-        this.name = name;
-    }
-
-    @XmlElement(name = "description")
-    public String getDescription() {
-        return description;
-    }
-
-    public void setDescription(String description) {
-        this.description = description;
+    public void setId(URI id) {
+        this.id = id;
     }
 
     @XmlElement(name = "error")
@@ -73,89 +62,83 @@ public class CustomServicesValidationResponse {
         this.error = error;
     }
 
-
-
     public static class Error {
         private String errorMessage;
-        private List<ErrorStep> errorSteps;
+        private Map<String, ErrorStep> errorSteps;
 
-
-
-        @XmlElement(name = "errorMessage")
+        @XmlElement(name = "error_message")
         public String getErrorMessage() {
             return errorMessage;
         }
 
-        public void setErrorDescription(String errorMessage) {
+        public void setErrorMessage(String errorMessage) {
             this.errorMessage = errorMessage;
         }
 
-        @XmlElementWrapper(name = "errorSteps")
-        @XmlElement(name = "errorStep")
-        public List<ErrorStep> getErrorSteps() {
+        @XmlElementWrapper(name = "error_steps")
+        @XmlElement(name = "error_step")
+        public Map<String, ErrorStep> getErrorSteps() {
             return errorSteps;
         }
 
-        public void setErrorSteps(List<ErrorStep> errorSteps) {
+        public void setErrorSteps(Map<String, ErrorStep> errorSteps) {
             this.errorSteps = errorSteps;
         }
-
     }
 
     public static class ErrorStep {
+        private String stepName;
+        private List<String> errorMessages;
+        private Map<String, ErrorInputGroup> errorInputGroups;
 
-        private String id;
-        private String errorDescription;
-        private Map<String, InputGroup> inputGroups;
-
-        @XmlElement(name = "id")
-        public String getId() {
-            return id;
+        @XmlElement(name = "step_name")
+        public String getStepName() {
+            return stepName;
         }
 
-        public void setId(String stepId) {
-            this.id = stepId;
+        public void setStepName(String stepName) {
+            this.stepName = stepName;
         }
 
-        @XmlElement(name = "errorDescription")
-        public String getErrorDescription() {
-            return errorDescription;
+        @XmlElementWrapper(name = "error_messages")
+        @XmlElement(name = "error_message")
+        public List<String> getErrorMessages() {
+            return errorMessages;
         }
 
-        public void setErrorDescription(String errorDescription) {
-            this.errorDescription = errorDescription;
+        public void setErrorMessages(List<String> errorMessages) {
+            this.errorMessages = errorMessages;
         }
 
-        @XmlElementWrapper(name = "inputGroups")
-        public Map<String, InputGroup> getInputGroups() {
-            return inputGroups;
+        @XmlElementWrapper(name = "error_input_groups")
+        public Map<String, ErrorInputGroup> getErrorInputGroups() {
+            return errorInputGroups;
         }
 
-        public void setInputGroups(Map<String, InputGroup> inputGroups) {
-            this.inputGroups = inputGroups;
+        public void setInputGroups(Map<String, ErrorInputGroup> errorInputGroups) {
+            this.errorInputGroups = errorInputGroups;
         }
 
     }
 
-    public static class InputGroup {
+    public static class ErrorInputGroup {
 
-        private List<Input> inputGroup;
+        private List<ErrorInput> errorInputGroup;
 
-        @XmlElement(name = "input")
-        public List<Input> getInputGroup() {
-            return inputGroup;
+        @XmlElement(name = "error_input")
+        public List<ErrorInput> getErrorInputGroup() {
+            return errorInputGroup;
         }
 
-        public void setInputGroup(List<Input> inputGroup) {
-            this.inputGroup = inputGroup;
+        public void setErrorInputGroup(List<ErrorInput> errorInputGroup) {
+            this.errorInputGroup = errorInputGroup;
         }
     }
 
-    public static class Input {
+    public static class ErrorInput {
 
         private String name;
-        private String type;
-        private String inputError;
+        private String errorMessage;
 
         @XmlElement(name = "name")
         public String getName() {
@@ -166,22 +149,13 @@ public class CustomServicesValidationResponse {
             this.name = name;
         }
 
-        @XmlElement(name = "type")
-        public String getType() {
-            return type;
+        @XmlElement(name = "error_message")
+        public String getErrorMessage() {
+            return errorMessage;
         }
 
-        public void setType(String type) {
-            this.type = type;
-        }
-
-        @XmlElement(name = "inputError")
-        public String getInputError() {
-            return inputError;
-        }
-
-        public void setInputError(String inputError) {
-            this.inputError = inputError;
+        public void setErrorMessage(String errorMessage) {
+            this.errorMessage = errorMessage;
         }
 
     }

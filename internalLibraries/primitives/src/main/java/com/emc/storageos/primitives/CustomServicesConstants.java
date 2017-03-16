@@ -28,9 +28,11 @@ public final class CustomServicesConstants {
     public static final String ERROR_MSG_START_END_NOT_DEFINED = "Start or End Step not defined";
     public static final String ERROR_MSG_WORKFLOW_STEP_NULL = "Workflow Step is null";
     public static final String ERROR_MSG_WORKFLOW_NEXT_STEP_NOT_DEFINED = "Next step not defined for the step";
-    public static final String ERROR_MSG_WORKFLOW_PREVIOUS_STEP_NOT_DEFINED = "The step does not have a previous step defined";
+    public static final String ERROR_MSG_WORKFLOW_PREVIOUS_STEP_NOT_DEFINED = "Previous step not defined for the step";
     public static final String ERROR_MSG_DISPLAY_IS_EMPTY = "Display Name is empty";
     public static final String ERROR_MSG_DISPLAY_NAME_NOT_UNIQUE = "Display Name is not unique";
+    public static final String ERROR_MSG_INPUT_NAME_IS_EMPTY = "Input Name is empty";
+    public static final String ERROR_MSG_INPUT_NAME_NOT_UNIQUE_IN_STEP = "Input Name is not unique in the step";
 
     public static final int STEP_ID = 0;
     public static final int INPUT_FIELD = 1;
@@ -65,14 +67,15 @@ public final class CustomServicesConstants {
     public static final String INPUT_PARAMS = "input_params";
     public static final String CONNECTION_DETAILS = "connection_details";
     public static final String ANSIBLE_OPTIONS = "ansible_options";
+
     public enum restMethods {
         GET, POST, PUT, DELETE;
     }
 
     public enum InputType {
         FROM_USER("InputFromUser"),
-//        ASSET_OPTION_SINGLE_VALUE("AssetOptionSingleValue"),
-//        ASSET_OPTION_MULTI_VALUE("AssetOptionMultiValue"),
+        // ASSET_OPTION_SINGLE_VALUE("AssetOptionSingleValue"),
+        // ASSET_OPTION_MULTI_VALUE("AssetOptionMultiValue"),
         ASSET_OPTION("AssetOption"), // TODO: Change this to the above values.
         HARDCODEDVALUE("HardcodedValue"),
         FROM_STEP_INPUT("FromOtherStepInput"),

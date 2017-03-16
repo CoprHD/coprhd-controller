@@ -16,7 +16,9 @@
  */
 package com.emc.sa.workflow;
 
+import java.net.URI;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -24,7 +26,8 @@ import java.util.Map;
 import java.util.Set;
 
 import org.apache.commons.collections.CollectionUtils;
-import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.collections.MapUtils;
+import org.apache.commons.lang.StringUtils;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.model.uimodels.CustomServicesWorkflow;
@@ -41,11 +44,11 @@ public class ValidationHelper {
 
     private static final org.slf4j.Logger logger = LoggerFactory.getLogger(ValidationHelper.class);
     final private Set<String> childSteps = new HashSet<>();
-    final private Set<String> uniqueInputNames = new HashSet<>();
+    final private Set<String> uniqueFriendlyInputNames = new HashSet<>();
     final private ImmutableMap<String, Step> stepsHash;
     final private CustomServicesWorkflowDocument wfDocument;
 
-    public ValidationHelper(CustomServicesWorkflowDocument wfDocument) {
+    public ValidationHelper(final CustomServicesWorkflowDocument wfDocument) {
         final List<Step> steps = wfDocument.getSteps();
         final ImmutableMap.Builder<String, Step> builder = ImmutableMap.builder();
         for (final Step step : steps) {
@@ -55,13 +58,6 @@ public class ValidationHelper {
         this.stepsHash = builder.build();
         this.wfDocument = wfDocument;
 
-    }
-
-    private static CustomServicesValidationResponse.ErrorStep addErrorStep(final String stepId, final String errorString) {
-        final CustomServicesValidationResponse.ErrorStep errorStep = new CustomServicesValidationResponse.ErrorStep();
-        errorStep.setId(stepId);
-        errorStep.setErrorDescription(errorString);
-        return errorStep;
     }
 
     private static boolean isInputEmpty(final Map<String, CustomServicesWorkflowDocument.InputGroup> input, final String type) {
@@ -84,24 +80,26 @@ public class ValidationHelper {
         return false;
     }
 
-    public CustomServicesValidationResponse validate() {
+    public CustomServicesValidationResponse validate(URI id) {
         final CustomServicesValidationResponse validationResponse = new CustomServicesValidationResponse();
-        validationResponse.setName(wfDocument.getName());
+        validationResponse.setId(id);
         final CustomServicesValidationResponse.Error error = validateSteps(stepsHash);
-        if (StringUtils.isNotBlank(error.getErrorMessage()) || CollectionUtils.isNotEmpty(error.getErrorSteps())) {
+        if (StringUtils.isNotBlank(error.getErrorMessage()) || MapUtils.isNotEmpty(error.getErrorSteps())) {
             validationResponse.setError(error);
             validationResponse.setStatus(CustomServicesWorkflow.CustomServicesWorkflowStatus.INVALID.toString());
         } else {
             validationResponse.setStatus(CustomServicesWorkflow.CustomServicesWorkflowStatus.VALID.toString());
         }
+
+        logger.debug("CustomService workflow validation response is {}", validationResponse);
         return validationResponse;
     }
 
     private CustomServicesValidationResponse.Error validateSteps(final ImmutableMap<String, Step> stepsHash) {
         final CustomServicesValidationResponse.Error workflowError = new CustomServicesValidationResponse.Error();
-        final List<CustomServicesValidationResponse.ErrorStep> errorSteps = new ArrayList<>();
+        final Map<String, CustomServicesValidationResponse.ErrorStep> errorSteps = new HashMap<>();
         if (stepsHash.get(StepType.START.toString()) == null || stepsHash.get(StepType.END.toString()) == null) {
-            workflowError.setErrorDescription(CustomServicesConstants.ERROR_MSG_START_END_NOT_DEFINED);
+            workflowError.setErrorMessage(CustomServicesConstants.ERROR_MSG_START_END_NOT_DEFINED);
         }
 
         // add Start as child by default
@@ -109,33 +107,51 @@ public class ValidationHelper {
 
         for (final Step step : stepsHash.values()) {
             final String errorString = validateCurrentStep(step);
+            boolean addErrorStep = false;
 
-            CustomServicesValidationResponse.ErrorStep errorStep = new CustomServicesValidationResponse.ErrorStep();
+            final CustomServicesValidationResponse.ErrorStep errorStep = new CustomServicesValidationResponse.ErrorStep();
 
-            if (StringUtils.isNotBlank(errorString))
-                errorStep = addErrorStep(step.getId(), errorString);
+            if (StringUtils.isNotBlank(errorString)) {
+                if (errorSteps.containsKey(step.getId())) {
+                    List<String> errorMsgs = errorStep.getErrorMessages();
+                    errorMsgs.add(errorString);
+                } else {
+                    errorStep.setErrorMessages(new ArrayList<>(Arrays.asList(errorString)));
+                }
+                addErrorStep = true;
+            }
 
             logger.debug("Validate step input");
 
-            final Map<String, CustomServicesValidationResponse.InputGroup> errorInputGroup = validateStepInput(step);
+            final Map<String, CustomServicesValidationResponse.ErrorInputGroup> errorInputGroup = validateStepInput(step);
             if (!errorInputGroup.isEmpty()) {
-
-                errorStep.setId(step.getId());
                 errorStep.setInputGroups(errorInputGroup);
+                addErrorStep = true;
             }
 
-            if (errorStep.getId() != null)
-                errorSteps.add(errorStep);
+            if (addErrorStep) {
+                errorSteps.put(step.getId(), errorStep);
+            }
 
         }
 
         final Set<String> stepWithoutParent = Sets.difference(stepsHash.keySet(), childSteps);
+
         // For the steps which does not have parent, add the error to response
         for (final String stepId : stepWithoutParent) {
-            errorSteps.add(addErrorStep(stepId, CustomServicesConstants.ERROR_MSG_WORKFLOW_PREVIOUS_STEP_NOT_DEFINED));
+            if (errorSteps.containsKey(stepId)) {
+                errorSteps.get(stepId);
+                List<String> errorMsgs = errorSteps.get(stepId).getErrorMessages();
+                errorMsgs.add(CustomServicesConstants.ERROR_MSG_WORKFLOW_PREVIOUS_STEP_NOT_DEFINED);
+            } else {
+                CustomServicesValidationResponse.ErrorStep errorStep = new CustomServicesValidationResponse.ErrorStep();
+                errorStep.setErrorMessages(
+                        new ArrayList<>(Arrays.asList(CustomServicesConstants.ERROR_MSG_WORKFLOW_PREVIOUS_STEP_NOT_DEFINED)));
+                errorSteps.put(stepId, errorStep);
+            }
         }
 
-        if (CollectionUtils.isNotEmpty(errorSteps)) {
+        if (MapUtils.isNotEmpty(errorSteps)) {
             workflowError.setErrorSteps(errorSteps);
         }
         return workflowError;
@@ -143,7 +159,7 @@ public class ValidationHelper {
 
     private String validateCurrentStep(final Step step) {
         String errorString = null;
-        if (step == null || step.getId() == null) {
+        if (step == null || StringUtils.isBlank(step.getId())) {
             return CustomServicesConstants.ERROR_MSG_WORKFLOW_STEP_NULL;
         }
         if (step.getId().equals(StepType.END.toString())) {
@@ -152,14 +168,15 @@ public class ValidationHelper {
         if (step.getNext() == null) {
             return CustomServicesConstants.ERROR_MSG_WORKFLOW_NEXT_STEP_NOT_DEFINED;
         } else {
-            if (step.getNext().getDefaultStep() == null && step.getNext().getFailedStep() == null) {
+            if (StringUtils.isBlank(step.getNext().getDefaultStep()) && StringUtils.isBlank(step.getNext().getFailedStep())) {
                 errorString = CustomServicesConstants.ERROR_MSG_WORKFLOW_NEXT_STEP_NOT_DEFINED;
             }
-            if (step.getNext().getDefaultStep() != null) { // The current step is a parent. Add the child / children of this parent so
+            if (StringUtils.isNotBlank(step.getNext().getDefaultStep())) { // The current step is a parent. Add the child / children of this
+                                                                           // parent so
                 // that we can find any step that has missing parent
                 childSteps.add(step.getNext().getDefaultStep());
             }
-            if (step.getNext().getFailedStep() != null) {
+            if (StringUtils.isNotBlank(step.getNext().getFailedStep())) {
                 childSteps.add(step.getNext().getFailedStep());
             }
 
@@ -167,67 +184,74 @@ public class ValidationHelper {
         return errorString;
     }
 
-    private Map<String, CustomServicesValidationResponse.InputGroup> validateStepInput(final Step step)
-    {
+    private Map<String, CustomServicesValidationResponse.ErrorInputGroup> validateStepInput(final Step step) {
         final Map<String, CustomServicesWorkflowDocument.InputGroup> input = step.getInputGroups();
-        final Map<String, CustomServicesValidationResponse.InputGroup> errorInputGroup = new HashMap<>();
-
-        if (!isInputEmpty(input, CustomServicesConstants.INPUT_PARAMS)) {
-            final List<CustomServicesValidationResponse.Input> errorInputList = validateInput(
-                    input.get(CustomServicesConstants.INPUT_PARAMS).getInputGroup());
-            addErrorInputGroup(errorInputList, errorInputGroup);
-        }
-        if (!isInputEmpty(input, CustomServicesConstants.CONNECTION_DETAILS)) {
-            final List<CustomServicesValidationResponse.Input> errorInputList = validateInput(
-                    input.get(CustomServicesConstants.CONNECTION_DETAILS).getInputGroup());
-            addErrorInputGroup(errorInputList, errorInputGroup);
-        }
-        if (!isInputEmpty(input, CustomServicesConstants.ANSIBLE_OPTIONS)) {
-            final List<CustomServicesValidationResponse.Input> errorInputList = validateInput(
-                    input.get(CustomServicesConstants.ANSIBLE_OPTIONS).getInputGroup());
-            addErrorInputGroup(errorInputList, errorInputGroup);
+        final Map<String, CustomServicesValidationResponse.ErrorInputGroup> errorInputGroup = new HashMap<>();
+        if (step.getInputGroups() != null) {
+            for (final String inputGroupKey : step.getInputGroups().keySet()) {
+                if (!isInputEmpty(input, inputGroupKey)) {
+                    final List<CustomServicesValidationResponse.ErrorInput> errorInputList = validateInput(
+                            input.get(inputGroupKey).getInputGroup());
+                    addErrorInputGroup(errorInputList, errorInputGroup, inputGroupKey);
+                }
+            }
         }
 
         return errorInputGroup;
     }
 
-    private Map<String, CustomServicesValidationResponse.InputGroup> addErrorInputGroup(
-            final List<CustomServicesValidationResponse.Input> errorInputList,
-            final Map<String, CustomServicesValidationResponse.InputGroup> errorInputGroup) {
+    private Map<String, CustomServicesValidationResponse.ErrorInputGroup> addErrorInputGroup(
+            final List<CustomServicesValidationResponse.ErrorInput> errorInputList,
+            final Map<String, CustomServicesValidationResponse.ErrorInputGroup> errorInputGroup, final String inputGroupKey) {
         if (!CollectionUtils.isEmpty(errorInputList)) {
-            CustomServicesValidationResponse.InputGroup inputGroup = new CustomServicesValidationResponse.InputGroup() {
+            CustomServicesValidationResponse.ErrorInputGroup inputGroup = new CustomServicesValidationResponse.ErrorInputGroup() {
                 {
-                    setInputGroup(errorInputList);
+                    setErrorInputGroup(errorInputList);
                 }
             };
-            errorInputGroup.put(CustomServicesConstants.INPUT_PARAMS, inputGroup);
+            errorInputGroup.put(inputGroupKey, inputGroup);
         }
         return errorInputGroup;
     }
 
-    // Todo: Revisit this piece of code. Currently only the input field name being present and unique are enforced. this needs to be
-    // revisited based on the amount of UI validation that can take place.
-    private List<CustomServicesValidationResponse.Input> validateInput(final List<Input> stepInputList) {
-        final List<CustomServicesValidationResponse.Input> errorInputList = new ArrayList<>();
+    // Todo: Revisit this piece of code. Currently only the input field name being present and unique are enforced. This piece will be
+    // revisited in COP-28892
+    private List<CustomServicesValidationResponse.ErrorInput> validateInput(final List<Input> stepInputList) {
+        final List<CustomServicesValidationResponse.ErrorInput> errorInputList = new ArrayList<>();
+        final Set<String> uniqueInputNames = new HashSet<>();
         for (final Input input : stepInputList) {
-            final CustomServicesValidationResponse.Input errorInput = new CustomServicesValidationResponse.Input();
-            if (StringUtils.isBlank(input.getFriendlyName())) {
-                errorInput.setName(input.getName());
-                errorInput.setInputError(CustomServicesConstants.ERROR_MSG_DISPLAY_IS_EMPTY);
-            } else if (!(input.getType().equals(CustomServicesConstants.InputType.FROM_STEP_INPUT.toString())
+            final CustomServicesValidationResponse.ErrorInput errorInput = new CustomServicesValidationResponse.ErrorInput();
+            if (!(input.getType().equals(CustomServicesConstants.InputType.FROM_STEP_INPUT.toString())
                     || input.getType().equals(CustomServicesConstants.InputType.FROM_STEP_OUTPUT.toString())
                     || input.getType().equals(CustomServicesConstants.InputType.HARDCODEDVALUE.toString()))) {
                 // Enforce uniqueness only for those input that will be displayed in the order page and need user input/ selection.
-
-                final String addtoSetStr = input.getFriendlyName().toLowerCase().replaceAll("\\s", "");
-                if (uniqueInputNames.contains(addtoSetStr)) {
+                if (StringUtils.isBlank(input.getFriendlyName())) {
                     errorInput.setName(input.getName());
-                    errorInput.setInputError(CustomServicesConstants.ERROR_MSG_DISPLAY_NAME_NOT_UNIQUE);
+                    errorInput.setErrorMessage(CustomServicesConstants.ERROR_MSG_DISPLAY_IS_EMPTY);
                 } else {
-
-                    uniqueInputNames.add(input.getFriendlyName().toLowerCase());
+                    final String addtoSetStr = input.getFriendlyName().toLowerCase().replaceAll("\\s", "");
+                    if (uniqueFriendlyInputNames.contains(addtoSetStr)) {
+                        errorInput.setName(input.getName());
+                        errorInput.setErrorMessage(CustomServicesConstants.ERROR_MSG_DISPLAY_NAME_NOT_UNIQUE);
+                    } else {
+                        uniqueFriendlyInputNames.add(input.getFriendlyName().toLowerCase());
+                    }
                 }
             }
+            // Enforce uniqueness for all input names in the step to be present and unique
+            if (StringUtils.isBlank(input.getName())) {
+                errorInput.setName(input.getName());
+                errorInput.setErrorMessage(CustomServicesConstants.ERROR_MSG_INPUT_NAME_IS_EMPTY);
+            } else {
+                final String addtoSetStr = input.getName().toLowerCase().replaceAll("\\s", "");
+                if (uniqueInputNames.contains(addtoSetStr)) {
+                    errorInput.setName(input.getName());
+                    errorInput.setErrorMessage(CustomServicesConstants.ERROR_MSG_INPUT_NAME_NOT_UNIQUE_IN_STEP);
+                } else {
+                    uniqueInputNames.add(input.getName().toLowerCase());
+                }
+            }
+
             if (errorInput.getName() != null)
                 errorInputList.add(errorInput);
         }

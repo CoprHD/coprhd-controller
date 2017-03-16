@@ -261,7 +261,7 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
         List<BlockSnapshotSession> dependantSnapSessions = new ArrayList<>();
         URI cgURI = bo.getConsistencyGroup();
         if (NullColumnValueGetter.isNullURI(cgURI)) {
-            // If the Object is not is a CG, then we need to find all snapshots sessions
+            // If the Object is not in a CG, then we need to find all snapshots sessions
             // whose parent is the passed object.
             dependantSnapSessions.addAll(CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient,
                     BlockSnapshotSession.class, ContainmentConstraint.Factory.getParentSnapshotSessionConstraint(bo.getId())));
@@ -279,7 +279,9 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
                         if (replicationGroupVolumes.size() == 1) {
                             // This is the only volume in the replication group, so
                             // this snapshot session is essentially dependent on this
-                            // block object.
+                            // block object. If the volume being inventory deleted is 
+                            // the last volume in the replication group, then don't allow
+                            // the deletion and force the user to clean up the session first.
                             dependantSnapSessions.add(session);
                         }
                     }

@@ -360,7 +360,7 @@ public class ComputeUtils {
             } catch (ViPRException ex) {
                 //COP-26348 - Deleted tasks leave an order in pending/execution state.  Fixed by
                 // handling such a case and refreshing the tasklist being used to check state of task.
-                String exMessage = "Error 2000: Unable to find entity specified in URL with the given id %s";
+                String exMessage = "Unable to find entity specified in URL with the given id %s";
                 exMessage = String.format(exMessage, task.getTaskResource().getId());
                 if(ex.getMessage().contains(exMessage) || ex.getMessage().equalsIgnoreCase("Task has no link")) {
                     refreshedTasks.remove(task);

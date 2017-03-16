@@ -5,7 +5,12 @@
 package com.emc.storageos.volumecontroller.impl.plugins.metering.vnxfile.processor;
 
 
-import com.emc.nas.vnxfile.xmlapi.*;
+import com.emc.nas.vnxfile.xmlapi.Status;
+import com.emc.nas.vnxfile.xmlapi.Severity;
+import com.emc.nas.vnxfile.xmlapi.ResponsePacket;
+import com.emc.nas.vnxfile.xmlapi.FileSystem;
+import com.emc.nas.vnxfile.xmlapi.FileSystemCapacityInfo;
+import com.emc.nas.vnxfile.xmlapi.FileSystemAutoExtInfo;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObject;
 import com.emc.storageos.plugins.BaseCollectionException;
 import com.emc.storageos.plugins.common.domainmodel.Operation;

@@ -92,13 +92,19 @@ public class CreateBareMetalClusterService extends ViPRService {
             }
         }
 
-        // Commenting for COP-26104, this pre-check will not allow order to be resubmitted if
-        // only the shared export group fails and all other steps succeeded.
-        /*if (hostNames != null && !hostNames.isEmpty() && !existingHostNames.isEmpty() &&
+        if (hostNames != null && !hostNames.isEmpty() && !existingHostNames.isEmpty() &&
                 hostNamesInCluster.containsAll(existingHostNames) && (hostNames.size() == hostNamesInCluster.size())) {
             preCheckErrors.append(
                     ExecutionUtils.getMessage("compute.cluster.host.already.in.cluster") + "  ");
-        }*/
+        }
+
+        if (hostNamesInCluster != null && !hostNamesInCluster.isEmpty() && !existingHostNames.isEmpty()) {
+             for (String hostName : hostNamesInCluster) {
+                if (existingHostNames.contains(hostName)){
+                    preCheckErrors.append(ExecutionUtils.getMessage("compute.cluster.hostname.already.in.cluster", hostName) + "  ");
+                }
+             }
+        }
 
         if (!ComputeUtils.isCapacityAvailable(getClient(), virtualPool,
                 virtualArray, size, hostNames.size() - existingHostNames.size())) {

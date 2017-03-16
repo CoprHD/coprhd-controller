@@ -121,17 +121,13 @@ public class VNXFileSystemsProcessor extends VNXFileProcessor {
                     if (fileSystem.isVirtualProvisioning()) {
                         vnxFS.setType(UnManagedDiscoveredObject.SupportedProvisioningType.THIN.name());
                         FileSystemAutoExtInfo autoExtInfo = fileSystem.getFileSystemAutoExtInfo();
-                        if(null != autoExtInfo){
+                        if (null != autoExtInfo) {
                             totalCapacity = autoExtInfo.getAutoExtensionMaxSize();
-                            _logger.info("FileSystemAutoExtInfo with totalCapacity-{}M", totalCapacity);
                             totalCapacity = totalCapacity * MBTOBYTECONVERTER;
-
-                        }else {
-                            _logger.info("FileSystemCapacityInfo with totalCapacity-{}M", fsCapacity.getVolumeSize());
+                        } else {
                             totalCapacity = fsCapacity.getVolumeSize() * MBTOBYTECONVERTER;
                         }
-                    }
-                    else {
+                    } else {
                         vnxFS.setType(UnManagedDiscoveredObject.SupportedProvisioningType.THICK.name());
                         totalCapacity = fsCapacity.getVolumeSize() * MBTOBYTECONVERTER;
                     }

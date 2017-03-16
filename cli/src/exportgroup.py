@@ -764,11 +764,17 @@ class ExportGroup(object):
 			host_uris.append(host_uri)
 		parms['hosts'] = host_uris
 
-	   parms['use_existing_paths'] = useexisting
+	   if (useexisting):
+	       parms['use_existing_paths'] = "true"
+	   else:
+	       parms['use_existing_paths'] = "false"
 	   return parms
 
 	if (dorealloc):
-		parms['wait_before_remove_paths'] = wait
+	        if (wait):
+		    parms['wait_before_remove_paths'] = "true"
+		else:
+		    parms['wait_before_remove_paths'] = "false"
 
 		#Call Preview first to fetch all the paths. 
  		rep = self.exportgroup_pathadjustment(name, project, tenant,
@@ -841,9 +847,7 @@ class ExportGroup(object):
 						     self.URI_EXPORT_GROUP_PATH_ADJUSTMENT_PREVIEW.format(exportgroup_uri),
 						     body)
         output = common.json_decode(s)
-
-
-
+            
 	# Display output when verbose is set to true or if the operation is Preview.
  	if (verbose or not self.PATH_ADJ_OPERATION):
     		print operation
@@ -911,15 +915,13 @@ def exportgroup_pathadjustment_parser(subcommand_parsers, common_parser):
 			       nargs='+',
 			       help='list of storage ports')
 	path_adjustment_preview_parser.add_argument('-useexistingpaths', '-useex',
-			       metavar='<useexistingpaths>',
 			       dest='useexistingpaths',
-			       default=False,
-			       help='use existing paths')
-	path_adjustment_preview_parser.add_argument('-verbose', '-vb',
-			       metavar='<verbose>',
+			       help='use existing paths',
+			       action='store_true')
+	path_adjustment_preview_parser.add_argument('-verbose', '-v',
 			       dest='verbose',
-			       default=False,
-			       help='Print verbose output')
+			       help='Print verbose output',
+			       action='store_true')
 	path_adjustment_preview_parser.add_argument('-maxinitiatorsperport', '-maxipp',
 			       metavar='<maxinitiatorsperport>',
 			       dest='maxinitiatorsperport',
@@ -939,10 +941,9 @@ def exportgroup_pathadjustment_parser(subcommand_parsers, common_parser):
 					help='Export group paths adjustment')
 
 	path_adjustment_parser.add_argument('-wait', '-w',
-					metavar='<wait>',
 					dest='wait',
-					default=False,
-					help='Wait before removal of paths')
+					help='Wait before removal of paths',
+					action='store_true')
 
 	path_adjustment_parser.set_defaults(func=exportgroup_pathadjustment)
 	path_adjustment_preview_parser.set_defaults(func=exportgroup_pathadjustment_preview)

@@ -30,6 +30,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.util.CollectionUtils;
 
 import com.emc.fapiclient.ws.FunctionalAPIActionFailedException_Exception;
 import com.emc.fapiclient.ws.FunctionalAPIInternalError_Exception;
@@ -1858,35 +1859,31 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
      */
     private void validateCGVolumes(List<VolumeDescriptor> volumeDescriptors) {
         // Validate that the source and target volumes are the same size. If they are not
-        // CG creation or failover will fail.
-        VolumeDescriptor sourceVolumeDescriptor = null;
-        List<VolumeDescriptor> targets = new ArrayList<VolumeDescriptor>();
+        // then CG creation or fail-over will fail.
         for (VolumeDescriptor volumeDescriptor : volumeDescriptors) {
             if (volumeDescriptor.getType().equals(VolumeDescriptor.Type.RP_SOURCE)
                     || volumeDescriptor.getType().equals(VolumeDescriptor.Type.RP_EXISTING_SOURCE)
                     || volumeDescriptor.getType().equals(VolumeDescriptor.Type.RP_VPLEX_VIRT_SOURCE)) {
-                sourceVolumeDescriptor = volumeDescriptor;
-            } else if (volumeDescriptor.getType().equals(VolumeDescriptor.Type.RP_TARGET)
-                    || volumeDescriptor.getType().equals(VolumeDescriptor.Type.RP_VPLEX_VIRT_TARGET)) {
-                targets.add(volumeDescriptor);
-            }
-        }
+                // Find the Source volume from the descriptor
+                Volume sourceVolume = _dbClient.queryObject(Volume.class, volumeDescriptor.getVolumeURI());                
+                StorageSystem sourceStorageSystem = _dbClient.queryObject(StorageSystem.class, sourceVolume.getStorageController());
+                                
+                // Check all Target volumes of the Source to ensure that Source capacity < Target capacity.
+                for (String targetId : sourceVolume.getRpTargets()) {
+                    Volume targetVolume = _dbClient.queryObject(Volume.class, URI.create(targetId));
+                    StorageSystem targetStorageSystem = _dbClient.queryObject(StorageSystem.class, targetVolume.getStorageController());
 
-        Volume sourceVolume = _dbClient.queryObject(Volume.class, sourceVolumeDescriptor.getVolumeURI());
-        Volume targetVolume = null;
-        StorageSystem sourceStorageSystem = _dbClient.queryObject(StorageSystem.class, sourceVolume.getStorageController());
-        StorageSystem targetStorageSystem = null;
-
-        for (VolumeDescriptor targetVolumeDescriptor : targets) {
-
-            targetVolume = _dbClient.queryObject(Volume.class, targetVolumeDescriptor.getVolumeURI());
-            targetStorageSystem = _dbClient.queryObject(StorageSystem.class, targetVolume.getStorageController());
-
-            // target must be equal to or larger than the source
-            if (Long.compare(targetVolume.getProvisionedCapacity(), sourceVolume.getProvisionedCapacity()) < 0) {
-                throw DeviceControllerExceptions.recoverpoint.cgCannotBeCreatedInvalidVolumeSizes(sourceStorageSystem.getSystemType(),
-                        String.valueOf(sourceVolume.getProvisionedCapacity()), targetStorageSystem.getSystemType(),
-                        String.valueOf(targetVolume.getProvisionedCapacity()));
+                    // target must be equal to or larger than the source
+                    if (Long.compare(targetVolume.getProvisionedCapacity(), sourceVolume.getProvisionedCapacity()) < 0) {
+                        _log.error(String.format("Source volume [%s - %s] has provisioned capacity of [%s] and Target volume [%s - %s] has provisioned capacity of [%s]. "
+                                + "Source capacity cannot be > Target capacity.",
+                                sourceVolume.getLabel(), sourceVolume.getId(), sourceVolume.getProvisionedCapacity(),
+                                targetVolume.getLabel(), targetVolume.getId(), targetVolume.getProvisionedCapacity()));
+                        throw DeviceControllerExceptions.recoverpoint.cgCannotBeCreatedInvalidVolumeSizes(sourceStorageSystem.getSystemType(),
+                                String.valueOf(sourceVolume.getProvisionedCapacity()), targetStorageSystem.getSystemType(),
+                                String.valueOf(targetVolume.getProvisionedCapacity()));
+                    }
+                }
             }
         }
     }

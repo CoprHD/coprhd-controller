@@ -83,6 +83,17 @@ public class RemoteReplicationSetService extends TaskResourceService {
     // remote replication service api implementations
     private RemoteReplicationBlockServiceApiImpl remoteReplicationServiceApi;
 
+    private NeighborhoodsMatcher matcher;
+
+    private NeighborhoodsMatcher getMatcher() {
+        if (matcher == null) {
+            matcher = new NeighborhoodsMatcher();
+            matcher.setCoordinatorClient(_coordinator);
+            matcher.setObjectCache(new ObjectLocalCache(_dbClient));
+        }
+        return matcher;
+    }
+
     public RemoteReplicationBlockServiceApiImpl getRemoteReplicationServiceApi() {
         return remoteReplicationServiceApi;
     }
@@ -123,9 +134,10 @@ public class RemoteReplicationSetService extends TaskResourceService {
      */
     @GET
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @Path("/{varray}/{vpool}")
+    @Path("/varray/{varray}/vpool/{vpool}")
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR })
-    public RemoteReplicationSetList getRemoteReplicationSetsForVarrayVpool(@PathParam("varray") URI varrayURI, @PathParam("vpool") URI vpoolURI) {
+    public RemoteReplicationSetList getRemoteReplicationSetsForVarrayVpool(@PathParam("varray") URI varrayURI,
+            @PathParam("vpool") URI vpoolURI) {
         _log.info("Called: getRemoteReplicationSets() with params: (varray: {}, vpool: {})", varrayURI, vpoolURI);
         ArgValidator.checkFieldUriType(varrayURI, VirtualArray.class, "virtual array id");
         ArgValidator.checkFieldUriType(vpoolURI, VirtualPool.class, "virtual pool id");
@@ -133,50 +145,67 @@ public class RemoteReplicationSetService extends TaskResourceService {
         if (vpool == null || vpool.getRemoteReplicationProtectionSettings() == null) {
             throw APIException.badRequests.invalidVirtualPoolUriOrNotSupportRemoteReplication(vpoolURI);
         }
-
-        Set<String> sourceDevices = getStorageSystemsForVarrayVpool(varrayURI, vpoolURI);
+        if (!vpool.getVirtualArrays().contains(varrayURI)) {
+            throw APIException.badRequests.vpoolVarrayMismatch(vpoolURI, varrayURI);
+        }
 
         RemoteReplicationSetList result = new RemoteReplicationSetList();
         List<URI> uris = _dbClient.queryByType(RemoteReplicationSet.class, true);
         if (uris == null || uris.isEmpty()) {
             return result;
         }
+
+        Set<String> sourceDevices = getStorageSystemsForVarrayVpool(varrayURI, vpoolURI);
+
+        // Hold storage systems belonging to every target varray/vpool pair separately.
+        Set<Set<String>> targetSystemsForAllPairs = new HashSet<>();
+        // Hold all storage systems of all target varray/vpool pairs together.
+        Set<String> allTargetSystems = new HashSet<String>();
+        for (Entry<String, String> pair : vpool.getRemoteReplicationProtectionSettings().entrySet()) {
+            URI targetvArrayURI = URI.create(pair.getKey());
+            URI targetvPoolURI = URI.create(pair.getValue());
+            Set<String> targetDevices = getStorageSystemsForVarrayVpool(targetvArrayURI, targetvPoolURI);
+            targetSystemsForAllPairs.add(targetDevices);
+            allTargetSystems.addAll(targetDevices);
+        }
+
         Iterator<RemoteReplicationSet> it = _dbClient.queryIterativeObjects(RemoteReplicationSet.class, uris);
         outloop:
         while (it.hasNext()) {
             RemoteReplicationSet rrSet = it.next();
             Set<String> sourcesOfrrSet = rrSet.getSourceSystems();
-            if (!sourcesOfrrSet.containsAll(sourceDevices)) {
-                continue; // filter out rr sets that do not contain all source systems
+            if (sourcesOfrrSet.size() > sourceDevices.size() || !sourceDevices.containsAll(sourcesOfrrSet)) {
+                continue; // filter out rr sets that contains source storage systems other than ones in sourceDevices
             }
 
             Set<String> targetsOfrrSet = rrSet.getTargetSystems();
-            Set<String> allTargetDevices = new HashSet<>();
-            for (Entry<String, String> pair : vpool.getRemoteReplicationProtectionSettings().entrySet()) {
-                URI targetvArrayURI = URI.create(pair.getKey());
-                URI targetvPoolURI = URI.create(pair.getValue());
-                Set<String> targetDevices = getStorageSystemsForVarrayVpool(targetvArrayURI, targetvPoolURI);
-
-                if (!CollectionUtils.containsAny(targetsOfrrSet, targetDevices)) {
-                    continue outloop; // filter out rr sets that have no overlap with target devices or current pair
-                }
-                allTargetDevices.addAll(targetDevices);
-            }
-
-            if (targetsOfrrSet.size() > allTargetDevices.size() || !allTargetDevices.containsAll(targetsOfrrSet)) {
+            if (targetsOfrrSet.size() > allTargetSystems.size() || !allTargetSystems.containsAll(targetsOfrrSet)) {
                 continue; // filter out rr sets that have target systems outside of target devices
             }
 
+            for (Set<String> targetDevices : targetSystemsForAllPairs) {
+                if (!CollectionUtils.containsAny(targetsOfrrSet, targetDevices)) {
+                    continue outloop; 
+                    // filter out rr sets whose target systems have no overlap with target devices of current pair
+                }
+            }
+
             /* Finally, a rr set is qualified and put in result collection only if it meets following conditions:
-               - Its source systems contain all storage systems filtered by given varray and vpool;
-               - Its target systems only contain storage systems that are subset of ones of all target varray/vpool pairs;
-               - Its target systems contain at least one of the storage systems for each target varray/vpool pair.
+               - Its source systems collection is the subset of ones filtered by given varray and vpool;
+               - Its target systems collection is subset of ones of all target varray/vpool pairs;
+               - Its target systems contain at least one storage system for each target varray/vpool pair.
              */
             result.getRemoteReplicationSets().add(toNamedRelatedResource(rrSet));
         }
         return result;
     }
 
+    /**
+     * Get storage systems which contain storage pool(s) belonging to both the given vArray and vPool.
+     * @param varrayURI
+     * @param vpoolURI
+     * @return URI string set of qualified storage systems
+     */
     private Set<String> getStorageSystemsForVarrayVpool(URI varrayURI, URI vpoolURI) {
         VirtualPool vpool = _dbClient.queryObject(VirtualPool.class, vpoolURI);
         List<StoragePool> vpoolPools = VirtualPool.getValidStoragePools(vpool, _dbClient, true);
@@ -184,16 +213,19 @@ public class RemoteReplicationSetService extends TaskResourceService {
         Set<String> result = new HashSet<>();
         for (StoragePool pool : vpoolPools) {
             if (varrayPools.contains(pool.getId())) {
-                result.add(pool.getId().toString());
+                result.add(pool.getStorageDevice().toString());
             }
         }
         return result;
     }
 
+    /**
+     * Get storage pools which belong to given the vArray.
+     * @param varrayURI
+     * @return URI set of qualified storage pools
+     */
     private Set<URI> getStoragePoolsForVarray(URI varrayURI) {
-        NeighborhoodsMatcher matcher = new NeighborhoodsMatcher();
-        matcher.setCoordinatorClient(_coordinator);
-        matcher.setObjectCache(new ObjectLocalCache(_dbClient));
+        NeighborhoodsMatcher matcher = getMatcher();
         List<URI> vArrayStoragePoolURIs = matcher.getVarrayPools(varrayURI.toString());
         return new HashSet<>(vArrayStoragePoolURIs);
     }

@@ -76,6 +76,7 @@ public class IsilonApi {
     private static final URI URI_SYNCIQ_SERVICE_STATUS = URI.create("/platform/1/sync/settings");
     private static final URI URI_REPLICATION_LICENSE_INFO = URI.create("/platform/1/sync/license");
     private static final URI URI_REPLICATION_POLICIES = URI.create("/platform/1/sync/policies/");
+    private static final URI URI_REPLICATION_POLICIES_8 = URI.create("/platform/3/sync/policies/");
     private static final URI URI_REPLICATION_JOBS = URI.create("/platform/1/sync/jobs");
     private static final URI URI_REPLICATION_JOB = URI.create("/platform/1/sync/jobs/");
     private static final URI URI_TARGET_REPLICATION_POLICIES = URI.create("platform/1/sync/target/policies/");
@@ -2017,6 +2018,16 @@ public class IsilonApi {
     public IsilonSyncPolicy getReplicationPolicy(String id) throws IsilonException {
         return get(_baseUrl.resolve(URI_REPLICATION_POLICIES), id, "policies", IsilonSyncPolicy.class);
     }
+    
+    /**
+     * Get Replication Policy information from the Isilon array using oneFS v8 above
+     * 
+     * @return IsilonSyncPolicy object
+     * @throws IsilonException
+     */
+    public IsilonSyncPolicy8above getReplicationPolicy8above(String id) throws IsilonException {
+        return get(_baseUrl.resolve(URI_REPLICATION_POLICIES_8), id, "policies", IsilonSyncPolicy8above.class);
+    }
 
     /**
      * Get All Replication Policies information from the Isilon array
@@ -2026,6 +2037,16 @@ public class IsilonApi {
      */
     public IsilonList<IsilonSyncPolicy> getReplicationPolicies() throws IsilonException {
         return list(_baseUrl.resolve(URI_REPLICATION_POLICIES), "policies", IsilonSyncPolicy.class, "");
+    }
+    
+    /**
+     * Get All Replication Policies information from the Isilon array
+     * 
+     * @return IsilonList<IsilonSyncPolicy>
+     * @throws IsilonException
+     */
+    public IsilonList<IsilonSyncPolicy8above> getReplicationPolicies8above() throws IsilonException {
+        return list(_baseUrl.resolve(URI_REPLICATION_POLICIES_8), "policies", IsilonSyncPolicy8above.class, "");
     }
 
     /**
@@ -2049,6 +2070,18 @@ public class IsilonApi {
     public String createReplicationPolicy(IsilonSyncPolicy replicationPolicy) throws IsilonException {
         return create(_baseUrl.resolve(URI_REPLICATION_POLICIES), "policies", replicationPolicy);
     }
+    
+    /**
+     * Create Replication Policy for isilon array using oneFSv8 and above
+     * 
+     * @param replicationPolicy
+     *            IsilonSyncPolicy object
+     * @return String identifier for the policy created
+     * @throws IsilonException
+     */
+    public String createReplicationPolicy8above(IsilonSyncPolicy8above replicationPolicy) throws IsilonException {
+        return create(_baseUrl.resolve(URI_REPLICATION_POLICIES_8), "policies", replicationPolicy);
+    }
 
     /**
      * Modify Replication Policy
@@ -2061,6 +2094,19 @@ public class IsilonApi {
      */
     public void modifyReplicationPolicy(String id, IsilonSyncPolicy syncPolicy) throws IsilonException {
         modify(_baseUrl.resolve(URI_REPLICATION_POLICIES), id, "policies", syncPolicy);
+    }
+    
+    /**
+     * Modify Replication Policyfor isilon array using oneFSv8 and above
+     * 
+     * @param id
+     *            identifier/name of the Replication Policy to modify
+     * @param syncPolicy
+     *            IsilonSyncPolicy object with the modified properties
+     * @throws IsilonException
+     */
+    public void modifyReplicationPolicy8above(String id, IsilonSyncPolicy8above syncPolicy) throws IsilonException {
+        modify(_baseUrl.resolve(URI_REPLICATION_POLICIES_8), id, "policies", syncPolicy);
     }
 
     /**

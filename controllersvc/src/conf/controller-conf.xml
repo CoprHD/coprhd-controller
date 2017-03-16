@@ -1249,7 +1249,6 @@
     	<property name="deviceOperationPollFrequency" value="15"/>
     	<property name="workflowService" ref="workflowService"/>
     	<property name="coordinator" ref="coordinator" />
-    	<property name="blockExportController" ref="blockExportController"></property>
     </bean>
 
     <bean id="pxeIntegrationService" class="com.emc.storageos.imageservercontroller.impl.PxeIntegrationService">

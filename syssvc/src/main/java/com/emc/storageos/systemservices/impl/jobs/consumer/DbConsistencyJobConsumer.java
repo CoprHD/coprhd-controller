@@ -48,8 +48,10 @@ public class DbConsistencyJobConsumer extends DistributedQueueConsumer<DbConsist
             status = markResult();
         } catch (CancellationException ce) {
             log.warn("cancellation:{}", ce.getMessage());
+            status.markResult(Status.CANCEL);
         } catch (ConnectionException e) {
             log.warn("ConnectionException:{}", e);
+            status.markResult(Status.FAILED);
         } catch (Exception e) {
             log.error("failed to check db consistency {}", e);
             status = markFailure();

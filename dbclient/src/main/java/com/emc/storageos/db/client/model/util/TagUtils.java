@@ -39,23 +39,23 @@ public class TagUtils {
         return namespace + ":" + name;
     }
     
-    private static String getHostMountPointTagName(URI hostId) {
+    public static String getHostMountPointTagName(URI hostId) {
         return MOUNTPOINT + "-" + hostId;
     }
 
-    private static String getVMFSDatastoreTagName(URI hostId) {
+    public static String getVMFSDatastoreTagName(URI hostId) {
         return VMFS_DATASTORE + "-" + hostId;
     }
 
-    private static String getBootVolumeTagName() {
+    public static String getBootVolumeTagName() {
         return BOOT_VOLUME;
     }
 
-    private static String getOrderIdTagName() {
+    public static String getOrderIdTagName() {
         return ORDER_ID;
     }
 
-    private static String getOrderNumberTagName() {
+    public static String getOrderNumberTagName() {
         return ORDER_NUMBER;
     }
 

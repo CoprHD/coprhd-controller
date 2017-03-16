@@ -1077,6 +1077,9 @@ public class FilePolicyService extends TaskResourceService {
                 // If there is no recommendations found to assign replication policy
                 // Throw an exception!!
                 if (associations == null || associations.isEmpty()) {
+                    // If no other resources are assigned to replication policy
+                    // Remove the replication topology from the policy
+                    FileOrchestrationUtils.removeTopologyInfo(filePolicy, _dbClient);
                     _log.error("No matching storage pools recommendations found for policy {} with due to {}",
                             filePolicy.getFilePolicyName(), recommendationErrorMsg.toString());
                     throw APIException.badRequests.noFileStorageRecommendationsFound(filePolicy.getFilePolicyName());
@@ -1338,6 +1341,9 @@ public class FilePolicyService extends TaskResourceService {
                 // If there is no recommendations found to assign replication policy
                 // Throw an exception!!
                 if (associations == null || associations.isEmpty()) {
+                    // If no other resources are assigned to replication policy
+                    // Remove the replication topology from the policy
+                    FileOrchestrationUtils.removeTopologyInfo(filePolicy, _dbClient);
                     _log.error("No matching storage pools recommendations found for policy {} with due to {}",
                             filePolicy.getFilePolicyName(), recommendationErrorMsg.toString());
                     throw APIException.badRequests.noFileStorageRecommendationsFound(filePolicy.getFilePolicyName());

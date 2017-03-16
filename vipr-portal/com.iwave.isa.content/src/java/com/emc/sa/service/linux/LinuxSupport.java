@@ -392,7 +392,7 @@ public class LinuxSupport {
                         getDeviceFailed(volume, errorMessage, e);
                     }
                     logWarn("linux.support.device.not.found", volume.getWwn(), remainingAttempts);
-                    Thread.sleep(5000);
+                    Thread.sleep(10000);
                     refreshStorage(Collections.singleton(volume), usePowerPath);
                 }
             }

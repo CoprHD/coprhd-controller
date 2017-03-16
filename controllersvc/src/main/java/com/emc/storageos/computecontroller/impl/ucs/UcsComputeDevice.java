@@ -386,7 +386,6 @@ public class UcsComputeDevice implements ComputeDevice {
                 throw new RuntimeException(
                         "Unable to bind service profile to template, due to insufficient host data.  Host or host's computeElement or host UUID is null");
             }
-            //TODO add an 'else' clause and return failure
         } catch (Exception e) {
             LOGGER.error("Unable to bind service profile to template due to a exception", e);
             throw ComputeSystemControllerException.exceptions.bindHostToTemplateFailed(host != null ? host.getId()

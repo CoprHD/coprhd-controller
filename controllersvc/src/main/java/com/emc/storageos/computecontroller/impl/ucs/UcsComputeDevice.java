@@ -33,9 +33,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import com.emc.cloud.platform.clientlib.ClientGeneralException;
 import com.emc.cloud.platform.clientlib.ClientMessageKeys;
 import com.emc.cloud.platform.ucs.out.model.ComputeBlade;
-import com.emc.cloud.platform.ucs.out.model.LsRequirement;
 import com.emc.cloud.platform.ucs.out.model.LsServer;
-import com.emc.cloud.platform.ucs.out.model.VnicEther;
 import com.emc.cloud.platform.ucs.out.model.VnicFc;
 import com.emc.cloud.platform.ucs.out.model.VnicFcIf;
 import com.emc.cloud.ucsm.service.LsServerOperStates;
@@ -74,36 +72,19 @@ import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.util.ExportUtils;
 import com.emc.storageos.util.InvokeTestFailure;
-import com.emc.storageos.volumecontroller.BlockExportController;
 import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
-import com.emc.storageos.volumecontroller.impl.monitoring.RecordableEventManager;
 import com.emc.storageos.workflow.Workflow;
 import com.emc.storageos.workflow.WorkflowService;
 import com.emc.storageos.workflow.WorkflowStepCompleter;
 
-/**
- * @author Prabhakara,Janardhan
- *
- */
 public class UcsComputeDevice implements ComputeDevice {
-
-    /**
-     * ServiceProfileKeyConstants
-     *
-     * @author Prabhakara,Janardhan
-     *
-     */
 
     private CoordinatorClient _coordinator = null;
 
     public void setCoordinator(CoordinatorClient coordinator) {
         this._coordinator = coordinator;
     }
-
-    private static final String ASSOCIATED_SERVER_POOL = "associatedServerPool";
-    private static final String VHBA_COUNT = "vhbaCount";
-    private static final String VNIC_COUNT = "vnicCount";
 
     private static final String EVENT_SERVICE_TYPE_CE = "ComputeElement";
 
@@ -146,8 +127,6 @@ public class UcsComputeDevice implements ComputeDevice {
     private static final String MODIFY_SP_BOOT_ORDER_STEP = "MODIFY_SP_BOOT_ORDER";
     private static final String BIND_SERVICE_PROFILE_TO_BLADE_STEP = "BIND_SERVICE_PROFILE_TO_BLADE";
     private static final String ADD_HOST_PORTS_TO_NETWORKS_STEP = "ADD_HOST_PORTS_TO_NETWORKS";
-    private static final long TASK_STATUS_POLL_FREQUENCY = 30 * 1000;
-    private static final String ADD_HOST_TO_SHARED_EXPORT_GROUPS = "ADD_HOST_TO_SHARED_EXPORT_GROUPS";
 
     private DbClient _dbClient;
 
@@ -157,17 +136,8 @@ public class UcsComputeDevice implements ComputeDevice {
     @Autowired
     private AuditLogManager _auditMgr;
 
-    @Autowired
-    private RecordableEventManager _eventManager;
-
     public void setDbClient(DbClient dbClient) {
         _dbClient = dbClient;
-    }
-
-    private BlockExportController blockExportController;
-
-    public void setBlockExportController(BlockExportController blockExportController) {
-        this.blockExportController = blockExportController;
     }
 
     @Override
@@ -198,7 +168,7 @@ public class UcsComputeDevice implements ComputeDevice {
         _dbClient.createObject(serviceProfile);
          
         host.setServiceProfile(serviceProfile.getId());
-        _dbClient.persistObject(host);
+        _dbClient.updateObject(host);
 
         return serviceProfile;
     }
@@ -261,7 +231,7 @@ public class UcsComputeDevice implements ComputeDevice {
          * it:
          */
         if (dbClient.queryObject(ComputeElement.class, computeElement.getId()) != null) {
-            dbClient.persistObject(computeElement);
+            dbClient.updateObject(computeElement);
         }
     }
 
@@ -284,34 +254,6 @@ public class UcsComputeDevice implements ComputeDevice {
         }
 
         return null;
-
-    }
-
-    private Map<String, Object> getServiceProfileTemplateDetails(LsServer spt) {
-
-        Map<String, Object> serviceProfileTemplateDetails = new HashMap<String, Object>();
-
-        int vhbaCount = 0;
-        int vnicCount = 0;
-
-        if (spt.getContent() != null && !spt.getContent().isEmpty()) {
-            for (Serializable element : spt.getContent()) {
-                if (element instanceof JAXBElement<?>) {
-                    if (((JAXBElement) element).getValue() instanceof LsRequirement) {
-                        LsRequirement lsRequirement = (LsRequirement) ((JAXBElement) element).getValue();
-                        serviceProfileTemplateDetails.put(ASSOCIATED_SERVER_POOL, lsRequirement.getName());
-                    } else if (((JAXBElement) element).getValue() instanceof VnicEther) {
-                        vnicCount++;
-                    } else if (((JAXBElement) element).getValue() instanceof VnicFc) {
-                        vhbaCount++;
-                    }
-                }
-            }
-            serviceProfileTemplateDetails.put(VHBA_COUNT, vhbaCount);
-            serviceProfileTemplateDetails.put(VNIC_COUNT, vnicCount);
-
-        }
-        return serviceProfileTemplateDetails;
 
     }
 

@@ -36,7 +36,7 @@ public class VolumeDeleteCompleter extends VolumeTaskCompleter {
     }
 
     /**
-     * Remove reference of deleted volume from associated source volume
+     * Remove reference of deleted volume from associated source volume and associated host
      * 
      * @param dbClient
      * @param deletedVolume
@@ -51,6 +51,7 @@ public class VolumeDeleteCompleter extends VolumeTaskCompleter {
                 dbClient.persistObject(srcVolume);
             }
         }
+        
     }
 
     @Override

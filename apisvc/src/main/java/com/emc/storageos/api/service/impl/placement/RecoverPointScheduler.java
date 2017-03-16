@@ -25,6 +25,7 @@ import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.util.CollectionUtils;
 
 import com.emc.storageos.api.service.authorization.PermissionsHelper;
 import com.emc.storageos.api.service.impl.resource.utils.VirtualPoolChangeAnalyzer;
@@ -2109,7 +2110,7 @@ public class RecoverPointScheduler implements Scheduler {
         // Check to see if we need an additional journal for Source
         Map<Integer, Long> additionalJournalForSource = RPHelper.additionalJournalRequiredForRPCopy(vpool.getJournalSize(), cg, 
                 capabilities.getSize(), capabilities.getResourceCount(), sourceVolume.getRpCopyName(), dbClient);
-        if (additionalJournalForSource != null) {
+        if (!CollectionUtils.isEmpty(additionalJournalForSource)) {
             // ACTIVE SOURCE JOURNAL Recommendation
             List<Volume> sourceJournals = RPHelper.findExistingJournalsForCopy(dbClient, sourceVolume.getConsistencyGroup(), sourceVolume.getRpCopyName());
             Volume sourceJournal = sourceJournals.get(0);
@@ -2189,7 +2190,7 @@ public class RecoverPointScheduler implements Scheduler {
             // Check to see if we need an additional journal for Target
             Map<Integer, Long> additionalJournalForTarget = RPHelper.additionalJournalRequiredForRPCopy(vpool.getJournalSize(), cg, 
                     capabilities.getSize(), capabilities.getResourceCount(), targetVolume.getRpCopyName(), dbClient);
-            if (additionalJournalForTarget != null) {
+            if (!CollectionUtils.isEmpty(additionalJournalForTarget)) {
                 // TARGET JOURNAL Recommendation
                 List<Volume> targetJournals = RPHelper.findExistingJournalsForCopy(dbClient, targetVolume.getConsistencyGroup(), targetVolume.getRpCopyName());
                 Volume targetJournal = targetJournals.get(0);         

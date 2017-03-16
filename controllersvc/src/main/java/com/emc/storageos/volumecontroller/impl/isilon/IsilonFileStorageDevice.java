@@ -3766,7 +3766,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                 if(filePolicy.getPriority() != null){
                     replicationPolicyCopy.setPriority(FilePolicyPriority.valueOf(filePolicy.getPriority()).ordinal());
                 }
-                scheduleId = isi.createReplicationPolicy(replicationPolicyCopy);
+                scheduleId = isi.createReplicationPolicy8above(replicationPolicyCopy);
             } else{
                 scheduleId = isi.createReplicationPolicy(replicationPolicy);
             }

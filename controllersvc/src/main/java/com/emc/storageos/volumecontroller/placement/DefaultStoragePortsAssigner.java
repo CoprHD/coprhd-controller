@@ -304,7 +304,7 @@ public class DefaultStoragePortsAssigner implements StoragePortsAssigner {
      * Determines if there are any hosts that only have connectivity to only one network.
      * We favor allocating more ports in a network if it is the only one some host has access to.
      * Returns a list of such networks.
-     * 
+     *
      * @param net2InitiatorsMap -- a map of Network URI to a set of Initiator objects in that network
      * @param hostToNetworks - outputs a map of Host URI to Netowrk URIs used by that host
      * @return URI set of networks that are not redundant
@@ -570,7 +570,7 @@ public class DefaultStoragePortsAssigner implements StoragePortsAssigner {
 
     /**
      * Iterates over the Networks, picking the first Initiator
-     * 
+     *
      * @param assignments
      * @param netToNewInitiators
      * @param portUseCounts
@@ -627,7 +627,9 @@ public class DefaultStoragePortsAssigner implements StoragePortsAssigner {
                 }
                 if (useNonAffinity) {
                     List<StoragePort> nonAffinityPorts = new ArrayList<StoragePort>();
-                    nonAffinityPorts.addAll(netToAllocatedPorts.get(entry.getKey()));
+                    if (netToAllocatedPorts != null && netToAllocatedPorts.get(entry.getKey()) != null) {
+                        nonAffinityPorts.addAll(netToAllocatedPorts.get(entry.getKey()));
+                    }
                     // Remove duplicates
                     nonAffinityPorts.removeAll(allocatedPorts);
                     allocatedPorts.addAll(nonAffinityPorts);
@@ -685,7 +687,7 @@ public class DefaultStoragePortsAssigner implements StoragePortsAssigner {
     /**
      * Given a network URI, initiator, and switchName of the initiator,
      * returns switch ports (if any) with the same switch affinity.
-     * 
+     *
      * @param netURI
      * @param initiator
      * @param switchName
@@ -706,7 +708,7 @@ public class DefaultStoragePortsAssigner implements StoragePortsAssigner {
     /**
      * Adds a use count to a port, which indicates one initiator is using the port
      * This is public static because the StoragePortsAssignerTest uses it.
-     * 
+     *
      * @param portUseCounts -- Map of StoragePort to use counts
      * @param port -- Port being used
      */
@@ -721,7 +723,7 @@ public class DefaultStoragePortsAssigner implements StoragePortsAssigner {
 
     /**
      * Returns true if the port is being used
-     * 
+     *
      * @param portUseCounts -- Map of Storage Port to use counts
      * @param port -- Port we are inquiring about
      * @return
@@ -732,7 +734,7 @@ public class DefaultStoragePortsAssigner implements StoragePortsAssigner {
 
     /**
      * Gets available ports with the lowest use count (must be <= maxUseCount).
-     * 
+     *
      * @param initiator -- the Initiator the ports are for
      * @param allocatedPorts -- List of allocated ports from which we can choose
      * @param portUseCounts -- Map of StoragePort to use counts
@@ -778,7 +780,7 @@ public class DefaultStoragePortsAssigner implements StoragePortsAssigner {
 
     /**
      * Assigns the ports, updates the port use counts
-     * 
+     *
      * @param assignments Map of Initiator to List<StoragePort> for new assignments
      * @param netURI - Network these ports are in
      * @param initiator -- The initiators ports are being assigned for
@@ -811,7 +813,7 @@ public class DefaultStoragePortsAssigner implements StoragePortsAssigner {
      * Will generate a default empty List<Initiator> if the passed one is null.
      * Otherwise returns original list.
      * Used to reduce cyclomatic complexity.
-     * 
+     *
      * @param initiatorList - null or a list of initiators
      * @return a non null list of initiators, possibly empty
      */
@@ -825,7 +827,7 @@ public class DefaultStoragePortsAssigner implements StoragePortsAssigner {
     /**
      * Will generate an empty Map<Initiator, List<StoragePort> if the passed assignmentMap is null.
      * Otherwise returns the original map. Used to reduce cyclomatic complexity.
-     * 
+     *
      * @param assignmentMap -- Map(Initiator, List<StoragePort>> or null
      * @return non null Map, possibly empty
      */
@@ -838,7 +840,7 @@ public class DefaultStoragePortsAssigner implements StoragePortsAssigner {
 
     /**
      * Makes a map of StoragePort portNetworkId to switch name. Used for logging.
-     * 
+     *
      * @param switchToStoragePortsByNet Map of network to map of switch name to storage ports
      * @return Map of port network id to switch name
      */
@@ -861,7 +863,7 @@ public class DefaultStoragePortsAssigner implements StoragePortsAssigner {
 
     /**
      * Given a portAddressToSwitchMap and a port, returns the switch name
-     * 
+     *
      * @param port -- StoragePort
      * @param portAddressToSwitchMap -- map of Port NetworkId to Switch Name
      * @return -- Switch name string
@@ -875,7 +877,7 @@ public class DefaultStoragePortsAssigner implements StoragePortsAssigner {
 
     /**
      * Returns a map of Initiator to Switch Name
-     * 
+     *
      * @param switchToInitiatorsByNetwork -- Map of Network to Map of SwitchName to List of Initiators
      * @return == Map of Initiator to Switch Name
      */

@@ -516,15 +516,14 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         SMBFileShare fileShare = currentShares.get(smbFileShare.getName());
         if (fileShare != null) {
 
-
+	    	
             String nativeId = fileShare.getNativeId();
             String zoneName = getZoneName(args.getvNAS());
+            _log.info("delete the share {} with native id {}", smbFileShare.getName(), nativeId);
             if (zoneName != null) {
-                isi.deleteShare(smbFileShare.getName(), zoneName);
-                _log.info("delete the share {} on access zone {}", smbFileShare.getName(), zoneName);
+                isi.deleteShare(nativeId, zoneName);
             } else {
-                _log.info("delete the share {} with native id {}", smbFileShare.getName(), nativeId);
-                isi.deleteShare(smbFileShare.getName());
+                isi.deleteShare(nativeId);
             }
 
             currentShares.remove(smbFileShare.getName());
@@ -532,7 +531,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
     }
 
     private void isiDeleteShares(IsilonApi isi, FileDeviceInputOutput args) throws IsilonException {
-
+	_log.info("IsilonFileStorageDevice:isiDeleteShares()");
         SMBShareMap currentShares = null;
         if (args.getFileOperation()) {
             FileShare fileObj = args.getFs();
@@ -559,6 +558,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                 Map.Entry<String, SMBFileShare> entry = it.next();
                 String key = entry.getKey();
                 SMBFileShare smbFileShare = entry.getValue();
+                _log.info("delete the share name {} and native id {}", smbFileShare.getName(), smbFileShare.getNativeId());
                 if (zoneName != null) {
                     isi.deleteShare(smbFileShare.getNativeId(), zoneName);
                 } else {

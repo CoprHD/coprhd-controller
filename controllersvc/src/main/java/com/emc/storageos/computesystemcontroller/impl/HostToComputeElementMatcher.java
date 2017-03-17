@@ -46,38 +46,43 @@ public final class HostToComputeElementMatcher {
 
     private HostToComputeElementMatcher(){}
 
-    public static void matchHostToComputeElements(DbClient _dbClient, URI hostId) {
+    public static synchronized void matchHostToComputeElements(DbClient _dbClient, URI hostId) {
+        dbClient = _dbClient;                              // set our client
+
         Collection<URI> hostIds = Arrays.asList(hostId);  // single host
         Collection<URI> computeElementIds = dbClient.queryByType(ComputeElement.class, true); // all active
         Collection<URI> serviceProfileIds = dbClient.queryByType(UCSServiceProfile.class, true); // all active
-        matchHostsToComputeElements(_dbClient,hostIds,computeElementIds,serviceProfileIds);
+        matchHostsToComputeElements(dbClient,hostIds,computeElementIds,serviceProfileIds);
     }
 
-    public static void matchHostsToComputeElements(DbClient _dbClient, Collection<URI> hostIds) {
+    public static synchronized void matchHostsToComputeElements(DbClient _dbClient, Collection<URI> hostIds) {
+        dbClient = _dbClient;                              // set our client
+
         Collection<URI> computeElementIds = dbClient.queryByType(ComputeElement.class, true); // all active
         Collection<URI> serviceProfileIds = dbClient.queryByType(UCSServiceProfile.class, true); // all active
-        matchHostsToComputeElements(_dbClient,hostIds,computeElementIds,serviceProfileIds);
+        matchHostsToComputeElements(dbClient,hostIds,computeElementIds,serviceProfileIds);
     }
 
-    public static void matchUcsComputeElements(DbClient _dbClient, URI computeSystemId) {
+    public static synchronized void matchUcsComputeElements(DbClient _dbClient, URI computeSystemId) {
+        dbClient = _dbClient;                              // set our client
+
         Collection<URI> hostIds = dbClient.queryByType(Host.class, true); // all active hosts
         allHostsLoaded = true;
 
         URIQueryResultList computeElementIds = new URIQueryResultList(); // CEs for this UCS
-        _dbClient.queryByConstraint(ContainmentConstraint.Factory
+        dbClient.queryByConstraint(ContainmentConstraint.Factory
                 .getComputeSystemComputeElemetsConstraint(computeSystemId), computeElementIds);
 
         URIQueryResultList serviceProfileIds = new URIQueryResultList(); // SPs for this UCS
-        _dbClient.queryByConstraint(ContainmentConstraint.Factory.
+        dbClient.queryByConstraint(ContainmentConstraint.Factory.
                 getComputeSystemServiceProfilesConstraint(computeSystemId), serviceProfileIds);
 
-         matchHostsToComputeElements(_dbClient,hostIds,computeElementIds,serviceProfileIds);
+         matchHostsToComputeElements(dbClient,hostIds,computeElementIds,serviceProfileIds);
     }    
 
     private static void matchHostsToComputeElements(DbClient _dbClient,Collection<URI> hostIds,
             Collection<URI> computeElementIds,Collection<URI> serviceProfileIds) {
 
-        dbClient = _dbClient;                              // set our client
         failureMessages = new StringBuffer();
 
         load(hostIds,computeElementIds,serviceProfileIds); // load hosts, computeElements &SPs

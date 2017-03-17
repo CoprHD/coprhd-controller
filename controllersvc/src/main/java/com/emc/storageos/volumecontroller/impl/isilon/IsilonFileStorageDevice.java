@@ -3423,7 +3423,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         switch (scheduleFreq) {
 
             case MINUTES:
-                builder.append("every 1 days every");
+                builder.append("every 1 days every ");
                 builder.append(schedule.getScheduleRepeat());
                 builder.append(" minutes between ");
                 builder.append(schedule.getScheduleTime());
@@ -3436,7 +3436,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                 break;
 
             case HOURS:
-                builder.append("every 1 days every");
+                builder.append("every 1 days every ");
                 builder.append(schedule.getScheduleRepeat());
                 builder.append(" hours between ");
                 builder.append(schedule.getScheduleTime());

@@ -732,6 +732,7 @@ angular.module("portalApp").controller({
             $http.get(routes.FileSystems_getTargetVArrys()).success(function(varrays) {
             	$scope.targetVarrayOptions = varrays;
             });
+
             
     	    $scope.$apply();
        }

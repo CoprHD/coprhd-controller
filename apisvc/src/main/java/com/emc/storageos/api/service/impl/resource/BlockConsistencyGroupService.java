@@ -530,6 +530,11 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         if (!consistencyGroup.created()) {
             throw APIException.badRequests.consistencyGroupNotCreated();
         }
+        
+        // RP CG's must use applications to create snapshots
+        if (consistencyGroup.checkForType(Types.RP)) {
+            throw APIException.badRequests.snapshotsNotSupportedForRPCGs();
+        }
 
         // Validate CG information in the request
         validateVolumesInReplicationGroups(consistencyGroup, param.getVolumes(), _dbClient);
@@ -1714,6 +1719,12 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         // in the CG. Note that it will take into account the
         // fact that the volume is in a CG.
         BlockConsistencyGroup cg = queryObject(BlockConsistencyGroup.class, consistencyGroupId, true);
+        
+        // RP CG's must use applications to create snapshots
+        if (cg.checkForType(Types.RP)) {
+            throw APIException.badRequests.snapshotsNotSupportedForRPCGs();
+        }
+        
         // Validate CG information in the request
         validateVolumesInReplicationGroups(cg, param.getVolumes(), _dbClient);
         return getSnapshotSessionManager().createSnapshotSession(cg, param, getFullCopyManager());

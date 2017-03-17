@@ -636,6 +636,9 @@ abstract public class AbstractDefaultMaskingOrchestrator {
         Collection<URI> volumeURIs = (exportMask.getVolumes() == null) ? newVolumeURIs
                 : (Collection<URI>) (Collections2.transform(exportMask.getVolumes().keySet(),
                         CommonTransformerFunctions.FCTN_STRING_TO_URI));
+        if(null == volumeURIs) {
+            volumeURIs = new ArrayList<URI>();
+        }
         ExportPathParams pathParams = _blockScheduler.calculateExportPathParamForVolumes(
                 volumeURIs, exportGroup.getNumPaths(), storageURI, exportGroupURI);
         if (exportGroup.getType() != null) {

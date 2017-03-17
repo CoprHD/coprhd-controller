@@ -100,7 +100,7 @@ public class WindowsSystemWinRM implements HostRescanAdapter {
 
     @Override
     public void rescan() throws WinRMException {
-       rescanDisks();    
+        rescanDisks();
     }
 
     public String formatAndMountDisk(int diskNumber, String fsType, String allocationUnitSize, String label, String mountpoint,

@@ -32,6 +32,6 @@ public class ChangeFileVirtualPoolService extends ViPRService {
 
     @Override
     public void execute() throws Exception {
-        FileStorageUtils.changeFileVirtualPoolAndAssignPolicy(uri(fileId), targetVirtualPool, filePolicy, targetVirtualArray);
+        FileStorageUtils.changeFileVirtualPool(uri(fileId), targetVirtualPool, filePolicy, targetVirtualArray);
     }
 }

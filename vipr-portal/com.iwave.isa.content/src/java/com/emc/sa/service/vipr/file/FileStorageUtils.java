@@ -159,11 +159,6 @@ public class FileStorageUtils {
         return fileSystemId;
     }
 
-    public static void changeFileVirtualPoolAndAssignPolicy(URI fileId, URI targetVirtualPool, URI filePolicy, URI targetVirtualArray) {
-        changeFileVirtualPool(fileId, targetVirtualPool);
-        associateFilePolicy(fileId, filePolicy, targetVirtualArray);
-    }
-
     public static void deleteFileSystem(URI fileSystemId, FileControllerConstants.DeleteTypeEnum fileDeletionType) {
 
         if (FileControllerConstants.DeleteTypeEnum.FULL.equals(fileDeletionType)) {
@@ -449,8 +444,8 @@ public class FileStorageUtils {
         addAffectedResources(tasks);
     }
 
-    public static void changeFileVirtualPool(URI fileId, URI targetVirtualPool) {
-        Task<FileShareRestRep> task = execute(new ChangeFileVirtualPool(fileId, targetVirtualPool));
+    public static void changeFileVirtualPool(URI fileId, URI targetVirtualPool, URI filePolicy, URI targetVirtualArray) {
+        Task<FileShareRestRep> task = execute(new ChangeFileVirtualPool(fileId, targetVirtualPool, filePolicy, targetVirtualArray));
         addAffectedResource(task);
     }
 

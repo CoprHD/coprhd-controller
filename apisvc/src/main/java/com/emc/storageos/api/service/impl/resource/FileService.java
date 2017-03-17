@@ -2562,7 +2562,7 @@ public class FileService extends TaskResourceService {
     @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.OWN, ACL.ALL })
     public TaskResourceRep changeFileSystemVirtualPool(@PathParam("id") URI id, FileSystemVirtualPoolChangeParam param) {
         _log.info("Request to change VirtualPool for filesystem {}", id);
-
+        StringBuilder errorMsg = new StringBuilder();
         // Validate the FS id.
         ArgValidator.checkFieldUriType(id, FileShare.class, "id");
         FileShare fs = queryResource(id);
@@ -2594,22 +2594,81 @@ public class FileService extends TaskResourceService {
             throw APIException.badRequests.invalidVirtualPoolForVirtualPoolChange(
                     newVpool.getLabel(), notSuppReasonBuff.toString());
         }
-        // Change the virtual pool of source file system!!
-        fs.setVirtualPool(newVpool.getId());
+
+        ArgValidator.checkFieldUriType(param.getFilePolicy(), FilePolicy.class, "file_policy");
+        FilePolicy filePolicy = _dbClient.queryObject(FilePolicy.class, param.getFilePolicy());
+        ArgValidator.checkEntity(filePolicy, param.getFilePolicy(), true);
+
+        StringSet existingFSPolicies = fs.getFilePolicies();
+
+        if (existingFSPolicies != null && existingFSPolicies.contains(param.getFilePolicy().toString())) {
+            errorMsg.append("Provided file policy:" + filePolicy.getId() + " is already is applied to the file system:" + fs.getId());
+            _log.error(errorMsg.toString());
+            throw APIException.badRequests.invalidVirtualPoolForVirtualPoolChange(newVpool.getLabel(), errorMsg.toString());
+        }
+
+        // check if same TYPE of policy already applied to file system
+        if (filePolicy.getFilePolicyType().equals(FilePolicy.FilePolicyType.file_replication.name()) && existingFSPolicies != null
+                && !existingFSPolicies.isEmpty()) {
+            checkForDuplicatePolicyApplied(filePolicy, existingFSPolicies);
+        }
+
+        // Check if the target vpool supports provided policy type..
+        FilePolicyServiceUtils.validateVpoolSupportPolicyType(filePolicy, newVpool);
+
+        // Check if the vpool supports policy at file system level..
+        if (!newVpool.getAllowFilePolicyAtFSLevel()) {
+            errorMsg.append("Provided vpool :" + newVpool.getLabel() + " doesn't support policy at file system level");
+            _log.error(errorMsg.toString());
+            throw APIException.badRequests.invalidVirtualPoolForVirtualPoolChange(
+                    newVpool.getLabel(), errorMsg.toString());
+        }
+
+        // Verify the vpool/project/fs has any replication policy!!!
+        // only single replication policy per vpool/project/fs.
+        if (filePolicy.getFilePolicyType().equalsIgnoreCase(FilePolicyType.file_replication.name())
+                && FilePolicyServiceUtils.fsHasReplicationPolicy(_dbClient, newVpool.getId(), fs.getProject().getURI(), fs.getId())) {
+            errorMsg.append("Provided vpool/project/fs has already assigned with replication policy.");
+            _log.error(errorMsg.toString());
+            throw APIException.badRequests.invalidVirtualPoolForVirtualPoolChange(
+                    newVpool.getLabel(), errorMsg.toString());
+        }
+
+        if (FilePolicyServiceUtils.fsHasSnapshotPolicyWithSameSchedule(_dbClient, fs.getId(), filePolicy)) {
+            errorMsg.append("Snapshot policy with similar schedule is already present on fs " + fs.getLabel());
+            _log.error(errorMsg.toString());
+            throw APIException.badRequests.invalidVirtualPoolForVirtualPoolChange(
+                    newVpool.getLabel(), errorMsg.toString());
+        }
 
         Operation op = new Operation();
         op.setResourceType(ResourceOperationTypeEnum.CHANGE_FILE_SYSTEM_VPOOL);
         op.setDescription("Change vpool operation");
         op = _dbClient.createTaskOpStatus(FileShare.class, fs.getId(), task, op);
-
-        // Update the new pool to DB!!
-        _dbClient.updateObject(fs);
-
         TaskResourceRep fileSystemTask = toTask(fs, task, op);
-        _dbClient.ready(FileShare.class, fs.getId(), task);
-        auditOp(OperationTypeEnum.CHANGE_FILE_SYSTEM_VPOOL, true, AuditLogManager.AUDITOP_BEGIN,
-                fs.getLabel(), currentVpool.getLabel(), newVpool.getLabel(),
-                project == null ? null : project.getId().toString());
+        try {
+            // Change the virtual pool of source file system!!
+            fs.setVirtualPool(newVpool.getId());
+            _dbClient.updateObject(fs);
+
+            FilePolicyFileSystemAssignParam policyAssignParam = new FilePolicyFileSystemAssignParam();
+            policyAssignParam.setTargetVArrays(param.getTargetVArrays());
+            if (filePolicy.getFilePolicyType().equals(FilePolicyType.file_replication.name())) {
+                return assignFileReplicationPolicyToFS(fs, filePolicy, policyAssignParam, task);
+            } else if (filePolicy.getFilePolicyType().equals(FilePolicyType.file_snapshot.name())) {
+                return assignFilePolicyToFS(fs, filePolicy, task);
+            }
+        } catch (BadRequestException e) {
+            op = _dbClient.error(FileShare.class, fs.getId(), task, e);
+            _log.error("Change vpool operation failed  {}, {}", e.getMessage(), e);
+            throw e;
+        } catch (Exception e) {
+            _log.error("Change vpool operation failed  {}, {}", e.getMessage(), e);
+            // revert the virtual pool of source file system!!
+            fs.setVirtualPool(currentVpool.getId());
+            _dbClient.updateObject(fs);
+            throw APIException.badRequests.unableToProcessRequest(e.getMessage());
+        }
         return fileSystemTask;
     }
 

@@ -120,11 +120,13 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
     static final String REPLICATE_NFS_EXPORT_TO_TARGET_WF_NAME = "REPLICATE_NFS_EXPORT_TO_TARGET_WORFLOW";
     static final String REPLICATE_NFS_EXPORT_RULES_TO_TARGET_WF_NAME = "REPLICATE_NFS_EXPORT_RULES_TO_TARGET_WORFLOW";
     static final String REPLICATE_NFS_ACLS_TO_TARGET_WF_NAME = "REPLICATE_NFS_ACLS_TO_TARGET_WORKFLOW";
+    static final String REPLICATE_NFS_ACES_TO_TARGET_WF_NAME = "REPLICATE_NFS_ACES_TO_TARGET_WORKFLOW";
 
     private static final String CREATE_FILESYSTEM_EXPORT_METHOD = "export";
     private static final String CREATE_FILESYSTEM_SHARE_METHOD = "share";
     private static final String UPDATE_FILESYSTEM_SHARE_ACLS_METHOD = "updateShareACLs";
     private static final String UPDATE_FILESYSTEM_NFS_ACL_METHOD = "updateNFSAcl";
+    private static final String ROLLBACK_NFS_ACE_FAILED_ON_TARGET_METHOD = "markNFSACEAsFailedOnTarget";
     private static final String UPDATE_FILESYSTEM_EXPORT_RULES_METHOD = "updateExportRules";
     private static final String CREATE_FILESYSTEM_SNAPSHOT_METHOD = "snapshotFS";
     private static final String DELETE_FILESYSTEM_SHARE_METHOD = "deleteShare";
@@ -139,6 +141,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
     private static final String REPLICATE_FILESYSTEM_NFS_EXPORT_METHOD = "addStepsToReplicateNFSExports";
     private static final String REPLICATE_FILESYSTEM_NFS_EXPORT_RULE_METHOD = "addStepsToReplicateNFSExportRules";
     private static final String REPLICATE_FILESYSTEM_NFS_ACLS_METHOD = "addStepsToReplicateNFSACLs";
+    private static final String REPLICATE_FILESYSTEM_NFS_ACES_METHOD = "addStepsToReplicateNFSACEs";
     private static final String RESTORE_FILESYSTEM_SNAPSHOT_METHOD = "restoreFS";
     private static final String DELETE_FILESYSTEM_SNAPSHOT_METHOD = "delete";
     private static final String DELETE_FILESYSTEM_SHARE_ACLS_METHOD = "deleteShareACLs";
@@ -160,6 +163,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
     public void setCustomConfigHandler(CustomConfigHandler customConfigHandler) {
         this.customConfigHandler = customConfigHandler;
     }
+
     /*
      * (non-Javadoc)
      * 
@@ -1525,15 +1529,87 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
                 stepDescription, systemTarget, args);
     }
 
-    private static void updateNFSACLOnTarget(Workflow workflow, URI systemTarget, FileShare targetFileShare,
-            FileNfsACLUpdateParams params) {
+    public void updateNFSACLOnTarget(URI systemTarget, FileShare targetFileShare,
+            FileNfsACLUpdateParams params, FileShare sourceFileShare, String aclPath, String taskId) {
 
-        String stepDescription = String.format(
-                "Updating NFS ACL of file system: %s", targetFileShare.getName(), params.toString());
-        String updateNFSACLStep = workflow.createStepId();
-        Object[] args = new Object[] { systemTarget, targetFileShare.getId(), params };
-        _fileDeviceController.createMethod(workflow, null, UPDATE_FILESYSTEM_NFS_ACL_METHOD, updateNFSACLStep,
-                stepDescription, systemTarget, args);
+        FileWorkflowCompleter completer = new FileWorkflowCompleter(targetFileShare.getId(), taskId);
+
+        try {
+
+            Workflow workflow = _workflowService.getNewWorkflow(this, REPLICATE_NFS_ACES_TO_TARGET_WF_NAME, false, taskId, completer);
+
+            if (params != null) {
+                List<NfsACE> aces = params.getAcesToAdd();
+                if (aces != null && !aces.isEmpty()) {
+                    for (Iterator<NfsACE> iterator = aces.iterator(); iterator.hasNext();) {
+                        NfsACE nfsACE = iterator.next();
+                        List<NfsACE> oneAceToAdd = new ArrayList<NfsACE>();
+                        oneAceToAdd.add(nfsACE);
+
+                        FileNfsACLUpdateParams acesToAddParam = new FileNfsACLUpdateParams();
+                        acesToAddParam.setAcesToAdd(oneAceToAdd);
+                        String stepId = workflow.createStepId();
+                        String stepDescription = String.format("Step to add ACE %s on FS %s", targetFileShare.getName(),
+                                params.toString());
+                        Object[] args = new Object[] { systemTarget, targetFileShare.getId(), params };
+                        Object[] rollbackArgs = new Object[] { sourceFileShare.getId(), aclPath, params };
+
+                        _fileDeviceController.createMethod(workflow, null, UPDATE_FILESYSTEM_NFS_ACL_METHOD, stepId,
+                                stepDescription, systemTarget, args, ROLLBACK_NFS_ACE_FAILED_ON_TARGET_METHOD, rollbackArgs);
+                    }
+
+                }
+                aces = params.getAcesToModify();
+                if (aces != null && !aces.isEmpty()) {
+                    for (Iterator<NfsACE> iterator = aces.iterator(); iterator.hasNext();) {
+                        NfsACE nfsACE = iterator.next();
+                        List<NfsACE> oneAceToModiay = new ArrayList<NfsACE>();
+                        oneAceToModiay.add(nfsACE);
+
+                        FileNfsACLUpdateParams acesToAddParam = new FileNfsACLUpdateParams();
+                        acesToAddParam.setAcesToModify(oneAceToModiay);
+                        String stepId = workflow.createStepId();
+                        String stepDescription = String.format("Step to modify ACE %s on FS %s", targetFileShare.getName(),
+                                params.toString());
+                        Object[] args = new Object[] { systemTarget, targetFileShare.getId(), params };
+                        Object[] rollbackArgs = new Object[] { sourceFileShare.getId(), aclPath, params };
+
+                        _fileDeviceController.createMethod(workflow, null, UPDATE_FILESYSTEM_NFS_ACL_METHOD, stepId,
+                                stepDescription, systemTarget, args, ROLLBACK_NFS_ACE_FAILED_ON_TARGET_METHOD, rollbackArgs);
+                    }
+                }
+
+                aces = params.getAcesToDelete();
+                if (aces != null && !aces.isEmpty()) {
+                    for (Iterator<NfsACE> iterator = aces.iterator(); iterator.hasNext();) {
+                        NfsACE nfsACE = iterator.next();
+                        List<NfsACE> oneAceToDelete = new ArrayList<NfsACE>();
+                        oneAceToDelete.add(nfsACE);
+
+                        FileNfsACLUpdateParams acesToAddParam = new FileNfsACLUpdateParams();
+                        acesToAddParam.setAcesToDelete(oneAceToDelete);
+                        String stepId = workflow.createStepId();
+                        String stepDescription = String.format("Step to delete ACE %s on FS %s", targetFileShare.getName(),
+                                params.toString());
+                        Object[] args = new Object[] { systemTarget, targetFileShare.getId(), params };
+                        Object[] rollbackArgs = new Object[] { sourceFileShare.getId(), aclPath, params };
+
+                        _fileDeviceController.createMethod(workflow, null, UPDATE_FILESYSTEM_NFS_ACL_METHOD, stepId,
+                                stepDescription, systemTarget, args, ROLLBACK_NFS_ACE_FAILED_ON_TARGET_METHOD, rollbackArgs);
+                    }
+
+                }
+            }
+            String successMessage = "Replicating NFS ACEs successful for: " + targetFileShare.getLabel();
+            workflow.executePlan(completer, successMessage);
+        } catch (Exception ex) {
+            s_logger.error("Could not replicate NFS ACEs to target filesystems: " + targetFileShare.getLabel(), ex);
+            String opName = ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_FAILOVER.getName();
+            ServiceError serviceError = DeviceControllerException.errors.createFileSharesFailed(
+                    targetFileShare.getId().toString(), opName, ex);
+            completer.error(s_dbClient, _locker, serviceError);
+        }
+
     }
 
     /**
@@ -1562,7 +1638,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
                 targetFileShare = s_dbClient.queryObject(FileShare.class, sourceFileShare.getParentFileShare());
             }
 
-            workflow = this._workflowService.getNewWorkflow(this, REPLICATE_NFS_ACLS_TO_TARGET_WF_NAME, false, taskId, completer);
+            workflow = _workflowService.getNewWorkflow(this, REPLICATE_NFS_ACLS_TO_TARGET_WF_NAME, false, taskId, completer);
 
             Map<String, List<NfsACE>> sourceFSACLMap = FileOrchestrationUtils.queryNFSACL(sourceFileShare, s_dbClient);
             Map<String, List<NfsACE>> targetFSACLMap = FileOrchestrationUtils.queryNFSACL(targetFileShare, s_dbClient);
@@ -1576,7 +1652,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
                     aclToAdd = sourceFSACLMap.get(fsPath);
                     params.setAcesToAdd(aclToAdd);
                     s_logger.info("Invoking updateNFSACL on FS: {}, with {}", targetFileShare.getName(), params);
-                    updateNFSACLOnTarget(workflow, systemTarget, targetFileShare, params);
+                    updateNFSACLOnTarget(systemTarget, targetFileShare, params, sourceFileShare, fsPath, taskId);
                 }
             } else if (!targetFSACLMap.isEmpty() && sourceFSACLMap.isEmpty()) {
                 s_logger.info("Source NFS doesn't have any ACL but corresponding NFS on target has ACL.");
@@ -1586,7 +1662,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
                     aclToDelete = targetFSACLMap.get(fsPath);
                     params.setAcesToDelete(aclToDelete);
                     s_logger.info("Invoking updateNFSACL on FS: {}, with {}", targetFileShare.getName(), params);
-                    updateNFSACLOnTarget(workflow, systemTarget, targetFileShare, params);
+                    updateNFSACLOnTarget(systemTarget, targetFileShare, params, sourceFileShare, fsPath, taskId);
                 }
             } else if (!sourceFSACLMap.isEmpty() && !targetFSACLMap.isEmpty()) {
                 // both source and target FS have some ACL
@@ -1648,7 +1724,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
 
                         if (targetACE != null &&
                                 (!targetACE.getPermissions().equals(sourceACE.getPermissions()) ||
-                                        !targetACE.getPermissionType().equals(sourceACE.getPermissionType()))) {
+                                !targetACE.getPermissionType().equals(sourceACE.getPermissionType()))) {
 
                             targetACE.setPermissions(sourceACE.getPermissions());
                             targetACE.setPermissionType(sourceACE.getPermissionType());
@@ -1668,7 +1744,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
 
                     if (!params.retrieveAllACL().isEmpty()) {
                         s_logger.info("Invoking updateNFSACL on FS: {}, with {}", targetFileShare.getName(), params);
-                        updateNFSACLOnTarget(workflow, systemTarget, targetFileShare, params);
+                        updateNFSACLOnTarget(systemTarget, targetFileShare, params, sourceFileShare, sourceFSACLPath, taskId);
                     }
                 }
             }

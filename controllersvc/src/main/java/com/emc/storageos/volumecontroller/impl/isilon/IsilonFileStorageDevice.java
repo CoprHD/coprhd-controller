@@ -2137,15 +2137,16 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
 
         // Process ACLs to add checking and avoiding duplicate ACLs
         List<ShareACL> aclsToBeAdded = new ArrayList<ShareACL>();
-        for ( ShareACL aclToAdd: aclsToAdd){
+        for (ShareACL aclToAdd : aclsToAdd) {
             boolean toBeAdded = true;
-            for(ShareACL aclToProcess: aclsToProcess){
-                if(aclToProcess.getUser().equals(aclToAdd.getUser())){
+            for (ShareACL aclToProcess : aclsToProcess) {
+                if (aclToProcess.getUser().equals(aclToAdd.getUser())) {
+                    toBeAdded = false;
                     break;
                 }
-                if(toBeAdded){
-                    aclsToBeAdded.add(aclToAdd);
-                    }
+            }
+            if(toBeAdded) {
+                aclsToBeAdded.add(aclToAdd);
             }
         }
         aclsToProcess.addAll(aclsToBeAdded);

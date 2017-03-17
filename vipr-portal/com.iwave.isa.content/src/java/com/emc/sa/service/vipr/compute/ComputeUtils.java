@@ -1059,11 +1059,10 @@ public class ComputeUtils {
 	 * @return false if any host still exists in the vCenter, but is NOT in the cluster assigned to the host in our DB.
 	 */
 	public static boolean verifyHostInVcenterCluster(Cluster cluster, List<URI> hostIds) {
-        // If the cluster isn't returned properly, not found in DB, it's already disassociated with the 
-		// vCenter, and validation is OK.
+        // If the cluster isn't returned properly, then something went wrong. We must fail validation. 
         if (cluster == null || cluster.getInactive()) {
-            ExecutionUtils.currentContext().logWarn("The cluster is not active in ViPR DB, therefore no validation can occur against a vCenter.");
-            return true;
+            ExecutionUtils.currentContext().logError("The cluster is not active in ViPR DB, therefore we can not proceed with validation.");
+            return false;
         }
 
         // If this cluster is not part of a virtual center/datacenter, then we cannot perform validation.

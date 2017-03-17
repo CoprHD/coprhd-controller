@@ -150,7 +150,7 @@ public final class HostToComputeElementMatcher {
             UCSServiceProfile sp = getMatchingServiceProfile(host,spMap);
 
             // update Host & ServiceProfile
-            if ((ce != null) & (sp != null)) {
+            if ((ce != null) && (sp != null)) {
                 _log.info("matched host to SP & CE " + info(host) + ", " + info(sp) + ", " + info(ce));
                 setHostAssociations(host,ce,sp);
             } else {

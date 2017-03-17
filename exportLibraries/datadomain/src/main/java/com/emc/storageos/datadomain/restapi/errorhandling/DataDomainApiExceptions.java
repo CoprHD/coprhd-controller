@@ -34,7 +34,7 @@ public interface DataDomainApiExceptions {
     DataDomainApiException jsonWriterReaderException(Throwable cause);
 
     @DeclareServiceCode(ServiceCode.DATADOMAIN_API_ERROR)
-            DataDomainApiException failedToFindManagementSystem(String systemNo);
+    DataDomainApiException failedToFindManagementSystem(String systemNo);
 
     @DeclareServiceCode(ServiceCode.DATADOMAIN_API_ERROR)
     DataDomainApiException failedResponseFromDataDomainMsg(URI uri, int status, String msg, int ddCode);

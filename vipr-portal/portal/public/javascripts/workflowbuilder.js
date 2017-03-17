@@ -156,6 +156,7 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
         // Identifying if node is not saved to DB yet and creating it.
         if (!(data.node.id).startsWith("urn")) {
             createDir(event, data);
+            addMoreOptions(data.node.parent, folderNodeType, "");
         }
         else {
             if (folderNodeType === data.node.type) {
@@ -165,7 +166,7 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
                 $http.get(routes.Workflow_edit_name({"id": data.node.id, "newName": data.text}));
             }
 
-            addMoreOptions(data);
+            addMoreOptions(data.node.id, data.node.type, data.node.parent);
         }
     };
 
@@ -199,32 +200,30 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
     var validActionsOnWorkflow = ["renameMenu", "editWFMenu", "deleteMenu"]
     var validActionsOnMyPrimitives = ["deleteMenu", "editMenu"]
 
-    function addMoreOptions(data) {
+    function addMoreOptions(nodeId, nodeType, parentId) {
         if(!$scope.libraryMenu) return;
 
         //remove any previous element
         $("#treeMoreOptions").remove();
 
         // Do not show 'More options' on ViPR Library nodes
-        if($.inArray(data.node.id, viprLibIDs) > -1 || $.inArray(data.node.parent, viprLibIDs) > -1) {
+        if($.inArray(nodeId, viprLibIDs) > -1 || $.inArray(parentId, viprLibIDs) > -1) {
             return;
         }
 
         //find anchor with this id and append "more options"
-        $scope.selectedNode = data;
-        $('[id="'+data.node.id+'"]').children('a').after(optionsHTML);
-
+        $('[id="'+nodeId+'"]').children('a').after(optionsHTML);
 
         // If current node is vipr library or its parent is vipr library, disable all
-        if("myLib" === data.node.id) {
+        if("myLib" === nodeId) {
             // My Library root
             validActions = validActionsOnMyLib;
         }
-        else if(workflowNodeType === data.node.type){
+        else if(workflowNodeType === nodeType){
             // For workflows
             validActions = validActionsOnWorkflow
         }
-        else if($.inArray(data.node.type, fileNodeTypes) > -1){
+        else if($.inArray(nodeType, fileNodeTypes) > -1){
             // For other file types (shell, rest, ansible)
             validActions = validActionsOnMyPrimitives;
         }
@@ -238,17 +237,14 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
             $('#'+value).show();
         });
 
-
-
         //TODO: check if we can avoid this search on ID
-        var generated = jstreeContainer.jstree(true).get_node(data.node.id, true);
+        var generated = jstreeContainer.jstree(true).get_node(nodeId, true);
         $compile(generated.contents())($scope);
     }
 
 
     function selectDir(event, data) {
-
-        addMoreOptions(data);
+        addMoreOptions(data.node.id, data.node.type, data.node.parent);
 
         // Enable/Disable Preview Option
         $scope.shellPreview = false;
@@ -257,15 +253,6 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
             //preview Shell script
             $scope.shellPreview = true;
             $scope.noPreview = false;
-        }
-
-        // If current node is vipr library or its parent is vipr library, disable all
-        if($.inArray(data.node.id, viprLibIDs) > -1 || $.inArray(data.node.parent, viprLibIDs) > -1 || $.inArray(data.node.type, fileNodeTypes) > -1) {
-            // ViPR Library nodes - disable all buttons
-            $('#addWorkflow').prop("disabled",true);
-        }
-        else {
-            $('#addWorkflow').prop("disabled",false);
         }
     };
 

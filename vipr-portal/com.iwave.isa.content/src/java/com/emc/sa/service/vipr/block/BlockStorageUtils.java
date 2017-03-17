@@ -743,9 +743,11 @@ public class BlockStorageUtils {
     }
 
     public static void removeFullCopiesForVolume(URI volumeId, Collection<URI> vols, VolumeDeleteTypeEnum type) {
-        List<URI> fullCopiesIds = getActiveFullCopies(volumeId);
-        vols.removeAll(fullCopiesIds);
-        removeFullCopies(fullCopiesIds, type);
+        if (!ResourceType.isType(BLOCK_SNAPSHOT, volumeId)) {
+            List<URI> fullCopiesIds = getActiveFullCopies(volumeId);
+            vols.removeAll(fullCopiesIds);
+            removeFullCopies(fullCopiesIds, type);
+        }
     }
 
     public static void removeFullCopies(Collection<URI> fullCopyIds, VolumeDeleteTypeEnum type) {

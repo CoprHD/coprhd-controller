@@ -31,6 +31,7 @@ public class WindowsSystemWinRM implements HostRescanAdapter {
     private static final String LUN_KEY_FORMAT = "HARDWARE\\DEVICEMAP\\Scsi\\Scsi Port %d\\Scsi Bus %d\\Target Id %d\\Logical Unit Id %d";
     private static final String DEVICE_ID_PAGE = "DeviceIdentifierPage";
     private static final Logger LOG = Logger.getLogger(WindowsSystemWinRM.class);
+    private static final int MAX_SCAN_RETRIES = 2;
     private WinRMTarget target;
     private URI hostId;
     private URI clusterId;
@@ -74,7 +75,22 @@ public class WindowsSystemWinRM implements HostRescanAdapter {
 
     @Override
     public void rescan() throws WinRMException {
-        rescanDisks();
+        int scanAttempt = 1;
+        while (scanAttempt <= MAX_SCAN_RETRIES) {
+            try {
+                info(String.format("Rescan attempt %s/%s", scanAttempt, MAX_SCAN_RETRIES));
+                rescanDisks();
+                break;
+            } catch (WinRMException wrme) {
+                if (scanAttempt == MAX_SCAN_RETRIES) {
+                    throw wrme;
+                } else {
+                    scanAttempt++;
+                    error(String.format("Encountered exception during rescan. "
+                            + "Another rescan attempt will be made. Exception: %s", wrme.getMessage()));
+                }
+            }
+        }
     }
 
     public String formatAndMountDisk(int diskNumber, String fsType, String allocationUnitSize, String label, String mountpoint,

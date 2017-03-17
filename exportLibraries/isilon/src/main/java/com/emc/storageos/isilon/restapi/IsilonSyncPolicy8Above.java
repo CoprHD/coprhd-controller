@@ -12,7 +12,7 @@ import com.emc.storageos.isilon.restapi.IsilonSyncPolicy.Action;
  * Class representing the isilon sync iq policy object for isilon onefs v8.0.0 and above
  * member names should match the key names in json object
  */
-public class IsilonSyncPolicy8above extends IsilonSyncPolicy {
+public class IsilonSyncPolicy8Above extends IsilonSyncPolicy {
     //set 0-Normal, 1-High
     private Integer priority;
     
@@ -35,7 +35,7 @@ public class IsilonSyncPolicy8above extends IsilonSyncPolicy {
                 + "]";
     }
     
-    public IsilonSyncPolicy8above copy(IsilonSyncPolicy policy){
+    public IsilonSyncPolicy8Above copy(IsilonSyncPolicy policy){
         this.name = policy.name;
         this.source_root_path = policy.source_root_path;
         this.action = policy.action;

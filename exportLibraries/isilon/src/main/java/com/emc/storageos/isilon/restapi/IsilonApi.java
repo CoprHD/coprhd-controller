@@ -2025,8 +2025,8 @@ public class IsilonApi {
      * @return IsilonSyncPolicy object
      * @throws IsilonException
      */
-    public IsilonSyncPolicy8above getReplicationPolicy8above(String id) throws IsilonException {
-        return get(_baseUrl.resolve(URI_REPLICATION_POLICIES_8), id, "policies", IsilonSyncPolicy8above.class);
+    public IsilonSyncPolicy8Above getReplicationPolicy8above(String id) throws IsilonException {
+        return get(_baseUrl.resolve(URI_REPLICATION_POLICIES_8), id, "policies", IsilonSyncPolicy8Above.class);
     }
 
     /**
@@ -2045,8 +2045,8 @@ public class IsilonApi {
      * @return IsilonList<IsilonSyncPolicy>
      * @throws IsilonException
      */
-    public IsilonList<IsilonSyncPolicy8above> getReplicationPolicies8above() throws IsilonException {
-        return list(_baseUrl.resolve(URI_REPLICATION_POLICIES_8), "policies", IsilonSyncPolicy8above.class, "");
+    public IsilonList<IsilonSyncPolicy8Above> getReplicationPolicies8above() throws IsilonException {
+        return list(_baseUrl.resolve(URI_REPLICATION_POLICIES_8), "policies", IsilonSyncPolicy8Above.class, "");
     }
 
     /**
@@ -2079,7 +2079,7 @@ public class IsilonApi {
      * @return String identifier for the policy created
      * @throws IsilonException
      */
-    public String createReplicationPolicy8above(IsilonSyncPolicy8above replicationPolicy) throws IsilonException {
+    public String createReplicationPolicy8above(IsilonSyncPolicy8Above replicationPolicy) throws IsilonException {
         return create(_baseUrl.resolve(URI_REPLICATION_POLICIES_8), "policies", replicationPolicy);
     }
 
@@ -2105,7 +2105,7 @@ public class IsilonApi {
      *            IsilonSyncPolicy object with the modified properties
      * @throws IsilonException
      */
-    public void modifyReplicationPolicy8above(String id, IsilonSyncPolicy8above syncPolicy) throws IsilonException {
+    public void modifyReplicationPolicy8above(String id, IsilonSyncPolicy8Above syncPolicy) throws IsilonException {
         modify(_baseUrl.resolve(URI_REPLICATION_POLICIES_8), id, "policies", syncPolicy);
     }
 

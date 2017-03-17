@@ -79,7 +79,7 @@ import com.emc.storageos.isilon.restapi.IsilonSshApi;
 import com.emc.storageos.isilon.restapi.IsilonSyncPolicy;
 import com.emc.storageos.isilon.restapi.IsilonSyncPolicy.Action;
 import com.emc.storageos.isilon.restapi.IsilonSyncPolicy.JobState;
-import com.emc.storageos.isilon.restapi.IsilonSyncPolicy8above;
+import com.emc.storageos.isilon.restapi.IsilonSyncPolicy8Above;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.model.file.ExportRule;
 import com.emc.storageos.model.file.NfsACE;
@@ -2981,8 +2981,8 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                 /*
                  * Changes made for addressing new fields added in sync Policy in OneFSv 8.0 and above
                  */
-                IsilonSyncPolicy8above modifiedPolicycopy = new IsilonSyncPolicy8above();
-                IsilonSyncPolicy8above syncpolicyAtPath8 = null;
+                IsilonSyncPolicy8Above modifiedPolicycopy = new IsilonSyncPolicy8Above();
+                IsilonSyncPolicy8Above syncpolicyAtPath8 = null;
                 if(isVersion8above && policyUpdateParam.getPriority() != null){
                     syncpolicyAtPath8 = isi.getReplicationPolicy8above(syncpolicyAtPath.getName());
                     modifiedPolicycopy = modifiedPolicycopy.copy(modifiedPolicy);
@@ -3245,7 +3245,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                             filePolicy, fs, args);
                     IsilonSyncPolicy policy = new IsilonSyncPolicy(policyName, sourcePath, targetPath, targetHost,
                             IsilonSyncPolicy.Action.sync);
-                    IsilonSyncPolicy8above policycopy = new IsilonSyncPolicy8above();
+                    IsilonSyncPolicy8Above policycopy = new IsilonSyncPolicy8Above();
                     if (scheduleValue != null && !scheduleValue.isEmpty()) {
                         policy.setSchedule(scheduleValue);
                     }
@@ -3761,7 +3761,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             replicationPolicy.setSchedule(scheduleValue);
             String scheduleId;
             if (VersionChecker.verifyVersionDetails(ONEFS_V8, storageObj.getFirmwareVersion()) >= 0) {
-                IsilonSyncPolicy8above replicationPolicyCopy = new IsilonSyncPolicy8above();
+                IsilonSyncPolicy8Above replicationPolicyCopy = new IsilonSyncPolicy8Above();
                 replicationPolicyCopy =  replicationPolicyCopy.copy(replicationPolicy);
                 if(filePolicy.getPriority() != null){
                     replicationPolicyCopy.setPriority(FilePolicyPriority.valueOf(filePolicy.getPriority()).ordinal());

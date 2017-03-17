@@ -629,17 +629,17 @@ public class FilePolicyService extends TaskResourceService {
                 EnumSet.allOf(FilePolicy.FileReplicationType.class));
 
         ArgValidator.checkFieldValueFromEnum(param.getReplicationPolicyParams().getReplicationCopyMode(), "replicationCopyMode",
-                EnumSet.allOf(FilePolicy.FileReplicationCopyMode.class));
-        
-        ArgValidator.checkFieldValueFromEnum(param.getPriority(), "priority",
-                    EnumSet.allOf(FilePolicyPriority.class));
-           
+                EnumSet.allOf(FilePolicy.FileReplicationCopyMode.class));           
 
         fileReplicationPolicy.setId(URIUtil.createId(FilePolicy.class));
         fileReplicationPolicy.setFilePolicyName(param.getPolicyName());
         fileReplicationPolicy.setLabel(param.getPolicyName());
         fileReplicationPolicy.setFilePolicyType(param.getPolicyType());
-        fileReplicationPolicy.setPriority(param.getPriority());
+        if(param.getPriority() != null){
+            ArgValidator.checkFieldValueFromEnum(param.getPriority(), "priority",
+                    EnumSet.allOf(FilePolicyPriority.class));
+            fileReplicationPolicy.setPriority(param.getPriority());
+        }
         fileReplicationPolicy.setNumWorkerThreads((long) param.getNumWorkerThreads());
         if (param.getPolicyDescription() != null && !param.getPolicyDescription().isEmpty()) {
             fileReplicationPolicy.setFilePolicyDescription(param.getPolicyDescription());

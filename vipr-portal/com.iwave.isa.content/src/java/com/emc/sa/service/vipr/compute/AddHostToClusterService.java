@@ -267,13 +267,18 @@ public class AddHostToClusterService extends ViPRService {
         hosts = ComputeUtils.deactivateHostsWithNoOS(hosts);
         logInfo("compute.cluster.exports.installed.os", ComputeUtils.nonNull(hosts).size());
 
-        if (!ComputeUtils.nonNull(hosts).isEmpty()) {
-            // VBDU DONE: COP-28433: Deactivate Host without OS installed (Rollback is in place and this is addressed)
-            ComputeUtils.addHostsToCluster(hosts, cluster);
-            pushToVcenter();
-            ComputeUtils.discoverHosts(hosts);
-        } else {
-            logWarn("compute.cluster.installed.os.none");
+        try {
+            if (!ComputeUtils.nonNull(hosts).isEmpty()) {
+                // VBDU DONE: COP-28433: Deactivate Host without OS installed (Rollback is in place and this is addressed)
+                ComputeUtils.addHostsToCluster(hosts, cluster);
+                pushToVcenter();
+                ComputeUtils.discoverHosts(hosts);
+            } else {
+                logWarn("compute.cluster.installed.os.none");
+            }
+        } catch (Exception ex) {
+            logError(ex.getMessage());
+            setPartialSuccess();
         }
 
         String orderErrors = ComputeUtils.getOrderErrors(cluster, copyOfHostNames, computeImage, vcenterId);
@@ -359,26 +364,38 @@ public class AddHostToClusterService extends ViPRService {
                 if (null != datacenterId) {
                     dataCenter = ComputeUtils.getVcenterDataCenter(datacenterId);
                 }
+                boolean status = true;
                 URI existingDatacenterId = cluster.getVcenterDataCenter();
                 if (existingDatacenterId == null) {
                     logInfo("compute.cluster.create.vcenter.cluster.datacenter",
                             (vcenter != null ? vcenter.getLabel() : vcenterId),
                             (dataCenter != null ? dataCenter.getLabel() : datacenterId));
                     if (dataCenter == null) {
-                        ComputeUtils.createVcenterCluster(cluster, datacenterId);
+                        status = ComputeUtils.createVcenterCluster(cluster, datacenterId);
                     } else {
-                        ComputeUtils.createVcenterCluster(cluster, dataCenter);
+                        status = ComputeUtils.createVcenterCluster(cluster, dataCenter);
+                    }
+
+                    if (!status) {
+                        throw new IllegalStateException(
+                                ExecutionUtils.getMessage("vcenter.cluster.create.failed", cluster.getLabel()));
                     }
                 } else {
                     logInfo("vcenter.cluster.update", cluster.getLabel());
                     if (dataCenter == null) {
-                        ComputeUtils.updateVcenterCluster(cluster, datacenterId);
+                        status = ComputeUtils.updateVcenterCluster(cluster, datacenterId);
                     } else {
-                        ComputeUtils.updateVcenterCluster(cluster, dataCenter);
+                        status = ComputeUtils.updateVcenterCluster(cluster, dataCenter);
+                    }
+
+                    if (!status) {
+                        throw new IllegalStateException(
+                                ExecutionUtils.getMessage("vcenter.cluster.update.failed", cluster.getLabel()));
                     }
                 }
             } catch (Exception e) {
                 logError("compute.cluster.vcenter.push.failed", e.getMessage());
+                throw e;
             }
         }
     }

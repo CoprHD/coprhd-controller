@@ -639,8 +639,10 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
                 // been discovered on the array.
                 Set<String> allRelatedVolumesWWN = new HashSet<String>();
                 for (URI relatedVolumeURI : allRelatedVolumes) {
-                    Volume relatedVolume = dbClient.queryObject(Volume.class, relatedVolumeURI);
-                    allRelatedVolumesWWN.add(relatedVolume.getWWN());
+                    BlockObject relatedObj = BlockObject.fetch(dbClient, relatedVolumeURI);
+                    if (relatedObj != null) {
+                        allRelatedVolumesWWN.add(relatedObj.getWWN());
+                    }
                 }
                 
                 Set<String> existingVolumes = Sets.difference(discoveredVolumes.keySet(), allRelatedVolumesWWN);

@@ -23,7 +23,6 @@ import java.util.Map;
 import com.emc.sa.engine.ExecutionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 
 import com.emc.sa.service.vipr.tasks.ViPRExecutionTask;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
@@ -34,7 +33,6 @@ import com.sun.jersey.api.client.config.DefaultClientConfig;
 
 public class CustomServicesRESTExecution extends ViPRExecutionTask<CustomServicesTaskResult> {
 
-    @Autowired
     private final CoordinatorClient coordinator;
     private final Map<String, List<String>> input;
     private final CustomServicesWorkflowDocument.Step step;

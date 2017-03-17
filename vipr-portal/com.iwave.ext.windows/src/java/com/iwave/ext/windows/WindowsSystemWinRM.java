@@ -95,6 +95,7 @@ public class WindowsSystemWinRM implements HostRescanAdapter {
                 }
             }
         }
+        info("Rescan complete.");
         return output;
     }
 

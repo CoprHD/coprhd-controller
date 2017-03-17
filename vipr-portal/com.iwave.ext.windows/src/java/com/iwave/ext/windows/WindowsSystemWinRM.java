@@ -32,6 +32,7 @@ public class WindowsSystemWinRM implements HostRescanAdapter {
     private static final String DEVICE_ID_PAGE = "DeviceIdentifierPage";
     private static final Logger LOG = Logger.getLogger(WindowsSystemWinRM.class);
     private static final int MAX_SCAN_RETRIES = 2;
+    private static final int SLEEP_BETWEEN_SCAN_ATTEMPTS = 10;
     private WinRMTarget target;
     private URI hostId;
     private URI clusterId;
@@ -87,7 +88,14 @@ public class WindowsSystemWinRM implements HostRescanAdapter {
                 } else {
                     scanAttempt++;
                     error(String.format("Encountered exception during rescan. "
-                            + "Another rescan attempt will be made. Exception: %s", wrme.getMessage()));
+                            + "Another rescan attempt will be made in %s seconds. Exception: %s", 
+                            SLEEP_BETWEEN_SCAN_ATTEMPTS, wrme.getMessage()));
+                    try {
+                        // Sleep between rescan attempts
+                        Thread.sleep(SLEEP_BETWEEN_SCAN_ATTEMPTS * 1000);
+                    } catch (InterruptedException e) {
+                        throw new WinRMException(e);
+                    }
                 }
             }
         }

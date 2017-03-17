@@ -175,16 +175,29 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
 
     var optionsHTML = `
     <div id="treeMoreOptions" class="btn-group" style="float:right;padding-right:5px;">
-       <button type="button" class="btn btn-xs btn-default dropdown-toggle" title="More Options" data-toggle="dropdown" style="background-color:#4794cd; border-color:#4794cd;">
+       <button type="button" class="btn btn-xs btn-default dropdown-toggle" title="Options" data-toggle="dropdown" style="background-color:#b3cadb; border-color:#b3cadb;">
            <span class="glyphicon glyphicon-chevron-down"></span>
        </button>
        <ul class="dropdown-menu dropdown-menu-right" role="menu">
-           <li><a  href="#" ng-click="editNode();"><span class="glyphicon glyphicon-pencil" style="padding-right:5px;"></span>Edit</a></li>
-           <li><a  href="#" ng-click="deleteNode();"><span class="glyphicon glyphicon-trash" style="padding-right:5px;"></span>Delete</a></li>
-           <li id="openWFMenu"><a  href="#" ng-click="openWorkflow();"><span class="glyphicon glyphicon-new-window" style="padding-right:5px;"></span>Open</a></li>
+            <li id="addWorkflowMenu" style="display:none;"><a  href="#" ng-click="addWorkflow();">Add Workflow</a></li>
+            <li id="addShellMenu" style="display:none;"><a  href="#" ng-click="openShellScriptModal();">Add Shell Script</a></li>
+            <li id="addLAMenu" style="display:none;"><a  href="#" ng-click="openShellScriptModal();">Add Local Ansible</a></li>
+            <li id="addRestMenu" style="display:none;"><a  href="#" ng-click="openRestAPIModal();">Add Rest API</a></li>
+            <li id="addFolderDivider" role="separator" class="divider" style="display:none;"></li>
+            <li id="addFolderMenu" style="display:none;"><a  href="#" ng-click="addFolder();">Add Folder</a></li>
+            <li id="editDivider" role="separator" class="divider" style="display:none;"></li>
+            <li id="renameMenu" style="display:none;"><a  href="#" ng-click="editNode();">Rename</a></li>
+            <li id="editMenu" style="display:none;"><a  href="#" ng-click="editNode();">Edit</a></li>
+            <li id="deleteMenu" style="display:none;"><a  href="#" ng-click="deleteNode();">Delete</a></li>
+            <li id="editWFMenu" style="display:none;"><a  href="#" ng-click="openWorkflow();">Edit</a></li>
        </ul>
     </div>
     `;
+
+    var validActionsOnMyLib = ["addWorkflowMenu", "addShellMenu", "addLAMenu", "addRestMenu", "addFolderDivider", "addFolderMenu"]
+    var validActionsOnFolder = ["addWorkflowMenu", "addShellMenu", "addLAMenu", "addRestMenu", "addFolderDivider", "addFolderMenu", "editDivider", "renameMenu", "deleteMenu"]
+    var validActionsOnWorkflow = ["renameMenu", "editWFMenu", "deleteMenu"]
+    var validActionsOnMyPrimitives = ["deleteMenu", "editMenu"]
 
     function addMoreOptions(data) {
         if(!$scope.libraryMenu) return;
@@ -192,8 +205,8 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
         //remove any previous element
         $("#treeMoreOptions").remove();
 
-        // Do not show 'More options' on ViPR Library nodes & My Library
-        if($.inArray(data.node.id, viprLibIDs) > -1 || $.inArray(data.node.parent, viprLibIDs) > -1 || "myLib" === data.node.id) {
+        // Do not show 'More options' on ViPR Library nodes
+        if($.inArray(data.node.id, viprLibIDs) > -1 || $.inArray(data.node.parent, viprLibIDs) > -1) {
             return;
         }
 
@@ -201,10 +214,31 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
         $scope.selectedNode = data;
         $('[id="'+data.node.id+'"]').children('a').after(optionsHTML);
 
-        // Hiding 'Open' menu for non-workflow types
-        if(workflowNodeType !== data.node.type){
-            $('#openWFMenu').hide();
+
+        // If current node is vipr library or its parent is vipr library, disable all
+        if("myLib" === data.node.id) {
+            // My Library root
+            validActions = validActionsOnMyLib;
         }
+        else if(workflowNodeType === data.node.type){
+            // For workflows
+            validActions = validActionsOnWorkflow
+        }
+        else if($.inArray(data.node.type, fileNodeTypes) > -1){
+            // For other file types (shell, rest, ansible)
+            validActions = validActionsOnMyPrimitives;
+        }
+        else {
+            // Other folders in My Library
+            validActions = validActionsOnFolder;
+        }
+
+        // Show all validActions
+        $.each(validActions, function( index, value ) {
+            $('#'+value).show();
+        });
+
+
 
         //TODO: check if we can avoid this search on ID
         var generated = jstreeContainer.jstree(true).get_node(data.node.id, true);

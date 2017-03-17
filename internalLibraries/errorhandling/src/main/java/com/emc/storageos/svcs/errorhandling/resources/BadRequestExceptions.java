@@ -3270,6 +3270,9 @@ public interface BadRequestExceptions {
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException invalidConsistencyGroupsForProtectionOperation();
 
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException hostWithDuplicateIP(final String newHost, final String ipAddress, final String duplicateHost);
+
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException numberNotAllowed();
 }

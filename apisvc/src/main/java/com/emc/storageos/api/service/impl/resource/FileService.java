@@ -3640,15 +3640,11 @@ public class FileService extends TaskResourceService {
         ArgValidator.checkFieldUriType(id, FileShare.class, "id");
         FileShare fs = queryResource(id);
         ArgValidator.checkEntity(fs, id, isIdEmbeddedInURL(id));
-        ArgValidator.checkFieldUriType(filePolicyUri, SchedulePolicy.class, "filePolicyUri");
+        ArgValidator.checkFieldUriType(filePolicyUri, FilePolicy.class, "filePolicyUri");
         ArgValidator.checkUri(filePolicyUri);
-        SchedulePolicy sp = _permissionsHelper.getObjectById(filePolicyUri, SchedulePolicy.class);
+        FilePolicy sp = _permissionsHelper.getObjectById(filePolicyUri, FilePolicy.class);
         ArgValidator.checkEntityNotNull(sp, filePolicyUri, isIdEmbeddedInURL(filePolicyUri));
 
-        // verify the file system tenant is same as policy tenant
-        if (!sp.getTenantOrg().getURI().toString().equalsIgnoreCase(fs.getTenant().getURI().toString())) {
-            throw APIException.badRequests.associatedPolicyTenantMismatch(filePolicyUri, id);
-        }
         // verify the schedule policy is associated with file system or not.
         if (!fs.getFilePolicies().contains(filePolicyUri.toString())) {
             throw APIException.badRequests.cannotFindAssociatedPolicy(filePolicyUri);

@@ -2833,9 +2833,20 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
 
     @Override
     public BiosCommandResult listSanpshotByPolicy(StorageSystem storageObj, FileDeviceInputOutput args) {
-        SchedulePolicy sp = args.getFilePolicy();
+        FilePolicy sp = args.getFileProtectionPolicy();
         FileShare fs = args.getFs();
-        String snapshotScheduleName = sp.getPolicyName() + "_" + args.getFsName();
+        String snapshotScheduleName = sp.getFilePolicyName() + "_" + args.getFsName();
+
+        if (sp.getPolicyStorageResources() != null && !sp.getPolicyStorageResources().isEmpty()) {
+            for (String uriResource : sp.getPolicyStorageResources()) {
+                PolicyStorageResource policyRes = _dbClient.queryObject(PolicyStorageResource.class, URI.create(uriResource));
+                if (policyRes != null && policyRes.getStorageSystem().equals(storageObj.getId())) {
+                    snapshotScheduleName = policyRes.getPolicyNativeId();
+                    break;
+                }
+            }
+        }
+
         IsilonApi isi = getIsilonDevice(storageObj);
         String resumeToken = null;
 
@@ -2864,7 +2875,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                         }
                         map.put("created", createdTime.toString());
                         map.put("expires", expiresTime);
-                        map.put("schedule", sp.getPolicyName());
+                        map.put("schedule", sp.getFilePolicyName());
                         snap.setExtensions(map);
                         _dbClient.updateObject(snap);
 

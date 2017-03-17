@@ -677,10 +677,10 @@ public class FileSystems extends ResourceController {
     }
 
     @FlashException(referrer = { "fileSystem" })
-    public static void assignPolicyToFileSystem(String fileSystemId, String policyId) {
+    public static void assignPolicyToFileSystem(String fileSystemId, String policyId, String targetVArrayId) {
         ViPRCoreClient client = BourneUtil.getViprClient();
         try {
-            client.fileSystems().associateFilePolicy(uri(fileSystemId), uri(policyId), null);
+            client.fileSystems().associateFilePolicy(uri(fileSystemId), uri(policyId), uri(targetVArrayId));
             fileSystem(fileSystemId);
         } catch (Exception ex) {
             flash.error(MessagesUtils.get("schedulePolicy.assign.error"), null);

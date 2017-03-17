@@ -67,7 +67,7 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
                     "valid_children": ["default"]
                 },
                 "FOLDER": {
-
+                    "icon": "/public/img/customServices/Folder.png",
                     "valid_children": ["WORKFLOW","FOLDER", "SCRIPT", "ANSIBLE"]
                 },
                 "WORKFLOW": {
@@ -177,12 +177,12 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
     var optionsHTML = `
     <div id="treeMoreOptions" class="btn-group" style="float:right;padding-right:5px;">
        <button type="button" class="btn btn-xs btn-default dropdown-toggle" title="Options" data-toggle="dropdown" style="background-color:#b3cadb; border-color:#b3cadb;">
-           <span class="glyphicon glyphicon-chevron-down"></span>
+           <span class="glyphicon"><img src="/public/img/customServices/Options.png" height="20" width="24"></span>
        </button>
        <ul class="dropdown-menu dropdown-menu-right" role="menu">
             <li id="addWorkflowMenu" style="display:none;"><a  href="#" ng-click="addWorkflow();">Create Workflow</a></li>
             <li id="addShellMenu" style="display:none;"><a  href="#" ng-click="openShellScriptModal();">Create Shell Script</a></li>
-            <li id="addLAMenu" style="display:none;"><a  href="#" ng-click="openShellScriptModal();">Create Local Ansible</a></li>
+            <li id="addLAMenu" style="display:none;"><a  href="#" ng-click="openLocalAnsibleModal();">Create Local Ansible</a></li>
             <li id="addRestMenu" style="display:none;"><a  href="#" ng-click="openRestAPIModal();">Create Rest API</a></li>
             <li id="addFolderDivider" role="separator" class="divider" style="display:none;"></li>
             <li id="addFolderMenu" style="display:none;"><a  href="#" ng-click="addFolder();">Create Folder</a></li>

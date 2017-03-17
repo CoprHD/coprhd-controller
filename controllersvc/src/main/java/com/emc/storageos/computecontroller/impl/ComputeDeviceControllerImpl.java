@@ -1015,8 +1015,6 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
         return waitFor;
     }
 
-    
-    
     /**
      * Deactivates or deletes the boot volume
      *

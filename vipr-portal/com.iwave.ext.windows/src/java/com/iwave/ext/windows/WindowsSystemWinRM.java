@@ -71,16 +71,12 @@ public class WindowsSystemWinRM implements HostRescanAdapter {
     }
 
     public String rescanDisks() throws WinRMException {
-        return diskPart(WindowsUtils.getRescanCommands());
-    }
-
-    @Override
-    public void rescan() throws WinRMException {
+        String output = "";
         int scanAttempt = 1;
         while (scanAttempt <= MAX_SCAN_RETRIES) {
             try {
                 info(String.format("Rescan attempt %s/%s", scanAttempt, MAX_SCAN_RETRIES));
-                rescanDisks();
+                output = diskPart(WindowsUtils.getRescanCommands());
                 break;
             } catch (WinRMException wrme) {
                 if (scanAttempt == MAX_SCAN_RETRIES) {
@@ -99,6 +95,12 @@ public class WindowsSystemWinRM implements HostRescanAdapter {
                 }
             }
         }
+        return output;
+    }
+
+    @Override
+    public void rescan() throws WinRMException {
+       rescanDisks();    
     }
 
     public String formatAndMountDisk(int diskNumber, String fsType, String allocationUnitSize, String label, String mountpoint,

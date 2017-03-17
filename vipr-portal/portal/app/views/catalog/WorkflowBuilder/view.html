@@ -8,6 +8,7 @@
 #{script 'jstree.min.js'/}
 #{createShellPrimitive /}
 #{createLocalAnsiblePrimitive ansibleResourceNames/}
+#{createRestAPIPrimitive arg1:restCallMethodOptions, arg2:restCallAuthTypes/}
 
 <style>
     .dl-horizontal dt
@@ -35,6 +36,14 @@
 
     .dropdown-menu {
         min-width: 0px !important;
+    }
+
+    .input-group-btn select {
+        border-color: #ccc;
+        margin-top: 0px;
+        margin-bottom: 0px;
+        padding-top: 7px;
+        padding-bottom: 7px;
     }
 
 </style>
@@ -66,7 +75,7 @@
                                         <li class="dropdown-header">Primitives</li>
                                         <li><a  href="#" ng-click="openShellScriptModal();">Shell Script</a></li>
                                         <li><a  href="#" ng-click="openLocalAnsibleModal();">Local Ansible</a></li>
-                                        <li><a  href="#">REST API</a></li>
+                                        <li><a  href="#" ng-click="openRestAPIModal();">REST API</a></li>
                                     </ul>
                                 </div>
                             </span>

@@ -29,7 +29,8 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
     var workflowNodeType = "WORKFLOW";
     var shellNodeType = "SCRIPT";
     var localAnsibleNodeType = "ANSIBLE"
-    var fileNodeTypes = [shellNodeType, localAnsibleNodeType, workflowNodeType]
+    var restAPINodeType = "REST"
+    var fileNodeTypes = [shellNodeType, localAnsibleNodeType, restAPINodeType, workflowNodeType]
     var viprLibIDs = ["viprrest", "viprLib"]
 
     initializeJsTree();
@@ -146,6 +147,9 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
         else {
             $http.get(routes.Workflow_delete({"workflowID": data.node.id, "dirID": data.parent}));
         }
+
+        // By default select "My Library"
+        jstreeContainer.jstree("select_node", "myLib");
     };
 
     function renameDir(event, data) {
@@ -160,19 +164,14 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
             else {
                 $http.get(routes.Workflow_edit_name({"id": data.node.id, "newName": data.text}));
             }
+
+            addMoreOptions(data);
         }
     };
 
     // default preview
     $scope.shellPreview = false;
     $scope.noPreview = true;
-
-    $scope.showMoreOptions = function() {
-        var data = $scope.selectedNode;
-        setTimeout(function() {
-            data.instance.show_contextmenu(data.node)
-        }, 100);
-    };
 
     var optionsHTML = `
     <div id="treeMoreOptions" class="btn-group" style="float:right;padding-right:5px;">
@@ -200,8 +199,7 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
 
         //find anchor with this id and append "more options"
         $scope.selectedNode = data;
-        var anchorSelector = data.node.id+"_anchor";
-        $('[id="'+anchorSelector+'"]').after(optionsHTML);
+        $('[id="'+data.node.id+'"]').children('a').after(optionsHTML);
 
         // Hiding 'Open' menu for non-workflow types
         if(workflowNodeType !== data.node.type){
@@ -272,6 +270,12 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
         $('#localAnsiblePrimitiveDialog').modal('show');
     }
 
+    $scope.openRestAPIModal = function(){
+            var scope = angular.element($('#restAPIModal')).scope();
+            scope.populateModal(false);
+            $('#restAPIPrimitiveDialog').modal('show');
+        }
+
     // if folder edit name, if primitive - open modal
     $scope.editNode = function() {
         var ref = jstreeContainer.jstree(true),
@@ -290,6 +294,12 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
             var scope = angular.element($('#localAnsibleModal')).scope();
             scope.populateModal(true, sel.id, sel.type);
             $('#localAnsiblePrimitiveDialog').modal('show');
+        }
+        else if(restAPINodeType === sel.type){
+            //open script modal
+            var scope = angular.element($('#restAPIModal')).scope();
+            scope.populateModal(true, sel.id, sel.type);
+            $('#restAPIPrimitiveDialog').modal('show');
         }
         else{
             ref.edit(sel.id);

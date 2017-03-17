@@ -36,6 +36,11 @@ import com.sun.xml.internal.xsom.impl.scd.Iterators.Map;
 public class CIMObjectPathCreatorFactory extends AbstractCIMObjectPathFactory {
     private final static Logger _log = LoggerFactory.getLogger(CIMObjectPathCreatorFactory.class);
 
+    private <E> void closeCIMIterator(CloseableIterator<E> itr) {
+        if (null != itr) {
+            itr.close();
+        }
+    }
     @Override
     public CIMObjectPath getElementCompositionSvcPath(StorageSystem storageDevice) {
         CIMObjectPath elementCompositionSvcPath;
@@ -225,8 +230,6 @@ public class CIMObjectPathCreatorFactory extends AbstractCIMObjectPathFactory {
 
     @Override
     public CIMObjectPath[] getTargetPortPaths(StorageSystem storageDevice, List<URI> targetURIList) throws Exception {
-        CIMObjectPath protocolEndpointPath = CimObjectPathCreator.createInstance(CIM_PROTOCOL_ENDPOINT,
-                ROOT_EMC_NAMESPACE);
         List<CIMObjectPath> objectPaths = new ArrayList<CIMObjectPath>();
         Set<String> portSet = new HashSet<String>();
         for (URI target : targetURIList) {
@@ -239,15 +242,32 @@ public class CIMObjectPathCreatorFactory extends AbstractCIMObjectPathFactory {
             }
             portSet.add(portName);
         }
-        CloseableIterator<CIMInstance> iterator =
-                cimConnectionFactory.getConnection(storageDevice).getCimClient().enumerateInstances(
-                        protocolEndpointPath, false, false, false, null);
-        while (iterator.hasNext()) {
-            CIMInstance instance = iterator.next();
-            String protocolEndpointName = CIMPropertyFactory.getPropertyValue(instance, SmisConstants.CP_NAME);
-            if (portSet.contains(protocolEndpointName)) {
-                objectPaths.add(instance.getObjectPath());
+        CIMObjectPath storageSystemPath = getStorageSystem(storageDevice);
+        CloseableIterator<CIMInstance> storageProcessorSystemItr = null;
+        CloseableIterator<CIMInstance> protocolEndpointItr = null;
+        try {
+            // Get all of the Storage Processor Systems associated with the Storage System
+            storageProcessorSystemItr = cimConnectionFactory.getConnection(storageDevice).getCimClient()
+                    .associatorInstances(storageSystemPath, null, SYMM_STORAGE_PROCESSOR_SYSTEM, null, null, false, null);
+            while (storageProcessorSystemItr.hasNext()) {
+                CIMInstance cimSPSInstance = storageProcessorSystemItr.next();
+                // Get all of the Protocol Endpoints associated with the Storage Processor System
+                protocolEndpointItr = cimConnectionFactory.getConnection(storageDevice).getCimClient()
+                        .associatorInstances(cimSPSInstance.getObjectPath(), null, CIM_PROTOCOL_ENDPOINT, null, null, false, null);
+                while (protocolEndpointItr.hasNext()) {
+                    CIMInstance cimPEInstance = protocolEndpointItr.next();
+                    String protocolEndpointName = CIMPropertyFactory.getPropertyValue(cimPEInstance, SmisConstants.CP_NAME);
+                    if (portSet.contains(protocolEndpointName)) {
+                        objectPaths.add(cimPEInstance.getObjectPath());
+                    }
+                }
             }
+        } catch (Exception e) {
+            _log.error("Failed trying to find suitable target protocol endpoints for Storage System {}", storageDevice.getId(), e);
+            throw e;
+        } finally {
+            closeCIMIterator(storageProcessorSystemItr);
+            closeCIMIterator(protocolEndpointItr);
         }
         CIMObjectPath[] objectPathArray = {};
         objectPathArray = objectPaths.toArray(objectPathArray);

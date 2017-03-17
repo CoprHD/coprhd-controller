@@ -34,6 +34,7 @@ import com.emc.storageos.db.client.model.FSExportMap;
 import com.emc.storageos.db.client.model.FileExport;
 import com.emc.storageos.db.client.model.FilePolicy;
 import com.emc.storageos.db.client.model.FilePolicy.FilePolicyApplyLevel;
+import com.emc.storageos.db.client.model.FilePolicy.FilePolicyPriority;
 import com.emc.storageos.db.client.model.FilePolicy.FilePolicyType;
 import com.emc.storageos.db.client.model.FilePolicy.FileReplicationCopyMode;
 import com.emc.storageos.db.client.model.FilePolicy.FileReplicationType;
@@ -78,6 +79,7 @@ import com.emc.storageos.isilon.restapi.IsilonSshApi;
 import com.emc.storageos.isilon.restapi.IsilonSyncPolicy;
 import com.emc.storageos.isilon.restapi.IsilonSyncPolicy.Action;
 import com.emc.storageos.isilon.restapi.IsilonSyncPolicy.JobState;
+import com.emc.storageos.isilon.restapi.IsilonSyncPolicy8Above;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.model.file.ExportRule;
 import com.emc.storageos.model.file.NfsACE;
@@ -90,6 +92,7 @@ import com.emc.storageos.model.file.policy.FileSnapshotPolicyParam;
 import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
+import com.emc.storageos.util.VersionChecker;
 import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.FileControllerConstants;
 import com.emc.storageos.volumecontroller.FileDeviceInputOutput;
@@ -117,6 +120,8 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
     public static final long SEC_IN_MILLI = 1000L;
     private static final String STR_WITH_NO_SPECIAL_SYMBOLS = "[^A-Za-z0-9_\\-/]";
     private static final String MIRROR_POLICY = "_mirror";
+
+    private static final String ONEFS_V8 = "8.0.0.0";
 
     private IsilonApiFactory _factory;
     private HashMap<String, String> configinfo;
@@ -2898,7 +2903,11 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
 
         try {
             if (existingPolicy.getFilePolicyType().equals(FilePolicy.FilePolicyType.file_replication.name())) {
-                return updateStorageSystemFileReplicationPolicy(isi, policyRes, existingPolicy, policyUpdateParam);
+                boolean isVersion8above = false;
+                if (VersionChecker.verifyVersionDetails(ONEFS_V8, storage.getFirmwareVersion()) >= 0) {
+                    isVersion8above = true;
+                }
+                return updateStorageSystemFileReplicationPolicy(isi, policyRes, existingPolicy, policyUpdateParam, isVersion8above);
             } else if (existingPolicy.getFilePolicyType().equals(FilePolicy.FilePolicyType.file_snapshot.name())) {
                 return updateStorageSystemFileSnapshotPolicy(isi, policyRes, existingPolicy, policyUpdateParam);
             } else {
@@ -2917,7 +2926,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
     }
 
     private BiosCommandResult updateStorageSystemFileReplicationPolicy(IsilonApi isi, PolicyStorageResource policyRes,
-            FilePolicy viprPolicy, FilePolicyUpdateParam policyUpdateParam) {
+            FilePolicy viprPolicy, FilePolicyUpdateParam policyUpdateParam, boolean isVersion8above) {
 
         try {
             ArrayList<IsilonSyncPolicy> isiSyncIQPolicies = isi.getReplicationPolicies().getList();
@@ -2951,11 +2960,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                     bModifyPolicy = true;
                 }
 
-                // Priority needs to be changed
-                if (policyUpdateParam.getPriority() != null && !policyUpdateParam.getPriority().isEmpty()) {
-
-                }
-
+      
                 if (policyUpdateParam.getReplicationPolicyParams() != null) {
                     FileReplicationPolicyParam replParam = policyUpdateParam.getReplicationPolicyParams();
 
@@ -2974,12 +2979,33 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
 
                     }
                 }
+                
+                /*
+                 * Changes made for addressing new fields added in sync Policy in OneFSv 8.0 and above
+                 */
+                IsilonSyncPolicy8Above modifiedPolicycopy = new IsilonSyncPolicy8Above();
+                IsilonSyncPolicy8Above syncpolicyAtPath8 = null;
+                if(isVersion8above && policyUpdateParam.getPriority() != null){
+                    syncpolicyAtPath8 = isi.getReplicationPolicy8above(syncpolicyAtPath.getName());
+                    modifiedPolicycopy = modifiedPolicycopy.copy(modifiedPolicy);
+                    if(syncpolicyAtPath8 != null){
+                        if(FilePolicyPriority.valueOf(policyUpdateParam.getPriority()).ordinal() != syncpolicyAtPath8.getPriority()){
+                            modifiedPolicycopy.setPriority(FilePolicyPriority.valueOf(policyUpdateParam.getPriority()).ordinal());
+                            bModifyPolicy = true;
+                        }
+                    }
+                }
 
                 if (bModifyPolicy) {
                     JobState policyState = syncpolicyAtPath.getLastJobState();
                     if (!policyState.equals(JobState.running) && !policyState.equals(JobState.paused)) {
-                        isi.modifyReplicationPolicy(syncpolicyAtPath.getName(), modifiedPolicy);
-                        _log.info("Modify Replication Policy- {} finished successfully", syncpolicyAtPath.getName());
+                        if(isVersion8above) {
+                            isi.modifyReplicationPolicy8above(syncpolicyAtPath8.getName(), modifiedPolicycopy);
+                            _log.info("Modify Replication Policy- {} finished successfully", syncpolicyAtPath8.getName());
+                        } else {
+                            isi.modifyReplicationPolicy(syncpolicyAtPath.getName(), modifiedPolicy);
+                            _log.info("Modify Replication Policy- {} finished successfully", syncpolicyAtPath.getName());
+                        }
                         return BiosCommandResult.createSuccessfulResult();
                     } else {
                         _log.error("Replication Policy - {} can't be MODIFIED because policy has an active job",
@@ -3221,6 +3247,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                             filePolicy, fs, args);
                     IsilonSyncPolicy policy = new IsilonSyncPolicy(policyName, sourcePath, targetPath, targetHost,
                             IsilonSyncPolicy.Action.sync);
+                    IsilonSyncPolicy8Above policycopy = new IsilonSyncPolicy8Above();
                     if (scheduleValue != null && !scheduleValue.isEmpty()) {
                         policy.setSchedule(scheduleValue);
                     }
@@ -3231,7 +3258,17 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                         policy.setWorkersPerNode(filePolicy.getNumWorkerThreads().intValue());
                     }
                     policy.setEnabled(true);
-                    String policyId = isi.createReplicationPolicy(policy);
+                    String policyId = null;
+                    if (VersionChecker.verifyVersionDetails(ONEFS_V8, storageObj.getFirmwareVersion()) >= 0) {
+                        if (filePolicy.getPriority() != null){
+                            policycopy = policycopy.copy(policy);
+                            policycopy.setPriority(FilePolicyPriority.valueOf(filePolicy.getPriority()).ordinal());
+                        }
+                        policyId = isi.createReplicationPolicy8above(policycopy);
+                    } else {
+                        policyId = isi.createReplicationPolicy(policy);
+                    }
+                    
                     if (policyId != null) {
                         _log.info("Isilon File Policy {} created successfully.", policyId);
                         FileOrchestrationUtils.updatePolicyStorageResource(_dbClient, storageObj, filePolicy, args, sourcePath, policyName,
@@ -3724,7 +3761,17 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             }
             replicationPolicy.setEnabled(true);
             replicationPolicy.setSchedule(scheduleValue);
-            String scheduleId = isi.createReplicationPolicy(replicationPolicy);
+            String scheduleId;
+            if (VersionChecker.verifyVersionDetails(ONEFS_V8, storageObj.getFirmwareVersion()) >= 0) {
+                IsilonSyncPolicy8Above replicationPolicyCopy = new IsilonSyncPolicy8Above();
+                replicationPolicyCopy =  replicationPolicyCopy.copy(replicationPolicy);
+                if(filePolicy.getPriority() != null){
+                    replicationPolicyCopy.setPriority(FilePolicyPriority.valueOf(filePolicy.getPriority()).ordinal());
+                }
+                scheduleId = isi.createReplicationPolicy8above(replicationPolicyCopy);
+            } else{
+                scheduleId = isi.createReplicationPolicy(replicationPolicy);
+            }
 
             FileOrchestrationUtils.updatePolicyStorageResource(_dbClient, storageObj,
                     filePolicy, sourceSystemArgs, sourcePath, syncPolicyName, targetStorage, targetSystemArgs.getvNAS(), targetPath);

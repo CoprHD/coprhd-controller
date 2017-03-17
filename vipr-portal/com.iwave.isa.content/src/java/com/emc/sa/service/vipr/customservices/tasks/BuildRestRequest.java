@@ -27,9 +27,10 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.commons.io.IOUtils;
 import org.slf4j.LoggerFactory;
 
-import com.emc.sa.service.vipr.customservices.CustomServicesConstants;
-import com.emc.storageos.model.customservices.CustomServicesWorkflowDocument;
+
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
+import com.emc.storageos.model.customservices.CustomServicesWorkflowDocument;
+import com.emc.storageos.primitives.CustomServicesConstants;
 import com.emc.storageos.security.ssl.ViPRX509TrustManager;
 import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorException;
 import com.sun.jersey.api.client.Client;

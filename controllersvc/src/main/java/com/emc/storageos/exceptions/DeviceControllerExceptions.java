@@ -497,9 +497,12 @@ public interface DeviceControllerExceptions {
 
     @DeclareServiceCode(ServiceCode.BLOCK_CONTROLLER_ERROR)
     public DeviceControllerException volumeExportReachedMaximumHlu(final String details);
-
+    
     @DeclareServiceCode(ServiceCode.BLOCK_CONTROLLER_ERROR)
     public DeviceControllerException volumeExportMaximumHluNotAvailable(final String systemType);
+
+    @DeclareServiceCode(ServiceCode.BLOCK_CONTROLLER_ERROR)
+    public DeviceControllerException consistentLunFlagNotSetOnInitiatorGroup(final String initiatorGroup);
 
     @DeclareServiceCode(ServiceCode.CONTROLLER_VALIDATION_EXCEPTION)
     public DeviceControllerException validationError(final String type, final String details, final String remediationAction);

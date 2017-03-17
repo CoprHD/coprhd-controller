@@ -50,6 +50,7 @@ import com.emc.sa.service.vipr.application.tasks.GetBlockSnapshotSessionList;
 import com.emc.sa.service.vipr.application.tasks.GetBlockSnapshotSet;
 import com.emc.sa.service.vipr.application.tasks.GetFullCopyList;
 import com.emc.sa.service.vipr.block.tasks.AddClusterToExport;
+import com.emc.sa.service.vipr.block.tasks.AddHostAndVolumeToExportNoWait;
 import com.emc.sa.service.vipr.block.tasks.AddHostToExport;
 import com.emc.sa.service.vipr.block.tasks.AddJournalCapacity;
 import com.emc.sa.service.vipr.block.tasks.AddVolumesToConsistencyGroup;
@@ -72,9 +73,9 @@ import com.emc.sa.service.vipr.block.tasks.DeactivateVolumes;
 import com.emc.sa.service.vipr.block.tasks.DetachFullCopy;
 import com.emc.sa.service.vipr.block.tasks.ExpandVolume;
 import com.emc.sa.service.vipr.block.tasks.FindBlockVolumeHlus;
-import com.emc.sa.service.vipr.block.tasks.FindExportByName;
 import com.emc.sa.service.vipr.block.tasks.FindExportByCluster;
 import com.emc.sa.service.vipr.block.tasks.FindExportByHost;
+import com.emc.sa.service.vipr.block.tasks.FindExportByName;
 import com.emc.sa.service.vipr.block.tasks.FindExportsContainingCluster;
 import com.emc.sa.service.vipr.block.tasks.FindExportsContainingHost;
 import com.emc.sa.service.vipr.block.tasks.FindVirtualArrayInitiators;
@@ -496,11 +497,10 @@ public class BlockStorageUtils {
         return exportId;
     }
 
-    public static Task<ExportGroupRestRep> createHostExportNoWait(URI projectId, URI virtualArrayId,
-            List<URI> volumeIds, Integer hlu, Host host) {
-        String exportName = host.getHostName();
-        return execute(new CreateExportNoWait(exportName, virtualArrayId, projectId,
-                volumeIds, hlu, host.getHostName(), host.getId(), null));
+    public static Task<ExportGroupRestRep> createHostExportNoWait(String exportName, URI projectId,
+            URI virtualArrayId, List<URI> volumeIds, Integer hlu, Host host) {
+        return execute(new CreateExportNoWait(exportName == null ? host.getHostName() : exportName, 
+                virtualArrayId, projectId, volumeIds, hlu, host.getHostName(), host.getId(), null));
     }
 
     public static URI createClusterExport(URI projectId, URI virtualArrayId, List<URI> volumeIds, Integer hlu, Cluster cluster,
@@ -536,6 +536,10 @@ public class BlockStorageUtils {
         addAffectedResource(task);
     }
 
+    public static Task<ExportGroupRestRep> addHostAndVolumeToExportNoWait(URI exportId, URI host, URI volumeId, Integer hlu) {
+        return execute(new AddHostAndVolumeToExportNoWait(exportId, host, volumeId, hlu));
+    }
+    
     public static void addClusterToExport(URI exportId, URI cluster, Integer minPaths, Integer maxPaths, Integer pathsPerInitiator) {
         Task<ExportGroupRestRep> task = execute(new AddClusterToExport(exportId, cluster, minPaths, maxPaths, pathsPerInitiator));
         addRollback(new DeactivateBlockExport(exportId));
@@ -739,9 +743,11 @@ public class BlockStorageUtils {
     }
 
     public static void removeFullCopiesForVolume(URI volumeId, Collection<URI> vols, VolumeDeleteTypeEnum type) {
-        List<URI> fullCopiesIds = getActiveFullCopies(volumeId);
-        vols.removeAll(fullCopiesIds);
-        removeFullCopies(fullCopiesIds, type);
+        if (!ResourceType.isType(BLOCK_SNAPSHOT, volumeId)) {
+            List<URI> fullCopiesIds = getActiveFullCopies(volumeId);
+            vols.removeAll(fullCopiesIds);
+            removeFullCopies(fullCopiesIds, type);
+        }
     }
 
     public static void removeFullCopies(Collection<URI> fullCopyIds, VolumeDeleteTypeEnum type) {

@@ -32,6 +32,7 @@ public class OrderServiceJobConsumer extends DistributedQueueConsumer<OrderServi
     private final Logger log = LoggerFactory.getLogger(OrderServiceJobConsumer.class);
 
     public static final long CHECK_INTERVAL = 1000*60*10L;
+    private static final long NUMBER_PER_RECORD = 1000L;
     DbClient dbClient;
     OrderManager orderManager;
     OrderService orderService;
@@ -67,7 +68,7 @@ public class OrderServiceJobConsumer extends DistributedQueueConsumer<OrderServi
                 log.info("jobstatus={}", jobStatus);
 
                 long total = 0;
-                long numberOfOrdersDeletedInGC = orderService.getDeletedOrdersInCurrentPeriod(jobStatus);
+                long numberOfOrdersDeletedInGC = orderService.getDeletedOrdersInCurrentPeriodWithSort(jobStatus);
                 long numberOfOrdersCanBeDeletedInGC =
                         maxOrderDeletedPerGC - numberOfOrdersDeletedInGC;
 
@@ -122,24 +123,35 @@ public class OrderServiceJobConsumer extends DistributedQueueConsumer<OrderServi
                 long nDeleted = 0;
                 long nFailed = 0;
                 long start = System.currentTimeMillis();
+                long tempCount = 0;
                 for (URI id : orderIds) {
                     Order order = orderManager.getOrderById(id);
                     try {
                         log.info("To delete order {}", order.getId());
                         orderManager.deleteOrder(order);
-                        jobStatus.addCompleted(1);
                         nDeleted++;
+                        tempCount++;
+                        if (tempCount >= NUMBER_PER_RECORD) {
+                            jobStatus.addCompleted(tempCount);
+                            orderService.saveJobInfo(jobStatus);
+                            tempCount = 0;
+                        }
                     } catch (BadRequestException e) {
                         log.warn("Failed to delete order {} e=", id, e);
                         nFailed++;
+                        jobStatus.setFailed(nFailed);
+                        orderService.saveJobInfo(jobStatus);
                     } catch (Exception e) {
                         log.warn("Failed to delete order={} e=", id, e);
                         nFailed++;
+                        jobStatus.setFailed(nFailed);
+                        orderService.saveJobInfo(jobStatus);
                     }
-
-                    jobStatus.setFailed(nFailed);
-
+                }
+                if (tempCount > 0) {
+                    jobStatus.addCompleted(tempCount);
                     orderService.saveJobInfo(jobStatus);
+                    tempCount = 0;
                 }
 
                 long end = System.currentTimeMillis();

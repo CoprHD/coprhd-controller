@@ -59,7 +59,6 @@ import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DataObject.Flag;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.ExportGroup;
-import com.emc.storageos.db.client.model.ExportGroup.ExportGroupType;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.ExportPathParams;
 import com.emc.storageos.db.client.model.Host;
@@ -1051,7 +1050,8 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
                                 vplexVolume.getId(), vplexVolume.getLabel()), e);
                     }
                     buf.append(vvInfo.getName() + " ");
-                    _log.info(String.format("Created virtual volume: %s path: %s", vvInfo.getName(), vvInfo.getPath()));
+                    _log.info(String.format("Created virtual volume: %s path: %s size: %s", 
+                            vvInfo.getName(), vvInfo.getPath(), vvInfo.getCapacityBytes()));
                     vplexVolume.setNativeId(vvInfo.getPath());
                     vplexVolume.setNativeGuid(vvInfo.getPath());
                     vplexVolume.setDeviceLabel(vvInfo.getName());
@@ -2106,8 +2106,43 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
             }
 
             Map<String, String> targetPortToPwwnMap = VPlexControllerUtils.getTargetPortToPwwnMap(client, vplexClusterName);
-
             Boolean[] doInitiatorRefresh =  new Boolean[] { new Boolean(true) };
+            
+            /**
+             * COP-28674: During Vblock boot volume export, if existing storage views are found then check for existing volumes
+             * If found throw exception. This condition is valid only for boot volume vblock export.
+             */
+            if (exportGroup.forHost() && ExportMaskUtils.isVblockHost(initiators, _dbClient) && ExportMaskUtils.isBootVolume(_dbClient, blockObjectMap)) {
+                _log.info("VBlock boot volume Export: Validating the Vplex Cluster {} to find existing storage views", vplexClusterName);
+                List<Initiator> initiatorList = _dbClient.queryObject(Initiator.class, initiators);
+                
+                List<String> initiatorNames = getInitiatorNames(vplexSystem.getSerialNumber(), vplexClusterName, client,
+                        initiatorList.iterator(), doInitiatorRefresh);
+                
+                List<VPlexStorageViewInfo> storageViewInfos = client.getStorageViewsContainingInitiators(vplexClusterName,
+                        initiatorNames);
+                List<String> maskNames = new ArrayList<String>();
+                if(!CollectionUtils.isEmpty(storageViewInfos)) {
+                    for (VPlexStorageViewInfo storageView : storageViewInfos) {
+                        if(!CollectionUtils.isEmpty(storageView.getVirtualVolumes())) {
+                            maskNames.add(storageView.getName());
+                        } else {
+                            _log.info("Found Storage View {} for cluster {} with empty volumes",storageView.getName(),
+                                    vplexClusterName);
+                        }
+                    }
+                } else {
+                    _log.info("No Storage views found for cluster {}", vplexClusterName);
+                }
+                
+                if (!CollectionUtils.isEmpty(maskNames)) {
+                    Set<URI> computeResourceSet = hostInitiatorMap.keySet();
+                    throw VPlexApiException.exceptions.existingMaskFoundDuringBootVolumeExport(Joiner.on(", ").join(maskNames),
+                            Joiner.on(", ").join(computeResourceSet), vplexClusterName);
+                } else {
+                    _log.info("VBlock Boot volume Export : Validation passed");
+                }
+            }
 
             for (URI hostUri : hostInitiatorMap.keySet()) {
                 _log.info("assembling export masks workflow, now looking at host URI: " + hostUri);

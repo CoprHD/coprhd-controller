@@ -1970,8 +1970,8 @@ abstract public class AbstractDefaultMaskingOrchestrator {
                                             mask.getMaskName()));
                         }
                     } else{
-                        _log.info("Skipping Mask {} from processing because resource {} is different from expected {}", new Object[] {mask.getMaskName(), computeResource,
-                                mask.getResource()});
+                        _log.info("Skipping Mask {} from processing because resource {} is different from expected {}", mask.getMaskName(),
+                                computeResource, mask.getResource());
                     }
                 } else if (maskHasInitiatorsBasedOnExportType(exportGroup, mask, initiator, portsForComputeResource) ||
                         maskHasInitiatorsBasedOnExportType(exportGroup, mask, allExportMaskURIs, portsForComputeResource, partialMasks)) {

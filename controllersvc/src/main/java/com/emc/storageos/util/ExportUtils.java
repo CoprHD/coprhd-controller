@@ -617,8 +617,8 @@ public class ExportUtils {
                     !exportMaskURIs.contains(exportMask.getId())
                     && StringSetUtil.areEqual(exportMask.getInitiators(), curExportMask.getInitiators()) &&
                     exportMask.hasAnyExistingVolumes()) {
-                _log.info(String.format("Initiator %s is shared with mask %s. and has unmanaged volumes",
-                        initiatorUri, exportMask.getMaskName()));
+                _log.info("Initiator {} is shared with mask {} and has unmanaged volumes",
+                        initiatorUri, exportMask.getMaskName());
                 sharedExportMaskNameList.add(exportMask.forDisplay());
             }
         }

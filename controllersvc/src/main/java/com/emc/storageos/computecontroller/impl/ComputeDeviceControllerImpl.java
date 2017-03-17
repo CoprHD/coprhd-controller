@@ -1016,7 +1016,7 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
     }
 
     /**
-     * Deactivates or deletes the boot volume
+     * Deactivates or deletes the boot volume 
      *
      * @param hostId
      *            {@link URI} hostId URI

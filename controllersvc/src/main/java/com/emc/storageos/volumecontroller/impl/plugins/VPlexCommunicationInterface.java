@@ -1241,6 +1241,11 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
                     String varrayClusterName = clusterIdToNameMap.get(varrayClusterId);
                     if (volumeClusters.contains(varrayClusterName)) {
                         matchedVPools.add(vpool.getId().toString());
+                        // add the high availability vpool because metro vols should be ingestable to either cluster
+                        VirtualPool haVpool = VirtualPool.getHAVPool(vpool, _dbClient);
+                        if (null != haVpool) {
+                            matchedVPools.add(haVpool.getId().toString());
+                        }
                         break;
                     }
                 }

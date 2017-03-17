@@ -259,6 +259,11 @@ public class ImplicitUnManagedObjectsMatcher {
                                 volume.setSupportedVpoolUris(new StringSet());
                             }
                             volume.getSupportedVpoolUris().add(vpool.getId().toString());
+                            // add the high availability vpool because metro vols should be ingestable to either cluster
+                            VirtualPool haVpool = VirtualPool.getHAVPool(vpool, dbClient);
+                            if (null != haVpool) {
+                                volume.getSupportedVpoolUris().add(haVpool.getId().toString());
+                            }
                             List<UnManagedVolume> backendVols = 
                                     VplexBackendIngestionContext.findBackendUnManagedVolumes(volume, dbClient);
                             if (backendVols != null) {

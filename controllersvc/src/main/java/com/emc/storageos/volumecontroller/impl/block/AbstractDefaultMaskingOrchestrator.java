@@ -1948,10 +1948,7 @@ abstract public class AbstractDefaultMaskingOrchestrator {
 
                 Map<String, String> storagePortToNetworkName = new HashMap<String, String>();
                 if (mask.getCreatedBySystem()) {
-                    //For DU tests to work, the code modified system created to TRUE after a volume gets added to co-existed mask.
-                    //Now even if its system created = true, the mask will not have any resource field, this null check would consider the mask too for exports rather
-                    //skipping the same .
-                    if (NullColumnValueGetter.isNullValue(mask.getResource()) || mask.getResource().equals(computeResource)) {
+                    if (mask.getResource().equals(computeResource)) {
                         if (maskHasStoragePortsInExportVarray(exportGroup, mask, initiator, storagePortToNetworkName)) {
                             _log.info(String
                                     .format("determineInitiatorToExportMaskPlacements - ViPR-created mask %s qualifies for consideration for re-use",
@@ -1969,9 +1966,6 @@ abstract public class AbstractDefaultMaskingOrchestrator {
                                     .format("determineInitiatorToExportMaskPlacements - ViPR-created mask %s does not qualify for consideration for re-use due to storage ports mismatch with varray.",
                                             mask.getMaskName()));
                         }
-                    } else{
-                        _log.info("Skipping Mask {} from processing because resource {} is different from expected {}", mask.getMaskName(),
-                                computeResource, mask.getResource());
                     }
                 } else if (maskHasInitiatorsBasedOnExportType(exportGroup, mask, initiator, portsForComputeResource) ||
                         maskHasInitiatorsBasedOnExportType(exportGroup, mask, allExportMaskURIs, portsForComputeResource, partialMasks)) {

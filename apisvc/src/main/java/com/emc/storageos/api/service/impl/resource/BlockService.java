@@ -883,10 +883,23 @@ public class BlockService extends TaskResourceService {
 
             // RP consistency group validation
             if (VirtualPool.vPoolSpecifiesProtection(vpool)) {
-                // If an RP protected vpool is specified, ensure that the CG selected is empty or contains only RP
-                // volumes.
-                if (activeCGVolumes != null && !activeCGVolumes.isEmpty()
-                        && !consistencyGroup.getTypes().contains(BlockConsistencyGroup.Types.RP.toString())) {
+                // Check to see if the CG has any RecoverPoint provisioned volumes. This is done by looking at the protectionSet field.
+                // The protectionSet field won't be set until the volume is provisioned in RP so this check allows concurrent
+                // requests to go through.
+                boolean cgHasRpProvisionedVolumes = false;
+                if (activeCGVolumes != null && !activeCGVolumes.isEmpty()) {
+                    for (Volume vol : activeCGVolumes) {
+                        if (!NullColumnValueGetter.isNullNamedURI(vol.getProtectionSet())) {
+                            _log.info(String.format("Determined that consistency group %s contains RP provisioned volumes.",
+                                    consistencyGroup.getId()));
+                            cgHasRpProvisionedVolumes = true;
+                            break;
+                        }
+                    }
+                }
+
+                // Ensure the CG is either empty or has been tagged for RP and contains properly provisioned RP volumes.
+                if (cgHasRpProvisionedVolumes && !consistencyGroup.getTypes().contains(BlockConsistencyGroup.Types.RP.toString())) {
                     throw APIException.badRequests.consistencyGroupMustBeEmptyOrContainRpVolumes(consistencyGroup.getId());
                 }
 
@@ -2155,7 +2168,8 @@ public class BlockService extends TaskResourceService {
              * 8.0.3.
              * Hence we don't require reference check for vmax.
              */
-            if (!volume.isInCG() || !BlockServiceUtils.checkCGVolumeCanBeAddedOrRemoved(null, volume, _dbClient)) {
+            if ((VolumeDeleteTypeEnum.VIPR_ONLY.name().equals(type)) || (!volume.isInCG())
+                    || (!BlockServiceUtils.checkCGVolumeCanBeAddedOrRemoved(null, volume, _dbClient))) {
                 List<Class<? extends DataObject>> excludeTypes = null;
                 if (VolumeDeleteTypeEnum.VIPR_ONLY.name().equals(type)) {
                     // For ViPR-only delete of exported volumes, We will clean up any
@@ -5446,9 +5460,9 @@ public class BlockService extends TaskResourceService {
     /*
      * Validate if the physical array that the consistency group bonded to is associated
      * with the virtual array
-     *
+     * 
      * @param consistencyGroup
-     *
+     * 
      * @param varray virtual array
      */
     private void validateCGValidWithVirtualArray(BlockConsistencyGroup consistencyGroup,

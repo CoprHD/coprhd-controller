@@ -25,6 +25,7 @@ import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.model.block.BlockObjectRestRep;
 import com.emc.storageos.model.host.HostRestRep;
+import com.google.common.base.Joiner;
 import com.google.common.collect.Lists;
 
 @Service("RemoveHostFromCluster")
@@ -61,7 +62,7 @@ public class RemoveHostFromClusterService extends ViPRService {
             }
             hostURIMap.put(hostId, host.getLabel());
         }
-        //if a non-vblock host is being decommissioned fail the order, only vblock hosts can be decommissioned.
+        // If a non-vblock host is being decommissioned, fail the order. Only vblock hosts can be decommissioned.
         if (!CollectionUtils.isEmpty(nonVblockhosts)) {
             logError("computeutils.deactivatecluster.deactivate.nonvblockhosts", nonVblockhosts);
             preCheckErrors.append("Cannot decommission the following non-vBlock hosts - ");
@@ -76,6 +77,21 @@ public class RemoveHostFromClusterService extends ViPRService {
             .append(" has different boot volumes than what controller provisioned.  Cannot delete original boot volume in case it was re-purposed.");
         }
 
+        // Verify the hosts are still part of the cluster we have reported for it on ESX.
+        if (!ComputeUtils.verifyHostInVcenterCluster(cluster, hostIds)) {
+            logError("computeutils.deactivatecluster.deactivate.hostmovedcluster", cluster.getLabel(),
+                    Joiner.on(',').join(hostURIMap.values()));
+            preCheckErrors.append("Cluster ").append(cluster.getLabel())
+            .append(" no longer contains one or more of the hosts requesting decommission.  Cannot decomission in current state.  Recommended " +
+            "to run vCenter discovery and address actionable events before attempting decomission of hosts in this cluster.");
+        }
+        
+        // Note: currently there is no test if a host was moved to an entirely different vSphere.
+        // If we don't see the host in the vCenter cluster we know it to be associated with, we assume
+        // it was removed manually and/or a decommissioning operation failed on a previous attempt and
+        // we continue from where we left off next time.  Perhaps someone can think of a clever way to 
+        // detect the host is still in use in the future.
+        
         if (preCheckErrors.length() > 0) {
             throw new IllegalStateException(preCheckErrors.toString());
         }

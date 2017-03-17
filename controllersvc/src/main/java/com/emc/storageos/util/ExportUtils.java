@@ -598,7 +598,7 @@ public class ExportUtils {
     }
     
     /**
-     * Check if the initiator is being shared across masks and check if the mask has only vipr managed volumes.
+     * Check if the initiator is being shared across masks and check if the mask has unmanaged volumes.
      * 
      * @param dbClient
      * @param initiatorUri
@@ -606,7 +606,7 @@ public class ExportUtils {
      * @param exportMaskURIs
      * @return List of other shared masks name if the initiator is found in other export masks.
      */
-    public static List<String> getExportMasksSharingInitiatorAndHasOnlyViPRManagedVolumes(DbClient dbClient, URI initiatorUri, ExportMask curExportMask,
+    public static List<String> getExportMasksSharingInitiatorAndHasUnManagedVolumes(DbClient dbClient, URI initiatorUri, ExportMask curExportMask,
             Collection<URI> exportMaskURIs) {
         List<ExportMask> results = CustomQueryUtility.queryActiveResourcesByConstraint(dbClient, ExportMask.class,
                 ContainmentConstraint.Factory.getConstraint(ExportMask.class, "initiators", initiatorUri));
@@ -616,9 +616,9 @@ public class ExportUtils {
                     exportMask.getStorageDevice().equals(curExportMask.getStorageDevice()) &&
                     !exportMaskURIs.contains(exportMask.getId())
                     && StringSetUtil.areEqual(exportMask.getInitiators(), curExportMask.getInitiators()) &&
-                    !exportMask.hasAnyExistingVolumes()) {
-                _log.info(String.format("Initiator %s is shared with mask %s.",
-                        initiatorUri, exportMask.getMaskName()));
+                    exportMask.hasAnyExistingVolumes()) {
+                _log.info("Initiator {} is shared with mask {} and has unmanaged volumes",
+                        initiatorUri, exportMask.getMaskName());
                 sharedExportMaskNameList.add(exportMask.forDisplay());
             }
         }
@@ -1547,7 +1547,7 @@ public class ExportUtils {
                         // This ExportMask has the volume we're interested in.
                         String hlu = thisMask.returnVolumeHLU(volumeURI);
                         // Let's apply its HLU if it's not the 'Unassigned' value ...
-                        if (hlu != ExportGroup.LUN_UNASSIGNED_DECIMAL_STR) {
+                        if (!hlu.equals(ExportGroup.LUN_UNASSIGNED_DECIMAL_STR)) {
                             _log.info(String.format("ExportGroup %s (%s) update volume HLU: %s -> %s", exportGroup.getLabel(),
                                     exportGroup.getId(), volumeURI, hlu));
                             exportGroup.addVolume(volumeURI, Integer.valueOf(hlu));

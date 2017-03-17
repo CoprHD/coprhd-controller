@@ -28,6 +28,7 @@ import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus;
+import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.Initiator;
@@ -639,6 +640,8 @@ public class VPlexBackendManager {
         }
 
         // Now process each Export Mask.
+        // refresh export masks per XIO storage array
+        boolean needRefresh = storage.deviceIsType(Type.xtremio);
         String previousStepId = waitFor;
         for (ExportMask mask : exportMasks.values()) {
             List<URI> volumes = maskToVolumes.get(mask.getId().toString());
@@ -676,6 +679,13 @@ public class VPlexBackendManager {
                 initiatorURIs = new ArrayList<URI>(Collections2.transform(mask.getInitiators(),
                         CommonTransformerFunctions.FCTN_STRING_TO_URI));
             }
+
+            if (needRefresh) {
+                BlockStorageDevice device = _blockDeviceController.getDevice(storage.getSystemType());
+                device.refreshExportMask(storage, mask);
+                needRefresh = false;
+            }
+
             Workflow.Method removeVolumesMethod = orca.deleteOrRemoveVolumesFromExportMaskMethod(
                     storage.getId(), exportGroup.getId(), mask.getId(), volumes, initiatorURIs);
             String stepId = workflow.createStepId();

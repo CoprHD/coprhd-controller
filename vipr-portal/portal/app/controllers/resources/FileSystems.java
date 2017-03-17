@@ -681,10 +681,10 @@ public class FileSystems extends ResourceController {
         ViPRCoreClient client = BourneUtil.getViprClient();
         try {
             client.fileSystems().associateFilePolicy(uri(fileSystemId), uri(policyId), uri(targetVArrayId));
-            fileSystem(fileSystemId);
         } catch (Exception ex) {
             flash.error(MessagesUtils.get("schedulePolicy.assign.error"), null);
         }
+        fileSystem(fileSystemId);
 
     }
 
@@ -693,10 +693,10 @@ public class FileSystems extends ResourceController {
         ViPRCoreClient client = BourneUtil.getViprClient();
         try {
             client.fileSystems().dissociateFilePolicy(uri(fileSystemId), uri(policyId));
-            fileSystem(fileSystemId);
         } catch (Exception ex) {
             flash.error(MessagesUtils.get("schedulePolicy.unassign.error"), null);
         }
+        fileSystem(fileSystemId);
     }
 
     @FlashException(referrer = { "fileSystem" })

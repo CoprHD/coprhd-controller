@@ -1050,7 +1050,8 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
                                 vplexVolume.getId(), vplexVolume.getLabel()), e);
                     }
                     buf.append(vvInfo.getName() + " ");
-                    _log.info(String.format("Created virtual volume: %s path: %s", vvInfo.getName(), vvInfo.getPath()));
+                    _log.info(String.format("Created virtual volume: %s path: %s size: %s", 
+                            vvInfo.getName(), vvInfo.getPath(), vvInfo.getCapacityBytes()));
                     vplexVolume.setNativeId(vvInfo.getPath());
                     vplexVolume.setNativeGuid(vvInfo.getPath());
                     vplexVolume.setDeviceLabel(vvInfo.getName());

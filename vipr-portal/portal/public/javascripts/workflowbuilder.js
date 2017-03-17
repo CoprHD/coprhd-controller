@@ -180,12 +180,12 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
            <span class="glyphicon glyphicon-chevron-down"></span>
        </button>
        <ul class="dropdown-menu dropdown-menu-right" role="menu">
-            <li id="addWorkflowMenu" style="display:none;"><a  href="#" ng-click="addWorkflow();">Add Workflow</a></li>
-            <li id="addShellMenu" style="display:none;"><a  href="#" ng-click="openShellScriptModal();">Add Shell Script</a></li>
-            <li id="addLAMenu" style="display:none;"><a  href="#" ng-click="openShellScriptModal();">Add Local Ansible</a></li>
-            <li id="addRestMenu" style="display:none;"><a  href="#" ng-click="openRestAPIModal();">Add Rest API</a></li>
+            <li id="addWorkflowMenu" style="display:none;"><a  href="#" ng-click="addWorkflow();">Create Workflow</a></li>
+            <li id="addShellMenu" style="display:none;"><a  href="#" ng-click="openShellScriptModal();">Create Shell Script</a></li>
+            <li id="addLAMenu" style="display:none;"><a  href="#" ng-click="openShellScriptModal();">Create Local Ansible</a></li>
+            <li id="addRestMenu" style="display:none;"><a  href="#" ng-click="openRestAPIModal();">Create Rest API</a></li>
             <li id="addFolderDivider" role="separator" class="divider" style="display:none;"></li>
-            <li id="addFolderMenu" style="display:none;"><a  href="#" ng-click="addFolder();">Add Folder</a></li>
+            <li id="addFolderMenu" style="display:none;"><a  href="#" ng-click="addFolder();">Create Folder</a></li>
             <li id="editDivider" role="separator" class="divider" style="display:none;"></li>
             <li id="renameMenu" style="display:none;"><a  href="#" ng-click="editNode();">Rename</a></li>
             <li id="editMenu" style="display:none;"><a  href="#" ng-click="editNode();">Edit</a></li>

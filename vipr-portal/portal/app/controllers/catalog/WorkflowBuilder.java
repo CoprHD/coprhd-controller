@@ -81,7 +81,7 @@ public class WorkflowBuilder extends Controller {
     private static final String NODE_TYPE_FILE = "file";
     private static final String MY_LIBRARY = "My Library";
     private static final String VIPR_LIBRARY = "ViPR Library";
-    private static final String VIPR_PRIMITIVE_LIBRARY = "ViPR REST Primitives";
+    private static final String VIPR_PRIMITIVE_LIBRARY = "ViPR REST";
     private static final String JSTREE_A_ATTR_TITLE = "title";
 
     public static void view() {

@@ -494,6 +494,7 @@ unity_test_3() {
     verify_export "ignore" ${HOST1} gone
     verify_export "ignore" ${HOST2} 2 2
 
+    runcmd export_group delete $PROJECT/${expname}1
     runcmd export_group delete $PROJECT2/${expname}2
     runcmd export_group delete $PROJECT/${expname}cluster1
     runcmd export_group delete $PROJECT2/${expname}cluster2
@@ -534,15 +535,15 @@ unity_test_3() {
 #     should success, LUN get removed, and initiator get deleted from array
 # 17. Remove initiator from export group 2
 #     should success, LUN get removed, initiator and host get deleted from array
-# 17. Remove volume from export group 1
+# 18. Remove volume from export group 1
 #     should success, LUN get removed, and initiator get deleted from array
-# 18. Remove volume from export group 2
+# 19. Remove volume from export group 2
 #     should success, LUN get removed, initiator and host get deleted from array
-# 19. Delete export group 1
+# 20. Delete export group 1
 #     should success, LUN get removed, and initiator get deleted from array
-# 20. Delete from export group 2
+# 21. Delete from export group 2
 #     should success, LUN get removed, initiator and host get deleted from array
-# 21. Clean up
+# 22. Clean up
 #
 unity_test_4() {
     echot "Unity Test 4: Export Group update/deletion when host has multiple export groups with no or partial shared initiators"

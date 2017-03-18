@@ -1769,8 +1769,15 @@ public class VNXeApiClient {
         _logger.info("Done exporting lun snap: {}", snapId);
         return result;
     }
-
-    public void unexportSnap(String hostId, String snapId) {
+   
+    /**
+     * Unexport a snapshot
+     * 
+     * @param hostId - The host id
+     * @param snapId - The snap id
+     * @param anyExportedSnapInGroup - If there is any other exported snapshot in the same snap group 
+     */
+    public void unexportSnap(String hostId, String snapId, boolean anyExportedSnapInGroup) {
         _logger.info("Unexporting snap: {}", snapId);
 
         String parentLunId = null;
@@ -1819,6 +1826,9 @@ public class VNXeApiClient {
          * after the unexport if the snap is still exported to any other hosts.
          */
         boolean needReattach = false;
+        if (anyExportedSnapInGroup) {
+            needReattach = true;
+        }
         for (BlockHostAccess hostAccess : hostAccesses) {
             int accessMask = hostAccess.getAccessMask();
             if (hostId.equals(hostAccess.getHost().getId())) {
@@ -1835,6 +1845,7 @@ public class VNXeApiClient {
             }
             changedHostAccessList.add(hostAccess);
         }
+        
         if (changedHostAccessList.isEmpty()) {
             // the removing hosts are not exported
             _logger.info("The unexport hosts were not exported.");

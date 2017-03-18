@@ -59,6 +59,7 @@ import com.emc.storageos.vnxe.models.VNXeHostInitiator;
 import com.emc.storageos.vnxe.models.VNXeHostInitiator.HostInitiatorTypeEnum;
 import com.emc.storageos.vnxe.models.VNXeLunSnap;
 import com.emc.storageos.volumecontroller.TaskCompleter;
+import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.emc.storageos.volumecontroller.impl.VolumeURIHLU;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportMaskRemoveInitiatorCompleter;
 import com.emc.storageos.volumecontroller.impl.smis.ExportMaskOperations;
@@ -370,7 +371,12 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
                                     volUri, nativeId));
                             apiClient.unexportLun(hostId, nativeId);
                         } else {
-                            apiClient.unexportSnap(hostId, nativeId);
+                            boolean anyExportedSnapInGroup = false;
+                            if (cgName != null) {
+                                // Check if there are other exported snaps in the same CG. 
+                                anyExportedSnapInGroup = checkOtherExportedSnapInGroup(volUri);
+                            }
+                            apiClient.unexportSnap(hostId, nativeId, anyExportedSnapInGroup);
                             setSnapWWN(apiClient, blockObject, nativeId);
                         }
                     }
@@ -673,7 +679,12 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
                     if (URIUtil.isType(volUri, Volume.class)) {
                         apiClient.unexportLun(hostId, nativeId);
                     } else if (URIUtil.isType(volUri, BlockSnapshot.class)) {
-                        apiClient.unexportSnap(hostId, nativeId);
+                        boolean anyExportedSnapInGroup = false;
+                        if (cgName != null) {
+                            // Check if there are other exported snaps in the same CG. 
+                            anyExportedSnapInGroup = checkOtherExportedSnapInGroup(volUri);
+                        }
+                        apiClient.unexportSnap(hostId, nativeId, anyExportedSnapInGroup);
                         setSnapWWN(apiClient, blockObject, nativeId);
                     }
                 }
@@ -1210,5 +1221,34 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
         }
 
         return true;
+    }
+    
+    /**
+     * Check if there are other exported snaps in the same snapshot group
+     * 
+     * @param snapUri - Snapshost Uri
+     * @return true or false
+     */
+    private boolean checkOtherExportedSnapInGroup(URI snapUri) {
+        boolean result = false;
+        BlockSnapshot snap = _dbClient.queryObject(BlockSnapshot.class, snapUri);
+        if (snap == null) {
+            return result;
+        }
+        List<BlockSnapshot> snapshotsInRG = ControllerUtils.getSnapshotsPartOfReplicationGroup(snap, _dbClient);
+        if (snapshotsInRG == null) {
+            return result;
+        }
+        for (BlockSnapshot snapInRG: snapshotsInRG) {
+            if (snapInRG.getId().equals(snapUri)) {
+                continue;
+            }
+            if (snapInRG.isSnapshotExported(_dbClient)) {
+                result = true;
+                break;
+            }
+        }
+        
+        return result;
     }
 }

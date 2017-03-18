@@ -813,7 +813,8 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
         then don't reuse. Always try to create a new masking view for Cluster.
         Btw we consider only the host or cluster initiators connected to the network to be part of the given masking view. 
         If ViPR discovered X initiators in CLuster and only X-n are connected to network, 
-        then we look for masking view with X-N initiators not X.
+        then we look for masking view with X-N initiators not X.Later during export the remaining initiators will be added to IG.
+        The existing IG can be one single IG with more than one host or it could be IG per host with missing initiators.
         If X initiators are already available in the view, then we try to create a new masking view by reusing the IG.
         During reuse if the view creation fails with Initiator-port is already available, then user has to modify the existing initiator Group.
         

@@ -303,9 +303,14 @@ public final class HostToComputeElementMatcher {
             host.setComputeElement(ceIn.getId());  // set new CE for host
         }
 
-        if( (host.getServiceProfile() == null) ||
-                (!host.getServiceProfile().equals(spIn.getId()))) {
+        if (NullColumnValueGetter.isNullURI(host.getServiceProfile())) {
             host.setServiceProfile(spIn.getId());  // set new SP for host
+        } else if(!host.getServiceProfile().equals(spIn.getId())) {
+            // Unexpected SP association changes should result in discovery failure
+            failureMessages.append("ServcieProfile for Host unexpectedly changed from " +
+                    host.getServiceProfile() + " to " + spIn.getId() + " for host " + info(host));
+            clearHostAssociations(host);
+            return;
         }
 
         if(host.isChanged("computeElement") || host.isChanged("serviceProfile")) {

@@ -86,12 +86,6 @@ public class RemoveHostFromClusterService extends ViPRService {
             "to run vCenter discovery and address actionable events before attempting decomission of hosts in this cluster.");
         }
         
-        // Note: currently there is no test if a host was moved to an entirely different vSphere.
-        // If we don't see the host in the vCenter cluster we know it to be associated with, we assume
-        // it was removed manually and/or a decommissioning operation failed on a previous attempt and
-        // we continue from where we left off next time.  Perhaps someone can think of a clever way to 
-        // detect the host is still in use in the future.
-        
         if (preCheckErrors.length() > 0) {
             throw new IllegalStateException(preCheckErrors.toString());
         }

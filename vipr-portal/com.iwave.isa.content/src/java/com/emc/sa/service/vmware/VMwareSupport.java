@@ -120,7 +120,11 @@ public class VMwareSupport {
     }
 
     public HostSystem getHostSystem(String datacenterName, String esxHostName) {
-        return execute(new FindESXHost(datacenterName, esxHostName));
+        return getHostSystem(datacenterName, esxHostName, true);
+    }
+
+    public HostSystem getHostSystem(String datacenterName, String esxHostName, boolean failIfNotFound) {
+        return execute(new FindESXHost(datacenterName, esxHostName, failIfNotFound));
     }
 
     public ClusterComputeResource getCluster(String datacenterName, String clusterName) {
@@ -262,8 +266,8 @@ public class VMwareSupport {
      *            true to enable storage io control or false to disable storage io control
      */
     public void setStorageIOControl(Datastore datastore, Boolean enabled) {
-        if (enabled != null) {
-            if (datastore.getCapability().storageIORMSupported) {
+        if (enabled != null && datastore != null) {
+            if (datastore.getCapability() != null && datastore.getCapability().storageIORMSupported) {
                 execute(new SetStorageIOControl(datastore, enabled));
             } else {
                 logWarn("vmware.support.storage.io.control.not.supported", datastore.getName());
@@ -744,17 +748,30 @@ public class VMwareSupport {
      * 
      * @param host
      *            the actual host system
+     * @param hostId
+     *            host ID
      * @param datastore
      *            the datastore.
      * @return the volumes backing the host system.
      */
-    public List<VolumeRestRep> findVolumesBackingDatastore(HostSystem host, Datastore datastore) {
+    public List<VolumeRestRep> findVolumesBackingDatastore(HostSystem host, URI hostId, Datastore datastore) {
         Set<String> luns = execute(new FindLunsBackingDatastore(host, datastore));
         List<VolumeRestRep> volumes = Lists.newArrayList();
         for (String lun : luns) {
             VolumeRestRep volume = execute(new GetBlockVolumeByWWN(lun));
             if (volume != null) {
+                // VBDU: Check to ensure the correct datastore tag is in the volume returned
+                String tagValue = KnownMachineTags.getBlockVolumeVMFSDatastore(hostId, volume);
+                if (!tagValue.equalsIgnoreCase(datastore.getName())) {
+                    logError("vmware.support.datastore.doesntmatchvolume", datastore.getName());
+                    return null;
+                }
+
                 volumes.add(volume);
+            } else {
+                logError("vmware.support.datastore.volumenotfound", datastore.getName());
+                // Don't return any volume objects to quickly report there's an issue to the caller.
+                return null;
             }
         }
         return volumes;

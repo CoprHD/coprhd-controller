@@ -6,6 +6,7 @@
 #{set navSelected: ['nav.virtualStorage', 'nav.file.protectionPolicies'] /}
 #{set 'title'}&{titleKey}#{/set}
 #{set editMode:schedulePolicy?.id ? true : false/}
+#{set assignMode:schedulePolicy?.isAssigned ? true : false/}
 
 #{breadcrumb.container}
   #{breadcrumb.item @list()}&{'FileProtectionPolicies.list.title'}#{/breadcrumb.item}
@@ -55,8 +56,8 @@
   
     #{field 'schedulePolicy.snapshotNamePattern'}
       %{
-        field.required = true
         field.fieldKey = 'schedulePolicy.snapshotNamePattern'
+        field.atts = ['readonly':'readonly']
       }%
       #{Form.inputTextControlGroup field:field /}
     #{/field}
@@ -95,6 +96,8 @@
     #{field 'schedulePolicy.frequency'}
     #{Form.controlGroup field:field, width:4}
       %{ typeField = field }%
+      #{Form.radio field:typeField, value: "minutes", label: messages.get("schedulePolicy.minute")/}
+      #{Form.radio field:typeField, value: "hours", label: messages.get("schedulePolicy.hours")/}
       #{Form.radio field:typeField, value: "days", label: messages.get("schedulePolicy.daily")/}
       
       #{Form.radio field:typeField, value: "weeks", label: messages.get("schedulePolicy.weekly")/}
@@ -221,6 +224,7 @@
         // only set the referrerUrl if it has not been set at some earlier point 
         // i.e. in multi-step flows take into account error-handling
         var editMode = #{get 'editMode'/};
+        var assignMode = #{get 'assignMode'/};
         var referrerUrl = $('input[name="schedulePolicy.referrerUrl"]').val();
 		if(!referrerUrl)
 		  referrerUrl = document.referrer;
@@ -230,22 +234,25 @@
 	        $('input[name="schedulePolicy.referrerUrl"]').val(referrerUrl);
 			// navigate cancel button to referrer url
 			$('div.form-actions a.btn').attr('href', referrerUrl);
-		}
-		
-		
+		}		
 		$('#schedulePolicy_policyType').on('change', showPolicyPage);
 		$('#schedulePolicy_appliedAt').on('change', showPolicyPage);
-		showPolicyPage();
-		//
+
         // for edit mode, do not allow "type" change
-        //
 		if ( editMode ) { 			
      		$('#schedulePolicy_policyType').prop("disabled", true); 
-        } else {
-            showPolicyPage();
-        }
      		
-		
+        } 
+        //if resources are assigned do not allow change for apply At
+        if( assignMode ) {
+        	$('#schedulePolicy_appliedAt').prop("disabled", true); 
+     		$('#schedulePolicy_enableTenants').prop("disabled", true); 
+     		$('#schedulePolicy_tenants').prop("disabled", true);     
+     		$('#schedulePolicy_replicationType').prop("disabled", true); 
+     		$('#schedulePolicy_replicationCopyType').prop("disabled", true); 
+        }      
+        showPolicyPage();
+	
     });
     
      function showPolicyPage() {
@@ -258,6 +265,14 @@
                $('#schedulePolicy_priorityControlGroup').hide();
                $('#schedulePolicy_expirationControlGroup').show();
                $('#schedulePolicy_numWorkerThreadsControlGroup').hide();
+               
+               if(appliedAt == 'vpool') {
+                 $('input[name="schedulePolicy.snapshotNamePattern"]').val("{Cluster}_{vNas}_{VPool}_{Policy_TemplateName}_%Y-%m-%d-_%H-%M");
+               } else if(appliedAt == 'project') {
+                  $('input[name="schedulePolicy.snapshotNamePattern"]').val("{Cluster}_{vNas}_{VPool}_{Project}_{Policy_TemplateName}_%Y-%m-%d-_%H-%M");
+               } else {
+                  $('input[name="schedulePolicy.snapshotNamePattern"]').val("{Cluster}_{vNas}_{VPool}_{Project}_{Fs}_{Policy_TemplateName}_%Y-%m-%d-_%H-%M");
+               }
           } else if (policyType == 'file_replication') {
           	   $('#schedulePolicy_snapshotNamePatternControlGroup').hide();
                $('#schedulePolicy_replicationTypeControlGroup').show();
@@ -268,7 +283,7 @@
           }
           
            if(appliedAt == 'vpool') {
-               $('#aclFields').hide();
+               $('#aclFields').hide(); 
            } else  {
                $('#aclFields').show();
            }

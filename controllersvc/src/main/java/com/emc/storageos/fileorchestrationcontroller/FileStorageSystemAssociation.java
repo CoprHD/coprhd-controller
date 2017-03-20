@@ -2,9 +2,13 @@ package com.emc.storageos.fileorchestrationcontroller;
 
 import java.io.Serializable;
 import java.net.URI;
-import java.util.Map;
+import java.util.ArrayList;
+import java.util.List;
 
 public class FileStorageSystemAssociation implements Serializable {
+
+    private static final long serialVersionUID = -1219151102632867535L;
+
     private URI sourceSystem;
     private URI sourceVNAS;
     // virtual pool for project associations
@@ -12,7 +16,7 @@ public class FileStorageSystemAssociation implements Serializable {
     // set of virtual pools or projects at which policy should be applied.
     private URI appliedAtResource;
 
-    private Map<URI, URI> targetStorageDeviceToVNASMap;
+    private List<TargetAssociation> targets;
 
     public URI getSourceSystem() {
         return sourceSystem;
@@ -30,12 +34,19 @@ public class FileStorageSystemAssociation implements Serializable {
         this.sourceVNAS = sourceVNAS;
     }
 
-    public Map<URI, URI> getTargetStorageDeviceToVNASMap() {
-        return targetStorageDeviceToVNASMap;
+    public List<TargetAssociation> getTargets() {
+        return targets;
     }
 
-    public void setTargetStorageDeviceToVNASMap(Map<URI, URI> targetStorageDeviceToVNASMap) {
-        this.targetStorageDeviceToVNASMap = targetStorageDeviceToVNASMap;
+    public void setTargets(List<TargetAssociation> targets) {
+        this.targets = targets;
+    }
+
+    public void addTargetAssociation(TargetAssociation target) {
+        if (targets == null) {
+            targets = new ArrayList<TargetAssociation>();
+        }
+        targets.add(target);
     }
 
     public URI getProjectvPool() {
@@ -52,6 +63,40 @@ public class FileStorageSystemAssociation implements Serializable {
 
     public void setAppliedAtResource(URI appliedAtResource) {
         this.appliedAtResource = appliedAtResource;
+    }
+
+    public static class TargetAssociation implements Serializable {
+
+        private static final long serialVersionUID = 1832257216470344471L;
+
+        private URI storageSystemURI;
+        private URI vNASURI;
+        private URI vArrayURI;
+
+        public URI getStorageSystemURI() {
+            return storageSystemURI;
+        }
+
+        public URI getvNASURI() {
+            return vNASURI;
+        }
+
+        public URI getvArrayURI() {
+            return vArrayURI;
+        }
+
+        public void setStorageSystemURI(URI storageSystemURI) {
+            this.storageSystemURI = storageSystemURI;
+        }
+
+        public void setvNASURI(URI vNASURI) {
+            this.vNASURI = vNASURI;
+        }
+
+        public void setvArrayURI(URI vArrayURI) {
+            this.vArrayURI = vArrayURI;
+        }
+
     }
 
 }

@@ -69,8 +69,8 @@
     #{/if}
     
       <!-- asset error -->
-      <div class="alert alert-danger hideFast" ng-show="assetError">
-          <button type="button" class="close" ng-click="assetError = null" aria-hidden="true">&times;</button>
+      <div class="alert alert-danger hideFast" ng-if="assetError">
+          <button type="button" class="close" ng-click="dismissAssetError()" aria-hidden="true">&times;</button>
           <div id="assetErrorMessage" style="white-space: pre-line;">{{assetError}}</div>
       </div>
     
@@ -91,19 +91,24 @@
                   <service-table table="item"></service-table>
                 </span>
                 <span ng-switch-when="modal">
-			      #{Modal.dialog id:'exportPathAdjustment', cssClass:'widest'}
+			      #{Modal.dialog id:'serviceModal', cssClass:'widest'}
 			        #{Modal.body}
-			          #{Form.header titleKey:'exportPathAdjustment.modal.title'/}
+			          #{Form.header titleKey:'{{serviceDescriptor.modalTitle}}'/}
+			          <!-- asset error -->
+				      <div class="alert alert-danger hideFast" ng-if="assetError">
+				          <button type="button" class="close" ng-click="dismissAssetError()" aria-hidden="true">&times;</button>
+				          <div id="assetErrorMessage" style="white-space: pre-line;">{{assetError}}</div>
+				      </div>
 			          <service-modal modal="item"></service-modal>
 			        #{/Modal.body}
 			        #{Modal.footer}
 			          <button-bar>
-			            <button type="submit" class="btn btn-primary" ng-disabled="disableSubmitButton()" v-submit-form>
+			            <button type="submit" class="btn btn-primary" ng-disabled="disableModalButton()" v-submit-form>
 			               <span v-icon=shopping-cart></span>
 			              <span ng-if="!isSchedulerEnabled()" >&{"service.order"}</span>
 			              <span ng-if="isSchedulerEnabled()" >&{"service.schedule"}</span>
 			            </button>
-			            #{Form.button 'button.cancel', icon:'primary', data:['dismiss':'modal']/}
+			            #{Form.button 'button.cancel', icon:'primary', data:['dismiss':'modal', 'ng-click':'hideModalDialog()']/}
 	                  </button-bar>
 			        #{/Modal.footer}
 			      #{/Modal.dialog}
@@ -146,9 +151,11 @@
           #{/if}
           
           <button-bar>
-          
             #{if serviceDescriptor.useModal}
-              #{Form.button name:'service.preview', icon:'check', action:'showModalDialog()' /}
+              <button type="button" class="btn btn-primary" ng-disabled="disableSubmitButton()" ng-Click="showModalDialog()">
+                <span v-icon=check></span>
+                <span>&{"service.preview"}</span>
+              </button>
             #{/if}
             #{else}
               <button type="submit" class="btn btn-primary" ng-disabled="disableSubmitButton()" v-submit-form>
@@ -163,9 +170,4 @@
       </form>
       
   </div>
-  <script>
-	function showModalDialog() {
-	  $('.modal').modal();
-	}
-  </script>
 #{/if}

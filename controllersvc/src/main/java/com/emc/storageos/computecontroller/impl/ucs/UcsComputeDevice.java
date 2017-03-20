@@ -375,7 +375,8 @@ public class UcsComputeDevice implements ComputeDevice {
             // Test mechanism to invoke a failure. No-op on production systems.
             InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_069);
 
-            // VBDU TODO: COP-28452, Check for initiators in host as well
+            // VBDU [DONE]: COP-28452, Check for initiators in host as well
+            // No need to check for initiators here, we are only unbinding the service profile template
             if (host != null && !NullColumnValueGetter.isNullURI(host.getComputeElement()) && host.getUuid() != null) {
                 ComputeElement ce = _dbClient.queryObject(ComputeElement.class, host.getComputeElement());
                 URI sptId = URI.create(ce.getSptId());
@@ -1306,15 +1307,16 @@ public class UcsComputeDevice implements ComputeDevice {
        }
     }
 
-   /*
-   * Unbinds the host's service profile from the associated blade.
-   * Determines the service profile to unbind using host's serviceProfile association.
-   * In case of host provisioned using pre-Anakin version of ViPR and no serviceProfile association yet set,
-   * serviceprofile to unbind will be determined by trying to find a serviceProfile that matches
-   * the computeElement's uuid. 
-   */
-    private void unbindHostFromComputeElement(ComputeSystem cs, Host host) throws ClientGeneralException{
-        // VBDU TODO: COP-28452, Check initiators count, if empty do we still need to delete service profile?
+    /*
+     * Unbinds the host's service profile from the associated blade.
+     * Determines the service profile to unbind using host's serviceProfile association.
+     * In case of host provisioned using pre-Anakin version of ViPR and no serviceProfile association yet set,
+     * serviceprofile to unbind will be determined by trying to find a serviceProfile that matches
+     * the computeElement's uuid.
+     */
+    private void unbindHostFromComputeElement(ComputeSystem cs, Host host) throws ClientGeneralException {
+        // VBDU [DONE]: COP-28452, Check initiators count, if empty do we still need to delete service profile?
+        // We already checked for empty initiators in a step before we get here
         if (host != null && !NullColumnValueGetter.isNullURI(host.getComputeElement())) {
             ComputeElement computeElement = _dbClient.queryObject(ComputeElement.class, host.getComputeElement());
             if (computeElement == null){
@@ -1364,10 +1366,10 @@ public class UcsComputeDevice implements ComputeDevice {
                          _dbClient.persistObject(computeElement);
                     }
                 }
-      
-             }
-        }else {
-           LOGGER.info("NO OP. Host is null or has no asscoaited computeElement");
+
+            }
+        } else {
+            LOGGER.info("NO OP. Host is null or has no asscoaited computeElement");
         }
     }
 

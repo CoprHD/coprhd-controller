@@ -260,7 +260,7 @@ public class HDSVolumeDiscoverer {
         StringSet matchedVPools = DiscoveryUtils.getMatchedVirtualPoolsForPool(dbClient,
                 pool.getId(), unManagedVolumeCharacteristics
                         .get(SupportedVolumeCharacterstics.IS_THINLY_PROVISIONED
-                                .name()).toString());
+                                .name()).toString(), unManagedVolume);
 
         log.debug("Matched Pools : {}", Joiner.on("\t").join(matchedVPools));
         if (null == matchedVPools || matchedVPools.isEmpty()) {

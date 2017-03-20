@@ -6,6 +6,7 @@ package com.emc.storageos.fileorchestrationcontroller;
 
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -43,10 +44,12 @@ import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.VirtualNAS;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
+import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.model.file.ExportRule;
 import com.emc.storageos.model.file.FileNfsACLUpdateParams;
 import com.emc.storageos.model.file.NfsACE;
 import com.emc.storageos.model.file.ShareACL;
+import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.volumecontroller.FileControllerConstants;
 import com.emc.storageos.volumecontroller.FileDeviceInputOutput;
 import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
@@ -422,7 +425,7 @@ public final class FileOrchestrationUtils {
         if (fileProjectPolicies != null && !fileProjectPolicies.isEmpty()) {
             for (String fileProjectPolicy : fileProjectPolicies) {
                 FilePolicy filePolicy = dbClient.queryObject(FilePolicy.class, URIUtil.uri(fileProjectPolicy));
-                if (filePolicy.getFilePolicyVpool() == null
+                if (NullColumnValueGetter.isNullURI(filePolicy.getFilePolicyVpool())
                         || !filePolicy.getFilePolicyVpool().toString().equals(vpool.getId().toString())) {
                     continue;
                 }
@@ -528,7 +531,7 @@ public final class FileOrchestrationUtils {
         if (project.getFilePolicies() != null && !project.getFilePolicies().isEmpty()) {
             for (String strPolicy : project.getFilePolicies()) {
                 FilePolicy policy = dbClient.queryObject(FilePolicy.class, URI.create(strPolicy));
-                if (policy.getFilePolicyVpool() != null
+                if (!NullColumnValueGetter.isNullURI(policy.getFilePolicyVpool())
                         && policy.getFilePolicyVpool().toString().equalsIgnoreCase(vpool.getId().toString())) {
                     filePolicies.add(policy.getId().toString());
                 }
@@ -539,7 +542,7 @@ public final class FileOrchestrationUtils {
         if (fs != null && fs.getFilePolicies() != null && !fs.getFilePolicies().isEmpty()) {
             for (String strPolicy : fs.getFilePolicies()) {
                 FilePolicy policy = dbClient.queryObject(FilePolicy.class, URI.create(strPolicy));
-                if (policy.getFilePolicyVpool() != null
+                if (!NullColumnValueGetter.isNullURI(policy.getFilePolicyVpool())
                         && policy.getFilePolicyVpool().toString().equalsIgnoreCase(vpool.getId().toString())) {
                     filePolicies.add(policy.getId().toString());
                 }
@@ -565,6 +568,42 @@ public final class FileOrchestrationUtils {
         }
 
         return replicationPolicies;
+    }
+
+    /**
+     * Get the set of file policy storage resource for given policy
+     * 
+     * @param dbClient
+     * @param policy
+     * @return
+     *
+     */
+    public static List<PolicyStorageResource> getFilePolicyStorageResources(DbClient dbClient, VirtualPool vpool, Project project,
+            FileShare fs) {
+
+        // Get the replication policies for vpool/project/fs!!
+        List<PolicyStorageResource> policyStorageResources = new ArrayList<PolicyStorageResource>();
+        List<FilePolicy> replicationPolicies = getReplicationPolices(dbClient, vpool, project, fs);
+        if (replicationPolicies != null && !replicationPolicies.isEmpty()) {
+            if (replicationPolicies.size() > 1) {
+                _log.error("More than one replication policy could not be applied accross vpool/project/fs");
+                throw APIException.badRequests.moreThanOneReplicationPolicySpecified();
+            } else {
+                FilePolicy policy = replicationPolicies.get(0);
+                for (PolicyStorageResource strRes : getFilePolicyStorageResources(dbClient, policy)) {
+                    if (strRes != null) {
+                        if (FilePolicyApplyLevel.project.name().equalsIgnoreCase(policy.getApplyAt())
+                                && strRes.getAppliedAt().toString().equals(project.getId().toString())) {
+                            policyStorageResources.add(strRes);
+                        } else if (FilePolicyApplyLevel.vpool.name().equalsIgnoreCase(policy.getApplyAt())
+                                && strRes.getAppliedAt().toString().equals(vpool.getId().toString())) {
+                            policyStorageResources.add(strRes);
+                        }
+                    }
+                }
+            }
+        }
+        return policyStorageResources;
     }
 
     /**
@@ -955,24 +994,49 @@ public final class FileOrchestrationUtils {
      */
     public static String getTargetHostPortForReplication(DbClient dbClient, FileShare targetFS) {
 
-        return getTargetHostPortForReplication(dbClient, targetFS.getStorageDevice());
+        return getTargetHostPortForReplication(dbClient, targetFS.getStorageDevice(),
+                targetFS.getVirtualArray(), targetFS.getVirtualNAS());
 
     }
 
-    public static String getTargetHostPortForReplication(DbClient dbClient, URI targetStorageSystemURI) {
+    public static String getTargetHostPortForReplication(DbClient dbClient, URI targetStorageSystemURI, URI targetVarrayURI,
+            URI targetVNasURI) {
 
         StorageSystem targetSystem = dbClient.queryObject(StorageSystem.class, targetStorageSystemURI);
         String targetHost = targetSystem.getIpAddress();
 
-        URIQueryResultList storagePortURIs = new URIQueryResultList();
-        dbClient.queryByConstraint(
-                ContainmentConstraint.Factory.getStorageDeviceStoragePortConstraint(targetStorageSystemURI),
-                storagePortURIs);
-        Iterator<URI> storagePortIter = storagePortURIs.iterator();
-        while (storagePortIter.hasNext()) {
-            StoragePort port = dbClient.queryObject(StoragePort.class, storagePortIter.next());
+        StringSet targetNasVarraySet = null;
+
+        StringSet targetStoragePortSet = null;
+
+        if (targetVNasURI != null) {
+            VirtualNAS targetVNas = dbClient.queryObject(VirtualNAS.class, targetVNasURI);
+            targetStoragePortSet = targetVNas.getStoragePorts();
+            targetNasVarraySet = targetVNas.getTaggedVirtualArrays();
+        } else {
+            PhysicalNAS pNAS = FileOrchestrationUtils.getSystemPhysicalNAS(dbClient, targetSystem);
+            targetStoragePortSet = pNAS.getStoragePorts();
+            targetNasVarraySet = pNAS.getTaggedVirtualArrays();
+        }
+
+        List<String> drPorts = new ArrayList<String>();
+        for (String nasPort : targetStoragePortSet) {
+
+            StoragePort port = dbClient.queryObject(StoragePort.class, URI.create(nasPort));
+
             if (port != null && !port.getInactive()) {
+
+                StringSet varraySet = port.getTaggedVirtualArrays();
+                if (varraySet == null || !varraySet.contains(targetVarrayURI.toString())) {
+                    continue;
+                }
+                if (targetNasVarraySet != null) {
+                    if (!targetNasVarraySet.contains(targetVarrayURI.toString())) {
+                        continue;
+                    }
+                }
                 targetHost = port.getPortNetworkId();
+
                 // iterate until dr port found!!
                 if (port.getTag() != null) {
                     ScopedLabelSet portTagSet = port.getTag();
@@ -981,13 +1045,17 @@ public final class FileOrchestrationUtils {
                             if ("dr_port".equals(tag.getLabel())) {
                                 _log.info("DR port {} found from storage system {} for replication", port.getPortNetworkId(),
                                         targetSystem.getLabel());
-                                return port.getPortNetworkId();
+                                drPorts.add(port.getPortNetworkId());
                             }
                         }
 
                     }
                 }
             }
+        }
+        if (!drPorts.isEmpty()) {
+            Collections.shuffle(drPorts);
+            return drPorts.get(0);
         }
         return targetHost;
     }

@@ -334,6 +334,7 @@ public class DbConsistencyCheckerHelper {
         for (ColumnFamily<String, CompositeColumnName> objCf : objsToCheck.keySet()) {
             Map<String, List<IndexEntry>> objKeysIdxEntryMap = objsToCheck.get(objCf);
 
+            _log.info("query {} data object from CF {}", objKeysIdxEntryMap.keySet().size(), objCf.getName());
             OperationResult<Rows<String, CompositeColumnName>> objResult = indexAndCf.keyspace
                     .prepareQuery(objCf).getRowSlice(objKeysIdxEntryMap.keySet())
                     .execute();

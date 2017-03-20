@@ -40,7 +40,6 @@ import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.networkcontroller.impl.NetworkDeviceController;
-import com.emc.storageos.plugins.metering.vplex.VPlexCollectionException;
 import com.emc.storageos.recoverpoint.utils.WwnUtils;
 import com.emc.storageos.util.ConnectivityUtil;
 import com.emc.storageos.util.ExportUtils;
@@ -52,7 +51,6 @@ import com.emc.storageos.vplex.api.VPlexApiClient;
 import com.emc.storageos.vplex.api.VPlexApiConstants;
 import com.emc.storageos.vplex.api.VPlexApiException;
 import com.emc.storageos.vplex.api.VPlexApiFactory;
-import com.emc.storageos.vplex.api.VPlexClusterInfo;
 import com.emc.storageos.vplex.api.VPlexResourceInfo;
 import com.emc.storageos.vplex.api.VPlexStorageViewInfo;
 import com.emc.storageos.vplex.api.VPlexStorageVolumeInfo;
@@ -337,42 +335,6 @@ public class VPlexControllerUtils {
     }
 
     /**
-     * Returns the top-level supporting device name for a given storage volume native id,
-     * wwn, and backend array serial number.
-     * 
-     * @param volumeNativeId the storage volume's native id
-     * @param wwn the storage volume's wwn
-     * @param backendArraySerialNum the serial number of the backend array
-     * @param vplexUri the URI of the VPLEX device
-     * @param dbClient a reference to the database client
-     * 
-     * @return the name of the top level device for the given storage volume
-     * @throws VPlexApiException
-     */
-    @Deprecated
-    public static String getDeviceNameForStorageVolume(String volumeNativeId,
-            String wwn, String backendArraySerialNum, URI vplexUri, DbClient dbClient)
-            throws VPlexApiException {
-
-        String deviceName = null;
-        VPlexApiClient client = null;
-
-        try {
-            VPlexApiFactory vplexApiFactory = VPlexApiFactory.getInstance();
-            client = VPlexControllerUtils.getVPlexAPIClient(vplexApiFactory, vplexUri, dbClient);
-        } catch (URISyntaxException e) {
-            log.error("cannot load vplex api client", e);
-        }
-
-        if (null != client) {
-            deviceName = client.getDeviceForStorageVolume(volumeNativeId, wwn, backendArraySerialNum);
-        }
-
-        log.info("Device name for storage volume {} is {}", volumeNativeId, deviceName);
-        return deviceName;
-    }
-
-    /**
      * Gets the list of ITLs from the volume extensions
      * 
      * @param volume
@@ -540,7 +502,7 @@ public class VPlexControllerUtils {
      * @param networkDeviceController the NetworkDeviceController, used for refreshing the zoning map
      * @param isRemoveOperation flag to indicate whether the caller is a operation that removes inits or vols
      */
-    public static void refreshExportMask(DbClient dbClient, VPlexStorageViewInfo storageView, 
+    private static void refreshExportMask(DbClient dbClient, VPlexStorageViewInfo storageView, 
             ExportMask exportMask, Map<String, String> targetPortToPwwnMap, 
             NetworkDeviceController networkDeviceController, boolean isRemoveOperation) {
         try {
@@ -552,12 +514,11 @@ public class VPlexControllerUtils {
                 log.error(message);
                 if (null == storageView) {
                     if (null != exportMask) {
-                        log.error(String.format("storage view %s could not be found on VPLEX device %s", 
+                        log.warn(String.format("storage view %s could not be found on VPLEX device %s", 
                                 exportMask.getMaskName(), exportMask.getStorageDevice()));
                         cleanStaleExportMasks(dbClient, exportMask.getStorageDevice());
                     }
-                    throw new IllegalArgumentException("storage view could not be found on vplex device; " + message 
-                            + "; any stale export masks have been removed, so you may retry the operation");
+                    return;
                 } else {
                     throw new IllegalArgumentException("export mask refresh arguments are invalid: " + message);
                 }
@@ -586,6 +547,8 @@ public class VPlexControllerUtils {
                     viprInits.add(Initiator.normalizePort(init.getInitiatorPort()));
                 }
             }
+            // Update user added volume's HLU information in ExportMask and ExportGroup
+            ExportMaskUtils.updateHLUsInExportMask(exportMask, discoveredVolumes, dbClient);
 
             String name = exportMask.getMaskName();
 
@@ -602,7 +565,7 @@ public class VPlexControllerUtils {
             // Check the initiators and update the lists as necessary
             boolean addInitiators = false;
             List<String> initiatorPortWwnsToAdd = new ArrayList<String>();
-            List<Initiator> initiatorObjectsToAdd = new ArrayList<Initiator>();
+            List<Initiator> initiatorObjectsForComputeResourceToAdd = new ArrayList<Initiator>();
             for (String port : discoveredInitiators) {
                 String normalizedPort = Initiator.normalizePort(port);
                 Initiator knownInitiator = ExportUtils.getInitiator(Initiator.toPortNetworkId(port), dbClient);
@@ -610,8 +573,11 @@ public class VPlexControllerUtils {
                         (!exportMask.hasUserInitiator(normalizedPort) ||
                                 !exportMask.hasInitiator(knownInitiator != null ? knownInitiator.getId().toString()
                                         : NullColumnValueGetter.getNullURI().toString()))) {
-                    if (knownInitiator != null) {
-                        initiatorObjectsToAdd.add(knownInitiator);
+
+                    // If the initiator is in our DB, and it's in our compute resource, it gets added to to the initiator list.
+                    // Otherwise it gets added to the existing list.
+                    if (knownInitiator != null && !ExportMaskUtils.checkIfDifferentResource(exportMask, knownInitiator)) {
+                        initiatorObjectsForComputeResourceToAdd.add(knownInitiator);
                     } else {
                         initiatorPortWwnsToAdd.add(normalizedPort);
                     }
@@ -620,30 +586,42 @@ public class VPlexControllerUtils {
             }
 
             boolean removeInitiators = false;
+            // Existing Initiators that are not part of the Storage View discovered initiators
             List<String> initiatorsToRemove = new ArrayList<String>();
-            List<URI> initiatorIdsToRemove = new ArrayList<URI>();
             if (exportMask.getExistingInitiators() != null &&
                     !exportMask.getExistingInitiators().isEmpty()) {
                 initiatorsToRemove.addAll(exportMask.getExistingInitiators());
                 initiatorsToRemove.removeAll(discoveredInitiators);
             }
 
-            // if init is in userAddedInitiators now, but also in existing initiators,
-            // we should remove it from existing initiators
+            // a) Existing Initiators that are also part of UserAddedInitiators or Initiators List have to be removed
+            // b) Existing Initiators belonging to ViPR DB and NOT from different Compute resource need to added to
+            // initiator list if absent.
+            // c) Existing Initiators belonging to ViPR DB and from different Compute resource need to remain as existing.
             List<String> initiatorsToRemoveFromExisting = new ArrayList<String>();
             if (!isRemoveOperation) {
                 for (String initWwn : discoveredInitiators) {
                     Initiator managedInitiator = ExportUtils.getInitiator(Initiator.toPortNetworkId(initWwn), dbClient);
-                    if ((exportMask.hasUserInitiator(initWwn) || 
-                            (managedInitiator != null && exportMask.hasInitiator(managedInitiator.getId().toString())))
-                            && exportMask.hasExistingInitiator(initWwn)) {
-                        log.info("\texisting initiators contain id {}, but it is also in "
-                                + "user added inits, removing from existing inits", initWwn);
-                        initiatorsToRemoveFromExisting.add(initWwn);
+                    if (exportMask.hasExistingInitiator(initWwn) && (managedInitiator != null)) {
+                        if ((exportMask.hasUserInitiator(initWwn)) || (exportMask.hasInitiator(managedInitiator.getId().toString()))) {
+                            log.info("\texisting initiators contain id {}, but it is also in "
+                                    + "user added inits, removing from existing inits", initWwn);
+                            initiatorsToRemoveFromExisting.add(initWwn);
+                        } else if (!ExportMaskUtils.checkIfDifferentResource(exportMask, managedInitiator)) {
+                            log.info(String.format(
+                                    "Existing initiators contained id {%s}. This initiator is in our DB and "
+                                            + "does not belong to a different compute resource. Moving it to Initiator List"
+                                            + "from existing list",
+                                    initWwn));
+                            initiatorObjectsForComputeResourceToAdd.add(managedInitiator);
+                            initiatorsToRemoveFromExisting.add(initWwn);
+                        }
                     }
                 }
             }
 
+            // Initiators that are not part of the Storage View discovered initiators
+            List<URI> initiatorIdsToRemove = new ArrayList<URI>();
             if (exportMask.getInitiators() != null &&
                     !exportMask.getInitiators().isEmpty()) {
                 initiatorIdsToRemove.addAll(Collections2.transform(exportMask.getInitiators(),
@@ -680,9 +658,9 @@ public class VPlexControllerUtils {
                         dbClient.queryByConstraint(AlternateIdConstraint.Factory.getVolumeWwnConstraint(wwn), volumeList);
                         if (volumeList.iterator().hasNext()) {
                             URI volumeURI = volumeList.iterator().next();
-                            if (exportMask.hasVolume(volumeURI)) {
+                            if (exportMask.hasUserCreatedVolume(volumeURI)) {
                                 log.info("\texisting volumes contain wwn {}, but it is also in the "
-                                        + "export mask's volumes, so removing from existing volumes", wwn);
+                                        + "export mask's user added volumes, so removing from existing volumes", wwn);
                                 volumesToRemoveFromExisting.add(wwn);
                             }
                         }
@@ -744,16 +722,16 @@ public class VPlexControllerUtils {
                     removeVolumes || addStoragePorts || removeStoragePorts) {
                 log.info("ExportMask refresh: There are changes to mask, updating it...\n");
                 exportMask.removeFromExistingInitiators(initiatorsToRemove);
-                // keeping this separate from initiatorsToRemove because we don't want a zoning update
                 exportMask.removeFromExistingInitiators(initiatorsToRemoveFromExisting);
                 if (initiatorIdsToRemove != null && !initiatorIdsToRemove.isEmpty()) {
                     exportMask.removeInitiators(dbClient.queryObject(Initiator.class, initiatorIdsToRemove));
+                    exportMask.removeFromUserCreatedInitiators(dbClient.queryObject(Initiator.class, initiatorIdsToRemove));
                 }
-                List<Initiator> userAddedInitiators =
-                        ExportMaskUtils.findIfInitiatorsAreUserAddedInAnotherMask(exportMask, initiatorObjectsToAdd, dbClient);
-                exportMask.addToUserCreatedInitiators(userAddedInitiators);
+
+                exportMask.addToUserCreatedInitiators(initiatorObjectsForComputeResourceToAdd);
+                exportMask.addInitiators(initiatorObjectsForComputeResourceToAdd);
                 exportMask.addToExistingInitiatorsIfAbsent(initiatorPortWwnsToAdd);
-                exportMask.addInitiators(initiatorObjectsToAdd);
+
                 exportMask.removeFromExistingVolumes(volumesToRemoveFromExisting);
                 exportMask.addToExistingVolumesIfAbsent(volumesToAdd);
                 exportMask.getStoragePorts().addAll(storagePortsToAdd);

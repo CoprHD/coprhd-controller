@@ -1,6 +1,7 @@
 vmaccepteula
-clearpart ${clear.device} --overwritevmfs   
-install ${install.device} --overwritevmfs
+
+# Do not allow overwrite of existing datastore
+install ${install.device}
 rootpw --iscrypted  ${root.password}
 network --addvmportgroup=0 --bootproto=dhcp  
 reboot
@@ -9,9 +10,20 @@ reboot
 
 %post --interpreter=busybox --ignorefailure=false 
 localcli network firewall set --enabled false
+
+# ensure there is only one volume (the boot volume) visible to this server.
+# This prevents accidentally picking up the wrong volume as /datastore1 on OS boot.
+LINECOUNT=`find /dev/disks -name "naa*" -maxdepth 1 -size +0 | grep -v ":" | wc -l`
+if [ "$LINECOUNT" != "1" ] ; then
+echo "ViPR requires only a boot volume at install time."
+find /dev/disks -name "naa*" -maxdepth 1 -size +0 | grep -v ${raw.uuid} | grep -v ":"
+exit 1
+fi
+
 # if boot uuid was used, this will create sym link
 ${DATASTORE_SYM_LINK}
 cat /var/log/weasel.log  >> /vmfs/volumes/datastore1/osagent.log 2>&1
+
 echo $(date +"%Y-%m-%d %T") "INFO Executing %post section" >> /vmfs/volumes/datastore1/osagent.log
 # Downloading custom wget
 i=0

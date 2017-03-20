@@ -72,24 +72,6 @@ public abstract class BaseLogSvcResource {
     }
 
     /**
-     * Validates that the specified end time comes after the specified start
-     * time. Note that it is OK for the start/end times to be null. It just
-     * means they were not specified in the request.
-     *
-     * @param startTime The requested start time or null.
-     * @param endTime The requested end time or null.
-     * @throws APIException When the passed end time comes before the
-     *             passed start time.
-     */
-    protected void validateTimestamps(Date startTime, Date endTime) {
-        if ((startTime != null) && (endTime != null)) {
-            if (endTime.before(startTime)) {
-                throw APIException.badRequests.endTimeBeforeStartTime(startTime.toString(), endTime.toString());
-            }
-        }
-    }
-
-    /**
      * Verifies a valid severity level is passed in the request and returns the
      * appropriate LogSeverity enumeration.
      *
@@ -142,7 +124,7 @@ public abstract class BaseLogSvcResource {
      */
     protected Set<String> getValidLogNames() {
         Set<String> logNames = new HashSet<String>();
-        logNames.addAll(ServicesMetadata.getControlNodeServiceNames());
+        logNames.addAll(ServicesMetadata.getControlNodeLogNames());
         logNames.addAll(ServicesMetadata.getExtraNodeServiceNames());
         logNames.addAll(nonServiceLogFileNames);
         return logNames;

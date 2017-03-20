@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import com.emc.storageos.db.client.model.uimodels.Order;
 import org.apache.commons.beanutils.PropertyUtils;
 import org.apache.commons.lang.ObjectUtils;
 import org.apache.commons.lang.StringUtils;
@@ -60,6 +61,33 @@ public class InMemoryDbClient implements DBClientWrapper {
     }
 
     @Override
+    public List<NamedElement> findOrdersByAlternateId(String columnField, String value, long startTime, long endTime,
+                                                      int maxCount)
+            throws DataAccessException {
+        List<NamedElement> results = Lists.newArrayList();
+        for (URI modelId : findAllIds(Order.class)) {
+            Order order = findById(Order.class, modelId);
+            Object o = getColumnField(order, columnField);
+            if (ObjectUtils.equals(o, value)) {
+                results.add(createNamedElement(order));
+            }
+        }
+        return results;
+    }
+
+    @Override
+    public long getOrderCount(String userId, String fieldName, long startTime, long endTime) {
+        //TODO:
+        return 0;
+    }
+
+    @Override
+    public Map<String, Long> getOrderCount(List<URI> tids, String fieldName, long startTime, long endTime) {
+        //TODO:
+        return null;
+    }
+
+    @Override
     public <T extends DataObject> List<NamedElement> findByContainmentAndPrefix(Class<T> clazz, String columnField, URI id,
             String labelPrefix) throws DataAccessException {
         List<NamedElement> results = Lists.newArrayList();
@@ -73,11 +101,12 @@ public class InMemoryDbClient implements DBClientWrapper {
         return results;
     }
 
-    public <T extends DataObject> List<NamedElement> findByTimeRange(Class<T> clazz, String columnField, Date startTime, Date endTime)
+    @Override
+    public List<NamedElement> findAllOrdersByTimeRange(URI tid, String columnField, Date startTime, Date endTime, int maxCount)
             throws DataAccessException {
         List<NamedElement> results = Lists.newArrayList();
-        for (URI modelId : findAllIds(clazz)) {
-            T model = findById(clazz, modelId);
+        for (URI modelId : findAllIds(Order.class)) {
+            Order model = findById(Order.class, modelId);
             Object o = getColumnField(model, columnField);
             results.add(createNamedElement(model));
         }

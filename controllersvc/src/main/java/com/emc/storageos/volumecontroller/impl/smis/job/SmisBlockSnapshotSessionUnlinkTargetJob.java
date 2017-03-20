@@ -148,6 +148,7 @@ public class SmisBlockSnapshotSessionUnlinkTargetJob extends SmisJob {
                     volume.setProject(snapshot.getProject());
                     volume.setTenant(sourceVolume.getTenant());
                     volume.setStorageController(snapshot.getStorageController());
+                    volume.setSystemType(snapshot.getSystemType());
                     volume.setPool(sourceVolume.getPool()); // It is understood that this is not necessarily true.
                     StringSet protocols = new StringSet();
                     protocols.addAll(snapshot.getProtocol());

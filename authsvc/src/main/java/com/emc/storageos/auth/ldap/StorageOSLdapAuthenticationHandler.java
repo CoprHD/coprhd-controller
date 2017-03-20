@@ -46,7 +46,6 @@ public class StorageOSLdapAuthenticationHandler implements
     private Set<String> _domains;
     private String _rawFilter;
     private String _searchBase;
-    private LdapTemplate _ldapTemplate;
     private int _scope = SearchControls.SUBTREE_SCOPE;
     private int _timeLimit = 1000;
     private long _countLimit = 1000;
@@ -105,6 +104,7 @@ public class StorageOSLdapAuthenticationHandler implements
         _log.debug("Filter for authentication is {}", filter);
 
         LdapTemplate ldapTemplate = new LdapTemplate(server.getContextSource());
+        ldapTemplate.setIgnorePartialResultException(true); // To avoid the exceptions due to referrals returned
         try {
             ldapTemplate.search(new StorageOSSearchExecutor(filter), new StorageOSNameClassPairCallbackHandler(dns));
         } catch (CommunicationException e) {

@@ -87,6 +87,16 @@
         min:1
       }
     },
+    hlu: {
+          type:"number",
+          lockable: true,
+          required: true,
+          initialValue: "0",
+          validation: {
+            min:0,
+            max:255
+          }
+    },
     vcenter:{
       type:"assetType.vipr.vcentersForCluster",
       lockable: true,

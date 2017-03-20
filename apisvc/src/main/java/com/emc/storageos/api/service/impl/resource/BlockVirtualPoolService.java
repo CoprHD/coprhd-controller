@@ -113,7 +113,7 @@ import com.google.common.base.Function;
 public class BlockVirtualPoolService extends VirtualPoolService {
 
     private static final Logger _log = LoggerFactory.getLogger(BlockVirtualPoolService.class);
-    private static final String NONE = "none";
+    private static final String NONE = "NONE";
 
     /**
      * Returns all potential virtual pools, which supported the given virtual pool change operation
@@ -335,6 +335,21 @@ public class BlockVirtualPoolService extends VirtualPoolService {
     @CheckPermission(roles = { Role.SECURITY_ADMIN, Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN }, blockProxies = true)
     public ACLAssignments updateAcls(@PathParam("id") URI id,
             ACLAssignmentChanges changes) {
+        URIQueryResultList resultList = new URIQueryResultList();
+        _dbClient.queryByConstraint(
+                ContainmentConstraint.Factory.getVirtualPoolVolumeConstraint(id), resultList);
+        boolean hasActiveVolumes = false;
+        for (URI uri : resultList) {
+            Volume volume = _dbClient.queryObject(Volume.class, uri);
+            if (volume != null && !volume.getInactive()) {
+                hasActiveVolumes = true;
+                break;
+            }
+        }
+
+        if (hasActiveVolumes) {
+            throw APIException.badRequests.updateVirtualPoolOnlyAllowedToChange();
+        }
         return updateAclsOnVirtualPool(VirtualPool.Type.block, id, changes);
     }
 
@@ -445,6 +460,11 @@ public class BlockVirtualPoolService extends VirtualPoolService {
             }
 
             vpool.getArrayInfo().put(VirtualPoolCapabilityValuesWrapper.SYSTEM_TYPE, param.getSystemType());
+        } else {
+            if (vpool.getArrayInfo() == null) {
+                vpool.setArrayInfo(new StringSetMap());
+                vpool.getArrayInfo().put(VirtualPoolCapabilityValuesWrapper.SYSTEM_TYPE, NONE);
+            }
         }
 
         if (null != param.getRaidLevelChanges()) {
@@ -480,6 +500,8 @@ public class BlockVirtualPoolService extends VirtualPoolService {
 
         if (null != param.getDriveType()) {
             vpool.setDriveType(param.getDriveType());
+        } else {
+            vpool.setDriveType(NONE);
         }
 
         validateAndSetPathParams(vpool, param.getMaxPaths(), param.getMinPaths(), param.getPathsPerInitiator());
@@ -1493,9 +1515,11 @@ public class BlockVirtualPoolService extends VirtualPoolService {
             arrayInfo.put(VirtualPoolCapabilityValuesWrapper.SYSTEM_TYPE, param.getSystemType());
         }
 
-        if (!arrayInfo.isEmpty()) {
-            vpool.addArrayInfoDetails(arrayInfo);
+        if (arrayInfo.isEmpty()) {
+            arrayInfo.put(VirtualPoolCapabilityValuesWrapper.SYSTEM_TYPE, NONE);
         }
+        
+        vpool.addArrayInfoDetails(arrayInfo);
 
         if (param.getProtection() != null) {
             if (param.getProtection().getContinuousCopies() != null) {
@@ -1750,6 +1774,8 @@ public class BlockVirtualPoolService extends VirtualPoolService {
         }
         if (null != param.getDriveType()) {
             vpool.setDriveType(param.getDriveType());
+        } else {
+            vpool.setDriveType(NONE);
         }
 
         // Set the min/max paths an paths per initiator

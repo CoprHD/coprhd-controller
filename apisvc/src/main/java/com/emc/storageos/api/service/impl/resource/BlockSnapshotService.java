@@ -206,14 +206,22 @@ public class BlockSnapshotService extends TaskResourceService {
     }
 
     /**
-     * Deactivate volume snapshot, this will move the snapshot to a "marked-for-delete" state.
+     * Deactivate volume snapshot, will result in permanent deletion of the requested snapshot from the storage system it was created on
+     * and will move the snapshot to a "marked-for-delete" state after the deletion happens on the array side.
      * It will be deleted by the garbage collector on a subsequent iteration
      * If this snapshot was created from a volume that is part of a consistency group,
      * then all the related snapshots will be deactivated, as well.
      * 
+     * If "?type=VIPR_ONLY" is added to the path, it will delete snapshot only from ViPR data base and leaves the snapshot on storage array
+     * as it is.
+     * Possible value for attribute type : FULL, VIPR_ONLY
+     * FULL : Deletes the snapshot permanently on array and ViPR data base.
+     * VIPR_ONLY : Deletes the snapshot only from ViPR data base and leaves the snapshot on array as it is.
+     * 
+     * 
      * @prereq none
      * @param id the URN of a ViPR snapshot
-     * @param type the type of deletion
+     * @param type the type of deletion {@link DefaultValue} FULL
      * @brief Delete snapshot
      * @return Snapshot information
      */
@@ -997,6 +1005,7 @@ public class BlockSnapshotService extends TaskResourceService {
         volume.setVirtualArray(snapshot.getVirtualArray());
         volume.setProject(snapshot.getProject());
         volume.setStorageController(snapshot.getStorageController());
+        volume.setSystemType(snapshot.getSystemType());
         StringSet protocols = new StringSet();
         protocols.addAll(snapshot.getProtocol());
         volume.setProtocol(protocols);

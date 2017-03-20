@@ -128,7 +128,7 @@ public class VplexVolumeIngestionContext extends VplexBackendIngestionContext im
     public void commit() {
 
         _logger.info("persisting VPLEX backend for virtual volume " + getUnmanagedVolume().forDisplay());
-        setFlags();
+        setFlagsAndUpdateExportMasks();
         createVplexMirrorObjects();
         _dbClient.createObject(getCreatedVplexMirrors());
         _dbClient.createObject(getCreatedSnapshotMap().values());
@@ -821,13 +821,37 @@ public class VplexVolumeIngestionContext extends VplexBackendIngestionContext im
      *
      * @param context the VplexBackendIngestionContext
      */
-    private void setFlags() {
+    private void setFlagsAndUpdateExportMasks() {
+        // assemble a map of backend Volume native guid(s) to new backend ExportMask.
+        // if a new backend ExportMask isn't being created for a backend volume, then there will be no entry.
+        Map<String, ExportMask> backendVolumeGuidToNewExportMaskMap = new HashMap<String, ExportMask>();
+        for (Entry<String, Set<DataObject>> entry : getDataObjectsToBeCreatedMap().entrySet()) {
+            Set<DataObject> values = entry.getValue();
+            for (DataObject dataObject : values) {
+                if (dataObject instanceof ExportMask) {
+                    backendVolumeGuidToNewExportMaskMap.put(
+                            entry.getKey().replace(VolumeIngestionUtil.UNMANAGEDVOLUME, VolumeIngestionUtil.VOLUME), 
+                            (ExportMask) dataObject);
+                }
+            }
+        }
+
         // set internal object flag on any backend volumes
         for (BlockObject o : getBlockObjectsToBeCreatedMap().values()) {
             if (getBackendVolumeGuids().contains(o.getNativeGuid())) {
                 o.clearInternalFlags(BlockIngestOrchestrator.INTERNAL_VOLUME_FLAGS);
                 _logger.info("setting INTERNAL_OBJECT flag on " + o.getLabel());
                 o.addInternalFlags(Flag.INTERNAL_OBJECT);
+
+                // check if any new backend ExportMasks need to be updated
+                ExportMask exportMask = backendVolumeGuidToNewExportMaskMap.get(o.getNativeGuid());
+                if (null != exportMask) {
+                    _logger.info(
+                            "Removing block object {} from existing volumes and adding to user created volumes of export mask {}",
+                            o.getNativeGuid(), exportMask.getMaskName());
+                    exportMask.removeFromExistingVolumes(o);
+                    exportMask.addToUserCreatedVolumes(o);
+                }
             }
         }
 

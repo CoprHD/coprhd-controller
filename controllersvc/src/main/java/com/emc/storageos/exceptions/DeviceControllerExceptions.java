@@ -7,6 +7,7 @@ package com.emc.storageos.exceptions;
 
 import java.net.URI;
 import java.util.Collection;
+import java.util.Map;
 
 import com.emc.storageos.ceph.CephExceptions;
 import com.emc.storageos.cinder.errorhandling.CinderExceptions;
@@ -30,8 +31,10 @@ import com.emc.storageos.vplex.api.VPlexApiExceptions;
 /**
  * This interface holds all the methods and interfaces used to create {@link DeviceControllerException}s
  * <p/>
- * Remember to add the English message associated to the method in DeviceControllerExceptions.properties and use the annotation
- * {@link DeclareServiceCode} to set the service code associated to this error condition. You may need to create a new service code if there
+ * Remember to add the English message associated to the method in DeviceControllerExceptions.properties and use the
+ * annotation
+ * {@link DeclareServiceCode} to set the service code associated to this error condition. You may need to create a new
+ * service code if there
  * is no an existing one suitable for your error condition.
  * <p/>
  * For more information or to see an example, check the Developers Guide section in the Error Handling Wiki page:
@@ -137,6 +140,9 @@ public interface DeviceControllerExceptions {
 
     @DeclareServiceCode(ServiceCode.BLOCK_CONTROLLER_ERROR)
     public DeviceControllerException exportGroupDeleteFailed(final Throwable cause);
+
+    @DeclareServiceCode(ServiceCode.BLOCK_CONTROLLER_ERROR)
+    public DeviceControllerException exportGroupDeleteUnsupported(final String exportGroupName);
 
     @DeclareServiceCode(ServiceCode.BLOCK_CONTROLLER_ERROR)
     public DeviceControllerException exportGroupUpdateFailed(final Throwable cause);
@@ -266,9 +272,12 @@ public interface DeviceControllerExceptions {
 
     @DeclareServiceCode(ServiceCode.FILE_CONTROLLER_ERROR)
     public DeviceControllerException unableToRestoreFileSystemFromSnapshot(final Throwable cause);
-    
+
     @DeclareServiceCode(ServiceCode.FILE_CONTROLLER_ERROR)
     public DeviceControllerException createFileSystemOnPhysicalNASDisabled();
+
+    @DeclareServiceCode(ServiceCode.FILE_CONTROLLER_ERROR)
+    public DeviceControllerException noNasServerFoundToAddStepsToApplyPolicy(final String storage);
 
     @DeclareServiceCode(ServiceCode.FILE_CONTROLLER_ERROR)
     public DeviceControllerException unableToConnectToStorageDeviceForMonitoringDbException(
@@ -367,18 +376,14 @@ public interface DeviceControllerExceptions {
     @DeclareServiceCode(ServiceCode.CONTROLLER_ENTITY_NOT_FOUND)
     public DeviceControllerException virtualArrayNotFound();
 
-    @DeclareServiceCode(ServiceCode
-            .CONTROLLER_VMAX_MULTIPLE_MATCHING_COMPUTE_RESOURCE_MASKS)
-            public DeviceControllerException
-            vmaxMultipleMatchingComputeResourceMasks(String maskNames);
+    @DeclareServiceCode(ServiceCode.CONTROLLER_VMAX_MULTIPLE_MATCHING_COMPUTE_RESOURCE_MASKS)
+    public DeviceControllerException vmaxMultipleMatchingComputeResourceMasks(String maskNames);
 
     @DeclareServiceCode(ServiceCode.CONTROLLER_ERROR_ASSIGNING_STORAGE_PORTS)
-    public DeviceControllerException
-            exceptionAssigningStoragePorts(String message, Throwable ex);
+    public DeviceControllerException exceptionAssigningStoragePorts(String message, Throwable ex);
 
     @DeclareServiceCode(ServiceCode.CONTROLLER_ERROR_ASSIGNING_STORAGE_PORTS)
-    public DeviceControllerException
-            unexpectedExceptionAssigningPorts(Throwable ex);
+    public DeviceControllerException unexpectedExceptionAssigningPorts(Throwable ex);
 
     @DeclareServiceCode(ServiceCode.CONTROLLER_JOB_ERROR)
     public DeviceControllerException cannotFindActiveProviderForStorageSystem();
@@ -411,12 +416,10 @@ public interface DeviceControllerExceptions {
     public DeviceControllerException consistencyGroupNotFoundForProvider(String name, String label, String provider);
 
     @DeclareServiceCode(ServiceCode.CONTROLLER_ERROR)
-    public DeviceControllerException
-            failedToAddMembersToConsistencyGroup(String name, String deviceLabel, String error);
+    public DeviceControllerException failedToAddMembersToConsistencyGroup(String name, String deviceLabel, String error);
 
     @DeclareServiceCode(ServiceCode.CONTROLLER_ERROR)
-    public DeviceControllerException
-            failedToRemoveMembersToConsistencyGroup(String name, String deviceLabel, String error);
+    public DeviceControllerException failedToRemoveMembersToConsistencyGroup(String name, String deviceLabel, String error);
 
     @DeclareServiceCode(ServiceCode.CONTROLLER_ERROR)
     public DeviceControllerException failedToUpdateConsistencyGroup(String message);
@@ -448,7 +451,7 @@ public interface DeviceControllerExceptions {
 
     @DeclareServiceCode(ServiceCode.CONTROLLER_ERROR_ASSIGNING_STORAGE_PORTS)
     public DeviceControllerException unexpectedCondition(String message);
-    
+
     @DeclareServiceCode(ServiceCode.BLOCK_CONTROLLER_ERROR)
     public DeviceControllerException failedToUpdateVolumesFromAppication(String application, String error);
 
@@ -478,7 +481,7 @@ public interface DeviceControllerExceptions {
 
     @DeclareServiceCode(ServiceCode.BLOCK_CONTROLLER_ERROR)
     public DeviceControllerException couldNotFindSyncObjectToUnlinkTarget(final String deviceId);
-    
+
     @DeclareServiceCode(ServiceCode.BLOCK_CONTROLLER_ERROR)
     public DeviceControllerException couldNotDeleteReplicationGroup(final String reason);
 
@@ -488,12 +491,21 @@ public interface DeviceControllerExceptions {
     @DeclareServiceCode(ServiceCode.BLOCK_CONTROLLER_ERROR)
     public DeviceControllerException exportGroupInconsistentLunViolation(final String exportGroupName, final String details);
 
+    @DeclareServiceCode(ServiceCode.BLOCK_CONTROLLER_ERROR)
+    public DeviceControllerException volumeExportReachedMaximumHlu(final String details);
+    
+    @DeclareServiceCode(ServiceCode.BLOCK_CONTROLLER_ERROR)
+    public DeviceControllerException volumeExportMaximumHluNotAvailable(final String systemType);
+
+    @DeclareServiceCode(ServiceCode.BLOCK_CONTROLLER_ERROR)
+    public DeviceControllerException consistentLunFlagNotSetOnInitiatorGroup(final String initiatorGroup);
+
     @DeclareServiceCode(ServiceCode.CONTROLLER_VALIDATION_EXCEPTION)
     public DeviceControllerException validationError(final String type, final String details, final String remediationAction);
 
     @DeclareServiceCode(ServiceCode.BLOCK_CONTROLLER_ERROR)
     public DeviceControllerException couldNotPerformAliasOperation(final String reason);
-    
+
     @DeclareServiceCode(ServiceCode.BLOCK_CONTROLLER_ERROR)
     public DeviceControllerException volumeSizeExceedingPoolSize(final String volumeName);
 
@@ -505,4 +517,25 @@ public interface DeviceControllerExceptions {
 
     @DeclareServiceCode(ServiceCode.CONTROLLER_VALIDATION_EXCEPTION)
     public DeviceControllerException removeInitiatorValidationError(String initiatorsName, String storageSystemName, String details);
+    
+    @DeclareServiceCode(ServiceCode.BLOCK_CONTROLLER_ERROR)
+    public DeviceControllerException exportGroupPortRebalanceError(final Throwable cause);
+    
+    @DeclareServiceCode(ServiceCode.BLOCK_CONTROLLER_ERROR)
+    public DeviceControllerException exportGroupPathAdjustmentError(String reason);
+
+    @DeclareServiceCode(ServiceCode.BLOCK_CONTROLLER_ERROR)
+    public DeviceControllerException addHostHLUViolation(Map<String, Integer> volumeHluPair);
+
+    @DeclareServiceCode(ServiceCode.CONTROLLER_VALIDATION_EXCEPTION)
+    public DeviceControllerException removeVolumesValidationError(String volumeNames, String storageSystemName, String details);
+
+    @DeclareServiceCode(ServiceCode.CONTROLLER_VALIDATION_EXCEPTION)
+    public DeviceControllerException deleteExportGroupValidationError(String exportGroupName, String storageSystemName, String details);
+    
+    @DeclareServiceCode(ServiceCode.BLOCK_CONTROLLER_ERROR)
+    public DeviceControllerException hostRescanUnsuccessful(String hostName, String reason);
+    
+    @DeclareServiceCode(ServiceCode.FILE_CONTROLLER_ERROR)
+    public DeviceControllerException assignFilePolicyFailed(String filePolicyName, String appliedAt, String details);
 }

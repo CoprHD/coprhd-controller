@@ -745,19 +745,13 @@ public class XIVSmisStorageDevice extends DefaultBlockStorageDevice {
                     Constants.IBM_NAMESPACE, null);
             List<CIMInstance> cgInstances = _helper.executeQuery(storage,
                     cgPath, query, "WQL");
-            if (!cgInstances.isEmpty()) {
-                _log.error("Failed to create consistency group: " + IBMSmisConstants.DUPLICATED_CG_NAME_ERROR);
-                ServiceError error = DeviceControllerErrors.smis.methodFailed(
-                        "doCreateConsistencyGroup", IBMSmisConstants.DUPLICATED_CG_NAME_ERROR);
-                taskCompleter.error(_dbClient, error);
-                return;
+            if (cgInstances.isEmpty()) {
+                consistencyGroup.addSystemConsistencyGroup(storage.getId().toString(), EMPTY_CG_NAME);
+                consistencyGroup.setStorageController(storage.getId());
+                consistencyGroup.addConsistencyGroupTypes(Types.LOCAL.name());
+                _dbClient.persistObject(consistencyGroup);
             }
 
-            // CG has not really been created on array side yet, but to ViPR it is created
-            consistencyGroup.addSystemConsistencyGroup(storage.getId().toString(), EMPTY_CG_NAME);
-            consistencyGroup.setStorageController(storage.getId());
-            consistencyGroup.addConsistencyGroupTypes(Types.LOCAL.name());
-            _dbClient.persistObject(consistencyGroup);
             taskCompleter.ready(_dbClient);
         } catch (Exception e) {
             _log.error("Failed to create consistency group: " + e);

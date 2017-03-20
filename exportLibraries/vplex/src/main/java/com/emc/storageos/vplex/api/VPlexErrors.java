@@ -4,6 +4,9 @@
  */
 package com.emc.storageos.vplex.api;
 
+import java.net.URI;
+import java.util.List;
+
 import com.emc.storageos.svcs.errorhandling.annotations.DeclareServiceCode;
 import com.emc.storageos.svcs.errorhandling.annotations.MessageBundle;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
@@ -86,6 +89,10 @@ public interface VPlexErrors {
 
     @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
     public ServiceError zoneAddInitiatorStepFailed(final String opName,
+            final Throwable cause);
+
+    @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
+    public ServiceError registerInitiatorsStepFailed(final String opName,
             final Throwable cause);
 
     @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
@@ -244,4 +251,7 @@ public interface VPlexErrors {
     
     @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
     public ServiceError cantRollbackExceptionDeterminingCommitState(final Throwable cause);
+    
+    @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
+    public ServiceError relinkSnapshotSessionTargetsFailed(List<URI> snapshotURIs, URI tgtSnapSessionURI, final Throwable cause);
 }

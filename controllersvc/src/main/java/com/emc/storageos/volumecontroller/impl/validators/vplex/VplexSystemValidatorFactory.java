@@ -98,21 +98,16 @@ public class VplexSystemValidatorFactory implements StorageSystemValidatorFactor
     }
 
     @Override
-    public Validator removeVolumes(StorageSystem storage, URI exportMaskURI, Collection<Initiator> initiators) {
-        checkVplexConnectivity(storage);
-        ExportMask exportMask = dbClient.queryObject(ExportMask.class, exportMaskURI);
-        logger = new ValidatorLogger(log, exportMask.forDisplay(), storage.forDisplay());
-        VplexExportMaskValidator validator = new VplexExportMaskValidator(dbClient, config, logger, storage, exportMask);
-        validator.setInitiatorsToValidate(initiators);
+    public Validator removeVolumes(ExportMaskValidationContext ctx) {
+        checkVplexConnectivity(ctx.getStorage());
+        ExportMask exportMask = dbClient.queryObject(ExportMask.class, ctx.getExportMask().getId());
+        logger = new ValidatorLogger(log, exportMask.forDisplay(), ctx.getStorage().forDisplay());
+        VplexExportMaskValidator validator = new VplexExportMaskValidator(dbClient, config, logger, ctx.getStorage(), exportMask);
+        validator.setInitiatorsToValidate(ctx.getInitiators());
 
         DefaultValidator defaultValidator = new DefaultValidator(validator, config, logger, "Export Mask");
+        defaultValidator.setExceptionContext(ctx);
         return defaultValidator;
-    }
-
-    @Override
-    public Validator removeVolumes(StorageSystem storage, URI exportMaskURI, Collection<Initiator> initiators,
-                                   Collection<? extends BlockObject> volumes) {
-        return null;
     }
 
     @Override

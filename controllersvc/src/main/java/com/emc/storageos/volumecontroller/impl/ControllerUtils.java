@@ -6,7 +6,6 @@ package com.emc.storageos.volumecontroller.impl;
 
 import static com.emc.storageos.db.client.constraint.AlternateIdConstraint.Factory.getBlockSnapshotSessionBySessionInstance;
 import static com.emc.storageos.db.client.constraint.ContainmentConstraint.Factory.getVolumesByConsistencyGroup;
-import static com.emc.storageos.db.client.util.CommonTransformerFunctions.fctnBlockObjectToLabel;
 import static com.emc.storageos.db.client.util.CommonTransformerFunctions.fctnDataObjectToID;
 import static com.google.common.collect.Collections2.transform;
 import static com.google.common.collect.Lists.newArrayList;
@@ -30,6 +29,7 @@ import java.util.regex.Pattern;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.util.CollectionUtils;
 
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.DbClient;
@@ -1034,6 +1034,33 @@ public class ControllerUtils {
         }
         return new ArrayList<BlockSnapshot>(Arrays.asList(snapshot));
     }
+    
+    /**
+     * From the passed list group snapshot URIs, filters the list so that only one snapshot
+     * per replication group is in the returned, filtered list.
+     * 
+     * @param snapshotURIs A list of group snapshots
+     * @param dbClient A reference to a database client.
+     * 
+     * @return The filtered list of snapshot URIs.
+     */
+    public static List<URI> ensureOneSnapshotPerReplicationGroup(List<URI> snapshotURIs, DbClient dbClient) {
+        List<URI> filteredSnapshotURIs = new ArrayList<>();
+        Set<String> replicationGroups = new HashSet<>();
+        Iterator<BlockSnapshot> snapshotIter = dbClient.queryIterativeObjects(BlockSnapshot.class, snapshotURIs);
+        while (snapshotIter.hasNext()) {
+            BlockSnapshot snapshot = snapshotIter.next();
+            String repGrpInstance = snapshot.getReplicationGroupInstance();
+            if (replicationGroups.contains(repGrpInstance)) {
+                continue;
+            }
+
+            replicationGroups.add(repGrpInstance);
+            filteredSnapshotURIs.add(snapshot.getId());
+        }
+        
+        return filteredSnapshotURIs;
+    }
 
     /**
      * BlockSnapshot instances associated to an BlockSnapshotSession will have its replicationGroupName field set in a
@@ -1563,15 +1590,21 @@ public class ControllerUtils {
     public static String getSnapSetLabelFromExistingSnaps(String repGroupName, URI storage, DbClient dbClient) {
         List<BlockSnapshot> snapshots = getSnapshotsPartOfReplicationGroup(repGroupName, storage, dbClient);
         String existingSnapSnapSetLabel = null;
-        if (null != snapshots && !snapshots.isEmpty()) {
+        if (!CollectionUtils.isEmpty(snapshots)) {
             existingSnapSnapSetLabel = snapshots.get(0).getSnapsetLabel();
         }
         return existingSnapSnapSetLabel;
     }
 
-    public static Set<String> getSnapshotLabelsFromExistingSnaps(String repGroupName, URI storage, DbClient dbClient) {
-        List<BlockSnapshot> snapshots = getSnapshotsPartOfReplicationGroup(repGroupName, storage, dbClient);
-        return new HashSet(transform(snapshots, fctnBlockObjectToLabel()));
+    public static Set<String> getSnapshotLabelsFromExistingSnaps(String repGroupName, BlockObject source, DbClient dbClient) {
+        List<BlockSnapshot> snapshots = getSnapshotsPartOfReplicationGroup(repGroupName, source.getStorageController(), dbClient);
+        Set<String> snapLables = new HashSet<>();
+        if (!CollectionUtils.isEmpty(snapshots)) {
+            for (BlockSnapshot snapshot : snapshots) {
+                snapLables.add(String.format("%s-%s", snapshot.getSnapsetLabel(), source.getLabel()));
+            }
+        }
+        return snapLables;
     }
 
     /**

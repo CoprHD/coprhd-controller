@@ -662,6 +662,7 @@ public class UnManagedFilesystemService extends TaggedResource {
         String parentFsNativeGUID = parentFS.getNativeGuid();
         URIQueryResultList result = new URIQueryResultList();
         List<QuotaDirectory> quotaDirectories = new ArrayList<>();
+        
 
         _dbClient.queryByConstraint(AlternateIdConstraint.Factory
                 .getUnManagedFileQuotaDirectoryInfoParentNativeGUIdConstraint(parentFsNativeGUID), result);
@@ -702,6 +703,15 @@ public class UnManagedFilesystemService extends TaggedResource {
             quotaDirectory.setSize(unManagedFileQuotaDirectory.getSize());
             quotaDirectory.setSecurityStyle(unManagedFileQuotaDirectory.getSecurityStyle());
             quotaDirectory.setNativeGuid(NativeGUIDGenerator.generateNativeGuid(_dbClient, quotaDirectory, parentFS.getName()));
+            //check for file extensions
+            if (null != unManagedFileQuotaDirectory.getExtensions() &&
+                    !unManagedFileQuotaDirectory.getExtensions().isEmpty()){
+                StringMap extensions = new StringMap();
+                if(null != unManagedFileQuotaDirectory.getExtensions().get(QUOTA)) {
+                    extensions.put(QUOTA, unManagedFileQuotaDirectory.getExtensions().get(QUOTA));
+                    quotaDirectory.setExtensions(extensions);
+                }
+            }
             quotaDirectories.add(quotaDirectory);
         }
 

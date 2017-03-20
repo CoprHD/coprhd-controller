@@ -117,7 +117,6 @@ public class SmisBlockCreateCGSnapshotJob extends SmisSnapShotJob {
                                 syncDeviceID, elementName, replicationGroupInstance,
                                 volumePath.toString()));
                         dbClient.updateObject(snapshot);
-                        getTaskCompleter().ready(dbClient);
                     }
                 }
             } else if (jobStatus == JobStatus.FAILED || jobStatus == JobStatus.FATAL_ERROR) {
@@ -125,7 +124,7 @@ public class SmisBlockCreateCGSnapshotJob extends SmisSnapShotJob {
                 for (BlockSnapshot snapshot : snapshots) {
                     snapshot.setInactive(true);
                 }
-                dbClient.persistObject(snapshots);
+                dbClient.updateObject(snapshots);
             }
         } catch (Exception e) {
             setPostProcessingErrorStatus("Encountered an internal error during create CG snapshot job status processing: " + e.getMessage());

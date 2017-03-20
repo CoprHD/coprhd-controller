@@ -11,14 +11,11 @@ import org.slf4j.LoggerFactory;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.FilenameFilter;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
-import java.io.Writer;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.net.Socket;
@@ -32,8 +29,12 @@ import org.apache.commons.io.FileUtils;
 import com.emc.storageos.management.backup.util.ValidationUtil;
 import com.emc.storageos.management.backup.util.ValidationUtil.*;
 import com.emc.storageos.management.backup.exceptions.BackupException;
-import com.emc.storageos.services.util.Exec;
 
+/**
+ * This handler is used to backup not only ZK data files, but also site id and
+ * storage drivers. Site id and storage drivers only need to be backed up once,
+ * exactly like ZK data files, so we put these 2 tasks inside this handler.
+ */
 public class ZkBackupHandler extends BackupHandler {
     private static final Logger log = LoggerFactory.getLogger(ZkBackupHandler.class);
     private static final String ZK_ACCEPTED_EPOCH = "acceptedEpoch";
@@ -44,6 +45,15 @@ public class ZkBackupHandler extends BackupHandler {
     private File zkDir;
     private List<String> fileTypeList;
     private File siteIdFile;
+    private File driverPath;
+
+    public File getDriverPath() {
+        return driverPath;
+    }
+
+    public void setDriverPath(File driverPath) {
+        this.driverPath = driverPath;
+    }
 
     public void setNodeCount(int nodeCount) {
         this.nodeCount = nodeCount;
@@ -313,6 +323,26 @@ public class ZkBackupHandler extends BackupHandler {
         FileUtils.copyFileToDirectory(siteIdFile, targetDir);
     }
 
+    private void backupDrivers(File targetDir) throws IOException {
+        if (driverPath == null || !driverPath.exists() || !driverPath.isDirectory()) {
+            log.error("Driver path is not configured, or does not exist, or is not a directory");
+            return;
+        }
+        File[] drivers = driverPath.listFiles();
+        if (drivers == null || drivers.length == 0) {
+            log.info("Found no driver, skip backing up drivers");
+            return;
+        }
+        File driverFolder = new File(targetDir, BackupConstants.DRIVERS_FOLDER_NAME);
+        driverFolder.mkdir();
+        for (File driver : driverPath.listFiles()) {
+            if (!com.emc.storageos.services.util.FileUtils.isJarFile(driver.getName())) {
+                continue;
+            }
+            FileUtils.copyFileToDirectory(driver, driverFolder);
+        }
+    }
+
     @Override
     public File dumpBackup(final String backupTag, final String fullBackupTag) {
         File targetDir = new File(backupContext.getBackupDir(), backupTag);
@@ -326,6 +356,7 @@ public class ZkBackupHandler extends BackupHandler {
                     NotExistEnum.NOT_EXSIT_CREATE);
             backupFolder(targetFolder, zkDir);
             backupSiteId(targetFolder);
+            backupDrivers(targetFolder);
         } catch (IOException ex) {
             throw BackupException.fatals.failedToDumpZkData(fullBackupTag, ex);
         }

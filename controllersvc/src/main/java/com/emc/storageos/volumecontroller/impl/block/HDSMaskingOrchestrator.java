@@ -47,6 +47,7 @@ import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
 import com.emc.storageos.workflow.Workflow;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Collections2;
+import com.google.common.collect.Sets;
 
 /**
  * This class will contain HDS specific masking orchestration implementations.
@@ -189,9 +190,17 @@ public class HDSMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                         initiatorURIs, hostURIs);
                 Map<String, Set<URI>> foundMatches = device.findExportMasks(storage, portNames, false);
                 Set<String> checkMasks = mergeWithExportGroupMaskURIs(exportGroup, foundMatches.values());
+                
+                Set<String> storagePortURIsAssociatedWithVArrayAndStorageArray = ExportMaskUtils.getStoragePortUrisAssociatedWithVarrayAndStorageArray(
+                        storageURI, exportGroup.getVirtualArray(), _dbClient);
+                
                 for (String maskURIStr : checkMasks) {
                     ExportMask exportMask = _dbClient.queryObject(ExportMask.class,
                             URI.create(maskURIStr));
+                    //Check if there are any storage ports in the mask which are part of varray, if not found discard this mask
+                    if(Sets.intersection(storagePortURIsAssociatedWithVArrayAndStorageArray, exportMask.getStoragePorts()).isEmpty()) {
+                        continue;
+                    }
                     _log.info(String.format("Checking mask %s", exportMask.getMaskName()));
                     if (!exportMask.getInactive()
                             && exportMask.getStorageDevice().equals(storageURI)) {
@@ -234,7 +243,7 @@ public class HDSMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                     // but the volumes are already in the export mask or there are no
                     // masks for the storage array. We are checking if there are any
                     // masks and if there are initiators for the export.
-                    if (!ExportMaskUtils.hasExportMaskForStorage(_dbClient,
+                    if (!ExportMaskUtils.hasExportMaskForStorageAndVArray(_dbClient,
                             exportGroup, storageURI) &&
                             exportGroup.hasInitiators()) {
                         _log.info("No existing masks to which the requested volumes can be added. Creating a new mask");
@@ -373,12 +382,29 @@ public class HDSMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
         // Find the export masks that are associated with any or all the ports in
         // portNames. We will have to do processing differently based on whether
         // or there is an existing ExportMasks.
-        Map<String, Set<URI>> matchingExportMaskURIs = device.findExportMasks(storage, portNames, false);
-        if (matchingExportMaskURIs.isEmpty()) {
-
+        Map<String, Set<URI>> matchingExportMaskURIs =
+                device.findExportMasks(storage, portNames, false);
+        boolean masksWithStoragePortFromVArrayFound = false;
+        Set<String> storagePortURIsAssociatedWithVArrayAndStorageArray = ExportMaskUtils.getStoragePortUrisAssociatedWithVarrayAndStorageArray(
+                storage.getId(), exportGroup.getVirtualArray(), _dbClient);
+        Set<String> checkMasks = mergeWithExportGroupMaskURIs(exportGroup, matchingExportMaskURIs.values());
+        for (String maskURIStr : checkMasks) {
+            ExportMask exportMask = _dbClient.queryObject(ExportMask.class,
+                    URI.create(maskURIStr));
+            //Check if there are any storage ports in the mask which are part of varray, if not found discard this mask
+            if(Sets.intersection(storagePortURIsAssociatedWithVArrayAndStorageArray, exportMask.getStoragePorts()).isEmpty()) {
+                for (Map.Entry<String, Set<URI>> entry : matchingExportMaskURIs.entrySet()) {
+                    entry.getValue().remove(exportMask.getId());
+                }
+                continue;
+            }
+            else {
+                masksWithStoragePortFromVArrayFound = true;
+            }
+        }
+        if (matchingExportMaskURIs.isEmpty() || !masksWithStoragePortFromVArrayFound) {
             _log.info(String.format("No existing mask found w/ initiators { %s }", Joiner.on(",")
                     .join(portNames)));
-
             createNewExportMaskWorkflowForInitiators(initiatorURIs, exportGroup, workflow, volumeMap, storage, token, previousStep);
         } else {
             _log.info(String.format("Mask(s) found w/ initiators {%s}. "
@@ -411,6 +437,9 @@ public class HDSMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                 _log.info(String.format("initiator %s masks {%s}", initiator.getInitiatorPort(),
                         Joiner.on(',').join(exportMaskURIs)));
                 for (ExportMask mask : masks) {
+                  //Check if there are any storage ports in the mask which are part of varray, if not found discard this mask
+                    if(Sets.intersection(storagePortURIsAssociatedWithVArrayAndStorageArray, mask.getStoragePorts()).isEmpty())
+                        continue;
                     if (null == mask.getMaskName()) {
                         String maskName = ExportMaskUtils.getMaskName(_dbClient, initiators, exportGroup, storage);
                         _log.info("Generated mask name: {}", maskName);
@@ -626,6 +655,13 @@ public class HDSMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
         BlockStorageDevice device = getDevice();
         device.updatePolicyAndLimits(storage, null, volumeURIs, newVpool,
                 rollback, taskCompleter);
+    }
+
+    @Override
+    public void findAndUpdateFreeHLUsForClusterExport(StorageSystem storage, ExportGroup exportGroup, List<URI> initiatorURIs,
+            Map<URI, Integer> volumeMap) throws Exception {
+        // TODO Auto-generated method stub
+
     }
 
     /**

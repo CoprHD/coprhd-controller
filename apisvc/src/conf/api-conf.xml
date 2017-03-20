@@ -61,6 +61,7 @@
         <property name="dbClient" ref="dbclient"/>
         <property name="portMetricsProcessor" ref="portMetricsProcessor"/>
         <property name="networkScheduler" ref="networkScheduler"/>
+        <property name="customConfigHandler" ref="customConfigHandler"/>
     </bean>
 
     <bean id="networkScheduler" class="com.emc.storageos.networkcontroller.impl.NetworkScheduler">
@@ -86,7 +87,6 @@
         <property name="dbClient" ref="dbclient"/>
         <property name="coordinator" ref="coordinator"/>
         <property name="matcherFramework" ref="matcherFramework"/>
-        <property name="rpHelper" ref="rphelper"/>
         <property name="vplexScheduler" ref="vplexscheduler" />
         <property name="blockScheduler" ref="storagescheduler" />
     </bean>
@@ -288,11 +288,24 @@
         </property>
     </bean>
 
+	<bean id="blockSnapshotService" class="com.emc.storageos.api.service.impl.resource.BlockSnapshotService">
+		<property name="dbClient" ref="dbclient" />
+		<property name="coordinator" ref="coordinator" />
+		<property name="placementManager" ref="placementManager" />
+		<property name="blockServiceApis">
+			<map>
+				<entry key="default" value-ref="defaultBlockServiceApiImpl" />
+				<entry key="vplex" value-ref="vplexBlockServiceApiImpl" />
+			</map>
+		</property>
+	</bean>
+
     <bean id="volumeGroupService" class="com.emc.storageos.api.service.impl.resource.VolumeGroupService">
         <property name="dbClient" ref="dbclient"/>
         <property name="coordinator" ref="coordinator"/>
         <property name="placementManager" ref="placementManager"/>
         <property name="blockConsistencyGroupService" ref="blockConsistencyGroupService"/>
+        <property name="blockSnapshotService" ref="blockSnapshotService"/>
         <property name="blockServiceApis">
         	<map>
             	<entry key="block" value-ref="defaultBlockServiceApiImpl" />
@@ -365,15 +378,10 @@
         <property name="dbClient" ref="dbclient"/>
     </bean>
 
-    <bean id="rphelper" class="com.emc.storageos.protectioncontroller.impl.recoverpoint.RPHelper">
-      <property name="dbClient" ref="dbclient"/>
-    </bean>
-
     <bean id="rpBlockServiceApiImpl" class="com.emc.storageos.api.service.impl.resource.RPBlockServiceApiImpl">
          <property name="dbClient" ref="dbclient"/>
          <property name="coordinator" ref="coordinator"/>
          <property name="blockScheduler" ref="rpscheduler"/>
-         <property name="rpHelper" ref="rphelper"/>
          <property name ="vplexBlockServiceApiImpl" ref="vplexBlockServiceApiImpl"/>
     </bean>
 
@@ -473,6 +481,11 @@
         <property name="dbClient" ref="dbclient"/>
         <property name="coordinator" ref="coordinator"/>
         <property name="customConfigHandler" ref="customConfigHandler" />
+    </bean>
+
+    <bean id="invokeTestFailure" class="com.emc.storageos.util.InvokeTestFailure">
+        <property name="name" value="invokeTestFailure"/>
+        <property name="coordinator" ref="coordinator"/>
     </bean>
 
     <bean id="blockService" class="com.emc.storageos.api.service.impl.resource.BlockService">
@@ -652,6 +665,16 @@
                     <property name="dbClient" ref="dbclient"/>
                     <property name="coordinator" ref="coordinator"/>
                 </bean>
+                <bean class="com.emc.storageos.api.service.impl.resource.FilePolicyService">
+                    <property name="dbClient" ref="dbclient"/>
+                    <property name="coordinator" ref="coordinator"/>
+                    <property name="filePlacementManager" ref="filePlacementManager"/>
+                    <property name="fileServiceApis">
+				        <map>
+				            <entry key="default" value-ref="defaultFileServiceApiImpl"/>
+				        </map>
+				    </property>
+                </bean> 
                 <bean class="com.emc.storageos.api.service.impl.resource.ObjectNamespaceService">
                     <property name="dbClient" ref="dbclient"/>
                     <property name="coordinator" ref="coordinator"/>
@@ -682,18 +705,9 @@
                     <property name="coordinator" ref="coordinator"/>
                     <property name="auditLogRetriever" ref="auditLogRetriever"/>
                 </bean>
+                
+                <ref bean="blockSnapshotService"/>
 
-                <bean class="com.emc.storageos.api.service.impl.resource.BlockSnapshotService">
-                    <property name="dbClient" ref="dbclient"/>
-                    <property name="coordinator" ref="coordinator"/>
-                    <property name="placementManager" ref="placementManager"/>
-                    <property name="blockServiceApis">
-                    <map>
-                        <entry key="default" value-ref="defaultBlockServiceApiImpl"/>
-                        <entry key="vplex" value-ref="vplexBlockServiceApiImpl" />
-                    </map>
-                    </property>
-                </bean>
                 <bean class="com.emc.storageos.api.service.impl.resource.BlockSnapshotSessionService">
                     <property name="dbClient" ref="dbclient"/>
                     <property name="coordinator" ref="coordinator"/>
@@ -925,5 +939,6 @@
   </bean>
   
   <bean id="sysUtils" class="com.emc.storageos.services.util.SysUtils" />
+  <bean class="com.emc.storageos.api.service.impl.southbound.StorageDriverManagerPostProcessor" />
 </beans>
 

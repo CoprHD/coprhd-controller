@@ -5,14 +5,16 @@
 package com.emc.sa.service.vipr.compute;
 
 import static com.emc.sa.service.ServiceParams.CLUSTER;
+import static com.emc.sa.service.ServiceParams.COMPUTE_VIRTUAL_POOL;
+import static com.emc.sa.service.ServiceParams.HLU;
 import static com.emc.sa.service.ServiceParams.PROJECT;
 import static com.emc.sa.service.ServiceParams.SIZE_IN_GB;
 import static com.emc.sa.service.ServiceParams.VIRTUAL_ARRAY;
-import static com.emc.sa.service.ServiceParams.COMPUTE_VIRTUAL_POOL;
 import static com.emc.sa.service.ServiceParams.VIRTUAL_POOL;
 
 import java.net.URI;
 import java.util.List;
+import java.util.Map;
 
 import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.engine.bind.Bindable;
@@ -24,6 +26,7 @@ import com.emc.sa.service.vipr.compute.ComputeUtils.FqdnTable;
 import com.emc.storageos.db.client.model.Cluster;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.model.vpool.ComputeVirtualPoolRestRep;
+import com.google.common.collect.ImmutableList;
 
 @Service("AddBareMetalHostToCluster")
 public class AddBareMetalHostToClusterService extends ViPRService {
@@ -46,17 +49,23 @@ public class AddBareMetalHostToClusterService extends ViPRService {
     @Param(SIZE_IN_GB)
     protected Double size;
 
+    @Param(value = HLU, required = false)
+    protected Integer hlu;
+
     @Bindable(itemType = FqdnTable.class)
     protected FqdnTable[] fqdnValues;
 
     private Cluster cluster;
-    List<String> hostNames = null;
+    private List<String> hostNames = null;
+    private List<String> copyOfHostNames = null;
+
 
     @Override
     public void precheck() throws Exception {
 
         StringBuilder preCheckErrors = new StringBuilder();
         hostNames = ComputeUtils.getHostNamesFromFqdn(fqdnValues);
+        copyOfHostNames = ImmutableList.copyOf(hostNames);
 
         List<String> existingHostNames = ComputeUtils.getHostNamesByName(getClient(), hostNames);
         cluster = BlockStorageUtils.getCluster(clusterId);
@@ -79,11 +88,13 @@ public class AddBareMetalHostToClusterService extends ViPRService {
             }
         }
 
-        if (hostNamesInCluster != null && !hostNamesInCluster.isEmpty() && !existingHostNames.isEmpty()
+        // Commenting for COP-26104, this pre-check will not allow order to be resubmitted if
+        // only the shared export group fails and all other steps succeeded.
+        /*if (hostNamesInCluster != null && !hostNamesInCluster.isEmpty() && !existingHostNames.isEmpty()
                 && hostNamesInCluster.containsAll(existingHostNames)) {
             preCheckErrors.append(
                     ExecutionUtils.getMessage("compute.cluster.host.already.in.cluster") + "  ");
-        }
+        }*/
 
         if (!ComputeUtils.isCapacityAvailable(getClient(), virtualPool,
                 virtualArray, size, (hostNames.size() - existingHostNames.size()))) {
@@ -121,28 +132,37 @@ public class AddBareMetalHostToClusterService extends ViPRService {
 
         hostNames = ComputeUtils.removeExistingHosts(hostNames, cluster);
 
-        List<Host> hosts = ComputeUtils.createHosts(cluster.getId(), computeVirtualPool, hostNames, virtualArray);
+        List<Host> hosts = ComputeUtils.createHosts(cluster, computeVirtualPool, hostNames, virtualArray);
+
         logInfo("compute.cluster.hosts.created", ComputeUtils.nonNull(hosts).size());
 
-        List<URI> bootVolumeIds = ComputeUtils.makeBootVolumes(
-                project, virtualArray, virtualPool, size, hosts, getClient());
-        logInfo("compute.cluster.boot.volumes.created",
-                ComputeUtils.nonNull(bootVolumeIds).size());
-        hosts = ComputeUtils.deactivateHostsWithNoBootVolume(hosts, bootVolumeIds);
+        Map<Host, URI> hostToBootVolumeIdMap = ComputeUtils.makeBootVolumes(project, virtualArray, virtualPool, size, hosts,
+                getClient());
+        logInfo("compute.cluster.boot.volumes.created", 
+                hostToBootVolumeIdMap != null ? ComputeUtils.nonNull(hostToBootVolumeIdMap.values()).size() : 0);
 
-        List<URI> exportIds = ComputeUtils.exportBootVols(bootVolumeIds, hosts,
-                project, virtualArray);
-        logInfo("compute.cluster.exports.created", ComputeUtils.nonNull(exportIds).size());
-        hosts = ComputeUtils.deactivateHostsWithNoExport(hosts, exportIds);
-        ComputeUtils.setHostBootVolumes(hosts, bootVolumeIds);
+        // Deactivate hosts with no boot volume, return list of hosts remaining.
+        hostToBootVolumeIdMap = ComputeUtils.deactivateHostsWithNoBootVolume(hostToBootVolumeIdMap, cluster);
 
-        String orderErrors = ComputeUtils.getOrderErrors(cluster, hostNames, null, null);
+        // Export the boot volume, return a map of hosts and their EG IDs
+        Map<Host, URI> hostToEgIdMap = ComputeUtils.exportBootVols(hostToBootVolumeIdMap, project, virtualArray, hlu);
+        logInfo("compute.cluster.exports.created", 
+                hostToEgIdMap != null ? ComputeUtils.nonNull(hostToEgIdMap.values()).size(): 0);
+        
+        // Deactivate any hosts where the export failed, return list of hosts remaining
+        hostToBootVolumeIdMap = ComputeUtils.deactivateHostsWithNoExport(hostToBootVolumeIdMap, hostToEgIdMap, cluster);
+        
+        // Set host boot volume ids, but do not set san boot targets. They will get set post os install.
+        hosts = ComputeUtils.setHostBootVolumes(hostToBootVolumeIdMap, true);
+
+        ComputeUtils.addHostsToCluster(hosts, cluster);
+
+        String orderErrors = ComputeUtils.getOrderErrors(cluster, copyOfHostNames, null, null);
         if (orderErrors.length() > 0) { // fail order so user can resubmit
             if (ComputeUtils.nonNull(hosts).isEmpty()) {
                 throw new IllegalStateException(
                         ExecutionUtils.getMessage("compute.cluster.order.incomplete", orderErrors));
-            }
-            else {
+            } else {
                 logError("compute.cluster.order.incomplete", orderErrors);
                 setPartialSuccess();
             }
@@ -195,6 +215,48 @@ public class AddBareMetalHostToClusterService extends ViPRService {
 
     public void setSize(Double size) {
         this.size = size;
+    }
+
+    /**
+     * @return the cluster
+     */
+    public Cluster getCluster() {
+        return cluster;
+    }
+
+    /**
+     * @param cluster the cluster to set
+     */
+    public void setCluster(Cluster cluster) {
+        this.cluster = cluster;
+    }
+
+    /**
+     * @return the hostNames
+     */
+    public List<String> getHostNames() {
+        return hostNames;
+    }
+
+    /**
+     * @param hostNames the hostNames to set
+     */
+    public void setHostNames(List<String> hostNames) {
+        this.hostNames = hostNames;
+    }
+
+    /**
+     * @return the copyOfHostNames
+     */
+    public List<String> getCopyOfHostNames() {
+        return copyOfHostNames;
+    }
+
+    /**
+     * @param copyOfHostNames the copyOfHostNames to set
+     */
+    public void setCopyOfHostNames(List<String> copyOfHostNames) {
+        this.copyOfHostNames = copyOfHostNames;
     }
 
 }

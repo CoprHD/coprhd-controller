@@ -275,7 +275,7 @@ public class NfsACLUtility {
         List<NfsACL> nfsAclList = new ArrayList<NfsACL>();
         Map<String, List<NfsACE>> nfsAclMap = new HashMap<String, List<NfsACE>>();
 
-        _log.info("Subdir value {} and allDirs={}", this.subDir, allDirs);
+        _log.info("Sub-directory {} and allDirs {}", this.subDir, allDirs);
 
         // Query All ACl Specific to a File System.
         List<NFSShareACL> nfsAcls = queryDBSFileNfsACLs(allDirs);
@@ -289,8 +289,7 @@ public class NfsACLUtility {
                 nfsAceList = new ArrayList<NfsACE>();
 
             }
-            NfsACE ace = new NfsACE();
-            getNFSAce(nfsAcl, ace);
+            NfsACE ace = getNFSAce(nfsAcl);
             nfsAceList.add(ace);
             nfsAclMap.put(fsPath, nfsAceList);
         }
@@ -311,6 +310,7 @@ public class NfsACLUtility {
         if (!nfsAclList.isEmpty()) {
             acls.setNfsACLs(nfsAclList);
         }
+
         return acls;
     }
 
@@ -318,9 +318,11 @@ public class NfsACLUtility {
      * This function is to convert DB object into NfsACE object
      * 
      * @param orig provided DB object
-     * @param dest updated NfsACE object
+     * @return the REST representation of NFS ACE
      */
-    private void getNFSAce(NFSShareACL orig, NfsACE dest) {
+    private NfsACE getNFSAce(NFSShareACL orig) {
+
+        NfsACE dest = new NfsACE();
 
         dest.setDomain(orig.getDomain());
         dest.setPermissions(orig.getPermissions());
@@ -335,5 +337,7 @@ public class NfsACLUtility {
             dest.setType(orig.getType());
         }
         dest.setUser(orig.getUser());
+
+        return dest;
     }
 }

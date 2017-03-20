@@ -26,6 +26,7 @@ import com.emc.storageos.xtremio.restapi.XtremIOClient;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOInitiator;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Collections2;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
 public class XtremIOExportMaskInitiatorsValidator extends AbstractXtremIOValidator {
@@ -118,12 +119,15 @@ public class XtremIOExportMaskInitiatorsValidator extends AbstractXtremIOValidat
                         break;
                     }
                 }
-                Collection<String> knownInitiators = Collections2.transform(initiatorsInIG,
+                Collection<String> knownInitiators = Collections2.transform(Lists.newArrayList(initiatorsInIG),
                         CommonTransformerFunctions.fctnInitiatorToPortName());
                 Collection<String> requestedInitiators = Collections2.transform(requestedInitiatorsInIG,
                         CommonTransformerFunctions.fctnInitiatorToPortName());
 
+                log.info("Validation requested initiators: {}", requestedInitiators);
+                log.info("Validation discovered initiators: {}", knownInitiators);
                 knownInitiators.removeAll(requestedInitiators);
+                log.info("Validation unknown initiators in IG: {}", knownInitiators);
                 if (!knownInitiators.isEmpty()) {
                     List<String> listToIgnore = new ArrayList<String>();
                     log.info(
@@ -143,7 +147,10 @@ public class XtremIOExportMaskInitiatorsValidator extends AbstractXtremIOValidat
                             listToIgnore.add(Initiator.normalizePort(ini.getInitiatorPort()));
                         }
                     }
+
+                    log.info("Validation initiators that belong to same host or cluster: {}", listToIgnore);
                     knownInitiators.removeAll(listToIgnore);
+                    log.info("Validation remaining initiators that are not managed by controller: {}", knownInitiators);
 
                     for (String knownInitiator : knownInitiators) {
                         getLogger().logDiff(exportMask.getId().toString(), "initiators", ValidatorLogger.NO_MATCHING_ENTRY, knownInitiator);

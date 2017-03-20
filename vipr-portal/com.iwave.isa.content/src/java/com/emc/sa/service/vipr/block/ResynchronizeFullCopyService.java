@@ -35,10 +35,12 @@ public class ResynchronizeFullCopyService extends ViPRService {
         if (ConsistencyUtils.isVolumeStorageType(storageType)) {
             BlockStorageUtils.resynchronizeFullCopies(uris(copyIds));
         } else {
-            for (URI copyId : uris(copyIds)) {
-                Tasks<? extends DataObjectRestRep> tasks = ConsistencyUtils.resynchronizeFullCopy(consistencyGroupId, copyId);
-                addAffectedResources(tasks);
+            if (copyIds.size() > 1) {
+                logWarn("resynchronize.full.copy.service.consistencyGroup", copyIds.get(0));
             }
+            // only execute on first volume since all volume part of the CG will be affected
+            Tasks<? extends DataObjectRestRep> tasks = ConsistencyUtils.resynchronizeFullCopy(consistencyGroupId, uri(copyIds.get(0)));
+            addAffectedResources(tasks);
         }
     }
 

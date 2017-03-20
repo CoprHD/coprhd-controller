@@ -20,7 +20,6 @@ import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.engine.ExecutionUtils.ViPRTaskHandler;
 import com.emc.sa.engine.ViPRTaskMonitor;
 import com.emc.sa.service.vipr.compute.tasks.DeactivateHost;
-import com.emc.sa.service.vipr.compute.tasks.InstallOs;
 import com.emc.storageos.model.compute.OsInstallParam;
 import com.emc.storageos.model.host.HostRestRep;
 import com.emc.vipr.client.Task;
@@ -45,7 +44,7 @@ public class InstallOsHelper implements ViPRTaskHandler<HostRestRep> {
             OsInstallParam osInstall = hostToOsInstall.get(host);
             if (osInstall != null) {
                 try {
-                    tasks.add(ExecutionUtils.startViprTask(new InstallOs(host, osInstall)));
+                    //tasks.add(ExecutionUtils.startViprTask(new InstallOs(host, osInstall)));
                 } catch (ExecutionException e) {
                     context.logError("computeutils.installOs.failure", host.getId(), e.getMessage());
                 }

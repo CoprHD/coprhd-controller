@@ -439,6 +439,6 @@ public final class HostToComputeElementMatcher {
     private static boolean hostNameMatches(String dn, Host h) {
         // dn for CE & SP should end with Host's hostName
         return (dn != null) && (h.getHostName() != null) &&
-                !h.getHostName().isEmpty() && dn.endsWith(h.getHostName());
+                !h.getHostName().isEmpty() && dn.contains(h.getHostName());
     }
 }

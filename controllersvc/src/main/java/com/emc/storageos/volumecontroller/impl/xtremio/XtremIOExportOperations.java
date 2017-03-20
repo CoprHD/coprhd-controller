@@ -26,6 +26,7 @@ import com.emc.storageos.customconfigcontroller.CustomConfigConstants;
 import com.emc.storageos.customconfigcontroller.DataSource;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
+import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
@@ -38,6 +39,7 @@ import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.util.CommonTransformerFunctions;
+import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.exceptions.DeviceControllerErrors;
 import com.emc.storageos.exceptions.DeviceControllerException;
@@ -544,7 +546,7 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
         try {
             _log.info("Refreshing volumes and initiator labels in ViPR.. ");
             XtremIOClient client = XtremIOProvUtils.getXtremIOClient(dbClient, storage, xtremioRestClientFactory);
-            Set<String> igNames = new HashSet<>();
+            Map<String, ExportMask> igNameToMaskMap = new HashMap<>();
             String xioClusterName = client.getClusterDetails(storage.getSerialNumber()).getName();
             List<XtremIOInitiator> initiators = client.getXtremIOInitiatorsInfo(xioClusterName);
             List<Initiator> initiatorObjs = new ArrayList<Initiator>();
@@ -559,9 +561,13 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
                     initiatorObj.setLabel(initiator.getName());
                     initiatorObj.mapInitiatorName(storage.getSerialNumber(), initiator.getName());
                     initiatorObjs.add(initiatorObj);
-                    if (mask != null && mask.getUserAddedInitiators() != null
-                            && mask.getUserAddedInitiators().containsValue(initiatorObj.getId().toString())) {
-                        igNames.add(initiator.getInitiatorGroup().get(1));
+                    
+                    List<ExportMask> results = CustomQueryUtility.queryActiveResourcesByConstraint(dbClient, ExportMask.class,
+                            ContainmentConstraint.Factory.getConstraint(ExportMask.class, "initiators", initiatorObj.getId()));
+                    for (ExportMask exportMask : results) {
+                        if (exportMask != null && storage.getId().equals(exportMask.getStorageDevice())) {
+                            igNameToMaskMap.put(initiator.getInitiatorGroup().get(1), exportMask);
+                        }
                     }
                 } else {
                     _log.info("No initiator objects in vipr db for port address {}", initiator.getPortAddress());
@@ -577,10 +583,12 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
                 return mask;
             }
 
-            Map<String, Integer> discoveredVolumes = new HashMap<String, Integer>();
-
             // get the mask volumes
-            for (String igName : igNames) {
+            for (Entry<String,ExportMask> entry : igNameToMaskMap.entrySet()) {
+                String igName = entry.getKey();
+                ExportMask exportMask = entry.getValue();
+                Map<String, Integer> discoveredVolumes = new HashMap<String, Integer>();
+
                 List<XtremIOVolume> igVolumes = XtremIOProvUtils.getInitiatorGroupVolumes(igName, xioClusterName, client);
                 for (XtremIOVolume igVolume : igVolumes) {
                     for (List<Object> lunMapEntries : igVolume.getLunMaps()) {
@@ -603,51 +611,52 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
                         discoveredVolumes.put(BlockObject.normalizeWWN(igVolume.getWwn()), Integer.valueOf(hluNumber.intValue()));
                     }
                 }
-            }
+                
+                // Clear the existing volumes to update with the latest info
+                if (exportMask.getExistingVolumes() != null && !exportMask.getExistingVolumes().isEmpty()) {
+                    exportMask.getExistingVolumes().clear();
+                }
+                
+                //COP-27296 fix
+                if (null == exportMask.getUserAddedVolumes()) {
+                    exportMask.setUserAddedVolumes(new StringMap());
+                }
+                
+                // We need to look at all related initiators from the affected EM. We can use this list
+                // to then find all related volumes across all EMs. This will allow us to properly
+                // perform our validations.
+                List<Initiator> relatedInitiators = new ArrayList<Initiator>();
+                if (exportMask.getInitiators() != null && !exportMask.getInitiators().isEmpty()) {
+                    Collection<URI> relatedInitiatorURIs = Collections2.transform(exportMask.getInitiators(),
+                            CommonTransformerFunctions.FCTN_STRING_TO_URI);
+                    relatedInitiators.addAll(dbClient.queryObject(Initiator.class, relatedInitiatorURIs));
+                }
+                
+                Set<URI> allRelatedVolumes = new HashSet<URI>();
+                allRelatedVolumes.addAll(findAllRelatedExportMaskVolumesForInitiator(relatedInitiators, exportMask.getStorageDevice()));
+                
+                // If there are related volumes found, get the WWNs so we can diff against what has
+                // been discovered on the array.
+                Set<String> allRelatedVolumesWWN = new HashSet<String>();
+                for (URI relatedVolumeURI : allRelatedVolumes) {
+                    BlockObject relatedObj = BlockObject.fetch(dbClient, relatedVolumeURI);
+                    if (relatedObj != null) {
+                        allRelatedVolumesWWN.add(relatedObj.getWWN());
+                    }
+                }
+                
+                Set<String> existingVolumes = Sets.difference(discoveredVolumes.keySet(), allRelatedVolumesWWN);
 
-            // Clear the existing volumes to update with the latest info
-            if (mask.getExistingVolumes() != null && !mask.getExistingVolumes().isEmpty()) {
-                mask.getExistingVolumes().clear();
-            }
-            
-            //COP-27296 fix
-            if (null == mask.getUserAddedVolumes()) {
-                mask.setUserAddedVolumes(new StringMap());
-            }
-            
-            // We need to look at all related initiators from the affected EM. We can use this list
-            // to then find all related volumes across all EMs. This will allow us to properly
-            // perform our validations.
-            List<Initiator> relatedInitiators = new ArrayList<Initiator>();
-            if (mask.getInitiators() != null && !mask.getInitiators().isEmpty()) {
-                Collection<URI> relatedInitiatorURIs = Collections2.transform(mask.getInitiators(),
-                        CommonTransformerFunctions.FCTN_STRING_TO_URI);
-                relatedInitiators.addAll(dbClient.queryObject(Initiator.class, relatedInitiatorURIs));
-            }
-            
-            Set<URI> allRelatedVolumes = new HashSet<URI>();
-            allRelatedVolumes.addAll(findAllRelatedExportMaskVolumesForInitiator(relatedInitiators, mask.getStorageDevice()));
-            
-            // If there are related volumes found, get the WWNs so we can diff against what has 
-            // been discovered on the array.
-            Set<String> allRelatedVolumesWWN = new HashSet<String>();
-            for (URI relatedVolumeURI : allRelatedVolumes) {
-                Volume relatedVolume = dbClient.queryObject(Volume.class, relatedVolumeURI);
-                allRelatedVolumesWWN.add(relatedVolume.getWWN());
-            }
-            
-            Set<String> existingVolumes = Sets.difference(discoveredVolumes.keySet(), allRelatedVolumesWWN);
+                _log.info(String.format("XtremIO discovered volumes: {%s}%n", Joiner.on(',').join(discoveredVolumes.keySet())));
+                _log.info(String.format("%nXtremIO mask existing volumes: {%s}%n", Joiner.on(',').join(existingVolumes)));
 
-            _log.info(String.format("XtremIO discovered volumes: {%s}%n", Joiner.on(',').join(discoveredVolumes.keySet())));
-            _log.info(String.format("%nXtremIO mask existing volumes: {%s}%n", Joiner.on(',').join(existingVolumes)));
-
-            for (String wwn : existingVolumes) {
-                mask.addToExistingVolumesIfAbsent(wwn, discoveredVolumes.get(wwn).toString());
+                for (String wwn : existingVolumes) {
+                    exportMask.addToExistingVolumesIfAbsent(wwn, discoveredVolumes.get(wwn).toString());
+                }
+                // Update user added volume's HLU information in ExportMask and ExportGroup
+                ExportMaskUtils.updateHLUsInExportMask(exportMask, discoveredVolumes, dbClient);
+                dbClient.updateObject(exportMask);
             }
-            // Update user added volume's HLU information in ExportMask and ExportGroup
-            ExportMaskUtils.updateHLUsInExportMask(mask, discoveredVolumes, dbClient);
-            dbClient.updateObject(mask);
-
         } catch (Exception e) {
             if (null != e.getMessage() && !e.getMessage().contains(XtremIOConstants.OBJECT_NOT_FOUND)) {
                 String msg = String.format("Error when refreshing export mask %s, details: %s", mask.getMaskName(), e.getMessage());

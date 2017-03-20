@@ -35,7 +35,7 @@ public class GenericSerializer {
      * @throws CoordinatorException for exceedingLimit if checked
      */
     static public byte[] serialize(Object object, String logName, boolean zkData) {
-        String className = object.getClass().getSimpleName();
+        String className = (object != null) ? object.getClass().getSimpleName() : "";
         String label = (logName != null) ? logName : "";
         try {
             ByteArrayOutputStream stream = new ByteArrayOutputStream();

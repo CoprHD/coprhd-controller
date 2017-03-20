@@ -198,8 +198,8 @@ public class FileProtectionPolicies extends ViprResourceController {
         renderArgs.put("replicationCopyTypeOptions", replicationCopyTypeOptions);
 
         List<StringOption> policyPriorityOptions = Lists.newArrayList();
-        policyPriorityOptions.add(new StringOption("HIGH", MessagesUtils.get("schedulePolicy.priorityHigh")));
-        policyPriorityOptions.add(new StringOption("LOW", MessagesUtils.get("schedulePolicy.priorityLow")));
+        policyPriorityOptions.add(new StringOption("Normal", MessagesUtils.get("schedulePolicy.priorityNormal")));
+        policyPriorityOptions.add(new StringOption("High", MessagesUtils.get("schedulePolicy.priorityHigh")));
         renderArgs.put("policyPriorityOptions", policyPriorityOptions);
 
     }
@@ -757,7 +757,7 @@ public class FileProtectionPolicies extends ViprResourceController {
         public String replicationType;
         // Replication copy type - sync / async / demi-sync
         public String replicationCopyType;
-        // Replication policy priority low /high
+        // Replication policy priority normal / high
         public String priority;
 
         public int numWorkerThreads = 3;

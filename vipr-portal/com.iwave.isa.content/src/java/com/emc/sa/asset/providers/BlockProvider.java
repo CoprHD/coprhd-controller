@@ -2410,7 +2410,9 @@ public class BlockProvider extends BaseAssetOptionsProvider {
 
             List<AssetOption> options = Lists.newArrayList();
             for (VolumeDetail detail : volumeDetails) {
-
+                if (detail.vpool == null ) {
+                    continue;
+                }
                 boolean localSnapSupported = isLocalSnapshotSupported(detail.vpool);
                 boolean isRPTargetVolume = isRPTargetVolume(detail.volume);
                 boolean isRPSourceVolume = isRPSourceVolume(detail.volume);

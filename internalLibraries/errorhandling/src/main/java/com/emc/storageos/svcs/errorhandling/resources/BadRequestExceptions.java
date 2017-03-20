@@ -50,6 +50,9 @@ public interface BadRequestExceptions {
     public BadRequestException cannotCreateSnapshotOfVplexCG();
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException cannotCreateSnapshotOfCG();
+
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException snapshotsNotSupportedForRPCGs();
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
@@ -712,7 +715,7 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException osInstallAlreadyInProgress();
-     
+
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException noBootVolumeSpecified(final String hostName);
 
@@ -1268,6 +1271,9 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_CANNOT_DELETE)
     public BadRequestException resourceCannotBeDeleted(final String resource);
+
+    @DeclareServiceCode(ServiceCode.API_CANNOT_DELETE)
+    public BadRequestException resourceCannotBeDeletedVblock(final String resource, final String reason);
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException resourcedoesNotBelongToClusterTenantOrg(String resource);
@@ -3285,4 +3291,15 @@ public interface BadRequestExceptions {
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException remoteReplicationLinkOperationIsNotAllowed(final String elementType, final String elementId, final String operation);
 
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException notSupportedForBootVolumes();
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException invalidConsistencyGroupsForProtectionOperation();
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException hostWithDuplicateIP(final String newHost, final String ipAddress, final String duplicateHost);
+
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException numberNotAllowed();
 }

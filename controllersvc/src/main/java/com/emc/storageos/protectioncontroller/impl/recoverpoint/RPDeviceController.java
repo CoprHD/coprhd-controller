@@ -163,6 +163,7 @@ import com.emc.storageos.vplexcontroller.completers.VolumeGroupUpdateTaskComplet
 import com.emc.storageos.workflow.Workflow;
 import com.emc.storageos.workflow.WorkflowException;
 import com.emc.storageos.workflow.WorkflowService;
+import com.emc.storageos.workflow.WorkflowState;
 import com.emc.storageos.workflow.WorkflowStepCompleter;
 import com.google.common.base.Joiner;
 
@@ -295,7 +296,6 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
     private Map<String, BlockStorageDevice> _devices;
     private NameGenerator _nameGenerator;
     private WorkflowService _workflowService;
-    private RPHelper _rpHelper;
     private ExportWorkflowUtils _exportWfUtils;
     private RPStatisticsHelper _rpStatsHelper;
     private RecordableEventManager _eventManager;
@@ -405,10 +405,6 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
     public void setEventManager(RecordableEventManager eventManager) {
         _eventManager = eventManager;
-    }
-
-    public void setRpHelper(RPHelper rpHelper) {
-        _rpHelper = rpHelper;
     }
 
     public void setCoordinator(CoordinatorClient locator) {
@@ -818,8 +814,8 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
             }
 
             boolean isMetroPoint = RPHelper.isMetroPointVolume(_dbClient, volume);
-            boolean isRPSource = _rpHelper.isRPSource(volumeDescriptor);
-            boolean isRPTarget = _rpHelper.isRPTarget(volumeDescriptor);
+            boolean isRPSource = RPHelper.isRPSource(volumeDescriptor);
+            boolean isRPTarget = RPHelper.isRPTarget(volumeDescriptor);
             boolean extraParamsGathered = false;
 
             if (volumeDescriptor.getCapabilitiesValues() != null) {
@@ -892,7 +888,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                     }
                 }
                 CreateVolumeParams volumeParams = populateVolumeParams(volume.getId(), volume.getStorageController(),
-                        volume.getVirtualArray(), volume.getInternalSiteName(), _rpHelper.isProductionJournal(productionCopies, volume),
+                        volume.getVirtualArray(), volume.getInternalSiteName(), RPHelper.isProductionJournal(productionCopies, volume),
                         volume.getRpCopyName(), RPHelper.getRPWWn(volume.getId(), _dbClient), maxNumberOfSnapShots);
                 String key = volume.getRpCopyName();
                 _log.info(String.format("Creating Copy Param for RP JOURNAL: VOLUME - [%s] Name: [%s]", volume.getLabel(), key));
@@ -1361,6 +1357,24 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                 // Mark this workflow as created/executed so we don't do it again on retry/resume
                 WorkflowService.getInstance().markWorkflowBeenCreated(taskId, workflowKey);
             }
+        } catch (LockRetryException ex) {
+            /**
+             * Added this catch block to mark the current workflow as completed so that lock retry will not get exception while creating new
+             * workflow using the same taskid.
+             */
+            _log.warn(String.format("Lock retry exception key: %s remaining time %d", ex.getLockIdentifier(),
+                    ex.getRemainingWaitTimeSeconds()));
+            if (workflow != null && !NullColumnValueGetter.isNullURI(workflow.getWorkflowURI())
+                    && workflow.getWorkflowState() == WorkflowState.CREATED) {
+                com.emc.storageos.db.client.model.Workflow wf = _dbClient.queryObject(com.emc.storageos.db.client.model.Workflow.class,
+                        workflow.getWorkflowURI());
+                if (!wf.getCompleted()) {
+                    _log.error("Marking the status to completed for the newly created workflow {}", wf.getId());
+                    wf.setCompleted(true);
+                    _dbClient.updateObject(wf);
+                }
+            }
+            throw ex;
         } catch (Exception ex) {
             _log.error("Could not create volumes: " + volUris, ex);
 
@@ -1863,35 +1877,33 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
      */
     private void validateCGVolumes(List<VolumeDescriptor> volumeDescriptors) {
         // Validate that the source and target volumes are the same size. If they are not
-        // CG creation or failover will fail.
-        VolumeDescriptor sourceVolumeDescriptor = null;
-        List<VolumeDescriptor> targets = new ArrayList<VolumeDescriptor>();
+        // then CG creation or fail-over will fail.
         for (VolumeDescriptor volumeDescriptor : volumeDescriptors) {
             if (volumeDescriptor.getType().equals(VolumeDescriptor.Type.RP_SOURCE)
                     || volumeDescriptor.getType().equals(VolumeDescriptor.Type.RP_EXISTING_SOURCE)
                     || volumeDescriptor.getType().equals(VolumeDescriptor.Type.RP_VPLEX_VIRT_SOURCE)) {
-                sourceVolumeDescriptor = volumeDescriptor;
-            } else if (volumeDescriptor.getType().equals(VolumeDescriptor.Type.RP_TARGET)
-                    || volumeDescriptor.getType().equals(VolumeDescriptor.Type.RP_VPLEX_VIRT_TARGET)) {
-                targets.add(volumeDescriptor);
-            }
-        }
+                // Find the Source volume from the descriptor
+                Volume sourceVolume = _dbClient.queryObject(Volume.class, volumeDescriptor.getVolumeURI());
+                StorageSystem sourceStorageSystem = _dbClient.queryObject(StorageSystem.class, sourceVolume.getStorageController());
 
-        Volume sourceVolume = _dbClient.queryObject(Volume.class, sourceVolumeDescriptor.getVolumeURI());
-        Volume targetVolume = null;
-        StorageSystem sourceStorageSystem = _dbClient.queryObject(StorageSystem.class, sourceVolume.getStorageController());
-        StorageSystem targetStorageSystem = null;
+                // Check all Target volumes of the Source to ensure that Source capacity < Target capacity.
+                for (String targetId : sourceVolume.getRpTargets()) {
+                    Volume targetVolume = _dbClient.queryObject(Volume.class, URI.create(targetId));
+                    StorageSystem targetStorageSystem = _dbClient.queryObject(StorageSystem.class, targetVolume.getStorageController());
 
-        for (VolumeDescriptor targetVolumeDescriptor : targets) {
-
-            targetVolume = _dbClient.queryObject(Volume.class, targetVolumeDescriptor.getVolumeURI());
-            targetStorageSystem = _dbClient.queryObject(StorageSystem.class, targetVolume.getStorageController());
-
-            // target must be equal to or larger than the source
-            if (Long.compare(targetVolume.getProvisionedCapacity(), sourceVolume.getProvisionedCapacity()) < 0) {
-                throw DeviceControllerExceptions.recoverpoint.cgCannotBeCreatedInvalidVolumeSizes(sourceStorageSystem.getSystemType(),
-                        String.valueOf(sourceVolume.getProvisionedCapacity()), targetStorageSystem.getSystemType(),
-                        String.valueOf(targetVolume.getProvisionedCapacity()));
+                    // target must be equal to or larger than the source
+                    if (Long.compare(targetVolume.getProvisionedCapacity(), sourceVolume.getProvisionedCapacity()) < 0) {
+                        _log.error(String.format(
+                                "Source volume [%s - %s] has provisioned capacity of [%s] and Target volume [%s - %s] has provisioned capacity of [%s]. "
+                                        + "Source capacity cannot be > Target capacity.",
+                                sourceVolume.getLabel(), sourceVolume.getId(), sourceVolume.getProvisionedCapacity(),
+                                targetVolume.getLabel(), targetVolume.getId(), targetVolume.getProvisionedCapacity()));
+                        throw DeviceControllerExceptions.recoverpoint.cgCannotBeCreatedInvalidVolumeSizes(
+                                sourceStorageSystem.getSystemType(),
+                                String.valueOf(sourceVolume.getProvisionedCapacity()), targetStorageSystem.getSystemType(),
+                                String.valueOf(targetVolume.getProvisionedCapacity()));
+                    }
+                }
             }
         }
     }
@@ -2314,7 +2326,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                         removeVolumeIDs.add(volume.getId().toString());
                     }
                     // All Target volumes to be removed from Protection Set
-                    List<Volume> targetVolumes = _rpHelper.getTargetVolumes(volume);
+                    List<Volume> targetVolumes = RPHelper.getTargetVolumes(volume, _dbClient);
                     for (Volume targetVol : targetVolumes) {
                         removeVolumeIDs.add(targetVol.getId().toString());
                     }
@@ -2527,7 +2539,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
             throws InternalException {
         _log.info("Adding steps to remove volumes from export groups.");
         String returnStep = waitFor;
-        Set<URI> volumeURIs = _rpHelper.getVolumesToDelete(VolumeDescriptor.getVolumeURIs(filteredSourceVolumeDescriptors));
+        Set<URI> volumeURIs = RPHelper.getVolumesToDelete(VolumeDescriptor.getVolumeURIs(filteredSourceVolumeDescriptors), _dbClient);
 
         _log.info(String.format("Following volume(s) will be unexported from their RP export groups :  [%s]",
                 Joiner.on("--").join(volumeURIs)));
@@ -4375,7 +4387,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                                         "Adding back standby production copy after swap back to original VPlex Metro for Metropoint volume %s (%s)",
                                         protectionVolume.getLabel(), protectionVolume.getId().toString()));
 
-                        List<Volume> standbyLocalCopyVols = _rpHelper.getMetropointStandbyCopies(protectionVolume);
+                        List<Volume> standbyLocalCopyVols = RPHelper.getMetropointStandbyCopies(protectionVolume, _dbClient);
                         CreateCopyParams standbyLocalCopyParams = null;
                         List<CreateRSetParams> rSets = new ArrayList<CreateRSetParams>();
                         Set<URI> journalVolumes = new HashSet<URI>();

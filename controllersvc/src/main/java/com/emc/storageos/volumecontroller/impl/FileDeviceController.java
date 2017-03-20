@@ -3736,7 +3736,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                                 this.getClass(),
                                 createFileSharesMethod(descriptor),
                                 rollbackCreateFileSharesMethod(fileShareSource.getStorageDevice(), asList(fileShare.getParentFileShare()
-                                        .getURI())),
+                                        .getURI()), sourceDescriptors),
                                 null);
                     }
                 }
@@ -3854,7 +3854,12 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
      * @param fileURIs
      * @return Workflow.Method
      */
-    public static Workflow.Method rollbackCreateFileSharesMethod(URI systemURI, List<URI> fileURIs) {
+    public static Workflow.Method rollbackCreateFileSharesMethod(URI systemURI, List<URI> fileURIs, List<FileDescriptor> sourceDes) {
+        // This case comes when we are creating target FS for existing source,
+        // and if target FS creation fails we should not delete source FS
+        if (sourceDes == null || sourceDes.isEmpty()) {
+            return new Workflow.Method(ROLLBACK_METHOD_NULL);
+        }
         return new Workflow.Method("rollBackCreateFileShares", systemURI, fileURIs);
     }
 
@@ -4132,7 +4137,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
         FileShare fs = null;
         try {
             fs = _dbClient.queryObject(FileShare.class, fsURI);
-            SchedulePolicy fp = _dbClient.queryObject(SchedulePolicy.class, policy);
+            FilePolicy fp = _dbClient.queryObject(FilePolicy.class, policy);
 
             if (fs != null && fp != null) {
                 StorageSystem storageObj = _dbClient.queryObject(StorageSystem.class, storage);
@@ -4144,7 +4149,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                 StoragePool pool = _dbClient.queryObject(StoragePool.class,
                         fs.getPool());
                 args.addStoragePool(pool);
-                args.addFilePolicy(fp);
+                args.setFileProtectionPolicy(fp);
                 args.setFileOperation(true);
                 args.setOpId(opId);
 

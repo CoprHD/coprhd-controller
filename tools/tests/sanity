@@ -330,9 +330,11 @@ NH=nh
 NH2=nh2
 NH3=nh3
 NH4=nh4
+REMOTE_NH=remotenh
 FC_ZONE_A=fctz_a
 FC_ZONE_B=fctz_b
 IP_ZONE=iptz
+REM_IP_ZONE=remiptz
 IP_ZONE2=iptz2
 IP_ZONE3=iptz3
 
@@ -440,6 +442,7 @@ COS_VNXE=cosvnxe
 COS_UNITY=cosunity
 COS_UNITY_CIFS=cosunitycifs
 COS_ISIFILE=cosisi
+REM_COS_ISIFILE=remotecosisi
 COS_NETAPP=cosnetappf
 COS_NETAPPC=cosnetappcf
 COS_DDFILE=cosdatadomainf
@@ -480,6 +483,9 @@ HOST_ARRAYAFFINITY_URI=""
 ISI_DEV=isilon_device
 ISI_SMARTCONNECT_IP=${ISI_IP}
 ISI_NATIVEGUID=ISILON+$ISI_SN
+REM_ISI_DEV=remote_isilon_device
+REM_ISI_SMARTCONNECT_IP=${REM_ISI_IP}
+REM_ISI_NATIVEGUID=ISILON+$REM_ISI_SN
 ISI_SMBFILESHARE1=smbfileshare1$(date +%Y%m%d%H%M%S) 
 ISI_SMBFILESHARE2=smbfileshare2$(date +%Y%m%d%H%M%S)
 ISI_SMBSNAPSHARE1=smbsnapshare1$(date +%Y%m%d%H%M%S)
@@ -938,6 +944,7 @@ zone_setup()
         run transportzone add $FCTZ_B $wwn
     done
     trap '_failure $LINENO' ERR
+	
 }
 
 brocade_setup_once() 
@@ -1091,11 +1098,11 @@ project_setup()
 isilon_cos_setup()
 {
     echo "setting up isilon COS"
-    run cos create file $COS_ISIFILE 				\
-	--description 'Virtual-Pool-for-Isilon' true 	\
-                            --protocols NFS CIFS --max_snapshots 10 \
-                            --provisionType 'Thin' \
-			    --neighborhoods $NH
+	run cos create file $COS_ISIFILE 				\
+	--description 'Virtual-Pool-Isilon' true \
+                         --protocols NFS CIFS --max_snapshots 10    \
+                         --provisionType 'Thin' \
+		         --neighborhoods $NH
     ROOT_TENANT=`tenant root|tail -1`
     run cos allow $COS_ISIFILE file $ROOT_TENANT
     if [ "$EXTRA_PARAM" = "search" ] ; then
@@ -1103,6 +1110,7 @@ isilon_cos_setup()
         cos tag "$COS_ISIFILE" "file" $TAG
         cos search $SEARCH_PREFIX --tag true --resource_type file_vpool
     fi
+	
 }
 
 ecs_cos_setup()
@@ -1588,13 +1596,13 @@ xtremio_ingest_export_test()
 
     # Real removal of volume/CG
     run_noundo export_group update ${PROJECT}/${XTREMIO_INGEST_HOST} --remVols "${PROJECT}/${XIO_INGEST_VOL1}/${XIO_INGEST_SNAP1_ARRAY_LABEL},${PROJECT}/${XIO_INGEST_VOL2}/${XIO_INGEST_SNAP2_ARRAY_LABEL}"
-    # Export group will be deleted implicitly when all its volumes get removed, no further cleanup needed for the export group afterwards
     run_noundo export_group update ${PROJECT}/${XTREMIO_INGEST_HOST} --remVols "${PROJECT}/${XIO_INGEST_VOL1},${PROJECT}/${XIO_INGEST_VOL2}"
     run_noundo blocksnapshot delete ${PROJECT}/${XIO_INGEST_VOL1}/${XIO_INGEST_SNAP1_ARRAY_LABEL}
     run_noundo volume delete ${PROJECT}/"${XIO_INGEST_VOL1}" --wait
 
     run_noundo blocksnapshot delete ${PROJECT}/${XIO_INGEST_VOL2}/${XIO_INGEST_SNAP2_ARRAY_LABEL}
     run_noundo volume delete ${PROJECT}/"${XIO_INGEST_VOL2}" --wait
+    run_noundo export_group delete ${PROJECT}/${XTREMIO_INGEST_HOST}
 }
 
 
@@ -1845,10 +1853,15 @@ xtremio_export_test()
     run export_group update $exp --addVolspec "$vol2" --remVols $vol1
     run export_group show $exp
     run export_group update $exp --remInits "$hostname/$pwwn1"
+    run export_group show $exp
+    run export_group update $exp --remVols $vol2,$snap1,$snap2
+    run export_group show $exp
 
     if [ "$BOURNE_SECURITY_DISABLED" != '1' ] ; then
         run bulkapi exportgroups $LOCAL_LDAP_SUPERUSER_USERNAME $LOCAL_LDAP_SUPERUSER_PASSWORD $LOCAL_LDAP_USER_PASSWORD_1
     fi
+
+    run export_group delete $exp
 }
 
 xtremio_export_test_hlu() {
@@ -4817,6 +4830,104 @@ recoverpoint_export_host_setup()
     fi
 }
 
+#
+# filepolicy tests configuration
+#
+SNAPSHOT_TYPE="file_snapshot"
+REPLICATION_TYPE="file_replication"
+APPLY_AT_VPOOL="vpool"
+APPLY_AT_PROJECT="project"
+REPLICATION_CONFIGURATION='false'
+SNAPSHOT_EXPIRE_TYPE="days"
+SNAPSHOT_EXPIRE_VALUE=3
+POLICY_SCHEDULE_FREQUENCY="days"
+POLICY_SCHEDULE_REPEAT=2
+POLICY_SCHEDULE_TIME="03:00"
+LOCAL_REPLICATION_TYPE="LOCAL"
+REMOTE_REPLICATION_TYPE="REMOTE"
+REPLICATION_COPY_MODE="ASYNC"
+APPLY_ON_TARGET_SITE="false"
+
+#
+# filepolicy tests
+#
+filepolicy_tests()
+{
+    echo "File policy tests started"
+    ISI_PROJECT=isiproject
+    run project create $ISI_PROJECT
+    cos=$1; shift
+    fpname=$SNAPSHOT_TYPE$APPLY_AT_VPOOL
+    echo $fpname
+    
+    echo "Creating snapshot file policy $fpname"
+    run filepolicy create_pol $fpname $SNAPSHOT_TYPE $APPLY_AT_VPOOL \
+                          --snapshotexpiretype $SNAPSHOT_EXPIRE_TYPE \
+                          --snapshotexpirevalue $SNAPSHOT_EXPIRE_VALUE \
+                          --policyschedulefrequency $POLICY_SCHEDULE_FREQUENCY \
+                          --policyschedulerepeat $POLICY_SCHEDULE_REPEAT \
+                          --policyscheduletime $POLICY_SCHEDULE_TIME
+	
+	run filepolicy show $fpname
+	
+	echo "Assigning filepolicy $fpname to vpool $cos"
+	run filepolicy vpool_assign $fpname --apply_on_target_site $APPLY_ON_TARGET_SITE --assign_to_vpools $cos
+	
+	echo "Unassigning filepolicy $fpname from vpool $cos"
+    run filepolicy vpool_unassign $fpname $cos
+	
+	echo "Deleting the file policy $fpname"
+	run filepolicy delete $fpname
+
+
+	fpname=$REPLICATION_TYPE$APPLY_AT_PROJECT
+    echo $fpname
+    
+    echo "Creating replication file policy $fpname"
+	
+	run filepolicy create_pol $fpname $REPLICATION_TYPE $APPLY_AT_PROJECT \
+                          --replicationtype $REMOTE_REPLICATION_TYPE \
+                          --replicationcopymode $REPLICATION_COPY_MODE \
+                          --replicationconfiguration $REPLICATION_CONFIGURATION \
+                          --policyschedulefrequency $POLICY_SCHEDULE_FREQUENCY \
+                          --policyschedulerepeat $POLICY_SCHEDULE_REPEAT \
+                          --policyscheduletime $POLICY_SCHEDULE_TIME \
+                          --is_access_to_tenants true
+	
+	sleep 15
+	run filepolicy show $fpname
+	
+	echo "Assigning filepolicy $fpname to project $ISI_PROJECT"
+	run filepolicy project_assign $fpname  \
+                         --apply_on_target_site true \
+                          --project_assign_vpool $cos \
+                          --assign_to_projects $ISI_PROJECT \
+                          --source_varray $REMOTE_NH \
+                          --target_varrays $NH	
+						  
+	datetime=`date +%m%d%y%H%M%S`
+	fsname=FilePolicyTest-$cos-$datetime
+	
+	echo "Creating filesystem $fsname"
+	run fileshare create $fsname $ISI_PROJECT $REMOTE_NH $cos $FS_SIZEMB
+	
+    sleep 15
+	echo "Displaying the filesystem created"
+	run fileshare show $ISI_PROJECT/$fsname 
+	
+	sleep 15
+	echo "Deleting the filesystem"
+	run fileshare delete $ISI_PROJECT/$fsname
+	
+    echo "Unassigning filepolicy $fpname from project $PROJECT"
+    run filepolicy project_unassign $fpname $ISI_PROJECT
+    
+    echo "Deleting the file policy $fpname"
+	run filepolicy delete $fpname
+	
+	echo "File Policy Test Completed."
+
+}
 recoverpoint_auto_snapshot_cleanup_test()
 {
     if [ "$RP_AUTO_SNAP_CLEANUP_TESTS" = "1" ]; then    
@@ -6634,13 +6745,73 @@ isilon_setup_once()
     storageport   update $ISI_NATIVEGUID IP --tzone $NH/$IP_ZONE
 
     run cos update file $COS_ISIFILE --storage $ISI_NATIVEGUID
-    #isilon_cos_setup
+	
+}
+
+isilon_replication_setup_once()
+{
+####ZoneSetup
+
+    run neighborhood create $REMOTE_NH
+    if [ "$EXTRA_PARAM" = "search" ] ; then
+        neighborhood search $(echo $REMOTE_NH | head -c 2)
+        run neighborhood tag $REMOTE_NH $TAG
+        neighborhood search $SEARCH_PREFIX --tag true
+    fi
+
+
+    run transportzone create $REM_IP_ZONE $REMOTE_NH --type IP
+    if [ "$EXTRA_PARAM" = "search" ] ; then
+        transportzone search $(echo $IP_ZONE | head -c 2)
+        run transportzone tag $REMOTE_NH/$REM_IP_ZONE $TAG
+        transportzone search $SEARCH_PREFIX --tag true
+    fi
+
+    run transportzone add $REMOTE_NH/$REM_IP_ZONE $FSEXP1
+    run transportzone add $REMOTE_NH/$REM_IP_ZONE $FSEXP2
+    run transportzone add $REMOTE_NH/$REM_IP_ZONE $FSEXP3
+    
+	run neighborhood allow $REMOTE_NH $TENANT
+	run neighborhood allow $REMOTE_NH $ROOT_TENANT
+	
+####device discovery
+
+    discoveredsystem create $REM_ISI_DEV isilon $REM_ISI_IP 8080 $REM_ISI_USER $REM_ISI_PASSWD --serialno=$REM_ISI_SN
+    
+
+    storagepool   update $REM_ISI_NATIVEGUID --type file
+    storageport   update $REM_ISI_NATIVEGUID IP --tzone $REMOTE_NH/$REM_IP_ZONE
+
+
+
+####Cos setup
+    echo "setting up remote isilon COS"
+    run cos create file $REM_COS_ISIFILE 				\
+	--description 'Virtual-Pool-for-Isilon' true 	\
+                            --protocols NFS CIFS --max_snapshots 10 \
+                            --provisionType 'Thin' \
+			    --neighborhoods $REMOTE_NH $NH --schedule_snapshot true --replication_support true --filepolicy_at_project true --filepolicy_at_fs true
+    ROOT_TENANT=`tenant root|tail -1`
+    run cos allow $REM_COS_ISIFILE file $ROOT_TENANT
+    if [ "$EXTRA_PARAM" = "search" ] ; then
+        cos search $(echo $REM_COS_ISIFILE | head -c 2) --resource_type file_vpool
+        cos tag "$REM_COS_ISIFILE" "file" $TAG
+        cos search $SEARCH_PREFIX --tag true --resource_type file_vpool
+    fi
+    
+	run cos update file $REM_COS_ISIFILE --storage $REM_ISI_NATIVEGUID
+	
+    run cos allow $REM_COS_ISIFILE file $TENANT
+	
+    trap '_failure $LINENO' ERR
+
 }
 
 isilon_setup()
 {
     isilon_setup_once
     run cos allow $COS_ISIFILE file $TENANT
+    isilon_replication_setup_once
 }
 
 sbsdk_setup()
@@ -8099,9 +8270,9 @@ file_tests()
             snap_share_args="--perm read"
             ;;
         root)
-            exp_args="$FSEXP_ROOT_EPS --perm root --rootuser root --comments TESTCOMMENTS"
+            exp_args="$FSEXP_ROOT_EPS --perm root --comments TESTCOMMENTS"
             exp_upd_args="--roothosts $FSEXP3"
-            snap_exp_args="$FSEXP_ROOT_EPS --perm ro --rootuser root"
+            snap_exp_args="$FSEXP_ROOT_EPS --perm ro"
             snap_share_args="--perm read"
             ;;
         default)
@@ -8481,7 +8652,7 @@ quick_file_tests()
             snap_share_args="--perm read"
             ;;
         root)
-            exp_args="$FSEXP_ROOT_EPS --perm root --rootuser root"
+            exp_args="$FSEXP_ROOT_EPS --perm root --rootuser nobody"
             snap_share_args="--perm read"
             ;;
         default)
@@ -8567,6 +8738,9 @@ isilon_tests()
         bulkapi filecos $LOCAL_LDAP_SUPERUSER_USERNAME $LOCAL_LDAP_SUPERUSER_PASSWORD $LOCAL_LDAP_USER_PASSWORD_1
         bulkapi fileshares $LOCAL_LDAP_SUPERUSER_USERNAME $LOCAL_LDAP_SUPERUSER_PASSWORD $LOCAL_LDAP_USER_PASSWORD_1 $NH $COS_ISIFILE $FS_SIZE
     fi
+    
+    filepolicy_tests $REM_COS_ISIFILE
+
 }
 
 ecs_tests()

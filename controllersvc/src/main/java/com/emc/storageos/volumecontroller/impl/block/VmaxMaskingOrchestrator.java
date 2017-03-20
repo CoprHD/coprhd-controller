@@ -30,7 +30,6 @@ import com.emc.storageos.computesystemcontroller.impl.ComputeSystemHelper;
 import com.emc.storageos.customconfigcontroller.CustomConfigConstants;
 import com.emc.storageos.customconfigcontroller.impl.CustomConfigHandler;
 import com.emc.storageos.db.client.DbClient;
-import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.BlockObject;
@@ -349,7 +348,7 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                             } else {
                                 _log.info(String.format(
                                         "not adding initiator to %s mask %s because it doesn't belong to the same compute resource",
-                                        initiatorURI, mask.getMaskName()));
+                                        existingInitiator.getId(), mask.getMaskName()));
                             }
                         }
                     }
@@ -606,13 +605,15 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                     List<URI> initiatorsToRemoveOnStorage = new ArrayList<URI>();
                     for (URI initiatorURI : initiatorsToRemove) {
                         Initiator initiator = _dbClient.queryObject(Initiator.class, initiatorURI);
-                        List<String> sharedMaskNames = ExportUtils.getExportMasksSharingInitiator(_dbClient, initiatorURI, mask,
+                        //COP-28729 - We can allow remove initiator or host if the shared mask doesn't have any existing volumes.
+                        //Shared masks will have atleast one unmanaged volume.
+                        List<String> sharedMaskNamesWithUnManagedVolumes = ExportUtils.getExportMasksSharingInitiatorAndHasUnManagedVolumes(_dbClient, initiatorURI, mask,
                                 existingMasksToRemoveInitiator.keySet());
-                        if (!CollectionUtils.isEmpty(sharedMaskNames)) {
+                        if (!CollectionUtils.isEmpty(sharedMaskNamesWithUnManagedVolumes)) {
                             String normalizedName = Initiator.normalizePort(initiator.getInitiatorPort());
                             errorMessage.append(
-                                    String.format(" Initiator %s is shared between other Export Masks  %s.",
-                                            normalizedName, Joiner.on(", ").join(sharedMaskNames)));
+                                    String.format(" Initiator %s is shared between other Export Masks  %s and has unmanaged volumes.Removing initiator will affect the other masking view",
+                                            normalizedName, Joiner.on(", ").join(sharedMaskNamesWithUnManagedVolumes)));
                         }
                         initiatorsToRemoveOnStorage.add(initiatorURI);
                     }
@@ -802,9 +803,43 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
         // In the case of clusters, we try to find the export mask that contains a subset of initiators
         // of the cluster, so we can build onto it.
         Set<URI> partialMasks = new HashSet<>();
+        Map<String, Set<URI>> matchingMasks = device.findExportMasks(storage, initiatorHelper.getPortNames(), false);
+        Map<String, List<URI>> initiatorToComputeResourceMap =   initiatorHelper.getResourceToInitiators();
+        
         Map<String, Set<URI>> initiatorToExportMaskPlacementMap = determineInitiatorToExportMaskPlacements(exportGroup, storage.getId(),
-                initiatorHelper.getResourceToInitiators(), device.findExportMasks(storage, initiatorHelper.getPortNames(), false),
+                initiatorToComputeResourceMap, matchingMasks,
                 initiatorHelper.getPortNameToInitiatorURI(), partialMasks);
+        
+        /**
+         * COP-28674: During Vblock boot volume export, if existing masking views are found then check for existing volumes
+         * If found throw exception. This condition is valid only for boot volume vblock export.
+         */
+        if (exportGroup.forHost() && ExportMaskUtils.isVblockHost(initiatorURIs, _dbClient) && ExportMaskUtils.isBootVolume(_dbClient, volumeMap)) {
+            _log.info("VBlock boot volume Export: Validating the storage system {} to find existing masking views",
+                    storage.getNativeGuid());
+            if (CollectionUtils.isEmpty(matchingMasks)) {
+                _log.info("No existing masking views found, passed validation..");
+            } else {
+                List<String> maskNames = new ArrayList<String>();
+                for (Entry<String, Set<URI>> maskEntry : matchingMasks.entrySet()) {
+                    List<ExportMask> masks = _dbClient.queryObject(ExportMask.class, maskEntry.getValue());
+                    if (!CollectionUtils.isEmpty(masks)) {
+                        for (ExportMask mask : masks) {
+                            maskNames.add(mask.getMaskName());
+                        }
+                    }
+                }
+                
+                Set<String> computeResourceSet = initiatorToComputeResourceMap.keySet();
+                ExportOrchestrationTask completer = new ExportOrchestrationTask(exportGroup.getId(), token);
+                ServiceError serviceError = DeviceControllerException.errors.existingMaskFoundDuringBootVolumeExport(
+                        Joiner.on(",").join(maskNames), computeResourceSet.iterator().next());
+                completer.error(_dbClient, serviceError);
+                return false;
+            }
+        } else {
+            _log.info("VBlock Boot volume Export Validation : Skipping");
+        }
 
         findAndUpdateFreeHLUsForClusterExport(storage, exportGroup, initiatorURIs, volumeMap);
 

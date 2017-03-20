@@ -20,6 +20,10 @@ import java.util.Set;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.storagedriver.storagecapabilities.DataProtectionServiceOption;
 import com.emc.storageos.storagedriver.storagecapabilities.RemoteReplicationAttributes;
+
+import com.emc.storageos.storagedriver.HostExportInfo;
+import com.emc.storageos.storagedriver.model.StorageBlockObject;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -400,11 +404,13 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice implem
         BlockStorageDriver driver = getDriver(storageSystem.getSystemType());
 
         List<Volume> deletedVolumes = new ArrayList<>();
-        List<String> failedToDelete = new ArrayList<>();
+        List<String> failedToDeleteVolumes = new ArrayList<>();
         List<Volume> deletedClones = new ArrayList<>();
         List<String> failedToDeleteClones = new ArrayList<>();
         boolean exception = false;
 
+        StringBuffer errorMsgForVolumes = new StringBuffer();
+        StringBuffer errorMsgForClones = new StringBuffer();
         try {
             for (Volume volume : volumes) {
                 DriverTask task = null;
@@ -420,6 +426,15 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice implem
                     driverClone.setDeviceLabel(volume.getDeviceLabel());
                     driverClone.setParentId(sourceVolume.getNativeId());
                     driverClone.setConsistencyGroup(volume.getReplicationGroupInstance());
+                    // check for exports
+                    if (hasExports(driver, driverClone)) {
+                        failedToDeleteClones.add(volume.getNativeId());
+                        String errorMsgClone = String.format("Cannot delete clone %s on storage system %s, clone has exports on array.",
+                                driverClone.getNativeId(), storageSystem.getNativeId());
+                        _log.error(errorMsgClone);
+                        errorMsgForClones.append(errorMsgClone +"\n");
+                        continue;
+                    }
                     task = driver.deleteVolumeClone(driverClone);
                 } else {
                     // this is regular volume
@@ -430,6 +445,15 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice implem
                     driverVolume.setNativeId(volume.getNativeId());
                     driverVolume.setDeviceLabel(volume.getDeviceLabel());
                     driverVolume.setConsistencyGroup(volume.getReplicationGroupInstance());
+                    // check for exports
+                    if (hasExports(driver, driverVolume)) {
+                        failedToDeleteVolumes.add(volume.getNativeId());
+                        String errorMsgVolume = String.format("Cannot delete volume %s on storage system %s, volume has exports on array.",
+                                driverVolume.getNativeId(), storageSystem.getNativeId());
+                        _log.error(errorMsgVolume);
+                        errorMsgForVolumes.append(errorMsgVolume + "\n");
+                        continue;
+                    }
                     task = driver.deleteVolume(driverVolume);
                 }
                 if (task.getStatus() == DriverTask.TaskStatus.READY) {
@@ -443,7 +467,7 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice implem
                     if (volume.getAssociatedSourceVolume() != null) {
                         failedToDeleteClones.add(volume.getNativeId());
                     } else {
-                        failedToDelete.add(volume.getNativeId());
+                        failedToDeleteVolumes.add(volume.getNativeId());
                     }
                 }
             }
@@ -465,21 +489,19 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice implem
                 dbClient.updateObject(deletedClones);
             }
 
-            if(!(failedToDelete.isEmpty() && failedToDeleteClones.isEmpty())) {
-                String errorMsgVolumes = "";
-                String errorMsgClones = "";
-                if(!failedToDelete.isEmpty()) {
-                    errorMsgVolumes = String.format("Failed to delete volumes on storage system %s, volumes: %s . ",
-                            storageSystem.getNativeId(), failedToDelete.toString());
+            if(!(failedToDeleteVolumes.isEmpty() && failedToDeleteClones.isEmpty())) {
+                if(!failedToDeleteVolumes.isEmpty()) {
+                    String errorMsgVolumes = String.format("Failed to delete volumes on storage system %s, volumes: %s . ",
+                            storageSystem.getNativeId(), failedToDeleteVolumes.toString());
                     _log.error(errorMsgVolumes);
                 } else {
-                    errorMsgClones = String.format("Failed to delete volume clones on storage system %s, clones: %s .",
+                    String errorMsgClones = String.format("Failed to delete volume clones on storage system %s, clones: %s .",
                             storageSystem.getNativeId(), failedToDeleteClones.toString());
                     _log.error(errorMsgClones);
                 }
 
                 ServiceError serviceError = ExternalDeviceException.errors.deleteVolumesFailed("doDeleteVolumes",
-                        errorMsgVolumes + errorMsgClones);
+                        errorMsgForVolumes.append(errorMsgForClones).toString());
                 taskCompleter.error(dbClient, serviceError);
             } else if (!exception){
                 taskCompleter.ready(dbClient);
@@ -2384,4 +2406,37 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice implem
             dbClient.updateObject(systemGroup);
         }
     }
+
+    /**
+     * Check if block object has exports on device
+     *
+     * @param driver storage driver
+     * @param driverBlockObject driver block object
+     * @return true/false
+     */
+    private boolean hasExports(BlockStorageDriver driver, StorageBlockObject driverBlockObject) {
+        Map<String, HostExportInfo> blocObjectToHostExportInfo = null;
+
+        // get HostExportInfo data for this block object from the driver
+        if (driverBlockObject instanceof VolumeClone) {
+            VolumeClone driverClone = (VolumeClone)driverBlockObject;
+            blocObjectToHostExportInfo = driver.getCloneExportInfoForHosts(driverClone);
+            _log.info("Export info for clone {} is {}:", driverClone, blocObjectToHostExportInfo);
+        } else if (driverBlockObject instanceof VolumeSnapshot) {
+            VolumeSnapshot driverSnapshot = (VolumeSnapshot) driverBlockObject;
+            blocObjectToHostExportInfo = driver.getSnapshotExportInfoForHosts(driverSnapshot);
+            _log.info("Export info for snapshot {} is {}:", driverSnapshot, blocObjectToHostExportInfo);
+        } else if (driverBlockObject instanceof StorageVolume) {
+            StorageVolume driverVolume = (StorageVolume)driverBlockObject;
+            blocObjectToHostExportInfo = driver.getVolumeExportInfoForHosts(driverVolume);
+            _log.info("Export info for volume {} is {}:", driverVolume, blocObjectToHostExportInfo);
+        } else {
+            // not supported type in this method
+            String errorMsg = String.format("Method is not supported for %s objects.", driverBlockObject.getClass().getSimpleName());
+            throw new RuntimeException(errorMsg);
+        }
+
+        return !(blocObjectToHostExportInfo == null || blocObjectToHostExportInfo.isEmpty());
+    }
+
 }

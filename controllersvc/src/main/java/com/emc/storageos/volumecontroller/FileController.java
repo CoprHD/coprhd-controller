@@ -265,19 +265,19 @@ public interface FileController extends StorageController {
 
     public void assignFileSnapshotPolicyToVirtualPools(URI storageSystemURI, URI vNASURI, URI filePolicyToAssign, URI vpoolURI,
             String taskId)
-                    throws InternalException;
+            throws InternalException;
 
     public void assignFileSnapshotPolicyToProjects(URI storageSystemURI, URI vNASURI, URI filePolicyToAssign, URI vpoolURI, URI projectURI,
             String taskId)
-                    throws InternalException;
+            throws InternalException;
 
     public void assignFileReplicationPolicyToVirtualPools(URI storageSystemURI, URI targetSystemURI,
             URI sourceVNasURI, URI targetVArrayURI, URI targetVNasURI, URI filePolicyToAssign, URI vpoolURI, String opId)
-                    throws ControllerException;
+            throws ControllerException;
 
     public void assignFileReplicationPolicyToProjects(URI storageSystemURI, URI targetSystemURI,
             URI sourceVNasURI, URI targetVArrayURI, URI targetVNasURI, URI filePolicyToAssign, URI vpoolURI, URI projectURI, String opId)
-                    throws InternalException;
+            throws InternalException;
 
     /**
      * 
@@ -290,5 +290,15 @@ public interface FileController extends StorageController {
     public void performFileReplicationOperation(URI storage, URI fsId, String opType, String opId) throws ControllerException;
 
     public void checkFilePolicyPathHasResourceLabel(URI storage, URI filePolicyURI, URI vNasURI, URI vpoolURI, URI projectURI, String opId);
+
+    /**
+     * 
+     * @param fsURI - the file system URN
+     * @param path - the path on which acl is applied
+     * @param param - contains one ace to mark as "failed_on_target"
+     * @param opId - the task id
+     * @throws InternalException
+     */
+    public void markNFSACEAsFailedOnTarget(URI fsURI, String path, NfsACLUpdateParams param, String opId) throws InternalException;
 
 }

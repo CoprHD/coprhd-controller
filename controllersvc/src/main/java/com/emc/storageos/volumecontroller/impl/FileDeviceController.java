@@ -52,6 +52,8 @@ import com.emc.storageos.db.client.model.QuotaDirectory;
 import com.emc.storageos.db.client.model.SMBFileShare;
 import com.emc.storageos.db.client.model.SMBShareMap;
 import com.emc.storageos.db.client.model.SchedulePolicy;
+import com.emc.storageos.db.client.model.ScopedLabel;
+import com.emc.storageos.db.client.model.ScopedLabelSet;
 import com.emc.storageos.db.client.model.Snapshot;
 import com.emc.storageos.db.client.model.Stat;
 import com.emc.storageos.db.client.model.StatTimeSeries;
@@ -133,6 +135,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
 
     private static final String UNMOUNT_FILESYSTEM_EXPORT_METHOD = "unmountDevice";
     private static final String CHECK_IF_MOUNT_EXISTS_ON_HOST = "checkIfMountExistsOnHost";
+    public static final String FAILED_ON_TARGET_TAG = "failed_on_target";
 
     private WorkflowService _workflowService;
 
@@ -3392,7 +3395,77 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
         }
     }
 
+    @Override
     public void markNFSACEAsFailedOnTarget(URI fsURI, String path, NfsACLUpdateParams param, String opId) throws InternalException {
+
+        ControllerUtils.setThreadLocalLogData(fsURI, opId);
+
+        WorkflowStepCompleter.stepExecuting(opId);
+
+        FileShare fs = _dbClient.queryObject(FileShare.class, fsURI);
+
+        try {
+
+            List<NfsACE> acl = null;
+            if (param != null) {
+                acl = param.getAcesToAdd();
+                if (acl != null && !acl.isEmpty()) {
+                    for (Iterator<NfsACE> iterator = acl.iterator(); iterator.hasNext();) {
+                        NfsACE nfsACE = iterator.next();
+
+                        NFSShareACL dbShareAcl = new NFSShareACL();
+                        FileDeviceInputOutput args = new FileDeviceInputOutput();
+                        args.setFileSystemPath(path);
+                        args.setFileOperation(true);
+                        copyToPersistNfsACL(nfsACE, dbShareAcl, fs, args);
+                        NFSShareACL dbNfsAclTemp = getExistingNfsAclFromDB(dbShareAcl, args.getFileOperation());
+                        if (dbNfsAclTemp != null) {
+                            dbShareAcl.setId(dbNfsAclTemp.getId());
+                            ScopedLabelSet tags = new ScopedLabelSet();
+                            ScopedLabel label = new ScopedLabel();
+                            label.setLabel(FAILED_ON_TARGET_TAG);
+                            tags.add(label);
+                            dbShareAcl.setTag(tags);
+                            _log.info("Modifying acl in DB: {}", dbShareAcl);
+                            _dbClient.updateObject(dbShareAcl);
+                        }
+                    }
+
+                }
+
+                acl = param.getAcesToModify();
+                if (acl != null && !acl.isEmpty()) {
+                    for (Iterator<NfsACE> iterator = acl.iterator(); iterator.hasNext();) {
+                        NfsACE nfsACE = iterator.next();
+
+                        NFSShareACL dbShareAcl = new NFSShareACL();
+                        FileDeviceInputOutput args = new FileDeviceInputOutput();
+                        args.setFileSystemPath(path);
+                        args.setFileOperation(true);
+                        copyToPersistNfsACL(nfsACE, dbShareAcl, fs, args);
+                        NFSShareACL dbNfsAclTemp = getExistingNfsAclFromDB(dbShareAcl, args.getFileOperation());
+                        if (dbNfsAclTemp != null) {
+                            dbShareAcl.setId(dbNfsAclTemp.getId());
+                            ScopedLabelSet tags = new ScopedLabelSet();
+                            ScopedLabel label = new ScopedLabel();
+                            label.setLabel(FAILED_ON_TARGET_TAG);
+                            tags.add(label);
+                            dbShareAcl.setTag(tags);
+                            _log.info("Modifying acl in DB: {}", dbShareAcl);
+                            _dbClient.updateObject(dbShareAcl);
+                        }
+                    }
+                }
+            }
+            WorkflowStepCompleter.stepSucceded(opId);
+        } catch (Exception e) {
+            ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
+            WorkflowStepCompleter.stepFailed(opId, serviceError);
+            String[] params = { fsURI.toString() };
+            _log.error("Unable to set ACE on  file system: FS URI {}", params, e);
+            _log.error("{}, {} ", e.getMessage(), e);
+            updateTaskStatus(opId, fs, e);
+        }
 
     }
 

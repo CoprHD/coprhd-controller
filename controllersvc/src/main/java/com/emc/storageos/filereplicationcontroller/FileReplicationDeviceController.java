@@ -92,11 +92,11 @@ public class FileReplicationDeviceController implements FileOrchestrationInterfa
     @Override
     public String addStepsForCreateFileSystems(Workflow workflow,
             String waitFor, List<FileDescriptor> filesystems, String taskId)
-            throws InternalException {
+                    throws InternalException {
 
         List<FileDescriptor> fileDescriptors = FileDescriptor.filterByType(filesystems,
                 new FileDescriptor.Type[] { FileDescriptor.Type.FILE_MIRROR_SOURCE,
-                        FileDescriptor.Type.FILE_MIRROR_TARGET, FileDescriptor.Type.FILE_EXISTING_MIRROR_SOURCE },
+                FileDescriptor.Type.FILE_MIRROR_TARGET, FileDescriptor.Type.FILE_EXISTING_MIRROR_SOURCE },
                 new FileDescriptor.Type[] {});
         if (fileDescriptors.isEmpty()) {
             log.info("No Create Mirror  Steps required");
@@ -116,7 +116,7 @@ public class FileReplicationDeviceController implements FileOrchestrationInterfa
     @Override
     public String addStepsForExpandFileSystems(Workflow workflow,
             String waitFor, List<FileDescriptor> fileDescriptors, String taskId)
-            throws InternalException {
+                    throws InternalException {
         // TBD
         return null;
     }
@@ -297,25 +297,25 @@ public class FileReplicationDeviceController implements FileOrchestrationInterfa
 
     // resyncPrep -step
     public static Workflow.Method
-            resyncPrepMirrorPairMeth(URI primarysystemURI, URI targetSystemURI, URI fileshareURI, String policyName) {
+    resyncPrepMirrorPairMeth(URI primarysystemURI, URI targetSystemURI, URI fileshareURI, String policyName) {
         return new Workflow.Method(RESYNC_MIRROR_FILESHARE_METH, primarysystemURI, targetSystemURI, fileshareURI, policyName);
     }
 
     // start Mirror -step
     public static Workflow.Method
-            startMirrorPairMeth(URI storage, URI fsURI, String policyName) {
+    startMirrorPairMeth(URI storage, URI fsURI, String policyName) {
         return new Workflow.Method(START_MIRROR_FILESHARE_METH, storage, fsURI, policyName);
     }
 
     // failover Mirror -step
     public static Workflow.Method
-            faioverMirrorPairMeth(URI storage, URI fsURI, String policyName) {
+    faioverMirrorPairMeth(URI storage, URI fsURI, String policyName) {
         return new Workflow.Method(FAILOVER_MIRROR_FILESHARE_METH, storage, fsURI, policyName);
     }
 
     // Cancel Mirror Policy -step
     public static Workflow.Method
-            cancelMirrorPairMeth(URI storage, URI fsURI, String policyName) {
+    cancelMirrorPairMeth(URI storage, URI fsURI, String policyName) {
         return new Workflow.Method(CANCEL_MIRROR_FILESHARE_METH, storage, fsURI, policyName);
     }
 

@@ -53,6 +53,7 @@ import com.emc.storageos.model.file.ShareACL;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.volumecontroller.FileControllerConstants;
 import com.emc.storageos.volumecontroller.FileDeviceInputOutput;
+import com.emc.storageos.volumecontroller.impl.FileDeviceController;
 import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
 
 /**
@@ -322,6 +323,23 @@ public final class FileOrchestrationUtils {
         return aclMap;
     }
 
+    public static HashMap<String, NFSShareACL> getUserToNFSShareACEMap(List<NFSShareACL> nfsACL) {
+        HashMap<String, NFSShareACL> aclMap = new HashMap<String, NFSShareACL>();
+        if (nfsACL != null && !nfsACL.isEmpty()) {
+            String user = null;
+            String domain = null;
+            for (NFSShareACL ace : nfsACL) {
+                domain = ace.getDomain();
+                user = ace.getUser();
+                user = domain == null ? "null+" + user : domain + "+" + user;
+                if (user != null && !user.isEmpty()) {
+                    aclMap.put(user, ace);
+                }
+            }
+        }
+        return aclMap;
+    }
+
     public static Map<String, List<NfsACE>> queryNFSACL(FileShare fs, DbClient dbClient) {
 
         Map<String, List<NfsACE>> map = new HashMap<String, List<NfsACE>>();
@@ -345,6 +363,47 @@ public final class FileOrchestrationUtils {
             }
         }
         return map;
+    }
+
+    public static Map<String, List<NFSShareACL>> queryNFSACLSkipFailedOnTarget(FileShare fs, DbClient dbClient) {
+
+        Map<String, List<NFSShareACL>> map = new HashMap<String, List<NFSShareACL>>();
+        ContainmentConstraint containmentConstraint = ContainmentConstraint.Factory.getFileNfsAclsConstraint(fs.getId());
+        List<NFSShareACL> nfsAclList = CustomQueryUtility
+                .queryActiveResourcesByConstraint(dbClient, NFSShareACL.class, containmentConstraint);
+
+        if (nfsAclList != null) {
+            Iterator<NFSShareACL> aclIter = nfsAclList.iterator();
+            while (aclIter.hasNext()) {
+                NFSShareACL dbNFSAcl = aclIter.next();
+
+                String fsPath = dbNFSAcl.getFileSystemPath();
+
+                if (map.get(fsPath) == null) {
+                    List<NFSShareACL> acl = new ArrayList<NFSShareACL>();
+                    acl.add(dbNFSAcl);
+                    map.put(fsPath, acl);
+                } else {
+                    map.get(fsPath).add(dbNFSAcl);
+                }
+            }
+        }
+        return map;
+    }
+
+    public static boolean doesFailedOnTargetTagExist(NFSShareACL dbNFSAcl) {
+        if (dbNFSAcl != null) {
+            ScopedLabelSet tags = dbNFSAcl.getTag();
+            if (tags != null && !tags.isEmpty()) {
+                for (Iterator<ScopedLabel> iterator = tags.iterator(); iterator.hasNext();) {
+                    ScopedLabel scopedLabel = iterator.next();
+                    if (FileDeviceController.FAILED_ON_TARGET_TAG.equals(scopedLabel.getLabel())) {
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
     }
 
     public static NfsACE convertNFSShareACLToNfsACE(NFSShareACL dbNFSAcl) {

@@ -300,4 +300,9 @@ public class FileControllerImpl extends AbstractDiscoveredSystemController imple
 
     }
 
+    @Override
+    public void markNFSACEAsFailedOnTarget(URI fsURI, String path, NfsACLUpdateParams param, String opId) throws InternalException {
+        execFS("markNFSACEAsFailedOnTarget", fsURI, path, param, opId);
+    }
+
 }

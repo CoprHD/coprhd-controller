@@ -1247,13 +1247,14 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
             if (host == null) {
                 throw ComputeSystemControllerException.exceptions.hostNotFound(hostId.toString());
             }
-            _workflowService.storeStepData(stepId, host.getCluster());
 
             if (NullColumnValueGetter.isNullURI(host.getCluster())) {
                 _log.info("cluster is null, nothing to do");
                 WorkflowStepCompleter.stepSucceded(stepId);
                 return;
             }
+            _workflowService.storeStepData(stepId, host.getCluster());
+
             host.setCluster(NullColumnValueGetter.getNullURI());
             _dbClient.persistObject(host);
             _log.info("Removed cluster association for host: "+ host.getLabel());

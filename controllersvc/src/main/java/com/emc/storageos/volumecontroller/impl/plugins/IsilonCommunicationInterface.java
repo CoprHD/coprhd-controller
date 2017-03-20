@@ -321,11 +321,11 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                         FileShare fileSystem = _dbClient.queryObject(FileShare.class, stat.getResourceId());
                         if (fileSystem != null) {
                             if (!fileSystem.getInactive()) {
-                                if (fileSystem.getUsedCapacity() != stat.getAllocatedCapacity()) {
+                                if (!fileSystem.getUsedCapacity().equals(stat.getAllocatedCapacity())) {
                                     fileSystem.setUsedCapacity(stat.getAllocatedCapacity());
                                     fsChanged = true;
                                 }
-                                if (null != fileSystem.getSoftLimit()) {
+                                if (null != fileSystem.getSoftLimit() && !fileSystem.getSoftLimitExceeded().equals(quota.getThresholds().getsoftExceeded())) {
                                     fileSystem.setSoftLimitExceeded(quota.getThresholds().getsoftExceeded());
                                     fsChanged = true;
                                 }
@@ -2257,7 +2257,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                     unManagedSMBFileShare = new UnManagedSMBFileShare();
                     unManagedSMBFileShare.setName(isilonSMBShare.getName());
                     unManagedSMBFileShare.setDescription(isilonSMBShare.getDescription());
-                    unManagedSMBFileShare.setNativeId(unManagedFileSystem.getNativeGuid());
+                    unManagedSMBFileShare.setNativeId(shareId);
                     unManagedSMBFileShare.setMountPoint("\\\\" + storagePort.getPortNetworkId() + "\\" + isilonSMBShare.getName());
                     unManagedSMBFileShare.setPath(isilonSMBShare.getPath());
                     unManagedSMBFileShare.setMaxUsers(-1);
@@ -2267,6 +2267,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
 
                     // set Unmanaged SMB Share
                     unManagedSmbShareMap.put(isilonSMBShare.getName(), unManagedSMBFileShare);
+                    _log.info("SMB share id {} ", shareId);
                     _log.info("SMB share name {} and fs mount point {} ", unManagedSMBFileShare.getName(),
                             unManagedSMBFileShare.getMountPoint());
                     // process ACL permission

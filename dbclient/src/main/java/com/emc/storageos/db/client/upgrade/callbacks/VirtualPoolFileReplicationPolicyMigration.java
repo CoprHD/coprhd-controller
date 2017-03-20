@@ -19,6 +19,7 @@ import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.FilePolicy;
 import com.emc.storageos.db.client.model.FilePolicy.FilePolicyApplyLevel;
+import com.emc.storageos.db.client.model.FilePolicy.FilePolicyPriority;
 import com.emc.storageos.db.client.model.FilePolicy.FilePolicyType;
 import com.emc.storageos.db.client.model.FileReplicaPolicyTarget;
 import com.emc.storageos.db.client.model.FileReplicaPolicyTargetMap;
@@ -94,7 +95,7 @@ public class VirtualPoolFileReplicationPolicyMigration extends BaseCustomMigrati
                         replPolicy.setFileReplicationCopyMode(FilePolicy.FileReplicationCopyMode.SYNC.name()); 
                     }
                     replPolicy.setFileReplicationType(virtualPool.getFileReplicationType());
-                    replPolicy.setPriority("LOW");
+                    replPolicy.setPriority(FilePolicyPriority.Normal.toString());
 
                     // Set the policy schedule based on vPool RPO
                     if (virtualPool.getFrRpoValue() != null && virtualPool.getFrRpoType() != null) {

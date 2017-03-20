@@ -61,6 +61,8 @@ public class FileSnapshotPolicyMigration extends BaseCustomMigrationCallback {
                 fileSnapshotPolicy.setScheduleFrequency(schedulePolicy.getScheduleFrequency());
                 fileSnapshotPolicy.setScheduleRepeat(schedulePolicy.getScheduleRepeat());
                 fileSnapshotPolicy.setScheduleTime(schedulePolicy.getScheduleTime());
+                fileSnapshotPolicy.setScheduleDayOfWeek(schedulePolicy.getScheduleDayOfWeek());
+                fileSnapshotPolicy.setScheduleDayOfMonth(schedulePolicy.getScheduleDayOfMonth());
                 fileSnapshotPolicy.setSnapshotExpireTime(schedulePolicy.getSnapshotExpireTime());
                 fileSnapshotPolicy.setSnapshotExpireType(schedulePolicy.getSnapshotExpireType());
                 // snapshot policy apply at file system level

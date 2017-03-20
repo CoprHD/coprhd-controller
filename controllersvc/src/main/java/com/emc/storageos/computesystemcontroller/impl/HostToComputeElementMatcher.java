@@ -130,9 +130,9 @@ public final class HostToComputeElementMatcher {
                     ceDuplicateMap.put(ce.getUuid(),ce.getId());
                 } else {
                     failureMessages.append("ComputeElements found having the same UUID " +
-                            info(ce) + " and " + info(computeElementMap.get(ce.getUuid())));
+                            info(ce) + " and " + info(computeElementMap.get(ceDuplicateMap.get(ce.getUuid()))));
                     ceDuplicateIds.add(ce.getId());
-                    ceDuplicateIds.add(computeElementMap.get(ce.getUuid()).getId() );
+                    ceDuplicateIds.add(ceDuplicateMap.get(ce.getUuid()));
                 }
             }
         }
@@ -146,9 +146,9 @@ public final class HostToComputeElementMatcher {
                     spDuplicateMap.put(sp.getUuid(),sp.getId());
                 } else {
                     failureMessages.append("UCS Service Profiles found having the same UUID " +
-                            info(sp) + " and " + info(serviceProfileMap.get(sp.getUuid())));
+                            info(sp) + " and " + info(serviceProfileMap.get(spDuplicateMap.get(sp.getUuid()))));
                     spDuplicateIds.add(sp.getId());
-                    spDuplicateIds.add(serviceProfileMap.get(sp.getUuid()).getId());
+                    spDuplicateIds.add(spDuplicateMap.get(sp.getUuid()));
                 }
             }
         }

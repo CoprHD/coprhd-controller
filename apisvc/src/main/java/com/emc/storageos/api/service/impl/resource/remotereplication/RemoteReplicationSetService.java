@@ -145,7 +145,7 @@ public class RemoteReplicationSetService extends TaskResourceService {
         if (vpool == null || vpool.getRemoteReplicationProtectionSettings() == null) {
             throw APIException.badRequests.invalidVirtualPoolUriOrNotSupportRemoteReplication(vpoolURI);
         }
-        if (!vpool.getVirtualArrays().contains(varrayURI)) {
+        if (!vpool.getVirtualArrays().contains(varrayURI.toString())) {
             throw APIException.badRequests.vpoolVarrayMismatch(vpoolURI, varrayURI);
         }
 

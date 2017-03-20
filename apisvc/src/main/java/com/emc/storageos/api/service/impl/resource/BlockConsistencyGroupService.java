@@ -535,7 +535,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         // RP CG's must use applications to create snapshots
         if (consistencyGroup.checkForType(Types.RP)) {
             List<Volume> volumes = RPHelper.getCgSourceVolumes(consistencyGroupId, _dbClient);
-            if (!volumes.isEmpty() && volumes.get(0).getApplication(_dbClient) != null) {
+            if (!volumes.isEmpty() && volumes.get(0).getApplication(_dbClient) == null) {
                 throw APIException.badRequests.snapshotsNotSupportedForRPCGs();
             }
         }
@@ -1727,7 +1727,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         // RP CG's must use applications to create snapshots
         if (cg.checkForType(Types.RP)) {
             List<Volume> volumes = RPHelper.getCgSourceVolumes(consistencyGroupId, _dbClient);
-            if (!volumes.isEmpty() && volumes.get(0).getApplication(_dbClient) != null) {
+            if (!volumes.isEmpty() && volumes.get(0).getApplication(_dbClient) == null) {
                 throw APIException.badRequests.snapshotsNotSupportedForRPCGs();
             }
         }

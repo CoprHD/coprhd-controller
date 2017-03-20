@@ -1629,7 +1629,6 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
     public void addStepsToReplicateNFSACLs(URI systemTarget, URI fsURI, String taskId) {
         s_logger.info("Generating steps for Replicating NFS ACLs to Target Cluster");
         FileNfsACLUpdateParams params = null;
-        FileWorkflowCompleter completer = new FileWorkflowCompleter(fsURI, taskId);
         FileShare targetFileShare = null;
         Workflow workflow = null;
         try {
@@ -1642,8 +1641,6 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
             } else {
                 targetFileShare = s_dbClient.queryObject(FileShare.class, sourceFileShare.getParentFileShare());
             }
-
-            workflow = _workflowService.getNewWorkflow(this, REPLICATE_NFS_ACLS_TO_TARGET_WF_NAME, false, taskId, completer);
 
             Map<String, List<NFSShareACL>> sourceFSACLMap = FileOrchestrationUtils.queryNFSACLSkipFailedOnTarget(sourceFileShare,
                     s_dbClient);
@@ -1749,7 +1746,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
 
                         if (targetACL != null &&
                                 (!targetACL.getPermissions().equals(sourceACL.getPermissions()) ||
-                                !targetACL.getPermissionType().equals(sourceACL.getPermissionType()))) {
+                                        !targetACL.getPermissionType().equals(sourceACL.getPermissionType()))) {
 
                             targetACL.setPermissions(sourceACL.getPermissions());
                             targetACL.setPermissionType(sourceACL.getPermissionType());

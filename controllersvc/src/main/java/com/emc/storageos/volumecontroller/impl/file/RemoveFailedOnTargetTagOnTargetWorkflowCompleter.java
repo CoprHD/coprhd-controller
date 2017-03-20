@@ -6,13 +6,11 @@ import java.util.List;
 
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
-import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.model.NFSShareACL;
 import com.emc.storageos.db.client.model.Operation.Status;
 import com.emc.storageos.db.client.model.ScopedLabelSet;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
-import com.emc.storageos.workflow.WorkflowStepCompleter;
 
 public class RemoveFailedOnTargetTagOnTargetWorkflowCompleter extends FileWorkflowCompleter {
 
@@ -28,46 +26,10 @@ public class RemoveFailedOnTargetTagOnTargetWorkflowCompleter extends FileWorkfl
 
     @Override
     protected void complete(DbClient dbClient, Status status, ServiceCoded serviceCoded) {
-        switch (status) {
-            case error:
-                for (URI id : getIds()) {
-                    dbClient.error(FileShare.class, id, getOpId(), serviceCoded);
-                }
-                if (isNotifyWorkflow()) {
-                    WorkflowStepCompleter.stepFailed(getOpId(), serviceCoded);
-                }
-                break;
-            case ready:
-                for (URI id : getIds()) {
-                    removeNFSACLTags(dbClient, id);
-                    dbClient.ready(FileShare.class, id, getOpId());
-                }
-                if (isNotifyWorkflow()) {
-                    WorkflowStepCompleter.stepSucceded(getOpId());
-                }
-                break;
-            case suspended_error:
-                for (URI id : getIds()) {
-                    dbClient.suspended_error(FileShare.class, id, getOpId(), serviceCoded);
-                }
-                if (isNotifyWorkflow()) {
-                    WorkflowStepCompleter.stepSuspendedError(getOpId(), serviceCoded);
-                }
-                break;
-            case suspended_no_error:
-                for (URI id : getIds()) {
-                    dbClient.suspended_no_error(FileShare.class, id, getOpId());
-                }
-                if (isNotifyWorkflow()) {
-                    WorkflowStepCompleter.stepSuspendedNoError(getOpId());
-                }
-                break;
-            default:
-                if (isNotifyWorkflow()) {
-                    WorkflowStepCompleter.stepExecuting(getOpId());
-                }
-                break;
+        if (Status.ready == status) {
+            removeNFSACLTags(dbClient, getId());
         }
+        super.complete(dbClient, status, serviceCoded);
     }
 
     private void removeNFSACLTags(DbClient dbClient, URI id) {

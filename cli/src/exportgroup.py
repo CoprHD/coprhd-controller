@@ -554,7 +554,7 @@ class ExportGroup(object):
             return action result
          '''
 
-    def exportgroup_add_cluster(self, exportgroupname, tenantname, projectname,
+    def exportgroup_add_cluster(self, exportgroupname, datacenter, vcenter, tenantname, projectname,
                                 clusternames, sync,synctimeout=0, varray=None):
         
         varrayuri = None
@@ -568,7 +568,7 @@ class ExportGroup(object):
         cluster_uris = []
         clusterObject = Cluster(self.__ipAddr, self.__port)
         for clustername in clusternames:
-            cluster_uris.append(clusterObject.cluster_query(clustername,
+            cluster_uris.append(clusterObject.cluster_query(clustername, datacenter, vcenter,
                                                             tenantname))
         parms = {}
         parms['cluster_changes'] = self._add_list(cluster_uris)
@@ -1566,6 +1566,16 @@ def add_cluster_parser(subcommand_parsers, common_parser):
                                 dest='project',
                                 help='name of Project ',
                                 required=True)
+    add_cluster_parser.add_argument('-datacenter', '-dc',
+                                metavar='<datacentername>',
+                                dest='datacenter',
+                                help='name of datacenter',
+                                default="")
+    add_cluster_parser.add_argument('-vcenter', '-vc',
+                                help='name of a vcenter',
+                                dest='vcenter',
+                                metavar='<vcentername>',
+                                default="")                                
     add_cluster_parser.add_argument('-tenant', '-tn',
                                     metavar='<tenantname>',
                                     dest='tenant',
@@ -1595,7 +1605,7 @@ def exportgroup_add_cluster(args):
     try:
         objExGroup = ExportGroup(args.ip, args.port)
         objExGroup.exportgroup_add_cluster(
-            args.name, args.tenant, args.project, args.cluster, args.sync,args.synctimeout, args.varray)
+            args.name, args.datacenter, args.vcenter, args.tenant, args.project, args.cluster, args.sync,args.synctimeout, args.varray)
     except SOSError as e:
         raise common.format_err_msg_and_raise("add_cluster", "exportgroup",
                                               e.err_text, e.err_code)

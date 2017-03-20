@@ -1050,7 +1050,8 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
                                 vplexVolume.getId(), vplexVolume.getLabel()), e);
                     }
                     buf.append(vvInfo.getName() + " ");
-                    _log.info(String.format("Created virtual volume: %s path: %s", vvInfo.getName(), vvInfo.getPath()));
+                    _log.info(String.format("Created virtual volume: %s path: %s size: %s", 
+                            vvInfo.getName(), vvInfo.getPath(), vvInfo.getCapacityBytes()));
                     vplexVolume.setNativeId(vvInfo.getPath());
                     vplexVolume.setNativeGuid(vvInfo.getPath());
                     vplexVolume.setDeviceLabel(vvInfo.getName());
@@ -5555,12 +5556,21 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
             // Select from an existing ExportMask if possible
             ExportMaskPlacementDescriptor descriptor = backendMgr.chooseBackendExportMask(vplexSystem, storageSystem, varray, volumeMap,
                     lastStep);
+
+            // refresh export masks per XIO storage array
+            boolean needRefresh = storageSystem.deviceIsType(DiscoveredDataObject.Type.xtremio);
             // For every ExportMask in the descriptor ...
             for (URI exportMaskURI : descriptor.getPlacedMasks()) {
                 // Create steps to place each set of volumes into its assigned ExportMask
                 ExportGroup exportGroup = descriptor.getExportGroupForMask(exportMaskURI);
                 ExportMask exportMask = descriptor.getExportMask(exportMaskURI);
                 Map<URI, Volume> placedVolumes = descriptor.getPlacedVolumes(exportMaskURI);
+
+                if (needRefresh) {
+                    BlockStorageDevice device = _blockDeviceController.getDevice(storageSystem.getSystemType());
+                    device.refreshExportMask(storageSystem, exportMask);
+                    needRefresh = false;;
+                }
 
                 // Add the workflow steps.
                 lastStep = backendMgr.addWorkflowStepsToAddBackendVolumes(workflow, lastStep, exportGroup, exportMask, placedVolumes,

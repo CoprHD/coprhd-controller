@@ -869,7 +869,7 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
         if (cs == null){
             log.error("Could not determine the Compute System the host {} is provisioned on. Skipping service profile and boot volume deletion steps", host.getLabel());
             return waitFor;
-        }else {
+        } else {
 
             //TODO: need to break this up into individual smaller steps so that we can try to recover using rollback if decommission failed
             waitFor = workflow.createStep(DEACTIVATION_COMPUTE_SYSTEM_HOST, "Unbind blade from service profile",
@@ -1019,10 +1019,12 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
     }
 
     /**
-     * Deactivates or deletes the boot volume
+     * Deactivates or deletes the boot volume 
      *
      * @param hostId
      *            {@link URI} hostId URI
+     * @param volumeDescriptors 
+     *            {@link List<VolumeDescriptor>} list of boot volumes to delete
      * @param stepId
      *            {@link String} step id
      */
@@ -1043,15 +1045,11 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
                 return;
             }
             
-            // Ensure there is one and only one volume descriptor.
-            if(volumeDescriptors == null || volumeDescriptors.size() != 1) {
-                throw new IllegalStateException("Could not locate VolumeDescriptor(s) for boot volume " +
-                        host.getLabel());
-            }
+            
 
             String task = UUID.randomUUID().toString();
 
-            URI bootVolumeId = volumeDescriptors.get(0).getVolumeURI();
+            URI bootVolumeId = getBootVolumeIdFromDescriptors(volumeDescriptors, host);
             Volume bootVolume = _dbClient.queryObject(Volume.class, bootVolumeId);
             if(bootVolume == null) {
                 // No boot volume found, so it was already deleted.
@@ -1117,7 +1115,7 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
      *            {@link String} step id
      */
     public void untagBlockBootVolume(URI hostId, List<VolumeDescriptor> volumeDescriptors, String stepId) {
-        log.info("untagBlockBootVolume");
+        log.info("untagBlockBootVolume START");
 
         Host host = null;
         Volume bootVolume = null;
@@ -1129,20 +1127,15 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
 
             if (host == null || NullColumnValueGetter.isNullURI(host.getBootVolumeId())) {
                 WorkflowStepCompleter.stepSucceded(stepId);
+                log.info("untagBlockBootVolume END");
                 return;
             }
 
-            // Ensure there is one and only one volume descriptor.
-            if(volumeDescriptors == null || volumeDescriptors.size() != 1) {
-                throw new IllegalStateException("Could not locate VolumeDescriptor(s) for boot volume " +
-                        host.getLabel());
-            }
-
-            URI bootVolumeId = volumeDescriptors.get(0).getVolumeURI();
+            URI bootVolumeId = getBootVolumeIdFromDescriptors(volumeDescriptors, host);
             bootVolume = _dbClient.queryObject(Volume.class, bootVolumeId);
-
             if (bootVolume == null || (bootVolume.getTag() == null)) {
                 WorkflowStepCompleter.stepSucceded(stepId);
+                log.info("untagBlockBootVolume END");
                 return;
             }
 
@@ -1175,8 +1168,51 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
                             host != null ? host.getHostName() : hostId.toString(), exception);
             WorkflowStepCompleter.stepFailed(stepId, serviceCoded);
         }
+        log.info("untagBlockBootVolume END");
     }
     
+    /**
+     * Given a list of volume descriptors, get the boot volume URI.  If the host and its boot volume
+     * ID are filled-in, verify that as well.  Since the Host's boot volume ID gets cleared out, this
+     * step is not required.
+     * 
+     * The goal of this method is to first search for any VPLEX volume(s).  Failing finding any of those,
+     * get the backing volumes.  The key is to get the host-facing volume.
+     * 
+     * @param volumeDescriptors volume descriptors, could be a mix of vplex and backing volumes
+     * @param host host for debug and validation
+     * @return the boot volume ID from the volume descriptors
+     */
+    private static URI getBootVolumeIdFromDescriptors(List<VolumeDescriptor> volumeDescriptors, Host host) {
+        // Get only the VPLEX volume(s) from the descriptors.
+        List<VolumeDescriptor> bootVolumeDescriptors = VolumeDescriptor.filterByType(volumeDescriptors,
+                new VolumeDescriptor.Type[] { VolumeDescriptor.Type.VPLEX_VIRT_VOLUME },
+                new VolumeDescriptor.Type[] {});
+
+        // If there are no VPlex volumes, grab the block volumes
+        if (bootVolumeDescriptors.isEmpty()) {
+            bootVolumeDescriptors = VolumeDescriptor.filterByType(volumeDescriptors,
+                    new VolumeDescriptor.Type[] { VolumeDescriptor.Type.BLOCK_DATA },
+                    new VolumeDescriptor.Type[] {});
+        }
+
+        // Ensure there is one and only one volume descriptor.
+        if(bootVolumeDescriptors == null || bootVolumeDescriptors.size() != 1) {
+            throw new IllegalStateException("Could not locate VolumeDescriptor(s) for boot volume " +
+                    host.getLabel());
+        }
+        
+        // Ensure if there is a host boot volume ID that they match up.
+        URI bootVolumeURI = bootVolumeDescriptors.get(0).getVolumeURI();
+        if (host != null && !NullColumnValueGetter.isNullURI(host.getBootVolumeId()) && 
+                !host.getBootVolumeId().equals(bootVolumeURI)) {
+            throw new IllegalStateException("Boot volume requested for deletion is different than host's marked boot volume " +
+                    host.getLabel());
+        }
+        
+        return bootVolumeURI;
+    }
+
     /**
      * Validates that the host has initiators and fails the workflow if no initiators are found.
      *

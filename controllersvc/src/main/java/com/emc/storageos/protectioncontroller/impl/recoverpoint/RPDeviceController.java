@@ -30,7 +30,6 @@ import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.util.CollectionUtils;
 
 import com.emc.fapiclient.ws.FunctionalAPIActionFailedException_Exception;
 import com.emc.fapiclient.ws.FunctionalAPIInternalError_Exception;
@@ -164,6 +163,7 @@ import com.emc.storageos.vplexcontroller.completers.VolumeGroupUpdateTaskComplet
 import com.emc.storageos.workflow.Workflow;
 import com.emc.storageos.workflow.WorkflowException;
 import com.emc.storageos.workflow.WorkflowService;
+import com.emc.storageos.workflow.WorkflowState;
 import com.emc.storageos.workflow.WorkflowStepCompleter;
 import com.google.common.base.Joiner;
 
@@ -1357,6 +1357,24 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                 // Mark this workflow as created/executed so we don't do it again on retry/resume
                 WorkflowService.getInstance().markWorkflowBeenCreated(taskId, workflowKey);
             }
+        } catch (LockRetryException ex) {
+            /**
+             * Added this catch block to mark the current workflow as completed so that lock retry will not get exception while creating new
+             * workflow using the same taskid.
+             */
+            _log.warn(String.format("Lock retry exception key: %s remaining time %d", ex.getLockIdentifier(),
+                    ex.getRemainingWaitTimeSeconds()));
+            if (workflow != null && !NullColumnValueGetter.isNullURI(workflow.getWorkflowURI())
+                    && workflow.getWorkflowState() == WorkflowState.CREATED) {
+                com.emc.storageos.db.client.model.Workflow wf = _dbClient.queryObject(com.emc.storageos.db.client.model.Workflow.class,
+                        workflow.getWorkflowURI());
+                if (!wf.getCompleted()) {
+                    _log.error("Marking the status to completed for the newly created workflow {}", wf.getId());
+                    wf.setCompleted(true);
+                    _dbClient.updateObject(wf);
+                }
+            }
+            throw ex;
         } catch (Exception ex) {
             _log.error("Could not create volumes: " + volUris, ex);
 
@@ -1865,9 +1883,9 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                     || volumeDescriptor.getType().equals(VolumeDescriptor.Type.RP_EXISTING_SOURCE)
                     || volumeDescriptor.getType().equals(VolumeDescriptor.Type.RP_VPLEX_VIRT_SOURCE)) {
                 // Find the Source volume from the descriptor
-                Volume sourceVolume = _dbClient.queryObject(Volume.class, volumeDescriptor.getVolumeURI());                
+                Volume sourceVolume = _dbClient.queryObject(Volume.class, volumeDescriptor.getVolumeURI());
                 StorageSystem sourceStorageSystem = _dbClient.queryObject(StorageSystem.class, sourceVolume.getStorageController());
-                                
+
                 // Check all Target volumes of the Source to ensure that Source capacity < Target capacity.
                 for (String targetId : sourceVolume.getRpTargets()) {
                     Volume targetVolume = _dbClient.queryObject(Volume.class, URI.create(targetId));
@@ -1875,11 +1893,13 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
                     // target must be equal to or larger than the source
                     if (Long.compare(targetVolume.getProvisionedCapacity(), sourceVolume.getProvisionedCapacity()) < 0) {
-                        _log.error(String.format("Source volume [%s - %s] has provisioned capacity of [%s] and Target volume [%s - %s] has provisioned capacity of [%s]. "
-                                + "Source capacity cannot be > Target capacity.",
+                        _log.error(String.format(
+                                "Source volume [%s - %s] has provisioned capacity of [%s] and Target volume [%s - %s] has provisioned capacity of [%s]. "
+                                        + "Source capacity cannot be > Target capacity.",
                                 sourceVolume.getLabel(), sourceVolume.getId(), sourceVolume.getProvisionedCapacity(),
                                 targetVolume.getLabel(), targetVolume.getId(), targetVolume.getProvisionedCapacity()));
-                        throw DeviceControllerExceptions.recoverpoint.cgCannotBeCreatedInvalidVolumeSizes(sourceStorageSystem.getSystemType(),
+                        throw DeviceControllerExceptions.recoverpoint.cgCannotBeCreatedInvalidVolumeSizes(
+                                sourceStorageSystem.getSystemType(),
                                 String.valueOf(sourceVolume.getProvisionedCapacity()), targetStorageSystem.getSystemType(),
                                 String.valueOf(targetVolume.getProvisionedCapacity()));
                     }

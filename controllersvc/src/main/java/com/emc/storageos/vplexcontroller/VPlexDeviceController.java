@@ -5556,12 +5556,21 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
             // Select from an existing ExportMask if possible
             ExportMaskPlacementDescriptor descriptor = backendMgr.chooseBackendExportMask(vplexSystem, storageSystem, varray, volumeMap,
                     lastStep);
+
+            // refresh export masks per XIO storage array
+            boolean needRefresh = storageSystem.deviceIsType(DiscoveredDataObject.Type.xtremio);
             // For every ExportMask in the descriptor ...
             for (URI exportMaskURI : descriptor.getPlacedMasks()) {
                 // Create steps to place each set of volumes into its assigned ExportMask
                 ExportGroup exportGroup = descriptor.getExportGroupForMask(exportMaskURI);
                 ExportMask exportMask = descriptor.getExportMask(exportMaskURI);
                 Map<URI, Volume> placedVolumes = descriptor.getPlacedVolumes(exportMaskURI);
+
+                if (needRefresh) {
+                    BlockStorageDevice device = _blockDeviceController.getDevice(storageSystem.getSystemType());
+                    device.refreshExportMask(storageSystem, exportMask);
+                    needRefresh = false;;
+                }
 
                 // Add the workflow steps.
                 lastStep = backendMgr.addWorkflowStepsToAddBackendVolumes(workflow, lastStep, exportGroup, exportMask, placedVolumes,

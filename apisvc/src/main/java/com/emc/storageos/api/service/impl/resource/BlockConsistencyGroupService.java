@@ -115,6 +115,7 @@ import com.emc.storageos.model.block.VolumeDeleteTypeEnum;
 import com.emc.storageos.model.block.VolumeFullCopyCreateParam;
 import com.emc.storageos.model.block.VolumeRestRep;
 import com.emc.storageos.protectioncontroller.RPController;
+import com.emc.storageos.protectioncontroller.impl.recoverpoint.RPHelper;
 import com.emc.storageos.protectionorchestrationcontroller.ProtectionOrchestrationController;
 import com.emc.storageos.security.audit.AuditLogManager;
 import com.emc.storageos.security.authentication.StorageOSUser;
@@ -533,7 +534,10 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         
         // RP CG's must use applications to create snapshots
         if (consistencyGroup.checkForType(Types.RP)) {
-            throw APIException.badRequests.snapshotsNotSupportedForRPCGs();
+            List<Volume> volumes = RPHelper.getCgSourceVolumes(consistencyGroupId, _dbClient);
+            if (!volumes.isEmpty() && volumes.get(0).getApplication(_dbClient) != null) {
+                throw APIException.badRequests.snapshotsNotSupportedForRPCGs();
+            }
         }
 
         // Validate CG information in the request
@@ -1722,7 +1726,10 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         
         // RP CG's must use applications to create snapshots
         if (cg.checkForType(Types.RP)) {
-            throw APIException.badRequests.snapshotsNotSupportedForRPCGs();
+            List<Volume> volumes = RPHelper.getCgSourceVolumes(consistencyGroupId, _dbClient);
+            if (!volumes.isEmpty() && volumes.get(0).getApplication(_dbClient) != null) {
+                throw APIException.badRequests.snapshotsNotSupportedForRPCGs();
+            }
         }
         
         // Validate CG information in the request

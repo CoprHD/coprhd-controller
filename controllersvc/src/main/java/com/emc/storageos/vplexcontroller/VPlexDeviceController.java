@@ -332,7 +332,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
     private static final String RESTORE_FROM_FULLCOPY_METHOD_NAME = "restoreFromFullCopy";
     private static final String CREATE_FULL_COPY_METHOD_NAME = "createFullCopy";
     private static final String VALIDATE_VPLEX_VOLUME_METHOD = "validateVPlexVolume";
-    private static final String EXPORT_MASK_ADD_VOLUMES_METHOD = "exportMaskAddVolumes";
+    private static final String EXPORT_MASK_ADD_VOLUMES_METHOD = "storageViewAddVolumes";
 
     // Constants used for creating a migration name.
     private static final String MIGRATION_NAME_PREFIX = "M_";
@@ -3600,7 +3600,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
      * @param opId
      * @throws ControllerException
      */
-    public void exportMaskAddVolumes(URI vplexURI, URI exportGroupURI, URI exportMaskURI,
+    public void storageViewAddVolumes(URI vplexURI, URI exportGroupURI, URI exportMaskURI,
             Map<URI, Integer> volumeMap, String opId) throws ControllerException {
         String volListStr = "";
         ExportMaskAddVolumeCompleter completer = null;
@@ -4382,11 +4382,13 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
             Workflow.Method addToViewMethod = storageViewAddInitiatorsMethod(vplexURI, exportURI, exportMask.getId(), hostInitiatorURIs,
                     newTargetURIs, shared, addInitCompleter);
 
-            Workflow.Method addToViewRollbackMethod = storageViewRemoveInitiatorsMethod(vplexURI,
-                    exportURI, exportMask.getId(), hostInitiatorURIs, newTargetURIs, null);
+            Workflow.Method addToViewRollbackMethod = storageViewAddInitiatorsRollbackMethod(vplexURI,
+                    exportURI, exportMask.getId(), StringSetUtil.stringSetToUriList(exportMask.getVolumes().keySet()), hostInitiatorURIs,
+                    addInitStep);
 
             lastStepId = workflow.createStep("storageView", "Add " + message,
-                    zoningStepId, vplexURI, vplex.getSystemType(), this.getClass(), addToViewMethod, addToViewRollbackMethod, addInitStep);
+                    zoningStepId, vplexURI, vplex.getSystemType(), this.getClass(), 
+                    addToViewMethod, addToViewRollbackMethod, addInitStep);
         }
         return lastStepId;
     }
@@ -4508,6 +4510,11 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
             String stepId) throws DeviceControllerException {
         try {
             WorkflowStepCompleter.stepExecuting(stepId);
+
+            ExportOperationContext context = new VplexExportOperationContext();
+            // Prime the context object
+            completer.updateWorkflowStepContext(context);
+
             StorageSystem vplex = getDataObject(StorageSystem.class, vplexURI, _dbClient);
             ExportGroup exportGroup = getDataObject(ExportGroup.class, exportURI, _dbClient);
             VPlexApiClient client = getVPlexAPIClient(_vplexApiFactory, vplex, _dbClient);
@@ -4520,8 +4527,12 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
                     continue;
                 }
 
+                _log.info("Refreshing ExportMask {}", exportMask.getMaskName());
                 String vplexClusterName = VPlexUtil.getVplexClusterName(exportMask, vplexURI, client, _dbClient);
-                boolean updateExportMask = false;
+                VPlexStorageViewInfo storageView = client.getStorageView(vplexClusterName, exportMask.getMaskName());
+                VPlexControllerUtils.refreshExportMask(_dbClient, storageView, exportMask,
+                        VPlexControllerUtils.getTargetPortToPwwnMap(client, vplexClusterName),
+                        _networkDeviceController);
 
                 // Determine host of ExportMask
                 Set<URI> exportMaskHosts = VPlexUtil.getExportMaskHosts(_dbClient, exportMask, sharedExportMask);
@@ -4566,7 +4577,6 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
                         // Add the targets to the database.
                         for (URI target : targetsAddedToStorageView) {
                             exportMask.addTarget(target);
-                            updateExportMask = true;
                         }
                     }
                 }
@@ -4579,6 +4589,12 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
                     if (!exportMaskHosts.contains(VPlexUtil.getInitiatorHost(initiator))) {
                         continue;
                     }
+
+                    // Only add this initiator if it's not in the mask already after refresh
+                    if (exportMask.hasInitiator(initiator.getId().toString())) {
+                        continue;
+                    }
+
                     PortInfo portInfo = new PortInfo(initiator.getInitiatorPort()
                             .toUpperCase().replaceAll(":", ""), initiator.getInitiatorNode()
                                     .toUpperCase().replaceAll(":", ""),
@@ -4603,33 +4619,9 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
                         }
                         // Add the initiators to the VPLEX
                         client.addInitiatorsToStorageView(exportMask.getMaskName(), vplexClusterName, initiatorPortInfos);
-
-                        for (PortInfo portInfo : initiatorPortInfos) {
-                            // update the ExportMask with the successfully added initiator
-                            Initiator initForThisPortInfo = portInfosToInitiatorMap.get(portInfo);
-                            exportMask.addInitiator(initForThisPortInfo);
-                            exportMask.addToUserCreatedInitiators(initForThisPortInfo);
-                            updateExportMask = true;
-                        }
-
-                        InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_003);
-
-                        // because these are now managed initiators, remove from existing initiators if present.
-                        // this may happen in the case where a vipr-managed initiator was added manually outside of vipr
-                        // by the user.
-                        for (String wwn : initiatorPortWwns) {
-                            if (exportMask.hasExistingInitiator(wwn)) {
-                                _log.info("initiator port {} has been added to the storage view {} by the user, but it "
-                                        + "was already in existing initiators, removing from existing initiators.",
-                                        wwn, exportMask.forDisplay());
-                                exportMask.removeFromExistingInitiators(wwn);
-                                updateExportMask = true;
-                            }
-                        }
-
-                        if (updateExportMask) {
-                            _dbClient.updateObject(exportMask);
-                        }
+                        ExportOperationContext.insertContextOperation(completer,
+                                VplexExportOperationContext.OPERATION_ADD_INITIATORS_TO_STORAGE_VIEW,
+                                initiatorURIs);
                     } finally {
                         if (lockAcquired) {
                             _vplexApiLockManager.releaseLock(lockName);
@@ -4637,6 +4629,9 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
                     }
                 }
             }
+
+            InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_003);
+
             completer.ready(_dbClient);
         } catch (VPlexApiException vae) {
             _log.error("VPlexApiException adding initiator to Storage View: " + vae.getMessage(), vae);

@@ -48,6 +48,7 @@ public final class HostToComputeElementMatcher {
 
     public static synchronized void matchHostToComputeElements(DbClient _dbClient, URI hostId) {
         dbClient = _dbClient;                              // set our client
+        allHostsLoaded = false;
 
         Collection<URI> hostIds = Arrays.asList(hostId);  // single host
         Collection<URI> computeElementIds = dbClient.queryByType(ComputeElement.class, true); // all active
@@ -57,6 +58,7 @@ public final class HostToComputeElementMatcher {
 
     public static synchronized void matchHostsToComputeElements(DbClient _dbClient, Collection<URI> hostIds) {
         dbClient = _dbClient;                              // set our client
+        allHostsLoaded = false;
 
         Collection<URI> computeElementIds = dbClient.queryByType(ComputeElement.class, true); // all active
         Collection<URI> serviceProfileIds = dbClient.queryByType(UCSServiceProfile.class, true); // all active

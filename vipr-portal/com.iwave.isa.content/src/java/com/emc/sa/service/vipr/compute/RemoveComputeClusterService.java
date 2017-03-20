@@ -21,6 +21,7 @@ import com.emc.sa.service.vipr.compute.tasks.DeactivateCluster;
 import com.emc.storageos.db.client.model.Cluster;
 import com.emc.storageos.model.block.BlockObjectRestRep;
 import com.emc.storageos.model.host.HostRestRep;
+import com.google.common.base.Joiner;
 import com.google.common.collect.Lists;
 
 @Service("RemoveComputeCluster")
@@ -44,12 +45,12 @@ public class RemoveComputeClusterService extends ViPRService {
         hostURIs = ComputeUtils.getHostURIsByCluster(getClient(), clusterId);
         vblockHostMap = ComputeUtils.getVblockHostURIsByCluster(clusterId);
         vblockHostURIs = Lists.newArrayList(vblockHostMap.keySet());
-        //Additional check to verify if cluster is vblock cluster
+        // Additional check to verify if cluster is vblock cluster
         if (!CollectionUtils.isEmpty(hostURIs) && CollectionUtils.isEmpty(vblockHostURIs)) {
             logError("computeutils.deactivatecluster.deactivate.notpossible.nonvblockcluster", cluster.getLabel());
             preCheckErrors.append("Cluster ").append(cluster.getLabel())
             .append(" is a non-Vblock cluster, cannot decommission a non-Vblock cluster.");
-        } // verify if cluster is a mixed cluster, if so do not proceed further, only pure vblock clusters should be decommissioned.
+        } // Verify if cluster is a mixed cluster. if so, do not proceed further. Only pure vblock clusters should be decommissioned.
         else if (!CollectionUtils.isEmpty(hostURIs) && !CollectionUtils.isEmpty(vblockHostURIs)
                 && (hostURIs.size() > vblockHostURIs.size() || !vblockHostURIs.containsAll(hostURIs))) {
             logError("computeutils.deactivatecluster.deactivate.notpossible", cluster.getLabel());
@@ -64,6 +65,20 @@ public class RemoveComputeClusterService extends ViPRService {
             .append(" has different boot volumes than what controller provisioned.  Cannot delete original boot volume in case it was re-purposed.");
         }
 
+        // Verify the hosts are still part of the cluster we have reported for it on ESX.
+        if (!ComputeUtils.verifyHostInVcenterCluster(cluster, hostURIs)) {
+            logError("computeutils.deactivatecluster.deactivate.hostmovedcluster", cluster.getLabel(), Joiner.on(',').join(hostURIs));
+            preCheckErrors.append("Cluster ").append(cluster.getLabel())
+            .append(" no longer contains one or more of the hosts requesting decommission.  Cannot decomission in current state.  Recommended " +
+            "to run vCenter discovery and address actionable events before attempting decomission of hosts in this cluster.");
+        }
+        
+        // Note: currently there is no test if a host was moved to an entirely different vSphere.
+        // If we don't see the host in the vCenter cluster we know it to be associated with, we assume
+        // it was removed manually and/or a decommissioning operation failed on a previous attempt and
+        // we continue from where we left off next time.  Perhaps someone can think of a clever way to 
+        // detect the host is still in use in the future.
+        
         if (preCheckErrors.length() > 0) {
             throw new IllegalStateException(preCheckErrors.toString());
         }
@@ -119,7 +134,7 @@ public class RemoveComputeClusterService extends ViPRService {
         if (successfulHostIds.size() < vblockHostURIs.size()) {
             for (URI hostURI : vblockHostURIs) {
                 if (!successfulHostIds.contains(hostURI)) {
-                    logError("computeutils.deactivatehost.failure", hostURI, clusterId);
+                    logError("computeutils.deactivatehost.failure", vblockHostMap.get(hostURI), cluster.getLabel());
                 }
             }
             setPartialSuccess();

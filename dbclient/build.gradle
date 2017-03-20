@@ -45,4 +45,4 @@ task checkSchema(type: JavaExec, dependsOn: compileTestJava) {
     classpath = sourceSets.test.runtimeClasspath
 }
 
-//RAG assemble.dependsOn checkSchema
+assemble.dependsOn checkSchema

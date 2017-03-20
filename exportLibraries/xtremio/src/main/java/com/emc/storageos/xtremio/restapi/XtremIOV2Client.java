@@ -13,7 +13,6 @@ import org.apache.commons.httpclient.util.URIUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.xtremio.restapi.errorhandling.XtremIOApiException;
 import com.emc.storageos.xtremio.restapi.model.request.XtremIOConsistencyGroupRequest;
 import com.emc.storageos.xtremio.restapi.model.request.XtremIOConsistencyGroupVolumeRequest;
@@ -117,12 +116,21 @@ public class XtremIOV2Client extends XtremIOClient {
         for (XtremIOObjectInfo initiatorPortInfo : initiatorPortLinks.getInitiators()) {
             URI initiatorPortUri = URI.create(URIUtil.getFromPath(initiatorPortInfo.getHref().concat(
                     XtremIOConstants.getInputClusterString(clusterName))));
-            log.debug("Trying to get initiator details for {}", initiatorPortUri.toString());
-            response = get(initiatorPortUri);
-            XtremIOInitiators initiatorPorts = getResponseObject(XtremIOInitiators.class, response);
-            log.info("Initiator Port {}", initiatorPorts.getContent().getName() + "-"
-                    + initiatorPorts.getContent().getPortAddress());
-            initiatorPortList.add(initiatorPorts.getContent());
+            try {
+                log.debug("Trying to get initiator details for {}", initiatorPortUri.toString());
+                response = get(initiatorPortUri);
+                XtremIOInitiators initiatorPorts = getResponseObject(XtremIOInitiators.class, response);
+                log.info("Initiator Port {}", initiatorPorts.getContent().getName() + "-"
+                        + initiatorPorts.getContent().getPortAddress());
+                initiatorPortList.add(initiatorPorts.getContent());
+            } catch (Exception e) {
+                if (null != e.getMessage() && !e.getMessage().contains(XtremIOConstants.OBJECT_NOT_FOUND)) {
+                    throw e;
+                } else {
+                    log.warn("GET initiator - {} failed with obj_not_found. Initiator might be deleted from the system",
+                            initiatorPortUri.toString());
+                }
+            }
         }
         return initiatorPortList;
     }
@@ -229,8 +237,7 @@ public class XtremIOV2Client extends XtremIOClient {
             XtremIOTagRequest tagCreate = new XtremIOTagRequest();
             tagCreate.setEntity(entityType);
             tagCreate.setTagName(tagName);
-            ClientResponse response = post(XtremIOConstants.XTREMIO_V2_TAGS_URI,
-                    getJsonForEntity(tagCreate));
+            postIgnoreResponse(XtremIOConstants.XTREMIO_V2_TAGS_URI, getJsonForEntity(tagCreate));
         } catch (Exception ex) {
             log.warn("Tag  {} already available", tagName);
         }
@@ -298,7 +305,7 @@ public class XtremIOV2Client extends XtremIOClient {
             tagRequest.setEntityDetails(entity);
             tagRequest.setClusterId(clusterName);
             log.info("Calling tag object with URI: {} and parameters: {}", uriString, tagRequest.toString());
-            ClientResponse response = put(URI.create(uriString), getJsonForEntity(tagRequest));
+            put(URI.create(uriString), getJsonForEntity(tagRequest));
         } catch (Exception ex) {
             log.warn("Error tagging object {} with tag {}", entity, tagName);
         }
@@ -362,7 +369,7 @@ public class XtremIOV2Client extends XtremIOClient {
         List<String> tags = new ArrayList<String>();
         tags.add(XtremIOConstants.V2_INITIATOR_GROUP_ROOT_FOLDER.concat(parentFolderId));
         initiatorGroupCreate.setTagList(tags);
-        post(XtremIOConstants.XTREMIO_V2_INITIATOR_GROUPS_URI, getJsonForEntity(initiatorGroupCreate));
+        postIgnoreResponse(XtremIOConstants.XTREMIO_V2_INITIATOR_GROUPS_URI, getJsonForEntity(initiatorGroupCreate));
     }
 
     @Override
@@ -376,7 +383,7 @@ public class XtremIOV2Client extends XtremIOClient {
         lunMapCreate.setClusterName(clusterName);
         log.info("Calling lun map Create {}", lunMapCreate.toString());
         try {
-            post(XtremIOConstants.XTREMIO_V2_LUNMAPS_URI, getJsonForEntity(lunMapCreate));
+            postIgnoreResponse(XtremIOConstants.XTREMIO_V2_LUNMAPS_URI, getJsonForEntity(lunMapCreate));
         } catch (Exception e) {
             // TODO Right now making the fix very simple ,instead of trying to acquire a lock on Storage System
             if (null != e.getMessage() && !e.getMessage().contains(XtremIOConstants.VOLUME_MAPPED)) {

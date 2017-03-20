@@ -39,7 +39,6 @@ import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Vcenter;
 import com.emc.storageos.db.client.model.VcenterDataCenter;
 import com.emc.storageos.model.compute.OsInstallParam;
-import com.emc.storageos.model.host.HostRestRep;
 import com.emc.storageos.model.vpool.ComputeVirtualPoolRestRep;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
@@ -244,31 +243,43 @@ public class AddHostToClusterService extends ViPRService {
         List<Host> hosts = ComputeUtils.createHosts(cluster, computeVirtualPool, hostNames, virtualArray);
         logInfo("compute.cluster.hosts.created", ComputeUtils.nonNull(hosts).size());
 
-        List<URI> bootVolumeIds = ComputeUtils.makeBootVolumes(project, virtualArray, virtualPool, size, hosts,
+        Map<Host, URI> hostToBootVolumeIdMap = ComputeUtils.makeBootVolumes(project, virtualArray, virtualPool, size, hosts,
                 getClient());
-        logInfo("compute.cluster.boot.volumes.created", ComputeUtils.nonNull(bootVolumeIds).size());
+        logInfo("compute.cluster.boot.volumes.created",
+                hostToBootVolumeIdMap != null ? ComputeUtils.nonNull(hostToBootVolumeIdMap.values()).size() : 0);
 
-        // VBDU TODO: COP-28443, Remove any logic that deactivates as part of a create/add operation.
-        // Throw an exception if there are hosts with no boot volume and/or no export, unless you have a
-        // really good (aka javadoc comment) reason for doing so.
-        hosts = ComputeUtils.deactivateHostsWithNoBootVolume(hosts, bootVolumeIds, cluster);
+        // Deactivate hosts with no boot volume, return list of hosts remaining.
+        hostToBootVolumeIdMap = ComputeUtils.deactivateHostsWithNoBootVolume(hostToBootVolumeIdMap, cluster);
 
-        List<URI> exportIds = ComputeUtils.exportBootVols(bootVolumeIds, hosts, project, virtualArray, hlu);
-        logInfo("compute.cluster.exports.created", ComputeUtils.nonNull(exportIds).size());
-        hosts = ComputeUtils.deactivateHostsWithNoExport(hosts, exportIds, bootVolumeIds, cluster);
-        //Set host boot volume ids, but do not set san boot targets. They will get set post os install.
-        hosts = ComputeUtils.setHostBootVolumes(hosts, bootVolumeIds, false);
+        // Export the boot volume, return a map of hosts and their EG IDs
+        Map<Host, URI> hostToEgIdMap = ComputeUtils.exportBootVols(hostToBootVolumeIdMap, project, virtualArray, hlu);
+        logInfo("compute.cluster.exports.created",
+                hostToEgIdMap != null ? ComputeUtils.nonNull(hostToEgIdMap.values()).size(): 0);
+
+        // Deactivate any hosts where the export failed, return list of hosts remaining
+        hostToBootVolumeIdMap = ComputeUtils.deactivateHostsWithNoExport(hostToBootVolumeIdMap, hostToEgIdMap, cluster);
+
+        // Set host boot volume ids, but do not set san boot targets. They will get set post os install.
+        hosts = ComputeUtils.setHostBootVolumes(hostToBootVolumeIdMap, false);
 
         logInfo("compute.cluster.exports.installing.os");
-        List<HostRestRep> hostsWithOs = installOSForHosts(hostToIPs, ComputeUtils.getHostNameBootVolume(hosts));
-        logInfo("compute.cluster.exports.installed.os", ComputeUtils.nonNull(hostsWithOs).size());
+        installOSForHosts(hostToIPs, ComputeUtils.getHostNameBootVolume(hosts), hosts);
+        hosts = ComputeUtils.deactivateHostsWithNoOS(hosts);
+        logInfo("compute.cluster.exports.installed.os", ComputeUtils.nonNull(hosts).size());
 
-        // VBDU TODO: COP-28433: Deactivate Host without OS installed (when rollback is added, this should be addressed)
-        ComputeUtils.addHostsToCluster(hosts, cluster);
-
-        pushToVcenter();
-
-        ComputeUtils.discoverHosts(hostsWithOs);
+        try {
+            if (!ComputeUtils.nonNull(hosts).isEmpty()) {
+                // VBDU DONE: COP-28433: Deactivate Host without OS installed (Rollback is in place and this is addressed)
+                ComputeUtils.addHostsToCluster(hosts, cluster);
+                pushToVcenter();
+                ComputeUtils.discoverHosts(hosts);
+            } else {
+                logWarn("compute.cluster.installed.os.none");
+            }
+        } catch (Exception ex) {
+            logError(ex.getMessage());
+            setPartialSuccess();
+        }
 
         String orderErrors = ComputeUtils.getOrderErrors(cluster, copyOfHostNames, computeImage, vcenterId);
         if (orderErrors.length() > 0) { // fail order so user can resubmit
@@ -304,21 +315,10 @@ public class AddHostToClusterService extends ViPRService {
         this.fqdnToIps = safeArrayCopy(fqdnToIps);
     }
 
-    private List<HostRestRep> installOSForHosts(Map<String, String> hostToIps, Map<String, URI> hostNameToBootVolumeMap) {
-        List<HostRestRep> hosts = ComputeUtils.getHostsInCluster(cluster.getId(), cluster.getLabel());
-
+    private void installOSForHosts(Map<String, String> hostToIps, Map<String, URI> hostNameToBootVolumeMap, List<Host> createdHosts) {
         List<OsInstallParam> osInstallParams = Lists.newArrayList();
 
-        // Filter out everything except the hosts that were created and
-        // added to the cluster from the current order.
-        List<HostRestRep> newHosts = Lists.newArrayList();
-        for (HostRestRep host : hosts) {
-            if (hostToIps.get(host.getHostName()) != null) {
-                newHosts.add(host);
-            }
-        }
-
-        for (HostRestRep host : newHosts) {
+        for (Host host : createdHosts) {
             if ((host != null) && (
                     (host.getType() == null) ||
                     host.getType().isEmpty() ||
@@ -342,15 +342,14 @@ public class AddHostToClusterService extends ViPRService {
                 osInstallParams.add(null);
             }
         }
-        List<HostRestRep> installedHosts = Lists.newArrayList();
+
         try {
             // Attempt an OS Install only on the list of hosts that are a part of the order
             // This does check if the hosts already have a OS before attempting the install
-            installedHosts = ComputeUtils.installOsOnHosts(newHosts, osInstallParams);
+            ComputeUtils.installOsOnHosts(createdHosts, osInstallParams);
         } catch (Exception e) {
             logError(e.getMessage());
         }
-        return installedHosts;
     }
 
     private void pushToVcenter() {
@@ -365,26 +364,38 @@ public class AddHostToClusterService extends ViPRService {
                 if (null != datacenterId) {
                     dataCenter = ComputeUtils.getVcenterDataCenter(datacenterId);
                 }
+                boolean status = true;
                 URI existingDatacenterId = cluster.getVcenterDataCenter();
                 if (existingDatacenterId == null) {
                     logInfo("compute.cluster.create.vcenter.cluster.datacenter",
                             (vcenter != null ? vcenter.getLabel() : vcenterId),
                             (dataCenter != null ? dataCenter.getLabel() : datacenterId));
                     if (dataCenter == null) {
-                        ComputeUtils.createVcenterCluster(cluster, datacenterId);
+                        status = ComputeUtils.createVcenterCluster(cluster, datacenterId);
                     } else {
-                        ComputeUtils.createVcenterCluster(cluster, dataCenter);
+                        status = ComputeUtils.createVcenterCluster(cluster, dataCenter);
+                    }
+
+                    if (!status) {
+                        throw new IllegalStateException(
+                                ExecutionUtils.getMessage("vcenter.cluster.create.failed", cluster.getLabel()));
                     }
                 } else {
                     logInfo("vcenter.cluster.update", cluster.getLabel());
                     if (dataCenter == null) {
-                        ComputeUtils.updateVcenterCluster(cluster, datacenterId);
+                        status = ComputeUtils.updateVcenterCluster(cluster, datacenterId);
                     } else {
-                        ComputeUtils.updateVcenterCluster(cluster, dataCenter);
+                        status = ComputeUtils.updateVcenterCluster(cluster, dataCenter);
+                    }
+
+                    if (!status) {
+                        throw new IllegalStateException(
+                                ExecutionUtils.getMessage("vcenter.cluster.update.failed", cluster.getLabel()));
                     }
                 }
             } catch (Exception e) {
                 logError("compute.cluster.vcenter.push.failed", e.getMessage());
+                throw e;
             }
         }
     }

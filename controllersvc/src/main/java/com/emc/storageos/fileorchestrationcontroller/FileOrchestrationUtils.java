@@ -29,6 +29,7 @@ import com.emc.storageos.db.client.model.FilePolicy.FilePolicyApplyLevel;
 import com.emc.storageos.db.client.model.FilePolicy.FilePolicyType;
 import com.emc.storageos.db.client.model.FileReplicaPolicyTarget;
 import com.emc.storageos.db.client.model.FileReplicaPolicyTargetMap;
+import com.emc.storageos.db.client.model.FileReplicationTopology;
 import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.model.FileShare.PersonalityTypes;
 import com.emc.storageos.db.client.model.NASServer;
@@ -914,6 +915,35 @@ public final class FileOrchestrationUtils {
             default:
                 _log.error("Not a valid policy apply level: " + applyLevel);
         }
+    }
+
+    /**
+     * Remove replication topology info from policy
+     * if no assigned resources with the policy
+     * 
+     * @param filePolicy the file policy template
+     * @param dbClient
+     */
+    public static void removeTopologyInfo(FilePolicy filePolicy, DbClient dbClient) {
+        // If no other resources are assigned to replication policy
+        // Remove the replication topology from the policy
+        if (filePolicy.getFilePolicyType().equalsIgnoreCase(FilePolicyType.file_replication.name())
+                && (filePolicy.getAssignedResources() == null || filePolicy.getAssignedResources().isEmpty())) {
+            if (filePolicy.getReplicationTopologies() != null && !filePolicy.getReplicationTopologies().isEmpty()) {
+                for (String uriTopology : filePolicy.getReplicationTopologies()) {
+                    FileReplicationTopology topology = dbClient.queryObject(FileReplicationTopology.class,
+                            URI.create(uriTopology));
+                    if (topology != null) {
+                        topology.setInactive(true);
+                        filePolicy.removeReplicationTopology(uriTopology);
+                        dbClient.updateObject(topology);
+                    }
+                }
+                _log.info("Removed replication topology from policy {}", filePolicy.getFilePolicyName());
+            }
+
+        }
+        dbClient.updateObject(filePolicy);
     }
 
     /**

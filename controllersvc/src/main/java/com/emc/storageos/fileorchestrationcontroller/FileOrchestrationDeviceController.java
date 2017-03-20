@@ -972,7 +972,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
                 FSExportMap sourceNFSExportMap = sourceFileShare.getFsExports();
                 FSExportMap targetNFSExportMap = targetFileShare.getFsExports();
 
-                if (sourceNFSExportMap != null && targetNFSExportMap != null) {
+                if (sourceNFSExportMap != null || targetNFSExportMap != null) {
                     // Both source and target export map shouldn't be null
                     stepDescription = String.format("Replicating NFS exports from source file system : %s to target file system : %s",
                             sourceFileShare.getId(), targetFileShare.getId());
@@ -1833,6 +1833,10 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
                     filePolicy.removeAssignedResources(uri);
                     FileOrchestrationUtils.updateUnAssignedResource(filePolicy, uri, s_dbClient);
                 }
+
+                // If no other resources are assigned to replication policy
+                // Remove the replication topology from the policy
+                FileOrchestrationUtils.removeTopologyInfo(filePolicy, s_dbClient);
                 s_dbClient.updateObject(filePolicy);
                 s_logger.info("Unassigning file policy: {} from resources: {} finished successfully", policy.toString(),
                         unassignFrom.toString());
@@ -2199,9 +2203,11 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
             String successMessage = String.format("Assigning file policy : %s, to vpool(s) successful.",
                     filePolicy.getId());
             workflow.executePlan(completer, successMessage);
-        } catch (
+        } catch (Exception ex) {
+            // If no other resources are assigned to replication policy
+            // Remove the replication topology from the policy
+            FileOrchestrationUtils.removeTopologyInfo(filePolicy, s_dbClient);
 
-        Exception ex) {
             s_logger.error(String.format("Assigning file policy : %s to vpool(s) failed", filePolicy.getId()), ex);
             ServiceError serviceError = DeviceControllerException.errors
                     .assignFilePolicyFailed(filePolicyToAssign.toString(), filePolicy.getApplyAt(), ex);
@@ -2291,9 +2297,11 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
             String successMessage = String.format("Assigning file policy : %s, to project(s) successful.",
                     filePolicy.getId());
             workflow.executePlan(completer, successMessage);
-        } catch (
+        } catch (Exception ex) {
+            // If no other resources are assigned to replication policy
+            // Remove the replication topology from the policy
+            FileOrchestrationUtils.removeTopologyInfo(filePolicy, s_dbClient);
 
-        Exception ex) {
             s_logger.error(String.format("Assigning file policy : %s to project(s) failed", filePolicy.getId()), ex);
             ServiceError serviceError = DeviceControllerException.errors
                     .assignFilePolicyFailed(filePolicyToAssign.toString(), filePolicy.getApplyAt(), ex);
@@ -2323,9 +2331,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
 
             // 1. If policy to be applied is of type replication and source file system doesn't have any target,
             // then we have to create mirror file system first..
-
-            if (filePolicy.getFilePolicyType().equals(FilePolicyType.file_replication.name())
-                    && sourceFS.getMirrorStatus() == null) {
+            if (filePolicy.getFilePolicyType().equals(FilePolicyType.file_replication.name())) {
                 waitFor = _fileDeviceController.addStepsForCreateFileSystems(workflow, waitFor, fileDescriptors, taskId);
             }
 

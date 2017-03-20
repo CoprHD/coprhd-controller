@@ -1,10 +1,11 @@
+/**
+ * Copyright (c) 2017 EMC Corporation
+ * All Rights Reserved
+ */
 package com.emc.storageos.model.collectdata;
 
 import java.util.List;
 
-/**
- * Created by aquinn on 2/21/17.
- */
 public class ScaleIOSDSDataRestRep {
 
     private List<ScaleIODeviceDataRestRep> devices;

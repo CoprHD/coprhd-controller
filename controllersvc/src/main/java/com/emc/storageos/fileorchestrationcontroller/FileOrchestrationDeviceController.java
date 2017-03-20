@@ -1774,17 +1774,9 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
                 }
             }
 
-            String successMessage = String.format(
-                    "Replicating source file system : %s, NFS ACL to target file system finished successfully",
-                    sourceFileShare.getLabel());
-            workflow.executePlan(completer, successMessage);
-
         } catch (Exception ex) {
             s_logger.error("Could not replicate source filesystem NFS ACL : " + fsURI, ex);
-            String opName = ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_FAILOVER.getName();
-            ServiceError serviceError = DeviceControllerException.errors.updateFileShareNFSACLFailed(
-                    fsURI.toString(), opName, ex);
-            completer.error(s_dbClient, this._locker, serviceError);
+
         }
     }
 

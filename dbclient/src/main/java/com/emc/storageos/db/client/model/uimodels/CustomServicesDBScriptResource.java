@@ -21,7 +21,7 @@ import com.emc.storageos.db.client.model.Cf;
 /**
  * Column family for a primitive shell script file
  */
-@Cf("CustomServiceDBScriptResource")
+@Cf("CustomServicesDBScriptResource")
 public class CustomServicesDBScriptResource extends CustomServicesDBResource {
 
     private static final long serialVersionUID = 1L;

@@ -347,7 +347,6 @@ public class UcsComputeDevice implements ComputeDevice {
         return sptDn;
     }
 
-    //TODO change all these 'void' methods to boolean -- process the return from UCSM and return success / failure
     @Override
     public void rebindHostToTemplate(URI computeSystemId, URI hostId) throws InternalException {
         LOGGER.info("rebindHostToTemplate");

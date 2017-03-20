@@ -86,6 +86,7 @@ public final class HostToComputeElementMatcher {
         failureMessages = new StringBuffer();
 
         load(hostIds,computeElementIds,serviceProfileIds); // load hosts, computeElements &SPs
+        removeDuplicateUuids();                             // detect and remove CEs & SPs with duplicate UUIDs
         matchHostsToBladesAndSPs();                        // find hosts & blades whose UUIDs match
         catchDuplicateMatches();                           // validate matches (check for duplicates)
         updateDb();                                        // persist changed Hosts & ServiceProfiles
@@ -115,6 +116,41 @@ public final class HostToComputeElementMatcher {
         hostMap = makeUriMap(allHosts);
         computeElementMap = makeUriMap(allComputeElements);
         serviceProfileMap = makeUriMap(allUCSServiceProfiles);
+    }
+
+    private static void removeDuplicateUuids() {
+
+        Map<String,URI> ceDuplicateMap = new HashMap<>();
+        List<URI> ceDuplicateIds = new ArrayList<>();
+        for (ComputeElement ce : computeElementMap.values()) {
+            if (NullColumnValueGetter.isNotNullValue(ce.getUuid()) && isValidUuid(ce.getUuid())) {
+                if (!ceDuplicateMap.containsKey(ce.getUuid())) {
+                    ceDuplicateMap.put(ce.getUuid(),ce.getId());
+                } else {
+                    failureMessages.append("ComputeElements found having the same UUID " +
+                            info(ce) + " and " + info(computeElementMap.get(ce.getUuid())));
+                    ceDuplicateIds.add(ce.getId());
+                    ceDuplicateIds.add(computeElementMap.get(ce.getUuid()).getId() );
+                }
+            }
+        }
+        computeElementMap.keySet().removeAll(ceDuplicateIds);
+
+        Map<String,URI> spDuplicateMap = new HashMap<>();
+        List<URI> spDuplicateIds = new ArrayList<>();
+        for (UCSServiceProfile sp : serviceProfileMap.values()) {
+            if (NullColumnValueGetter.isNotNullValue(sp.getUuid()) && isValidUuid(sp.getUuid())) {
+                if (!spDuplicateMap.containsKey(sp.getUuid())) {
+                    spDuplicateMap.put(sp.getUuid(),sp.getId());
+                } else {
+                    failureMessages.append("UCS Service Profiles found having the same UUID " +
+                            info(sp) + " and " + info(serviceProfileMap.get(sp.getUuid())));
+                    spDuplicateIds.add(sp.getId());
+                    spDuplicateIds.add(serviceProfileMap.get(sp.getUuid()).getId());
+                }
+            }
+        }
+        serviceProfileMap.keySet().removeAll(spDuplicateIds);
     }
 
     private static void matchHostsToBladesAndSPs() {

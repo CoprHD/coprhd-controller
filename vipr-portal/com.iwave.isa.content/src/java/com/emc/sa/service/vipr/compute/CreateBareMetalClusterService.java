@@ -173,14 +173,15 @@ public class CreateBareMetalClusterService extends ViPRService {
         // Deactivate any hosts where the export failed, return list of hosts remaining
         hostToBootVolumeIdMap = ComputeUtils.deactivateHostsWithNoExport(hostToBootVolumeIdMap, hostToEgIdMap, cluster);
         
-        // Set host boot volume ids, but do not set san boot targets. They will get set post os install.
+        // Set host boot volume ids and set san boot targets. 
         hosts = ComputeUtils.setHostBootVolumes(hostToBootVolumeIdMap, true);
+
+        ComputeUtils.addHostsToCluster(hosts, cluster);
+        hosts = ComputeUtils.deactivateHostsNotAddedToCluster(hosts, cluster);
 
         if (ComputeUtils.findHostNamesInCluster(cluster).isEmpty()) {
             logInfo("compute.cluster.removing.empty.cluster");
             ComputeUtils.deactivateCluster(cluster);
-        } else {
-            ComputeUtils.addHostsToCluster(hosts, cluster);
         }
 
         String orderErrors = ComputeUtils.getOrderErrors(cluster, copyOfHostNames, null, null);

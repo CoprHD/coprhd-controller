@@ -279,6 +279,7 @@ public class AddHostToClusterService extends ViPRService {
         if (!ComputeUtils.nonNull(hosts).isEmpty()) {
             // VBDU DONE: COP-28433: Deactivate Host without OS installed (Rollback is in place and this is addressed)
             ComputeUtils.addHostsToCluster(hosts, cluster);
+            hosts = ComputeUtils.deactivateHostsNotAddedToCluster(hosts, cluster);
             pushToVcenter();
             ComputeUtils.discoverHosts(hosts);
         } else {

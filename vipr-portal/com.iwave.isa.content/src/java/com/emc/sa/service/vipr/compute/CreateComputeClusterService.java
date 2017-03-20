@@ -296,6 +296,7 @@ public class CreateComputeClusterService extends ViPRService {
         } else {
             if (!ComputeUtils.nonNull(hosts).isEmpty()) {
                 ComputeUtils.addHostsToCluster(hosts, cluster);
+                hosts = ComputeUtils.deactivateHostsNotAddedToCluster(hosts, cluster);
                 pushToVcenter();
                 ComputeUtils.discoverHosts(hosts);
             } else {

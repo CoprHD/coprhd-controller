@@ -800,6 +800,27 @@ public class SRDFUtils implements SmisConstants {
     }
 
     /**
+     * Need to add all SRDF source volumes id to change the linkStatus and accessState
+     * for Sync/Async with CG. Take care not to add Vplex volume.
+     */
+    public static void addSRDFCGVolumesForTaskCompleter(Volume sourceVol, DbClient dbClient, List<URI> combined) {
+        if (sourceVol != null && sourceVol.hasConsistencyGroup()) {
+            URIQueryResultList uriQueryResultList = new URIQueryResultList();
+            dbClient.queryByConstraint(getVolumesByConsistencyGroup(sourceVol.getConsistencyGroup()),
+                    uriQueryResultList);
+            Iterator<Volume> volumeIterator = dbClient.queryIterativeObjects(Volume.class,
+                    uriQueryResultList);
+            while (volumeIterator.hasNext()) {
+                Volume cgVolume = volumeIterator.next();
+                URI volumeURI = cgVolume.getId();
+                if (cgVolume != null && cgVolume.checkForSRDF() && !combined.contains(volumeURI)) {
+                    combined.add(volumeURI);
+                }
+            }
+        }
+    }
+
+    /**
      * Utility method that returns target volumes for the RDF group
      * 
      * @param group Reference to RemoteDirectorGroup

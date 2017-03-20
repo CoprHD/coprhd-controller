@@ -85,6 +85,7 @@ import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.ExportPathParams;
+import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Migration;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.Project;
@@ -882,10 +883,23 @@ public class BlockService extends TaskResourceService {
 
             // RP consistency group validation
             if (VirtualPool.vPoolSpecifiesProtection(vpool)) {
-                // If an RP protected vpool is specified, ensure that the CG selected is empty or contains only RP
-                // volumes.
-                if (activeCGVolumes != null && !activeCGVolumes.isEmpty()
-                        && !consistencyGroup.getTypes().contains(BlockConsistencyGroup.Types.RP.toString())) {
+                // Check to see if the CG has any RecoverPoint provisioned volumes. This is done by looking at the protectionSet field.
+                // The protectionSet field won't be set until the volume is provisioned in RP so this check allows concurrent
+                // requests to go through.
+                boolean cgHasRpProvisionedVolumes = false;
+                if (activeCGVolumes != null && !activeCGVolumes.isEmpty()) {
+                    for (Volume vol : activeCGVolumes) {
+                        if (!NullColumnValueGetter.isNullNamedURI(vol.getProtectionSet())) {
+                            _log.info(String.format("Determined that consistency group %s contains RP provisioned volumes.",
+                                    consistencyGroup.getId()));
+                            cgHasRpProvisionedVolumes = true;
+                            break;
+                        }
+                    }
+                }
+
+                // Ensure the CG is either empty or has been tagged for RP and contains properly provisioned RP volumes.
+                if (cgHasRpProvisionedVolumes && !consistencyGroup.getTypes().contains(BlockConsistencyGroup.Types.RP.toString())) {
                     throw APIException.badRequests.consistencyGroupMustBeEmptyOrContainRpVolumes(consistencyGroup.getId());
                 }
 
@@ -2104,6 +2118,9 @@ public class BlockService extends TaskResourceService {
             // Don't operate on VPLEX backend or RP Journal volumes (unless forced to).
             BlockServiceUtils.validateNotAnInternalBlockObject(vol, force);
 
+            // Don't operate on volumes with boot volume tags (unless forced to).
+            BlockServiceUtils.validateNotABootVolume(vol, force);
+
             if (!_permissionsHelper.userHasGivenRole(user, vol.getTenant().getURI(), Role.TENANT_ADMIN)
                     && !_permissionsHelper.userHasGivenACL(user, vol.getProject().getURI(), ACL.OWN, ACL.ALL)) {
                 throw APIException.forbidden.insufficientPermissionsForUser(user.getName());
@@ -2151,7 +2168,8 @@ public class BlockService extends TaskResourceService {
              * 8.0.3.
              * Hence we don't require reference check for vmax.
              */
-            if (!volume.isInCG() || !BlockServiceUtils.checkCGVolumeCanBeAddedOrRemoved(null, volume, _dbClient)) {
+            if ((VolumeDeleteTypeEnum.VIPR_ONLY.name().equals(type)) || (!volume.isInCG())
+                    || (!BlockServiceUtils.checkCGVolumeCanBeAddedOrRemoved(null, volume, _dbClient))) {
                 List<Class<? extends DataObject>> excludeTypes = null;
                 if (VolumeDeleteTypeEnum.VIPR_ONLY.name().equals(type)) {
                     // For ViPR-only delete of exported volumes, We will clean up any
@@ -2160,6 +2178,20 @@ public class BlockService extends TaskResourceService {
                     excludeTypes.add(ExportGroup.class);
                     excludeTypes.add(ExportMask.class);
                 }
+
+                // If we are deleting a boot volume, there may still be a reference to the volume
+                // in the decommissioned host.  Since the force flag is used, we will clear out this
+                // reference in the host so the volume can be deleted.
+                List<Host> hosts = CustomQueryUtility.queryActiveResourcesByRelation(_dbClient, volume.getId(),
+                        Host.class, "bootVolumeId");
+                if (hosts != null) {
+                    for (Host host : hosts) {
+                        host.setBootVolumeId(NullColumnValueGetter.getNullURI());
+                        _log.info("Removing boot volume ID from host: {}", host.forDisplay());
+                        _dbClient.updateObject(host);
+                    }
+                }                
+                
                 ArgValidator.checkReference(Volume.class, volumeURI, blockServiceApi.checkForDelete(volume, excludeTypes));
             }
 
@@ -2238,7 +2270,7 @@ public class BlockService extends TaskResourceService {
                 volume.setInactive(true);
                 _dbClient.persistObject(volume);
             }
-
+            
         }
 
         // Try and delete the volumes on each system.
@@ -3113,6 +3145,15 @@ public class BlockService extends TaskResourceService {
 
         if (op.equalsIgnoreCase(ProtectionOp.SWAP.getRestOp()) && !NullColumnValueGetter.isNullURI(volume.getConsistencyGroup())) {
             ExportUtils.validateConsistencyGroupBookmarksExported(_dbClient, volume.getConsistencyGroup());
+        }
+
+        // Make sure the source and failover target share the same consistency group (applies to change access mode, failover, and failover
+        // cancel operations)
+        if ((op.equalsIgnoreCase(ProtectionOp.CHANGE_ACCESS_MODE.getRestOp()) || op.equalsIgnoreCase(ProtectionOp.FAILOVER.getRestOp()) || op
+                .equalsIgnoreCase(ProtectionOp.FAILOVER_CANCEL.getRestOp()))
+                && !NullColumnValueGetter.isNullURI(volume.getConsistencyGroup())
+                && !volume.getConsistencyGroup().equals(copyVolume.getConsistencyGroup())) {
+            throw APIException.badRequests.invalidConsistencyGroupsForProtectionOperation();
         }
 
         // Catch any attempts to use an invalid access mode
@@ -5419,9 +5460,9 @@ public class BlockService extends TaskResourceService {
     /*
      * Validate if the physical array that the consistency group bonded to is associated
      * with the virtual array
-     *
+     * 
      * @param consistencyGroup
-     *
+     * 
      * @param varray virtual array
      */
     private void validateCGValidWithVirtualArray(BlockConsistencyGroup consistencyGroup,

@@ -10,8 +10,12 @@ import static org.junit.Assert.assertTrue;
 
 import java.io.Serializable;
 import java.net.URI;
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -36,6 +40,7 @@ import com.emc.storageos.db.client.model.Task;
 import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.WorkflowStep;
+import com.emc.storageos.db.client.model.WorkflowStepData;
 import com.emc.storageos.db.client.model.util.TaskUtils;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.joiner.Joiner;
@@ -1325,6 +1330,162 @@ public class WorkflowTest extends ControllersvcTestBase implements Controller {
         task = requeryTask(resource, taskId3, op);
         assertTrue(task.getStatus().equals("ready"));
         assertTrue(task.getCompletedFlag());
+    }
+    
+    /**
+     * workflow scrubber does the following:
+     * deletes workflows older than some predetermined amount of time
+     * deletes all associated workflow steps if the workflow is deleted
+     * deletes all orphaned workflow steps
+     * 
+     */
+    @Test
+    public void test24_test_workflow_scrubber() {
+        final String testname = new Object() {
+        }.getClass().getEnclosingMethod().getName();
+        printLog(testname + " started");
+
+        WorkflowScrubberExecutor scrubber = new WorkflowScrubberExecutor();
+        scrubber.setDbClient(dbClient);
+        
+        // it's required for this test that there are no previously existing workflows or workflow steps
+        Iterator<com.emc.storageos.db.client.model.Workflow> wfs = dbClient.queryIterativeObjects(
+                com.emc.storageos.db.client.model.Workflow.class,
+                dbClient.queryByType(com.emc.storageos.db.client.model.Workflow.class, true));
+        while (wfs.hasNext()) {
+            dbClient.removeObject(wfs.next());
+        }
+        Iterator<WorkflowStep> wfSteps = dbClient.queryIterativeObjects(WorkflowStep.class, dbClient.queryByType(WorkflowStep.class, true));
+        while (wfSteps.hasNext()) {
+            dbClient.removeObject(wfSteps.next());
+        }
+        Iterator<WorkflowStepData> wfStepData = dbClient.queryIterativeObjects(WorkflowStepData.class,
+                dbClient.queryByType(WorkflowStepData.class, true));
+        while (wfStepData.hasNext()) {
+            dbClient.removeObject(wfStepData.next());
+        }
+
+        Object[] args = new Object[1];
+        String taskId = UUID.randomUUID().toString();
+        args[0] = taskId;
+
+        long maxWFAge = WorkflowScrubberExecutor.WORKFLOW_HOLDING_TIME_MSEC;
+        Long currentTime = System.currentTimeMillis();
+        Calendar dateInPast = Calendar.getInstance();
+        dateInPast.setTime(new Date(currentTime-maxWFAge));
+        
+        // create a completed workflow with one step (scrubber should leave this one alone)
+        com.emc.storageos.db.client.model.Workflow completedWorkflow = new com.emc.storageos.db.client.model.Workflow();
+        completedWorkflow.setId(URIUtil.createId(com.emc.storageos.db.client.model.Workflow.class));
+        completedWorkflow.setCompleted(true);
+        dbClient.createObject(completedWorkflow);
+        
+        WorkflowStep completedWorkflowStep = new WorkflowStep();
+        completedWorkflowStep.setId(URIUtil.createId(WorkflowStep.class));
+        completedWorkflowStep.setWorkflowId(completedWorkflow.getId());
+        dbClient.createObject(completedWorkflowStep);
+        
+        WorkflowStepData completedWorkflowStepData = new WorkflowStepData();
+        completedWorkflowStepData.setId(URIUtil.createId(WorkflowStepData.class));
+        completedWorkflowStepData.setWorkflowId(completedWorkflow.getId());
+        dbClient.createObject(completedWorkflowStepData);
+
+        // Create a workflow older than max age (one step)
+        com.emc.storageos.db.client.model.Workflow dbWorkflow = new com.emc.storageos.db.client.model.Workflow();
+        dbWorkflow.setId(URIUtil.createId(com.emc.storageos.db.client.model.Workflow.class));
+        dbWorkflow.setCompleted(true);
+        dbClient.createObject(dbWorkflow);
+        dbWorkflow.setCreationTime(dateInPast);
+        dbClient.updateObject(dbWorkflow);
+        
+        WorkflowStep step = new WorkflowStep();
+        step.setId(URIUtil.createId(WorkflowStep.class));
+        step.setWorkflowId(dbWorkflow.getId());
+        dbClient.createObject(step);
+        
+        WorkflowStepData stepData = new WorkflowStepData();
+        stepData.setId(URIUtil.createId(WorkflowStepData.class));
+        stepData.setWorkflowId(dbWorkflow.getId());
+        dbClient.createObject(stepData);
+
+        // create a workflow step with a null workflow reference (orphaned step)
+        step = new WorkflowStep();
+        step.setId(URIUtil.createId(WorkflowStep.class));
+        dbClient.createObject(step);
+        
+        stepData = new WorkflowStepData();
+        stepData.setId(URIUtil.createId(WorkflowStepData.class));
+        dbClient.createObject(stepData);
+
+        // create a workflow step with a valid but non-existing workflow id (orphaned step)
+        step = new WorkflowStep();
+        step.setId(URIUtil.createId(WorkflowStep.class));
+        step.setWorkflowId(URIUtil.createId(com.emc.storageos.db.client.model.Workflow.class));
+        dbClient.createObject(step);
+        
+        stepData = new WorkflowStepData();
+        stepData.setId(URIUtil.createId(WorkflowStepData.class));
+        step.setWorkflowId(URIUtil.createId(com.emc.storageos.db.client.model.Workflow.class));
+        dbClient.createObject(stepData);
+
+        // create a workflow with one step then delete the workflow only (orphaned step)
+        dbWorkflow = new com.emc.storageos.db.client.model.Workflow();
+        dbWorkflow.setId(URIUtil.createId(com.emc.storageos.db.client.model.Workflow.class));
+        dbClient.createObject(dbWorkflow);
+
+        step = new WorkflowStep();
+        step.setId(URIUtil.createId(WorkflowStep.class));
+        step.setWorkflowId(dbWorkflow.getId());
+        dbClient.createObject(step);
+        
+        stepData = new WorkflowStepData();
+        stepData.setId(URIUtil.createId(WorkflowStepData.class));
+        stepData.setWorkflowId(dbWorkflow.getId());
+        dbClient.createObject(stepData);
+
+        dbClient.removeObject(dbWorkflow);
+
+        List<URI> wfUris = copyUriList(dbClient.queryByType(com.emc.storageos.db.client.model.Workflow.class, true));
+        assertTrue(wfUris.size() == 2);
+
+        List<URI> wfStepUris = copyUriList(dbClient.queryByType(WorkflowStep.class, true));
+        assertTrue(wfStepUris.size() == 5);
+
+        List<URI> wfStepDataUris = copyUriList(dbClient.queryByType(WorkflowStepData.class, true));
+        assertTrue(wfStepDataUris.size() == 5);
+
+        scrubber.deleteOldWorkflows();
+        
+        wfUris = copyUriList(dbClient.queryByType(com.emc.storageos.db.client.model.Workflow.class, true));
+        assertTrue(wfUris.size() == 1);
+        assertTrue(wfUris.contains(completedWorkflow.getId()));
+        
+        wfStepUris = copyUriList(dbClient.queryByType(WorkflowStep.class, true));
+        assertTrue(wfStepUris.size() == 1);
+        assertTrue(wfStepUris.contains(completedWorkflowStep.getId()));
+        
+        wfStepDataUris = copyUriList(dbClient.queryByType(WorkflowStepData.class, true));
+        assertTrue(wfStepDataUris.size() == 1);
+        assertTrue(wfStepDataUris.contains(completedWorkflowStepData.getId()));
+
+        // clean up
+        dbClient.removeObject(completedWorkflow);
+        dbClient.removeObject(completedWorkflowStep);
+
+        printLog(testname + " completed");
+    }
+
+    /**
+     * @param inList
+     * @return
+     */
+    private List<URI> copyUriList(List<URI> inList) {
+        List<URI> outList = new ArrayList<URI>();
+        Iterator<URI> itr = inList.iterator();
+        while (itr.hasNext()) {
+            outList.add(itr.next());
+        }
+        return outList;
     }
 
     /**

@@ -201,4 +201,7 @@ public interface ComputeSystemControllerExceptions {
 
     @DeclareServiceCode(ServiceCode.CONTROLLER_COMPUTESYSTEM_ERROR)
     public ComputeSystemControllerException unableToCheckVMsOnHostBootVolume(final String bootVolumeId, final String hostname, final Throwable cause);
+
+    @DeclareServiceCode(ServiceCode.CONTROLLER_COMPUTESYSTEM_ERROR)
+    public ComputeSystemControllerException unableToUntagVolume(final String bootVolumeId, final String hostname, Exception exception);
 }

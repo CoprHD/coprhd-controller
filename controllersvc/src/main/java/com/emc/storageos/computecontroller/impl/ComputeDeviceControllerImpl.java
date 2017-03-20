@@ -30,11 +30,13 @@ import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.Operation.Status;
+import com.emc.storageos.db.client.model.ScopedLabel;
 import com.emc.storageos.db.client.model.UCSServiceProfile;
 import com.emc.storageos.db.client.model.UCSServiceProfileTemplate;
 import com.emc.storageos.db.client.model.VcenterDataCenter;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.db.client.model.util.TagUtils;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.imageservercontroller.exceptions.ImageServerControllerException;
@@ -71,6 +73,7 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
     private static final String DEACTIVATION_REMOVE_HOST_VCENTER = "DEACTIVATION_REMOVE_HOST_VCENTER";
     private static final String DEACTIVATION_COMPUTE_SYSTEM_HOST = "DEACTIVATION_COMPUTE_SYSTEM_HOST";
     private static final String DEACTIVATION_COMPUTE_SYSTEM_BOOT_VOLUME = "DEACTIVATION_COMPUTE_SYSTEM_BOOT_VOLUME";
+    private static final String DEACTIVATION_COMPUTE_SYSTEM_BOOT_VOLUME_UNTAG = "DEACTIVATION_COMPUTE_SYSTEM_BOOT_VOLUME_UNTAG";
     private static final String CHECK_CLUSTER_VMS = "CHECK_CLUSTER_VMS";
     private static final String REMOVE_VCENTER_CLUSTER = "REMOVE_VCENTER_CLUSTER";
     private static final String UNBIND_HOST_FROM_TEMPLATE = "UNBIND_HOST_FROM_TEMPLATE";
@@ -863,7 +866,7 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
         if (cs == null){
             log.error("Could not determine the Compute System the host {} is provisioned on. Skipping service profile and boot volume deletion steps", host.getLabel());
             return waitFor;
-        }else {
+        } else {
 
             //TODO: need to break this up into individual smaller steps so that we can try to recover using rollback if decommission failed
             waitFor = workflow.createStep(DEACTIVATION_COMPUTE_SYSTEM_HOST, "Unbind blade from service profile",
@@ -872,6 +875,11 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
                     new Workflow.Method(ROLLBACK_NOTHING_METHOD), null);
 
             if (deactivateBootVolume && !NullColumnValueGetter.isNullURI(host.getBootVolumeId())) {
+                waitFor = workflow.createStep(DEACTIVATION_COMPUTE_SYSTEM_BOOT_VOLUME_UNTAG,
+                        "Untag the boot volume for the host", waitFor, cs.getId(), cs.getSystemType(),
+                        this.getClass(), new Workflow.Method("untagBlockBootVolume", hostId, volumeDescriptors),
+                        new Workflow.Method(ROLLBACK_NOTHING_METHOD), null);
+
                 waitFor = workflow.createStep(DEACTIVATION_COMPUTE_SYSTEM_BOOT_VOLUME,
                         "Delete the boot volume for the host", waitFor, cs.getId(), cs.getSystemType(),
                         this.getClass(), new Workflow.Method("deleteBlockBootVolume", hostId, volumeDescriptors),
@@ -1008,10 +1016,12 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
     }
 
     /**
-     * Deactivates or deletes the boot volume
+     * Deactivates or deletes the boot volume 
      *
      * @param hostId
      *            {@link URI} hostId URI
+     * @param volumeDescriptors 
+     *            {@link List<VolumeDescriptor>} list of boot volumes to delete
      * @param stepId
      *            {@link String} step id
      */
@@ -1027,35 +1037,41 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
 
             host = _dbClient.queryObject(Host.class, hostId);
 
-            if (host != null && host.getBootVolumeId() != null) {
+            if (host == null) {
+                WorkflowStepCompleter.stepSucceded(stepId);
+                return;
+            }
+            
+            
 
-                if(volumeDescriptors.isEmpty()) {
-                    throw new IllegalStateException("Could not locate VolumeDescriptor(s) for boot volume " +
-                            host.getLabel() + " [" + host.getBootVolumeId() + "]");
-                }
+            String task = UUID.randomUUID().toString();
 
-                String task = UUID.randomUUID().toString();
+            URI bootVolumeId = getBootVolumeIdFromDescriptors(volumeDescriptors, host);
+            Volume bootVolume = _dbClient.queryObject(Volume.class, bootVolumeId);
+            if(bootVolume == null) {
+                // No boot volume found, so it was already deleted.
+                WorkflowStepCompleter.stepSucceded(stepId);
+                return;
+            }
 
-                Volume bootVolume = _dbClient.queryObject(Volume.class, host.getBootVolumeId());
+            Operation op = _dbClient.createTaskOpStatus(Volume.class, bootVolume.getId(), task,
+                    ResourceOperationTypeEnum.DELETE_BLOCK_VOLUME);
+            bootVolume.getOpStatus().put(task, op);
 
-                Operation op = _dbClient.createTaskOpStatus(Volume.class, bootVolume.getId(), task,
-                        ResourceOperationTypeEnum.DELETE_BLOCK_VOLUME);
-                bootVolume.getOpStatus().put(task, op);
+            _dbClient.updateObject(bootVolume);
 
-                _dbClient.updateObject(bootVolume);
+            final String workflowKey = "deleteVolumes";
+            if (!WorkflowService.getInstance().hasWorkflowBeenCreated(task, workflowKey)) {
+                blockOrchestrationController.deleteVolumes(volumeDescriptors, task);
+                // Mark this workflow as created/executed so we don't do it
+                // again on retry/resume
+                WorkflowService.getInstance().markWorkflowBeenCreated(task, workflowKey);
 
-                final String workflowKey = "deleteVolumes";
-                if (!WorkflowService.getInstance().hasWorkflowBeenCreated(task, workflowKey)) {
-                    blockOrchestrationController.deleteVolumes(volumeDescriptors, task);
-                    // Mark this workflow as created/executed so we don't do it
-                    // again on retry/resume
-                    WorkflowService.getInstance().markWorkflowBeenCreated(task, workflowKey);
+                while (true) {
+                    Thread.sleep(TASK_STATUS_POLL_FREQUENCY);
+                    bootVolume = _dbClient.queryObject(Volume.class, bootVolumeId);
 
-                    while (true) {
-                        Thread.sleep(TASK_STATUS_POLL_FREQUENCY);
-                        bootVolume = _dbClient.queryObject(Volume.class, host.getBootVolumeId());
-
-                        switch (Status.toStatus(bootVolume.getOpStatus().get(task).getStatus())) {
+                    switch (Status.toStatus(bootVolume.getOpStatus().get(task).getStatus())) {
                         case ready:
                             WorkflowStepCompleter.stepSucceded(stepId);
                             return;
@@ -1064,26 +1080,18 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
                                     ComputeSystemControllerException.exceptions
                                     .unableToDeactivateBootVolumeAssociatedWithHost(host.getHostName(),
                                             host.getId().toASCIIString(),
-                                            host.getBootVolumeId().toASCIIString(),
+                                            bootVolumeId.toASCIIString(),
                                             bootVolume.getOpStatus().get(task).getMessage()));
                             WorkflowStepCompleter.stepFailed(stepId, ComputeSystemControllerException.exceptions
                                     .unableToDeactivateBootVolumeAssociatedWithHost(host.getHostName(),
-                                            host.getId().toASCIIString(), host.getBootVolumeId().toASCIIString(),
+                                            host.getId().toASCIIString(), bootVolumeId.toASCIIString(),
                                             bootVolume.getOpStatus().get(task).getMessage()));
                             return;
                         case pending:
                             break;
 
-                        }
                     }
                 }
-
-            } else {
-                /**
-                 * Nothing to do... No-op it
-                 */
-                WorkflowStepCompleter.stepSucceded(stepId);
-                return;
             }
         } catch (Exception exception) {
             ServiceCoded serviceCoded = ComputeSystemControllerException.exceptions
@@ -1091,6 +1099,115 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
             WorkflowStepCompleter.stepFailed(stepId, serviceCoded);
         }
 
+    }
+
+    /**
+     * Untags the boot volume before it is deleted.
+     *
+     * @param hostId
+     *            {@link URI} hostId URI
+     * @param volumeDescriptors 
+     *            {@link List<VolumeDescriptor>} list of boot volumes to untag
+     * @param stepId
+     *            {@link String} step id
+     */
+    public void untagBlockBootVolume(URI hostId, List<VolumeDescriptor> volumeDescriptors, String stepId) {
+        log.info("untagBlockBootVolume START");
+
+        Host host = null;
+        Volume bootVolume = null;
+        
+        try {
+            WorkflowStepCompleter.stepExecuting(stepId);
+
+            host = _dbClient.queryObject(Host.class, hostId);
+
+            if (host == null || NullColumnValueGetter.isNullURI(host.getBootVolumeId())) {
+                WorkflowStepCompleter.stepSucceded(stepId);
+                log.info("untagBlockBootVolume END");
+                return;
+            }
+
+            URI bootVolumeId = getBootVolumeIdFromDescriptors(volumeDescriptors, host);
+            bootVolume = _dbClient.queryObject(Volume.class, bootVolumeId);
+            if (bootVolume == null || (bootVolume.getTag() == null)) {
+                WorkflowStepCompleter.stepSucceded(stepId);
+                log.info("untagBlockBootVolume END");
+                return;
+            }
+
+            // Untag volume.  Slightly unconventional way of doing it, however our scope and label
+            // both contain colons and equal signs making the ScopedLabel constructor and ScopedLabelSet.contains()
+            // difficult to trust.
+            String tagLabel = TagUtils.getBootVolumeTagName() + "=" + host.getId().toASCIIString();
+            ScopedLabel foundSL = null;
+            for (ScopedLabel sl : bootVolume.getTag()) {
+                if (sl.getLabel().contains(tagLabel)) {
+                    foundSL = sl;
+                    break;
+                }
+            }
+            if (foundSL != null) {
+                bootVolume.getTag().remove(foundSL);
+            }
+
+            // If we are deleting a boot volume, there may still be a reference to the volume
+            // in the decommissioned host.  We will clear out this reference in the host.
+            host.setBootVolumeId(NullColumnValueGetter.getNullURI());
+
+            _dbClient.updateObject(host);
+            _dbClient.updateObject(bootVolume);
+            
+            WorkflowStepCompleter.stepSucceded(stepId);
+        } catch (Exception exception) {
+            ServiceCoded serviceCoded = ComputeSystemControllerException.exceptions
+                    .unableToUntagVolume(bootVolume != null ? bootVolume.forDisplay() : "none found", 
+                            host != null ? host.getHostName() : hostId.toString(), exception);
+            WorkflowStepCompleter.stepFailed(stepId, serviceCoded);
+        }
+        log.info("untagBlockBootVolume END");
+    }
+    
+    /**
+     * Given a list of volume descriptors, get the boot volume URI.  If the host and its boot volume
+     * ID are filled-in, verify that as well.  Since the Host's boot volume ID gets cleared out, this
+     * step is not required.
+     * 
+     * The goal of this method is to first search for any VPLEX volume(s).  Failing finding any of those,
+     * get the backing volumes.  The key is to get the host-facing volume.
+     * 
+     * @param volumeDescriptors volume descriptors, could be a mix of vplex and backing volumes
+     * @param host host for debug and validation
+     * @return the boot volume ID from the volume descriptors
+     */
+    private static URI getBootVolumeIdFromDescriptors(List<VolumeDescriptor> volumeDescriptors, Host host) {
+        // Get only the VPLEX volume(s) from the descriptors.
+        List<VolumeDescriptor> bootVolumeDescriptors = VolumeDescriptor.filterByType(volumeDescriptors,
+                new VolumeDescriptor.Type[] { VolumeDescriptor.Type.VPLEX_VIRT_VOLUME },
+                new VolumeDescriptor.Type[] {});
+
+        // If there are no VPlex volumes, grab the block volumes
+        if (bootVolumeDescriptors.isEmpty()) {
+            bootVolumeDescriptors = VolumeDescriptor.filterByType(volumeDescriptors,
+                    new VolumeDescriptor.Type[] { VolumeDescriptor.Type.BLOCK_DATA },
+                    new VolumeDescriptor.Type[] {});
+        }
+
+        // Ensure there is one and only one volume descriptor.
+        if(bootVolumeDescriptors == null || bootVolumeDescriptors.size() != 1) {
+            throw new IllegalStateException("Could not locate VolumeDescriptor(s) for boot volume " +
+                    host.getLabel());
+        }
+        
+        // Ensure if there is a host boot volume ID that they match up.
+        URI bootVolumeURI = bootVolumeDescriptors.get(0).getVolumeURI();
+        if (host != null && !NullColumnValueGetter.isNullURI(host.getBootVolumeId()) && 
+                !host.getBootVolumeId().equals(bootVolumeURI)) {
+            throw new IllegalStateException("Boot volume requested for deletion is different than host's marked boot volume " +
+                    host.getLabel());
+        }
+        
+        return bootVolumeURI;
     }
 
     /**

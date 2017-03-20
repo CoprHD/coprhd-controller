@@ -39,7 +39,6 @@ import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Vcenter;
 import com.emc.storageos.db.client.model.VcenterDataCenter;
 import com.emc.storageos.model.compute.OsInstallParam;
-import com.emc.storageos.model.host.HostRestRep;
 import com.emc.storageos.model.vpool.ComputeVirtualPoolRestRep;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
@@ -272,18 +271,23 @@ public class AddHostToClusterService extends ViPRService {
         hosts = ComputeUtils.setHostBootVolumes(hostToBootVolumeIdMap, false);
 
         logInfo("compute.cluster.exports.installing.os");
-        installOSForHosts(hostToIPs, ComputeUtils.getHostNameBootVolume(hosts));
+        installOSForHosts(hostToIPs, ComputeUtils.getHostNameBootVolume(hosts), hosts);
         hosts = ComputeUtils.deactivateHostsWithNoOS(hosts);
         logInfo("compute.cluster.exports.installed.os", ComputeUtils.nonNull(hosts).size());
 
-        if (!ComputeUtils.nonNull(hosts).isEmpty()) {
-            // VBDU DONE: COP-28433: Deactivate Host without OS installed (Rollback is in place and this is addressed)
-            ComputeUtils.addHostsToCluster(hosts, cluster);
-            hosts = ComputeUtils.deactivateHostsNotAddedToCluster(hosts, cluster);
-            pushToVcenter();
-            ComputeUtils.discoverHosts(hosts);
-        } else {
-            logWarn("compute.cluster.installed.os.none");
+        try {
+            if (!ComputeUtils.nonNull(hosts).isEmpty()) {
+                // VBDU DONE: COP-28433: Deactivate Host without OS installed (Rollback is in place and this is addressed)
+                ComputeUtils.addHostsToCluster(hosts, cluster);
+                hosts = ComputeUtils.deactivateHostsNotAddedToCluster(hosts, cluster);
+                pushToVcenter();
+                ComputeUtils.discoverHosts(hosts);
+            } else {
+                logWarn("compute.cluster.installed.os.none");
+            }
+        } catch (Exception ex) {
+            logError(ex.getMessage());
+            setPartialSuccess();
         }
 
         String orderErrors = ComputeUtils.getOrderErrors(cluster, copyOfHostNames, computeImage, vcenterId);
@@ -320,21 +324,10 @@ public class AddHostToClusterService extends ViPRService {
         this.fqdnToIps = safeArrayCopy(fqdnToIps);
     }
 
-    private void installOSForHosts(Map<String, String> hostToIps, Map<String, URI> hostNameToBootVolumeMap) {
-        List<HostRestRep> hosts = ComputeUtils.getHostsInCluster(cluster.getId(), cluster.getLabel());
-
+    private void installOSForHosts(Map<String, String> hostToIps, Map<String, URI> hostNameToBootVolumeMap, List<Host> createdHosts) {
         List<OsInstallParam> osInstallParams = Lists.newArrayList();
 
-        // Filter out everything except the hosts that were created and
-        // added to the cluster from the current order.
-        List<HostRestRep> newHosts = Lists.newArrayList();
-        for (HostRestRep host : hosts) {
-            if (hostToIps.get(host.getHostName()) != null) {
-                newHosts.add(host);
-            }
-        }
-
-        for (HostRestRep host : newHosts) {
+        for (Host host : createdHosts) {
             if ((host != null) && (
                     (host.getType() == null) ||
                     host.getType().isEmpty() ||
@@ -362,7 +355,7 @@ public class AddHostToClusterService extends ViPRService {
         try {
             // Attempt an OS Install only on the list of hosts that are a part of the order
             // This does check if the hosts already have a OS before attempting the install
-            ComputeUtils.installOsOnHosts(newHosts, osInstallParams);
+            ComputeUtils.installOsOnHosts(createdHosts, osInstallParams);
         } catch (Exception e) {
             logError(e.getMessage());
         }
@@ -380,26 +373,38 @@ public class AddHostToClusterService extends ViPRService {
                 if (null != datacenterId) {
                     dataCenter = ComputeUtils.getVcenterDataCenter(datacenterId);
                 }
+                boolean status = true;
                 URI existingDatacenterId = cluster.getVcenterDataCenter();
                 if (existingDatacenterId == null) {
                     logInfo("compute.cluster.create.vcenter.cluster.datacenter",
                             (vcenter != null ? vcenter.getLabel() : vcenterId),
                             (dataCenter != null ? dataCenter.getLabel() : datacenterId));
                     if (dataCenter == null) {
-                        ComputeUtils.createVcenterCluster(cluster, datacenterId);
+                        status = ComputeUtils.createVcenterCluster(cluster, datacenterId);
                     } else {
-                        ComputeUtils.createVcenterCluster(cluster, dataCenter);
+                        status = ComputeUtils.createVcenterCluster(cluster, dataCenter);
+                    }
+
+                    if (!status) {
+                        throw new IllegalStateException(
+                                ExecutionUtils.getMessage("vcenter.cluster.create.failed", cluster.getLabel()));
                     }
                 } else {
                     logInfo("vcenter.cluster.update", cluster.getLabel());
                     if (dataCenter == null) {
-                        ComputeUtils.updateVcenterCluster(cluster, datacenterId);
+                        status = ComputeUtils.updateVcenterCluster(cluster, datacenterId);
                     } else {
-                        ComputeUtils.updateVcenterCluster(cluster, dataCenter);
+                        status = ComputeUtils.updateVcenterCluster(cluster, dataCenter);
+                    }
+
+                    if (!status) {
+                        throw new IllegalStateException(
+                                ExecutionUtils.getMessage("vcenter.cluster.update.failed", cluster.getLabel()));
                     }
                 }
             } catch (Exception e) {
                 logError("compute.cluster.vcenter.push.failed", e.getMessage());
+                throw e;
             }
         }
     }

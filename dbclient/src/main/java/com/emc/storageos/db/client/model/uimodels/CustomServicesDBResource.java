@@ -16,21 +16,21 @@
  */
 package com.emc.storageos.db.client.model.uimodels;
 
-import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.Name;
+import com.emc.storageos.db.client.model.StringSetMap;
 
-public abstract class CustomServicesPrimitiveResource extends DataObject {
+/**
+ * Base class for primitive resources that will be stored in the database
+ *
+ */
+public abstract class CustomServicesDBResource extends CustomServicesPrimitiveResourceModel {
 
     private static final long serialVersionUID = 1L;
     public static final String RESOURCE = "resource";
+    public static final String ATTRIBUTES = "attributes";
 
     private byte[] resource;
-
-    public abstract boolean isCustomServiceAnsiblePackage();
-    public abstract CustomServicesAnsiblePackage asCustomServiceAnsiblePackage();
-    public abstract boolean isCustomServiceScriptResource();
-    public abstract CustomServicesScriptResource asCustomServiceScriptResource();
-    public abstract String suffix();
+    private StringSetMap attributes;
 
     @Name(RESOURCE)
     public byte[] getResource() {
@@ -40,5 +40,14 @@ public abstract class CustomServicesPrimitiveResource extends DataObject {
     public void setResource(final byte[] resource) {
         this.resource = resource;
         setChanged(RESOURCE);
+    }
+    
+    @Name(ATTRIBUTES)
+    public StringSetMap getAttributes() {
+        return attributes;
+    }
+    
+    public void setAttributes(final StringSetMap attributes) {
+        this.attributes = attributes;
     }
 }

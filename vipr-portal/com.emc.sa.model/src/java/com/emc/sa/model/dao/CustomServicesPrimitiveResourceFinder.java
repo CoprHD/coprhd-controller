@@ -22,20 +22,20 @@ import java.util.Iterator;
 import java.util.List;
 
 import com.emc.storageos.db.client.constraint.NamedElementQueryResultList.NamedElement;
-import com.emc.storageos.db.client.model.uimodels.CustomServicesPrimitiveResource;
+import com.emc.storageos.db.client.model.uimodels.CustomServicesDBResource;
 import com.google.common.collect.ImmutableList;
 
 public class CustomServicesPrimitiveResourceFinder extends
-        ModelFinder<CustomServicesPrimitiveResource> {
+        ModelFinder<CustomServicesDBResource> {
 
     public CustomServicesPrimitiveResourceFinder(final DBClientWrapper client) {
-        super(CustomServicesPrimitiveResource.class, client);
+        super(CustomServicesDBResource.class, client);
     }
     
-    public <T extends CustomServicesPrimitiveResource> List<NamedElement> list(Class<T> type) {
+    public <T extends CustomServicesDBResource> List<NamedElement> list(Class<T> type) {
         return prepareNamedElementFromURI(type, client.findAllIds(type));
     }
-    private <T extends CustomServicesPrimitiveResource> List<NamedElement> prepareNamedElementFromURI(final Class<T> type, final List<URI> ids) {
+    private <T extends CustomServicesDBResource> List<NamedElement> prepareNamedElementFromURI(final Class<T> type, final List<URI> ids) {
         
         final Iterator<T> it = client.findAllFields(type, ids, ImmutableList.<String>builder().add("label").build());
         final List<NamedElement> results = new ArrayList<NamedElement>();

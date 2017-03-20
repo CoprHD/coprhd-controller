@@ -135,8 +135,6 @@ public class CatalogBuilder {
         service.setImage(def.image);
         service.setCatalogCategoryId(parentId);
         service.setSortedIndex(sortedIndexCounter++);
-        //TODO fix this hack
-        service.setWorkflowName("demo");
         log.info("Create new service" + def.baseService);
         if (AllowRecurringSchedulerMigration.RECURRING_ALLOWED_CATALOG_SERVICES.contains(def.baseService) 
                 || AllowRecurringSchedulerForApplicationServicesMigration.RECURRING_ALLOWED_CATALOG_SERVICES.contains(def.baseService)){

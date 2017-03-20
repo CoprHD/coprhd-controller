@@ -17,28 +17,44 @@
 package com.emc.storageos.model.customservices;
 
 import java.util.List;
+import java.util.Map;
 
 import javax.xml.bind.annotation.XmlElement;
 
 public class InputUpdateParam {
-    private List<String> add;
-    private List<String> remove;
+    private Map<String, InputUpdateList> add;
+    private Map<String, InputUpdateList> remove;
 
     @XmlElement(name = "add")
-    public List<String> getAdd() {
+    public Map<String, InputUpdateList> getAdd() {
         return add;
     }
 
-    public void setAdd(final List<String> add) {
+    public void setAdd(final Map<String, InputUpdateList> add) {
         this.add = add;
     }
 
     @XmlElement(name = "remove")
-    public List<String> getRemove() {
+    public Map<String, InputUpdateList> getRemove() {
         return remove;
     }
 
-    public void setRemove(final List<String> remove) {
+    public void setRemove(final Map<String, InputUpdateList> remove) {
         this.remove = remove;
+    }
+    
+    public static class InputUpdateList {
+        private List<String> input;
+
+        @XmlElement(name = "input")
+        public List<String> getInput() {
+            return input;
+        }
+
+        
+        public void setInput(List<String> input) {
+            this.input = input;
+        }
+        
     }
 }

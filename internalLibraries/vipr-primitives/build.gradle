@@ -2,7 +2,8 @@ apply plugin: 'java'
 
 dependencies {
   compile library(guava),
-          project(":primitives")
+          project(":primitives"),
+          project(":dbclient")
 }
 
 sourceSets {

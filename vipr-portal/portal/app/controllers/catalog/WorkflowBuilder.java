@@ -33,19 +33,14 @@ import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.owasp.esapi.ESAPI;
 
-import play.Logger;
-import play.data.validation.Required;
-import play.data.validation.Valid;
-import play.mvc.Controller;
-import play.mvc.With;
-import util.StringOption;
-
 import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.customservices.CustomServicesPrimitiveCreateParam;
+import com.emc.storageos.model.customservices.CustomServicesPrimitiveCreateParam.InputCreateList;
 import com.emc.storageos.model.customservices.CustomServicesPrimitiveList;
 import com.emc.storageos.model.customservices.CustomServicesPrimitiveResourceRestRep;
 import com.emc.storageos.model.customservices.CustomServicesPrimitiveRestRep;
 import com.emc.storageos.model.customservices.CustomServicesPrimitiveUpdateParam;
+import com.emc.storageos.model.customservices.CustomServicesValidationResponse;
 import com.emc.storageos.model.customservices.CustomServicesWorkflowCreateParam;
 import com.emc.storageos.model.customservices.CustomServicesWorkflowDocument;
 import com.emc.storageos.model.customservices.CustomServicesWorkflowList;
@@ -53,17 +48,26 @@ import com.emc.storageos.model.customservices.CustomServicesWorkflowRestRep;
 import com.emc.storageos.model.customservices.CustomServicesWorkflowUpdateParam;
 import com.emc.storageos.model.customservices.InputParameterRestRep;
 import com.emc.storageos.model.customservices.InputUpdateParam;
+import com.emc.storageos.model.customservices.InputUpdateParam.InputUpdateList;
 import com.emc.storageos.model.customservices.OutputParameterRestRep;
 import com.emc.storageos.model.customservices.OutputUpdateParam;
-import com.emc.storageos.primitives.Primitive;
+import com.emc.storageos.primitives.CustomServicesPrimitive;
+import com.emc.storageos.primitives.CustomServicesPrimitive.InputType;
 import com.emc.vipr.model.catalog.WFBulkRep;
 import com.emc.vipr.model.catalog.WFDirectoryParam;
 import com.emc.vipr.model.catalog.WFDirectoryRestRep;
 import com.emc.vipr.model.catalog.WFDirectoryUpdateParam;
 import com.emc.vipr.model.catalog.WFDirectoryWorkflowsUpdateParam;
+import com.google.common.collect.ImmutableMap;
 import com.google.gson.annotations.SerializedName;
 
 import controllers.Common;
+import play.Logger;
+import play.data.validation.Required;
+import play.data.validation.Valid;
+import play.mvc.Controller;
+import play.mvc.With;
+import util.StringOption;
 
 /**
  * @author Nick Aquino
@@ -77,10 +81,23 @@ public class WorkflowBuilder extends Controller {
     private static final String NODE_TYPE_FILE = "file";
     private static final String MY_LIBRARY = "My Library";
     private static final String VIPR_LIBRARY = "ViPR Library";
-    private static final String VIPR_PRIMITIVE_LIBRARY = "ViPR REST Primitives";
+    private static final String VIPR_PRIMITIVE_LIBRARY = "ViPR REST";
+    private static final String JSTREE_A_ATTR_TITLE = "title";
 
     public static void view() {
         setAnsibleResources();
+
+        StringOption[] restCallMethodOptions = {
+                new StringOption("GET", "GET"),
+                new StringOption("POST", "POST"),
+                new StringOption("PUT", "PUT"),};
+        renderArgs.put("restCallMethodOptions", Arrays.asList(restCallMethodOptions));
+
+        StringOption[] restCallAuthTypes = {
+                new StringOption("NoAuth", "No Auth"),
+                new StringOption("BasicAuth", "Basic Auth")};
+        renderArgs.put("restCallAuthTypes", Arrays.asList(restCallAuthTypes));
+
         render();
     }
 
@@ -103,6 +120,8 @@ public class WorkflowBuilder extends Controller {
         private String parentID;
         private CustomServicesPrimitiveRestRep data;
         private String type;
+        @SerializedName("a_attr")
+        private Map<String, String> anchorAttr = new HashMap<String, String>();
 
         Node() {
         }
@@ -112,6 +131,7 @@ public class WorkflowBuilder extends Controller {
             this.text = text;
             this.parentID = parentID;
             this.type = type;
+            anchorAttr.put(JSTREE_A_ATTR_TITLE, text);
         }
     }
 
@@ -292,9 +312,9 @@ public class WorkflowBuilder extends Controller {
     }
 
     public static void validateWorkflow(final URI workflowId) {
-        CustomServicesWorkflowRestRep customServicesWorkflowRestRep = getCatalogClient()
+        CustomServicesValidationResponse customServicesWorkflowValidationResponse = getCatalogClient()
                 .customServicesPrimitives().validateWorkflow(workflowId);
-        renderJSON(customServicesWorkflowRestRep);
+        renderJSON(customServicesWorkflowValidationResponse);
     }
 
     public static void publishWorkflow(final URI workflowId) {
@@ -485,8 +505,9 @@ public class WorkflowBuilder extends Controller {
                 final List<String> newInputs = getListFromInputOutputString(shellPrimitive.getInputs());
                 final List<String> existingInputs = convertInputGroupsToList(primitiveRestRep.getInputGroups());
                 final InputUpdateParam inputUpdateParam = new InputUpdateParam();
-                inputUpdateParam.setRemove((List<String>) CollectionUtils.subtract(existingInputs, newInputs));
-                inputUpdateParam.setAdd((List<String>) CollectionUtils.subtract(newInputs, existingInputs));
+
+                inputUpdateParam.setRemove(getInputDiff(existingInputs, newInputs));
+                inputUpdateParam.setAdd(getInputDiff(newInputs, existingInputs));
                 primitiveUpdateParam.setInput(inputUpdateParam);
 
                 // Get and update differences between existing and new outputs
@@ -517,6 +538,15 @@ public class WorkflowBuilder extends Controller {
         }
     }
 
+    private static Map<String, InputUpdateList> getInputDiff(
+            final List<String> left, final List<String> right) {
+        final InputUpdateList update = new InputUpdateList();
+        update.setInput((List<String>) CollectionUtils.subtract(left, right));
+        return ImmutableMap.<String, InputUpdateList>builder()
+                .put(InputType.INPUT_PARAMS.toString(), update)
+                .build();
+    }
+
     private static List<String> getListFromInputOutputString(final String param) {
         return StringUtils.isNotBlank(param) ? Arrays.asList(param.split(",")) : new ArrayList<String>();
     }
@@ -535,12 +565,17 @@ public class WorkflowBuilder extends Controller {
                 primitiveCreateParam.setDescription(shellPrimitive.getDescription());
                 primitiveCreateParam.setResource(primitiveResourceRestRep.getId());
                 if (StringUtils.isNotEmpty(shellPrimitive.getInputs())) {
-                    primitiveCreateParam.setInput(getListFromInputOutputString(shellPrimitive.getInputs()));
+                    final List<String> list = getListFromInputOutputString(shellPrimitive.getInputs());
+                    final InputCreateList input = new InputCreateList();
+                    input.setInput(list);
+                    final ImmutableMap.Builder<String, InputCreateList> builder = ImmutableMap.<String, InputCreateList>builder()
+                            .put(InputType.INPUT_PARAMS.toString(), input);
+                    primitiveCreateParam.setInput(builder.build());
                 }
                 if (StringUtils.isNotEmpty(shellPrimitive.getOutputs())) {
                     primitiveCreateParam.setOutput(getListFromInputOutputString(shellPrimitive.getOutputs()));
                 }
-                
+
                 final CustomServicesPrimitiveRestRep primitiveRestRep = getCatalogClient().customServicesPrimitives()
                         .createPrimitive(primitiveCreateParam);
                 if (primitiveRestRep != null) {
@@ -714,8 +749,8 @@ public class WorkflowBuilder extends Controller {
                 final List<String> newInputs = getListFromInputOutputString(localAnsible.getInputs());
                 final List<String> existingInputs = convertInputGroupsToList(primitiveRestRep.getInputGroups());
                 final InputUpdateParam inputUpdateParam = new InputUpdateParam();
-                inputUpdateParam.setRemove((List<String>) CollectionUtils.subtract(existingInputs, newInputs));
-                inputUpdateParam.setAdd((List<String>) CollectionUtils.subtract(newInputs, existingInputs));
+                inputUpdateParam.setRemove(getInputDiff(existingInputs, newInputs));
+                inputUpdateParam.setAdd(getInputDiff(newInputs, existingInputs));
                 primitiveUpdateParam.setInput(inputUpdateParam);
 
                 // Get and update differences between existing and new outputs
@@ -775,7 +810,12 @@ public class WorkflowBuilder extends Controller {
                 primitiveCreateParam.setAttributes(new HashMap<String, String>());
                 primitiveCreateParam.getAttributes().put("playbook", localAnsible.getAnsiblePlaybook());
                 if (StringUtils.isNotEmpty(localAnsible.getInputs())) {
-                    primitiveCreateParam.setInput(getListFromInputOutputString(localAnsible.getInputs()));
+                    final List<String> list = getListFromInputOutputString(localAnsible.getInputs());
+                    final InputCreateList input = new InputCreateList();
+                    input.setInput(list);
+                    final ImmutableMap.Builder<String, InputCreateList> builder = ImmutableMap.<String, InputCreateList>builder()
+                            .put(InputType.INPUT_PARAMS.toString(), input);
+                    primitiveCreateParam.setInput(builder.build());
                 }
                 if (StringUtils.isNotEmpty(localAnsible.getOutputs())) {
                     primitiveCreateParam.setOutput(getListFromInputOutputString(localAnsible.getOutputs()));
@@ -813,8 +853,8 @@ public class WorkflowBuilder extends Controller {
 
     private static List<String> convertInputGroupsToList(final Map<String, CustomServicesPrimitiveRestRep.InputGroup> inputGroups) {
         final List<String> inputNameList = new ArrayList<String>();
-        if (null != inputGroups && !inputGroups.isEmpty() && inputGroups.containsKey(Primitive.InputType.INPUT_PARAMS)) {
-            final List<InputParameterRestRep> inputParameterRestRepList = inputGroups.get(Primitive.InputType.INPUT_PARAMS).getInputGroup();
+        if (null != inputGroups && !inputGroups.isEmpty() && inputGroups.containsKey(CustomServicesPrimitive.InputType.INPUT_PARAMS.toString())) {
+            final List<InputParameterRestRep> inputParameterRestRepList = inputGroups.get(CustomServicesPrimitive.InputType.INPUT_PARAMS.toString()).getInputGroup();
             for (InputParameterRestRep inputParameterRestRep : inputParameterRestRepList) {
                 inputNameList.add(inputParameterRestRep.getName());
             }
@@ -881,6 +921,50 @@ public class WorkflowBuilder extends Controller {
             }
 
         }
+
+    }
+
+    public static class RestAPIPrimitiveForm {
+        private String id; // this is empty for CREATE
+        private String wfDirID; // this is empty for EDIT
+
+        // Name and Description step
+        @Required
+        private String name;
+        @Required
+        private String description;
+
+        // Details
+        @Required
+        private String method; // get, post,..
+        private String requestURL;
+        private String authType = "BasicAuth"; // only auth supported now
+        private String username;
+        private String password;
+        // TODO: Assume accept/content is always json?
+        //private String acceptType;
+
+        private Map<String, String> headers;
+        private String rawBody;
+
+        private Map<String, String> queryParams;
+
+        // Input and Outputs
+        private String inputs; // comma separated list of inputs
+        private String outputs; // comma separated list of ouputs
+
+
+        // TODO
+        public void validate() {
+
+        }
+    }
+
+    public static void saveRestAPIPrimitive(@Valid final RestAPIPrimitiveForm restAPIPrimitiveForm) {
+        restAPIPrimitiveForm.validate();
+        // TODO - call API to save primitive
+
+        view();
 
     }
 }

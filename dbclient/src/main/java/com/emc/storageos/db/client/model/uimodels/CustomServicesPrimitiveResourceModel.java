@@ -16,39 +16,14 @@
  */
 package com.emc.storageos.db.client.model.uimodels;
 
-import com.emc.storageos.db.client.model.Cf;
+import com.emc.storageos.db.client.model.ModelObject;
+
 
 /**
- * Column family that represents a script file
+ * Base class for the primitive resource type model objects to extend
  */
-@Cf("CustomServiceScriptResource")
-public class CustomServicesScriptResource extends CustomServicesPrimitiveResource {
+public abstract class CustomServicesPrimitiveResourceModel extends ModelObject {
 
     private static final long serialVersionUID = 1L;
-
-    @Override
-    public boolean isCustomServiceAnsiblePackage() {
-        return false;
-    }
-
-    @Override
-    public CustomServicesAnsiblePackage asCustomServiceAnsiblePackage() {
-        return null;
-    }
-
-    @Override
-    public boolean isCustomServiceScriptResource() {
-        return true;
-    }
-
-    @Override
-    public CustomServicesScriptResource asCustomServiceScriptResource() {
-        return this;
-    }
-
-    @Override
-    public String suffix() {
-        return ".sh";
-    }
 
 }

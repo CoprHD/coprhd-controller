@@ -17,12 +17,21 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
 })
 .controller('treeController', function($element, $scope, $compile, $http, $rootScope) { //NOSONAR ("Suppressing Sonar violations of max 100 lines in a function and function complexity")
 
+    // if True, will enable menus on jstree
+    $scope.libraryMenu = true;
+
+    $scope.initializeTreeConfig = function(library) {
+        $scope.libraryMenu = library;
+    }
+
     var jstreeContainer = $element.find('#jstree_demo');
     var folderNodeType = "FOLDER";
     var workflowNodeType = "WORKFLOW";
     var shellNodeType = "SCRIPT";
     var localAnsibleNodeType = "ANSIBLE"
-    var fileNodeTypes = [shellNodeType, localAnsibleNodeType]
+    var restAPINodeType = "REST"
+    var fileNodeTypes = [shellNodeType, localAnsibleNodeType, restAPINodeType, workflowNodeType]
+    var viprLibIDs = ["viprrest", "viprLib"]
 
     initializeJsTree();
 
@@ -41,7 +50,7 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
             "core": {
                 "animation": 0,
                 "check_callback": true,
-                "themes": {"stripes": false},
+                "themes": {"stripes": false, "ellipsis": true},
                 "data": {
                     "url" : "getWFDirectories",
                     "type":"get"
@@ -50,7 +59,7 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
             "types": {
                 "#": {
                     "max_children": 1,
-                    "max_depth": 10,
+                    "max_depth": 4,
                     "valid_children": ["root"]
                 },
                 "root": {
@@ -58,32 +67,32 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
                     "valid_children": ["default"]
                 },
                 "FOLDER": {
-                    "icon": "glyphicon glyphicon-folder-close",
+                    "icon": "/public/img/customServices/Folder.png",
                     "valid_children": ["WORKFLOW","FOLDER", "SCRIPT", "ANSIBLE"]
                 },
                 "WORKFLOW": {
-                    "icon": "glyphicon glyphicon-file",
+                    "icon": "/public/img/customServices/UserDefinedWF.png",
                     "valid_children": [],
                     "li_attr": {"class": "draggable-card"}
                 },
                 "SCRIPT": {
-                    "icon": "glyphicon glyphicon-file",
+                    "icon": "/public/img/customServices/UserDefinedOperation.png",
                     "valid_children": [],
                     "li_attr": {"class": "draggable-card"}
                 },
                 "ANSIBLE": {
-                    "icon": "glyphicon glyphicon-file",
+                    "icon": "/public/img/customServices/UserDefinedOperation.png",
                     "valid_children": [],
                     "li_attr": {"class": "draggable-card"}
                 },
-                "default": {
-                    "icon": "glyphicon glyphicon-file",
+                "VIPR": {
+                    "icon": "/public/img/customServices/ViPROperation.png",
                     "valid_children": [],
                     "li_attr": {"class": "draggable-card"}
                 }
             },
             "plugins": [
-                "search", "state", "types", "wholerow"
+                "search", "state", "types", "wholerow", "themes"
             ],
             "search" : {
                   'case_sensitive' : false,
@@ -93,7 +102,7 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
             jstreeContainer.find( ".draggable-card" ).draggable({handle: "a",scroll: false,helper: getDraggableStepHTML,appendTo: 'body',cursorAt: { top: 8, left: -16 }});
         }).bind("rename_node.jstree clear_search.jstree search.jstree open_node.jstree", function() {
             jstreeContainer.find( ".draggable-card" ).draggable({handle: "a",scroll: false,helper: getDraggableStepHTML,appendTo: 'body',cursorAt: { top: 0, left: 0 }});
-        })
+        });
     }
 
     var getDraggableStepHTML= function(event){
@@ -138,12 +147,16 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
         else {
             $http.get(routes.Workflow_delete({"workflowID": data.node.id, "dirID": data.parent}));
         }
+
+        // By default select "My Library"
+        jstreeContainer.jstree("select_node", "myLib");
     };
 
     function renameDir(event, data) {
         // Identifying if node is not saved to DB yet and creating it.
         if (!(data.node.id).startsWith("urn")) {
             createDir(event, data);
+            addMoreOptions(data.node.parent, folderNodeType, "");
         }
         else {
             if (folderNodeType === data.node.type) {
@@ -152,62 +165,96 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
             else {
                 $http.get(routes.Workflow_edit_name({"id": data.node.id, "newName": data.text}));
             }
+
+            addMoreOptions(data.node.id, data.node.type, data.node.parent);
         }
     };
 
-    var validActionsOnMyLib = ["addFolder", "addWorkflow"]
-    var validActionsOnDirectory = ["addFolder", "addWorkflow", "deleteNode", "editNode"]
-    var validActionsOnWorkflow = ["deleteNode", "editNode", "openEditor"]
-    var validActionsOnMyPrimitives = ["deleteNode", "editNode"]
-    var allActions = ["addFolder", "addWorkflow", "deleteNode", "editNode", "openEditor"]
-    var viprLibIDs = ["viprrest", "viprLib"]
-
-    var validActions = [];
     // default preview
     $scope.shellPreview = false;
     $scope.noPreview = true;
 
-    function selectDir(event, data) {
-        $scope.shellPreview = false;
-        $scope.noPreview = true;
-        // If current node is vipr library or its parent is vipr library, disable all
-        if($.inArray(data.node.id, viprLibIDs) > -1 || $.inArray(data.node.parent, viprLibIDs) > -1) {
-            // ViPR Library nodes - disable all buttons
-            validActions = [];
+    var optionsHTML = `
+    <div id="treeMoreOptions" class="btn-group" style="float:right;padding-right:5px;">
+       <button type="button" class="btn btn-xs btn-default dropdown-toggle" title="Options" data-toggle="dropdown" style="background-color:#b3cadb; border-color:#b3cadb;">
+           <span class="glyphicon"><img src="/public/img/customServices/Options.png" height="20" width="24"></span>
+       </button>
+       <ul class="dropdown-menu dropdown-menu-right" role="menu">
+            <li id="addWorkflowMenu" style="display:none;"><a  href="#" ng-click="addWorkflow();">Create Workflow</a></li>
+            <li id="addShellMenu" style="display:none;"><a  href="#" ng-click="openShellScriptModal();">Create Shell Script</a></li>
+            <li id="addLAMenu" style="display:none;"><a  href="#" ng-click="openLocalAnsibleModal();">Create Local Ansible</a></li>
+            <li id="addRestMenu" style="display:none;"><a  href="#" ng-click="openRestAPIModal();">Create Rest API</a></li>
+            <li id="addFolderDivider" role="separator" class="divider" style="display:none;"></li>
+            <li id="addFolderMenu" style="display:none;"><a  href="#" ng-click="addFolder();">Create Folder</a></li>
+            <li id="editDivider" role="separator" class="divider" style="display:none;"></li>
+            <li id="renameMenu" style="display:none;"><a  href="#" ng-click="editNode();">Rename</a></li>
+            <li id="editMenu" style="display:none;"><a  href="#" ng-click="editNode();">Edit</a></li>
+            <li id="deleteMenu" style="display:none;"><a  href="#" ng-click="deleteNode();">Delete</a></li>
+            <li id="editWFMenu" style="display:none;"><a  href="#" ng-click="openWorkflow();">Edit</a></li>
+       </ul>
+    </div>
+    `;
+
+    var validActionsOnMyLib = ["addWorkflowMenu", "addShellMenu", "addLAMenu", "addRestMenu", "addFolderDivider", "addFolderMenu"]
+    var validActionsOnFolder = ["addWorkflowMenu", "addShellMenu", "addLAMenu", "addRestMenu", "addFolderDivider", "addFolderMenu", "editDivider", "renameMenu", "deleteMenu"]
+    var validActionsOnWorkflow = ["renameMenu", "editWFMenu", "deleteMenu"]
+    var validActionsOnMyPrimitives = ["deleteMenu", "editMenu"]
+
+    function addMoreOptions(nodeId, nodeType, parentId) {
+        if(!$scope.libraryMenu) return;
+
+        //remove any previous element
+        $("#treeMoreOptions").remove();
+
+        // Do not show 'More options' on ViPR Library nodes
+        if($.inArray(nodeId, viprLibIDs) > -1 || $.inArray(parentId, viprLibIDs) > -1) {
+            return;
         }
-        else if("myLib" === data.node.id) {
+
+        //find anchor with this id and append "more options"
+        $('[id="'+nodeId+'"]').children('a').after(optionsHTML);
+
+        // If current node is vipr library or its parent is vipr library, disable all
+        if("myLib" === nodeId) {
             // My Library root
             validActions = validActionsOnMyLib;
         }
-        else if(workflowNodeType === data.node.type){
+        else if(workflowNodeType === nodeType){
             // For workflows
             validActions = validActionsOnWorkflow
         }
-        else if ($.inArray(data.node.type, fileNodeTypes) > -1) {
-            // shell script, ansible
+        else if($.inArray(nodeType, fileNodeTypes) > -1){
+            // For other file types (shell, rest, ansible)
             validActions = validActionsOnMyPrimitives;
-            if (shellNodeType === data.node.type) {
-                //preview Shell script
-                $scope.shellPreview = true;
-                $scope.noPreview = false;
-            }
         }
         else {
-            // Other directories in My Library
-            validActions = validActionsOnDirectory;
+            // Other folders in My Library
+            validActions = validActionsOnFolder;
         }
 
-        // Enable all validActions, disable others
-        $.each(allActions, function( index, value ) {
-            if($.inArray(value, validActions)!== -1) {
-                $('#'+value).prop("disabled",false);
-            }
-            else {
-                $('#'+value).prop("disabled",true);
-            }
+        // Show all validActions
+        $.each(validActions, function( index, value ) {
+            $('#'+value).show();
         });
-    };
 
+        //TODO: check if we can avoid this search on ID
+        var generated = jstreeContainer.jstree(true).get_node(nodeId, true);
+        $compile(generated.contents())($scope);
+    }
+
+
+    function selectDir(event, data) {
+        addMoreOptions(data.node.id, data.node.type, data.node.parent);
+
+        // Enable/Disable Preview Option
+        $scope.shellPreview = false;
+        $scope.noPreview = true;
+        if (shellNodeType === data.node.type) {
+            //preview Shell script
+            $scope.shellPreview = true;
+            $scope.noPreview = false;
+        }
+    };
 
     // Methods for JSTree actions
     $scope.addFolder = function() {
@@ -244,6 +291,12 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
         $('#localAnsiblePrimitiveDialog').modal('show');
     }
 
+    $scope.openRestAPIModal = function(){
+            var scope = angular.element($('#restAPIModal')).scope();
+            scope.populateModal(false);
+            $('#restAPIPrimitiveDialog').modal('show');
+        }
+
     // if folder edit name, if primitive - open modal
     $scope.editNode = function() {
         var ref = jstreeContainer.jstree(true),
@@ -262,6 +315,12 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
             var scope = angular.element($('#localAnsibleModal')).scope();
             scope.populateModal(true, sel.id, sel.type);
             $('#localAnsiblePrimitiveDialog').modal('show');
+        }
+        else if(restAPINodeType === sel.type){
+            //open script modal
+            var scope = angular.element($('#restAPIModal')).scope();
+            scope.populateModal(true, sel.id, sel.type);
+            $('#restAPIPrimitiveDialog').modal('show');
         }
         else{
             ref.edit(sel.id);
@@ -527,6 +586,8 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
     $scope.validateWorkflow = function() {
         $http.post(routes.Workflow_validate({workflowId : $scope.workflowData.id})).then(function (resp) {
             checkStateResponse(resp);
+            var url = routes.ServiceCatalog_showService({serviceId: $scope.workflowData.id});
+            window.location.href = url;
         });
     }
 

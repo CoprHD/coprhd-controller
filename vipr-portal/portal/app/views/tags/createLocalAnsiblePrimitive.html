@@ -3,7 +3,6 @@ nameDescTabID = 'nameDescLAContent';
 packageTabID = 'packageTabContent';
 hostFileTabID = 'hostFileContent';
 inputOutputTabID = 'inputOutputLAContent';
-ansibleResourceNames1 = [["id":"1","name":"x"], ["id":"2","name":"y"]];
 ansibleResourceNames = _arg;
 }%
 
@@ -25,7 +24,7 @@ ansibleResourceNames = _arg;
                     &{'primitive.menu.hostFile'}</a>
                 </li>
                 <li class=""><a href="${'#'+inputOutputTabID}" data-toggle="tab"><span class="badge">4</span>
-                    &{'primitive.menu.inputsOuputs'}</a></li>
+                    &{'primitive.menu.inputsOutputs'}</a></li>
             </ul>
         </div>
         <div class="col-md-9">
@@ -300,7 +299,7 @@ ansibleResourceNames = _arg;
 
             }
             else {
-                $scope.modalTitle=translate('localAnsible.primitive.create.title');
+                $scope.modalTitle=translate('localAnsible.primitive.add.title');
                 // Setting selected workflow directory ID
                 $scope.localAnsible.wfDirID = $('#jstree_demo').jstree(true).get_selected()[0]
             }

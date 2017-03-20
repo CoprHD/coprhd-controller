@@ -81,7 +81,8 @@
         </div>
         <div id="stepListPage" ng-show="activePage==1">
             <h3>Add Steps to Workflow</h3>
-            <div ng-controller="treeController" id="theSidebar" class="sidebar" >
+            <div ng-controller="treeController" id="theSidebar" class="sidebar" ng-init="initializeTreeConfig(false)">
+                <input type="hidden" >
                 <div>
                     <input class="search-input form-control" placeholder="search..."></input>
                 </div>

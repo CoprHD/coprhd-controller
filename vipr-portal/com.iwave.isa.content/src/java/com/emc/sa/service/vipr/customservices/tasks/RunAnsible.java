@@ -42,17 +42,17 @@ import org.apache.commons.lang.StringUtils;
 import org.slf4j.LoggerFactory;
 
 import com.emc.sa.engine.ExecutionUtils;
-import com.emc.sa.service.vipr.customservices.CustomServicesConstants;
 import com.emc.sa.service.vipr.tasks.ViPRExecutionTask;
 import com.emc.storageos.db.client.DbClient;
-import com.emc.storageos.db.client.model.uimodels.CustomServicesAnsiblePackage;
-import com.emc.storageos.db.client.model.uimodels.CustomServicesAnsiblePrimitive;
-import com.emc.storageos.db.client.model.uimodels.CustomServicesScriptPrimitive;
-import com.emc.storageos.db.client.model.uimodels.CustomServicesScriptResource;
+import com.emc.storageos.db.client.model.uimodels.CustomServicesDBAnsiblePrimitive;
+import com.emc.storageos.db.client.model.uimodels.CustomServicesDBAnsibleResource;
+import com.emc.storageos.db.client.model.uimodels.CustomServicesDBScriptPrimitive;
+import com.emc.storageos.db.client.model.uimodels.CustomServicesDBScriptResource;
 import com.emc.storageos.model.customservices.CustomServicesWorkflowDocument;
 import com.emc.storageos.model.customservices.CustomServicesWorkflowDocument.Input;
 import com.emc.storageos.model.customservices.CustomServicesWorkflowDocument.Step;
-import com.emc.storageos.primitives.Primitive.StepType;
+import com.emc.storageos.primitives.CustomServicesConstants;
+import com.emc.storageos.primitives.CustomServicesPrimitive.StepType;
 import com.emc.storageos.services.util.Exec;
 import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorException;
 
@@ -98,22 +98,23 @@ public class RunAnsible extends ViPRExecutionTask<CustomServicesTaskResult> {
         try {
             switch (type) {
                 case SHELL_SCRIPT:
-                    // get the resource from DB
-                    final CustomServicesScriptPrimitive primitive = dbClient.queryObject(CustomServicesScriptPrimitive.class, scriptid);
+                    // get the resource database
+                    final CustomServicesDBScriptPrimitive primitive = dbClient.queryObject(CustomServicesDBScriptPrimitive.class, scriptid);
+
                     if (null == primitive) {
                         logger.error("Error retrieving the script primitive from DB. {} not found in DB", scriptid);
                         throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed(scriptid + " not found in DB");
                     }
 
-                    final CustomServicesScriptResource script = dbClient.queryObject(CustomServicesScriptResource.class,
-                            primitive.getScript());
+                    final CustomServicesDBScriptResource script = dbClient.queryObject(CustomServicesDBScriptResource.class,
+                            primitive.getResource());
 
                     if (null == script) {
                         logger.error("Error retrieving the resource for the script primitive from DB. {} not found in DB",
-                                primitive.getScript());
+                                primitive.getResource());
 
                         throw InternalServerErrorException.internalServerErrors
-                                .customServiceExecutionFailed(primitive.getScript() + " not found in DB");
+                                .customServiceExecutionFailed(primitive.getResource() + " not found in DB");
                     }
 
                     // Currently, the stepId is set to random hash values in the UI. If this changes then we have to change the following to
@@ -129,14 +130,14 @@ public class RunAnsible extends ViPRExecutionTask<CustomServicesTaskResult> {
                     result = executeCmd(scriptFileName, inputToScript);
                     break;
                 case LOCAL_ANSIBLE:
-                    final CustomServicesAnsiblePrimitive ansiblePrimitive = dbClient.queryObject(CustomServicesAnsiblePrimitive.class,
+                    final CustomServicesDBAnsiblePrimitive ansiblePrimitive = dbClient.queryObject(CustomServicesDBAnsiblePrimitive.class,
                             scriptid);
-                    final CustomServicesAnsiblePackage ansiblePackageId = dbClient.queryObject(CustomServicesAnsiblePackage.class,
-                            ansiblePrimitive.getArchive());
+                    final CustomServicesDBAnsibleResource ansiblePackageId = dbClient.queryObject(CustomServicesDBAnsibleResource.class,
+                            ansiblePrimitive.getResource());
 
                     // get the playbook which the user has specified during primitive creation from DB.
                     // The playbook (resolved to the path in the archive) represents the playbook to execute
-                    final String playbook = ansiblePrimitive.getPlaybook();
+                    final String playbook = ansiblePrimitive.getAttributes().get("playbook");
 
                     // get the archive from AnsiblePackage CF
                     final byte[] ansibleArchive = Base64.decodeBase64(ansiblePackageId.getResource());

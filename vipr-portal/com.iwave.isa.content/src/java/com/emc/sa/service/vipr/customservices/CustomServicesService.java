@@ -35,11 +35,11 @@ import org.springframework.expression.ExpressionParser;
 import org.springframework.expression.spel.standard.SpelExpressionParser;
 import org.springframework.expression.spel.support.StandardEvaluationContext;
 
+import com.emc.sa.catalog.primitives.CustomServicesPrimitiveDAOs;
 import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.engine.service.Service;
 import com.emc.sa.service.vipr.ViPRExecutionUtils;
 import com.emc.sa.service.vipr.ViPRService;
-import com.emc.sa.service.vipr.customservices.CustomServicesConstants.InputType;
 import com.emc.sa.service.vipr.customservices.gson.ViprOperation;
 import com.emc.sa.service.vipr.customservices.gson.ViprTask;
 import com.emc.sa.service.vipr.customservices.tasks.CustomServicesTaskResult;
@@ -50,10 +50,10 @@ import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.model.customservices.CustomServicesWorkflowDocument;
 import com.emc.storageos.model.customservices.CustomServicesWorkflowDocument.Input;
 import com.emc.storageos.model.customservices.CustomServicesWorkflowDocument.Step;
-import com.emc.storageos.primitives.Primitive;
-import com.emc.storageos.primitives.Primitive.StepType;
-import com.emc.storageos.primitives.PrimitiveHelper;
-import com.emc.storageos.primitives.ViPRPrimitive;
+import com.emc.storageos.primitives.CustomServicesConstants;
+import com.emc.storageos.primitives.CustomServicesPrimitive.StepType;
+import com.emc.storageos.primitives.CustomServicesPrimitiveType;
+import com.emc.storageos.primitives.java.vipr.CustomServicesViPRPrimitive;
 import com.emc.storageos.services.util.Exec;
 import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorException;
 import com.google.common.collect.ImmutableMap;
@@ -70,6 +70,9 @@ public class CustomServicesService extends ViPRService {
     private String oeOrderJson;
     @Autowired
     private DbClient dbClient;
+    @Autowired
+    private CustomServicesPrimitiveDAOs daos;
+    
     private ImmutableMap<String, Step> stepsHash;
     private CustomServicesWorkflowDocument obj;
     private int code;
@@ -93,8 +96,6 @@ public class CustomServicesService extends ViPRService {
             builder.put(step.getId(), step);
         }
         stepsHash = builder.build();
-        ValidateCustomServiceWorkflow validate = new ValidateCustomServiceWorkflow(params, stepsHash);
-        validate.validate();
     }
 
     @Override
@@ -139,14 +140,15 @@ public class CustomServicesService extends ViPRService {
                 StepType type = StepType.fromString(step.getType());
                 switch (type) {
                     case VIPR_REST: {
-                        Primitive primitive = PrimitiveHelper.get(step.getOperation());
+
+                        final CustomServicesPrimitiveType primitive = daos.get("vipr").get(step.getOperation());
 
                         if (null == primitive) {
                             throw InternalServerErrorException.internalServerErrors
                                     .customServiceExecutionFailed("Primitive not found: " + step.getOperation());
                         }
 
-                        res = ViPRExecutionUtils.execute(new RunViprREST((ViPRPrimitive) (primitive),
+                        res = ViPRExecutionUtils.execute(new RunViprREST((CustomServicesViPRPrimitive) (primitive),
                                 getClient().getRestClient(), inputPerStep.get(step.getId())));
 
                         break;
@@ -280,9 +282,8 @@ public class CustomServicesService extends ViPRService {
         for (final Input value : input) {
             final String name = value.getName();
 
-            switch (InputType.fromString(value.getType())) {
+            switch (CustomServicesConstants.InputType.fromString(value.getType())) {
                 case FROM_USER:
-                case OTHERS:
                 case ASSET_OPTION: {
                     if (params.get(name) != null) {
                         inputs.put(name, Arrays.asList(params.get(name).toString()));
@@ -293,6 +294,8 @@ public class CustomServicesService extends ViPRService {
                     }
                     break;
                 }
+                // TODO: Handle multi value
+                // case ASSET_OPTION_MULTI_VALUE:
                 case FROM_STEP_INPUT:
                 case FROM_STEP_OUTPUT: {
                     final String[] paramVal = value.getValue().split("\\.");
@@ -300,7 +303,7 @@ public class CustomServicesService extends ViPRService {
                     final String attribute = paramVal[CustomServicesConstants.INPUT_FIELD];
 
                     Map<String, List<String>> stepInput;
-                    if (value.getType().equals(InputType.FROM_STEP_INPUT.toString()))
+                    if (value.getType().equals(CustomServicesConstants.InputType.FROM_STEP_INPUT.toString()))
                         stepInput = inputPerStep.get(stepId);
                     else
                         stepInput = outputPerStep.get(stepId);

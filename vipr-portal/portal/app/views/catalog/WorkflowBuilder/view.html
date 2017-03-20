@@ -8,6 +8,7 @@
 #{script 'jstree.min.js'/}
 #{createShellPrimitive /}
 #{createLocalAnsiblePrimitive ansibleResourceNames/}
+#{createRestAPIPrimitive arg1:restCallMethodOptions, arg2:restCallAuthTypes/}
 
 <style>
     .dl-horizontal dt
@@ -26,6 +27,25 @@
     .modal-footer {
         border-top: none;
     }
+
+    .jstree-anchor {
+        width: 350px;
+        text-overflow: ellipsis;
+        overflow: hidden;
+    }
+
+    .dropdown-menu {
+        min-width: 0px !important;
+    }
+
+    .input-group-btn select {
+        border-color: #ccc;
+        margin-top: 0px;
+        margin-bottom: 0px;
+        padding-top: 7px;
+        padding-bottom: 7px;
+    }
+
 </style>
 
 <div id="builderController" ng-controller="builderController" class="row">
@@ -36,50 +56,21 @@
         </ul>
 
         <div class="tab-content">
-            <div ng-controller="treeController" class="tab-pane active" id="home">
+            <div ng-controller="treeController" class="tab-pane active" id="home" ng-init="initializeTreeConfig(true)">
                 #{alerts/}
-                <div class="col-md-3">
+                <div class="col-md-5">
                     <div id="theSidebar" class="home-sidebar" >
-                        <div class="tree_buttons" style="padding-bottom: 10px; padding-top: 10px;padding-right: 10px;float: right">
-                            <button id="addFolder" type="button" class="btn btn-xs btn-primary add" value="Add Folder" title="Add Folder" ng-click="addFolder();" disabled>
-                                <span class="glyphicon glyphicon-folder-close "></span>
-                            </button>
-                            <div class="btn-group">
-                                <button id="addWorkflow" type="button" class="btn btn-xs btn-success dropdown-toggle" value="Add Primitive" title="Add Primitive/Workflow" data-toggle="dropdown">
-                                    <span class="glyphicon glyphicon-plus"></span> <span class="caret"></span>
-                                </button>
-                                <ul class="dropdown-menu" role="menu">
-                                    <li><a  href="#" ng-click="addWorkflow();">Workflow</a></li>
-                                    <li role="separator" class="divider"></li>
-                                    <li class="dropdown-header">Primitives</li>
-                                    <li><a  href="#" ng-click="openShellScriptModal();">Shell Script</a></li>
-                                    <li><a  href="#" ng-click="openLocalAnsibleModal();">Local Ansible</a></li>
-                                    <li><a  href="#">REST API</a></li>
-                                </ul>
-                            </div>
-                            <button id="deleteNode" type="button" class="btn btn-xs btn-danger delete" value="Delete" title="Delete" ng-click="deleteNode();" disabled>
-                                <span class="glyphicon glyphicon-trash "></span>
-                            </button>
-                            <button id="editNode" type="button" class="btn btn-xs btn-warning edit" value="Edit" title="Edit" ng-click="editNode();" disabled>
-                                <span class="glyphicon glyphicon-pencil "></span>
-                            </button>
-                            <button id="previewWorkflow"  type="button" class="btn btn-xs btn-default info" value="Preview" title="Preview" disabled>
-                                <span class="glyphicon glyphicon-eye-open "></span>
-                            </button>
-                            <button id="openEditor"  type="button" class="btn btn-xs btn-default info" value="Open" title="Open" ng-click="openWorkflow()" disabled>
-                                <span class="glyphicon glyphicon-new-window "></span>
-                            </button>
+                        <div class="input-group">
+                            <input style="float:left;width:300px;margin-right:10px;"  class="search-input form-control" placeholder="Search..."></input>
+                            <input style="width:200px;" class="form-control" placeholder="Filter By"></input>
                         </div>
-                        <div>
-                            <input class="search-input form-control" placeholder="search..."></input>
-                        </div>
-                        <div style="overflow: auto; height:90%; padding: 10px;">
+                        <div style="overflow: auto; height:90%; padding: 10px;overflow-x: hidden;">
                             <div id="jstree_demo" >
                             </div>
                         </div>
                     </div>
                 </div>
-                <div class="col-md-9">
+                <div class="col-md-7">
                     <div style="height:80vh; border:1px solid #000; padding:20px;">
                         <div ng-show="shellPreview">
                             <dl class="dl-horizontal">

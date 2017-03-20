@@ -186,12 +186,12 @@ public final class HostToComputeElementMatcher {
             UCSServiceProfile sp = getMatchingServiceProfile(host,spMap);
 
             // update Host & ServiceProfile
-            if ((ce != null) && (sp != null)) {
+            if (sp == null) {
+                _log.info("no SP match for host " + info(host));
+                clearHostAssociations(host);  // clear associations if no SP match
+            } else {
                 _log.info("matched host to SP & CE " + info(host) + ", " + info(sp) + ", " + info(ce));
                 setHostAssociations(host,ce,sp);
-            } else {
-                _log.info("no match for host " + info(host));
-                clearHostAssociations(host);  // clear associations if no match
             }
         }
     }
@@ -334,19 +334,23 @@ public final class HostToComputeElementMatcher {
 
         Host host = hostMap.get(hostIn.getId());
 
-        if( (host.getComputeElement() == null) ||
-                (!host.getComputeElement().equals(ceIn.getId()))) {
-            host.setComputeElement(ceIn.getId());  // set new CE for host
-        }
-
         if (NullColumnValueGetter.isNullURI(host.getServiceProfile())) {
             host.setServiceProfile(spIn.getId());  // set new SP for host
         } else if(!host.getServiceProfile().equals(spIn.getId())) {
             // Unexpected SP association changes should result in discovery failure
-            failureMessages.append("ServcieProfile for Host unexpectedly changed from " +
+            failureMessages.append("Host's UCS Service Profile unexpectedly tried to change from " +
                     host.getServiceProfile() + " to " + spIn.getId() + " for host " + info(host));
             clearHostAssociations(host);
             return;
+        }
+
+        if (ceIn == null) {  // happens when blade is not associated
+            if (!NullColumnValueGetter.isNullURI(host.getComputeElement()) ) {
+                host.setComputeElement(NullColumnValueGetter.getNullURI());
+            }
+        } else if( (host.getComputeElement() == null) ||
+                (!host.getComputeElement().equals(ceIn.getId()))) {
+            host.setComputeElement(ceIn.getId());  // set new CE for host
         }
 
         if(host.isChanged("computeElement") || host.isChanged("serviceProfile")) {

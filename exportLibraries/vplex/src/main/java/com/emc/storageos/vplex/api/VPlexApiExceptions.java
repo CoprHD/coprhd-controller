@@ -858,5 +858,6 @@ public interface VPlexApiExceptions {
     public VPlexApiException forgetVolumesFailed(final String volumeWWNs, final String vplexName, final String errMsg, final Throwable cause);
 
     @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
-    public Exception existingMaskFoundDuringBootVolumeExport(final String maskNames, final String computeResource, final String vplexClusterName);
+    public VPlexApiException existingMaskFoundDuringBootVolumeExport(final String maskNames, final String computeResource,
+            final String vplexClusterName);
 }

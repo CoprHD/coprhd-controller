@@ -62,9 +62,6 @@ public class LinuxHostMountAdapter extends AbstractMountAdapter {
         }
         // Add to etc/fstab
         mountUtils.addToFSTab(mountPath, export.getMountPoint(), fsType, options);
-
-        mountUtils.addToFSTab(mountPath, export.getMountPoint(), fsType, options + security);
-
     }
 
     @Override

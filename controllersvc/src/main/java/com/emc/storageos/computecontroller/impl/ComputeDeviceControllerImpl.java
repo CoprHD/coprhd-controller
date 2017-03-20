@@ -158,7 +158,7 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
         log.info("createHost");
 
         Host host = _dbClient.queryObject(Host.class, hostId);
-        //TODO check for null -- host, ce, etc.
+        //TODO COP-28960 check for null -- host, ce, etc.
         ComputeElement ce = _dbClient.queryObject(ComputeElement.class, host.getComputeElement());
 
         ComputeVirtualPool vcp = _dbClient.queryObject(ComputeVirtualPool.class, vcpoolId);
@@ -195,14 +195,14 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
         ComputeSystem cs = _dbClient.queryObject(ComputeSystem.class, computeSystemId);
         Host host = _dbClient.queryObject(Host.class, hostId);
         ComputeElement ce = _dbClient.queryObject(ComputeElement.class, host.getComputeElement());
-        //TODO check for null ce
+        //TODO COP-28960 check for null ce
         URI computeElementId = ce.getId();
         log.info("sptId:" + ce.getSptId());
 
         if (ce.getSptId() != null) {
             URI sptId = URI.create(ce.getSptId());
             UCSServiceProfileTemplate template = _dbClient.queryObject(UCSServiceProfileTemplate.class, sptId);
-            //TODO check template not null
+            //TODO COP-28960 check template not null
             log.info("is updating:" + template.getUpdating());
             if (template.getUpdating()) {
 
@@ -276,12 +276,12 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
                 new Workflow.Method("setNoBootStep", computeSystemId, computeElementId, hostId), null);
 
         ComputeElement ce = _dbClient.queryObject(ComputeElement.class, computeElementId);
-        //TODO check for ce not null
+        //TODO COP-28960 check for ce not null
 
         if (ce.getSptId() != null) {
             URI sptId = URI.create(ce.getSptId());
             UCSServiceProfileTemplate template = _dbClient.queryObject(UCSServiceProfileTemplate.class, sptId);
-            //TODO check for template not null
+            //TODO COP-28960 check for template not null
             if (template.getUpdating()) {
                 waitFor = workflow.createStep(REBIND_HOST_TO_TEMPLATE,
                         "Rebind host to service profile template after OS install", waitFor, cs.getId(),
@@ -573,7 +573,7 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
             ComputeSystem cs = _dbClient.queryObject(ComputeSystem.class, computeSystemId);
 
             rebindHostToTemplate(cs.getId(), hostId);
-            //TODO check if rebind succeeded, and if not, mark rollback as failed
+            //TODO COP-28961 check if rebind succeeded, and if not, mark rollback as failed
 
             WorkflowStepCompleter.stepSucceded(stepId);
         } catch (Exception e) {
@@ -605,7 +605,7 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
             computeSystem = _dbClient.queryObject(ComputeSystem.class, hostId);
 
             rebindHostToTemplate(computeSystemId, hostId);
-            //TODO process the return value, and mark step as failed in case of error
+            //TODO COP-28961 process the return value, and mark step as failed in case of error
 
             WorkflowStepCompleter.stepSucceded(stepId);
         } catch (InternalException e) {
@@ -785,7 +785,7 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
              * created in ViPR. If it was computeElement property of the host
              * would have been set.
              */
-        	//TODO log a message (info level)
+            log.info("Skipping VCenter Host cleanup for host with no blade association.  Host is " + hostId);
             return waitFor;
         }
 
@@ -1345,7 +1345,7 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
      * @param datacenterId
      * @param stepId
      */
-    //TODO verify whether this really throws an exception
+    //TODO COP-28962 verify whether this really throws an exception
     // seems like we throw an exception, and catch it again, and throw another exception
     //  logic is somewhat difficult to understand
     public void checkClusterVms(URI clusterId, URI datacenterId, String stepId) {

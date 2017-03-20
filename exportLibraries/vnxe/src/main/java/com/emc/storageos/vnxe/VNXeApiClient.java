@@ -1775,13 +1775,13 @@ public class VNXeApiClient {
      * 
      * @param hostId - The host id
      * @param snapId - The snap id
-     * @param anyExportedSnapInGroup - If there is any other exported snapshot in the same snap group 
      */
-    public void unexportSnap(String hostId, String snapId, boolean anyExportedSnapInGroup) {
+    public void unexportSnap(String hostId, String snapId) {
         _logger.info("Unexporting snap: {}", snapId);
 
         String parentLunId = null;
         String groupId = null;
+        boolean detach = false;
         if (!_khClient.isUnity()) {
             VNXeLunSnap lunSnap = getLunSnapshot(snapId);
             if (lunSnap == null) {
@@ -1791,6 +1791,7 @@ public class VNXeApiClient {
             if (lunSnap.getIsAttached()) {
                 _logger.info("Detaching the snap: {}", snapId);
                 detachLunSnap(snapId);
+                detach = true;
             }
             parentLunId = lunSnap.getLun().getId();
         } else {
@@ -1801,14 +1802,16 @@ public class VNXeApiClient {
             }
             VNXeBase snapGroup = snap.getSnapGroup();
             parentLunId = snap.getLun().getId();
-
+            
             if (snapGroup == null && (snap.isAttached())) {
                 _logger.info("Detaching the snap: {}", snapId);
                 detachSnap(snapId);
+                detach = true;
             } else if (snapGroup != null && snap.isAttached()) {
                 _logger.info("Detaching the snap: {}", snapId);
                 groupId = snapGroup.getId();
                 detachSnap(groupId);
+                detach = true;
             }
         }
 
@@ -1826,9 +1829,6 @@ public class VNXeApiClient {
          * after the unexport if the snap is still exported to any other hosts.
          */
         boolean needReattach = false;
-        if (anyExportedSnapInGroup) {
-            needReattach = true;
-        }
         for (BlockHostAccess hostAccess : hostAccesses) {
             int accessMask = hostAccess.getAccessMask();
             if (hostId.equals(hostAccess.getHost().getId())) {
@@ -1838,7 +1838,7 @@ public class VNXeApiClient {
                     hostAccess.setAccessMask(HostLUNAccessEnum.NOACCESS.getValue());
                 }
 
-            } else if (!needReattach &&
+            } else if (detach && !needReattach &&
                     (accessMask == HostLUNAccessEnum.BOTH.getValue() ||
                             accessMask == HostLUNAccessEnum.SNAPSHOT.getValue())) {
                 needReattach = true;
@@ -1852,6 +1852,38 @@ public class VNXeApiClient {
             return;
         }
 
+        if (!needReattach && detach && groupId != null) {
+            // Check if there are other exported snaps in the snap group
+            String cgId = parentLun.getStorageResource().getId();
+            if (cgId != null && !cgId.isEmpty()) {
+                BlockLunRequests lunReq = new BlockLunRequests(_khClient);
+                List<VNXeLun> luns = lunReq.getLunsInLunGroup(cgId);
+                for (VNXeLun cgLun : luns) {
+                    if (cgLun.getId().equals(parentLun.getId())) {
+                        continue;
+                    }
+                    List<BlockHostAccess> hostAccess = cgLun.getHostAccess();
+                    if (hostAccess == null) {
+                        continue;
+                    }
+                    for (BlockHostAccess hostA : hostAccess) {
+                        int mask = hostA.getAccessMask();
+                        if (mask == HostLUNAccessEnum.BOTH.getValue() ||
+                            mask == HostLUNAccessEnum.SNAPSHOT.getValue()) {
+                            needReattach = true;
+                            break;
+                        }
+                    }
+                    if (needReattach) {
+                        break;
+                    }
+                }
+            
+            } else {
+                _logger.warn(String.format("The storage resource id is empty for the lun ", parentLun.getName()));
+                
+            }
+        }
         LunParam lunParam = new LunParam();
         lunParam.setHostAccess(changedHostAccessList);
         LunModifyParam modifyParam = new LunModifyParam();

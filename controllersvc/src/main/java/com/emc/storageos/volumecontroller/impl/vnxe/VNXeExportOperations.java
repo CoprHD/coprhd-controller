@@ -371,12 +371,7 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
                                     volUri, nativeId));
                             apiClient.unexportLun(hostId, nativeId);
                         } else {
-                            boolean anyExportedSnapInGroup = false;
-                            if (cgName != null) {
-                                // Check if there are other exported snaps in the same CG. 
-                                anyExportedSnapInGroup = checkOtherExportedSnapInGroup(volUri);
-                            }
-                            apiClient.unexportSnap(hostId, nativeId, anyExportedSnapInGroup);
+                            apiClient.unexportSnap(hostId, nativeId);
                             setSnapWWN(apiClient, blockObject, nativeId);
                         }
                     }
@@ -679,12 +674,7 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
                     if (URIUtil.isType(volUri, Volume.class)) {
                         apiClient.unexportLun(hostId, nativeId);
                     } else if (URIUtil.isType(volUri, BlockSnapshot.class)) {
-                        boolean anyExportedSnapInGroup = false;
-                        if (cgName != null) {
-                            // Check if there are other exported snaps in the same CG. 
-                            anyExportedSnapInGroup = checkOtherExportedSnapInGroup(volUri);
-                        }
-                        apiClient.unexportSnap(hostId, nativeId, anyExportedSnapInGroup);
+                        apiClient.unexportSnap(hostId, nativeId);
                         setSnapWWN(apiClient, blockObject, nativeId);
                     }
                 }
@@ -1223,32 +1213,4 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
         return true;
     }
     
-    /**
-     * Check if there are other exported snaps in the same snapshot group
-     * 
-     * @param snapUri - Snapshost Uri
-     * @return true or false
-     */
-    private boolean checkOtherExportedSnapInGroup(URI snapUri) {
-        boolean result = false;
-        BlockSnapshot snap = _dbClient.queryObject(BlockSnapshot.class, snapUri);
-        if (snap == null) {
-            return result;
-        }
-        List<BlockSnapshot> snapshotsInRG = ControllerUtils.getSnapshotsPartOfReplicationGroup(snap, _dbClient);
-        if (snapshotsInRG == null) {
-            return result;
-        }
-        for (BlockSnapshot snapInRG: snapshotsInRG) {
-            if (snapInRG.getId().equals(snapUri)) {
-                continue;
-            }
-            if (snapInRG.isSnapshotExported(_dbClient)) {
-                result = true;
-                break;
-            }
-        }
-        
-        return result;
-    }
 }

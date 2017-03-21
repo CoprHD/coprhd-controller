@@ -196,6 +196,14 @@ public class AddHostToClusterService extends ViPRService {
             }
         }
 
+        if (hostNamesInCluster != null && !hostNamesInCluster.isEmpty() && !existingHostNames.isEmpty()) {
+             for (String hostName : hostNamesInCluster) {
+                if (existingHostNames.contains(hostName)){
+                    preCheckErrors.append(ExecutionUtils.getMessage("compute.cluster.hostname.already.in.cluster", hostName) + "  ");
+                }
+             }
+        }
+
         for (String existingHostName : existingHostNames) {
             if (!hostNamesInCluster.contains(existingHostName)) {
                 preCheckErrors.append(
@@ -259,17 +267,20 @@ public class AddHostToClusterService extends ViPRService {
 
         logInfo("compute.cluster.exports.installing.os");
         installOSForHosts(hostToIPs, ComputeUtils.getHostNameBootVolume(hosts), hosts);
+
         hosts = ComputeUtils.deactivateHostsWithNoOS(hosts);
         logInfo("compute.cluster.exports.installed.os", ComputeUtils.nonNull(hosts).size());
 
+        // VBDU DONE: COP-28433: Deactivate Host without OS installed (Rollback is in place and this is addressed)
+        ComputeUtils.addHostsToCluster(hosts, cluster);
+        hosts = ComputeUtils.deactivateHostsNotAddedToCluster(hosts, cluster);
+
         try {
             if (!ComputeUtils.nonNull(hosts).isEmpty()) {
-                // VBDU DONE: COP-28433: Deactivate Host without OS installed (Rollback is in place and this is addressed)
-                ComputeUtils.addHostsToCluster(hosts, cluster);
                 pushToVcenter();
                 ComputeUtils.discoverHosts(hosts);
             } else {
-                logWarn("compute.cluster.installed.os.none");
+                logWarn("compute.cluster.newly.provisioned.hosts.none");
             }
         } catch (Exception ex) {
             logError(ex.getMessage());

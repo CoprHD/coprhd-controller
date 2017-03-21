@@ -655,8 +655,8 @@ def create_parser(subcommand_parsers, common_parser):
                                help='Policy Description')
     create_parser.add_argument('-priority', '-pr', metavar='<priority>'
                                , dest='priority',
-                               help='Priority of the policy. Valid values are: HIGH, LOW',
-                               choices=['HIGH', 'LOW'])
+                               help='Priority of the policy. Valid values are: High, Normal',
+                               choices=['High', 'Normal'])
     create_parser.add_argument('-num_worker_threads','-wt',
                                metavar='<num_worker_threads>',
                                dest='num_worker_threads',
@@ -773,8 +773,8 @@ def update_parser(subcommand_parsers, common_parser):
                                help='Policy Description')
     update_parser.add_argument('-priority', '-pr', metavar='<priority>'
                                , dest='priority',
-                               help='Priority of the policy. Valid value: LOW, HIGH',
-                               choices = ['LOW','HIGH'])
+                               help='Priority of the policy. Valid value: Normal, High',
+                               choices = ['Normal','High'])
     update_parser.add_argument('-num_worker_threads','-wt',
                                metavar='<num_worker_threads>',
                                dest='num_worker_threads',

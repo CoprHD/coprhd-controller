@@ -978,7 +978,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
                 FSExportMap sourceNFSExportMap = sourceFileShare.getFsExports();
                 FSExportMap targetNFSExportMap = targetFileShare.getFsExports();
 
-                if (sourceNFSExportMap != null && targetNFSExportMap != null) {
+                if (sourceNFSExportMap != null || targetNFSExportMap != null) {
                     // Both source and target export map shouldn't be null
                     stepDescription = String.format("Replicating NFS exports from source file system : %s to target file system : %s",
                             sourceFileShare.getId(), targetFileShare.getId());

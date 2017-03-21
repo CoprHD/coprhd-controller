@@ -4215,7 +4215,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
         FileShare fs = null;
         try {
             fs = _dbClient.queryObject(FileShare.class, fsURI);
-            SchedulePolicy fp = _dbClient.queryObject(SchedulePolicy.class, policy);
+            FilePolicy fp = _dbClient.queryObject(FilePolicy.class, policy);
 
             if (fs != null && fp != null) {
                 StorageSystem storageObj = _dbClient.queryObject(StorageSystem.class, storage);
@@ -4227,7 +4227,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                 StoragePool pool = _dbClient.queryObject(StoragePool.class,
                         fs.getPool());
                 args.addStoragePool(pool);
-                args.addFilePolicy(fp);
+                args.setFileProtectionPolicy(fp);
                 args.setFileOperation(true);
                 args.setOpId(opId);
 

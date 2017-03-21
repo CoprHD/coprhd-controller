@@ -93,7 +93,7 @@ create_pol.add_argument('--policyscheduletime',help='Time when policy run. Defau
 create_pol.add_argument('--replicationconfiguration',help='Whether to replicate File System configurations i.e CIFS shares, NFS Exports at the time of failover/failback. Default value is False', default = 'False')
 create_pol.add_argument('--replicationtype',  help='File Replication type Valid values are: LOCAL, REMOTE. Default: REMOTE', default = 'REMOTE')
 create_pol.add_argument('--replicationcopymode', help='File Replication copy type Valid values are: SYNC, ASYNC. Default: ASYNC',default = 'ASYNC')
-create_pol.add_argument('--priority',help='Priority of the file policy. Default:low',default='low')
+create_pol.add_argument('--priority',help='Priority of the file policy. Default:low',default='Normal')
 create_pol.add_argument('--num_worker_threads',help='Number of worker threads. Default: 3', default = 3)
 create_pol.add_argument('--is_access_to_tenants',help='Tenant acess. Default: true', default = 'true')
 

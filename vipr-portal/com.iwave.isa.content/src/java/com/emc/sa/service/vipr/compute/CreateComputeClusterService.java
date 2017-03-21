@@ -287,6 +287,9 @@ public class CreateComputeClusterService extends ViPRService {
         hosts = ComputeUtils.deactivateHostsWithNoOS(hosts);
         logInfo("compute.cluster.exports.installed.os", ComputeUtils.nonNull(hosts).size());
 
+        ComputeUtils.addHostsToCluster(hosts, cluster);
+        hosts = ComputeUtils.deactivateHostsNotAddedToCluster(hosts, cluster);
+
         // VBDU [DONE]: COP-28400, Potential DU if external host is added to vCenter cluster not under ViPR mgmt.
         // ClusterService has a precheck to verify the matching environments before deactivating
         try {
@@ -295,12 +298,10 @@ public class CreateComputeClusterService extends ViPRService {
                 ComputeUtils.deactivateCluster(cluster);
             } else {
                 if (!ComputeUtils.nonNull(hosts).isEmpty()) {
-                    ComputeUtils.addHostsToCluster(hosts, cluster);
-                    hosts = ComputeUtils.deactivateHostsNotAddedToCluster(hosts, cluster);
                     pushToVcenter();
                     ComputeUtils.discoverHosts(hosts);
                 } else {
-                    logWarn("compute.cluster.installed.os.none");
+                    logWarn("compute.cluster.newly.provisioned.hosts.none");
                 }
             }
         } catch (Exception ex) {

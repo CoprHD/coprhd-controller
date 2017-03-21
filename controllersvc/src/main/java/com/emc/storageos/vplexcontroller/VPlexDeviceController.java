@@ -938,7 +938,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
             buf.append("Vplex: " + vplexURI + " created virtual volume(s): ");
 
             boolean thinEnabled = false;
-            boolean searchAllClustersForStorageVolumes = ((clusterVarrayMap.keySet().size() > 1 || isDistributedVolume)? true : false);
+            boolean searchAllClustersForStorageVolumes = ((clusterVarrayMap.keySet().size() > 1 || isDistributedVolume) ? true : false);
             List<VPlexVirtualVolumeInfo> virtualVolumeInfos = new ArrayList<VPlexVirtualVolumeInfo>();
             Map<String, Volume> vplexVolumeNameMap = new HashMap<String, Volume>();
             List<VPlexClusterInfo> clusterInfoList = null;

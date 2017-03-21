@@ -150,10 +150,6 @@ public class RemoteReplicationSetService extends TaskResourceService {
         }
 
         RemoteReplicationSetList result = new RemoteReplicationSetList();
-        List<URI> uris = _dbClient.queryByType(RemoteReplicationSet.class, true);
-        if (uris == null || uris.isEmpty()) {
-            return result;
-        }
 
         Set<String> sourceDevices = getStorageSystemsForVarrayVpool(varrayURI, vpoolURI);
 
@@ -169,6 +165,7 @@ public class RemoteReplicationSetService extends TaskResourceService {
             allTargetSystems.addAll(targetDevices);
         }
 
+        List<URI> uris = _dbClient.queryByType(RemoteReplicationSet.class, true);
         Iterator<RemoteReplicationSet> it = _dbClient.queryIterativeObjects(RemoteReplicationSet.class, uris);
         outloop:
         while (it.hasNext()) {

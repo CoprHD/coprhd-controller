@@ -368,6 +368,10 @@ public class AddHostToClusterService extends ViPRService {
             logInfo("vcenter.cluster.update", cluster.getLabel());
             try {
                 dataCenter = ComputeUtils.getVcenterDataCenter(existingDatacenterId);
+                //Changes were done as part of giving friendly names in UI logs
+                //Invoke by dataceterID if we failed to get datacenter from DB (we might fail, if there
+                //is some DB issue, but we fail with more meaningful error from controller.)
+                //else invoke using datacenter obj so that we show a user friendly name in UI.
                 if (dataCenter == null) {
                     status = ComputeUtils.updateVcenterCluster(cluster, existingDatacenterId);
                 } else {
@@ -378,6 +382,7 @@ public class AddHostToClusterService extends ViPRService {
                             ExecutionUtils.getMessage("vcenter.cluster.update.failed", cluster.getLabel()));
                 }
             } catch (Exception e) {
+                logError("compute.cluster.vcenter.sync.failed.corrective.user.message", cluster.getLabel());
                 logError("compute.cluster.vcenter.push.failed", e.getMessage());
                 throw e;
             }

@@ -412,6 +412,7 @@ public class CreateComputeClusterService extends ViPRService {
                     }
                 }
             } catch (Exception e) {
+                logError("compute.cluster.vcenter.sync.failed.corrective.user.message", cluster.getLabel());
                 logError("compute.cluster.vcenter.push.failed", e.getMessage());
                 throw e;
             }

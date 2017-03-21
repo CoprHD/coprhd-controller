@@ -817,31 +817,6 @@ public class VplexVolumeIngestionContext extends VplexBackendIngestionContext im
     }
 
     /**
-     * Collect any export masks that need to be updated by this ingestion context.
-     * 
-     * @param dataObjectMap the Map of guids to data objects
-     * @param exportMaskMap the map of guids to ExportMasks to update
-     * @return the map of guids to ExportMasks to update
-     */
-    private Map<String, ExportMask> collectExportMasksToUpdate(
-            Map<String, Set<DataObject>> dataObjectMap, Map<String, ExportMask> exportMaskMap) {
-        if (null != exportMaskMap) {
-            for (Entry<String, Set<DataObject>> entry : dataObjectMap.entrySet()) {
-                Set<DataObject> values = entry.getValue();
-                for (DataObject dataObject : values) {
-                    if (dataObject instanceof ExportMask) {
-                        _logger.info("collecting ExportMask: " + dataObject.forDisplay());
-                        exportMaskMap.put(
-                                entry.getKey().replace(VolumeIngestionUtil.UNMANAGEDVOLUME, VolumeIngestionUtil.VOLUME), 
-                                (ExportMask) dataObject);
-                    }
-                }
-            }
-        }
-        return exportMaskMap;
-    }
-    
-    /**
      * Updates any internal flags on the ingested backend resources.
      *
      * @param context the VplexBackendIngestionContext
@@ -884,6 +859,31 @@ public class VplexVolumeIngestionContext extends VplexBackendIngestionContext im
                 snapshot.clearInternalFlags(BlockIngestOrchestrator.INTERNAL_VOLUME_FLAGS);
             }
         }
+    }
+
+    /**
+     * Collect any export masks that need to be updated by this ingestion context.
+     * 
+     * @param dataObjectMap the Map of guids to data objects
+     * @param exportMaskMap the map of guids to ExportMasks to update
+     * @return the map of guids to ExportMasks to update
+     */
+    private Map<String, ExportMask> collectExportMasksToUpdate(
+            Map<String, Set<DataObject>> dataObjectMap, Map<String, ExportMask> exportMaskMap) {
+        if (null != exportMaskMap) {
+            for (Entry<String, Set<DataObject>> entry : dataObjectMap.entrySet()) {
+                Set<DataObject> values = entry.getValue();
+                for (DataObject dataObject : values) {
+                    if (dataObject instanceof ExportMask) {
+                        _logger.info("collecting ExportMask: " + dataObject.forDisplay());
+                        exportMaskMap.put(
+                                entry.getKey().replace(VolumeIngestionUtil.UNMANAGEDVOLUME, VolumeIngestionUtil.VOLUME), 
+                                (ExportMask) dataObject);
+                    }
+                }
+            }
+        }
+        return exportMaskMap;
     }
 
     /**

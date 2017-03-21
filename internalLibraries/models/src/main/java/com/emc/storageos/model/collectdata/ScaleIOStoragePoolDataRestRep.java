@@ -1,8 +1,9 @@
+/**
+ * Copyright (c) 2017 EMC Corporation
+ * All Rights Reserved
+ */
 package com.emc.storageos.model.collectdata;
 
-/**
- * Created by aquinn on 2/21/17.
- */
 public class ScaleIOStoragePoolDataRestRep {
     private String protectionDomainId;
     private String name;

@@ -65,7 +65,7 @@ public class StorageSystemDataCollectionService {
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     public ScaleIOSystemDataRestRep discoverScaleIO(ScaleIOCollectDataParam param) {
-        log.debug("discovering ScaleIO: {}", param.getIPAddress());
+        log.info("discovering ScaleIO: {}", param.getIPAddress());
         URI baseURI = URI.create(ScaleIOConstants.getAPIBaseURI(param.getIPAddress(), param.getPortNumber()));
         ScaleIORestClient client =
                 (ScaleIORestClient) scaleIORestClientFactory.getRESTClient(baseURI,param.getUserName(),param.getPassword());

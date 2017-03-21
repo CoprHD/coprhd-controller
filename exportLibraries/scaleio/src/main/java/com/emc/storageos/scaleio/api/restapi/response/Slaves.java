@@ -5,11 +5,13 @@
 package com.emc.storageos.scaleio.api.restapi.response;
 
 import java.util.Arrays;
+import org.codehaus.jackson.annotate.JsonIgnoreProperties;
 
 /**
  * Slaves attributes
  * 
  */
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class Slaves {
 	private String port;
 	private String id;

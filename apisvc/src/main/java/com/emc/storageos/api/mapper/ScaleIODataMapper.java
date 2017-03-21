@@ -1,3 +1,7 @@
+/**
+ * Copyright (c) 2017 EMC Corporation
+ * All Rights Reserved
+ */
 package com.emc.storageos.api.mapper;
 
 import com.emc.storageos.model.collectdata.MasterDataRestRep;
@@ -27,9 +31,6 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
-/**
- * Created by aquinn on 2/22/17.
- */
 public class ScaleIODataMapper {
     public static ScaleIOSystemDataRestRep map(ScaleIOSystem from) {
         if (from == null) {

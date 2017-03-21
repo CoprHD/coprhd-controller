@@ -1,5 +1,8 @@
+/**
+ * Copyright (c) 2017 EMC Corporation
+ * All Rights Reserved
+ */
 package com.emc.storageos.model.collectdata;
-
 
 import java.util.Arrays;
 import java.util.List;
@@ -9,10 +12,6 @@ import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlElementWrapper;
 import javax.xml.bind.annotation.XmlRootElement;
 
-
-/**
- * Created by aquinn on 2/7/17.
- */
 @XmlRootElement(name = "scaleio_system")
 @XmlAccessorType(XmlAccessType.PROPERTY)
 public class ScaleIOSystemDataRestRep {

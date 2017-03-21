@@ -335,20 +335,24 @@ public class BlockVirtualPoolService extends VirtualPoolService {
     @CheckPermission(roles = { Role.SECURITY_ADMIN, Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN }, blockProxies = true)
     public ACLAssignments updateAcls(@PathParam("id") URI id,
             ACLAssignmentChanges changes) {
-        URIQueryResultList resultList = new URIQueryResultList();
-        _dbClient.queryByConstraint(
-                ContainmentConstraint.Factory.getVirtualPoolVolumeConstraint(id), resultList);
-        boolean hasActiveVolumes = false;
-        for (URI uri : resultList) {
-            Volume volume = _dbClient.queryObject(Volume.class, uri);
-            if (volume != null && !volume.getInactive()) {
-                hasActiveVolumes = true;
-                break;
+        if ((changes.getAdd() != null && !changes.getAdd().isEmpty()) ||
+                (changes.getRemove() != null && !changes.getRemove().isEmpty())) {
+            // Only check for volumes if there are any change request
+            URIQueryResultList resultList = new URIQueryResultList();
+            _dbClient.queryByConstraint(
+                    ContainmentConstraint.Factory.getVirtualPoolVolumeConstraint(id), resultList);
+            boolean hasActiveVolumes = false;
+            for (URI uri : resultList) {
+                Volume volume = _dbClient.queryObject(Volume.class, uri);
+                if (volume != null && !volume.getInactive()) {
+                    hasActiveVolumes = true;
+                    break;
+                }
             }
-        }
-
-        if (hasActiveVolumes) {
-            throw APIException.badRequests.updateVirtualPoolOnlyAllowedToChange();
+    
+            if (hasActiveVolumes) {
+                throw APIException.badRequests.updateVirtualPoolOnlyAllowedToChange();
+            }
         }
         return updateAclsOnVirtualPool(VirtualPool.Type.block, id, changes);
     }

@@ -242,7 +242,6 @@ public class ComputeUtils {
                            }
                         }
                         if (!found) {
-                           hostsToRemove.add(host);
                            hostAddedToExports = false;
                            ExecutionUtils.currentContext().logError("computeutils.clusterexport.hostnotadded",host.getLabel(),exportGroup.getGeneratedName());
                         } else {
@@ -251,6 +250,8 @@ public class ComputeUtils {
                    }
                    if (hostAddedToExports) {
                       goodHosts.add(host);
+                   }else {
+                      hostsToRemove.add(host);
                    }
                }
            }

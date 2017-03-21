@@ -213,6 +213,12 @@ public class ComputeUtils {
                     execute(new AddHostToCluster(host.getId(), cluster.getId()));
                 }
             }
+        }else {
+            if (cluster!=null){
+                ExecutionUtils.currentContext().logWarn("computeutils.clusterexport.nohosts.toadd",  cluster.getLabel());
+            } else {
+                ExecutionUtils.currentContext().logWarn("computeutils.clusterexport.nocluster");
+            }
         }
         return cluster;
     }

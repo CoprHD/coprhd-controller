@@ -158,6 +158,7 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
         log.info("createHost");
 
         Host host = _dbClient.queryObject(Host.class, hostId);
+        //TODO COP-28960 check for null -- host, ce, etc.
         ComputeElement ce = _dbClient.queryObject(ComputeElement.class, host.getComputeElement());
 
         ComputeVirtualPool vcp = _dbClient.queryObject(ComputeVirtualPool.class, vcpoolId);
@@ -194,12 +195,14 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
         ComputeSystem cs = _dbClient.queryObject(ComputeSystem.class, computeSystemId);
         Host host = _dbClient.queryObject(Host.class, hostId);
         ComputeElement ce = _dbClient.queryObject(ComputeElement.class, host.getComputeElement());
+        //TODO COP-28960 check for null ce
         URI computeElementId = ce.getId();
         log.info("sptId:" + ce.getSptId());
 
         if (ce.getSptId() != null) {
             URI sptId = URI.create(ce.getSptId());
             UCSServiceProfileTemplate template = _dbClient.queryObject(UCSServiceProfileTemplate.class, sptId);
+            //TODO COP-28960 check template not null
             log.info("is updating:" + template.getUpdating());
             if (template.getUpdating()) {
 
@@ -273,10 +276,12 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
                 new Workflow.Method("setNoBootStep", computeSystemId, computeElementId, hostId), null);
 
         ComputeElement ce = _dbClient.queryObject(ComputeElement.class, computeElementId);
+        //TODO COP-28960 check for ce not null
 
         if (ce.getSptId() != null) {
             URI sptId = URI.create(ce.getSptId());
             UCSServiceProfileTemplate template = _dbClient.queryObject(UCSServiceProfileTemplate.class, sptId);
+            //TODO COP-28960 check for template not null
             if (template.getUpdating()) {
                 waitFor = workflow.createStep(REBIND_HOST_TO_TEMPLATE,
                         "Rebind host to service profile template after OS install", waitFor, cs.getId(),
@@ -568,6 +573,7 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
             ComputeSystem cs = _dbClient.queryObject(ComputeSystem.class, computeSystemId);
 
             rebindHostToTemplate(cs.getId(), hostId);
+            //TODO COP-28961 check if rebind succeeded, and if not, mark rollback as failed
 
             WorkflowStepCompleter.stepSucceded(stepId);
         } catch (Exception e) {
@@ -599,6 +605,7 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
             computeSystem = _dbClient.queryObject(ComputeSystem.class, hostId);
 
             rebindHostToTemplate(computeSystemId, hostId);
+            //TODO COP-28961 process the return value, and mark step as failed in case of error
 
             WorkflowStepCompleter.stepSucceded(stepId);
         } catch (InternalException e) {
@@ -639,8 +646,10 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
             WorkflowStepCompleter.stepExecuting(stepId);
 
             computeSystem = _dbClient.queryObject(ComputeSystem.class, computeSystemId);
+
             // Test mechanism to invoke a failure. No-op on production systems.
             InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_071);
+
             Map<String, Boolean> vlanMap = prepareOsInstallNetwork(computeSystemId, computeElementId);
             _workflowService.storeStepData(stepId, vlanMap);
 
@@ -776,6 +785,7 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
              * created in ViPR. If it was computeElement property of the host
              * would have been set.
              */
+            log.info("Skipping VCenter Host cleanup for host with no blade association.  Host is " + hostId);
             return waitFor;
         }
 
@@ -783,6 +793,7 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
 
         if (computeElement != null) {
             ComputeSystem cs = _dbClient.queryObject(ComputeSystem.class, computeElement.getComputeSystem());
+
 
             waitFor = workflow.createStep(CHECK_HOST_INITIATORS,
                     "Check for host initiators", waitFor, cs.getId(),
@@ -1089,7 +1100,6 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
                             return;
                         case pending:
                             break;
-
                     }
                 }
             }
@@ -1319,6 +1329,7 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
             vcenterController.updateVcenterCluster(task, host.getCluster(), null, new URI[] { host.getId() }, null);
 
             log.info("Monitor remove host " + host.getHostName() + " update vCenter task...");
+
             // VBDU TODO: COP-28456, Anti pattern - completers are responsible for updating step status.
             while (true) {
                 Thread.sleep(TASK_STATUS_POLL_FREQUENCY);
@@ -1337,7 +1348,6 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
                     return;
                 case pending:
                     break;
-
                 }
             }
         } catch (VcenterControllerException e) {
@@ -1371,6 +1381,9 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
      * @param datacenterId
      * @param stepId
      */
+    //TODO COP-28962 verify whether this really throws an exception
+    // seems like we throw an exception, and catch it again, and throw another exception
+    //  logic is somewhat difficult to understand
     public void checkClusterVms(URI clusterId, URI datacenterId, String stepId) {
         log.info("checkClusterVms {} {}", clusterId, datacenterId);
         Cluster cluster = null;

@@ -10,7 +10,6 @@ import java.net.URI;
 import java.net.URL;
 import java.text.NumberFormat;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Collection;
 import java.util.HashMap;
@@ -26,11 +25,13 @@ import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.emc.cloud.platform.ucs.out.model.BiosUnit;
 import com.emc.cloud.platform.ucs.out.model.ComputeBlade;
 import com.emc.cloud.platform.ucs.out.model.ComputeBoard;
 import com.emc.cloud.platform.ucs.out.model.FabricVlan;
 import com.emc.cloud.platform.ucs.out.model.FabricVsan;
 import com.emc.cloud.platform.ucs.out.model.FcPIo;
+import com.emc.cloud.platform.ucs.out.model.FirmwareRunning;
 import com.emc.cloud.platform.ucs.out.model.LsRequirement;
 import com.emc.cloud.platform.ucs.out.model.LsServer;
 import com.emc.cloud.platform.ucs.out.model.LsbootDef;
@@ -56,7 +57,6 @@ import com.emc.cloud.platform.ucs.out.model.VnicSanConnTempl;
 import com.emc.cloud.ucsm.service.UCSMService;
 import com.emc.storageos.computesystemcontroller.exceptions.ComputeSystemControllerException;
 import com.emc.storageos.computesystemcontroller.impl.HostToComputeElementMatcher;
-import com.emc.storageos.computesystemcontroller.impl.HostToServiceProfileMatcher;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
@@ -79,7 +79,6 @@ import com.emc.storageos.db.client.model.ComputeVirtualPool;
 import com.emc.storageos.db.client.model.ComputeVnic;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
-import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus;
 import com.emc.storageos.db.client.model.DiscoveredSystemObject;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.StringSet;
@@ -186,7 +185,7 @@ public class UcsDiscoveryWorker {
             } else {
                 cs.setLastDiscoveryStatusMessage(e.getMessage());
             }
-            _dbClient.persistObject(cs);
+            _dbClient.updateObject(cs);
             throw ComputeSystemControllerException.exceptions.discoverFailed(computeSystemURI.toString(), e);
         }
         try{
@@ -206,13 +205,12 @@ public class UcsDiscoveryWorker {
             reconcileUplinkPortChannels(cs, portChannelMap, unpinnedVsans);
             reconcileVlans(cs, vlanList);
     
+            associateComputeImageServer(cs);
             matchComputeBladesToHosts(cs);
-            matchServiceProfilesToHosts(cs);
-    
+
             cs.setLastDiscoveryRunTime(Calendar.getInstance().getTimeInMillis());
             cs.setSuccessDiscoveryTime(Calendar.getInstance().getTimeInMillis());
             cs.setDiscoveryStatus(DiscoveredDataObject.DataCollectionJobStatus.COMPLETE.name());
-            associateComputeImageServer(cs);
         } catch (ComputeSystemControllerException e){
             cs.setLastDiscoveryStatusMessage(e.getMessage());
             throw ComputeSystemControllerException.exceptions.discoverFailed(cs.getId().toString(), e);
@@ -399,6 +397,7 @@ public class UcsDiscoveryWorker {
         computeElement.setLastDiscoveryRunTime(Calendar.getInstance().getTimeInMillis());
         computeElement.setSuccessDiscoveryTime(Calendar.getInstance().getTimeInMillis());
         computeElement.setDiscoveryStatus(DiscoveredDataObject.DataCollectionJobStatus.COMPLETE.name());
+        computeElement.setBios(getBios(computeBlade));
 
         if (lsServer != null) {
             computeElement.setAvailable(false);
@@ -416,6 +415,24 @@ public class UcsDiscoveryWorker {
             computeElement.setUuid(computeBlade.getUuid());
             computeElement.setDn(NullColumnValueGetter.getNullStr());
         }
+
+    }
+
+    private static String getBios(ComputeBlade computeBlade) {
+        for(Serializable bladeContent : computeBlade.getContent()){
+            if((bladeContent != null) && (bladeContent instanceof JAXBElement<?>) &&
+                    (((JAXBElement)bladeContent).getValue() instanceof BiosUnit)) {
+                BiosUnit biosUnit = (BiosUnit) ((JAXBElement)bladeContent).getValue();
+                for(Serializable biosUnitContent : biosUnit.getContent()) {
+                    if((biosUnitContent != null) && (biosUnitContent instanceof JAXBElement<?>) &&
+                            (((JAXBElement)biosUnitContent).getValue() instanceof FirmwareRunning)) {
+                        FirmwareRunning firmwareRunning = (FirmwareRunning) ((JAXBElement)biosUnitContent).getValue();
+                        return firmwareRunning.getVersion();
+                    }
+                }
+            }
+        }
+        return null;
     }
 
     private void reconcileServiceProfiles(ComputeSystem cs, List<LsServer> allLsServers){
@@ -2243,14 +2260,7 @@ public class UcsDiscoveryWorker {
     }
 
     private void matchComputeBladesToHosts(ComputeSystem cs) {
-        URIQueryResultList uris = new URIQueryResultList();
-        _dbClient.queryByConstraint(ContainmentConstraint.Factory
-                .getComputeSystemComputeElemetsConstraint(cs.getId()), uris);
-        HostToComputeElementMatcher.matchComputeElementsToHostsByUuid(uris, _dbClient);
-    }
- 
-    private void matchServiceProfilesToHosts(ComputeSystem cs) {
-        HostToServiceProfileMatcher.matchServiceProfilesToHosts(cs, _dbClient);
+        HostToComputeElementMatcher.matchUcsComputeElements(_dbClient,cs.getId());
     }
 
     /**

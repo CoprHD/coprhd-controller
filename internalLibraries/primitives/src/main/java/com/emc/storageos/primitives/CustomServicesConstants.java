@@ -72,7 +72,6 @@ public final class CustomServicesConstants {
     //REST options
     public static final String PROTOCOL = "protocol";
     public static final String AUTH_TYPE = "AuthType";
-    public static final String BASIC_AUTH = "BasicAuth";
     public static final String USER = "user";
     public static final String PASSWORD = "password";
     public static final String ACCEPT_TYPE = "Accept-Type";
@@ -89,18 +88,25 @@ public final class CustomServicesConstants {
     public static final String OPERATION_ERROR = "operation_error";
     public static final String OPERATION_RETURNCODE = "operation_returncode";
 
-    public enum restMethods {
+    //Supported REST methods for Custom Service
+    public enum RestMethods {
         GET, POST, PUT, DELETE;
+    }
+
+    public enum AuthType {
+        NONE, BASIC, TOKEN;
     }
 
     public enum InputType {
         FROM_USER("InputFromUser"),
-        // ASSET_OPTION_SINGLE_VALUE("AssetOptionSingleValue"),
-        // ASSET_OPTION_MULTI_VALUE("AssetOptionMultiValue"),
-        ASSET_OPTION("AssetOption"), // TODO: Change this to the above values.
-        HARDCODEDVALUE("HardcodedValue"),
+        FROM_USER_MULTI("InputFromUserMulti"),
+        ASSET_OPTION_SINGLE("AssetOptionSingle"),
+        ASSET_OPTION_MULTI("AssetOptionMulti"),
+        HARDCODED("Hardcoded"),
         FROM_STEP_INPUT("FromOtherStepInput"),
         FROM_STEP_OUTPUT("FromOtherStepOutput"),
+        ASSET_OPTION("AssetOption"), // TODO: Change this to the above values.
+        HARDCODEDVALUE("HardcodedValue"),
         INVALID("Invalid");
 
         private final String inputType;

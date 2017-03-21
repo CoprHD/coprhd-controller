@@ -25,6 +25,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.commons.collections.MultiMap;
 import org.apache.commons.lang.StringUtils;
 import org.codehaus.jackson.JsonNode;
 import org.codehaus.jackson.map.ObjectMapper;
@@ -285,17 +286,19 @@ public class CustomServicesService extends ViPRService {
                 final String name = value.getName();
                 switch (CustomServicesConstants.InputType.fromString(value.getType())) {
                     case FROM_USER:
-                    case ASSET_OPTION: {
+                    case ASSET_OPTION_SINGLE:
                         final String friendlyName = value.getFriendlyName();
-                        if (params.get(friendlyName) != null) {
-                            inputs.put(name, Arrays.asList(params.get(friendlyName).toString()));
+                        if (params.get(friendlyName) != null && !StringUtils.isEmpty(params.get(friendlyName).toString())) {
+                            inputs.put(name, Arrays.asList(params.get(friendlyName).toString().split(",")));
                         } else {
                             if (value.getDefaultValue() != null) {
-                                inputs.put(name, Arrays.asList(value.getDefaultValue()));
+                                inputs.put(name, Arrays.asList(value.getDefaultValue().split(",")));
                             }
                         }
                         break;
-                    }
+                    case ASSET_OPTION_MULTI:
+
+
                     // TODO: Handle multi value
                     // case ASSET_OPTION_MULTI_VALUE:
                     case FROM_STEP_INPUT:

@@ -21,6 +21,10 @@ import java.util.List;
 import java.util.Map;
 
 import com.emc.sa.engine.ExecutionUtils;
+import com.sun.jersey.api.client.Client;
+import com.sun.jersey.api.client.ClientResponse;
+import com.sun.jersey.api.client.WebResource;
+import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.LoggerFactory;
 
@@ -36,7 +40,6 @@ public class CustomServicesRESTExecution extends ViPRExecutionTask<CustomService
     private final CoordinatorClient coordinator;
     private final Map<String, List<String>> input;
     private final CustomServicesWorkflowDocument.Step step;
-    private final BuildRestRequest buildrest;
     private static final org.slf4j.Logger logger = LoggerFactory.getLogger(CustomServicesRESTExecution.class);
 
     public CustomServicesRESTExecution(final CoordinatorClient coordinator, final Map<String, List<String>> input,
@@ -44,15 +47,12 @@ public class CustomServicesRESTExecution extends ViPRExecutionTask<CustomService
         this.coordinator = coordinator;
         this.input = input;
         this.step = step;
-        buildrest = new BuildRestRequest(new DefaultClientConfig(), coordinator);
     }
 
     @Override
     public CustomServicesTaskResult executeTask() throws Exception {
         try {
             ExecutionUtils.currentContext().logInfo("customServicesRESTExecution.startInfo", step.getId());
-
-            BuildRestRequest b = buildrest.setSSL(getOptions(CustomServicesConstants.PROTOCOL, input)).setUrl(getUrl());
 
             //TODO get it from primitive which are not runtime variable
             final String authType = getOptions(CustomServicesConstants.AUTH_TYPE, input);
@@ -61,28 +61,54 @@ public class CustomServicesRESTExecution extends ViPRExecutionTask<CustomService
                 throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed("Cannot find Auth type");
             }
 
-            if (authType.equals(CustomServicesConstants.BASIC_AUTH)) {
-                b.setFilter(getOptions(CustomServicesConstants.USER, input), getOptions(CustomServicesConstants.PASSWORD, input));
-            }
+            final Client client = BuildRestRequest.makeClient(new DefaultClientConfig(), coordinator, authType, getOptions(CustomServicesConstants.PROTOCOL, input),
+                    getOptions(CustomServicesConstants.USER, input), getOptions(CustomServicesConstants.PASSWORD, input));
+            final WebResource webResource = BuildRestRequest.makeWebResource(client, getUrl(), null);
+            final WebResource.Builder builder = BuildRestRequest.makeRequestBuilder(webResource, step, input);
 
-            b.setHeaders(step, input);
-
-            final CustomServicesConstants.restMethods method =
-                    CustomServicesConstants.restMethods.valueOf(getOptions(CustomServicesConstants.METHOD, input));
+            final CustomServicesConstants.RestMethods method =
+                    CustomServicesConstants.RestMethods.valueOf(getOptions(CustomServicesConstants.METHOD, input));
             switch (method) {
                 case PUT:
                 case POST:
                     final String body = RESTHelper.makePostBody(getOptions(CustomServicesConstants.BODY, input), input);
-                    return b.executeRest(method, body);
+                    return executeRest(method, body, builder);
             }
 
             ExecutionUtils.currentContext().logInfo("customServicesRESTExecution.doneInfo", step.getId());
 
-            return b.executeRest(method, null);
+            return executeRest(method, null, builder);
         } catch (final Exception e) {
             logger.error("Received Exception:{}", e);
             throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed("Custom Service Task Failed" + e);
         }
+    }
+
+    private CustomServicesRestTaskResult executeRest(final CustomServicesConstants.RestMethods method, final String input, final WebResource.Builder builder) throws Exception {
+        ClientResponse response = null;
+        switch (method) {
+            case GET:
+                response = builder.get(ClientResponse.class);
+                break;
+            case PUT:
+                response = builder.put(ClientResponse.class, input);
+                break;
+            case POST:
+                response = builder.post(ClientResponse.class, input);
+                break;
+            case DELETE:
+                response = builder.delete(ClientResponse.class);
+                break;
+            default:
+                logger.error("Rest method:{} type not supported", method.toString());
+                throw InternalServerErrorException.internalServerErrors.
+                        customServiceExecutionFailed("Rest method type not supported. Method:" + method.toString());
+        }
+        final String output = IOUtils.toString(response.getEntityInputStream(), "UTF-8");
+
+        logger.info("result is:{} headers:{}", output, response.getHeaders());
+
+        return new CustomServicesRestTaskResult(response.getHeaders().entrySet(), output, output, response.getStatus());
     }
 
     public String getUrl() {

@@ -24,9 +24,7 @@ import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManager;
 
 import org.apache.commons.lang.StringUtils;
-import org.apache.commons.io.IOUtils;
 import org.slf4j.LoggerFactory;
-
 
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.model.customservices.CustomServicesWorkflowDocument;
@@ -34,37 +32,20 @@ import com.emc.storageos.primitives.CustomServicesConstants;
 import com.emc.storageos.security.ssl.ViPRX509TrustManager;
 import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorException;
 import com.sun.jersey.api.client.Client;
-import com.sun.jersey.api.client.ClientResponse;
 import com.sun.jersey.api.client.WebResource;
 import com.sun.jersey.api.client.config.ClientConfig;
 import com.sun.jersey.api.client.filter.HTTPBasicAuthFilter;
 import com.sun.jersey.client.urlconnection.HTTPSProperties;
 
-public class BuildRestRequest {
-
-    private final ClientConfig config;
-    private final CoordinatorClient coordinator;
-    private Client client;
-    private WebResource.Builder builder = null;
-    private WebResource resource;
+public final class BuildRestRequest {
 
     private static final org.slf4j.Logger logger = LoggerFactory.getLogger(BuildRestRequest.class);
 
-    public BuildRestRequest(final ClientConfig config, final CoordinatorClient coordinator) {
-        this.config = config;
-        this.coordinator = coordinator;
+    private BuildRestRequest() {
     }
 
-    private WebResource.Builder getBuilder() {
-        if (builder != null) {
-            return builder;
-        }
-        builder = resource.getRequestBuilder();
-
-        return builder;
-    }
-
-    public BuildRestRequest setSSL(final String protocol) throws Exception {
+    public static Client makeClient(final ClientConfig config, final CoordinatorClient coordinator, final String auth, final String protocol, final String user, final String password)
+            throws Exception {
 
         if (StringUtils.isEmpty(protocol)) {
             throw InternalServerErrorException.internalServerErrors.
@@ -84,20 +65,48 @@ public class BuildRestRequest {
         context.init(null, new TrustManager[] { trustManager }, null);
         config.getProperties().put(HTTPSProperties.PROPERTY_HTTPS_PROPERTIES, new HTTPSProperties(null, context));
 
-        client = Client.create(config);
+        Client client = Client.create(config);
 
-        return this;
+        if (auth.equals(CustomServicesConstants.AuthType.BASIC.name())) {
+            if (!(StringUtils.isEmpty(user) && StringUtils.isEmpty(password))) {
+                client.addFilter(new HTTPBasicAuthFilter(user, password));
+            } else {
+                logger.error("user:{} or password:{} not defined", user, password);
+
+                throw InternalServerErrorException.internalServerErrors.
+                        customServiceExecutionFailed("User or password not defined");
+            }
+        }
+
+        return client;
     }
 
-    public BuildRestRequest setHeaders(final CustomServicesWorkflowDocument.Step step, final Map<String, List<String>> input) {
+    public static WebResource makeWebResource(final Client client, final String url, final Map<String, String> queries) {
+        final WebResource resource;
+        if (StringUtils.isEmpty(url)) {
+            logger.error("URL:{} cannot be null or empty", url);
+            throw InternalServerErrorException.internalServerErrors.
+                    customServiceExecutionFailed("URL:{} cannot be null or empty" + url);
+        }
+
+        resource = client.resource(url);
+        for (final Map.Entry<String, String> entry : queries.entrySet()) {
+            resource.queryParam(entry.getKey(), entry.getValue());
+        }
+
+        return resource;
+    }
+
+    public static WebResource.Builder makeRequestBuilder(final WebResource resource, final CustomServicesWorkflowDocument.Step step, final Map<String, List<String>> input) {
         if (step.getInputGroups() == null || step.getInputGroups().get(CustomServicesConstants.HEADERS) == null) {
-            return this;
+            return resource.getRequestBuilder();
         }
         final List<CustomServicesWorkflowDocument.Input> inputs = step.getInputGroups().get(CustomServicesConstants.HEADERS)
                 .getInputGroup();
         if (inputs == null) {
-            return this;
+            return resource.getRequestBuilder();
         }
+        final WebResource.Builder builder = resource.getRequestBuilder();
         for (final CustomServicesWorkflowDocument.Input header : inputs) {
             final String name = header.getName();
             final List<String> value = input.get(name);
@@ -110,89 +119,14 @@ public class BuildRestRequest {
             }
             final String headerValue = StringUtils.strip(value.get(0).toString(), "\"");
             if (name.equals(CustomServicesConstants.ACCEPT_TYPE)) {
-                setAccept(headerValue);
+                builder.accept(headerValue);
             } else if (name.equals(CustomServicesConstants.CONTENT_TYPE)) {
-                setContentType(headerValue);
+                builder.type(headerValue);
             } else {
-                getBuilder().header(name, headerValue);
+                builder.header(name, headerValue);
             }
         }
 
-        return this;
-    }
-
-    private BuildRestRequest setContentType(final String contentType) {
-        if (StringUtils.isEmpty(contentType)) {
-            return this;
-        }
-        getBuilder().type(contentType);
-
-        return this;
-    }
-
-    private BuildRestRequest setAccept(final String acceptType) {
-        if (StringUtils.isEmpty(acceptType)) {
-            return this;
-        }
-        getBuilder().accept(acceptType);
-
-        return this;
-    }
-
-    //TODO Implement this.
-    public BuildRestRequest setQueryparam(final Map<String, String> queries) {
-        for (final Map.Entry<String, String> entry : queries.entrySet()) {
-            resource.queryParam(entry.getKey(), entry.getValue());
-        }
-
-        return this;
-    }
-
-    public BuildRestRequest setUrl(final String url) {
-        if (!StringUtils.isEmpty(url)) {
-            this.resource = client.resource(url);
-        }
-
-        return this;
-    }
-
-    public BuildRestRequest setFilter(final String user, final String password) {
-        if (!(StringUtils.isEmpty(user) && StringUtils.isEmpty(password))) {
-            client.addFilter(new HTTPBasicAuthFilter(user, password));
-
-            return this;
-        }
-
-        logger.error("user:{} or password:{} not defined", user, password);
-
-        throw InternalServerErrorException.internalServerErrors.
-                customServiceExecutionFailed("User or password not defined");
-    }
-
-    public CustomServicesRestTaskResult executeRest(final CustomServicesConstants.restMethods method, final String input) throws Exception {
-        ClientResponse response = null;
-        switch (method) {
-            case GET:
-                response = getBuilder().get(ClientResponse.class);
-                break;
-            case PUT:
-                response = getBuilder().put(ClientResponse.class, input);
-                break;
-            case POST:
-                response = getBuilder().post(ClientResponse.class, input);
-                break;
-            case DELETE:
-                response = getBuilder().delete(ClientResponse.class);
-                break;
-            default:
-                logger.error("Rest method:{} type not supported", method.toString());
-                throw InternalServerErrorException.internalServerErrors.
-                        customServiceExecutionFailed("Rest method type not supported. Method:" + method.toString());
-        }
-        final String output = IOUtils.toString(response.getEntityInputStream(), "UTF-8");
-
-        logger.info("result is:{} headers:{}", output, response.getHeaders());
-
-        return new CustomServicesRestTaskResult(response.getHeaders().entrySet(), output, output, response.getStatus());
+        return builder;
     }
 }

@@ -21,6 +21,8 @@ import java.util.Set;
 
 import javax.xml.bind.JAXBElement;
 
+import com.google.common.base.Predicate;
+import com.google.common.collect.Collections2;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -102,6 +104,7 @@ public class UcsDiscoveryWorker {
     private static final String BLADE_REMOVED = "removed";
     private static final String BLADE_CFG_FAILURE = "config-failure";
     private static final String BLADE_AVAILABLE = "available";
+    private static final String DERIVED = "derived";
 
     private UCSMService ucsmService;
     private DbClient _dbClient;
@@ -453,7 +456,7 @@ public class UcsDiscoveryWorker {
         }
 
         // discovered data
-        for (LsServer lsServer : allLsServers) {
+        for (LsServer lsServer : filterLsServers(allLsServers)) {
             UCSServiceProfile serviceProfile = removeServiceProfiles.get(lsServer.getDn());
             if (serviceProfile != null) {
                 removeServiceProfiles.remove(lsServer.getDn());
@@ -479,7 +482,7 @@ public class UcsDiscoveryWorker {
         validateServiceProfileUuids(cs);
 
     }
-   
+
     private void validateServiceProfileUuids(ComputeSystem cs){
         URIQueryResultList uris = new URIQueryResultList();
         _dbClient.queryByConstraint(ContainmentConstraint.Factory
@@ -2295,6 +2298,22 @@ public class UcsDiscoveryWorker {
                 }
             }
         }
+    }
+
+    /**
+     * Filter the list of LsServers.
+     *
+     * @param allLsServers  List of LsServer instances.
+     * @return              Filtered List view of allLsServers.
+     */
+    private Collection<LsServer> filterLsServers(List<LsServer> allLsServers) {
+        return Collections2.filter(allLsServers, new Predicate<LsServer>() {
+            @Override
+            public boolean apply(LsServer lsServer) {
+                // Filter out LsServer instances with derived / hardware-default UUIDs.
+                return !lsServer.getUuid().equalsIgnoreCase(DERIVED);
+            }
+        });
     }
 
 }

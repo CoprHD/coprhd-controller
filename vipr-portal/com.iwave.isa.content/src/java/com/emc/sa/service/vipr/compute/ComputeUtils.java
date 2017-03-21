@@ -209,12 +209,73 @@ public class ComputeUtils {
         if ((hosts != null) && (cluster != null)) {
             for (Host host : hosts) {
                 if (host != null) {
+                    ExecutionUtils.currentContext().logInfo("computeutils.clusterexport.addhost", host.getLabel(), cluster.getLabel());
                     execute(new AddHostToCluster(host.getId(), cluster.getId()));
                 }
+            }
+        }else {
+            if (cluster!=null){
+                ExecutionUtils.currentContext().logWarn("computeutils.clusterexport.nohosts.toadd",  cluster.getLabel());
+            } else {
+                ExecutionUtils.currentContext().logWarn("computeutils.clusterexport.nocluster");
             }
         }
         return cluster;
     }
+
+    //validate that hosts are in the cluster export groups, else deactivate the host
+    public static List<Host> deactivateHostsNotAddedToCluster(List<Host> hosts, Cluster cluster){
+       List<Host> hostsToRemove = new ArrayList<Host>();
+       List<Host> goodHosts = new ArrayList<Host>();
+       if ((hosts != null) && (cluster != null)) {
+            List<ExportGroupRestRep> exports = BlockStorageUtils.findExportsContainingCluster(cluster.getId(), null, null);
+            if (exports!=null){
+                for (Host host : hosts){
+                    boolean hostAddedToExports = true;
+                    for (ExportGroupRestRep exportGroup: exports){
+                        List<HostRestRep> exportedHosts = exportGroup.getHosts();
+                        boolean found = false;
+                        for (HostRestRep exportedHost : exportGroup.getHosts()){
+                           if (host.getId().equals(exportedHost.getId())) {
+                                 found = true;
+                                 break;
+                           }
+                        }
+                        if (!found) {
+                           hostAddedToExports = false;
+                           ExecutionUtils.currentContext().logError("computeutils.clusterexport.hostnotadded",host.getLabel(),exportGroup.getGeneratedName());
+                        } else {
+                           ExecutionUtils.currentContext().logInfo("computeutils.clusterexport.hostadded",host.getLabel(),exportGroup.getGeneratedName());
+                        }
+                   }
+                   if (hostAddedToExports) {
+                      goodHosts.add(host);
+                   }else {
+                      hostsToRemove.add(host);
+                   }
+               }
+           }
+      }
+      if (!hostsToRemove.isEmpty()){
+         for (Host host: hostsToRemove){
+             try {
+                 execute(new RemoveHostFromCluster(host.getId()));
+             } catch (Exception e) {
+                  ExecutionUtils.currentContext().logError("computeutils.deactivatehost.failure",
+                        host.getHostName(), e.getMessage());
+             }
+         }
+         try {
+             List<Host> hostsRemoved = deactivateHosts(hostsToRemove);
+         } catch (Exception e) {
+             ExecutionUtils.currentContext().logError("computeutils.deactivatehost.deactivate.failure",
+                    e.getMessage());
+         }
+     }
+     return goodHosts;
+       
+   }
+                           
 
     public static List<Host> removeHostsFromCluster(List<Host> hosts) {
         if (hosts != null) {

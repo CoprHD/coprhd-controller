@@ -635,7 +635,11 @@ public class FilePolicyService extends TaskResourceService {
         fileReplicationPolicy.setFilePolicyName(param.getPolicyName());
         fileReplicationPolicy.setLabel(param.getPolicyName());
         fileReplicationPolicy.setFilePolicyType(param.getPolicyType());
-        fileReplicationPolicy.setPriority(param.getPriority());
+        if (param.getPriority() != null) {
+            ArgValidator.checkFieldValueFromEnum(param.getPriority(), "priority",
+                    EnumSet.allOf(FilePolicyPriority.class));
+            fileReplicationPolicy.setPriority(param.getPriority());
+        }
         fileReplicationPolicy.setNumWorkerThreads((long) param.getNumWorkerThreads());
         if (param.getPolicyDescription() != null && !param.getPolicyDescription().isEmpty()) {
             fileReplicationPolicy.setFilePolicyDescription(param.getPolicyDescription());
@@ -992,7 +996,8 @@ public class FilePolicyService extends TaskResourceService {
                 throw APIException.badRequests.invalidFilePolicyAssignParam(filePolicy.getFilePolicyName(), errorMsg.toString());
             }
 
-            if (FilePolicyServiceUtils.vPoolHasSnapshotPolicyWithSameSchedule(_dbClient, vpoolURI, filePolicy)) {
+            if (filePolicy.getFilePolicyType().equalsIgnoreCase(FilePolicyType.file_snapshot.name())
+                    && FilePolicyServiceUtils.vPoolHasSnapshotPolicyWithSameSchedule(_dbClient, vpoolURI, filePolicy)) {
                 errorMsg.append("Snapshot policy with similar schedule is already present on vpool " + virtualPool.getLabel());
                 _log.error(errorMsg.toString());
                 throw APIException.badRequests.invalidFilePolicyAssignParam(filePolicy.getFilePolicyName(), errorMsg.toString());
@@ -1087,6 +1092,9 @@ public class FilePolicyService extends TaskResourceService {
                 // If there is no recommendations found to assign replication policy
                 // Throw an exception!!
                 if (associations == null || associations.isEmpty()) {
+                    // If no other resources are assigned to replication policy
+                    // Remove the replication topology from the policy
+                    FileOrchestrationUtils.removeTopologyInfo(filePolicy, _dbClient);
                     _log.error("No matching storage pools recommendations found for policy {} with due to {}",
                             filePolicy.getFilePolicyName(), recommendationErrorMsg.toString());
                     throw APIException.badRequests.noFileStorageRecommendationsFound(filePolicy.getFilePolicyName());
@@ -1260,7 +1268,8 @@ public class FilePolicyService extends TaskResourceService {
                 throw APIException.badRequests.invalidFilePolicyAssignParam(filePolicy.getFilePolicyName(), errorMsg.toString());
             }
 
-            if (FilePolicyServiceUtils.projectHasSnapshotPolicyWithSameSchedule(_dbClient, projectURI, vpool.getId(), filePolicy)) {
+            if (filePolicy.getFilePolicyType().equalsIgnoreCase(FilePolicyType.file_snapshot.name())
+                    && FilePolicyServiceUtils.projectHasSnapshotPolicyWithSameSchedule(_dbClient, projectURI, vpool.getId(), filePolicy)) {
                 errorMsg.append("Snapshot policy with similar schedule is already present on project " + project.getLabel());
                 _log.error(errorMsg.toString());
                 throw APIException.badRequests.invalidFilePolicyAssignParam(filePolicy.getFilePolicyName(), errorMsg.toString());
@@ -1351,6 +1360,9 @@ public class FilePolicyService extends TaskResourceService {
                 // If there is no recommendations found to assign replication policy
                 // Throw an exception!!
                 if (associations == null || associations.isEmpty()) {
+                    // If no other resources are assigned to replication policy
+                    // Remove the replication topology from the policy
+                    FileOrchestrationUtils.removeTopologyInfo(filePolicy, _dbClient);
                     _log.error("No matching storage pools recommendations found for policy {} with due to {}",
                             filePolicy.getFilePolicyName(), recommendationErrorMsg.toString());
                     throw APIException.badRequests.noFileStorageRecommendationsFound(filePolicy.getFilePolicyName());

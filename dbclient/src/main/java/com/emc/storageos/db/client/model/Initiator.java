@@ -183,12 +183,23 @@ public class Initiator extends HostInterface implements Comparable<Initiator> {
     /**
      * Map the initiator name to the storage system
      *
-     * @param storageSystemSerailNumber storage system serial number
+     * @param storageSystemSerialNumber storage system serial number
      * @param initiatorName initiator name for the storage system
      */
-    public void mapInitiatorName(String storageSystemSerailNumber, String initiatorName) {
-        if (storageSystemSerailNumber != null && initiatorName != null && !initiatorName.isEmpty()) {
-            getInitiatorNames().put(storageSystemSerailNumber, initiatorName);
+    public void mapInitiatorName(String storageSystemSerialNumber, String initiatorName) {
+        if (storageSystemSerialNumber != null && initiatorName != null && !initiatorName.isEmpty()) {
+            getInitiatorNames().put(storageSystemSerialNumber, initiatorName);
+        }
+    }
+
+    /**
+     * Unmap the initiator name for the storage system (remove it from initiator names).
+     *
+     * @param storageSystemSerialNumber storage system serial number
+     */
+    public void unmapInitiatorName(String storageSystemSerialNumber) {
+        if (storageSystemSerialNumber != null && !storageSystemSerialNumber.isEmpty()) {
+            getInitiatorNames().remove(storageSystemSerialNumber);
         }
     }
 
@@ -196,11 +207,11 @@ public class Initiator extends HostInterface implements Comparable<Initiator> {
      * Get the initiator name for the given storage system if present.
      * If there is no mapping for the storage system, return the initiator label.
      *
-     * @param storageSystemSerailNumber
+     * @param storageSystemSerialNumber
      * @return initiator name for the storage system if present or the label
      */
-    public String getMappedInitiatorName(String storageSystemSerailNumber) {
-        String initiatorName = getInitiatorNames().get(storageSystemSerailNumber);
+    public String getMappedInitiatorName(String storageSystemSerialNumber) {
+        String initiatorName = getInitiatorNames().get(storageSystemSerialNumber);
         return initiatorName != null ? initiatorName : getLabel();
     }
 
@@ -288,5 +299,10 @@ public class Initiator extends HostInterface implements Comparable<Initiator> {
             hashCode = result;
         }
         return result;
+    }
+
+    @Override
+    public String forDisplay() {
+        return this.toString();
     }
 }

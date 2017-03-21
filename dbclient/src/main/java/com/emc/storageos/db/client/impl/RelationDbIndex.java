@@ -14,7 +14,7 @@ import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.model.*;
 
-public class RelationDbIndex extends DbIndex {
+public class RelationDbIndex extends DbIndex<IndexColumnName> {
     private static final Logger _log = LoggerFactory.getLogger(RelationIndex.class);
 
     RelationDbIndex(ColumnFamilyDefinition indexCF) {
@@ -25,8 +25,7 @@ public class RelationDbIndex extends DbIndex {
     boolean addColumn(String recordKey, CompositeColumnName column, Object value,
             String className, RowMutator mutator, Integer ttl, DataObject obj) {
         String indexRowKey = getRowKey(column, value);
-        IndexColumnName indexEntry = new IndexColumnName(className, recordKey, mutator.getTimeUUID());
-
+        IndexColumnName indexEntry = new IndexColumnName(className, recordKey, column.getTimeUUID());
         mutator.insertIndexColumn(indexCF.getName(), indexRowKey, indexEntry, null);
         return true;
     }

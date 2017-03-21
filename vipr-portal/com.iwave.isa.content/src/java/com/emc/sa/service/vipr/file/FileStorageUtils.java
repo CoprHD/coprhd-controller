@@ -15,9 +15,8 @@ import static com.emc.sa.service.vipr.file.FileConstants.NFS_PROTOCOL;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Iterator;
+import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 import org.apache.commons.lang.StringUtils;
@@ -69,7 +68,9 @@ import com.emc.sa.service.vipr.file.tasks.UpdateFileSnapshotExport;
 import com.emc.sa.service.vipr.file.tasks.UpdateFileSystemExport;
 import com.emc.sa.util.DiskSizeConversionUtils;
 import com.emc.storageos.api.service.impl.resource.FileService.FileTechnologyType;
+import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.FileShare.MirrorStatus;
+import com.emc.storageos.model.VirtualArrayRelatedResourceRep;
 import com.emc.storageos.model.file.ExportRule;
 import com.emc.storageos.model.file.ExportRules;
 import com.emc.storageos.model.file.FileShareExportUpdateParams;
@@ -84,12 +85,11 @@ import com.emc.storageos.model.file.ShareACL;
 import com.emc.storageos.model.file.ShareACLs;
 import com.emc.storageos.model.file.SmbShareResponse;
 import com.emc.storageos.model.file.SnapshotExportUpdateParams;
+import com.emc.storageos.model.file.policy.FilePolicyRestRep;
 import com.emc.storageos.volumecontroller.FileControllerConstants;
-import com.emc.storageos.volumecontroller.FileShareExport;
 import com.emc.vipr.client.Task;
 import com.emc.vipr.client.Tasks;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 public class FileStorageUtils {
@@ -160,6 +160,7 @@ public class FileStorageUtils {
     }
 
     public static void deleteFileSystem(URI fileSystemId, FileControllerConstants.DeleteTypeEnum fileDeletionType) {
+
         if (FileControllerConstants.DeleteTypeEnum.FULL.equals(fileDeletionType)) {
             // Remove snapshots for the volume
             for (FileSnapshotRestRep snapshot : getFileSnapshots(fileSystemId)) {
@@ -180,8 +181,37 @@ public class FileStorageUtils {
             for (FileSystemExportParam export : getNfsExports(fileSystemId)) {
                 deactivateExport(fileSystemId, export);
             }
-        }
 
+            // Get the list of mirror file systems before dissociate
+            List<URI> mirrorFilesystems = getMirrorFileSystems(fileSystemId);
+
+            // Dissociate File Protection Policies
+            for (URI policy : getFileProtectionPolicies(fileSystemId)) {
+                dissociateFilePolicy(fileSystemId, policy);
+            }
+
+            // Delete the mirror file system
+            for (URI mirrorFS : mirrorFilesystems) {
+
+                // Deactivate CIFS Shares
+                for (SmbShareResponse share : getCifsShares(mirrorFS)) {
+                    deactivateCifsShare(mirrorFS, share.getShareName());
+                }
+
+                // Delete all export rules for filesystem and all sub-directories
+                if (!getFileSystemExportRules(mirrorFS, true, null).isEmpty()) {
+                    deactivateFileSystemExport(mirrorFS, true, null, true);
+                }
+
+                // Deactivate NFS Exports
+                for (FileSystemExportParam export : getNfsExports(mirrorFS)) {
+                    deactivateExport(mirrorFS, export);
+                }
+
+                // Remove the mirror FileSystem
+                deactivateFileSystem(mirrorFS, FileControllerConstants.DeleteTypeEnum.FULL);
+            }
+        }
         // Remove the FileSystem
         deactivateFileSystem(fileSystemId, fileDeletionType);
     }
@@ -250,7 +280,12 @@ public class FileStorageUtils {
     }
 
     public static String createFileSystemExport(URI fileSystemId, String comment, FileExportRule exportRule, String subDirectory) {
-        return createFileSystemExport(fileSystemId, comment, exportRule.getSecurity(), exportRule.permission, DEFAULT_ROOT_USER,
+        String rootUserMapping = exportRule.rootUserMapping.trim();
+        String domain = exportRule.domain;
+        if (StringUtils.isNotBlank(domain)) {
+            rootUserMapping = domain.trim() + "\\" + rootUserMapping.trim();
+        }
+        return createFileSystemExport(fileSystemId, comment, exportRule.getSecurity(), exportRule.permission, rootUserMapping,
                 exportRule.exportHosts, subDirectory);
     }
 
@@ -381,8 +416,9 @@ public class FileStorageUtils {
         if (fs.getProtection().getMirrorStatus() != null && !fs.getProtection().getMirrorStatus().isEmpty()) {
             String currentMirrorStatus = fs.getProtection().getMirrorStatus();
             if (currentMirrorStatus.equalsIgnoreCase(MirrorStatus.SYNCHRONIZED.toString())
-                    || currentMirrorStatus.equalsIgnoreCase(MirrorStatus.IN_SYNC.toString()))
+                    || currentMirrorStatus.equalsIgnoreCase(MirrorStatus.IN_SYNC.toString())) {
                 return true;
+            }
         }
         return false;
     }
@@ -408,8 +444,8 @@ public class FileStorageUtils {
         addAffectedResources(tasks);
     }
 
-    public static void changeFileVirtualPool(URI fileId, URI targetVirtualPool) {
-        Task<FileShareRestRep> task = execute(new ChangeFileVirtualPool(fileId, targetVirtualPool));
+    public static void changeFileVirtualPool(URI fileId, URI targetVirtualPool, URI filePolicy, URI targetVirtualArray) {
+        Task<FileShareRestRep> task = execute(new ChangeFileVirtualPool(fileId, targetVirtualPool, filePolicy, targetVirtualArray));
         addAffectedResource(task);
     }
 
@@ -478,29 +514,33 @@ public class FileStorageUtils {
             existingRuleSet.add(rule.getSecFlavor());
         }
 
-        Map<String, Map<String, Set<String>>> rules = Maps.newHashMap();
-        for (FileExportRule fileExportRule : fileExportRules) {
-            if (!rules.containsKey(fileExportRule.security)) {
-                Map<String, Set<String>> rule = Maps.newHashMap();
-                rule.put(fileExportRule.permission, Sets.newHashSet(fileExportRule.exportHosts));
-                rules.put(fileExportRule.security, rule);
-            } else if (!rules.get(fileExportRule.security).containsKey(fileExportRule.permission)) {
-                rules.get(fileExportRule.security).put(fileExportRule.permission, Sets.newHashSet(fileExportRule.exportHosts));
-            } else {
-                rules.get(fileExportRule.security).get(fileExportRule.permission).addAll(fileExportRule.exportHosts);
-            }
-        }
         List<ExportRule> exportRuleListToAdd = Lists.newArrayList();
         List<ExportRule> exportRuleListToModify = Lists.newArrayList();
-        for (String sec : rules.keySet()) {
-            Map<String, Set<String>> rule = rules.get(sec);
+        for (FileExportRule rule : fileExportRules) {
             ExportRule exportRule = new ExportRule();
             exportRule.setFsID(fileSystemId);
-            exportRule.setSecFlavor(sec);
-            exportRule.setReadOnlyHosts(rule.get(FileShareExport.Permissions.ro.name()));
-            exportRule.setReadWriteHosts(rule.get(FileShareExport.Permissions.rw.name()));
-            exportRule.setRootHosts(rule.get(FileShareExport.Permissions.root.name()));
-            exportRule.setAnon(DEFAULT_ROOT_USER);
+            exportRule.setSecFlavor(rule.security);
+            String rootUserMapping = rule.rootUserMapping;
+            String domain = rule.domain;
+            if (StringUtils.isNotBlank(domain)) {
+                rootUserMapping = domain.trim() + "\\" + rootUserMapping.trim();
+            }
+            exportRule.setAnon(rootUserMapping);
+            Set<String> exportHosts = new HashSet<String>(rule.exportHosts);
+            switch (rule.getPermission()) {
+                case "ro":
+                    exportRule.setReadOnlyHosts(exportHosts);
+                    break;
+                case "rw":
+                    exportRule.setReadWriteHosts(exportHosts);
+                    break;
+                case "root":
+                    exportRule.setRootHosts(exportHosts);
+                    break;
+                default:
+                    break;
+            }
+
             if (existingRuleSet.contains(exportRule.getSecFlavor())) {
                 exportRuleListToModify.add(exportRule);
             } else {
@@ -533,29 +573,33 @@ public class FileStorageUtils {
             existingRuleSet.add(rule.getSecFlavor());
         }
 
-        Map<String, Map<String, Set<String>>> rules = Maps.newHashMap();
-        for (FileExportRule fileExportRule : fileExportRules) {
-            if (!rules.containsKey(fileExportRule.security)) {
-                Map<String, Set<String>> rule = Maps.newHashMap();
-                rule.put(fileExportRule.permission, Sets.newHashSet(fileExportRule.exportHosts));
-                rules.put(fileExportRule.security, rule);
-            } else if (!rules.get(fileExportRule.security).containsKey(fileExportRule.permission)) {
-                rules.get(fileExportRule.security).put(fileExportRule.permission, Sets.newHashSet(fileExportRule.exportHosts));
-            } else {
-                rules.get(fileExportRule.security).get(fileExportRule.permission).addAll(fileExportRule.exportHosts);
-            }
-        }
         List<ExportRule> exportRuleListToAdd = Lists.newArrayList();
         List<ExportRule> exportRuleListToModify = Lists.newArrayList();
-        for (String sec : rules.keySet()) {
-            Map<String, Set<String>> rule = rules.get(sec);
+        for (FileExportRule rule : fileExportRules) {
             ExportRule exportRule = new ExportRule();
             exportRule.setFsID(fileSnapshotId);
-            exportRule.setSecFlavor(sec);
-            exportRule.setReadOnlyHosts(rule.get(FileShareExport.Permissions.ro.name()));
-            exportRule.setReadWriteHosts(rule.get(FileShareExport.Permissions.rw.name()));
-            exportRule.setRootHosts(rule.get(FileShareExport.Permissions.root.name()));
-            exportRule.setAnon(DEFAULT_ROOT_USER);
+            exportRule.setSecFlavor(rule.security);
+            String rootUserMapping = rule.rootUserMapping;
+            String domain = rule.domain;
+            if (StringUtils.isNotBlank(domain)) {
+                rootUserMapping = domain.trim() + "\\" + rootUserMapping.trim();
+            }
+            exportRule.setAnon(rootUserMapping);
+            Set<String> exportHosts = new HashSet<String>(rule.exportHosts);
+            switch (rule.getPermission()) {
+                case "ro":
+                    exportRule.setReadOnlyHosts(exportHosts);
+                    break;
+                case "rw":
+                    exportRule.setReadWriteHosts(exportHosts);
+                    break;
+                case "root":
+                    exportRule.setRootHosts(exportHosts);
+                    break;
+                default:
+                    break;
+            }
+
             if (existingRuleSet.contains(exportRule.getSecFlavor())) {
                 exportRuleListToModify.add(exportRule);
             } else {
@@ -590,11 +634,11 @@ public class FileStorageUtils {
         return execute(new FindFileSnapshotExportRules(fileSnapshotId, allDir, subDir));
     }
 
-    public static Task<FileShareRestRep> associateFilePolicy(URI fileSystemId, URI filePolicyId) {
-        return execute(new AssociateFilePolicyToFileSystem(fileSystemId, filePolicyId));
+    public static Task<FileShareRestRep> associateFilePolicy(URI fileSystemId, URI filePolicyId, URI targetVArray) {
+        return execute(new AssociateFilePolicyToFileSystem(fileSystemId, filePolicyId, targetVArray));
     }
 
-    public static Task<FileShareRestRep> dissociateFilePolicy(URI fileSystemId, URI filePolicyId) {
+    public static Task<FilePolicyRestRep> dissociateFilePolicy(URI fileSystemId, URI filePolicyId) {
         return execute(new DissociateFilePolicyFromFileSystem(fileSystemId, filePolicyId));
     }
 
@@ -626,6 +670,30 @@ public class FileStorageUtils {
         }
 
         return names;
+    }
+
+    public static List<URI> getFileProtectionPolicies(URI fileSytem) {
+        List<URI> policyURI = new ArrayList<>();
+        FileShareRestRep resp = getFileSystem(fileSytem);
+        if (resp.getFilePolicies() != null && !resp.getFilePolicies().isEmpty()) {
+            Set<String> policySet = resp.getFilePolicies();
+            for (String policy : policySet) {
+                policyURI.add(URIUtil.uri(policy));
+            }
+        }
+        return policyURI;
+    }
+
+    public static List<URI> getMirrorFileSystems(URI fileSystem) {
+        FileShareRestRep fileShare = getFileSystem(fileSystem);
+        List<URI> targetFS = new ArrayList<>();
+        if (fileShare.getProtection() != null && fileShare.getProtection().getTargetFileSystems() != null) {
+            List<VirtualArrayRelatedResourceRep> responses = fileShare.getProtection().getTargetFileSystems();
+            for (VirtualArrayRelatedResourceRep resp : responses) {
+                targetFS.add(resp.getId());
+            }
+        }
+        return targetFS;
     }
 
     public static FileSystemACLs[] clearEmptyFileACLs(FileSystemACLs[] fileACLs) {
@@ -667,6 +735,12 @@ public class FileStorageUtils {
         @Param
         protected String permission;
 
+        @Param(required = false)
+        protected String domain;
+
+        @Param
+        protected String rootUserMapping;
+
         public List<String> getExportHosts() {
             return exportHosts;
         }
@@ -690,6 +764,23 @@ public class FileStorageUtils {
         public void setPermission(String permission) {
             this.permission = permission;
         }
+
+        public String getRootUserMapping() {
+            return rootUserMapping;
+        }
+
+        public void setRootUserMapping(String rootUserMapping) {
+            this.rootUserMapping = rootUserMapping;
+        }
+
+        public String getDomain() {
+            return domain;
+        }
+
+        public void setDomain(String domain) {
+            this.domain = domain;
+        }
+
     }
 
     public static class Mount {
@@ -707,6 +798,12 @@ public class FileStorageUtils {
 
         @Param
         private String fsType;
+
+        @Param(required = false)
+        protected String domain;
+
+        @Param
+        protected String rootUserMapping;
 
         public URI getHost() {
             return host;
@@ -747,5 +844,22 @@ public class FileStorageUtils {
         public void setFsType(String fsType) {
             this.fsType = fsType;
         }
+
+        public String getRootUserMapping() {
+            return rootUserMapping;
+        }
+
+        public void setRootUserMapping(String rootUserMapping) {
+            this.rootUserMapping = rootUserMapping;
+        }
+
+        public String getDomain() {
+            return domain;
+        }
+
+        public void setDomain(String domain) {
+            this.domain = domain;
+        }
+
     }
 }

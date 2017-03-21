@@ -164,7 +164,6 @@ ext {
     ]
     guava = [
         "com.google.guava:guava:16.0.1",
-		
     ]
     jersey = [
         "asm:asm:3.1",

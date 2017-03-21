@@ -12,7 +12,7 @@ import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.model.*;
 
-public class PermissionsDbIndex extends DbIndex {
+public class PermissionsDbIndex extends DbIndex<IndexColumnName> {
     private static final Logger _log = LoggerFactory.getLogger(PermissionsDbIndex.class);
 
     PermissionsDbIndex(ColumnFamilyDefinition indexCF) {
@@ -31,8 +31,7 @@ public class PermissionsDbIndex extends DbIndex {
     boolean addColumn(String recordKey, CompositeColumnName column, Object value,
             String className, RowMutator mutator, Integer ttl, DataObject obj) {
         String indexRowKey = getRowKey(column, value);
-        IndexColumnName indexEntry = new IndexColumnName(className, recordKey, value.toString(), mutator.getTimeUUID());
-
+        IndexColumnName indexEntry = new IndexColumnName(className, recordKey, value.toString(), column.getTimeUUID());
         mutator.insertIndexColumn(indexCF.getName(), indexRowKey, indexEntry, value.toString());
         return true;
     }

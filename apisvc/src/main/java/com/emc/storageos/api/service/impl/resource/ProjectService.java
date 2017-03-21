@@ -481,6 +481,11 @@ public class ProjectService extends TaggedResource {
     public Response deactivateProject(@PathParam("id") URI id) {
         Project project = getProjectById(id, true);
         
+        //check if any filepolicies are assigned to project
+        if((project.getFilePolicies() != null) && !(project.getFilePolicies().isEmpty())){
+            throw APIException.badRequests.cannotDeleteProjectAssignedFilePolicy(project.getLabel());
+        }
+        
         //for block service cinder if there is QuotaOfCinder entries 
         //we need to remove before the project removal
         List<URI> quotas = _dbClient.queryByType(QuotaOfCinder.class, true);

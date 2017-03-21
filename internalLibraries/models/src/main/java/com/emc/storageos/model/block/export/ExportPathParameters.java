@@ -12,7 +12,10 @@ import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlElementWrapper;
 import javax.xml.bind.annotation.XmlRootElement;
 
+import org.slf4j.Logger;
+
 import com.emc.storageos.model.valid.Range;
+import com.google.common.base.Joiner;
 
 @XmlRootElement(name = "path_param")
 public class ExportPathParameters {
@@ -73,5 +76,18 @@ public class ExportPathParameters {
         this.storagePorts = storagePorts;
     }
     
+    public void log(Logger log) {
+    	String maxPathsString = getMaxPaths() != null ? getMaxPaths().toString() : "null";
+    	String minPathsString = getMinPaths() != null ? getMinPaths().toString() : "null";
+    	String pathsPerInitiatorString = getPathsPerInitiator() != null ? getPathsPerInitiator().toString() : "null";
+    	log.info(String.format("max_paths %s min_paths %s paths_per_initiator %s", maxPathsString, minPathsString, pathsPerInitiatorString));
+    	if (getStoragePorts() != null && !getStoragePorts().isEmpty()) {
+    		String ports = Joiner.on(" ").join(getStoragePorts());
+    		log.info("Ports: " + ports);
+    	} else {
+    		log.info("Ports not specified");
+    	}
+    	
+    }
 
 }

@@ -4,19 +4,15 @@
  */
 package com.emc.storageos.db.client.impl;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import java.util.List;
+import java.util.Map;
+
 import com.emc.storageos.db.client.model.DataObject;
 
-import java.util.Map;
-import java.util.List;
-
-public abstract class DbIndex {
-    private static final Logger _log = LoggerFactory.getLogger(DbIndex.class);
+public abstract class DbIndex <T extends CompositeIndexColumnName> {
 
     protected String fieldName;
     protected ColumnFamilyDefinition indexCF;
-
     protected boolean indexByKey = false;
 
     DbIndex(ColumnFamilyDefinition indexCF) {
@@ -40,7 +36,7 @@ public abstract class DbIndex {
     }
 
     abstract boolean addColumn(String recordKey, CompositeColumnName column, Object value, String className,
-            RowMutator mutator, Integer ttl, DataObject obj);
+                               RowMutator mutator, Integer ttl, DataObject obj);
 
     abstract boolean removeColumn(String recordKey, CompositeColumnName column, String className,
             RowMutator mutator, Map<String, List<CompositeColumnName>> fieldColumnMap);

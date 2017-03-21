@@ -89,6 +89,7 @@ import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.util.ExportUtils;
+import com.emc.storageos.util.InvokeTestFailure;
 import com.emc.storageos.volumecontroller.ApplicationAddVolumeList;
 import com.emc.storageos.volumecontroller.AsyncTask;
 import com.emc.storageos.volumecontroller.BlockController;
@@ -681,7 +682,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                             deviceURI, getDeviceType(deviceURI),
                             this.getClass(),
                             createConsistencyGroupMethod(deviceURI, consistencyGroupURI, rgName),
-                            deleteConsistencyGroupMethod(deviceURI, consistencyGroupURI, rgName, false, false, false), null);
+                            deleteConsistencyGroupMethod(deviceURI, consistencyGroupURI, rgName, false, false, true), null);
                     createdCg = true;
                     _log.info(String.format("Step created for creating CG [%s] on device [%s]", consistencyGroup.getLabel(), deviceURI));
                 }
@@ -988,7 +989,6 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
     public void createVolumes(URI systemURI, URI poolURI, List<URI> volumeURIs,
             VirtualPoolCapabilityValuesWrapper capabilities, String opId) throws ControllerException {
 
-        boolean opCreateFailed = false;
         List<Volume> volumes = new ArrayList<Volume>();
         try {
             StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class,
@@ -1012,10 +1012,11 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             MultiVolumeTaskCompleter completer = new MultiVolumeTaskCompleter(volumeURIs, volumeCompleters, opId);
 
             Volume volume = volumes.get(0);
-            VirtualPool vpool = _dbClient.queryObject(VirtualPool.class, volume.getVirtualPool());
             WorkflowStepCompleter.stepExecuting(completer.getOpId());
+            InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_005);
             getDevice(storageSystem.getSystemType()).doCreateVolumes(storageSystem,
                     storagePool, opId, volumes, capabilities, completer);
+            InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_006);
             logMsgBuilder = new StringBuilder(String.format(
                     "createVolumes end - Array:%s Pool:%s", systemURI.toString(),
                     poolURI.toString()));
@@ -1025,24 +1026,17 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                         .toString()));
             }
             _log.info(logMsgBuilder.toString());
-        } catch (InternalException e) {
-            _log.error(String.format("createVolume Failed - Array: %s Pool:%s Volume:%s",
-                    systemURI.toString(), poolURI.toString(), Joiner.on("\t").join(volumeURIs)));
-            doFailTask(Volume.class, volumeURIs, opId, e);
-            WorkflowStepCompleter.stepFailed(opId, e);
-            opCreateFailed = true;
         } catch (Exception e) {
             _log.error(String.format("createVolume Failed - Array: %s Pool:%s Volume:%s",
                     systemURI.toString(), poolURI.toString(), Joiner.on("\t").join(volumeURIs)), e);
-            ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
-            doFailTask(Volume.class, volumeURIs, opId, serviceError);
-            WorkflowStepCompleter.stepFailed(opId, serviceError);
-            opCreateFailed = true;
-        }
-        if (opCreateFailed) {
-            for (Volume volume : volumes) {
-                volume.setInactive(true);
-                _dbClient.updateObject(volume);
+            Workflow workflow = WorkflowService.getInstance().getWorkflowFromStepId(opId);
+            if (workflow != null) {
+                ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
+                doFailTask(Volume.class, volumeURIs, opId, serviceError);
+                WorkflowStepCompleter.stepFailed(opId, serviceError);
+                _dbClient.markForDeletion(volumes);
+            } else {
+                _log.info("Workflow is null which means that the workflow has already completed. Not performing any error handling");
             }
         }
     }
@@ -1051,7 +1045,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
      * Return a Workflow.Method for rollbackCreateVolumes
      *
      * @param systemURI
-     * @param volumeURI
+     * @param volumeURIs
      * @return Workflow.Method
      */
     public static Workflow.Method rollbackCreateVolumesMethod(URI systemURI, List<URI> volumeURIs) {
@@ -1064,16 +1058,17 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
      */
     @Override
     public void rollBackCreateVolumes(URI systemURI, List<URI> volumeURIs, String opId) throws ControllerException {
+        MultiVolumeTaskCompleter completer = new MultiVolumeTaskCompleter(volumeURIs, opId);
+        List<Volume> volumes = new ArrayList<>(volumeURIs.size());
+
+        completer.setRollingBack(true);
         try {
             String logMsg = String.format(
                     "rollbackCreateVolume start - Array:%s, Volume:%s", systemURI.toString(), Joiner.on(',').join(volumeURIs));
             _log.info(logMsg.toString());
-
             WorkflowStepCompleter.stepExecuting(opId);
-
-            for (URI volumeId : volumeURIs) {
-                Volume volume = _dbClient.queryObject(Volume.class, volumeId);
-
+            volumes.addAll(_dbClient.queryObject(Volume.class, volumeURIs));
+            for (Volume volume : volumes) {
                 // CTRL-5597 clean volumes which have failed only in a multi-volume request
                 if (null != volume.getNativeGuid()) {
                     StorageSystem system = _dbClient.queryObject(StorageSystem.class,
@@ -1115,58 +1110,83 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                         _dbClient.updateAndReindexObject(volume);
                     }
                 }
-
+            
+            
                 // Check for loose export groups associated with this rolled-back volume
                 URIQueryResultList exportGroupURIs = new URIQueryResultList();
-                _dbClient.queryByConstraint(ContainmentConstraint.Factory.getVolumeExportGroupConstraint(
-                        volume.getId()), exportGroupURIs);
+                _dbClient.queryByConstraint(ContainmentConstraint.Factory.getVolumeExportGroupConstraint(volume.getId()), exportGroupURIs);
                 while (exportGroupURIs.iterator().hasNext()) {
-                    URI exportGroupURI = exportGroupURIs.iterator().next();
+                	URI exportGroupURI = exportGroupURIs.iterator().next();
                     ExportGroup exportGroup = _dbClient.queryObject(ExportGroup.class, exportGroupURI);
                     if (!exportGroup.getInactive()) {
-                        if (exportGroup.checkInternalFlags(Flag.INTERNAL_OBJECT)) {
-                            // Make sure the volume is not in an export mask
-                            boolean foundInMask = false;
-                            
-                            for (ExportMask exportMask : ExportMaskUtils.getExportMasks(_dbClient, exportGroup)) {                                  
-                                if (exportMask.hasVolume(volume.getId())) {
-                                    foundInMask = true;
-                                    break;
-                                }
-                            }                            
-
-                            // If we didn't find that volume in a mask, it's OK to remove it.
-                            if (!foundInMask) {
-                                exportGroup.removeVolume(volume.getId());
-                                if (exportGroup.getVolumes().isEmpty()) {
-                                    _dbClient.removeObject(exportGroup);
-                                } else {
-                                    _dbClient.updateObject(exportGroup);
-                                }
+                    	exportGroup.removeVolume(volume.getId());
+                        boolean canRemoveGroup = false;
+                        List<ExportMask> exportMasks = ExportMaskUtils.getExportMasks(_dbClient, exportGroup);
+                    	// Make sure the volume is not in an export mask
+                        for (ExportMask exportMask : exportMasks) {
+                        	exportMask.removeVolume(volume.getId());
+                    		exportMask.removeFromUserCreatedVolumes(volume);
+                            exportMask.removeFromExistingVolumes(volume);
+                    		if (!exportMask.getCreatedBySystem() && !exportMask.hasAnyVolumes() && exportMask.emptyVolumes()) {
+                    			canRemoveGroup = true;
+                    			_dbClient.removeObject(exportMask);
+                            } else {
+                            	_dbClient.updateObject(exportMask);
                             }
+                        }                            
+
+                        // If we didn't find that volume in a mask, it's OK to remove it.
+                        if (canRemoveGroup && exportMasks.size() == 1 && exportGroup.getVolumes().isEmpty()) {
+                            _dbClient.removeObject(exportGroup);
+                        } else {
+                            _dbClient.updateObject(exportGroup);
                         }
                     }
                 }
-            }
-
-            // Call regular delete volumes
-            deleteVolumes(systemURI, volumeURIs, opId);
+            }                  		
+                           
+            InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_013);
+            deleteVolumesWithCompleter(systemURI, volumeURIs, completer);
+            InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_014);
 
             logMsg = String.format(
                     "rollbackCreateVolume end - Array:%s, Volume:%s", systemURI.toString(), Joiner.on(',').join(volumeURIs));
             _log.info(logMsg.toString());
-        } catch (InternalException e) {
-            _log.error(String.format("rollbackCreateVolume Failed - Array:%s, Volume:%s", systemURI.toString(),
-                    Joiner.on(',').join(volumeURIs)));
-            doFailTask(Volume.class, volumeURIs, opId, e);
-            WorkflowStepCompleter.stepFailed(opId, e);
         } catch (Exception e) {
             _log.error(String.format("rollbackCreateVolume Failed - Array:%s, Volume:%s", systemURI.toString(),
                     Joiner.on(',').join(volumeURIs)));
-            ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
-            doFailTask(Volume.class, volumeURIs, opId, serviceError);
-            WorkflowStepCompleter.stepFailed(opId, serviceError);
+            handleException(e, completer);
         }
+    }
+
+    /**
+     * Private exception handling method to reduce code repetition.
+     * 
+     * @param e
+     *            exception
+     * @param taskCompleter
+     *            completer to notify
+     */
+    private void handleException(Exception e, TaskCompleter taskCompleter) {
+        _log.error("Handling exception with task completer: {}", taskCompleter, e);
+        if (taskCompleter != null && (taskCompleter.isCompleted() || taskCompleter.isAsynchronous())) {
+            _log.warn("Task has been marked as either asynchronous or completed.  Not performing any error handling.");
+            return;
+        }
+
+        if (e instanceof InternalException) {
+            InternalException ie = (InternalException) e;
+            doFailTask(Volume.class, taskCompleter.getIds(), taskCompleter.getOpId(), ie);
+            WorkflowStepCompleter.stepFailed(taskCompleter.getOpId(), ie);
+        } else {
+            ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
+            doFailTask(Volume.class, taskCompleter.getIds(), taskCompleter.getOpId(), serviceError);
+            WorkflowStepCompleter.stepFailed(taskCompleter.getOpId(),
+                    DeviceControllerException.exceptions.unexpectedCondition(e.getMessage()));
+        }
+
+        List<Volume> volumes = _dbClient.queryObject(Volume.class, taskCompleter.getIds());
+        _dbClient.markForDeletion(volumes);
     }
 
     /**
@@ -1778,13 +1798,28 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
      * {@inheritDoc} NOTE NOTE: The arguments here must match deleteVolumesMethod defined above (except opId).
      */
     @Override
-    public void deleteVolumes(URI systemURI, List<URI> volumeURIs, String opId)
+    public void deleteVolumes(URI systemURI, List<URI> volumeURIs, String opId) throws ControllerException {
+        MultiVolumeTaskCompleter completer = new MultiVolumeTaskCompleter(volumeURIs, opId);
+        deleteVolumesWithCompleter(systemURI, volumeURIs, completer);
+    }
+
+    /**
+     * Deletes the given volumes with an existing task completer.
+     *
+     * @param systemURI     Storage system URI
+     * @param volumeURIs    List of Volume URI
+     * @param completer     Task completer
+     * @throws ControllerException
+     */
+    public void deleteVolumesWithCompleter(URI systemURI, List<URI> volumeURIs, MultiVolumeTaskCompleter completer)
             throws ControllerException {
+
+        String opId = completer.getOpId();
+
         try {
             StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class,
                     systemURI);
-            List<Volume> volumes = new ArrayList<Volume>();
-            List<VolumeTaskCompleter> volumeCompleters = new ArrayList<VolumeTaskCompleter>();
+            List<Volume> volumes = new ArrayList<>();
             Iterator<URI> volumeURIsIter = volumeURIs.iterator();
             String arrayName = systemURI.toString();
             StringBuilder entryLogMsgBuilder = new StringBuilder(String.format(
@@ -1828,13 +1863,12 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                     _log.info("Volume does not exist or is already deleted");
                     volumeCompleter.error(_dbClient, serviceError);
                 }
-                volumeCompleters.add(volumeCompleter);
+                volumeCompleter.setRollingBack(completer.isRollingBack());
+                completer.addVolumeCompleter(volumeCompleter);
             }
             _log.info(entryLogMsgBuilder.toString());
             if (!volumes.isEmpty()) {
                 WorkflowStepCompleter.stepExecuting(opId);
-                TaskCompleter completer = new MultiVolumeTaskCompleter(volumeURIs,
-                        volumeCompleters, opId);
                 getDevice(storageSystem.getSystemType()).doDeleteVolumes(storageSystem, opId,
                         volumes, completer);
             } else {
@@ -1842,13 +1876,8 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                 WorkflowStepCompleter.stepSucceded(opId);
             }
             _log.info(exitLogMsgBuilder.toString());
-        } catch (InternalException e) {
-            doFailTask(Volume.class, volumeURIs, opId, e);
-            WorkflowStepCompleter.stepFailed(opId, e);
         } catch (Exception e) {
-            ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
-            doFailTask(Volume.class, volumeURIs, opId, serviceError);
-            WorkflowStepCompleter.stepFailed(opId, DeviceControllerException.exceptions.unexpectedCondition(e.getMessage()));
+            handleException(e, completer);
         }
     }
 
@@ -1859,8 +1888,8 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
      *            -- The Workflow being built
      * @param waitFor
      *            -- Previous steps to waitFor
-     * @param volumesDescriptors
-     *            -- List<VolumeDescriptors> -- volumes of all types to be processed
+     * @param volumes
+     *            -- List<Volume> -- volumes of all types to be processed
      * @return last step added to waitFor
      * @throws ControllerException
      */
@@ -3193,7 +3222,34 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
 
     @Override
     public void deleteConsistencyGroup(URI storage, URI consistencyGroup, Boolean markInactive, String opId) throws ControllerException {
-        deleteReplicationGroupInConsistencyGroup(storage, consistencyGroup, null, false, markInactive, true, opId);
+        _log.info("START delete consistency group");
+        TaskCompleter wfCompleter = null;
+
+        try {
+            Workflow workflow = _workflowService.getNewWorkflow(this, "deleteReplicationGroupInConsistencyGroup", true, opId);
+            wfCompleter = new SimpleTaskCompleter(BlockConsistencyGroup.class, consistencyGroup, opId);
+
+            StorageSystem system = _dbClient.queryObject(StorageSystem.class, storage);
+            BlockConsistencyGroup cg = _dbClient.queryObject(BlockConsistencyGroup.class, consistencyGroup);
+            Set<String> groupNames = BlockConsistencyGroupUtils.getGroupNamesForSystemCG(cg, system);
+
+            String stepId = null;
+            for (String groupName : groupNames) {
+                Workflow.Method deleteStep = new Workflow.Method("deleteReplicationGroupInConsistencyGroup",
+                        storage, consistencyGroup, groupName, false, markInactive, true);
+                stepId = workflow.createStep("DeleteReplicationGroup", "Deleting replication group", stepId, storage,
+                        system.getSystemType(), this.getClass(), deleteStep, rollbackMethodNullMethod(), null);
+            }
+
+            String successMsg = String.format("Successfully deleted replication groups %s", Joiner.on(',').join(groupNames));
+            workflow.executePlan(wfCompleter, successMsg);
+        } catch (Exception e) {
+            if (wfCompleter != null) {
+                ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
+                wfCompleter.error(_dbClient, serviceError);
+            }
+            throw DeviceControllerException.exceptions.deleteConsistencyGroupFailed(e);
+        }
     }
 
     public void deleteReplicationGroupInConsistencyGroup(URI storage, URI consistencyGroup, String groupName, Boolean keepRGName,
@@ -3201,7 +3257,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
         TaskCompleter completer = null;
         try {
             WorkflowStepCompleter.stepExecuting(opId);
-            completer = new BlockConsistencyGroupDeleteCompleter(consistencyGroup, opId);
+            completer = new BlockConsistencyGroupDeleteCompleter(consistencyGroup, storage, groupName, keepRGName, markInactive, opId);
             List<String> lockKeys = new ArrayList<String>();
             if (groupName != null && !groupName.isEmpty()) {
                 lockKeys.add(ControllerLockingUtil.getReplicationGroupStorageKey(_dbClient, groupName, storage));
@@ -3224,6 +3280,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                     } else {
                         completer.ready(_dbClient);
                     }
+                    return;
                 }
             }
 
@@ -4301,7 +4358,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                         waitFor, storage, storageSystem.getSystemType(),
                         this.getClass(),
                         createConsistencyGroupMethod(storage, consistencyGroup, groupName),
-                        rollbackMethodNullMethod(), null);
+                        deleteConsistencyGroupMethod(storage, consistencyGroup, groupName, false, false, true), null);
             }
 
             if (addVolumesList != null && !addVolumesList.isEmpty()) {
@@ -4311,7 +4368,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                         waitFor, storage, storageSystem.getSystemType(),
                         this.getClass(),
                         addToConsistencyGroupMethod(storage, consistencyGroup, groupName, addVolumesList),
-                        rollbackMethodNullMethod(), null);
+                        removeFromConsistencyGroupMethod(storage, consistencyGroup, addVolumesList, false), null);
 
                 // call ReplicaDeviceController
                 waitFor = _replicaDeviceController.addStepsForAddingSessionsToCG(workflow, waitFor, consistencyGroup, addVolumesList,
@@ -4325,13 +4382,12 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                     // call ReplicaDeviceController
                     waitFor = _replicaDeviceController.addStepsForRemovingVolumesFromCG(workflow, waitFor, consistencyGroup,
                             removeVolumesList, task);
-
                     waitFor = workflow.createStep(UPDATE_CONSISTENCY_GROUP_STEP_GROUP,
                             String.format("Removing volumes from consistency group %s", consistencyGroup),
                             waitFor, storage, storageSystem.getSystemType(),
                             this.getClass(),
                             removeFromConsistencyGroupMethod(storage, consistencyGroup, removeVolumesList, false),
-                            rollbackMethodNullMethod(), null);
+                            addToConsistencyGroupMethod(storage, consistencyGroup, groupName, removeVolumesList), null);
 
                     // remove replication group if the CG will become empty
                     if ((addVolumesList == null || addVolumesList.isEmpty()) &&
@@ -4340,8 +4396,8 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                                 String.format("Deleting replication group for consistency group %s", consistencyGroup),
                                 waitFor, storage, storageSystem.getSystemType(),
                                 this.getClass(),
-                                deleteConsistencyGroupMethod(storage, consistencyGroup, groupName, false, false, false),
-                                rollbackMethodNullMethod(), null);
+                                deleteConsistencyGroupMethod(storage, consistencyGroup, groupName, false, false, true),
+                                createConsistencyGroupMethod(storage, consistencyGroup, groupName), null);
                     }
                 }
             }
@@ -5240,7 +5296,6 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             BlockSnapshot snapObj = _dbClient.queryObject(BlockSnapshot.class, snapshot);
             completer = BlockSnapshotDeleteCompleter.createCompleter(_dbClient, snapObj, opId);
             getDevice(storageObj.getSystemType()).doDeleteSelectedSnapshot(storageObj, snapshot, completer);
-            WorkflowStepCompleter.stepSucceded(opId);
         } catch (Exception e) {
             if (completer != null) {
                 ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
@@ -6707,7 +6762,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
         try {
             WorkflowStepCompleter.stepExecuting(opId);
             StorageSystem storageObj = _dbClient.queryObject(StorageSystem.class, storage);
-            completer = new BlockConsistencyGroupDeleteCompleter(consistencyGroup, opId);
+            completer = new BlockConsistencyGroupDeleteCompleter(consistencyGroup, storage, groupName, keepRGName, markInactive, opId);
             getDevice(storageObj.getSystemType()).doDeleteConsistencyGroup(storageObj, consistencyGroup, groupName, keepRGName,
                     markInactive,
                     sourceGroupName, completer);

@@ -787,6 +787,12 @@ public class XIVExportOperations implements ExportMaskOperations {
         return matchingMasks;
     }
 
+    @Override
+    public Set<Integer> findHLUsForInitiators(StorageSystem storage, List<String> initiatorNames, boolean mustHaveAllPorts) {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
     private ExportMask refreshSMISExportMask(StorageSystem storage, ExportMask mask) {
         try {
             CIMInstance instance = _helper.getSCSIProtocolController(storage,
@@ -1473,5 +1479,17 @@ public class XIVExportOperations implements ExportMaskOperations {
             removeInitiatorsUsingSMIS(storage, exportMaskURI, volumeURIs, initiatorList, targets, taskCompleter);
         }
         _log.info("{} removeInitiators END...", storage.getLabel());
+    }
+    
+    @Override
+    public void addPaths(StorageSystem storage, URI exportMask, Map<URI, List<URI>> newPaths, TaskCompleter taskCompleter)
+            throws DeviceControllerException {
+        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+    }
+
+    @Override
+    public void removePaths(StorageSystem storage, URI exportMask, Map<URI, List<URI>> adjustedPaths, Map<URI, List<URI>> removePaths, TaskCompleter taskCompleter)
+            throws DeviceControllerException {
+        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
     }
 }

@@ -39,7 +39,7 @@ public class IndexCleaner {
      * 
      * @param mutator
      * @param doType
-     * @param listToClean
+     * @param listToCleanRef
      */
     public void cleanIndex(RowMutator mutator, DataObjectType doType, SoftReference<IndexCleanupList> listToCleanRef) {
         /*
@@ -63,7 +63,8 @@ public class IndexCleaner {
             for (CompositeColumnName column : cols) {
                 ColumnField field = doType.getColumnField(column.getOne());
                 field.removeColumn(rowKey, column, mutator, listToClean.getAllColumns(rowKey));
-                for (ColumnField depField : field.getDependentFields()) {
+                List<ColumnField> depFields = field.getDependentFields();
+                for (ColumnField depField : depFields) {
                     dependentFields.put(depField.getName(), depField);
                 }
             }
@@ -154,10 +155,9 @@ public class IndexCleaner {
      * 
      * @param mutator
      * @param doType
-     * @param listToClean
+     * @param listToCleanRef
      */
-    public void cleanIndexAsync(final RowMutator mutator,
-            final DataObjectType doType,
+    public void cleanIndexAsync(final RowMutator mutator, final DataObjectType doType,
             final SoftReference<IndexCleanupList> listToCleanRef) {
         _indexCleanerExe.submit(new Callable<Object>() {
             @Override

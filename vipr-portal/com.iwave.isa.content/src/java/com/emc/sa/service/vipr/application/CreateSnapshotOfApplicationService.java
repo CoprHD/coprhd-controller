@@ -7,12 +7,15 @@ package com.emc.sa.service.vipr.application;
 import java.net.URI;
 import java.util.List;
 
+import org.apache.commons.lang.StringUtils;
+
 import com.emc.sa.engine.bind.Param;
 import com.emc.sa.engine.service.Service;
 import com.emc.sa.service.ServiceParams;
 import com.emc.sa.service.vipr.ViPRService;
 import com.emc.sa.service.vipr.application.tasks.CreateSnapshotForApplication;
 import com.emc.sa.service.vipr.application.tasks.DeleteSnapshotForApplication;
+import com.emc.sa.service.vipr.application.tasks.DeleteSnapshotSessionForApplication;
 import com.emc.sa.service.vipr.block.BlockStorageUtils;
 import com.emc.storageos.db.client.model.uimodels.RetainedReplica;
 import com.emc.storageos.model.DataObjectRestRep;
@@ -64,9 +67,19 @@ public class CreateSnapshotOfApplicationService extends ViPRService {
         for (RetainedReplica replica : replicas) {
             for (String applicationCopySet : replica.getAssociatedReplicaIds()) {
                 info("Delete application snapshots %s since it exceeds max number of clones allowed", applicationCopySet);
-                List<URI> snapshotIds = BlockStorageUtils.getSingleSnapshotPerSubGroupAndStorageSystem(applicationId, applicationCopySet,
+                
+                List<URI> snapshotSessionIds = BlockStorageUtils.getSingleSnapshotSessionPerSubGroupAndStorageSystem(applicationId,
+                        applicationCopySet,
                         subGroups);
-                execute(new DeleteSnapshotForApplication(applicationId, snapshotIds));
+                if (snapshotSessionIds.size() > 0) {
+                    info("Delete snapshot sessions %s ", StringUtils.join(snapshotSessionIds, ","));
+                    execute(new DeleteSnapshotSessionForApplication(applicationId, snapshotSessionIds));
+                } else {
+                    List<URI> snapshotIds = BlockStorageUtils.getSingleSnapshotPerSubGroupAndStorageSystem(applicationId, applicationCopySet,
+                            subGroups);
+                    info("Delete snapshot %s ", StringUtils.join(snapshotIds, ","));
+                    execute(new DeleteSnapshotForApplication(applicationId, snapshotIds));
+                }
             }
             getModelClient().delete(replica);
         }

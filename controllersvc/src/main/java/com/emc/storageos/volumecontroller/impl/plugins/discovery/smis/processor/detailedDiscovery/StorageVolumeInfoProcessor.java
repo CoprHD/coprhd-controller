@@ -583,7 +583,7 @@ public class StorageVolumeInfoProcessor extends StorageProcessor {
         _logger.info("Create UnManagedVolume {}", unManagedVolumeNativeGuid);
         try {
             String volumeType = Types.REGULAR.toString();
-            Map<String, StringSet> unManagedVolumeInformation = null;
+            StringSetMap unManagedVolumeInformation = null;
             Map<String, String> unManagedVolumeCharacteristics = null;
             boolean created = false;
             if (null == unManagedVolume) {
@@ -592,7 +592,7 @@ public class StorageVolumeInfoProcessor extends StorageProcessor {
                 unManagedVolume.setNativeGuid(unManagedVolumeNativeGuid);
                 unManagedVolume.setStorageSystemUri(system.getId());
                 created = true;
-                unManagedVolumeInformation = new HashMap<String, StringSet>();
+                unManagedVolumeInformation = new StringSetMap();
                 unManagedVolumeCharacteristics = new HashMap<String, String>();
             }
 
@@ -628,11 +628,7 @@ public class StorageVolumeInfoProcessor extends StorageProcessor {
                 unManagedVolume.getVolumeInformation().put(SupportedVolumeInformation.SNAPSHOTS.name(), new StringSet());
                 unManagedVolume.getVolumeInformation().put(SupportedVolumeInformation.SNAPSHOT_SESSIONS.name(), new StringSet());
 
-                unManagedVolumeInformation = new HashMap<String, StringSet>();
-                StringSetMap volumeInfo = unManagedVolume.getVolumeInformation();
-                for (String key : volumeInfo.keySet()) {
-                    unManagedVolumeInformation.put(key, volumeInfo.get(key));
-                }
+                unManagedVolumeInformation = unManagedVolume.getVolumeInformation();
                 unManagedVolumeCharacteristics = unManagedVolume.getVolumeCharacterstics();
             }
 
@@ -698,6 +694,15 @@ public class StorageVolumeInfoProcessor extends StorageProcessor {
                     unManagedVolumeInformation.get(SupportedVolumeInformation.EMC_MAXIMUM_IOPS.toString())
                             .replace(iopsVal);
                 }
+            }
+
+            // Set Export Mask HLUs
+            @SuppressWarnings("unchecked")
+            Map<String, StringSet> volumeToExportMasksHLUMap =
+                    (Map<String, StringSet>) keyMap.get(Constants.UN_VOLUME_EXPORT_MASK_HLUS_MAP);
+            if (volumeToExportMasksHLUMap != null && volumeToExportMasksHLUMap.containsKey(unManagedVolumeNativeGuid)) {
+                unManagedVolumeInformation.put(SupportedVolumeInformation.HLU_TO_EXPORT_MASK_NAME_MAP.toString(),
+                        volumeToExportMasksHLUMap.get(unManagedVolumeNativeGuid)); // replace() does not work
             }
 
             // Set SLOName only for VMAX3 exported volumes
@@ -1038,7 +1043,7 @@ public class StorageVolumeInfoProcessor extends StorageProcessor {
                 StringSet matchedVPools = DiscoveryUtils.getMatchedVirtualPoolsForPool(_dbClient, pool
                         .getId(), unManagedVolumeCharacteristics
                                 .get(SupportedVolumeCharacterstics.IS_THINLY_PROVISIONED.toString()),
-                        srdfEnabledTargetVPools, null, volumeType);
+                        srdfEnabledTargetVPools, null, volumeType, unManagedVolume);
                 _logger.debug("Matched Pools : {}", Joiner.on("\t").join(matchedVPools));
 
                 if (null == matchedVPools || matchedVPools.isEmpty()) {
@@ -1101,7 +1106,7 @@ public class StorageVolumeInfoProcessor extends StorageProcessor {
      *            - Volume supported SLO Name.
      */
     private void updateSLOPolicies(Set<String> poolSupportedSLONames,
-            Map<String, StringSet> unManagedVolumeInformation,
+            StringSetMap unManagedVolumeInformation,
             Map<String, String> unManagedVolumeCharacteristics, String sgSLOName) {
         if (null != poolSupportedSLONames && !poolSupportedSLONames.isEmpty()) {
             StringSet sloNamesSet = new StringSet();

@@ -85,6 +85,7 @@ import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.ExportPathParams;
+import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Migration;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.Project;
@@ -172,6 +173,7 @@ import com.emc.storageos.util.VPlexUtil;
 import com.emc.storageos.volumecontroller.AsyncTask;
 import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.impl.ControllerUtils;
+import com.emc.storageos.volumecontroller.impl.smis.SRDFOperations.Mode;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
 import com.emc.storageos.volumecontroller.placement.ExportPathUpdater;
 import com.emc.storageos.vplexcontroller.VPlexDeviceController;
@@ -833,9 +835,12 @@ public class BlockService extends TaskResourceService {
                         volumeCount.intValue(), cgMaxVolCount, consistencyGroup.getLabel());
             }
 
+            // Get the requested types for provisioning (RP, VPlex, etc.)
+            requestedTypes = getRequestedTypes(vpool);
+
             // If the consistency group is not yet created, verify the name is OK.
             if (!consistencyGroup.created()) {
-                blockServiceImpl.validateConsistencyGroupName(consistencyGroup);
+                blockServiceImpl.validateConsistencyGroupName(consistencyGroup, requestedTypes);
             }
 
             // Consistency Group is already a Target, hence cannot be used to create source volume
@@ -865,8 +870,6 @@ public class BlockService extends TaskResourceService {
             // check if CG's storage system is associated to the requested virtual array
             validateCGValidWithVirtualArray(consistencyGroup, varray);
 
-            requestedTypes = getRequestedTypes(vpool);
-
             // Validate the CG type. We want to make sure the volume create request is appropriate
             // the CG's previously requested types.
             if (consistencyGroup.creationInitiated()) {
@@ -880,10 +883,23 @@ public class BlockService extends TaskResourceService {
 
             // RP consistency group validation
             if (VirtualPool.vPoolSpecifiesProtection(vpool)) {
-                // If an RP protected vpool is specified, ensure that the CG selected is empty or contains only RP
-                // volumes.
-                if (activeCGVolumes != null && !activeCGVolumes.isEmpty()
-                        && !consistencyGroup.getTypes().contains(BlockConsistencyGroup.Types.RP.toString())) {
+                // Check to see if the CG has any RecoverPoint provisioned volumes. This is done by looking at the protectionSet field.
+                // The protectionSet field won't be set until the volume is provisioned in RP so this check allows concurrent
+                // requests to go through.
+                boolean cgHasRpProvisionedVolumes = false;
+                if (activeCGVolumes != null && !activeCGVolumes.isEmpty()) {
+                    for (Volume vol : activeCGVolumes) {
+                        if (!NullColumnValueGetter.isNullNamedURI(vol.getProtectionSet())) {
+                            _log.info(String.format("Determined that consistency group %s contains RP provisioned volumes.",
+                                    consistencyGroup.getId()));
+                            cgHasRpProvisionedVolumes = true;
+                            break;
+                        }
+                    }
+                }
+
+                // Ensure the CG is either empty or has been tagged for RP and contains properly provisioned RP volumes.
+                if (cgHasRpProvisionedVolumes && !consistencyGroup.getTypes().contains(BlockConsistencyGroup.Types.RP.toString())) {
                     throw APIException.badRequests.consistencyGroupMustBeEmptyOrContainRpVolumes(consistencyGroup.getId());
                 }
 
@@ -2003,13 +2019,18 @@ public class BlockService extends TaskResourceService {
     }
 
     /**
-     * Deactivate a volume, this will move the volume to a "marked-for-delete"
-     * state after the deletion happens on the array side. The volume will be
-     * deleted from the database when all references to this volume of type
-     * BlockSnapshot and ExportGroup are deleted.
+     * Deactivate a volume, will result in permanent deletion of the requested volume(s) from the storage system it was created on and will
+     * move the volume to a "marked-for-delete" state after the deletion happens on the array side. The volume will be
+     * deleted from the database when all references to this volume of type BlockSnapshot and ExportGroup are deleted.
      *
      * If "?force=true" is added to the path, it will force the delete of internal
      * volumes that have the SUPPORTS_FORCE flag.
+     *
+     * If "?type=VIPR_ONLY" is added to the path, it will delete volumes only from ViPR data base and leaves the volume on storage array as
+     * it is.
+     * Possible value for the attribute type : FULL, VIPR_ONLY
+     * FULL : Deletes the volumes permanently on array and ViPR data base.
+     * VIPR_ONLY : Deletes the volumes only from ViPR data base and leaves the volumes on array as it is.
      *
      * NOTE: This is an asynchronous operation.
      *
@@ -2018,6 +2039,8 @@ public class BlockService extends TaskResourceService {
      *
      * @param id
      *            the URN of a ViPR volume to delete
+     * @param force {@link DefaultValue} false
+     * @param type {@link DefaultValue} FULL
      *
      * @brief Delete volume
      * @return Volume information
@@ -2051,6 +2074,13 @@ public class BlockService extends TaskResourceService {
      * If "?force=true" is added to the path, it will force the delete of internal
      * volumes that have the SUPPORTS_FORCE flag.
      *
+     * If "?type=VIPR_ONLY" is added to the path, it will delete volumes only from ViPR data base and leaves the volume on storage array as
+     * it is.
+     * Possible value for the attribute type : FULL, VIPR_ONLY
+     * FULL : Deletes the volumes permanently on array and ViPR data base.
+     * VIPR_ONLY : Deletes the volumes only from ViPR data base and leaves the volumes on array as it is.
+     *
+     *
      * NOTE: This is an asynchronous operation.
      *
      *
@@ -2059,6 +2089,8 @@ public class BlockService extends TaskResourceService {
      * @param volumeURIs
      *            The POST data specifying the ids of the volume(s) to be
      *            deleted.
+     * @param force {@link DefaultValue} false
+     * @param type {@link DefaultValue} FULL
      *
      * @brief Delete multiple volumes
      * @return A reference to a BlockTaskList containing a list of
@@ -2086,6 +2118,9 @@ public class BlockService extends TaskResourceService {
             // Don't operate on VPLEX backend or RP Journal volumes (unless forced to).
             BlockServiceUtils.validateNotAnInternalBlockObject(vol, force);
 
+            // Don't operate on volumes with boot volume tags (unless forced to).
+            BlockServiceUtils.validateNotABootVolume(vol, force);
+
             if (!_permissionsHelper.userHasGivenRole(user, vol.getTenant().getURI(), Role.TENANT_ADMIN)
                     && !_permissionsHelper.userHasGivenACL(user, vol.getProject().getURI(), ACL.OWN, ACL.ALL)) {
                 throw APIException.forbidden.insufficientPermissionsForUser(user.getName());
@@ -2100,9 +2135,6 @@ public class BlockService extends TaskResourceService {
         if (!force) {
             checkForPendingTasks(tenantSet, volumes);
         }
-
-        // Make sure we have task identifier.
-        String task = UUID.randomUUID().toString();
 
         // Volumes on different storage systems need to be deleted with
         // separate, individual calls to the controller. Therefore, we
@@ -2136,7 +2168,8 @@ public class BlockService extends TaskResourceService {
              * 8.0.3.
              * Hence we don't require reference check for vmax.
              */
-            if (!volume.isInCG() || !BlockServiceUtils.checkCGVolumeCanBeAddedOrRemoved(null, volume, _dbClient)) {
+            if ((VolumeDeleteTypeEnum.VIPR_ONLY.name().equals(type)) || (!volume.isInCG())
+                    || (!BlockServiceUtils.checkCGVolumeCanBeAddedOrRemoved(null, volume, _dbClient))) {
                 List<Class<? extends DataObject>> excludeTypes = null;
                 if (VolumeDeleteTypeEnum.VIPR_ONLY.name().equals(type)) {
                     // For ViPR-only delete of exported volumes, We will clean up any
@@ -2145,6 +2178,20 @@ public class BlockService extends TaskResourceService {
                     excludeTypes.add(ExportGroup.class);
                     excludeTypes.add(ExportMask.class);
                 }
+
+                // If we are deleting a boot volume, there may still be a reference to the volume
+                // in the decommissioned host.  Since the force flag is used, we will clear out this
+                // reference in the host so the volume can be deleted.
+                List<Host> hosts = CustomQueryUtility.queryActiveResourcesByRelation(_dbClient, volume.getId(),
+                        Host.class, "bootVolumeId");
+                if (hosts != null) {
+                    for (Host host : hosts) {
+                        host.setBootVolumeId(NullColumnValueGetter.getNullURI());
+                        _log.info("Removing boot volume ID from host: {}", host.forDisplay());
+                        _dbClient.updateObject(host);
+                    }
+                }                
+                
                 ArgValidator.checkReference(Volume.class, volumeURI, blockServiceApi.checkForDelete(volume, excludeTypes));
             }
 
@@ -2154,6 +2201,12 @@ public class BlockService extends TaskResourceService {
                 throw APIException.badRequests.cantDeleteFullCopyNotDetached(volume.getLabel());
             }
         }
+
+        // since we issue one controller request per storage system, we must give each storage system
+        // a separate task id. Otherwise, we will create multiple workflows with the same task id
+        // which is not allowed.
+        // this maps task ids to their storage systems
+        Map<URI, String> systemURITaskIdMap = new HashMap<URI, String>();
 
         // Now loop over the volumes, initializing the above constructs.
         for (Volume volume : volumes) {
@@ -2171,6 +2224,11 @@ public class BlockService extends TaskResourceService {
                 } else {
                     systemURI = volume.getStorageController();
                 }
+
+                if (systemURITaskIdMap.get(systemURI) == null) {
+                    systemURITaskIdMap.put(systemURI, UUID.randomUUID().toString());
+                }
+                String task = systemURITaskIdMap.get(systemURI);
 
                 // Create a task resource response for this volume and
                 // set the initial task state to pending.
@@ -2212,13 +2270,14 @@ public class BlockService extends TaskResourceService {
                 volume.setInactive(true);
                 _dbClient.persistObject(volume);
             }
-
+            
         }
 
         // Try and delete the volumes on each system.
         Iterator<URI> systemsURIIter = systemVolumesMap.keySet().iterator();
         while (systemsURIIter.hasNext()) {
             URI systemURI = systemsURIIter.next();
+            String task = systemURITaskIdMap.get(systemURI);
             try {
                 List<URI> systemVolumes = systemVolumesMap.get(systemURI);
                 BlockServiceApi blockServiceApi = getBlockServiceImpl(queryVolumeResource(systemVolumes.get(0)));
@@ -2787,8 +2846,15 @@ public class BlockService extends TaskResourceService {
      *            the URN of a ViPR Source volume
      * @param param
      *            List of copies to deactivate
-     * @param deleteType
-     *            the type of deletion
+     * @param type {@link DefaultValue} FULL
+     *            Possible type of deletion
+     *            <ul>
+     *            <li>FULL</li>
+     *            <li>VIPR_ONLY</li>
+     *            </ul>
+     *            if type is FULL, ViPR deletes the continuous copy from storage array and removes from ViPR data base.
+     *            if type is VIPR_ONLY, ViPR removes the continuous copy only from ViPR data base and leaves the continuous copy on storage
+     *            array as it is.
      *
      * @brief Delete continuous copies
      * @return TaskList
@@ -2920,15 +2986,14 @@ public class BlockService extends TaskResourceService {
         // operation against the volume
         checkForPendingTasks(Arrays.asList(volume.getTenant().getURI()), Arrays.asList(volume));
 
-        String task = UUID.randomUUID().toString();
-        Operation status = new Operation();
-        status.setResourceType(ProtectionOp.getResourceOperationTypeEnum(op));
-        _dbClient.createTaskOpStatus(Volume.class, volume.getId(), task, status);
-
         if (Volume.isSRDFProtectedVolume(copyVolume)) {
 
             if (op.equalsIgnoreCase(ProtectionOp.FAILOVER_TEST_CANCEL.getRestOp()) ||
                     op.equalsIgnoreCase(ProtectionOp.FAILOVER_TEST.getRestOp())) {
+                String task = UUID.randomUUID().toString();
+                Operation status = new Operation();
+                status.setResourceType(ProtectionOp.getResourceOperationTypeEnum(op));
+                _dbClient.createTaskOpStatus(Volume.class, volume.getId(), task, status);
                 _dbClient.ready(Volume.class, volume.getId(), task);
                 return toTask(volume, task, status);
             }
@@ -2956,6 +3021,17 @@ public class BlockService extends TaskResourceService {
                 }
             }
 
+            // COP-25377. We need to block failover and swap operations for SRDF ACTIVE COPY MODE
+            if (Mode.ACTIVE.toString().equalsIgnoreCase(copyVolume.getSrdfCopyMode())
+                    && (op.equalsIgnoreCase(ProtectionOp.FAILOVER_CANCEL.getRestOp()) ||
+                            op.equalsIgnoreCase(ProtectionOp.FAILOVER.getRestOp()) || op.equalsIgnoreCase(ProtectionOp.SWAP.getRestOp()))) {
+                throw BadRequestException.badRequests.operationNotPermittedOnSRDFActiveCopyMode(op);
+            }
+
+            String task = UUID.randomUUID().toString();
+            Operation status = new Operation();
+            status.setResourceType(ProtectionOp.getResourceOperationTypeEnum(op));
+            _dbClient.createTaskOpStatus(Volume.class, volume.getId(), task, status);
             /*
              * CTRL-6972: In the absence of a /restore API, we re-use /sync with a syncDirection parameter for
              * specifying either SMI-S Resume or Restore:
@@ -2973,12 +3049,12 @@ public class BlockService extends TaskResourceService {
             StorageSystem system = _dbClient.queryObject(StorageSystem.class,
                     copyVolume.getStorageController());
             protectionController.performSRDFProtectionOperation(system.getId(), copy, op, task);
+            return toTask(volume, task, status);
         } else {
             throw new ServiceCodeException(ServiceCode.IO_ERROR,
                     "Volume {0} is not SRDF protected",
                     new Object[] { copyVolume.getNativeGuid() });
         }
-        return toTask(volume, task, status);
     }
 
     private void validateVpoolCopyModeSetting(Volume srcVolume, String newCopyMode) {
@@ -3069,6 +3145,15 @@ public class BlockService extends TaskResourceService {
 
         if (op.equalsIgnoreCase(ProtectionOp.SWAP.getRestOp()) && !NullColumnValueGetter.isNullURI(volume.getConsistencyGroup())) {
             ExportUtils.validateConsistencyGroupBookmarksExported(_dbClient, volume.getConsistencyGroup());
+        }
+
+        // Make sure the source and failover target share the same consistency group (applies to change access mode, failover, and failover
+        // cancel operations)
+        if ((op.equalsIgnoreCase(ProtectionOp.CHANGE_ACCESS_MODE.getRestOp()) || op.equalsIgnoreCase(ProtectionOp.FAILOVER.getRestOp()) || op
+                .equalsIgnoreCase(ProtectionOp.FAILOVER_CANCEL.getRestOp()))
+                && !NullColumnValueGetter.isNullURI(volume.getConsistencyGroup())
+                && !volume.getConsistencyGroup().equals(copyVolume.getConsistencyGroup())) {
+            throw APIException.badRequests.invalidConsistencyGroupsForProtectionOperation();
         }
 
         // Catch any attempts to use an invalid access mode
@@ -4815,9 +4900,9 @@ public class BlockService extends TaskResourceService {
      *
      * @prereq none
      *
-     * @param vid
-     *            Volume identifier
      * @param id
+     *            Volume identifier
+     * @param pid
      *            the URN of a ViPR ProtectionSet
      *
      * @brief Show protection set
@@ -4825,12 +4910,12 @@ public class BlockService extends TaskResourceService {
      */
     @GET
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @Path("/{vid}/protection/protection-sets/{id}")
+    @Path("/{id}/protection/protection-sets/{pid}")
     @CheckPermission(roles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, acls = { ACL.ANY })
-    public ProtectionSetRestRep getProtectionSet(@PathParam("vid") URI vid, @PathParam("id") URI id) {
-        validateProtectionSetUri(vid, id);
-        _log.info("Getting protection set for ID: " + id);
-        ProtectionSet protectionSet = queryProtectionSetResource(id);
+    public ProtectionSetRestRep getProtectionSet(@PathParam("id") URI id, @PathParam("pid") URI pid) {
+        validateProtectionSetUri(id, pid);
+        _log.info("Getting protection set for ID: " + pid);
+        ProtectionSet protectionSet = queryProtectionSetResource(pid);
         _log.info("Protection set status: " + protectionSet.getProtectionStatus());
         return map(protectionSet);
     }
@@ -4851,7 +4936,6 @@ public class BlockService extends TaskResourceService {
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/protection/addJournalCapacity")
-    @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.ANY })
     public TaskList addJournalCapacity(VolumeCreate param) throws InternalException {
         ArgValidator.checkFieldNotNull(param, "volume_create");
 
@@ -5530,6 +5614,7 @@ public class BlockService extends TaskResourceService {
     /**
      * Validate volume being expanded is not an SRDF volume with snapshots attached,
      * which isn't handled.
+     * Also make sure that the SRDF Copy Mode is not Active.
      *
      * @param volume
      *            -- Volume being expanded
@@ -5559,6 +5644,9 @@ public class BlockService extends TaskResourceService {
                 if (BlockSnapshotSessionUtils.volumeHasSnapshotSession(targetVolume, _dbClient)
                         || BlockSnapshotSessionUtils.volumeHasSnapshotSession(targetVolume, _dbClient)) {
                     throw BadRequestException.badRequests.cannotExpandSRDFVolumeWithSnapshots(targetVolume.getLabel());
+                }
+                if (Mode.ACTIVE.equals(Mode.valueOf(targetVolume.getSrdfCopyMode()))) {
+                    throw BadRequestException.badRequests.cannotExpandSRDFActiveVolume(srdfVolume.getLabel());
                 }
             }
         }

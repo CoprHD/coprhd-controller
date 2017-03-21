@@ -2,9 +2,7 @@
  * Copyright (c) 2012 EMC Corporation
  * All Rights Reserved
  */
-
 package com.emc.storageos.db.client.impl;
-
 
 import java.nio.ByteBuffer;
 import java.util.UUID;
@@ -12,15 +10,14 @@ import java.util.UUID;
 /**
  * Composite column name for all index entries
  */
-public class IndexColumnName {
-    private String _one;
+public class IndexColumnName implements CompositeIndexColumnName {
+	private String _one;
     private String _two;
     private String _three;
     private String _four;
     private UUID _timeUUID;
-    
     private ByteBuffer value;
-
+    
     public IndexColumnName() {
     }
 
@@ -59,22 +56,27 @@ public class IndexColumnName {
         this.value = value;
     }
 
+    @Override
     public String getOne() {
         return _one;
     }
 
+    @Override
     public String getTwo() {
         return _two;
     }
 
+    @Override
     public String getThree() {
         return _three;
     }
 
+    @Override
     public String getFour() {
         return _four;
     }
 
+    @Override
     public UUID getTimeUUID() {
         return _timeUUID;
     }

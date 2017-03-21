@@ -18,21 +18,21 @@ public class NfsACL implements Serializable {
      * response data attributes.
      */
 
-    private String fSMountPath;
+    private String fsMountPath;
     private String subDir;
 
     private List<NfsACE> nfsAces;
 
     @XmlElement(name = "mount_path")
     public String getFSMountPath() {
-        return fSMountPath;
+        return fsMountPath;
     }
 
-    public void setFSMountPath(String fSMountPath) {
-        this.fSMountPath = fSMountPath;
+    public void setFSMountPath(String fsMountPath) {
+        this.fsMountPath = fsMountPath;
     }
 
-    @XmlElement(name = "subDir")
+    @XmlElement(name = "sub_dir")
     public String getSubDir() {
         return subDir;
     }
@@ -50,30 +50,36 @@ public class NfsACL implements Serializable {
         this.nfsAces = nfsAces;
     }
 
+
+
+    public NfsACL(String path, List<NfsACE> nfsAces) {
+        this.fsMountPath = path;
+        this.nfsAces = nfsAces;
+    }
+
+    public NfsACL() {
+    }
+
     @Override
     public String toString() {
         StringBuilder builder = new StringBuilder();
         builder.append("NfsACL [");
-        if (fSMountPath != null) {
-            builder.append("mount_path=");
-            builder.append(fSMountPath);
+        if (fsMountPath != null) {
+            builder.append("fsMountPath=");
+            builder.append(fsMountPath);
+            builder.append(", ");
+        }
+        if (subDir != null) {
             builder.append("subDir=");
             builder.append(subDir);
             builder.append(", ");
         }
-
+        if (nfsAces != null) {
+            builder.append("nfsAces=");
+            builder.append(nfsAces);
+        }
         builder.append("]");
         return builder.toString();
-    }
-
-    public NfsACL(String path, List<NfsACE> nfsAces) {
-        this.fSMountPath = path;
-        this.nfsAces = nfsAces;
-
-    }
-
-    public NfsACL() {
-        // TODO Auto-generated constructor stub
     }
 
 }

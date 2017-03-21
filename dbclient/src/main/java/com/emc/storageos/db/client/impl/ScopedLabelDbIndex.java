@@ -13,7 +13,7 @@ import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.model.*;
 
-public class ScopedLabelDbIndex extends DbIndex {
+public class ScopedLabelDbIndex extends DbIndex<IndexColumnName> {
     private static final Logger _log = LoggerFactory.getLogger(ScopedLabelDbIndex.class);
 
     // minimum number of characters required for prefix indexing
@@ -38,14 +38,14 @@ public class ScopedLabelDbIndex extends DbIndex {
         // scoped row key
         String scopedRowKey = getRowKey(column, scopedLabel);
         IndexColumnName indexEntry = new IndexColumnName(className, label.toLowerCase(),
-                label, recordKey, mutator.getTimeUUID());
+                label, recordKey, column.getTimeUUID());
 
         mutator.insertIndexColumn(indexCF.getName(), scopedRowKey, indexEntry, null);
 
         // unscoped row key for global search
         String rowKey = getRowKey(label);
         indexEntry = new IndexColumnName(className,
-                label.toLowerCase(), label, recordKey, mutator.getTimeUUID());
+                label.toLowerCase(), label, recordKey, column.getTimeUUID());
 
         mutator.insertIndexColumn(indexCF.getName(), rowKey, indexEntry, null);
 

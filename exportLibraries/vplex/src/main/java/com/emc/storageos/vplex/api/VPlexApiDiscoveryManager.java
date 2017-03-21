@@ -33,6 +33,9 @@ public class VPlexApiDiscoveryManager {
     // A reference to the API client.
     private VPlexApiClient _vplexApiClient;
 
+    // initiator info cache by cluster name
+    private volatile Map<String, List<VPlexInitiatorInfo>> _vplexClusterInitiatorInfoCache = new HashMap<String, List<VPlexInitiatorInfo>>();
+
     /**
      * Package protected constructor.
      * 
@@ -305,6 +308,7 @@ public class VPlexApiDiscoveryManager {
      * @param shallow true to get just the name and path for each cluster, false
      *            to get additional info about the systems and volumes.
      * @param getStorageVolumeAtts true to get the storage volume attributes, false otherwise.
+     * @param clusterToGet if non-null, will only return VPlexClusterInfo for the named cluster.
      * 
      * @return A list of VPlexClusterInfo specifying the info for the VPlex
      *         clusters.
@@ -313,7 +317,7 @@ public class VPlexApiDiscoveryManager {
      *             an error occurs processing the response.
      */
 
-    List<VPlexClusterInfo> getClusterInfo(boolean shallow, boolean getStorageVolumeAtts)
+    List<VPlexClusterInfo> getClusterInfo(boolean shallow, boolean getStorageVolumeAtts, String clusterToGet)
             throws VPlexApiException {
 
         // Get the URI for the cluster info request and make the request.
@@ -337,6 +341,16 @@ public class VPlexApiDiscoveryManager {
             List<VPlexClusterInfo> clusterInfoList = VPlexApiUtils.getResourcesFromResponseContext(
                     VPlexApiConstants.URI_CLUSTERS.toString(), responseStr,
                     VPlexClusterInfo.class);
+
+            if (null != clusterToGet) {
+                Iterator<VPlexClusterInfo> clusterInfoIterator = clusterInfoList.iterator();
+                while (clusterInfoIterator.hasNext()) {
+                    VPlexClusterInfo clusterInfo = clusterInfoIterator.next();
+                    if (!clusterToGet.equals(clusterInfo.getName())) {
+                        clusterInfoIterator.remove();
+                    }
+                }
+            }
 
             if (!shallow) {
                 for (VPlexClusterInfo clusterInfo : clusterInfoList) {
@@ -510,7 +524,7 @@ public class VPlexApiDiscoveryManager {
                     s_logger.info("Find extent for volume {}", storageVolumeName);
                     List<VPlexExtentInfo> clusterExtentInfoList = getExtentInfoForCluster(storageVolumeInfo.getClusterId());
                     for (VPlexExtentInfo extentInfo : clusterExtentInfoList) {
-                        s_logger.info("Extent Info: {}", extentInfo.toString());
+                        s_logger.debug("Extent Info: {}", extentInfo.toString());
                         StringBuilder nameBuilder = new StringBuilder();
                         nameBuilder.append(VPlexApiConstants.EXTENT_PREFIX);
                         nameBuilder.append(storageVolumeName);
@@ -620,7 +634,7 @@ public class VPlexApiDiscoveryManager {
             s_logger.info("Extents Request URI is {}", requestURI.toString());
             response = _vplexApiClient.get(requestURI);
             String responseStr = response.getEntity(String.class);
-            s_logger.info("Response is {}", responseStr);
+            s_logger.debug("Response is {}", responseStr);
             if (response.getStatus() != VPlexApiConstants.SUCCESS_STATUS) {
                 throw new VPlexApiException(String.format(
                         "Failed getting info for VPlex extents with status: %s",
@@ -674,7 +688,7 @@ public class VPlexApiDiscoveryManager {
                     // Get the devices on the cluster for this extent.
                     List<VPlexDeviceInfo> clusterDeviceInfoList = getLocalDeviceInfoOnCluster(storageVolumeInfo.getClusterId());
                     for (VPlexDeviceInfo deviceInfo : clusterDeviceInfoList) {
-                        s_logger.info("Device Info: {}", deviceInfo.toString());
+                        s_logger.debug("Device Info: {}", deviceInfo.toString());
                         if (deviceInfo.getName().equals(deviceNameBuilder.toString())) {
                             s_logger.info("Found device for extent {}", extentInfo.getName());
                             deviceFound = true;
@@ -782,7 +796,7 @@ public class VPlexApiDiscoveryManager {
             s_logger.info("Devices Request URI is {}", requestURI.toString());
             response = _vplexApiClient.get(requestURI);
             String responseStr = response.getEntity(String.class);
-            s_logger.info("Response is {}", responseStr);
+            s_logger.debug("Response is {}", responseStr);
             if (response.getStatus() != VPlexApiConstants.SUCCESS_STATUS) {
                 throw new VPlexApiException(String.format(
                         "Failed getting info for VPlex devices with status: %s",
@@ -842,7 +856,7 @@ public class VPlexApiDiscoveryManager {
             try {
                 List<VPlexDistributedDeviceInfo> deviceInfoList = getDistributedDeviceInfo();
                 for (VPlexDistributedDeviceInfo deviceInfo : deviceInfoList) {
-                    s_logger.info("Distributed Device Info: {}", deviceInfo.toString());
+                    s_logger.debug("Distributed Device Info: {}", deviceInfo.toString());
                     if (deviceInfo.getName().equals(deviceName)) {
                         s_logger.info("Found distributed device {}", deviceName);
                         distributedDeviceInfo = deviceInfo;
@@ -962,7 +976,7 @@ public class VPlexApiDiscoveryManager {
             try {
                 List<VPlexVirtualVolumeInfo> clusterVolumeInfoList = getVirtualVolumesForCluster(clusterId);
                 for (VPlexVirtualVolumeInfo volumeInfo : clusterVolumeInfoList) {
-                    s_logger.info("Virtual volume Info: {}", volumeInfo.toString());
+                    s_logger.debug("Virtual volume Info: {}", volumeInfo.toString());
                     if (volumeInfo.getName().equals(volumeName)) {
                         s_logger.info("Found virtual volume {}", volumeInfo.getName());
                         return volumeInfo;
@@ -1054,7 +1068,7 @@ public class VPlexApiDiscoveryManager {
                     List<VPlexVirtualVolumeInfo> clusterVolumeInfoList = clusterToVirtualVolumeMap
                             .get(virtualVolumeInfo.getClusters().get(0));
                     for (VPlexVirtualVolumeInfo volumeInfo : clusterVolumeInfoList) {
-                        s_logger.info("Virtual volume Info: {}", volumeInfo.toString());
+                        s_logger.debug("Virtual volume Info: {}", volumeInfo.toString());
                         if (volumeInfo.getName().equals(virtualVolumeInfo.getName())) {
                             s_logger.info("Found virtual volume {}", volumeInfo.getName());
                             foundVirtualVolumes.put(virtualVolumeInfo.getName(), volumeInfo);
@@ -1204,7 +1218,7 @@ public class VPlexApiDiscoveryManager {
         s_logger.info("Storage Volumes Request URI is {}", requestURI.toString());
         ClientResponse response = _vplexApiClient.get(requestURI, responseJsonFormat);
         String responseStr = response.getEntity(String.class);
-        s_logger.info("Response is {}", responseStr);
+        s_logger.debug("Response is {}", responseStr);
         int status = response.getStatus();
         response.close();
 
@@ -1249,7 +1263,7 @@ public class VPlexApiDiscoveryManager {
         s_logger.info("Logging Volumes Request URI is {}", requestURI.toString());
         ClientResponse response = _vplexApiClient.get(requestURI);
         String responseStr = response.getEntity(String.class);
-        s_logger.info("Response is {}", responseStr);
+        s_logger.debug("Response is {}", responseStr);
         int status = response.getStatus();
         response.close();
         if (status != VPlexApiConstants.SUCCESS_STATUS) {
@@ -1293,10 +1307,10 @@ public class VPlexApiDiscoveryManager {
         uriBuilder.append(VPlexApiConstants.URI_SYSTEM_VOLUMES.toString());
         uriBuilder.append(systemVolumeName);
         URI requestURI = _vplexApiClient.getBaseURI().resolve(URI.create(uriBuilder.toString()));
-        s_logger.info("System Volume Info Request URI is {}", requestURI.toString());
+        s_logger.debug("System Volume Info Request URI is {}", requestURI.toString());
         ClientResponse response = _vplexApiClient.get(requestURI);
         String responseStr = response.getEntity(String.class);
-        s_logger.info("Response is {}", responseStr);
+        s_logger.debug("Response is {}", responseStr);
         int status = response.getStatus();
         response.close();
         if (status != VPlexApiConstants.SUCCESS_STATUS) {
@@ -1309,7 +1323,7 @@ public class VPlexApiDiscoveryManager {
         // system volume info.
         try {
             VPlexApiUtils.setAttributeValues(responseStr, systemVolumeInfo);
-            s_logger.info("Updated System Volume Info {}", systemVolumeInfo.toString());
+            s_logger.debug("Updated System Volume Info {}", systemVolumeInfo.toString());
         } catch (Exception e) {
             throw new VPlexApiException(String.format(
                     "Error processing system volume information: %s", e.getMessage()), e);
@@ -1552,48 +1566,54 @@ public class VPlexApiDiscoveryManager {
     }
 
     /**
-     * Gets all initiators on the cluster with the passed name.
+     * Returns a cached List of VPlexInitiatorInfo objects for the cluster.
      * 
-     * @param clusterName The name of the cluster.
-     * 
-     * @return A list of VPlexInitiatorInfo instances specifying the initiator
-     *         information.
-     * 
-     * @throws VPlexApiException When an error occurs getting the initiators on
-     *             the cluster.
+     * @param clusterName indicates which VPlex cluster to check
+     * @return a List of VPlexInitiatorInfos for the given cluster
      */
-    List<VPlexInitiatorInfo> getInitiatorInfoForCluster(String clusterName)
-            throws VPlexApiException {
+    synchronized List<VPlexInitiatorInfo> getInitiatorInfoForCluster(String clusterName) {
+        if (!_vplexClusterInitiatorInfoCache.containsKey(clusterName) ||
+                _vplexClusterInitiatorInfoCache.get(clusterName) == null ||
+                _vplexClusterInitiatorInfoCache.get(clusterName).isEmpty()) {
+            long start = System.currentTimeMillis();
+            s_logger.info("refreshing VPlexInitiatorInfo cache for cluster " + clusterName);
 
-        // Get the URI for the initiator info request and make the request.
-        StringBuilder uriBuilder = new StringBuilder();
-        uriBuilder.append(VPlexApiConstants.URI_CLUSTERS.toString());
-        uriBuilder.append(clusterName);
-        uriBuilder.append(VPlexApiConstants.URI_INITIATORS.toString());
-        uriBuilder.append(VPlexApiConstants.WILDCARD.toString());
-        URI requestURI = _vplexApiClient.getBaseURI().resolve(
-                URI.create(uriBuilder.toString()));
-        s_logger.info("Initiators Request URI is {}", requestURI.toString());
-        ClientResponse response = _vplexApiClient.get(requestURI, VPlexApiConstants.ACCEPT_JSON_FORMAT_1);
-        String responseStr = response.getEntity(String.class);
-        int status = response.getStatus();
-        response.close();
+            // Get the URI for the initiator info request and make the request.
+            StringBuilder uriBuilder = new StringBuilder();
+            uriBuilder.append(VPlexApiConstants.URI_CLUSTERS.toString());
+            uriBuilder.append(clusterName);
+            uriBuilder.append(VPlexApiConstants.URI_INITIATORS.toString());
+            uriBuilder.append(VPlexApiConstants.WILDCARD.toString());
+            URI requestURI = _vplexApiClient.getBaseURI().resolve(URI.create(uriBuilder.toString()));
+            s_logger.info("Initiators Request URI is {}", requestURI.toString());
+            ClientResponse response = _vplexApiClient.get(requestURI, VPlexApiConstants.ACCEPT_JSON_FORMAT_1);
+            s_logger.info("TIMER: fetching all initiators for cluster {} took {}ms", clusterName, System.currentTimeMillis() - start);
+            String responseStr = response.getEntity(String.class);
+            int status = response.getStatus();
+            response.close();
 
-        if (status == VPlexApiConstants.SUCCESS_STATUS) {
-            try {
-                return VPlexApiUtils.getResourcesFromResponseContext(
-                        uriBuilder.toString(), responseStr, VPlexInitiatorInfo.class);
-            } catch (Exception e) {
-                throw VPlexApiException.exceptions.errorProcessingInitiatorInformation(e.getLocalizedMessage());
+            if (status == VPlexApiConstants.SUCCESS_STATUS) {
+                try {
+                    List<VPlexInitiatorInfo> clusterInitiatorInfo = VPlexApiUtils.getResourcesFromResponseContext(
+                            uriBuilder.toString(), responseStr, VPlexInitiatorInfo.class);
+                    _vplexClusterInitiatorInfoCache.put(clusterName, clusterInitiatorInfo);
+                } catch (Exception e) {
+                    throw VPlexApiException.exceptions.errorProcessingInitiatorInformation(e.getLocalizedMessage());
+                }
+            } else if (status == VPlexApiConstants.NOT_FOUND_STATUS) {
+                // return an empty list rather than an error
+                s_logger.info("VPLEX returned a 404 Not Found for this context, returning an empty list instead.");
+                return new ArrayList<VPlexInitiatorInfo>();
+            } else {
+                throw VPlexApiException.exceptions
+                        .failedGettingInitiatorInfoForCluster(clusterName, String.valueOf(status));
             }
-        } else if (status == VPlexApiConstants.NOT_FOUND_STATUS) {
-            // return an empty list rather than an error
-            s_logger.info("VPLEX returned a 404 Not Found for this context, returning an empty list instead.");
-            return new ArrayList<VPlexInitiatorInfo>();
-        } else {
-            throw VPlexApiException.exceptions
-                    .failedGettingInitiatorInfoForCluster(clusterName, String.valueOf(status));
+
+            s_logger.info("TIMER: refreshing VPlexInitiatorInfo cache took {}ms", System.currentTimeMillis() - start);
         }
+
+        // return a copy
+        return new ArrayList<VPlexInitiatorInfo>(_vplexClusterInitiatorInfoCache.get(clusterName));
     }
 
     /**
@@ -1620,7 +1640,7 @@ public class VPlexApiDiscoveryManager {
         s_logger.info("Initiator Info Request URI is {}", requestURI.toString());
         ClientResponse response = _vplexApiClient.get(requestURI);
         String responseStr = response.getEntity(String.class);
-        s_logger.info("Response is {}", responseStr);
+        s_logger.debug("Response is {}", responseStr);
         int status = response.getStatus();
         response.close();
         if (status != VPlexApiConstants.SUCCESS_STATUS) {
@@ -1664,7 +1684,7 @@ public class VPlexApiDiscoveryManager {
             response = _vplexApiClient.post(requestURI,
                     postDataObject.toString());
             String responseStr = response.getEntity(String.class);
-            s_logger.info("Initiator discovery response is {}", responseStr);
+            s_logger.debug("Initiator discovery response is {}", responseStr);
             if (response.getStatus() != VPlexApiConstants.SUCCESS_STATUS) {
                 if (response.getStatus() == VPlexApiConstants.ASYNC_STATUS) {
                     _vplexApiClient.waitForCompletion(response);
@@ -1712,7 +1732,7 @@ public class VPlexApiDiscoveryManager {
         s_logger.info("Targets Request URI is {}", requestURI.toString());
         ClientResponse response = _vplexApiClient.get(requestURI, VPlexApiConstants.ACCEPT_JSON_FORMAT_1);
         String responseStr = response.getEntity(String.class);
-        s_logger.info("Response is {}", responseStr);
+        s_logger.debug("Response is {}", responseStr);
         int status = response.getStatus();
         response.close();
 
@@ -1799,7 +1819,7 @@ public class VPlexApiDiscoveryManager {
                                 VPlexStorageViewInfo.class);
                 storageViewInfo = null;
                 for (VPlexStorageViewInfo clusterStorageViewInfo : storageViewInfoList) {
-                    s_logger.info("Storage View Info: {}", clusterStorageViewInfo.toString());
+                    s_logger.debug("Storage View Info: {}", clusterStorageViewInfo.toString());
                     if (clusterStorageViewInfo.getName().equals(viewName)) {
                         storageViewInfo = clusterStorageViewInfo;
                         storageViewInfo.setClusterId(clusterName);
@@ -2656,7 +2676,7 @@ public class VPlexApiDiscoveryManager {
      * @param nativeVolumeInfoList The native volume information for the
      *            storage volumes to be forgotten.
      */
-    void forgetVolumes(List<VolumeInfo> nativeVolumeInfoList) {
+    void forgetVolumes(List<VolumeInfo> nativeVolumeInfoList) throws Exception {
 
         // For the volumes to be forgotten, map them by their
         // storage system Guids.
@@ -2718,14 +2738,16 @@ public class VPlexApiDiscoveryManager {
                     s_logger.info("Forget volumes is completing asynchronously");
                     _vplexApiClient.waitForCompletion(response);
                 } else {
-                    s_logger.error("Request to forget logical units failed with Status: {}",
-                            response.getStatus());
-                    return;
+                    String cause = VPlexApiUtils.getCauseOfFailureFromResponse(responseStr);
+                    String errorMsg = String.format("Forget logical units failed with Status %s: %s",
+                            response.getStatus(), cause);
+                    throw new Exception(errorMsg);
                 }
             }
             s_logger.info("Successfully forgot logical units");
         } catch (Exception e) {
             s_logger.error("Exception forgetting logical units: %s", e.getMessage(), e);
+            throw e;
         }
     }
 
@@ -2939,7 +2961,7 @@ public class VPlexApiDiscoveryManager {
         s_logger.info("Distributed devices Request URI is {}", requestURI.toString());
         ClientResponse response = _vplexApiClient.get(requestURI);
         String responseStr = response.getEntity(String.class);
-        s_logger.info("Response is {}", responseStr);
+        s_logger.debug("Response is {}", responseStr);
         int status = response.getStatus();
         response.close();
         if (status != VPlexApiConstants.SUCCESS_STATUS) {
@@ -3430,25 +3452,21 @@ public class VPlexApiDiscoveryManager {
     }
 
     /**
-     * Returns the top-level supporting device name for a given storage volume native id,
-     * wwn, and backend array serial number. Uses the storage-volume used-by VPLEX CLI
-     * command to do a reverse look up of the parent device for a storage volume
-     * based on the native id, wwn, and array serial number.
+     * Returns the top-level supporting device name for a given storage with the passed 
+     * native storage volume information. Uses the storage-volume used-by VPLEX CLI
+     * command to do a reverse look up of the parent device for a storage volume.
      * 
-     * @param volumeNativeId the storage volume's native id
-     * @param wwn the storage volume's wwn
-     * @param backendArraySerialNum the serial number of the backend array
+     * @param vInfo The native storage volume information.
      * 
      * @return the name of the top level device for the given storage volume
      * @throws VPlexApiException
      */
     @Deprecated
-    public String getDeviceForStorageVolume(String volumeNativeId,
-            String wwn, String backendArraySerialNum) throws VPlexApiException {
+    public String getDeviceForStorageVolume(VolumeInfo vInfo) throws VPlexApiException {
 
         long start = System.currentTimeMillis();
         s_logger.info("Getting device name for array {} volume {} (wwn: {}) from VPLEX at "
-                + _vplexApiClient.getBaseURI().toString(), backendArraySerialNum, volumeNativeId);
+                + vInfo.getStorageSystemNativeGuid(), vInfo.getVolumeNativeId(), vInfo.getVolumeWWN());
 
         StringBuilder contextArgBuilder = new StringBuilder();
         // format /storage-volume+used-by
@@ -3470,11 +3488,11 @@ public class VPlexApiDiscoveryManager {
         // to try to find a storage volume based on the native id, wwn, and array serial number
 
         // the max number of patterns possibly returned by getVolumeNamePattern
-        int numPatterns = 4;
+        int numPatterns = 3;
         boolean success = false;
         String responseStr = "";
         for (int i = 0; i < numPatterns; i++) {
-            String pattern = getVolumeNamePattern(i, volumeNativeId, wwn, backendArraySerialNum);
+            String pattern = getVolumeNamePattern(i, vInfo);
             Map<String, String> argsMap = new HashMap<String, String>();
             argsMap.put(VPlexApiConstants.ARG_DASH_D, contextArg + pattern);
 
@@ -3535,49 +3553,35 @@ public class VPlexApiDiscoveryManager {
      * A storage-volume name pattern generator.
      * 
      * @param i the pattern number to get
-     * @param volumeNativeId the volume's native id
-     * @param wwn the volume's WWN
-     * @param backendArraySerialNum the backend array serial number
+     * @param vInfo The native storage volume information.
      * @return
      */
     @Deprecated
-    private String getVolumeNamePattern(int i, String volumeNativeId,
-            String wwn, String backendArraySerialNum) {
+    private String getVolumeNamePattern(int i, VolumeInfo vInfo) {
         String pattern = "";
 
         switch (i) {
-            case 0:
-                // *[serialnum]*[deviceid] (this is the standard ViPR claimed volume format)
-                pattern = VPlexApiConstants.WILDCARD
-                        + backendArraySerialNum
-                        + VPlexApiConstants.WILDCARD
-                        + volumeNativeId;
-                break;
-            case 1:
-                // *[wwn] (seems by default vols get VPD83T3:wwn for a name)
-                pattern = VPlexApiConstants.WILDCARD
-                        + wwn
-                        + VPlexApiConstants.WILDCARD;
-                break;
-            case 2:
-                // *[wwn].toLowerCase (the used-by command seems to be case-sensitive,
-                // and many vol names are lower case)
-                pattern = VPlexApiConstants.WILDCARD
-                        + wwn.toLowerCase()
-                        + VPlexApiConstants.WILDCARD;
-                break;
-            case 3:
-                // *[wwn].substring(5) (for cases where the wwn was too long for
-                // the 63-char limit, like ViPR claimed Xtremio vols)
-                pattern = VPlexApiConstants.WILDCARD
-                        + wwn.substring(5).toLowerCase()
-                        + VPlexApiConstants.WILDCARD;
+             case 0:
+                 pattern = VPlexApiConstants.WILDCARD 
+                         + vInfo.getVolumeName();
+                 break;
+             case 1:
+                 // *[wwn] (seems by default vols get VPD83T3:wwn for a name)
+                 pattern = VPlexApiConstants.WILDCARD
+                         + vInfo.getVolumeWWN()
+                         + VPlexApiConstants.WILDCARD;
+                 break;
+             case 2:
+                 // *[wwn].toLowerCase (the used-by command seems to be case-sensitive,
+                 // and many vol names are lower case)
+                 pattern = VPlexApiConstants.WILDCARD
+                         + vInfo.getVolumeWWN().toLowerCase()
+                         + VPlexApiConstants.WILDCARD;
                 break;
         }
-
         return pattern;
     }
-
+    
     /**
      * Returns a VPlexDistributedDeviceInfo object for the given device. For each leg,
      * the device geometry (RAID configuration) is analyzed to ensure an acceptable component
@@ -3952,5 +3956,28 @@ public class VPlexApiDiscoveryManager {
         }
         
         return svInfoList;
+    }
+
+    /**
+     * Clears the local VPLEX REST API VPlexInitiatorInfo cache for all clusters.
+     */
+    public synchronized void clearInitiatorCache() {
+        if (_vplexClusterInitiatorInfoCache != null) {
+            _vplexClusterInitiatorInfoCache.clear();
+        }
+    }
+
+    /**
+     * Clears the local VPLEX REST API VPlexInitiatorInfo cache for the given cluster.
+     * 
+     * @param clusterName the cluster to clear initiator info for
+     */
+    public synchronized void clearInitiatorCache(String clusterName) {
+        if (_vplexClusterInitiatorInfoCache != null) {
+            if (_vplexClusterInitiatorInfoCache.get(clusterName) != null) {
+                s_logger.info("clearing initiator cache for vplex cluster " + clusterName);
+                _vplexClusterInitiatorInfoCache.get(clusterName).clear();
+            }
+        }
     }
 }

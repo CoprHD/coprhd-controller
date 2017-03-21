@@ -12,7 +12,7 @@ import com.emc.storageos.db.client.model.*;
 import java.util.List;
 import java.util.Map;
 
-public class PrefixDbIndex extends DbIndex {
+public class PrefixDbIndex extends DbIndex<IndexColumnName> {
     private static final Logger _log = LoggerFactory.getLogger(PrefixDbIndex.class);
 
     // minimum number of characters required for prefix indexing
@@ -33,8 +33,7 @@ public class PrefixDbIndex extends DbIndex {
         }
 
         String indexRowKey = getRowKey(column, text);
-        IndexColumnName indexEntry = new IndexColumnName(className, text.toLowerCase(), text, recordKey, mutator.getTimeUUID());
-
+        IndexColumnName indexEntry = new IndexColumnName(className, text.toLowerCase(), text, recordKey, column.getTimeUUID());
         mutator.insertIndexColumn(indexCF.getName(), indexRowKey, indexEntry, null);
         return true;
     }

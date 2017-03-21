@@ -18,9 +18,12 @@ import java.util.List;
 import java.util.ArrayList;
 import java.util.Map;
 
+
 import com.emc.storageos.db.client.model.NoInactiveIndex;
 
 import org.apache.cassandra.serializers.UTF8Serializer;
+
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -49,12 +52,15 @@ import com.emc.storageos.db.client.model.ScopedLabelIndex;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.Ttl;
 import com.emc.storageos.db.client.model.AggregatedIndex;
+import com.emc.storageos.db.client.model.ClassNameTimeSeries;
+import com.emc.storageos.db.client.model.NoInactiveIndex;
+import com.emc.storageos.db.client.model.TimeSeriesAlternateId;
 import com.emc.storageos.db.exceptions.DatabaseException;
 
 /**
  * Column / data object field type metadata
  */
-public class ColumnField {
+public class ColumnField <T extends CompositeIndexColumnName> {
     private static final Logger _log = LoggerFactory.getLogger(ColumnField.class);
 
     // types of columns object mapper supports
@@ -721,6 +727,16 @@ public class ColumnField {
                 indexCF = new ColumnFamilyDefinition(((AlternateId) a).value(), ColumnFamilyDefinition.ComparatorType.CompositeType,
                         ColumnFamilyDefinition.INDEX_CF_COMPARATOR_NAME);
                 _index = new AltIdDbIndex(indexCF);
+            } else if (a instanceof ClassNameTimeSeries) {
+            	ColumnFamilyDefinition newIndexCF =
+                        new ColumnFamilyDefinition(((ClassNameTimeSeries) a).value(), ColumnFamilyDefinition.ComparatorType.CompositeType,
+                        		ColumnFamilyDefinition.ORDER_CLASSNAME_INDEX_COMPARATOR_NAME);
+                _index = new ClassNameTimeSeriesDBIndex(newIndexCF);
+            } else if (a instanceof TimeSeriesAlternateId) {
+            	ColumnFamilyDefinition newIndexCF =
+                        new ColumnFamilyDefinition(((ClassNameTimeSeries) a).value(), ColumnFamilyDefinition.ComparatorType.CompositeType,
+                        		ColumnFamilyDefinition.ORDER_INDEX_CF_COMPARATOR_NAME);
+                _index = new TimeSeriesDbIndex(newIndexCF);
             } else if (a instanceof NamedRelationIndex) {
                 indexCF = new ColumnFamilyDefinition(((NamedRelationIndex) a).cf(), ColumnFamilyDefinition.ComparatorType.CompositeType,
                         ColumnFamilyDefinition.INDEX_CF_COMPARATOR_NAME);

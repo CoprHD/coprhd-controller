@@ -38,10 +38,9 @@ import static com.datastax.driver.core.querybuilder.QueryBuilder.*;
 
 public class RowMutator {
     private static final Logger log = LoggerFactory.getLogger(RowMutator.class);
-
+    
     private DbClientContext context;
     private BatchStatement atomicBatch;
-    private UUID timeUUID;
     private boolean retryFailedWriteWithLocalQuorum = false;
     private ConsistencyLevel writeCL = null;
 
@@ -59,9 +58,9 @@ public class RowMutator {
     public RowMutator(DbClientContext context, boolean retryWithLocalQuorum) {
         this.context = context;
         this.atomicBatch = new BatchStatement();
-        this.timeUUID = UUIDs.timeBased();
         this.retryFailedWriteWithLocalQuorum = retryWithLocalQuorum;
         this.writeCL = context.getWriteConsistencyLevel();
+        
         /*
          * will consider codeRegistry later.
          * CodecRegistry codecRegistry = CodecRegistry.DEFAULT_INSTANCE;
@@ -88,7 +87,7 @@ public class RowMutator {
         atomicBatch.add(insert);
     }
 
-    public void insertIndexColumn(String tableName, String indexRowKey, IndexColumnName column, Object val) {
+    public void insertIndexColumn(String tableName, String indexRowKey, CompositeIndexColumnName column, Object val) {
         String cqlString = column.getTimeUUID() == null ? String.format(updateIndexFormat_without_uuid, tableName) : String.format(updateIndexFormat, tableName);
         PreparedStatement insertPrepared = context.getPreparedStatement(cqlString);
         BoundStatement insert = insertPrepared.bind();
@@ -118,7 +117,7 @@ public class RowMutator {
         atomicBatch.add(deleteRecord);
     }
 
-    public void deleteIndexColumn(String tableName, String indexRowKey, IndexColumnName column) {
+    public void deleteIndexColumn(String tableName, String indexRowKey, CompositeIndexColumnName column) {
         Delete.Where deleteIndex = delete().from(String.format("\"%s\"", tableName)).where(eq("key", indexRowKey))
                 .and(eq("column1", column.getOne() == null ? StringUtils.EMPTY : column.getOne()))
                 .and(eq("column2", column.getTwo() == null ? StringUtils.EMPTY : column.getTwo()))
@@ -231,7 +230,7 @@ public class RowMutator {
     }
     
     public UUID getTimeUUID() {
-        return timeUUID;
+    	return UUIDs.timeBased();
     }
     
     public void setWriteCL(ConsistencyLevel writeCL) {

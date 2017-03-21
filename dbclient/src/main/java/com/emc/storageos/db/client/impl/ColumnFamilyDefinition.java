@@ -22,6 +22,20 @@ public class ColumnFamilyDefinition {
                     "org.apache.cassandra.db.marshal.UTF8Type," +
                     "org.apache.cassandra.db.marshal.TimeUUIDType)";
     
+    public static final String ORDER_INDEX_CF_COMPARATOR_NAME =
+            "org.apache.cassandra.db.marshal.CompositeType(" +
+                    "org.apache.cassandra.db.marshal.UTF8Type," + // className
+                    "org.apache.cassandra.db.marshal.LongType,"+ // timestamp
+                    "org.apache.cassandra.db.marshal.UTF8Type," + // object ID
+                    "org.apache.cassandra.db.marshal.UTF8Type," +
+                    "org.apache.cassandra.db.marshal.TimeUUIDType)";
+    public static final String ORDER_CLASSNAME_INDEX_COMPARATOR_NAME =
+            "org.apache.cassandra.db.marshal.CompositeType(org.apache.cassandra.db.marshal.UTF8Type,"+ // class name
+                    "org.apache.cassandra.db.marshal.LongType," +    // timestamp
+                    "org.apache.cassandra.db.marshal.UTF8Type," +    // object ID
+                    "org.apache.cassandra.db.marshal.UTF8Type," +    //
+                    "org.apache.cassandra.db.marshal.TimeUUIDType)";
+    
     public static enum ComparatorType {
         CompositeType,
         TimeUUIDType,

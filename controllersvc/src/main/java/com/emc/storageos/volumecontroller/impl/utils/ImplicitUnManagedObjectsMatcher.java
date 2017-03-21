@@ -42,6 +42,7 @@ import com.emc.storageos.volumecontroller.impl.smis.srdf.SRDFUtils;
 import com.emc.storageos.vplex.api.VPlexApiClient;
 import com.emc.storageos.vplex.api.VPlexApiFactory;
 import com.emc.storageos.vplexcontroller.VPlexControllerUtils;
+import com.emc.storageos.vplexcontroller.VplexBackendIngestionContext;
 
 public class ImplicitUnManagedObjectsMatcher {
     private static final String LOCAL = "LOCAL";
@@ -258,6 +259,17 @@ public class ImplicitUnManagedObjectsMatcher {
                                 volume.setSupportedVpoolUris(new StringSet());
                             }
                             volume.getSupportedVpoolUris().add(vpool.getId().toString());
+                            List<UnManagedVolume> backendVols = 
+                                    VplexBackendIngestionContext.findBackendUnManagedVolumes(volume, dbClient);
+                            if (backendVols != null) {
+                                for (UnManagedVolume backendVol : backendVols) {
+                                    if (backendVol.getSupportedVpoolUris() == null) {
+                                        backendVol.setSupportedVpoolUris(new StringSet());
+                                    }
+                                    backendVol.getSupportedVpoolUris().add(vpool.getId().toString());
+                                    modifiedUnManagedVolumes.add(backendVol);
+                                }
+                            }
                             modifiedUnManagedVolumes.add(volume);
                             break;
                         }

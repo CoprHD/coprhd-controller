@@ -13,7 +13,7 @@ import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.model.*;
 
-public class DecommissionedDbIndex extends DbIndex {
+public class DecommissionedDbIndex extends DbIndex<IndexColumnName> {
     private static final Logger _log = LoggerFactory.getLogger(DecommissionedDbIndex.class);
 
     DecommissionedDbIndex(ColumnFamilyDefinition indexCF) {
@@ -25,8 +25,7 @@ public class DecommissionedDbIndex extends DbIndex {
             String className, RowMutator mutator, Integer ttl, DataObject obj) {
 
         String indexRowKey = className;
-        IndexColumnName indexEntry = new IndexColumnName(value.toString(), recordKey, mutator.getTimeUUID());
-
+        IndexColumnName indexEntry = new IndexColumnName(value.toString(), recordKey, column.getTimeUUID());
         mutator.insertIndexColumn(indexCF.getName(), indexRowKey, indexEntry, null);
         return true;
     }

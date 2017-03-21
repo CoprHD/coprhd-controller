@@ -21,6 +21,7 @@ public class DbOfflineEventInfo {
     private static final String KEY_LAST_UPDATE_TIME_IN_MS = "lastUpdateTimeInMS";
     private static final String KEY_LAST_ACTIVE_TIME_IN_MS = "lastActiveTimeInMS";
     private static final String KEY_OFFLINE_TIME_IN_MS = "offlineTimeInMS";
+    private static final String KEY_OFFLINE_ALERT_IN_DAY = "offlineAlertInDay";
     private static final String KEY_FORMAT = "%s_%s";
 
     private Map<String, Long> eventInfo = new HashMap<String, Long>();
@@ -65,6 +66,20 @@ public class DbOfflineEventInfo {
         }
     }
 
+    public Long getOfflineAlertInDay(String nodeId) {
+        String keyOfflineTime = String.format(KEY_FORMAT, nodeId, KEY_OFFLINE_ALERT_IN_DAY);
+        return this.eventInfo.get(keyOfflineTime);
+    }
+
+    public void setKeyOfflineAlertInDay(String nodeId,Long alertDays) {
+        String keyAlertInDay = String.format(KEY_FORMAT, nodeId, KEY_OFFLINE_ALERT_IN_DAY);
+        if (alertDays == null) {
+            this.eventInfo.remove(keyAlertInDay);
+        } else {
+            this.eventInfo.put(keyAlertInDay, alertDays);
+        }
+    }
+
     public Configuration toConfiguration(String configId) {
         ConfigurationImpl config = new ConfigurationImpl();
         config.setKind(Constants.DB_DOWNTIME_TRACKER_CONFIG);
@@ -85,5 +100,9 @@ public class DbOfflineEventInfo {
             this.eventInfo.put(entry.getKey(), (entry.getValue() == null) ? null : Long.parseLong(entry.getValue()));
         }
         log.info("Get DB offline event info from ZK config: {}", eventInfo);
+    }
+
+    public Map<String,Long> getEventInfo() {
+        return eventInfo;
     }
 }

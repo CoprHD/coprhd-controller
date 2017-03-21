@@ -9,7 +9,7 @@ import com.emc.storageos.db.client.model.NamedURI;
 import org.apache.commons.lang3.StringUtils;
 import java.util.*;
 
-public class AggregateDbIndex extends DbIndex {
+public class AggregateDbIndex extends DbIndex<IndexColumnName> {
     private boolean groupGlobal;
     private String[] groupBy;
     private Map<String, ColumnField> groupByFields;

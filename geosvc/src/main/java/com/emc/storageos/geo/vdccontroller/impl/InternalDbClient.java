@@ -8,7 +8,12 @@ import java.io.IOException;
 import java.net.InetAddress;
 import java.net.URI;
 import java.net.UnknownHostException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import javax.management.JMX;
@@ -19,25 +24,21 @@ import javax.management.remote.JMXConnector;
 import javax.management.remote.JMXConnectorFactory;
 import javax.management.remote.JMXServiceURL;
 
-import com.emc.storageos.coordinator.client.model.Constants;
-import com.emc.storageos.coordinator.client.model.Site;
-import com.emc.storageos.coordinator.client.service.DrUtil;
-import com.emc.storageos.management.jmx.recovery.DbManagerOps;
-import com.emc.vipr.model.sys.recovery.DbRepairStatus;
 import org.apache.cassandra.locator.EndpointSnitchInfoMBean;
 import org.apache.cassandra.service.StorageServiceMBean;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.emc.storageos.db.client.impl.DbClientContext;
+import com.emc.storageos.coordinator.client.model.Site;
+import com.emc.storageos.coordinator.client.service.DrUtil;
 import com.emc.storageos.db.client.impl.DbClientImpl;
-import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.VirtualDataCenter;
 import com.emc.storageos.db.client.model.VirtualDataCenter.ConnectionStatus;
 import com.emc.storageos.db.client.model.VirtualDataCenter.GeoReplicationStatus;
-import com.emc.storageos.db.client.util.KeyspaceUtil;
 import com.emc.storageos.db.common.VdcUtil;
 import com.emc.storageos.db.server.geo.GeoInternodeAuthenticatorMBean;
+import com.emc.storageos.management.jmx.recovery.DbManagerOps;
+import com.emc.vipr.model.sys.recovery.DbRepairStatus;
 
 /**
  * Internal db client used for geosvc

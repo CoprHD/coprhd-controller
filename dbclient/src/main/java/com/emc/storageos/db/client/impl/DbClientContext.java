@@ -18,7 +18,9 @@ import java.util.Map.Entry;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 
+<<<<<<< HEAD
 import javax.management.MBeanServerConnection;
 import javax.management.MBeanServerInvocationHandler;
 import javax.management.ObjectName;
@@ -49,10 +51,48 @@ import com.datastax.driver.core.exceptions.ConnectionException;
 import com.datastax.driver.core.exceptions.DriverException;
 import com.datastax.driver.core.policies.RetryPolicy;
 import com.datastax.driver.core.policies.RoundRobinPolicy;
+=======
+import org.apache.cassandra.service.StorageProxy;
+import org.apache.cassandra.thrift.Cassandra;
+import org.apache.cassandra.thrift.KsDef;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+>>>>>>> master
 import com.emc.storageos.coordinator.client.model.Site;
 import com.emc.storageos.coordinator.client.model.SiteState;
 import com.emc.storageos.coordinator.client.service.DrUtil;
 import com.emc.storageos.db.exceptions.DatabaseException;
+<<<<<<< HEAD
+=======
+import com.emc.storageos.services.util.NamedScheduledThreadPoolExecutor;
+import com.netflix.astyanax.AstyanaxContext;
+import com.netflix.astyanax.CassandraOperationCategory;
+import com.netflix.astyanax.CassandraOperationTracer;
+import com.netflix.astyanax.CassandraOperationType;
+import com.netflix.astyanax.Cluster;
+import com.netflix.astyanax.Keyspace;
+import com.netflix.astyanax.KeyspaceTracerFactory;
+import com.netflix.astyanax.connectionpool.ConnectionContext;
+import com.netflix.astyanax.connectionpool.ConnectionPool;
+import com.netflix.astyanax.connectionpool.Host;
+import com.netflix.astyanax.connectionpool.SSLConnectionContext;
+import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
+import com.netflix.astyanax.connectionpool.impl.ConnectionPoolConfigurationImpl;
+import com.netflix.astyanax.connectionpool.impl.ConnectionPoolType;
+import com.netflix.astyanax.ddl.KeyspaceDefinition;
+import com.netflix.astyanax.impl.AstyanaxConfigurationImpl;
+import com.netflix.astyanax.model.ColumnFamily;
+import com.netflix.astyanax.model.ConsistencyLevel;
+import com.netflix.astyanax.partitioner.Murmur3Partitioner;
+import com.netflix.astyanax.partitioner.Partitioner;
+import com.netflix.astyanax.retry.RetryPolicy;
+import com.netflix.astyanax.shallows.EmptyKeyspaceTracer;
+import com.netflix.astyanax.shallows.EmptyKeyspaceTracerFactory;
+import com.netflix.astyanax.thrift.AbstractOperationImpl;
+import com.netflix.astyanax.thrift.ThriftFamilyFactory;
+import com.netflix.astyanax.thrift.ddl.ThriftKeyspaceDefinitionImpl;
+>>>>>>> master
 
 public class DbClientContext {
     
@@ -73,6 +113,11 @@ public class DbClientContext {
     private static final int MAX_QUERY_RETRY = 5;
     private static final int QUERY_RETRY_SLEEP_MS = 1000;
     private static final String LOCAL_HOST = "localhost";
+<<<<<<< HEAD
+=======
+    public static final int DB_THRIFT_PORT = 9160;
+    public static final int GEODB_THRIFT_PORT = 9260;
+>>>>>>> master
     private static final String KEYSPACE_NETWORK_TOPOLOGY_STRATEGY = "NetworkTopologyStrategy";
     private static final int DEFAULT_CONSISTENCY_LEVEL_CHECK_SEC = 30;
 
@@ -82,11 +127,16 @@ public class DbClientContext {
     public static final String GEO_KEYSPACE_NAME = "GeoStorageOS";
     public static final long MAX_SCHEMA_WAIT_MS = 60 * 1000 * 10; // 10 minutes
     public static final int SCHEMA_RETRY_SLEEP_MILLIS = 10 * 1000; // 10 seconds
+<<<<<<< HEAD
     
     private static final String CASSANDRA_HOST_STATE_DOWN = "DOWN";
     
     private static final ConsistencyLevel DEFAULT_READ_CONSISTENCY_LEVEL = ConsistencyLevel.LOCAL_QUORUM;
     private static final ConsistencyLevel DEFAULT_WRITE_CONSISTENCY_LEVEL = ConsistencyLevel.EACH_QUORUM;
+=======
+    private static final int REQUEST_WARNING_THRESHOLD_COUNT = 20000;
+    private static final int REQUEST_MONITOR_INTERVAL_SECOND = 60;
+>>>>>>> master
 
     private int maxConnections = DEFAULT_MAX_CONNECTIONS;
     private int maxConnectionsPerHost = DEFAULT_MAX_CONNECTIONS_PER_HOST;
@@ -224,7 +274,46 @@ public class DbClientContext {
             int hostCount = hosts == null ? 0 : hosts.size();
             log.info(String.format("number of hosts in the hostsupplier for %s is %d", svcName, hostCount));
         }
+<<<<<<< HEAD
         
+=======
+        Partitioner murmur3partitioner = Murmur3Partitioner.get();
+        Map<String, Partitioner> partitioners = new HashMap<>();
+        partitioners.put("org.apache.cassandra.dht.Murmur3Partitioner.class.getCanonicalName()",
+                murmur3partitioner);
+
+        ConsistencyLevel readCL = ConsistencyLevel.CL_LOCAL_QUORUM;
+        ConsistencyLevel writeCL = ConsistencyLevel.CL_EACH_QUORUM;
+
+        ConnectionPoolConfigurationImpl cfg = new ConnectionPoolConfigurationImpl(DEFAULT_CN_POOL_NANE).setMaxConns(maxConnections)
+                .setMaxConnsPerHost(maxConnectionsPerHost).setConnectTimeout(DEFAULT_CONN_TIMEOUT)
+                .setMaxBlockedThreadsPerHost(DEFAULT_MAX_BLOCKED_THREADS).setPartitioner(murmur3partitioner);
+
+        log.info("The client to node is encrypted={}", isClientToNodeEncrypted);
+        if (isClientToNodeEncrypted) {
+            SSLConnectionContext sslContext = getSSLConnectionContext();
+            cfg.setSSLConnectionContext(sslContext);
+        }
+
+        // TODO revisit it to see if we need set different retry policy, timeout, discovery delay etc for geodb
+        keyspaceContext = new AstyanaxContext.Builder().withHostSupplier(hostSupplier)
+                .forCluster(clusterName)
+                .forKeyspace(keyspaceName)
+                .withAstyanaxConfiguration(
+                        new AstyanaxConfigurationImpl().setConnectionPoolType(ConnectionPoolType.ROUND_ROBIN)
+                                .setDiscoveryDelayInSeconds(svcListPoolIntervalSec)
+                                .setDefaultReadConsistencyLevel(readCL)
+                                .setDefaultWriteConsistencyLevel(writeCL)
+                                .setTargetCassandraVersion("2.0").setPartitioners(partitioners)
+                                .setRetryPolicy(retryPolicy))
+                .withConnectionPoolConfiguration(cfg)
+                .withTracerFactory(new KeyspaceTracerFactoryImpl())
+                .withConnectionPoolMonitor(new CustomConnectionPoolMonitor(monitorIntervalSecs))
+                .buildKeyspace(ThriftFamilyFactory.getInstance());
+        keyspaceContext.start();
+        keyspace = keyspaceContext.getClient();
+
+>>>>>>> master
         // Check and reset default write consistency level
         final DrUtil drUtil = new DrUtil(hostSupplier.getCoordinatorClient());
         if (drUtil.isMultivdc()) {
@@ -599,6 +688,7 @@ public class DbClientContext {
         return cassandraSession;
     }
     
+<<<<<<< HEAD
     public PreparedStatement getPreparedStatement(String queryString) {
         if (!prepareStatementMap.containsKey(queryString)) {
             PreparedStatement statement = getSession().prepare(queryString);
@@ -704,6 +794,54 @@ public class DbClientContext {
 
         public void close() {
             // nothing to do
+=======
+    static class KeyspaceTracerFactoryImpl implements KeyspaceTracerFactory {
+        private AtomicLong readOperations = new AtomicLong(0);
+        private AtomicLong writeOperations = new AtomicLong(0);
+        private AtomicLong otherOperations = new AtomicLong(0);
+        private ScheduledExecutorService executor = new NamedScheduledThreadPoolExecutor("DbClientPerformance", 1);
+        
+        public KeyspaceTracerFactoryImpl() {
+            executor.scheduleAtFixedRate(new Runnable() {
+
+                @Override
+                public void run() {
+                    long total = readOperations.get() + writeOperations.get() + otherOperations.get();
+                    if (total > REQUEST_WARNING_THRESHOLD_COUNT) {
+                        log.warn("Performance data of DbClient for last 60 seconds");
+                        log.warn("{} read operations, {} write operations, {} other operations", 
+                                readOperations.get(), writeOperations.get(), otherOperations.get());
+                    }
+                    
+                    readOperations.set(0);
+                    writeOperations.set(0);
+                    otherOperations.set(0);
+                }
+                
+            }, REQUEST_MONITOR_INTERVAL_SECOND, REQUEST_MONITOR_INTERVAL_SECOND, TimeUnit.SECONDS);
+        }
+        
+        @Override
+        public CassandraOperationTracer newTracer(CassandraOperationType type) {
+            increaseCountByType(type);
+            return EmptyKeyspaceTracer.getInstance();
+        }
+
+        @Override
+        public CassandraOperationTracer newTracer(CassandraOperationType type, ColumnFamily<?, ?> columnFamily) {
+            increaseCountByType(type);
+            return EmptyKeyspaceTracer.getInstance();
+        }
+        
+        private void increaseCountByType(CassandraOperationType type) {
+            if (type.getCategory() == CassandraOperationCategory.READ) {
+                readOperations.getAndIncrement();
+            } else if (type.getCategory() == CassandraOperationCategory.WRITE) {
+                writeOperations.getAndIncrement();
+            } else {
+                otherOperations.getAndIncrement();
+            }
+>>>>>>> master
         }
     }
 }

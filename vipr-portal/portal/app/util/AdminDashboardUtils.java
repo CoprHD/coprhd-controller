@@ -23,6 +23,7 @@ import com.emc.vipr.model.sys.healthmonitor.NodeStats;
 import com.emc.vipr.model.sys.healthmonitor.StorageStats;
 import com.emc.vipr.model.sys.licensing.License;
 import com.emc.vipr.model.sys.recovery.DbRepairStatus;
+import com.emc.vipr.model.sys.backup.BackupOperationStatus;
 
 public class AdminDashboardUtils {
 
@@ -39,6 +40,9 @@ public class AdminDashboardUtils {
     private static String CLUSTER_INFO_KEY = "CLUSTER_INFO_KEY";
 
     private static String LICENSE_KEY = "LICENSE_KEY";
+
+    private static String BACKUP_STATUS_LIST_KEY = "BACKUP_STATUS_LIST_KEY";
+    private static String BACKUP_STATUS_LIST_EXPIRES = "1mn";
 
     private static String ASSET_COUNT_EXPIRES = "1mn";
 
@@ -106,6 +110,10 @@ public class AdminDashboardUtils {
 
     public static License getLicense() {
         return LicenseUtils.getLicense();
+    }
+
+    public static Promise<BackupOperationStatus> getBackupStatus() {
+        return CallableHelper.createPromise(new BackupStatusInfo(getSysClient()));
     }
 
     public static Promise<Integer> storageArrayCount() {
@@ -194,6 +202,10 @@ public class AdminDashboardUtils {
 
     public static Date getVirtualStorageArrayCountLastUpdated() {
         return getLastUpdated(VIRTUAL_STORAGE_ARRAY_COUNT_KEY);
+    }
+
+    public static Date getBackupStatusLastUpdated() {
+        return getLastUpdated(BACKUP_STATUS_LIST_KEY);
     }
 
     public static void clearNodeHealthListCache() {
@@ -316,6 +328,20 @@ public class AdminDashboardUtils {
         @Override
         public StorageStats call() throws Exception {
             return client.health().getStorageStats();
+        }
+    }
+
+    public static class BackupStatusInfo extends CachingCallable<BackupOperationStatus> {
+        private ViPRSystemClient client;
+
+        public BackupStatusInfo(ViPRSystemClient client) {
+            super(BACKUP_STATUS_LIST_KEY, BACKUP_STATUS_LIST_EXPIRES);
+            this.client = client;
+        }
+
+        @Override
+        public BackupOperationStatus doCall() throws Exception {
+            return client.backup().getBackupOperationStatus();
         }
     }
 }

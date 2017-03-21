@@ -12,7 +12,7 @@ import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.model.*;
 
-public class NamedRelationDbIndex extends DbIndex {
+public class NamedRelationDbIndex extends DbIndex<IndexColumnName> {
     private static final Logger _log = LoggerFactory.getLogger(NamedRelationDbIndex.class);
 
     NamedRelationDbIndex(ColumnFamilyDefinition indexCF) {
@@ -25,8 +25,7 @@ public class NamedRelationDbIndex extends DbIndex {
         String name = ((NamedURI) value).getName();
 
         String indexRowKey = getRowKey(column, value);
-        IndexColumnName indexEntry = new IndexColumnName(className, name.toLowerCase(), name, recordKey, mutator.getTimeUUID());
-
+        IndexColumnName indexEntry = new IndexColumnName(className, name.toLowerCase(), name, recordKey, column.getTimeUUID());
         mutator.insertIndexColumn(indexCF.getName(), indexRowKey, indexEntry, null);
         return true;
     }

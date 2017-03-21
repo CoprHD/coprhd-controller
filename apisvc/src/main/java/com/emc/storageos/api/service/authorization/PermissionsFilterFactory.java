@@ -118,14 +118,27 @@ public class PermissionsFilterFactory extends AbstractPermissionsFilterFactory {
          */
         private URI getProjectIdFromResourceId(String uri, Class<? extends DataObject> clazz) {
             URI id = URI.create(uri);
+            ProjectResource projObj = null;
+
             DataObject obj = _permissionsHelper.getObjectById(id, clazz);
             if (obj == null) {
                 throw APIException.notFound.unableToFindEntityInURL(id);
             }
-            ProjectResource projObj = (ProjectResource) obj;
-            if (obj.checkInternalFlags(Flag.NO_PUBLIC_ACCESS) || (projObj.getProject() == null)) {
+            projObj = (ProjectResource) obj;
+
+            if ( obj.checkInternalFlags(Flag.INTERNAL_OBJECT) ) {
+                _log.info("Resource {} is an internal resource", id);
+                DataObject parentObj = _permissionsHelper.getParentObject(obj);
+                if (parentObj != null) {
+                    _log.info("Resource {}'s parent is {}", id, parentObj.getId());
+                    projObj = (ProjectResource) parentObj;
+                }
+            }
+
+            if (projObj.getProject() == null) {
                 throw APIException.badRequests.unauthorizedAccessToNonPublicResource();
             }
+
             return projObj.getProject().getURI();
         }
 
@@ -242,6 +255,8 @@ public class PermissionsFilterFactory extends AbstractPermissionsFilterFactory {
                         return getProjectIdFromResourceBlockSnapshotId(uriStr, BlockSnapshotSession.class);
                     } else if (_resourceClazz.isAssignableFrom(StorageSystemTypeService.class)) {
                         return getProjectIdFromResourceId(uriStr, StorageSystemType.class);
+                    } else if (_resourceClazz.isAssignableFrom(Volume.class)) {
+                        return getProjectIdFromResourceId(uriStr, Volume.class);
                     }
                 } else {
                     _log.warn("project id not available for this resource type");

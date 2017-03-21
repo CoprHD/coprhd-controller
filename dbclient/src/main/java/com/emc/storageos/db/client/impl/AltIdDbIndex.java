@@ -11,7 +11,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import com.emc.storageos.db.client.model.*;
 
-public class AltIdDbIndex extends DbIndex {
+public class AltIdDbIndex extends DbIndex<IndexColumnName> {
     private static final Logger _log = LoggerFactory.getLogger(AltIdDbIndex.class);
 
     AltIdDbIndex(ColumnFamilyDefinition indexCF) {
@@ -23,13 +23,12 @@ public class AltIdDbIndex extends DbIndex {
             String className, RowMutator mutator, Integer ttl, DataObject obj) {
         if (value.toString().isEmpty()) {
             // empty string in alternate id field, ignore and continue
-            _log.warn("Empty string in altenate id field: {}", fieldName);
+            _log.warn("Empty string in alternate id field: {}", fieldName);
             return false;
         }
 
         String indexRowKey = getRowKey(column, value);
-        IndexColumnName indexEntry = new IndexColumnName(className, recordKey, mutator.getTimeUUID());
-
+        IndexColumnName indexEntry = new IndexColumnName(className, recordKey, column.getTimeUUID());
         mutator.insertIndexColumn(indexCF.getName(), indexRowKey, indexEntry, null);
 
         return true;

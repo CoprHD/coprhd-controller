@@ -20,6 +20,11 @@ public class FindHostsInCluster extends ViPRExecutionTask<List<HostRestRep>> {
         provideDetailArgs(clusterId);
     }
 
+    public FindHostsInCluster(URI clusterId, String clustername) {
+        this.clusterId = clusterId;
+        provideDetailArgs(clustername);
+    }
+
     @Override
     public List<HostRestRep> executeTask() throws Exception {
         List<HostRestRep> hosts = Lists.newArrayList();

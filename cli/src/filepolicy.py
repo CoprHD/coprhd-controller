@@ -693,7 +693,7 @@ def create_parser(subcommand_parsers, common_parser):
     create_parser.add_argument('-policyschedulefrequency','-plscfr',
                                metavar='<policy_schedule_frequency>',
                                dest='policy_sched_frequnecy',
-                               help='Type of schedule policy e.g minites, hours, days, weeks or months. Default: days',
+                               help='Type of schedule policy e.g minutes, hours, days, weeks or months. Default: days',
                                default = 'days',)
     create_parser.add_argument('-policyschedulerepeat','-plscrp',
         		               metavar='<policy_schedule_repeat>',
@@ -809,7 +809,7 @@ def update_parser(subcommand_parsers, common_parser):
     update_parser.add_argument('-policyschedulefrequency','-plscfr',
                                metavar='<policy_schedule_frequency>',
                                dest='policy_sched_frequnecy',
-                               help='Type of schedule policy e.g minites, hours, days, weeks or months')
+                               help='Type of schedule policy e.g minutes, hours, days, weeks or months')
     update_parser.add_argument('-policyschedulerepeat','-plscrp',
                                metavar='<policy_schedule_repeat>',
                                dest='policy_schedule_repeat',

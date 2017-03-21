@@ -248,7 +248,7 @@ public class CIMObjectPathCreatorFactory extends AbstractCIMObjectPathFactory {
         try {
             // Get all of the Storage Processor Systems associated with the Storage System
             storageProcessorSystemItr = cimConnectionFactory.getConnection(storageDevice).getCimClient()
-                    .associatorInstances(storageSystemPath, null, SYMM_STORAGE_PROCESSOR_SYSTEM, null, null, false, null);
+                    .associatorInstances(storageSystemPath, null, EMC_STORAGE_PROCESSOR_SYSTEM, null, null, false, null);
             while (storageProcessorSystemItr.hasNext()) {
                 CIMInstance cimSPSInstance = storageProcessorSystemItr.next();
                 // Get all of the Protocol Endpoints associated with the Storage Processor System

@@ -1657,7 +1657,7 @@ public class VPlexApiVirtualVolumeManager {
                     _vplexApiClient.waitForCompletion(response);
                 } else {
                     String cause = VPlexApiUtils.getCauseOfFailureFromResponse(responseStr);
-                    throw VPlexApiException.exceptions.setRebuildSetTransferSpeeFailureStatus(
+                    throw VPlexApiException.exceptions.setRebuildSetTransferSpeedFailureStatus(
                             String.valueOf(response.getStatus()), cause);
                 }
             }

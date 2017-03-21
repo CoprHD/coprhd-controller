@@ -10,6 +10,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+import com.emc.storageos.db.client.model.OpStatusMap;
+import com.emc.storageos.db.client.model.Task;
+import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -1275,11 +1278,21 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
         } catch (VcenterControllerException e) {
             log.warn("VcenterControllerException when trying to putHostInMaintenanceMode: " + e.getMessage(), e);
             if (e.getCause() instanceof VcenterObjectNotFoundException) {
-                log.info("did not find the host, considering success");
-                WorkflowStepCompleter.stepSucceded(stepId);
+                if (checkPreviouslyFailedDecommission(host)) {
+                    log.info("did not find the host, considering success based on previous delete host operation");
+                    WorkflowStepCompleter.stepSucceded(stepId);
+                } else {
+                    log.info("did not find the host, considering failure as no previous delete host operation found");
+                    WorkflowStepCompleter.stepFailed(stepId, e);
+                }
             } else if (e.getCause() instanceof VcenterObjectConnectionException) {
-                log.info("host is not connected, considering success");
-                WorkflowStepCompleter.stepSucceded(stepId);
+                if (checkPreviouslyFailedDecommission(host)) {
+                    log.info("host is not connected, considering success based on previous delete host operation");
+                    WorkflowStepCompleter.stepSucceded(stepId);
+                } else {
+                    log.info("host is not connected, considering failure as no previous delete host operation found");
+                    WorkflowStepCompleter.stepFailed(stepId, e);
+                }
             } else {
                 log.error("failure " + e);
                 WorkflowStepCompleter.stepFailed(stepId, e);
@@ -1569,5 +1582,36 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
                     .unableToCheckVMsOnHostBootVolume(host.getBootVolumeId().toString(), host.getHostName(), exception);
             WorkflowStepCompleter.stepFailed(stepId, serviceCoded);
         }
+    }
+
+    /**
+     * To be called as part of a Decommission operation.
+     * Checks if the given Host has a previously failed "DELETE HOST" operation that:
+     *
+     * 1. Is not in pending state (i.e. ignore the current running operation).
+     * 2. Is unrelated to an error where the Host instance was not found in the vCenter.
+     *
+     * @param host  Host instance
+     * @return      true, if a previously failed operation was found, false otherwise.
+     */
+    private boolean checkPreviouslyFailedDecommission(Host host) {
+        OpStatusMap opStatus = host.getOpStatus();
+
+        if (opStatus == null || opStatus.isEmpty()) {
+            return false;
+        }
+
+        for (Map.Entry<String, Operation> entry : opStatus.entrySet()) {
+            Operation op = entry.getValue();
+
+            if (op.getName().equalsIgnoreCase(ResourceOperationTypeEnum.DELETE_HOST.getName()) &&
+                    !op.getStatus().equalsIgnoreCase(Task.Status.pending.toString()) &&
+                    (op.getServiceCode() != null &&
+                            op.getServiceCode() != ServiceCode.VCENTER_CONTROLLER_OBJECT_NOT_FOUND.getCode())) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

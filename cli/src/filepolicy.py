@@ -152,7 +152,7 @@ class FilePolicy(object):
         tenants_access tenants access flag,
         description policy description,
         priority priority of the policys,
-        policyschedulefrequency sType of schedule policy e.g days, week or months,
+        policyschedulefrequency sType of schedule frequency e.g days, week or months,
         policyschedulerepeat policy run on every,
         policyscheduletime Time when policy run,
         policyscheduleweek day of week when policy run,
@@ -239,7 +239,7 @@ class FilePolicy(object):
         tenants_access tenants access flag,
         description policy description,
         priority priority of the policys,
-        policyschedulefrequency sType of schedule policy e.g days, week or months,
+        policyschedulefrequency sType of schedule frequency e.g days, week or months,
         policyschedulerepeat policy run on every,
         policyscheduletime Time when policy run,
         policyscheduleweek day of week when policy run,
@@ -655,8 +655,8 @@ def create_parser(subcommand_parsers, common_parser):
                                help='Policy Description')
     create_parser.add_argument('-priority', '-pr', metavar='<priority>'
                                , dest='priority',
-                               help='Priority of the policy. Valid values are: HIGH, LOW',
-                               choices=['HIGH', 'LOW'])
+                               help='Priority of the policy. Valid values are: High, Normal',
+                               choices=['High', 'Normal'])
     create_parser.add_argument('-num_worker_threads','-wt',
                                metavar='<num_worker_threads>',
                                dest='num_worker_threads',
@@ -693,7 +693,7 @@ def create_parser(subcommand_parsers, common_parser):
     create_parser.add_argument('-policyschedulefrequency','-plscfr',
                                metavar='<policy_schedule_frequency>',
                                dest='policy_sched_frequnecy',
-                               help='Type of schedule policy e.g days, weeks or months. Default: days',
+                               help='Type of schedule frequency e.g minutes, hours, days, weeks or months. Default: days',
                                default = 'days',)
     create_parser.add_argument('-policyschedulerepeat','-plscrp',
         		               metavar='<policy_schedule_repeat>',
@@ -773,8 +773,8 @@ def update_parser(subcommand_parsers, common_parser):
                                help='Policy Description')
     update_parser.add_argument('-priority', '-pr', metavar='<priority>'
                                , dest='priority',
-                               help='Priority of the policy. Valid value: LOW, HIGH',
-                               choices = ['LOW','HIGH'])
+                               help='Priority of the policy. Valid value: Normal, High',
+                               choices = ['Normal','High'])
     update_parser.add_argument('-num_worker_threads','-wt',
                                metavar='<num_worker_threads>',
                                dest='num_worker_threads',
@@ -809,7 +809,7 @@ def update_parser(subcommand_parsers, common_parser):
     update_parser.add_argument('-policyschedulefrequency','-plscfr',
                                metavar='<policy_schedule_frequency>',
                                dest='policy_sched_frequnecy',
-                               help='Type of schedule policy e.g days, weeks or months')
+                               help='Type of schedule frequency e.g minutes, hours, days, weeks or months')
     update_parser.add_argument('-policyschedulerepeat','-plscrp',
                                metavar='<policy_schedule_repeat>',
                                dest='policy_schedule_repeat',

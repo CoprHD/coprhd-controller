@@ -824,8 +824,13 @@ public class DataCollectionJobScheduler {
             // look for tasks older than one hour; this will exclude the discovery job currently being scheduled
             Calendar oneHourAgo = Calendar.getInstance();
             oneHourAgo.setTime(Date.from(LocalDateTime.now().minusHours(1).atZone(ZoneId.systemDefault()).toInstant()));
-            TaskUtils.cleanupPendingTasks(_dbClient, system.getId(), ResourceOperationTypeEnum.DISCOVER_STORAGE_SYSTEM.getName(), URI.create(SYSTEM_TENANT_ID),
-                    oneHourAgo);
+            if (ControllerServiceImpl.DISCOVERY.equalsIgnoreCase(type)) {
+                TaskUtils.cleanupPendingTasks(_dbClient, system.getId(), ResourceOperationTypeEnum.DISCOVER_STORAGE_SYSTEM.getName(), URI.create(SYSTEM_TENANT_ID),
+                        oneHourAgo);
+            } else if (ControllerServiceImpl.METERING.equalsIgnoreCase(type)) {
+                TaskUtils.cleanupPendingTasks(_dbClient, system.getId(), ResourceOperationTypeEnum.METERING_STORAGE_SYSTEM.getName(), URI.create(SYSTEM_TENANT_ID),
+                        oneHourAgo);
+            }
         } else {
             // log a message if the discovery job has been runnig for longer than expected
             long currentTime = System.currentTimeMillis();

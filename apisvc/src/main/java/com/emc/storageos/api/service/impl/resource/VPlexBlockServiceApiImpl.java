@@ -628,10 +628,8 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                     }
 
                     // Also check for snapshot sessions.
-                    List<BlockSnapshotSession> snapSessions = CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient,
-                            BlockSnapshotSession.class,
-                            ContainmentConstraint.Factory.getParentSnapshotSessionConstraint(snapshotSourceVolume.getId()));
-                    if (!snapSessions.isEmpty()) {
+                    List<BlockSnapshotSession> dependentSnapSessions = getDependentSnapshotSessions(snapshotSourceVolume);
+                    if (!dependentSnapSessions.isEmpty()) {
                         return BlockSnapshotSession.class.getSimpleName();
                     }
                 }
@@ -2431,6 +2429,13 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
     @Override
     public void verifyVolumeExpansionRequest(Volume vplexVolume, long newSize) {
         s_logger.info("Verify if VPlex volume {} can be expanded", vplexVolume.getId());
+        
+        // Ensure that the backend volume is present for the expand operation
+        Volume backendVolume = VPlexUtil.getVPLEXBackendVolume(vplexVolume, true, _dbClient);
+        if (backendVolume == null || backendVolume.getInactive()) {
+            throw APIException.badRequests.noBackendVolume(vplexVolume.getLabel());
+        }
+        
         // We try and expand the VPlex volume by natively expanding the
         // backend volumes. However, if native expansion is not supported
         // for the backend volumes, we can always try to expand the VPlex

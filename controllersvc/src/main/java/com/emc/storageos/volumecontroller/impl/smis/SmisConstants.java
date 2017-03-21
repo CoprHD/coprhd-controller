@@ -125,6 +125,7 @@ public interface SmisConstants {
     static final String ISCSI_PROTOCOL_ENDPOINT = "_iSCSIProtocolEndpoint";
     static final String STORAGE_SYSTEM = "_StorageSystem";
     static final String STORAGE_PROCESSOR_SYSTEM = "_StorageProcessorSystem";
+    static final String EMC_STORAGE_PROCESSOR_SYSTEM = "EMC_StorageProcessorSystem";
     static final String LUN_MASKING_VIEW = "_LunMaskingView";
     static final String REPLICATION_SERVICE = "_ReplicationService";
     static final String PROTECTION_SERVICE = "_StorageProtectionService";

@@ -28,7 +28,6 @@ import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.plugins.common.Constants;
-import com.sun.xml.internal.xsom.impl.scd.Iterators.Map;
 
 /**
  * This class will contain functions and properties related to creating CIMObjectPath objects.
@@ -330,17 +329,17 @@ public class CIMObjectPathCreatorFactory extends AbstractCIMObjectPathFactory {
     }
 
     @Override
-    public CIMObjectPath getBlockObjectPath(StorageSystem storage, StorageSystem source, BlockObject blockObject) {
+    public CIMObjectPath getBlockObjectPath(StorageSystem forProvider, StorageSystem source, BlockObject blockObject) {
 
         @SuppressWarnings("rawtypes")
         CIMProperty[] volumeKeys = {
                 cimPropertyFactory.string(CP_CREATION_CLASS_NAME, prefixWithParamName(STORAGE_VOLUME)),
                 cimPropertyFactory.string(CP_DEVICE_ID, blockObject.getNativeId()),
                 cimPropertyFactory.string(CP_SYSTEM_CREATION_CLASS_NAME, prefixWithParamName(STORAGE_SYSTEM)),
-                cimPropertyFactory.string(CP_SYSTEM_NAME, getSystemName(storage))
+                cimPropertyFactory.string(CP_SYSTEM_NAME, getSystemName(source))
         };
         return CimObjectPathCreator.createInstance(null, null, null,
-                cimConnectionFactory.getNamespace(storage), prefixWithParamName(STORAGE_VOLUME), volumeKeys);
+                cimConnectionFactory.getNamespace(forProvider), prefixWithParamName(STORAGE_VOLUME), volumeKeys);
     }
 
     @Override

@@ -961,8 +961,8 @@ public class BlockDeviceExportController implements BlockExportController {
             Map<URI, Map<URI, List<URI>>> maskRemovePathMap = new HashMap<URI, Map<URI, List<URI>>>();
             List<ExportMask> affectedMasks = new ArrayList<ExportMask>();
             for (ExportMask mask : exportMasks) {
-                if (!mask.getCreatedBySystem() || mask.getInactive() || mask.getZoningMap() == null) {
-                    _log.info(String.format("The export mask %s either is not created by ViPR, or is not active. Skip. ", 
+                if (mask.getInactive()) {
+                    _log.info(String.format("The export mask %s is not active. Skip. ", 
                             mask.getId().toString()));
                     continue;
                 }

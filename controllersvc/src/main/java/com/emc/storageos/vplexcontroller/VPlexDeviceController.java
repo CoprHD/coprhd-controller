@@ -863,6 +863,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
             // List of storage system Guids
             List<String> storageSystemGuids = new ArrayList<String>();
 
+            Boolean isDistributedVolume = false;
             Map<String, Set<URI>> clusterVarrayMap = new HashMap<>();
             for (URI vplexVolumeURI : vplexVolumeURIs) {
                 Volume vplexVolume = getDataObject(Volume.class, vplexVolumeURI, _dbClient);
@@ -880,7 +881,11 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
                 volumeMap.put(vplexVolume, new ArrayList<Volume>());
 
                 // Find the underlying Storage Volumes
-                for (String associatedVolume : vplexVolume.getAssociatedVolumes()) {
+                StringSet associatedVolumes = vplexVolume.getAssociatedVolumes();
+                if (associatedVolumes.size() > 1) {
+                    isDistributedVolume = true;
+                }
+                for (String associatedVolume : associatedVolumes) {
                     Volume storageVolume = getDataObject(Volume.class, new URI(associatedVolume), _dbClient);
                     URI storageSystemId = storageVolume.getStorageController();
                     if (storageMap.containsKey(storageSystemId) == false) {
@@ -933,7 +938,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
             buf.append("Vplex: " + vplexURI + " created virtual volume(s): ");
 
             boolean thinEnabled = false;
-            boolean searchAllClustersForStorageVolumes = (clusterVarrayMap.keySet().size() > 1 ? true : false);
+            boolean searchAllClustersForStorageVolumes = ((clusterVarrayMap.keySet().size() > 1 || isDistributedVolume)? true : false);
             List<VPlexVirtualVolumeInfo> virtualVolumeInfos = new ArrayList<VPlexVirtualVolumeInfo>();
             Map<String, Volume> vplexVolumeNameMap = new HashMap<String, Volume>();
             List<VPlexClusterInfo> clusterInfoList = null;

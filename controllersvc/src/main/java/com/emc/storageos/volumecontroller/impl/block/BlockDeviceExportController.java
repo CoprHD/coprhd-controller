@@ -961,11 +961,6 @@ public class BlockDeviceExportController implements BlockExportController {
             Map<URI, Map<URI, List<URI>>> maskRemovePathMap = new HashMap<URI, Map<URI, List<URI>>>();
             List<ExportMask> affectedMasks = new ArrayList<ExportMask>();
             for (ExportMask mask : exportMasks) {
-                if (mask.getInactive()) {
-                    _log.info(String.format("The export mask %s is not active. Skip. ", 
-                            mask.getId().toString()));
-                    continue;
-                }
                 if (!ExportMaskUtils.exportMaskInVarray(_dbClient, mask, varray)) {
                 	_log.info(String.format("Export mask %s (%s, args) is not in the designated varray %s ... skipping", 
                 			mask.getMaskName(), mask.getId(), varray));

@@ -119,6 +119,8 @@ public class CreateComputeClusterService extends ViPRService {
             preCheckErrors.append(ExecutionUtils.getMessage("compute.cluster.empty.cluster.exists"));
         }
 
+        //TODO convert hostnames to lower case here before proceeding
+        // and also inform it to the user
         if ((cluster != null) && !hostNames.containsAll(hostNamesInCluster)) {
             preCheckErrors.append(ExecutionUtils.getMessage("compute.cluster.unknown.host"));
         }
@@ -170,11 +172,13 @@ public class CreateComputeClusterService extends ViPRService {
         }
         else if (ntpServer != null && ntpServer.trim().length() > 0) {
             // allowing user to specify comma separated list - use only use the first valid one
+        	// TODO why do we take only the first NTP server? Check
             String[] ntpServerList = ntpServer.split(",");
             String validServer = null;
             for (String ntpServerx : ntpServerList) {
                 if (ComputeUtils.isValidHostIdentifier(ntpServerx.trim())) {
                     validServer = ntpServerx.trim();
+                    //TODO the break should be moved inside the 'if'
                 }
                 break;
             }
@@ -241,6 +245,7 @@ public class CreateComputeClusterService extends ViPRService {
 
         Map<String, String> hostToIPs = new HashMap<String, String>();
 
+        //TODO move this to the precheck section
         if (hostNames.size() != hostIps.size()) {
             throw new IllegalStateException(ExecutionUtils.getMessage("compute.cluster.host.ip.mismatch"));
         }

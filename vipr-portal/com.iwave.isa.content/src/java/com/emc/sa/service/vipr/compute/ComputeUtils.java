@@ -92,6 +92,7 @@ public class ComputeUtils {
 
     public static final URI nullConsistencyGroup = null;
 
+
     // VBDU TODO: COP-28437, These methods need to be rewritten to use maps. Assuming stable indexing of
     // hostNamesIn->return List is poor programming practice.
     public static List<Host> createHosts(Cluster cluster, URI vcp, List<String> hostNamesIn,

@@ -3275,4 +3275,7 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException numberNotAllowed();
+    
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException pathAdjustmentOnNonDiscoverableHostsWithoutSuspend(final String hosts);
 }

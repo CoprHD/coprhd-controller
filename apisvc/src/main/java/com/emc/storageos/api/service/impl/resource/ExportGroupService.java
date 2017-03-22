@@ -138,6 +138,7 @@ import com.emc.storageos.util.NetworkUtil;
 import com.emc.storageos.util.VPlexUtil;
 import com.emc.storageos.volumecontroller.BlockExportController;
 import com.emc.storageos.volumecontroller.ControllerException;
+import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
 import com.emc.storageos.volumecontroller.impl.validators.ValidatorConfig;
 import com.emc.storageos.volumecontroller.placement.BlockStorageScheduler;
@@ -3510,6 +3511,7 @@ public class ExportGroupService extends TaskResourceService {
                     exportGroup.getClass().getSimpleName(), exportGroup.getLabel());
         }
         validateExportGroupNoPendingEvents(exportGroup);
+        validateSuspendSetForNonDiscoverableHosts(exportGroup, param.getWaitBeforeRemovePaths(), param.getRemovedPaths().isEmpty());
 
         ArgValidator.checkUri(param.getStorageSystem());
         StorageSystem system = queryObject(StorageSystem.class, param.getStorageSystem(), true);
@@ -3648,6 +3650,56 @@ public class ExportGroupService extends TaskResourceService {
             // List only the invalid targets
             pathTargets.removeAll(systemPorts);
             throw APIException.badRequests.exportPathAdjustmentAdjustedPathNotValid(Joiner.on(",").join(pathTargets));
+        }
+    }
+
+    /**
+     * Returns a Set of the FQDN names of hosts that are non discoverable in the ExportGroup.
+     * @param exportGroup -- ExportGroup object
+     * @param dbClient -- database handle
+     * @return Set of non-discoverable host strings
+     */
+    public Set<String> getNonDiscoverableHostsInExportGroup(ExportGroup exportGroup) {
+        Set<String> nonDiscoverable = new HashSet<String>();
+        List<Host> hosts = getHosts(exportGroup);
+        if (exportGroup.getClusters() != null) {
+            for (String clusterId : exportGroup.getClusters()) {
+                List<Host> clusterHosts = CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient, Host.class, 
+                        AlternateIdConstraint.Factory.getHostsByClusterId(clusterId));
+                hosts.addAll(clusterHosts);
+            }
+        }
+        for (Host host : hosts) {
+            if (!host.getDiscoverable()) {
+                nonDiscoverable.add(host.getHostName());
+            }
+        }
+        return nonDiscoverable;
+    }
+    
+    static final String PATH_ADJUST_REQUIRE_SUSPEND = "controller_pathadjust_require_suspend";
+
+    /**
+     * For export path adjustment, if suspend before removing paths is not set and we're likely to remove paths,
+     * and there are hosts that are not discoverable, thrown an error saying the user must set suspend before removing paths.
+     * @param exportGroup -- ExportGroup object
+     * @param suspendBeforeRemovingPaths -- flag from order
+     * @param useExistingPaths -- indication that all existing paths will be maintained
+     */
+    public void validateSuspendSetForNonDiscoverableHosts(ExportGroup exportGroup,
+            boolean suspendBeforeRemovingPaths, boolean useExistingPaths) {
+        boolean requireSuspend = Boolean.valueOf(
+                ControllerUtils.getPropertyValueFromCoordinator(_coordinator, PATH_ADJUST_REQUIRE_SUSPEND));
+        // If either suspend is set of useExistingPaths flag is set, we're good
+        if (!requireSuspend || suspendBeforeRemovingPaths || useExistingPaths) {
+            return;
+        }
+        // Otherwise, if there are some non-discoverable hosts, we want to force an error to require
+        // suspend to be set.
+        Set<String> nonDiscoverableHosts = getNonDiscoverableHostsInExportGroup(exportGroup);
+        if (!nonDiscoverableHosts.isEmpty()) {
+            String hostList = Joiner.on(",").join(nonDiscoverableHosts);
+            throw APIException.badRequests.pathAdjustmentOnNonDiscoverableHostsWithoutSuspend(hostList);
         }
     }
 }

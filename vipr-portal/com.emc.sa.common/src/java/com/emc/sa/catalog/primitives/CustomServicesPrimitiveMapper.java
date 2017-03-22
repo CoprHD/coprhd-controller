@@ -26,7 +26,6 @@ import com.emc.storageos.api.mapper.DbObjectMapper;
 import com.emc.storageos.api.service.impl.response.ResourceTypeMapping;
 import com.emc.storageos.db.client.constraint.NamedElementQueryResultList.NamedElement;
 import com.emc.storageos.db.client.model.NamedURI;
-import com.emc.storageos.db.client.model.uimodels.CustomServicesAnsibleInventoryResource;
 import com.emc.storageos.db.client.model.uimodels.CustomServicesDBResource;
 import com.emc.storageos.db.client.model.uimodels.CustomServicesPrimitiveResourceModel;
 import com.emc.storageos.model.NamedRelatedResourceRep;
@@ -61,12 +60,6 @@ public final class  CustomServicesPrimitiveMapper extends DbObjectMapper {
 
     public static CustomServicesPrimitiveMapper getInstance() {
         return instance;
-    }
-    
-    public static CustomServicesPrimitiveResourceRestRep map(final CustomServicesAnsibleInventoryResource from ) {
-        final CustomServicesPrimitiveResourceRestRep to = new CustomServicesPrimitiveResourceRestRep();
-//        mapDataObjectFields(from.asModelObject(), to);
-        return to;
     }
 
     public static CustomServicesPrimitiveResourceRestRep map(final CustomServicesPrimitiveResourceType from ) {

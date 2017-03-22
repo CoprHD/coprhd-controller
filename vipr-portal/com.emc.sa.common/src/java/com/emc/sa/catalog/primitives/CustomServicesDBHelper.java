@@ -205,7 +205,7 @@ public final class CustomServicesDBHelper {
     }
 
     /**
-     * @param input
+     * @param param
      * @param primitive
      */
     private static void updateInput(final InputUpdateParam param,
@@ -459,7 +459,7 @@ public final class CustomServicesDBHelper {
                 throw APIException.badRequests.invalidParameter("attributes",
                         "missing: " + Sets.difference(attributeKeys, attributes.keySet()));
             }
-            
+
             for (final Entry<String, String> attribute : attributes.entrySet()) {
                 if (attributeKeys.contains(attribute.getKey())) {
                     attributesMap.put(attribute.getKey(), attribute.getValue());
@@ -580,7 +580,7 @@ public final class CustomServicesDBHelper {
 
     /**
      * Given the name and bytes of a resource save the database instance
-     * 
+     *
      * @param type The class type of the resource
      * @param dbModel The database column family of the resource
      * @param primitiveManager The database access component
@@ -595,7 +595,7 @@ public final class CustomServicesDBHelper {
             final CustomServicesPrimitiveManager primitiveManager,
             final String name,
             final byte[] stream,
-            final StringSetMap attributes) {
+            final StringSetMap attributes, final URI parentId) {
         final CustomServicesDBResource resource;
         try {
             resource = dbModel.newInstance();
@@ -605,6 +605,7 @@ public final class CustomServicesDBHelper {
         resource.setId(URIUtil.createId(dbModel));
         resource.setLabel(name);
         resource.setAttributes(attributes);
+        resource.setParentId(parentId);
         resource.setResource(Base64.encodeBase64(stream));
         primitiveManager.save(resource);
         return makeResourceType(type, resource);

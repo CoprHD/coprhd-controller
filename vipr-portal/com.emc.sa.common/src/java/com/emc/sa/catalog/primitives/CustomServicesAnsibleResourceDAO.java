@@ -20,8 +20,6 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.net.URI;
 import java.nio.file.FileSystems;
-import java.util.Collection;
-import java.util.Iterator;
 import java.util.List;
 
 import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
@@ -35,11 +33,7 @@ import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.constraint.NamedElementQueryResultList.NamedElement;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.StringSetMap;
-import com.emc.storageos.db.client.model.uimodels.CustomServicesDBAnsiblePrimitive;
 import com.emc.storageos.db.client.model.uimodels.CustomServicesDBAnsibleResource;
-import com.emc.storageos.model.customservices.CustomServicesPrimitiveCreateParam;
-import com.emc.storageos.model.customservices.CustomServicesPrimitiveRestRep;
-import com.emc.storageos.model.customservices.CustomServicesPrimitiveUpdateParam;
 import com.emc.storageos.primitives.db.ansible.CustomServicesAnsiblePrimitive;
 import com.emc.storageos.primitives.db.ansible.CustomServicesAnsibleResource;
 import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorException;
@@ -71,11 +65,11 @@ public class CustomServicesAnsibleResourceDAO implements CustomServicesResourceD
 
     @Override
     public CustomServicesAnsibleResource createResource(final String name,
-            final byte[] stream) {
+            final byte[] stream, final URI parentId) {
         final StringSetMap attributes = new StringSetMap();
         attributes.put("playbooks", getPlaybooks(stream));
         return CustomServicesDBHelper.createResource(CustomServicesAnsibleResource.class, CustomServicesDBAnsibleResource.class, 
-                primitiveManager, name, stream, attributes);
+                primitiveManager, name, stream, attributes, parentId);
     }
 
     @Override
@@ -113,6 +107,12 @@ public class CustomServicesAnsibleResourceDAO implements CustomServicesResourceD
     public boolean hasResource() {
         return true;
     }
+
+    @Override
+    public List<NamedElement> listResourcesByParentId(final URI parentId) {
+        return null;
+    }
+
     
     private StringSet getPlaybooks(final byte[] archive) {
         try (final TarArchiveInputStream tarIn = new TarArchiveInputStream(

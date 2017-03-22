@@ -635,7 +635,11 @@ public class FilePolicyService extends TaskResourceService {
         fileReplicationPolicy.setFilePolicyName(param.getPolicyName());
         fileReplicationPolicy.setLabel(param.getPolicyName());
         fileReplicationPolicy.setFilePolicyType(param.getPolicyType());
-        fileReplicationPolicy.setPriority(param.getPriority());
+        if (param.getPriority() != null) {
+            ArgValidator.checkFieldValueFromEnum(param.getPriority(), "priority",
+                    EnumSet.allOf(FilePolicyPriority.class));
+            fileReplicationPolicy.setPriority(param.getPriority());
+        }
         fileReplicationPolicy.setNumWorkerThreads((long) param.getNumWorkerThreads());
         if (param.getPolicyDescription() != null && !param.getPolicyDescription().isEmpty()) {
             fileReplicationPolicy.setFilePolicyDescription(param.getPolicyDescription());
@@ -901,6 +905,20 @@ public class FilePolicyService extends TaskResourceService {
                                         URI targetVArray = iterator.next();
                                         requestTargetVarraySet.add(targetVArray.toString());
                                     }
+                                    // Thow an error if admin want to change the topology for policy with resources!!
+                                    if (filepolicy.getPolicyStorageResources() != null
+                                            && !filepolicy.getPolicyStorageResources().isEmpty()) {
+                                        if (topology.getTargetVArrays() != null
+                                                && !topology.getTargetVArrays().containsAll(requestTargetVarraySet)) {
+                                            StringBuffer errorMsg = new StringBuffer();
+                                            errorMsg.append("Topology can not be changed for policy {} with existing resources "
+                                                    + filepolicy.getFilePolicyName());
+                                            _log.error(errorMsg.toString());
+                                            throw APIException.badRequests.invalidFilePolicyAssignParam(filepolicy.getFilePolicyName(),
+                                                    errorMsg.toString());
+                                        }
+
+                                    }
                                     topology.setTargetVArrays(requestTargetVarraySet);
                                     _dbClient.updateObject(topology);
                                 }
@@ -978,7 +996,8 @@ public class FilePolicyService extends TaskResourceService {
                 throw APIException.badRequests.invalidFilePolicyAssignParam(filePolicy.getFilePolicyName(), errorMsg.toString());
             }
 
-            if (FilePolicyServiceUtils.vPoolHasSnapshotPolicyWithSameSchedule(_dbClient, vpoolURI, filePolicy)) {
+            if (filePolicy.getFilePolicyType().equalsIgnoreCase(FilePolicyType.file_snapshot.name())
+                    && FilePolicyServiceUtils.vPoolHasSnapshotPolicyWithSameSchedule(_dbClient, vpoolURI, filePolicy)) {
                 errorMsg.append("Snapshot policy with similar schedule is already present on vpool " + virtualPool.getLabel());
                 _log.error(errorMsg.toString());
                 throw APIException.badRequests.invalidFilePolicyAssignParam(filePolicy.getFilePolicyName(), errorMsg.toString());
@@ -1121,28 +1140,31 @@ public class FilePolicyService extends TaskResourceService {
         capabilities.put(VirtualPoolCapabilityValuesWrapper.FILE_REPLICATION_APPLIED_AT, policy.getApplyAt());
 
         // Update target varrays for file placement!!
-        if (policy.getReplicationTopologies() != null && !policy.getReplicationTopologies().isEmpty()) {
-            Set<String> targetVArrays = new HashSet<String>();
-            for (String strTopology : policy.getReplicationTopologies()) {
-                FileReplicationTopology dbTopology = dbClient.queryObject(FileReplicationTopology.class,
-                        URI.create(strTopology));
-                if (sourceVArraySet.contains(dbTopology.getSourceVArray().toString())) {
-                    targetVArrays.addAll(dbTopology.getTargetVArrays());
-                    break;
+        if (policy.getFileReplicationType() != null
+                && policy.getFileReplicationType().equalsIgnoreCase(FileReplicationType.REMOTE.name())) {
+            if (policy.getReplicationTopologies() != null && !policy.getReplicationTopologies().isEmpty()) {
+                Set<String> targetVArrays = new HashSet<String>();
+                for (String strTopology : policy.getReplicationTopologies()) {
+                    FileReplicationTopology dbTopology = dbClient.queryObject(FileReplicationTopology.class,
+                            URI.create(strTopology));
+                    if (sourceVArraySet.contains(dbTopology.getSourceVArray().toString())) {
+                        targetVArrays.addAll(dbTopology.getTargetVArrays());
+                        break;
+                    }
                 }
-            }
-            if (targetVArrays.isEmpty()) {
-                errorMsg.append("Target Varrays are not defined in replication topology for source varrays "
-                        + sourceVArraySet + ". ");
+                if (targetVArrays.isEmpty()) {
+                    errorMsg.append("Target Varrays are not defined in replication topology for source varrays "
+                            + sourceVArraySet + ". ");
+                    return false;
+                }
+                capabilities.put(VirtualPoolCapabilityValuesWrapper.FILE_REPLICATION_TARGET_VARRAYS,
+                        targetVArrays);
+                capabilities.put(VirtualPoolCapabilityValuesWrapper.FILE_REPLICATION_TARGET_VPOOL,
+                        vPool.getId());
+            } else {
+                errorMsg.append("Replication Topology is not defined for policy " + policy.getFilePolicyName() + ". ");
                 return false;
             }
-            capabilities.put(VirtualPoolCapabilityValuesWrapper.FILE_REPLICATION_TARGET_VARRAYS,
-                    targetVArrays);
-            capabilities.put(VirtualPoolCapabilityValuesWrapper.FILE_REPLICATION_TARGET_VPOOL,
-                    vPool.getId());
-        } else {
-            errorMsg.append("Replication Topology is not defined for policy " + policy.getFilePolicyName() + ". ");
-            return false;
         }
         return true;
     }
@@ -1246,7 +1268,8 @@ public class FilePolicyService extends TaskResourceService {
                 throw APIException.badRequests.invalidFilePolicyAssignParam(filePolicy.getFilePolicyName(), errorMsg.toString());
             }
 
-            if (FilePolicyServiceUtils.projectHasSnapshotPolicyWithSameSchedule(_dbClient, projectURI, vpool.getId(), filePolicy)) {
+            if (filePolicy.getFilePolicyType().equalsIgnoreCase(FilePolicyType.file_snapshot.name())
+                    && FilePolicyServiceUtils.projectHasSnapshotPolicyWithSameSchedule(_dbClient, projectURI, vpool.getId(), filePolicy)) {
                 errorMsg.append("Snapshot policy with similar schedule is already present on project " + project.getLabel());
                 _log.error(errorMsg.toString());
                 throw APIException.badRequests.invalidFilePolicyAssignParam(filePolicy.getFilePolicyName(), errorMsg.toString());
@@ -1513,18 +1536,22 @@ public class FilePolicyService extends TaskResourceService {
 
     private StringSet getSourceVArraySet(VirtualPool vpool, FilePolicy filePolicy) {
 
-        List<FileReplicationTopology> dbTopologies = queryDBReplicationTopologies(filePolicy);
-
-        Set<String> topologyVArraySet = new HashSet<String>();
         StringSet vpoolVArraySet = vpool.getVirtualArrays();
 
-        if (dbTopologies != null && !dbTopologies.isEmpty()) {
-            for (Iterator<FileReplicationTopology> iterator = dbTopologies.iterator(); iterator.hasNext();) {
-                FileReplicationTopology fileReplicationTopology = iterator.next();
-                topologyVArraySet.add(fileReplicationTopology.getSourceVArray().toString());
+        if (filePolicy.getFileReplicationType() != null
+                && filePolicy.getFileReplicationType().equalsIgnoreCase(FileReplicationType.REMOTE.name())) {
+            Set<String> topologyVArraySet = new HashSet<String>();
+            List<FileReplicationTopology> dbTopologies = queryDBReplicationTopologies(filePolicy);
+
+            if (dbTopologies != null && !dbTopologies.isEmpty()) {
+                for (Iterator<FileReplicationTopology> iterator = dbTopologies.iterator(); iterator.hasNext();) {
+                    FileReplicationTopology fileReplicationTopology = iterator.next();
+                    topologyVArraySet.add(fileReplicationTopology.getSourceVArray().toString());
+                }
             }
+            vpoolVArraySet.retainAll(topologyVArraySet);
         }
-        vpoolVArraySet.retainAll(topologyVArraySet);
+
         return vpoolVArraySet;
     }
 }

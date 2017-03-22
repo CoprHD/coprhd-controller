@@ -462,7 +462,6 @@ public class RecoverPointUtils {
             if (productionCopies != null && productionCopies.size() == 2) {
                 for (ConsistencyGroupCopySettings copySetting : cgSettings.getGroupCopiesSettings()) {
                     if (isStandbyProductionCopy(copySetting.getCopyUID(), state, productionCopies)) {
-                        logger.info(String.format("Determined that copy %d is the standy production copy.", copySetting.getCopyUID()));
                         return copySetting.getCopyUID();
                     }
                 }

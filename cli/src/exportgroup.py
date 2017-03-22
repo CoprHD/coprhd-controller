@@ -554,7 +554,7 @@ class ExportGroup(object):
             return action result
          '''
 
-    def exportgroup_add_cluster(self, exportgroupname, tenantname, projectname,
+    def exportgroup_add_cluster(self, exportgroupname, datacenter, vcenter, tenantname, projectname,
                                 clusternames, sync,synctimeout=0, varray=None):
         
         varrayuri = None
@@ -568,7 +568,7 @@ class ExportGroup(object):
         cluster_uris = []
         clusterObject = Cluster(self.__ipAddr, self.__port)
         for clustername in clusternames:
-            cluster_uris.append(clusterObject.cluster_query(clustername,
+            cluster_uris.append(clusterObject.cluster_query(clustername, datacenter, vcenter,
                                                             tenantname))
         parms = {}
         parms['cluster_changes'] = self._add_list(cluster_uris)
@@ -764,11 +764,17 @@ class ExportGroup(object):
 			host_uris.append(host_uri)
 		parms['hosts'] = host_uris
 
-	   parms['use_existing_paths'] = useexisting
+	   if (useexisting):
+	       parms['use_existing_paths'] = "true"
+	   else:
+	       parms['use_existing_paths'] = "false"
 	   return parms
 
 	if (dorealloc):
-		parms['wait_before_remove_paths'] = wait
+ 		if (wait):
+		    parms['wait_before_remove_paths'] = "true"
+		else:
+		    parms['wait_before_remove_paths'] = "false"
 
 		#Call Preview first to fetch all the paths. 
  		rep = self.exportgroup_pathadjustment(name, project, tenant,
@@ -841,9 +847,7 @@ class ExportGroup(object):
 						     self.URI_EXPORT_GROUP_PATH_ADJUSTMENT_PREVIEW.format(exportgroup_uri),
 						     body)
         output = common.json_decode(s)
-
-
-
+            
 	# Display output when verbose is set to true or if the operation is Preview.
  	if (verbose or not self.PATH_ADJ_OPERATION):
     		print operation
@@ -911,15 +915,13 @@ def exportgroup_pathadjustment_parser(subcommand_parsers, common_parser):
 			       nargs='+',
 			       help='list of storage ports')
 	path_adjustment_preview_parser.add_argument('-useexistingpaths', '-useex',
-			       metavar='<useexistingpaths>',
 			       dest='useexistingpaths',
-			       default=False,
-			       help='use existing paths')
-	path_adjustment_preview_parser.add_argument('-verbose', '-vb',
-			       metavar='<verbose>',
+			       help='use existing paths',
+			       action='store_true')
+	path_adjustment_preview_parser.add_argument('-verbose', '-v',
 			       dest='verbose',
-			       default=False,
-			       help='Print verbose output')
+			       help='Print verbose output',
+			       action='store_true')
 	path_adjustment_preview_parser.add_argument('-maxinitiatorsperport', '-maxipp',
 			       metavar='<maxinitiatorsperport>',
 			       dest='maxinitiatorsperport',
@@ -939,10 +941,9 @@ def exportgroup_pathadjustment_parser(subcommand_parsers, common_parser):
 					help='Export group paths adjustment')
 
 	path_adjustment_parser.add_argument('-wait', '-w',
-					metavar='<wait>',
 					dest='wait',
-					default=False,
-					help='Wait before removal of paths')
+					help='Wait before removal of paths',
+					action='store_true')
 
 	path_adjustment_parser.set_defaults(func=exportgroup_pathadjustment)
 	path_adjustment_preview_parser.set_defaults(func=exportgroup_pathadjustment_preview)
@@ -1565,6 +1566,16 @@ def add_cluster_parser(subcommand_parsers, common_parser):
                                 dest='project',
                                 help='name of Project ',
                                 required=True)
+    add_cluster_parser.add_argument('-datacenter', '-dc',
+                                metavar='<datacentername>',
+                                dest='datacenter',
+                                help='name of datacenter',
+                                default="")
+    add_cluster_parser.add_argument('-vcenter', '-vc',
+                                help='name of a vcenter',
+                                dest='vcenter',
+                                metavar='<vcentername>',
+                                default="")                                
     add_cluster_parser.add_argument('-tenant', '-tn',
                                     metavar='<tenantname>',
                                     dest='tenant',
@@ -1594,7 +1605,7 @@ def exportgroup_add_cluster(args):
     try:
         objExGroup = ExportGroup(args.ip, args.port)
         objExGroup.exportgroup_add_cluster(
-            args.name, args.tenant, args.project, args.cluster, args.sync,args.synctimeout, args.varray)
+            args.name, args.datacenter, args.vcenter, args.tenant, args.project, args.cluster, args.sync,args.synctimeout, args.varray)
     except SOSError as e:
         raise common.format_err_msg_and_raise("add_cluster", "exportgroup",
                                               e.err_text, e.err_code)

@@ -462,7 +462,7 @@ public final class CustomServicesDBHelper {
             
             for (final Entry<String, String> attribute : attributes.entrySet()) {
                 if (attributeKeys.contains(attribute.getKey())) {
-                    attributes.put(attribute.getKey(), attribute.getValue());
+                    attributesMap.put(attribute.getKey(), attribute.getValue());
                 } else {
                     throw BadRequestException.badRequests.invalidParameter("attributes", attribute.getKey());
                 }

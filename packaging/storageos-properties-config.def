@@ -984,7 +984,7 @@
     {
         key : "controller_scan_interval",
         label : "Scan Interval",
-        description : "Number of seconds between scan operations of SMI-S providers.",
+        description : "Number of seconds between scan operations of Storage providers.",
         type : "uint32",
         userConfigurable : false, 
         userMutable : true,
@@ -1198,7 +1198,7 @@
     {
         key : "controller_enable_autoscan",
         label : "Enable Auto-Scan",
-        description : "Indicates whether auto-scan of SMI-S providers is enabled.",
+        description : "Indicates whether auto-scan of Storage providers is enabled.",
         type : "string",
         allowedValues : ( "true", "false" ),
         userConfigurable : false, 

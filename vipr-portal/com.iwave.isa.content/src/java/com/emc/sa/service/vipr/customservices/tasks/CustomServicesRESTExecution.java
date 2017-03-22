@@ -68,24 +68,28 @@ public class CustomServicesRESTExecution extends ViPRExecutionTask<CustomService
 
             final CustomServicesConstants.RestMethods method =
                     CustomServicesConstants.RestMethods.valueOf(getOptions(CustomServicesConstants.METHOD, input));
+            final CustomServicesTaskResult result;
             switch (method) {
                 case PUT:
                 case POST:
                     final String body = RESTHelper.makePostBody(getOptions(CustomServicesConstants.BODY, input), input);
-                    return executeRest(method, body, builder);
+                    result = executeRest(method, body, builder);
+                    break;
+                default:
+                    result = executeRest(method, null, builder);
             }
 
             ExecutionUtils.currentContext().logInfo("customServicesRESTExecution.doneInfo", step.getId());
-
-            return executeRest(method, null, builder);
+            return result;
         } catch (final Exception e) {
             logger.error("Received Exception:{}", e);
+            ExecutionUtils.currentContext().logInfo("customServicesRESTExecution.doneInfo","Custom Service Task Failed" + e);
             throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed("Custom Service Task Failed" + e);
         }
     }
 
     private CustomServicesRestTaskResult executeRest(final CustomServicesConstants.RestMethods method, final String input, final WebResource.Builder builder) throws Exception {
-        ClientResponse response = null;
+        final ClientResponse response;
         switch (method) {
             case GET:
                 response = builder.get(ClientResponse.class);

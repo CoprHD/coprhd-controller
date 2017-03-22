@@ -65,13 +65,13 @@ public final class BuildRestRequest {
         context.init(null, new TrustManager[] { trustManager }, null);
         config.getProperties().put(HTTPSProperties.PROPERTY_HTTPS_PROPERTIES, new HTTPSProperties(null, context));
 
-        Client client = Client.create(config);
+        final Client client = Client.create(config);
 
         if (auth.equals(CustomServicesConstants.AuthType.BASIC.name())) {
             if (!(StringUtils.isEmpty(user) && StringUtils.isEmpty(password))) {
                 client.addFilter(new HTTPBasicAuthFilter(user, password));
             } else {
-                logger.error("user:{} or password:{} not defined", user, password);
+                logger.error("user:{} or password not defined", user);
 
                 throw InternalServerErrorException.internalServerErrors.
                         customServiceExecutionFailed("User or password not defined");
@@ -90,8 +90,10 @@ public final class BuildRestRequest {
         }
 
         resource = client.resource(url);
-        for (final Map.Entry<String, String> entry : queries.entrySet()) {
-            resource.queryParam(entry.getKey(), entry.getValue());
+        if (queries != null) {
+            for (final Map.Entry<String, String> entry : queries.entrySet()) {
+                resource.queryParam(entry.getKey(), entry.getValue());
+            }
         }
 
         return resource;
@@ -111,13 +113,14 @@ public final class BuildRestRequest {
             final String name = header.getName();
             final List<String> value = input.get(name);
 
-            if (value == null || StringUtils.isEmpty(value.get(0))) {
+            if (value == null || StringUtils.isEmpty(value.get(0)) || StringUtils.isEmpty(StringUtils.strip(value.get(0).toString(), "\""))) {
                 logger.error("Cannot set value for header:{}", name);
 
                 throw InternalServerErrorException.internalServerErrors.
                         customServiceExecutionFailed("Cannot set value for header:" + name);
             }
             final String headerValue = StringUtils.strip(value.get(0).toString(), "\"");
+
             if (name.equals(CustomServicesConstants.ACCEPT_TYPE)) {
                 builder.accept(headerValue);
             } else if (name.equals(CustomServicesConstants.CONTENT_TYPE)) {

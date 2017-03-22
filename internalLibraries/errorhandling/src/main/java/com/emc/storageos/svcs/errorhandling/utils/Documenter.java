@@ -47,12 +47,11 @@ public class Documenter {
 
     /*
      * The packages list got by @MessageBundle greps on 2/2017 WJE
-     * The below list includes all packages other than "com.emc.storgaeos.hds"
-     * Adding "com.emc.storgaeos.hds" is causing IndexOutOfBound exception when running the tests.
+     * The below list includes all packages other than "com.emc.storgaeos.hds" and "com.emc.storgaeos.ceph"
+     * Adding "com.emc.storgaeos.hds" and "com.emc.storgaeos.ceph" is causing IndexOutOfBound exception when running the tests.
      */
 
     public static final String[] PACKAGES = new String[] {
-            "com.emc.storageos.ceph",
             "com.emc.storageos.cimadapter.exceptions",
             "com.emc.storageos.cinder.errorhandling",
             "com.emc.storageos.computesystemcontroller.exceptions",

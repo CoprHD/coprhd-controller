@@ -116,9 +116,12 @@ public class WorkflowServiceDescriptor {
                                 String inputName = wfInput.getName();
                                 // TODO: change this to get description
                                 serviceField.setDescription(wfInput.getFriendlyName());
+                                final String friendlyName = StringUtils.isBlank(wfInput.getFriendlyName()) ?
+                                        inputName :
+                                        wfInput.getFriendlyName();
                                 serviceField
-                                        .setLabel(StringUtils.isBlank(wfInput.getFriendlyName()) ? inputName : wfInput.getFriendlyName());
-                                serviceField.setName(inputName);
+                                        .setLabel(friendlyName);
+                                serviceField.setName(friendlyName);
                                 serviceField.setRequired(wfInput.getRequired());
                                 serviceField.setInitialValue(wfInput.getDefaultValue());
                                 // Setting all unlocked fields as lockable
@@ -126,9 +129,10 @@ public class WorkflowServiceDescriptor {
                                     serviceField.setLockable(true);
                                 }
                                 serviceField.setType(wfInputType);
-                                to.getItems().put(inputName, serviceField);
+                                to.getItems().put(friendlyName, serviceField);
                             }
                         }
+
                     }
 
                 }

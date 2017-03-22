@@ -101,7 +101,7 @@ public class RunViprREST extends ViPRExecutionTask<CustomServicesTaskResult> {
 
         ClientResponse response = null;
         String responseString = null;
-        CustomServicesConstants.restMethods restmethod = CustomServicesConstants.restMethods.valueOf(method);
+        CustomServicesConstants.RestMethods restmethod = CustomServicesConstants.RestMethods.valueOf(method);
 
         try {
             switch (restmethod) {

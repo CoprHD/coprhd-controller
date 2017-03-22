@@ -387,11 +387,7 @@ public class ComputeUtils {
         }
         if (!bootVolsToRemove.isEmpty()){
              try {
-                 for (URI bootVolToRemove : bootVolsToRemove) {
-                     BlockObjectRestRep volume = BlockStorageUtils.getBlockResource(bootVolToRemove);
-                     Host host = volumeNameToHostMap.get(volume.getName());
-                     removeBootVolumeTag(volume, host.getId());
-                 }
+                 // No need to untag, this bootVolsToRemove list is based on volumes that never got the boot tag.
                  BlockStorageUtils.deactivateVolumes(bootVolsToRemove, VolumeDeleteTypeEnum.FULL);
              }catch (Exception e) {
                  ExecutionUtils.currentContext().logError("computeutils.bootvolume.deactivate.failure",

@@ -11,6 +11,7 @@ import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
+import java.util.TimeZone;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.time.DateUtils;
@@ -48,6 +49,7 @@ public class OrderDataTable extends DataTable {
 
     public OrderDataTable(String tenantId) {
         this.tenantId = tenantId;
+        DATE_FORMAT.setTimeZone(TimeZone.getDefault());
 
         addColumn("number");
         addColumn("status").setRenderFunction("render.orderStatus");
@@ -155,6 +157,7 @@ public class OrderDataTable extends DataTable {
 
     public static Date getDateDaysAgo(int daysAgo) {
         Calendar cal = Calendar.getInstance();
+        cal.setTimeZone(TimeZone.getDefault());
         cal.add(Calendar.DAY_OF_YEAR, -daysAgo + 1);
         return cal.getTime();
     }

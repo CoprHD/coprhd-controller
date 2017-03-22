@@ -19,7 +19,7 @@ package com.emc.storageos.db.client.model.uimodels;
 import com.emc.storageos.db.client.model.Cf;
 
 /**
- * Column family that contains details for an ansible primitive definition
+ * Column family that contains details for an ansible primitive inventory resource definition
  */
 @Cf("CustomServicesDBAnsibleInventoryResource")
 public class CustomServicesDBAnsibleInventoryResource extends CustomServicesDBResource {

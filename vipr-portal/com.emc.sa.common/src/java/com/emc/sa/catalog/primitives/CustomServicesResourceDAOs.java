@@ -23,7 +23,7 @@ import com.google.common.collect.ImmutableMap;
 
 
 /**
- * Bean class that has maps of the primitive DAO types
+ * Bean class that has maps of the primitive resource DAO types
  *
  */
 public class CustomServicesResourceDAOs {

@@ -31,7 +31,7 @@ import com.emc.storageos.primitives.db.script.CustomServicesScriptPrimitive;
 import com.emc.storageos.primitives.db.script.CustomServicesScriptResource;
 
 /**
- * Data access object for script primitives
+ * Data access object for script primitive resources
  *
  */
 public class CustomServicesScriptResourceDAO implements CustomServicesResourceDAO<CustomServicesScriptResource> {

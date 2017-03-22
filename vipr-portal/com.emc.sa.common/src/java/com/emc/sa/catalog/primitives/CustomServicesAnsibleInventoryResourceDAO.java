@@ -31,7 +31,7 @@ import com.emc.storageos.primitives.CustomServicesConstants;
 import com.emc.storageos.primitives.db.ansible.CustomServicesAnsibleInventoryResource;
 
 /**
- * Data access object for Ansible primitives
+ * Data access object for ansible primitive inventory resource
  *
  */
 public class CustomServicesAnsibleInventoryResourceDAO implements CustomServicesResourceDAO<CustomServicesAnsibleInventoryResource> {

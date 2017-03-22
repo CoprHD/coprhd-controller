@@ -24,7 +24,7 @@ import com.emc.storageos.primitives.CustomServicesPrimitiveResourceType;
 
 /**
  * Interface for a primitive data access object. The DAO is an interface for the CRUD
- * of a primitive type and it's resource
+ * of a primitive resource
  *
  * @param <Resource> The type of resource for the primitive
  */

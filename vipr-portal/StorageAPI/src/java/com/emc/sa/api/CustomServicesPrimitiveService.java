@@ -265,7 +265,7 @@ public class CustomServicesPrimitiveService extends CatalogTaggedResourceService
         ArgValidator.checkFieldNotNull(parentId, "parentId");
         final URI parentIdURI = URI.create(parentId);
 
-        // Verify that there is a ansible resource asscociated with the parent id that is passed
+        // Verify that there is a ansible resource asscociated with the parent id that is passed in the request
         final CustomServicesResourceDAO<?> parent_dao = getResourceDAO(CustomServicesAnsiblePrimitive.TYPE, true);
 
         final CustomServicesPrimitiveResourceType parent_resource = getResourceNullSafe(parentIdURI, parent_dao);

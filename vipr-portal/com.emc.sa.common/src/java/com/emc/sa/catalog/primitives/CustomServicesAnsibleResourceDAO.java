@@ -40,7 +40,7 @@ import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorExcepti
 
 
 /**
- * Data access object for Ansible primitives
+ * Data access object for Ansible primitive resources
  *
  */
 public class CustomServicesAnsibleResourceDAO implements CustomServicesResourceDAO<CustomServicesAnsibleResource> {

@@ -6867,6 +6867,7 @@ sbsdk_setup()
                      --expandable false 
     run cos allow $SBSDK_DRIVER_SYS_VPOOL_NAME block $TENANT
     run cos update block $SBSDK_DRIVER_SYS_VPOOL_NAME --storage $SBSDK_DRIVER_SYS_NATIVEGUID
+    run cos update block $SBSDK_DRIVER_SYS_VPOOL_NAME --use_matched false
 
     echo "***** Completed setup for SB SDK sanity tests *****"
 }
@@ -6980,6 +6981,7 @@ sbsdk_remote_replication_setup()
     run cos allow $SBSDK_DRIVER_SYS_VPOOL_NAME block $TENANT
     run cos update block $SBSDK_DRIVER_SYS_VPOOL_NAME --storage $SBSDK_DRIVER_SYS_NATIVEGUID
     run cos update block $SBSDK_DRIVER_SYS_VPOOL_NAME --storage $SBSDK_DRIVER_SYS_TARGET_NATIVEGUID
+    run cos update block $SBSDK_DRIVER_SYS_VPOOL_NAME --use_matched false
 
     #Define a remote replication virtual pool
     echo "***** Creating remote replication virtual pool $SBSDK_DRIVER_SYS_REMOTE_REPLICATION_VPOOL_NAME *****"
@@ -6995,6 +6997,7 @@ sbsdk_remote_replication_setup()
     run cos allow $SBSDK_DRIVER_SYS_REMOTE_REPLICATION_VPOOL_NAME block $TENANT
     run cos update block $SBSDK_DRIVER_SYS_REMOTE_REPLICATION_VPOOL_NAME --storage $SBSDK_DRIVER_SYS_NATIVEGUID
     run cos update block $SBSDK_DRIVER_SYS_REMOTE_REPLICATION_VPOOL_NAME --storage $SBSDK_DRIVER_SYS_TARGET_NATIVEGUID
+    run cos update block $SBSDK_DRIVER_SYS_REMOTE_REPLICATION_VPOOL_NAME --use_matched false
 
     echo "***** Completed setup for SB SDK sanity tests *****"
 }

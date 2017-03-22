@@ -101,21 +101,33 @@ public enum ResourceTypeEnum {
     OBJECT_NAMESPACE("object_namespaces", "/vdc/object-namespaces"),
     ACTIONABLE_EVENT("actionable_event", "/vdc/events"),
     CUSTOM_SERVICES_WORKFLOW("custom_services_workflow", "/workflows"),
-    WF_DIRECTORY("wf_directory","/workflow/directory"), 
-    CUSTOM_SERVICES_PRIMTIVES("custom_services_primitives", "/primitives"), 
-    CUSTOM_SERVICES_PRIMTIVE_RESOURCES("custom_services_primitive_resources", "/primitives/resource/");
-    
+    WF_DIRECTORY("wf_directory", "/workflow/directory"),
+    CUSTOM_SERVICES_PRIMTIVES("custom_services_primitives", "/primitives"),
+    CUSTOM_SERVICES_PRIMTIVE_RESOURCES("custom_services_primitive_resources", "/primitives/resource");
+
+    private static final Map<String, ResourceTypeEnum> resourceMap = new HashMap<String, ResourceTypeEnum>();
+
+    static {
+        for (ResourceTypeEnum res : values()) {
+            resourceMap.put(res.type, res);
+        }
+    }
+
     private final String type;
     private final String service;
-    
+
     ResourceTypeEnum(final String type, final String service) {
         this.service = service;
         this.type = type;
     }
 
+    public static ResourceTypeEnum fromString(String resourceType) {
+        return resourceMap.get(resourceType);
+    }
+
     /**
      * The type of the resource
-     * 
+     *
      */
     @XmlElement
     public String getType() {
@@ -125,21 +137,9 @@ public enum ResourceTypeEnum {
     public String getService() {
         return service;
     }
-    
+
     @Override
     public String toString() {
         return type;
-    }
-
-    public static ResourceTypeEnum fromString(String resourceType) {
-        return resourceMap.get(resourceType);
-    }
-
-    private static final Map<String, ResourceTypeEnum> resourceMap = new HashMap<String, ResourceTypeEnum>();
-
-    static {
-        for (ResourceTypeEnum res : values()) {
-            resourceMap.put(res.type, res);
-        }
     }
 }

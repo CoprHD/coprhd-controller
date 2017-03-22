@@ -24,6 +24,7 @@ import java.util.List;
 import com.emc.storageos.db.client.constraint.NamedElementQueryResultList.NamedElement;
 import com.emc.storageos.db.client.model.uimodels.CustomServicesDBResource;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
 
 public class CustomServicesPrimitiveResourceFinder extends
         ModelFinder<CustomServicesDBResource> {
@@ -31,16 +32,32 @@ public class CustomServicesPrimitiveResourceFinder extends
     public CustomServicesPrimitiveResourceFinder(final DBClientWrapper client) {
         super(CustomServicesDBResource.class, client);
     }
-    
+
     public <T extends CustomServicesDBResource> List<NamedElement> list(Class<T> type) {
         return prepareNamedElementFromURI(type, client.findAllIds(type));
     }
+
+    public <T extends CustomServicesDBResource> List<NamedElement> listAllResourceByRefId(final Class<T> type, final String columnName,
+            final URI referenceId) {
+
+        final List<URI> out = Lists.newArrayList();
+        if (null != referenceId) {
+            final List<NamedElement> results = client.findByAlternateId(type, columnName, referenceId.toString());
+            if (results != null) {
+                for (final NamedElement namedElement : results) {
+                    out.add(namedElement.getId());
+                }
+            }
+        }
+        return prepareNamedElementFromURI(type, out);
+    }
+
     private <T extends CustomServicesDBResource> List<NamedElement> prepareNamedElementFromURI(final Class<T> type, final List<URI> ids) {
-        
-        final Iterator<T> it = client.findAllFields(type, ids, ImmutableList.<String>builder().add("label").build());
+
+        final Iterator<T> it = client.findAllFields(type, ids, ImmutableList.<String> builder().add("label").build());
         final List<NamedElement> results = new ArrayList<NamedElement>();
 
-        while(it.hasNext()) {
+        while (it.hasNext()) {
             final T element = it.next();
             results.add(NamedElement.createElement(element.getId(), element.getLabel()));
         }

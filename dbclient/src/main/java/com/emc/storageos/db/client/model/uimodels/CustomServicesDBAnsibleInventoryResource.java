@@ -17,32 +17,13 @@
 package com.emc.storageos.db.client.model.uimodels;
 
 import com.emc.storageos.db.client.model.Cf;
-import com.emc.storageos.db.client.model.ModelObject;
-import com.emc.storageos.db.client.model.Name;
-import com.emc.storageos.db.client.model.NamedURI;
-import com.emc.storageos.db.client.model.StringSet;
-
-import java.net.URI;
 
 /**
  * Column family that contains details for an ansible primitive definition
  */
-@Cf("CustomServicesAnsibleInventoryResource")
-public class CustomServicesAnsibleInventoryResource extends CustomServicesDBResource {
+@Cf("CustomServicesDBAnsibleInventoryResource")
+public class CustomServicesDBAnsibleInventoryResource extends CustomServicesDBResource {
 
     private static final long serialVersionUID = 1L;
-
-    private static final String ANSIBLEPACKAGE = "ansiblePackage";
-    private URI ansiblePackage;
-
-    @Name(ANSIBLEPACKAGE)
-    public URI getAnsiblePackage() {
-        return ansiblePackage;
-    }
-
-    public void setAnsiblePackage( final URI ansiblePackage ) {
-        this.ansiblePackage = ansiblePackage;
-        setChanged(ANSIBLEPACKAGE);
-    }
 
 }

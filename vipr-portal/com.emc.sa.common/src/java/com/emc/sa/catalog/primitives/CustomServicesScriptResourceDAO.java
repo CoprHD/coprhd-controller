@@ -17,8 +17,6 @@
 package com.emc.sa.catalog.primitives;
 
 import java.net.URI;
-import java.util.Collection;
-import java.util.Iterator;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -28,11 +26,7 @@ import com.emc.sa.model.dao.ModelClient;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.constraint.NamedElementQueryResultList.NamedElement;
 import com.emc.storageos.db.client.model.StringSetMap;
-import com.emc.storageos.db.client.model.uimodels.CustomServicesDBScriptPrimitive;
 import com.emc.storageos.db.client.model.uimodels.CustomServicesDBScriptResource;
-import com.emc.storageos.model.customservices.CustomServicesPrimitiveCreateParam;
-import com.emc.storageos.model.customservices.CustomServicesPrimitiveRestRep;
-import com.emc.storageos.model.customservices.CustomServicesPrimitiveUpdateParam;
 import com.emc.storageos.primitives.db.script.CustomServicesScriptPrimitive;
 import com.emc.storageos.primitives.db.script.CustomServicesScriptResource;
 
@@ -40,37 +34,38 @@ import com.emc.storageos.primitives.db.script.CustomServicesScriptResource;
  * Data access object for script primitives
  *
  */
-public class CustomServicesScriptResourceDAO implements CustomServicesResourceDAO<CustomServicesScriptResource>{
+public class CustomServicesScriptResourceDAO implements CustomServicesResourceDAO<CustomServicesScriptResource> {
 
     @Autowired
     private CustomServicesPrimitiveManager primitiveManager;
     @Autowired
     private ModelClient client;
-    @Autowired 
+    @Autowired
     private DbClient dbClient;
-    
-    @Override 
+
+    @Override
     public String getType() {
         return CustomServicesScriptPrimitive.TYPE;
     }
 
     @Override
     public CustomServicesScriptResource getResource(URI id) {
-        return CustomServicesDBHelper.getResource(CustomServicesScriptResource.class, CustomServicesDBScriptResource.class, primitiveManager, id);
+        return CustomServicesDBHelper.getResource(CustomServicesScriptResource.class, CustomServicesDBScriptResource.class,
+                primitiveManager, id);
     }
 
     @Override
     public CustomServicesScriptResource createResource(final String name,
-            final byte[] stream) {
+            final byte[] stream, final URI parentId) {
         final StringSetMap attributes = new StringSetMap();
-  
-        return CustomServicesDBHelper.createResource(CustomServicesScriptResource.class, CustomServicesDBScriptResource.class, 
-                primitiveManager, name, stream, attributes);
+
+        return CustomServicesDBHelper.createResource(CustomServicesScriptResource.class, CustomServicesDBScriptResource.class,
+                primitiveManager, name, stream, attributes, parentId);
     }
 
     @Override
-    public CustomServicesScriptResource updateResource(final URI id, final String name,final byte[] stream) {
-        return CustomServicesDBHelper.updateResource(CustomServicesScriptResource.class, CustomServicesDBScriptResource.class, 
+    public CustomServicesScriptResource updateResource(final URI id, final String name, final byte[] stream) {
+        return CustomServicesDBHelper.updateResource(CustomServicesScriptResource.class, CustomServicesDBScriptResource.class,
                 primitiveManager, id, name, stream, null);
     }
 
@@ -94,5 +89,9 @@ public class CustomServicesScriptResourceDAO implements CustomServicesResourceDA
         return true;
     }
 
+    @Override
+    public List<NamedElement> listResourcesByParentId(final URI parentId) {
+        return null;
+    }
 
 }

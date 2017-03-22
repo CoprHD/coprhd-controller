@@ -14,41 +14,21 @@
  * limitations under the License.
  *
  */
-package com.emc.storageos.db.client.model.uimodels;
+package com.emc.sa.catalog.primitives;
 
-import com.emc.storageos.db.client.model.Name;
 import com.emc.storageos.db.client.model.StringSetMap;
+import com.emc.storageos.db.client.model.uimodels.CustomServicesDBResource;
+import com.emc.storageos.svcs.errorhandling.resources.APIException;
 
-/**
- * Base class for primitive resources that will be stored in the database
- *
- */
-public abstract class CustomServicesDBResource extends CustomServicesPrimitiveResourceModel {
+public class CustomServicesDBNoResource extends CustomServicesDBResource {
 
     private static final long serialVersionUID = 1L;
-    public static final String RESOURCE = "resource";
-    public static final String ATTRIBUTES = "attributes";
-
-    private byte[] resource;
-    private StringSetMap attributes;
-
-    @Name(RESOURCE)
-    public byte[] getResource() {
-        return resource;
-    }
 
     public void setResource(final byte[] resource) {
-        this.resource = resource;
-        setChanged(RESOURCE);
-    }
-    
-    @Name(ATTRIBUTES)
-    public StringSetMap getAttributes() {
-        return attributes;
+        throw APIException.methodNotAllowed.notSupported();
     }
     
     public void setAttributes(final StringSetMap attributes) {
-        this.attributes = attributes;
-        setChanged(ATTRIBUTES);
+        throw APIException.methodNotAllowed.notSupported();
     }
 }

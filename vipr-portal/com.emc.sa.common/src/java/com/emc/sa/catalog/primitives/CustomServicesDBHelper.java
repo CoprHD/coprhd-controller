@@ -128,8 +128,13 @@ public final class CustomServicesDBHelper {
         primitive.setLabel(param.getName());
         primitive.setFriendlyName(param.getFriendlyName());
         primitive.setDescription(param.getDescription());
-        final CustomServicesDBResource resource = primitiveManager.findResource(resourceType, param.getResource());
-        primitive.setResource(new NamedURI(resource.getId(), resource.getLabel()));
+        
+        if( !resourceType.isAssignableFrom(CustomServicesDBNoResource.class)) {
+            final CustomServicesDBResource resource = primitiveManager.findResource(resourceType, param.getResource());
+            primitive.setResource(new NamedURI(resource.getId(), resource.getLabel()));
+        } else if( null != param.getResource() ) {
+            throw APIException.badRequests.invalidParameter("resource", param.getResource().toString());
+        }
         primitive.setAttributes(createAttributes(primitive.attributeKeys(), param.getAttributes()));
         primitive.setInput(createInput(primitive.inputTypes(), param.getInput()));
         primitive.setOutput(createOutput(param.getOutput()));

@@ -81,11 +81,23 @@ public class WorkflowBuilder extends Controller {
     private static final String NODE_TYPE_FILE = "file";
     private static final String MY_LIBRARY = "My Library";
     private static final String VIPR_LIBRARY = "ViPR Library";
-    private static final String VIPR_PRIMITIVE_LIBRARY = "ViPR REST Primitives";
+    private static final String VIPR_PRIMITIVE_LIBRARY = "ViPR REST";
     private static final String JSTREE_A_ATTR_TITLE = "title";
 
     public static void view() {
         setAnsibleResources();
+
+        StringOption[] restCallMethodOptions = {
+                new StringOption("GET", "GET"),
+                new StringOption("POST", "POST"),
+                new StringOption("PUT", "PUT"),};
+        renderArgs.put("restCallMethodOptions", Arrays.asList(restCallMethodOptions));
+
+        StringOption[] restCallAuthTypes = {
+                new StringOption("NoAuth", "No Auth"),
+                new StringOption("BasicAuth", "Basic Auth")};
+        renderArgs.put("restCallAuthTypes", Arrays.asList(restCallAuthTypes));
+
         render();
     }
 
@@ -493,7 +505,7 @@ public class WorkflowBuilder extends Controller {
                 final List<String> newInputs = getListFromInputOutputString(shellPrimitive.getInputs());
                 final List<String> existingInputs = convertInputGroupsToList(primitiveRestRep.getInputGroups());
                 final InputUpdateParam inputUpdateParam = new InputUpdateParam();
-                
+
                 inputUpdateParam.setRemove(getInputDiff(existingInputs, newInputs));
                 inputUpdateParam.setAdd(getInputDiff(newInputs, existingInputs));
                 primitiveUpdateParam.setInput(inputUpdateParam);
@@ -563,7 +575,7 @@ public class WorkflowBuilder extends Controller {
                 if (StringUtils.isNotEmpty(shellPrimitive.getOutputs())) {
                     primitiveCreateParam.setOutput(getListFromInputOutputString(shellPrimitive.getOutputs()));
                 }
-                
+
                 final CustomServicesPrimitiveRestRep primitiveRestRep = getCatalogClient().customServicesPrimitives()
                         .createPrimitive(primitiveCreateParam);
                 if (primitiveRestRep != null) {
@@ -909,6 +921,50 @@ public class WorkflowBuilder extends Controller {
             }
 
         }
+
+    }
+
+    public static class RestAPIPrimitiveForm {
+        private String id; // this is empty for CREATE
+        private String wfDirID; // this is empty for EDIT
+
+        // Name and Description step
+        @Required
+        private String name;
+        @Required
+        private String description;
+
+        // Details
+        @Required
+        private String method; // get, post,..
+        private String requestURL;
+        private String authType = "BasicAuth"; // only auth supported now
+        private String username;
+        private String password;
+        // TODO: Assume accept/content is always json?
+        //private String acceptType;
+
+        private Map<String, String> headers;
+        private String rawBody;
+
+        private Map<String, String> queryParams;
+
+        // Input and Outputs
+        private String inputs; // comma separated list of inputs
+        private String outputs; // comma separated list of ouputs
+
+
+        // TODO
+        public void validate() {
+
+        }
+    }
+
+    public static void saveRestAPIPrimitive(@Valid final RestAPIPrimitiveForm restAPIPrimitiveForm) {
+        restAPIPrimitiveForm.validate();
+        // TODO - call API to save primitive
+
+        view();
 
     }
 }

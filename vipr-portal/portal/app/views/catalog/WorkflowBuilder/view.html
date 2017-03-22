@@ -8,6 +8,7 @@
 #{script 'jstree.min.js'/}
 #{createShellPrimitive /}
 #{createLocalAnsiblePrimitive ansibleResourceNames/}
+#{createRestAPIPrimitive arg1:restCallMethodOptions, arg2:restCallAuthTypes/}
 
 <style>
     .dl-horizontal dt
@@ -37,6 +38,14 @@
         min-width: 0px !important;
     }
 
+    .input-group-btn select {
+        border-color: #ccc;
+        margin-top: 0px;
+        margin-bottom: 0px;
+        padding-top: 7px;
+        padding-bottom: 7px;
+    }
+
 </style>
 
 <div id="builderController" ng-controller="builderController" class="row">
@@ -52,24 +61,8 @@
                 <div class="col-md-5">
                     <div id="theSidebar" class="home-sidebar" >
                         <div class="input-group">
-                            <input style="float:left;width:200px;margin-right:10px;"  class="search-input form-control" placeholder="Search..."></input>
+                            <input style="float:left;width:300px;margin-right:10px;"  class="search-input form-control" placeholder="Search..."></input>
                             <input style="width:200px;" class="form-control" placeholder="Filter By"></input>
-                            <span class="input-group-btn">
-                                <div class="btn-group" >
-                                    <button id="addWorkflow" type="button" class="btn btn-xs btn-success dropdown-toggle" title="Add" data-toggle="dropdown">
-                                        <span class="glyphicon glyphicon-plus"></span> <span class="caret"></span>
-                                    </button>
-                                    <ul class="dropdown-menu" role="menu">
-                                        <li><a  href="#" ng-click="addFolder();">Folder</a></li>
-                                        <li><a  href="#" ng-click="addWorkflow();">Workflow</a></li>
-                                        <li role="separator" class="divider"></li>
-                                        <li class="dropdown-header">Primitives</li>
-                                        <li><a  href="#" ng-click="openShellScriptModal();">Shell Script</a></li>
-                                        <li><a  href="#" ng-click="openLocalAnsibleModal();">Local Ansible</a></li>
-                                        <li><a  href="#">REST API</a></li>
-                                    </ul>
-                                </div>
-                            </span>
                         </div>
                         <div style="overflow: auto; height:90%; padding: 10px;overflow-x: hidden;">
                             <div id="jstree_demo" >

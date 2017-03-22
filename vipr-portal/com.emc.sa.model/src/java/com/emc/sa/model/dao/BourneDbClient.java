@@ -16,8 +16,7 @@ import com.emc.storageos.db.client.constraint.*;
 import com.emc.storageos.db.client.constraint.impl.*;
 import com.emc.storageos.db.client.impl.DbClientImpl;
 import com.emc.storageos.db.client.model.uimodels.Order;
-import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
-
+import com.datastax.driver.core.exceptions.DriverException;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.constraint.NamedElementQueryResultList.NamedElement;
 import com.emc.storageos.db.client.impl.ColumnField;
@@ -143,11 +142,11 @@ public class BourneDbClient implements DBClientWrapper {
 
         TimeSeriesConstraint constraint = TimeSeriesConstraint.Factory.getOrdersByUser(userId, startTime, endTime);
         DbClientImpl dbclient = (DbClientImpl)getDbClient();
-        constraint.setKeyspace(dbclient.getKeyspace(Order.class));
+        constraint.setDbClientContext(dbclient.getDbClientContext(Order.class));
 
         try {
             return constraint.count();
-        }catch (ConnectionException e) {
+        }catch (DriverException e) {
             throw new DataAccessException(e);
         }
     }
@@ -162,11 +161,11 @@ public class BourneDbClient implements DBClientWrapper {
         for (URI tid : tids) {
             TimeSeriesConstraint constraint = TimeSeriesConstraint.Factory.getOrders(tid, startTime, endTime);
             DbClientImpl dbclient = (DbClientImpl) getDbClient();
-            constraint.setKeyspace(dbclient.getKeyspace(Order.class));
+            constraint.setDbClientContext(dbclient.getDbClientContext(Order.class));
 
             try {
                 counts.put(tid.toString(), constraint.count());
-            } catch (ConnectionException e) {
+            } catch (DriverException e) {
                 throw new DataAccessException(e);
             }
         }

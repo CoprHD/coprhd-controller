@@ -14,11 +14,15 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
+import org.apache.cassandra.serializers.BooleanSerializer;
 import org.apache.commons.collections.ListUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.datastax.driver.core.ResultSet;
+import com.datastax.driver.core.Row;
+import com.datastax.driver.core.exceptions.DriverException;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.impl.ColumnField;
 import com.emc.storageos.db.client.impl.DataObjectType;
@@ -31,13 +35,6 @@ import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.upgrade.BaseCustomMigrationCallback;
 import com.emc.storageos.svcs.errorhandling.resources.MigrationCallbackException;
-import com.netflix.astyanax.connectionpool.OperationResult;
-import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
-import com.netflix.astyanax.model.ColumnFamily;
-import com.netflix.astyanax.model.ColumnList;
-import com.netflix.astyanax.model.CqlResult;
-import com.netflix.astyanax.model.Row;
-import com.netflix.astyanax.serializers.StringSerializer;
 
 /**
  * This migration handler is for COP-27666
@@ -116,7 +113,7 @@ public class StaleRelationURICleanupMigration extends BaseCustomMigrationCallbac
         }
     }
 
-    private List<String> queryValidRelationURIList(DbClientImpl dbClient, String relationField, List<String> relationURIList) throws ConnectionException {
+    private List<String> queryValidRelationURIList(DbClientImpl dbClient, String relationField, List<String> relationURIList) throws DriverException {
         List<String> validRelationURIList = new ArrayList<>();
         if (relationURIList.isEmpty()) {
             return validRelationURIList;
@@ -137,11 +134,7 @@ public class StaleRelationURICleanupMigration extends BaseCustomMigrationCallbac
         }
         
         for (Entry<Class, List<String>> entry : uriListClassMap.entrySet()) {
-            ColumnFamily<String, String> targetCF =
-                    new ColumnFamily<String, String>(TypeMap.getDoType(entry.getKey()).getCF().getName(),
-                            StringSerializer.get(), StringSerializer.get(), StringSerializer.get());
-            OperationResult<CqlResult<String, String>> queryResult;
-            
+        	
             StringBuilder keyString = new StringBuilder();
             for (String uri : entry.getValue()) {
                 if (keyString.length() > 0) {
@@ -152,16 +145,12 @@ public class StaleRelationURICleanupMigration extends BaseCustomMigrationCallbac
             
             //to get better performance, only query key and inactive fields by CQL here
             //Thrift can't help to determine whether key exists or not
-            queryResult = dbClient.getLocalContext()
-                    .getKeyspace().prepareQuery(targetCF)
-                    .withCql(String.format(CQL_QUERY_ACTIVE_URI, targetCF.getName(), keyString))
-                    .execute();
+            ResultSet resultSet = dbClient.getLocalContext().getSession().execute(String.format(CQL_QUERY_ACTIVE_URI, TypeMap.getDoType(entry.getKey()).getCF().getName(), keyString));
             
             //only inactive=true and existing key will be added as valid URI 
-            for (Row<String, String> row : queryResult.getResult().getRows()) {
-                ColumnList<String> columns = row.getColumns();
-                if (!columns.getBooleanValue("value", false)) {
-                    validRelationURIList.add(row.getColumns().getColumnByIndex(0).getStringValue());
+            for (Row row : resultSet) {
+                if (!BooleanSerializer.instance.deserialize(row.getBytes("value"))) {
+                    validRelationURIList.add(row.getString("key"));
                 }
             }
         }

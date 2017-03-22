@@ -15,6 +15,7 @@ import org.apache.commons.io.FileUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.datastax.driver.core.exceptions.DriverException;
 import com.emc.storageos.db.client.impl.DataObjectType;
 import com.emc.storageos.db.client.impl.DbCheckerFileWriter;
 import com.emc.storageos.db.client.impl.DbClientContext;
@@ -27,7 +28,6 @@ import com.emc.storageos.db.client.upgrade.BaseCustomMigrationCallback;
 import com.emc.storageos.db.client.util.KeyspaceUtil;
 import com.emc.storageos.services.util.Exec;
 import com.emc.storageos.svcs.errorhandling.resources.MigrationCallbackException;
-import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 
 /**
  * This migration handler is for COP-27665
@@ -52,7 +52,7 @@ public class StaleIndexCleanerMigration extends BaseCustomMigrationCallback {
             for (IndexAndCf indexAndCf : allIdxCfs.values()) {
                 try {
                     checkHelper.checkIndexingCF(indexAndCf, false, checkResult, true);
-                } catch (ConnectionException e) {
+                } catch (DriverException e) {
                     log.error("Failed to check stale index CF {}", indexAndCf, e);
                 }
             }
@@ -82,7 +82,7 @@ public class StaleIndexCleanerMigration extends BaseCustomMigrationCallback {
         for (Entry<String, String> entry : DbCheckerFileWriter.getCleanupfileMap().entrySet()) {
             if (DbCheckerFileWriter.WriteType.STORAGEOS.name().equalsIgnoreCase(entry.getKey())) {
                 execCleanupScript(String.format(CLEANUP_COMMAND, DbClientContext.LOCAL_KEYSPACE_NAME, entry.getValue(),
-                        DbClientContext.DB_THRIFT_PORT));
+                        DbClientContext.DB_NATIVE_TRANSPORT_PORT));
                 FileUtils.deleteQuietly(new File(entry.getValue()));
             }
         }

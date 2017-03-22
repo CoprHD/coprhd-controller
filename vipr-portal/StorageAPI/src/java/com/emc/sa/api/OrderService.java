@@ -673,7 +673,7 @@ public class OrderService extends CatalogTaggedResourceService {
             for (URI tid : tids) {
                 TimeSeriesConstraint constraint = TimeSeriesConstraint.Factory.getOrders(tid, startTime, endTime);
                 DbClientImpl dbclient = (DbClientImpl) _dbClient;
-                constraint.setKeyspace(dbclient.getKeyspace(Order.class));
+                constraint.setDbClientContext(dbclient.getDbClientContext(Order.class));
 
                 NamedElementQueryResultList ids = new NamedElementQueryResultList();
                 _dbClient.queryByConstraint(constraint, ids);

@@ -9,16 +9,7 @@ import java.net.URI;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.netflix.astyanax.Keyspace;
-import com.netflix.astyanax.connectionpool.OperationResult;
-import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
-import com.netflix.astyanax.model.Column;
-import com.netflix.astyanax.model.ColumnFamily;
-import com.netflix.astyanax.query.RowQuery;
-import com.netflix.astyanax.serializers.CompositeRangeBuilder;
-
 import com.emc.storageos.db.client.impl.ColumnField;
-import com.emc.storageos.db.client.impl.ClassNameTimeSeriesSerializer;
 import com.emc.storageos.db.client.impl.ClassNameTimeSeriesIndexColumnName;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.constraint.TimeSeriesConstraint;

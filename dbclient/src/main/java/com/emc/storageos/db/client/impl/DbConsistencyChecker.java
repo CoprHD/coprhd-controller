@@ -18,12 +18,8 @@ import org.slf4j.LoggerFactory;
 import com.emc.storageos.coordinator.client.model.Constants;
 import com.emc.storageos.coordinator.client.model.DbConsistencyStatus;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
-<<<<<<< HEAD
-=======
 import com.emc.storageos.db.client.impl.DbConsistencyCheckerHelper.CheckResult;
->>>>>>> master
 import com.emc.storageos.db.client.impl.DbConsistencyCheckerHelper.IndexAndCf;
-import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 
 public class DbConsistencyChecker {
     private static final Logger log = LoggerFactory.getLogger(DbConsistencyChecker.class);

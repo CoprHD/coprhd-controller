@@ -327,7 +327,7 @@ public class DbClientImpl implements DbClient {
         return getDbClientContext(clazz).getSession();
     }
     
-    protected <T extends DataObject> DbClientContext getDbClientContext(Class<T> clazz) {
+    public <T extends DataObject> DbClientContext getDbClientContext(Class<T> clazz) {
         DbClientContext ctx = null;
         if (localContext == null && geoContext == null) {
             throw new IllegalStateException();

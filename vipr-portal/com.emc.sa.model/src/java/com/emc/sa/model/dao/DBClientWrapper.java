@@ -8,7 +8,6 @@ import com.emc.storageos.db.client.constraint.NamedElementQueryResultList.NamedE
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DataObjectWithACLs;
 import com.emc.storageos.security.authorization.PermissionsKey;
-import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 
 import java.net.URI;
 import java.util.Date;

@@ -112,8 +112,6 @@ import com.emc.storageos.db.client.model.StatTimeSeries;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
 
-import com.emc.storageos.db.client.model.Token;
-
 import com.emc.storageos.db.client.model.VdcOpLog;
 import com.emc.storageos.db.client.model.VirtualDataCenter;
 import com.emc.storageos.db.common.DataObjectScanner;
@@ -1292,11 +1290,7 @@ public class DBClient {
             for (DbConsistencyCheckerHelper.IndexAndCf indexAndCf : idxCfs) {
                 helper.checkIndexingCF(indexAndCf, true, checkResult);
             }
-<<<<<<< HEAD
-            logMsg(String.format("\nFinish to check INDEX records: totally checked %d indices for CF %s and %d corrupted rows found.\n",
-                    idxCfs.size(), dataCf.getCF().getName(), indexCorruptCount));
-        } catch (Exception e) {
-=======
+
             logMsg(checkResult.toString());
             logMsg(String.format(DbConsistencyCheckerHelper.MSG_INDEX_OBJECTS_END_SPECIFIED, idxCfs.size(), dataCf.getCF().getName(),
                     checkResult.getTotal()));
@@ -1305,8 +1299,7 @@ public class DBClient {
             String msg = generateSummaryForDBChecker(corruptedCount != 0);
             System.out.println(msg);
             log.info(msg);
-        } catch (ConnectionException e) {
->>>>>>> master
+        } catch (DriverException e) {
             log.error("Database connection exception happens, fail to connect: ", e);
             System.err.println("The checker has been stopped by database connection exception. "
                     + "Please see the log for more information.");

@@ -23,13 +23,13 @@ import javax.crypto.KeyGenerator;
 import javax.crypto.SecretKey;
 
 import org.apache.cassandra.config.Schema;
+import org.apache.cassandra.service.StorageService;
+import org.apache.cassandra.service.StorageServiceMBean;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.support.ClassPathXmlApplicationContext;
-import org.apache.cassandra.service.StorageService;
-import org.apache.cassandra.service.StorageServiceMBean;
 
 import com.emc.storageos.coordinator.client.model.Constants;
 import com.emc.storageos.coordinator.client.model.DbVersionInfo;
@@ -409,10 +409,10 @@ public class DbsvcTestBase {
         }
     }
     
-<<<<<<< HEAD
     public DbClientContext getDbClientContext() {
         return localCtx;
-=======
+    }
+    
     protected void cleanupDataObjectCF(Class<? extends DataObject> clazz) {
         List<URI> uriList = _dbClient.queryByType(Volume.class, false);
         List<DataObject> dataObjects = new ArrayList<DataObject>();
@@ -426,6 +426,5 @@ public class DbsvcTestBase {
             }
         }
         _dbClient.internalRemoveObjects(dataObjects.toArray(new DataObject[0]));
->>>>>>> master
     }
 }

@@ -33,13 +33,6 @@ import com.emc.storageos.db.client.upgrade.BaseCustomMigrationCallback;
 import com.emc.storageos.db.client.upgrade.InternalDbClient;
 import com.emc.storageos.svcs.errorhandling.resources.MigrationCallbackException;
 import com.google.common.collect.Sets;
-import com.netflix.astyanax.Keyspace;
-import com.netflix.astyanax.connectionpool.OperationResult;
-import com.netflix.astyanax.model.Column;
-import com.netflix.astyanax.model.Row;
-import com.netflix.astyanax.model.Rows;
-import com.netflix.astyanax.query.ColumnFamilyQuery;
-import com.netflix.astyanax.util.TimeUUIDUtils;
 
 /**
  * This migration handler is to fix issue COP-26680. 

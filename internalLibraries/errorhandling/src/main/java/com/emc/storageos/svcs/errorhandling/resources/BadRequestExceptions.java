@@ -772,6 +772,12 @@ public interface BadRequestExceptions {
     public BadRequestException invalidParameterVolumeExportMismatch(URI volUri, URI id);
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException invalidVirtualPoolUriOrNotSupportRemoteReplication(URI vpoolURI);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException vpoolVarrayMismatch(URI vpool, URI varray);
+
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException invalidParameterVolumeExportProjectsMismatch(URI blockProject,
             URI uri);
 

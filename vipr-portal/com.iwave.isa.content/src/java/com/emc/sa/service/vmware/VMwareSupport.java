@@ -363,7 +363,7 @@ public class VMwareSupport {
         if (hosts.isEmpty()) {
             throw new IllegalStateException("Datastore is not mounted by any hosts");
         }
-        verifyHostsConnected(hosts);
+
         enterMaintenanceMode(datastore);
         setStorageIOControl(datastore, false);
 
@@ -390,6 +390,11 @@ public class VMwareSupport {
         removeVmfsDatastoreTag(volumes, hostOrClusterId);
     }
 
+    /**
+     * Verifies that all provided hosts are in a connected state. Throw an exception if a host is not connected.
+     * 
+     * @param hosts list of hosts to check
+     */
     public static void verifyHostsConnected(List<HostSystem> hosts) {
         for (HostSystem host : hosts) {
             if (!VMwareSupport.isHostConnected(host)) {
@@ -488,7 +493,6 @@ public class VMwareSupport {
         if (hosts.isEmpty()) {
             throw new IllegalStateException("Datastore is not mounted by any hosts");
         }
-        verifyHostsConnected(hosts);
         enterMaintenanceMode(datastore);
         setStorageIOControl(datastore, false);
         for (HostSystem host : hosts) {

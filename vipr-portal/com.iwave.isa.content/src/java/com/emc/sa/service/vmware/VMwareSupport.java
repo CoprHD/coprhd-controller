@@ -125,8 +125,12 @@ public class VMwareSupport {
         return execute(new FindESXHost(datacenterName, esxHostName, verifyHostExists));
     }
 
+    public ClusterComputeResource getCluster(String datacenterName, String clusterName, boolean checkClusterConnectivity) {
+        return execute(new FindCluster(datacenterName, clusterName, checkClusterConnectivity));
+    }
+
     public ClusterComputeResource getCluster(String datacenterName, String clusterName) {
-        return execute(new FindCluster(datacenterName, clusterName));
+        return getCluster(datacenterName, clusterName, true);
     }
 
     public Datastore getDatastore(String datacenterName, String datastoreName) {

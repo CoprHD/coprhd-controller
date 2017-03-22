@@ -39,6 +39,10 @@ public abstract class VMwareHostService extends ViPRService {
     protected HostSystem host;
     protected ClusterComputeResource cluster;
 
+    public boolean checkClusterConnectivity() {
+        return true;
+    }
+
     private void initHost() {
         datacenter = vmware.getDatacenter(datacenterId);
 
@@ -63,7 +67,7 @@ public abstract class VMwareHostService extends ViPRService {
                         + "] contains no hosts");
             }
 
-            cluster = vmware.getCluster(datacenter.getLabel(), hostCluster.getLabel());
+            cluster = vmware.getCluster(datacenter.getLabel(), hostCluster.getLabel(), checkClusterConnectivity());
 
             esxHost = getConnectedHost(hosts, datacenter);
 

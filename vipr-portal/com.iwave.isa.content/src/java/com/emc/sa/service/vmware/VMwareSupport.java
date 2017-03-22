@@ -363,7 +363,7 @@ public class VMwareSupport {
         if (hosts.isEmpty()) {
             throw new IllegalStateException("Datastore is not mounted by any hosts");
         }
-
+        verifyHostsConnected(hosts);
         enterMaintenanceMode(datastore);
         setStorageIOControl(datastore, false);
 

@@ -132,7 +132,8 @@ public abstract class VMwareHostService extends ViPRService {
             VcenterDataCenter datacenter = getModelClient().datacenters().findById(datacenterId);
             Cluster cluster = getModelClient().clusters().findById(hostCluster.getId());
 
-            ClusterComputeResource vcenterCluster = vmware.getCluster(datacenter.getLabel(), cluster.getLabel());
+            ClusterComputeResource vcenterCluster = vmware.getCluster(datacenter.getLabel(), cluster.getLabel(),
+                    checkClusterConnectivity());
 
             if (vcenterCluster == null) {
                 ExecutionUtils.fail("failTask.vmware.cluster.notfound", args(), args(cluster.getLabel()));

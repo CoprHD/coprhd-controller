@@ -5,7 +5,6 @@
 package com.emc.storageos.db.client.model;
 
 import java.net.URI;
-
 import com.emc.storageos.db.client.util.EndpointUtility;
 
 /**
@@ -43,6 +42,9 @@ public class Host extends AbstractComputeSystem {
     private StringSet volumeGroupIds;
     private StringMap preferredPools;
     private Boolean virtualMachine;
+    private String uuid;
+    private String bios;
+    public static String ALTER_ID_FIELD = "hostName";
     private URI _serviceProfile;
 
     /**
@@ -50,14 +52,12 @@ public class Host extends AbstractComputeSystem {
      * deactivating a Host
      */
     private URI bootVolumeId;
+
     /**
      * This is for recording the ComputeVirtualPool that was used to create the host (bare metal) - will be used to determine if the VCP is
      * in use
      */
     private URI computeVirtualPoolId;
-    public static String ALTER_ID_FIELD = "hostName";
-    private String uuid;
-    private String bios;
 
     /**
      * Gets the host type which is an instance of {@link HostType}

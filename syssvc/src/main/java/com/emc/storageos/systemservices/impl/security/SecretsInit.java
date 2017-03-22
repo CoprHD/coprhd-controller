@@ -38,7 +38,6 @@ public class SecretsInit implements Runnable {
     @Override
     public void run() {
         boolean ipsecInitDone = false;
-        boolean dhInitDone = false;
 
         while (!dbInitDone()) {
             try {
@@ -52,15 +51,9 @@ public class SecretsInit implements Runnable {
         log.info("Db init done. Start ipsec init");
 
         while (true) {
-            if (!ipsecInitDone) {
-                ipsecInitDone = rotateIPsecKey();
-            }
+            ipsecInitDone = rotateIPsecKey();
 
-            if (!dhInitDone) {
-                dhInitDone = genDHParam();
-            }
-
-            if (ipsecInitDone && dhInitDone) {
+            if (ipsecInitDone) {
                 return;
             }
 
@@ -101,23 +94,6 @@ public class SecretsInit implements Runnable {
         }
 
         return doneCount == nodeCount;
-    }
-
-    private boolean genDHParam() {
-        LocalRepository localRepository = LocalRepository.getInstance();
-        try {
-            localRepository.genDHParam();
-
-            log.info("Reconfiguring SSL related config files");
-            localRepository.reconfigProperties("ssl");
-
-            log.info("Invoking SSL notifier");
-            Notifier.getInstance("ssl").doNotify();
-        } catch (Exception e) {
-            log.warn("Failed to generate dhparam.", e);
-            return false;
-        }
-        return true;
     }
 
     private boolean rotateIPsecKey() {

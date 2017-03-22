@@ -577,12 +577,6 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
                 dbClient.updateObject(initiatorObjs);
             }
 
-            // The mask will be null in cases where we are creating new export mask. In this case, we just refresh the initiators info
-            if (mask == null) {
-                _log.info("Mask is null which means we are creating a new export mask and need to refresh just the initiators' info.");
-                return mask;
-            }
-
             // get the mask volumes
             for (Entry<String,ExportMask> entry : igNameToMaskMap.entrySet()) {
                 String igName = entry.getKey();
@@ -659,10 +653,11 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
             }
         } catch (Exception e) {
             if (null != e.getMessage() && !e.getMessage().contains(XtremIOConstants.OBJECT_NOT_FOUND)) {
-                String msg = String.format("Error when refreshing export mask %s, details: %s", mask.getMaskName(), e.getMessage());
+                String msg = String.format("Error when refreshing export masks for the system %s, details: %s", storage.forDisplay(),
+                        e.getMessage());
                 throw XtremIOApiException.exceptions.refreshExistingMaskFailure(msg, e);
             } else {
-                _log.warn("Error refreshing export mask {}", mask.getMaskName());
+                _log.warn("Error refreshing export masks for the system {}", storage.forDisplay());
             }
         }
 

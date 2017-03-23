@@ -804,8 +804,8 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
                     new Workflow.Method(ROLLBACK_NOTHING_METHOD),
                     null);
 
-            // If host has a vcenter associated and OS type is NO_OS then skip validation of checking on vcenter, because
-            // NO_OS host types cannot be pushed to vcenter, the host has got it's vcenterdatacenter association, because
+            // If host has a vcenter associated and OS type is NO_OS then skip vcenter operations, because
+            // NO_OS host types cannot be pushed to vcenter, the host has got its vcenterdatacenter association, because
             // any update to the host using the hostService automatically adds this association.
             if (!NullColumnValueGetter.isNullURI(host.getVcenterDataCenter()) && host.getType() != null
                     && host.getType().equalsIgnoreCase((Host.HostType.No_OS).name())) {

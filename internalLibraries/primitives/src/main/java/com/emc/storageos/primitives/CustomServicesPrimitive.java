@@ -32,6 +32,7 @@ public interface CustomServicesPrimitive {
         LOCAL_ANSIBLE("Local Ansible"),
         REMOTE_ANSIBLE("Remote Ansible"),
         SHELL_SCRIPT("Shell Script"),
+        WORKFLOW("Workflow"),
         START("Start"),
         END("End");
 

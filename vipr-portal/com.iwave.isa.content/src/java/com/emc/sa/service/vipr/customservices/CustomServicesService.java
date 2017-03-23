@@ -18,6 +18,7 @@
 package com.emc.sa.service.vipr.customservices;
 
 import java.io.File;
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -25,7 +26,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.commons.collections.MultiMap;
+import com.emc.storageos.db.client.model.uimodels.CustomServicesWorkflow;
 import org.apache.commons.lang.StringUtils;
 import org.codehaus.jackson.JsonNode;
 import org.codehaus.jackson.map.ObjectMapper;
@@ -84,26 +85,15 @@ public class CustomServicesService extends ViPRService {
     private ImmutableMap<String, Step> stepsHash;
     private CustomServicesWorkflowDocument obj;
     private int code;
+    private static boolean firstWf = true;
+    private static URI uri = null;
 
     @Override
     public void precheck() throws Exception {
 
         // get input params from order form
         params = ExecutionUtils.currentContext().getParameters();
-        final String raw = ExecutionUtils.currentContext().getOrder().getWorkflowDocument();
 
-        if (null == raw) {
-            throw InternalServerErrorException.internalServerErrors
-                    .customServiceExecutionFailed("Invalid custom service.  Workflow document cannot be null");
-        }
-
-        obj = WorkflowHelper.toWorkflowDocument(raw);
-        final List<Step> steps = obj.getSteps();
-        final ImmutableMap.Builder<String, Step> builder = ImmutableMap.builder();
-        for (final Step step : steps) {
-            builder.put(step.getId(), step);
-        }
-        stepsHash = builder.build();
     }
 
     @Override
@@ -119,6 +109,38 @@ public class CustomServicesService extends ViPRService {
         }
     }
 
+    private ImmutableMap<String, Step> getStepHash(final URI uri) throws Exception {
+
+        final CustomServicesWorkflowDocument obj;
+        final String raw;
+
+        if (uri == null) {
+            logger.info("parent wf");
+            raw = ExecutionUtils.currentContext().getOrder().getWorkflowDocument();
+        } else {
+            logger.info("sub wf uri:{}", uri);
+            //Get it from DB
+            CustomServicesWorkflow wf = dbClient.queryObject(CustomServicesWorkflow.class, uri);
+            raw = WorkflowHelper.toWorkflowDocumentJson(wf);
+        }
+        if (null == raw) {
+            throw InternalServerErrorException.internalServerErrors
+                    .customServiceExecutionFailed("Invalid custom service.  Workflow document cannot be null");
+        }
+        obj = WorkflowHelper.toWorkflowDocument(raw);
+
+        final List<Step> steps = obj.getSteps();
+        final ImmutableMap.Builder<String, Step> builder = ImmutableMap.builder();
+        for (final Step step : steps) {
+            builder.put(step.getId(), step);
+        }
+        ImmutableMap<String, Step> stepsHash = builder.build();
+
+        ExecutionUtils.currentContext().logInfo("customServicesService.status", obj.getName(), obj.getDescription());
+
+        return stepsHash;
+    }
+
     /**
      * Method to parse Workflow Definition JSON
      *
@@ -128,7 +150,7 @@ public class CustomServicesService extends ViPRService {
 
         logger.info("Parsing Workflow Definition");
 
-        ExecutionUtils.currentContext().logInfo("customServicesService.status", obj.getName(), obj.getDescription());
+        final ImmutableMap<String, Step> stepsHash = getStepHash(uri);
         final String orderDir = String.format("%s%s/", CustomServicesConstants.ORDER_DIR_PATH,
                 ExecutionUtils.currentContext().getOrder().getOrderNumber());
 
@@ -147,7 +169,7 @@ public class CustomServicesService extends ViPRService {
             try {
                 StepType type = StepType.fromString(step.getType());
                 switch (type) {
-                    case VIPR_REST: {
+                    case VIPR_REST:
 
                         final CustomServicesPrimitiveType primitive = daos.get("vipr").get(step.getOperation());
 
@@ -158,35 +180,41 @@ public class CustomServicesService extends ViPRService {
 
                         res = ViPRExecutionUtils.execute(new RunViprREST((CustomServicesViPRPrimitive) (primitive),
                                 getClient().getRestClient(), inputPerStep.get(step.getId())));
-
                         break;
-                    }
                     case REST:
-                        logger.info("Start REST execution");
+
                         res = ViPRExecutionUtils
                                 .execute(new CustomServicesRESTExecution(coordinatorClient, inputPerStep.get(step.getId()), step));
                         break;
                     case LOCAL_ANSIBLE:
-                        logger.info("Executing Local Ansible step");
+
                         createOrderDir(orderDir);
                         res = ViPRExecutionUtils.execute(new RunAnsible(step, inputPerStep.get(step.getId()), params, dbClient, orderDir));
                         break;
                     case SHELL_SCRIPT:
-                        logger.info("Executing Shell Script step");
+
                         createOrderDir(orderDir);
                         res = ViPRExecutionUtils.execute(new RunAnsible(step, inputPerStep.get(step.getId()), params, dbClient, orderDir));
                         break;
-                    case REMOTE_ANSIBLE: {
-                        logger.info("Executing remote ansible step");
+                    case REMOTE_ANSIBLE:
+
                         res = ViPRExecutionUtils.execute(new RunAnsible(step, inputPerStep.get(step.getId()), params, dbClient, orderDir));
                         break;
-                    }
+                    case WORKFLOW:
+                        //uri = step.getOperation();
+                        uri = new URI("urn:storageos:CustomServicesWorkflow:e2dc05f1-e3c3-495a-8eb0-a5681e6a6c7b:vdc1");
+                        wfExecutor();
+                        res = null;
+
+                        break;
+
                     default:
                         logger.error("Operation Type Not found. Type:{}", step.getType());
 
                         throw InternalServerErrorException.internalServerErrors
                                 .customServiceExecutionFailed("Operation Type not supported" + type);
                 }
+
 
                 boolean isSuccess = isSuccess(step, res);
                 if (isSuccess) {
@@ -200,7 +228,7 @@ public class CustomServicesService extends ViPRService {
                 }
                 next = getNext(isSuccess, res, step);
             } catch (final Exception e) {
-                logger.info("failed to execute step. Try to get rollback step");
+                logger.info("failed to execute step. Try to get rollback step. Exception:{}", e);
                 next = getNext(false, null, step);
             } finally {
                 orderDirCleanup(orderDir);

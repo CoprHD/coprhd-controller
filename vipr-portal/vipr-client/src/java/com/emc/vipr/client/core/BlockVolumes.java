@@ -205,6 +205,28 @@ public class BlockVolumes extends BulkExportResources<VolumeRestRep> implements 
     }
 
     /**
+     * Begins deactivating multiple block volumes by their IDs.
+     * <p>
+     * API Call: <tt>POST /block/volumes/deactivate?type={deletionType}</tt>
+     *
+     * @param ids
+     *            The IDs of the block volumes to deactivate.
+     * @param deletionType
+     *            {@code FULL} or {@code VIPR_ONLY}
+     * @param forceDelete
+     *            force delete volume
+     * @return tasks for monitoring the progress of the operations.
+     *
+     * @see com.emc.storageos.model.block.VolumeDeleteTypeEnum
+     */
+    public Tasks<VolumeRestRep> deactivate(List<URI> ids, VolumeDeleteTypeEnum deletionType, boolean forceDelete) {
+        URI uri = client.uriBuilder(baseUrl + "/deactivate").queryParam("type", deletionType)
+                .queryParam("force", forceDelete).build();
+        TaskList tasks = client.postURI(TaskList.class, new BulkDeleteParam(ids), uri);
+        return new Tasks<>(client, tasks.getTaskList(), resourceClass);
+    }
+
+    /**
      * Begins expanding a block volume by ID.
      * <p>
      * API Call: <tt>POST /block/volumes/{id}/expand</tt>

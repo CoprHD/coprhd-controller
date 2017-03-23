@@ -27,6 +27,7 @@ import com.emc.storageos.db.client.model.Cluster;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.model.vpool.ComputeVirtualPoolRestRep;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
 
 @Service("CreateBareMetalCluster")
 public class CreateBareMetalClusterService extends ViPRService {
@@ -164,7 +165,7 @@ public class CreateBareMetalClusterService extends ViPRService {
 
         // Deactivate hosts with no boot volume, return list of hosts remaining.
         hostToBootVolumeIdMap = ComputeUtils.deactivateHostsWithNoBootVolume(hostToBootVolumeIdMap, cluster);
-
+        hosts = Lists.newArrayList(hostToBootVolumeIdMap.keySet());
         // Export the boot volume, return a map of hosts and their EG IDs
         Map<Host, URI> hostToEgIdMap = ComputeUtils.exportBootVols(hostToBootVolumeIdMap, project, virtualArray, hlu);
         logInfo("compute.cluster.exports.created", 
@@ -172,7 +173,7 @@ public class CreateBareMetalClusterService extends ViPRService {
         
         // Deactivate any hosts where the export failed, return list of hosts remaining
         hostToBootVolumeIdMap = ComputeUtils.deactivateHostsWithNoExport(hostToBootVolumeIdMap, hostToEgIdMap, cluster);
-        
+        hosts = Lists.newArrayList(hostToBootVolumeIdMap.keySet());
         // Set host boot volume ids and set san boot targets. 
         hosts = ComputeUtils.setHostBootVolumes(hostToBootVolumeIdMap, true);
 

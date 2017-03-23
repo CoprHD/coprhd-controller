@@ -275,6 +275,7 @@ public class CreateComputeClusterService extends ViPRService {
 
         // Deactivate hosts with no boot volume, return list of hosts remaining.
         hostToBootVolumeIdMap = ComputeUtils.deactivateHostsWithNoBootVolume(hostToBootVolumeIdMap, cluster);
+        hosts = Lists.newArrayList(hostToBootVolumeIdMap.keySet());
 
         // Export the boot volume, return a map of hosts and their EG IDs
         Map<Host, URI> hostToEgIdMap = ComputeUtils.exportBootVols(hostToBootVolumeIdMap, project, virtualArray, hlu);
@@ -283,6 +284,7 @@ public class CreateComputeClusterService extends ViPRService {
 
         // Deactivate any hosts where the export failed, return list of hosts remaining
         hostToBootVolumeIdMap = ComputeUtils.deactivateHostsWithNoExport(hostToBootVolumeIdMap, hostToEgIdMap, cluster);
+        hosts = Lists.newArrayList(hostToBootVolumeIdMap.keySet());
 
         // Set host boot volume ids, but do not set san boot targets. They will get set post os install.
         hosts = ComputeUtils.setHostBootVolumes(hostToBootVolumeIdMap, false);

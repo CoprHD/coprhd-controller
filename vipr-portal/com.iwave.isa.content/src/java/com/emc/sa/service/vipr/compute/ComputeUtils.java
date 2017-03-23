@@ -387,7 +387,7 @@ public class ComputeUtils {
         }
         if (!bootVolsToRemove.isEmpty()){
              try {
-                 BlockStorageUtils.deactivateVolumes(bootVolsToRemove, VolumeDeleteTypeEnum.FULL);
+                 BlockStorageUtils.deactivateVolumes(bootVolsToRemove, VolumeDeleteTypeEnum.FULL, true);
              }catch (Exception e) {
                  ExecutionUtils.currentContext().logError("computeutils.bootvolume.deactivate.failure",
                      e.getMessage());
@@ -648,7 +648,7 @@ public class ComputeUtils {
                 for (Host host : hostsToRemove) {
                     bootVolsToRemove.add(hostToVolumeIdMap.get(host));
                 }
-                BlockStorageUtils.deactivateVolumes(bootVolsToRemove, VolumeDeleteTypeEnum.FULL);
+                BlockStorageUtils.deactivateVolumes(bootVolsToRemove, VolumeDeleteTypeEnum.FULL, true);
             }catch (Exception e) {
                 ExecutionUtils.currentContext().logError("computeutils.bootvolume.deactivate.failure",
                         e.getMessage());
@@ -956,7 +956,8 @@ public class ComputeUtils {
         for (HostRestRep host : hosts) {
             if ((!NullColumnValueGetter.isNullURI(vcenterId)
                     || !NullColumnValueGetter.isNullURI(cluster.getVcenterDataCenter()))
-                    && (host.getvCenterDataCenter() == null)) {
+                    && (host.getvCenterDataCenter() == null) && host.getType() != null
+                    && host.getType().equalsIgnoreCase(HostType.Esx.name())) {
                 orderErrors.append(
                         ExecutionUtils.getMessage("compute.cluster.vcenter.push.failed", host.getHostName()) + "  ");
             }
@@ -1084,7 +1085,7 @@ public class ComputeUtils {
         if (!bootVolumesToRemove.isEmpty()) {
             try {
                 ExecutionUtils.currentContext().logInfo("computeutils.deactivatebootvolume.nobootvolumeassociation");
-                BlockStorageUtils.deactivateVolumes(bootVolumesToRemove, VolumeDeleteTypeEnum.FULL);
+                BlockStorageUtils.deactivateVolumes(bootVolumesToRemove, VolumeDeleteTypeEnum.FULL, true);
             }catch (Exception e) {
                 ExecutionUtils.currentContext().logError("computeutils.bootvolume.deactivate.failure",
                         e.getMessage());

@@ -16,6 +16,7 @@ public class DeactivateVolumes extends WaitForTasks<VolumeRestRep> {
 
     private List<URI> volumeIds;
     private VolumeDeleteTypeEnum type;
+    private boolean forceDelete = false;
 
     public DeactivateVolumes(List<URI> volumeIds, VolumeDeleteTypeEnum type) {
         super();
@@ -24,8 +25,17 @@ public class DeactivateVolumes extends WaitForTasks<VolumeRestRep> {
         provideDetailArgs(volumeIds, type);
     }
 
+    public DeactivateVolumes(List<URI> volumeIds, VolumeDeleteTypeEnum type, boolean forceDelete) {
+        super();
+        this.volumeIds = volumeIds;
+        this.type = type;
+        this.forceDelete = forceDelete;
+        provideDetailArgs(volumeIds, type);
+    }
+
     @Override
     protected Tasks<VolumeRestRep> doExecute() throws Exception {
-        return getClient().blockVolumes().deactivate(volumeIds, type);
+        return (forceDelete) ? getClient().blockVolumes().deactivate(volumeIds, type, forceDelete)
+                : getClient().blockVolumes().deactivate(volumeIds, type);
     }
 }

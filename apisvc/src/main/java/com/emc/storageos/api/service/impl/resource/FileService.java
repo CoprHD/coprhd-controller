@@ -1674,25 +1674,8 @@ public class FileService extends TaskResourceService {
                         .resourceCannotBeDeleted("Please unassign the policy from file system. " + fs.getLabel());
             }
         }
-        StringBuffer notSuppReasonBuff = new StringBuffer();
-     // Verify the file system is having any active replication targets!!
-//        if (FileSystemReplicationUtils.filesystemHasActiveReplication(fs, notSuppReasonBuff, param.getDeleteType(),
-//                param.getForceDelete())) {
-//            throw APIException.badRequests
-//                    .resourceCannotBeDeleted(notSuppReasonBuff.toString());
-//        }
         List<URI> fileShareURIs = new ArrayList<URI>();
         fileShareURIs.add(id);
-//        // Verify the higher level replication policies assigned
-//        if (param.getDeleteType() != null && param.getDeleteType().equalsIgnoreCase("FULL")) {
-//            if (FilePolicyServiceUtils.vPoolHasReplicationPolicy(_dbClient, fs.getVirtualPool())
-//                    || FilePolicyServiceUtils.projectHasReplicationPolicy(_dbClient, fs.getProject().getURI(), fs.getVirtualPool())) {
-//                List<FileShare> targets = FilePolicyServiceUtils.resetReplicationFileSystemsRelation(_dbClient, fs);
-//                for(FileShare target: targets){
-//                    fileShareURIs.add(target.getId());
-//                }
-//            }
-//        }
         FileServiceApi fileServiceApi = getFileShareServiceImpl(fs, _dbClient);
         StorageSystem device = _dbClient.queryObject(StorageSystem.class, fs.getStorageDevice());
         Operation op = _dbClient.createTaskOpStatus(FileShare.class, fs.getId(),

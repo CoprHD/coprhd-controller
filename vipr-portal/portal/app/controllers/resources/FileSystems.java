@@ -806,12 +806,12 @@ public class FileSystems extends ResourceController {
             FileShareRestRep fileSystem = client.fileSystems().get(uri(fileSystemId));
             if( fileSystem.getProtection().getPersonality() != null && fileSystem.getProtection().getPersonality().equalsIgnoreCase(PersonalityTypes.TARGET.name())){
                 flash.error(MessagesUtils.get("resources.filesystems.target.error"), null);
+            } else {
+                boolean forceDelete = false;
+                Task<FileShareRestRep> task = client.fileSystems().deactivate(uri(fileSystemId),
+                        new FileSystemDeleteParam(forceDelete, deleteType));
+                flash.put("info", MessagesUtils.get("resources.filesystem.deactivate"));
             }
-
-            boolean forceDelete = false;
-            Task<FileShareRestRep> task = client.fileSystems().deactivate(uri(fileSystemId),
-                    new FileSystemDeleteParam(forceDelete, deleteType));
-            flash.put("info", MessagesUtils.get("resources.filesystem.deactivate"));
         }
         fileSystem(fileSystemId);
     }
@@ -829,15 +829,17 @@ public class FileSystems extends ResourceController {
                 FileShareRestRep fileSystem = client.fileSystems().get(id);
                 if( fileSystem.getProtection().getPersonality() != null && fileSystem.getProtection().getPersonality().equalsIgnoreCase(PersonalityTypes.TARGET.name())){
                     flash.error(MessagesUtils.get("resources.filesystems.target.error"), null);
+                } else {
+                    boolean forceDelete = false;
+                    Task<FileShareRestRep> task = client.fileSystems().deactivate(id,
+                            new FileSystemDeleteParam(forceDelete, deleteType));
+                    tasks.add(task);
+                    if (!tasks.isEmpty()) {
+                        flash.put("info", MessagesUtils.get("resources.filesystems.deactivate", tasks.size()));
+                    }
                 }
-                boolean forceDelete = false;
-                Task<FileShareRestRep> task = client.fileSystems().deactivate(id,
-                        new FileSystemDeleteParam(forceDelete, deleteType));
-                tasks.add(task);
             }
-            if (!tasks.isEmpty()) {
-                flash.put("info", MessagesUtils.get("resources.filesystems.deactivate", tasks.size()));
-            }
+            
         }
         fileSystems(null);
     }

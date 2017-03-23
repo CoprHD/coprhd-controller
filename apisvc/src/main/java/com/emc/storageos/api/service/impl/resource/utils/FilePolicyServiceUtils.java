@@ -5,7 +5,6 @@
 package com.emc.storageos.api.service.impl.resource.utils;
 
 import java.net.URI;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.EnumSet;
 import java.util.HashSet;
@@ -23,11 +22,9 @@ import com.emc.storageos.db.client.model.FilePolicy.FilePolicyApplyLevel;
 import com.emc.storageos.db.client.model.FilePolicy.FilePolicyType;
 import com.emc.storageos.db.client.model.FilePolicy.ScheduleFrequency;
 import com.emc.storageos.db.client.model.FilePolicy.SnapshotExpireType;
-import com.emc.storageos.db.client.model.FileShare.PersonalityTypes;
 import com.emc.storageos.db.client.model.FileReplicationTopology;
 import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.model.Project;
-import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.Task;
 import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.VirtualArray;
@@ -580,41 +577,6 @@ public class FilePolicyServiceUtils {
         }
         return false;
     }
-    
-//    /**
-//     * Resets the filesystem relation due to replication policy assigned at higher level
-//     * Only to be used when delete FS is FULL type
-//     * 
-//     * @param _dbClient
-//     * @param fileshare
-//     */
-//    public static List<FileShare> resetReplicationFileSystemsRelation(DbClient _dbClient, FileShare fileshare) {
-//        List<FileShare> modifiedFileshares = new ArrayList<>();
-//        if (fileshare.getPersonality() != null
-//                && fileshare.getPersonality().equalsIgnoreCase(PersonalityTypes.SOURCE.toString())) {
-//            fileshare.setMirrorStatus(NullColumnValueGetter.getNullStr());
-//            fileshare.setAccessState(NullColumnValueGetter.getNullStr());
-//            fileshare.setPersonality(NullColumnValueGetter.getNullStr());
-//            if (fileshare.getMirrorfsTargets() != null && !fileshare.getMirrorfsTargets().isEmpty()) {
-//                StringSet targets = fileshare.getMirrorfsTargets();
-//                for (String strTargetFs : targets) {
-//                    FileShare targetFs = _dbClient.queryObject(FileShare.class, URI.create(strTargetFs));
-//                    targetFs.setMirrorStatus(NullColumnValueGetter.getNullStr());
-//                    targetFs.setAccessState(NullColumnValueGetter.getNullStr());
-//                    targetFs.setParentFileShare(NullColumnValueGetter.getNullNamedURI());
-//                    targetFs.setPersonality(NullColumnValueGetter.getNullStr());
-//                    modifiedFileshares.add(targetFs);
-//                }
-//                targets.clear();
-//                fileshare.setMirrorfsTargets(targets);
-//            }
-//        }
-//        modifiedFileshares.add(fileshare);
-//        if (!modifiedFileshares.isEmpty()) {
-//            _dbClient.updateObject(modifiedFileshares);
-//        }
-//        return modifiedFileshares;
-//    }
 
     /**
      * Verifies the project assigned policies with similar schedule as given policy

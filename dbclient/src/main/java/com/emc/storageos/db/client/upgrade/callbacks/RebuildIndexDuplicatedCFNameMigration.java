@@ -21,6 +21,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.datastax.driver.core.utils.UUIDs;
 import com.emc.storageos.db.client.impl.ColumnField;
 import com.emc.storageos.db.client.impl.CompositeColumnName;
 import com.emc.storageos.db.client.impl.DataObjectType;
@@ -123,12 +124,12 @@ public class RebuildIndexDuplicatedCFNameMigration extends BaseCustomMigrationCa
     }
 
     private void rebuildIndex(DataObjectType doType, ColumnField columnField, Object value, String rowKey,
-            Column<CompositeColumnName> column, RowMutator rowMutator) throws InstantiationException, IllegalAccessException,
+            CompositeColumnName column, RowMutator rowMutator) throws InstantiationException, IllegalAccessException,
             IllegalArgumentException, InvocationTargetException {
         
         rowMutator.getRecordColumnList(doType.getCF(), rowKey).deleteColumn(column.getName());
         
-        rowMutator.resetTimeUUIDStartTime(TimeUUIDUtils.getMicrosTimeFromUUID(column.getName().getTimeUUID()));
+        rowMutator.resetTimeUUIDStartTime(UUIDs.unixTimestamp(column.getTimeUUID()));
         DataObject dataObject = DataObject.createInstance(doType.getDataObjectClass(), URI.create(rowKey));
         dataObject.trackChanges();
         

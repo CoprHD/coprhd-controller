@@ -502,7 +502,7 @@ public class DbConsistencyCheckerHelper {
         private Class<? extends DbIndex> indexType;
         private DbClientContext dbClientContext;
 
-        IndexAndCf(Class<? extends DbIndex> indexType,
+        public IndexAndCf(Class<? extends DbIndex> indexType,
                 String cf, DbClientContext dbClientContext) {
             this.indexType = indexType;
             this.cf = cf;

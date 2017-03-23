@@ -10,21 +10,17 @@ import java.lang.reflect.Field;
 
 import org.junit.Test;
 
+import com.datastax.driver.core.ResultSet;
+import com.datastax.driver.core.Row;
+import com.datastax.driver.core.utils.UUIDs;
 import com.emc.storageos.db.client.URIUtil;
-import com.emc.storageos.db.client.impl.CompositeColumnName;
 import com.emc.storageos.db.client.impl.DataObjectType;
 import com.emc.storageos.db.client.impl.DbClientImpl;
-import com.emc.storageos.db.client.impl.DbConsistencyChecker;
-import com.emc.storageos.db.client.impl.DbConsistencyCheckerHelper;
 import com.emc.storageos.db.client.impl.RowMutator;
 import com.emc.storageos.db.client.impl.TypeMap;
 import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.upgrade.callbacks.RebuildIndexDuplicatedCFNameMigration;
 import com.emc.storageos.db.server.DbsvcTestBase;
-import com.netflix.astyanax.connectionpool.OperationResult;
-import com.netflix.astyanax.model.Column;
-import com.netflix.astyanax.model.ColumnList;
-import com.netflix.astyanax.util.TimeUUIDUtils;
 
 public class RebuildIndexDuplicatedCFNameMigrationTest extends DbsvcTestBase {
     private RebuildIndexDuplicatedCFNameMigration target;
@@ -66,19 +62,17 @@ public class RebuildIndexDuplicatedCFNameMigrationTest extends DbsvcTestBase {
 	        assertEquals(testData.getPath(), targetData.getPath());
 	        assertEquals(testData.getMountPath(), targetData.getMountPath());
 	        
-	    	OperationResult<ColumnList<CompositeColumnName>> result =
-	    			((DbClientImpl)getDbClient()).getLocalContext().getKeyspace().prepareQuery(doType.getCF())
-	                        .getKey(testData.getId().toString())
-	                        .execute();
-	        
+	        ResultSet resultSet = ((DbClientImpl)getDbClient()).getLocalContext().getSession().execute(
+	        		String.format("select * from \"%s\" where key='%s'", doType.getCF().getName(), testData.getId().toString()));
+	    	
 	        long pathTime = 0;
 	        long mountPathTime = 0;
 	        
-			for (Column<CompositeColumnName> column : result.getResult()) {
-				if (column.getName().getOne().equals("path")) {
-					pathTime = TimeUUIDUtils.getMicrosTimeFromUUID(column.getName().getTimeUUID());
-				} else if (column.getName().getOne().equals("mountPath")) {
-					mountPathTime = TimeUUIDUtils.getMicrosTimeFromUUID(column.getName().getTimeUUID());
+			for (Row row : resultSet) {
+				if (row.getString("column1").equals("path")) {
+					pathTime = UUIDs.unixTimestamp(row.getUUID("column5"));
+				} else if (row.getString("column1").equals("mountPath")) {
+					mountPathTime = UUIDs.unixTimestamp(row.getUUID("column5"));
 				}
 			}
 	        

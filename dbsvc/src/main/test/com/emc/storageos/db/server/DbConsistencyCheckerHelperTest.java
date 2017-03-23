@@ -38,13 +38,6 @@ import com.emc.storageos.db.client.impl.TypeMap;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.model.uimodels.Order;
-import com.netflix.astyanax.Keyspace;
-import com.netflix.astyanax.MutationBatch;
-import com.netflix.astyanax.model.ColumnFamily;
-import com.netflix.astyanax.model.Row;
-import com.netflix.astyanax.model.Rows;
-import com.netflix.astyanax.serializers.CompositeRangeBuilder;
-import com.netflix.astyanax.serializers.StringSerializer;
 
 public class DbConsistencyCheckerHelperTest extends DbsvcTestBase {
     private static final long TIME_STAMP_3_6 = 1480409489868000L;
@@ -93,29 +86,21 @@ public class DbConsistencyCheckerHelperTest extends DbsvcTestBase {
     
     @Test
     public void testCheckCFIndexing() throws Exception {
-        ColumnFamily<String, CompositeColumnName> cf = new ColumnFamily<String, CompositeColumnName>("FileShare",
-                StringSerializer.get(),
-                CompositeColumnNameSerializer.get());
-        ColumnFamily<String, IndexColumnName> indexCF = new ColumnFamily<String, IndexColumnName>(
-                "AltIdIndex", StringSerializer.get(), IndexColumnNameSerializer.get());
-        
-        Keyspace keyspace = ((DbClientImpl)getDbClient()).getLocalContext().getKeyspace();
-        
         FileShare testData = new FileShare();
         testData.setId(URIUtil.createId(FileShare.class));
         testData.setPath("A1");
         testData.setMountPath("A2");
         getDbClient().updateObject(testData);
         
-        keyspace.prepareQuery(indexCF).withCql(String.format(
-                "delete from \"AltIdIndex\" where key='%s'", "A1")).execute();
+        ((DbClientImpl)getDbClient()).getLocalContext().getSession().execute(String.format(
+                "delete from \"AltIdIndex\" where key='%s'", "A1"));
         
         CheckResult checkResult = new CheckResult();
         helper.checkCFIndices(TypeMap.getDoType(FileShare.class), false, checkResult);
         assertEquals(1, checkResult.getTotal());
         
-        keyspace.prepareQuery(indexCF).withCql(String.format(
-                "delete from \"AltIdIndex\" where key='%s'", "A2")).execute();
+        ((DbClientImpl)getDbClient()).getLocalContext().getSession().execute(String.format(
+                "delete from \"AltIdIndex\" where key='%s'", "A2"));
         
         checkResult = new CheckResult();
         helper.checkCFIndices(TypeMap.getDoType(FileShare.class), false, checkResult);
@@ -136,29 +121,20 @@ public class DbConsistencyCheckerHelperTest extends DbsvcTestBase {
     
     @Test
     public void testCheckIndexingCF() throws Exception {
-        ColumnFamily<String, CompositeColumnName> cf = new ColumnFamily<String, CompositeColumnName>("FileShare",
-                StringSerializer.get(),
-                CompositeColumnNameSerializer.get());
-        
         FileShare testData = new FileShare();
         testData.setId(URIUtil.createId(FileShare.class));
         testData.setPath("path1");
         testData.setMountPath("mountPath1");
         getDbClient().updateObject(testData);
         
-        Keyspace keyspace = ((DbClientImpl)getDbClient()).getLocalContext().getKeyspace();
-        
         //delete data object
-        MutationBatch mutationBatch = keyspace.prepareMutationBatch();
-        mutationBatch.withRow(cf, testData.getId().toString()).delete();
-        mutationBatch.execute();
+        ((DbClientImpl)getDbClient()).getLocalContext().getSession().execute(String.format(
+                "delete from \"FileShare\" where key='%s'", testData.getId().toString()));
 
         CheckResult checkResult = new CheckResult();
-        ColumnFamily<String, IndexColumnName> indexCF = new ColumnFamily<String, IndexColumnName>(
-                "AltIdIndex", StringSerializer.get(), IndexColumnNameSerializer.get());
         
         //find inconsistency: index exits but data object is deleted
-        IndexAndCf indexAndCf = new IndexAndCf(AltIdDbIndex.class, indexCF, keyspace);
+        IndexAndCf indexAndCf = new IndexAndCf(AltIdDbIndex.class, "AltIdIndex", ((DbClientImpl)getDbClient()).getLocalContext());
         helper.checkIndexingCF(indexAndCf, false, checkResult);
         
         assertEquals(2, checkResult.getTotal());
@@ -170,26 +146,20 @@ public class DbConsistencyCheckerHelperTest extends DbsvcTestBase {
         getDbClient().updateObject(testData);
         
         //create duplicated index
-        keyspace.prepareQuery(indexCF)
-                .withCql(String.format(
+        ((DbClientImpl)getDbClient()).getLocalContext().getSession().execute(String.format(
                         "INSERT INTO \"AltIdIndex\" (key, column1, column2, column3, column4, column5, value) VALUES ('pa', 'FileShare', '%s', '', '', now(), intasblob(10));",
-                        testData.getId().toString()))
-                .execute();
+                        testData.getId().toString()));
         
         checkResult = new CheckResult();
         helper.checkIndexingCF(indexAndCf, false, checkResult);
         assertEquals(3, checkResult.getTotal());
         
-        keyspace.prepareQuery(indexCF)
-        .withCql("TRUNCATE \"AltIdIndex\"")
-        .execute();
+        ((DbClientImpl)getDbClient()).getLocalContext().getSession().execute("TRUNCATE \"AltIdIndex\"");
         //test large columns for single row key
         for (int i = 0; i < 123; i++) {
-            keyspace.prepareQuery(indexCF)
-            .withCql(String.format(
+        	((DbClientImpl)getDbClient()).getLocalContext().getSession().execute(String.format(
                     "INSERT INTO \"AltIdIndex\" (key, column1, column2, column3, column4, column5, value) VALUES ('sa', 'FileShare', '%s', '', '', now(), intasblob(10));",
-                    i))
-            .execute();
+                    i));
         }
         
         checkResult = new CheckResult();
@@ -205,7 +175,7 @@ public class DbConsistencyCheckerHelperTest extends DbsvcTestBase {
         testData.setMountPath("mountPath1");
         getDbClient().updateObject(testData);
         
-        ColumnFamily<String, IndexColumnName> indexCF = new ColumnFamily<String, IndexColumnName>(
+        ColumnFamily<String, IndexColumnName>    = new ColumnFamily<String, IndexColumnName>(
                 "AltIdIndex", StringSerializer.get(), IndexColumnNameSerializer.get());
         Keyspace keyspace = ((DbClientImpl)getDbClient()).getLocalContext().getKeyspace();
         
@@ -214,7 +184,6 @@ public class DbConsistencyCheckerHelperTest extends DbsvcTestBase {
         Rows<String, IndexColumnName> result = keyspace.prepareQuery(indexCF).getAllRows().withColumnRange(builder).execute().getResult();
         
         for (Row<String, IndexColumnName> row : result) {
-            System.out.println(row.getColumns().getColumnByIndex(0).getName());
             assertTrue(helper.isIndexExists(keyspace, indexCF, row.getKey(), row.getColumns().getColumnByIndex(0).getName()));
         }
         

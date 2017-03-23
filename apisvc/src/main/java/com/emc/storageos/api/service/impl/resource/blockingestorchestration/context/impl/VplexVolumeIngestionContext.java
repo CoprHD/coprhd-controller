@@ -14,6 +14,8 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
+import org.apache.commons.collections.CollectionUtils;
+
 import com.emc.storageos.api.service.impl.resource.blockingestorchestration.BlockIngestOrchestrator;
 import com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext;
 import com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.VolumeIngestionContext;
@@ -823,9 +825,9 @@ public class VplexVolumeIngestionContext extends VplexBackendIngestionContext im
      */
     private void setFlagsAndUpdateExportMasks() {
         // assemble a map of backend Volume native guid(s) to backend ExportMasks.
-        Map<String, ExportMask> backendVolumeGuidToExportMaskMap = new HashMap<String, ExportMask>();
-        collectExportMasksToUpdate(getDataObjectsToBeCreatedMap(), backendVolumeGuidToExportMaskMap);
-        collectExportMasksToUpdate(getDataObjectsToBeUpdatedMap(), backendVolumeGuidToExportMaskMap);
+        Map<String, Set<ExportMask>> backendVolumeGuidToExportMasksMap = new HashMap<String, Set<ExportMask>>();
+        collectExportMasksToUpdate(getDataObjectsToBeCreatedMap(), backendVolumeGuidToExportMasksMap);
+        collectExportMasksToUpdate(getDataObjectsToBeUpdatedMap(), backendVolumeGuidToExportMasksMap);
 
         // set internal object flag on any backend volumes
         for (BlockObject o : getBlockObjectsToBeCreatedMap().values()) {
@@ -835,13 +837,17 @@ public class VplexVolumeIngestionContext extends VplexBackendIngestionContext im
                 o.addInternalFlags(Flag.INTERNAL_OBJECT);
 
                 // check if any backend ExportMasks need to be updated
-                ExportMask exportMask = backendVolumeGuidToExportMaskMap.get(o.getNativeGuid());
-                if (null != exportMask) {
-                    _logger.info(
-                            "Removing block object {} from existing volumes and adding to user created volumes of export mask {}",
-                            o.getNativeGuid(), exportMask.getMaskName());
-                    exportMask.removeFromExistingVolumes(o);
-                    exportMask.addToUserCreatedVolumes(o);
+                Set<ExportMask> exportMasks = backendVolumeGuidToExportMasksMap.get(o.getNativeGuid());
+                if (!CollectionUtils.isEmpty(exportMasks)) {
+                    for (ExportMask exportMask : exportMasks) {
+                        if (null != exportMask) {
+                            _logger.info(
+                                    "Removing block object {} from existing volumes and adding to user created volumes of export mask {}",
+                                    o.getNativeGuid(), exportMask.getMaskName());
+                            exportMask.removeFromExistingVolumes(o);
+                            exportMask.addToUserCreatedVolumes(o);
+                        }
+                    }
                 }
             }
         }
@@ -868,17 +874,23 @@ public class VplexVolumeIngestionContext extends VplexBackendIngestionContext im
      * @param exportMaskMap the map of guids to ExportMasks to update
      * @return the map of guids to ExportMasks to update
      */
-    private Map<String, ExportMask> collectExportMasksToUpdate(
-            Map<String, Set<DataObject>> dataObjectMap, Map<String, ExportMask> exportMaskMap) {
-        if (null != exportMaskMap) {
+    private Map<String, Set<ExportMask>> collectExportMasksToUpdate(
+            Map<String, Set<DataObject>> dataObjectMap, Map<String, Set<ExportMask>> exportMaskMap) {
+        if (null != exportMaskMap && null != dataObjectMap) {
             for (Entry<String, Set<DataObject>> entry : dataObjectMap.entrySet()) {
                 Set<DataObject> values = entry.getValue();
-                for (DataObject dataObject : values) {
-                    if (dataObject instanceof ExportMask) {
-                        _logger.info("collecting ExportMask: " + dataObject.forDisplay());
-                        exportMaskMap.put(
-                                entry.getKey().replace(VolumeIngestionUtil.UNMANAGEDVOLUME, VolumeIngestionUtil.VOLUME), 
-                                (ExportMask) dataObject);
+                if (!CollectionUtils.isEmpty(values)) {
+                    for (DataObject dataObject : values) {
+                        if (dataObject instanceof ExportMask) {
+                            _logger.info("collecting ExportMask: " + dataObject.forDisplay());
+                            String key = entry.getKey().replace(VolumeIngestionUtil.UNMANAGEDVOLUME, VolumeIngestionUtil.VOLUME);
+                            Set<ExportMask> exportMasks = exportMaskMap.get(key);
+                            if (null == exportMasks) {
+                                exportMasks = new HashSet<ExportMask>();
+                                exportMaskMap.put(key, exportMasks);
+                            }
+                            exportMasks.add((ExportMask) dataObject);
+                        }
                     }
                 }
             }

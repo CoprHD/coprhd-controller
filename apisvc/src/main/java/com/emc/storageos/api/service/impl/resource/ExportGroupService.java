@@ -163,6 +163,7 @@ public class ExportGroupService extends TaskResourceService {
     private static final String EVENT_SERVICE_TYPE = "export";
     private static final int MAX_VOLUME_COUNT = 100;
     private static final String OLD_INITIATOR_TYPE_NAME = "Exclusive";
+    private static final String PATH_ADJUST_REQUIRE_SUSPEND = "controller_pathadjust_require_suspend";
 
     private static volatile BlockStorageScheduler _blockStorageScheduler;
 
@@ -3459,7 +3460,7 @@ public class ExportGroupService extends TaskResourceService {
 
 	/**
 	 * Validates that the hosts in the exportgroup against the passed in list of hosts.
-	 * If there is atleast one host that doesnt match, an exception is thrown.
+	 * If there is at least one host that doesnt match, an exception is thrown.
 	 * @param exportGroup
 	 * @param hosts
 	 */
@@ -3662,13 +3663,6 @@ public class ExportGroupService extends TaskResourceService {
     public Set<String> getNonDiscoverableHostsInExportGroup(ExportGroup exportGroup) {
         Set<String> nonDiscoverable = new HashSet<String>();
         List<Host> hosts = getHosts(exportGroup);
-        if (exportGroup.getClusters() != null) {
-            for (String clusterId : exportGroup.getClusters()) {
-                List<Host> clusterHosts = CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient, Host.class, 
-                        AlternateIdConstraint.Factory.getHostsByClusterId(clusterId));
-                hosts.addAll(clusterHosts);
-            }
-        }
         for (Host host : hosts) {
             if (!host.getDiscoverable()) {
                 nonDiscoverable.add(host.getHostName());
@@ -3677,11 +3671,9 @@ public class ExportGroupService extends TaskResourceService {
         return nonDiscoverable;
     }
     
-    static final String PATH_ADJUST_REQUIRE_SUSPEND = "controller_pathadjust_require_suspend";
-
     /**
      * For export path adjustment, if suspend before removing paths is not set and we're likely to remove paths,
-     * and there are hosts that are not discoverable, thrown an error saying the user must set suspend before removing paths.
+     * and there are hosts that are not discoverable, throw an error saying the user must set suspend before removing paths.
      * @param exportGroup -- ExportGroup object
      * @param suspendBeforeRemovingPaths -- flag from order
      * @param useExistingPaths -- indication that all existing paths will be maintained
@@ -3690,7 +3682,7 @@ public class ExportGroupService extends TaskResourceService {
             boolean suspendBeforeRemovingPaths, boolean useExistingPaths) {
         boolean requireSuspend = Boolean.valueOf(
                 ControllerUtils.getPropertyValueFromCoordinator(_coordinator, PATH_ADJUST_REQUIRE_SUSPEND));
-        // If either suspend is set of useExistingPaths flag is set, we're good
+        // If either suspend is set or useExistingPaths flag is set, we're good
         if (!requireSuspend || suspendBeforeRemovingPaths || useExistingPaths) {
             return;
         }

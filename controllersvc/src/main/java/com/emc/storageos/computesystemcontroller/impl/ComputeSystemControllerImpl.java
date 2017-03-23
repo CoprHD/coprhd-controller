@@ -1502,7 +1502,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
             HostSystem hostSystem = api.findHostSystem(vCenterDataCenter.getLabel(), esxHost.getLabel());
 
             if (hostSystem == null) {
-                _log.info("Not able to find host " + esxHost.getLabel() + " in vCenter. Unable to validate");
+                _log.info("Not able to find host " + esxHost.getLabel() + " in vCenter. Unable to attach disks and mount datastores");
                 WorkflowStepCompleter.stepSucceded(stepId);
                 return;
             }

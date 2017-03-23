@@ -44,6 +44,11 @@ public class CreateVolumeAndVmfsDatastoreService extends VMwareHostService {
     protected List<CreateBlockVolumeForHostHelper> createBlockVolumeHelpers = Lists.newArrayList();
 
     @Override
+    public boolean checkClusterConnectivity() {
+        return false;
+    }
+
+    @Override
     public void init() throws Exception {
         super.init();
 

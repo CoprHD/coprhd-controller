@@ -22,6 +22,8 @@ import java.util.ListIterator;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import org.apache.commons.collections.MapUtils;
+
 import com.emc.sa.engine.ExecutionException;
 import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.engine.bind.Param;
@@ -54,6 +56,7 @@ import com.emc.sa.service.vmware.tasks.GetVcenterDataCenter;
 import com.emc.storageos.computesystemcontroller.impl.adapter.VcenterDiscoveryAdapter;
 import com.emc.storageos.db.client.model.Cluster;
 import com.emc.storageos.db.client.model.Host;
+import com.emc.storageos.db.client.model.Host.HostType;
 import com.emc.storageos.db.client.model.Vcenter;
 import com.emc.storageos.db.client.model.VcenterDataCenter;
 import com.emc.storageos.db.client.util.EndpointUtility;
@@ -88,6 +91,7 @@ import com.vmware.vim25.mo.HostSystem;
 public class ComputeUtils {
 
     public static final URI nullConsistencyGroup = null;
+
 
     // VBDU TODO: COP-28437, These methods need to be rewritten to use maps. Assuming stable indexing of
     // hostNamesIn->return List is poor programming practice.
@@ -145,10 +149,11 @@ public class ComputeUtils {
         } else {
             ExecutionUtils.currentContext().logError("computeutils.createhosts.noTasks,created", hostNames);
         }
-
-        for (Entry<URI, String> hostEntry : hostDeactivateMap.entrySet()){
-            execute(new DeactivateHost(hostEntry.getKey(), hostEntry.getValue(), true));
+        // Deactivate hosts that failed in the create step
+        if (MapUtils.isNotEmpty(hostDeactivateMap)) {
+            deactivateHostURIs(hostDeactivateMap);
         }
+
         return createdHosts;
     }
 
@@ -382,6 +387,7 @@ public class ComputeUtils {
         }
         if (!bootVolsToRemove.isEmpty()){
              try {
+                 // No need to untag, this bootVolsToRemove list is based on volumes that never got the boot tag.
                  BlockStorageUtils.deactivateVolumes(bootVolsToRemove, VolumeDeleteTypeEnum.FULL);
              }catch (Exception e) {
                  ExecutionUtils.currentContext().logError("computeutils.bootvolume.deactivate.failure",
@@ -641,7 +647,10 @@ public class ComputeUtils {
             try {
                 List<URI> bootVolsToRemove = Lists.newArrayList();
                 for (Host host : hostsToRemove) {
-                    bootVolsToRemove.add(hostToVolumeIdMap.get(host));
+                    URI volumeId = hostToVolumeIdMap.get(host);
+                    bootVolsToRemove.add(volumeId);
+                    BlockObjectRestRep volume = BlockStorageUtils.getBlockResource(volumeId);
+                    removeBootVolumeTag(volume, host.getId());
                 }
                 BlockStorageUtils.deactivateVolumes(bootVolsToRemove, VolumeDeleteTypeEnum.FULL);
             }catch (Exception e) {
@@ -688,7 +697,12 @@ public class ComputeUtils {
         // monitor tasks
         List<URI> successfulHostIds = Lists.newArrayList();
         for (Entry<URI, String> hostentry : hostURIs.entrySet()) {
-            tasks.add(execute(new DeactivateHostNoWait(hostentry.getKey(), hostentry.getValue(), true)));
+            try {
+                tasks.add(execute(new DeactivateHostNoWait(hostentry.getKey(), hostentry.getValue(), true)));
+            } catch (Exception ex) {
+                ExecutionUtils.currentContext().logError(ex, "computeutils.deactivatehost.exception.failure",
+                        hostentry.getValue(), ex.getMessage());
+            }
         }
         List<String> removedHosts = Lists.newArrayList();
         while (!tasks.isEmpty()) {
@@ -944,9 +958,11 @@ public class ComputeUtils {
         }
 
         for (HostRestRep host : hosts) {
-            if (vcenterId != null && (host.getvCenterDataCenter() == null)) {
-                orderErrors.append(ExecutionUtils.getMessage("compute.cluster.vcenter.push.failed",
-                        host.getHostName()) + "  ");
+            if ((!NullColumnValueGetter.isNullURI(vcenterId)
+                    || !NullColumnValueGetter.isNullURI(cluster.getVcenterDataCenter()))
+                    && (host.getvCenterDataCenter() == null)) {
+                orderErrors.append(
+                        ExecutionUtils.getMessage("compute.cluster.vcenter.push.failed", host.getHostName()) + "  ");
             }
         }
 
@@ -1001,9 +1017,11 @@ public class ComputeUtils {
 
     public static List<Host> setHostBootVolumes(Map<Host, URI> hostToVolumeIdMap, boolean updateSanBootTargets) {
         List<Task<HostRestRep>> tasks = new ArrayList<>();
+        Map<URI, URI> volumeIdToHostIdMap = new HashMap<>();
         for (Entry<Host, URI> hostToVolumeIdEntry : hostToVolumeIdMap.entrySet()) {
             Host host = hostToVolumeIdEntry.getKey();
             URI volumeId = hostToVolumeIdEntry.getValue();
+            volumeIdToHostIdMap.put(volumeId, host.getId());
             if (host != null && !host.getInactive()) {
                 host.setBootVolumeId(volumeId);
                 try{
@@ -1061,17 +1079,21 @@ public class ComputeUtils {
                 if (host.getId().equals(hostId)){
                     ExecutionUtils.currentContext().logInfo("computeutils.deactivatehost.nobootvolumeassociation",
                             host.getHostName());
-
                     bootVolumesToRemove.add(hostToVolumeIdMap.get(host));
                     break;
                 }
             }
             execute(new DeactivateHost(hostId, true));
         }
-        // Cleanup all bootvolumes of the deactivated host so that we do not leave any unsed boot volumes.
+        // Cleanup all boot volumes of the deactivated host so that we do not leave any unused boot volumes.
         if (!bootVolumesToRemove.isEmpty()) {
             try {
                 ExecutionUtils.currentContext().logInfo("computeutils.deactivatebootvolume.nobootvolumeassociation");
+                for (URI bootVolToRemove : bootVolumesToRemove) {
+                    BlockObjectRestRep volume = BlockStorageUtils.getBlockResource(bootVolToRemove);
+                    URI hostId = volumeIdToHostIdMap.get(bootVolToRemove);
+                    removeBootVolumeTag(volume, hostId);
+                }
                 BlockStorageUtils.deactivateVolumes(bootVolumesToRemove, VolumeDeleteTypeEnum.FULL);
             }catch (Exception e) {
                 ExecutionUtils.currentContext().logError("computeutils.bootvolume.deactivate.failure",
@@ -1455,12 +1477,11 @@ public class ComputeUtils {
         if (hosts != null && !hosts.isEmpty()) {
             ArrayList<Task<HostRestRep>> tasks = new ArrayList<>();
             for (Host host : hosts) {
-                if (host != null) {
+                if (host != null && host.getType() != null && host.getType().equalsIgnoreCase(HostType.Esx.name())) {
                     try {
                         tasks.add(execute(new DiscoverHost(host.getId())));
                     } catch (Exception e) {
-                        ExecutionUtils.currentContext().logError("computeutils.discoverhost.failure",
-                                host.getLabel());
+                        ExecutionUtils.currentContext().logError("computeutils.discoverhost.failure", host.getLabel());
                     }
                 }
             }
@@ -1533,19 +1554,20 @@ public class ComputeUtils {
             return Collections.emptyList();
         }
         List<Host> hostsWithOS = Lists.newArrayList();
-        List<Host> hostsToDeactivate = Lists.newArrayList();
+        Map<URI,String> hostDeactivateMap = new HashMap<URI, String>();
         for (Host osHost : hosts) {
             Host host = execute(new GetHost(osHost.getId()));
             if(host.getType() != null && host.getType().equalsIgnoreCase(Host.HostType.No_OS.name())){
-                hostsToDeactivate.add(host);
+                hostDeactivateMap.put(host.getId(), host.getLabel());
             } else {
                 hostsWithOS.add(host);
             }
         }
-        for (Host hostWitoutOS : hostsToDeactivate){
+        //Deactivate hosts which failed the OS install step
+        if(MapUtils.isNotEmpty(hostDeactivateMap)) {
             ExecutionUtils.currentContext().logError("computeutils.installOs.installing.failure.task.deactivate.failedinstallOSHost",
-                    hostWitoutOS.getLabel());
-            execute(new DeactivateHost(hostWitoutOS.getId(), hostWitoutOS.getLabel(), true));
+                    hostDeactivateMap.values());
+            deactivateHostURIs(hostDeactivateMap);
         }
         return hostsWithOS;
     }

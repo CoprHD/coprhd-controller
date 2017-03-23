@@ -10,8 +10,10 @@ import static com.emc.sa.service.ServiceParams.FILESYSTEMS;
 import java.net.URI;
 import java.util.List;
 
+import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.engine.bind.Param;
 import com.emc.sa.service.vipr.tasks.ViPRExecutionTask;
+import com.emc.storageos.db.client.model.FileShare.PersonalityTypes;
 import com.emc.storageos.model.file.FileShareRestRep;
 import com.emc.storageos.volumecontroller.FileControllerConstants;
 
@@ -26,6 +28,11 @@ public class DeleteFileSystemHelper {
 
     public void precheck() {
         fileSystems = FileStorageUtils.getFileSystems(ViPRExecutionTask.uris(fileSystemIds));
+        for(FileShareRestRep fileSystem : fileSystems){
+            if( fileSystem.getProtection().getPersonality() != null && fileSystem.getProtection().getPersonality().equalsIgnoreCase(PersonalityTypes.TARGET.name())){
+                ExecutionUtils.fail("failTask.DeleteFileSystemService", fileSystem.getName(), fileSystem.getName());
+            }
+        }
     }
 
     public void deleteFileSystems() {

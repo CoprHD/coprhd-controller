@@ -3754,6 +3754,7 @@ resources.snapshot.session.unlink.success=Task created to unlink Snap Session Ta
 
 resources.filesystems=File Systems
 resources.filesystems.error=File System Not Found
+resources.filesystems.target.error=File System to delete is an active replication target
 resources.filesystems.deleteconfirm=Are you sure you want to delete the selected file system(s)?
 resources.filesystems.deactivate=Created %s tasks to delete file systems.
 resources.filesystems.unknown=Unknown File System with ID '%s'

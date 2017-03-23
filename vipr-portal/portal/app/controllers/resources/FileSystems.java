@@ -21,6 +21,7 @@ import org.apache.commons.lang.StringUtils;
 
 import com.emc.sa.util.DiskSizeConversionUtils;
 import com.emc.storageos.db.client.model.FilePolicy.FilePolicyApplyLevel;
+import com.emc.storageos.db.client.model.FileShare.PersonalityTypes;
 import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.VirtualArrayRelatedResourceRep;
 import com.emc.storageos.model.file.ExportRule;
@@ -801,6 +802,11 @@ public class FileSystems extends ResourceController {
     public static void deleteFileSystem(String fileSystemId, String deleteType) {
         if (StringUtils.isNotBlank(fileSystemId)) {
             ViPRCoreClient client = BourneUtil.getViprClient();
+            
+            FileShareRestRep fileSystem = client.fileSystems().get(uri(fileSystemId));
+            if( fileSystem.getProtection().getPersonality() != null && fileSystem.getProtection().getPersonality().equalsIgnoreCase(PersonalityTypes.TARGET.name())){
+                flash.error(MessagesUtils.get("resources.filesystems.target.error"), null);
+            }
 
             boolean forceDelete = false;
             Task<FileShareRestRep> task = client.fileSystems().deactivate(uri(fileSystemId),
@@ -820,6 +826,10 @@ public class FileSystems extends ResourceController {
             ViPRCoreClient client = BourneUtil.getViprClient();
             List<Task<FileShareRestRep>> tasks = Lists.newArrayList();
             for (URI id : ids) {
+                FileShareRestRep fileSystem = client.fileSystems().get(id);
+                if( fileSystem.getProtection().getPersonality() != null && fileSystem.getProtection().getPersonality().equalsIgnoreCase(PersonalityTypes.TARGET.name())){
+                    flash.error(MessagesUtils.get("resources.filesystems.target.error"), null);
+                }
                 boolean forceDelete = false;
                 Task<FileShareRestRep> task = client.fileSystems().deactivate(id,
                         new FileSystemDeleteParam(forceDelete, deleteType));

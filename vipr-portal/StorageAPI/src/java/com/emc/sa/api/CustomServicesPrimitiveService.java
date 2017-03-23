@@ -266,10 +266,10 @@ public class CustomServicesPrimitiveService extends CatalogTaggedResourceService
         final URI parentIdURI = URI.create(parentId);
 
         // Verify that there is a ansible resource asscociated with the parent id that is passed in the request
-        final CustomServicesResourceDAO<?> parent_dao = getResourceDAO(CustomServicesAnsiblePrimitive.TYPE, true);
+        final CustomServicesResourceDAO<?> parentDao = getResourceDAO(CustomServicesAnsiblePrimitive.TYPE, true);
 
-        final CustomServicesPrimitiveResourceType parent_resource = getResourceNullSafe(parentIdURI, parent_dao);
-        if (null == parent_resource) {
+        final CustomServicesPrimitiveResourceType parentResource = getResourceNullSafe(parentIdURI, parentDao);
+        if (null == parentResource) {
             throw APIException.notFound.unableToFindEntityInURL(parentIdURI);
         }
 

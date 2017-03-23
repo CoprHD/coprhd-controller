@@ -50,7 +50,6 @@ public interface CustomServicesResourceDAO<Resource extends CustomServicesPrimit
      * @return The created resource
      */
     public Resource createResource(final String name, final byte[] stream, final URI parentId);
-    // public Resource createResource(final String name, byte[] stream, String parentId);
 
     /**
      * Update a resource with the given ID

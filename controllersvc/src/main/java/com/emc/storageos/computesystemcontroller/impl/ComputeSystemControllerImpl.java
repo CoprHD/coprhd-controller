@@ -1713,14 +1713,19 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                     if (blockObject != null) {
                         Datastore datastore = getDatastoreByWwn(wwnDatastores, blockObject.getWWN());
                         if (datastore != null) {
-                            boolean storageIOControlEnabled = datastore.getIormConfiguration().isEnabled();
-                            if (storageIOControlEnabled) {
-                                setStorageIOControl(api, datastore, false);
-                            }
-                            _log.info("Unmount datastore " + datastore.getName() + " from host " + esxHost.getLabel());
-                            storageAPI.unmountVmfsDatastore(datastore);
-                            if (storageIOControlEnabled) {
-                                setStorageIOControl(api, datastore, true);
+                            if (VMwareUtils.isDatastoreMountedOnHost(datastore, hostSystem)) {
+                                boolean storageIOControlEnabled = datastore.getIormConfiguration().isEnabled();
+                                if (storageIOControlEnabled) {
+                                    setStorageIOControl(api, datastore, false);
+                                }
+                                _log.info("Unmount datastore " + datastore.getName() + " from host " + esxHost.getLabel());
+                                storageAPI.unmountVmfsDatastore(datastore);
+                                if (storageIOControlEnabled) {
+                                    setStorageIOControl(api, datastore, true);
+                                }
+                            } else {
+                                _log.info("Datastore " + datastore.getName() + " is not mounted on host " + esxHost.getLabel()
+                                        + ". Skipping unmounting of datastore.");
                             }
                         }
                     }

@@ -198,4 +198,25 @@ public class VMwareUtils {
         return true;
     }
 
+    /**
+     * Returns true if the datastore is mounted on the host
+     * 
+     * @param datastore the datastore
+     * @param host the host
+     * @return true if the datastore is mounted on the host, otherwise returns false
+     */
+    public static boolean isDatastoreMountedOnHost(Datastore datastore, HostSystem host) {
+        if (host != null && datastore != null) {
+            DatastoreHostMount[] hostMounts = datastore.getHost();
+            if (hostMounts != null) {
+                for (DatastoreHostMount hostMount : hostMounts) {
+                    if (hostMount.getKey().equals(host.getMOR()) && hostMount.mountInfo.mounted) {
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
+    }
+
 }

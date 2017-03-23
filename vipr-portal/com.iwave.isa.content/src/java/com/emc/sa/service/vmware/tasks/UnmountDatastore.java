@@ -12,6 +12,7 @@ import org.apache.commons.lang.StringUtils;
 import com.google.common.collect.Lists;
 import com.iwave.ext.vmware.HostStorageAPI;
 import com.iwave.ext.vmware.VMWareException;
+import com.iwave.ext.vmware.VMwareUtils;
 import com.vmware.vim25.ResourceInUse;
 import com.vmware.vim25.mo.Datastore;
 import com.vmware.vim25.mo.HostSystem;
@@ -44,8 +45,10 @@ public class UnmountDatastore extends RetryableTask<Void> {
     @Override
     protected Void tryExecute() {
         for (HostSystem host : hosts) {
-            HostStorageAPI storageAPI = new HostStorageAPI(host);
-            storageAPI.unmountVmfsDatastore(datastore);
+            if (VMwareUtils.isDatastoreMountedOnHost(datastore, host)) {
+                HostStorageAPI storageAPI = new HostStorageAPI(host);
+                storageAPI.unmountVmfsDatastore(datastore);
+            }
         }
         return null;
     }

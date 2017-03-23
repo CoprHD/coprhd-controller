@@ -220,8 +220,8 @@ public final class HostToComputeElementMatcher {
                             info(computeElementMap.get(host.getComputeElement()));
                     failureMessages.append(msg);
                     _log.warn(msg);
-                    clearHostAssociations(host);
                     clearHostAssociations(hostMap.get(ceToHostMap.get(host.getComputeElement())));
+                    clearHostAssociations(host);
                 }
             }
 
@@ -235,8 +235,8 @@ public final class HostToComputeElementMatcher {
                             info(serviceProfileMap.get(host.getServiceProfile()));
                     failureMessages.append(msg);
                     _log.warn(msg);
-                    clearHostAssociations(host);
                     clearHostAssociations(hostMap.get(spToHostMap.get(host.getServiceProfile())));
+                    clearHostAssociations(host);
                 }
             }
         }

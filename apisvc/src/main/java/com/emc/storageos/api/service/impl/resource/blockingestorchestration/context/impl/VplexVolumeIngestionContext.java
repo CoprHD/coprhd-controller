@@ -870,21 +870,25 @@ public class VplexVolumeIngestionContext extends VplexBackendIngestionContext im
     /**
      * Collect any export masks that need to be updated by this ingestion context.
      * 
-     * @param dataObjectMap the Map of guids to data objects
+     * @param dataObjectMap the Map of guids to data objects from the ingestion context
      * @param exportMaskMap the map of guids to ExportMasks to update
      * @return the map of guids to ExportMasks to update
      */
     private Map<String, Set<ExportMask>> collectExportMasksToUpdate(
             Map<String, Set<DataObject>> dataObjectMap, Map<String, Set<ExportMask>> exportMaskMap) {
         if (null != exportMaskMap && null != dataObjectMap) {
+            // the dataObjectMap is a map of UNMANAGEDVOLUME native GUIDs to a Set of associated data objects
             for (Entry<String, Set<DataObject>> entry : dataObjectMap.entrySet()) {
                 Set<DataObject> values = entry.getValue();
                 if (!CollectionUtils.isEmpty(values)) {
                     for (DataObject dataObject : values) {
                         if (dataObject instanceof ExportMask) {
                             _logger.info("collecting ExportMask: " + dataObject.forDisplay());
+                            // the key is the Volume native GUID, but the dataObjectMap will have the UnManagedVolume GUID, so swap.
+                            // e.g.:  CLARIION+APM00140844986+UNMANAGEDVOLUME+02876 ->  CLARIION+APM00140844986+VOLUME+02876
                             String key = entry.getKey().replace(VolumeIngestionUtil.UNMANAGEDVOLUME, VolumeIngestionUtil.VOLUME);
                             Set<ExportMask> exportMasks = exportMaskMap.get(key);
+                            // if no export masks yet, create an empty set and add it to the return map.
                             if (null == exportMasks) {
                                 exportMasks = new HashSet<ExportMask>();
                                 exportMaskMap.put(key, exportMasks);

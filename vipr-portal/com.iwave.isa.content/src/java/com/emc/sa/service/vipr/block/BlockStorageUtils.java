@@ -896,13 +896,6 @@ public class BlockStorageUtils {
         }
     }
 
-    public static void deactivateVolumes(List<URI> volumeIds, VolumeDeleteTypeEnum type, boolean forceDelete) {
-        if (CollectionUtils.isNotEmpty(volumeIds)) {
-            Tasks<VolumeRestRep> tasks = execute(new DeactivateVolumes(volumeIds, type, forceDelete));
-            addAffectedResources(tasks);
-        }
-    }
-
     private static void deactivateSnapshot(URI snapshotId, VolumeDeleteTypeEnum type) {
         Tasks<BlockSnapshotRestRep> tasks = execute(new DeactivateBlockSnapshot(snapshotId, type));
         addAffectedResources(tasks);

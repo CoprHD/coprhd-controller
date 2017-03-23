@@ -566,7 +566,7 @@ public class AddHostToClusterService extends ViPRService {
                             vmware = new VMwareSupport();
                             vmware.connect(vcenter.getId());
                             ClusterComputeResource vcenterCluster = vmware.getCluster(dataCenter.getLabel(),
-                                    cluster.getLabel());
+                                    cluster.getLabel(), false);
                             if (null != vcenterCluster) {
                                 ExecutionUtils.currentContext().logInfo(
                                         "compute.cluster.precheck.cluster.VcenterDataCenter.found.in.vcenter",

@@ -65,21 +65,15 @@ public final class HostToComputeElementMatcher {
         matchHostsToComputeElements(dbClient,hostIds,computeElementIds,serviceProfileIds);
     }
 
-    public static synchronized void matchUcsComputeElements(DbClient _dbClient, URI computeSystemId) {
+    public static synchronized void matchUcsComputeElements(DbClient _dbClient) {
         dbClient = _dbClient;                              // set our client
 
         Collection<URI> hostIds = dbClient.queryByType(Host.class, true); // all active hosts
         allHostsLoaded = true;
 
-        URIQueryResultList computeElementIds = new URIQueryResultList(); // CEs for this UCS
-        dbClient.queryByConstraint(ContainmentConstraint.Factory
-                .getComputeSystemComputeElemetsConstraint(computeSystemId), computeElementIds);
-
-        URIQueryResultList serviceProfileIds = new URIQueryResultList(); // SPs for this UCS
-        dbClient.queryByConstraint(ContainmentConstraint.Factory.
-                getComputeSystemServiceProfilesConstraint(computeSystemId), serviceProfileIds);
-
-         matchHostsToComputeElements(dbClient,hostIds,computeElementIds,serviceProfileIds);
+        Collection<URI> computeElementIds = dbClient.queryByType(ComputeElement.class, true); // all active
+        Collection<URI> serviceProfileIds = dbClient.queryByType(UCSServiceProfile.class, true); // all active
+        matchHostsToComputeElements(dbClient,hostIds,computeElementIds,serviceProfileIds);
     }    
 
     private static void matchHostsToComputeElements(DbClient _dbClient,Collection<URI> hostIds,

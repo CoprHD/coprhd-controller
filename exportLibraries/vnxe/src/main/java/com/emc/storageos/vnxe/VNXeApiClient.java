@@ -2909,8 +2909,37 @@ public class VNXeApiClient {
      * @return host initiator instances
      */
     public List<VNXeHostInitiator> getInitiatorsByHostId(String hostId) {
-        HostInitiatorRequest initReq = new HostInitiatorRequest(_khClient);
-        return initReq.getByHostId(hostId);
+        if (_khClient.isUnity()) {
+            HostInitiatorRequest initReq = new HostInitiatorRequest(_khClient);
+            return initReq.getByHostId(hostId);
+        } else {
+            // Workaround for VNXe, as getInitiatorsByHostId may not work
+            List<VNXeHostInitiator> initiators = new ArrayList<>();
+            VNXeHost host = getHostById(hostId);
+            if (host != null) {
+                List<VNXeBase> fcInits = host.getFcHostInitiators();
+                if (fcInits != null && !fcInits.isEmpty()) {
+                    for (VNXeBase init : fcInits) {
+                        VNXeHostInitiator initiator = getHostInitiator(init.getId());
+                        if (initiator != null) {
+                            initiators.add(initiator);
+                        }
+                    }
+                }
+
+                List<VNXeBase> iScsiInits = host.getIscsiHostInitiators();
+                if (iScsiInits != null && !iScsiInits.isEmpty()) {
+                    for (VNXeBase init : iScsiInits) {
+                        VNXeHostInitiator initiator = getHostInitiator(init.getId());
+                        if (initiator != null) {
+                            initiators.add(initiator);
+                        }
+                    }
+                }
+            }
+
+            return initiators;
+        }
     }
 
     /**

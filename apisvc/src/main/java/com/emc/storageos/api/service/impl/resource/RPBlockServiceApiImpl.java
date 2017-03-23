@@ -2367,7 +2367,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
      */
     @Override
     public void validateCreateSnapshot(Volume reqVolume, List<Volume> volumesToSnap, String snapshotType, String snapshotName,
-            BlockFullCopyManager fcManager) {
+            Boolean readOnly, BlockFullCopyManager fcManager) {
         boolean vplex = RPHelper.isVPlexVolume(reqVolume, _dbClient);
 
         // For RP snapshots, validate that the volume type is not a target,
@@ -2407,7 +2407,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                 }
             }
             List<Volume> volumes = (vplex ? baseVolumesToSnap : volumesToSnap);
-            super.validateCreateSnapshot(reqVolume, volumes, snapshotType, snapshotName, fcManager);
+            super.validateCreateSnapshot(reqVolume, volumes, snapshotType, snapshotName, readOnly, fcManager);
         } else {
             ArgValidator.checkFieldNotEmpty(volumesToSnap, "volumes");
             ArgValidator.checkFieldNotEmpty(snapshotName, "name");

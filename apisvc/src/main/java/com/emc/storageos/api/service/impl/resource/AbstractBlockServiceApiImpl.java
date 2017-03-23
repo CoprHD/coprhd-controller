@@ -1150,7 +1150,7 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
      */
     @Override
     public void validateCreateSnapshot(Volume reqVolume, List<Volume> volumesToSnap,
-            String snapshotType, String snapshotName, BlockFullCopyManager fcManager) {
+            String snapshotType, String snapshotName, Boolean readOnly, BlockFullCopyManager fcManager) {
         // Make sure a name was specified.
         ArgValidator.checkFieldNotEmpty(snapshotName, "name");
 
@@ -1178,7 +1178,13 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
         }
         StorageSystem system = _dbClient.queryObject(StorageSystem.class, reqVolume.getStorageController());
         Boolean is8xProvider = system.getUsingSmis80();
-
+        
+        Boolean isXtremIO = StorageSystem.Type.xtremio.toString().equals(system.getSystemType());
+        Boolean isVplexXtremIO = StorageSystem.Type.vplex.toString().equals(system.getSystemType()) 
+        		&& VPlexUtil.isXtremIOBackend(reqVolume, _dbClient);
+        if(readOnly && !(isXtremIO || isVplexXtremIO)) {
+        	throw APIException.badRequests.cannotCreateReadOnlySnapshotForNonXIOVolumes();
+        }
         // We should validate this for 4.x provider as it doesn't support snaps for SRDF meta volumes.
         if (!is8xProvider) {
             // Check that if the volume is a member of vmax consistency group all volumes in the group are regular

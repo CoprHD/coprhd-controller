@@ -387,7 +387,8 @@ public class ComputeUtils {
         }
         if (!bootVolsToRemove.isEmpty()){
              try {
-                 BlockStorageUtils.deactivateVolumes(bootVolsToRemove, VolumeDeleteTypeEnum.FULL, true);
+                 // No need to untag, this bootVolsToRemove list is based on volumes that never got the boot tag.
+                 BlockStorageUtils.deactivateVolumes(bootVolsToRemove, VolumeDeleteTypeEnum.FULL);
              }catch (Exception e) {
                  ExecutionUtils.currentContext().logError("computeutils.bootvolume.deactivate.failure",
                      e.getMessage());
@@ -646,7 +647,10 @@ public class ComputeUtils {
             try {
                 List<URI> bootVolsToRemove = Lists.newArrayList();
                 for (Host host : hostsToRemove) {
-                    bootVolsToRemove.add(hostToVolumeIdMap.get(host));
+                    URI volumeId = hostToVolumeIdMap.get(host);
+                    bootVolsToRemove.add(volumeId);
+                    BlockObjectRestRep volume = BlockStorageUtils.getBlockResource(volumeId);
+                    removeBootVolumeTag(volume, host.getId());
                 }
                 BlockStorageUtils.deactivateVolumes(bootVolsToRemove, VolumeDeleteTypeEnum.FULL, true);
             }catch (Exception e) {
@@ -1014,9 +1018,11 @@ public class ComputeUtils {
 
     public static List<Host> setHostBootVolumes(Map<Host, URI> hostToVolumeIdMap, boolean updateSanBootTargets) {
         List<Task<HostRestRep>> tasks = new ArrayList<>();
+        Map<URI, URI> volumeIdToHostIdMap = new HashMap<>();
         for (Entry<Host, URI> hostToVolumeIdEntry : hostToVolumeIdMap.entrySet()) {
             Host host = hostToVolumeIdEntry.getKey();
             URI volumeId = hostToVolumeIdEntry.getValue();
+            volumeIdToHostIdMap.put(volumeId, host.getId());
             if (host != null && !host.getInactive()) {
                 host.setBootVolumeId(volumeId);
                 try{
@@ -1074,18 +1080,22 @@ public class ComputeUtils {
                 if (host.getId().equals(hostId)){
                     ExecutionUtils.currentContext().logInfo("computeutils.deactivatehost.nobootvolumeassociation",
                             host.getHostName());
-
                     bootVolumesToRemove.add(hostToVolumeIdMap.get(host));
                     break;
                 }
             }
             execute(new DeactivateHost(hostId, true));
         }
-        // Cleanup all bootvolumes of the deactivated host so that we do not leave any unsed boot volumes.
+        // Cleanup all boot volumes of the deactivated host so that we do not leave any unused boot volumes.
         if (!bootVolumesToRemove.isEmpty()) {
             try {
                 ExecutionUtils.currentContext().logInfo("computeutils.deactivatebootvolume.nobootvolumeassociation");
-                BlockStorageUtils.deactivateVolumes(bootVolumesToRemove, VolumeDeleteTypeEnum.FULL, true);
+                for (URI bootVolToRemove : bootVolumesToRemove) {
+                    BlockObjectRestRep volume = BlockStorageUtils.getBlockResource(bootVolToRemove);
+                    URI hostId = volumeIdToHostIdMap.get(bootVolToRemove);
+                    removeBootVolumeTag(volume, hostId);
+                }
+                BlockStorageUtils.deactivateVolumes(bootVolumesToRemove, VolumeDeleteTypeEnum.FULL);
             }catch (Exception e) {
                 ExecutionUtils.currentContext().logError("computeutils.bootvolume.deactivate.failure",
                         e.getMessage());

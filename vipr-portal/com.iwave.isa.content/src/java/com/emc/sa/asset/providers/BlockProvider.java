@@ -723,7 +723,13 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         }
         return varrayIds;
     }
-    
+
+    @Asset("exportPathVirtualArray")
+    public List<AssetOption> getExportPathVirtualArray(AssetOptionsContext ctx) {
+        ViPRCoreClient client = api(ctx);
+        return createBaseResourceOptions(client.varrays().getByTenant(ctx.getTenant()));
+    }
+
     @Asset("exportPathVirtualArray")
     @AssetDependencies({ "exportPathExport", "exportPathStorageSystem" })
     public List<AssetOption> getExportPathVirtualArray(AssetOptionsContext ctx, URI exportId, URI storageSystemId) {
@@ -770,11 +776,21 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     public List<AssetOption> getExportPathMinOptions(AssetOptionsContext ctx) {
         return generatePathOptions(EXPORT_PATH_MIN, EXPORT_PATH_MAX);
     }
-    
+
+    @Asset("exportPathMaxPathsOptions")
+    public List<AssetOption> getExportPathMaxOptions(AssetOptionsContext ctx) {
+        return generatePathOptions(EXPORT_PATH_MIN, EXPORT_PATH_MAX);
+    }
+
     @Asset("exportPathMaxPathsOptions")
     @AssetDependencies({ "exportPathMinPathsOptions" })
     public List<AssetOption> getExportPathMaxOptions(AssetOptionsContext ctx, int min) {
         return generatePathOptions(min, EXPORT_PATH_MAX);
+    }
+
+    @Asset("exportPathPathsPerInitiatorOptions")
+    public List<AssetOption> getExportPathPathsPerOptions(AssetOptionsContext ctx) {
+        return generatePathOptions(EXPORT_PATH_MIN, EXPORT_PATH_MAX);
     }
     
     @Asset("exportPathPathsPerInitiatorOptions")
@@ -803,7 +819,25 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         
         return options;
     }
-    
+
+    @Asset("exportPathStorageSystem")
+    public List<AssetOption> getExportPathStorageSystem(AssetOptionsContext ctx) {
+        ViPRCoreClient client = api(ctx);
+        List<AssetOption> options = Lists.newArrayList();
+
+        List<StorageSystemRestRep> storageSystems = client.storageSystems().getAll();
+
+        for (StorageSystemRestRep storageSystem : storageSystems) {
+            String systemType = storageSystem.getSystemType();
+            if (Type.vmax.name().equalsIgnoreCase(systemType) ||
+                    Type.vplex.name().equalsIgnoreCase(systemType)) {
+                options.add(new AssetOption(storageSystem.getId(), storageSystem.getName()));
+            }
+        }
+
+        return options;
+    }
+
     @SuppressWarnings("incomplete-switch")
     @Asset("exportPathStorageSystem")
     @AssetDependencies({ "exportPathExport" })

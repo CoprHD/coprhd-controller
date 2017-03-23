@@ -804,23 +804,22 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
         // of the cluster, so we can build onto it.
         Set<URI> partialMasks = new HashSet<>();
         /**
-         * For Cluster exports, we will not reuse any partial masking views.Masking view will only be reused if all the required cluster initiators
-        are available in the existing masking view.This is to simplify the existing design.
-        If there are existing masking views already available, then we will not reuse it.
-        If there are masking views with all required cluster initiators we will reuse it.
-        If there are masking views which has more than one Host in the Cluster but not all the hosts are part of it, then don't reuse.
-        If there are existing masking views with all the hosts in the Cluster, but few of the hosts doesn't contain all ViPR discovered initiators
-        then don't reuse. Always try to create a new masking view for Cluster.
-        Btw we consider only the host or cluster initiators connected to the network to be part of the given masking view. 
-        If ViPR discovered X initiators in CLuster and only X-n are connected to network, 
-        then we look for masking view with X-N initiators not X.Later during export the remaining initiators will be added to IG.
-        The existing IG can be one single IG with more than one host or it could be IG per host with missing initiators.
-        If X initiators are already available in the view, then we try to create a new masking view by reusing the IG.
-        During reuse if the view creation fails with Initiator-port is already available, then user has to modify the existing initiator Group.
-        
+         * For Cluster exports, we will not reuse any partial masking views. Masking view will only be reused if all the required cluster
+         * initiators are available in the existing masking view. This is to simplify the existing design.
+         * - If there are existing masking views already available, then we will not reuse it.
+         * - If there are masking views with all required cluster initiators, we will reuse it.
+         * - If there are masking views which has more than one Host in the Cluster but not all the hosts are part of it, then don't reuse.
+         * - If there are existing masking views with all the hosts in the Cluster, but few of the hosts doesn't contain all ViPR discovered
+         * initiators then don't reuse. Always try to create a new masking view for Cluster.
+         * 
+         * Btw we consider only the host or cluster initiators connected to the network to be part of the given masking view.
+         * If ViPR discovered X initiators in CLuster and only X-n are connected to network,
+         * then we look for masking view with X-N initiators not X. Later during export the remaining initiators will be added to IG.
+         * The existing IG can be one single IG with more than one host or it could be IG per host with missing initiators.
+         * If X initiators are already available in the view, then we try to create a new masking view by reusing the IG.
+         * During reuse if the masking view creation fails with Initiator-port is already available, then user has to modify the existing
+         * initiator Group.
          */
-        
-        
         Map<String, Set<URI>> matchingMasks = device.findExportMasks(storage, initiatorHelper.getPortNames(), exportGroup.forCluster());
         Map<String, List<URI>> initiatorToComputeResourceMap =   initiatorHelper.getResourceToInitiators();
         
@@ -976,6 +975,7 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                         // It may turn out that we find these initiators already covered by a collection of
                         // masks for cluster purposes. If that's the case, we figure that out below and these
                         // "new" exports will never see the light of day.
+                        _log.info("New export mask will be created for initiator {}", initiatorURI);
                         initiatorsForNewExport.add(initiatorURI);
                         continue;
                     }
@@ -1041,6 +1041,7 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
             // want to create another export against one of the hosts in the cluster,
             // or vice-versa.
             if (!initiatorsForNewExport.isEmpty()) {
+                _log.info("Initiators for which new Export Mask will be created: {}", initiatorsForNewExport);
                 if (exportGroup.forCluster() && !initiatorURIsCopy.isEmpty()) {
                     // Clustered export group create request and there are essentially
                     // new and existing initiators. We'll take what's not already
@@ -1224,11 +1225,15 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                                         exportMasksToAdd.add(mask.getId());
                                     }
                                 }
+                            } else {
+                                _log.info("Initiator {} does not have any masks that match its compute resource",
+                                        initiator.getInitiatorPort());
                             }
                         }
                     }
 
                     if (!exportMasksToAdd.isEmpty()) {
+                        _log.info("Initiator {} - to be added to export masks: {}", initiator.getInitiatorPort(), exportMasksToAdd);
                         initiatorToExportMaskPlacementMap.put(Initiator.normalizePort(initiator.getInitiatorPort()), exportMasksToAdd);
                     }
                 }

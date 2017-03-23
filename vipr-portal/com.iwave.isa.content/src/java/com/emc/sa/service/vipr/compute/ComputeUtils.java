@@ -652,7 +652,7 @@ public class ComputeUtils {
                     BlockObjectRestRep volume = BlockStorageUtils.getBlockResource(volumeId);
                     removeBootVolumeTag(volume, host.getId());
                 }
-                BlockStorageUtils.deactivateVolumes(bootVolsToRemove, VolumeDeleteTypeEnum.FULL, true);
+                BlockStorageUtils.deactivateVolumes(bootVolsToRemove, VolumeDeleteTypeEnum.FULL);
             }catch (Exception e) {
                 ExecutionUtils.currentContext().logError("computeutils.bootvolume.deactivate.failure",
                         e.getMessage());

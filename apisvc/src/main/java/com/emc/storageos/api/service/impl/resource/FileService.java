@@ -1675,7 +1675,14 @@ public class FileService extends TaskResourceService {
             }
         }
         StringBuffer notSuppReasonBuff = new StringBuffer();
-        // Verify the file system is having any active replication targets!!
+        // Verify the higher level replication policies assigned
+        if (param.getDeleteType() != null && param.getDeleteType().equalsIgnoreCase("FULL")) {
+            if (FilePolicyServiceUtils.vPoolHasReplicationPolicy(_dbClient, fs.getVirtualPool())
+                    || FilePolicyServiceUtils.projectHasReplicationPolicy(_dbClient, fs.getProject().getURI(), fs.getVirtualPool())) {
+                FilePolicyServiceUtils.resetReplicationFileSystemsRelation(_dbClient, fs);
+            }
+        }
+     // Verify the file system is having any active replication targets!!
         if (FileSystemReplicationUtils.filesystemHasActiveReplication(fs, notSuppReasonBuff, param.getDeleteType(),
                 param.getForceDelete())) {
             throw APIException.badRequests

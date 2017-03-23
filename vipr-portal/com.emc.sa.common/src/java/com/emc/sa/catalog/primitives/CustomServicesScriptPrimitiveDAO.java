@@ -26,34 +26,31 @@ import org.springframework.beans.factory.annotation.Autowired;
 import com.emc.sa.catalog.CustomServicesPrimitiveManager;
 import com.emc.sa.model.dao.ModelClient;
 import com.emc.storageos.db.client.DbClient;
-import com.emc.storageos.db.client.constraint.NamedElementQueryResultList.NamedElement;
-import com.emc.storageos.db.client.model.StringSetMap;
 import com.emc.storageos.db.client.model.uimodels.CustomServicesDBScriptPrimitive;
 import com.emc.storageos.db.client.model.uimodels.CustomServicesDBScriptResource;
 import com.emc.storageos.model.customservices.CustomServicesPrimitiveCreateParam;
 import com.emc.storageos.model.customservices.CustomServicesPrimitiveRestRep;
 import com.emc.storageos.model.customservices.CustomServicesPrimitiveUpdateParam;
 import com.emc.storageos.primitives.db.script.CustomServicesScriptPrimitive;
-import com.emc.storageos.primitives.db.script.CustomServicesScriptResource;
 
 /**
  * Data access object for script primitives
  *
  */
-public class CustomServicesScriptPrimitiveDAO implements CustomServicesPrimitiveDAO<CustomServicesScriptPrimitive, CustomServicesScriptResource>{
+public class CustomServicesScriptPrimitiveDAO implements CustomServicesPrimitiveDAO<CustomServicesScriptPrimitive> {
 
     @Autowired
     private CustomServicesPrimitiveManager primitiveManager;
     @Autowired
     private ModelClient client;
-    @Autowired 
+    @Autowired
     private DbClient dbClient;
-    
-    @Override 
+
+    @Override
     public String getType() {
         return CustomServicesScriptPrimitive.TYPE;
     }
-    
+
     @Override
     public CustomServicesScriptPrimitive get(final URI id) {
         return CustomServicesDBHelper.get(CustomServicesScriptPrimitive.class, CustomServicesDBScriptPrimitive.class, primitiveManager, id);
@@ -62,14 +59,15 @@ public class CustomServicesScriptPrimitiveDAO implements CustomServicesPrimitive
     @Override
     public CustomServicesScriptPrimitive create(
             CustomServicesPrimitiveCreateParam param) {
-        return CustomServicesDBHelper.create(CustomServicesScriptPrimitive.class, CustomServicesDBScriptPrimitive.class, 
+        return CustomServicesDBHelper.create(CustomServicesScriptPrimitive.class, CustomServicesDBScriptPrimitive.class,
                 CustomServicesDBScriptResource.class, primitiveManager, param);
     }
 
     @Override
     public CustomServicesScriptPrimitive update(URI id,
             CustomServicesPrimitiveUpdateParam param) {
-        return CustomServicesDBHelper.update(CustomServicesScriptPrimitive.class, CustomServicesDBScriptPrimitive.class, CustomServicesDBScriptResource.class, primitiveManager, client, param, id);
+        return CustomServicesDBHelper.update(CustomServicesScriptPrimitive.class, CustomServicesDBScriptPrimitive.class,
+                CustomServicesDBScriptResource.class, primitiveManager, client, param, id);
     }
 
     @Override
@@ -85,46 +83,6 @@ public class CustomServicesScriptPrimitiveDAO implements CustomServicesPrimitive
     @Override
     public List<URI> list() {
         return CustomServicesDBHelper.list(CustomServicesDBScriptPrimitive.class, client);
-    }
-
-    @Override
-    public CustomServicesScriptResource getResource(URI id) {
-        return CustomServicesDBHelper.getResource(CustomServicesScriptResource.class, CustomServicesDBScriptResource.class, primitiveManager, id);
-    }
-
-    @Override
-    public CustomServicesScriptResource createResource(final String name,
-            final byte[] stream) {
-        final StringSetMap attributes = new StringSetMap();
-  
-        return CustomServicesDBHelper.createResource(CustomServicesScriptResource.class, CustomServicesDBScriptResource.class, 
-                primitiveManager, name, stream, attributes);
-    }
-
-    @Override
-    public CustomServicesScriptResource updateResource(final URI id, final String name,final byte[] stream) {
-        return CustomServicesDBHelper.updateResource(CustomServicesScriptResource.class, CustomServicesDBScriptResource.class, 
-                primitiveManager, id, name, stream, null);
-    }
-
-    @Override
-    public void deactivateResource(final URI id) {
-        CustomServicesDBHelper.deactivateResource(CustomServicesDBScriptResource.class, primitiveManager, client, id);
-    }
-
-    @Override
-    public List<NamedElement> listResources() {
-        return client.customServicesPrimitiveResources().list(CustomServicesDBScriptResource.class);
-    }
-
-    @Override
-    public Class<CustomServicesScriptResource> getResourceType() {
-        return CustomServicesScriptResource.class;
-    }
-
-    @Override
-    public boolean hasResource() {
-        return true;
     }
 
     @Override

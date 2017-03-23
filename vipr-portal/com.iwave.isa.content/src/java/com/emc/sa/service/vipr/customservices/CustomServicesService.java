@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 Dell Inc. or its subsidiaries.
+ * Copyright 2017 Dell Inc. or its subsidiaries.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,7 +23,9 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
+import org.apache.commons.collections.MultiMap;
 import org.apache.commons.lang.StringUtils;
 import org.codehaus.jackson.JsonNode;
 import org.codehaus.jackson.map.ObjectMapper;
@@ -42,15 +44,19 @@ import com.emc.sa.service.vipr.ViPRExecutionUtils;
 import com.emc.sa.service.vipr.ViPRService;
 import com.emc.sa.service.vipr.customservices.gson.ViprOperation;
 import com.emc.sa.service.vipr.customservices.gson.ViprTask;
+import com.emc.sa.service.vipr.customservices.tasks.CustomServicesRestTaskResult;
+import com.emc.sa.service.vipr.customservices.tasks.CustomServicesRESTExecution;
 import com.emc.sa.service.vipr.customservices.tasks.CustomServicesTaskResult;
 import com.emc.sa.service.vipr.customservices.tasks.RunAnsible;
 import com.emc.sa.service.vipr.customservices.tasks.RunViprREST;
 import com.emc.sa.workflow.WorkflowHelper;
+import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.model.customservices.CustomServicesWorkflowDocument;
 import com.emc.storageos.model.customservices.CustomServicesWorkflowDocument.Input;
 import com.emc.storageos.model.customservices.CustomServicesWorkflowDocument.Step;
 import com.emc.storageos.primitives.CustomServicesConstants;
+import com.emc.storageos.primitives.CustomServicesConstants.InputType;
 import com.emc.storageos.primitives.CustomServicesPrimitive.StepType;
 import com.emc.storageos.primitives.CustomServicesPrimitiveType;
 import com.emc.storageos.primitives.java.vipr.CustomServicesViPRPrimitive;
@@ -69,10 +75,12 @@ public class CustomServicesService extends ViPRService {
     private Map<String, Object> params;
     private String oeOrderJson;
     @Autowired
+    private CoordinatorClient coordinatorClient;
+    @Autowired
     private DbClient dbClient;
     @Autowired
     private CustomServicesPrimitiveDAOs daos;
-    
+
     private ImmutableMap<String, Step> stepsHash;
     private CustomServicesWorkflowDocument obj;
     private int code;
@@ -153,11 +161,11 @@ public class CustomServicesService extends ViPRService {
 
                         break;
                     }
-                    case REST: {
-                        // TODO implement other REST Execution
-                        res = null;
+                    case REST:
+                        logger.info("Start REST execution");
+                        res = ViPRExecutionUtils
+                                .execute(new CustomServicesRESTExecution(coordinatorClient, inputPerStep.get(step.getId()), step));
                         break;
-                    }
                     case LOCAL_ANSIBLE:
                         logger.info("Executing Local Ansible step");
                         createOrderDir(orderDir);
@@ -179,10 +187,11 @@ public class CustomServicesService extends ViPRService {
                         throw InternalServerErrorException.internalServerErrors
                                 .customServiceExecutionFailed("Operation Type not supported" + type);
                 }
+
                 boolean isSuccess = isSuccess(step, res);
                 if (isSuccess) {
                     try {
-                        updateOutputPerStep(step, res.getOut());
+                        updateOutputPerStep(step, res);
                     } catch (final Exception e) {
                         logger.info("Failed to parse output" + e);
 
@@ -271,59 +280,56 @@ public class CustomServicesService extends ViPRService {
             return;
         }
 
-        final List<Input> input = step.getInputGroups().get(CustomServicesConstants.INPUT_PARAMS).getInputGroup();
-
-        if (input == null) {
-            return;
-        }
-
         final Map<String, List<String>> inputs = new HashMap<String, List<String>>();
+        for (final CustomServicesWorkflowDocument.InputGroup inputGroup : step.getInputGroups().values()) {
+            for (final Input value : inputGroup.getInputGroup()) {
+                final String name = value.getName();
+                switch (CustomServicesConstants.InputType.fromString(value.getType())) {
+                    case FROM_USER:
+                    case ASSET_OPTION_SINGLE:
+                        final String friendlyName = value.getFriendlyName();
+                        if (params.get(friendlyName) != null && !StringUtils.isEmpty(params.get(friendlyName).toString())) {
+                            inputs.put(name, Arrays.asList(params.get(friendlyName).toString().split(",")));
+                        } else {
+                            if (value.getDefaultValue() != null) {
+                                inputs.put(name, Arrays.asList(value.getDefaultValue().split(",")));
+                            }
+                        }
+                        break;
+                    case ASSET_OPTION_MULTI:
 
-        for (final Input value : input) {
-            final String name = value.getName();
 
-            switch (CustomServicesConstants.InputType.fromString(value.getType())) {
-                case FROM_USER:
-                case ASSET_OPTION: {
-                    if (params.get(name) != null) {
-                        inputs.put(name, Arrays.asList(params.get(name).toString()));
-                    } else {
+                    // TODO: Handle multi value
+                    // case ASSET_OPTION_MULTI_VALUE:
+                    case FROM_STEP_INPUT:
+                    case FROM_STEP_OUTPUT: {
+                        final String[] paramVal = value.getValue().split("\\.");
+                        final String stepId = paramVal[CustomServicesConstants.STEP_ID];
+                        final String attribute = paramVal[CustomServicesConstants.INPUT_FIELD];
+
+                        Map<String, List<String>> stepInput;
+                        if (value.getType().equals(InputType.FROM_STEP_INPUT.toString())) {
+                            stepInput = inputPerStep.get(stepId);
+                        } else {
+                            stepInput = outputPerStep.get(stepId);
+                        }
+                        if (stepInput != null) {
+                            if (stepInput.get(attribute) != null) {
+                                inputs.put(name, stepInput.get(attribute));
+                                break;
+                            }
+                        }
                         if (value.getDefaultValue() != null) {
                             inputs.put(name, Arrays.asList(value.getDefaultValue()));
-                        }
-                    }
-                    break;
-                }
-                // TODO: Handle multi value
-                // case ASSET_OPTION_MULTI_VALUE:
-                case FROM_STEP_INPUT:
-                case FROM_STEP_OUTPUT: {
-                    final String[] paramVal = value.getValue().split("\\.");
-                    final String stepId = paramVal[CustomServicesConstants.STEP_ID];
-                    final String attribute = paramVal[CustomServicesConstants.INPUT_FIELD];
-
-                    Map<String, List<String>> stepInput;
-                    if (value.getType().equals(CustomServicesConstants.InputType.FROM_STEP_INPUT.toString()))
-                        stepInput = inputPerStep.get(stepId);
-                    else
-                        stepInput = outputPerStep.get(stepId);
-
-                    if (stepInput != null) {
-                        logger.info("value is:{}", stepInput.get(attribute));
-                        if (stepInput.get(attribute) != null) {
-                            inputs.put(name, stepInput.get(attribute));
                             break;
                         }
-                    }
-                    if (value.getDefaultValue() != null) {
-                        inputs.put(name, Arrays.asList(value.getDefaultValue()));
-                        logger.info("value default is:{}", Arrays.asList(value.getDefaultValue()));
+
                         break;
                     }
+                    default:
+                        throw InternalServerErrorException.internalServerErrors
+                                .customServiceExecutionFailed("Invalid input type:" + value.getType());
                 }
-                default:
-                    throw InternalServerErrorException.internalServerErrors
-                            .customServiceExecutionFailed("Invalid input type:" + value.getType());
             }
         }
 
@@ -359,25 +365,38 @@ public class CustomServicesService extends ViPRService {
      * "task.state"
      *
      * @param step
-     * @param result
+     * @param res
      */
-    private void updateOutputPerStep(final Step step, final String result) throws Exception {
+    private void updateOutputPerStep(final Step step, final CustomServicesTaskResult res) throws Exception {
         final List<CustomServicesWorkflowDocument.Output> output = step.getOutput();
         if (output == null)
             return;
-
+        final String result = res.getOut();
         final Map<String, List<String>> out = new HashMap<String, List<String>>();
 
-        for (CustomServicesWorkflowDocument.Output o : output) {
+        for (final CustomServicesWorkflowDocument.Output o : output) {
             if (isAnsible(step)) {
                 out.put(o.getName(), evaluateAnsibleOut(result, o.getName()));
+            } else if (step.getType().equals(StepType.REST.toString())) {
+                final CustomServicesRestTaskResult restResult = (CustomServicesRestTaskResult) res;
+                final Set<Map.Entry<String, List<String>>> headers = restResult.getHeaders();
+                for (final Map.Entry<String, List<String>> entry : headers) {
+                    if (entry.getKey().equals(o.getName())) {
+                        out.put(o.getName(), entry.getValue());
+                    }
+                }
+
             } else {
+
                 // TODO: Remove this after parsing output is fully implemented
                 // out.put(o.getName(), evaluateValue(result, o.getName()));
                 return;
             }
         }
-
+        //set the default result.
+        out.put(CustomServicesConstants.OPERATION_OUTPUT, Arrays.asList(res.getOut()));
+        out.put(CustomServicesConstants.OPERATION_ERROR, Arrays.asList(res.getErr()));
+        out.put(CustomServicesConstants.OPERATION_RETURNCODE, Arrays.asList(String.valueOf(res.getReturnCode())));
         outputPerStep.put(step.getId(), out);
     }
 
@@ -553,3 +572,4 @@ public class CustomServicesService extends ViPRService {
         }
     }
 }
+

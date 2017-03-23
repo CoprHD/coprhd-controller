@@ -38,6 +38,10 @@ public final class CustomServicesConstants {
     public static final int INPUT_FIELD = 1;
     public static final String WF_ID = "WorkflowId";
 
+    public static final String VIPR_PRIMITIVE_TYPE = "vipr";
+    public static final String SCRIPT_PRIMITIVE_TYPE = "script";
+    public static final String ANSIBLE_PRIMITIVE_TYPE = "ansible";
+    public static final String ANSIBLE_INVENTORY_TYPE = "ansible_inventory";
     // SuccessCriteria Constants
     public static final String RETURN_CODE = "code";
     public static final String TASK = "task";
@@ -67,19 +71,46 @@ public final class CustomServicesConstants {
     public static final String INPUT_PARAMS = "input_params";
     public static final String CONNECTION_DETAILS = "connection_details";
     public static final String ANSIBLE_OPTIONS = "ansible_options";
+    public static final String REST_OPTIONS = "rest_options";
 
-    public enum restMethods {
+    //REST options
+    public static final String PROTOCOL = "protocol";
+    public static final String AUTH_TYPE = "AuthType";
+    public static final String USER = "user";
+    public static final String PASSWORD = "password";
+    public static final String ACCEPT_TYPE = "Accept-Type";
+    public static final String CONTENT_TYPE = "Content-Type";
+    public static final String BODY = "body";
+    public static final String METHOD = "method";
+    public static final String TARGET = "target";
+    public static final String PATH = "path";
+    public static final String PORT = "port";
+    public static final String HEADERS = "headers";
+
+    //Execution Result
+    public static final String OPERATION_OUTPUT = "operation_output";
+    public static final String OPERATION_ERROR = "operation_error";
+    public static final String OPERATION_RETURNCODE = "operation_returncode";
+
+    //Supported REST methods for Custom Service
+    public enum RestMethods {
         GET, POST, PUT, DELETE;
+    }
+
+    public enum AuthType {
+        NONE, BASIC, TOKEN;
     }
 
     public enum InputType {
         FROM_USER("InputFromUser"),
-        // ASSET_OPTION_SINGLE_VALUE("AssetOptionSingleValue"),
-        // ASSET_OPTION_MULTI_VALUE("AssetOptionMultiValue"),
-        ASSET_OPTION("AssetOption"), // TODO: Change this to the above values.
-        HARDCODEDVALUE("HardcodedValue"),
+        FROM_USER_MULTI("InputFromUserMulti"),
+        ASSET_OPTION_SINGLE("AssetOptionSingle"),
+        ASSET_OPTION_MULTI("AssetOptionMulti"),
+        HARDCODED("Hardcoded"),
         FROM_STEP_INPUT("FromOtherStepInput"),
         FROM_STEP_OUTPUT("FromOtherStepOutput"),
+        ASSET_OPTION("AssetOption"), // TODO: Change this to the above values.
+        HARDCODEDVALUE("HardcodedValue"),
         INVALID("Invalid");
 
         private final String inputType;

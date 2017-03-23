@@ -26,16 +26,13 @@ import org.springframework.beans.factory.annotation.Autowired;
 import com.emc.sa.catalog.CustomServicesPrimitiveManager;
 import com.emc.sa.model.dao.ModelClient;
 import com.emc.storageos.db.client.DbClient;
-import com.emc.storageos.db.client.constraint.NamedElementQueryResultList.NamedElement;
 import com.emc.storageos.db.client.model.uimodels.CustomServicesDBRESTApiPrimitive;
 import com.emc.storageos.model.customservices.CustomServicesPrimitiveCreateParam;
 import com.emc.storageos.model.customservices.CustomServicesPrimitiveRestRep;
 import com.emc.storageos.model.customservices.CustomServicesPrimitiveUpdateParam;
 import com.emc.storageos.primitives.db.restapi.CustomServicesRESTApiPrimitive;
-import com.emc.storageos.primitives.java.CustomServicesNoResourceType;
-import com.emc.storageos.svcs.errorhandling.resources.APIException;
 
-public class CustomServicesRESTApiPrimitiveDAO implements CustomServicesPrimitiveDAO<CustomServicesRESTApiPrimitive, CustomServicesNoResourceType> {
+public class CustomServicesRESTApiPrimitiveDAO implements CustomServicesPrimitiveDAO<CustomServicesRESTApiPrimitive> {
 
     @Autowired
     private CustomServicesPrimitiveManager primitiveManager;
@@ -83,41 +80,4 @@ public class CustomServicesRESTApiPrimitiveDAO implements CustomServicesPrimitiv
     public Iterator<CustomServicesPrimitiveRestRep> bulk(Collection<URI> ids) {
         return CustomServicesDBHelper.bulk(ids, CustomServicesRESTApiPrimitive.class, CustomServicesDBRESTApiPrimitive.class, dbClient);
     }
-
-    @Override
-    public CustomServicesNoResourceType getResource(URI id) {
-        throw APIException.methodNotAllowed.notSupported();
-    }
-
-    @Override
-    public CustomServicesNoResourceType createResource(String name, byte[] stream) {
-        throw APIException.methodNotAllowed.notSupported();
-    }
-
-    @Override
-    public CustomServicesNoResourceType updateResource(URI id, String name, byte[] stream) {
-        throw APIException.methodNotAllowed.notSupported();
-    }
-
-    @Override
-    public void deactivateResource(URI id) {
-        throw APIException.methodNotAllowed.notSupported();
-    }
-
-    @Override
-    public List<NamedElement> listResources() {
-        throw APIException.methodNotAllowed.notSupported();
-    }
-
-    @Override
-    public Class<CustomServicesNoResourceType> getResourceType() {
-        return null;
-    }
-
-    @Override
-    public boolean hasResource() {
-        // TODO Auto-generated method stub
-        return false;
-    }
-
 }

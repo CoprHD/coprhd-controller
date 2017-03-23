@@ -63,7 +63,8 @@ id:'orders', dataTable:dataTable, source:@listJson(), cssClass:'editableRows', o
                 $(".notForRange").hide();
                 $('.max-days-selector').css({'width': '780px', 'margin-left': '-600px', 'margin-right': '120px'});
             } else {
-                var url = #{jsAction @list()/}() + "?maxDays=" + maxDays;
+                var url = #{jsAction @list()/}() + "?maxDays=" + maxDays +
+                        "&offsetInMinutes=" + getTimeZoneOffset();
                 window.location.href = url;
             }
         });

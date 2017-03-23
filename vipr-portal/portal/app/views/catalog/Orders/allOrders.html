@@ -113,7 +113,8 @@
                 $(".notForRange").hide();
                 $('.max-days-selector').css({'width': '780px', 'margin-left': '-600px', 'margin-right': '120px'});
             } else {
-                var url = #{jsAction @allOrders()/}() + "?maxDays=" + maxDays;
+                var url = #{jsAction @allOrders()/}() + "?maxDays=" + maxDays +
+                        "&offsetInMinutes=" + getTimeZoneOffset();
                 window.location.href = url;
             }
         });

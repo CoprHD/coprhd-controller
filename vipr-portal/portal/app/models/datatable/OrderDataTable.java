@@ -21,6 +21,7 @@ import com.emc.vipr.model.catalog.OrderCount;
 import play.Logger;
 import models.security.UserInfo;
 import util.OrderUtils;
+import util.TimeUtils;
 import util.datatable.DataTable;
 
 import com.emc.vipr.model.catalog.OrderRestRep;
@@ -32,7 +33,7 @@ public class OrderDataTable extends DataTable {
     public static final int ORDER_MAX_COUNT = 6000;
     public static final int ORDER_MAX_DELETE_PER_GC = 200000;
     protected static final String ORDER_MAX_COUNT_STR = String.valueOf(ORDER_MAX_COUNT);
-    protected static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd");
+    protected SimpleDateFormat localDateFormat = new SimpleDateFormat("yyyy-MM-dd");
     protected UserInfo userInfo;
     protected String tenantId;
 
@@ -49,7 +50,6 @@ public class OrderDataTable extends DataTable {
 
     public OrderDataTable(String tenantId) {
         this.tenantId = tenantId;
-        DATE_FORMAT.setTimeZone(TimeZone.getDefault());
 
         addColumn("number");
         addColumn("status").setRenderFunction("render.orderStatus");
@@ -63,13 +63,18 @@ public class OrderDataTable extends DataTable {
         sortAll();
     }
 
+    public OrderDataTable(String tenantId, int offsetInMinutes) {
+        this(tenantId);
+        localDateFormat.setTimeZone(TimeUtils.getTimeZoneForOffset(offsetInMinutes));
+    }
+
     public void setUserInfo(UserInfo userInfo) {
         this.userInfo = userInfo;
     }
 
     public void setStartDate(String startDate) {
         try {
-            setStartDate(DATE_FORMAT.parse(startDate));
+            setStartDate(localDateFormat.parse(startDate));
         } catch (ParseException e) {
             Logger.error("Date parse error for: %s, e=%s", startDate, e);
         }
@@ -77,7 +82,7 @@ public class OrderDataTable extends DataTable {
 
     public void setEndDate(String endDate) {
         try {
-            setEndDate(DATE_FORMAT.parse(endDate));
+            setEndDate(localDateFormat.parse(endDate));
         } catch (ParseException e) {
             Logger.error("Date parse error for: %s, e=%s", endDate, e);
         }
@@ -157,7 +162,6 @@ public class OrderDataTable extends DataTable {
 
     public static Date getDateDaysAgo(int daysAgo) {
         Calendar cal = Calendar.getInstance();
-        cal.setTimeZone(TimeZone.getDefault());
         cal.add(Calendar.DAY_OF_YEAR, -daysAgo + 1);
         return cal.getTime();
     }

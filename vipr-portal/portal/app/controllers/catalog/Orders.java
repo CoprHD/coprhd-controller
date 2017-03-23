@@ -19,6 +19,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang.math.NumberUtils;
 import org.joda.time.DateTime;
 
 import com.emc.sa.util.TextUtils;
@@ -675,7 +676,7 @@ public class Orders extends OrderExecution {
 
     protected static class RecentUserOrdersDataTable extends RecentOrdersDataTable {
         public RecentUserOrdersDataTable() {
-            super(Models.currentAdminTenant());
+            super(Models.currentAdminTenant(), NumberUtils.toInt(params.get("offsetInMinutes"), 0));
             alterColumn("submittedBy").setVisible(true);
         }
     }

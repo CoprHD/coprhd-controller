@@ -1298,13 +1298,13 @@ public class ExternalDeviceCommunicationInterface extends
                 }
 
                 if (!systemRRSet.getReachable()) {
-                    String message = String.format("Remote replication set %s of type %s was set to not reachable. We do not process its replication groups",
+                    String message = String.format("Remote replication set %s of type %s was set to not reachable.",
                             driverSet.getNativeId(), storageSystemType);
                     _log.error(message);
                 }
             }
 
-            // check which existing system sets/groups we did not discover --- set them as not reachable
+            // check which existing system sets we did not discover --- set them as not reachable
             List<URI> updatedObjectUrisList = URIUtil.toUris(objectsToUpdate);
             Set<URI> updatedObjectUris = new HashSet<URI>(updatedObjectUrisList);
 

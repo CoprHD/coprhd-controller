@@ -280,9 +280,6 @@ public class RemoteReplicationBlockServiceApiImpl extends AbstractBlockServiceAp
         List<Volume> volumes = _dbClient.queryObject(Volume.class, volumeURIs);
         for (Volume volume : volumes) {
             volume.setPersonality(personality.toString());
-            // for target volumes set target side consistency group if source volume is in consistency group
-            // TODO: find consistency group with the same label in target volume system, if exist set it in target volume and in target descriptor, if does not exist --
-            // create and do the same.
         }
         _dbClient.updateObject(volumes);
 

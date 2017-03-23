@@ -228,7 +228,7 @@ public class SnapshotService extends TaskResourceService {
 
         String snapshotType = TechnologyType.NATIVE.toString();
         Boolean createInactive = Boolean.FALSE;
-        Boolean readOnly = false;
+        Boolean readOnly = Boolean.FALSE;
         
         BlockServiceApi api = getBlockServiceImpl(pool, _dbClient);
 

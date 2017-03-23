@@ -20,6 +20,7 @@ import java.util.List;
 import java.util.Map;
 
 import com.emc.storageos.db.client.model.uimodels.CustomServicesDBRESTApiPrimitive;
+import com.emc.storageos.primitives.CustomServicesConstants;
 import com.emc.storageos.primitives.db.CustomServicesDBPrimitiveType;
 import com.emc.storageos.primitives.input.InputParameter;
 import com.emc.storageos.primitives.output.OutputParameter;
@@ -33,8 +34,6 @@ public class CustomServicesRESTApiPrimitive extends CustomServicesDBPrimitiveTyp
         super(primitive, input, attributes, output);
     }
 
-    public final static String TYPE = "rest";
-    
     @Override
     public StepType stepType() {
         return StepType.REST;
@@ -42,7 +41,7 @@ public class CustomServicesRESTApiPrimitive extends CustomServicesDBPrimitiveTyp
 
     @Override
     public String type() {
-        return TYPE;
+        return CustomServicesConstants.REST_API_PRIMITIVE_TYPE;
     }
 
 }

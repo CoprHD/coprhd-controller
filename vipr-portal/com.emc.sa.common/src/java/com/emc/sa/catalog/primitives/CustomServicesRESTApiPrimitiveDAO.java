@@ -30,6 +30,7 @@ import com.emc.storageos.db.client.model.uimodels.CustomServicesDBRESTApiPrimiti
 import com.emc.storageos.model.customservices.CustomServicesPrimitiveCreateParam;
 import com.emc.storageos.model.customservices.CustomServicesPrimitiveRestRep;
 import com.emc.storageos.model.customservices.CustomServicesPrimitiveUpdateParam;
+import com.emc.storageos.primitives.CustomServicesConstants;
 import com.emc.storageos.primitives.db.restapi.CustomServicesRESTApiPrimitive;
 
 public class CustomServicesRESTApiPrimitiveDAO implements CustomServicesPrimitiveDAO<CustomServicesRESTApiPrimitive> {
@@ -43,7 +44,7 @@ public class CustomServicesRESTApiPrimitiveDAO implements CustomServicesPrimitiv
     
     @Override
     public String getType() {
-        return CustomServicesRESTApiPrimitive.TYPE;
+        return CustomServicesConstants.REST_API_PRIMITIVE_TYPE;
     }
 
     @Override

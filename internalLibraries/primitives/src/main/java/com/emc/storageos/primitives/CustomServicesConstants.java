@@ -38,10 +38,13 @@ public final class CustomServicesConstants {
     public static final int INPUT_FIELD = 1;
     public static final String WF_ID = "WorkflowId";
 
+    //Primitive/resource types
     public static final String VIPR_PRIMITIVE_TYPE = "vipr";
     public static final String SCRIPT_PRIMITIVE_TYPE = "script";
     public static final String ANSIBLE_PRIMITIVE_TYPE = "ansible";
+    public static final String REST_API_PRIMITIVE_TYPE = "rest";
     public static final String ANSIBLE_INVENTORY_TYPE = "ansible_inventory";
+    
     // SuccessCriteria Constants
     public static final String RETURN_CODE = "code";
     public static final String TASK = "task";

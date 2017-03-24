@@ -18,7 +18,6 @@ import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
-import com.emc.storageos.util.ExportUtils;
 
 @SuppressWarnings("serial")
 public class ExportMaskDeleteCompleter extends ExportTaskCompleter {
@@ -46,7 +45,8 @@ public class ExportMaskDeleteCompleter extends ExportTaskCompleter {
             }
 
             if (exportMask != null && (status == Operation.Status.ready || (Operation.isTerminalState(status) && isRollingBack()))) {
-                ExportUtils.cleanupAssociatedMaskResources(dbClient, exportMask);
+                ExportGroup exportGroup = dbClient.queryObject(ExportGroup.class, getId());
+                exportGroup.removeExportMask(exportMask.getId());
                 dbClient.markForDeletion(exportMask);
             }
 

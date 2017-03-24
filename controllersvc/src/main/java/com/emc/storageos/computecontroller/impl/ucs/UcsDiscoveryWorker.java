@@ -2263,7 +2263,7 @@ public class UcsDiscoveryWorker {
     }
 
     private void matchComputeBladesToHosts() {
-        HostToComputeElementMatcher.matchUcsComputeElements(_dbClient);
+        HostToComputeElementMatcher.matchAllHostsToComputeElements(_dbClient);
     }
 
     /**

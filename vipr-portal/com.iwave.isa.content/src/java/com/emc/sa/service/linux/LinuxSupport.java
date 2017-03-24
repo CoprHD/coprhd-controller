@@ -385,14 +385,14 @@ public class LinuxSupport {
                     else {
                         return LinuxUtils.getDeviceForEntry(findMultiPathEntry(volume));
                     }
-                } catch (IllegalStateException e) {
+                } catch (Exception e) {
                     String errorMessage = String.format("Unable to find device for WWN %s. %s more attempts will be made.",
                             volume.getWwn(), remainingAttempts);
                     if (remainingAttempts == 0) {
                         getDeviceFailed(volume, errorMessage, e);
                     }
                     logWarn("linux.support.device.not.found", volume.getWwn(), remainingAttempts);
-                    Thread.sleep(5000);
+                    Thread.sleep(10000);
                     refreshStorage(Collections.singleton(volume), usePowerPath);
                 }
             }
@@ -403,7 +403,7 @@ public class LinuxSupport {
         return null;
     }
 
-    protected <T extends BlockObjectRestRep> void getDeviceFailed(T volume, String errorMessage, IllegalStateException exception) {
+    protected <T extends BlockObjectRestRep> void getDeviceFailed(T volume, String errorMessage, Exception exception) {
         ExecutionUtils.fail("failTask.getDeviceName", volume.getWwn(), errorMessage, exception.getMessage());
     }
 

@@ -39,6 +39,10 @@ public abstract class VMwareHostService extends ViPRService {
     protected HostSystem host;
     protected ClusterComputeResource cluster;
 
+    public boolean checkClusterConnectivity() {
+        return true;
+    }
+
     private void initHost() {
         datacenter = vmware.getDatacenter(datacenterId);
 
@@ -50,8 +54,8 @@ public abstract class VMwareHostService extends ViPRService {
             }
 
             logInfo("vmware.service.target.host", esxHost.getLabel());
-        }
-        else {
+
+        } else {
             hostCluster = getModelClient().clusters().findById(hostId);
             if (hostCluster == null) {
                 throw new IllegalArgumentException("Cluster " + hostId + " not found");
@@ -63,13 +67,38 @@ public abstract class VMwareHostService extends ViPRService {
                         + "] contains no hosts");
             }
 
-            esxHost = hosts.get(0);
-            cluster = vmware.getCluster(datacenter.getLabel(), hostCluster.getLabel());
+            cluster = vmware.getCluster(datacenter.getLabel(), hostCluster.getLabel(), checkClusterConnectivity());
+
+            esxHost = getConnectedHost(hosts, datacenter);
+
+            if (esxHost == null) {
+                throw new IllegalArgumentException("Cluster '" + hostCluster.getLabel() + "' [" + hostId
+                        + "] does not contain any connected hosts");
+            }
 
             logInfo("vmware.service.target.cluster", hostCluster.getLabel(), hosts.size());
-        }
 
-        host = vmware.getHostSystem(datacenter.getLabel(), esxHost.getLabel());
+        }
+        host = vmware.getHostSystem(datacenter.getLabel(), esxHost.getLabel(), true);
+
+    }
+
+    /**
+     * Get the first connected host from the given set of hosts
+     * 
+     * @param hosts list of hosts
+     * @param datacenter the datacenter the hosts belong to
+     * @return connected host or null if no hosts are connected
+     */
+    protected Host getConnectedHost(List<Host> hosts, VcenterDataCenter datacenter) {
+        for (Host host : hosts) {
+            HostSystem esxHost = null;
+            esxHost = vmware.getHostSystem(datacenter.getLabel(), host.getLabel(), false);
+            if (VMwareSupport.isHostConnected(esxHost)) {
+                return host;
+            }
+        }
+        return null;
     }
 
     protected void connectAndInitializeHost() {
@@ -103,7 +132,8 @@ public abstract class VMwareHostService extends ViPRService {
             VcenterDataCenter datacenter = getModelClient().datacenters().findById(datacenterId);
             Cluster cluster = getModelClient().clusters().findById(hostCluster.getId());
 
-            ClusterComputeResource vcenterCluster = vmware.getCluster(datacenter.getLabel(), cluster.getLabel());
+            ClusterComputeResource vcenterCluster = vmware.getCluster(datacenter.getLabel(), cluster.getLabel(),
+                    checkClusterConnectivity());
 
             if (vcenterCluster == null) {
                 ExecutionUtils.fail("failTask.vmware.cluster.notfound", args(), args(cluster.getLabel()));

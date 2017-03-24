@@ -144,5 +144,5 @@ public interface ComputeDevice extends Controller {
      * @throws ClientGeneralException
      */
     public void deactivateHost(ComputeSystem cs, Host host) throws ClientGeneralException;
-
+  
 }

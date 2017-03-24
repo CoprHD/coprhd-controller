@@ -29,6 +29,7 @@ import com.emc.storageos.db.client.model.FilePolicy.FilePolicyApplyLevel;
 import com.emc.storageos.db.client.model.FilePolicy.FilePolicyType;
 import com.emc.storageos.db.client.model.FileReplicaPolicyTarget;
 import com.emc.storageos.db.client.model.FileReplicaPolicyTargetMap;
+import com.emc.storageos.db.client.model.FileReplicationTopology;
 import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.model.FileShare.PersonalityTypes;
 import com.emc.storageos.db.client.model.NASServer;
@@ -49,6 +50,7 @@ import com.emc.storageos.model.file.ExportRule;
 import com.emc.storageos.model.file.FileNfsACLUpdateParams;
 import com.emc.storageos.model.file.NfsACE;
 import com.emc.storageos.model.file.ShareACL;
+import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.volumecontroller.FileControllerConstants;
 import com.emc.storageos.volumecontroller.FileDeviceInputOutput;
 import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
@@ -570,6 +572,42 @@ public final class FileOrchestrationUtils {
     }
 
     /**
+     * Get the set of file policy storage resource for given policy
+     * 
+     * @param dbClient
+     * @param policy
+     * @return
+     *
+     */
+    public static List<PolicyStorageResource> getFilePolicyStorageResources(DbClient dbClient, VirtualPool vpool, Project project,
+            FileShare fs) {
+
+        // Get the replication policies for vpool/project/fs!!
+        List<PolicyStorageResource> policyStorageResources = new ArrayList<PolicyStorageResource>();
+        List<FilePolicy> replicationPolicies = getReplicationPolices(dbClient, vpool, project, fs);
+        if (replicationPolicies != null && !replicationPolicies.isEmpty()) {
+            if (replicationPolicies.size() > 1) {
+                _log.error("More than one replication policy could not be applied accross vpool/project/fs");
+                throw APIException.badRequests.moreThanOneReplicationPolicySpecified();
+            } else {
+                FilePolicy policy = replicationPolicies.get(0);
+                for (PolicyStorageResource strRes : getFilePolicyStorageResources(dbClient, policy)) {
+                    if (strRes != null) {
+                        if (FilePolicyApplyLevel.project.name().equalsIgnoreCase(policy.getApplyAt())
+                                && strRes.getAppliedAt().toString().equals(project.getId().toString())) {
+                            policyStorageResources.add(strRes);
+                        } else if (FilePolicyApplyLevel.vpool.name().equalsIgnoreCase(policy.getApplyAt())
+                                && strRes.getAppliedAt().toString().equals(vpool.getId().toString())) {
+                            policyStorageResources.add(strRes);
+                        }
+                    }
+                }
+            }
+        }
+        return policyStorageResources;
+    }
+
+    /**
      * Verify the replication policy was applied at given level
      * 
      * @param dbClient
@@ -877,6 +915,35 @@ public final class FileOrchestrationUtils {
             default:
                 _log.error("Not a valid policy apply level: " + applyLevel);
         }
+    }
+
+    /**
+     * Remove replication topology info from policy
+     * if no assigned resources with the policy
+     * 
+     * @param filePolicy the file policy template
+     * @param dbClient
+     */
+    public static void removeTopologyInfo(FilePolicy filePolicy, DbClient dbClient) {
+        // If no other resources are assigned to replication policy
+        // Remove the replication topology from the policy
+        if (filePolicy.getFilePolicyType().equalsIgnoreCase(FilePolicyType.file_replication.name())
+                && (filePolicy.getAssignedResources() == null || filePolicy.getAssignedResources().isEmpty())) {
+            if (filePolicy.getReplicationTopologies() != null && !filePolicy.getReplicationTopologies().isEmpty()) {
+                for (String uriTopology : filePolicy.getReplicationTopologies()) {
+                    FileReplicationTopology topology = dbClient.queryObject(FileReplicationTopology.class,
+                            URI.create(uriTopology));
+                    if (topology != null) {
+                        topology.setInactive(true);
+                        filePolicy.removeReplicationTopology(uriTopology);
+                        dbClient.updateObject(topology);
+                    }
+                }
+                _log.info("Removed replication topology from policy {}", filePolicy.getFilePolicyName());
+            }
+
+        }
+        dbClient.updateObject(filePolicy);
     }
 
     /**

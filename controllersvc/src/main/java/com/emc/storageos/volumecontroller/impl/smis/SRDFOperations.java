@@ -180,13 +180,14 @@ public class SRDFOperations implements SmisConstants {
                 ((SRDFLinkStartCompleter) completer).setCGName(sourceGroupName, targetGroupName,
                         firstSource.getConsistencyGroup());
             }
+            String groupName = ConsistencyGroupUtils.getSourceConsistencyGroupName(firstSource, dbClient);
             if (storSyncAvailable) {
                 log.info("Creating Group synchronization between source volume group and target volume group");
                 // there are storage synchronizations available for these pairs
                 Collection<CIMObjectPath> elementSynchronizations = utils
                         .getSynchronizations(systemWithCg, firstSource, firstTarget);
                 inArgs = helper.getCreateGroupReplicaFromElementSynchronizationsForSRDFInputArguments(srcCGPath,
-                        tgtCGPath, elementSynchronizations);
+                        tgtCGPath, elementSynchronizations, groupName);
                 helper.invokeMethod(systemWithCg, srcRepSvcPath,
                         SmisConstants.CREATE_GROUP_REPLICA_FROM_ELEMENT_SYNCHRONIZATIONS, inArgs, outArgs);
                 // No Job returned
@@ -194,7 +195,6 @@ public class SRDFOperations implements SmisConstants {
             } else {
                 CIMObjectPath repCollectionPath = cimPath.getRemoteReplicationCollection(systemWithCg,
                         group);
-                String groupName = ConsistencyGroupUtils.getSourceConsistencyGroupName(firstSource, dbClient);
                 inArgs = helper.getCreateGroupReplicaForSRDFInputArguments(sourceSystem,
                         groupName, srcCGPath, tgtCGPath, repCollectionPath, modeValue, replicationSettingDataInstance);
                 helper.invokeMethodSynchronously(systemWithCg, srcRepSvcPath,

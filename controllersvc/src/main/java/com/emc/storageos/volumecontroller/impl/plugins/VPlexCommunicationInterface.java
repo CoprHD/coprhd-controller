@@ -178,17 +178,15 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
         URI mgmntServerURI = accessProfile.getSystemId();
         StorageProvider mgmntServer = null;
         String scanStatusMessage = "Unknown Status";
+        VPlexApiClient client = null;
         try {
             // Get the storage provider representing a VPLEX management server.
             mgmntServer = _dbClient.queryObject(StorageProvider.class, mgmntServerURI);
 
             // Get the Http client for getting information about the VPLEX
             // cluster(s) managed by the VPLEX management server.
-            VPlexApiClient client = getVPlexAPIClient(accessProfile);
+            client = getVPlexAPIClient(accessProfile);
             s_logger.debug("Got handle to VPlex API client");
-
-            // clear cached discovery data in the VPlexApiClient
-            client.clearCaches();
 
             // Verify the connectivity to the VPLEX management server.
             verifyConnectivity(client, mgmntServer);
@@ -205,6 +203,12 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
             scanStatusMessage = String.format("Scan job completed successfully for " +
                     "VPLEX management server: %s", mgmntServerURI.toString());
         } catch (Exception e) {
+
+            if (null != client) {
+                // clear cached discovery data in the VPlexApiClient
+                client.clearCaches();
+            }
+
             VPlexCollectionException vce = VPlexCollectionException.exceptions
                     .failedScan(mgmntServer.getIPAddress(), e.getLocalizedMessage());
             scanStatusMessage = vce.getLocalizedMessage();
@@ -1903,6 +1907,7 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
         StorageSystem vplexStorageSystem = null;
         String detailedStatusMessage = "Unknown Status";
 
+        VPlexApiClient client = null;
         try {
             s_logger.info("Access Profile Details :  IpAddress : {}, PortNumber : {}",
                     accessProfile.getIpAddress(), accessProfile.getPortNumber());
@@ -1917,7 +1922,7 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
 
             // Get the Http client for getting information about the VPlex
             // storage system.
-            VPlexApiClient client = getVPlexAPIClient(accessProfile);
+            client = getVPlexAPIClient(accessProfile);
             s_logger.debug("Got handle to VPlex API client");
 
             // clear cached discovery data in the VPlexApiClient
@@ -2025,6 +2030,12 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
             detailedStatusMessage = String.format("Discovery completed successfully for Storage System: %s",
                     storageSystemURI.toString());
         } catch (Exception e) {
+
+            if (null != client) {
+                // clear cached discovery data in the VPlexApiClient
+                client.clearCaches();
+            }
+
             VPlexCollectionException vce = VPlexCollectionException.exceptions.failedDiscovery(
                     storageSystemURI.toString(), e.getLocalizedMessage());
             detailedStatusMessage = vce.getLocalizedMessage();

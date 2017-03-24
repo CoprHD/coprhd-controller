@@ -4517,7 +4517,7 @@ public class RecoverPointScheduler implements Scheduler {
             // is currently underway for this CG for another request.
             //
             // Any new requests coming in for the same CG may need to wait briefly.
-            Long journalProvisioningFlag = ((cg.getJournalProvisioning() != null) ? cg.getJournalProvisioning() : 0L);
+            Long journalProvisioningFlag = ((cg.getJournalProvisioningFlag() != null) ? cg.getJournalProvisioningFlag() : 0L);
             
             // If the value is > 0 then there must be another provisioning request occurring for this CG
             if (journalProvisioningFlag != 0L) {
@@ -4541,17 +4541,17 @@ public class RecoverPointScheduler implements Scheduler {
                             cg = dbClient.queryObject(BlockConsistencyGroup.class, cgURI);
                           
                             // Check to see if the flag has changed since last we checked
-                            if (Long.compare(journalProvisioningFlag, cg.getJournalProvisioning()) == 0) {
+                            if (Long.compare(journalProvisioningFlag, cg.getJournalProvisioningFlag()) == 0) {
                                 // Flag has not changed, let this request pass through and update
                                 // the flag to indicate this request is provisioning.
-                                cg.setJournalProvisioning(Thread.currentThread().getId());
+                                cg.setJournalProvisioningFlag(Thread.currentThread().getId());
                                 dbClient.updateObject(cg);
                                 break;
                             } else {
                                 // Flag has changed, another request is underway, sleep again.                         
                                 _log.info("Another request is underway, sleep again.");
                                 // Update the flag with the latest value
-                                journalProvisioningFlag = cg.getJournalProvisioning();
+                                journalProvisioningFlag = cg.getJournalProvisioningFlag();
                                 // Reset the wait attempts
                                 waitAttempt = 0;
                             }
@@ -4563,21 +4563,21 @@ public class RecoverPointScheduler implements Scheduler {
                         Thread.sleep(WAIT_BETWEEN_CONCURRENT_SCHEDULER_REQUESTS * 1000);
                         
                         // In this case, the flag can be safely cleared
-                        cg.setJournalProvisioning(0L);
+                        cg.setJournalProvisioningFlag(0L);
                         dbClient.updateObject(cg);
                     }
                 } catch (InterruptedException e) {
                     _log.error(e.getMessage());
                 }
             } else {
-                // Use the current thread id as a an indicator that a provisioning 
-                // request is underway for this CG. This will force other
+                // Set the journal provisioning flag on the CG to indicate a 
+                // provisioning request is underway. This will force other
                 // concurrent requests to wait.
-                cg.setJournalProvisioning(Thread.currentThread().getId());
+                cg.setJournalProvisioningFlag(System.currentTimeMillis());
                 dbClient.updateObject(cg);
             }
             
-            _log.info("RP request proceeding.");            
+            _log.info("RP request proceeding.");
         }
     }
 }

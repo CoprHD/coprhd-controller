@@ -3563,11 +3563,12 @@ rp_cdp()
         --neighborhoods $RECOVERPOINT_VARRAY1 \
         --multiVolumeConsistency \
         --expandable true \
-        --protectionCoS $RECOVERPOINT_VARRAY1':rp_targets'$1':min' \
+        --protectionCoS $RECOVERPOINT_VARRAY1':rp_targets'$1':0.25x' \
         --max_snapshots 10 \
         --rp_copy_mode ASYNCHRONOUS \
         --rp_rpo_value 5 \
-        --rp_rpo_type MINUTES
+        --rp_rpo_type MINUTES \
+        --sourceJournalSize 0.25x
 
     run cos create block rp_cdp$1-sync $POOLS_AUTO_MATCH \
         --description 'RP-Source-CDP-with-Sync'  \
@@ -3577,7 +3578,7 @@ rp_cdp()
         --neighborhoods $RECOVERPOINT_VARRAY1 \
         --multiVolumeConsistency \
         --expandable true \
-        --protectionCoS $RECOVERPOINT_VARRAY1':rp_targets'$1':min' \
+        --protectionCoS $RECOVERPOINT_VARRAY1':rp_targets'$1':0.25x' \
         --max_snapshots 10 \
         --rp_copy_mode SYNCHRONOUS \
         --rp_rpo_value 5 \
@@ -3600,11 +3601,12 @@ rpxio_cdp()
         --provisionType 'Thin' \
         --neighborhoods $RECOVERPOINT_VARRAY1 \
         --multiVolumeConsistency \
-        --protectionCoS $RECOVERPOINT_VARRAY1':rpxio_targets'$1':min' \
+        --protectionCoS $RECOVERPOINT_VARRAY1':rpxio_targets'$1':0.25x' \
         --max_snapshots 10 \
         --rp_copy_mode ASYNCHRONOUS \
         --rp_rpo_value 5 \
-        --rp_rpo_type MINUTES
+        --rp_rpo_type MINUTES \
+        --sourceJournalSize 0.25x
 
     run cos create block rpxio_cdp$1-sync $POOLS_AUTO_MATCH \
         --description 'RP-XIO-Source-CDP-with-Sync'  \
@@ -3613,11 +3615,12 @@ rpxio_cdp()
         --provisionType 'Thin' \
         --neighborhoods $RECOVERPOINT_VARRAY1 \
         --multiVolumeConsistency \
-        --protectionCoS $RECOVERPOINT_VARRAY1':rpxio_targets'$1':min' \
+        --protectionCoS $RECOVERPOINT_VARRAY1':rpxio_targets'$1':0.25x' \
         --max_snapshots 10 \
         --rp_copy_mode SYNCHRONOUS \
         --rp_rpo_value 5 \
-        --rp_rpo_type MINUTES
+        --rp_rpo_type MINUTES \
+        --sourceJournalSize 0.25x
 
     if [ "${POOLS_AUTO_MATCH}" = "false" ]; then
         if [ "$STORAGE_ARRAY_1_NATIVEGUID" != "NONE" ]; then
@@ -3716,14 +3719,15 @@ rpvplex_cdp()
         --neighborhoods $RECOVERPOINT_VARRAY1 \
         --multiVolumeConsistency \
         --expandable true \
-        --protectionCoS $RECOVERPOINT_VARRAY1':rpvplex_targets'$1':min' \
+        --protectionCoS $RECOVERPOINT_VARRAY1':rpvplex_targets'$1':0.25x' \
         --max_snapshots 10 \
         --rp_copy_mode ASYNCHRONOUS \
         --rp_rpo_value 5 \
         --rp_rpo_type MINUTES \
         --journalVpool rpvplex_targets \
         --journalVarray $RECOVERPOINT_VARRAY1 \
-        --highavailability vplex_local
+        --highavailability vplex_local \
+        --sourceJournalSize 0.25x
 
     run cos create block rpvplex_cdp$1-sync $POOLS_AUTO_MATCH \
         --description 'RP+VPLEX-Source-CDP'  \
@@ -3733,14 +3737,15 @@ rpvplex_cdp()
         --neighborhoods $RECOVERPOINT_VARRAY1 \
         --multiVolumeConsistency \
         --expandable true \
-        --protectionCoS $RECOVERPOINT_VARRAY1':rpvplex_targets'$1':min' \
+        --protectionCoS $RECOVERPOINT_VARRAY1':rpvplex_targets'$1':0.25x' \
         --max_snapshots 10 \
         --rp_copy_mode SYNCHRONOUS \
         --rp_rpo_value 5 \
         --rp_rpo_type MINUTES \
         --journalVpool rpvplex_targets \
         --journalVarray $RECOVERPOINT_VARRAY1 \
-        --highavailability vplex_local
+        --highavailability vplex_local \
+        --sourceJournalSize 0.25x
 
     if [ "${POOLS_AUTO_MATCH}" = "false" ]; then
         if [ "$STORAGE_ARRAY_1_NATIVEGUID" != "NONE" ]; then
@@ -3757,14 +3762,15 @@ rpvplex_cdp()
         --neighborhoods $RECOVERPOINT_VARRAY1 \
         --multiVolumeConsistency \
         --expandable true \
-        --protectionCoS $RECOVERPOINT_VARRAY1':rpvplex_targets'$1'-migrate:min' \
+        --protectionCoS $RECOVERPOINT_VARRAY1':rpvplex_targets'$1'-migrate:0.25x' \
         --max_snapshots 10 \
         --rp_copy_mode ASYNCHRONOUS \
         --rp_rpo_value 5 \
         --rp_rpo_type MINUTES \
         --journalVpool rpvplex_targets-migrate \
         --journalVarray $RECOVERPOINT_VARRAY1 \
-        --highavailability vplex_local
+        --highavailability vplex_local \
+        --sourceJournalSize 0.25x
 
     if [ "${POOLS_AUTO_MATCH_MIGRATE}" = "false" ]; then
         if [ "$STORAGE_ARRAY_1_NATIVEGUID" != "NONE" ]; then
@@ -3929,7 +3935,7 @@ rpmp_cdp()
         --neighborhoods $RECOVERPOINT_VARRAY1 \
         --multiVolumeConsistency \
         --expandable true \
-        --protectionCoS $RECOVERPOINT_VARRAY1':rpvplex_targets'$1':min',$RECOVERPOINT_VARRAY2':rpvplex_targets'$1':min' \
+        --protectionCoS $RECOVERPOINT_VARRAY1':rpvplex_targets'$1':0.25x',$RECOVERPOINT_VARRAY2':rpvplex_targets'$1':0.25x' \
         --max_snapshots 10 \
         --rp_copy_mode ASYNCHRONOUS \
         --rp_rpo_value 5 \
@@ -3938,7 +3944,8 @@ rpmp_cdp()
         --haNeighborhood $RECOVERPOINT_VARRAY2 \
         --haCos rpvplex_ha \
         --metropoint true \
-        --activeProtectionAtHASite false
+        --activeProtectionAtHASite false \
+        --sourceJournalSize 0.25x
 
     run cos create block rpmp_cdp$1-sync $POOLS_AUTO_MATCH \
         --description 'MetroPoint-Source-CDP'  \
@@ -3948,7 +3955,7 @@ rpmp_cdp()
         --neighborhoods $RECOVERPOINT_VARRAY1 \
         --multiVolumeConsistency \
         --expandable true \
-        --protectionCoS $RECOVERPOINT_VARRAY1':rpvplex_targets'$1':min',$RECOVERPOINT_VARRAY2':rpvplex_targets'$1':min' \
+        --protectionCoS $RECOVERPOINT_VARRAY1':rpvplex_targets'$1':0.25x',$RECOVERPOINT_VARRAY2':rpvplex_targets'$1':0.25x' \
         --max_snapshots 10 \
         --rp_copy_mode SYNCHRONOUS \
         --rp_rpo_value 5 \
@@ -3957,7 +3964,8 @@ rpmp_cdp()
         --haNeighborhood $RECOVERPOINT_VARRAY2 \
         --haCos rpvplex_ha \
         --metropoint true \
-        --activeProtectionAtHASite false
+        --activeProtectionAtHASite false \
+        --sourceJournalSize 0.25x
 
     if [ "${POOLS_AUTO_MATCH}" = "false" ]; then
         if [ "$STORAGE_ARRAY_1_NATIVEGUID" != "NONE" ]; then
@@ -3974,7 +3982,7 @@ rpmp_cdp()
         --neighborhoods $RECOVERPOINT_VARRAY1 \
         --multiVolumeConsistency \
         --expandable true \
-        --protectionCoS $RECOVERPOINT_VARRAY1':rpvplex_targets'$1'-migrate:min',$RECOVERPOINT_VARRAY2':rpvplex_targets'$1'-migrate:min' \
+        --protectionCoS $RECOVERPOINT_VARRAY1':rpvplex_targets'$1'-migrate:0.25x',$RECOVERPOINT_VARRAY2':rpvplex_targets'$1'-migrate:0.25x' \
         --max_snapshots 10 \
         --rp_copy_mode ASYNCHRONOUS \
         --rp_rpo_value 5 \
@@ -3983,7 +3991,8 @@ rpmp_cdp()
         --haNeighborhood $RECOVERPOINT_VARRAY2 \
         --haCos rpvplex_ha-migrate \
         --metropoint true \
-        --activeProtectionAtHASite false
+        --activeProtectionAtHASite false \
+        --sourceJournalSize 0.25x
 
     if [ "${POOLS_AUTO_MATCH_MIGRATE}" = "false" ]; then
         if [ "$STORAGE_ARRAY_1_NATIVEGUID" != "NONE" ]; then
@@ -6108,7 +6117,7 @@ recoverpoint_vpool_change_replication_mode_test()
     fi
 }
 
-recoverpoint_add_journal_volume()
+recoverpoint_add_journal_volume_test()
 {
     if [ "$RP_ADD_JOURNAL_TESTS" = "1" ]; then    
         secho 'Running RecoverPoint Add Journal Volume Tests'
@@ -6500,7 +6509,7 @@ recoverpoint_tests()
                 recoverpoint_change_vpool_test ${rpvolume}${volume_name_modifier} ${rp_noprotection_vpool} ${rp_src_vpool} ${RP_CONSISTENCY_GROUP}
 
                 # Add Journal Test
-                recoverpoint_add_journal_volume ${rp_tgt_varray} ${rp_tgt_varray} ${rp_tgt_vpool} ${RP_CONSISTENCY_GROUP}
+                recoverpoint_add_journal_volume_test ${rp_tgt_varray} ${rp_tgt_varray} ${rp_tgt_vpool} ${RP_CONSISTENCY_GROUP}
                 
                 # Snapshot/Bookmark Test
                 if [ "${RP_CLR}" = "1" ]; then
@@ -6539,7 +6548,7 @@ recoverpoint_tests()
                 fi
 
                 # Add Journal Test
-                recoverpoint_add_journal_volume ${rpvplex_tgt_varray} ${rpvplex_tgt_varray} ${rpvplex_tgt_vpool} ${RP_VPLEX_CONSISTENCY_GROUP}
+                recoverpoint_add_journal_volume_test ${rpvplex_tgt_varray} ${rpvplex_tgt_varray} ${rpvplex_tgt_vpool} ${RP_VPLEX_CONSISTENCY_GROUP}
 
                 # Snapshot/Bookmark Test
                 recoverpoint_auto_snapshot_cleanup_test ${rpvplexvolume}${volume_name_modifier} ${rp_vplex_tgt_volumes[0]} ${rpvplex_tgt_varrays[0]} ${RP_VPLEX_CONSISTENCY_GROUP}
@@ -6570,7 +6579,7 @@ recoverpoint_tests()
                 recoverpoint_change_vpool_test ${rpmpvolume}${volume_name_modifier} ${rpmp_noprotection_vpool} ${rpmp_src_vpool} ${RP_METROPOINT_CONSISTENCY_GROUP} ${rpmp_migrate_vpool}
 
                 # Add Journal Test
-                recoverpoint_add_journal_volume ${rpmp_active_tgt_varray} ${rpmp_active_tgt_varray} ${rpmp_tgt_vpool} ${RP_METROPOINT_CONSISTENCY_GROUP}
+                recoverpoint_add_journal_volume_test ${rpmp_active_tgt_varray} ${rpmp_active_tgt_varray} ${rpmp_tgt_vpool} ${RP_METROPOINT_CONSISTENCY_GROUP}
 
                 # Snapshot/Bookmark Test
                 recoverpoint_auto_snapshot_cleanup_test ${rpmpvolume}${volume_name_modifier} ${rpmp_tgt_volumes[0]} ${rpmp_tgt_varrays[0]} ${RP_METROPOINT_CONSISTENCY_GROUP}
@@ -6601,7 +6610,7 @@ recoverpoint_tests()
                 recoverpoint_change_vpool_test ${rpxiovolume}${volume_name_modifier} ${rpxio_noprotection_vpool} ${rpxio_src_vpool} ${RP_XIO_CONSISTENCY_GROUP}
 
                 # Add Journal Test
-                recoverpoint_add_journal_volume ${rpxio_tgt_varray} ${rpxio_tgt_varray} ${rpxio_tgt_vpool} ${RP_XIO_CONSISTENCY_GROUP}
+                recoverpoint_add_journal_volume_test ${rpxio_tgt_varray} ${rpxio_tgt_varray} ${rpxio_tgt_vpool} ${RP_XIO_CONSISTENCY_GROUP}
                 
                 # Snapshot/Bookmark Test
                 if [ "${RP_CLR}" = "1" ]; then
@@ -6623,7 +6632,6 @@ recoverpoint_tests()
 
                 # RP Export Bookmark Test
                 recoverpoint_export_bookmark_tests ${rpxiovolume} $RECOVERPOINT_VARRAY1 ${rpxio_tgt_varrays} ${rpxio_src_vpool} "xio"
-
             fi
         fi
 

@@ -4,6 +4,9 @@
  */
 package com.emc.storageos.scaleio.api.restapi.response;
 
+import org.codehaus.jackson.annotate.JsonIgnoreProperties;
+
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class ScaleIOSDC {
     private String id;
     private String name;

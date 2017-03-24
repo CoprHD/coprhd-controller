@@ -113,6 +113,7 @@ public class Orders extends OrderExecution {
             options.add(new StringOption(String.valueOf(day), MessagesUtils.get("orders." + day + "days")));
         }
 
+        renderArgs.put("offsetInMinutes", params.get("offsetInMinutes"));
         renderArgs.put("maxDays", maxDays);
         renderArgs.put("dateDaysAgo", OrderDataTable.getDateDaysAgo(maxDays));
         renderArgs.put("maxDaysOptions", options);
@@ -120,6 +121,8 @@ public class Orders extends OrderExecution {
 
     @Restrictions({ @Restrict("TENANT_ADMIN") })
     public static void allOrders() {
+        //todo should get client timezone from request
+        System.out.println("hlj all, "+params+"\n"+request);
         RecentUserOrdersDataTable dataTable = new RecentUserOrdersDataTable();
         TenantSelector.addRenderArgs();
 

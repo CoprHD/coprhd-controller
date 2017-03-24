@@ -11,10 +11,8 @@ import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
-import java.util.TimeZone;
 
 import org.apache.commons.lang.StringUtils;
-import org.apache.commons.lang.time.DateUtils;
 
 import com.emc.vipr.model.catalog.OrderCount;
 
@@ -65,6 +63,7 @@ public class OrderDataTable extends DataTable {
 
     public OrderDataTable(String tenantId, int offsetInMinutes) {
         this(tenantId);
+        System.out.println("hlj contruct:"+offsetInMinutes);
         localDateFormat.setTimeZone(TimeUtils.getTimeZoneForOffset(offsetInMinutes));
     }
 
@@ -75,6 +74,8 @@ public class OrderDataTable extends DataTable {
     public void setStartDate(String startDate) {
         try {
             setStartDate(localDateFormat.parse(startDate));
+            Date date = localDateFormat.parse(startDate);
+            System.out.println("hlj start: "+localDateFormat.parse(startDate));
         } catch (ParseException e) {
             Logger.error("Date parse error for: %s, e=%s", startDate, e);
         }
@@ -83,6 +84,7 @@ public class OrderDataTable extends DataTable {
     public void setEndDate(String endDate) {
         try {
             setEndDate(localDateFormat.parse(endDate));
+            System.out.println("hlj end: "+localDateFormat.parse(endDate));
         } catch (ParseException e) {
             Logger.error("Date parse error for: %s, e=%s", endDate, e);
         }
@@ -171,16 +173,20 @@ public class OrderDataTable extends DataTable {
     }
 
     protected Date getStartTimeOfADay(Date origin) {
-        Date result = DateUtils.setHours(origin, 0);
-        result = DateUtils.setMinutes(result, 0);
-        result = DateUtils.setSeconds(result, 0);
-        return result;
+        Calendar cal = Calendar.getInstance(localDateFormat.getTimeZone());
+        cal.setTime(origin);
+        cal.set(Calendar.HOUR_OF_DAY, 0);
+        cal.set(Calendar.MINUTE, 0);
+        cal.set(Calendar.SECOND, 0);
+        return cal.getTime();
     }
 
     protected Date getEndTimeOfADay(Date origin) {
-        Date result = DateUtils.setHours(origin, 23);
-        result = DateUtils.setMinutes(result, 59);
-        result = DateUtils.setSeconds(result, 59);
-        return result;
+        Calendar cal = Calendar.getInstance(localDateFormat.getTimeZone());
+        cal.setTime(origin);
+        cal.set(Calendar.HOUR_OF_DAY, 23);
+        cal.set(Calendar.MINUTE, 59);
+        cal.set(Calendar.SECOND, 59);
+        return cal.getTime();
     }
 }

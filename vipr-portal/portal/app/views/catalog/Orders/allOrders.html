@@ -85,6 +85,7 @@
         aoData.push({"name": "startDate", "value": "${startDate}"});
         aoData.push({"name": "endDate", "value": "${endDate}"});
         aoData.push({"name": "maxDays", "value": "${maxDays}"});
+        aoData.push({"name": "offsetInMinutes", "value": getTimeZoneOffset()});
     }
     table.orders.dataTable.afterCreate(function (dataTable) {
         var itemsJson = #{jsAction @catalog.Orders.itemsJson(':ids')/};

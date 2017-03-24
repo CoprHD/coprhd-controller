@@ -661,8 +661,7 @@ public class FilePolicyServiceUtils {
      */
     public static void resetReplicationFileSystemsRelation(DbClient _dbClient, FileShare fileshare) {
         List<FileShare> modifiedFileshares = new ArrayList<>();
-        if (fileshare.getPersonality() != null
-                && fileshare.getPersonality().equalsIgnoreCase(PersonalityTypes.SOURCE.toString())) {
+        if (fileshare.getPersonality() != null) {
             fileshare.setMirrorStatus(NullColumnValueGetter.getNullStr());
             fileshare.setAccessState(NullColumnValueGetter.getNullStr());
             fileshare.setPersonality(NullColumnValueGetter.getNullStr());

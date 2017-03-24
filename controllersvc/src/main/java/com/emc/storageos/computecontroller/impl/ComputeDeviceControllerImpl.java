@@ -803,15 +803,23 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
                     cs.getSystemType(), this.getClass(), new Workflow.Method("checkHostInitiators", hostId),
                     null, null);
 
-            waitFor = workflow.createStep(DEACTIVATION_MAINTENANCE_MODE,
-                    "If synced with vCenter, put the host in maintenance mode", waitFor, cs.getId(),
-                    cs.getSystemType(), this.getClass(), new Workflow.Method("putHostInMaintenanceMode", hostId),
-                    null, null);
+            // If host has a vcenter associated and OS type is NO_OS then skip vcenter operations, because
+            // NO_OS host types cannot be pushed to vcenter, the host has got its vcenterdatacenter association, because
+            // any update to the host using the hostService automatically adds this association.
+            if (!NullColumnValueGetter.isNullURI(host.getVcenterDataCenter()) && host.getType() != null
+                    && host.getType().equalsIgnoreCase((Host.HostType.No_OS).name())) {
+                log.info("Skipping Vcenter host cleanup steps because No_OS is specified on host " + hostId);
+            } else {
+                waitFor = workflow.createStep(DEACTIVATION_MAINTENANCE_MODE,
+                        "If synced with vCenter, put the host in maintenance mode", waitFor, cs.getId(),
+                        cs.getSystemType(), this.getClass(), new Workflow.Method("putHostInMaintenanceMode", hostId),
+                        null, null);
 
-            waitFor = workflow.createStep(DEACTIVATION_REMOVE_HOST_VCENTER,
-                    "If synced with vCenter, remove the host from the cluster", waitFor, cs.getId(),
-                    cs.getSystemType(), this.getClass(), new Workflow.Method("removeHostFromVcenterCluster", hostId),
-                    null, null);
+                waitFor = workflow.createStep(DEACTIVATION_REMOVE_HOST_VCENTER,
+                        "If synced with vCenter, remove the host from the cluster", waitFor, cs.getId(),
+                        cs.getSystemType(), this.getClass(), new Workflow.Method("removeHostFromVcenterCluster", hostId),
+                        null, null);
+            }            
         }
 
         return waitFor;

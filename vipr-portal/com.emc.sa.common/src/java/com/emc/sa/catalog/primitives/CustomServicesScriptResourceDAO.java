@@ -17,6 +17,7 @@
 package com.emc.sa.catalog.primitives;
 
 import java.net.URI;
+import java.util.Collections;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -56,11 +57,11 @@ public class CustomServicesScriptResourceDAO implements CustomServicesResourceDA
 
     @Override
     public CustomServicesScriptResource createResource(final String name,
-            final byte[] stream, final URI parentId) {
+            final byte[] stream, final String parentId) {
         final StringSetMap attributes = new StringSetMap();
 
         return CustomServicesDBHelper.createResource(CustomServicesScriptResource.class, CustomServicesDBScriptResource.class,
-                primitiveManager, name, stream, attributes, parentId);
+                primitiveManager, name, stream, attributes, null);
     }
 
     @Override
@@ -75,7 +76,7 @@ public class CustomServicesScriptResourceDAO implements CustomServicesResourceDA
     }
 
     @Override
-    public List<NamedElement> listResources() {
+    public List<NamedElement> listResources(final String parentId) {
         return client.customServicesPrimitiveResources().list(CustomServicesDBScriptResource.class);
     }
 
@@ -83,15 +84,4 @@ public class CustomServicesScriptResourceDAO implements CustomServicesResourceDA
     public Class<CustomServicesScriptResource> getResourceType() {
         return CustomServicesScriptResource.class;
     }
-
-    @Override
-    public boolean hasResource() {
-        return true;
-    }
-
-    @Override
-    public List<NamedElement> listResourcesByParentId(final URI parentId) {
-        return null;
-    }
-
 }

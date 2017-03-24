@@ -91,4 +91,9 @@ public class CustomServicesAnsiblePrimitiveDAO implements
     public Iterator<CustomServicesPrimitiveRestRep> bulk(Collection<URI> ids) {
         return CustomServicesDBHelper.bulk(ids, CustomServicesAnsiblePrimitive.class, CustomServicesDBAnsiblePrimitive.class, dbClient);
     }
+
+    @Override
+    public boolean hasResource() {
+        return true;
+    }
 }

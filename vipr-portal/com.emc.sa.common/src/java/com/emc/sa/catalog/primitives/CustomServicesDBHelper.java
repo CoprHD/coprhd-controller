@@ -330,6 +330,27 @@ public final class CustomServicesDBHelper {
         return client.findByType(clazz);
     }
 
+    /**
+     * Get a list of IDs of the given database column family, filter if needed.
+     *
+     * @param clazz The database column family class
+     * @param client The model client
+     * @param columnName The filterId's columnName
+     * @param filterByReferenceId The filterId
+     * @return A list of IDs of primitive resource
+     */
+    public static <T extends CustomServicesDBResource> List<NamedElement> listResources(
+            final Class<? extends CustomServicesDBResource> clazz, final ModelClient client,
+            final String columnName,
+            final String filterByReferenceId) {
+        if (null == filterByReferenceId) {
+            return client.customServicesPrimitiveResources().list(clazz);
+        } else {
+            return client.customServicesPrimitiveResources().listAllResourceByRefId(clazz,
+                    columnName, filterByReferenceId);
+        }
+    }
+
     public static <T extends CustomServicesPrimitiveResourceType> T getResource(
             final Class<T> type,
             final Class<? extends CustomServicesDBResource> clazz,

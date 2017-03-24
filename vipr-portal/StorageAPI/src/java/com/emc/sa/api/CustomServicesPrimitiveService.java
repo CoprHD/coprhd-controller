@@ -67,10 +67,8 @@ import com.emc.storageos.model.customservices.CustomServicesPrimitiveResourceLis
 import com.emc.storageos.model.customservices.CustomServicesPrimitiveResourceRestRep;
 import com.emc.storageos.model.customservices.CustomServicesPrimitiveRestRep;
 import com.emc.storageos.model.customservices.CustomServicesPrimitiveUpdateParam;
-import com.emc.storageos.primitives.CustomServicesConstants;
 import com.emc.storageos.primitives.CustomServicesPrimitiveResourceType;
 import com.emc.storageos.primitives.CustomServicesPrimitiveType;
-import com.emc.storageos.primitives.db.ansible.CustomServicesAnsiblePrimitive;
 import com.emc.storageos.security.authorization.ACL;
 import com.emc.storageos.security.authorization.DefaultPermissions;
 import com.emc.storageos.security.authorization.Role;
@@ -214,10 +212,11 @@ public class CustomServicesPrimitiveService extends CatalogTaggedResourceService
     @GET
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/resource/{type}")
-    public CustomServicesPrimitiveResourceList getResources(@PathParam("type") final String type) {
+    public CustomServicesPrimitiveResourceList getResources(@PathParam("type") final String type,
+            @QueryParam("parentId") final String parentId) {
 
         final CustomServicesResourceDAO<?> dao = resourceDAOs.get(type);
-        final List<NamedElement> resources = dao.listResources();
+        final List<NamedElement> resources = dao.listResources(parentId);
 
         return CustomServicesPrimitiveMapper.toCustomServicesPrimitiveResourceList(type, resources);
     }
@@ -236,50 +235,14 @@ public class CustomServicesPrimitiveService extends CatalogTaggedResourceService
     @Path("/resource/{type}")
     public CustomServicesPrimitiveResourceRestRep upload(
             @Context final HttpServletRequest request,
-            @PathParam("type") final String type, @QueryParam("name") final String name) {
+            @PathParam("type") final String type, @QueryParam("name") final String name, @QueryParam("parentId") final String parentId) {
 
         ArgValidator.checkFieldNotNull(name, "name");
         final CustomServicesResourceDAO<?> dao = getResourceDAO(type, true);
 
         final byte[] stream = read(request);
-        final CustomServicesPrimitiveResourceType resource = dao.createResource(name, stream, null);
+        final CustomServicesPrimitiveResourceType resource = dao.createResource(name, stream, parentId);
         return CustomServicesPrimitiveMapper.map(resource);
-    }
-
-    /**
-     * Upload a ansible inventory resource
-     * 
-     * @param request HttpServletRequest containing the file octet stream
-     * @param name The user defined name of the resource
-     * @param parentId The parentId associated with the resource
-     * @return A rest response containing details of the resource that was created
-     */
-    @POST
-    @Consumes({ MediaType.APPLICATION_OCTET_STREAM })
-    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @Path("/resource/inventory")
-    public CustomServicesPrimitiveResourceRestRep uploadInventoryFile(
-            @Context final HttpServletRequest request,
-            @QueryParam("name") final String name, @QueryParam("parentId") final String parentId) {
-        ArgValidator.checkFieldNotNull(name, "name");
-        ArgValidator.checkFieldNotNull(parentId, "parentId");
-        final URI parentIdURI = URI.create(parentId);
-
-        // Verify that there is a ansible resource asscociated with the parent id that is passed in the request
-        final CustomServicesResourceDAO<?> parentDao = getResourceDAO(CustomServicesAnsiblePrimitive.TYPE, true);
-
-        final CustomServicesPrimitiveResourceType parentResource = getResourceNullSafe(parentIdURI, parentDao);
-        if (null == parentResource) {
-            throw APIException.notFound.unableToFindEntityInURL(parentIdURI);
-        }
-
-        final CustomServicesResourceDAO<?> dao = getResourceDAO(CustomServicesConstants.ANSIBLE_INVENTORY_TYPE, true);
-
-        final byte[] stream = read(request);
-        final CustomServicesPrimitiveResourceType resource = dao.createResource(name, stream, parentIdURI);
-
-        return CustomServicesPrimitiveMapper.map(resource);
-
     }
 
     /**
@@ -308,24 +271,6 @@ public class CustomServicesPrimitiveService extends CatalogTaggedResourceService
         response.setHeader("Content-Disposition", "attachment; filename="
                 + resource.name() + resource.suffix());
         return Response.ok(bytes).build();
-    }
-
-    /**
-     * Download a inventory file resource
-     *
-     * @param response HttpServletResponse the servlet response to update with the file octet stream
-     * @return Response containing the octet stream of the primitive file resource
-     */
-    @GET
-    @Path("resource/inventory")
-    public CustomServicesPrimitiveResourceList getAnsibleInventoryResourceByParentId(@QueryParam("parentId") final String parentId,
-            @Context final HttpServletResponse response) {
-        final String type = CustomServicesConstants.ANSIBLE_INVENTORY_TYPE;
-        final CustomServicesResourceDAO<?> dao = getResourceDAO(type, true);
-        final URI parentIdURI = URI.create(parentId);
-        final List<NamedElement> resources = dao.listResourcesByParentId(parentIdURI);
-
-        return CustomServicesPrimitiveMapper.toCustomServicesPrimitiveResourceList(type, resources);
     }
 
     private byte[] read(final HttpServletRequest request) {

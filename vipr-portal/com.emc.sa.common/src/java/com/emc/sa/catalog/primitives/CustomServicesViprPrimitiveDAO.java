@@ -113,4 +113,9 @@ public class CustomServicesViprPrimitiveDAO implements
         return primitives.build().iterator();
     }
 
+    @Override
+    public boolean hasResource() {
+        return false;
+    }
+
 }

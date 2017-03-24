@@ -90,4 +90,9 @@ public class CustomServicesScriptPrimitiveDAO implements CustomServicesPrimitive
         return CustomServicesDBHelper.bulk(ids, CustomServicesScriptPrimitive.class, CustomServicesDBScriptPrimitive.class, dbClient);
     }
 
+    @Override
+    public boolean hasResource() {
+        return true;
+    }
+
 }

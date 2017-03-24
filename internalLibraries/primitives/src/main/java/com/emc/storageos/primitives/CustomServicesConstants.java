@@ -61,7 +61,7 @@ public final class CustomServicesConstants {
     // Ansible Options
     public static final String ANSIBLE_BIN = "remote_ansible_bin";
     public static final String ANSIBLE_PLAYBOOK = "remote_node_playbook";
-    public static final String ANSIBLE_HOST_FILE = "remote_host_file";
+    public static final String ANSIBLE_HOST_FILE = "host_file";
     public static final String ANSIBLE_USER = "remote_ansible_user";
     public static final String ANSIBLE_COMMAND_LINE = "ansible_command_line_arg";
     // Remote ansible connection

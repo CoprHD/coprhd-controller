@@ -611,9 +611,7 @@ public class VplexXtremIOMaskingOrchestrator extends XtremIOMaskingOrchestrator 
                     StringSetUtil.stringSetToUriList(exportMask.getInitiators()), arrayURI);
             getWorkflowService().acquireWorkflowStepLocks(stepId, lockKeys, LockTimeoutValue.get(LockType.VPLEX_BACKEND_EXPORT));
 
-            // Refresh the ExportMask
             BlockStorageDevice device = _blockController.getDevice(array.getSystemType());
-            device.refreshExportMask(array, exportMask);
 
             if (!exportMask.hasAnyVolumes()) {
                 // We are creating this ExportMask on the hardware! (Maybe not
@@ -694,9 +692,6 @@ public class VplexXtremIOMaskingOrchestrator extends XtremIOMaskingOrchestrator 
                     _dbClient, ExportGroupType.Host,
                     StringSetUtil.stringSetToUriList(exportMask.getInitiators()), arrayURI);
             getWorkflowService().acquireWorkflowStepLocks(stepId, lockKeys, LockTimeoutValue.get(LockType.VPLEX_BACKEND_EXPORT));
-
-            // refresh export mask
-            device.refreshExportMask(array, exportMask);
 
             // Determine if we're deleting the last volume in the mask.
             StringMap maskVolumesMap = exportMask.getVolumes();

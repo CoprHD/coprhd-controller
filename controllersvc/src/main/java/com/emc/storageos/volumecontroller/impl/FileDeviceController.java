@@ -40,7 +40,9 @@ import com.emc.storageos.db.client.model.FileExportRule;
 import com.emc.storageos.db.client.model.FileMountInfo;
 import com.emc.storageos.db.client.model.FileObject;
 import com.emc.storageos.db.client.model.FilePolicy;
+import com.emc.storageos.db.client.model.FilePolicy.FilePolicyType;
 import com.emc.storageos.db.client.model.FileShare;
+import com.emc.storageos.db.client.model.FileShare.PersonalityTypes;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.NFSShareACL;
 import com.emc.storageos.db.client.model.Operation;
@@ -63,6 +65,7 @@ import com.emc.storageos.db.client.model.VirtualNAS;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.FileOperationUtils;
+import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.fileorchestrationcontroller.FileDescriptor;
@@ -102,6 +105,7 @@ import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.file.MirrorFilePauseTaskCompleter;
 import com.emc.storageos.volumecontroller.impl.file.MirrorFileRefreshTaskCompleter;
 import com.emc.storageos.volumecontroller.impl.file.MirrorFileResumeTaskCompleter;
+import com.emc.storageos.volumecontroller.impl.file.MirrorFileResyncTaskCompleter;
 import com.emc.storageos.volumecontroller.impl.file.MirrorFileStartTaskCompleter;
 import com.emc.storageos.volumecontroller.impl.monitoring.RecordableBourneEvent;
 import com.emc.storageos.volumecontroller.impl.monitoring.RecordableEventManager;
@@ -3732,7 +3736,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                                 this.getClass(),
                                 createFileSharesMethod(descriptor),
                                 rollbackCreateFileSharesMethod(fileShareSource.getStorageDevice(), asList(fileShare.getParentFileShare()
-                                        .getURI())),
+                                        .getURI()), sourceDescriptors),
                                 null);
                     }
                 }
@@ -3743,7 +3747,6 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
         return waitFor = CREATE_FILESYSTEMS_STEP;
     }
 
-    @Override
     public String addStepsForDeleteFileSystems(Workflow workflow,
             String waitFor, List<FileDescriptor> filesystems, String taskId)
             throws InternalException {
@@ -3851,7 +3854,12 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
      * @param fileURIs
      * @return Workflow.Method
      */
-    public static Workflow.Method rollbackCreateFileSharesMethod(URI systemURI, List<URI> fileURIs) {
+    public static Workflow.Method rollbackCreateFileSharesMethod(URI systemURI, List<URI> fileURIs, List<FileDescriptor> sourceDes) {
+        // This case comes when we are creating target FS for existing source,
+        // and if target FS creation fails we should not delete source FS
+        if (sourceDes == null || sourceDes.isEmpty()) {
+            return new Workflow.Method(ROLLBACK_METHOD_NULL);
+        }
         return new Workflow.Method("rollBackCreateFileShares", systemURI, fileURIs);
     }
 
@@ -4129,7 +4137,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
         FileShare fs = null;
         try {
             fs = _dbClient.queryObject(FileShare.class, fsURI);
-            SchedulePolicy fp = _dbClient.queryObject(SchedulePolicy.class, policy);
+            FilePolicy fp = _dbClient.queryObject(FilePolicy.class, policy);
 
             if (fs != null && fp != null) {
                 StorageSystem storageObj = _dbClient.queryObject(StorageSystem.class, storage);
@@ -4141,7 +4149,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                 StoragePool pool = _dbClient.queryObject(StoragePool.class,
                         fs.getPool());
                 args.addStoragePool(pool);
-                args.addFilePolicy(fp);
+                args.setFileProtectionPolicy(fp);
                 args.setFileOperation(true);
                 args.setOpId(opId);
 
@@ -4447,6 +4455,48 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
         }
     }
 
+    protected void resetReplicationFileSystemsRelation(FilePolicy filePolicy, PolicyStorageResource policyResource) {
+        URI storageSystem = policyResource.getStorageSystem();
+        String policyPath = policyResource.getResourcePath();
+        // For replication policy
+        // Remove the source - target relationship
+        if (filePolicy.getFilePolicyType().equalsIgnoreCase(FilePolicyType.file_replication.name())) {
+            ContainmentConstraint containmentConstraint = ContainmentConstraint.Factory.getStorageDeviceFileshareConstraint(storageSystem);
+            List<FileShare> fileshares = CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient, FileShare.class,
+                    containmentConstraint);
+            List<FileShare> modifiedFileshares = new ArrayList<>();
+            for (FileShare fileshare : fileshares) {
+                // All the file systems underneath the policy path
+                // should be decoupled!!!
+                if (fileshare.getNativeId().startsWith(policyPath)) {
+                    if (fileshare.getPersonality() != null
+                            && fileshare.getPersonality().equalsIgnoreCase(PersonalityTypes.SOURCE.toString())) {
+                        fileshare.setMirrorStatus(NullColumnValueGetter.getNullStr());
+                        fileshare.setAccessState(NullColumnValueGetter.getNullStr());
+                        fileshare.setPersonality(NullColumnValueGetter.getNullStr());
+                        if (fileshare.getMirrorfsTargets() != null && !fileshare.getMirrorfsTargets().isEmpty()) {
+                            StringSet targets = fileshare.getMirrorfsTargets();
+                            for (String strTargetFs : targets) {
+                                FileShare targetFs = _dbClient.queryObject(FileShare.class, URI.create(strTargetFs));
+                                targetFs.setMirrorStatus(NullColumnValueGetter.getNullStr());
+                                targetFs.setAccessState(NullColumnValueGetter.getNullStr());
+                                targetFs.setParentFileShare(NullColumnValueGetter.getNullNamedURI());
+                                targetFs.setPersonality(NullColumnValueGetter.getNullStr());
+                                modifiedFileshares.add(targetFs);
+                            }
+                            targets.clear();
+                            fileshare.setMirrorfsTargets(targets);
+                        }
+                    }
+                    modifiedFileshares.add(fileshare);
+                }
+            }
+            if (!modifiedFileshares.isEmpty()) {
+                _dbClient.updateObject(modifiedFileshares);
+            }
+        }
+    }
+
     /**
      * 
      * @param storage
@@ -4477,6 +4527,8 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                 return;
 
             } else if (result.isCommandSuccess()) {
+                // decouple the replication relation for the policy!!
+                resetReplicationFileSystemsRelation(filePolicy, policyRes);
                 filePolicy.removePolicyStorageResources(policyRes.getId());
                 _dbClient.markForDeletion(policyRes);
                 _dbClient.updateObject(filePolicy);
@@ -4692,6 +4744,8 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
         FileShare fileShare = _dbClient.queryObject(FileShare.class, sourceFSURI);
         TaskCompleter completer = null;
         BiosCommandResult result = new BiosCommandResult();
+        WorkflowStepCompleter.stepExecuting(opId);
+        _log.info("file replication operation {} started for file systerm {}", opType, fileShare.getName());
         try {
             if ("pause".equalsIgnoreCase(opType)) {
                 completer = new MirrorFilePauseTaskCompleter(FileShare.class, sourceFSURI, opId);
@@ -4708,8 +4762,13 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             } else if ("refresh".equalsIgnoreCase(opType)) {
                 completer = new MirrorFileRefreshTaskCompleter(FileShare.class, sourceFSURI, opId);
                 result = getDevice(system.getSystemType()).doRefreshMirrorLink(system, fileShare);
+
+            } else if ("resync".equalsIgnoreCase(opType)) {
+                completer = new MirrorFileResyncTaskCompleter(FileShare.class, sourceFSURI, opId);
+                result = getDevice(system.getSystemType()).doResyncLink(system, fileShare, completer);
             }
             if (result.getCommandSuccess()) {
+                _log.info("file replication operation {} finished successfully for file systerm {}", opType, fileShare.getName());
                 completer.ready(_dbClient);
             } else if (result.getCommandPending()) {
                 completer.statusPending(_dbClient, result.getMessage());
@@ -4719,6 +4778,8 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
         } catch (Exception e) {
             _log.error("unable to perform mirror operation {} on file system {} ", opType, sourceFSURI, e);
             updateTaskStatus(opId, fileShare, e);
+            ServiceError error = DeviceControllerException.errors.jobFailed(e);
+            WorkflowStepCompleter.stepFailed(opId, error);
         }
     }
 
@@ -4755,4 +4816,52 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
         }
     }
 
+    @Override
+    public void checkFilePolicyPathHasResourceLabel(URI storage, URI filePolicyURI, URI nasURI, URI vpoolURI, URI projectURI, String opId) {
+
+        try {
+            WorkflowStepCompleter.stepExecuting(opId);
+            StorageSystem system = _dbClient.queryObject(StorageSystem.class, storage);
+
+            FileDeviceInputOutput args = new FileDeviceInputOutput();
+            FilePolicy filePolicy = _dbClient.queryObject(FilePolicy.class, filePolicyURI);
+            args.setFileProtectionPolicy(filePolicy);
+
+            if (vpoolURI != null) {
+                VirtualPool vpool = _dbClient.queryObject(VirtualPool.class, vpoolURI);
+                args.setVPool(vpool);
+            }
+            if (projectURI != null) {
+                Project project = _dbClient.queryObject(Project.class, projectURI);
+                TenantOrg tenant = _dbClient.queryObject(TenantOrg.class, project.getTenantOrg());
+                args.setProject(project);
+                args.setTenantOrg(tenant);
+            }
+
+            if (nasURI != null) {
+                if (URIUtil.isType(nasURI, VirtualNAS.class)) {
+                    VirtualNAS vNAS = _dbClient.queryObject(VirtualNAS.class, nasURI);
+                    args.setvNAS(vNAS);
+                }
+            }
+
+            BiosCommandResult result = getDevice(system.getSystemType()).checkFilePolicyPathHasResourceLabel(system, args);
+
+            if (result.getCommandPending()) {
+                return;
+            }
+            if (!result.isCommandSuccess() && !result.getCommandPending()) {
+                WorkflowStepCompleter.stepFailed(opId, result.getServiceCoded());
+            }
+            if (result.isCommandSuccess()) {
+                WorkflowStepCompleter.stepSucceded(opId);
+            }
+
+        } catch (Exception e) {
+            ServiceError error = DeviceControllerException.errors.jobFailed(e);
+            _log.error("Error occured while checking policy path has resorce label.", e);
+            WorkflowStepCompleter.stepFailed(opId, error);
+        }
+
+    }
 }

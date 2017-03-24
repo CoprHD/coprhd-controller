@@ -166,10 +166,8 @@ ext {
 
     ]
     guava = [
-        "com.google.guava:guava:15.0",
-    ]
-    reflections = [
-        "org.reflections:reflections:0.9.10",
+        "com.google.guava:guava:16.0",
+
     ]
     jersey = [
         "asm:asm:3.1",

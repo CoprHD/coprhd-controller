@@ -11,10 +11,18 @@ import static com.google.common.collect.Lists.newArrayList;
 import java.net.URI;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import javax.cim.CIMInstance;
 import javax.cim.CIMObjectPath;
+import javax.cim.CIMProperty;
+import javax.wbem.CloseableIterator;
+import javax.wbem.WBEMException;
+import javax.wbem.client.WBEMClient;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -26,8 +34,11 @@ import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringMap;
+import com.emc.storageos.volumecontroller.impl.smis.CIMPropertyFactory;
 import com.emc.storageos.volumecontroller.impl.smis.SmisConstants;
 import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
+import com.google.common.base.Joiner;
+import com.google.common.collect.Sets;
 
 /**
  * Sub-class for {@link AbstractMultipleVmaxMaskValidator} in order to validate that a given
@@ -66,10 +77,11 @@ class MultipleVmaxMaskForInitiatorsValidator extends AbstractMultipleVmaxMaskVal
      * @param mask      The export mask in the ViPR request
      * @param assocMask An export mask found to be associated with {@code mask}
      * @return          true if validation passes, false otherwise.
+     * @throws WBEMException 
      * @throws IllegalArgumentException if {@code mask} and {@code assocMask} are equal
      */
     @Override
-    protected boolean validate(Initiator initiator, CIMInstance mask, CIMInstance assocMask) {
+    protected boolean validate(Initiator initiator, CIMInstance mask, CIMInstance assocMask) throws WBEMException {
         if (mask.equals(assocMask)) {
             throw new IllegalArgumentException("Mask instance parameters must not be equal");
         }
@@ -82,12 +94,56 @@ class MultipleVmaxMaskForInitiatorsValidator extends AbstractMultipleVmaxMaskVal
         ExportMask exportMask = ExportMaskUtils.getExportMaskByName(getDbClient(), storage.getId(), assocName);
 
         // Associated mask is under ViPR management
-        if (exportMask == null) {
+        if (exportMask == null || hasExistingVolumes(getVolumesFromLunMaskingInstance(assocMask),exportMask)) {
             logFailure("associated mask is not under ViPR management");
             return false;
         }
 
         return true;
+    }
+    
+    private boolean hasExistingVolumes(Set<String> volumesFromLunMaskingInstance, ExportMask exportMask) {
+        // TODO Auto-generated method stub
+        for(String volumeWWN : volumesFromLunMaskingInstance) {
+            if(!exportMask.hasUserAddedVolume(volumeWWN)) {
+                log.info("Mask {} has existing volumes", exportMask.getMaskName());
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Get Volumes from the Masking view.
+     * @param client
+     * @param instance
+     * @return
+     * @throws WBEMException
+     */
+    public Set<String> getVolumesFromLunMaskingInstance(CIMInstance instance) throws WBEMException {
+        Set<String> wwnList = new HashSet<String>();
+        CloseableIterator<CIMInstance> iterator = null;
+        
+        try {
+            log.info(String.format("getVolumesFromLunMaskingInstance(%s)", instance.getObjectPath().toString()));
+            iterator = getHelper().getAssociatorInstances(storage, instance.getObjectPath(), null, SmisConstants.CIM_STORAGE_VOLUME, null, null,
+                    SmisConstants.PS_EMCWWN);
+            while (iterator.hasNext()) {
+                CIMInstance cimInstance = iterator.next();
+                String wwn = CIMPropertyFactory.getPropertyValue(cimInstance, SmisConstants.CP_WWN_NAME);
+                wwnList.add(wwn);
+            }
+            log.info(String.format("getVolumesFromLunMaskingInstance(%s)", instance.getObjectPath().toString()));
+        } catch (WBEMException we) {
+            log.error("Caught an error will attempting to get volume list from " + "masking instance", we);
+            throw we;
+        } finally {
+            if (null != iterator) {
+                iterator.close();
+            }
+        }
+        return wwnList;
+        
     }
 
     @Override

@@ -68,7 +68,9 @@ import com.emc.sa.service.vipr.file.tasks.UpdateFileSnapshotExport;
 import com.emc.sa.service.vipr.file.tasks.UpdateFileSystemExport;
 import com.emc.sa.util.DiskSizeConversionUtils;
 import com.emc.storageos.api.service.impl.resource.FileService.FileTechnologyType;
+import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.FileShare.MirrorStatus;
+import com.emc.storageos.model.VirtualArrayRelatedResourceRep;
 import com.emc.storageos.model.file.ExportRule;
 import com.emc.storageos.model.file.ExportRules;
 import com.emc.storageos.model.file.FileShareExportUpdateParams;
@@ -158,6 +160,7 @@ public class FileStorageUtils {
     }
 
     public static void deleteFileSystem(URI fileSystemId, FileControllerConstants.DeleteTypeEnum fileDeletionType) {
+
         if (FileControllerConstants.DeleteTypeEnum.FULL.equals(fileDeletionType)) {
             // Remove snapshots for the volume
             for (FileSnapshotRestRep snapshot : getFileSnapshots(fileSystemId)) {
@@ -178,8 +181,37 @@ public class FileStorageUtils {
             for (FileSystemExportParam export : getNfsExports(fileSystemId)) {
                 deactivateExport(fileSystemId, export);
             }
-        }
 
+            // Get the list of mirror file systems before dissociate
+            List<URI> mirrorFilesystems = getMirrorFileSystems(fileSystemId);
+
+            // Dissociate File Protection Policies
+            for (URI policy : getFileProtectionPolicies(fileSystemId)) {
+                dissociateFilePolicy(fileSystemId, policy);
+            }
+
+            // Delete the mirror file system
+            for (URI mirrorFS : mirrorFilesystems) {
+
+                // Deactivate CIFS Shares
+                for (SmbShareResponse share : getCifsShares(mirrorFS)) {
+                    deactivateCifsShare(mirrorFS, share.getShareName());
+                }
+
+                // Delete all export rules for filesystem and all sub-directories
+                if (!getFileSystemExportRules(mirrorFS, true, null).isEmpty()) {
+                    deactivateFileSystemExport(mirrorFS, true, null, true);
+                }
+
+                // Deactivate NFS Exports
+                for (FileSystemExportParam export : getNfsExports(mirrorFS)) {
+                    deactivateExport(mirrorFS, export);
+                }
+
+                // Remove the mirror FileSystem
+                deactivateFileSystem(mirrorFS, FileControllerConstants.DeleteTypeEnum.FULL);
+            }
+        }
         // Remove the FileSystem
         deactivateFileSystem(fileSystemId, fileDeletionType);
     }
@@ -412,8 +444,8 @@ public class FileStorageUtils {
         addAffectedResources(tasks);
     }
 
-    public static void changeFileVirtualPool(URI fileId, URI targetVirtualPool) {
-        Task<FileShareRestRep> task = execute(new ChangeFileVirtualPool(fileId, targetVirtualPool));
+    public static void changeFileVirtualPool(URI fileId, URI targetVirtualPool, URI filePolicy, URI targetVirtualArray) {
+        Task<FileShareRestRep> task = execute(new ChangeFileVirtualPool(fileId, targetVirtualPool, filePolicy, targetVirtualArray));
         addAffectedResource(task);
     }
 
@@ -638,6 +670,30 @@ public class FileStorageUtils {
         }
 
         return names;
+    }
+
+    public static List<URI> getFileProtectionPolicies(URI fileSytem) {
+        List<URI> policyURI = new ArrayList<>();
+        FileShareRestRep resp = getFileSystem(fileSytem);
+        if (resp.getFilePolicies() != null && !resp.getFilePolicies().isEmpty()) {
+            Set<String> policySet = resp.getFilePolicies();
+            for (String policy : policySet) {
+                policyURI.add(URIUtil.uri(policy));
+            }
+        }
+        return policyURI;
+    }
+
+    public static List<URI> getMirrorFileSystems(URI fileSystem) {
+        FileShareRestRep fileShare = getFileSystem(fileSystem);
+        List<URI> targetFS = new ArrayList<>();
+        if (fileShare.getProtection() != null && fileShare.getProtection().getTargetFileSystems() != null) {
+            List<VirtualArrayRelatedResourceRep> responses = fileShare.getProtection().getTargetFileSystems();
+            for (VirtualArrayRelatedResourceRep resp : responses) {
+                targetFS.add(resp.getId());
+            }
+        }
+        return targetFS;
     }
 
     public static FileSystemACLs[] clearEmptyFileACLs(FileSystemACLs[] fileACLs) {

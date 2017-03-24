@@ -1182,7 +1182,7 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
         Boolean isXtremIO = StorageSystem.Type.xtremio.toString().equals(system.getSystemType());
         Boolean isVplexXtremIO = StorageSystem.Type.vplex.toString().equals(system.getSystemType()) 
         		&& VPlexUtil.isXtremIOBackend(reqVolume, _dbClient);
-        if(readOnly && !(isXtremIO || isVplexXtremIO)) {
+        if (readOnly && !(isXtremIO || isVplexXtremIO)) {
         	throw APIException.badRequests.cannotCreateReadOnlySnapshotForNonXIOVolumes();
         }
         // We should validate this for 4.x provider as it doesn't support snaps for SRDF meta volumes.

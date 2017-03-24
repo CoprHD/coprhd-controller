@@ -3278,6 +3278,9 @@ public interface BadRequestExceptions {
     public BadRequestException numberNotAllowed();
     
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException pathAdjustmentOnNonDiscoverableHostsWithoutSuspend(final String hosts);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException externallyAddedVolumes(final String exportMask, final String volumes);
     
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)

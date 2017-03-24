@@ -47,48 +47,34 @@ public final class HostToComputeElementMatcher {
     private HostToComputeElementMatcher(){}
 
     public static synchronized void matchHostToComputeElements(DbClient _dbClient, URI hostId) {
-        dbClient = _dbClient;                              // set our client
-        allHostsLoaded = false;
-
         Collection<URI> hostIds = Arrays.asList(hostId);  // single host
-        Collection<URI> computeElementIds = dbClient.queryByType(ComputeElement.class, true); // all active
-        Collection<URI> serviceProfileIds = dbClient.queryByType(UCSServiceProfile.class, true); // all active
-        matchHostsToComputeElements(dbClient,hostIds,computeElementIds,serviceProfileIds);
+        matchHosts(_dbClient,hostIds);
     }
 
     public static synchronized void matchHostsToComputeElements(DbClient _dbClient, Collection<URI> hostIds) {
-        dbClient = _dbClient;                              // set our client
-        allHostsLoaded = false;
-
-        Collection<URI> computeElementIds = dbClient.queryByType(ComputeElement.class, true); // all active
-        Collection<URI> serviceProfileIds = dbClient.queryByType(UCSServiceProfile.class, true); // all active
-        matchHostsToComputeElements(dbClient,hostIds,computeElementIds,serviceProfileIds);
+        matchHosts(_dbClient,hostIds);
     }
 
-    public static synchronized void matchUcsComputeElements(DbClient _dbClient, URI computeSystemId) {
-        dbClient = _dbClient;                              // set our client
+    public static synchronized void matchAllHostsToComputeElements(DbClient _dbClient) {
+        matchHosts(_dbClient,null);
+    }
 
-        Collection<URI> hostIds = dbClient.queryByType(Host.class, true); // all active hosts
-        allHostsLoaded = true;
+    private static void matchHosts(DbClient _dbClient,Collection<URI> hostIds) {
 
-        URIQueryResultList computeElementIds = new URIQueryResultList(); // CEs for this UCS
-        dbClient.queryByConstraint(ContainmentConstraint.Factory
-                .getComputeSystemComputeElemetsConstraint(computeSystemId), computeElementIds);
-
-        URIQueryResultList serviceProfileIds = new URIQueryResultList(); // SPs for this UCS
-        dbClient.queryByConstraint(ContainmentConstraint.Factory.
-                getComputeSystemServiceProfilesConstraint(computeSystemId), serviceProfileIds);
-
-         matchHostsToComputeElements(dbClient,hostIds,computeElementIds,serviceProfileIds);
-    }    
-
-    private static void matchHostsToComputeElements(DbClient _dbClient,Collection<URI> hostIds,
-            Collection<URI> computeElementIds,Collection<URI> serviceProfileIds) {
-
+        dbClient = _dbClient;
         failureMessages = new StringBuffer();
+        allHostsLoaded = false;
+
+        if(hostIds == null) {
+            hostIds = dbClient.queryByType(Host.class, true); // all active hosts
+            allHostsLoaded = true;
+        }
+
+        Collection<URI> computeElementIds = dbClient.queryByType(ComputeElement.class, true);    // all active
+        Collection<URI> serviceProfileIds = dbClient.queryByType(UCSServiceProfile.class, true); // all active
 
         load(hostIds,computeElementIds,serviceProfileIds); // load hosts, computeElements &SPs
-        removeDuplicateUuids();                             // detect and remove CEs & SPs with duplicate UUIDs
+        removeDuplicateUuids();                            // detect and remove CEs & SPs with duplicate UUIDs
         matchHostsToBladesAndSPs();                        // find hosts & blades whose UUIDs match
         catchDuplicateMatches();                           // validate matches (check for duplicates)
         updateDb();                                        // persist changed Hosts & ServiceProfiles
@@ -220,8 +206,8 @@ public final class HostToComputeElementMatcher {
                             info(computeElementMap.get(host.getComputeElement()));
                     failureMessages.append(msg);
                     _log.warn(msg);
-                    clearHostAssociations(host);
                     clearHostAssociations(hostMap.get(ceToHostMap.get(host.getComputeElement())));
+                    clearHostAssociations(host);
                 }
             }
 
@@ -235,8 +221,8 @@ public final class HostToComputeElementMatcher {
                             info(serviceProfileMap.get(host.getServiceProfile()));
                     failureMessages.append(msg);
                     _log.warn(msg);
-                    clearHostAssociations(host);
                     clearHostAssociations(hostMap.get(spToHostMap.get(host.getServiceProfile())));
+                    clearHostAssociations(host);
                 }
             }
         }

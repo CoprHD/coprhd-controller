@@ -153,6 +153,7 @@ public class FileProtectionPolicies extends ViprResourceController {
             AssignPolicyForm assignPolicy = new AssignPolicyForm().form(filePolicyRestRep);
             addRenderApplyPolicysAt();
             addProjectArgs(filePolicyRestRep);
+            addVpoolArgs(filePolicyRestRep);
             render(assignPolicy);
 
         } else {
@@ -375,6 +376,9 @@ public class FileProtectionPolicies extends ViprResourceController {
         renderArgs.put("projectOptions", getFileProjectOptions(uri(Models.currentAdminTenant())));
     }
 
+    private static void addVpoolArgs(FilePolicyRestRep policy) {
+        renderArgs.put("vPoolOptions", getFileVirtualPoolsOptions(policy));
+    }
 
     private static void addAssignedProjectArgs(FilePolicyRestRep policy) {
         renderArgs.put("projectVpoolOptions", getVPoolForAssignedProjectOptions(policy));
@@ -961,6 +965,10 @@ public class FileProtectionPolicies extends ViprResourceController {
 
             if (assignPolicy.vpool != null) {
                 vPools.add(assignPolicy.vpool);
+            }
+            if (FilePolicyType.file_snapshot.name().equalsIgnoreCase(existingPolicy.getType()) && assignPolicy.virtualPools != null) {
+
+                vPools.addAll(assignPolicy.virtualPools);
             }
 
             Set<String> add = Sets.newHashSet(CollectionUtils.subtract(vPools, existingvPools));

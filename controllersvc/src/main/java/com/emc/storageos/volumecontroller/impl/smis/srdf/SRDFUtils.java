@@ -205,7 +205,7 @@ public class SRDFUtils implements SmisConstants {
 
     public Collection<CIMObjectPath> getStorageSynchronizationsInRemoteGroup(StorageSystem provider, Volume targetVolume) {
         StorageSystem targetSystem = dbClient.queryObject(StorageSystem.class, targetVolume.getStorageController());
-        CIMObjectPath objectPath = cimPath.getBlockObjectPath(targetSystem, targetVolume);
+        CIMObjectPath objectPath = cimPath.getBlockObjectPath(provider, targetSystem, targetVolume);
         RemoteDirectorGroup rdfGrp = dbClient.queryObject(RemoteDirectorGroup.class, targetVolume.getSrdfGroup());
         CIMObjectPath remoteGroupPath = getRemoteGroupPath(provider, objectPath);
         List<CIMObjectPath> volumePathsInRemoteGroup = getVolumePathsInRemoteGroup(provider, remoteGroupPath);

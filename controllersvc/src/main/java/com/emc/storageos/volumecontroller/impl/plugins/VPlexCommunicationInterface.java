@@ -187,6 +187,9 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
             VPlexApiClient client = getVPlexAPIClient(accessProfile);
             s_logger.debug("Got handle to VPlex API client");
 
+            // clear cached discovery data in the VPlexApiClient
+            client.clearCaches();
+
             // Verify the connectivity to the VPLEX management server.
             verifyConnectivity(client, mgmntServer);
 
@@ -1917,6 +1920,10 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
             VPlexApiClient client = getVPlexAPIClient(accessProfile);
             s_logger.debug("Got handle to VPlex API client");
 
+            // clear cached discovery data in the VPlexApiClient
+            client.clearCaches();
+            client.primeCaches();
+
             // The version for the storage system is the version of its active provider
             // and since we are discovering it, the provider was compatible, so the
             // VPLEX must also be compatible.
@@ -2013,10 +2020,6 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
             }
 
             StoragePortAssociationHelper.runUpdatePortAssociationsProcess(allPorts, null, _dbClient, _coordinator, null);
-
-            // clear cached discovery data in the VPlexApiClient
-            client.clearCaches();
-            client.primeCaches();
 
             // discovery succeeds
             detailedStatusMessage = String.format("Discovery completed successfully for Storage System: %s",
@@ -2523,6 +2526,7 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
         for (VPlexClusterInfo clusterInfo : clusterInfoList) {
             String assemblyId = clusterInfo.getTopLevelAssembly();
             if (null == assemblyId || VPlexApiConstants.NULL_ATT_VAL.equals(assemblyId) || assemblyId.isEmpty()) {
+                client.clearCaches();
                 throw VPlexCollectionException.exceptions
                         .failedScanningManagedSystemsNullAssemblyId(
                                 storageProvider.getIPAddress(), clusterInfo.getName());

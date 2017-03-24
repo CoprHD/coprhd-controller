@@ -1794,9 +1794,9 @@ public class NetworkDeviceController implements NetworkController {
             return;
         }
         for (NetworkFCZoneInfo zone : zones) {
-            _log.info(String.format("zone %s endpoints %s vol %s last %s ref %s existing %s",
+            _log.info(String.format("zone %s endpoints %s vol %s last %s ref %s existing %s canBeRolledBack %s",
                     zone.getZoneName(), zone.getEndPoints(), zone.getVolumeId(),
-                    zone.isLastReference(), zone.getFcZoneReferenceId(), zone.isExistingZone()));
+                    zone.isLastReference(), zone.getFcZoneReferenceId(), zone.isExistingZone(), zone.canBeRolledBack()));
         }
     }
 

@@ -64,6 +64,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMap.Builder;
 import com.google.common.collect.Sets;
+import org.apache.commons.lang.StringUtils;
 
 /**
  * Helper class to access primitives and resources that are stored in the
@@ -343,7 +344,7 @@ public final class CustomServicesDBHelper {
             final Class<? extends CustomServicesDBResource> clazz, final ModelClient client,
             final String columnName,
             final String filterByReferenceId) {
-        if (null == filterByReferenceId) {
+        if (StringUtils.isBlank(filterByReferenceId)) {
             return client.customServicesPrimitiveResources().list(clazz);
         } else {
             return client.customServicesPrimitiveResources().listAllResourceByRefId(clazz,
@@ -600,7 +601,7 @@ public final class CustomServicesDBHelper {
     }
 
     /**
-     * Given the name and bytes of a resource save the database instance
+     * Given the name, attributes, parentId and bytes of a resource save the database instance
      *
      * @param type The class type of the resource
      * @param dbModel The database column family of the resource
@@ -608,6 +609,7 @@ public final class CustomServicesDBHelper {
      * @param name The name of the new resource
      * @param stream The bytes of the resource
      * @param attributes The attributes of the resource
+     * @param parentId The parentId of the resource
      * @return The java object instance of this resource
      */
     public static <T extends CustomServicesDBResourceType<?>> T createResource(

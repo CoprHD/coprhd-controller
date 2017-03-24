@@ -17,9 +17,9 @@
 package com.emc.sa.catalog.primitives;
 
 import java.net.URI;
-import java.util.Collections;
 import java.util.List;
 
+import org.apache.commons.lang.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.emc.sa.catalog.CustomServicesPrimitiveManager;
@@ -30,6 +30,7 @@ import com.emc.storageos.db.client.model.StringSetMap;
 import com.emc.storageos.db.client.model.uimodels.CustomServicesDBScriptResource;
 import com.emc.storageos.primitives.db.script.CustomServicesScriptPrimitive;
 import com.emc.storageos.primitives.db.script.CustomServicesScriptResource;
+import com.emc.storageos.svcs.errorhandling.resources.APIException;
 
 /**
  * Data access object for script primitive resources
@@ -77,7 +78,12 @@ public class CustomServicesScriptResourceDAO implements CustomServicesResourceDA
 
     @Override
     public List<NamedElement> listResources(final String parentId) {
-        return client.customServicesPrimitiveResources().list(CustomServicesDBScriptResource.class);
+        // Parent does not exist for Script Resource
+        if (StringUtils.isNotBlank(parentId)) {
+            throw APIException.badRequests.invalidField(CustomServicesDBScriptResource.PARENTID, parentId);
+        }
+        return CustomServicesDBHelper.listResources(CustomServicesDBScriptResource.class, client,
+                CustomServicesDBScriptResource.PARENTID, parentId);
     }
 
     @Override

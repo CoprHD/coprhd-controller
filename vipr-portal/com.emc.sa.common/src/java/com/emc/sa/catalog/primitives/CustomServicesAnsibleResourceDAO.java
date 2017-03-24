@@ -22,9 +22,11 @@ import java.net.URI;
 import java.nio.file.FileSystems;
 import java.util.List;
 
+import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
 import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
 import org.apache.commons.compress.compressors.gzip.GzipCompressorInputStream;
+import org.apache.commons.lang.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.emc.sa.catalog.CustomServicesPrimitiveManager;
@@ -94,7 +96,12 @@ public class CustomServicesAnsibleResourceDAO implements CustomServicesResourceD
 
     @Override
     public List<NamedElement> listResources(final String parentId) {
-        return client.customServicesPrimitiveResources().list(CustomServicesDBAnsibleResource.class);
+        //Parent does not exist for Ansible Resource
+        if (StringUtils.isNotBlank(parentId)) {
+            throw APIException.badRequests.invalidField(CustomServicesDBAnsibleResource.PARENTID, parentId);
+        }
+        return CustomServicesDBHelper.listResources(CustomServicesDBAnsibleResource.class, client,
+                CustomServicesDBAnsibleResource.PARENTID, parentId);
     }
 
     @Override

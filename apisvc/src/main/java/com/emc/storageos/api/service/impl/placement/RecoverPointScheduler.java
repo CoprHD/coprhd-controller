@@ -79,6 +79,8 @@ public class RecoverPointScheduler implements Scheduler {
 
     public static final Logger _log = LoggerFactory.getLogger(RecoverPointScheduler.class);
     private static final String SCHEDULER_NAME = "rp";
+    private static final int MAX_THROTTLE_ATTEMPTS = 10;
+    private static final int WAIT_BETWEEN_CONCURRENT_SCHEDULER_REQUESTS = 5;
 
     @Autowired
     protected PermissionsHelper _permissionsHelper = null;
@@ -207,7 +209,6 @@ public class RecoverPointScheduler implements Scheduler {
         public void setHaVpool(VirtualPool haVpool) {
             this.haVpool = haVpool;
         }
-
     }
 
     /**
@@ -263,6 +264,9 @@ public class RecoverPointScheduler implements Scheduler {
     public List<Recommendation> getRecommendationsForResources(VirtualArray varray, Project project, VirtualPool vpool,
             VirtualPoolCapabilityValuesWrapper capabilities) {
 
+        // Check to see if we need to throttle concurrent requests for the same RP CG
+        throttleConncurrentRequests(vpool, capabilities.getBlockConsistencyGroup());
+        
         Volume changeVpoolVolume = null;
         if (capabilities.getChangeVpoolVolume() != null) {            
             changeVpoolVolume = dbClient.queryObject(Volume.class, URI.create(capabilities.getChangeVpoolVolume()));
@@ -567,7 +571,8 @@ public class RecoverPointScheduler implements Scheduler {
                     rpProtectionRecommendation.setSourceJournalRecommendation(sourceJournalRecommendation);
                     
                     // If we made it this far we know that our source virtual pool and associated source virtual array
-                    // has a storage pool with enough capacity for the requested resources and which is accessible to an rp cluster site
+                    // has a storage pool with enough capacity for the requested resources and which is accessible to an rp 
+                    // cluster site
                     rpProtectionRecommendation.setPlacementStepsCompleted(PlacementProgress.IDENTIFIED_SOLUTION_FOR_SOURCE);
                     if (placementStatus.isBestSolutionToDate(rpProtectionRecommendation)) {
                         placementStatus.setLatestInvalidRecommendation(rpProtectionRecommendation);
@@ -2919,8 +2924,8 @@ public class RecoverPointScheduler implements Scheduler {
 
     /**
      * Returns a list of recommendations for storage pools that satisfy the request.
-     * The return list is sorted in increasing order by the number of resources of size X that the pool can satisy,
-     * where X is the size of each resource in this request.
+     * The return list is sorted in increasing order by the number of resources of size X 
+     * that the pool can satisfy, where X is the size of each resource in this request.
      *
      * @param rpProtectionRecommendation - RP protection recommendation
      * @param varray - Virtual Array
@@ -4463,5 +4468,116 @@ public class RecoverPointScheduler implements Scheduler {
     @Override
     public boolean handlesVpool(VirtualPool vPool, VpoolUse vPoolUse) {
         return (VirtualPool.vPoolSpecifiesProtection(vPool));
+    }
+    
+    /**
+     * This method performs a soft throttle on concurrent incoming RP requests for the same CG 
+     * to allow for proper RP journal provisioning. 
+     * 
+     * Since concurrent requests do not have any context to which request should create the journals
+     * poor decisions can be made by the RP scheduler. Using a flag on the CG to indicate journal 
+     * provisioning is occurring allows time between concurrent requests to ensure correct journal 
+     * decisions will be made.
+     * 
+     * There are two cases where concurrent requests need to wait:
+     * 1. If the CG has not yet been created. Allowing the first request to pass through
+     * and forcing the rest of the concurrent requests to wait briefly is sufficient.
+     * 
+     * 2. If the vpool specifies a journal multiplier policy. Meaning that the user wants
+     * the RP journals to be provisioned dynamically as requests are processed. In this
+     * case all requests will need to be handled sequentially to properly calculate if
+     * new journals are required as each request is provisioned.
+     * 
+     * @param vpool RP vpool for the provisioning request
+     * @param cgURI RP CG URI for the provisioning request
+     */
+    private void throttleConncurrentRequests(VirtualPool vpool, URI cgURI) {
+        // Find the CG used in the request
+        BlockConsistencyGroup cg = dbClient.queryObject(BlockConsistencyGroup.class, cgURI);
+                   
+        // Check to see if the vpool is using a journal multiplier policy
+        boolean vpoolUsesJournalMultiplier = (vpool.getJournalSize() != null 
+                && (vpool.getJournalSize().endsWith("x") || vpool.getJournalSize().endsWith("X")));
+        
+        // Only throttle requests on new RP CGs or if using a journal multiplier policy
+        if (!cg.created() || vpoolUsesJournalMultiplier) { 
+            if (!cg.created()) {
+                _log.info(String.format("CG [%s] has not been created yet. RP requests may need to wait "
+                        + "briefly if concurrent requests detected.",
+                        cg.getLabel()));
+            } else {
+                _log.info(String.format("Vpool [%s] is using a RP journal multiplier policy. "
+                        + "RP requests may need to be handled sequentially if concurrent requests detected.",
+                        vpool.getLabel()));
+            }
+            
+            // Check to see if the journal provisioning flag has been set on the CG. 
+            //
+            // When the flag is not "0" it indicates that RP journal scheduling/provisioning 
+            // is currently underway for this CG for another request.
+            //
+            // Any new requests coming in for the same CG may need to wait briefly.
+            Long journalProvisioningFlag = ((cg.getJournalProvisioning() != null) ? cg.getJournalProvisioning() : 0L);
+            
+            // If the value is > 0 then there must be another provisioning request occurring for this CG
+            if (journalProvisioningFlag != 0L) {
+                try {
+                    // If the journal policy is a multiplier we need to force ALL requests to go 
+                    // sequentially so that the journal provisioning can be calculated dynamically.
+                    //
+                    // Otherwise, we can allow one request to proceed right away and create the journals.
+                    // The rest of the concurrent requests will wait a short time and then they can 
+                    // all proceed in parallel.
+                    if (vpoolUsesJournalMultiplier) {                    
+                        int waitAttempt = 0;
+                        while (waitAttempt < MAX_THROTTLE_ATTEMPTS) {                      
+                            _log.info(String.format("Concurrent RP requests detected for CG [%s], sleeping for %s seconds. "
+                                    + "Each request will be handled sequentially.", 
+                                    cg.getLabel(), WAIT_BETWEEN_CONCURRENT_SCHEDULER_REQUESTS));
+                            Thread.sleep(WAIT_BETWEEN_CONCURRENT_SCHEDULER_REQUESTS * 1000);
+                            waitAttempt++;
+                            
+                            // Reload the CG to see if the flag has been updated
+                            cg = dbClient.queryObject(BlockConsistencyGroup.class, cgURI);
+                          
+                            // Check to see if the flag has changed since last we checked
+                            if (Long.compare(journalProvisioningFlag, cg.getJournalProvisioning()) == 0) {
+                                // Flag has not changed, let this request pass through and update
+                                // the flag to indicate this request is provisioning.
+                                cg.setJournalProvisioning(Thread.currentThread().getId());
+                                dbClient.updateObject(cg);
+                                break;
+                            } else {
+                                // Flag has changed, another request is underway, sleep again.                         
+                                _log.info("Another request is underway, sleep again.");
+                                // Update the flag with the latest value
+                                journalProvisioningFlag = cg.getJournalProvisioning();
+                                // Reset the wait attempts
+                                waitAttempt = 0;
+                            }
+                        }   
+                    } else {
+                        _log.info(String.format("Concurrent RP requests detected for CG [%s], sleeping for %s seconds "
+                                + "to allow one request to go through first.", 
+                                cg.getLabel(), WAIT_BETWEEN_CONCURRENT_SCHEDULER_REQUESTS));
+                        Thread.sleep(WAIT_BETWEEN_CONCURRENT_SCHEDULER_REQUESTS * 1000);
+                        
+                        // In this case, the flag can be safely cleared
+                        cg.setJournalProvisioning(0L);
+                        dbClient.updateObject(cg);
+                    }
+                } catch (InterruptedException e) {
+                    _log.error(e.getMessage());
+                }
+            } else {
+                // Use the current thread id as a an indicator that a provisioning 
+                // request is underway for this CG. This will force other
+                // concurrent requests to wait.
+                cg.setJournalProvisioning(Thread.currentThread().getId());
+                dbClient.updateObject(cg);
+            }
+            
+            _log.info("RP request proceeding.");            
+        }
     }
 }

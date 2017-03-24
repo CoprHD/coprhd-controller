@@ -86,6 +86,9 @@ public class BlockConsistencyGroup extends DataObject implements ProjectResource
      * is added to an application (applicable to VPLEX/RP only)
      */
     private Boolean arrayConsistency =  true;
+    
+    // BBB
+    private Long journalProvisioning = 0L;
 
     public static enum Types {
         /* RecoverPoint consistency group type. */
@@ -279,9 +282,9 @@ public class BlockConsistencyGroup extends DataObject implements ProjectResource
     /**
      * Returns true if the given cg name(replicationGroupName) has been created on the given storage array.
      * 
-     * @param replicationGroupName
-     * @param systemURI
-     * @return
+     * @param replicationGroupName Replication name to check on the storage system
+     * @param systemURI The ID of the storage system
+     * @return true if the CG is created on the storage system, false otherwise
      */
     public boolean created(String replicationGroupName, URI systemURI) {
         boolean status = false;
@@ -428,8 +431,8 @@ public class BlockConsistencyGroup extends DataObject implements ProjectResource
      * A BlockConsistencyGroup can only map to a single consistency group on a single
      * storage system so that's why we only return the first entry.
      * 
-     * @param storageSystemUri
-     * @return
+     * @param storageSystemUri Storage System URI to check CG name with 
+     * @return The CG name
      */
     public String fetchArrayCgName(URI storageSystemUri) {
         if (storageSystemUri == null) {
@@ -455,8 +458,8 @@ public class BlockConsistencyGroup extends DataObject implements ProjectResource
      * @return true if the CG name exists in the ViPR db
      */
     public boolean nameExistsForStorageSystem(URI storageSystemId, String cgName) {
-        return cgName != null ? cgName.equals(getCgNameOnStorageSystem(storageSystemId))
-                : false;
+        return (cgName != null ? cgName.equals(getCgNameOnStorageSystem(storageSystemId))
+                : false);
     }
 
     /**
@@ -491,4 +494,13 @@ public class BlockConsistencyGroup extends DataObject implements ProjectResource
 		setChanged("arrayConsistency");
 	}
 
+	@Name("journalProvisioning")
+    public Long getJournalProvisioning() {
+        return journalProvisioning;
+    }
+
+    public void setJournalProvisioning(Long journalProvisioning) {
+        this.journalProvisioning = journalProvisioning;
+        setChanged("journalProvisioning");
+    }
 }

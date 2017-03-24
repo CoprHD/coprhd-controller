@@ -30,6 +30,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.util.CollectionUtils;
 
 import com.emc.fapiclient.ws.FunctionalAPIActionFailedException_Exception;
 import com.emc.fapiclient.ws.FunctionalAPIInternalError_Exception;
@@ -277,6 +278,8 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
     protected final static String CONTROLLER_SVC = "controllersvc";
     protected final static String CONTROLLER_SVC_VER = "1";
     private static final Logger _log = LoggerFactory.getLogger(RPDeviceController.class);
+    private static final int MAX_ATTEMPTS_TO_WAIT_FOR_CG_CREATE = 10;
+    private static final int SECONDS_TO_WAIT_FOR_CG_CREATE = 30;
 
     // RP OP constants
     private static final String STOP = "stop";
@@ -1709,8 +1712,26 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
             rp = RPHelper.getRecoverPointClient(rpSystem);
 
-            // scan the rp sites for volume visibility
+            // Scan the rp sites for volume visibility
             rp.waitForVolumesToBeVisible(cgParams);
+            
+            //BBB
+            if (!CollectionUtils.isEmpty(cgParams.getCopies())) {            
+                _log.info("*** BBB sleeeeeeeeeeeeeeep 3mins...");              
+                    try {
+                        Thread.sleep(180 * 1000);
+                    } catch (InterruptedException e) {
+                        _log.error(e.getMessage());
+                    }
+            }
+            
+            
+            // Before we allow a lock on the CG we need to ensure that we wait
+            // for the RP CG to be created using a CGRequestParams that
+            // has the journals defined.
+            // 
+            // If the RP CG is already created there will be no need wait.
+            waitForCGToBeCreated(cgId, cgParams);
 
             // lock around create and delete operations on the same CG
             List<String> lockKeys = new ArrayList<String>();
@@ -1722,26 +1743,30 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                         String.format("Create or add volumes to RP consistency group id: %s", cgId.toString()));
             }
 
-            BlockConsistencyGroup cg = _dbClient.queryObject(BlockConsistencyGroup.class, cgId);
-
             RecoverPointCGResponse response = null;
             // The CG already exists if it contains volumes and is of type RP
             _log.info("Submitting RP Request: " + cgParams);
 
-            if (cg.nameExistsForStorageSystem(rpSystem.getId(), cgParams.getCgName()) && rp.doesCgExist(cgParams.getCgName())) {
+            BlockConsistencyGroup cg = _dbClient.queryObject(BlockConsistencyGroup.class, cgId);
+            boolean cgAlreadyExists = rpCGExists(cg, rp, cgParams.getCgName(), rpSystem.getId());
+            
+            if (cgAlreadyExists) {
                 // cg exists in both the ViPR db and on the RP system
-                _log.info("CG already exists, add replication set to existing RP CG.");
+                _log.info(String.format("RP CG [%s] already exists, adding replication set(s) to it...", cgParams.getCgName()));                
                 response = rp.addReplicationSetsToCG(cgParams, metropoint, attachAsClean);
             } else {
-                _log.info("CG does not already exist, creating new RP CG.");
+                _log.info(String.format("RP CG [%s] does not already exist, creating it now and adding replication set(s) to it...", cgParams.getCgName()));
                 response = rp.createCG(cgParams, metropoint, attachAsClean);
 
                 // "Turn-on" the consistency group
                 cg = _dbClient.queryObject(BlockConsistencyGroup.class, cgParams.getCgUri());
                 cg.addSystemConsistencyGroup(rpSystemId.toString(), cgParams.getCgName());
                 cg.addConsistencyGroupTypes(Types.RP.name());
-                _dbClient.updateObject(cg);
             }
+
+            // At this point, always clear the journal provisioning flag 
+            cg.setJournalProvisioning(0L);
+            _dbClient.updateObject(cg);
 
             setVolumeConsistencyGroup(volumeDescriptors, cgParams.getCgUri());
 
@@ -1807,7 +1832,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
         }
         return true;
     }
-
+    
     /**
      * Workflow step method for cg create rollback
      *
@@ -7305,8 +7330,76 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
     @Override
     public void portRebalance(URI storageSystem, URI exportGroup, URI varray, URI exportMask, Map<URI, List<URI>> adjustedpaths,
-            Map<URI, List<URI>> removedPaths, boolean isAdd, String token) throws Exception
-    {
+            Map<URI, List<URI>> removedPaths, boolean isAdd, String token) throws Exception {
         throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+    }
+    
+    /**
+     * If the RP CG hasn't been created yet and the current request does not have 
+     * the journal information then we need to wait.
+     * 
+     * Eventually we will timeout and allow the request to go through. If the RP CG
+     * still has not been created an exception will be thrown by RP and rollback
+     * will kick in.
+     * 
+     * @param cgId ID of the RP CG being used 
+     * @param cgParams The current request params
+     */
+    private void waitForCGToBeCreated(URI cgId, CGRequestParams cgParams) {
+        BlockConsistencyGroup cg = _dbClient.queryObject(BlockConsistencyGroup.class, cgId);
+        // If the CG has yet to be created and the CG request params does NOT contain any 
+        // journals, we need to wait. We can not create an RP CG without journals.
+        // 
+        // The assumption is that there are multiple create requests coming down for that CG 
+        // and at least one of those requests has the journals.
+        if (!cg.created() && CollectionUtils.isEmpty(cgParams.getCopies())) {            
+            // Get the names of the RSets to be added
+            StringBuffer rsetNames = new StringBuffer();
+            Iterator<CreateRSetParams> rsetIter = cgParams.getRsets().iterator();
+            while (rsetIter.hasNext()) {
+                CreateRSetParams rsetParam = rsetIter.next();
+                rsetNames.append(rsetParam.getName());
+                rsetNames.append(", ");
+            }
+            rsetNames.delete(rsetNames.length() - 2, rsetNames.length());
+            
+            // Now, let the waiting begin...
+            int waitingOnCGCreate = 0;
+            while (!cg.created() && (waitingOnCGCreate < MAX_ATTEMPTS_TO_WAIT_FOR_CG_CREATE)) {                      
+                _log.info(String.format("Waiting to create replication set(s) [%s] because RP CG [%s] has not been created yet, "
+                        + "sleeping for %s seconds.", 
+                        rsetNames.toString(), cgParams.getCgName(), SECONDS_TO_WAIT_FOR_CG_CREATE));                
+                try {
+                    Thread.sleep(SECONDS_TO_WAIT_FOR_CG_CREATE * 1000);
+                } catch (InterruptedException e) {
+                    _log.error(e.getMessage());
+                }
+                waitingOnCGCreate++;
+                
+                // Reload the CG to see if it has been updated
+                cg = _dbClient.queryObject(BlockConsistencyGroup.class, cgId);
+            }
+            if (waitingOnCGCreate >= MAX_ATTEMPTS_TO_WAIT_FOR_CG_CREATE) {
+                _log.warn(String.format("Maximum wait has been reached while waiting for RP CG [%s] to be created. "
+                        + "Releasing request to create replication set(s) [%s]. The request may potentially fail.", 
+                        cgParams.getCgName(), rsetNames.toString()));
+            } else {
+                _log.info(String.format("RP CG [%s] created. Releasing request to create replication set(s) [%s].", 
+                        cgParams.getCgName(), rsetNames.toString()));
+            }
+        }
+    }
+    
+    /**
+     * Convenience method to check if the RP CG exists on RP and in ViPR
+     * 
+     * @param cg The ViPR CG
+     * @param rp The RP Client reference
+     * @param cgName CG name from the CG params
+     * @param rpSystemId Protection system Id
+     * @return true if RP CG exists on RP and in ViPR, false otherwise 
+     */
+    private boolean rpCGExists(BlockConsistencyGroup cg, RecoverPointClient rp, String cgName, URI rpSystemId) {
+        return (cg.created() && cg.nameExistsForStorageSystem(rpSystemId, cgName) && rp.doesCgExist(cgName));
     }
 }

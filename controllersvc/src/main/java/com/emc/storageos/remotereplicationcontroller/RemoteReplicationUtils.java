@@ -2,14 +2,20 @@ package com.emc.storageos.remotereplicationcontroller;
 
 
 import static com.emc.storageos.db.client.util.CustomQueryUtility.queryActiveResourcesByRelation;
+import static com.emc.storageos.db.client.util.CustomQueryUtility.queryActiveResourcesUriByAltId;
 
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
+import com.emc.storageos.db.client.model.StorageSystem;
+import com.emc.storageos.db.client.model.remotereplication.RemoteReplicationSet;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.volumecontroller.impl.externaldevice.RemoteReplicationElement;
+import com.emc.storageos.volumecontroller.impl.plugins.ExternalDeviceDiscoveryUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -65,6 +71,32 @@ public class RemoteReplicationUtils {
         }
         return targetVirtualArray;
     }
+
+    /**
+     * Return RemoteReplicaionSet objects for a given storage system.
+     *
+     * @param storageSystem storage system instance
+     * @param dbClient  database client
+     * @return
+     */
+    public static List<RemoteReplicationSet> getRemoteReplicationSetsForStorageSystem(StorageSystem storageSystem, DbClient dbClient) {
+        String storageSystemType = storageSystem.getSystemType();
+        List<RemoteReplicationSet> systemSets = new ArrayList<>();
+
+        // get existing replication sets for the storage system type
+        List<URI> remoteReplicationSets =
+                queryActiveResourcesUriByAltId(dbClient, RemoteReplicationSet.class,
+                        "storageSystemType", storageSystemType);
+
+        for (URI setUri : remoteReplicationSets) {
+            RemoteReplicationSet systemSet = dbClient.queryObject(RemoteReplicationSet.class, setUri);
+            if(systemSet.getSystemToRolesMap().keySet().contains(storageSystem.getId().toString())) {
+                systemSets.add(systemSet);
+            }
+        }
+        return systemSets;
+    }
+
 
     public static List<RemoteReplicationPair> getRemoteReplicationPairsForSourceElement(URI sourceElementURI, DbClient dbClient) {
         _log.info("Called: getRemoteReplicationPairsForSourceElement() for storage element {}", sourceElementURI);

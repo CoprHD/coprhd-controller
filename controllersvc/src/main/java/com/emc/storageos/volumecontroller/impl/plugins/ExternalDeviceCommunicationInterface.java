@@ -21,9 +21,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
-import com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationMode;
 import org.apache.commons.lang3.StringUtils;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -79,7 +77,7 @@ public class ExternalDeviceCommunicationInterface extends
 
     private static final String NEW = "new";
     private static final String EXISTING = "existing";
-    private Logger _log = LoggerFactory.getLogger(ExternalDeviceCommunicationInterface.class);
+    private static Logger _log = LoggerFactory.getLogger(ExternalDeviceCommunicationInterface.class);
     private Map<String, AbstractStorageDriver> drivers;
     // Indicate if driver info has been fetched from db and merged into drivers member
     private boolean initialized = false;
@@ -557,8 +555,8 @@ public class ExternalDeviceCommunicationInterface extends
                 // discovery completed
                 if (!driverRRGroups.isEmpty()) {
                     List<com.emc.storageos.db.client.model.remotereplication.RemoteReplicationGroup> systemRRGroups =
-                            processDriverRRGroups(driverRRGroups, driverStorageSystem.getNativeId(), objectsToCreate, objectsToUpdate,
-                                    accessProfile.getSystemType());
+                            ExternalDeviceDiscoveryUtils.processDriverRRGroups(driverRRGroups, driverStorageSystem.getNativeId(), objectsToCreate, objectsToUpdate,
+                                    accessProfile.getSystemType(), _dbClient);
                 } else {
                     _log.warn("Storage system {} does not have RR groups.", driverStorageSystem.getNativeId());
                 }
@@ -1281,16 +1279,16 @@ public class ExternalDeviceCommunicationInterface extends
      */
     private void processDriverRemoteReplicationSets(List<RemoteReplicationSet> driverRRSets, String storageSystemType) {
 
-        // For each driver set create persistent set. If a set has groups, process groups from this set.
+        // For each driver set create/update persistent set.
         List<DataObject> objectsToCreate = new ArrayList<>();
         List<DataObject> objectsToUpdate = new ArrayList<>();
-        List<DataObject> notReacheableObjects = new ArrayList<>();
+        List<DataObject> notReachableObjects = new ArrayList<>();
 
         try {
             for (RemoteReplicationSet driverSet : driverRRSets) {
                 com.emc.storageos.db.client.model.remotereplication.RemoteReplicationSet systemRRSet = null;
                 try {
-                    systemRRSet = processDriverRRSet(driverSet, objectsToCreate, objectsToUpdate, storageSystemType);
+                    systemRRSet = ExternalDeviceDiscoveryUtils.processDriverRRSet(driverSet, objectsToCreate, objectsToUpdate, storageSystemType, _dbClient);
                 } catch (Exception e) {
                     _log.error("Failed to process replication set {} of type {}. Error: {}.",
                             driverSet.getNativeId(), storageSystemType, e.getMessage(), e);
@@ -1321,7 +1319,7 @@ public class ExternalDeviceCommunicationInterface extends
                     remoteReplicationSet.setReachable(false);
                     _log.warn("Existing replication set {}, id: {} was not discovered. Set to not reachable.", remoteReplicationSet.getNativeGuid(),
                             remoteReplicationSet.getId());
-                    notReacheableObjects.add(remoteReplicationSet);
+                    notReachableObjects.add(remoteReplicationSet);
                 }
             }
         } catch (Exception e) {
@@ -1333,309 +1331,7 @@ public class ExternalDeviceCommunicationInterface extends
             // update database with discovery results
             _dbClient.createObject(objectsToCreate);
             _dbClient.updateObject(objectsToUpdate);
-            _dbClient.updateObject(notReacheableObjects);
+            _dbClient.updateObject(notReachableObjects);
         }
-    }
-
-    /**
-     * Process remote replication set discovered by driver.
-     *
-     * @param driverSet  driver remote replication set
-     * @param objectsToCreate   new objects to create in database
-     * @param objectsToUpdate   existing objects to update in database
-     * @param storageSystemType storage type
-     * @return system remote replication set
-     */
-    private com.emc.storageos.db.client.model.remotereplication.RemoteReplicationSet
-             processDriverRRSet(RemoteReplicationSet driverSet,
-                                List<DataObject> objectsToCreate, List<DataObject> objectsToUpdate, String storageSystemType) {
-
-        // check if this replication set is already in database
-        String nativeGuid = NativeGUIDGenerator.generateRemoteReplicationSetNativeGuid(storageSystemType,
-                driverSet.getNativeId());
-        _log.info("Processing replication set {}.", nativeGuid);
-
-        com.emc.storageos.db.client.model.remotereplication.RemoteReplicationSet systemSet =
-                checkRemoteReplicationSetExistsInDB(nativeGuid);
-        if (systemSet == null) {
-            _log.info("Replication set {} does not exist in database, we will create a new system replication set for it.", nativeGuid);
-            systemSet = new com.emc.storageos.db.client.model.remotereplication.RemoteReplicationSet();
-            systemSet.setId(URIUtil.createId(com.emc.storageos.db.client.model.remotereplication.RemoteReplicationSet.class));
-            systemSet.setIsDriverManaged(true);
-            systemSet.setNativeGuid(nativeGuid);
-            systemSet.setStorageSystemType(storageSystemType);
-            systemSet.setNativeId(driverSet.getNativeId());
-            prepareSystemRemoteReplicationSet(driverSet, storageSystemType, systemSet);
-            objectsToCreate.add(systemSet);
-        } else {
-            // replication set already exists --- update with the latest discovery data
-            _log.info("Replication set {} already exists in database, we will update this set in db.", nativeGuid);
-            prepareSystemRemoteReplicationSet(driverSet, storageSystemType, systemSet);
-            objectsToUpdate.add(systemSet);
-        }
-        return systemSet;
-    }
-
-    /**
-     * Process remote replication groups of remote replication set.
-     * @param driverGroups groups to process
-     * @param objectsToCreate   new objects to create in database
-     * @param objectsToUpdate   existing objects to update in database
-     * @param storageSystemType storage type
-     * @return system remote replication group
-     */
-    private List<com.emc.storageos.db.client.model.remotereplication.RemoteReplicationGroup>
-               processDriverRRGroups(List<RemoteReplicationGroup> driverGroups, String systemNativeId,
-                                     List<DataObject> objectsToCreate, List<DataObject> objectsToUpdate,
-                                     String storageSystemType) {
-
-        List<com.emc.storageos.db.client.model.remotereplication.RemoteReplicationGroup> systemGroups =
-                new ArrayList<>();
-        if (driverGroups == null || driverGroups.isEmpty()) {
-            _log.info("No replication groups to process.");
-            return systemGroups;
-        }
-        _log.info("Processing replication groups for storage system {} .Number of groups: {} .", systemNativeId, driverGroups.size());
-        for (RemoteReplicationGroup driverGroup : driverGroups) {
-            try {
-                // check if this replication group is already in database
-                String nativeGuid = NativeGUIDGenerator.generateRemoteReplicationGroupNativeGuid(storageSystemType,
-                        driverGroup.getSourceSystemNativeId(), driverGroup.getNativeId());
-                _log.info("Processing replication group {} .", nativeGuid);
-
-                com.emc.storageos.db.client.model.remotereplication.RemoteReplicationGroup systemGroup =
-                        checkRemoteReplicationGroupExistsInDB(nativeGuid);
-                if (systemGroup == null) {
-                    _log.info("Replication group {} does not exist in database, we will create a new system group for it.", nativeGuid);
-                    systemGroup = new com.emc.storageos.db.client.model.remotereplication.RemoteReplicationGroup();
-                    systemGroup.setId(URIUtil.createId(com.emc.storageos.db.client.model.remotereplication.RemoteReplicationGroup.class));
-                    systemGroup.setIsDriverManaged(true);
-                    systemGroup.setNativeGuid(nativeGuid);
-                    systemGroup.setNativeId(driverGroup.getNativeId());
-                    prepareSystemRemoteReplicationGroup(driverGroup, storageSystemType, systemGroup);
-                    objectsToCreate.add(systemGroup);
-                } else {
-                   // replication group already exists --- update with the latest discovery data
-                    _log.info("Replication group {} already exists in database, we will update this group in db.", nativeGuid);
-                    prepareSystemRemoteReplicationGroup(driverGroup, storageSystemType, systemGroup);
-                    objectsToUpdate.add(systemGroup);
-                }
-                systemGroups.add(systemGroup);
-            } catch (Exception e) {
-                _log.error(String.format("Failed to process replication group %s, for system %s ." +
-                        " Error: %s .", driverGroup.getNativeId(), systemNativeId, e.getMessage()), e);
-            }
-        }
-        return systemGroups;
-
-    }
-
-    /**
-     * Check remote replication set exists in database.
-     * @param nativeGuid
-     * @return existing set or null
-     */
-    private com.emc.storageos.db.client.model.remotereplication.RemoteReplicationSet checkRemoteReplicationSetExistsInDB(String nativeGuid) {
-
-        com.emc.storageos.db.client.model.remotereplication.RemoteReplicationSet rrSet = null;
-        List<com.emc.storageos.db.client.model.remotereplication.RemoteReplicationSet> rrSets =
-                queryActiveResourcesByAltId(_dbClient, com.emc.storageos.db.client.model.remotereplication.RemoteReplicationSet.class,
-                        "nativeGuid", nativeGuid);
-
-        if (rrSets !=null && !rrSets.isEmpty()) {
-            rrSet = rrSets.get(0);
-        }
-        return rrSet;
-    }
-
-    /**
-     * Check remote replication group exist in database.
-     * @param nativeGuid
-     * @return existing group or null
-     */
-    private com.emc.storageos.db.client.model.remotereplication.RemoteReplicationGroup checkRemoteReplicationGroupExistsInDB(String nativeGuid) {
-        com.emc.storageos.db.client.model.remotereplication.RemoteReplicationGroup rrGroup = null;
-        List<com.emc.storageos.db.client.model.remotereplication.RemoteReplicationGroup> rrGroups =
-                queryActiveResourcesByAltId(_dbClient, com.emc.storageos.db.client.model.remotereplication.RemoteReplicationGroup.class,
-                        "nativeGuid", nativeGuid);
-
-        if (rrGroups != null && !rrGroups.isEmpty()) {
-            rrGroup = rrGroups.get(0);
-        }
-        return rrGroup;
-    }
-
-    /**
-     * Prepare system remote replication set based on discovered remote replication set by driver.
-     *
-     * @param driverSet discovered remote replication set
-     * @param storageSystemType storage system type
-     * @param systemSet output system remote replication set
-     */
-    private void prepareSystemRemoteReplicationSet(RemoteReplicationSet driverSet, String storageSystemType,
-                                                   com.emc.storageos.db.client.model.remotereplication.RemoteReplicationSet systemSet) {
-        try {
-            systemSet.setReachable(true);
-            if (driverSet.getDeviceLabel() != null) {
-                systemSet.setLabel(driverSet.getDeviceLabel());
-                systemSet.setDeviceLabel(driverSet.getDeviceLabel());
-            }
-            // set supported replication link granularity
-            StringSet supportedReplicationLinkGranularity = new StringSet();
-            for (RemoteReplicationSet.ElementType linGranularity : driverSet.getReplicationLinkGranularity()) {
-                supportedReplicationLinkGranularity.add(linGranularity.toString());
-            }
-            systemSet.setSupportedReplicationLinkGranularity(supportedReplicationLinkGranularity);
-
-            // set supported element types
-            StringSet supportedElementTypes = new StringSet();
-            for (RemoteReplicationSet.ElementType elementType : driverSet.getSupportedElementTypes()) {
-                supportedElementTypes.add(elementType.toString());
-            }
-            systemSet.setSupportedElementTypes(supportedElementTypes);
-
-            // set replication state
-            String replicationState = driverSet.getReplicationState();
-            systemSet.setReplicationState(replicationState);
-
-
-            // set systems to roles map
-            // clear old map
-            if (systemSet.getSystemToRolesMap() != null) {
-                systemSet.getSystemToRolesMap().clear();
-            }
-            for (Map.Entry<String, Set<RemoteReplicationSet.ReplicationRole>> entry : driverSet.getSystemMap().entrySet()) {
-                Set<RemoteReplicationSet.ReplicationRole> roles = entry.getValue();
-                StringSet roleSet = new StringSet();
-                for (RemoteReplicationSet.ReplicationRole role : roles) {
-                    roleSet.add(role.toString());
-                }
-                // check that storage system exist in system database
-                String systemNativeId = entry.getKey();
-                String nativeGuid = NativeGUIDGenerator.generateNativeGuid(storageSystemType, systemNativeId);
-                List<com.emc.storageos.db.client.model.StorageSystem> sourceSystems =
-                        queryActiveResourcesByAltId(_dbClient, com.emc.storageos.db.client.model.StorageSystem.class, "nativeGuid", nativeGuid);
-                if (sourceSystems.isEmpty()) {
-                    String message = String.format("Cannot find system %s, defined in remote replication set %s for roles %s . Set set to not reachable.",
-                            systemNativeId, driverSet.getNativeId(), roles);
-                    _log.error(message);
-                    systemSet.setReachable(false);
-                    // Add system native id to the map
-                    systemSet.addSystemRolesEntry(entry.getKey(), roleSet);
-                } else {
-                    com.emc.storageos.db.client.model.StorageSystem storageSystem = sourceSystems.get(0);
-                    systemSet.addSystemRolesEntry(storageSystem.getId().toString(), roleSet);
-                }
-            }
-
-            // process data related to remote replication modes
-            StringSet systemSupportedReplicationModes = new StringSet();
-            StringSet systemReplicationModesNoGroupConsistency = new StringSet();
-            StringSet systemReplicationModeGroupConsistencyEnforced = new StringSet();
-            // set replication mode for this set
-            //if (driverSet.getReplicationMode() != null) {
-            //    systemSet.setReplicationMode(driverSet.getReplicationMode().getReplicationModeName());
-            //}
-            // process supported replication modes
-            Set<RemoteReplicationMode> supportedReplicationModes = driverSet.getSupportedReplicationModes();
-            for (RemoteReplicationMode rMode : supportedReplicationModes) {
-                systemSupportedReplicationModes.add(rMode.getReplicationModeName());
-                if (rMode.isGroupConsistencyNotSupported()) {
-                    systemReplicationModesNoGroupConsistency.add(rMode.getReplicationModeName());
-                } else {
-                    if (rMode.isGroupConsistencyEnforcedAutomatically()) {
-                        systemReplicationModeGroupConsistencyEnforced.add(rMode.getReplicationModeName());
-                    }
-                }
-            }
-            systemSet.setSupportedReplicationModes(systemSupportedReplicationModes);
-            systemSet.setReplicationModesNoGroupConsistency(systemReplicationModesNoGroupConsistency);
-            systemSet.setReplicationModesGroupConsistencyEnforced(systemReplicationModeGroupConsistencyEnforced);
-        } catch (Exception e) {
-            String message = String.format("Failed to prepare remote replication set %s . Error: %s . Set replication set to not reachable.",
-                    systemSet.getNativeGuid(), e.getMessage());
-            _log.error(message, e);
-            systemSet.setReachable(false);
-        }
-    }
-
-    /**
-     * Prepare system remote replication group.
-     *
-     * @param driverGroup driver remote replication group
-     * @param storageSystemType storage system type
-     * @param systemGroup output system remote replication group
-     */
-    private void prepareSystemRemoteReplicationGroup(RemoteReplicationGroup driverGroup, String storageSystemType,
-                                                     com.emc.storageos.db.client.model.remotereplication.RemoteReplicationGroup systemGroup) {
-        try {
-            systemGroup.setReachable(true);
-            systemGroup.setDeviceLabel(driverGroup.getDeviceLabel());
-            if (driverGroup.getDisplayName() != null) {
-                systemGroup.setDisplayName(driverGroup.getDisplayName());
-                systemGroup.setLabel(driverGroup.getDisplayName());
-            }
-            // set replication state
-            String replicationState = driverGroup.getReplicationState();
-            systemGroup.setReplicationState(replicationState);
-
-            // set replication mode for this group
-            if (driverGroup.getReplicationMode() != null) {
-                systemGroup.setReplicationMode(driverGroup.getReplicationMode());
-            }
-
-            // storage systemt type for this group
-            systemGroup.setStorageSystemType(storageSystemType);
-
-            // set flag to indicate if group consistency for link operations is enforced
-            if (driverGroup.isGroupConsistencyEnforced()) {
-                systemGroup.setIsGroupConsistencyEnforced(true);
-            } else {
-                systemGroup.setIsGroupConsistencyEnforced(false);
-            }
-
-            // set source and target systems of this replication group
-            // source system
-            String systemNativeId = driverGroup.getSourceSystemNativeId();
-            String nativeGuid = NativeGUIDGenerator.generateNativeGuid(storageSystemType, systemNativeId);
-            List<com.emc.storageos.db.client.model.StorageSystem> sourceSystems =
-                    queryActiveResourcesByAltId(_dbClient, com.emc.storageos.db.client.model.StorageSystem.class, "nativeGuid", nativeGuid);
-            if (sourceSystems.isEmpty()) {
-                String message = String.format("Cannot find source system %s, defined in remote replication group %s . Set group to not reachable.",
-                        systemNativeId, systemGroup.getNativeGuid());
-                _log.error(message);
-                systemGroup.setReachable(false);
-            } else {
-                com.emc.storageos.db.client.model.StorageSystem sourceSystem = sourceSystems.get(0);
-                systemGroup.setSourceSystem(sourceSystem.getId());
-            }
-            // target system
-            systemNativeId = driverGroup.getTargetSystemNativeId();
-            nativeGuid = NativeGUIDGenerator.generateNativeGuid(storageSystemType, systemNativeId);
-            List<com.emc.storageos.db.client.model.StorageSystem> targetSystems =
-                    queryActiveResourcesByAltId(_dbClient, com.emc.storageos.db.client.model.StorageSystem.class, "nativeGuid", nativeGuid);
-            if (targetSystems.isEmpty()) {
-                String message = String.format("Cannot find target system %s, defined in remote replication group %s. Set group to not reachable. ",
-                        systemNativeId, systemGroup.getNativeGuid());
-                _log.error(message);
-                systemGroup.setReachable(false);
-            } else {
-                com.emc.storageos.db.client.model.StorageSystem targetSystem = targetSystems.get(0);
-                systemGroup.setTargetSystem(targetSystem.getId());
-            }
-
-            // set supported replication link granularity
-//            StringSet supportedReplicationLinkGranularity = new StringSet();
-//            for (RemoteReplicationSet.ElementType linGranularity : driverGroup.getReplicationLinkGranularity()) {
-//                supportedReplicationLinkGranularity.add(linGranularity.toString());
-//            }
-//            systemGroup.setSupportedReplicationLinkGranularity(supportedReplicationLinkGranularity);
-        } catch (Exception e) {
-            String message = String.format("Failed to prepare remote replication group %s . Error: %s .  Set group to not reachable.",
-                    systemGroup.getNativeGuid(), e.getMessage());
-            _log.error(message, e);
-            systemGroup.setReachable(false);
-        }
-
     }
 }

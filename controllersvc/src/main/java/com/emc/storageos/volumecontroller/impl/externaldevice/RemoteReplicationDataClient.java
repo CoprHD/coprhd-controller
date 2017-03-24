@@ -3,8 +3,9 @@ package com.emc.storageos.volumecontroller.impl.externaldevice;
 
 import java.util.List;
 
+import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.exceptions.DatabaseException;
-import com.emc.storageos.storagedriver.model.StorageSystem;
+
 
 public interface RemoteReplicationDataClient {
 

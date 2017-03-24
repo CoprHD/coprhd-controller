@@ -1474,7 +1474,7 @@ public class VNXUnityUnManagedObjectDiscoverer {
             }
 
             if (hostURIs.size() > 1) {
-                log.info(String.format("Skip export on host %s as the initiators on the host belong to more than one hosts in DB %s", hostId, Joiner.on(",").join(hostURIs)));
+                log.warn(String.format("Skip export on host %s as the initiators on the host belong to more than one hosts in DB %s", hostId, Joiner.on(",").join(hostURIs)));
                 continue;
             }
 

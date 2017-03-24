@@ -86,14 +86,14 @@ public class CustomServicesService extends ViPRService {
     private CustomServicesWorkflowDocument obj;
     private int code;
     private static boolean firstWf = true;
-    private static URI uri = null;
+    private URI uri = null;
 
     @Override
     public void precheck() throws Exception {
 
         // get input params from order form
         params = ExecutionUtils.currentContext().getParameters();
-
+	uri = null;
     }
 
     @Override
@@ -163,11 +163,13 @@ public class CustomServicesService extends ViPRService {
             ExecutionUtils.currentContext().logInfo("customServicesService.stepStatus", step.getId(), step.getType());
 
             updateInputPerStep(step);
-
+		logger.info("input updated");
             final CustomServicesTaskResult res;
 
             try {
+		logger.info("find step type");
                 StepType type = StepType.fromString(step.getType());
+		logger.info("step type is:{}",type);
                 switch (type) {
                     case VIPR_REST:
 
@@ -201,8 +203,10 @@ public class CustomServicesService extends ViPRService {
                         res = ViPRExecutionUtils.execute(new RunAnsible(step, inputPerStep.get(step.getId()), params, dbClient, orderDir));
                         break;
                     case WORKFLOW:
-                        //uri = step.getOperation();
-                        uri = new URI("urn:storageos:CustomServicesWorkflow:e2dc05f1-e3c3-495a-8eb0-a5681e6a6c7b:vdc1");
+			logger.info("get nested wf id");
+                        uri = step.getOperation();
+			logger.info("call executor");
+                        //uri = new URI("urn:storageos:CustomServicesWorkflow:e2dc05f1-e3c3-495a-8eb0-a5681e6a6c7b:vdc1");
                         wfExecutor();
                         res = null;
 
@@ -304,14 +308,21 @@ public class CustomServicesService extends ViPRService {
      * @param step It is the JSON Object of Step
      */
     private void updateInputPerStep(final Step step) throws Exception {
+        logger.info("in input");
+        /*if (step.getType().equals(StepType.WORKFLOW.toString())) {
+            logger.info("Workflow type no need to check for input");
+            return;
+        } */
         if (step.getInputGroups() == null) {
+		logger.info("is null");
             return;
         }
-
+        logger.info("group is not null");
         final Map<String, List<String>> inputs = new HashMap<String, List<String>>();
         for (final CustomServicesWorkflowDocument.InputGroup inputGroup : step.getInputGroups().values()) {
             for (final Input value : inputGroup.getInputGroup()) {
                 final String name = value.getName();
+		logger.info("name is:{}", name);
                 switch (CustomServicesConstants.InputType.fromString(value.getType())) {
                     case FROM_USER:
                     case ASSET_OPTION_SINGLE:
@@ -360,8 +371,9 @@ public class CustomServicesService extends ViPRService {
                 }
             }
         }
-
+	logger.info("input loop done");
         inputPerStep.put(step.getId(), inputs);
+	logger.info("input done");
     }
 
     private List<String> evaluateAnsibleOut(final String result, final String key) throws Exception {

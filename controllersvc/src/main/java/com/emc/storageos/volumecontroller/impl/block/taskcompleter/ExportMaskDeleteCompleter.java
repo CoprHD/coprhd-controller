@@ -6,6 +6,7 @@
 package com.emc.storageos.volumecontroller.impl.block.taskcompleter;
 
 import java.net.URI;
+import java.util.List;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -18,6 +19,7 @@ import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
+import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
 
 @SuppressWarnings("serial")
 public class ExportMaskDeleteCompleter extends ExportTaskCompleter {
@@ -47,7 +49,13 @@ public class ExportMaskDeleteCompleter extends ExportTaskCompleter {
             if (exportMask != null && (status == Operation.Status.ready || (Operation.isTerminalState(status) && isRollingBack()))) {
                 ExportGroup exportGroup = dbClient.queryObject(ExportGroup.class, getId());
                 exportGroup.removeExportMask(exportMask.getId());
-                dbClient.markForDeletion(exportMask);
+                dbClient.updateObject(exportGroup);
+                
+                // If this is the last export group referring to the mask, delete the mask
+                List<ExportGroup> exportGroups = ExportMaskUtils.getExportGroups(dbClient, exportMask);
+                if (exportGroups == null || exportGroups.isEmpty()) {
+                    dbClient.markForDeletion(exportMask);
+                }
             }
 
             _log.info(String.format("Done ExportMaskDelete - EG: %s, OpId: %s, status: %s",

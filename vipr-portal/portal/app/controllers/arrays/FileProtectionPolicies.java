@@ -987,13 +987,13 @@ public class FileProtectionPolicies extends ViprResourceController {
 
         if (FilePolicyApplyLevel.project.name().equalsIgnoreCase(existingPolicy.getAppliedAt())) {
 
-            List<String> existingProjects = stringRefIds(existingPolicy.getAssignedResources());
+            // List<String> existingProjects = stringRefIds(existingPolicy.getAssignedResources());
             List<String> projects = Lists.newArrayList();
-            if (assignPolicy.projects != null) {
-                projects = assignPolicy.projects;
+            if (assignPolicy.unassignedProjects != null) {
+                projects = assignPolicy.unassignedProjects;
             }
 
-            Set<String> remove = Sets.newHashSet(CollectionUtils.subtract(existingProjects, projects));
+            List<String> remove = projects;
 
             // removed projects
             Set<URI> unAssingRes = new HashSet<URI>();
@@ -1007,14 +1007,15 @@ public class FileProtectionPolicies extends ViprResourceController {
 
         } else if (FilePolicyApplyLevel.vpool.name().equalsIgnoreCase(existingPolicy.getAppliedAt())) {
 
-            List<String> existingvPools = stringRefIds(existingPolicy.getAssignedResources());
+            // List<String> existingvPools = stringRefIds(existingPolicy.getAssignedResources());
             List<String> vPools = Lists.newArrayList();
 
-            if (assignPolicy.vpool != null) {
-                vPools.add(assignPolicy.vpool);
+            if (assignPolicy.unassignedVirtualPools != null) {
+                vPools = assignPolicy.unassignedVirtualPools;
+
             }
 
-            Set<String> remove = Sets.newHashSet(CollectionUtils.subtract(existingvPools, vPools));
+            List<String> remove = vPools;
 
             // removed vpools
             Set<URI> unAssingRes = new HashSet<URI>();
@@ -1052,6 +1053,11 @@ public class FileProtectionPolicies extends ViprResourceController {
         public List<String> projects;
 
         public List<String> virtualPools;
+
+        // Currently same form is used for assigned and unassigned need to separate it in future
+        public List<String> unassignedProjects;
+        public List<String> unassignedVirtualPools;
+
 
         public boolean applyOnTargetSite;
 

@@ -172,11 +172,12 @@
         <package name="xorg-x11-server"/>
         <package name="xz-devel"/>
         <package name="zlib-devel"/>
-        <package name="boost-license1_58_0"/>
-        <package name="libboost_system1_58_0"/>
-        <package name="libboost_thread1_58_0"/>
+        <package name="boost-license1_63_0"/>
+        <package name="libboost_system1_63_0"/>
+        <package name="libboost_thread1_63_0"/>
         <package name="librados2"/>
         <package name="librbd1"/>
+		<package name="ansible"/>
     </packages>
     <packages type="bootstrap">
         <package name="udev"/>

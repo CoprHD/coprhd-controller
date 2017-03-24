@@ -526,7 +526,7 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
                         // The snapshot will be created with the backend volume project, so we
                         // need to update that to the frontend project.
                         ((BlockSnapshot) createdBlockObject).setProject(new NamedURI(backendRequestContext.getFrontendProject().getId(),
-                                createdBlockObject.getLabel()));
+                                backendRequestContext.getFrontendProject().getLabel()));
 
                         backendRequestContext.getCreatedSnapshotMap().put(blockObjectNativeGuid, (BlockSnapshot) createdBlockObject);
                         createdObjectMap.put(blockObjectNativeGuid, blockObject);
@@ -735,9 +735,9 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
             // No existing group has the mask, let's create one.
             exportGroup = new ExportGroup();
             exportGroup.setLabel(groupName);
-            exportGroup.setProject(new NamedURI(projectURI, exportGroup.getLabel()));
+            exportGroup.setProject(new NamedURI(projectURI, _dbClient.queryObject(Project.class, projectURI).getLabel()));
             exportGroup.setVirtualArray(vplex.getVirtualArray());
-            exportGroup.setTenant(new NamedURI(tenantURI, exportGroup.getLabel()));
+            exportGroup.setTenant(new NamedURI(tenantURI, _dbClient.queryObject(TenantOrg.class, tenantURI).getLabel()));
             exportGroup.setGeneratedName(groupName);
             exportGroup.setVolumes(new StringMap());
             exportGroup.setOpStatus(new OpStatusMap());

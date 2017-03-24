@@ -373,9 +373,9 @@ public class BucketService extends TaskResourceService {
         bucket.setNamespace(tenantOrg.getNamespace());
         bucket.setVirtualPool(param.getVpool());
         if (project != null) {
-            bucket.setProject(new NamedURI(project.getId(), bucket.getLabel()));
+            bucket.setProject(new NamedURI(project.getId(), project.getLabel()));
         }
-        bucket.setTenant(new NamedURI(tenantOrg.getId(), param.getLabel()));
+        bucket.setTenant(new NamedURI(tenantOrg.getId(), tenantOrg.getLabel()));
         bucket.setVirtualArray(neighborhood.getId());
 
         if (null != placement.getSourceStoragePool()) {

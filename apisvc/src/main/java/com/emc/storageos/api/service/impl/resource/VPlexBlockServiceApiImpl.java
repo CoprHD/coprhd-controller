@@ -815,8 +815,8 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
         createdMirror.setStorageController(vplexVolume.getStorageController());
         createdMirror.setVirtualArray(varray.getId());
         createdMirror.setCapacity(vplexVolume.getCapacity());
-        createdMirror.setProject(new NamedURI(vplexVolume.getProject().getURI(), createdMirror.getLabel()));
-        createdMirror.setTenant(new NamedURI(vplexVolume.getTenant().getURI(), createdMirror.getLabel()));
+        createdMirror.setProject(new NamedURI(vplexVolume.getProject().getURI(), vplexVolume.getProject().getName()));
+        createdMirror.setTenant(new NamedURI(vplexVolume.getTenant().getURI(), vplexVolume.getTenant().getName()));
         createdMirror.setVirtualPool(vPool.getId());
         createdMirror.setThinPreAllocationSize(thinPreAllocationSize);
         createdMirror.setThinlyProvisioned(VirtualPool.ProvisioningType.Thin.toString().equalsIgnoreCase(
@@ -2029,8 +2029,8 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
         volume.setThinlyProvisioned(VirtualPool.ProvisioningType.Thin.toString()
                 .equalsIgnoreCase(vpool.getSupportedProvisioningType()));
         volume.setVirtualPool(vpool.getId());
-        volume.setProject(new NamedURI(project.getId(), volume.getLabel()));
-        volume.setTenant(new NamedURI(project.getTenantOrg().getURI(), volume.getLabel()));
+        volume.setProject(new NamedURI(project.getId(), project.getLabel()));
+        volume.setTenant(new NamedURI(project.getTenantOrg().getURI(), project.getTenantOrg().getName()));
         volume.setVirtualArray(neighborhood.getId());
         StoragePool storagePool = null;
         if (!NullColumnValueGetter.getNullURI().toString().equals(storagePoolURI.toString())) {
@@ -3143,11 +3143,11 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
             v.setId(URIUtil.createId(Volume.class));
             Volume sourceVplexVolume = _dbClient.queryObject(Volume.class, copy.getSource());
             String promotedLabel = String.format("%s-%s", sourceVplexVolume.getLabel(), copy.getLabel());
-            v.setProject(new NamedURI(copy.getProject().getURI(), promotedLabel));
+            v.setProject(new NamedURI(copy.getProject().getURI(), copy.getProject().getName()));
             StringSet protocols = new StringSet();
             protocols.add(StorageProtocol.Block.FC.name());
             v.setProtocol(protocols);
-            v.setTenant(new NamedURI(copy.getTenant().getURI(), promotedLabel));
+            v.setTenant(new NamedURI(copy.getTenant().getURI(), copy.getTenant().getName()));
             _dbClient.createObject(v);
             Operation op = _dbClient.createTaskOpStatus(Volume.class, v.getId(), opId,
                     ResourceOperationTypeEnum.PROMOTE_COPY_TO_VPLEX, copy.getId().toString());

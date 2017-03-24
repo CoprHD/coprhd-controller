@@ -20,15 +20,9 @@ import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Resource;
 
-import com.emc.storageos.cimadapter.connections.ConnectionManager;
-import com.emc.storageos.coordinator.client.service.impl.CoordinatorClientImpl;
-import com.emc.storageos.db.client.impl.DbClientImpl;
-import com.emc.storageos.db.client.model.*;
-import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
-
 import org.junit.Assert;
-import org.junit.Test;
 import org.junit.Before;
+import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -37,8 +31,18 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
+import com.emc.storageos.cimadapter.connections.ConnectionManager;
+import com.emc.storageos.coordinator.client.service.impl.CoordinatorClientImpl;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
+import com.emc.storageos.db.client.impl.DbClientImpl;
+import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
+import com.emc.storageos.db.client.model.NamedURI;
+import com.emc.storageos.db.client.model.Project;
+import com.emc.storageos.db.client.model.StorageProvider;
+import com.emc.storageos.db.client.model.TenantOrg;
+import com.emc.storageos.db.client.model.VirtualPool;
+import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.plugins.AccessProfile;
 import com.emc.storageos.plugins.BaseCollectionException;
 import com.emc.storageos.plugins.StorageSystemViewObject;
@@ -111,7 +115,7 @@ public class SMICommunicationInterfaceTest {
             Project proj = new Project();
             proj.setId(URIUtil.createId(Project.class));
             proj.setLabel("some name");
-            proj.setTenantOrg(new NamedURI(tenantorg.getId(), proj.getLabel()));
+            proj.setTenantOrg(new NamedURI(tenantorg.getId(), tenantorg.getLabel()));
             _LOGGER.info("Project :" + proj.getId());
             _LOGGER.info("TenantOrg-Proj :" + proj.getTenantOrg());
             _dbClient.createObject(proj);

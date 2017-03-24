@@ -320,7 +320,7 @@ public class DefaultBlockSnapshotSessionApiImpl implements BlockSnapshotSessionA
 
         snapSession.setId(URIUtil.createId(BlockSnapshotSession.class));
 
-        snapSession.setProject(new NamedURI(sourceProject.getId(), sourceObj.getLabel()));
+        snapSession.setProject(new NamedURI(sourceProject.getId(), sourceProject.getLabel()));
         snapSession.setStorageController(sourceObj.getStorageController());
 
         if (NullColumnValueGetter.isNotNullValue(sourceObj.getReplicationGroupInstance())) {
@@ -367,7 +367,7 @@ public class DefaultBlockSnapshotSessionApiImpl implements BlockSnapshotSessionA
         snapshot.setProtocol(new StringSet());
         snapshot.getProtocol().addAll(sourceObj.getProtocol());
         Project sourceProject = BlockSnapshotSessionUtils.querySnapshotSessionSourceProject(sourceObj, _dbClient);
-        snapshot.setProject(new NamedURI(sourceProject.getId(), sourceObj.getLabel()));
+        snapshot.setProject(new NamedURI(sourceProject.getId(), sourceProject.getLabel()));
         snapshot.setSnapsetLabel(ResourceOnlyNameGenerator.removeSpecialCharsForName(
                 snapsetLabel, SmisConstants.MAX_SNAPSHOT_NAME_LENGTH));
         snapshot.setTechnologyType(BlockSnapshot.TechnologyType.NATIVE.name());

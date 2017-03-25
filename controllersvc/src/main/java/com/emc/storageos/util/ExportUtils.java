@@ -627,11 +627,11 @@ public class ExportUtils {
         }
         
         if (!sharedExportMaskNameList.isEmpty()) {
-            return String.format(" Initiator %s is shared between mask %s and other masks %s and has unmanaged volumes %s.  Removing initiator will affect the other masking view",
+            return String.format(" Initiator %s is shared between mask %s and other masks [%s] and has unmanaged volumes [%s].  Removing initiator will affect the other masking view",
                         Initiator.normalizePort(initiator.getInitiatorPort()), // initiator wwn
                         curExportMask.getMaskName(), // mask name being validated
                         Joiner.on(", ").join(sharedExportMaskNameList), // names of masks
-                        (unmanagedVolumeWWNs.size() < 10) ? Joiner.on(", ").join(unmanagedVolumeWWNs) : "(10 or more volumes)"); // unmanaged volumes (up to 9)
+                        (unmanagedVolumeWWNs.size() < 10) ? Joiner.on(", ").join(unmanagedVolumeWWNs) : "10 or more volumes"); // unmanaged volumes (up to 9)
         }
         return null;
     }

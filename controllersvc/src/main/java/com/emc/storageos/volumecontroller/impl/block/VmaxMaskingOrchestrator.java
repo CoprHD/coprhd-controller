@@ -607,8 +607,11 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                         Initiator initiator = _dbClient.queryObject(Initiator.class, initiatorURI);
                         // COP-28729 - We can allow remove initiator or host if the shared mask doesn't have any existing volumes.
                         // Shared masks will have at least one unmanaged volume.
-                        errorMessage.append(ExportUtils.getExportMasksSharingInitiatorAndHasUnManagedVolumes(_dbClient, initiator, mask,
-                                existingMasksToRemoveInitiator.keySet()));
+                        String err = ExportUtils.getExportMasksSharingInitiatorAndHasUnManagedVolumes(_dbClient, initiator, mask,
+                                existingMasksToRemoveInitiator.keySet());
+                        if (err != null) {
+                            errorMessage.append(err);
+                        }
                         initiatorsToRemoveOnStorage.add(initiatorURI);
                     }
                     // CTRL-8846 fix : Compare against all the initiators

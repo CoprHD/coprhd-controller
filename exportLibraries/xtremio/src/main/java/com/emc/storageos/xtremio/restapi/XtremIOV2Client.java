@@ -120,7 +120,7 @@ public class XtremIOV2Client extends XtremIOClient {
                 log.debug("Trying to get initiator details for {}", initiatorPortUri.toString());
                 response = get(initiatorPortUri);
                 XtremIOInitiators initiatorPorts = getResponseObject(XtremIOInitiators.class, response);
-                log.debug("Initiator Port {}", initiatorPorts.getContent().getName() + "-"
+                log.info("Initiator Port {}", initiatorPorts.getContent().getName() + "-"
                         + initiatorPorts.getContent().getPortAddress());
                 initiatorPortList.add(initiatorPorts.getContent());
             } catch (Exception e) {

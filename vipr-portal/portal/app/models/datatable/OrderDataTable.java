@@ -63,7 +63,6 @@ public class OrderDataTable extends DataTable {
 
     public OrderDataTable(String tenantId, int offsetInMinutes) {
         this(tenantId);
-        System.out.println("hlj contruct:"+offsetInMinutes);
         localDateFormat.setTimeZone(TimeUtils.getTimeZoneForOffset(offsetInMinutes));
     }
 
@@ -74,8 +73,6 @@ public class OrderDataTable extends DataTable {
     public void setStartDate(String startDate) {
         try {
             setStartDate(localDateFormat.parse(startDate));
-            Date date = localDateFormat.parse(startDate);
-            System.out.println("hlj start: "+localDateFormat.parse(startDate));
         } catch (ParseException e) {
             Logger.error("Date parse error for: %s, e=%s", startDate, e);
         }
@@ -84,7 +81,6 @@ public class OrderDataTable extends DataTable {
     public void setEndDate(String endDate) {
         try {
             setEndDate(localDateFormat.parse(endDate));
-            System.out.println("hlj end: "+localDateFormat.parse(endDate));
         } catch (ParseException e) {
             Logger.error("Date parse error for: %s, e=%s", endDate, e);
         }

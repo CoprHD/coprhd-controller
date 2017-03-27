@@ -121,8 +121,7 @@ public class Orders extends OrderExecution {
 
     @Restrictions({ @Restrict("TENANT_ADMIN") })
     public static void allOrders() {
-        //todo should get client timezone from request
-        System.out.println("hlj all, "+params+"\n"+request);
+        //TODO should get client time zone from request, currently we get it from javascript method
         RecentUserOrdersDataTable dataTable = new RecentUserOrdersDataTable();
         TenantSelector.addRenderArgs();
 

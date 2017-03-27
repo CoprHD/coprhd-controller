@@ -37,7 +37,6 @@ import com.emc.vipr.model.catalog.OrderCreateParam;
 import com.emc.vipr.model.catalog.OrderLogRestRep;
 import com.emc.vipr.model.catalog.OrderRestRep;
 import com.emc.vipr.model.catalog.Parameter;
-import com.emc.vipr.model.catalog.ScheduleInfo;
 import com.emc.vipr.model.catalog.ScheduledEventCreateParam;
 import com.emc.vipr.model.catalog.ScheduledEventRestRep;
 import com.emc.vipr.model.catalog.ServiceDescriptorRestRep;
@@ -212,7 +211,7 @@ public class Orders extends OrderExecution {
             dataTable.deleteOrders();
         }
         flash.success(MessagesUtils.get("orders.delete.submitted"));
-        allOrders();
+        redirect(Common.toSafeRedirectURL("/catalog.orders/allorders?"+request.querystring));
     }
 
     @FlashException(value = "allOrders")

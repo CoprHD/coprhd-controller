@@ -371,6 +371,11 @@ public class VMwareSupport {
         enterMaintenanceMode(datastore);
         setStorageIOControl(datastore, false);
 
+        HostSystem mountedHost = getHostMountedDatastore(hosts, datastore);
+        if (mountedHost == null) {
+            throw new IllegalStateException("Datastore is not mounted by any hosts");
+        }
+
         executeOnHosts(hosts, new HostSystemCallback() {
             @Override
             public void exec(HostSystem host) {
@@ -382,7 +387,7 @@ public class VMwareSupport {
 
         final Map<HostSystem, List<HostScsiDisk>> hostDisks = buildHostDiskMap(hosts, datastore);
 
-        execute(new DeleteDatastore(hosts.get(0), datastore));
+        execute(new DeleteDatastore(mountedHost, datastore));
 
         if (detachLuns) {
             executeOnHosts(hosts, new HostSystemCallback() {
@@ -394,6 +399,22 @@ public class VMwareSupport {
             });
         }
         removeVmfsDatastoreTag(volumes, hostOrClusterId);
+    }
+
+    /**
+     * Returns a host that has this datastore mounted on it
+     * 
+     * @param hosts list of hosts
+     * @param datastore the datastore
+     * @return host that has this datastore mounted on it, or null if none of the hosts have this datastore mounted
+     */
+    private HostSystem getHostMountedDatastore(List<HostSystem> hosts, Datastore datastore) {
+        for (HostSystem host : hosts) {
+            if (VMwareUtils.isDatastoreMountedOnHost(datastore, host)) {
+                return host;
+            }
+        }
+        return null;
     }
 
     private Map<HostSystem, List<HostScsiDisk>> buildHostDiskMap(List<HostSystem> hosts, Datastore datastore) {

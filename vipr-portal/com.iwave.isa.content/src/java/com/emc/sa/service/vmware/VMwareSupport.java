@@ -374,7 +374,9 @@ public class VMwareSupport {
         executeOnHosts(hosts, new HostSystemCallback() {
             @Override
             public void exec(HostSystem host) {
-                unmountVmfsDatastore(host, datastore);
+                if (VMwareUtils.isDatastoreMountedOnHost(datastore, host)) {
+                    unmountVmfsDatastore(host, datastore);
+                }
             }
         });
 
@@ -835,7 +837,9 @@ public class VMwareSupport {
         executeOnHosts(hosts, new HostSystemCallback() {
             @Override
             public void exec(HostSystem host) {
-                unmountVmfsDatastore(host, datastore);
+                if (VMwareUtils.isDatastoreMountedOnHost(datastore, host)) {
+                    unmountVmfsDatastore(host, datastore);
+                }
             }
         });
     }

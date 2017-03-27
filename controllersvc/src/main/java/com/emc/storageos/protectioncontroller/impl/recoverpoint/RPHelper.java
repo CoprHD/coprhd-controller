@@ -1170,25 +1170,35 @@ public class RPHelper {
             return matchingJournals;
         }
 
-        // Keep the matching journals sorted from largest to smallest
-        Map<Long, Volume> matchingJournalsSortedBySize = new TreeMap<Long, Volume>(Collections.reverseOrder());
-
         // Get all journals for this CG
         List<Volume> cgJournalVolumes = getCgVolumes(dbClient, cgURI, Volume.PersonalityTypes.METADATA.name());
 
-        // Filter journals based on internal site name or copy name matching the passed in value.
+        // Filter journals based on the RP copy name.
         if (cgJournalVolumes != null && !cgJournalVolumes.isEmpty()) {
             for (Volume cgJournalVolume : cgJournalVolumes) {
                 boolean copyNamesMatch = (NullColumnValueGetter.isNotNullValue(cgJournalVolume.getRpCopyName())
-                        && cgJournalVolume.getRpCopyName().equals(rpCopyName));
+                        && cgJournalVolume.getRpCopyName().equals(rpCopyName));                
                 if (copyNamesMatch) {
-                    matchingJournalsSortedBySize.put(cgJournalVolume.getProvisionedCapacity(), cgJournalVolume);
+                    matchingJournals.add(cgJournalVolume);
                 }
             }
+        } else {
+            _log.info(String.format("No journals found for RP CG [%s].", cgURI));
+            return matchingJournals;
         }
 
-        if (!matchingJournalsSortedBySize.isEmpty()) {
-            matchingJournals.addAll(matchingJournalsSortedBySize.values());
+        if (!matchingJournals.isEmpty()) {
+            // Sort the journals by capacity
+            Collections.sort(matchingJournals, new Comparator<Volume>() {
+                @Override
+                public int compare(Volume v1, Volume v2) {
+                    Long v1Capacity = (v1.getProvisionedCapacity() > 0L ? v1.getProvisionedCapacity() : v1.getCapacity());
+                    Long v2Capacity = (v2.getProvisionedCapacity() > 0L ? v2.getProvisionedCapacity() : v2.getCapacity());
+                    return Long.compare(v1Capacity, v2Capacity);
+                }
+            });
+        } else {
+            _log.info(String.format("No existing journals found for RP Copy [%s].", rpCopyName));
         }
 
         return matchingJournals;
@@ -1243,7 +1253,7 @@ public class RPHelper {
                 }
                 
                 // Running total of journal capacity for this RP Copy
-                totalJournalSizeForCopy += journalVolume.getProvisionedCapacity();
+                totalJournalSizeForCopy += journalSize;
             }   
             
             // Never use a minimum less than the default journal size

@@ -1129,7 +1129,8 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
                         params = new CifsShareACLUpdateParams();
                         ShareACLs shareACLs = new ShareACLs();
                         shareACLs.setShareACLs(targetShareACLs);
-                        params.setAclsToDelete(shareACLs);
+                        // TO FIX COP-26361 DU case
+                        // params.setAclsToDelete(shareACLs);
                         updateCIFSShareACLOnTarget(workflow, systemTarget, targetFileShare, sourceSMBShare, params);
 
                     } else if (!targetShareACLs.isEmpty() && !sourceShareACLs.isEmpty()) {
@@ -1181,7 +1182,8 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
                         if (!shareACLsToDelete.isEmpty()) {
                             ShareACLs deleteShareACLs = new ShareACLs();
                             deleteShareACLs.setShareACLs(shareACLsToDelete);
-                            params.setAclsToDelete(deleteShareACLs);
+                            // TO FIX COP-26361 DU case
+                            // params.setAclsToDelete(deleteShareACLs);
                         }
                         if (!shareACLsToModify.isEmpty()) {
                             ShareACLs modifyShareACLs = new ShareACLs();
@@ -1584,7 +1586,8 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
                     List<NfsACE> aclToDelete = null;
                     params = FileOrchestrationUtils.getFileNfsACLUpdateParamWithSubDir(fsPath, targetFileShare);
                     aclToDelete = targetFSACLMap.get(fsPath);
-                    params.setAcesToDelete(aclToDelete);
+                    // TO FIX COP-26361 DU case
+                    // params.setAcesToDelete(aclToDelete);
                     s_logger.info("Invoking updateNFSACL on FS: {}, with {}", targetFileShare.getName(), params);
                     updateNFSACLOnTarget(workflow, systemTarget, targetFileShare, params);
                 }
@@ -1660,7 +1663,8 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
                         params.setAcesToAdd(aclToAdd);
                     }
                     if (!aclToDelete.isEmpty()) {
-                        params.setAcesToDelete(aclToDelete);
+                        // TO FIX COP-26361 DU case
+                        // params.setAcesToDelete(aclToDelete);
                     }
                     if (!aclToModify.isEmpty()) {
                         params.setAcesToModify(aclToModify);

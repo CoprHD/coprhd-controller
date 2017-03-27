@@ -57,7 +57,7 @@ public class RemoveHostFromClusterService extends ViPRService {
                 preCheckErrors.append("Host doesn't exist for ID " + hostId);
             } else if (!host.getCluster().equals(clusterId)) {
                 preCheckErrors.append("Host " + host.getLabel() + " is not associated with cluster: " + cluster.getLabel());
-            } else if (NullColumnValueGetter.isNullURI(host.getComputeElement())) {
+            } else if (NullColumnValueGetter.isNullURI(host.getComputeElement()) && NullColumnValueGetter.isNullURI(host.getServiceProfile())) {
                 nonVblockhosts.add(host.getLabel());
             }
             hostURIMap.put(hostId, host.getLabel());

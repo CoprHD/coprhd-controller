@@ -291,7 +291,8 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                                 fileSystem.setUsedCapacity(stat.getAllocatedCapacity());
                                 fsChanged = true;
                             }
-                            if (null != fileSystem.getSoftLimit()) { // if softlimit is set then get the value for
+                            if (null != fileSystem.getSoftLimit() && null != quota.getThresholds() &&
+                                    null != quota.getThresholds().getsoftExceeded()) { // if softlimit is set then get the value for
                                 // softLimitExceeded
                                 fileSystem.setSoftLimitExceeded(quota.getThresholds().getsoftExceeded());
                                 fsChanged = true;
@@ -321,11 +322,14 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                         FileShare fileSystem = _dbClient.queryObject(FileShare.class, stat.getResourceId());
                         if (fileSystem != null) {
                             if (!fileSystem.getInactive()) {
-                                if (!fileSystem.getUsedCapacity().equals(stat.getAllocatedCapacity())) {
+                                if (null != fileSystem.getUsedCapacity() && null != stat.getAllocatedCapacity()&&
+                                        !fileSystem.getUsedCapacity().equals(stat.getAllocatedCapacity())) {
                                     fileSystem.setUsedCapacity(stat.getAllocatedCapacity());
                                     fsChanged = true;
                                 }
-                                if (null != fileSystem.getSoftLimit() && !fileSystem.getSoftLimitExceeded().equals(quota.getThresholds().getsoftExceeded())) {
+                                if (null != fileSystem.getSoftLimit() && null != fileSystem.getSoftLimitExceeded() &&
+                                        null != quota.getThresholds() && null != quota.getThresholds().getsoftExceeded() &&
+                                        !fileSystem.getSoftLimitExceeded().equals(quota.getThresholds().getsoftExceeded())) {
                                     fileSystem.setSoftLimitExceeded(quota.getThresholds().getsoftExceeded());
                                     fsChanged = true;
                                 }

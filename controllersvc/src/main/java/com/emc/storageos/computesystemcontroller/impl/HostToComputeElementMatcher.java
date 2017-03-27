@@ -270,7 +270,9 @@ public final class HostToComputeElementMatcher {
             ceWithReversedUuid = ceMap.get(uuidReversed);
         }
 
-        if( (ceWithSameUuid != null) && (ceWithReversedUuid != null)) {
+        if( (ceWithSameUuid != null) &&                 // found blade with UUID
+                (ceWithReversedUuid != null) &&         // found blade with reversed UUID
+                !uuid.equalsIgnoreCase(uuidReversed)) { // UUID is not same when reversed
             String errMsg = "Host match failed for ComputeElement because host " +
                     info(host) + " matches multiple blades " + info(ceWithSameUuid) +
                     " and " + info(ceWithReversedUuid);
@@ -306,7 +308,9 @@ public final class HostToComputeElementMatcher {
             spWithReversedUuid = spMap.get(uuidReversed);
         }
 
-        if( (spWithSameUuid != null) && (spWithReversedUuid != null)) {
+        if( ((spWithSameUuid != null) &&                 // found SP with UUID
+                (spWithReversedUuid != null)) &&         // found SP with reversed UUID
+                !uuid.equalsIgnoreCase(uuidReversed)) {  // UUID is not same when reversed
             String errMsg = "Host match failed for UCS Service Profile because host " +
                     info(host) + " matches multiple Service Profiles " + info(spWithSameUuid) +
                     " and " + info(spWithReversedUuid);

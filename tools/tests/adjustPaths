@@ -31,8 +31,9 @@ if [ "$1"x != "x" ]; then
 fi
 sconf=$(dirname $CONFIG_FILE)
 
-# TODO: remove this once Nathan commits
-subs/duvalidation false
+# Set properties needed for the test run
+subs/setproperty validation_check false
+subs/setproperty controller_pathadjust_require_suspend false
 
 if [ "$1"x != "x" ]; then
       BOURNE_IP=$1
@@ -339,4 +340,6 @@ deleteAllVolumes
 
 echoit "adjustPaths passed"
 date
+subs/setproperty validation_check true
+subs/setproperty controller_pathadjust_require_suspend true
 

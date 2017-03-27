@@ -112,8 +112,8 @@ public class ExportWorkflowUtils {
                 ExportWorkflowEntryPoints.exportGroupDeleteMethod(storage, export);
 
         return newWorkflowStep(workflow, wfGroupId,
-                String.format("Creating export on storage array %s (%s)",
-                        storageSystem.getNativeGuid(), storage.toString()),
+                String.format("Creating export (%s) on storage array %s",
+                        export, storageSystem.getNativeGuid()),
                 storageSystem, method, rollback, waitFor, null);
     }
 
@@ -297,8 +297,8 @@ public class ExportWorkflowUtils {
             Workflow.Method method =
                     ExportWorkflowEntryPoints.exportGroupUpdateMethod(blockStorageControllerUri, exportGroupUri, storageWorkflow);
             return newWorkflowStep(workflow, wfGroupId,
-                    String.format("Updating export on storage array %s (%s)",
-                            storageSystem.getNativeGuid(), blockStorageControllerUri.toString()),
+                    String.format("Updating export (%s) on storage array %s",
+                            exportGroupUri, storageSystem.getNativeGuid()),
                     storageSystem, method, null, waitFor, exportGroupUpdateStepId);
         } catch (Exception ex) {
             getWorkflowService().releaseAllWorkflowLocks(storageWorkflow);
@@ -307,8 +307,7 @@ public class ExportWorkflowUtils {
     }
 
     public String generateExportGroupDeleteWorkflow(Workflow workflow, String wfGroupId,
-            String waitFor, URI storage,
-            URI export)
+            String waitFor, URI storage, URI export)
             throws WorkflowException {
         DiscoveredSystemObject storageSystem = getStorageSystem(_dbClient, storage);
 
@@ -316,8 +315,8 @@ public class ExportWorkflowUtils {
                 ExportWorkflowEntryPoints.exportGroupDeleteMethod(storage, export);
 
         return newWorkflowStep(workflow, wfGroupId,
-                String.format("Deleting export on storage array %s (%s)",
-                        storageSystem.getNativeGuid(), storage.toString()),
+                String.format("Deleting export (%s) on storage array %s",
+                        export, storageSystem.getNativeGuid()),
                 storageSystem, method, null, waitFor, null);
     }
 
@@ -337,8 +336,8 @@ public class ExportWorkflowUtils {
         Workflow.Method method = ExportWorkflowEntryPoints.exportAddVolumesMethod(storage, export, volumeMap);
 
         return newWorkflowStep(workflow, wfGroupId,
-                String.format("Adding volumes to export on storage array %s (%s)",
-                        storageSystem.getNativeGuid(), storage.toString()),
+                String.format("Adding volumes to export (%s) on storage array %s",
+                        export, storageSystem.getNativeGuid()),
                 storageSystem, method, rollback, waitFor, null);
     }
 
@@ -353,8 +352,8 @@ public class ExportWorkflowUtils {
                         volumes);
 
         return newWorkflowStep(workflow, wfGroupId,
-                String.format("Removing volumes from export on storage array %s (%s)",
-                        storageSystem.getNativeGuid(), storage.toString()),
+                String.format("Removing volumes from export (%s) on storage array %s",
+                        export, storageSystem.getNativeGuid()),
                 storageSystem, method, null, waitFor, null);
     }
 
@@ -370,8 +369,8 @@ public class ExportWorkflowUtils {
                         initiatorURIs);
 
         return newWorkflowStep(workflow, wfGroupId,
-                String.format("Removing initiators from export on storage array %s (%s)",
-                        storageSystem.getNativeGuid(), storage.toString()),
+                String.format("Removing initiators from export (%s) on storage array %s",
+                        export, storageSystem.getNativeGuid()),
                 storageSystem, method, null, waitFor, null);
     }
 
@@ -386,8 +385,8 @@ public class ExportWorkflowUtils {
                         initiatorURIs);
 
         return newWorkflowStep(workflow, wfGroupId,
-                String.format("Adding initiators from export on storage array %s (%s)",
-                        storageSystem.getNativeGuid(), storage.toString()),
+                String.format("Adding initiators from export (%s) on storage array %s",
+                        export, storageSystem.getNativeGuid()),
                 storageSystem, method, rollbackMethodNullMethod(), waitFor, null);
     }
 

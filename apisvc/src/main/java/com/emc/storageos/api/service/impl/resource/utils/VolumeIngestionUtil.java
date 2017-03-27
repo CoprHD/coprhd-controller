@@ -102,7 +102,6 @@ import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
 import com.emc.storageos.volumecontroller.placement.BlockStorageScheduler;
 import com.emc.storageos.vplex.api.VPlexApiConstants;
 import com.emc.storageos.vplexcontroller.VPlexControllerUtils;
-import com.emc.storageos.vplexcontroller.VplexBackendIngestionContext;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.Sets;
@@ -1482,9 +1481,9 @@ public class VolumeIngestionUtil {
 
         exportGroup.setType(type);
         exportGroup.setId(URIUtil.createId(ExportGroup.class));
-        exportGroup.setProject(new NamedURI(project.getId(), exportGroup.getLabel()));
+        exportGroup.setProject(new NamedURI(project.getId(), project.getLabel()));
         exportGroup.setVirtualArray(vArray);
-        exportGroup.setTenant(new NamedURI(project.getTenantOrg().getURI(), exportGroup.getLabel()));
+        exportGroup.setTenant(new NamedURI(project.getTenantOrg().getURI(), tenantOrg.getLabel()));
 
         String generatedName = nameGenerator.generate(tenantOrg.getLabel(), exportGroup.getLabel(),
                 exportGroup.getId().toString(), '_', 56);

@@ -74,7 +74,6 @@ import com.emc.storageos.db.client.model.VirtualPool.MetroPointType;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.Volume.PersonalityTypes;
 import com.emc.storageos.db.client.model.VolumeGroup;
-import com.emc.storageos.db.client.model.VpoolProtectionVarraySettings;
 import com.emc.storageos.db.client.model.util.BlockConsistencyGroupUtils;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
@@ -1532,8 +1531,8 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
             volume.setThinlyProvisioned(
                     VirtualPool.ProvisioningType.Thin.toString().equalsIgnoreCase(vpool.getSupportedProvisioningType()));
             volume.setVirtualPool(vpool.getId());
-            volume.setProject(new NamedURI(project.getId(), volume.getLabel()));
-            volume.setTenant(new NamedURI(project.getTenantOrg().getURI(), volume.getLabel()));
+            volume.setProject(new NamedURI(project.getId(), project.getLabel()));
+            volume.setTenant(new NamedURI(project.getTenantOrg().getURI(), project.getTenantOrg().getName()));
             volume.setVirtualArray(varray.getId());
 
             if (null != recommendation.getSourceStoragePool()) {
@@ -2367,7 +2366,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
      */
     @Override
     public void validateCreateSnapshot(Volume reqVolume, List<Volume> volumesToSnap, String snapshotType, String snapshotName,
-            BlockFullCopyManager fcManager) {
+            Boolean readOnly, BlockFullCopyManager fcManager) {
         boolean vplex = RPHelper.isVPlexVolume(reqVolume, _dbClient);
 
         // For RP snapshots, validate that the volume type is not a target,
@@ -2407,7 +2406,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                 }
             }
             List<Volume> volumes = (vplex ? baseVolumesToSnap : volumesToSnap);
-            super.validateCreateSnapshot(reqVolume, volumes, snapshotType, snapshotName, fcManager);
+            super.validateCreateSnapshot(reqVolume, volumes, snapshotType, snapshotName, readOnly, fcManager);
         } else {
             ArgValidator.checkFieldNotEmpty(volumesToSnap, "volumes");
             ArgValidator.checkFieldNotEmpty(snapshotName, "name");
@@ -2633,10 +2632,10 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
         if (queryResults.iterator().hasNext()) {
             Volume sourceVplexVolume = _dbClient.queryObject(Volume.class, queryResults.iterator().next());
             cgUri = sourceVplexVolume.getConsistencyGroup();
-            snapshot.setProject(new NamedURI(sourceVplexVolume.getProject().getURI(), snapshotName));
+            snapshot.setProject(new NamedURI(sourceVplexVolume.getProject().getURI(), sourceVplexVolume.getProject().getName()));
         } else {
             cgUri = volume.getConsistencyGroup();
-            snapshot.setProject(new NamedURI(volume.getProject().getURI(), snapshotName));
+            snapshot.setProject(new NamedURI(volume.getProject().getURI(), volume.getProject().getName()));
         }
 
         if (cgUri != null) {

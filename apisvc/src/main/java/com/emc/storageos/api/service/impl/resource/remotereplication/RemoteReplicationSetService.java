@@ -315,7 +315,7 @@ public class RemoteReplicationSetService extends AbstractRemoteReplicationServic
                 continue;
             }
             if (!rrSet.getTargetSystems().containsAll(targetCGSystemsSet)) {
-                // Pass ones whose target systems can'tt cover target CG
+                // Pass ones whose target systems can't cover target CGs
                 continue;
             }
             result.getRemoteReplicationSets().add(toNamedRelatedResource(rrSet));

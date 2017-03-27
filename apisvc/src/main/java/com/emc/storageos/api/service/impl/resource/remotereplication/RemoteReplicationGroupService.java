@@ -140,7 +140,7 @@ public class RemoteReplicationGroupService extends AbstractRemoteReplicationServ
                 continue;
             }
             if (!targetCGSystemsSet.contains(rrGroup.getTargetSystem().toString())) {
-                // Pass ones whose target systems can'tt cover target CG
+                // Pass ones whose target system is not covered by ones of given CG
                 continue;
             }
             result.getRemoteReplicationGroups().add(toNamedRelatedResource(rrGroup));

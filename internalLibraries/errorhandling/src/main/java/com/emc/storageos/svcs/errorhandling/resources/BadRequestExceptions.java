@@ -3315,4 +3315,7 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException externallyAddedVolumes(final String exportMask, final String volumes);
+    
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException cannotCreateReadOnlySnapshotForNonXIOVolumes(); 
 }

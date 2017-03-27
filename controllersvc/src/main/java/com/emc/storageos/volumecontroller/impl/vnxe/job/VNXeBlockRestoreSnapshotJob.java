@@ -132,7 +132,7 @@ public class VNXeBlockRestoreSnapshotJob extends VNXeJob {
         createdSnap.setVirtualArray(volume.getVirtualArray());
         createdSnap.setProtocol(new StringSet());
         createdSnap.getProtocol().addAll(volume.getProtocol());
-        createdSnap.setProject(new NamedURI(volume.getProject().getURI(), label));
+        createdSnap.setProject(new NamedURI(volume.getProject().getURI(), volume.getProject().getName()));
         createdSnap.setSnapsetLabel(ResourceOnlyNameGenerator.removeSpecialCharsForName(label,
                 SmisConstants.MAX_SNAPSHOT_NAME_LENGTH));
         return createdSnap;

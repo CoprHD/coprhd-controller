@@ -178,6 +178,8 @@ public class XtremIOMaskingOrchestrator extends AbstractBasicMaskingOrchestrator
                     .queryObject(StorageSystem.class, storageURI);
             taskCompleter = new ExportOrchestrationTask(exportGroupURI, token);
 
+            refreshExportMask(storage, getDevice(), null);
+
             List<URI> initiatorURIs = null;
             if (exportGroup.getInitiators() != null && !exportGroup.getInitiators().isEmpty()) {
                 Collection<URI> initiators = Collections2.transform(exportGroup.getInitiators(),
@@ -196,7 +198,6 @@ public class XtremIOMaskingOrchestrator extends AbstractBasicMaskingOrchestrator
                         token);
                 // For each export mask in export group, invoke add Volumes if export Mask belongs to the same storage Array
                 List<ExportMask> masks = new ArrayList<ExportMask>();
-                refreshExportMask(storage, getDevice(), exportMasks.get(0));
                 for (ExportMask exportMask : exportMasks) {
                     if (exportMask.getStorageDevice().equals(storageURI)) {
                         log.info("export_volume_add: adding volume to an existing export");
@@ -220,8 +221,6 @@ public class XtremIOMaskingOrchestrator extends AbstractBasicMaskingOrchestrator
             } else {
                 if (initiatorURIs != null) {
                     log.info("export_volume_add: adding volume, creating a new export");
-                    // we still need to get the updated initiators info.
-                    refreshExportMask(storage, getDevice(), null);
 
                     // Group Initiators by compute and invoke create Mask
                     Workflow workflow = _workflowService.getNewWorkflow(
@@ -378,6 +377,8 @@ public class XtremIOMaskingOrchestrator extends AbstractBasicMaskingOrchestrator
             StorageSystem storage = _dbClient
                     .queryObject(StorageSystem.class, storageURI);
 
+            refreshExportMask(storage, getDevice(), null);
+
             List<ExportMask> exportMasks = ExportMaskUtils.getExportMasks(_dbClient,
                     exportGroup, storageURI);
 
@@ -407,7 +408,6 @@ public class XtremIOMaskingOrchestrator extends AbstractBasicMaskingOrchestrator
                 // if export masks are found for the Host, then add initiators to the export mask
                 Map<URI, List<URI>> masksToInitiators = new HashMap<URI, List<URI>>();
                 String addIniStep = null;
-                boolean isRefreshed = false;
                 for (String computeKey : computeResourceToInitiators.keySet()) {
                     URI exportMaskUri = hostToEMaskGroup.get(computeKey);
                     if (null != exportMaskUri) {
@@ -415,10 +415,6 @@ public class XtremIOMaskingOrchestrator extends AbstractBasicMaskingOrchestrator
                         ExportMask exportMask = _dbClient.queryObject(ExportMask.class,
                                 exportMaskUri);
                         if (exportMask.getStorageDevice().equals(storageURI)) {
-                            if (!isRefreshed) {
-                                refreshExportMask(storage, getDevice(), exportMask);
-                                isRefreshed = true;
-                            }
                             log.info("Processing export mask {} with expected storage {}", exportMaskUri, storageURI);
                             // AddInitiatorWorkFlow
                             masksToInitiators.put(exportMaskUri,
@@ -472,8 +468,6 @@ public class XtremIOMaskingOrchestrator extends AbstractBasicMaskingOrchestrator
                 workflow.executePlan(taskCompleter, successMessage);
             } else {
                 log.info("export_initiator_add: first initiator, creating a new export");
-                // we still need to get the updated initiators info.
-                refreshExportMask(storage, getDevice(), null);
 
                 // No existing export masks available inexport Group
                 Workflow workflow = _workflowService.getNewWorkflow(
@@ -547,6 +541,7 @@ public class XtremIOMaskingOrchestrator extends AbstractBasicMaskingOrchestrator
                     exportGroup, initiatorURIs);
 
             log.info("Host to initiators  : {}", Joiner.on(",").join(computeResourceToInitiators.entrySet()));
+            refreshExportMask(storage, getDevice(), null);
 
             if (exportMasks != null && !exportMasks.isEmpty()) {
                 // find the export mask which has the same Host name as the initiator
@@ -573,16 +568,12 @@ public class XtremIOMaskingOrchestrator extends AbstractBasicMaskingOrchestrator
                 // map of masks to initiators being removed needed to remove zones
                 Map<URI, List<URI>> maskToInitiatorsMap = new HashMap<URI, List<URI>>();
                 String previousStep = null;
-                boolean isRefreshed = false;
                 for (String computeKey : computeResourceToInitiators.keySet()) {
                     URI exportMaskUri = hostToEMaskGroup.get(computeKey);
                     if (null != exportMaskUri) {
                         ExportMask exportMask = _dbClient.queryObject(ExportMask.class,
                                 exportMaskUri);
-                        if (!isRefreshed) {
-                            refreshExportMask(storage, getDevice(), exportMask);
-                            isRefreshed = true;
-                        }
+
                         if (exportMask.getStorageDevice().equals(storageURI)) {
                             List<Initiator> initiators = _dbClient.queryObject(Initiator.class,
                                     computeResourceToInitiators.get(computeKey));
@@ -699,6 +690,8 @@ public class XtremIOMaskingOrchestrator extends AbstractBasicMaskingOrchestrator
 
             String previousStep = null;
 
+            refreshExportMask(storage, getDevice(), null);
+
             /**
              * TODO
              * Right now,to make orchestration simple , we decided not to share export masks across Export Groups.
@@ -707,7 +700,6 @@ public class XtremIOMaskingOrchestrator extends AbstractBasicMaskingOrchestrator
              * right set of initiators and volumes to be removed from both the export Groups.
              */
             if (exportMasks != null && !exportMasks.isEmpty()) {
-                refreshExportMask(storage, getDevice(), exportMasks.get(0));
                 for (ExportMask exportMask : exportMasks) {
                     List<URI> initiators = StringSetUtil.stringSetToUriList(exportMask.getInitiators());
                     List<URI> volumesInMask = ExportMaskUtils.getUserAddedVolumeURIs(exportMask);

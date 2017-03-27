@@ -4474,7 +4474,7 @@ public class RecoverPointScheduler implements Scheduler {
      * This method performs a soft throttle on concurrent incoming RP requests for the same CG 
      * to allow for proper RP journal provisioning. 
      * 
-     * Since concurrent requests do not have any context to which request should create the journals
+     * Since concurrent requests do not have any context to which request should create the journals,
      * poor decisions can be made by the RP scheduler. Using a flag on the CG to indicate journal 
      * provisioning is occurring allows time between concurrent requests to ensure correct journal 
      * decisions will be made.
@@ -4486,7 +4486,8 @@ public class RecoverPointScheduler implements Scheduler {
      * 2. If the vpool specifies a journal multiplier policy. Meaning that the user wants
      * the RP journals to be provisioned dynamically as requests are processed. In this
      * case all requests will need to be handled sequentially to properly calculate if
-     * new journals are required as each request is provisioned.
+     * new journals are required as each request is provisioned (even if #1 above applies,
+     * of course still need to be sequential).
      * 
      * @param vpool RP vpool for the provisioning request
      * @param cgURI RP CG URI for the provisioning request

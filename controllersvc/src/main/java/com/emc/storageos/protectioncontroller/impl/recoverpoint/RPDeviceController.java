@@ -1715,16 +1715,6 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
             // Scan the rp sites for volume visibility
             rp.waitForVolumesToBeVisible(cgParams);
             
-            // BBB - Testing
-            if (!CollectionUtils.isEmpty(cgParams.getCopies())) {            
-                _log.info("*** BBB sleeeeeeeeeeeeeeep 3mins...");              
-                    try {
-                        Thread.sleep(180 * 1000);
-                    } catch (InterruptedException e) {
-                        _log.error(e.getMessage());
-                    }
-            }          
-            
             // Before acquiring a lock on the CG we need to ensure that the 
             // CG is created. If it hasn't, then the first CGRequestParams
             // to be allowed to pass through needs to have the journals
@@ -1767,7 +1757,8 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                 cg.addConsistencyGroupTypes(Types.RP.name());
             }
 
-            // At this point, always clear the journal provisioning flag 
+            // At this point, always clear the journal provisioning flag on the
+            // CG for any concurrent orders that may come in.
             cg.setJournalProvisioningFlag(0L);
             _dbClient.updateObject(cg);
 

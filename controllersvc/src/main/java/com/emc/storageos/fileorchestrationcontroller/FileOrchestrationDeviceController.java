@@ -2081,26 +2081,47 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
         }
     }
 
+    private Map<URI, List<FileStorageSystemAssociation>>
+            getAssociationsPerAssignedResource(List<FileStorageSystemAssociation> associations) {
+
+        Map<URI, List<FileStorageSystemAssociation>> resAssociations = new HashMap<URI, List<FileStorageSystemAssociation>>();
+        for (FileStorageSystemAssociation association : associations) {
+            List<FileStorageSystemAssociation> recs = resAssociations.get(association.getAppliedAtResource());
+            if (recs == null) {
+                recs = new ArrayList<FileStorageSystemAssociation>();
+                resAssociations.put(association.getAppliedAtResource(), recs);
+            }
+            recs.add(association);
+        }
+        return resAssociations;
+    }
+
     private boolean checkRecommendationsWithManySourceToOneTarget(List<FileStorageSystemAssociation> associations) {
         StringSet targets = new StringSet();
-        for (FileStorageSystemAssociation association : associations) {
-            StorageSystem system = s_dbClient.queryObject(StorageSystem.class, association.getSourceSystem());
-            if (system != null && system.getSystemType().equalsIgnoreCase(Type.isilon.toString()) &&
-                    association.getTargets() != null && !association.getTargets().isEmpty()) {
-                for (TargetAssociation target : association.getTargets()) {
-                    StringBuffer targetKey = new StringBuffer();
-                    if (target.getStorageSystemURI() != null) {
-                        targetKey.append(target.getStorageSystemURI().toString());
-                    }
-                    if (target.getvNASURI() != null) {
-                        targetKey.append(target.getvNASURI().toString());
-                    }
-                    if (!targetKey.toString().isEmpty()) {
-                        if (targets.contains(targetKey.toString())) {
-                            s_logger.info("Found same taget for different source recommendations");
-                            return true;
+        for (Map.Entry<URI, List<FileStorageSystemAssociation>> entry : getAssociationsPerAssignedResource(associations).entrySet()) {
+            // Verify more recommnedations are pointing to same target!!!
+            if (entry.getValue() != null && entry.getValue().size() < 2) {
+                continue;
+            }
+            for (FileStorageSystemAssociation association : entry.getValue()) {
+                StorageSystem system = s_dbClient.queryObject(StorageSystem.class, association.getSourceSystem());
+                if (system != null && system.getSystemType().equalsIgnoreCase(Type.isilon.toString()) &&
+                        association.getTargets() != null && !association.getTargets().isEmpty()) {
+                    for (TargetAssociation target : association.getTargets()) {
+                        StringBuffer targetKey = new StringBuffer();
+                        if (target.getStorageSystemURI() != null) {
+                            targetKey.append(target.getStorageSystemURI().toString());
                         }
-                        targets.add(targetKey.toString());
+                        if (target.getvNASURI() != null) {
+                            targetKey.append(target.getvNASURI().toString());
+                        }
+                        if (!targetKey.toString().isEmpty()) {
+                            if (targets.contains(targetKey.toString())) {
+                                s_logger.info("Found same taget for different source recommendations");
+                                return true;
+                            }
+                            targets.add(targetKey.toString());
+                        }
                     }
                 }
             }

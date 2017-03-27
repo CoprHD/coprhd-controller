@@ -474,9 +474,9 @@ public class FileService extends TaskResourceService {
         fs.setSoftGracePeriod(param.getSoftGrace());
         fs.setVirtualPool(param.getVpool());
         if (project != null) {
-            fs.setProject(new NamedURI(project.getId(), fs.getLabel()));
+            fs.setProject(new NamedURI(project.getId(), project.getLabel()));
         }
-        fs.setTenant(new NamedURI(tenantOrg.getId(), param.getLabel()));
+        fs.setTenant(new NamedURI(tenantOrg.getId(), tenantOrg.getLabel()));
         fs.setVirtualArray(varray.getId());
 
         // When a VPool supports "thin" provisioning
@@ -1567,7 +1567,7 @@ public class FileService extends TaskResourceService {
         snap.setParent(new NamedURI(id, label));
         snap.setLabel(label);
         snap.setOpStatus(new OpStatusMap());
-        snap.setProject(new NamedURI(fs.getProject().getURI(), label));
+        snap.setProject(new NamedURI(fs.getProject().getURI(), fs.getProject().getName()));
 
         String convertedName = label.replaceAll("[^\\dA-Za-z_]", "");
         _log.info("Original name {} and converted name {}", label, convertedName);
@@ -1790,9 +1790,9 @@ public class FileService extends TaskResourceService {
         fs.setCapacity(fsSize);
         fs.setVirtualPool(param.getVpool());
         if (project != null) {
-            fs.setProject(new NamedURI(project.getId(), fs.getLabel()));
+            fs.setProject(new NamedURI(project.getId(), project.getLabel()));
         }
-        fs.setTenant(new NamedURI(tenantOrg.getId(), param.getLabel()));
+        fs.setTenant(new NamedURI(tenantOrg.getId(), tenantOrg.getLabel()));
         fs.setVirtualArray(neighborhood.getId());
 
         if (null != placement.getSourceStoragePool()) {
@@ -1948,8 +1948,8 @@ public class FileService extends TaskResourceService {
         quotaDirectory.setParent(new NamedURI(id, origQtreeName)); // ICICIC - Curious !
         quotaDirectory.setLabel(origQtreeName);
         quotaDirectory.setOpStatus(new OpStatusMap());
-        quotaDirectory.setProject(new NamedURI(fs.getProject().getURI(), origQtreeName));
-        quotaDirectory.setTenant(new NamedURI(fs.getTenant().getURI(), origQtreeName));
+        quotaDirectory.setProject(new NamedURI(fs.getProject().getURI(), fs.getProject().getName()));
+        quotaDirectory.setTenant(new NamedURI(fs.getTenant().getURI(), fs.getTenant().getName()));
         quotaDirectory.setSoftLimit(
                 param.getSoftLimit() > 0 ? param.getSoftLimit() : fs.getSoftLimit().intValue() > 0 ? fs.getSoftLimit().intValue() : 0);
         quotaDirectory.setSoftGrace(

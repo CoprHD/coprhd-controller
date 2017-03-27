@@ -29,7 +29,7 @@ public class UnmanagedHelper {
     public static final String IS_VOLUME_EXPORTED = "IS_VOLUME_EXPORTED";
     public static final String IS_NONRP_EXPORTED = "IS_NONRP_EXPORTED";
 
-    private static final String IS_FILESYSTEM_EXPORTED = "isFileSystemExported";
+    private static final String IS_FILESYSTEM_EXPORTED = "IS_FILESYSTEM_EXPORTED";
 
     public static Set<URI> getVpoolsForUnmanaged(List<StringHashMapEntry> characteristicsEntries,
             List<String> supportedVPoolUris) {
@@ -52,7 +52,7 @@ public class UnmanagedHelper {
             List<String> supportedVPoolUris, String strIsExported) {
         Set<URI> results = new HashSet<URI>();
 
-        // Only return vpools which this can import if this is supported for ingestion
+        // Only return vpools which this can import if this is supported for ingetion
         if (!isSupportedForIngest(characteristicsEntries)) {
             return results;
         }

@@ -2057,7 +2057,7 @@ public class RecoverPointScheduler implements Scheduler {
         List<Recommendation> recommendations = new ArrayList<Recommendation>();
 
         // Find the first existing source volume
-        List<Volume> sourceVolumes = RPHelper.getCgSourceVolumes(capabilities.getBlockConsistencyGroup(), dbClient);
+        List<Volume> sourceVolumes = RPHelper.getCgSourceVolumes(cg.getId(), dbClient);
 
         if (sourceVolumes.isEmpty()) {
             _log.info(String.format("Unable to fully align placement with existing volumes in RecoverPoint consistency group %s.  " +
@@ -2096,13 +2096,13 @@ public class RecoverPointScheduler implements Scheduler {
             if (ps.getInactive()) {
                 // If our existing CG has an inactive ProtectionSystem reference, volumes in this CG cannot
                 // be protected so we must fail.
-                throw APIException.badRequests.cgReferencesInvalidProtectionSystem(capabilities.getBlockConsistencyGroup(),
+                throw APIException.badRequests.cgReferencesInvalidProtectionSystem(cg.getId(),
                         sourceVolume.getProtectionController());
             }
         } else {
             // If our existing CG has a null ProtectionSystem reference, volumes in this CG cannot
             // be protected so we must fail.
-            throw APIException.badRequests.cgReferencesInvalidProtectionSystem(capabilities.getBlockConsistencyGroup(),
+            throw APIException.badRequests.cgReferencesInvalidProtectionSystem(cg.getId(),
                     sourceVolume.getProtectionController());
         }
 
@@ -2113,7 +2113,7 @@ public class RecoverPointScheduler implements Scheduler {
         recommendation.setResourceCount(capabilities.getResourceCount());
 
         // Check to see if we need an additional journal for Source
-        Map<Integer, Long> additionalJournalForSource = RPHelper.additionalJournalRequiredForRPCopy(vpool.getJournalSize(), cg, 
+        Map<Integer, Long> additionalJournalForSource = RPHelper.additionalJournalRequiredForRPCopy(vpool.getJournalSize(), cg.getId(), 
                 capabilities.getSize(), capabilities.getResourceCount(), sourceVolume.getRpCopyName(), dbClient);
         if (!CollectionUtils.isEmpty(additionalJournalForSource)) {
             // ACTIVE SOURCE JOURNAL Recommendation
@@ -2193,7 +2193,7 @@ public class RecoverPointScheduler implements Scheduler {
             sourceRecommendation.getTargetRecommendations().add(targetRecommendation);
 
             // Check to see if we need an additional journal for Target
-            Map<Integer, Long> additionalJournalForTarget = RPHelper.additionalJournalRequiredForRPCopy(vpool.getJournalSize(), cg, 
+            Map<Integer, Long> additionalJournalForTarget = RPHelper.additionalJournalRequiredForRPCopy(vpool.getJournalSize(), cg.getId(), 
                     capabilities.getSize(), capabilities.getResourceCount(), targetVolume.getRpCopyName(), dbClient);
             if (!CollectionUtils.isEmpty(additionalJournalForTarget)) {
                 // TARGET JOURNAL Recommendation

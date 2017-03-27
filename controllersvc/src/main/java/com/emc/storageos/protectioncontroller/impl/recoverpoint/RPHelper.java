@@ -1198,7 +1198,7 @@ public class RPHelper {
      * Determines if an additional journal is required for this RP Copy.
      *
      * @param journalPolicy The current journal policy
-     * @param cg The ViPR CG
+     * @param cgURI The ViPR CG URI
      * @param size The size requested
      * @param volumeCount Number of volumes in the request
      * @param copyName The RP copy name
@@ -1206,13 +1206,15 @@ public class RPHelper {
      * 
      * @return a map which will contain the journal count and size if an additional journal is required, null otherwise.
      */
-    public static Map<Integer, Long> additionalJournalRequiredForRPCopy(String journalPolicy, BlockConsistencyGroup cg,
+    public static Map<Integer, Long> additionalJournalRequiredForRPCopy(String journalPolicy, URI cgURI,
             long size, Integer volumeCount, String copyName, DbClient dbClient) {
         Map<Integer, Long> additionalJournalInfo = null;                       
+        BlockConsistencyGroup cg = dbClient.queryObject(BlockConsistencyGroup.class, cgURI);
         _log.info("Running check for additionalJournalRequiredForRPCopy()...");
         
         StringBuffer logMsg = new StringBuffer();
-        logMsg.append(String.format("\nChecking if additional journal(s) required for RP Copy [%s]\n", copyName));
+        logMsg.append(String.format("\nChecking if additional journal(s) required for RP Copy [%s] in RP CG [%s]\n",
+                copyName, cg.getLabel()));
         logMsg.append("--------------------------------------\n");
         
         if (journalPolicy != null && (journalPolicy.endsWith("x") || journalPolicy.endsWith("X"))) {
@@ -1228,9 +1230,14 @@ public class RPHelper {
                     journalVolume = VPlexUtil.getVPLEXBackendVolume(journalVolume, true, dbClient);
                 }
               
+                // Prefer provisioned capacity, but in some cases like concurrent orders 
+                // the volume may not have been provisioned just yet.
+                Long journalSize = (journalVolume.getProvisionedCapacity() > 0L ? 
+                        journalVolume.getProvisionedCapacity() : journalVolume.getCapacity());
+                
                 // Keep track of the minimum sized journal to allow for striping across all journals. 
-                // However, note that best practice is to have uniform sized journals.
-                Long journalSizeInBytes = SizeUtil.translateSize(String.valueOf(journalVolume.getProvisionedCapacity()));              
+                // However, note that best practice is to have uniform sized journals.                
+                Long journalSizeInBytes = SizeUtil.translateSize(String.valueOf(journalSize));              
                 if ((minJournalSizeForCopy == 0L) || (journalSizeInBytes < minJournalSizeForCopy)) {
                     minJournalSizeForCopy = journalSizeInBytes;
                 }
@@ -1257,9 +1264,14 @@ public class RPHelper {
                     if (RPHelper.isVPlexVolume(cgVolume, dbClient)) {                        
                         cgVolume = VPlexUtil.getVPLEXBackendVolume(cgVolume, true, dbClient);
                     }
+                    
+                    // Prefer provisioned capacity, but in some cases like concurrent orders 
+                    // the volume may not have been provisioned just yet.
+                    Long volumeSize = (cgVolume.getProvisionedCapacity() > 0L ? 
+                            cgVolume.getProvisionedCapacity() : cgVolume.getCapacity());
                   
                     // Running total of volume capacity for this RP Copy
-                    totalVolumeSizeForCopy += cgVolume.getProvisionedCapacity();
+                    totalVolumeSizeForCopy += volumeSize;
                 }
             }                        
             Long totalVolumeSizeInBytesForCopy = SizeUtil.translateSize(String.valueOf(totalVolumeSizeForCopy));

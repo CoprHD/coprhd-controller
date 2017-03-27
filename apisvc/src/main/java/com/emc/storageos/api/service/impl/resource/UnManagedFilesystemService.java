@@ -52,7 +52,6 @@ import com.emc.storageos.db.client.model.Operation.Status;
 import com.emc.storageos.db.client.model.PhysicalNAS;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.QuotaDirectory;
-import com.emc.storageos.db.client.model.QuotaDirectory.SecurityStyles;
 import com.emc.storageos.db.client.model.StorageHADomain;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StoragePort;
@@ -446,8 +445,8 @@ public class UnManagedFilesystemService extends TaggedResource {
                 filesystem.getProtocol().addAll(fsSupportedProtocols);
                 filesystem.setLabel(null == deviceLabel ? "" : deviceLabel);
                 filesystem.setName(null == fsName ? "" : fsName);
-                filesystem.setTenant(new NamedURI(project.getTenantOrg().getURI(), filesystem.getLabel()));
-                filesystem.setProject(new NamedURI(param.getProject(), filesystem.getLabel()));
+                filesystem.setTenant(new NamedURI(project.getTenantOrg().getURI(), project.getTenantOrg().getName()));
+                filesystem.setProject(new NamedURI(param.getProject(), _dbClient.queryObject(Project.class, param.getProject()).getLabel()));
 
                 _logger.info("Un Managed File System {} has exports? : {}", unManagedFileSystem.getId(),
                         unManagedFileSystem.getHasExports());
@@ -675,8 +674,8 @@ public class UnManagedFilesystemService extends TaggedResource {
             quotaDirectory.setNativeId(unManagedFileQuotaDirectory.getNativeId());
             quotaDirectory.setLabel(unManagedFileQuotaDirectory.getLabel());
             quotaDirectory.setOpStatus(new OpStatusMap());
-            quotaDirectory.setProject(new NamedURI(parentFS.getProject().getURI(), unManagedFileQuotaDirectory.getLabel()));
-            quotaDirectory.setTenant(new NamedURI(parentFS.getTenant().getURI(), unManagedFileQuotaDirectory.getLabel()));
+            quotaDirectory.setProject(new NamedURI(parentFS.getProject().getURI(), parentFS.getProject().getName()));
+            quotaDirectory.setTenant(new NamedURI(parentFS.getTenant().getURI(), parentFS.getTenant().getName()));
             quotaDirectory.setInactive(false);
 
             quotaDirectory.setSoftLimit(

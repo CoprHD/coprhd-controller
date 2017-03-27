@@ -19,6 +19,7 @@ import com.emc.sa.service.vipr.ViPRService;
 import com.emc.sa.service.vipr.block.BlockStorageUtils;
 import com.emc.sa.service.vipr.compute.tasks.DeactivateCluster;
 import com.emc.storageos.db.client.model.Cluster;
+import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.model.block.BlockObjectRestRep;
 import com.emc.storageos.model.host.HostRestRep;
 import com.google.common.base.Joiner;
@@ -55,7 +56,7 @@ public class RemoveComputeClusterService extends ViPRService {
                 && (hostURIs.size() > vblockHostURIs.size() || !vblockHostURIs.containsAll(hostURIs))) {
             logError("computeutils.deactivatecluster.deactivate.notpossible", cluster.getLabel());
             preCheckErrors.append("Cluster ").append(cluster.getLabel())
-            .append(" is a mixed cluster, cannot decommission a mixed cluster.");
+            .append(" is a mixed cluster; some hosts do not have UCS components. Cannot decommission a mixed cluster from Vblock catalog services.");
         }
 
         // Validate all of the boot volumes are still valid.
@@ -99,7 +100,7 @@ public class RemoveComputeClusterService extends ViPRService {
             // have been manually dd'd (migrated) to another volume and this volume could be re-purposed elsewhere.
             // We should verify this is the boot volume on the server before attempting to delete it.
             URI bootVolURI = BlockStorageUtils.getHost(hostURI).getBootVolumeId();
-            if (bootVolURI != null) {
+            if (!NullColumnValueGetter.isNullURI(bootVolURI)) {
                 BlockObjectRestRep bootVolRep = null;
                 try{
                     bootVolRep = BlockStorageUtils.getBlockResource(bootVolURI);

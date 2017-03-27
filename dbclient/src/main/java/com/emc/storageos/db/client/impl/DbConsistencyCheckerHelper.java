@@ -828,13 +828,23 @@ public class DbConsistencyCheckerHelper {
         return selectKey == 0 ? "Unknown" : schemaVersionsTime.get(selectKey);
     }
     
-    public <T extends CompositeIndexColumnName> boolean isIndexExists(Keyspace ks, ColumnFamily<String, T> indexCf, String indexKey, T column) throws DriverException {
+    public <T extends CompositeIndexColumnName> boolean isIndexExists(DbClientContext context, String indexCf, String indexKey, T column) throws DriverException {
         try {
-            ks.prepareQuery(indexCf).getKey(indexKey)
-                    .getColumn(column)
-                    .execute().getResult();
-            return true;
-        } catch (NotFoundException e) {
+        	StringBuilder queryString = new StringBuilder("select * from \"");
+        	List<Object> parameters = new ArrayList<Object>();
+        	
+        	queryString.append(indexCf);
+        	queryString.append("\" where key=?");
+        	parameters.add(indexKey);
+        	
+            for (int i = 0; i < indexColumns.length; i++) {
+                queryString.append(" and column").append(i+1).append("=?");
+                parameters.add(indexColumns[i]);
+            }
+            
+            ResultSet resultSet = context.getSession().execute(queryString.toString());
+            return resultSet.one() != null;
+        } catch (DriverException e) {
             return false;
         }
     }

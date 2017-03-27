@@ -20,6 +20,7 @@ import com.datastax.driver.core.exceptions.DriverException;
 import com.emc.storageos.db.client.constraint.Constraint;
 import com.emc.storageos.db.client.constraint.ConstraintDescriptor;
 import com.emc.storageos.db.client.impl.ColumnField;
+import com.emc.storageos.db.client.impl.CompositeIndexColumnName;
 import com.emc.storageos.db.client.impl.DbClientContext;
 import com.emc.storageos.db.client.impl.IndexColumnName;
 import com.emc.storageos.db.exceptions.DatabaseException;
@@ -129,9 +130,9 @@ public abstract class ConstraintImpl implements Constraint {
         result.setResult(it);
     }
 
-    protected abstract URI getURI(IndexColumnName col);
+    protected abstract URI getURI(CompositeIndexColumnName col);
     
-    protected <T> T createQueryHit(final QueryResult<T> result, IndexColumnName col) {
+    protected <T> T createQueryHit(final QueryResult<T> result, CompositeIndexColumnName col) {
         return null;
     }
     

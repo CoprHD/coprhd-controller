@@ -18,6 +18,7 @@ import com.datastax.driver.core.exceptions.DriverException;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.impl.AltIdDbIndex;
 import com.emc.storageos.db.client.impl.ColumnField;
+import com.emc.storageos.db.client.impl.CompositeIndexColumnName;
 import com.emc.storageos.db.client.impl.IndexColumnName;
 import com.emc.storageos.db.client.impl.RelationDbIndex;
 import com.emc.storageos.db.client.model.DataObject;
@@ -79,7 +80,7 @@ public class ContainmentConstraintImpl extends ConstraintImpl implements Contain
     }
 
     @Override
-    protected URI getURI(IndexColumnName col) {
+    protected URI getURI(CompositeIndexColumnName col) {
         URI ret;
         if (_field.getIndex() instanceof RelationDbIndex) {
             ret = URI.create(col.getTwo());
@@ -93,7 +94,7 @@ public class ContainmentConstraintImpl extends ConstraintImpl implements Contain
     }
 
     @Override
-    protected <T> T createQueryHit(final QueryResult<T> result, IndexColumnName column) {
+    protected <T> T createQueryHit(final QueryResult<T> result, CompositeIndexColumnName column) {
         if (_field.getIndex() instanceof RelationDbIndex) {
             return result.createQueryHit(getURI(column));
         } else {

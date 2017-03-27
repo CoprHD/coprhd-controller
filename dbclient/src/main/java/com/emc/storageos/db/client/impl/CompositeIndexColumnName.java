@@ -4,6 +4,7 @@
  */
 package com.emc.storageos.db.client.impl;
 
+import java.nio.ByteBuffer;
 import java.util.UUID;
 
 public interface CompositeIndexColumnName {

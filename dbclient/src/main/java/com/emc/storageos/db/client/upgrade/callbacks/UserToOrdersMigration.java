@@ -7,36 +7,27 @@ package com.emc.storageos.db.client.upgrade.callbacks;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.netflix.astyanax.connectionpool.OperationResult;
-import com.netflix.astyanax.serializers.StringSerializer;
-import com.netflix.astyanax.util.RangeBuilder;
-import com.netflix.astyanax.Keyspace;
-import com.netflix.astyanax.MutationBatch;
-import com.netflix.astyanax.model.Column;
-import com.netflix.astyanax.model.ColumnFamily;
-import com.netflix.astyanax.model.ColumnList;
-import com.netflix.astyanax.model.Row;
-import com.netflix.astyanax.model.Rows;
-import com.netflix.astyanax.query.RowQuery;
-
-import com.emc.storageos.db.client.model.uimodels.Order;
-import com.emc.storageos.db.client.model.ClassNameTimeSeries;
-import com.emc.storageos.db.client.impl.DbClientImpl;
+import com.datastax.driver.core.ResultSet;
+import com.datastax.driver.core.Row;
+import com.datastax.driver.core.SimpleStatement;
 import com.emc.storageos.db.client.impl.ClassNameTimeSeriesIndexColumnName;
+import com.emc.storageos.db.client.impl.ColumnFamilyDefinition;
 import com.emc.storageos.db.client.impl.ColumnField;
 import com.emc.storageos.db.client.impl.DataObjectType;
-import com.emc.storageos.db.client.impl.IndexColumnName;
-import com.emc.storageos.db.client.impl.IndexColumnNameSerializer;
+import com.emc.storageos.db.client.impl.DbClientContext;
+import com.emc.storageos.db.client.impl.DbClientImpl;
+import com.emc.storageos.db.client.impl.RowMutator;
 import com.emc.storageos.db.client.impl.TypeMap;
+import com.emc.storageos.db.client.model.ClassNameTimeSeries;
+import com.emc.storageos.db.client.model.uimodels.Order;
 import com.emc.storageos.db.client.upgrade.BaseCustomMigrationCallback;
 import com.emc.storageos.svcs.errorhandling.resources.MigrationCallbackException;
 
 public class UserToOrdersMigration extends BaseCustomMigrationCallback {
     private static final Logger log = LoggerFactory.getLogger(UserToOrdersMigration.class);
 
-    final public static String SOURCE_INDEX_CF_NAME="UserToOrders";
-    private Keyspace ks = null;
-    private ColumnFamily<String, ClassNameTimeSeriesIndexColumnName> newIndexCF;
+    private DbClientContext dbClientContext = null;
+    private ColumnFamilyDefinition newIndexCF;
 
     public UserToOrdersMigration() {
         super();
@@ -51,21 +42,30 @@ public class UserToOrdersMigration extends BaseCustomMigrationCallback {
         ColumnField field = doType.getColumnField(Order.SUBMITTED_BY_USER_ID);
         newIndexCF = field.getIndexCF();
 
-        ColumnFamily<String, IndexColumnName> userToOrders =
-                new ColumnFamily<>(SOURCE_INDEX_CF_NAME, StringSerializer.get(), IndexColumnNameSerializer.get());
-
         DbClientImpl client = (DbClientImpl)dbClient;
-        ks = client.getKeyspace(Order.class);
-        MutationBatch mutationBatch = ks.prepareMutationBatch();
-
+        dbClientContext = client.getDbClientContext(Order.class);
+        RowMutator rowMutator = new RowMutator(dbClientContext, false);
+        
         long m = 0;
         try {
-            OperationResult<Rows<String, IndexColumnName>> result = ks.prepareQuery(userToOrders).getAllRows()
-                    .setRowLimit(1000)
-                    .withColumnRange(new RangeBuilder().setLimit(0).build())
-                    .execute();
+        	SimpleStatement queryStatement = new SimpleStatement("select * from \"UserToOrders\"");
+            queryStatement.setFetchSize(100);
+        	ResultSet resultSet = dbClientContext.getSession().execute(queryStatement);
+        	
+            for (Row row : resultSet) {
+            	String indexKey = row.getString("key");
+                String orderId = row.getString("column2");
 
-            ColumnList<IndexColumnName> cols;
+                ClassNameTimeSeriesIndexColumnName newCol = new ClassNameTimeSeriesIndexColumnName(row.getString("column1"), orderId,
+                        row.getUUID("column5"));
+                rowMutator.insertIndexColumn(newIndexCF.getName(), indexKey, newCol, null);
+                if ( m % 10000 == 0) {
+                	rowMutator.execute();
+                	rowMutator = new RowMutator(dbClientContext, false);
+                }
+            }
+
+            /*ColumnList<IndexColumnName> cols;
             for (Row<String, IndexColumnName> row : result.getResult()) {
                 RowQuery<String, IndexColumnName> rowQuery = ks.prepareQuery(userToOrders).getKey(row.getKey())
                         .autoPaginate(true)
@@ -87,7 +87,7 @@ public class UserToOrdersMigration extends BaseCustomMigrationCallback {
                 }
             }
 
-            mutationBatch.execute();
+            mutationBatch.execute();*/
         }catch (Exception e) {
             log.error("Migration to {} failed e=", newIndexCF.getName(), e);
         }

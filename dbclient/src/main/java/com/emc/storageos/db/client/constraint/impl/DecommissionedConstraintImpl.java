@@ -17,6 +17,7 @@ import com.datastax.driver.core.exceptions.DriverException;
 import com.datastax.driver.core.utils.UUIDs;
 import com.emc.storageos.db.client.constraint.DecommissionedConstraint;
 import com.emc.storageos.db.client.impl.ColumnField;
+import com.emc.storageos.db.client.impl.CompositeIndexColumnName;
 import com.emc.storageos.db.client.impl.IndexColumnName;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.NoInactiveIndex;
@@ -128,12 +129,12 @@ public class DecommissionedConstraintImpl extends ConstraintImpl implements Deco
     }
 
     @Override
-    protected URI getURI(IndexColumnName col) {
+    protected URI getURI(CompositeIndexColumnName col) {
         return URI.create(col.getTwo());
     }
 
     @Override
-    protected <T> T createQueryHit(final QueryResult<T> result, IndexColumnName column) {
+    protected <T> T createQueryHit(final QueryResult<T> result, CompositeIndexColumnName column) {
         return result.createQueryHit(URI.create(column.getTwo()));
     }
     

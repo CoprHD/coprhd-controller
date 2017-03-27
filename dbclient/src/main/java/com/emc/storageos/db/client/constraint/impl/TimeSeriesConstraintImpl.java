@@ -9,9 +9,15 @@ import java.net.URI;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.datastax.driver.core.ResultSet;
+import com.datastax.driver.core.SimpleStatement;
+import com.datastax.driver.core.Statement;
 import com.datastax.driver.core.exceptions.DriverException;
 import com.emc.storageos.db.client.constraint.TimeSeriesConstraint;
-import com.emc.storageos.db.client.impl.*;
+import com.emc.storageos.db.client.impl.ColumnFamilyDefinition;
+import com.emc.storageos.db.client.impl.ColumnField;
+import com.emc.storageos.db.client.impl.CompositeIndexColumnName;
+import com.emc.storageos.db.client.impl.TimeSeriesIndexColumnName;
 import com.emc.storageos.db.client.model.DataObject;
 
 public class TimeSeriesConstraintImpl extends ConstraintImpl
@@ -43,42 +49,42 @@ public class TimeSeriesConstraintImpl extends ConstraintImpl
     public long getLastMatchedTimeStamp() {
         return lastMatchedTimeStamp;
     }
-
+    
     @Override
-    protected RowQuery<String, TimeSeriesIndexColumnName> genQuery() {
-        return genQuery(genRangeBuilder().limit(pageCount));
-    }
-
-    private RowQuery<String, TimeSeriesIndexColumnName> genQuery(CompositeRangeBuilder builder) {
-        return _keyspace.prepareQuery(indexCF).getKey(indexKey).withColumnRange(builder);
-    }
-
-    private CompositeRangeBuilder genRangeBuilder() {
-        return TimeSeriesColumnNameSerializer.get().buildRange()
-                .withPrefix(entryType.getSimpleName())
-                .greaterThan(startTimeMicros)
-                .lessThanEquals(endTimeMicros);
+    protected Statement genQueryStatement() {
+    	String queryString = String.format("select * from \"%s\" where key='%s' and column1='%s' and column2>%s and column2<%s", 
+    			indexCF, indexKey, entryType.getSimpleName(), startTimeMicros, endTimeMicros);
+        
+        SimpleStatement simpleStatement = new SimpleStatement(queryString);
+        simpleStatement.setFetchSize(pageCount);
+        
+        log.debug("query string: {}", queryString);
+        return simpleStatement;
     }
 
     @Override
     public long count() throws DriverException {
         try {
-            OperationResult<Integer> countResult = genQuery(genRangeBuilder()).getCount().execute();
-            return countResult.getResult();
-        }catch (ConnectionException e) {
+        	String queryString = String.format("select count(*) from \"%s\" where key='%s' and column1='%s' and column2>%s and column2<%s", 
+        			indexCF, indexKey, entryType.getSimpleName(), startTimeMicros, endTimeMicros);
+            
+            SimpleStatement simpleStatement = new SimpleStatement(queryString);
+            ResultSet result = dbClientContext.getSession().execute(simpleStatement);
+            return result.one().getInt(0);
+        }catch (DriverException e) {
             log.error("Failed to get count e=", e);
             throw e;
         }
     }
 
     @Override
-    protected URI getURI(Column<TimeSeriesIndexColumnName> col) {
-        return URI.create(col.getName().getThree());
+    protected URI getURI(CompositeIndexColumnName col) {
+        return URI.create(col.getThree());
     }
 
     @Override
-    protected <T> T createQueryHit(final QueryResult<T> result, Column<TimeSeriesIndexColumnName> column) {
-        lastMatchedTimeStamp = column.getName().getTimeInMicros()/1000;
+    protected <T> T createQueryHit(final QueryResult<T> result, CompositeIndexColumnName column) {
+        lastMatchedTimeStamp = ((TimeSeriesIndexColumnName)column).getTimeInMicros()/1000;
         return result.createQueryHit(getURI(column));
     }
 

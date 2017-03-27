@@ -14,6 +14,7 @@ import com.datastax.driver.core.Statement;
 import com.datastax.driver.core.exceptions.DriverException;
 import com.datastax.driver.core.utils.UUIDs;
 import com.emc.storageos.db.client.impl.ColumnField;
+import com.emc.storageos.db.client.impl.CompositeIndexColumnName;
 import com.emc.storageos.db.client.impl.IndexColumnName;
 import com.emc.storageos.db.client.impl.RelationDbIndex;
 import com.emc.storageos.db.client.model.DataObject;
@@ -88,12 +89,12 @@ public class TimedContainmentConstraintImpl extends ConstraintImpl {
     }
 
     @Override
-    protected <T> T createQueryHit(QueryResult<T> result, IndexColumnName column) {
+    protected <T> T createQueryHit(QueryResult<T> result, CompositeIndexColumnName column) {
         return result.createQueryHit(getURI(column), column.getThree(), column.getTimeUUID());
     }
 
     @Override
-    protected URI getURI(IndexColumnName col) {
+    protected URI getURI(CompositeIndexColumnName col) {
         URI ret;
         if (field.getIndex() instanceof RelationDbIndex) {
             ret = URI.create(col.getTwo());

@@ -1956,7 +1956,7 @@ public class DbClientImpl implements DbClient {
      * @return matching rows
      * @throws DatabaseException
      */
-    protected Map<String, List<CompositeColumnName>> queryRowsWithAllColumns(DbClientContext context, Collection<URI> ids, String tableName) {
+    public Map<String, List<CompositeColumnName>> queryRowsWithAllColumns(DbClientContext context, Collection<URI> ids, String tableName) {
         PreparedStatement queryAllColumnsPreparedStatement = context.getPreparedStatement(String.format("Select * from \"%s\" where key in ?", tableName));
         
         ResultSet resultSet = context.getSession()

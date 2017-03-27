@@ -14,6 +14,7 @@ import com.datastax.driver.core.Statement;
 import com.datastax.driver.core.exceptions.DriverException;
 import com.emc.storageos.db.client.constraint.PrefixConstraint;
 import com.emc.storageos.db.client.impl.ColumnField;
+import com.emc.storageos.db.client.impl.CompositeIndexColumnName;
 import com.emc.storageos.db.client.impl.IndexColumnName;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.ScopedLabel;
@@ -52,12 +53,12 @@ public class LabelConstraintImpl extends ConstraintImpl implements PrefixConstra
     }
 
     @Override
-    protected URI getURI(IndexColumnName col) {
+    protected URI getURI(CompositeIndexColumnName col) {
         return URI.create(col.getFour());
     }
 
     @Override
-    protected <T> T createQueryHit(final QueryResult<T> result, IndexColumnName column) {
+    protected <T> T createQueryHit(final QueryResult<T> result, CompositeIndexColumnName column) {
         return result.createQueryHit(getURI(column), column.getThree(), column.getTimeUUID());
     }
     

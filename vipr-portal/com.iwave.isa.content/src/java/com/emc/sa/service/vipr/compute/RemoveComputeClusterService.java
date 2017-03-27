@@ -55,7 +55,7 @@ public class RemoveComputeClusterService extends ViPRService {
                 && (hostURIs.size() > vblockHostURIs.size() || !vblockHostURIs.containsAll(hostURIs))) {
             logError("computeutils.deactivatecluster.deactivate.notpossible", cluster.getLabel());
             preCheckErrors.append("Cluster ").append(cluster.getLabel())
-            .append(" is a mixed cluster: some hosts do not have UCS components. Cannot decommission a mixed cluster from Vblock catalog services..");
+            .append(" is a mixed cluster; some hosts do not have UCS components. Cannot decommission a mixed cluster from Vblock catalog services.");
         }
 
         // Validate all of the boot volumes are still valid.

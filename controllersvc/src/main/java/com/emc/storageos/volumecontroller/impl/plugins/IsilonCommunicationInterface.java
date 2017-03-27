@@ -321,7 +321,8 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                         FileShare fileSystem = _dbClient.queryObject(FileShare.class, stat.getResourceId());
                         if (fileSystem != null) {
                             if (!fileSystem.getInactive()) {
-                                if (!fileSystem.getUsedCapacity().equals(stat.getAllocatedCapacity())) {
+                                if (null != fileSystem.getUsedCapacity() && null != stat.getAllocatedCapacity()&&
+                                        !fileSystem.getUsedCapacity().equals(stat.getAllocatedCapacity())) {
                                     fileSystem.setUsedCapacity(stat.getAllocatedCapacity());
                                     fsChanged = true;
                                 }

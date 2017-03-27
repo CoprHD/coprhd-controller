@@ -539,9 +539,14 @@ public class FileProtectionPolicies extends ViprResourceController {
             Common.handleError();
         }
         assignPolicy.id = params.get("id");
+        FilePolicyRestRep policy = getViprClient().fileProtectionPolicies().getFilePolicy(uri(assignPolicy.id));
+        if (policy.getAppliedAt().equalsIgnoreCase(FilePolicyApplyLevel.file_system.name())) {
+            list();  
+            
+        }
         FilePolicyAssignParam assignPolicyParam = new FilePolicyAssignParam();
         if (assignPolicy.topologiesString == null || assignPolicy.topologiesString.equalsIgnoreCase("[]")) {
-            FilePolicyRestRep policy = getViprClient().fileProtectionPolicies().getFilePolicy(uri(assignPolicy.id));
+
             if (policy.getReplicationSettings() != null
                     && policy.getReplicationSettings().getType().equalsIgnoreCase(FileReplicationType.REMOTE.name())) {
                 flash.error("No source and target varry parameters passed", policy.getName());

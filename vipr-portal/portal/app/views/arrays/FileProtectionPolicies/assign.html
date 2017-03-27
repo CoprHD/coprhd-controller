@@ -65,6 +65,11 @@
          #{Form.selectManyControlGroup field:field, options:vPoolOptions /}
      #{/field}
     </div>
+    
+    <div id="fileAssignInfo" class="row" style="padding-top:20px; padding-bottom:0px;">
+            <div class="col-xs-3"></div>    
+            <div class="pull-left col-sm-6" >&{'assignPolicy.AppliedAtFileInfo'}</div>
+     </div>
         
     <div ng-init="policyId='${assignPolicy.id}'"  ng-controller="filePolicyCtrl">
     	<div id="vpoolFields"  class="row">
@@ -99,6 +104,7 @@
         #{field 'assignPolicy.topologiesString'}
             <input type="hidden" name="assignPolicy.topologiesString" ng-value="topologiesString" />
         #{/field}
+        
         
     </div>
     </div>
@@ -139,19 +145,11 @@
 				} else if (assignAt == 'vpool') {
 					$('#vpoolFields').show();
 					$('#projectFields').hide();
-				} else if (assignAt == 'file_system') {
-					$('#vpoolFields').hide();
-					$('#projectFields').hide();
-				}
-				
-				if(policyType == 'file_snapshot') {
+				}  
+				if (policyType == 'file_replication' && replicationType == 'REMOTE') {
+				     $('#replicationFields').show();				
+				}else {
 					$('#replicationFields').hide();
-				} else if (policyType == 'file_replication') {
-				    if(replicationType == 'REMOTE') {
-					    $('#replicationFields').show();
-					} else {
-					    $('#replicationFields').hide();
-					}
 				}
 				//currenlty mupiple vpool selction is only for snapshotpolicy at vpool level.
 				if(policyType == 'file_snapshot' && assignAt == 'vpool' ) {
@@ -160,6 +158,16 @@
 					
 				}else{
 					$('#vpoolFieldsForSnapShot').hide();
+				}
+				//for assign at file syetme it is not 
+				if (assignAt == 'file_system') {
+					$('#vpoolFields').hide();
+					$('#projectFields').hide();
+					$('#replicationFields').hide();
+					$('#fileAssignInfo').show();
+					$('#button.save').hide();
+				}else {
+					$('#fileAssignInfo').hide();
 				}
 				
 			}

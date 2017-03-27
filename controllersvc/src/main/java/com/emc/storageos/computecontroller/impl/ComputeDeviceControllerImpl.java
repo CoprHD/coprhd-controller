@@ -890,8 +890,8 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
             //TODO: need to break this up into individual smaller steps so that we can try to recover using rollback if decommission failed
             waitFor = workflow.createStep(DEACTIVATION_COMPUTE_SYSTEM_HOST, "Unbind blade from service profile",
                     waitFor, cs.getId(), cs.getSystemType(), this.getClass(), new Workflow.Method(
-                            "deactiveComputeSystemHost", cs.getId(), hostId), null, null);
-                            
+                            "deactivateComputeSystemHost", cs.getId(), hostId), null, null);
+
             if (deactivateBootVolume && !NullColumnValueGetter.isNullURI(host.getBootVolumeId())) {
                 waitFor = workflow.createStep(DEACTIVATION_COMPUTE_SYSTEM_BOOT_VOLUME_UNTAG,
                         "Untag the boot volume for the host", waitFor, cs.getId(), cs.getSystemType(),
@@ -930,7 +930,7 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
             List<Initiator> initiatorsForMask = ExportUtils.getExportMaskInitiators(exportMask.getId(), _dbClient);
             for (Initiator initiator : initiatorsForMask){
                 if (!initiators.contains(initiator)){
-                    log.error("Volume is exported to initiator " + initiator.getLabel() + "which does not belong to host "+ host.getLabel());
+                    log.error("Volume is exported to initiator " + initiator.getLabel() + " which does not belong to host "+ host.getLabel());
                     return false;
                 }
             }
@@ -1483,13 +1483,13 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
      * @param csId
      *            {@link URI} compute system URI
      * @param hostId
-     *            {@link URI} hsot URI
+     *            {@link URI} host URI
      * @param stepId
      *            step id
      */
-    public void deactiveComputeSystemHost(URI csId, URI hostId, String stepId) {
+    public void deactivateComputeSystemHost(URI csId, URI hostId, String stepId) {
 
-        log.info("deactiveComputeSystemHost");
+        log.info("deactivateComputeSystemHost");
 
         Host host = null;
 

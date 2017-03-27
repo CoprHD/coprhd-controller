@@ -3739,8 +3739,8 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
      */
     @Override
     public void validateCreateSnapshot(Volume reqVolume, List<Volume> volumesToSnap,
-            String snapshotType, String snapshotName, BlockFullCopyManager fcManager) {
-        super.validateCreateSnapshot(getVPLEXSnapshotSourceVolume(reqVolume), volumesToSnap, snapshotType, snapshotName, fcManager);
+            String snapshotType, String snapshotName, Boolean readOnly, BlockFullCopyManager fcManager) {
+        super.validateCreateSnapshot(getVPLEXSnapshotSourceVolume(reqVolume), volumesToSnap, snapshotType, snapshotName, readOnly, fcManager);
 
         // If the volume is a VPLEX volume created on a block snapshot,
         // we don't support creation of a snapshot. In this case the

@@ -5078,7 +5078,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
                 }
                 throw DeviceControllerException.exceptions.removeInitiatorValidationError(
                         Joiner.on(", ").join(initiatorNames),
-                        vplex.forDisplay(),
+                        vplex.getLabel(),
                         message);
             }
 

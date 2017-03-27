@@ -2376,7 +2376,7 @@ public class HostService extends TaskResourceService {
                             // database, then we take this opportunity to clear out the object before it causes more
                             // issues.
                             _log.warn(
-                                    "Found duplicate IP {} for non-existant host URI {}.  Deleting IP Interface.",
+                                    "Found duplicate IP {} for non-existent host URI {}.  Deleting IP Interface.",
                                     param.getHostIp(), ipInterface.getHost().toString());
                             _dbClient.markForDeletion(ipInterface);
                         }

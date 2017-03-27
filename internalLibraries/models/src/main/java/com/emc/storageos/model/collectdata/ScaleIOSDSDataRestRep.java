@@ -1,6 +1,8 @@
 package com.emc.storageos.model.collectdata;
 
 import java.util.List;
+import javax.xml.bind.annotation.XmlElement;
+import javax.xml.bind.annotation.XmlElementWrapper;
 
 /**
  * Created by aquinn on 2/21/17.
@@ -26,6 +28,8 @@ public class ScaleIOSDSDataRestRep {
         this.id = id;
     }
 
+    @XmlElementWrapper(name = "ipList")
+    @XmlElement(name = "ip")
     public List<ScaleIOSDSIPDataRestRep> getIpList() {
         return ipList;
     }
@@ -93,7 +97,8 @@ public class ScaleIOSDSDataRestRep {
         this.faultSet = faultSet;
     }
 
-
+    @XmlElementWrapper(name = "deviceList")
+    @XmlElement(name = "device")
     public List<ScaleIODeviceDataRestRep> getDevices() {
         return devices;
     }

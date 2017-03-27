@@ -11,7 +11,6 @@ import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.EnumSet;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
@@ -50,6 +49,9 @@ import com.emc.storageos.security.authorization.CheckPermission;
 import com.emc.storageos.security.authorization.DefaultPermissions;
 import com.emc.storageos.security.authorization.Role;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
+import com.emc.storageos.svcs.errorhandling.resources.InternalException;
+import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorException;
+import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorExceptions;
 import com.emc.storageos.workflow.WorkflowController;
 import com.emc.storageos.workflow.WorkflowState;
 
@@ -522,19 +524,32 @@ public class WorkflowService extends TaskResourceService {
      */
 	private boolean isTopLevelWorkflowForUserTenant(Workflow topLevelWorkflow) {
 	    boolean workflowForTenant = false;
-        String wfTaskId = topLevelWorkflow.getOrchTaskId();
+	    
+	    // Since the tenant is not directly associated to a workflow, we find the 
+	    // Task instance(s) whose request id is the same as the orchestration task
+	    // id for the workflow. We can then get the tenant from the task and compare
+	    // that tenant to the user tenant.
+        String wfOrchTaskId = topLevelWorkflow.getOrchTaskId();
         List<Task> wfTasks = CustomQueryUtility.queryActiveResourcesByConstraint(
-                _dbClient, Task.class, AlternateIdConstraint.Factory.getTasksByRequestIdConstraint(wfTaskId));
+                _dbClient, Task.class, AlternateIdConstraint.Factory.getTasksByRequestIdConstraint(wfOrchTaskId));
         if (!wfTasks.isEmpty()) {
-            // There should only be one task associated with the top-level workflow.
-            Task wfTask = wfTasks.get(0);
-            URI taskTenantURI = wfTask.getTenant();
-            if (taskTenantURI.toString().equals(getUserFromContext().getTenantId())) {
-                // The tenant of the workflow task is the user tenant
-                workflowForTenant = true;
+            for (Task wfTask : wfTasks) {
+                // There could actually be multiple tasks. For example, when creating a VPLEX
+                // local volume, there will be a Task created for the VPLEX volume and another
+                // Task for the backend volume and both will have the same request id. Additionally,
+                // the tenant for backend volume Task will always be the root tenant rather than
+                // tenant of the user creating the volume. Only the VPLEX volume Task will have that
+                // tenant. So, if the tenant of any of the Task instances found with the workflow's
+                // orchestration task id has the current user's tenant, then the workflow is for
+                // the tenant.
+                if (wfTask.getTenant().toString().equals(getUserFromContext().getTenantId())) {
+                    workflowForTenant = true;
+                    break;
+                }
             }
         } else {
-            // internal error, a top level workflow should have a Task.
+            throw APIException.internalServerErrors.canFindTaskForWorkflow(
+                    topLevelWorkflow.getLabel(), topLevelWorkflow.getId().toString(), wfOrchTaskId);
         }
         
         return workflowForTenant;

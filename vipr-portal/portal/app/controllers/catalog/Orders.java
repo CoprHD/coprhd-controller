@@ -159,7 +159,7 @@ public class Orders extends OrderExecution {
     }
 
     public static void list() {
-        OrderDataTable dataTable = new OrderDataTable(Models.currentTenant());
+        OrderDataTable dataTable = new OrderDataTable(Models.currentTenant(), NumberUtils.toInt(params.get("offsetInMinutes"), 0));
         dataTable.setUserInfo(Security.getUserInfo());
         dataTable.setByStartEndDateOrMaxDays(params.get("startDate"), params.get("endDate"),
                 params.get("maxDays", Integer.class));
@@ -173,7 +173,7 @@ public class Orders extends OrderExecution {
     }
 
     public static void listJson() {
-        OrderDataTable dataTable = new OrderDataTable(Models.currentTenant());
+        OrderDataTable dataTable = new OrderDataTable(Models.currentTenant(), NumberUtils.toInt(params.get("offsetInMinutes"), 0));
         dataTable.setUserInfo(Security.getUserInfo());
         dataTable.setByStartEndDateOrMaxDays(params.get("startDate"), params.get("endDate"),
                 params.get("maxDays", Integer.class));

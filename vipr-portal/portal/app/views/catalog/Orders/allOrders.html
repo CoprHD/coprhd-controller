@@ -178,7 +178,8 @@
     function deleteOrders() {
         console.info("start to delete");
         if (isSelectedAll) {
-            var url = #{jsAction @deleteOrders()/}() + "?startDate=${startDate}&endDate=${endDate}&maxDays=${maxDays}";
+            var url = #{jsAction @deleteOrders()/}() + "?startDate=${startDate}&endDate=${endDate}&maxDays=${maxDays}" +
+                    "&offsetInMinutes=" + getTimeZoneOffset();
         } else {
             var url = #{jsAction @deleteOrders(':ids')/}({"ids": selectedIds});
         }
@@ -189,7 +190,8 @@
     function downloadOrders() {
         console.info("start to download");
         if (isSelectedAll) {
-            var url = #{jsAction @downloadOrders()/}() + "?startDate=${startDate}&endDate=${endDate}&maxDays=${maxDays}";
+            var url = #{jsAction @downloadOrders()/}() + "?startDate=${startDate}&endDate=${endDate}&maxDays=${maxDays}" +
+                    "&offsetInMinutes=" + getTimeZoneOffset();
         } else {
             var url = #{jsAction @downloadOrders(':ids')/}({"ids": selectedIds});
         }

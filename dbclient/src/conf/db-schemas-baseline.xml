@@ -8499,6 +8499,9 @@ Please DO NOT modify the content.
                     </annotation>
                 </annotations>
             </field>
+            <field name="journalProvisioningFlag" type="java.lang.Long">
+                <annotations/>
+            </field>
         </fields>
     </data_object_schema>
     <data_object_schema name="ObjectNamespace" type="com.emc.storageos.db.client.model.ObjectNamespace">

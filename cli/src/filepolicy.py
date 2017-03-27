@@ -291,8 +291,6 @@ class FilePolicy(object):
         if pol_type == 'file_replication':
             if replicationtype is not None:
                 replication_params['replication_type'] = replicationtype
-            if replicationconfiguration is not None:
-                replication_params['replicate_configuration'] = replicationconfiguration
             if policy_schedule is not None and (len(policy_schedule) >0):
                 replication_params['policy_schedule'] = policy_schedule
             if priority is not None:
@@ -776,11 +774,6 @@ def update_parser(subcommand_parsers, common_parser):
                                metavar='<policy_schedule_month>',
                                dest='policy_schedule_month',
                                help='Day of month when policy run')
-    update_parser.add_argument('-replicationconfiguration','-repconf',
-                               metavar='<replicate_configuration>',
-                               dest='replicate_configuration',
-                               help='Whether to replicate File System configurations i.e CIFS shares, NFS Exports at the time of failover/failback. Default value is False',
-                               choices=['True', 'False', 'true', 'false'])
     update_parser.add_argument('-snapshotnamepattern', '-snpnmptrn',
                                metavar='<snapshot_name_pattern>',
                                dest='snapshot_name_pattern',
@@ -829,7 +822,6 @@ def filepolicy_update(args):
                 args.policy_schedule_week,
                 args.policy_schedule_month,
                 args.replication_type,
-                args.replicate_configuration,
                 args.snapshot_name_pattern,
                 args.snapshot_expire_type,
                 args.snapshot_expire_value,

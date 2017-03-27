@@ -326,7 +326,9 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                                     fileSystem.setUsedCapacity(stat.getAllocatedCapacity());
                                     fsChanged = true;
                                 }
-                                if (null != fileSystem.getSoftLimit() && !fileSystem.getSoftLimitExceeded().equals(quota.getThresholds().getsoftExceeded())) {
+                                if (null != fileSystem.getSoftLimit() && null != fileSystem.getSoftLimitExceeded() &&
+                                        null != quota.getThresholds() && null != quota.getThresholds().getsoftExceeded() &&
+                                        !fileSystem.getSoftLimitExceeded().equals(quota.getThresholds().getsoftExceeded())) {
                                     fileSystem.setSoftLimitExceeded(quota.getThresholds().getsoftExceeded());
                                     fsChanged = true;
                                 }

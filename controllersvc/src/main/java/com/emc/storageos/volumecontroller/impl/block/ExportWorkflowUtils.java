@@ -22,6 +22,7 @@ import com.emc.storageos.computecontroller.impl.HostRescanDeviceController;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.BlockObject;
+import com.emc.storageos.db.client.model.DataObject.Flag;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.DiscoveredSystemObject;
 import com.emc.storageos.db.client.model.ExportGroup;
@@ -328,10 +329,16 @@ public class ExportWorkflowUtils {
         DiscoveredSystemObject storageSystem = getStorageSystem(_dbClient, storage);
 
         Workflow.Method rollback = rollbackMethodNullMethod();
-        if (!DiscoveredDataObject.Type.vplex.name().equals(storageSystem.getSystemType())) {
-            List<URI> volumeList = new ArrayList<URI>();
-            volumeList.addAll(volumeMap.keySet());
-            rollback = ExportWorkflowEntryPoints.exportRemoveVolumesMethod(storage, export, volumeList);
+        if (export != null) {
+            ExportGroup exportGroup = _dbClient.queryObject(ExportGroup.class, export);
+            // Only add the rollback method to remove volumes from export in cases where we are dealing
+            // with RP+VPlex. This allows the RP orchestration sub-workflow to rollback correctly.
+            if (DiscoveredDataObject.Type.vplex.name().equals(storageSystem.getSystemType())
+                    && exportGroup.checkInternalFlags(Flag.RECOVERPOINT)) {
+                List<URI> volumeList = new ArrayList<URI>();
+                volumeList.addAll(volumeMap.keySet());
+                rollback = ExportWorkflowEntryPoints.exportRemoveVolumesMethod(storage, export, volumeList);
+            }
         }
 
         Workflow.Method method = ExportWorkflowEntryPoints.exportAddVolumesMethod(storage, export, volumeMap);

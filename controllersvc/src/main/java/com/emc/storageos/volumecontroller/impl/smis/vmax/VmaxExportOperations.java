@@ -2217,8 +2217,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
                         Joiner.on(',').join(discoveredVolumes.keySet())));
 
                 List<String> initiatorsToAddToExisting = new ArrayList<String>();
-                List<Initiator> initiatorsToAddToUserAddedAndInitiatorList = new ArrayList<>();
-                boolean addInitiators = false;
+                List<Initiator> initiatorsToAddToUserAddedAndInitiatorList = new ArrayList<Initiator>();
 
                 /**
                  * For the newly discovered initiators, if they are ViPR discovered ports and belong to same resource
@@ -2240,7 +2239,6 @@ public class VmaxExportOperations implements ExportMaskOperations {
                     }
                 }
 
-                boolean removeInitiators = false;
                 /**
                  * Get the existing initiators from the mask and remove the non-discovered ports because
                  * they are not discovered and are stale.
@@ -2248,12 +2246,12 @@ public class VmaxExportOperations implements ExportMaskOperations {
                  * If the mask has existing initiators but if they are discovered and belongs to same compute resource, then the
                  * initiators has to get added to user Added and initiators list, and removed from existing list.
                  */
-                List<String> initiatorsToRemovefromExistingList = new ArrayList<String>();
+                List<String> initiatorsToRemoveFromExistingList = new ArrayList<String>();
                 if (mask.getExistingInitiators() != null &&
                         !mask.getExistingInitiators().isEmpty()) {
                     for (String existingInitiatorStr : mask.getExistingInitiators()) {
                         if (!discoveredPorts.contains(existingInitiatorStr)) {
-                            initiatorsToRemovefromExistingList.add(existingInitiatorStr);
+                            initiatorsToRemoveFromExistingList.add(existingInitiatorStr);
                         } else {
                             Initiator existingInitiator = ExportUtils.getInitiator(Initiator.toPortNetworkId(existingInitiatorStr),
                                     _dbClient);
@@ -2261,7 +2259,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
                                 _log.info("Initiator {}->{} belonging to same compute, removing from existing,"
                                         + " and adding to userAdded and initiator list", existingInitiatorStr, existingInitiator.getId());
                                 initiatorsToAddToUserAddedAndInitiatorList.add(existingInitiator);
-                                initiatorsToRemovefromExistingList.add(existingInitiatorStr);
+                                initiatorsToRemoveFromExistingList.add(existingInitiatorStr);
                             }
                         }
                     }
@@ -2272,7 +2270,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
                  * The remaining list has to be removed from user Added and initiator list, because they are not available in ViPR
                  * but has to be moved to existing list.
                  */
-                List<URI> initiatorsToRemoveFromUserAddedAndInitiatorList = new ArrayList<>();
+                List<URI> initiatorsToRemoveFromUserAddedAndInitiatorList = new ArrayList<URI>();
                 if (mask.getInitiators() != null &&
                         !mask.getInitiators().isEmpty()) {
                     initiatorsToRemoveFromUserAddedAndInitiatorList.addAll(transform(mask.getInitiators(),
@@ -2289,9 +2287,10 @@ public class VmaxExportOperations implements ExportMaskOperations {
                     }
                 }
 
-                removeInitiators = !initiatorsToRemovefromExistingList.isEmpty() || !initiatorsToRemoveFromUserAddedAndInitiatorList.isEmpty();
-
-                addInitiators = !initiatorsToAddToUserAddedAndInitiatorList.isEmpty() || !initiatorsToAddToExisting.isEmpty();
+                boolean removeInitiators = !initiatorsToRemoveFromExistingList.isEmpty()
+                        || !initiatorsToRemoveFromUserAddedAndInitiatorList.isEmpty();
+                boolean addInitiators = !initiatorsToAddToUserAddedAndInitiatorList.isEmpty()
+                        || !initiatorsToAddToExisting.isEmpty();
 
                 
                 // Check the volumes and update the lists as necessary
@@ -2359,7 +2358,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
                 builder.append(
                         String.format("XM refresh: %s existing initiators; add:{%s} remove:{%s}%n",
                                 name, Joiner.on(',').join(initiatorsToAddToExisting),
-                                Joiner.on(',').join(initiatorsToRemovefromExistingList)));
+                                Joiner.on(',').join(initiatorsToRemoveFromExistingList)));
                 builder.append(
                         String.format("XM refresh: %s user added and initiator list; add:{%s} remove:{%s}%n",
                                 name, Joiner.on(',').join(initiatorsToAddToUserAddedAndInitiatorList),
@@ -2376,7 +2375,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
                 // Any changes indicated, then update the mask and persist it
                 if (addInitiators || removeInitiators || addVolumes ||
                         removeVolumes || addStoragePorts || removeStoragePorts) {
-                    mask.removeFromExistingInitiators(initiatorsToRemovefromExistingList);
+                    mask.removeFromExistingInitiators(initiatorsToRemoveFromExistingList);
                     if (!initiatorsToRemoveFromUserAddedAndInitiatorList.isEmpty()) {
                         mask.removeInitiators(_dbClient.queryObject(Initiator.class, initiatorsToRemoveFromUserAddedAndInitiatorList));
                         mask.removeFromUserAddedInitiatorsByURI(initiatorsToRemoveFromUserAddedAndInitiatorList);

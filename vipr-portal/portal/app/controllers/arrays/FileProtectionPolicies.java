@@ -153,6 +153,7 @@ public class FileProtectionPolicies extends ViprResourceController {
             AssignPolicyForm assignPolicy = new AssignPolicyForm().form(filePolicyRestRep);
             addRenderApplyPolicysAt();
             addProjectArgs(filePolicyRestRep);
+            addVpoolArgs(filePolicyRestRep);
             render(assignPolicy);
 
         } else {
@@ -375,6 +376,9 @@ public class FileProtectionPolicies extends ViprResourceController {
         renderArgs.put("projectOptions", getFileProjectOptions(uri(Models.currentAdminTenant())));
     }
 
+    private static void addVpoolArgs(FilePolicyRestRep policy) {
+        renderArgs.put("vPoolOptions", getFileVirtualPoolsOptions(policy));
+    }
 
     private static void addAssignedProjectArgs(FilePolicyRestRep policy) {
         renderArgs.put("projectVpoolOptions", getVPoolForAssignedProjectOptions(policy));
@@ -535,9 +539,14 @@ public class FileProtectionPolicies extends ViprResourceController {
             Common.handleError();
         }
         assignPolicy.id = params.get("id");
+        FilePolicyRestRep policy = getViprClient().fileProtectionPolicies().getFilePolicy(uri(assignPolicy.id));
+        if (policy.getAppliedAt().equalsIgnoreCase(FilePolicyApplyLevel.file_system.name())) {
+            list();  
+            
+        }
         FilePolicyAssignParam assignPolicyParam = new FilePolicyAssignParam();
         if (assignPolicy.topologiesString == null || assignPolicy.topologiesString.equalsIgnoreCase("[]")) {
-            FilePolicyRestRep policy = getViprClient().fileProtectionPolicies().getFilePolicy(uri(assignPolicy.id));
+
             if (policy.getReplicationSettings() != null
                     && policy.getReplicationSettings().getType().equalsIgnoreCase(FileReplicationType.REMOTE.name())) {
                 flash.error("No source and target varry parameters passed", policy.getName());
@@ -962,6 +971,10 @@ public class FileProtectionPolicies extends ViprResourceController {
             if (assignPolicy.vpool != null) {
                 vPools.add(assignPolicy.vpool);
             }
+            if (FilePolicyType.file_snapshot.name().equalsIgnoreCase(existingPolicy.getType()) && assignPolicy.virtualPools != null) {
+
+                vPools.addAll(assignPolicy.virtualPools);
+            }
 
             Set<String> add = Sets.newHashSet(CollectionUtils.subtract(vPools, existingvPools));
 
@@ -987,13 +1000,12 @@ public class FileProtectionPolicies extends ViprResourceController {
 
         if (FilePolicyApplyLevel.project.name().equalsIgnoreCase(existingPolicy.getAppliedAt())) {
 
-            List<String> existingProjects = stringRefIds(existingPolicy.getAssignedResources());
             List<String> projects = Lists.newArrayList();
-            if (assignPolicy.projects != null) {
-                projects = assignPolicy.projects;
+            if (assignPolicy.unassignedProjects != null) {
+                projects = assignPolicy.unassignedProjects;
             }
 
-            Set<String> remove = Sets.newHashSet(CollectionUtils.subtract(existingProjects, projects));
+            List<String> remove = projects;
 
             // removed projects
             Set<URI> unAssingRes = new HashSet<URI>();
@@ -1007,14 +1019,14 @@ public class FileProtectionPolicies extends ViprResourceController {
 
         } else if (FilePolicyApplyLevel.vpool.name().equalsIgnoreCase(existingPolicy.getAppliedAt())) {
 
-            List<String> existingvPools = stringRefIds(existingPolicy.getAssignedResources());
             List<String> vPools = Lists.newArrayList();
 
-            if (assignPolicy.vpool != null) {
-                vPools.add(assignPolicy.vpool);
+            if (assignPolicy.unassignedVirtualPools != null) {
+                vPools = assignPolicy.unassignedVirtualPools;
+
             }
 
-            Set<String> remove = Sets.newHashSet(CollectionUtils.subtract(existingvPools, vPools));
+            List<String> remove = vPools;
 
             // removed vpools
             Set<URI> unAssingRes = new HashSet<URI>();
@@ -1052,6 +1064,11 @@ public class FileProtectionPolicies extends ViprResourceController {
         public List<String> projects;
 
         public List<String> virtualPools;
+
+        // Currently same form is used for assigned and unassigned need to separate it in future
+        public List<String> unassignedProjects;
+        public List<String> unassignedVirtualPools;
+
 
         public boolean applyOnTargetSite;
 

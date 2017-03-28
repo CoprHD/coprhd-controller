@@ -7,7 +7,6 @@ package com.emc.storageos.networkcontroller.impl;
 import java.net.URI;
 import java.text.MessageFormat;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
@@ -55,6 +54,7 @@ import com.emc.storageos.db.client.model.ZoneInfo;
 import com.emc.storageos.db.client.model.ZoneInfoMap;
 import com.emc.storageos.db.client.util.CommonTransformerFunctions;
 import com.emc.storageos.db.client.util.DataObjectUtils;
+import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.client.util.StringMapUtil;
 import com.emc.storageos.db.client.util.StringSetUtil;
 import com.emc.storageos.db.client.util.WWNUtility;
@@ -412,7 +412,12 @@ public class NetworkDeviceController implements NetworkController {
                     String refKey = null;
                     try {
                         for (NetworkFCZoneInfo fabricInfo : fabricInfos) {
-                            FCZoneReference ref = _dbClient.queryObject(FCZoneReference.class, fabricInfo.getFcZoneReferenceId());
+                            URI fcZoneReferenceId = fabricInfo.getFcZoneReferenceId();
+                            if (NullColumnValueGetter.isNullURI(fcZoneReferenceId)) {
+                                _log.info("fcZoneReferenceId is null. Nothing to remove.");
+                                continue;
+                            }
+                            FCZoneReference ref = _dbClient.queryObject(FCZoneReference.class, fcZoneReferenceId);
                             if (ref != null) {
                                 refKey = ref.getPwwnKey();
                                 _dbClient.markForDeletion(ref);

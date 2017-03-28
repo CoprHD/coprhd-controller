@@ -20,6 +20,7 @@ import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.OpStatusMap;
+import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.Volume;
@@ -79,7 +80,7 @@ public class VNXUnityRestoreSnapshotJob extends VNXeJob {
                         BlockObject parent = BlockObject.fetch(dbClient, snapshot.getParent().getURI());
                         
                         String label = String.format("%s-%s", setLabel, count++);
-                        final BlockSnapshot newSnap = initSnapshot(parent, label, setLabel, projectUri);
+                        final BlockSnapshot newSnap = initSnapshot(parent, label, setLabel, projectUri, snapshotObj.getProject().getName());
                         newSnap.setOpStatus(new OpStatusMap());
                         snapshotList.add(newSnap);
                         volumeToSnapMap.put(parent.getNativeId(), newSnap);
@@ -93,7 +94,8 @@ public class VNXUnityRestoreSnapshotJob extends VNXeJob {
                     }
                 } else {
                     Volume vol = dbClient.queryObject(Volume.class, snapshotObj.getParent());
-                    final BlockSnapshot newSnap = initSnapshot(vol, backupSnap.getName(), backupSnap.getName(), projectUri);
+                    final BlockSnapshot newSnap = initSnapshot(vol, backupSnap.getName(), backupSnap.getName(), projectUri, 
+                            dbClient.queryObject(Project.class, projectUri).getLabel());
                     createSnapshot(newSnap, backupSnap, storage, dbClient);
                 }
 
@@ -136,10 +138,12 @@ public class VNXUnityRestoreSnapshotJob extends VNXeJob {
      * @param blockObj The parent of the BlockSnapshot
      * @param label The snapshot label
      * @param setLabel The set of snapshots label
+     * @param projectUri project URI
+     * @param projectName project name
      * @return
      */
     private BlockSnapshot initSnapshot(final BlockObject blockObj, final String label, final String setLabel, 
-            final URI projectUri) {
+            final URI projectUri, final String projectName) {
         BlockSnapshot createdSnap = new BlockSnapshot();
         createdSnap.setId(URIUtil.createId(BlockSnapshot.class));
         createdSnap.setConsistencyGroup(blockObj.getConsistencyGroup());
@@ -151,10 +155,10 @@ public class VNXUnityRestoreSnapshotJob extends VNXeJob {
         createdSnap.setVirtualArray(blockObj.getVirtualArray());
         createdSnap.setProtocol(new StringSet());
         createdSnap.getProtocol().addAll(blockObj.getProtocol());
-        if (blockObj instanceof Volume ) {
-            createdSnap.setProject(new NamedURI(projectUri, label));
+        if (blockObj instanceof Volume) {
+            createdSnap.setProject(new NamedURI(projectUri, projectName));
         } else if (blockObj instanceof BlockSnapshot) {
-            createdSnap.setProject(new NamedURI(projectUri, label));
+            createdSnap.setProject(new NamedURI(projectUri, projectName));
         }
         createdSnap.setSnapsetLabel(ResourceOnlyNameGenerator.removeSpecialCharsForName(setLabel,
                 SmisConstants.MAX_SNAPSHOT_NAME_LENGTH));

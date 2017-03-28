@@ -1513,14 +1513,14 @@ public class WorkflowTest extends ControllersvcTestBase implements Controller {
         Project project = new Project();
         project.setId(URIUtil.createId(Project.class));
         project.setLabel("project1");
-        project.setTenantOrg(new NamedURI(tenant.getId(), project.getLabel()));
+        project.setTenantOrg(new NamedURI(tenant.getId(), tenant.getLabel()));
         dbClient.createObject(project);
 
         Volume vol = new Volume();
         vol.setId(URIUtil.createId(Volume.class));
         vol.setLabel("volumeObject");
-        vol.setProject(new NamedURI(project.getId(), vol.getLabel()));
-        vol.setTenant(new NamedURI(tenant.getId(), vol.getLabel()));
+        vol.setProject(new NamedURI(project.getId(), project.getLabel()));
+        vol.setTenant(new NamedURI(tenant.getId(), tenant.getLabel()));
         dbClient.createObject(vol);
 
         return vol;

@@ -454,7 +454,7 @@ public class FileMirrorServiceApiImpl extends AbstractFileServiceApiImpl<FileMir
         fs.setCapacity(fileshareSize);
 
         // set tenant
-        fs.setTenant(new NamedURI(tenantOrg.getId(), newFileLabel));
+        fs.setTenant(new NamedURI(tenantOrg.getId(), tenantOrg.getLabel()));
 
         // set vpool
         VirtualPool vpool = sourceVpool;
@@ -468,7 +468,7 @@ public class FileMirrorServiceApiImpl extends AbstractFileServiceApiImpl<FileMir
 
         // set project
         if (project != null) {
-            fs.setProject(new NamedURI(project.getId(), fs.getLabel()));
+            fs.setProject(new NamedURI(project.getId(), project.getLabel()));
         }
 
         // set prov type

@@ -127,6 +127,10 @@ ext {
         "org.javassist:javassist:3.18.0-GA",
 
     ]
+    aspectj_runtime = [
+        "org.aspectj.runtime:1.8.10",
+
+    ]
     commons_compress = [
         "org.apache.commons:commons-compress:1.4.1",
         "org.tukaani:xz:1.0",

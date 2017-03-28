@@ -815,8 +815,8 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
         createdMirror.setStorageController(vplexVolume.getStorageController());
         createdMirror.setVirtualArray(varray.getId());
         createdMirror.setCapacity(vplexVolume.getCapacity());
-        createdMirror.setProject(new NamedURI(vplexVolume.getProject().getURI(), vplexVolume.getProject().getName()));
-        createdMirror.setTenant(new NamedURI(vplexVolume.getTenant().getURI(), vplexVolume.getTenant().getName()));
+        createdMirror.setProject(new NamedURI(vplexVolume.getProject().getURI(), createdMirror.getLabel()));
+        createdMirror.setTenant(new NamedURI(vplexVolume.getTenant().getURI(), createdMirror.getLabel()));
         createdMirror.setVirtualPool(vPool.getId());
         createdMirror.setThinPreAllocationSize(thinPreAllocationSize);
         createdMirror.setThinlyProvisioned(VirtualPool.ProvisioningType.Thin.toString().equalsIgnoreCase(
@@ -2029,8 +2029,8 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
         volume.setThinlyProvisioned(VirtualPool.ProvisioningType.Thin.toString()
                 .equalsIgnoreCase(vpool.getSupportedProvisioningType()));
         volume.setVirtualPool(vpool.getId());
-        volume.setProject(new NamedURI(project.getId(), project.getLabel()));
-        volume.setTenant(new NamedURI(project.getTenantOrg().getURI(), project.getTenantOrg().getName()));
+        volume.setProject(new NamedURI(project.getId(), volume.getLabel()));
+        volume.setTenant(new NamedURI(project.getTenantOrg().getURI(), volume.getLabel()));
         volume.setVirtualArray(neighborhood.getId());
         StoragePool storagePool = null;
         if (!NullColumnValueGetter.getNullURI().toString().equals(storagePoolURI.toString())) {
@@ -3143,11 +3143,11 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
             v.setId(URIUtil.createId(Volume.class));
             Volume sourceVplexVolume = _dbClient.queryObject(Volume.class, copy.getSource());
             String promotedLabel = String.format("%s-%s", sourceVplexVolume.getLabel(), copy.getLabel());
-            v.setProject(new NamedURI(copy.getProject().getURI(), copy.getProject().getName()));
+            v.setProject(new NamedURI(copy.getProject().getURI(), promotedLabel));
             StringSet protocols = new StringSet();
             protocols.add(StorageProtocol.Block.FC.name());
             v.setProtocol(protocols);
-            v.setTenant(new NamedURI(copy.getTenant().getURI(), copy.getTenant().getName()));
+            v.setTenant(new NamedURI(copy.getTenant().getURI(), promotedLabel));
             _dbClient.createObject(v);
             Operation op = _dbClient.createTaskOpStatus(Volume.class, v.getId(), opId,
                     ResourceOperationTypeEnum.PROMOTE_COPY_TO_VPLEX, copy.getId().toString());
@@ -3739,8 +3739,8 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
      */
     @Override
     public void validateCreateSnapshot(Volume reqVolume, List<Volume> volumesToSnap,
-            String snapshotType, String snapshotName, BlockFullCopyManager fcManager) {
-        super.validateCreateSnapshot(getVPLEXSnapshotSourceVolume(reqVolume), volumesToSnap, snapshotType, snapshotName, fcManager);
+            String snapshotType, String snapshotName, Boolean readOnly, BlockFullCopyManager fcManager) {
+        super.validateCreateSnapshot(getVPLEXSnapshotSourceVolume(reqVolume), volumesToSnap, snapshotType, snapshotName, readOnly, fcManager);
 
         // If the volume is a VPLEX volume created on a block snapshot,
         // we don't support creation of a snapshot. In this case the

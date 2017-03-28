@@ -605,15 +605,12 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                     List<URI> initiatorsToRemoveOnStorage = new ArrayList<URI>();
                     for (URI initiatorURI : initiatorsToRemove) {
                         Initiator initiator = _dbClient.queryObject(Initiator.class, initiatorURI);
-                        //COP-28729 - We can allow remove initiator or host if the shared mask doesn't have any existing volumes.
-                        //Shared masks will have atleast one unmanaged volume.
-                        List<String> sharedMaskNamesWithUnManagedVolumes = ExportUtils.getExportMasksSharingInitiatorAndHasUnManagedVolumes(_dbClient, initiatorURI, mask,
+                        // COP-28729 - We can allow remove initiator or host if the shared mask doesn't have any existing volumes.
+                        // Shared masks will have at least one unmanaged volume.
+                        String err = ExportUtils.getExportMasksSharingInitiatorAndHasUnManagedVolumes(_dbClient, initiator, mask,
                                 existingMasksToRemoveInitiator.keySet());
-                        if (!CollectionUtils.isEmpty(sharedMaskNamesWithUnManagedVolumes)) {
-                            String normalizedName = Initiator.normalizePort(initiator.getInitiatorPort());
-                            errorMessage.append(
-                                    String.format(" Initiator %s is shared between other Export Masks  %s and has unmanaged volumes.Removing initiator will affect the other masking view",
-                                            normalizedName, Joiner.on(", ").join(sharedMaskNamesWithUnManagedVolumes)));
+                        if (err != null) {
+                            errorMessage.append(err);
                         }
                         initiatorsToRemoveOnStorage.add(initiatorURI);
                     }
@@ -731,7 +728,7 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
 
             if (isValidationNeeded && StringUtils.hasText(errorMessage)) {
                 throw DeviceControllerException.exceptions.removeInitiatorValidationError(Joiner.on(", ").join(initiatorNames),
-                        storage.forDisplay(),
+                        storage.getLabel(),
                         errorMessage.toString());
             }
 

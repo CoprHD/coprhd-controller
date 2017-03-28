@@ -30,10 +30,13 @@ import com.emc.storageos.remotereplicationcontroller.RemoteReplicationUtils;
 import com.emc.storageos.security.authorization.ACL;
 
 import com.emc.storageos.storagedriver.storagecapabilities.RemoteReplicationAttributes;
+
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.api.service.impl.resource.ArgValidator;
+import com.emc.storageos.api.service.impl.resource.TaskResourceService;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.OpStatusMap;
@@ -62,13 +65,14 @@ import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.impl.externaldevice.RemoteReplicationElement;
+import com.emc.storageos.volumecontroller.impl.utils.ConsistencyGroupUtils;
 
 
 @Path("/vdc/block/remotereplicationgroups")
 @DefaultPermissions(readRoles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, readAcls = {
         ACL.OWN, ACL.ALL }, writeRoles = { Role.SYSTEM_ADMIN, Role.TENANT_ADMIN }, writeAcls = { ACL.OWN,
         ACL.ALL })
-public class RemoteReplicationGroupService extends AbstractRemoteReplicationService {
+public class RemoteReplicationGroupService extends TaskResourceService {
 
     private static final Logger _log = LoggerFactory.getLogger(RemoteReplicationGroupService.class);
     public static final String SERVICE_TYPE = "remote_replication";
@@ -118,20 +122,22 @@ public class RemoteReplicationGroupService extends AbstractRemoteReplicationServ
     @Path("/consistency-group/groups")
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR })
     public RemoteReplicationGroupList getRemoteReplicationGroupsForCG(@QueryParam("consistencyGroup") URI uri) {
-        BlockConsistencyGroup cGroup = findConsistencyGroupById(uri);
-        if (isConsistencyGroupEmpty(cGroup)) {
+        BlockConsistencyGroup cGroup = ConsistencyGroupUtils.findConsistencyGroupById(uri, _dbClient);
+        if (ConsistencyGroupUtils.isConsistencyGroupEmpty(cGroup)) {
             // If CG is empty (storageDevice is null) any remote replication group is a match.
             return getRemoteReplicationGroups();
         }
         RemoteReplicationGroupList result = new RemoteReplicationGroupList();
-        if (!isConsistencyGroupSupportRemoteReplication(cGroup)) {
+        if (!ConsistencyGroupUtils.isConsistencyGroupSupportRemoteReplication(cGroup)) {
             return result;
         }
-        Set<String> targetCGSystemsSet = findAllRRConsistencyGrroupSystemsByLabel(cGroup.getAlternateLabel(), cGroup);
-        Iterator<RemoteReplicationGroup> groups = findAllRemoteRepliationGroupsIteratively();
+        Set<String> targetCGSystemsSet = ConsistencyGroupUtils
+                .findAllRRConsistencyGrroupSystemsByLabel(cGroup.getAlternateLabel(), cGroup, _dbClient);
+        Iterator<RemoteReplicationGroup> groups = RemoteReplicationUtils.findAllRemoteRepliationGroupsIteratively(_dbClient);
         while (groups.hasNext()) {
             RemoteReplicationGroup rrGroup = groups.next();
-            if (!haveSameStorageSystemType(rrGroup, cGroup)) {
+            StorageSystem cgSystem = _dbClient.queryObject(StorageSystem.class, cGroup.getStorageController());
+            if (!StringUtils.equals(cgSystem.getSystemType(), rrGroup.getStorageSystemType())) {
                 // Pass ones whose storage system type is not aligned with consistency group
                 continue;
             }

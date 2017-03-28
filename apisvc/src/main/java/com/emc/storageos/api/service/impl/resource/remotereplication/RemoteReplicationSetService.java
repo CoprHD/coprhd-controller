@@ -35,10 +35,12 @@ import com.emc.storageos.remotereplicationcontroller.RemoteReplicationUtils;
 import com.emc.storageos.security.authorization.ACL;
 
 import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.api.service.impl.resource.ArgValidator;
+import com.emc.storageos.api.service.impl.resource.TaskResourceService;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.OpStatusMap;
@@ -68,6 +70,7 @@ import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.impl.externaldevice.RemoteReplicationElement;
+import com.emc.storageos.volumecontroller.impl.utils.ConsistencyGroupUtils;
 import com.emc.storageos.volumecontroller.impl.utils.ObjectLocalCache;
 import com.emc.storageos.volumecontroller.impl.utils.attrmatchers.NeighborhoodsMatcher;
 
@@ -75,7 +78,7 @@ import com.emc.storageos.volumecontroller.impl.utils.attrmatchers.NeighborhoodsM
 @DefaultPermissions(readRoles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, readAcls = {
         ACL.OWN, ACL.ALL }, writeRoles = { Role.SYSTEM_ADMIN, Role.TENANT_ADMIN }, writeAcls = { ACL.OWN,
         ACL.ALL })
-public class RemoteReplicationSetService extends AbstractRemoteReplicationService {
+public class RemoteReplicationSetService extends TaskResourceService {
 
     private static final Logger _log = LoggerFactory.getLogger(RemoteReplicationSetService.class);
     public static final String SERVICE_TYPE = "remote_replication";
@@ -120,7 +123,7 @@ public class RemoteReplicationSetService extends AbstractRemoteReplicationServic
         _log.info("Called: getRemoteReplicationSets()");
         RemoteReplicationSetList rrSetList = new RemoteReplicationSetList();
 
-        Iterator<RemoteReplicationSet> iter = findAllRemoteRepliationSetsIteratively();
+        Iterator<RemoteReplicationSet> iter = RemoteReplicationUtils.findAllRemoteRepliationSetsIteratively(_dbClient);
         while (iter.hasNext()) {
             rrSetList.getRemoteReplicationSets().add(toNamedRelatedResource(iter.next()));
         }
@@ -163,7 +166,7 @@ public class RemoteReplicationSetService extends AbstractRemoteReplicationServic
             allTargetSystems.addAll(targetDevices);
         }
 
-        Iterator<RemoteReplicationSet> it = findAllRemoteRepliationSetsIteratively();
+        Iterator<RemoteReplicationSet> it = RemoteReplicationUtils.findAllRemoteRepliationSetsIteratively(_dbClient);
         outloop:
         while (it.hasNext()) {
             RemoteReplicationSet rrSet = it.next();
@@ -293,20 +296,22 @@ public class RemoteReplicationSetService extends AbstractRemoteReplicationServic
     @Path("/consistency-group/sets")
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR })
     public RemoteReplicationSetList getRemoteReplicationSetsForCG(@QueryParam("consistencyGroup") URI uri) {
-        BlockConsistencyGroup cGroup = findConsistencyGroupById(uri);
-        if (isConsistencyGroupEmpty(cGroup)) {
+        BlockConsistencyGroup cGroup = ConsistencyGroupUtils.findConsistencyGroupById(uri, _dbClient);
+        if (ConsistencyGroupUtils.isConsistencyGroupEmpty(cGroup)) {
             // If CG is empty (storageDevice is null) any remote replication set is a match.
             return getRemoteReplicationSets();
         }
         RemoteReplicationSetList result = new RemoteReplicationSetList();
-        if (!isConsistencyGroupSupportRemoteReplication(cGroup)) {
+        if (!ConsistencyGroupUtils.isConsistencyGroupSupportRemoteReplication(cGroup)) {
             return result;
         }
-        Set<String> targetCGSystemsSet = findAllRRConsistencyGrroupSystemsByLabel(cGroup.getAlternateLabel(), cGroup);
-        Iterator<RemoteReplicationSet> sets = findAllRemoteRepliationSetsIteratively();
+        Set<String> targetCGSystemsSet = ConsistencyGroupUtils
+                .findAllRRConsistencyGrroupSystemsByLabel(cGroup.getAlternateLabel(), cGroup, _dbClient);
+        Iterator<RemoteReplicationSet> sets = RemoteReplicationUtils.findAllRemoteRepliationSetsIteratively(_dbClient);
         while (sets.hasNext()) {
             RemoteReplicationSet rrSet = sets.next();
-            if (!haveSameStorageSystemType(rrSet, cGroup)) {
+            StorageSystem cgSystem = _dbClient.queryObject(StorageSystem.class, cGroup.getStorageController());
+            if (!StringUtils.equals(cgSystem.getSystemType(), rrSet.getStorageSystemType())) {
                 // Pass ones whose storage system type is not aligned with consistency group
                 continue;
             }

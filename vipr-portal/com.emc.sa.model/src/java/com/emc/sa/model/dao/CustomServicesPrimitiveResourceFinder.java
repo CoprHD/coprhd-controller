@@ -38,11 +38,11 @@ public class CustomServicesPrimitiveResourceFinder extends
     }
 
     public <T extends CustomServicesDBResource> List<NamedElement> listAllResourceByRefId(final Class<T> type, final String columnName,
-            final URI referenceId) {
+            final String referenceId) {
 
         final List<URI> out = Lists.newArrayList();
         if (null != referenceId) {
-            final List<NamedElement> results = client.findByAlternateId(type, columnName, referenceId.toString());
+            final List<NamedElement> results = client.findByAlternateId(type, columnName, referenceId);
             if (results != null) {
                 for (final NamedElement namedElement : results) {
                     out.add(namedElement.getId());

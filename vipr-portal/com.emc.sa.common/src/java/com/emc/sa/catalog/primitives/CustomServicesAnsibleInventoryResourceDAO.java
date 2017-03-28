@@ -23,12 +23,16 @@ import org.springframework.beans.factory.annotation.Autowired;
 
 import com.emc.sa.catalog.CustomServicesPrimitiveManager;
 import com.emc.sa.model.dao.ModelClient;
+import com.emc.storageos.api.service.impl.resource.ArgValidator;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.constraint.NamedElementQueryResultList.NamedElement;
 import com.emc.storageos.db.client.model.StringSetMap;
 import com.emc.storageos.db.client.model.uimodels.CustomServicesDBAnsibleInventoryResource;
+import com.emc.storageos.db.client.model.uimodels.CustomServicesDBAnsibleResource;
 import com.emc.storageos.primitives.CustomServicesConstants;
 import com.emc.storageos.primitives.db.ansible.CustomServicesAnsibleInventoryResource;
+import com.emc.storageos.primitives.db.ansible.CustomServicesAnsibleResource;
+import com.emc.storageos.svcs.errorhandling.resources.APIException;
 
 /**
  * Data access object for ansible primitive inventory resource
@@ -56,11 +60,21 @@ public class CustomServicesAnsibleInventoryResourceDAO implements CustomServices
 
     @Override
     public CustomServicesAnsibleInventoryResource createResource(final String name,
-            final byte[] stream, final URI parentId) {
+            final byte[] stream, final String parentId) {
         final StringSetMap attributes = new StringSetMap();
+        ArgValidator.checkFieldNotNull(parentId, "parentId");
+        final URI parentIdURI = URI.create(parentId);
+
+        // Verify that there is an ansible resource associated with the parent id that is passed in the request
+        CustomServicesAnsibleResource parentResource = CustomServicesDBHelper.getResource(CustomServicesAnsibleResource.class,
+                CustomServicesDBAnsibleResource.class, primitiveManager, parentIdURI);
+        if (null == parentResource) {
+            throw APIException.notFound.unableToFindEntityInURL(parentIdURI);
+        }
+
         return CustomServicesDBHelper.createResource(CustomServicesAnsibleInventoryResource.class,
                 CustomServicesDBAnsibleInventoryResource.class,
-                primitiveManager, name, stream, attributes, parentId);
+                primitiveManager, name, stream, attributes, parentIdURI);
     }
 
     @Override
@@ -76,24 +90,14 @@ public class CustomServicesAnsibleInventoryResourceDAO implements CustomServices
     }
 
     @Override
-    public List<NamedElement> listResources() {
-        return client.customServicesPrimitiveResources().list(CustomServicesDBAnsibleInventoryResource.class);
-    }
-
-    @Override
-    public List<NamedElement> listResourcesByParentId(final URI parentId) {
-        return client.customServicesPrimitiveResources().listAllResourceByRefId(CustomServicesDBAnsibleInventoryResource.class,
-                CustomServicesDBAnsibleInventoryResource.PARENTID, parentId);
+    public List<NamedElement> listResources(final String filterByParentId) {
+        return CustomServicesDBHelper.listResources(CustomServicesDBAnsibleInventoryResource.class, client,
+                CustomServicesDBAnsibleInventoryResource.PARENTID, filterByParentId);
     }
 
     @Override
     public Class<CustomServicesAnsibleInventoryResource> getResourceType() {
         return CustomServicesAnsibleInventoryResource.class;
-    }
-
-    @Override
-    public boolean hasResource() {
-        return true;
     }
 
 }

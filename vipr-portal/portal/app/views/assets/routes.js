@@ -91,6 +91,7 @@ var routes = {
   FileSystems_save: #{jsAction @resources.FileSystems.save() /},
   FileSystems_fileSystemQuotaJson: #{jsAction @resources.FileSystems.fileSystemQuotaJson() /},
   FileSystems_getScheculePolicies: #{jsAction @resources.FileSystems.getScheculePolicies() /},
+  FileSystems_getTargetVArrys: #{jsAction @resources.FileSystems.getTargetVArrys() /},
 
   FileSnapshots_fileSnapshotExportsJson: #{jsAction @resources.FileSnapshots.fileSnapshotExportsJson() /},
   FileSnapshots_save: #{jsAction @resources.FileSnapshots.save() /},
@@ -123,5 +124,7 @@ var routes = {
   Workflow_get: #{jsAction @catalog.WorkflowBuilder.getWorkflow(':workflowId') /},
   Workflow_delete: #{jsAction @catalog.WorkflowBuilder.deleteWorkflow(':workflowID', ':dirID') /},
   Workflow_edit_name: #{jsAction @catalog.WorkflowBuilder.editWorkflowName(':id',':newName') /},
-  Primitive_get: #{jsAction @catalog.WorkflowBuilder.getPrimitive(':primitiveId', ':primitiveType') /}
+  Primitive_get: #{jsAction @catalog.WorkflowBuilder.getPrimitive(':primitiveId', ':primitiveType') /},
+  FileProtectionPolicy_getVpoolForProtectionPolicy: #{jsAction @arrays.FileProtectionPolicies.getVpoolForProtectionPolicy(':id') /},
+  FileProtectionPolicy_getVarraysAssociatedWithPools: #{jsAction @arrays.FileProtectionPolicies.getVarraysAssociatedWithPools(':id') /}
 };

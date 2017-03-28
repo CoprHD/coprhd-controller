@@ -859,7 +859,7 @@ public class ImageServerControllerImpl implements ImageServerController {
             waitFor = workflow.createStep(OS_INSTALL_WAIT_FOR_FINISH_STEP,
                     "wait for os install to finish", waitFor,
                     img.getId(), img.getImageType(),
-                    this.getClass(), new Workflow.Method("waitForFinishMethod", job.getId()),
+                    this.getClass(), new Workflow.Method("waitForFinishMethod", job.getId(), host.getHostName()),
                     new Workflow.Method(ROLLBACK_NOTHING_METHOD), null);
 
             waitFor = computeDeviceController.addStepsPostOsInstall(workflow, waitFor, cs.getId(), ce.getId(),
@@ -993,10 +993,11 @@ public class ImageServerControllerImpl implements ImageServerController {
     /**
      * Utility wait method to check os install status
      * @param jobId {@link URI} job id
+     * @param hostName {@link String} host name for error reporting
      * @param stepId {@link String} step id
      */
-    public void waitForFinishMethod(URI jobId, String stepId) {
-        log.info("waitForFinishMethod {} ", jobId);
+    public void waitForFinishMethod(URI jobId, String hostName, String stepId) {
+        log.info("waitForFinishMethod {}, {} ", jobId, hostName);
 
         try {
             WorkflowStepCompleter.stepExecuting(stepId);
@@ -1067,13 +1068,13 @@ public class ImageServerControllerImpl implements ImageServerController {
                 job.setJobStatus(JobStatus.FAILED.name());
                 dbClient.updateObject(job);
                 WorkflowStepCompleter.stepFailed(stepId,
-                        ImageServerControllerException.exceptions.osInstallationFailed("failure in the post-install"));
+                        ImageServerControllerException.exceptions.osInstallationFailed(hostName, "failure in the post-install"));
             } else { // timed out
                 log.info("session {} - marking job as TIMEDOUT", job.getPxeBootIdentifier());
                 job.setJobStatus(JobStatus.TIMEDOUT.name());
                 dbClient.updateObject(job);
                 WorkflowStepCompleter.stepFailed(stepId,
-                        ImageServerControllerException.exceptions.osInstallationTimedOut(imageServer.getOsInstallTimeoutMs() / 1000));
+                        ImageServerControllerException.exceptions.osInstallationTimedOut(hostName, imageServer.getOsInstallTimeoutMs() / 1000));
             }
 
         } catch (InternalException e) {

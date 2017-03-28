@@ -47,7 +47,7 @@
         
         rootUserMapping:{
           type:"text",
-          initialValue:"root",
+          initialValue:"nobody",
           lockable: true
         },
         

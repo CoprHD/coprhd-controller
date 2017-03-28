@@ -40,6 +40,6 @@ public class MirrorFileResumeTaskCompleter extends MirrorFileTaskCompleter {
 
     @Override
     protected String getFileMirrorStatusForSuccess(FileShare fs) {
-        return MirrorStatus.SYNCHRONIZED.name();
+        return MirrorStatus.UNKNOWN.name();
     }
 }

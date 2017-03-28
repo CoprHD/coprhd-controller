@@ -41,7 +41,6 @@ import com.emc.storageos.db.client.model.StoragePort.TransportType;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
-import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualNAS;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.ZoneInfo;
@@ -599,9 +598,17 @@ public class PortMetricsProcessor {
                 URIQueryResultList storagePortURIs = new URIQueryResultList();
                 _dbClient.queryByConstraint(ContainmentConstraint.Factory.getStorageDeviceStoragePortConstraint(storageSystemURI),
                         storagePortURIs);
-                List<StoragePort> storagePorts = _dbClient.queryObject(StoragePort.class, storagePortURIs);
+                // query iteratively to avoid dbsvc warning of too many objects being queried at once
+                // this will prevent the warning message in the log but will still result in all storage ports
+                // for a storage system to be in memory at once. There is usually less than 100 but at one
+                // customer site there are between 100 and 150 for a few storage systems
+                Iterator<StoragePort> storagePortItr = _dbClient.queryIterativeObjects(StoragePort.class, storagePortURIs);
+                List<StoragePort> storagePorts = new ArrayList<StoragePort>();
+                while (storagePortItr.hasNext()) {
+                    storagePorts.add(storagePortItr.next());
+                }
 
-                if (!metricsValid(storagePorts)) {
+                if (!metricsValid(storageDevice, storagePorts)) {
                     // The metrics are not valid for this array. Log it and return 50.0%.
                     _log.info(String.format("Port metrics not valid for array %s (%s), using 50.0 percent for array metric",
                             storageDevice.getLabel(), storageSystemURI.toString()));
@@ -625,7 +632,7 @@ public class PortMetricsProcessor {
 
                 // persisted into storage system object for later retrieval
                 storageDevice.setAveragePortMetrics(storageSystemPortsMetrics);
-                _dbClient.persistObject(storageDevice);
+                _dbClient.updateObject(storageDevice);
 
             } else {
 
@@ -633,9 +640,16 @@ public class PortMetricsProcessor {
                 URIQueryResultList storageHADomainURIs = new URIQueryResultList();
                 _dbClient.queryByConstraint(ContainmentConstraint.Factory.getStorageDeviceStorageHADomainConstraint(storageSystemURI),
                         storageHADomainURIs);
-                List<StorageHADomain> storageHADomains = _dbClient.queryObject(StorageHADomain.class, storageHADomainURIs);
+                // query iteratively to avoid dbsvc warning of too many objects being queried at once
+                // this will prevent the warning message in the log but will still result in all StorageHADomain objects
+                // for a storage system to be in memory at once.
+                Iterator<StorageHADomain> storageHADomainItr = _dbClient.queryIterativeObjects(StorageHADomain.class, storageHADomainURIs);
+                List<StorageHADomain> storageHADomains = new ArrayList<StorageHADomain>();
+                while (storageHADomainItr.hasNext()) {
+                    storageHADomains.add(storageHADomainItr.next());
+                }
 
-                if (!isMetricsValid(storageHADomains)) {
+                if (!isMetricsValid(storageDevice, storageHADomains)) {
                     // The metrics are not valid for this array. Log it and return 50.0%.
                     _log.info(String.format("CPU usage metrics not valid for array %s (%s), using 50.0 percent for array metric",
                             storageDevice.getLabel(), storageSystemURI.toString()));
@@ -680,7 +694,7 @@ public class PortMetricsProcessor {
     public Map<StoragePort, Long> computeStoragePortUsage(
             List<StoragePort> candidatePorts, StorageSystem system, boolean updatePortUsages) {
         Map<StoragePort, Long> usages = new HashMap<StoragePort, Long>();
-        boolean metricsValid = metricsValid(candidatePorts);
+        boolean metricsValid = metricsValid(system, candidatePorts);
 
         // Disqualify any ports over one of their ceilings
         List<StoragePort> portsUnderCeiling = eliminatePortsOverCeiling(candidatePorts, system, true);
@@ -756,7 +770,7 @@ public class PortMetricsProcessor {
      */
     public boolean isPortOverCeiling(StoragePort sp, StorageSystem system, boolean updatePortUsages) {
         boolean overCeiling = false;
-        boolean metricsValid = metricsValid(Collections.singletonList(sp));
+        boolean metricsValid = metricsValid(system, Collections.singletonList(sp));
 
         // to optimize performance, avoid redundant update port usage. When this method invoked
         // locally, port usage is already computed. Hence, usage values generally do not need to update
@@ -820,18 +834,17 @@ public class PortMetricsProcessor {
 
     /**
      * Determines if all the ports have valid (dynamic) metrics. If so
-     * returns true; other returns false, which would cause static usage
+     * returns true; otherwise returns false, which would cause static usage
      * data to be used for metric.
      * 
+     * @param system storage system where candidate ports are
      * @param candidatePorts - List<StoragePort>
      * @return boolean true if all ports have valid metrics
      */
-    public boolean metricsValid(List<StoragePort> candidatePorts) {
+    public boolean metricsValid(StorageSystem system, List<StoragePort> candidatePorts) {
         if (candidatePorts == null || candidatePorts.isEmpty()) {
             return false;
         }
-        StoragePort aPort = candidatePorts.iterator().next();
-        StorageSystem system = _dbClient.queryObject(StorageSystem.class, aPort.getStorageDevice());
 
         // if port metrics allocation is disabled, than ports metrics are not used for
         // allocation. Just used volume count
@@ -856,18 +869,17 @@ public class PortMetricsProcessor {
 
     /**
      * Determines if all the storage HADomains have valid (dynamic) metrics. If so
-     * returns true; other returns false, which would cause static usage
+     * returns true; otherwise returns false, which would cause static usage
      * data to be used for metric.
      * 
+     * @param system storage system where candidate adapters are
      * @param candidateAdapters - List<StorageHADomain>
      * @return boolean true if all storage HADomains have valid metrics
      */
-    public boolean isMetricsValid(List<StorageHADomain> candidateAdapters) {
+    public boolean isMetricsValid(StorageSystem system, List<StorageHADomain> candidateAdapters) {
         if (candidateAdapters == null || candidateAdapters.isEmpty()) {
             return false;
         }
-        StorageHADomain firstAdapter = candidateAdapters.iterator().next();
-        StorageSystem system = _dbClient.queryObject(StorageSystem.class, firstAdapter.getStorageDeviceURI());
 
         // if port metrics allocation is disabled, than ports metrics are not used for allocation.
         if (!isPortMetricsAllocationEnabled(DiscoveredDataObject.Type.valueOf(system.getSystemType()))) {
@@ -1232,11 +1244,12 @@ public class PortMetricsProcessor {
         _dbClient.queryByConstraint(AlternateIdConstraint.Factory
                 .getExportMaskByNameConstraint(maskName), uriQueryList);
         while (uriQueryList.iterator().hasNext()) {
-        	ExportMask exportMask = _dbClient.queryObject(ExportMask.class, uriQueryList.iterator().next());
-        	if (exportMask != null && !exportMask.getInactive() 
-        			&& exportMask.getNativeId().equals(nativeId) && exportMask.getStorageDevice().equals(device)) {
-        		return true;
-        	}
+            ExportMask exportMask = _dbClient.queryObject(ExportMask.class, uriQueryList.iterator().next());
+            if (exportMask != null && !exportMask.getInactive()
+                    && (exportMask.getNativeId() != null && exportMask.getNativeId().equals(nativeId))
+                    && exportMask.getStorageDevice().equals(device)) {
+                return true;
+            }
         }
     	return false;
     }

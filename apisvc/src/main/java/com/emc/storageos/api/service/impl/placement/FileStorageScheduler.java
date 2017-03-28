@@ -48,6 +48,7 @@ import com.emc.storageos.db.client.model.VirtualNAS;
 import com.emc.storageos.db.client.model.VirtualNAS.VirtualNasState;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
+import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.TaskResourceRep;
@@ -121,9 +122,13 @@ public class FileStorageScheduler implements Scheduler {
             optionalAttributes = new HashMap<String, Object>();
         }
 
-        if (capabilities.isVpoolProjectPolicyAssign() && capabilities.getFileProtectionSourceStorageDevice() != null) {
+        if (capabilities.getFileProtectionSourceStorageDevice() != null || capabilities.getTargetStorageSystem() != null) {
             Set<String> storageSystemSet = new HashSet<String>();
-            storageSystemSet.add(capabilities.getFileProtectionSourceStorageDevice().toString());
+            if (capabilities.getFileProtectionSourceStorageDevice() != null) {
+                storageSystemSet.add(capabilities.getFileProtectionSourceStorageDevice().toString());
+            } else if (capabilities.getTargetStorageSystem() != null) {
+                storageSystemSet.add(capabilities.getTargetStorageSystem().toString());
+            }
             optionalAttributes.put(AttributeMatcher.Attributes.storage_system.name(), storageSystemSet);
         }
 
@@ -149,18 +154,18 @@ public class FileStorageScheduler implements Scheduler {
         // should not be considered for file provisioning!!!
         List<VirtualNAS> invalidNasServers = new ArrayList<VirtualNAS>();
 
-        boolean needTargetOnVirtualNAS = true;
+        boolean provisioningOnVirtualNAS = true;
         VirtualNAS sourcevNAsServer = null;
-        if (capabilities.isVpoolProjectPolicyAssign() && capabilities.getPersonality() != null
+        if (capabilities.getPersonality() != null
                 && capabilities.getPersonality().equalsIgnoreCase(VirtualPoolCapabilityValuesWrapper.FILE_REPLICATION_TARGET)) {
             // Get the source nas server, if no source vnas server, then need storage from physical nas server!!
             URI sourceVNas = capabilities.getSourceVirtualNasServer();
             if (sourceVNas == null) {
-                needTargetOnVirtualNAS = false;
+                provisioningOnVirtualNAS = false;
             } else {
                 sourcevNAsServer = _dbClient.queryObject(VirtualNAS.class, sourceVNas);
                 if (sourcevNAsServer == null || sourcevNAsServer.getInactive()) {
-                    needTargetOnVirtualNAS = false;
+                    provisioningOnVirtualNAS = false;
                 }
             }
         }
@@ -168,7 +173,7 @@ public class FileStorageScheduler implements Scheduler {
         List<FileRecommendation> fileRecommendations = new ArrayList<FileRecommendation>();
         List<FileRecommendation> recommendations = null;
 
-        if (needTargetOnVirtualNAS) {
+        if (provisioningOnVirtualNAS) {
             // Get the recommendation based on virtual nas servers
             Map<VirtualNAS, List<StoragePool>> vNASPoolMap = getRecommendedVirtualNASBasedOnCandidatePools(
                     vPool, vArray.getId(), candidatePools, project, invalidNasServers);
@@ -187,9 +192,16 @@ public class FileStorageScheduler implements Scheduler {
                                 && capabilities.getPersonality()
                                         .equalsIgnoreCase(VirtualPoolCapabilityValuesWrapper.FILE_REPLICATION_TARGET)) {
                             if (sourcevNAsServer != null
-                                    && !sourcevNAsServer.getBaseDirPath().equalsIgnoreCase(currvNAS.getBaseDirPath())) {
-                                _log.info("Target Nas server path {} is not similar to source nas server {}, so ignoring this nas server",
+                                    && sourcevNAsServer.getBaseDirPath().equalsIgnoreCase(currvNAS.getBaseDirPath())) {
+                                _log.info("Target Nas server path {} is similar to source nas server {}, so considering this nas server",
                                         currvNAS.getBaseDirPath(), sourcevNAsServer.getBaseDirPath());
+                            } else if (capabilities.getTargetNasServer() != null
+                                    && capabilities.getTargetNasServer().equals(currvNAS.getId())) {
+                                _log.info("Nas server {} is same as required target Nas server {}, so considering this nas server",
+                                        currvNAS.getId(), capabilities.getTargetNasServer());
+                            } else {
+                                _log.info("Nas server {} is not the required target Nas server, so ignoring this nas server",
+                                        currvNAS.getId());
                                 continue;
                             }
                         }
@@ -214,7 +226,7 @@ public class FileStorageScheduler implements Scheduler {
 
                         if (!recommendations.isEmpty()) {
                             fileRecommendations.addAll(recommendations);
-                            if (!capabilities.isVpoolProjectPolicyAssign()) {
+                            if (!capabilities.isVpoolProjectPolicyAssign() && !capabilities.getAllSourceRecommnedations()) {
                                 _log.info("Selected vNAS {} for placement",
                                         currvNAS.getNasName());
                                 break;
@@ -234,7 +246,10 @@ public class FileStorageScheduler implements Scheduler {
         // 2. vpool does not have storage pools from vnx or
         // 3. vnx does not have vdms
         // Get the file recommendations
-        if (fileRecommendations == null || fileRecommendations.isEmpty() || capabilities.isVpoolProjectPolicyAssign()) {
+        if (fileRecommendations == null || fileRecommendations.isEmpty()
+                || capabilities.isVpoolProjectPolicyAssign() || capabilities.getAllSourceRecommnedations()
+                || isTargetRequiredOnPhyscialNAS(capabilities)) {
+
             // Get the recommendations for the candidate pools.
             _log.info("Placement on HADomain matching pools");
             List<Recommendation> poolRecommendations = _scheduler
@@ -265,6 +280,16 @@ public class FileStorageScheduler implements Scheduler {
         }
 
         return fileRecommendations;
+    }
+
+    private boolean isTargetRequiredOnPhyscialNAS(VirtualPoolCapabilityValuesWrapper capabilities) {
+        if (NullColumnValueGetter.isNullURI(capabilities.getTargetNasServer())) {
+            return false;
+        }
+        if (capabilities.getTargetNasServer() != null && capabilities.getTargetNasServer().toString().contains("VirtualNAS")) {
+            return false;
+        }
+        return true;
     }
 
     /**
@@ -780,8 +805,8 @@ public class FileStorageScheduler implements Scheduler {
                             virtualNAS.getNasName());
                     iterator.remove();
                     invalidNasServers.add(virtualNAS);
-                } else if (!virtualNAS.getProtocols().containsAll(
-                        vpool.getProtocols())) {
+                } else if (null != virtualNAS.getProtocols() && null != vpool.getProtocols() && 
+                  !virtualNAS.getProtocols().containsAll(vpool.getProtocols())) {
                     _log.info("Removing vNAS {} as it does not support vpool protocols: {}",
                             virtualNAS.getNasName(), vpool.getProtocols());
                     iterator.remove();

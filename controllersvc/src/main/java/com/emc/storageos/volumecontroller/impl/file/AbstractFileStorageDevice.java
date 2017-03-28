@@ -26,11 +26,6 @@ public abstract class AbstractFileStorageDevice implements FileStorageDevice,
         RemoteFileMirrorOperation {
 
     @Override
-    public void doFailbackLink(StorageSystem system, FileShare target, TaskCompleter completer) {
-        throw DeviceControllerException.exceptions.operationNotSupported();
-    }
-
-    @Override
     public void doCreateMirrorLink(StorageSystem system, URI source, URI target, TaskCompleter completer) {
         throw DeviceControllerException.exceptions.operationNotSupported();
 
@@ -68,8 +63,7 @@ public abstract class AbstractFileStorageDevice implements FileStorageDevice,
     }
 
     @Override
-    public void doResyncLink(StorageSystem primarySystem, StorageSystem secondarySystem, FileShare Target, TaskCompleter completer,
-            String policyName) {
+    public BiosCommandResult doResyncLink(StorageSystem system, FileShare source, TaskCompleter completer) {
         throw DeviceControllerException.exceptions.operationNotSupported();
     }
 

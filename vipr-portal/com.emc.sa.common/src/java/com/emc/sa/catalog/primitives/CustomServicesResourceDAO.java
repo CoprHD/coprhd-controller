@@ -49,7 +49,7 @@ public interface CustomServicesResourceDAO<Resource extends CustomServicesPrimit
      * @param stream The resource bytes
      * @return The created resource
      */
-    public Resource createResource(final String name, final byte[] stream, final URI parentId);
+    public Resource createResource(final String name, final byte[] stream, final String parentId);
 
     /**
      * Update a resource with the given ID
@@ -73,7 +73,7 @@ public interface CustomServicesResourceDAO<Resource extends CustomServicesPrimit
      * 
      * @return A named element list of resources
      */
-    public List<NamedElement> listResources();
+    public List<NamedElement> listResources(final String parentId);
 
     /**
      * Get the resource model type that this dao supports
@@ -81,13 +81,4 @@ public interface CustomServicesResourceDAO<Resource extends CustomServicesPrimit
      * @return the primitive resource model type
      */
     public Class<Resource> getResourceType();
-
-    /**
-     * Check if this DAO has a resource type associated with it
-     * 
-     * @return true if the DAO supports a resource, false if there is no resource for the primitive
-     */
-    public boolean hasResource();
-
-    public List<NamedElement> listResourcesByParentId(final URI parentId);
 }

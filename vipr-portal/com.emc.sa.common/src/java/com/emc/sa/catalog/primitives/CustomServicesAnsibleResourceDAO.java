@@ -22,9 +22,11 @@ import java.net.URI;
 import java.nio.file.FileSystems;
 import java.util.List;
 
+import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
 import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
 import org.apache.commons.compress.compressors.gzip.GzipCompressorInputStream;
+import org.apache.commons.lang.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.emc.sa.catalog.CustomServicesPrimitiveManager;
@@ -38,53 +40,52 @@ import com.emc.storageos.primitives.db.ansible.CustomServicesAnsiblePrimitive;
 import com.emc.storageos.primitives.db.ansible.CustomServicesAnsibleResource;
 import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorException;
 
-
 /**
  * Data access object for Ansible primitive resources
  *
  */
 public class CustomServicesAnsibleResourceDAO implements CustomServicesResourceDAO<CustomServicesAnsibleResource> {
-    
+
     @Autowired
     private CustomServicesPrimitiveManager primitiveManager;
     @Autowired
     private ModelClient client;
-    @Autowired 
+    @Autowired
     private DbClient dbClient;
-    
-    @Override 
+
+    @Override
     public String getType() {
         return CustomServicesAnsiblePrimitive.TYPE;
     }
-    
 
     @Override
     public CustomServicesAnsibleResource getResource(URI id) {
-        return CustomServicesDBHelper.getResource(CustomServicesAnsibleResource.class, CustomServicesDBAnsibleResource.class, primitiveManager, id);
+        return CustomServicesDBHelper.getResource(CustomServicesAnsibleResource.class, CustomServicesDBAnsibleResource.class,
+                primitiveManager, id);
     }
 
     @Override
     public CustomServicesAnsibleResource createResource(final String name,
-            final byte[] stream, final URI parentId) {
+            final byte[] stream, final String parentId) {
         final StringSetMap attributes = new StringSetMap();
         attributes.put("playbooks", getPlaybooks(stream));
-        return CustomServicesDBHelper.createResource(CustomServicesAnsibleResource.class, CustomServicesDBAnsibleResource.class, 
-                primitiveManager, name, stream, attributes, parentId);
+        return CustomServicesDBHelper.createResource(CustomServicesAnsibleResource.class, CustomServicesDBAnsibleResource.class,
+                primitiveManager, name, stream, attributes, null);
     }
 
     @Override
-    public CustomServicesAnsibleResource updateResource(final URI id, final String name,final byte[] stream) {
+    public CustomServicesAnsibleResource updateResource(final URI id, final String name, final byte[] stream) {
         final StringSet playbooks = stream == null ? null : getPlaybooks(stream);
-        
+
         final StringSetMap attributes;
-        if(playbooks != null) {
+        if (playbooks != null) {
             attributes = new StringSetMap();
             attributes.put("playbooks", getPlaybooks(stream));
         } else {
             attributes = null;
         }
-        
-        return CustomServicesDBHelper.updateResource(CustomServicesAnsibleResource.class, CustomServicesDBAnsibleResource.class, 
+
+        return CustomServicesDBHelper.updateResource(CustomServicesAnsibleResource.class, CustomServicesDBAnsibleResource.class,
                 primitiveManager, id, name, stream, attributes);
     }
 
@@ -94,8 +95,13 @@ public class CustomServicesAnsibleResourceDAO implements CustomServicesResourceD
     }
 
     @Override
-    public List<NamedElement> listResources() {
-        return client.customServicesPrimitiveResources().list(CustomServicesDBAnsibleResource.class);
+    public List<NamedElement> listResources(final String parentId) {
+        //Parent does not exist for Ansible Resource
+        if (StringUtils.isNotBlank(parentId)) {
+            throw APIException.badRequests.invalidField(CustomServicesDBAnsibleResource.PARENTID, parentId);
+        }
+        return CustomServicesDBHelper.listResources(CustomServicesDBAnsibleResource.class, client,
+                CustomServicesDBAnsibleResource.PARENTID, parentId);
     }
 
     @Override
@@ -103,17 +109,6 @@ public class CustomServicesAnsibleResourceDAO implements CustomServicesResourceD
         return CustomServicesAnsibleResource.class;
     }
 
-    @Override
-    public boolean hasResource() {
-        return true;
-    }
-
-    @Override
-    public List<NamedElement> listResourcesByParentId(final URI parentId) {
-        return null;
-    }
-
-    
     private StringSet getPlaybooks(final byte[] archive) {
         try (final TarArchiveInputStream tarIn = new TarArchiveInputStream(
                 new GzipCompressorInputStream(new ByteArrayInputStream(
@@ -136,6 +131,5 @@ public class CustomServicesAnsibleResourceDAO implements CustomServicesResourceD
             throw InternalServerErrorException.internalServerErrors.genericApisvcError("Invalid ansible archive", e);
         }
     }
-
 
 }

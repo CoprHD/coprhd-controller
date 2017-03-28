@@ -19,6 +19,7 @@ package com.emc.sa.catalog.primitives;
 import java.net.URI;
 import java.util.List;
 
+import org.apache.commons.lang.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.emc.sa.catalog.CustomServicesPrimitiveManager;
@@ -29,6 +30,7 @@ import com.emc.storageos.db.client.model.StringSetMap;
 import com.emc.storageos.db.client.model.uimodels.CustomServicesDBScriptResource;
 import com.emc.storageos.primitives.db.script.CustomServicesScriptPrimitive;
 import com.emc.storageos.primitives.db.script.CustomServicesScriptResource;
+import com.emc.storageos.svcs.errorhandling.resources.APIException;
 
 /**
  * Data access object for script primitive resources
@@ -56,11 +58,11 @@ public class CustomServicesScriptResourceDAO implements CustomServicesResourceDA
 
     @Override
     public CustomServicesScriptResource createResource(final String name,
-            final byte[] stream, final URI parentId) {
+            final byte[] stream, final String parentId) {
         final StringSetMap attributes = new StringSetMap();
 
         return CustomServicesDBHelper.createResource(CustomServicesScriptResource.class, CustomServicesDBScriptResource.class,
-                primitiveManager, name, stream, attributes, parentId);
+                primitiveManager, name, stream, attributes, null);
     }
 
     @Override
@@ -75,23 +77,17 @@ public class CustomServicesScriptResourceDAO implements CustomServicesResourceDA
     }
 
     @Override
-    public List<NamedElement> listResources() {
-        return client.customServicesPrimitiveResources().list(CustomServicesDBScriptResource.class);
+    public List<NamedElement> listResources(final String parentId) {
+        // Parent does not exist for Script Resource
+        if (StringUtils.isNotBlank(parentId)) {
+            throw APIException.badRequests.invalidField(CustomServicesDBScriptResource.PARENTID, parentId);
+        }
+        return CustomServicesDBHelper.listResources(CustomServicesDBScriptResource.class, client,
+                CustomServicesDBScriptResource.PARENTID, parentId);
     }
 
     @Override
     public Class<CustomServicesScriptResource> getResourceType() {
         return CustomServicesScriptResource.class;
     }
-
-    @Override
-    public boolean hasResource() {
-        return true;
-    }
-
-    @Override
-    public List<NamedElement> listResourcesByParentId(final URI parentId) {
-        return null;
-    }
-
 }

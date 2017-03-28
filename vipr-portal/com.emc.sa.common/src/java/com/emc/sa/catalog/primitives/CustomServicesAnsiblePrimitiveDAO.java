@@ -128,4 +128,9 @@ public class CustomServicesAnsiblePrimitiveDAO implements
         return CustomServicesDBHelper.bulk(ids, CustomServicesAnsiblePrimitive.class, 
                 CustomServicesDBAnsiblePrimitive.class, dbClient, MAPPER);
     }
+
+    @Override
+    public boolean hasResource() {
+        return true;
+    }
 }

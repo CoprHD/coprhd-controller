@@ -125,4 +125,9 @@ public class CustomServicesScriptPrimitiveDAO implements CustomServicesPrimitive
                 CustomServicesDBScriptPrimitive.class, dbClient, MAPPER);
     }
 
+    @Override
+    public boolean hasResource() {
+        return true;
+    }
+
 }

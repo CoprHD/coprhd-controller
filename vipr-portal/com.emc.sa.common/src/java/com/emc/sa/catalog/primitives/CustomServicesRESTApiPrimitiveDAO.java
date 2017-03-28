@@ -167,6 +167,11 @@ public class CustomServicesRESTApiPrimitiveDAO implements CustomServicesPrimitiv
                 CustomServicesDBRESTApiPrimitive.class, dbClient, MAPPER);
     }
     
+    @Override
+    public boolean hasResource() {
+        return false;
+    }
+    
     private StringSetMap createInput(final CustomServicesPrimitiveCreateParam param) {
         final StringSetMap input = CustomServicesDBHelper.createInput(INPUT_TYPES, param.getInput());
         final Set<String> pathParams = getPathParams(param.getAttributes().get(CustomServicesConstants.PATH));
@@ -195,7 +200,7 @@ public class CustomServicesRESTApiPrimitiveDAO implements CustomServicesPrimitiv
             inputParams.addAll(pathParams);
             inputParams.addAll(bodyParams);
                 
-                input.replace("input_params", inputParams);
+                input.replace(InputType.INPUT_PARAMS.toString(), inputParams);
         }
         return input;
     }

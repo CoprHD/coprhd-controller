@@ -6,7 +6,10 @@
 package com.emc.storageos.systemservices.impl.security;
 
 
+import com.emc.storageos.coordinator.client.model.Constants;
 import com.emc.storageos.coordinator.client.service.DrUtil;
+import com.emc.storageos.coordinator.common.Configuration;
+import com.emc.storageos.db.common.DbConfigConstants;
 import com.emc.storageos.security.ipsec.IPsecConfig;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceUnavailableException;
 import com.emc.storageos.systemservices.impl.ipsec.IPsecManager;
@@ -35,18 +38,22 @@ public class SecretsInit implements Runnable {
     @Override
     public void run() {
         boolean ipsecInitDone = false;
-        boolean dhInitDone = false;
+
+        while (!dbInitDone()) {
+            try {
+                log.info("Db init has not started. Waiting {} seconds", IPSEC_ROTATION_RETRY_INTERVAL);
+                Thread.sleep(IPSEC_ROTATION_RETRY_INTERVAL * 1000);
+            } catch (InterruptedException e) {
+                log.warn("Interrupted IPSec initialization.", e);
+            }
+        }
+
+        log.info("Db init done. Start ipsec init");
 
         while (true) {
-            if (!ipsecInitDone) {
-                ipsecInitDone = rotateIPsecKey();
-            }
+            ipsecInitDone = rotateIPsecKey();
 
-            if (!dhInitDone) {
-                dhInitDone = genDHParam();
-            }
-
-            if (ipsecInitDone && dhInitDone) {
+            if (ipsecInitDone) {
                 return;
             }
 
@@ -59,21 +66,34 @@ public class SecretsInit implements Runnable {
         }
     }
 
-    private boolean genDHParam() {
-        LocalRepository localRepository = LocalRepository.getInstance();
-        try {
-            localRepository.genDHParam();
+    private boolean dbInitDone() {
+        return checkDbInitDone(Constants.DBSVC_NAME) && checkDbInitDone(Constants.GEODBSVC_NAME);
+    }
 
-            log.info("Reconfiguring SSL related config files");
-            localRepository.reconfigProperties("ssl");
+    private boolean checkDbInitDone(String dbsvcName) {
+        int nodeCount = coordinator.getNodeCount();
+        int doneCount = 0;
+        String dbVersion = coordinator.getCurrentDbSchemaVersion();
+        String configIdPrefix = Constants.GEODBSVC_NAME.equalsIgnoreCase(dbsvcName) ? "geodb" : "db";
 
-            log.info("Invoking SSL notifier");
-            Notifier.getInstance("ssl").doNotify();
-        } catch (Exception e) {
-            log.warn("Failed to generate dhparam.", e);
-            return false;
+        log.info("Checking db init status for {} on {} nodes", dbsvcName, nodeCount);
+        for (int i = 1; i <= nodeCount; i++) {
+            String dbConfigId = String.format("%s-%d", configIdPrefix, i);
+            String configKind = coordinator.getCoordinatorClient().getVersionedDbConfigPath(dbsvcName, dbVersion);
+            Configuration config = coordinator.getCoordinatorClient().queryConfiguration(
+                    coordinator.getCoordinatorClient().getSiteId(), configKind, dbConfigId);
+            if (config == null) {
+                return false;
+            }
+
+            String initDoneStr = config.getConfig(DbConfigConstants.INIT_DONE);
+            if (initDoneStr != null && initDoneStr.equals("true")) {
+                doneCount ++;
+                log.info("{}-{} init is done.", dbsvcName, i);
+            }
         }
-        return true;
+
+        return doneCount == nodeCount;
     }
 
     private boolean rotateIPsecKey() {

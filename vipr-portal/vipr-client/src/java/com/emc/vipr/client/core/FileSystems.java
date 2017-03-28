@@ -625,7 +625,7 @@ public class FileSystems extends ProjectResources<FileShareRestRep> implements T
     }
 
     /**
-     * Begins creating a continuous copies for the given file system.
+     * Refresh the replication state between source and target file system.
      * <p>
      * API Call: <tt>POST /file/filesystems/{id}/protection/continuous-copies/start</tt>
      * 
@@ -635,8 +635,8 @@ public class FileSystems extends ProjectResources<FileShareRestRep> implements T
      *            the configuration of the new continuous copies.
      * @return tasks for monitoring the progress of the operation(s).
      */
-    public Tasks<FileShareRestRep> startFileContinuousCopies(URI id, FileReplicationParam input) {
-        TaskList tasks = client.post(TaskList.class, input, getContinuousCopiesUrl() + "/start", id);
+    public Tasks<FileShareRestRep> refreshFileContinuousCopies(URI id, FileReplicationParam input) {
+        TaskList tasks = client.post(TaskList.class, input, getContinuousCopiesUrl() + "/refresh", id);
         return new Tasks<FileShareRestRep>(client, tasks.getTaskList(), FileShareRestRep.class);
     }
 
@@ -761,10 +761,10 @@ public class FileSystems extends ProjectResources<FileShareRestRep> implements T
      *            the ID of the file policy.
      * @return a task for monitoring the progress of the operation.
      */
-    public Task<FileShareRestRep> dissociateFilePolicy(URI fileSystemId, URI filePolicyId) {
+    public TaskResourceRep dissociateFilePolicy(URI fileSystemId, URI filePolicyId) {
         UriBuilder builder = client.uriBuilder(getIdUrl() + "/unassign-file-policy/{file_policy_uri}");
         URI targetUri = builder.build(fileSystemId, filePolicyId);
-        return putTaskURI(null, targetUri);
+        return client.putURI(TaskResourceRep.class, null, targetUri);
     }
 
     /**

@@ -29,7 +29,7 @@ if [ "$1"x != "x" ]; then
       shift
    fi
 fi
-sconf=$(dirname $CONFIG_FILE)
+export sconf=$(dirname $CONFIG_FILE)
 
 # Set properties needed for the test run
 subs/setproperty validation_check false

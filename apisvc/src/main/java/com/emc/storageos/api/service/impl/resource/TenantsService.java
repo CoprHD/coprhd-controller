@@ -739,8 +739,8 @@ public class TenantsService extends TaggedResource {
         if (_permissionsHelper.userHasGivenRole(user, tenant.getId(),
                 Role.SYSTEM_MONITOR, Role.TENANT_ADMIN, Role.SECURITY_ADMIN)) {
             // list all
-            _dbClient.queryByConstraint(ContainmentConstraint.Factory
-                    .getTenantOrgProjectConstraint(tenant.getId()), projects);
+            List<NamedElementQueryResultList.NamedElement> elements = listChildren(tenant.getId(), Project.class, "label", "tenantOrg");
+            projects.setResult(elements.iterator());
         } else {
             // list only projects that the user has access to
             if (!id.equals(URI.create(user.getTenantId()))) {

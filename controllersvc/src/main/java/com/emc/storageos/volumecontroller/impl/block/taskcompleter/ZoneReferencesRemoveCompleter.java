@@ -52,10 +52,10 @@ public class ZoneReferencesRemoveCompleter extends TaskCompleter {
                 for (NetworkFCZoneInfo fabricInfo : zoneInfoList) {
                     URI fcZoneReferenceId = fabricInfo.getFcZoneReferenceId();
                     if (NullColumnValueGetter.isNullURI(fcZoneReferenceId)) {
-                        _log.info("fcZoneReferenceId is null. Nothing to remove.");
+                        _log.info("fcZoneReferenceId corresponding to zone info {} is null. Nothing to remove.", fabricInfo.toString());
                         continue;
                     }
-                    FCZoneReference ref = dbClient.queryObject(FCZoneReference.class, fabricInfo.getFcZoneReferenceId());
+                    FCZoneReference ref = dbClient.queryObject(FCZoneReference.class, fcZoneReferenceId);
                     if (ref != null) {
                         refKey = ref.getPwwnKey();
                         _log.info(String.format("Remove FCZoneReference key: %s volume %s id %s", ref.getPwwnKey(), ref.getVolumeUri(),

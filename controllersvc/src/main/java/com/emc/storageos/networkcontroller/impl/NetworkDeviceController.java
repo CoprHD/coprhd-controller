@@ -414,7 +414,8 @@ public class NetworkDeviceController implements NetworkController {
                         for (NetworkFCZoneInfo fabricInfo : fabricInfos) {
                             URI fcZoneReferenceId = fabricInfo.getFcZoneReferenceId();
                             if (NullColumnValueGetter.isNullURI(fcZoneReferenceId)) {
-                                _log.info("fcZoneReferenceId is null. Nothing to remove.");
+                                _log.info("fcZoneReferenceId corresponding to zone info {} is null. Nothing to remove.",
+                                        fabricInfo.toString());
                                 continue;
                             }
                             FCZoneReference ref = _dbClient.queryObject(FCZoneReference.class, fcZoneReferenceId);

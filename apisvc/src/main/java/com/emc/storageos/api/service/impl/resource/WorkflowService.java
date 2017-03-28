@@ -502,7 +502,7 @@ public class WorkflowService extends TaskResourceService {
     private Workflow getParentWorkflow(Workflow workflow) {
         Workflow parentWorkflow = null;
         List<WorkflowStep> wfSteps = CustomQueryUtility.queryActiveResourcesByConstraint(
-                _dbClient, WorkflowStep.class, AlternateIdConstraint.Factory.getWorkflowStepDataByStep(workflow.getOrchTaskId()));
+                _dbClient, WorkflowStep.class, AlternateIdConstraint.Factory.getWorkflowStepByStepId(workflow.getOrchTaskId()));
         if (!wfSteps.isEmpty()) {
             // There should only be a single workflow step that has a step id that is equal
             // to the orchestration task id for a workflow. The workflow for that step is

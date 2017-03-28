@@ -73,6 +73,7 @@ import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.VolumeGroup;
+import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.common.VdcUtil;
 import com.emc.storageos.db.exceptions.DatabaseException;
@@ -705,7 +706,7 @@ public class TenantsService extends TaggedResource {
         Project project = new Project();
         project.setId(URIUtil.createId(Project.class));
         project.setLabel(param.getName());
-        project.setTenantOrg(new NamedURI(tenant.getId(), tenant.getLabel()));
+        project.setTenantOrg(new NamedURI(tenant.getId(), project.getLabel()));
         project.setOwner(owner);
 
         // set owner acl
@@ -1381,7 +1382,7 @@ public class TenantsService extends TaggedResource {
                     schedulePolicy.setSnapshotExpireTime((long) param.getSnapshotExpire().getExpireValue());
                 }
             }
-            schedulePolicy.setTenantOrg(new NamedURI(tenant.getId(), tenant.getLabel()));
+            schedulePolicy.setTenantOrg(new NamedURI(tenant.getId(), schedulePolicy.getLabel()));
             _dbClient.createObject(schedulePolicy);
             _log.info("Schedule policy {} created successfully", schedulePolicy);
         }

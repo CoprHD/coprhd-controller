@@ -44,6 +44,7 @@ public class FileSnapshotPolicyMigration extends BaseCustomMigrationCallback {
             List<URI> schedulePolicyURIs = dbClient.queryByType(SchedulePolicy.class, true);
             Iterator<SchedulePolicy> schedulePolicies = dbClient.queryIterativeObjects(SchedulePolicy.class, schedulePolicyURIs, true);
             List<FilePolicy> filePolicies = new ArrayList<FilePolicy>();
+            List<VirtualPool> modifiedVpools = new ArrayList<VirtualPool>();
 
             while (schedulePolicies.hasNext()) {
                 SchedulePolicy schedulePolicy = schedulePolicies.next();
@@ -86,6 +87,7 @@ public class FileSnapshotPolicyMigration extends BaseCustomMigrationCallback {
                             URI associatedVPId = fs.getVirtualPool();
                             associatedVP = dbClient.queryObject(VirtualPool.class, associatedVPId);
                             associatedVP.setAllowFilePolicyAtFSLevel(true);
+                            modifiedVpools.add(associatedVP);
                         }
                     }
                 }
@@ -96,6 +98,11 @@ public class FileSnapshotPolicyMigration extends BaseCustomMigrationCallback {
             if (!filePolicies.isEmpty()) {
                 logger.info("Created {} file snapshot policies", filePolicies.size());
                 dbClient.createObject(filePolicies);
+            }
+
+            if (!modifiedVpools.isEmpty()) {
+                logger.info("Modified {} vpools ", modifiedVpools.size());
+                dbClient.updateObject(modifiedVpools);
             }
 
         } catch (Exception ex) {

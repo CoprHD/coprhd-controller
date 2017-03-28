@@ -96,7 +96,6 @@ import com.google.common.collect.Maps;
 import com.iwave.ext.linux.util.VolumeWWNUtils;
 import com.iwave.ext.vmware.HostStorageAPI;
 import com.iwave.ext.vmware.VCenterAPI;
-import com.iwave.ext.vmware.VMWareException;
 import com.iwave.ext.vmware.VMwareUtils;
 import com.vmware.vim25.HostScsiDisk;
 import com.vmware.vim25.InvalidProperty;
@@ -1404,18 +1403,14 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                 storageAPI.refreshStorage();
                 for (String volume : exportGroup.getVolumes().keySet()) {
                     BlockObject blockObject = BlockObject.fetch(_dbClient, URI.create(volume));
-                    try {
-                        for (HostScsiDisk entry : storageAPI.listScsiDisks()) {
-                            if (VolumeWWNUtils.wwnMatches(VMwareUtils.getDiskWwn(entry), blockObject.getWWN())) {
-                                _log.info("Attach SCSI Lun " + entry.getCanonicalName() + " on host " + esxHost.getLabel());
-                                storageAPI.attachScsiLun(entry);
+                    for (HostScsiDisk entry : storageAPI.listScsiDisks()) {
+                        if (VolumeWWNUtils.wwnMatches(VMwareUtils.getDiskWwn(entry), blockObject.getWWN())) {
+                            _log.info("Attach SCSI Lun " + entry.getCanonicalName() + " on host " + esxHost.getLabel());
+                            storageAPI.attachScsiLun(entry);
 
-                                // Test mechanism to invoke a failure. No-op on production systems.
-                                InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_055);
-                            }
+                            // Test mechanism to invoke a failure. No-op on production systems.
+                            InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_055);
                         }
-                    } catch (VMWareException ex) {
-                        _log.warn(ex.getMessage(), ex);
                     }
 
                     storageAPI.getStorageSystem().rescanVmfs();
@@ -1424,17 +1419,13 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
 
                     if (blockObject != null) {
 
-                        try {
-                            Datastore datastore = getDatastoreByWwn(wwnDatastores, blockObject.getWWN());
-                            if (datastore != null) {
-                                _log.info("Mounting datastore " + datastore.getName() + " on host " + esxHost.getLabel());
-                                storageAPI.mountDatastore(datastore);
+                        Datastore datastore = getDatastoreByWwn(wwnDatastores, blockObject.getWWN());
+                        if (datastore != null) {
+                            _log.info("Mounting datastore " + datastore.getName() + " on host " + esxHost.getLabel());
+                            storageAPI.mountDatastore(datastore);
 
-                                // Test mechanism to invoke a failure. No-op on production systems.
-                                InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_056);
-                            }
-                        } catch (VMWareException ex) {
-                            _log.warn(ex.getMessage(), ex);
+                            // Test mechanism to invoke a failure. No-op on production systems.
+                            InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_056);
                         }
                     }
 

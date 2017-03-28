@@ -486,7 +486,7 @@ public class WorkflowService extends TaskResourceService {
         Workflow topLevelWorkflow = workflow;
         Workflow parentWorkflow = getParentWorkflow(workflow);
         if (parentWorkflow != null) {
-            getTopLevelWorkflow(parentWorkflow);
+            topLevelWorkflow = getTopLevelWorkflow(parentWorkflow);
         }
         
         return topLevelWorkflow;

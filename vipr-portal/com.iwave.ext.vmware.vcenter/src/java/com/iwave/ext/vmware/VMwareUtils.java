@@ -211,7 +211,7 @@ public class VMwareUtils {
             DatastoreHostMount[] hostMounts = datastore.getHost();
             if (hostMounts != null) {
                 for (DatastoreHostMount hostMount : hostMounts) {
-                    if (hostMount.getKey().equals(host.getMOR()) && hostMount.mountInfo.mounted) {
+                    if (hostMount.getKey().equals(host.getMOR()) && hostMount.mountInfo != null && hostMount.mountInfo.mounted) {
                         return true;
                     }
                 }

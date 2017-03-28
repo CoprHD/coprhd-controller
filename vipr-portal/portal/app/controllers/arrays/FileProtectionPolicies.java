@@ -1000,7 +1000,6 @@ public class FileProtectionPolicies extends ViprResourceController {
 
         if (FilePolicyApplyLevel.project.name().equalsIgnoreCase(existingPolicy.getAppliedAt())) {
 
-            // List<String> existingProjects = stringRefIds(existingPolicy.getAssignedResources());
             List<String> projects = Lists.newArrayList();
             if (assignPolicy.unassignedProjects != null) {
                 projects = assignPolicy.unassignedProjects;
@@ -1020,7 +1019,6 @@ public class FileProtectionPolicies extends ViprResourceController {
 
         } else if (FilePolicyApplyLevel.vpool.name().equalsIgnoreCase(existingPolicy.getAppliedAt())) {
 
-            // List<String> existingvPools = stringRefIds(existingPolicy.getAssignedResources());
             List<String> vPools = Lists.newArrayList();
 
             if (assignPolicy.unassignedVirtualPools != null) {

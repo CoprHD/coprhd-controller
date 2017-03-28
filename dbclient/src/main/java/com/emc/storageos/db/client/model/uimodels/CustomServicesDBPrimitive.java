@@ -16,8 +16,6 @@
  */
 package com.emc.storageos.db.client.model.uimodels;
 
-import java.util.Set;
-
 import com.emc.storageos.db.client.model.Name;
 import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.StringMap;
@@ -49,9 +47,6 @@ public abstract class CustomServicesDBPrimitive extends CustomServicesPrimitiveM
     private NamedURI resource;
 
     public CustomServicesDBPrimitive() {}
-    
-    public abstract Set<String> attributeKeys();
-    public abstract Set<String> inputTypes();
 
     @Name(FRIENDLY_NAME)
     public String getFriendlyName() {

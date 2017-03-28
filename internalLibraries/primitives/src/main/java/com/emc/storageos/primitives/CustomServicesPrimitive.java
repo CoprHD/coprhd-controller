@@ -59,6 +59,9 @@ public interface CustomServicesPrimitive {
     public enum InputType {
         INPUT_PARAMS("input_params"),
         CONNECTION_DETAILS("connection_details"),
+        HEADERS("headers"),
+        QUERY_PARAMS("query_params"),
+        CREDENTIALS("credentials"),
         ANSIBLE_OPTIONS("ansible_options");
 
         private final String inputType;

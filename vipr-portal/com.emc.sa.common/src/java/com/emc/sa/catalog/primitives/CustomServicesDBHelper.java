@@ -73,14 +73,9 @@ import com.google.common.collect.Sets;
 public final class CustomServicesDBHelper {
 
     @SuppressWarnings("rawtypes")
-    private static final Class<Map> INPUT_ARG = Map.class;
-    @SuppressWarnings("rawtypes")
-    private static final Class<Map> ATTRIBUTES_ARG = Map.class;
-    @SuppressWarnings("rawtypes")
-    private static final Class<List> OUTPUT_ARG = List.class;
-    @SuppressWarnings("rawtypes")
     private static final Class<Map> RESOURCE_ATTRIBUTES_ARG = Map.class;
 
+    
     private CustomServicesDBHelper() {
     }
 
@@ -94,12 +89,13 @@ public final class CustomServicesDBHelper {
      * @param id The id of the primitive
      * @return The primitive type java object
      */
-    public static <T extends CustomServicesDBPrimitiveType> T get(final Class<T> type,
-            final Class<? extends CustomServicesDBPrimitive> clazz,
+    public static <DBModel extends CustomServicesDBPrimitive, T extends CustomServicesDBPrimitiveType> T get(
+            final Function<DBModel, T> mapper,
+            final Class<DBModel> clazz,
             final CustomServicesPrimitiveManager primitiveManager,
             final URI id) {
-        final CustomServicesDBPrimitive primitive = primitiveManager.findById(clazz, id);
-        return primitive == null ? null : makePrimitiveType(type, primitive);
+        final DBModel primitive = primitiveManager.findById(clazz, id);
+        return primitive == null ? null : mapper.apply(primitive);
     }
 
     /**
@@ -113,12 +109,15 @@ public final class CustomServicesDBHelper {
      * @param param The primitive creation param
      * @return The primitive type java object
      */
-    public static <T extends CustomServicesDBPrimitiveType> T create(final Class<T> type,
-            final Class<? extends CustomServicesDBPrimitive> dbModel,
+    public static <DBModel extends CustomServicesDBPrimitive, T extends CustomServicesDBPrimitiveType> T create(
+            final Function<DBModel, T> mapper,
+            final Class<DBModel> dbModel,
             final Class<? extends CustomServicesDBResource> resourceType,
             final CustomServicesPrimitiveManager primitiveManager,
+            final Function<CustomServicesPrimitiveCreateParam, StringSetMap> createInputFunc,
+            final Function<CustomServicesPrimitiveCreateParam, StringMap> createAttributesFunc,
             final CustomServicesPrimitiveCreateParam param) {
-        final CustomServicesDBPrimitive primitive;
+        final DBModel primitive;
         try {
             primitive = dbModel.newInstance();
         } catch (InstantiationException | IllegalAccessException e) {
@@ -135,12 +134,12 @@ public final class CustomServicesDBHelper {
         } else if( null != param.getResource() ) {
             throw APIException.badRequests.invalidParameter("resource", param.getResource().toString());
         }
-        primitive.setAttributes(createAttributes(primitive.attributeKeys(), param.getAttributes()));
-        primitive.setInput(createInput(primitive.inputTypes(), param.getInput()));
+        primitive.setAttributes(createAttributesFunc.apply(param));
+        primitive.setInput(createInputFunc.apply(param));
         primitive.setOutput(createOutput(param.getOutput()));
 
         primitiveManager.save(primitive);
-        return makePrimitiveType(type, primitive);
+        return mapper.apply(primitive);
     }
 
     /**
@@ -148,7 +147,7 @@ public final class CustomServicesDBHelper {
      * and return the primitive type java object
      * 
      * @param type The primitive type class
-     * @param clazz The DB column family class
+     * @param dbModel The DB column family class
      * @param resourceType The resource
      * @param primitiveManager The database access component
      * @param client The model client
@@ -157,14 +156,17 @@ public final class CustomServicesDBHelper {
      * 
      * @return The primitive type java object
      */
-    public static <T extends CustomServicesDBPrimitiveType> T update(final Class<T> type,
-            final Class<? extends CustomServicesDBPrimitive> clazz,
+    public static <DBModel extends CustomServicesDBPrimitive, T extends CustomServicesDBPrimitiveType> T update(
+            final Function<DBModel, T> mapper,
+            final Class<DBModel> dbModel,
             final Class<? extends CustomServicesDBResource> resourceType,
             final CustomServicesPrimitiveManager primitiveManager,
             final ModelClient client,
             final CustomServicesPrimitiveUpdateParam param,
+            final Function<UpdatePrimitive<DBModel>, StringSetMap> updateInputFunc,
+            final Function <UpdatePrimitive<DBModel>, StringMap> updateAttributesFunc,
             final URI id) {
-        final CustomServicesDBPrimitive primitive = primitiveManager.findById(clazz, id);
+        final DBModel primitive = primitiveManager.findById(dbModel, id);
 
         if (null == primitive) {
             throw APIException.notFound.unableToFindEntityInURL(id);
@@ -181,48 +183,46 @@ public final class CustomServicesDBHelper {
         if (null != param.getDescription()) {
             primitive.setDescription(param.getDescription());
         }
-
-        updateInput(param.getInput(), primitive);
-        updateAttributes(param.getAttributes(), primitive);
+        final UpdatePrimitive<DBModel> updatePrimitive = new UpdatePrimitive<DBModel>(param, primitive);
+        updateInputFunc.apply(updatePrimitive);
+        updateAttributesFunc.apply(updatePrimitive);
         updateOutput(param.getOutput(), primitive);
         client.save(primitive);
-        return makePrimitiveType(type, primitive);
+        return mapper.apply(primitive);
 
     }
 
-    private static void updateAttributes(final Map<String, String> attributes,
+    public static StringMap updateAttributes( final Set<String> attributeKeys,
+            final Map<String, String> attributes,
             final CustomServicesDBPrimitive primitive) {
-
-        if (attributes == null) {
-            return;
-        }
-
         final StringMap update = primitive.getAttributes() == null ? new StringMap() : primitive.getAttributes();
-
-        for (final Entry<String, String> entry : attributes.entrySet()) {
-            if (!primitive.attributeKeys().contains(entry.getKey())) {
-                throw APIException.badRequests.invalidParameter("attributes", entry.getKey());
+        if (attributes != null) {
+            for (final Entry<String, String> entry : attributes.entrySet()) {
+                if (!attributeKeys.contains(entry.getKey())) {
+                    throw APIException.badRequests.invalidParameter("attributes", entry.getKey());
+                }
+                update.put(entry.getKey(), entry.getValue());
             }
-            update.put(entry.getKey(), entry.getValue());
+            primitive.setAttributes(update);
         }
-        primitive.setAttributes(update);
-
+        return update;
     }
 
     /**
      * @param param
      * @param primitive
+     * @return 
      */
-    private static void updateInput(final InputUpdateParam param,
+    public static StringSetMap updateInput(final Set<String> inputTypes,
+            final InputUpdateParam param,
             final CustomServicesDBPrimitive primitive) {
-        if (param == null) {
-            return;
-        }
-
         final StringSetMap update = primitive.getInput() == null ? new StringSetMap() : primitive.getInput();
-
-        addInput(primitive.inputTypes(), param.getAdd(), update);
-        removeInput(primitive.inputTypes(), param.getRemove(), update);
+        if (param != null) {
+            addInput(inputTypes, param.getAdd(), update);
+            removeInput(inputTypes, param.getRemove(), update);
+            primitive.setInput(update);
+        }
+        return update;
     }
 
     private static void addInput(final Set<String> keys, final Map<String, InputUpdateList> map,
@@ -346,19 +346,20 @@ public final class CustomServicesDBHelper {
     }
 
     /**
-     * Map input of a given primitive from a StringSet map to the input paramater map
+     * Map input of a given primitive from a StringSet map to the input parameter map
      * 
      * @param primitive A primitive instance
      * @return An input parameter map
      */
-    private static Map<InputType, List<InputParameter>> mapInput(final CustomServicesDBPrimitive primitive) {
-        final Builder<InputType, List<InputParameter>> inputMap = ImmutableMap.<InputType, List<InputParameter>> builder();
-        if (null != primitive.getInput()) {
-            for (final Entry<String, AbstractChangeTrackingSet<String>> inputGroup : primitive.getInput().entrySet()) {
-                inputMap.put(inputGroup(inputGroup.getKey(), primitive.inputTypes()), mapInputParameters(inputGroup.getValue()));
+    public static Map<InputType, List<InputParameter>> mapInput(final Set<String> inputTypes, 
+            final StringSetMap inputMap) {
+        final Builder<InputType, List<InputParameter>> input = ImmutableMap.<InputType, List<InputParameter>> builder();
+        if (null != inputMap) {
+            for (final Entry<String, AbstractChangeTrackingSet<String>> inputGroup : inputMap.entrySet()) {
+                input.put(inputGroup(inputGroup.getKey(), inputTypes), mapInputParameters(inputGroup.getValue()));
             }
         }
-        return inputMap.build();
+        return input.build();
     }
 
     /**
@@ -398,10 +399,10 @@ public final class CustomServicesDBHelper {
      * @param primitive The primitive instance
      * @return The converted List of output parameters
      */
-    private static List<OutputParameter> mapOutput(final CustomServicesDBPrimitive primitive) {
+    public static List<OutputParameter> mapOutput(final StringSet outputSet) {
         final ImmutableList.Builder<OutputParameter> output = ImmutableList.<OutputParameter> builder();
-        if (null != primitive.getOutput()) {
-            for (final String outputName : primitive.getOutput()) {
+        if (null != outputSet) {
+            for (final String outputName : outputSet) {
                 output.add(makeOutputParameter(outputName));
             }
         }
@@ -414,11 +415,11 @@ public final class CustomServicesDBHelper {
      * @param primitive The primitive instance
      * @return The converted attributes map
      */
-    private static Map<String, String> mapAttributes(final CustomServicesDBPrimitive primitive) {
+    static Map<String, String> mapAttributes(final Set<String> attributeKeys, final StringMap attributes) {
         ImmutableMap.Builder<String, String> attributeMap = ImmutableMap.<String, String> builder();
-        if (null != primitive.getAttributes()) {
-            for (final Entry<String, String> attribute : primitive.getAttributes().entrySet()) {
-                if (!primitive.attributeKeys().contains(attribute.getKey())) {
+        if (null != attributes) {
+            for (final Entry<String, String> attribute : attributes.entrySet()) {
+                if (!attributeKeys.contains(attribute.getKey())) {
                     throw new IllegalStateException("Unknow attribute key: " + attribute.getKey());
                 }
                 attributeMap.put(attribute.getKey(), attribute.getValue());
@@ -455,7 +456,7 @@ public final class CustomServicesDBHelper {
         return output;
     }
 
-    private static StringMap createAttributes(final Set<String> attributeKeys,
+    public static StringMap createAttributes(final Set<String> attributeKeys,
             final Map<String, String> attributes) {
         final StringMap attributesMap = new StringMap();
 
@@ -479,7 +480,7 @@ public final class CustomServicesDBHelper {
         return attributesMap;
     }
 
-    private static StringSetMap createInput(final Set<String> keys, final Map<String, InputCreateList> map) {
+    public static StringSetMap createInput(final Set<String> keys, final Map<String, InputCreateList> map) {
         final StringSetMap inputMap = new StringSetMap();
         if (null != map) {
             for (Entry<String, InputCreateList> entry : map.entrySet()) {
@@ -515,31 +516,6 @@ public final class CustomServicesDBHelper {
         if (null != workflows && !workflows.isEmpty()) {
             throw APIException.badRequests.resourceHasActiveReferencesWithType(primitive.getClass().getSimpleName(), id,
                     CustomServicesWorkflow.class.getSimpleName());
-        }
-    }
-
-    /**
-     * Given a primitive type java class and the database column family instance
-     * Create an insteance of the primitive type
-     * 
-     * @param clazz The primitive type java class
-     * @param primitive The instance of the database column family
-     * @return The primitive type instance
-     */
-    private static <T extends CustomServicesDBPrimitiveType> T makePrimitiveType(final Class<T> clazz,
-            final CustomServicesDBPrimitive primitive) {
-        Constructor<T> constructor;
-        try {
-            constructor = clazz.getConstructor(primitive.getClass(), INPUT_ARG, ATTRIBUTES_ARG, OUTPUT_ARG);
-        } catch (final NoSuchMethodException | SecurityException e) {
-            throw new RuntimeException("Primitive type " + clazz.getSimpleName() + " is missing the constructor implementation", e);
-        }
-
-        try {
-            return constructor.newInstance(primitive, mapInput(primitive), mapAttributes(primitive), mapOutput(primitive));
-        } catch (final InstantiationException | IllegalAccessException
-                | IllegalArgumentException | InvocationTargetException e) {
-            throw new RuntimeException("Primitive type " + clazz.getSimpleName() + " failed to invoke constructor", e);
         }
     }
 
@@ -689,14 +665,75 @@ public final class CustomServicesDBHelper {
                     final Collection<URI> ids,
                     Class<Type> type,
                     Class<Model> dbModel,
-                    final DbClient dbClient) {
+                    final DbClient dbClient,
+                    final Function<Model, Type> mapper) {
         return BulkList.wrapping(dbClient.queryIterativeObjects(dbModel, ids), new Function<Model, CustomServicesPrimitiveRestRep>() {
 
             @Override
             public CustomServicesPrimitiveRestRep apply(final Model from) {
-                return CustomServicesPrimitiveMapper.map(makePrimitiveType(type, from));
+                return CustomServicesPrimitiveMapper.map(mapper.apply(from));
             }
 
         }).iterator();
     }
+    
+    public static class UpdatePrimitive<DBModel extends CustomServicesDBPrimitive> {
+        private final CustomServicesPrimitiveUpdateParam param;
+        private final DBModel primitive;
+
+        public UpdatePrimitive(final CustomServicesPrimitiveUpdateParam param, final DBModel primitive) {
+            this.param = param;
+            this.primitive = primitive;
+        }
+        
+        public CustomServicesPrimitiveUpdateParam param() {
+            return param;
+        }
+        
+        public DBModel primitive() {
+            return primitive;
+        }
+    }
+    
+    public static Function<CustomServicesPrimitiveCreateParam, StringSetMap> createInputFunction(final Set<String> inputTypes) {
+        return new Function<CustomServicesPrimitiveCreateParam, StringSetMap>() {
+            @Override
+            public StringSetMap apply(CustomServicesPrimitiveCreateParam param) {
+                return CustomServicesDBHelper.createInput(inputTypes, param.getInput());
+            }
+        };
+    }
+
+    public static Function<CustomServicesPrimitiveCreateParam, StringMap> createAttributesFunction(final Set<String> attributeKeys) {
+        return new Function<CustomServicesPrimitiveCreateParam, StringMap>() {
+            @Override
+            public StringMap apply(CustomServicesPrimitiveCreateParam param) {
+                return CustomServicesDBHelper.createAttributes(attributeKeys, param.getAttributes());
+            }
+        };
+    }
+    
+    public static <DBModel extends CustomServicesDBPrimitive> Function<UpdatePrimitive<DBModel>, StringSetMap> updateInputFunction(final Set<String> inputTypes) {
+        return new Function<UpdatePrimitive<DBModel>, StringSetMap>() {
+
+            @Override
+            public StringSetMap apply(final UpdatePrimitive<DBModel> update) {
+                return CustomServicesDBHelper.updateInput(inputTypes, update.param().getInput(), update.primitive());
+            }
+            
+        };
+    }
+    
+    public static <DBModel extends CustomServicesDBPrimitive> Function<UpdatePrimitive<DBModel>, StringMap> updateAttributesFunction(final Set<String> attributes) {
+        return new Function<UpdatePrimitive<DBModel>, StringMap>() {
+
+            @Override
+            public StringMap apply(final UpdatePrimitive<DBModel> update) {
+               return updateAttributes(attributes, update.param().getAttributes(), update.primitive());
+            }
+            
+        };
+    }
+    
+    
 }

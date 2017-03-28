@@ -18,8 +18,11 @@ package com.emc.sa.catalog.primitives;
 
 import java.net.URI;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -31,7 +34,12 @@ import com.emc.storageos.db.client.model.uimodels.CustomServicesDBAnsibleResourc
 import com.emc.storageos.model.customservices.CustomServicesPrimitiveCreateParam;
 import com.emc.storageos.model.customservices.CustomServicesPrimitiveRestRep;
 import com.emc.storageos.model.customservices.CustomServicesPrimitiveUpdateParam;
+import com.emc.storageos.primitives.CustomServicesConstants;
+import com.emc.storageos.primitives.CustomServicesPrimitive.InputType;
 import com.emc.storageos.primitives.db.ansible.CustomServicesAnsiblePrimitive;
+import com.emc.storageos.primitives.input.InputParameter;
+import com.emc.storageos.primitives.output.OutputParameter;
+import com.google.common.base.Function;
 
 /**
  * Data access object for Ansible primitives
@@ -47,6 +55,21 @@ public class CustomServicesAnsiblePrimitiveDAO implements
     @Autowired
     private DbClient dbClient;
 
+    private static final Set<String> INPUT_TYPES = Collections.singleton(InputType.INPUT_PARAMS.toString());
+    private static final Set<String> ATTRIBUTES = Collections.singleton(CustomServicesConstants.ANSIBLE_PLAYBOOK);
+    
+    private static final Function<CustomServicesDBAnsiblePrimitive, CustomServicesAnsiblePrimitive> MAPPER = 
+            new Function<CustomServicesDBAnsiblePrimitive, CustomServicesAnsiblePrimitive>() {
+        @Override
+        public CustomServicesAnsiblePrimitive apply(final CustomServicesDBAnsiblePrimitive primitive) {
+            final Map<InputType, List<InputParameter>> input = CustomServicesDBHelper.mapInput(INPUT_TYPES, primitive.getInput());
+            final List<OutputParameter> output = CustomServicesDBHelper.mapOutput(primitive.getOutput());
+            final Map<String, String> attributes = CustomServicesDBHelper.mapAttributes(ATTRIBUTES, primitive.getAttributes()); 
+            return new CustomServicesAnsiblePrimitive(primitive, input, attributes, output);
+        }
+
+    };
+    
     @Override
     public String getType() {
         return CustomServicesAnsiblePrimitive.TYPE;
@@ -54,22 +77,35 @@ public class CustomServicesAnsiblePrimitiveDAO implements
 
     @Override
     public CustomServicesAnsiblePrimitive get(final URI id) {
-        return CustomServicesDBHelper.get(CustomServicesAnsiblePrimitive.class, CustomServicesDBAnsiblePrimitive.class, primitiveManager,
+        return CustomServicesDBHelper.get(MAPPER, CustomServicesDBAnsiblePrimitive.class, primitiveManager,
                 id);
     }
 
     @Override
     public CustomServicesAnsiblePrimitive create(
             CustomServicesPrimitiveCreateParam param) {
-        return CustomServicesDBHelper.create(CustomServicesAnsiblePrimitive.class, CustomServicesDBAnsiblePrimitive.class,
-                CustomServicesDBAnsibleResource.class, primitiveManager, param);
+        return CustomServicesDBHelper.create(
+                MAPPER, 
+                CustomServicesDBAnsiblePrimitive.class,
+                CustomServicesDBAnsibleResource.class, 
+                primitiveManager,
+                CustomServicesDBHelper.createInputFunction(INPUT_TYPES),
+                CustomServicesDBHelper.createAttributesFunction(ATTRIBUTES),
+                param);
     }
 
     @Override
     public CustomServicesAnsiblePrimitive update(URI id,
             CustomServicesPrimitiveUpdateParam param) {
-        return CustomServicesDBHelper.update(CustomServicesAnsiblePrimitive.class, CustomServicesDBAnsiblePrimitive.class,
-                CustomServicesDBAnsibleResource.class, primitiveManager, client, param, id);
+        return CustomServicesDBHelper.update(MAPPER, 
+                CustomServicesDBAnsiblePrimitive.class,
+                CustomServicesDBAnsibleResource.class, 
+                primitiveManager, 
+                client, 
+                param, 
+                CustomServicesDBHelper.updateInputFunction(INPUT_TYPES),
+                CustomServicesDBHelper.updateAttributesFunction(ATTRIBUTES),
+                id);
     }
 
     @Override
@@ -88,7 +124,8 @@ public class CustomServicesAnsiblePrimitiveDAO implements
     }
 
     @Override
-    public Iterator<CustomServicesPrimitiveRestRep> bulk(Collection<URI> ids) {
-        return CustomServicesDBHelper.bulk(ids, CustomServicesAnsiblePrimitive.class, CustomServicesDBAnsiblePrimitive.class, dbClient);
+    public Iterator<CustomServicesPrimitiveRestRep> bulk(final Collection<URI> ids) {
+        return CustomServicesDBHelper.bulk(ids, CustomServicesAnsiblePrimitive.class, 
+                CustomServicesDBAnsiblePrimitive.class, dbClient, MAPPER);
     }
 }

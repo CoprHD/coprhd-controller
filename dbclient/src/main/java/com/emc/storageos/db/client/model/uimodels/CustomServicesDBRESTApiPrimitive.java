@@ -16,37 +16,11 @@
  */
 package com.emc.storageos.db.client.model.uimodels;
 
-import java.util.Set;
-
 import com.emc.storageos.db.client.model.Cf;
-import com.google.common.collect.ImmutableSet;
 
 @Cf("CustomServicesDBRESTApiPrimitive")
 public class CustomServicesDBRESTApiPrimitive extends CustomServicesDBPrimitive {
 
     private static final long serialVersionUID = 1L;
-    private static final Set<String> ATTRIBUTES = ImmutableSet.<String>builder()
-            .add("body")
-            .add("protocol")
-            .add("method")
-            .add("auth")
-            .build();
     
-    private static final Set<String> INPUT_TYPES = ImmutableSet.<String>builder()
-            .add("input_params")
-            .add("query_params")
-            .add("headers")
-            .add("connection_details")
-            .build();
-    
-    @Override
-    public Set<String> attributeKeys() {
-        return ATTRIBUTES;
-    }
-
-    @Override
-    public Set<String> inputTypes() {
-        return INPUT_TYPES;
-    }
-
 }

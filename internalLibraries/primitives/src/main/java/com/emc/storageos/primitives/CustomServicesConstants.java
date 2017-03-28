@@ -63,7 +63,7 @@ public final class CustomServicesConstants {
     public static final String REMOVE_OPTION = "-rf";
     // Ansible Options
     public static final String ANSIBLE_BIN = "remote_ansible_bin";
-    public static final String ANSIBLE_PLAYBOOK = "remote_node_playbook";
+    public static final String ANSIBLE_PLAYBOOK = "playbook";
     public static final String ANSIBLE_HOST_FILE = "remote_host_file";
     public static final String ANSIBLE_USER = "remote_ansible_user";
     public static final String ANSIBLE_COMMAND_LINE = "ansible_command_line_arg";
@@ -78,7 +78,7 @@ public final class CustomServicesConstants {
 
     //REST options
     public static final String PROTOCOL = "protocol";
-    public static final String AUTH_TYPE = "AuthType";
+    public static final String AUTH_TYPE = "auth";
     public static final String USER = "user";
     public static final String PASSWORD = "password";
     public static final String ACCEPT_TYPE = "Accept-Type";

@@ -18,8 +18,11 @@ package com.emc.sa.catalog.primitives;
 
 import java.net.URI;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -31,7 +34,11 @@ import com.emc.storageos.db.client.model.uimodels.CustomServicesDBScriptResource
 import com.emc.storageos.model.customservices.CustomServicesPrimitiveCreateParam;
 import com.emc.storageos.model.customservices.CustomServicesPrimitiveRestRep;
 import com.emc.storageos.model.customservices.CustomServicesPrimitiveUpdateParam;
+import com.emc.storageos.primitives.CustomServicesPrimitive.InputType;
 import com.emc.storageos.primitives.db.script.CustomServicesScriptPrimitive;
+import com.emc.storageos.primitives.input.InputParameter;
+import com.emc.storageos.primitives.output.OutputParameter;
+import com.google.common.base.Function;
 
 /**
  * Data access object for script primitives
@@ -46,6 +53,21 @@ public class CustomServicesScriptPrimitiveDAO implements CustomServicesPrimitive
     @Autowired
     private DbClient dbClient;
 
+    private static final Set<String> INPUT_TYPES = Collections.singleton(InputType.INPUT_PARAMS.toString());
+    private static final Set<String> ATTRIBUTES = Collections.emptySet();
+    
+    private static final Function<CustomServicesDBScriptPrimitive, CustomServicesScriptPrimitive> MAPPER = 
+            new Function<CustomServicesDBScriptPrimitive, CustomServicesScriptPrimitive>() {
+        @Override
+        public CustomServicesScriptPrimitive apply(final CustomServicesDBScriptPrimitive primitive) {
+            final Map<InputType, List<InputParameter>> input = CustomServicesDBHelper.mapInput(INPUT_TYPES, primitive.getInput());
+            final List<OutputParameter> output = CustomServicesDBHelper.mapOutput(primitive.getOutput());
+            final Map<String, String> attributes = CustomServicesDBHelper.mapAttributes(ATTRIBUTES, primitive.getAttributes()); 
+            return new CustomServicesScriptPrimitive(primitive, input, attributes, output);
+        }
+
+    };
+    
     @Override
     public String getType() {
         return CustomServicesScriptPrimitive.TYPE;
@@ -53,21 +75,33 @@ public class CustomServicesScriptPrimitiveDAO implements CustomServicesPrimitive
 
     @Override
     public CustomServicesScriptPrimitive get(final URI id) {
-        return CustomServicesDBHelper.get(CustomServicesScriptPrimitive.class, CustomServicesDBScriptPrimitive.class, primitiveManager, id);
+        return CustomServicesDBHelper.get(MAPPER, CustomServicesDBScriptPrimitive.class, primitiveManager, id);
     }
 
     @Override
     public CustomServicesScriptPrimitive create(
             CustomServicesPrimitiveCreateParam param) {
-        return CustomServicesDBHelper.create(CustomServicesScriptPrimitive.class, CustomServicesDBScriptPrimitive.class,
-                CustomServicesDBScriptResource.class, primitiveManager, param);
+        return CustomServicesDBHelper.create(MAPPER, 
+                CustomServicesDBScriptPrimitive.class,
+                CustomServicesDBScriptResource.class,
+                primitiveManager, 
+                CustomServicesDBHelper.createInputFunction(INPUT_TYPES),
+                CustomServicesDBHelper.createAttributesFunction(ATTRIBUTES),
+                param);
     }
 
     @Override
     public CustomServicesScriptPrimitive update(URI id,
             CustomServicesPrimitiveUpdateParam param) {
-        return CustomServicesDBHelper.update(CustomServicesScriptPrimitive.class, CustomServicesDBScriptPrimitive.class,
-                CustomServicesDBScriptResource.class, primitiveManager, client, param, id);
+        return CustomServicesDBHelper.update(MAPPER, 
+                CustomServicesDBScriptPrimitive.class,
+                CustomServicesDBScriptResource.class, 
+                primitiveManager, 
+                client, 
+                param, 
+                CustomServicesDBHelper.updateInputFunction(INPUT_TYPES),
+                CustomServicesDBHelper.updateAttributesFunction(ATTRIBUTES),
+                id);
     }
 
     @Override
@@ -87,7 +121,8 @@ public class CustomServicesScriptPrimitiveDAO implements CustomServicesPrimitive
 
     @Override
     public Iterator<CustomServicesPrimitiveRestRep> bulk(Collection<URI> ids) {
-        return CustomServicesDBHelper.bulk(ids, CustomServicesScriptPrimitive.class, CustomServicesDBScriptPrimitive.class, dbClient);
+        return CustomServicesDBHelper.bulk(ids, CustomServicesScriptPrimitive.class, 
+                CustomServicesDBScriptPrimitive.class, dbClient, MAPPER);
     }
 
 }

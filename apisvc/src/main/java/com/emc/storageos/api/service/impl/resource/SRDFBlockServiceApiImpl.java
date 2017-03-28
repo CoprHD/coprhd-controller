@@ -35,9 +35,7 @@ import com.emc.storageos.blockorchestrationcontroller.VolumeDescriptor;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
-import com.emc.storageos.db.client.constraint.Constraint;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
-import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.BlockSnapshotSession;
@@ -79,6 +77,7 @@ import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.BadRequestException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
+import com.emc.storageos.util.VPlexUtil;
 import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.Recommendation;
 import com.emc.storageos.volumecontroller.SRDFCopyRecommendation;
@@ -418,8 +417,8 @@ public class SRDFBlockServiceApiImpl extends AbstractBlockServiceApiImpl<SRDFSch
         volume.setThinlyProvisioned(VirtualPool.ProvisioningType.Thin.toString().equalsIgnoreCase(
                 vpool.getSupportedProvisioningType()));
         volume.setVirtualPool(vpool.getId());
-        volume.setProject(new NamedURI(project.getId(), volume.getLabel()));
-        volume.setTenant(new NamedURI(project.getTenantOrg().getURI(), volume.getLabel()));
+        volume.setProject(new NamedURI(project.getId(), project.getLabel()));
+        volume.setTenant(new NamedURI(project.getTenantOrg().getURI(), project.getTenantOrg().getName()));
         volume.setVirtualArray(varray.getId());
         volume.setSrdfGroup(raGroupURI);
         volume.setSrdfCopyMode(copyMode);
@@ -792,24 +791,21 @@ public class SRDFBlockServiceApiImpl extends AbstractBlockServiceApiImpl<SRDFSch
         // JIRA CTRL-266; perhaps we can improve this using DB indexes
         volumeIDs = Volume.fetchSRDFVolumes(_dbClient, object.getId());
         for (URI volumeID : volumeIDs) {
-            URIQueryResultList list = new URIQueryResultList();
-            Constraint constraint = ContainmentConstraint.Factory
-                    .getVolumeSnapshotConstraint(volumeID);
-            _dbClient.queryByConstraint(constraint, list);
-            Iterator<URI> it = list.iterator();
-            while (it.hasNext()) {
-                URI snapshotID = it.next();
-                BlockSnapshot snapshot = _dbClient.queryObject(BlockSnapshot.class, snapshotID);
+            Volume volume = _dbClient.queryObject(Volume.class, volumeID);
+            if (volume == null || volume.getInactive()) {
+                continue;
+            }
+            // Check for dependent snapshots.
+            List<BlockSnapshot> snapshots = getSnapshotsForVolume(volume);
+            for (BlockSnapshot snapshot : snapshots) {
                 if (snapshot != null && !snapshot.getInactive()) {
-                    dependencies.put(volumeID, snapshotID);
+                    dependencies.put(volumeID, snapshot.getId());
                 }
             }
 
             // Also check for snapshot sessions.
-            List<BlockSnapshotSession> snapSessions = CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient,
-                    BlockSnapshotSession.class, ContainmentConstraint.Factory.getParentSnapshotSessionConstraint(volumeID));
-            for (BlockSnapshotSession snapSession : snapSessions) {
-                dependencies.put(volumeID, snapSession.getId());
+            for (BlockSnapshotSession snapshotSession : getSnapshotSessionsForVolume(volume)) {
+                dependencies.put(volume.getId(), snapshotSession.getId());
             }
 
             if (!dependencies.isEmpty()) {
@@ -838,7 +834,28 @@ public class SRDFBlockServiceApiImpl extends AbstractBlockServiceApiImpl<SRDFSch
 
         return null;
     }
-
+    
+    /**
+     * Get the snapshots for the passed volume only, do not retrieve any of the related snaps.
+     *
+     * @param volume A reference to a volume.
+     * 
+     * @return The snapshots for the passed volume.
+     */
+    public List<BlockSnapshot> getSnapshotsForVolume(Volume volume) {
+        List<BlockSnapshot> snapshots = new ArrayList<BlockSnapshot>();
+        boolean vplex = VPlexUtil.isVplexVolume(volume, _dbClient);
+        if (vplex) {
+            Volume snapshotSourceVolume = VPlexUtil.getVPLEXBackendVolume(volume, true, _dbClient, false);
+            if (snapshotSourceVolume != null) {
+                snapshots.addAll(super.getSnapshots(snapshotSourceVolume));
+            }
+        } else {
+            snapshots.addAll(super.getSnapshots(volume));
+        }
+        return snapshots;
+    }
+    
     @Override
     public TaskList deactivateMirror(final StorageSystem device, final URI mirrorURI,
             final String task, String deleteType) {

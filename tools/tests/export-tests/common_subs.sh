@@ -666,7 +666,8 @@ secho()
 # General echo output for things that are run that will suspend
 recho()
 {
-    echo -e "=== $*" | tee -a ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
+    datetime=`date +"%Y-%m-%d %H:%M:%S"`
+    echo -e "=== $datetime - $*" | tee -a ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
 }
 
 # Helper method to increment the failure counts
@@ -678,7 +679,8 @@ incr_fail_count() {
 # A method to run a command that exits on failure.
 run() {
     cmd=$*
-    echo === $cmd | tee -a ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
+    datetime=`date +"%Y-%m-%d %H:%M:%S"`
+    echo === $datetime - $cmd | tee -a ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
     rm -f ${CMD_OUTPUT}
     if [ "${HIDE_OUTPUT}" = "" -o "${HIDE_OUTPUT}" = "1" ]; then
 	$cmd &> ${CMD_OUTPUT}
@@ -699,7 +701,7 @@ run() {
 runcmd() {
     cmd=$*
     datetime=`date +"%Y-%m-%d %H:%M:%S"`
-    echo === $datetime : $cmd | tee -a ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
+    echo === $datetime - $cmd | tee -a ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
     rm -f ${CMD_OUTPUT}
     if [ "${HIDE_OUTPUT}" = "" -o "${HIDE_OUTPUT}" = "1" ]; then
 	"$@" &> ${CMD_OUTPUT}
@@ -765,7 +767,7 @@ fail(){
     fi
     cmd=$*
     datetime=`date +"%Y-%m-%d %H:%M:%S"`
-    echo === $datetime : $cmd | tee -a ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
+    echo === $datetime - $cmd | tee -a ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
     if [ "${HIDE_OUTPUT}" = "" -o "${HIDE_OUTPUT}" = "1" ]; then
         $cmd &> ${CMD_OUTPUT}
     else
@@ -838,7 +840,7 @@ setup_yaml() {
 
 setup_provider() {
     DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-    tools_file="${DIR}/preExistingConfig.properties"
+    tools_file="preExistingConfig.properties"
     if [ -f "$tools_file" ]; then
 	echo "stale $tools_file found. Deleting it."
 	rm $tools_file

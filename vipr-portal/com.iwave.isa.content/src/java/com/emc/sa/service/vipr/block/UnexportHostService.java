@@ -62,6 +62,8 @@ public class UnexportHostService extends ViPRService {
                 }
             }
         }
+
+        checkForBootVolumes(volumeIds);
     }
 
     @Override

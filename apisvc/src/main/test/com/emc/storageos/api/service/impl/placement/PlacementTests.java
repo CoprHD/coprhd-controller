@@ -183,7 +183,7 @@ public class PlacementTests extends DbsvcTestBase {
         Project project = new Project();
         project.setId(URI.create("project"));
         project.setLabel("RDG1");
-        project.setTenantOrg(new NamedURI(tenant.getId(), project.getLabel()));
+        project.setTenantOrg(new NamedURI(tenant.getId(), tenant.getLabel()));
         _dbClient.createObject(project);
 
         // Create capabilities
@@ -299,7 +299,7 @@ public class PlacementTests extends DbsvcTestBase {
         Project project = new Project();
         project.setId(URI.create("project"));
         project.setLabel("RDG1");
-        project.setTenantOrg(new NamedURI(tenant.getId(), project.getLabel()));
+        project.setTenantOrg(new NamedURI(tenant.getId(), tenant.getLabel()));
         _dbClient.createObject(project);
 
         // Create capabilities
@@ -427,7 +427,7 @@ public class PlacementTests extends DbsvcTestBase {
         Project project = new Project();
         project.setId(URI.create("project"));
         project.setLabel("RDG1");
-        project.setTenantOrg(new NamedURI(tenant.getId(), project.getLabel()));
+        project.setTenantOrg(new NamedURI(tenant.getId(), tenant.getLabel()));
         _dbClient.createObject(project);
 
         // Create capabilities
@@ -588,7 +588,7 @@ public class PlacementTests extends DbsvcTestBase {
         Project project = new Project();
         project.setId(URI.create("project"));
         project.setLabel("RDG1");
-        project.setTenantOrg(new NamedURI(tenant.getId(), project.getLabel()));
+        project.setTenantOrg(new NamedURI(tenant.getId(), tenant.getLabel()));
         _dbClient.createObject(project);
 
         // Create capabilities
@@ -754,7 +754,7 @@ public class PlacementTests extends DbsvcTestBase {
         Project project = new Project();
         project.setId(URI.create("project"));
         project.setLabel("RDG1");
-        project.setTenantOrg(new NamedURI(tenant.getId(), project.getLabel()));
+        project.setTenantOrg(new NamedURI(tenant.getId(), tenant.getLabel()));
         _dbClient.createObject(project);
 
         // Create capabilities
@@ -1247,7 +1247,7 @@ public class PlacementTests extends DbsvcTestBase {
         Project project = new Project();
         project.setId(URI.create("project"));
         project.setLabel("project");
-        project.setTenantOrg(new NamedURI(tenant.getId(), project.getLabel()));
+        project.setTenantOrg(new NamedURI(tenant.getId(), tenant.getLabel()));
         _dbClient.createObject(project);
 
         VirtualPoolCapabilityValuesWrapper capabilities = PlacementTestUtils.createCapabilities("2GB", 1, null);
@@ -1602,7 +1602,7 @@ public class PlacementTests extends DbsvcTestBase {
         Project project = new Project();
         project.setId(URI.create("project"));
         project.setLabel("project");
-        project.setTenantOrg(new NamedURI(tenant.getId(), project.getLabel()));
+        project.setTenantOrg(new NamedURI(tenant.getId(), tenant.getLabel()));
         _dbClient.createObject(project);
 
         // Create block consistency group
@@ -1861,7 +1861,7 @@ public class PlacementTests extends DbsvcTestBase {
         Project project = new Project();
         project.setId(URI.create("project"));
         project.setLabel("project");
-        project.setTenantOrg(new NamedURI(tenant.getId(), project.getLabel()));
+        project.setTenantOrg(new NamedURI(tenant.getId(), tenant.getLabel()));
         _dbClient.createObject(project);
 
         // Create block consistency group
@@ -2107,7 +2107,7 @@ public class PlacementTests extends DbsvcTestBase {
         Project project = new Project();
         project.setId(URI.create("project"));
         project.setLabel("project");
-        project.setTenantOrg(new NamedURI(tenant.getId(), project.getLabel()));
+        project.setTenantOrg(new NamedURI(tenant.getId(), tenant.getLabel()));
         _dbClient.createObject(project);
 
         // Create block consistency group
@@ -2377,7 +2377,7 @@ public class PlacementTests extends DbsvcTestBase {
         Project project = new Project();
         project.setId(URI.create("project"));
         project.setLabel("project");
-        project.setTenantOrg(new NamedURI(tenant.getId(), project.getLabel()));
+        project.setTenantOrg(new NamedURI(tenant.getId(), tenant.getLabel()));
         _dbClient.createObject(project);
 
         // Create block consistency group
@@ -2745,7 +2745,7 @@ public class PlacementTests extends DbsvcTestBase {
         Project project = new Project();
         project.setId(URI.create("project"));
         project.setLabel("project");
-        project.setTenantOrg(new NamedURI(tenant.getId(), project.getLabel()));
+        project.setTenantOrg(new NamedURI(tenant.getId(), tenant.getLabel()));
         _dbClient.createObject(project);
 
         // Create block consistency group
@@ -3129,7 +3129,7 @@ public class PlacementTests extends DbsvcTestBase {
         Project project = new Project();
         project.setId(URI.create("project"));
         project.setLabel("project");
-        project.setTenantOrg(new NamedURI(tenant.getId(), project.getLabel()));
+        project.setTenantOrg(new NamedURI(tenant.getId(), tenant.getLabel()));
         _dbClient.createObject(project);
 
         // Create block consistency group
@@ -3694,7 +3694,7 @@ public class PlacementTests extends DbsvcTestBase {
         Project project = new Project();
         project.setId(URI.create("project"));
         project.setLabel("project");
-        project.setTenantOrg(new NamedURI(tenant.getId(), project.getLabel()));
+        project.setTenantOrg(new NamedURI(tenant.getId(), tenant.getLabel()));
         _dbClient.createObject(project);
 
         // Create block consistency group
@@ -4352,7 +4352,7 @@ public class PlacementTests extends DbsvcTestBase {
         Project project = new Project();
         project.setId(URI.create("project"));
         project.setLabel("project");
-        project.setTenantOrg(new NamedURI(tenant.getId(), project.getLabel()));
+        project.setTenantOrg(new NamedURI(tenant.getId(), tenant.getLabel()));
         _dbClient.createObject(project);
 
         // Create block consistency group
@@ -4822,7 +4822,7 @@ public class PlacementTests extends DbsvcTestBase {
         Project project = new Project();
         project.setId(URI.create("project"));
         project.setLabel("project");
-        project.setTenantOrg(new NamedURI(tenant.getId(), project.getLabel()));
+        project.setTenantOrg(new NamedURI(tenant.getId(), tenant.getLabel()));
         _dbClient.createObject(project);
 
         // Create block consistency group
@@ -5223,7 +5223,7 @@ public class PlacementTests extends DbsvcTestBase {
         Project project = new Project();
         project.setId(URI.create("project"));
         project.setLabel("project");
-        project.setTenantOrg(new NamedURI(tenant.getId(), project.getLabel()));
+        project.setTenantOrg(new NamedURI(tenant.getId(), tenant.getLabel()));
         _dbClient.createObject(project);
 
         // Create block consistency group
@@ -5337,7 +5337,7 @@ public class PlacementTests extends DbsvcTestBase {
         Project project = new Project();
         project.setId(URI.create("project"));
         project.setLabel("project");
-        project.setTenantOrg(new NamedURI(tenant.getId(), project.getLabel()));
+        project.setTenantOrg(new NamedURI(tenant.getId(), tenant.getLabel()));
         _dbClient.createObject(project);
 
         // Create block consistency group

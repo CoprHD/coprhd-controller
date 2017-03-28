@@ -25,6 +25,7 @@ import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.model.block.BlockObjectRestRep;
 import com.emc.storageos.model.host.HostRestRep;
+import com.google.common.base.Joiner;
 import com.google.common.collect.Lists;
 
 @Service("RemoveHostFromCluster")
@@ -56,12 +57,12 @@ public class RemoveHostFromClusterService extends ViPRService {
                 preCheckErrors.append("Host doesn't exist for ID " + hostId);
             } else if (!host.getCluster().equals(clusterId)) {
                 preCheckErrors.append("Host " + host.getLabel() + " is not associated with cluster: " + cluster.getLabel());
-            } else if (NullColumnValueGetter.isNullURI(host.getComputeElement())) {
+            } else if (NullColumnValueGetter.isNullURI(host.getComputeElement()) && NullColumnValueGetter.isNullURI(host.getServiceProfile())) {
                 nonVblockhosts.add(host.getLabel());
             }
             hostURIMap.put(hostId, host.getLabel());
         }
-        //if a non-vblock host is being decommissioned fail the order, only vblock hosts can be decommissioned.
+        // If a non-vblock host is being decommissioned, fail the order. Only vblock hosts can be decommissioned.
         if (!CollectionUtils.isEmpty(nonVblockhosts)) {
             logError("computeutils.deactivatecluster.deactivate.nonvblockhosts", nonVblockhosts);
             preCheckErrors.append("Cannot decommission the following non-vBlock hosts - ");
@@ -76,6 +77,15 @@ public class RemoveHostFromClusterService extends ViPRService {
             .append(" has different boot volumes than what controller provisioned.  Cannot delete original boot volume in case it was re-purposed.");
         }
 
+        // Verify the hosts are still part of the cluster we have reported for it on ESX.
+        if (!ComputeUtils.verifyHostInVcenterCluster(cluster, hostIds)) {
+            logError("computeutils.deactivatecluster.deactivate.hostmovedcluster", cluster.getLabel(),
+                    Joiner.on(',').join(hostURIMap.values()));
+            preCheckErrors.append("Cluster ").append(cluster.getLabel())
+            .append(" no longer contains one or more of the hosts requesting decommission.  Cannot decomission in current state.  Recommended " +
+            "to run vCenter discovery and address actionable events before attempting decomission of hosts in this cluster.");
+        }
+        
         if (preCheckErrors.length() > 0) {
             throw new IllegalStateException(preCheckErrors.toString());
         }
@@ -161,8 +171,7 @@ public class RemoveHostFromClusterService extends ViPRService {
                 }
             }
             setPartialSuccess();
-        }
-        else {  // check all boot vols were removed
+        } else {  // check all boot vols were removed
             for (URI bootVolURI : bootVolsToBeDeleted) {
                 BlockObjectRestRep bootVolRep = BlockStorageUtils.getBlockResource(bootVolURI);
                 if ((bootVolRep != null) && !bootVolRep.getInactive()) {

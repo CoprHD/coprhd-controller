@@ -24,7 +24,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
-import com.google.common.collect.Lists;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -74,8 +73,8 @@ import com.emc.storageos.workflow.WorkflowService;
 import com.emc.storageos.workflow.WorkflowStepCompleter;
 import com.google.common.base.Joiner;
 import com.google.common.base.Predicate;
-import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
 
 /**
  * Specific controller implementation to support block orchestration for handling replicas of volumes in a consistency group.
@@ -610,7 +609,8 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
         }
         snapshot.setProject(new NamedURI(project.getURI(), project.getName()));
 
-        String existingSnapSnapSetLabel = ControllerUtils.getSnapSetLabelFromExistingSnaps(repGroupName, volume.getStorageController(), _dbClient);
+        String existingSnapSnapSetLabel = ControllerUtils.getSnapSetLabelFromExistingSnaps(repGroupName, volume.getStorageController(),
+                _dbClient);
         if (null == existingSnapSnapSetLabel) {
             log.warn("Not able to find any snapshots with group {}", repGroupName);
             existingSnapSnapSetLabel = repGroupName;
@@ -618,7 +618,7 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
         snapshot.setSnapsetLabel(existingSnapSnapSetLabel);
 
         Set<String> existingLabels =
-                ControllerUtils.getSnapshotLabelsFromExistingSnaps(repGroupName, volume.getStorageController(), _dbClient);
+                ControllerUtils.getSnapshotLabelsFromExistingSnaps(repGroupName, volume, _dbClient);
         LabelFormatFactory labelFormatFactory = new LabelFormatFactory();
         LabelFormat labelFormat = labelFormatFactory.getLabelFormat(existingLabels);
         snapshot.setLabel(labelFormat.next());
@@ -637,8 +637,8 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
         clone.setPool(volume.getPool());
         clone.setStorageController(volume.getStorageController());
         clone.setSystemType(volume.getSystemType());
-        clone.setProject(new NamedURI(volume.getProject().getURI(), clone.getLabel()));
-        clone.setTenant(new NamedURI(volume.getTenant().getURI(), clone.getLabel()));
+        clone.setProject(new NamedURI(volume.getProject().getURI(), volume.getProject().getName()));
+        clone.setTenant(new NamedURI(volume.getTenant().getURI(), volume.getTenant().getName()));
         clone.setVirtualPool(volume.getVirtualPool());
         clone.setVirtualArray(volume.getVirtualArray());
         clone.setProtocol(new StringSet());
@@ -748,8 +748,8 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
         createdMirror.setProtocol(new StringSet());
         createdMirror.getProtocol().addAll(volume.getProtocol());
         createdMirror.setCapacity(volume.getCapacity());
-        createdMirror.setProject(new NamedURI(volume.getProject().getURI(), createdMirror.getLabel()));
-        createdMirror.setTenant(new NamedURI(volume.getTenant().getURI(), createdMirror.getLabel()));
+        createdMirror.setProject(new NamedURI(volume.getProject().getURI(), volume.getProject().getName()));
+        createdMirror.setTenant(new NamedURI(volume.getTenant().getURI(), volume.getTenant().getName()));
         createdMirror.setPool(recommendedPoolURI);
         createdMirror.setVirtualPool(vPoolURI);
         createdMirror.setSyncState(SynchronizationState.UNKNOWN.toString());

@@ -141,6 +141,7 @@ import com.emc.storageos.util.NetworkUtil;
 import com.emc.storageos.util.VPlexUtil;
 import com.emc.storageos.volumecontroller.BlockExportController;
 import com.emc.storageos.volumecontroller.ControllerException;
+import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
 import com.emc.storageos.volumecontroller.impl.validators.ValidatorConfig;
 import com.emc.storageos.volumecontroller.placement.BlockStorageScheduler;
@@ -165,6 +166,7 @@ public class ExportGroupService extends TaskResourceService {
     private static final String EVENT_SERVICE_TYPE = "export";
     private static final int MAX_VOLUME_COUNT = 100;
     private static final String OLD_INITIATOR_TYPE_NAME = "Exclusive";
+    private static final String PATH_ADJUST_REQUIRE_SUSPEND = "controller_pathadjust_require_suspend";
 
     private static volatile BlockStorageScheduler _blockStorageScheduler;
 
@@ -1892,9 +1894,9 @@ public class ExportGroupService extends TaskResourceService {
         String type = param.getType();
         exportGroup.setType((type == null || type.equals(OLD_INITIATOR_TYPE_NAME)) ? ExportGroupType.Initiator.name() : type);
         exportGroup.setId(URIUtil.createId(ExportGroup.class));
-        exportGroup.setProject(new NamedURI(project.getId(), exportGroup.getLabel()));
+        exportGroup.setProject(new NamedURI(project.getId(), project.getLabel()));
         exportGroup.setVirtualArray(param.getVarray());
-        exportGroup.setTenant(new NamedURI(project.getTenantOrg().getURI(), exportGroup.getLabel()));
+        exportGroup.setTenant(new NamedURI(project.getTenantOrg().getURI(), tenantOrg.getLabel()));
 
         String generatedName = _nameGenerator.generate(tenantOrg.getLabel(),
                 exportGroup.getLabel(), exportGroup.getId().toString(), '_', 56);
@@ -3219,7 +3221,8 @@ public class ExportGroupService extends TaskResourceService {
         ExportPathsAdjustmentPreviewRestRep response = new ExportPathsAdjustmentPreviewRestRep();
         List<Initiator> initiators = getInitiators(exportGroup);
         StringSetMap existingPathMap = new StringSetMap();
-        validatePathAdjustment(exportGroup, initiators, system, varray, param.getHosts(), response, existingPathMap);
+        validatePathAdjustment(exportGroup, initiators, system, varray, param.getHosts(), response, existingPathMap,
+                param.getUseExistingPaths());
         
         try {
             // Manufacture an ExportPathParams structure from the REST ExportPathParameters structure
@@ -3306,6 +3309,9 @@ public class ExportGroupService extends TaskResourceService {
             // Get the zoning map from the exportMask, and compare it with the zoningMap newly allocated.
             // Remove all entries that are in the new zoningMap (and thus will be kept and not deleted)
             StringSetMap existingZoningMap = exportMask.getZoningMap();
+            if (existingZoningMap == null || existingZoningMap.isEmpty()) {
+                continue;
+            }
             for (String maskInitiator : existingZoningMap.keySet()) {
                 for (URI zoningInitiator : calculatedZoningMap.keySet()) {
                     if (maskInitiator.equalsIgnoreCase(zoningInitiator.toString())) {
@@ -3357,7 +3363,8 @@ public class ExportGroupService extends TaskResourceService {
      */
     private void validatePathAdjustment(ExportGroup exportGroup, List<Initiator> initiators, 
             StorageSystem system, URI varray, Set<URI> hosts,
-            ExportPathsAdjustmentPreviewRestRep response, StringSetMap existingPaths) {
+            ExportPathsAdjustmentPreviewRestRep response, StringSetMap existingPaths,
+            boolean useExistingPaths) {
         Set<URI> affectedGroupURIs = new HashSet<URI>();
         // Add our Export Group to the affected resources.
         affectedGroupURIs.add(exportGroup.getId());
@@ -3430,21 +3437,21 @@ public class ExportGroupService extends TaskResourceService {
             }
             // Now look to see if there are any existing initiators in the ExportMask
             if (exportMask.hasAnyExistingInitiators()) {
-                _log.info("ExportMask has existing initiators: " + exportMask.getMaskName());
+                _log.error("ExportMask has existing initiators: " + exportMask.getMaskName());
                 throw APIException.badRequests.externallyAddedInitiators(
                         exportMask.getMaskName(), exportMask.getExistingInitiators().toString());
             }
             
+            // If there are eixisting volumes in the ExportMask, useExistingPath has to be true
+            if (exportMask.hasAnyExistingVolumes() && !useExistingPaths) {
+                _log.error("ExportMask has existing volumes: " + exportMask.getMaskName());
+                throw APIException.badRequests.externallyAddedVolumes(exportMask.getMaskName(),
+                        exportMask.getExistingVolumes().toString());
+            }
+            
             // Populate the existing paths map.
             StringSetMap zoningMap = exportMask.getZoningMap();
-            if (zoningMap == null || zoningMap.isEmpty()) {
-                _log.info(String.format("Constructing zoningMap from initiators and ports mask %s (%s)",
-                        exportMask.getMaskName(), exportMask.getId()));
-                 // We need to construct existing paths based on the cross product of initiators and ports.
-                zoningMap = ExportMaskUtils.buildZoningMapFromInitiatorsAndPorts(exportMask, varray, _dbClient);
-                exportMask.setZoningMap(zoningMap);
-                _dbClient.updateObject(exportMask);
-            }
+            
             if (zoningMap != null && !zoningMap.isEmpty()) {
                 for (String initiator : zoningMap.keySet()) {
                     if (zoningMap.get(initiator).isEmpty()) {
@@ -3515,7 +3522,7 @@ public class ExportGroupService extends TaskResourceService {
 
 	/**
 	 * Validates that the hosts in the exportgroup against the passed in list of hosts.
-	 * If there is atleast one host that doesnt match, an exception is thrown.
+	 * If there is at least one host that doesnt match, an exception is thrown.
 	 * @param exportGroup
 	 * @param hosts
 	 */
@@ -3567,6 +3574,7 @@ public class ExportGroupService extends TaskResourceService {
                     exportGroup.getClass().getSimpleName(), exportGroup.getLabel());
         }
         validateExportGroupNoPendingEvents(exportGroup);
+        validateSuspendSetForNonDiscoverableHosts(exportGroup, param.getWaitBeforeRemovePaths(), param.getRemovedPaths().isEmpty());
 
         ArgValidator.checkUri(param.getStorageSystem());
         StorageSystem system = queryObject(StorageSystem.class, param.getStorageSystem(), true);
@@ -3649,6 +3657,24 @@ public class ExportGroupService extends TaskResourceService {
             throw APIException.badRequests.exportPathAdjustmentSystemExportGroupNotMatch(exportGroup.getLabel(), system.getNativeGuid());
         }
         
+        // Check if exportMask has existing volumes, if it does, make sure no remove paths.
+        for (ExportMask exportMask : exportMasks) {
+            List<InitiatorPathParam> removePaths = param.getRemovedPaths();
+            if (removePaths.isEmpty() || !exportMask.hasAnyExistingVolumes()) {
+                continue;
+            }
+            Map<URI, List<URI>> removes = new HashMap<URI, List<URI>>();
+            for (InitiatorPathParam initPath : removePaths) {
+                removes.put(initPath.getInitiator(), initPath.getStoragePorts());
+            }
+            Map<URI, List<URI>> removedPathForMask = ExportMaskUtils.getRemovePathsForExportMask(exportMask, removes);
+            if (removedPathForMask != null && !removedPathForMask.isEmpty()) {
+                _log.error("It has removed path for the ExportMask with existing volumes: " + exportMask.getMaskName());
+                throw APIException.badRequests.externallyAddedVolumes(exportMask.getMaskName(),
+                        exportMask.getExistingVolumes().toString());
+            }
+            
+        }
         // check adjusted paths are valid. initiators are in the export group, and the targets are in the storage system, and
         // in valid state.
         Map<URI, List<URI>>adjustedPaths = convertInitiatorPathParamToMap(param.getAdjustedPaths());
@@ -3705,6 +3731,47 @@ public class ExportGroupService extends TaskResourceService {
             // List only the invalid targets
             pathTargets.removeAll(systemPorts);
             throw APIException.badRequests.exportPathAdjustmentAdjustedPathNotValid(Joiner.on(",").join(pathTargets));
+        }
+    }
+
+    /**
+     * Returns a Set of the FQDN names of hosts that are non discoverable in the ExportGroup.
+     * @param exportGroup -- ExportGroup object
+     * @param dbClient -- database handle
+     * @return Set of non-discoverable host strings
+     */
+    public Set<String> getNonDiscoverableHostsInExportGroup(ExportGroup exportGroup) {
+        Set<String> nonDiscoverable = new HashSet<String>();
+        List<Host> hosts = getHosts(exportGroup);
+        for (Host host : hosts) {
+            if (!host.getDiscoverable()) {
+                nonDiscoverable.add(host.getHostName());
+            }
+        }
+        return nonDiscoverable;
+    }
+    
+    /**
+     * For export path adjustment, if suspend before removing paths is not set and we're likely to remove paths,
+     * and there are hosts that are not discoverable, throw an error saying the user must set suspend before removing paths.
+     * @param exportGroup -- ExportGroup object
+     * @param suspendBeforeRemovingPaths -- flag from order
+     * @param useExistingPaths -- indication that all existing paths will be maintained
+     */
+    public void validateSuspendSetForNonDiscoverableHosts(ExportGroup exportGroup,
+            boolean suspendBeforeRemovingPaths, boolean useExistingPaths) {
+        boolean requireSuspend = Boolean.valueOf(
+                ControllerUtils.getPropertyValueFromCoordinator(_coordinator, PATH_ADJUST_REQUIRE_SUSPEND));
+        // If either suspend is set or useExistingPaths flag is set, we're good
+        if (!requireSuspend || suspendBeforeRemovingPaths || useExistingPaths) {
+            return;
+        }
+        // Otherwise, if there are some non-discoverable hosts, we want to force an error to require
+        // suspend to be set.
+        Set<String> nonDiscoverableHosts = getNonDiscoverableHostsInExportGroup(exportGroup);
+        if (!nonDiscoverableHosts.isEmpty()) {
+            String hostList = Joiner.on(",").join(nonDiscoverableHosts);
+            throw APIException.badRequests.pathAdjustmentOnNonDiscoverableHostsWithoutSuspend(hostList);
         }
     }
 }

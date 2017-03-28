@@ -50,6 +50,9 @@ public interface BadRequestExceptions {
     public BadRequestException cannotCreateSnapshotOfVplexCG();
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException cannotCreateSnapshotOfCG();
+
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException snapshotsNotSupportedForRPCGs();
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
@@ -712,7 +715,7 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException osInstallAlreadyInProgress();
-     
+
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException noBootVolumeSpecified(final String hostName);
 
@@ -1198,6 +1201,9 @@ public interface BadRequestExceptions {
     public BadRequestException moreThanOneRemoteCopiesSpecified();
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException moreThanOneReplicationPolicySpecified();
+
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException remoteCopyDoesNotExists(URI varray, URI vpool);
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
@@ -1265,6 +1271,9 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_CANNOT_DELETE)
     public BadRequestException resourceCannotBeDeleted(final String resource);
+
+    @DeclareServiceCode(ServiceCode.API_CANNOT_DELETE)
+    public BadRequestException resourceCannotBeDeletedVblock(final String resource, final String reason);
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException resourcedoesNotBelongToClusterTenantOrg(String resource);
@@ -3238,6 +3247,7 @@ public interface BadRequestExceptions {
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException providePolicyStorageResource(final String errorMsg);
 
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException invalidFileSnapshotPolicyParam(final String policyName, final String errorMsg);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
@@ -3251,6 +3261,27 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException deprecatedRestCall(final String uri, final String replacementUri);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException operationNotPermittedOnSRDFActiveCopyMode(final String operation);
+
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException notSupportedForBootVolumes();
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException invalidConsistencyGroupsForProtectionOperation();
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException hostWithDuplicateIP(final String newHost, final String ipAddress, final String duplicateHost);
+
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException numberNotAllowed();
+    
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException pathAdjustmentOnNonDiscoverableHostsWithoutSuspend(final String hosts);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException externallyAddedVolumes(final String exportMask, final String volumes);
     
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException portGroupInvalid(String portGroupURI);

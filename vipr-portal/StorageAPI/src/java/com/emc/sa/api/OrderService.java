@@ -107,7 +107,7 @@ public class OrderService extends CatalogTaggedResourceService {
     private static final String ORDER_JOB_LOCK="order-jobs";
 
     private static final long INDEX_GC_GRACE_PERIOD=432000*1000L;
-    private long maxOrderDeletedPerGC=300000L;
+    private long maxOrderDeletedPerGC=200000L;
 
     private static int SCHEDULED_EVENTS_SCAN_INTERVAL = 300;
     private int scheduleInterval = SCHEDULED_EVENTS_SCAN_INTERVAL;
@@ -1141,8 +1141,27 @@ public class OrderService extends CatalogTaggedResourceService {
             Map.Entry<Long, Long> entry = it.next();
             long timestamp = entry.getKey();
             if ((now - timestamp) > INDEX_GC_GRACE_PERIOD) {
+                continue; // have been recycled by Cassandra
+            }
+            deletedOrdersInCurrentPeriod +=entry.getValue();
+        }
+
+        log.info("{} orders deleted in the current GC", deletedOrdersInCurrentPeriod);
+        return deletedOrdersInCurrentPeriod;
+    }
+
+    public long getDeletedOrdersInCurrentPeriodWithSort(OrderJobStatus jobStatus) throws Exception{
+        long now = System.currentTimeMillis();
+        Map<Long, Long> completedMap = jobStatus.getCompleted();
+
+        long deletedOrdersInCurrentPeriod = 0;
+        for (Iterator<Map.Entry<Long, Long>> it = completedMap.entrySet().iterator(); it.hasNext();) {
+            Map.Entry<Long, Long> entry = it.next();
+            long timestamp = entry.getKey();
+            if ((now - timestamp) > INDEX_GC_GRACE_PERIOD) {
                 jobStatus.addToDeletedNumber(entry.getValue());
                 it.remove();
+                saveJobInfo(jobStatus);
                 continue; // have been recycled by Cassandra
             }
             deletedOrdersInCurrentPeriod +=entry.getValue();

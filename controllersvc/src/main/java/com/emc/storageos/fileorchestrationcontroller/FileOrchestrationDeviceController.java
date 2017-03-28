@@ -292,7 +292,6 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
     @Override
     public void deleteFileSystems(List<FileDescriptor> fileDescriptors,
             String taskId) throws ControllerException {
-        String waitFor = null; // the wait for key returned by previous call
         List<URI> fileShareUris = FileDescriptor.getFileSystemURIs(fileDescriptors);
         FileDeleteWorkflowCompleter completer = new FileDeleteWorkflowCompleter(fileShareUris, taskId);
         Workflow workflow = null;
@@ -302,12 +301,8 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
             workflow = _workflowService.getNewWorkflow(this,
                     DELETE_FILESYSTEMS_WF_NAME, false, taskId);
 
-            // Call the FileReplicationDeviceController to add its delete methods if there are Mirror FileShares.
-            waitFor = _fileReplicationDeviceController.addStepsForDeleteFileSystems(workflow,
-                    waitFor, fileDescriptors, taskId);
-
-            // Next, call the FileDeviceController to add its delete methods.
-            waitFor = _fileDeviceController.addStepsForDeleteFileSystems(workflow, waitFor, fileDescriptors, taskId);
+            // call the FileDeviceController to add its delete methods.
+            _fileDeviceController.addStepsForDeleteFileSystems(workflow, null, fileDescriptors, taskId);
 
             // Finish up and execute the plan.
             // The Workflow will handle the TaskCompleter
@@ -977,7 +972,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
                 FSExportMap sourceNFSExportMap = sourceFileShare.getFsExports();
                 FSExportMap targetNFSExportMap = targetFileShare.getFsExports();
 
-                if (sourceNFSExportMap != null && targetNFSExportMap != null) {
+                if (sourceNFSExportMap != null || targetNFSExportMap != null) {
                     // Both source and target export map shouldn't be null
                     stepDescription = String.format("Replicating NFS exports from source file system : %s to target file system : %s",
                             sourceFileShare.getId(), targetFileShare.getId());
@@ -1134,7 +1129,8 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
                         params = new CifsShareACLUpdateParams();
                         ShareACLs shareACLs = new ShareACLs();
                         shareACLs.setShareACLs(targetShareACLs);
-                        params.setAclsToDelete(shareACLs);
+                        // TO FIX COP-26361 DU case
+                        // params.setAclsToDelete(shareACLs);
                         updateCIFSShareACLOnTarget(workflow, systemTarget, targetFileShare, sourceSMBShare, params);
 
                     } else if (!targetShareACLs.isEmpty() && !sourceShareACLs.isEmpty()) {
@@ -1186,7 +1182,8 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
                         if (!shareACLsToDelete.isEmpty()) {
                             ShareACLs deleteShareACLs = new ShareACLs();
                             deleteShareACLs.setShareACLs(shareACLsToDelete);
-                            params.setAclsToDelete(deleteShareACLs);
+                            // TO FIX COP-26361 DU case
+                            // params.setAclsToDelete(deleteShareACLs);
                         }
                         if (!shareACLsToModify.isEmpty()) {
                             ShareACLs modifyShareACLs = new ShareACLs();
@@ -1589,7 +1586,8 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
                     List<NfsACE> aclToDelete = null;
                     params = FileOrchestrationUtils.getFileNfsACLUpdateParamWithSubDir(fsPath, targetFileShare);
                     aclToDelete = targetFSACLMap.get(fsPath);
-                    params.setAcesToDelete(aclToDelete);
+                    // TO FIX COP-26361 DU case
+                    // params.setAcesToDelete(aclToDelete);
                     s_logger.info("Invoking updateNFSACL on FS: {}, with {}", targetFileShare.getName(), params);
                     updateNFSACLOnTarget(workflow, systemTarget, targetFileShare, params);
                 }
@@ -1665,7 +1663,8 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
                         params.setAcesToAdd(aclToAdd);
                     }
                     if (!aclToDelete.isEmpty()) {
-                        params.setAcesToDelete(aclToDelete);
+                        // TO FIX COP-26361 DU case
+                        // params.setAcesToDelete(aclToDelete);
                     }
                     if (!aclToModify.isEmpty()) {
                         params.setAcesToModify(aclToModify);
@@ -1838,6 +1837,10 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
                     filePolicy.removeAssignedResources(uri);
                     FileOrchestrationUtils.updateUnAssignedResource(filePolicy, uri, s_dbClient);
                 }
+
+                // If no other resources are assigned to replication policy
+                // Remove the replication topology from the policy
+                FileOrchestrationUtils.removeTopologyInfo(filePolicy, s_dbClient);
                 s_dbClient.updateObject(filePolicy);
                 s_logger.info("Unassigning file policy: {} from resources: {} finished successfully", policy.toString(),
                         unassignFrom.toString());
@@ -2204,9 +2207,11 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
             String successMessage = String.format("Assigning file policy : %s, to vpool(s) successful.",
                     filePolicy.getId());
             workflow.executePlan(completer, successMessage);
-        } catch (
+        } catch (Exception ex) {
+            // If no other resources are assigned to replication policy
+            // Remove the replication topology from the policy
+            FileOrchestrationUtils.removeTopologyInfo(filePolicy, s_dbClient);
 
-        Exception ex) {
             s_logger.error(String.format("Assigning file policy : %s to vpool(s) failed", filePolicy.getId()), ex);
             ServiceError serviceError = DeviceControllerException.errors
                     .assignFilePolicyFailed(filePolicyToAssign.toString(), filePolicy.getApplyAt(), ex);
@@ -2296,9 +2301,11 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
             String successMessage = String.format("Assigning file policy : %s, to project(s) successful.",
                     filePolicy.getId());
             workflow.executePlan(completer, successMessage);
-        } catch (
+        } catch (Exception ex) {
+            // If no other resources are assigned to replication policy
+            // Remove the replication topology from the policy
+            FileOrchestrationUtils.removeTopologyInfo(filePolicy, s_dbClient);
 
-        Exception ex) {
             s_logger.error(String.format("Assigning file policy : %s to project(s) failed", filePolicy.getId()), ex);
             ServiceError serviceError = DeviceControllerException.errors
                     .assignFilePolicyFailed(filePolicyToAssign.toString(), filePolicy.getApplyAt(), ex);
@@ -2328,9 +2335,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
 
             // 1. If policy to be applied is of type replication and source file system doesn't have any target,
             // then we have to create mirror file system first..
-
-            if (filePolicy.getFilePolicyType().equals(FilePolicyType.file_replication.name())
-                    && sourceFS.getMirrorStatus() == null) {
+            if (filePolicy.getFilePolicyType().equals(FilePolicyType.file_replication.name())) {
                 waitFor = _fileDeviceController.addStepsForCreateFileSystems(workflow, waitFor, fileDescriptors, taskId);
             }
 

@@ -178,13 +178,14 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
         URI mgmntServerURI = accessProfile.getSystemId();
         StorageProvider mgmntServer = null;
         String scanStatusMessage = "Unknown Status";
+        VPlexApiClient client = null;
         try {
             // Get the storage provider representing a VPLEX management server.
             mgmntServer = _dbClient.queryObject(StorageProvider.class, mgmntServerURI);
 
             // Get the Http client for getting information about the VPLEX
             // cluster(s) managed by the VPLEX management server.
-            VPlexApiClient client = getVPlexAPIClient(accessProfile);
+            client = getVPlexAPIClient(accessProfile);
             s_logger.debug("Got handle to VPlex API client");
 
             // Verify the connectivity to the VPLEX management server.
@@ -202,6 +203,12 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
             scanStatusMessage = String.format("Scan job completed successfully for " +
                     "VPLEX management server: %s", mgmntServerURI.toString());
         } catch (Exception e) {
+
+            if (null != client) {
+                // clear cached discovery data in the VPlexApiClient
+                client.clearCaches();
+            }
+
             VPlexCollectionException vce = VPlexCollectionException.exceptions
                     .failedScan(mgmntServer.getIPAddress(), e.getLocalizedMessage());
             scanStatusMessage = vce.getLocalizedMessage();
@@ -1620,11 +1627,11 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
                     for (String initiatorNetworkId : storageView.getInitiatorPwwns()) {
 
                         s_logger.info("looking at initiator network id " + initiatorNetworkId);
-                        if (initiatorNetworkId.matches(ISCSI_PATTERN)
+                        if (initiatorNetworkId != null && initiatorNetworkId.matches(ISCSI_PATTERN)
                                 && (iSCSIUtility.isValidIQNPortName(initiatorNetworkId)
                                         || iSCSIUtility.isValidEUIPortName(initiatorNetworkId))) {
                             s_logger.info("\tiSCSI network id normalized to " + initiatorNetworkId);
-                        } else if (initiatorNetworkId.matches(REGISTERED_PATTERN)) {
+                        } else if (initiatorNetworkId != null && initiatorNetworkId.matches(REGISTERED_PATTERN)) {
                             initiatorNetworkId = initiatorNetworkId.substring(REGISTERED_PORT_PREFIX.length());
                             initiatorNetworkId = WWNUtility.getWWNWithColons(initiatorNetworkId);
                             s_logger.info("\tRegistered network id normalized to " + initiatorNetworkId);
@@ -1900,6 +1907,7 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
         StorageSystem vplexStorageSystem = null;
         String detailedStatusMessage = "Unknown Status";
 
+        VPlexApiClient client = null;
         try {
             s_logger.info("Access Profile Details :  IpAddress : {}, PortNumber : {}",
                     accessProfile.getIpAddress(), accessProfile.getPortNumber());
@@ -1914,8 +1922,12 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
 
             // Get the Http client for getting information about the VPlex
             // storage system.
-            VPlexApiClient client = getVPlexAPIClient(accessProfile);
+            client = getVPlexAPIClient(accessProfile);
             s_logger.debug("Got handle to VPlex API client");
+
+            // clear cached discovery data in the VPlexApiClient
+            client.clearCaches();
+            client.primeCaches();
 
             // The version for the storage system is the version of its active provider
             // and since we are discovering it, the provider was compatible, so the
@@ -2014,14 +2026,16 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
 
             StoragePortAssociationHelper.runUpdatePortAssociationsProcess(allPorts, null, _dbClient, _coordinator, null);
 
-            // clear cached discovery data in the VPlexApiClient
-            client.clearCaches();
-            client.primeCaches();
-
             // discovery succeeds
             detailedStatusMessage = String.format("Discovery completed successfully for Storage System: %s",
                     storageSystemURI.toString());
         } catch (Exception e) {
+
+            if (null != client) {
+                // clear cached discovery data in the VPlexApiClient
+                client.clearCaches();
+            }
+
             VPlexCollectionException vce = VPlexCollectionException.exceptions.failedDiscovery(
                     storageSystemURI.toString(), e.getLocalizedMessage());
             detailedStatusMessage = vce.getLocalizedMessage();
@@ -2523,6 +2537,7 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
         for (VPlexClusterInfo clusterInfo : clusterInfoList) {
             String assemblyId = clusterInfo.getTopLevelAssembly();
             if (null == assemblyId || VPlexApiConstants.NULL_ATT_VAL.equals(assemblyId) || assemblyId.isEmpty()) {
+                client.clearCaches();
                 throw VPlexCollectionException.exceptions
                         .failedScanningManagedSystemsNullAssemblyId(
                                 storageProvider.getIPAddress(), clusterInfo.getName());

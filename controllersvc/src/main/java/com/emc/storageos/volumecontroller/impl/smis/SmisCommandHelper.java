@@ -4522,9 +4522,9 @@ public class SmisCommandHelper implements SmisConstants {
                 // there were multiple threads (possibly on different nodes) attempting
                 // the refresh at the same time and hence it is not necessary to run it
                 // again so soon.
-                if (deltaLastRefreshValue > REFRESH_THRESHOLD) {
+                if (deltaLastRefreshValue >= REFRESH_THRESHOLD) {
                     _log.info(String.format("Difference between current time %d and " +
-                            "lastRefresh %d is %d, greater than threshold %d - will " +
+                            "lastRefresh %d is %d, greater than or equal to threshold %d - will " +
                             "attempt EMCRefresh", currentMillis,
                             storage.getLastRefresh(), deltaLastRefreshValue,
                             REFRESH_THRESHOLD));

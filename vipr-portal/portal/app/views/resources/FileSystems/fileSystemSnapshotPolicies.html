@@ -3,7 +3,7 @@
   <thead>
     <tr>
       <th>&{'resources.filesystem.policy.name'}</th>
-      <th></th>
+      <th>&{'resources.filesystem.policy.type'}</th>
       <th></th>
       <th></th>
       <th style="text-align:right;">&{'resources.actions'}</th>
@@ -13,10 +13,10 @@
     #{list items:filePolicies, as:'filePolicy'}
       <tr>
         <td>   
-                  ${filePolicy.policyName}        
+                  ${filePolicy.name}        
         </td>
         <td>
-        </td>
+          ${filePolicy.type}
         <td> 
         </td>
         <td>
@@ -25,8 +25,10 @@
         </td>        
 
         <td style="text-align:right;">
-           <a href="@{listPolicySnapshot(params.fileSystemId,filePolicy.policyId,filePolicy.policyName)}" class="btn btn-default btn-xs" >&{'button.snapshotsList'}</a>
-          <a href="@{unassignPolicyToFileSystem(params.fileSystemId, filePolicy.policyId)}" 
+           #{if filePolicy.type == 'file_snapshot'}
+              <a href="@{listPolicySnapshot(params.fileSystemId,filePolicy.id,filePolicy.name)}" class="btn btn-default btn-xs" >&{'button.snapshotsList'}</a>
+           #{/if}   
+          <a href="@{unassignPolicyToFileSystem(params.fileSystemId, filePolicy.id)}" 
             class="btn btn-danger btn-xs"
             onclick="return confirm('&{'resources.filesystem.policy.unassign.confirm'}')"
           >&{'button.unassignPolicy'}</a>

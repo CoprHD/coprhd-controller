@@ -28,6 +28,7 @@ import com.emc.storageos.vnxe.VNXeExceptions;
 import com.emc.storageos.volumecontroller.impl.smis.SmisExceptions;
 import com.emc.storageos.vplex.api.VPlexApiException;
 import com.emc.storageos.vplex.api.VPlexApiExceptions;
+import com.emc.storageos.xiv.api.XIVRestExceptions;
 
 /**
  * This interface holds all the methods and interfaces used to create {@link DeviceControllerException}s
@@ -81,6 +82,9 @@ public interface DeviceControllerExceptions {
 
     /** Holds the methods used to create Ceph related exceptions */
     public static final CephExceptions ceph = ExceptionMessagesProxy.create(CephExceptions.class);
+
+    /** Holds the methods used to create XIV related exceptions */
+    public static final XIVRestExceptions xiv = ExceptionMessagesProxy.create(XIVRestExceptions.class);
 
     @DeclareServiceCode(ServiceCode.DISPATCHER_UNABLE_FIND_CONTROLLER)
     public DeviceControllerException unableToDispatchToController(final String targetClassName);
@@ -494,9 +498,12 @@ public interface DeviceControllerExceptions {
 
     @DeclareServiceCode(ServiceCode.BLOCK_CONTROLLER_ERROR)
     public DeviceControllerException volumeExportReachedMaximumHlu(final String details);
-
+    
     @DeclareServiceCode(ServiceCode.BLOCK_CONTROLLER_ERROR)
     public DeviceControllerException volumeExportMaximumHluNotAvailable(final String systemType);
+
+    @DeclareServiceCode(ServiceCode.BLOCK_CONTROLLER_ERROR)
+    public DeviceControllerException consistentLunFlagNotSetOnInitiatorGroup(final String initiatorGroup);
 
     @DeclareServiceCode(ServiceCode.CONTROLLER_VALIDATION_EXCEPTION)
     public DeviceControllerException validationError(final String type, final String details, final String remediationAction);

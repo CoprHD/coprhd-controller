@@ -76,7 +76,9 @@ import com.iwave.ext.vmware.VMWareException;
 import com.iwave.ext.vmware.VMwareUtils;
 import com.vmware.vim25.DatastoreHostMount;
 import com.vmware.vim25.DatastoreSummaryMaintenanceModeState;
+import com.vmware.vim25.HostRuntimeInfo;
 import com.vmware.vim25.HostScsiDisk;
+import com.vmware.vim25.HostSystemConnectionState;
 import com.vmware.vim25.MethodFault;
 import com.vmware.vim25.mo.ClusterComputeResource;
 import com.vmware.vim25.mo.Datastore;
@@ -119,12 +121,16 @@ public class VMwareSupport {
         return execute(new GetCluster(clusterId));
     }
 
-    public HostSystem getHostSystem(String datacenterName, String esxHostName) {
-        return execute(new FindESXHost(datacenterName, esxHostName));
+    public HostSystem getHostSystem(String datacenterName, String esxHostName, boolean verifyHostExists) {
+        return execute(new FindESXHost(datacenterName, esxHostName, verifyHostExists));
+    }
+
+    public ClusterComputeResource getCluster(String datacenterName, String clusterName, boolean checkClusterConnectivity) {
+        return execute(new FindCluster(datacenterName, clusterName, checkClusterConnectivity));
     }
 
     public ClusterComputeResource getCluster(String datacenterName, String clusterName) {
-        return execute(new FindCluster(datacenterName, clusterName));
+        return getCluster(datacenterName, clusterName, true);
     }
 
     public Datastore getDatastore(String datacenterName, String datastoreName) {
@@ -180,7 +186,7 @@ public class VMwareSupport {
      *            the name of the datacenter that we will use to check hosts that can access the datastore.
      * @param hosts
      *            the hosts that we will check to see if any VMs are running on this datastore.
-     */ 
+     */
     public void verifyDatastoreForRemoval(Datastore datastore, String datacenterName, List<Host> hosts) {
         execute(new VerifyDatastoreForRemoval(datastore, datacenterName, hosts));
     }
@@ -228,8 +234,10 @@ public class VMwareSupport {
             if (cluster != null) {
                 List<HostSystem> clusterHosts = Lists.newArrayList(cluster.getHosts());
                 for (HostSystem clusterHost : clusterHosts) {
-                    HostScsiDisk disk = execute(new FindHostScsiDiskForLun(clusterHost, volume));
-                    hostDisks.put(clusterHost, disk);
+                    if (isHostConnected(clusterHost)) {
+                        HostScsiDisk disk = execute(new FindHostScsiDiskForLun(clusterHost, volume));
+                        hostDisks.put(clusterHost, disk);
+                    }
                 }
             } else if (host != null) {
                 HostScsiDisk disk = execute(new FindHostScsiDiskForLun(host, volume));
@@ -531,8 +539,7 @@ public class VMwareSupport {
     public void refreshStorage(HostSystem host, ClusterComputeResource cluster) {
         if (cluster != null) {
             refreshStorage(cluster);
-        }
-        else {
+        } else {
             refreshStorage(host);
         }
     }
@@ -648,12 +655,27 @@ public class VMwareSupport {
                 if (StringUtils.equals(host.getName(), otherHost.getName())) {
                     continue;
                 }
-                HostScsiDisk otherDisk = execute(new FindHostScsiDiskForLun(otherHost, volume, availableDiskOnly, throwIfNotFound));
-                disks.put(otherHost, otherDisk);
+                if (VMwareSupport.isHostConnected(otherHost)) {
+                    HostScsiDisk otherDisk = execute(new FindHostScsiDiskForLun(otherHost, volume, availableDiskOnly, throwIfNotFound));
+                    disks.put(otherHost, otherDisk);
+                }
             }
         }
 
         return disk;
+    }
+
+    /**
+     * Returns true if the host is in a connected state
+     * 
+     * @param host the host to check
+     * @return true if host is connected, otherwise returns false
+     */
+    public static boolean isHostConnected(HostSystem host) {
+        HostRuntimeInfo runtime = (host != null) ? host.getRuntime() : null;
+        HostSystemConnectionState connectionState = (runtime != null) ? runtime
+                .getConnectionState() : null;
+        return connectionState == HostSystemConnectionState.connected;
     }
 
     /**
@@ -831,7 +853,7 @@ public class VMwareSupport {
     public void detachLuns(HostSystem host, ClusterComputeResource cluster, BlockObjectRestRep volume) {
         // cluster is only set during shared exports.
         List<HostSystem> hosts = cluster == null ? Lists.newArrayList(host) : Lists.newArrayList(cluster.getHosts());
-        
+
         for (HostSystem hs : hosts) {
             // Get disk for every host before detaching to have them in sync.
             // Pass in null cluster since we only want to find the specific disk to each host

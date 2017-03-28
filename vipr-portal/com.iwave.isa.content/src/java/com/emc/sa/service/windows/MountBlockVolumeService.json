@@ -55,7 +55,7 @@
         type: "text",
         required: false,
         comment-validation: {
-          regEx:"\\A[A-Za-z](:[[\\\\]\\w^&@{}\\[\\],$=!\\-#()%.+~_]+)?"
+          regEx:"\\A[A-Za-z]$|\\A[A-Za-z](:[[\\\\]\\w^&@{}\\[\\],$=!\\-#()%.+~_]+)+"
         }
     },
 

@@ -130,7 +130,7 @@ public class DistributedDataManagerImpl implements DistributedDataManager {
     public void putData(String path, Object object) throws Exception {
         checkPath(path);
         Stat stat = checkExists(path);
-        byte[] data = GenericSerializer.serialize(object);
+        byte[] data = GenericSerializer.serialize(object, path, true);
         if (stat == null) {
             checkLimit();
             _zkClient.create().creatingParentsIfNeeded().withMode(CreateMode.PERSISTENT).forPath(path, data);

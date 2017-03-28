@@ -17,18 +17,15 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.UUID;
-
-import org.apache.cassandra.serializers.BooleanSerializer;
-import org.apache.cassandra.serializers.UTF8Serializer;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import com.emc.storageos.db.client.model.uimodels.ExecutionState;
+import org.apache.cassandra.serializers.BooleanSerializer;
+import org.apache.cassandra.serializers.UTF8Serializer;
 import org.apache.commons.lang.StringUtils;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -43,9 +40,7 @@ import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.PasswordHistory;
 import com.emc.storageos.db.client.model.ScopedLabel;
-
-import com.emc.storageos.db.exceptions.DatabaseException;
-
+import com.emc.storageos.db.client.model.uimodels.ExecutionState;
 import com.emc.storageos.db.client.model.uimodels.Order;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.google.common.collect.Lists;
@@ -340,45 +335,46 @@ public class DbConsistencyCheckerHelper {
             String queryString = String.format("select * from \"%s\" where key in ?", objCf);
             PreparedStatement queryStatement = indexAndCf.dbClientContext.getPreparedStatement(queryString);
             
-            ResultSet resultSetByKey = indexAndCf.dbClientContext.getSession().execute(queryStatement.bind(new ArrayList<String>(objKeysIdxEntryMap.keySet())));
+            ResultSet resultSet = indexAndCf.dbClientContext.getSession().execute(queryStatement.bind(new ArrayList<String>(objKeysIdxEntryMap.keySet())));
+            Map<String, List<CompositeColumnName>> rowColumnMap = dbClient.toColumnMap(resultSet);
             
-            Set<UUID> existingDataColumnUUIDSet = new HashSet<>();
-            Set<String> queryoutKeySet = new HashSet<String>();
-            for (Row row : resultSetByKey) {
-            	queryoutKeySet.add(row.getString(0));
-                if (row.getUUID("column5") != null) {
-                	existingDataColumnUUIDSet.add(row.getUUID("column5"));
+            for (Entry<String, List<CompositeColumnName>> entry : rowColumnMap.entrySet()) {
+            	Set<UUID> existingDataColumnUUIDSet = new HashSet<>();
+                for (CompositeColumnName column : entry.getValue()) {
+                    if (column.getTimeUUID() != null) {
+                        existingDataColumnUUIDSet.add(column.getTimeUUID());
+                    }
                 }
-            }
-            
-            List<IndexEntry> idxEntries = objKeysIdxEntryMap.get(row.getKey());
-            for (IndexEntry idxEntry : idxEntries) {
-                if (!queryoutKeySet.contains(key)
-                        || (idxEntry.getColumnName().getTimeUUID() != null && !existingDataColumnUUIDSet.contains(idxEntry
-                                .getColumnName().getTimeUUID()))) {
-                    //double confirm it is inconsistent data, please see issue COP-27749
-                    if (doubleConfirmed && !isIndexExists(indexAndCf.keyspace, indexAndCf.cf, idxEntry.getIndexKey(), idxEntry.getColumnName())) {
-                        continue;
-                    }
-                    
-                    String dbVersion = findDataCreatedInWhichDBVersion(idxEntry.getColumnName().getTimeUUID());
-                    checkResult.increaseByVersion(dbVersion);
-                    if (row.getColumns().isEmpty()) {
-                        logMessage(String.format("Inconsistency found: Index(%s, type: %s, id: %s, column: %s) is existing "
-                            + "but the related object record(%s, id: %s) is missing. This entry is updated by version %s",
-                            indexAndCf.cf.getName(), indexAndCf.indexType.getSimpleName(),
-                            idxEntry.getIndexKey(), idxEntry.getColumnName(),
-                            objCf.getName(), row.getKey(), dbVersion), true, toConsole);
-                    } else {
-                        logMessage(String.format("Inconsistency found: Index(%s, type: %s, id: %s, column: %s) is existing, "
-                                + "but the related object record(%s, id: %s) has not data column can match this index. This entry is updated by version %s",
-                                indexAndCf.cf.getName(), indexAndCf.indexType.getSimpleName(),
+                
+                List<IndexEntry> idxEntries = objKeysIdxEntryMap.get(entry.getKey());
+                for (IndexEntry idxEntry : idxEntries) {
+                    if (!rowColumnMap.containsKey(entry.getKey())
+                            || (idxEntry.getColumnName().getTimeUUID() != null && !existingDataColumnUUIDSet.contains(idxEntry
+                                    .getColumnName().getTimeUUID()))) {
+                        //double confirm it is inconsistent data, please see issue COP-27749
+                        if (doubleConfirmed && !isIndexExists(indexAndCf.dbClientContext, indexAndCf.cf, idxEntry.getIndexKey(), idxEntry.getColumnName())) {
+                            continue;
+                        }
+                        
+                        String dbVersion = findDataCreatedInWhichDBVersion(idxEntry.getColumnName().getTimeUUID());
+                        checkResult.increaseByVersion(dbVersion);
+                        if (rowColumnMap.containsKey(entry.getKey())) {
+                            logMessage(String.format("Inconsistency found: Index(%s, type: %s, id: %s, column: %s) is existing "
+                                + "but the related object record(%s, id: %s) is missing. This entry is updated by version %s",
+                                indexAndCf.cf, indexAndCf.indexType.getSimpleName(),
                                 idxEntry.getIndexKey(), idxEntry.getColumnName(),
-                                objCf.getName(), row.getKey(), dbVersion), true, toConsole);
+                                objCf, entry.getKey(), dbVersion), true, toConsole);
+                        } else {
+                            logMessage(String.format("Inconsistency found: Index(%s, type: %s, id: %s, column: %s) is existing, "
+                                    + "but the related object record(%s, id: %s) has not data column can match this index. This entry is updated by version %s",
+                                    indexAndCf.cf, indexAndCf.indexType.getSimpleName(),
+                                    idxEntry.getIndexKey(), idxEntry.getColumnName(),
+                                    objCf, entry.getKey(), dbVersion), true, toConsole);
+                        }
+                        UUID timeUUID = idxEntry.getColumnName().getTimeUUID();
+                        DbCheckerFileWriter.writeTo(indexAndCf.dbClientContext.getKeyspaceName(),
+                                generateCleanIndexCQL(indexAndCf, idxEntry, timeUUID, idxEntry.getColumnName()));
                     }
-                    UUID timeUUID = idxEntry.getColumnName().getTimeUUID();
-                    DbCheckerFileWriter.writeTo(indexAndCf.keyspace.getKeyspaceName(),
-                            generateCleanIndexCQL(indexAndCf, idxEntry, timeUUID, idxEntry.getColumnName()));
                 }
             }
         }
@@ -829,7 +825,7 @@ public class DbConsistencyCheckerHelper {
     }
     
     public <T extends CompositeIndexColumnName> boolean isIndexExists(DbClientContext context, String indexCf, String indexKey, T column) throws DriverException {
-        try {
+        /*try {
         	StringBuilder queryString = new StringBuilder("select * from \"");
         	List<Object> parameters = new ArrayList<Object>();
         	
@@ -846,7 +842,9 @@ public class DbConsistencyCheckerHelper {
             return resultSet.one() != null;
         } catch (DriverException e) {
             return false;
-        }
+        }*/
+    	//TODO java driver
+    	return true;
     }
     
     public ThreadPoolExecutor getExecutor() {

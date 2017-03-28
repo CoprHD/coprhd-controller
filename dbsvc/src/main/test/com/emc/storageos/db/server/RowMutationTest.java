@@ -13,103 +13,75 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
+import com.datastax.driver.core.ResultSet;
+import com.datastax.driver.core.Row;
+import com.datastax.driver.core.exceptions.DriverException;
+import com.datastax.driver.core.utils.UUIDs;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.impl.CompositeColumnName;
-import com.emc.storageos.db.client.impl.CompositeColumnNameSerializer;
 import com.emc.storageos.db.client.impl.DataObjectType;
 import com.emc.storageos.db.client.impl.DbClientImpl;
 import com.emc.storageos.db.client.impl.IndexColumnName;
-import com.emc.storageos.db.client.impl.IndexColumnNameSerializer;
 import com.emc.storageos.db.client.impl.RowMutator;
 import com.emc.storageos.db.client.impl.TypeMap;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.Volume;
 import com.google.common.collect.Sets;
-import com.netflix.astyanax.ColumnListMutation;
-import com.netflix.astyanax.connectionpool.OperationResult;
-import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
-import com.netflix.astyanax.cql.CqlStatement;
-import com.netflix.astyanax.cql.CqlStatementResult;
-import com.netflix.astyanax.model.Column;
-import com.netflix.astyanax.model.ColumnFamily;
-import com.netflix.astyanax.model.ColumnList;
-import com.netflix.astyanax.model.Rows;
-import com.netflix.astyanax.serializers.StringSerializer;
-import com.netflix.astyanax.util.TimeUUIDUtils;
 
 public class RowMutationTest extends DbsvcTestBase {
 	private RowMutator rowMutator;
-	private ColumnFamily<String, CompositeColumnName> volumeCF;
-	private ColumnFamily<String, CompositeColumnName> noExistCF;
-	private ColumnFamily<String, IndexColumnName> indexCF;
+	private String volumeCF = "Volume";
+	private String noExistCF = "no_exists_CF";
+	private String indexCF = "LabelPrefixIndex";
     
     @Before
     public void setupTest() {
-    	volumeCF = new ColumnFamily<String, CompositeColumnName>("Volume",
-                StringSerializer.get(),
-                CompositeColumnNameSerializer.get());
-    	
-    	indexCF = new ColumnFamily<String, IndexColumnName>("LabelPrefixIndex",
-                StringSerializer.get(),
-                IndexColumnNameSerializer.get());
-    	
-    	noExistCF = new ColumnFamily<String, CompositeColumnName>("no_exits_CF",
-                StringSerializer.get(),
-                CompositeColumnNameSerializer.get());
-    	
-        rowMutator = new RowMutator(((DbClientImpl)this.getDbClient()).getLocalContext().getKeyspace(), false);
+    	rowMutator = new RowMutator(((DbClientImpl)getDbClient()).getLocalContext(), false);
     }
     
     @Test
-    public void insertRecordAndIndexColumn() throws ConnectionException {
+    public void insertRecordAndIndexColumn() throws DriverException {
     	String rowKey = URIUtil.createId(Volume.class).toString();
     	String volumeLabel = "volume label";
     	
     	//insert data object
-        ColumnListMutation<CompositeColumnName> columnList = rowMutator.getRecordColumnList(volumeCF, rowKey);
-        columnList.putColumn(new CompositeColumnName("allocatedCapacity"), 20);
-		columnList.putColumn(new CompositeColumnName("label"), volumeLabel);
+		rowMutator.insertRecordColumn(volumeCF, rowKey, new CompositeColumnName("allocatedCapacity"), 20);
+		rowMutator.insertRecordColumn(volumeCF, rowKey, new CompositeColumnName("label"), volumeLabel);
         
         //insert related index
-        rowMutator.getIndexColumnList(indexCF, "vo").
-        	putColumn(new IndexColumnName("Volume", volumeLabel, volumeLabel, rowKey, rowMutator.getTimeUUID()), "");
+        rowMutator.insertIndexColumn(indexCF, "vo", new IndexColumnName("Volume", volumeLabel, volumeLabel, rowKey, rowMutator.getTimeUUID()), "");
         
         rowMutator.execute();
         
         //verify data object information
-        Volume volume = (Volume)this.getDbClient().queryObject(URI.create(rowKey));
+        Volume volume = (Volume)getDbClient().queryObject(URI.create(rowKey));
         Assert.assertNotNull(volume);
         Assert.assertEquals(volume.getAllocatedCapacity().longValue(), 20L);
         Assert.assertEquals(volume.getLabel(), volumeLabel);
         
         //verify index information
-        CqlStatement statement = ((DbClientImpl)this.getDbClient()).getLocalContext().getKeyspace().prepareCqlStatement();
         String cql = String.format("select * from \"LabelPrefixIndex\" where key='%s' and column1='Volume' and column2='%s' and column3='%s' and column4='%s'", 
         		"vo", volumeLabel, volumeLabel, rowKey);
-        CqlStatementResult result = statement.withCql(cql).execute().getResult();
-		Rows<String, IndexColumnName> rows = result.getRows(indexCF);
+        ResultSet resultSet = ((DbClientImpl)getDbClient()).getLocalContext().getSession().execute(cql);
         
-        Assert.assertEquals(rows.size(), 1);
+        Assert.assertNotNull(resultSet.spliterator());
     }
     
     @Test
-    public void insertRecordAndIndexColumnWithError() throws ConnectionException {
+    public void insertRecordAndIndexColumnWithError() throws DriverException {
     	String rowKey = URIUtil.createId(Volume.class).toString();
     	String volumeLabel = "volume label";
     	
     	//insert data object
-        ColumnListMutation<CompositeColumnName> columnList = rowMutator.getRecordColumnList(volumeCF, rowKey);
-        columnList.putColumn(new CompositeColumnName("allocatedCapacity"), 20);
-		columnList.putColumn(new CompositeColumnName("label"), volumeLabel);
+		rowMutator.insertRecordColumn(volumeCF, rowKey, new CompositeColumnName("allocatedCapacity"), 20);
+		rowMutator.insertRecordColumn(volumeCF, rowKey, new CompositeColumnName("label"), volumeLabel);
         
         //insert related index
-        rowMutator.getIndexColumnList(indexCF, "vo").
-        	putColumn(new IndexColumnName("Volume", volumeLabel, volumeLabel, rowKey, rowMutator.getTimeUUID()), "");
+        rowMutator.insertIndexColumn(indexCF, "vo", new IndexColumnName("Volume", volumeLabel, volumeLabel, rowKey, rowMutator.getTimeUUID()), "");
         
         //insert error column
-        ColumnListMutation<CompositeColumnName> no_columnList = rowMutator.getRecordColumnList(noExistCF, rowKey);
-        no_columnList.putColumn(new CompositeColumnName("test"), 20);
+        rowMutator.insertRecordColumn(noExistCF, rowKey, new CompositeColumnName("test"), 20);
         
         try {
 			rowMutator.execute();
@@ -119,20 +91,18 @@ public class RowMutationTest extends DbsvcTestBase {
 		}
         
         //no volume should be created
-        Volume volume = (Volume)this.getDbClient().queryObject(URI.create(rowKey));
+        Volume volume = (Volume)getDbClient().queryObject(URI.create(rowKey));
         Assert.assertNull(volume);
 
         //no index should be created
-        CqlStatement statement = ((DbClientImpl)this.getDbClient()).getLocalContext().getKeyspace().prepareCqlStatement();
         String cql = String.format("select * from \"LabelPrefixIndex\" where key='%s' and column1='Volume' and column2='%s' and column3='%s' and column4='%s'", 
         		"vo", volumeLabel, volumeLabel, rowKey);
-        CqlStatementResult result = statement.withCql(cql).execute().getResult();
-		Rows<String, IndexColumnName> rows = result.getRows(indexCF);
-        Assert.assertEquals(rows.size(), 0);
+        ResultSet resultSet = ((DbClientImpl)getDbClient()).getLocalContext().getSession().execute(cql);
+        Assert.assertNull(resultSet.one());
     }
     
     @Test
-    public void insertDataObject() throws ConnectionException {
+    public void insertDataObject() throws DriverException {
     	String prefix = "AA";
     	Volume volume = new Volume();
         URI id = URIUtil.createId(Volume.class);
@@ -146,9 +116,9 @@ public class RowMutationTest extends DbsvcTestBase {
         volume.setInactive(false);
         volume.setAllocatedCapacity(1000L);
         volume.setProvisionedCapacity(2000L);
-        this.getDbClient().updateObject(volume);
+        getDbClient().updateObject(volume);
         
-        Volume target = (Volume)this.getDbClient().queryObject(id);
+        Volume target = (Volume)getDbClient().queryObject(id);
         Assert.assertNotNull(target);
         Assert.assertEquals(target.getLabel(), volume.getLabel());
         Assert.assertEquals(target.getPool(), volume.getPool());
@@ -158,13 +128,11 @@ public class RowMutationTest extends DbsvcTestBase {
         Assert.assertEquals(target.getAllocatedCapacity(), volume.getAllocatedCapacity());
         Assert.assertEquals(target.getProvisionedCapacity(), volume.getProvisionedCapacity());
         
-        CqlStatement statement = ((DbClientImpl)this.getDbClient()).getLocalContext().getKeyspace().prepareCqlStatement();
         String cql = String.format("select * from \"LabelPrefixIndex\" where key='%s' and column1='Volume' and column2='%s' and column3='%s' and column4='%s'", 
         		prefix.toLowerCase(), volume.getLabel().toLowerCase(), volume.getLabel(), volume.getId().toString());
-        CqlStatementResult result = statement.withCql(cql).execute().getResult();
-		Rows<String, IndexColumnName> rows = result.getRows(indexCF);
+        ResultSet resultSet = ((DbClientImpl)getDbClient()).getLocalContext().getSession().execute(cql);
         
-        Assert.assertEquals(rows.size(), 1);        
+        Assert.assertNotNull(resultSet.one());        
     }
     
     @Test
@@ -183,15 +151,13 @@ public class RowMutationTest extends DbsvcTestBase {
         getDbClient().updateObject(volume);
         
         DataObjectType doType = TypeMap.getDoType(Volume.class);
-        OperationResult<ColumnList<CompositeColumnName>> result =
-                ((DbClientImpl)getDbClient()).getLocalContext().getKeyspace().prepareQuery(doType.getCF())
-                        .getKey(volume.getId().toString())
-                        .execute();
+        String cql = String.format("select * from \"%s\" where key='%s'", doType.getCF().getName(), volume.getId().toString());
+        ResultSet resultSet = ((DbClientImpl)getDbClient()).getLocalContext().getSession().execute(cql);
         
         List<Long> columnTimeUUIDStamps = new ArrayList<Long>(); 
-        for (Column<CompositeColumnName> column : result.getResult()) {
-            if (column.getName().getTimeUUID() != null) {
-                columnTimeUUIDStamps.add(TimeUUIDUtils.getMicrosTimeFromUUID(column.getName().getTimeUUID()));
+        for (Row row : resultSet) {
+            if (row.getUUID("column5") != null) {
+                columnTimeUUIDStamps.add(UUIDs.unixTimestamp(row.getUUID("column5")));
             }
         }
         

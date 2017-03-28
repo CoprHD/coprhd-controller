@@ -1965,7 +1965,7 @@ public class DbClientImpl implements DbClient {
         return toColumnMap(resultSet);
     }
 
-    protected Map<String, List<CompositeColumnName>> toColumnMap(ResultSet resultSet) {
+    public Map<String, List<CompositeColumnName>> toColumnMap(ResultSet resultSet) {
         Map<String, List<CompositeColumnName>> result = new HashMap<String, List<CompositeColumnName>>();
         List<CompositeColumnName> rows = null;
         String lastKey = null;

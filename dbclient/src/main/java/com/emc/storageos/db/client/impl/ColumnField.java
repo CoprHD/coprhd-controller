@@ -734,7 +734,7 @@ public class ColumnField <T extends CompositeIndexColumnName> {
                 _index = new ClassNameTimeSeriesDBIndex(newIndexCF);
             } else if (a instanceof TimeSeriesAlternateId) {
             	ColumnFamilyDefinition newIndexCF =
-                        new ColumnFamilyDefinition(((ClassNameTimeSeries) a).value(), ColumnFamilyDefinition.ComparatorType.CompositeType,
+                        new ColumnFamilyDefinition(((TimeSeriesAlternateId) a).value(), ColumnFamilyDefinition.ComparatorType.CompositeType,
                         		ColumnFamilyDefinition.ORDER_INDEX_CF_COMPARATOR_NAME);
                 _index = new TimeSeriesDbIndex(newIndexCF);
             } else if (a instanceof NamedRelationIndex) {

@@ -1603,14 +1603,19 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                     if (blockObject != null) {
                         Datastore datastore = getDatastoreByWwn(wwnDatastores, blockObject.getWWN());
                         if (datastore != null) {
-                            boolean storageIOControlEnabled = datastore.getIormConfiguration().isEnabled();
-                            if (storageIOControlEnabled) {
-                                setStorageIOControl(api, datastore, false);
-                            }
-                            _log.info("Unmount datastore " + datastore.getName() + " from host " + esxHost.getLabel());
-                            storageAPI.unmountVmfsDatastore(datastore);
-                            if (storageIOControlEnabled) {
-                                setStorageIOControl(api, datastore, true);
+                            if (VMwareUtils.isDatastoreMountedOnHost(datastore, hostSystem)) {
+                                boolean storageIOControlEnabled = datastore.getIormConfiguration().isEnabled();
+                                if (storageIOControlEnabled) {
+                                    setStorageIOControl(api, datastore, false);
+                                }
+                                _log.info("Unmount datastore " + datastore.getName() + " from host " + esxHost.getLabel());
+                                storageAPI.unmountVmfsDatastore(datastore);
+                                if (storageIOControlEnabled) {
+                                    setStorageIOControl(api, datastore, true);
+                                }
+                            } else {
+                                _log.info("Datastore " + datastore.getName() + " is not mounted on host " + esxHost.getLabel()
+                                        + ". Skipping unmounting of datastore.");
                             }
                         }
                     }
@@ -1619,8 +1624,12 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                     InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_030);
                     for (HostScsiDisk entry : storageAPI.listScsiDisks()) {
                         if (VolumeWWNUtils.wwnMatches(VMwareUtils.getDiskWwn(entry), blockObject.getWWN())) {
-                            _log.info("Detach SCSI Lun " + entry.getCanonicalName() + " from host " + esxHost.getLabel());
-                            storageAPI.detachScsiLun(entry);
+                            if (!VMwareUtils.isDiskOff(entry)) {
+                                _log.info("Detach SCSI Lun " + entry.getCanonicalName() + " from host " + esxHost.getLabel());
+                                storageAPI.detachScsiLun(entry);
+                            } else {
+                                _log.info("SCSI Lun " + entry.getCanonicalName() + " is not in a valid state to detach");
+                            }
                         }
                     }
                     storageAPI.refreshStorage();

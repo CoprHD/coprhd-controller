@@ -47,11 +47,13 @@ import com.emc.storageos.db.client.model.HostInterface.Protocol;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.OpStatusMap;
+import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.StringSetMap;
+import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.util.CommonTransformerFunctions;
@@ -599,18 +601,20 @@ public class ExportUtils {
     
     /**
      * Check if the initiator is being shared across masks and check if the mask has unmanaged volumes.
+     * This will return an error message to append to the caller's error message string.
      * 
      * @param dbClient
      * @param initiatorUri
      * @param curExportMask
      * @param exportMaskURIs
-     * @return List of other shared masks name if the initiator is found in other export masks.
+     * @return error message to append
      */
-    public static List<String> getExportMasksSharingInitiatorAndHasUnManagedVolumes(DbClient dbClient, URI initiatorUri, ExportMask curExportMask,
+    public static String getExportMasksSharingInitiatorAndHasUnManagedVolumes(DbClient dbClient, Initiator initiator, ExportMask curExportMask,
             Collection<URI> exportMaskURIs) {
         List<ExportMask> results = CustomQueryUtility.queryActiveResourcesByConstraint(dbClient, ExportMask.class,
-                ContainmentConstraint.Factory.getConstraint(ExportMask.class, "initiators", initiatorUri));
+                ContainmentConstraint.Factory.getConstraint(ExportMask.class, "initiators", initiator.getId()));
         List<String> sharedExportMaskNameList = new ArrayList<>();
+        Set<String> unmanagedVolumeWWNs = new HashSet<>();
         for (ExportMask exportMask : results) {
             if (exportMask != null && !exportMask.getId().equals(curExportMask.getId()) &&
                     exportMask.getStorageDevice().equals(curExportMask.getStorageDevice()) &&
@@ -618,11 +622,20 @@ public class ExportUtils {
                     && StringSetUtil.areEqual(exportMask.getInitiators(), curExportMask.getInitiators()) &&
                     exportMask.hasAnyExistingVolumes()) {
                 _log.info("Initiator {} is shared with mask {} and has unmanaged volumes",
-                        initiatorUri, exportMask.getMaskName());
-                sharedExportMaskNameList.add(exportMask.forDisplay());
+                        initiator.getId(), exportMask.getMaskName());
+                sharedExportMaskNameList.add(exportMask.getMaskName());
+                unmanagedVolumeWWNs.addAll(exportMask.getExistingVolumes().keySet());
             }
         }
-        return sharedExportMaskNameList;
+        
+        if (!sharedExportMaskNameList.isEmpty()) {
+            return String.format(" Initiator %s is shared between mask %s and other masks [%s] and has unmanaged volumes [%s].  Removing initiator will affect the other masking view",
+                        Initiator.normalizePort(initiator.getInitiatorPort()), // initiator wwn
+                        curExportMask.getMaskName(), // mask name being validated
+                        Joiner.on(", ").join(sharedExportMaskNameList), // names of masks
+                        (unmanagedVolumeWWNs.size() < 10) ? Joiner.on(", ").join(unmanagedVolumeWWNs) : "10 or more volumes"); // unmanaged volumes (up to 9)
+        }
+        return null;
     }
 
     /**
@@ -1420,9 +1433,9 @@ public class ExportUtils {
         ExportGroup exportGroup = new ExportGroup();
         exportGroup.setId(URIUtil.createId(ExportGroup.class));
         exportGroup.setLabel(groupName);
-        exportGroup.setProject(new NamedURI(projectURI, exportGroup.getLabel()));
+        exportGroup.setProject(new NamedURI(projectURI, dbClient.queryObject(Project.class, projectURI).getLabel()));
         exportGroup.setVirtualArray(vplex.getVirtualArray());
-        exportGroup.setTenant(new NamedURI(tenantURI, exportGroup.getLabel()));
+        exportGroup.setTenant(new NamedURI(tenantURI, dbClient.queryObject(TenantOrg.class, tenantURI).getLabel()));
         exportGroup.setGeneratedName(groupName);
         exportGroup.setVolumes(new StringMap());
         exportGroup.setOpStatus(new OpStatusMap());

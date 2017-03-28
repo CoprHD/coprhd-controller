@@ -1455,6 +1455,24 @@ public class VPlexUtil {
 
         return false;
     }
+    
+    /**
+     * Determines if the back-end is XtremIO, if yes returns true
+     * otherwise returns false.
+     * 
+     * @param vplexVolume A reference to a VPLEX volume.
+     * @param dbClient A reference to a database client.
+     * @return true if XtremIO, otherwise false
+     */
+    public static boolean isXtremIOBackend(BlockObject vplexVolume, DbClient dbClient) {
+
+        String systemType = getBackendStorageSystemType(vplexVolume, dbClient);
+        if (DiscoveredDataObject.Type.xtremio.name().equals(systemType)) {
+            return true;
+        }
+
+        return false;
+    }
 
     /**
      * Check if the volume is a backend volume of a vplex volume

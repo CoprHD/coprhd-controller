@@ -1404,7 +1404,8 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                 for (String volume : exportGroup.getVolumes().keySet()) {
                     BlockObject blockObject = BlockObject.fetch(_dbClient, URI.create(volume));
                     for (HostScsiDisk entry : storageAPI.listScsiDisks()) {
-                        if (VolumeWWNUtils.wwnMatches(VMwareUtils.getDiskWwn(entry), blockObject.getWWN())) {
+                        if (VolumeWWNUtils.wwnMatches(VMwareUtils.getDiskWwn(entry), blockObject.getWWN())
+                                && VMwareUtils.isDiskOff(entry)) {
                             _log.info("Attach SCSI Lun " + entry.getCanonicalName() + " on host " + esxHost.getLabel());
                             storageAPI.attachScsiLun(entry);
 
@@ -1420,7 +1421,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                     if (blockObject != null) {
 
                         Datastore datastore = getDatastoreByWwn(wwnDatastores, blockObject.getWWN());
-                        if (datastore != null) {
+                        if (datastore != null && !VMwareUtils.isDatastoreMountedOnHost(datastore, hostSystem)) {
                             _log.info("Mounting datastore " + datastore.getName() + " on host " + esxHost.getLabel());
                             storageAPI.mountDatastore(datastore);
 

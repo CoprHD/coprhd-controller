@@ -12,8 +12,6 @@ import java.util.Map;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.math.NumberUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -67,8 +65,6 @@ public class HostStorageAPI implements HostRescanAdapter {
     private static final String VMW_PSP_MRU = "VMW_PSP_MRU";
     private static final String VMW_PSP_FIXED = "VMW_PSP_FIXED";
     public static final List<String> MULTIPATH_POLICY_TYPES = Arrays.asList(VMW_PSP_RR, VMW_PSP_MRU, VMW_PSP_FIXED);
-
-    private static final Logger _log = LoggerFactory.getLogger(HostStorageAPI.class);
 
     private HostSystem host;
 
@@ -870,26 +866,6 @@ public class HostStorageAPI implements HostRescanAdapter {
             }
         }
         return disks;
-    }
-
-    /**
-     * Detach all of the disks associated with the datastore on this host
-     * 
-     * @param datastore the datastore
-     * @throws VMWareException
-     */
-    public void detachDatastore(Datastore datastore) {
-        for (HostScsiDisk disk : listDisks(datastore)) {
-            try {
-                if (!VMwareUtils.isDiskOff(disk)) {
-                    host.getHostStorageSystem().detachScsiLun(disk.getUuid());
-                } else {
-                    _log.info("SCSI Lun " + disk.getCanonicalName() + " is not in a valid state to detach");
-                }
-            } catch (RemoteException e) {
-                throw new VMWareException(e);
-            }
-        }
     }
 
     /**

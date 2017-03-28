@@ -46,6 +46,7 @@ id:'orders', dataTable:dataTable, source:@listJson(), cssClass:'editableRows', o
         aoData.push({"name": "startDate", "value": "${startDate}"});
         aoData.push({"name": "endDate", "value": "${endDate}"});
         aoData.push({"name": "maxDays", "value": "${maxDays}"});
+        aoData.push({"name": "offsetInMinutes", "value": getTimeZoneOffset()});
     }
 
     $(document).ready(function () {
@@ -63,7 +64,8 @@ id:'orders', dataTable:dataTable, source:@listJson(), cssClass:'editableRows', o
                 $(".notForRange").hide();
                 $('.max-days-selector').css({'width': '780px', 'margin-left': '-600px', 'margin-right': '120px'});
             } else {
-                var url = #{jsAction @list()/}() + "?maxDays=" + maxDays;
+                var url = #{jsAction @list()/}() + "?maxDays=" + maxDays +
+                        "&offsetInMinutes=" + getTimeZoneOffset();
                 window.location.href = url;
             }
         });

@@ -867,8 +867,8 @@ public class ExportService extends VolumeService {
         exportGroup.setLabel(name);
         exportGroup.setType(ExportGroupType.Initiator.name());
         exportGroup.setId(URIUtil.createId(ExportGroup.class));
-        exportGroup.setProject(new NamedURI(project.getId(), name));
-        exportGroup.setTenant(new NamedURI(tenantUri, name));
+        exportGroup.setProject(new NamedURI(project.getId(), project.getLabel()));
+        exportGroup.setTenant(new NamedURI(tenantUri, tenant.getLabel()));
 
         String generatedName = _nameGenerator.generate(tenant.getLabel(),
                 exportGroup.getLabel(), exportGroup.getId().toString(), '_', 56);

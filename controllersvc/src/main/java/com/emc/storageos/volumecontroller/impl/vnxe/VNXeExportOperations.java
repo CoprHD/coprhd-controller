@@ -56,6 +56,7 @@ import com.emc.storageos.vnxe.models.VNXeBase;
 import com.emc.storageos.vnxe.models.VNXeExportResult;
 import com.emc.storageos.vnxe.models.VNXeHost;
 import com.emc.storageos.vnxe.models.VNXeHostInitiator;
+import com.emc.storageos.vnxe.models.VNXeHostInitiator.HostInitiatorTypeEnum;
 import com.emc.storageos.vnxe.models.VNXeLunSnap;
 import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.VolumeURIHLU;
@@ -122,6 +123,7 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
             Set<String> processedCGs = new HashSet<String>();
             Collection<VNXeHostInitiator> initiators = prepareInitiators(initiatorList).values();
             VNXeBase host = apiClient.prepareHostsForExport(initiators);
+            validateInitiators(_dbClient, initiatorList, apiClient, host.getId());
 
             String opId = taskCompleter.getOpId();
 
@@ -732,6 +734,8 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
                 return;
             }
 
+            validateInitiators(_dbClient, initiatorList, apiClient, hostId);
+
             Map<Initiator, VNXeHostInitiator> initiatorMap = prepareInitiators(initiatorList);
             for (Entry<Initiator, VNXeHostInitiator> entry : initiatorMap.entrySet()) {
                 VNXeHostInitiator newInit = entry.getValue();
@@ -1165,5 +1169,46 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
         }
 
         return volumes;
+    }
+
+    /**
+     * Validate all initiators of VNXeHost on single ViPR host, or unknown to ViPR
+     *
+     * @param dbClient DbClient
+     * @param initiators list of initiators that are/will be in the mask (for export mask creation)
+     * @param apiClient VNXeApiClient
+     * @param vnxeHostId VNXe host Id
+     * @return true if validation is passed
+     */
+    private boolean validateInitiators(DbClient dbClient, List<Initiator> initiators, VNXeApiClient apiClient, String vnxeHostId) {
+        if (ExportMaskUtils.areBackendInitiators(initiators)) {
+            return true;
+        }
+
+        List<VNXeHostInitiator> initiatorList = apiClient.getInitiatorsByHostId(vnxeHostId);
+        URI hostId = null;
+        if (initiatorList != null) {
+            for (VNXeHostInitiator initiator : initiatorList) {
+                String portWWN = null;
+                if (HostInitiatorTypeEnum.INITIATOR_TYPE_ISCSI.equals(initiator.getType())) {
+                    portWWN = initiator.getInitiatorId();
+                } else {
+                    portWWN = initiator.getPortWWN();
+                }
+
+                Initiator viprInitiator = NetworkUtil.findInitiatorInDB(portWWN, dbClient);
+                if (viprInitiator != null) {
+                    if (NullColumnValueGetter.isNullURI(hostId)) {
+                        hostId = viprInitiator.getHost();
+                    } else if (!hostId.equals(viprInitiator.getHost())) {
+                        String msg = String.format("Found initiators with different host Ids. Initiator %s belongs to host %s, but other initiator belongs to host %s",
+                                portWWN, viprInitiator.getHost(), hostId);
+                        throw new DeviceControllerException(msg);
+                    }
+                }
+            }
+        }
+
+        return true;
     }
 }

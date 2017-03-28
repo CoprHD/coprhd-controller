@@ -103,14 +103,17 @@ public class ExportUpdateCompleter extends ExportTaskCompleter {
                     break;
             }
             exportGroup.getOpStatus().updateTaskStatus(getOpId(), operation);
-            // update the export group data if the job completes successfully
+            // Update the export group data.
             if (status.equals(Operation.Status.ready)) {
                 updateExportGroup(exportGroup, dbClient);
+            } else {
+                dbClient.updateObject(exportGroup);
             }
-            dbClient.updateObject(exportGroup);
+
+
             if (Operation.isTerminalState(status) && needToRunExportGroupCleanup(dbClient)) {
                 // Clean stale references from EG if the status is either ready or error.
-                ExportUtils.cleanStaleReferences(exportGroup.getId(), dbClient);
+                ExportUtils.cleanStaleReferences(exportGroup, dbClient);
             }
             _log.info("export_update completer: done");
             _log.info(String.format("Done ExportMaskUpdate - Id: %s, OpId: %s, status: %s",
@@ -173,6 +176,7 @@ public class ExportUpdateCompleter extends ExportTaskCompleter {
         if (_removedBlockObjects != null) {
             exportGroup.removeVolumes(_removedBlockObjects);
         }
+        dbClient.updateObject(exportGroup);
     }
 
     /**
@@ -185,22 +189,25 @@ public class ExportUpdateCompleter extends ExportTaskCompleter {
      *
      * Other case : Create Empty Export Group, Add Volume to Export Group, Add Host to Export Group.
      * the 1st 2 cases doesn't need to run Cleanup, but the 3rd needs to, as real export happens.
+     * 
      * @return
      */
     private boolean needToRunExportGroupCleanup(DbClient dbClient) {
-        boolean needtoRunExportCleanupTask = true;;
+        boolean needtoRunExportCleanupTask = true;
         ExportGroup exportGroup = dbClient.queryObject(ExportGroup.class, getId());
         if (null == exportGroup.getVolumes() || exportGroup.getVolumes().isEmpty()) {
             if ((_addedInitiators != null && !_addedInitiators.isEmpty()) ||
                     (_addedHosts != null && !_addedHosts.isEmpty())
                     || (_addedClusters != null && !_addedClusters.isEmpty())) {
-                _log.info("No need to run Export Clean up, as export Group contains no volumes and the request includes to add compute resource.");
-                needtoRunExportCleanupTask = false;;
+                _log.info(
+                        "No need to run Export Clean up, as export Group contains no volumes and the request includes to add compute resource.");
+                needtoRunExportCleanupTask = false;
             }
         } else if (null == exportGroup.getInitiators() || exportGroup.getInitiators().isEmpty()) {
             if (_addedBlockObjects != null && !_addedBlockObjects.isEmpty()) {
                 needtoRunExportCleanupTask = false;
-                _log.info("No need to run Export Clean up, as export Group contains no initiators and the request includes to add volumes.");
+                _log.info(
+                        "No need to run Export Clean up, as export Group contains no initiators and the request includes to add volumes.");
             }
         }
         return needtoRunExportCleanupTask;

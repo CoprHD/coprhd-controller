@@ -64,6 +64,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMap.Builder;
 import com.google.common.collect.Sets;
+import org.apache.commons.lang.StringUtils;
 
 /**
  * Helper class to access primitives and resources that are stored in the
@@ -205,7 +206,7 @@ public final class CustomServicesDBHelper {
     }
 
     /**
-     * @param input
+     * @param param
      * @param primitive
      */
     private static void updateInput(final InputUpdateParam param,
@@ -328,6 +329,27 @@ public final class CustomServicesDBHelper {
      */
     public static List<URI> list(final Class<? extends CustomServicesDBPrimitive> clazz, final ModelClient client) {
         return client.findByType(clazz);
+    }
+
+    /**
+     * Get a list of IDs of the given database column family, filter if needed.
+     *
+     * @param clazz The database column family class
+     * @param client The model client
+     * @param columnName The filterId's columnName
+     * @param filterByReferenceId The filterId
+     * @return A list of IDs of primitive resource
+     */
+    public static <T extends CustomServicesDBResource> List<NamedElement> listResources(
+            final Class<? extends CustomServicesDBResource> clazz, final ModelClient client,
+            final String columnName,
+            final String filterByReferenceId) {
+        if (StringUtils.isBlank(filterByReferenceId)) {
+            return client.customServicesPrimitiveResources().list(clazz);
+        } else {
+            return client.customServicesPrimitiveResources().listAllResourceByRefId(clazz,
+                    columnName, filterByReferenceId);
+        }
     }
 
     public static <T extends CustomServicesPrimitiveResourceType> T getResource(
@@ -459,7 +481,7 @@ public final class CustomServicesDBHelper {
                 throw APIException.badRequests.invalidParameter("attributes",
                         "missing: " + Sets.difference(attributeKeys, attributes.keySet()));
             }
-            
+
             for (final Entry<String, String> attribute : attributes.entrySet()) {
                 if (attributeKeys.contains(attribute.getKey())) {
                     attributesMap.put(attribute.getKey(), attribute.getValue());
@@ -579,14 +601,15 @@ public final class CustomServicesDBHelper {
     }
 
     /**
-     * Given the name and bytes of a resource save the database instance
-     * 
+     * Given the name, attributes, parentId and bytes of a resource save the database instance
+     *
      * @param type The class type of the resource
      * @param dbModel The database column family of the resource
      * @param primitiveManager The database access component
      * @param name The name of the new resource
      * @param stream The bytes of the resource
      * @param attributes The attributes of the resource
+     * @param parentId The parentId of the resource
      * @return The java object instance of this resource
      */
     public static <T extends CustomServicesDBResourceType<?>> T createResource(
@@ -595,7 +618,7 @@ public final class CustomServicesDBHelper {
             final CustomServicesPrimitiveManager primitiveManager,
             final String name,
             final byte[] stream,
-            final StringSetMap attributes) {
+            final StringSetMap attributes, final URI parentId) {
         final CustomServicesDBResource resource;
         try {
             resource = dbModel.newInstance();
@@ -605,6 +628,7 @@ public final class CustomServicesDBHelper {
         resource.setId(URIUtil.createId(dbModel));
         resource.setLabel(name);
         resource.setAttributes(attributes);
+        resource.setParentId(parentId);
         resource.setResource(Base64.encodeBase64(stream));
         primitiveManager.save(resource);
         return makeResourceType(type, resource);

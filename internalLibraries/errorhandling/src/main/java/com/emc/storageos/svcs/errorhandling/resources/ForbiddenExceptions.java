@@ -93,7 +93,7 @@ public interface ForbiddenExceptions {
 
     @DeclareServiceCode(ServiceCode.SECURITY_INSUFFICIENT_PERMISSIONS)
     public ForbiddenException
-            specifiedOwnerIsNotValidForProjectTenant(final String cause);
+    specifiedOwnerIsNotValidForProjectTenant(final String cause);
 
     @DeclareServiceCode(ServiceCode.SECURITY_INSUFFICIENT_PERMISSIONS)
     public ForbiddenException onlyAdminsCanReleaseFileSystems(final String... roles);
@@ -133,4 +133,8 @@ public interface ForbiddenExceptions {
 
     @DeclareServiceCode(ServiceCode.SECURITY_INSUFFICIENT_PERMISSIONS)
     public ForbiddenException onlyTenantAdminsCanAssignFileSystemPolicies(final String filePolicyName);
+
+    @DeclareServiceCode(ServiceCode.SECURITY_INSUFFICIENT_PERMISSIONS)
+    public ForbiddenException onlyCurrentUserCanBeSetInRootUserMapping(final String username);
+
 }

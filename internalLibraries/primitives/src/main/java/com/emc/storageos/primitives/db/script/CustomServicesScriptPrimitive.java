@@ -20,6 +20,7 @@ import java.util.List;
 import java.util.Map;
 
 import com.emc.storageos.db.client.model.uimodels.CustomServicesDBScriptPrimitive;
+import com.emc.storageos.primitives.CustomServicesConstants;
 import com.emc.storageos.primitives.db.CustomServicesDBPrimitiveType;
 import com.emc.storageos.primitives.input.InputParameter;
 import com.emc.storageos.primitives.output.OutputParameter;
@@ -29,8 +30,8 @@ import com.emc.storageos.primitives.output.OutputParameter;
  *
  */
 public class CustomServicesScriptPrimitive extends CustomServicesDBPrimitiveType {
-    public static final String TYPE = "script";
- 
+    public static final String TYPE = CustomServicesConstants.SCRIPT_PRIMITIVE_TYPE;;
+
     public CustomServicesScriptPrimitive(CustomServicesDBScriptPrimitive primitive,
             final Map<InputType, List<InputParameter>> input,
             final Map<String, String> attributes,
@@ -42,7 +43,7 @@ public class CustomServicesScriptPrimitive extends CustomServicesDBPrimitiveType
     public StepType stepType() {
         return StepType.SHELL_SCRIPT;
     }
-    
+
     @Override
     public String type() {
         return TYPE;

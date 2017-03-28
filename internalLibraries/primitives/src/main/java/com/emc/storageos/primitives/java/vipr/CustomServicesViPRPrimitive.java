@@ -20,6 +20,7 @@ import java.net.URI;
 
 import com.emc.storageos.db.client.model.ModelObject;
 import com.emc.storageos.db.client.model.NamedURI;
+import com.emc.storageos.primitives.CustomServicesConstants;
 import com.emc.storageos.primitives.CustomServicesPrimitiveType;
 import com.emc.storageos.primitives.java.CustomServicesStaticPrimitiveModel;
 
@@ -30,7 +31,7 @@ import com.emc.storageos.primitives.java.CustomServicesStaticPrimitiveModel;
 public abstract class CustomServicesViPRPrimitive extends CustomServicesPrimitiveType {
 
  
-    public static final String TYPE = "vipr";
+    public static final String TYPE = CustomServicesConstants.VIPR_PRIMITIVE_TYPE;
     
     private final CustomServicesStaticPrimitiveModel model;
     public CustomServicesViPRPrimitive(URI id, String name) {

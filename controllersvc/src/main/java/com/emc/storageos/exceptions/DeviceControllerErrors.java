@@ -250,7 +250,8 @@ public interface DeviceControllerErrors {
     public ServiceError unassignFilePolicyFailed(final String uri, final Throwable cause);
 
     @DeclareServiceCode(ServiceCode.CONTROLLER_JOB_ERROR)
-    public ServiceError updateDeviceProtectionPoliciesFailed(final String uri, final int failedPolicies, final int successPolicies);
+    public ServiceError deviceProtectionPolicyOperationFailed(final String uri, final String operation, final int failedPolicies,
+            final int successPolicies);
 
     @DeclareServiceCode(ServiceCode.CONTROLLER_JOB_ERROR)
     public ServiceError noNasServerFoundToAddStepsToApplyPolicy(final String system);
@@ -260,4 +261,10 @@ public interface DeviceControllerErrors {
 
     @DeclareServiceCode(ServiceCode.CONTROLLER_JOB_ERROR)
     public ServiceError unableToUpdateFileSystem(final String operationName, final Throwable cause);
+
+    @DeclareServiceCode(ServiceCode.CONTROLLER_JOB_ERROR)
+    public ServiceError existingMaskFoundDuringBootVolumeExport(final String maskNames, final String computeResource);
+
+    @DeclareServiceCode(ServiceCode.CONTROLLER_JOB_ERROR)
+    public ServiceError existingMaskFoundDuringBootVolumeExportXio(final String igNames, final String hostname);
 }

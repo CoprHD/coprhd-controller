@@ -20,6 +20,7 @@ import java.util.List;
 import java.util.Map;
 
 import com.emc.storageos.db.client.model.uimodels.CustomServicesDBAnsiblePrimitive;
+import com.emc.storageos.primitives.CustomServicesConstants;
 import com.emc.storageos.primitives.db.CustomServicesDBPrimitiveType;
 import com.emc.storageos.primitives.input.InputParameter;
 import com.emc.storageos.primitives.output.OutputParameter;
@@ -29,9 +30,9 @@ import com.emc.storageos.primitives.output.OutputParameter;
  *
  */
 public class CustomServicesAnsiblePrimitive extends
-CustomServicesDBPrimitiveType {
-    
-    public static final String TYPE = "ansible";
+        CustomServicesDBPrimitiveType {
+
+    public static final String TYPE = CustomServicesConstants.ANSIBLE_PRIMITIVE_TYPE;
 
     public CustomServicesAnsiblePrimitive(final CustomServicesDBAnsiblePrimitive primitive,
             final Map<InputType, List<InputParameter>> input,
@@ -44,7 +45,7 @@ CustomServicesDBPrimitiveType {
     public StepType stepType() {
         return StepType.LOCAL_ANSIBLE;
     }
-    
+
     @Override
     public String type() {
         return TYPE;

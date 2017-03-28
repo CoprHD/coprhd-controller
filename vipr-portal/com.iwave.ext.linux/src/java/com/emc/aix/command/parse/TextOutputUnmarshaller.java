@@ -201,8 +201,7 @@ public final class TextOutputUnmarshaller {
             if (checkRange(p, attributes)) {
                 positionValues.add(attributes[p - 1]);
             } else {
-                throw new IndexOutOfBoundsException(
-                        String.format("No attribute value in position %s. attributes[%s]", position, attributes));
+                return null;
             }
         }
 

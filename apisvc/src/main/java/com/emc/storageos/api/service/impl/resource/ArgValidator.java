@@ -34,7 +34,8 @@ public class ArgValidator {
     private static final String ALPHA_NUMERIC_PATTERN = "^[a-zA-Z0-9]+$";
     private static final Pattern patternAlphanumeric = Pattern.compile(ALPHA_NUMERIC_PATTERN);
     private static final String ALPHA_NUMERIC_UNDERSCORE = "^[a-zA-Z0-9_-]*$";
-
+    private static final String NUMERIC_PATTERN = "^[0-9]*$";
+    
     /**
      * Checks input URI and throws APIException.badRequests.invalidURI if
      * validation fails
@@ -706,6 +707,25 @@ public class ArgValidator {
     public static void checkIsAlphaNumeric(String consistencyGroupName) {
         if (!consistencyGroupName.matches(ALPHA_NUMERIC_UNDERSCORE)) {
             throw APIException.badRequests.groupNameonlyAlphaNumericAllowed();
+        }
+    }
+
+
+    /**
+     * Check whether the field is not strictly numeric.
+     * Basic check since some fields in compute folks are entering VLAN IDs and
+     * not an IP address or FQDN.
+     * 
+     * Note: the error is specific to IP addresses, so don't use this unless you're
+     * validating an IP/FQDN field.
+     * 
+     * @param ip field to validate
+     * @param fieldName the name of the field
+     */
+    public static void checkIpIsNotNumeric(final String ip, final String fieldName) {
+        checkFieldNotEmpty(ip, fieldName);
+        if (ip.matches(NUMERIC_PATTERN)) {
+            throw APIException.badRequests.numberNotAllowed();
         }
     }
 

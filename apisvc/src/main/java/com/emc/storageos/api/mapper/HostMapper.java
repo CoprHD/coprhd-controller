@@ -15,12 +15,15 @@ import java.util.List;
 import java.util.Map;
 
 import com.emc.storageos.db.client.model.Cluster;
+import com.emc.storageos.db.client.model.ComputeElement;
+import com.emc.storageos.db.client.model.ComputeSystem;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportPathParams;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.HostInterface;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.IpInterface;
+import com.emc.storageos.db.client.model.UCSServiceProfile;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.Vcenter;
 import com.emc.storageos.db.client.model.VcenterDataCenter;
@@ -191,6 +194,26 @@ public class HostMapper {
         return to;
     }
 
+    public static HostRestRep map(Host host, ComputeElement computeElement, UCSServiceProfile serviceProfile, ComputeSystem computeSystem){
+        HostRestRep to = map(host);
+        if (computeElement!=null){
+            StringBuffer buffer = new StringBuffer();
+            if (computeSystem!=null){
+                buffer.append(computeSystem.getLabel()+ " : ");
+            }
+            buffer.append(computeElement.getLabel());
+            to.setComputeElementName(buffer.toString());
+        }
+        if (serviceProfile != null) {
+            StringBuffer buffer = new StringBuffer();
+            if (computeSystem!=null){
+                buffer.append(computeSystem.getLabel()+ " : ");
+            }
+            buffer.append(serviceProfile.getLabel());
+            to.setServiceProfileName(buffer.toString());
+        }
+        return to;
+    }
     public static ClusterRestRep map(Cluster from) {
         if (from == null) {
             return null;

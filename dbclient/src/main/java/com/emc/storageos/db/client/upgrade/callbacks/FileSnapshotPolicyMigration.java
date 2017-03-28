@@ -21,6 +21,7 @@ import com.emc.storageos.db.client.model.SchedulePolicy;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.VirtualNAS;
+import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.upgrade.BaseCustomMigrationCallback;
 import com.emc.storageos.svcs.errorhandling.resources.MigrationCallbackException;
 
@@ -47,11 +48,14 @@ public class FileSnapshotPolicyMigration extends BaseCustomMigrationCallback {
             while (schedulePolicies.hasNext()) {
                 SchedulePolicy schedulePolicy = schedulePolicies.next();
                 FilePolicy fileSnapshotPolicy = new FilePolicy();
+                VirtualPool associatedVP = new VirtualPool();
 
                 fileSnapshotPolicy.setId(URIUtil.createId(FilePolicy.class));
-                logger.info("assigning resource to fileSnapshotPolicy from schedulePolicy : {}", schedulePolicy.getAssignedResources());
-                fileSnapshotPolicy.setAssignedResources(schedulePolicy.getAssignedResources());
-                logger.info("Assigned resources from fileSnapshotPolicy : {}", fileSnapshotPolicy.getAssignedResources());
+                for (String assignedResource : schedulePolicy.getAssignedResources()) {
+                    logger.info("assigning resource to fileSnapshotPolicy from schedulePolicy : {}", schedulePolicy.getAssignedResources());
+                    fileSnapshotPolicy.addAssignedResources(resourceURI(assignedResource));
+                    logger.info("Assigned resources from fileSnapshotPolicy : {}", fileSnapshotPolicy.getAssignedResources());
+                }
                 fileSnapshotPolicy.setFilePolicyDescription(
                         "Policy created from Schedule Policy " + schedulePolicy.getLabel() + " while system upgrade");
                 String polName = schedulePolicy.getLabel() + "_File_Snapshot_Policy";
@@ -79,6 +83,9 @@ public class FileSnapshotPolicyMigration extends BaseCustomMigrationCallback {
                             updatePolicyStorageResouce(system, fileSnapshotPolicy, fs);
                             fs.setFilePolicies(setPoliciesToFS);
                             dbClient.updateObject(fs);
+                            URI associatedVPId = fs.getVirtualPool();
+                            associatedVP = dbClient.queryObject(VirtualPool.class, associatedVPId);
+                            associatedVP.setAllowFilePolicyAtFSLevel(true);
                         }
                     }
                 }
@@ -95,6 +102,11 @@ public class FileSnapshotPolicyMigration extends BaseCustomMigrationCallback {
             logger.error("Exception occured while migrating file replication policy for Virtual pools");
             logger.error(ex.getMessage(), ex);
         }
+    }
+
+    private URI resourceURI(String assignedResource) {
+        URI resURI = URI.create(assignedResource);
+        return resURI;
     }
 
     private List<URI> getAssignedResourcesURIs(StringSet assignedResources) {

@@ -3563,7 +3563,7 @@ rp_cdp()
         --neighborhoods $RECOVERPOINT_VARRAY1 \
         --multiVolumeConsistency \
         --expandable true \
-        --protectionCoS $RECOVERPOINT_VARRAY1':rp_targets'$1':0.25x' \
+        --protectionCoS $RECOVERPOINT_VARRAY1':rp_targets'$1':0.25x:'$RECOVERPOINT_VARRAY1':rp_targets'$1 \
         --max_snapshots 10 \
         --rp_copy_mode ASYNCHRONOUS \
         --rp_rpo_value 5 \
@@ -3578,16 +3578,17 @@ rp_cdp()
         --neighborhoods $RECOVERPOINT_VARRAY1 \
         --multiVolumeConsistency \
         --expandable true \
-        --protectionCoS $RECOVERPOINT_VARRAY1':rp_targets'$1':0.25x' \
+        --protectionCoS $RECOVERPOINT_VARRAY1':rp_targets'$1':0.25x:'$RECOVERPOINT_VARRAY1':rp_targets'$1 \
         --max_snapshots 10 \
         --rp_copy_mode SYNCHRONOUS \
         --rp_rpo_value 5 \
         --rp_rpo_type MINUTES
 
     if [ "${POOLS_AUTO_MATCH}" = "false" ]; then
-
-        run cos update block rp_cdp --storage $STORAGE_ARRAY_1_NATIVEGUID
-        run cos update block rp_cdp-sync --storage $STORAGE_ARRAY_1_NATIVEGUID
+        if [ "$STORAGE_ARRAY_1_NATIVEGUID" != "NONE" ]; then
+            run cos update block rp_cdp --storage $STORAGE_ARRAY_1_NATIVEGUID
+            run cos update block rp_cdp-sync --storage $STORAGE_ARRAY_1_NATIVEGUID
+        fi
     fi
 }
 
@@ -3601,7 +3602,7 @@ rpxio_cdp()
         --provisionType 'Thin' \
         --neighborhoods $RECOVERPOINT_VARRAY1 \
         --multiVolumeConsistency \
-        --protectionCoS $RECOVERPOINT_VARRAY1':rpxio_targets'$1':0.25x' \
+        --protectionCoS $RECOVERPOINT_VARRAY1':rpxio_targets'$1':0.25x:'$RECOVERPOINT_VARRAY1':rpxio_targets'$1 \
         --max_snapshots 10 \
         --rp_copy_mode ASYNCHRONOUS \
         --rp_rpo_value 5 \
@@ -3615,7 +3616,7 @@ rpxio_cdp()
         --provisionType 'Thin' \
         --neighborhoods $RECOVERPOINT_VARRAY1 \
         --multiVolumeConsistency \
-        --protectionCoS $RECOVERPOINT_VARRAY1':rpxio_targets'$1':0.25x' \
+        --protectionCoS $RECOVERPOINT_VARRAY1':rpxio_targets'$1':0.25x:'$RECOVERPOINT_VARRAY1':rpxio_targets'$1 \
         --max_snapshots 10 \
         --rp_copy_mode SYNCHRONOUS \
         --rp_rpo_value 5 \
@@ -3719,7 +3720,7 @@ rpvplex_cdp()
         --neighborhoods $RECOVERPOINT_VARRAY1 \
         --multiVolumeConsistency \
         --expandable true \
-        --protectionCoS $RECOVERPOINT_VARRAY1':rpvplex_targets'$1':0.25x' \
+        --protectionCoS $RECOVERPOINT_VARRAY1':rpvplex_targets'$1':0.25x:'$RECOVERPOINT_VARRAY1':rpvplex_targets'$1 \
         --max_snapshots 10 \
         --rp_copy_mode ASYNCHRONOUS \
         --rp_rpo_value 5 \
@@ -3737,7 +3738,7 @@ rpvplex_cdp()
         --neighborhoods $RECOVERPOINT_VARRAY1 \
         --multiVolumeConsistency \
         --expandable true \
-        --protectionCoS $RECOVERPOINT_VARRAY1':rpvplex_targets'$1':0.25x' \
+        --protectionCoS $RECOVERPOINT_VARRAY1':rpvplex_targets'$1':0.25x:'$RECOVERPOINT_VARRAY1':rpvplex_targets'$1 \
         --max_snapshots 10 \
         --rp_copy_mode SYNCHRONOUS \
         --rp_rpo_value 5 \
@@ -3762,7 +3763,7 @@ rpvplex_cdp()
         --neighborhoods $RECOVERPOINT_VARRAY1 \
         --multiVolumeConsistency \
         --expandable true \
-        --protectionCoS $RECOVERPOINT_VARRAY1':rpvplex_targets'$1'-migrate:0.25x' \
+        --protectionCoS $RECOVERPOINT_VARRAY1':rpvplex_targets'$1'-migrate:0.25x:'$RECOVERPOINT_VARRAY1':rpvplex_targets'$1'-migrate' \
         --max_snapshots 10 \
         --rp_copy_mode ASYNCHRONOUS \
         --rp_rpo_value 5 \
@@ -3935,7 +3936,7 @@ rpmp_cdp()
         --neighborhoods $RECOVERPOINT_VARRAY1 \
         --multiVolumeConsistency \
         --expandable true \
-        --protectionCoS $RECOVERPOINT_VARRAY1':rpvplex_targets'$1':0.25x',$RECOVERPOINT_VARRAY2':rpvplex_targets'$1':0.25x' \
+        --protectionCoS $RECOVERPOINT_VARRAY1':rpvplex_targets'$1':0.25x:'$RECOVERPOINT_VARRAY1':rpvplex_targets'$1,$RECOVERPOINT_VARRAY2':rpvplex_targets'$1':0.25x:'$RECOVERPOINT_VARRAY2':rpvplex_targets'$1 \
         --max_snapshots 10 \
         --rp_copy_mode ASYNCHRONOUS \
         --rp_rpo_value 5 \
@@ -3955,7 +3956,7 @@ rpmp_cdp()
         --neighborhoods $RECOVERPOINT_VARRAY1 \
         --multiVolumeConsistency \
         --expandable true \
-        --protectionCoS $RECOVERPOINT_VARRAY1':rpvplex_targets'$1':0.25x',$RECOVERPOINT_VARRAY2':rpvplex_targets'$1':0.25x' \
+        --protectionCoS $RECOVERPOINT_VARRAY1':rpvplex_targets'$1':0.25x:'$RECOVERPOINT_VARRAY1':rpvplex_targets'$1,$RECOVERPOINT_VARRAY2':rpvplex_targets'$1':0.25x:'$RECOVERPOINT_VARRAY2':rpvplex_targets'$1 \
         --max_snapshots 10 \
         --rp_copy_mode SYNCHRONOUS \
         --rp_rpo_value 5 \
@@ -3982,7 +3983,7 @@ rpmp_cdp()
         --neighborhoods $RECOVERPOINT_VARRAY1 \
         --multiVolumeConsistency \
         --expandable true \
-        --protectionCoS $RECOVERPOINT_VARRAY1':rpvplex_targets'$1'-migrate:0.25x',$RECOVERPOINT_VARRAY2':rpvplex_targets'$1'-migrate:0.25x' \
+        --protectionCoS $RECOVERPOINT_VARRAY1':rpvplex_targets'$1'-migrate:0.25x:'$RECOVERPOINT_VARRAY1':rpvplex_targets'$1'-migrate',$RECOVERPOINT_VARRAY2':rpvplex_targets'$1'-migrate:0.25x:'$RECOVERPOINT_VARRAY2':rpvplex_targets'$1'-migrate' \
         --max_snapshots 10 \
         --rp_copy_mode ASYNCHRONOUS \
         --rp_rpo_value 5 \

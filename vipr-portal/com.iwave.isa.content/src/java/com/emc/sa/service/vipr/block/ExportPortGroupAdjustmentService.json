@@ -1,0 +1,86 @@
+{
+    baseKey:"ExportPortGroupAdjustment.Block",
+    serviceId:"ExportPortGroupAdjustment",
+    useModal: true,
+    modalTitle:"exportPortGroupAdjustment.modal.title",
+    roles: [
+        "SYSTEM_ADMIN"
+    ],
+    fields:{
+        project:{
+            type:"assetType.vipr.project",
+            lockable: true
+        },
+        storageType:{
+          type:"assetType.vipr.blockStorageType",
+          lockable:true,
+          initialValue:"exclusive"
+        },
+        host:{
+            type:"assetType.vipr.host",
+            lockable: true
+        },
+        export:{
+          type: "assetType.vipr.exportPathExport", 
+          lockable: false
+        },
+        minPaths: {
+          type:"assetType.vipr.exportPathMinPathsOptions",
+          omitNone: true,
+          initialValue: "1"
+        },
+        maxPaths: {
+          type:"assetType.vipr.exportPathMaxPathsOptions",
+          omitNone: true, 
+          initialValue: "2"
+        },
+        pathsPerInitiator: {
+          type:"assetType.vipr.exportPathPathsPerInitiatorOptions",
+          omitNone: true,
+          initialValue: "1"
+        },
+        storageSystem: {
+            type:"assetType.vipr.exportPathStorageSystem"
+        },
+        virtualArray:{
+            type:"assetType.vipr.exportPathVirtualArray",
+            lockable: true
+        },
+        portGroups:{
+            type:"assetType.vipr.exportPathPortGroups",
+            select: "many",
+            required: false
+        },
+        suspendWait:{
+            type: "boolean",
+            initialValue: "false",
+            required: false
+        },
+        exportPathPreview:{
+           type:"modal",
+           items:{
+                resultingPaths:{
+                    type:"assetType.vipr.exportPortGroupResultingPaths",
+                    select: "list",
+                    required: false,
+                    omitNone: true,
+                    modalField: true
+                },
+                removedPaths:{
+                    type:"assetType.vipr.exportPortGroupRemovedPaths",
+                    select: "list",
+                    required: false,
+                    omitNone: true,
+                    modalField: true
+                },
+                affectedExports:{
+                    type:"assetType.vipr.exportPortGroupAffectedExports",
+                    select: "list",
+                    required: false,
+                    omitNone: true,
+                    modalField: true
+                }
+            }
+        }
+    }
+}

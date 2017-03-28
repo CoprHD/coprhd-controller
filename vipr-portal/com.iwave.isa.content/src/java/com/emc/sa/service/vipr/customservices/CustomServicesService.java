@@ -289,10 +289,10 @@ public class CustomServicesService extends ViPRService {
                     case ASSET_OPTION_SINGLE:
                         final String friendlyName = value.getFriendlyName();
                         if (params.get(friendlyName) != null && !StringUtils.isEmpty(params.get(friendlyName).toString())) {
-                            inputs.put(name, Arrays.asList(params.get(friendlyName).toString().split(",")));
+                            inputs.put(name, Arrays.asList(params.get(friendlyName).toString()));
                         } else {
                             if (value.getDefaultValue() != null) {
-                                inputs.put(name, Arrays.asList(value.getDefaultValue().split(",")));
+                                inputs.put(name, Arrays.asList(value.getDefaultValue()));
                             }
                         }
                         break;

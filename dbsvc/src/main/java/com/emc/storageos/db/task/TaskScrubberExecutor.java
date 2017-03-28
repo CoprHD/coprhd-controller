@@ -7,8 +7,11 @@ package com.emc.storageos.db.task;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
@@ -120,44 +123,58 @@ public class TaskScrubberExecutor {
     }
     
     private List<URI> getTenantIds() {
+        log.debug("getting a list of all tenants");
         List<URI> tenantIds = new ArrayList<URI>();
         Iterator<URI> tenantItr = dbClient.queryByType(TenantOrg.class, true).iterator();
         while (tenantItr.hasNext()) {
-            tenantIds.add(tenantItr.next());
+            URI tenantId = tenantItr.next();
+            tenantIds.add(tenantId);
         }
         tenantIds.add(URI.create(SYSTEM_TENANT_ID));
+        log.debug("found {} tenants (including system tenant)", tenantIds.size());
         return tenantIds;
     }
     
     private int deletePendingTasksForTenant(URI tenantId, Calendar startTimeMarker) {
+        log.debug("deleting completed tasks for tenant {}", tenantId);
         int tasksDeleted = 0;
-        List<URI> ids = findTasksForTenantNotPending(tenantId);
-        Iterator<Task> tasks = dbClient.queryIterativeObjects(Task.class, ids, true);
-        List<Task> toBeDeleted = Lists.newArrayList();
-        while (tasks.hasNext()) {
-            Task task = tasks.next();
-            if (task.getCreationTime().after(startTimeMarker)) {
-                continue;
-            }
-            if (task != null && !task.isPending()) {
-                tasksDeleted++;
-                toBeDeleted.add(task);
-            }
-            if (toBeDeleted.size() >= DELETE_BATCH_SIZE) {
-                log.info("Deleting {} Tasks for tenant {}", toBeDeleted.size(), tenantId);
-                dbClient.markForDeletion(toBeDeleted.toArray(new DataObject[toBeDeleted.size()]));
-                toBeDeleted.clear();
-            }
-            if (tasksDeleted >= MAXIMUM_TASK_TO_DELETE) {
-                break;
+        Map<String, List<URI>> batchedIds = findTasksForTenantNotPending(tenantId);
+        for (Entry<String, List<URI>> entry : batchedIds.entrySet()) {
+            String batch = entry.getKey();
+            List<URI> ids = entry.getValue();
+            log.debug("processing batch {} with {} completed tasks for tenant {}", batch, ids.size(), tenantId);
+            try {
+                Iterator<Task> tasks = dbClient.queryIterativeObjects(Task.class, ids, true);
+                List<Task> toBeDeleted = Lists.newArrayList();
+                while (tasks.hasNext()) {
+                    Task task = tasks.next();
+                    if (task == null || (task.getCreationTime() != null && task.getCreationTime().after(startTimeMarker))) {
+                        continue;
+                    }
+                    if (!task.isPending()) {
+                        tasksDeleted++;
+                        toBeDeleted.add(task);
+                    }
+                    if (toBeDeleted.size() >= DELETE_BATCH_SIZE) {
+                        log.info("Deleting {} Tasks for tenant {}", toBeDeleted.size(), tenantId);
+                        dbClient.removeObject(toBeDeleted.toArray(new DataObject[toBeDeleted.size()]));
+                        toBeDeleted.clear();
+                    }
+                    if (tasksDeleted >= MAXIMUM_TASK_TO_DELETE) {
+                        break;
+                    }
+                }
+    
+                if (!toBeDeleted.isEmpty()) {
+                    log.info("Deleting {} Tasks for tenant {}", toBeDeleted.size(), tenantId);
+                    dbClient.removeObject(toBeDeleted.toArray(new DataObject[toBeDeleted.size()]));
+                } 
+            } catch (Exception e) {
+                log.error(e.getMessage(), e);
             }
         }
-
-        if (!toBeDeleted.isEmpty()) {
-            log.info("Deleting {} Tasks for tenant {}", toBeDeleted.size(), tenantId);
-            dbClient.markForDeletion(toBeDeleted.toArray(new DataObject[toBeDeleted.size()]));
-        } 
         
+        log.debug("done deleting completed tasks for tenant {}", tenantId);
         return tasksDeleted;
     }
 
@@ -168,19 +185,34 @@ public class TaskScrubberExecutor {
      * @param resourceId
      * @return
      */
-    private List<URI> findTasksForTenantNotPending(URI tenantId) {
+    private Map<String, List<URI>> findTasksForTenantNotPending(URI tenantId) {
+        log.debug("searching for completed tasks for tenant {}", tenantId);
         Constraint constraint = AggregatedConstraint.Factory.getAggregationConstraint(Task.class, "tenant",
                 tenantId.toString(), "taskStatus");
         AggregationQueryResultList queryResults = new AggregationQueryResultList();
         dbClient.queryByConstraint(constraint, queryResults);
         Iterator<AggregationQueryResultList.AggregatedEntry> it = queryResults.iterator();
-        List<URI> notPendingTasks = new ArrayList<URI>();
+        Map<String, List<URI>> notPendingTasks = new HashMap<String, List<URI>>();
+        int batch = 0;
+        int count = 0;
+        int batchSize = 10000;
+        int totalCount = 0; // only used for logging
         while (it.hasNext()) {
             AggregationQueryResultList.AggregatedEntry entry = it.next();
             if (!entry.getValue().equals(Task.Status.pending.name())) {
-                notPendingTasks.add(entry.getId());
+                if (notPendingTasks.get(Integer.toString(batch)) == null) {
+                    notPendingTasks.put(Integer.toString(batch), new ArrayList<URI>());
+                }
+                notPendingTasks.get(Integer.toString(batch)).add(entry.getId());
+                totalCount++;
+                count++;
+                if (count >= batchSize) {
+                    batch++;
+                    count = 0;
+                }
             }
         }
+        log.debug("found {} completed tasks for tenant {}", totalCount, tenantId);
         return notPendingTasks;
     }
     

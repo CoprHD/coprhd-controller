@@ -28,6 +28,8 @@ import org.apache.commons.lang.StringUtils;
 public class AnsibleCommandLine {
     private final String ansiblePath;
     private final String playbook;
+    private final String HOST_KEY_CHECKING_FALSE = "ANSIBLE_HOST_KEY_CHECKING=False";
+    private boolean hostKeyChecking;
     private String prefix;
     private String ssh;
     private String node;
@@ -44,6 +46,11 @@ public class AnsibleCommandLine {
         if (!StringUtils.isEmpty(prefix))
             this.prefix = prefix;
 
+        return this;
+    }
+
+    public AnsibleCommandLine setHostKeyChecking(final boolean hostKeyChecking){
+        this.hostKeyChecking=hostKeyChecking;
         return this;
     }
 
@@ -115,8 +122,14 @@ public class AnsibleCommandLine {
 
     public String[] build() {
         final ImmutableList.Builder<String> builder = ImmutableList.builder();
-        if (!StringUtils.isEmpty(prefix))
+
+        if(!hostKeyChecking){
+            builder.add(HOST_KEY_CHECKING_FALSE);
+        }
+
+        if (!StringUtils.isEmpty(prefix)) {
             builder.add(prefix);
+        }
 
         if (!StringUtils.isEmpty(ssh) && !StringUtils.isEmpty(node)) {
             builder.add(ssh).add(node);

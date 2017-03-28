@@ -69,6 +69,7 @@ public class RunAnsible extends ViPRExecutionTask<CustomServicesTaskResult> {
     private final Map<String, List<String>> input;
     private final String orderDir;
     private final long timeout;
+    private final boolean hostKeyChecking;
     private final Map<String, Object> params;
     private final DbClient dbClient;
 
@@ -81,6 +82,7 @@ public class RunAnsible extends ViPRExecutionTask<CustomServicesTaskResult> {
         } else {
             this.timeout = step.getAttributes().getTimeout();
         }
+        this.hostKeyChecking = step.getAttributes().getHostKeyChecking();
         this.params = params;
         this.dbClient = dbClient;
         this.orderDir = orderDir;
@@ -149,7 +151,7 @@ public class RunAnsible extends ViPRExecutionTask<CustomServicesTaskResult> {
                     final String hosts = "/opt/storageos/ansi_logs/hosts";
 
                     final String user = ExecutionUtils.currentContext().getOrder().getSubmittedByUserId();
-                    result = executeLocal(hosts, makeExtraArg(input), String.format("%s%s", orderDir, playbook), user);
+                    result = executeLocal(hosts, makeExtraArg(input), String.format("%s%s", orderDir, playbook), user, hostKeyChecking);
                     break;
                 case REMOTE_ANSIBLE:
                     result = executeRemoteCmd(makeExtraArg(input));
@@ -283,9 +285,10 @@ public class RunAnsible extends ViPRExecutionTask<CustomServicesTaskResult> {
     }
 
     // Execute Ansible playbook on given nodes. Playbook in local node
-    private Exec.Result executeLocal(final String ips, final String extraVars, final String playbook, final String user) {
+    private Exec.Result executeLocal(final String ips, final String extraVars, final String playbook, final String user, final boolean hostKeyChecking) {
         final AnsibleCommandLine cmd = new AnsibleCommandLine(CustomServicesConstants.ANSIBLE_LOCAL_BIN, playbook);
         final String[] cmds = cmd.setHostFile(ips).setUser(user)
+                .setHostKeyChecking(hostKeyChecking)
                 .setLimit(null)
                 .setTags(null)
                 .setExtraVars(extraVars)

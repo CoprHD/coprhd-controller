@@ -189,6 +189,7 @@ public class CustomServicesWorkflowDocument {
     public static class StepAttribute {
 
         private boolean waitForTask = true;
+        private boolean hostKeyChecking = true;
         private long timeout = DEFAULT_STEP_TIMEOUT;
         private String playbook;
         
@@ -214,6 +215,14 @@ public class CustomServicesWorkflowDocument {
         }
         public void setPlaybook(String playbook) {
             this.playbook = playbook;
+        }
+
+        @XmlElement(name = "host_key_checking")
+        public boolean getHostKeyChecking() {
+            return hostKeyChecking;
+        }
+        public void setHostKeyChecking(boolean hostKeyChecking) {
+            this.hostKeyChecking = hostKeyChecking;
         }
     }
 

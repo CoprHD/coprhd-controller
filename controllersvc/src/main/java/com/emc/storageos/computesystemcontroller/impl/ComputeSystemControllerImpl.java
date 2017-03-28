@@ -1404,13 +1404,14 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                 for (String volume : exportGroup.getVolumes().keySet()) {
                     BlockObject blockObject = BlockObject.fetch(_dbClient, URI.create(volume));
                     for (HostScsiDisk entry : storageAPI.listScsiDisks()) {
-                        if (VolumeWWNUtils.wwnMatches(VMwareUtils.getDiskWwn(entry), blockObject.getWWN())
-                                && VMwareUtils.isDiskOff(entry)) {
-                            _log.info("Attach SCSI Lun " + entry.getCanonicalName() + " on host " + esxHost.getLabel());
-                            storageAPI.attachScsiLun(entry);
-
+                        if (VolumeWWNUtils.wwnMatches(VMwareUtils.getDiskWwn(entry), blockObject.getWWN())) {
+                            if (VMwareUtils.isDiskOff(entry)) {
+                                _log.info("Attach SCSI Lun " + entry.getCanonicalName() + " on host " + esxHost.getLabel());
+                                storageAPI.attachScsiLun(entry);
+                            }
                             // Test mechanism to invoke a failure. No-op on production systems.
                             InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_055);
+                            break;
                         }
                     }
 

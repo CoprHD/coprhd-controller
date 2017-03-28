@@ -17,30 +17,6 @@
 
 package com.emc.sa.service.vipr.customservices.tasks;
 
-import java.io.ByteArrayInputStream;
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.OutputStream;
-import java.net.URI;
-import java.nio.charset.Charset;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
-import org.apache.commons.codec.binary.Base64;
-import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
-import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
-import org.apache.commons.compress.compressors.gzip.GzipCompressorInputStream;
-import org.apache.commons.compress.utils.IOUtils;
-import org.apache.commons.lang.StringUtils;
-import org.slf4j.LoggerFactory;
-
 import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.service.vipr.tasks.ViPRExecutionTask;
 import com.emc.storageos.db.client.DbClient;
@@ -55,6 +31,29 @@ import com.emc.storageos.primitives.CustomServicesConstants;
 import com.emc.storageos.primitives.CustomServicesPrimitive.StepType;
 import com.emc.storageos.services.util.Exec;
 import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorException;
+import java.io.ByteArrayInputStream;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.net.URI;
+import java.nio.charset.Charset;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import org.apache.commons.codec.binary.Base64;
+import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
+import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
+import org.apache.commons.compress.compressors.gzip.GzipCompressorInputStream;
+import org.apache.commons.compress.utils.IOUtils;
+import org.apache.commons.lang.StringUtils;
+import org.slf4j.LoggerFactory;
 
 /**
  * Runs CustomServices Primitives - Shell script or Ansible Playbook.
@@ -288,13 +287,14 @@ public class RunAnsible extends ViPRExecutionTask<CustomServicesTaskResult> {
     private Exec.Result executeLocal(final String ips, final String extraVars, final String playbook, final String user, final boolean hostKeyChecking) {
         final AnsibleCommandLine cmd = new AnsibleCommandLine(CustomServicesConstants.ANSIBLE_LOCAL_BIN, playbook);
         final String[] cmds = cmd.setHostFile(ips).setUser(user)
-                .setHostKeyChecking(hostKeyChecking)
                 .setLimit(null)
                 .setTags(null)
                 .setExtraVars(extraVars)
                 .build();
+        final Map<String,String> environment = new HashMap<>();
+        environment.put("ANSIBLE_HOST_KEY_CHECKING",String.valueOf(hostKeyChecking));
 
-        return Exec.exec(timeout, cmds);
+        return Exec.exec(timeout, null, environment, cmds);
     }
 
     // Execute Shell Script resource

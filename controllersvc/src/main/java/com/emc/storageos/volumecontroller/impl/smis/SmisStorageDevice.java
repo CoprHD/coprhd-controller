@@ -1930,8 +1930,8 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
                     }
                 }
                 if (volumeIds.isEmpty()) {
-                    cleanupCompleter.setSuccess(true);
                     _log.info("doCleanupMetaMembers: No meta members to cleanup in array.");
+                    cleanupCompleter.ready(_dbClient);
                 } else {
                     _log.info(String
                             .format("doCleanupMetaMembers: Members to cleanup in array: %n   %s",
@@ -1975,20 +1975,18 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
                 }
             } else {
                 _log.info("doCleanupMetaMembers: No meta members stored for meta volume. Nothing to cleanup in array.");
-                cleanupCompleter.setSuccess(true);
+                cleanupCompleter.ready(_dbClient);
             }
         } catch (WBEMException e) {
             _log.error("Problem making SMI-S call: ", e);
             ServiceError error = DeviceControllerErrors.smis.unableToCallStorageProvider(e
                     .getMessage());
-            cleanupCompleter.setError(error);
-            cleanupCompleter.setSuccess(false);
+            cleanupCompleter.error(_dbClient, error);
         } catch (Exception e) {
             _log.error("Problem in doCleanupMetaMembers: ", e);
             ServiceError error = DeviceControllerErrors.smis.methodFailed("doCleanupMetaMembers",
                     e.getMessage());
-            cleanupCompleter.setError(error);
-            cleanupCompleter.setSuccess(false);
+            cleanupCompleter.error(_dbClient, error);
         }
         _log.info(String.format("doCleanupMetaMembers End - Array: %s,  Volume: %s",
                 storageSystem.getSerialNumber(), volume.getLabel()));
@@ -2004,7 +2002,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
             ControllerServiceImpl.enqueueJob(new QueueJob(new SmisWaitForSynchronizedJob(clazz,
                     path, storageObj.getId(), completer)));
         } catch (Exception e) {
-            _log.info("Problem making SMI-S call: " + e);
+            _log.error("Problem making SMI-S call: ", e);
             ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
             completer.error(_dbClient, serviceError);
         }

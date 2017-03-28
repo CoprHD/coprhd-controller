@@ -52,10 +52,13 @@ public class FileSnapshotPolicyMigration extends BaseCustomMigrationCallback {
                 VirtualPool associatedVP = new VirtualPool();
 
                 fileSnapshotPolicy.setId(URIUtil.createId(FilePolicy.class));
-                for (String assignedResource : schedulePolicy.getAssignedResources()) {
-                    logger.info("assigning resource to fileSnapshotPolicy from schedulePolicy : {}", schedulePolicy.getAssignedResources());
-                    fileSnapshotPolicy.addAssignedResources(resourceURI(assignedResource));
-                    logger.info("Assigned resources from fileSnapshotPolicy : {}", fileSnapshotPolicy.getAssignedResources());
+                if (schedulePolicy.getAssignedResources() != null && !schedulePolicy.getAssignedResources().isEmpty()) {
+                    for (String assignedResource : schedulePolicy.getAssignedResources()) {
+                        logger.info("assigning resource to fileSnapshotPolicy from schedulePolicy : {}",
+                                schedulePolicy.getAssignedResources());
+                        fileSnapshotPolicy.addAssignedResources(resourceURI(assignedResource));
+                        logger.info("Assigned resources from fileSnapshotPolicy : {}", fileSnapshotPolicy.getAssignedResources());
+                    }
                 }
                 fileSnapshotPolicy.setFilePolicyDescription(
                         "Policy created from Schedule Policy " + schedulePolicy.getLabel() + " while system upgrade");

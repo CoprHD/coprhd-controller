@@ -7,7 +7,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import com.emc.storageos.api.service.impl.resource.ArgValidator;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
@@ -198,8 +197,6 @@ public class ConsistencyGroupUtils {
      * Validate URI and find consistency group by URI
      */
     public static BlockConsistencyGroup findConsistencyGroupById(URI uri, DbClient dbClient) {
-        ArgValidator.checkUri(uri);
-        ArgValidator.checkFieldUriType(uri, BlockConsistencyGroup.class, "id");
         BlockConsistencyGroup cGroup = dbClient.queryObject(BlockConsistencyGroup.class, uri);
         if (cGroup == null) {
             throw APIException.badRequests.invalidConsistencyGroup();

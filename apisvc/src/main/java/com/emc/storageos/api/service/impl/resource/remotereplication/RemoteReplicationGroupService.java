@@ -122,6 +122,8 @@ public class RemoteReplicationGroupService extends TaskResourceService {
     @Path("/consistency-group/groups")
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR })
     public RemoteReplicationGroupList getRemoteReplicationGroupsForCG(@QueryParam("consistencyGroup") URI uri) {
+        ArgValidator.checkUri(uri);
+        ArgValidator.checkFieldUriType(uri, BlockConsistencyGroup.class, "id");
         BlockConsistencyGroup cGroup = ConsistencyGroupUtils.findConsistencyGroupById(uri, _dbClient);
         if (ConsistencyGroupUtils.isConsistencyGroupEmpty(cGroup)) {
             // If CG is empty (storageDevice is null) any remote replication group is a match.

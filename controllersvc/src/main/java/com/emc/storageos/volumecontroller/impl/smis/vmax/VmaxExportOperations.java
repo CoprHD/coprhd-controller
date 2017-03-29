@@ -2276,13 +2276,14 @@ public class VmaxExportOperations implements ExportMaskOperations {
                     initiatorsToRemoveFromUserAddedAndInitiatorList.addAll(transform(mask.getInitiators(),
                             CommonTransformerFunctions.FCTN_STRING_TO_URI));
                     for (String port : discoveredPorts) {
+                        String normalizedPort = Initiator.normalizePort(port);
                         Initiator initiatorDiscoveredInViPR = ExportUtils.getInitiator(Initiator.toPortNetworkId(port), _dbClient);
                         if (initiatorDiscoveredInViPR != null) {
                             initiatorsToRemoveFromUserAddedAndInitiatorList.remove(initiatorDiscoveredInViPR.getId());
-                        } else {
+                        } else if (!mask.hasExistingInitiator(normalizedPort)) {
                             _log.info("Initiator {} not found in database, removing from user Added and initiator list,"
                                     + " and adding to existing list.", port);
-                            initiatorsToAddToExisting.add(Initiator.normalizePort(port));
+                            initiatorsToAddToExisting.add(normalizedPort);
                         }
                     }
                 }

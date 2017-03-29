@@ -611,13 +611,14 @@ public class VPlexControllerUtils {
                 initiatorsToRemoveFromUserAddedAndInitiatorList.addAll(Collections2.transform(exportMask.getInitiators(),
                         CommonTransformerFunctions.FCTN_STRING_TO_URI));
                 for (String port : discoveredInitiators) {
+                    String normalizedPort = Initiator.normalizePort(port);
                     Initiator initiatorDiscoveredInViPR = ExportUtils.getInitiator(Initiator.toPortNetworkId(port), dbClient);
                     if (initiatorDiscoveredInViPR != null) {
                         initiatorsToRemoveFromUserAddedAndInitiatorList.remove(initiatorDiscoveredInViPR.getId());
-                    } else {
+                    } else if (!exportMask.hasExistingInitiator(normalizedPort)) {
                         log.info("Initiator {} not found in database, removing from user Added and initiator list,"
                                 + " and adding to existing list.", port);
-                        initiatorsToAddToExisting.add(Initiator.normalizePort(port));
+                        initiatorsToAddToExisting.add(normalizedPort);
                     }
                 }
             }

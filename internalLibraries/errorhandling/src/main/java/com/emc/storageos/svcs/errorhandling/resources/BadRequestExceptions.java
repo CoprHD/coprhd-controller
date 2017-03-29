@@ -606,6 +606,9 @@ public interface BadRequestExceptions {
     public BadRequestException invalidParameterNoStoragePool(URI storagePoolURI);
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException invalidParameterNoStoragePort(String port, URI storageSystem);
+
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException invalidParameterNoSuchVirtualPoolOfType(URI id, String string);
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)

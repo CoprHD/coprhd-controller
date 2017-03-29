@@ -11,6 +11,7 @@ import static com.emc.storageos.db.client.util.CustomQueryUtility.queryActiveRes
 import static com.emc.storageos.db.client.util.CustomQueryUtility.queryActiveResourcesByRelation;
 
 import java.net.URI;
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
@@ -63,6 +64,7 @@ import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationSet;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
+import com.emc.storageos.util.NetworkUtil;
 import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.impl.externaldevice.RemoteReplicationElement;
 import com.emc.storageos.volumecontroller.impl.utils.ConsistencyGroupUtils;
@@ -224,10 +226,8 @@ public class RemoteReplicationGroupService extends TaskResourceService {
             }
         }
 
-        List<URI> sourcePorts = param.getSourcePorts();
-        List<URI> targetPorts = param.getTargetPorts();
-        precheckPorts(sourcePorts, sourceSystem, "source ports");
-        precheckPorts(targetPorts, targetSystem, "target ports");
+        List<URI> sourcePortIds = precheckPorts(param.getSourcePorts(), sourceSystem, "source ports");
+        List<URI> targetPortIds = precheckPorts(param.getTargetPorts(), targetSystem, "target ports");
 
         RemoteReplicationGroup rrGroup = prepareRRGroup(param);
         _dbClient.createObject(rrGroup);
@@ -240,7 +240,7 @@ public class RemoteReplicationGroupService extends TaskResourceService {
         // send request to controller
         try {
             RemoteReplicationBlockServiceApiImpl rrServiceApi = getRemoteReplicationServiceApi();
-            rrServiceApi.createRemoteReplicationGroup(rrGroup.getId(), sourcePorts, targetPorts, taskId);
+            rrServiceApi.createRemoteReplicationGroup(rrGroup.getId(), sourcePortIds, targetPortIds, taskId);
         } catch (final ControllerException e) {
             _log.error("Controller Error", e);
             op = rrGroup.getOpStatus().get(taskId);
@@ -619,18 +619,32 @@ public class RemoteReplicationGroupService extends TaskResourceService {
         ArgValidator.checkFieldUriType(systemId, StorageSystem.class, fieldName);
     }
 
-    private void precheckPorts(List<URI> portIds, URI deviceId, String fieldName) {
-        if (portIds == null || portIds.isEmpty()) {
+    /**
+     * Convert ports from portNetworkIds to URIs, and check if it belongs to the
+     * specified storage system, and throw exception if not.
+     *
+     * @param portNetworkIds
+     *            ports that are specified by portNetworkIds
+     * @param deviceId
+     *            the storage system URI that ports should belong to
+     * @param fieldName
+     *            field name string for error message display
+     * @return converted URI list
+     */
+    private List<URI> precheckPorts(List<String> portNetworkIds, URI deviceId, String fieldName) {
+        if (portNetworkIds == null || portNetworkIds.isEmpty()) {
             throw APIException.badRequests.parameterIsNullOrEmpty(fieldName);
         }
 
-        for (URI portId : portIds) {
-            ArgValidator.checkFieldUriType(portId, StoragePort.class, "storage port");
-            StoragePort port = _dbClient.queryObject(StoragePort.class, portId);
+        List<URI> ports = new ArrayList<>();
+        for (String endpoint : portNetworkIds) {
+            StoragePort port = NetworkUtil.getStoragePort(endpoint, _dbClient);
             if (port == null || !deviceId.equals(port.getStorageDevice())) {
-                throw APIException.badRequests.invalidParameterURIInvalid(fieldName, portId);
+                throw APIException.badRequests.invalidParameterNoStoragePort(endpoint, deviceId);
             }
+            ports.add(port.getId());
         }
+        return ports;
     }
 
     @Override

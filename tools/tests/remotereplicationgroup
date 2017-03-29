@@ -24,7 +24,7 @@ def remotereplicationgroup_create(args):
     # replicationset_uri = bourne.replicationset_query(args.replicationset_name)
     # print 'Replication set uri: ' + replicationset_uri
 
-    s = bourne.replicationgroup_create(args.system_type, args.name, args.replication_mode, source_system_uri, target_system_uri)
+    s = bourne.replicationgroup_create(args.system_type, args.name, args.replication_mode, source_system_uri, target_system_uri, args.source_ports, args.target_ports)
     if (s['state'] == 'ready'):
         print 'Remote replication group created with id ' + s['resource']['id']
     else:
@@ -85,6 +85,8 @@ create.add_argument('name', help = 'The name of the remote replication group.')
 create.add_argument('replication_mode', help = 'The name of the group replication mode.')
 create.add_argument('--source_system', help = 'The Native GUID of the source storage system.')
 create.add_argument('--target_system', help = 'The Native GUID of the target storage system.')
+create.add_argument('--source_ports', help = 'The names of source ports')
+create.add_argument('--target_ports', help = 'The names of target ports')
 
 # remotereplicationgroup failover
 failover = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')

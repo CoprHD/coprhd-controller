@@ -26,7 +26,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import com.emc.storageos.db.client.model.uimodels.CustomServicesWorkflow;
 import org.apache.commons.lang.StringUtils;
 import org.codehaus.jackson.JsonNode;
 import org.codehaus.jackson.map.ObjectMapper;
@@ -52,6 +51,7 @@ import com.emc.sa.service.vipr.customservices.tasks.RunAnsible;
 import com.emc.sa.service.vipr.customservices.tasks.RunViprREST;
 import com.emc.sa.workflow.WorkflowHelper;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
+import com.emc.storageos.db.client.model.uimodels.CustomServicesWorkflow;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.model.customservices.CustomServicesWorkflowDocument;
 import com.emc.storageos.model.customservices.CustomServicesWorkflowDocument.Input;
@@ -82,18 +82,16 @@ public class CustomServicesService extends ViPRService {
     @Autowired
     private CustomServicesPrimitiveDAOs daos;
 
-    private ImmutableMap<String, Step> stepsHash;
-    private CustomServicesWorkflowDocument obj;
     private int code;
-    private static boolean firstWf = true;
-    private static URI uri = null;
+    private URI uri;
 
     @Override
     public void precheck() throws Exception {
 
         // get input params from order form
         params = ExecutionUtils.currentContext().getParameters();
-
+	//Assign Parent WFID to null as we get the WF Doc from Order context.
+        uri = null;
     }
 
     @Override
@@ -111,14 +109,11 @@ public class CustomServicesService extends ViPRService {
 
     private ImmutableMap<String, Step> getStepHash(final URI uri) throws Exception {
 
-        final CustomServicesWorkflowDocument obj;
         final String raw;
 
         if (uri == null) {
-            logger.info("parent wf");
             raw = ExecutionUtils.currentContext().getOrder().getWorkflowDocument();
         } else {
-            logger.info("sub wf uri:{}", uri);
             //Get it from DB
             CustomServicesWorkflow wf = dbClient.queryObject(CustomServicesWorkflow.class, uri);
             raw = WorkflowHelper.toWorkflowDocumentJson(wf);
@@ -127,7 +122,7 @@ public class CustomServicesService extends ViPRService {
             throw InternalServerErrorException.internalServerErrors
                     .customServiceExecutionFailed("Invalid custom service.  Workflow document cannot be null");
         }
-        obj = WorkflowHelper.toWorkflowDocument(raw);
+        final CustomServicesWorkflowDocument obj = WorkflowHelper.toWorkflowDocument(raw);
 
         final List<Step> steps = obj.getSteps();
         final ImmutableMap.Builder<String, Step> builder = ImmutableMap.builder();
@@ -163,7 +158,6 @@ public class CustomServicesService extends ViPRService {
             ExecutionUtils.currentContext().logInfo("customServicesService.stepStatus", step.getId(), step.getType());
 
             updateInputPerStep(step);
-
             final CustomServicesTaskResult res;
 
             try {
@@ -201,10 +195,11 @@ public class CustomServicesService extends ViPRService {
                         res = ViPRExecutionUtils.execute(new RunAnsible(step, inputPerStep.get(step.getId()), params, dbClient, orderDir));
                         break;
                     case WORKFLOW:
-                        //uri = step.getOperation();
-                        uri = new URI("urn:storageos:CustomServicesWorkflow:e2dc05f1-e3c3-495a-8eb0-a5681e6a6c7b:vdc1");
+                        uri = step.getOperation();
                         wfExecutor();
-                        res = null;
+			// We Don't evaluate output/result for Workflow Step. It is already evaluated.
+			// We would have got exception if Sub WF has failed
+                        res = new CustomServicesTaskResult("Success", "No Error", 200, null);
 
                         break;
 
@@ -307,14 +302,13 @@ public class CustomServicesService extends ViPRService {
         if (step.getInputGroups() == null) {
             return;
         }
-
         final Map<String, List<String>> inputs = new HashMap<String, List<String>>();
         for (final CustomServicesWorkflowDocument.InputGroup inputGroup : step.getInputGroups().values()) {
             for (final Input value : inputGroup.getInputGroup()) {
                 final String name = value.getName();
                 switch (CustomServicesConstants.InputType.fromString(value.getType())) {
                     case FROM_USER:
-                    case ASSET_OPTION_SINGLE:
+                    case ASSET_OPTION:
                         final String friendlyName = value.getFriendlyName();
                         if (params.get(friendlyName) != null && !StringUtils.isEmpty(params.get(friendlyName).toString())) {
                             inputs.put(name, Arrays.asList(params.get(friendlyName).toString().split(",")));
@@ -360,7 +354,6 @@ public class CustomServicesService extends ViPRService {
                 }
             }
         }
-
         inputPerStep.put(step.getId(), inputs);
     }
 

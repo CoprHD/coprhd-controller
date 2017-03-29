@@ -48,6 +48,6 @@ public class CustomServicesAnsiblePrimitive extends
 
     @Override
     public String type() {
-        return TYPE;
+        return StepType.LOCAL_ANSIBLE.toString();
     }
 }

@@ -261,21 +261,14 @@ public class RunAnsible extends ViPRExecutionTask<CustomServicesTaskResult> {
         }
 
         final AnsibleCommandLine cmd = new AnsibleCommandLine(
-                getAnsibleConnAndOptions(CustomServicesConstants.ANSIBLE_BIN,
-                        inputType.get(CustomServicesConstants.ANSIBLE_OPTIONS).getInputGroup()),
-                getAnsibleConnAndOptions(CustomServicesConstants.ANSIBLE_PLAYBOOK,
-                        inputType.get(CustomServicesConstants.ANSIBLE_OPTIONS).getInputGroup()));
+                getOptions(CustomServicesConstants.ANSIBLE_BIN),
+                getOptions(CustomServicesConstants.ANSIBLE_PLAYBOOK));
+
         final String[] cmds = cmd.setSsh(CustomServicesConstants.SHELL_LOCAL_BIN)
-                .setUserAndIp(getAnsibleConnAndOptions(CustomServicesConstants.REMOTE_USER,
-                        inputType.get(CustomServicesConstants.CONNECTION_DETAILS).getInputGroup()),
-                        getAnsibleConnAndOptions(CustomServicesConstants.REMOTE_NODE,
-                                inputType.get(CustomServicesConstants.CONNECTION_DETAILS).getInputGroup()))
-                .setHostFile(getAnsibleConnAndOptions(CustomServicesConstants.ANSIBLE_HOST_FILE,
-                        inputType.get(CustomServicesConstants.ANSIBLE_OPTIONS).getInputGroup()))
-                .setUser(getAnsibleConnAndOptions(CustomServicesConstants.ANSIBLE_USER,
-                        inputType.get(CustomServicesConstants.ANSIBLE_OPTIONS).getInputGroup()))
-                .setCommandLine(getAnsibleConnAndOptions(CustomServicesConstants.ANSIBLE_COMMAND_LINE,
-                        inputType.get(CustomServicesConstants.ANSIBLE_OPTIONS).getInputGroup()))
+                .setUserAndIp(getOptions(CustomServicesConstants.REMOTE_USER), getOptions(CustomServicesConstants.REMOTE_NODE))
+                .setHostFile(getOptions(CustomServicesConstants.ANSIBLE_HOST_FILE))
+                .setUser(getOptions(CustomServicesConstants.ANSIBLE_USER))
+                .setCommandLine(getOptions(CustomServicesConstants.ANSIBLE_COMMAND_LINE))
                 .setExtraVars(extraVars)
                 .build();
 
@@ -289,6 +282,7 @@ public class RunAnsible extends ViPRExecutionTask<CustomServicesTaskResult> {
                 .setLimit(null)
                 .setTags(null)
                 .setExtraVars(extraVars)
+                .setCommandLine(getOptions(CustomServicesConstants.ANSIBLE_COMMAND_LINE))
                 .build();
 
         return Exec.exec(timeout, cmds);
@@ -302,20 +296,13 @@ public class RunAnsible extends ViPRExecutionTask<CustomServicesTaskResult> {
         return Exec.exec(timeout, cmds);
     }
 
-    private String getAnsibleConnAndOptions(final String key, final List<Input> stepInput) {
-        if (params.get(key) != null) {
-            return StringUtils.strip(params.get(key).toString(), "\"");
+    private String getOptions(final String key) {
+        if (input.get(key) != null) {
+            return StringUtils.strip(input.get(key).get(0).toString(), "\"");
         }
 
-        for (final Input in : stepInput) {
-            if (in.getName().equals(key)) {
-                if (in.getDefaultValue() != null) {
-                    return in.getDefaultValue();
-                }
-            }
-        }
+        logger.info("key not defined. key:{}", key);
 
-        logger.error("Can't find the value for:{}", key);
         return null;
     }
 
@@ -335,7 +322,9 @@ public class RunAnsible extends ViPRExecutionTask<CustomServicesTaskResult> {
         final StringBuilder sb = new StringBuilder();
         for (Map.Entry<String, List<String>> e : input.entrySet()) {
             // TODO find a better way to fix this
-            sb.append(e.getKey()).append("=").append(e.getValue().get(0).replace("\"", "")).append(" ");
+            if (e.getValue() != null && !StringUtils.isEmpty(e.getValue().get(0))) {
+                sb.append(e.getKey()).append("=").append(e.getValue().get(0).replace("\"", "")).append(" ");
+            }
         }
         logger.info("extra vars:{}", sb.toString());
 

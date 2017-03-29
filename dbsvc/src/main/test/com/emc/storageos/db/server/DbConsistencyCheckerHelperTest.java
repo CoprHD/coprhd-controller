@@ -5,8 +5,6 @@
 package com.emc.storageos.db.server;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
 
 import java.util.Map;
 import java.util.TreeMap;
@@ -18,7 +16,6 @@ import org.junit.Before;
 import org.junit.Test;
 
 import com.datastax.driver.core.ResultSet;
-import com.datastax.driver.core.Row;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.impl.AltIdDbIndex;
 import com.emc.storageos.db.client.impl.ClassNameTimeSeriesDBIndex;
@@ -27,7 +24,6 @@ import com.emc.storageos.db.client.impl.DbClientImpl;
 import com.emc.storageos.db.client.impl.DbConsistencyCheckerHelper;
 import com.emc.storageos.db.client.impl.DbConsistencyCheckerHelper.CheckResult;
 import com.emc.storageos.db.client.impl.DbConsistencyCheckerHelper.IndexAndCf;
-import com.emc.storageos.db.client.impl.IndexColumnName;
 import com.emc.storageos.db.client.impl.TimeSeriesDbIndex;
 import com.emc.storageos.db.client.impl.TypeMap;
 import com.emc.storageos.db.client.model.DataObject;
@@ -170,7 +166,7 @@ public class DbConsistencyCheckerHelperTest extends DbsvcTestBase {
         testData.setMountPath("mountPath1");
         getDbClient().updateObject(testData);
         
-        String queryString = String.format("select * from \"AltIdIndex\" where column1='FileShare' and column2='%s'", testData.getId().toString());
+        String queryString = String.format("select * from \"AltIdIndex\" where column1='FileShare' and column2='%s' ALLOW FILTERING", testData.getId().toString());
         ResultSet resultSet = ((DbClientImpl)getDbClient()).getLocalContext().getSession().execute(queryString);
         
         //TODO java driver
@@ -193,7 +189,9 @@ public class DbConsistencyCheckerHelperTest extends DbsvcTestBase {
         order.setLabel("order1");
         order.setSubmittedByUserId("root");
         getDbClient().updateObject(order);
-
+        
+        Order result = (Order)getDbClient().queryObject(order.getId());
+        System.out.println(result.getLabel());
         IndexAndCf indexAndCf = new IndexAndCf(ClassNameTimeSeriesDBIndex.class, "UserToOrdersByTimeStamp", ((DbClientImpl)getDbClient()).getLocalContext());
         
         CheckResult checkResult = new CheckResult();

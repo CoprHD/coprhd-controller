@@ -28,7 +28,7 @@ public class ClassNameTimeSeriesIndexColumnName implements CompositeIndexColumnN
     }
 
     public ClassNameTimeSeriesIndexColumnName(long timestamp, String className, String id, String four, UUID timeUUID) {
-        this.timeInMicros = timestamp < 0 ? UUIDs.unixTimestamp(timeUUID): timestamp;
+        this.timeInMicros = timestamp < 0 ? UUIDs.unixTimestamp(timeUUID) * 1000: timestamp;
         this.id = id;
         this.className = className;
         this.four=four;

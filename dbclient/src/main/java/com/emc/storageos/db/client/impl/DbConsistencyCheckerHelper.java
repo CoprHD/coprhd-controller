@@ -162,31 +162,38 @@ public class DbConsistencyCheckerHelper {
             return;
         }
 
-        String queryString = String.format("select key, value from \"%s\" where column1='%s' ALLOW FILTERING", doType.getCF().getName(),
-                DataObject.INACTIVE_FIELD_NAME);
+        String queryString = String.format("select distinct key from \"%s\"", doType.getCF().getName());
         SimpleStatement queryStatement = new SimpleStatement(queryString);
         queryStatement.setFetchSize(dbClient.DEFAULT_PAGE_SIZE);
         ResultSet resultSet = dbClient.getSession(doType.getDataObjectClass()).execute(queryStatement);
         
+        List<URI> ids = new ArrayList<>();
         for (Row row : resultSet) {
-            List<URI> ids = new ArrayList<>(1);
-
-            String key = row.getString(0);
-            boolean inactive = BooleanSerializer.instance.deserialize(row.getBytes(1));
-
-            if (inactive == true) {
-            	continue;
-            }
-
-            ids.add(URI.create(key));
-            
+        	ids.add(URI.create(row.getString(0)));
+        	if (ids.size() >= dbClient.DEFAULT_PAGE_SIZE || !resultSet.isExhausted()) {
+        		continue;
+        	}
+                        
 			Map<String, List<CompositeColumnName>> result = dbClient.queryRowsWithAllColumns(
 							dbClient.getDbClientContext(doType
 									.getDataObjectClass()), ids, doType
 									.getCF().getName());
+			ids = new ArrayList<>();
         	for (String rowKey : result.keySet()) {
-                List<CompositeColumnName> rows = result.get(rowKey);
-                for (CompositeColumnName column : rows) {
+                List<CompositeColumnName> columns = result.get(rowKey);
+                boolean inactiveObject = false;
+                for (CompositeColumnName column : columns) {
+                    if (column.getOne().equals(DataObject.INACTIVE_FIELD_NAME) && column.getBooleanValue()) {
+                    	inactiveObject = true;
+                    	break;
+                    }
+                }
+                
+                if (inactiveObject) {
+                	continue;
+                }
+                
+                for (CompositeColumnName column : columns) {
                     // we don't build index if the value is null, refer to ColumnField.
                     if (column == null) {
                         continue;
@@ -197,9 +204,9 @@ public class DbConsistencyCheckerHelper {
                     }
                     
                     ColumnField indexedField = indexedFields.get(column.getOne());
-                    String indexKey = getIndexKey(indexedField, column, rows);
+                    String indexKey = getIndexKey(indexedField, column, columns);
                     if (indexKey == null || indexKey.isEmpty()) {
-                        logMessage(String.format("indexKey is null or empty for field: %s  row key: %s", indexedField.getName(), key), true, false);
+                        logMessage(String.format("indexKey is null or empty for field: %s  row key: %s", indexedField.getName(), rowKey), true, false);
                         continue;
                     }
                     
@@ -253,12 +260,28 @@ public class DbConsistencyCheckerHelper {
         for (Row row : resultSet) {
         	String key = row.getString(0);
             
-            IndexColumnName indexColumnName = new IndexColumnName(row.getString(1), 
+        	CompositeIndexColumnName indexColumnName = null;
+        	
+        	if (ClassNameTimeSeriesDBIndex.class.isAssignableFrom(indexAndCf.indexType)) {
+        		indexColumnName = new ClassNameTimeSeriesIndexColumnName(row.getLong(2), 
+        				row.getString(1),
+                        row.getString(3),
+                        row.getString(4),
+                        row.getUUID(5));
+        	} else if (TimeSeriesDbIndex.class.isAssignableFrom(indexAndCf.indexType)) {
+        		indexColumnName = new TimeSeriesIndexColumnName(row.getString(1),
+        				row.getLong(2),
+                        row.getString(3),
+                        row.getString(4),
+                        row.getUUID(5));
+        	} else {
+        		indexColumnName = new IndexColumnName(row.getString(1), 
                     row.getString(2), 
                     row.getString(3),
                     row.getString(4),
                     row.getUUID(5),
-                    row.getBytes(6)); 
+                    row.getBytes(6));
+        	}
             
             ObjectEntry objEntry = extractObjectEntryFromIndex(key,
                     indexColumnName, indexAndCf.indexType, toConsole);
@@ -338,16 +361,18 @@ public class DbConsistencyCheckerHelper {
             ResultSet resultSet = indexAndCf.dbClientContext.getSession().execute(queryStatement.bind(new ArrayList<String>(objKeysIdxEntryMap.keySet())));
             Map<String, List<CompositeColumnName>> rowColumnMap = dbClient.toColumnMap(resultSet);
             
-            for (Entry<String, List<CompositeColumnName>> entry : rowColumnMap.entrySet()) {
+            for (Entry<String, List<IndexEntry>> entry : objKeysIdxEntryMap.entrySet()) {
+            	
             	Set<UUID> existingDataColumnUUIDSet = new HashSet<>();
-                for (CompositeColumnName column : entry.getValue()) {
-                    if (column.getTimeUUID() != null) {
-                        existingDataColumnUUIDSet.add(column.getTimeUUID());
-                    }
-                }
-                
-                List<IndexEntry> idxEntries = objKeysIdxEntryMap.get(entry.getKey());
-                for (IndexEntry idxEntry : idxEntries) {
+            	if (rowColumnMap.containsKey(entry.getKey())) {
+	                for (CompositeColumnName column : rowColumnMap.get(entry.getKey())) {
+	                    if (column.getTimeUUID() != null) {
+	                        existingDataColumnUUIDSet.add(column.getTimeUUID());
+	                    }
+	                }
+            	}
+            	
+                for (IndexEntry idxEntry : entry.getValue()) {
                     if (!rowColumnMap.containsKey(entry.getKey())
                             || (idxEntry.getColumnName().getTimeUUID() != null && !existingDataColumnUUIDSet.contains(idxEntry
                                     .getColumnName().getTimeUUID()))) {

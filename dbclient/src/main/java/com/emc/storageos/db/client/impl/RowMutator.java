@@ -94,7 +94,11 @@ public class RowMutator {
         insert.setString("key", indexRowKey);
         // For PRIMARY KEY (key, column1, column2, column3, column4, column5), the primary key cannot be null
         insert.setString("column1", column.getOne() == null ? StringUtils.EMPTY : column.getOne());
-        insert.setString("column2", column.getTwo() == null ? StringUtils.EMPTY : column.getTwo());
+        if (column instanceof ClassNameTimeSeriesIndexColumnName || column instanceof TimeSeriesIndexColumnName) {
+        	insert.setLong("column2", column.getTwo() == null ? 0 : Long.parseLong(column.getTwo()));
+    	} else {
+    		insert.setString("column2", column.getTwo() == null ? StringUtils.EMPTY : column.getTwo());
+    	}
         insert.setString("column3", column.getThree() == null ? StringUtils.EMPTY : column.getThree());
         insert.setString("column4", column.getFour() == null ? StringUtils.EMPTY : column.getFour());
         if (column.getTimeUUID() != null) {

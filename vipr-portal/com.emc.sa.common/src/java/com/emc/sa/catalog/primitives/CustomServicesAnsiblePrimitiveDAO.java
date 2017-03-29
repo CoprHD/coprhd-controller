@@ -31,6 +31,7 @@ import com.emc.storageos.db.client.model.uimodels.CustomServicesDBAnsibleResourc
 import com.emc.storageos.model.customservices.CustomServicesPrimitiveCreateParam;
 import com.emc.storageos.model.customservices.CustomServicesPrimitiveRestRep;
 import com.emc.storageos.model.customservices.CustomServicesPrimitiveUpdateParam;
+import com.emc.storageos.primitives.CustomServicesPrimitive;
 import com.emc.storageos.primitives.db.ansible.CustomServicesAnsiblePrimitive;
 
 /**
@@ -49,7 +50,7 @@ public class CustomServicesAnsiblePrimitiveDAO implements
 
     @Override
     public String getType() {
-        return CustomServicesAnsiblePrimitive.TYPE;
+        return CustomServicesPrimitive.StepType.LOCAL_ANSIBLE.toString();
     }
 
     @Override

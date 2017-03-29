@@ -201,7 +201,7 @@ public class CustomServicesService extends ViPRService {
                         uri = step.getOperation();
                         wfExecutor();
 			// We Don't evaluate output/result for Workflow Step. It is already evaluated.
-			// We would have got exception if WF Sub WF has failed
+			// We would have got exception if Sub WF has failed
                         res = new CustomServicesTaskResult("Success", "No Error", 200, null);
 
                         break;
@@ -311,7 +311,7 @@ public class CustomServicesService extends ViPRService {
                 final String name = value.getName();
                 switch (CustomServicesConstants.InputType.fromString(value.getType())) {
                     case FROM_USER:
-                    case ASSET_OPTION_SINGLE:
+                    case ASSET_OPTION:
                         final String friendlyName = value.getFriendlyName();
                         if (params.get(friendlyName) != null && !StringUtils.isEmpty(params.get(friendlyName).toString())) {
                             inputs.put(name, Arrays.asList(params.get(friendlyName).toString().split(",")));

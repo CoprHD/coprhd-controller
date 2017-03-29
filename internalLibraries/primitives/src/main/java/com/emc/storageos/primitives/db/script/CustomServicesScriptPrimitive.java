@@ -46,6 +46,6 @@ public class CustomServicesScriptPrimitive extends CustomServicesDBPrimitiveType
 
     @Override
     public String type() {
-        return TYPE;
+        return StepType.SHELL_SCRIPT.toString();
     }
 }

@@ -935,10 +935,11 @@ public class ConnectivityUtil {
     }
 
     /**
-     * This method returns the VPLEX cluster location for the ExportMask. The assumption here is that the passed
-     * ExportMask will not have ports from both VPLEX clusters.
+     * This method returns the VPLEX cluster location for the List of StoragePort URIs. The assumption here is that the passed
+     * List of StoragePorts URIs will not contain ports from both VPLEX clusters. The first port that passes all conditions
+     * will determine the VPLEX cluster id returned.
      * 
-     * @param exportMask the ExportMask object to check for VPLEX cluster location
+     * @param storagePortUris the List of StoragePort URIs to chck
      * @param vplexStorageSystemUri The URI of the VPLEX storage system
      * @param dbClient a reference to the database client
      * @return "1" or "2". Returns "unknown-cluster" if error.

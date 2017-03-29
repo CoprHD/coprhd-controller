@@ -464,7 +464,7 @@ public class VPlexBlockSnapshotSessionApiImpl extends DefaultBlockSnapshotSessio
 
         // However, the project is from the VPLEX volume.
         Project sourceProject = BlockSnapshotSessionUtils.querySnapshotSessionSourceProject(sourceObj, _dbClient);
-        snapSession.setProject(new NamedURI(sourceProject.getId(), sourceProject.getLabel()));
+        snapSession.setProject(new NamedURI(sourceProject.getId(), sourceObj.getLabel()));
 
         return snapSession;
     }
@@ -484,7 +484,7 @@ public class VPlexBlockSnapshotSessionApiImpl extends DefaultBlockSnapshotSessio
 
         // However, the project is from the VPLEX volume.
         Project sourceProject = BlockSnapshotSessionUtils.querySnapshotSessionSourceProject(sourceObj, _dbClient);
-        snapshot.setProject(new NamedURI(sourceProject.getId(), sourceProject.getLabel()));
+        snapshot.setProject(new NamedURI(sourceProject.getId(), sourceObj.getLabel()));
         _dbClient.updateObject(snapshot);
 
         return snapshot;
@@ -512,7 +512,7 @@ public class VPlexBlockSnapshotSessionApiImpl extends DefaultBlockSnapshotSessio
         Project sourceProject = BlockSnapshotSessionUtils.querySnapshotSessionSourceProject(sourceObjList.get(0), _dbClient);
         for (Map<URI, BlockSnapshot> snapshots : snapshotMap) {
             for (BlockSnapshot snapshot : snapshots.values()) {
-                snapshot.setProject(new NamedURI(sourceProject.getId(), sourceProject.getLabel()));
+                snapshot.setProject(new NamedURI(sourceProject.getId(), sourceObjList.get(0).getLabel()));
                 _dbClient.updateObject(snapshot);
             }
         }

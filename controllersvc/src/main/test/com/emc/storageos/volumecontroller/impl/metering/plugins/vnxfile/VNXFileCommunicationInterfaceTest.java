@@ -8,9 +8,12 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+import com.emc.storageos.db.client.impl.DbClientImpl;
+import com.emc.storageos.db.client.model.*;
+
 import org.junit.Assert;
-import org.junit.Before;
 import org.junit.Test;
+import org.junit.Before;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
@@ -18,12 +21,6 @@ import org.springframework.context.support.ClassPathXmlApplicationContext;
 
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
-import com.emc.storageos.db.client.impl.DbClientImpl;
-import com.emc.storageos.db.client.model.FileShare;
-import com.emc.storageos.db.client.model.NamedURI;
-import com.emc.storageos.db.client.model.Project;
-import com.emc.storageos.db.client.model.TenantOrg;
-import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.plugins.AccessProfile;
 import com.emc.storageos.services.util.EnvConfig;
 import com.emc.storageos.volumecontroller.impl.metering.plugins.smis.Cassandraforplugin;
@@ -61,7 +58,7 @@ public class VNXFileCommunicationInterfaceTest {
             final Project proj = new Project();
             proj.setId(URIUtil.createId(Project.class));
             proj.setLabel("some name");
-            proj.setTenantOrg(new NamedURI(tenantorg.getId(), tenantorg.getLabel()));
+            proj.setTenantOrg(new NamedURI(tenantorg.getId(), proj.getLabel()));
             _logger.info("Project :" + proj.getId());
             _logger.info("TenantOrg-Proj :" + proj.getTenantOrg());
             _dbClient.persistObject(proj);
@@ -70,7 +67,7 @@ public class VNXFileCommunicationInterfaceTest {
             fileShare.setLabel("some fileshare");
             fileShare.setNativeGuid("CELERRA+" + serialNumber);
             fileShare.setVirtualPool(URIUtil.createId(VirtualPool.class));
-            fileShare.setProject(new NamedURI(proj.getId(), proj.getLabel()));
+            fileShare.setProject(new NamedURI(proj.getId(), fileShare.getLabel()));
             fileShare.setCapacity(12500L);
             _dbClient.persistObject(fileShare);
         } catch (final Exception ioEx) {

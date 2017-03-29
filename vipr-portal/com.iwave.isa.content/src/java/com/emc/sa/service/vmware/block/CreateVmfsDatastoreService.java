@@ -41,6 +41,11 @@ public class CreateVmfsDatastoreService extends VMwareHostService {
     private BlockObjectRestRep volume;
 
     @Override
+    public boolean checkClusterConnectivity() {
+        return false;
+    }
+
+    @Override
     public void precheck() throws Exception {
         super.precheck();
         exportBlockVolumeHelper.precheck();

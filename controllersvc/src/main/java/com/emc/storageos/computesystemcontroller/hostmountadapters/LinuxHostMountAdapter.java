@@ -50,10 +50,9 @@ public class LinuxHostMountAdapter extends AbstractMountAdapter {
         mountUtils = new LinuxMountUtils(dbClient.queryObject(Host.class, hostId));
         FileShare fs = dbClient.queryObject(FileShare.class, resId);
         ExportRule export = FileOperationUtils.findExport(fs, subDirectory, security, dbClient);
-        String options = "nolock,sec=";
+        String options = "nolock,sec=" + security;
         // Add to etc/fstab
-        mountUtils.addToFSTab(mountPath, export.getMountPoint(), fsType, options + security);
-
+        mountUtils.addToFSTab(mountPath, export.getMountPoint(), fsType, options);
     }
 
     @Override

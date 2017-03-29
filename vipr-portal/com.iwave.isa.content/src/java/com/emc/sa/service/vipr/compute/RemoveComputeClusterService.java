@@ -19,6 +19,7 @@ import com.emc.sa.service.vipr.ViPRService;
 import com.emc.sa.service.vipr.block.BlockStorageUtils;
 import com.emc.sa.service.vipr.compute.tasks.DeactivateCluster;
 import com.emc.storageos.db.client.model.Cluster;
+import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.model.block.BlockObjectRestRep;
 import com.emc.storageos.model.host.HostRestRep;
 import com.google.common.base.Joiner;
@@ -55,7 +56,7 @@ public class RemoveComputeClusterService extends ViPRService {
                 && (hostURIs.size() > vblockHostURIs.size() || !vblockHostURIs.containsAll(hostURIs))) {
             logError("computeutils.deactivatecluster.deactivate.notpossible", cluster.getLabel());
             preCheckErrors.append("Cluster ").append(cluster.getLabel())
-            .append(" is a mixed cluster, cannot decommission a mixed cluster.");
+            .append(" is a mixed cluster; some hosts do not have UCS components. Cannot decommission a mixed cluster from Vblock catalog services.");
         }
 
         // Validate all of the boot volumes are still valid.
@@ -72,12 +73,6 @@ public class RemoveComputeClusterService extends ViPRService {
             .append(" no longer contains one or more of the hosts requesting decommission.  Cannot decomission in current state.  Recommended " +
             "to run vCenter discovery and address actionable events before attempting decomission of hosts in this cluster.");
         }
-        
-        // Note: currently there is no test if a host was moved to an entirely different vSphere.
-        // If we don't see the host in the vCenter cluster we know it to be associated with, we assume
-        // it was removed manually and/or a decommissioning operation failed on a previous attempt and
-        // we continue from where we left off next time.  Perhaps someone can think of a clever way to 
-        // detect the host is still in use in the future.
         
         if (preCheckErrors.length() > 0) {
             throw new IllegalStateException(preCheckErrors.toString());
@@ -105,7 +100,7 @@ public class RemoveComputeClusterService extends ViPRService {
             // have been manually dd'd (migrated) to another volume and this volume could be re-purposed elsewhere.
             // We should verify this is the boot volume on the server before attempting to delete it.
             URI bootVolURI = BlockStorageUtils.getHost(hostURI).getBootVolumeId();
-            if (bootVolURI != null) {
+            if (!NullColumnValueGetter.isNullURI(bootVolURI)) {
                 BlockObjectRestRep bootVolRep = null;
                 try{
                     bootVolRep = BlockStorageUtils.getBlockResource(bootVolURI);

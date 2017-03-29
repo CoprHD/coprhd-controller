@@ -469,7 +469,6 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
                 taskCompleter.ready(_dbClient);
                 return;
             }
-
             // Check if we can expand volume using recommended meta volume type:
             // On VMAX striped meta can be formed only when meta head is in unbound from pool.
             // This is our assumption for now --- some ucode versions support case when meta head is bound to pool when
@@ -477,6 +476,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
             // is formed.
             expansionType = _metaVolumeOperations.defineExpansionType(storageSystem, volume,
                     recommendedMetaVolumeType, metaVolumeTaskCompleter);
+
             _log.info(String
                     .format("Meta volume type used for expansion: %s, recommended meta volume type: %s", expansionType,
                             recommendedMetaVolumeType));
@@ -517,6 +517,9 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
                     "Problem in doExpandMetaVolumes: failed to expand meta volume "
                             + volume.getLabel() + " .",
                     e);
+            ServiceError error = DeviceControllerErrors.smis.methodFailed("doExpandAsMetaVolume",
+                    e.getMessage());
+            volumeCompleter.error(_dbClient, error);
         } finally {
             _log.info(String.format(
                     "End of steps to expand volume as meta volume: %s, \n   volume ID: %s"

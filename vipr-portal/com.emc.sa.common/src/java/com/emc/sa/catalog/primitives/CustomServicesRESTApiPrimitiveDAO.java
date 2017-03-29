@@ -66,10 +66,14 @@ public class CustomServicesRESTApiPrimitiveDAO implements CustomServicesPrimitiv
             .add(CustomServicesConstants.PATH)
             .build();
     
-    private static final Set<String> INPUT_TYPES = ImmutableSet.<String>builder()
+    private static final Set<String> REQUEST_INPUT_TYPES = ImmutableSet.<String>builder()
             .add(InputType.QUERY_PARAMS.toString())
             .add(InputType.HEADERS.toString())
             .add(InputType.CREDENTIALS.toString())
+            .build();
+    private static final Set<String> RESPONSE_INPUT_TYPES = ImmutableSet.<String>builder()
+            .addAll(REQUEST_INPUT_TYPES)
+            .add(InputType.INPUT_PARAMS.toString())
             .build();
     
     private static final ImmutableList<InputParameter> CONNECTION_PARAMETERS = ImmutableList.<InputParameter>builder()
@@ -86,7 +90,7 @@ public class CustomServicesRESTApiPrimitiveDAO implements CustomServicesPrimitiv
         @Override
         public CustomServicesRESTApiPrimitive apply(CustomServicesDBRESTApiPrimitive primitive) {
             final Map<InputType, List<InputParameter>> input = ImmutableMap.<InputType, List<InputParameter>>builder()
-                    .putAll(CustomServicesDBHelper.mapInput(INPUT_TYPES, primitive.getInput()))
+                    .putAll(CustomServicesDBHelper.mapInput(RESPONSE_INPUT_TYPES, primitive.getInput()))
                     .putAll(CONNECTION_OPTIONS)
                     .build();
                             
@@ -173,7 +177,7 @@ public class CustomServicesRESTApiPrimitiveDAO implements CustomServicesPrimitiv
     }
     
     private StringSetMap createInput(final CustomServicesPrimitiveCreateParam param) {
-        final StringSetMap input = CustomServicesDBHelper.createInput(INPUT_TYPES, param.getInput());
+        final StringSetMap input = CustomServicesDBHelper.createInput(REQUEST_INPUT_TYPES, param.getInput());
         final Set<String> pathParams = getPathParams(param.getAttributes().get(CustomServicesConstants.PATH));
         final Set<String> bodyParams = getBodyParams(param.getAttributes().get(CustomServicesConstants.BODY));
         
@@ -190,7 +194,7 @@ public class CustomServicesRESTApiPrimitiveDAO implements CustomServicesPrimitiv
     private static StringSetMap updateInput(final UpdatePrimitive<CustomServicesDBRESTApiPrimitive> update) {
         final CustomServicesPrimitiveUpdateParam param = update.param();
         final CustomServicesDBRESTApiPrimitive primitive = update.primitive();
-        final StringSetMap input = CustomServicesDBHelper.updateInput(INPUT_TYPES, param.getInput(), primitive);
+        final StringSetMap input = CustomServicesDBHelper.updateInput(REQUEST_INPUT_TYPES, param.getInput(), primitive);
         if( null != param.getAttributes() &&
            ( null != param.getAttributes().get(CustomServicesConstants.BODY) || 
              null != param.getAttributes().get(CustomServicesConstants.PATH))) {

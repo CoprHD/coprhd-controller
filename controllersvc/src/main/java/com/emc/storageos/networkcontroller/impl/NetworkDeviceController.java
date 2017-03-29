@@ -1613,6 +1613,7 @@ public class NetworkDeviceController implements NetworkController {
 
             WorkflowStepCompleter.stepExecuting(taskId);
             _log.info("Beginning zone rollback");
+            _log.info("context.isAddingZones -{}", context.isAddingZones());
             // Determine what needs to be rolled back.
             List<NetworkFCZoneInfo> lastReferenceZoneInfo = new ArrayList<NetworkFCZoneInfo>();
             List<NetworkFCZoneInfo> rollbackList = new ArrayList<NetworkFCZoneInfo>();

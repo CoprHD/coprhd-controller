@@ -15,7 +15,7 @@ public class FilePolicyScheduleParams implements Serializable {
 
     private static final long serialVersionUID = 1L;
 
-    // Type of schedule policy e.g days, weeks or months
+    // Type of schedule policy e.g days, weeks or months, hours and minutes
     private String scheduleFrequency;
 
     // Policy run on every
@@ -35,7 +35,7 @@ public class FilePolicyScheduleParams implements Serializable {
     }
 
     /**
-     * Type of schedule policy e.g days, weeks or months
+     * Type of schedule policy e.g days, weeks , months hours and minutes
      * 
      * @return
      */

@@ -298,6 +298,29 @@ public class ExportMaskUtils {
         }
         return initiators;
     }
+    
+    /**
+     * Checks if the given initiators belong to vBlock host.
+     *
+     * @param initiatorURIs the initiator uris
+     * @param dbClient the db client
+     * @return true, if the given initiators belong to vBlock host
+     */
+    public static boolean isVblockHost(List<URI> initiatorURIs, DbClient dbClient) {
+        Iterator<Initiator> initiators = dbClient.queryIterativeObjects(Initiator.class,
+                initiatorURIs);
+        while (initiators.hasNext()) {
+            Initiator initiator = initiators.next();
+            URI hostURI = initiator.getHost();
+            if (hostURI != null) {
+                Host host = dbClient.queryObject(Host.class, hostURI);
+                if (host != null && !NullColumnValueGetter.isNullURI(host.getComputeElement())) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
 
     /**
      * Return all the StoragePorts in an ExportMask of a specificed Transport type.
@@ -1806,6 +1829,40 @@ public class ExportMaskUtils {
         }
         _log.info("Constructed zoningMap -" + zoningMap.toString());
         return zoningMap;
+    }
+    
+    /**
+     * Method to determine if a volume in a volume map is a boot volume for compute services.
+     * 
+     * @param dbClient db client
+     * @param volumeMap volume map (should just be one volume)
+     * @return true if this volume is a boot volume
+     */
+    public static boolean isBootVolume(DbClient dbClient, Map<URI, Integer> volumeMap) {
+        // First, check to make sure we have a valid map
+        if (volumeMap == null) {
+            return false;
+        }
+       
+        // Second, check to make sure we only have one volume in our map. 
+        // It doesn't make sense to have two boot volumes.
+        if (volumeMap.size() != 1) {
+            return false;
+        }
+        
+        // Make sure we have a valid volume object
+        Volume volume = dbClient.queryObject(Volume.class, volumeMap.keySet().iterator().next());
+        if (volume == null) {
+            return false;
+        }
+        
+        // Now make sure the boot volume tag is filled-in.
+        if (volume.bootVolumeTagValue() != null) {
+            return true;
+        }
+        
+        // Otherwise return false
+        return false;
     }
 
 }

@@ -68,9 +68,10 @@ public class ExportDeleteCompleter extends ExportTaskCompleter {
                 exportGroup.clearInternalFlags(Flag.DELETION_IN_PROGRESS);   
             }
             dbClient.updateObject(exportGroup);
+
             if (Operation.isTerminalState(status)) {
                 // Clean stale references from EG if the status is either ready or error.
-                ExportUtils.cleanStaleReferences(exportGroup.getId(), dbClient);
+                ExportUtils.cleanStaleReferences(exportGroup, dbClient);
             }
 
             if (operation.getStatus().equals(Operation.Status.ready.name())) {

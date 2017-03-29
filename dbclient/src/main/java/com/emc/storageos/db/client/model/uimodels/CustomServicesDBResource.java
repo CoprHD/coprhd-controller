@@ -16,6 +16,9 @@
  */
 package com.emc.storageos.db.client.model.uimodels;
 
+import java.net.URI;
+
+import com.emc.storageos.db.client.model.AlternateId;
 import com.emc.storageos.db.client.model.Name;
 import com.emc.storageos.db.client.model.StringSetMap;
 
@@ -25,12 +28,13 @@ import com.emc.storageos.db.client.model.StringSetMap;
  */
 public abstract class CustomServicesDBResource extends CustomServicesPrimitiveResourceModel {
 
-    private static final long serialVersionUID = 1L;
     public static final String RESOURCE = "resource";
     public static final String ATTRIBUTES = "attributes";
-
+    public static final String PARENTID = "parentId";
+    private static final long serialVersionUID = 1L;
     private byte[] resource;
     private StringSetMap attributes;
+    private URI parentId;
 
     @Name(RESOURCE)
     public byte[] getResource() {
@@ -41,13 +45,24 @@ public abstract class CustomServicesDBResource extends CustomServicesPrimitiveRe
         this.resource = resource;
         setChanged(RESOURCE);
     }
-    
+
     @Name(ATTRIBUTES)
     public StringSetMap getAttributes() {
         return attributes;
     }
-    
+
     public void setAttributes(final StringSetMap attributes) {
         this.attributes = attributes;
+    }
+
+    @Name(PARENTID)
+    @AlternateId("CustomServicesDBResourceParentIdIndex")
+    public URI getParentId() {
+        return parentId;
+    }
+
+    public void setParentId(final URI parentId) {
+        this.parentId = parentId;
+        setChanged(PARENTID);
     }
 }

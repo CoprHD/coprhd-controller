@@ -566,8 +566,10 @@ public class BlockConsistencyGroupUtils {
      */
     public static void cleanUpCGAndUpdate(BlockConsistencyGroup consistencyGroup, URI storageId, String replicationGroupName,
                                           Boolean markInactive, DbClient dbClient) {
-        cleanUpCG(consistencyGroup, storageId, replicationGroupName, markInactive, dbClient);
-        dbClient.updateObject(consistencyGroup);
+        if (consistencyGroup != null) {
+            cleanUpCG(consistencyGroup, storageId, replicationGroupName, markInactive, dbClient);
+            dbClient.updateObject(consistencyGroup);
+        }
     }
 
     /**

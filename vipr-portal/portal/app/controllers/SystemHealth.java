@@ -566,7 +566,7 @@ public class SystemHealth extends Controller {
             creator.setMsgRegex("(?i).*" + searchMessage + ".*");
         }
         if (StringUtils.isNotEmpty(startTime)) {
-            creator.setStartTime(startTime);
+            creator.setStartTimeWithRestriction(startTime);
         }
         if (StringUtils.isNotEmpty(endTime)) {
             creator.setEndTime(endTime);

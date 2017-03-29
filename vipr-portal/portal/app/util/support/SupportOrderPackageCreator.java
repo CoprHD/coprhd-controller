@@ -53,7 +53,7 @@ public class SupportOrderPackageCreator {
     public void writeTo(OutputStream out) throws IOException {
         ZipOutputStream zip = new ZipOutputStream(out);
         try {
-            writeLogs(zip);
+            writeOrders(zip);
             zip.flush();
         } finally {
             zip.close();
@@ -67,7 +67,7 @@ public class SupportOrderPackageCreator {
         return new CloseShieldOutputStream(zip);
     }
 
-    private void writeLogs(ZipOutputStream zip) throws IOException {
+    private void writeOrders(ZipOutputStream zip) throws IOException {
         String path = "order";
         OutputStream stream = nextEntry(zip, path);
         InputStream in;

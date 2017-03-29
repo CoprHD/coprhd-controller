@@ -61,7 +61,7 @@ public final class  CustomServicesPrimitiveMapper extends DbObjectMapper {
     public static CustomServicesPrimitiveMapper getInstance() {
         return instance;
     }
-    
+
     public static CustomServicesPrimitiveResourceRestRep map(final CustomServicesPrimitiveResourceType from ) {
         final CustomServicesPrimitiveResourceRestRep to = new CustomServicesPrimitiveResourceRestRep();
         mapDataObjectFields(from.asModelObject(), to);

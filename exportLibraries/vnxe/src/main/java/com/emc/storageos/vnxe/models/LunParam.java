@@ -15,7 +15,7 @@ public class LunParam {
     private Boolean isThinEnabled;
     private Long size;
     private FastVPParam fastVPParameters;
-    private int defaultNode;
+    private Integer defaultNode;
     private List<BlockHostAccess> hostAccess;
 
     public VNXeBase getPool() {
@@ -50,11 +50,11 @@ public class LunParam {
         this.fastVPParameters = fastVPParameters;
     }
 
-    public int getDefaultNode() {
+    public Integer getDefaultNode() {
         return defaultNode;
     }
 
-    public void setDefaultNode(int defaultNode) {
+    public void setDefaultNode(Integer defaultNode) {
         this.defaultNode = defaultNode;
     }
 

@@ -209,7 +209,7 @@ public class VPlexControllerUtils {
      * @throws Exception
      * @throws URISyntaxException
      */
-    public static String getVPlexClusterName(DbClient dbClient, URI vaURI, URI vplexURI) throws Exception {
+    public static String getVPlexClusterName(DbClient dbClient, URI vaURI, URI vplexURI) {
         String clusterName = null;
         
         // Get the vplex storage system so we can a handle on the vplex client
@@ -224,7 +224,7 @@ public class VPlexControllerUtils {
 
         String vplexCluster = ConnectivityUtil.getVplexClusterForVarray(vaURI, vplexSystem.getId(), dbClient);
         if (vplexCluster.equals(ConnectivityUtil.CLUSTER_UNKNOWN)) {
-            throw new Exception("Unable to find VPLEX cluster for the varray " + vaURI);
+            throw VPlexApiException.exceptions.couldNotFindCluster(vplexCluster);
         }
 
         clusterName = client.getClusterNameForId(vplexCluster);

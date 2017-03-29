@@ -387,14 +387,13 @@ public class VPlexUtil {
      * Makes a map of varray to Initiator URIs showing which intiators can access the given varrays.
      * 
      * @param dbClient -- DbClient
-     * @param blockScheduler -- BlockStorageScheduler
      * @param initiatorURIs -- A list of Initiator URIs
      * @param varrayURIs -- A list of potential varray URIs
      * @param storage -- StorageSystem of the Vplex
      * @return Map of Varray URI to List of Initiator URIs that can be mapped through the varray to the vplex
      */
     public static Map<URI, List<URI>> partitionInitiatorsByVarray(DbClient dbClient,
-            BlockStorageScheduler blockScheduler, List<URI> initiatorURIs, List<URI> varrayURIs,
+            List<URI> initiatorURIs, List<URI> varrayURIs,
             StorageSystem storage) {
         Map<URI, List<URI>> varrayToInitiators = new HashMap<>();
         // Read the initiators and partition them by Network
@@ -1557,7 +1556,8 @@ public class VPlexUtil {
     public static String getVplexClusterName(ExportMask exportMask, URI vplexUri, VPlexApiClient client, DbClient dbClient)
             throws Exception {
 
-        String vplexClusterId = ConnectivityUtil.getVplexClusterForExportMask(exportMask, vplexUri, dbClient);
+        String vplexClusterId = ConnectivityUtil.getVplexClusterForStoragePortUris(
+                URIUtil.toURIList(exportMask.getStoragePorts()), vplexUri, dbClient);
         if (vplexClusterId.equals(ConnectivityUtil.CLUSTER_UNKNOWN)) {
             String details = "";
             _log.error("Unable to find VPLEX cluster for the ExportMask " + exportMask.getMaskName());

@@ -943,9 +943,8 @@ public class ConnectivityUtil {
      * @param dbClient a reference to the database client
      * @return "1" or "2". Returns "unknown-cluster" if error.
      */
-    public static String getVplexClusterForExportMask(ExportMask exportMask, URI vplexStorageSystemUri, DbClient dbClient) {
+    public static String getVplexClusterForStoragePortUris(List<URI> storagePortUris, URI vplexStorageSystemUri, DbClient dbClient) {
         String vplexCluster = CLUSTER_UNKNOWN;
-        List<URI> storagePortUris = URIUtil.toURIList(exportMask.getStoragePorts());
         if (storagePortUris != null) {
             for (URI uri : storagePortUris) {
                 StoragePort storagePort = dbClient.queryObject(StoragePort.class, uri);

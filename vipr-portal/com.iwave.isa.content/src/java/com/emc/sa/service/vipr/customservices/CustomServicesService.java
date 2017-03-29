@@ -82,8 +82,6 @@ public class CustomServicesService extends ViPRService {
     @Autowired
     private CustomServicesPrimitiveDAOs daos;
 
-    private ImmutableMap<String, Step> stepsHash;
-    private CustomServicesWorkflowDocument obj;
     private int code;
     private URI uri;
 
@@ -111,7 +109,6 @@ public class CustomServicesService extends ViPRService {
 
     private ImmutableMap<String, Step> getStepHash(final URI uri) throws Exception {
 
-        final CustomServicesWorkflowDocument obj;
         final String raw;
 
         if (uri == null) {
@@ -125,7 +122,7 @@ public class CustomServicesService extends ViPRService {
             throw InternalServerErrorException.internalServerErrors
                     .customServiceExecutionFailed("Invalid custom service.  Workflow document cannot be null");
         }
-        obj = WorkflowHelper.toWorkflowDocument(raw);
+        final CustomServicesWorkflowDocument obj = WorkflowHelper.toWorkflowDocument(raw);
 
         final List<Step> steps = obj.getSteps();
         final ImmutableMap.Builder<String, Step> builder = ImmutableMap.builder();

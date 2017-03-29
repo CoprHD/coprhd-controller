@@ -827,7 +827,7 @@ public class VnxExportOperations implements ExportMaskOperations {
                 Set existingInitiators = (mask.getExistingInitiators() != null) ? mask.getExistingInitiators() : Collections.emptySet();
                 Set existingVolumes = (mask.getExistingVolumes() != null) ? mask.getExistingVolumes().keySet() : Collections.emptySet();
 
-                builder.append(String.format("%nXM object: %s I{%s} V:{%s}%n", name,
+                builder.append(String.format("%nXM existing objects: %s I{%s} V:{%s}%n", name,
                         Joiner.on(',').join(existingInitiators),
                         Joiner.on(',').join(existingVolumes)));
 
@@ -951,6 +951,10 @@ public class VnxExportOperations implements ExportMaskOperations {
                         String.format("XM refresh: %s user added and initiator list; add:{%s} remove:{%s}%n",
                                 name, Joiner.on(',').join(initiatorsToAddToUserAddedAndInitiatorList),
                                 Joiner.on(',').join(initiatorsToRemoveFromUserAddedAndInitiatorList)));
+                builder.append(
+                        String.format("XM refresh: %s volumes; add:{%s} remove:{%s}%n",
+                                name, Joiner.on(',').join(volumesToAdd.keySet()),
+                                Joiner.on(',').join(volumesToRemove)));
 
                 // Any changes indicated, then update the mask and persist it
                 if (addInitiators || removeInitiators || addVolumes ||

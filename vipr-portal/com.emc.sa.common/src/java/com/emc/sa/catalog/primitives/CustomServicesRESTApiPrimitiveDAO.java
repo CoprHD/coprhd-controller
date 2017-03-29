@@ -71,6 +71,7 @@ public class CustomServicesRESTApiPrimitiveDAO implements CustomServicesPrimitiv
             .add(InputType.HEADERS.toString())
             .add(InputType.CREDENTIALS.toString())
             .build();
+    
     private static final Set<String> RESPONSE_INPUT_TYPES = ImmutableSet.<String>builder()
             .addAll(REQUEST_INPUT_TYPES)
             .add(InputType.INPUT_PARAMS.toString())
@@ -80,6 +81,7 @@ public class CustomServicesRESTApiPrimitiveDAO implements CustomServicesPrimitiv
             .add(new BasicInputParameter.StringParameter(CustomServicesConstants.TARGET, true, null))
             .add(new BasicInputParameter.StringParameter(CustomServicesConstants.PORT, true, null))
             .build();
+    
     private static final ImmutableMap<InputType, List<InputParameter>> CONNECTION_OPTIONS = ImmutableMap.<InputType, List<InputParameter>>builder()
             .put(InputType.CONNECTION_DETAILS, CONNECTION_PARAMETERS)
             .build();
@@ -195,6 +197,7 @@ public class CustomServicesRESTApiPrimitiveDAO implements CustomServicesPrimitiv
         final CustomServicesPrimitiveUpdateParam param = update.param();
         final CustomServicesDBRESTApiPrimitive primitive = update.primitive();
         final StringSetMap input = CustomServicesDBHelper.updateInput(REQUEST_INPUT_TYPES, param.getInput(), primitive);
+        
         if( null != param.getAttributes() &&
            ( null != param.getAttributes().get(CustomServicesConstants.BODY) || 
              null != param.getAttributes().get(CustomServicesConstants.PATH))) {
@@ -203,9 +206,26 @@ public class CustomServicesRESTApiPrimitiveDAO implements CustomServicesPrimitiv
             final StringSet inputParams = new StringSet();
             inputParams.addAll(pathParams);
             inputParams.addAll(bodyParams);
-                
-                input.replace(InputType.INPUT_PARAMS.toString(), inputParams);
+            
+            final StringSet updateParams = primitive.getInput().get(InputType.INPUT_PARAMS.toString()) == null ? new StringSet() : primitive.getInput().get(InputType.INPUT_PARAMS.toString());
+            // Remove any existing params that are not in the new 
+            // input set
+            for( final String existingParam : updateParams) {
+                if( !inputParams.contains(existingParam)) {
+                    updateParams.remove(existingParam);
+                }
+            }
+            
+            //Add any existing params that were not present in the existing set
+            for( final String newParam : inputParams) {
+                if( !updateParams.contains(newParam)) {
+                    updateParams.add(newParam);
+                }
+            }
+            input.put(InputType.INPUT_PARAMS.toString(), updateParams);
         }
+        
+        primitive.setInput(input);
         return input;
     }
     

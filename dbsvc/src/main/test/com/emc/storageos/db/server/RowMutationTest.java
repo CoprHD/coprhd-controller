@@ -4,17 +4,20 @@
  */
 package com.emc.storageos.db.server;
 
+import java.lang.reflect.Field;
 import java.net.URI;
-import java.util.ArrayList;
 import java.util.Collections;
-import java.util.List;
+import java.util.HashSet;
+import java.util.Set;
 
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
+import com.datastax.driver.core.BatchStatement;
 import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.Row;
+import com.datastax.driver.core.SimpleStatement;
 import com.datastax.driver.core.exceptions.DriverException;
 import com.datastax.driver.core.utils.UUIDs;
 import com.emc.storageos.db.client.URIUtil;
@@ -46,7 +49,7 @@ public class RowMutationTest extends DbsvcTestBase {
     	String volumeLabel = "volume label";
     	
     	//insert data object
-		rowMutator.insertRecordColumn(volumeCF, rowKey, new CompositeColumnName("allocatedCapacity"), 20);
+		rowMutator.insertRecordColumn(volumeCF, rowKey, new CompositeColumnName("allocatedCapacity"), 20L);
 		rowMutator.insertRecordColumn(volumeCF, rowKey, new CompositeColumnName("label"), volumeLabel);
         
         //insert related index
@@ -69,19 +72,22 @@ public class RowMutationTest extends DbsvcTestBase {
     }
     
     @Test
-    public void insertRecordAndIndexColumnWithError() throws DriverException {
+    public void insertRecordAndIndexColumnWithError() throws Exception {
     	String rowKey = URIUtil.createId(Volume.class).toString();
     	String volumeLabel = "volume label";
     	
     	//insert data object
-		rowMutator.insertRecordColumn(volumeCF, rowKey, new CompositeColumnName("allocatedCapacity"), 20);
+		rowMutator.insertRecordColumn(volumeCF, rowKey, new CompositeColumnName("allocatedCapacity"), 20L);
 		rowMutator.insertRecordColumn(volumeCF, rowKey, new CompositeColumnName("label"), volumeLabel);
         
         //insert related index
         rowMutator.insertIndexColumn(indexCF, "vo", new IndexColumnName("Volume", volumeLabel, volumeLabel, rowKey, rowMutator.getTimeUUID()), "");
         
         //insert error column
-        rowMutator.insertRecordColumn(noExistCF, rowKey, new CompositeColumnName("test"), 20);
+        Field field = rowMutator.getClass().getDeclaredField("atomicBatch");
+        field.setAccessible(true);
+        BatchStatement batchStatement = (BatchStatement)field.get(rowMutator);
+        batchStatement.add(new SimpleStatement("insert into \"no_exits_cf\" (key, column1, value) VALUES('key', 'test', '')"));
         
         try {
 			rowMutator.execute();
@@ -154,17 +160,15 @@ public class RowMutationTest extends DbsvcTestBase {
         String cql = String.format("select * from \"%s\" where key='%s'", doType.getCF().getName(), volume.getId().toString());
         ResultSet resultSet = ((DbClientImpl)getDbClient()).getLocalContext().getSession().execute(cql);
         
-        List<Long> columnTimeUUIDStamps = new ArrayList<Long>(); 
+        Set<Long> columnTimeUUIDStamps = new HashSet<Long>(); 
         for (Row row : resultSet) {
-            if (row.getUUID("column5") != null) {
-                columnTimeUUIDStamps.add(UUIDs.unixTimestamp(row.getUUID("column5")));
+            if (row.getUUID("column4") != null) {
+            	long timestamp = UUIDs.unixTimestamp(row.getUUID("column4"));
+                if (columnTimeUUIDStamps.contains(timestamp)) {
+                	Assert.fail("timeuuid is duplicated");
+                }
+                columnTimeUUIDStamps.add(timestamp);
             }
-        }
-        
-        Collections.sort(columnTimeUUIDStamps);
-        
-        for (int i = 1; i < columnTimeUUIDStamps.size(); i++) {
-            Assert.assertEquals(1, columnTimeUUIDStamps.get(i) - columnTimeUUIDStamps.get(i - 1));
         }
     }
 }

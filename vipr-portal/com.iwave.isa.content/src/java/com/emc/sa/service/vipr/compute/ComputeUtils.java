@@ -1447,8 +1447,8 @@ public class ComputeUtils {
                             || connectionState == HostSystemConnectionState.disconnected) {
                         String exMsg = "Validation of boot volume usage on host %s failed. "
                                 + "Validation failed because host is in a disconnected state or not responding state, and therefore cannot be validated. "
-                                + "Cannot decomission in current state.  Recommended to either re-connect the host or remove the host from vCenter, "
-                                + "run vCenter discovery and address actionable events before attempting decomission of hosts in this cluster.";
+                                + "Cannot decommission in current state.  Recommended to either re-connect the host or remove the host from vCenter, "
+                                + "run vCenter discovery and address actionable events before attempting decommission of hosts in this cluster.";
                         // Failing by throwing an exception, because returning a false
                         // will print a boot volume re-purposed error message which is kind of misleading or incorrect reason for the failure.
                         throw new IllegalStateException(String.format(exMsg, host.getHostName()));

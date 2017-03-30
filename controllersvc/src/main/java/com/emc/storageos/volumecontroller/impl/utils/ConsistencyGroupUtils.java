@@ -216,9 +216,6 @@ public class ConsistencyGroupUtils {
         Set<String> systems = new HashSet<>();
         for (URI uri : uris) {
             BlockConsistencyGroup group = dbClient.queryObject(BlockConsistencyGroup.class, uri);
-            if (!isConsistencyGroupSupportRemoteReplication(group)) {
-                continue;
-            }
             URI storageController = group.getStorageController();
             if (storageController == null) {
                 continue;

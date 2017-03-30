@@ -35,7 +35,6 @@ import com.emc.storageos.model.customservices.CustomServicesPrimitiveCreateParam
 import com.emc.storageos.model.customservices.CustomServicesPrimitiveRestRep;
 import com.emc.storageos.model.customservices.CustomServicesPrimitiveUpdateParam;
 import com.emc.storageos.primitives.CustomServicesConstants;
-import com.emc.storageos.primitives.CustomServicesPrimitive.InputType;
 import com.emc.storageos.primitives.db.ansible.CustomServicesAnsiblePrimitive;
 import com.emc.storageos.primitives.input.InputParameter;
 import com.emc.storageos.primitives.output.OutputParameter;
@@ -55,14 +54,14 @@ public class CustomServicesAnsiblePrimitiveDAO implements
     @Autowired
     private DbClient dbClient;
 
-    private static final Set<String> INPUT_TYPES = Collections.singleton(InputType.INPUT_PARAMS.toString());
+    private static final Set<String> INPUT_TYPES = Collections.singleton(CustomServicesConstants.INPUT_PARAMS);
     private static final Set<String> ATTRIBUTES = Collections.singleton(CustomServicesConstants.ANSIBLE_PLAYBOOK);
     
     private static final Function<CustomServicesDBAnsiblePrimitive, CustomServicesAnsiblePrimitive> MAPPER = 
             new Function<CustomServicesDBAnsiblePrimitive, CustomServicesAnsiblePrimitive>() {
         @Override
         public CustomServicesAnsiblePrimitive apply(final CustomServicesDBAnsiblePrimitive primitive) {
-            final Map<InputType, List<InputParameter>> input = CustomServicesDBHelper.mapInput(INPUT_TYPES, primitive.getInput());
+            final Map<String, List<InputParameter>> input = CustomServicesDBHelper.mapInput(INPUT_TYPES, primitive.getInput());
             final List<OutputParameter> output = CustomServicesDBHelper.mapOutput(primitive.getOutput());
             final Map<String, String> attributes = CustomServicesDBHelper.mapAttributes(ATTRIBUTES, primitive.getAttributes()); 
             return new CustomServicesAnsiblePrimitive(primitive, input, attributes, output);

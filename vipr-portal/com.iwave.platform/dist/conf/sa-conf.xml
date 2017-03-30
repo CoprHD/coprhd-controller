@@ -258,6 +258,8 @@
 
     <bean id="customServicesAnsibleDao" class="com.emc.sa.catalog.primitives.CustomServicesAnsiblePrimitiveDAO"/>
 
+	<bean id="customServicesRemoteAnsibleDao" class="com.emc.sa.catalog.primitives.CustomServicesRemoteAnsiblePrimitiveDAO"/>
+
     <bean id="customServicesScriptDao" class="com.emc.sa.catalog.primitives.CustomServicesScriptPrimitiveDAO" />
 
     <bean id="customServicesViprDao" class="com.emc.sa.catalog.primitives.CustomServicesViprPrimitiveDAO" />
@@ -275,6 +277,7 @@
         <constructor-arg>
             <list>
                 <ref bean="customServicesAnsibleDao"/>
+                <ref bean="customServicesRemoteAnsibleDao"/>
                 <ref bean="customServicesScriptDao"/>
                 <ref bean="customServicesViprDao"/>
                 <ref bean="customServicesRESTApiDao" />

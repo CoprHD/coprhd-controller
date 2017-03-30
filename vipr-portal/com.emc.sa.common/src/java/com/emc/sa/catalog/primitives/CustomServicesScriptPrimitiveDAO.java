@@ -34,7 +34,7 @@ import com.emc.storageos.db.client.model.uimodels.CustomServicesDBScriptResource
 import com.emc.storageos.model.customservices.CustomServicesPrimitiveCreateParam;
 import com.emc.storageos.model.customservices.CustomServicesPrimitiveRestRep;
 import com.emc.storageos.model.customservices.CustomServicesPrimitiveUpdateParam;
-import com.emc.storageos.primitives.CustomServicesPrimitive.InputType;
+import com.emc.storageos.primitives.CustomServicesConstants;
 import com.emc.storageos.primitives.db.script.CustomServicesScriptPrimitive;
 import com.emc.storageos.primitives.input.InputParameter;
 import com.emc.storageos.primitives.output.OutputParameter;
@@ -53,14 +53,14 @@ public class CustomServicesScriptPrimitiveDAO implements CustomServicesPrimitive
     @Autowired
     private DbClient dbClient;
 
-    private static final Set<String> INPUT_TYPES = Collections.singleton(InputType.INPUT_PARAMS.toString());
+    private static final Set<String> INPUT_TYPES = Collections.singleton(CustomServicesConstants.INPUT_PARAMS);
     private static final Set<String> ATTRIBUTES = Collections.emptySet();
     
     private static final Function<CustomServicesDBScriptPrimitive, CustomServicesScriptPrimitive> MAPPER = 
             new Function<CustomServicesDBScriptPrimitive, CustomServicesScriptPrimitive>() {
         @Override
         public CustomServicesScriptPrimitive apply(final CustomServicesDBScriptPrimitive primitive) {
-            final Map<InputType, List<InputParameter>> input = CustomServicesDBHelper.mapInput(INPUT_TYPES, primitive.getInput());
+            final Map<String, List<InputParameter>> input = CustomServicesDBHelper.mapInput(INPUT_TYPES, primitive.getInput());
             final List<OutputParameter> output = CustomServicesDBHelper.mapOutput(primitive.getOutput());
             final Map<String, String> attributes = CustomServicesDBHelper.mapAttributes(ATTRIBUTES, primitive.getAttributes()); 
             return new CustomServicesScriptPrimitive(primitive, input, attributes, output);

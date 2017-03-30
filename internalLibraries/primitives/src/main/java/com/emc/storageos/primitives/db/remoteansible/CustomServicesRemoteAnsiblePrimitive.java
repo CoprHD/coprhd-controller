@@ -14,38 +14,39 @@
  * limitations under the License.
  *
  */
-package com.emc.storageos.primitives.db.script;
+package com.emc.storageos.primitives.db.remoteansible;
 
 import java.util.List;
 import java.util.Map;
 
-import com.emc.storageos.db.client.model.uimodels.CustomServicesDBScriptPrimitive;
+import com.emc.storageos.db.client.model.uimodels.CustomServicesDBRemoteAnsiblePrimitive;
 import com.emc.storageos.primitives.CustomServicesConstants;
 import com.emc.storageos.primitives.db.CustomServicesDBPrimitiveType;
 import com.emc.storageos.primitives.input.InputParameter;
 import com.emc.storageos.primitives.output.OutputParameter;
 
-/**
- * Class that represents a script primitive as a java object
- *
- */
-public class CustomServicesScriptPrimitive extends CustomServicesDBPrimitiveType {
-    public static final String TYPE = CustomServicesConstants.SCRIPT_PRIMITIVE_TYPE;;
 
-    public CustomServicesScriptPrimitive(CustomServicesDBScriptPrimitive primitive,
+public class CustomServicesRemoteAnsiblePrimitive extends
+CustomServicesDBPrimitiveType {
+
+    public static final String TYPE = CustomServicesConstants.REMOTE_ANSIBLE_PRIMTIVE_TYPE;
+
+    public CustomServicesRemoteAnsiblePrimitive(final CustomServicesDBRemoteAnsiblePrimitive primitive, 
             final Map<String, List<InputParameter>> input,
-            final Map<String, String> attributes,
+            final Map<String, String> attributes, 
             final List<OutputParameter> output) {
         super(primitive, input, attributes, output);
     }
 
     @Override
     public StepType stepType() {
-        return StepType.SHELL_SCRIPT;
+        return StepType.REMOTE_ANSIBLE;
     }
+
 
     @Override
     public String type() {
         return TYPE;
     }
+
 }

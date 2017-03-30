@@ -43,6 +43,7 @@ public final class CustomServicesConstants {
     public static final String SCRIPT_PRIMITIVE_TYPE = "script";
     public static final String ANSIBLE_PRIMITIVE_TYPE = "ansible";
     public static final String REST_API_PRIMITIVE_TYPE = "rest";
+    public static final String REMOTE_ANSIBLE_PRIMTIVE_TYPE = "remote_ansible";
     public static final String ANSIBLE_INVENTORY_TYPE = "ansible_inventory";
     
     // SuccessCriteria Constants
@@ -75,7 +76,10 @@ public final class CustomServicesConstants {
     public static final String CONNECTION_DETAILS = "connection_details";
     public static final String ANSIBLE_OPTIONS = "ansible_options";
     public static final String REST_OPTIONS = "rest_options";
-
+    public static final String QUERY_PARAMS ="query_params";
+    public static final String CREDENTIALS = "credentials";
+    public static final String HEADERS = "headers";
+    
     //REST options
     public static final String PROTOCOL = "protocol";
     public static final String AUTH_TYPE = "auth";
@@ -88,7 +92,7 @@ public final class CustomServicesConstants {
     public static final String TARGET = "target";
     public static final String PATH = "path";
     public static final String PORT = "port";
-    public static final String HEADERS = "headers";
+    
 
     //Execution Result
     public static final String OPERATION_OUTPUT = "operation_output";

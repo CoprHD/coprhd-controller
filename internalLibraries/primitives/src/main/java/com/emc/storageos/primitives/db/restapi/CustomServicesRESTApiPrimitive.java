@@ -28,7 +28,7 @@ import com.emc.storageos.primitives.output.OutputParameter;
 public class CustomServicesRESTApiPrimitive extends CustomServicesDBPrimitiveType {
 
     public CustomServicesRESTApiPrimitive(CustomServicesDBRESTApiPrimitive primitive, 
-            Map<InputType, List<InputParameter>> input,
+            Map<String, List<InputParameter>> input,
             Map<String, String> attributes, 
             List<OutputParameter> output) {
         super(primitive, input, attributes, output);

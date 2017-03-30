@@ -39,7 +39,6 @@ import com.emc.storageos.model.customservices.CustomServicesPrimitiveCreateParam
 import com.emc.storageos.model.customservices.CustomServicesPrimitiveRestRep;
 import com.emc.storageos.model.customservices.CustomServicesPrimitiveUpdateParam;
 import com.emc.storageos.primitives.CustomServicesConstants;
-import com.emc.storageos.primitives.CustomServicesPrimitive.InputType;
 import com.emc.storageos.primitives.db.restapi.CustomServicesRESTApiPrimitive;
 import com.emc.storageos.primitives.input.BasicInputParameter;
 import com.emc.storageos.primitives.input.InputParameter;
@@ -67,23 +66,21 @@ public class CustomServicesRESTApiPrimitiveDAO implements CustomServicesPrimitiv
             .build();
     
     private static final Set<String> REQUEST_INPUT_TYPES = ImmutableSet.<String>builder()
-            .add(InputType.QUERY_PARAMS.toString())
-            .add(InputType.HEADERS.toString())
-            .add(InputType.CREDENTIALS.toString())
+            .add(CustomServicesConstants.QUERY_PARAMS)
+            .add(CustomServicesConstants.HEADERS)
+            .add(CustomServicesConstants.CREDENTIALS)
             .build();
     
     private static final Set<String> RESPONSE_INPUT_TYPES = ImmutableSet.<String>builder()
             .addAll(REQUEST_INPUT_TYPES)
-            .add(InputType.INPUT_PARAMS.toString())
+            .add(CustomServicesConstants.INPUT_PARAMS)
             .build();
     
-    private static final ImmutableList<InputParameter> CONNECTION_PARAMETERS = ImmutableList.<InputParameter>builder()
-            .add(new BasicInputParameter.StringParameter(CustomServicesConstants.TARGET, true, null))
-            .add(new BasicInputParameter.StringParameter(CustomServicesConstants.PORT, true, null))
-            .build();
-    
-    private static final ImmutableMap<InputType, List<InputParameter>> CONNECTION_OPTIONS = ImmutableMap.<InputType, List<InputParameter>>builder()
-            .put(InputType.CONNECTION_DETAILS, CONNECTION_PARAMETERS)
+    private static final ImmutableMap<String, List<InputParameter>> CONNECTION_OPTIONS = ImmutableMap.<String, List<InputParameter>>builder()
+            .put(CustomServicesConstants.CONNECTION_DETAILS, ImmutableList.<InputParameter>builder()
+                    .add(new BasicInputParameter.StringParameter(CustomServicesConstants.TARGET, true, null))
+                    .add(new BasicInputParameter.StringParameter(CustomServicesConstants.PORT, true, null))
+                    .build())
             .build();
     
     private static Function<CustomServicesDBRESTApiPrimitive, CustomServicesRESTApiPrimitive> MAPPER = 
@@ -91,7 +88,7 @@ public class CustomServicesRESTApiPrimitiveDAO implements CustomServicesPrimitiv
 
         @Override
         public CustomServicesRESTApiPrimitive apply(CustomServicesDBRESTApiPrimitive primitive) {
-            final Map<InputType, List<InputParameter>> input = ImmutableMap.<InputType, List<InputParameter>>builder()
+            final Map<String, List<InputParameter>> input = ImmutableMap.<String, List<InputParameter>>builder()
                     .putAll(CustomServicesDBHelper.mapInput(RESPONSE_INPUT_TYPES, primitive.getInput()))
                     .putAll(CONNECTION_OPTIONS)
                     .build();
@@ -187,7 +184,7 @@ public class CustomServicesRESTApiPrimitiveDAO implements CustomServicesPrimitiv
         inputParams.addAll(pathParams);
         inputParams.addAll(bodyParams);
         
-        input.put(InputType.INPUT_PARAMS.toString(), inputParams);
+        input.put(CustomServicesConstants.INPUT_PARAMS.toString(), inputParams);
         
         return input;
         
@@ -207,7 +204,7 @@ public class CustomServicesRESTApiPrimitiveDAO implements CustomServicesPrimitiv
             inputParams.addAll(pathParams);
             inputParams.addAll(bodyParams);
             
-            final StringSet updateParams = primitive.getInput().get(InputType.INPUT_PARAMS.toString()) == null ? new StringSet() : primitive.getInput().get(InputType.INPUT_PARAMS.toString());
+            final StringSet updateParams = primitive.getInput().get(CustomServicesConstants.INPUT_PARAMS) == null ? new StringSet() : primitive.getInput().get(CustomServicesConstants.INPUT_PARAMS);
             // Remove any existing params that are not in the new 
             // input set
             for( final String existingParam : updateParams) {
@@ -222,7 +219,7 @@ public class CustomServicesRESTApiPrimitiveDAO implements CustomServicesPrimitiv
                     updateParams.add(newParam);
                 }
             }
-            input.put(InputType.INPUT_PARAMS.toString(), updateParams);
+            input.put(CustomServicesConstants.INPUT_PARAMS.toString(), updateParams);
         }
         
         primitive.setInput(input);

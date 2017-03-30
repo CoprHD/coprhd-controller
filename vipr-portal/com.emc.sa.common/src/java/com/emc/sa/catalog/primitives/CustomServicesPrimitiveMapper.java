@@ -38,7 +38,6 @@ import com.emc.storageos.model.customservices.CustomServicesPrimitiveRestRep.Inp
 import com.emc.storageos.model.customservices.InputParameterRestRep;
 import com.emc.storageos.model.customservices.OutputParameterRestRep;
 import com.emc.storageos.primitives.CustomServicesPrimitive;
-import com.emc.storageos.primitives.CustomServicesPrimitive.InputType;
 import com.emc.storageos.primitives.CustomServicesPrimitiveResourceType;
 import com.emc.storageos.primitives.CustomServicesPrimitiveType;
 import com.emc.storageos.primitives.input.BasicInputParameter;
@@ -123,10 +122,10 @@ public final class  CustomServicesPrimitiveMapper extends DbObjectMapper {
     }
     
     private static Map<String, InputGroup> mapInput(
-            final Map<InputType, List<InputParameter>> input) {
+            final Map<String, List<InputParameter>> input) {
         final ImmutableMap.Builder<String, InputGroup> builder = ImmutableMap.<String, InputGroup>builder();
         
-        for(final Entry<InputType, List<InputParameter>> entry : input.entrySet()) {
+        for(final Entry<String, List<InputParameter>> entry : input.entrySet()) {
             builder.put(entry.getKey().toString(), mapInputGroup(entry.getValue()));
         }
         

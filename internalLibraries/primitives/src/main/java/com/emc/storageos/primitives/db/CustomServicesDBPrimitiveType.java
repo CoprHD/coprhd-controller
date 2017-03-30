@@ -34,13 +34,13 @@ import com.emc.storageos.primitives.output.OutputParameter;
  */
 public abstract class CustomServicesDBPrimitiveType extends CustomServicesPrimitiveType {
 
-    private final Map<InputType, List<InputParameter>> input;
+    private final Map<String, List<InputParameter>> input;
     private final List<OutputParameter> output;
     private final Map<String,String> attributes;
     private final CustomServicesDBPrimitive primitive;
     
     public CustomServicesDBPrimitiveType(final CustomServicesDBPrimitive primitive, 
-            final Map<InputType, List<InputParameter>> input, final Map<String,String> attributes,
+            final Map<String, List<InputParameter>> input, final Map<String,String> attributes,
             final List<OutputParameter> output) {
         this.input = input;
         this.output = output;
@@ -74,7 +74,7 @@ public abstract class CustomServicesDBPrimitiveType extends CustomServicesPrimit
     }
 
     @Override
-    public Map<InputType, List<InputParameter>> input() {
+    public Map<String, List<InputParameter>> input() {
         return input;
     }
 

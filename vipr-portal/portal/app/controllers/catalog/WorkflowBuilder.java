@@ -33,6 +33,13 @@ import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.owasp.esapi.ESAPI;
 
+import play.Logger;
+import play.data.validation.Required;
+import play.data.validation.Valid;
+import play.mvc.Controller;
+import play.mvc.With;
+import util.StringOption;
+
 import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.customservices.CustomServicesPrimitiveCreateParam;
 import com.emc.storageos.model.customservices.CustomServicesPrimitiveCreateParam.InputCreateList;
@@ -51,8 +58,7 @@ import com.emc.storageos.model.customservices.InputUpdateParam;
 import com.emc.storageos.model.customservices.InputUpdateParam.InputUpdateList;
 import com.emc.storageos.model.customservices.OutputParameterRestRep;
 import com.emc.storageos.model.customservices.OutputUpdateParam;
-import com.emc.storageos.primitives.CustomServicesPrimitive;
-import com.emc.storageos.primitives.CustomServicesPrimitive.InputType;
+import com.emc.storageos.primitives.CustomServicesConstants;
 import com.emc.vipr.model.catalog.WFBulkRep;
 import com.emc.vipr.model.catalog.WFDirectoryParam;
 import com.emc.vipr.model.catalog.WFDirectoryRestRep;
@@ -62,12 +68,6 @@ import com.google.common.collect.ImmutableMap;
 import com.google.gson.annotations.SerializedName;
 
 import controllers.Common;
-import play.Logger;
-import play.data.validation.Required;
-import play.data.validation.Valid;
-import play.mvc.Controller;
-import play.mvc.With;
-import util.StringOption;
 
 /**
  * @author Nick Aquino
@@ -543,7 +543,7 @@ public class WorkflowBuilder extends Controller {
         final InputUpdateList update = new InputUpdateList();
         update.setInput((List<String>) CollectionUtils.subtract(left, right));
         return ImmutableMap.<String, InputUpdateList>builder()
-                .put(InputType.INPUT_PARAMS.toString(), update)
+                .put(CustomServicesConstants.INPUT_PARAMS, update)
                 .build();
     }
 
@@ -569,7 +569,7 @@ public class WorkflowBuilder extends Controller {
                     final InputCreateList input = new InputCreateList();
                     input.setInput(list);
                     final ImmutableMap.Builder<String, InputCreateList> builder = ImmutableMap.<String, InputCreateList>builder()
-                            .put(InputType.INPUT_PARAMS.toString(), input);
+                            .put(CustomServicesConstants.INPUT_PARAMS, input);
                     primitiveCreateParam.setInput(builder.build());
                 }
                 if (StringUtils.isNotEmpty(shellPrimitive.getOutputs())) {
@@ -814,7 +814,7 @@ public class WorkflowBuilder extends Controller {
                     final InputCreateList input = new InputCreateList();
                     input.setInput(list);
                     final ImmutableMap.Builder<String, InputCreateList> builder = ImmutableMap.<String, InputCreateList>builder()
-                            .put(InputType.INPUT_PARAMS.toString(), input);
+                            .put(CustomServicesConstants.INPUT_PARAMS, input);
                     primitiveCreateParam.setInput(builder.build());
                 }
                 if (StringUtils.isNotEmpty(localAnsible.getOutputs())) {
@@ -853,8 +853,8 @@ public class WorkflowBuilder extends Controller {
 
     private static List<String> convertInputGroupsToList(final Map<String, CustomServicesPrimitiveRestRep.InputGroup> inputGroups) {
         final List<String> inputNameList = new ArrayList<String>();
-        if (null != inputGroups && !inputGroups.isEmpty() && inputGroups.containsKey(CustomServicesPrimitive.InputType.INPUT_PARAMS.toString())) {
-            final List<InputParameterRestRep> inputParameterRestRepList = inputGroups.get(CustomServicesPrimitive.InputType.INPUT_PARAMS.toString()).getInputGroup();
+        if (null != inputGroups && !inputGroups.isEmpty() && inputGroups.containsKey(CustomServicesConstants.INPUT_PARAMS)) {
+            final List<InputParameterRestRep> inputParameterRestRepList = inputGroups.get(CustomServicesConstants.INPUT_PARAMS).getInputGroup();
             for (InputParameterRestRep inputParameterRestRep : inputParameterRestRepList) {
                 inputNameList.add(inputParameterRestRep.getName());
             }

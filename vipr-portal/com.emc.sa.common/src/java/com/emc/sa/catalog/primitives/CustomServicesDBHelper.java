@@ -27,6 +27,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 
 import org.apache.commons.codec.binary.Base64;
+import org.apache.commons.lang.StringUtils;
 
 import com.emc.sa.catalog.CustomServicesPrimitiveManager;
 import com.emc.sa.model.dao.ModelClient;
@@ -49,7 +50,6 @@ import com.emc.storageos.model.customservices.CustomServicesPrimitiveUpdateParam
 import com.emc.storageos.model.customservices.InputUpdateParam;
 import com.emc.storageos.model.customservices.InputUpdateParam.InputUpdateList;
 import com.emc.storageos.model.customservices.OutputUpdateParam;
-import com.emc.storageos.primitives.CustomServicesPrimitive.InputType;
 import com.emc.storageos.primitives.CustomServicesPrimitiveResourceType;
 import com.emc.storageos.primitives.db.CustomServicesDBPrimitiveType;
 import com.emc.storageos.primitives.db.CustomServicesDBResourceType;
@@ -64,7 +64,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMap.Builder;
 import com.google.common.collect.Sets;
-import org.apache.commons.lang.StringUtils;
 
 /**
  * Helper class to access primitives and resources that are stored in the
@@ -373,12 +372,12 @@ public final class CustomServicesDBHelper {
      * @param primitive A primitive instance
      * @return An input parameter map
      */
-    public static Map<InputType, List<InputParameter>> mapInput(final Set<String> inputTypes, 
+    public static Map<String, List<InputParameter>> mapInput(final Set<String> inputTypes, 
             final StringSetMap inputMap) {
-        final Builder<InputType, List<InputParameter>> input = ImmutableMap.<InputType, List<InputParameter>> builder();
+        final Builder<String, List<InputParameter>> input = ImmutableMap.<String, List<InputParameter>> builder();
         if (null != inputMap) {
             for (final Entry<String, AbstractChangeTrackingSet<String>> inputGroup : inputMap.entrySet()) {
-                input.put(inputGroup(inputGroup.getKey(), inputTypes), mapInputParameters(inputGroup.getValue()));
+                input.put(validateInputGroup(inputGroup.getKey(), inputTypes), mapInputParameters(inputGroup.getValue()));
             }
         }
         return input.build();
@@ -391,12 +390,11 @@ public final class CustomServicesDBHelper {
      * @param inputTypes The supported input types
      * @return The InputType enum of the given string
      */
-    private static InputType inputGroup(final String key, final Set<String> inputTypes) {
-        final InputType type = InputType.fromString(key);
+    private static String validateInputGroup(final String key, final Set<String> inputTypes) {
         if (key == null || !inputTypes.contains(key)) {
             throw new IllegalStateException("Unknown input type: " + key);
         }
-        return type;
+        return key;
     }
 
     /**

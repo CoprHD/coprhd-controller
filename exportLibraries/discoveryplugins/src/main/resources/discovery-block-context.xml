@@ -507,7 +507,23 @@
 
     <bean id="supportedAsynchronousActionsProcessor"
           class="com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.processor.SupportedAsynchronousActionsProcessor" />
-	
+
+    <!-- Bean to update the Remote Replication Objects -->
+    <bean id="updateRemoteReplicationObjects"
+        class="com.emc.storageos.plugins.common.domainmodel.Operation">
+        <property name="arguments">
+            <list>
+                <ref bean="dbclient" />
+                <ref bean="systemId" />
+            </list>
+        </property>
+        <property name="instance" ref="srdfUtils" />
+        <property name="method" value="processRemoteReplicationObjects" />
+        <property name="message" value="Invoking method to update the RemoteReplication Objects"/>
+    </bean>
+    
+    <bean id="srdfUtils" class="com.emc.storageos.volumecontroller.impl.smis.srdf.SRDFUtils">
+    </bean>
 	
     <bean id="tierBookKeeping" class="com.emc.storageos.plugins.common.domainmodel.Operation">
 		<property name="arguments">
@@ -1158,20 +1174,6 @@
     <bean id="discoveryUtils" class="com.emc.storageos.volumecontroller.impl.utils.DiscoveryUtils">
     </bean>	
 
-    <!-- Bean to update the Remote Replication Objects -->
-    <bean id="updateRemoteReplicationObjects"
-        class="com.emc.storageos.plugins.common.domainmodel.Operation">
-        <property name="arguments">
-            <list>
-                <ref bean="dbclient" />
-                <ref bean="systemId" />
-            </list>
-        </property>
-        <property name="instance" ref="discoveryUtils" />
-        <property name="method" value="processRemoteReplicationObjects" />
-        <property name="message" value="Invoking method to update the RemoteReplication Objects"/>
-    </bean>
-    	
 	<!-- General call to match implicit pools. -->
 	<bean id="implicitPoolMatcher"
 		class="com.emc.storageos.plugins.common.domainmodel.Operation">

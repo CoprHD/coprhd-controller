@@ -18,9 +18,11 @@ import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import javax.cim.CIMInstance;
@@ -39,9 +41,11 @@ import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.BlockMirror;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.BlockSnapshotSession;
+import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.RemoteDirectorGroup;
 import com.emc.storageos.db.client.model.RemoteDirectorGroup.SupportedCopyModes;
+import com.emc.storageos.db.client.model.StorageSystem.SupportedReplicationTypes;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.Volume;
@@ -50,6 +54,9 @@ import com.emc.storageos.db.client.model.VpoolRemoteCopyProtectionSettings;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.plugins.common.Constants;
+import com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationGroup;
+import com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationMode;
+import com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationSet;
 import com.emc.storageos.volumecontroller.impl.smis.CIMObjectPathFactory;
 import com.emc.storageos.volumecontroller.impl.smis.SRDFOperations;
 import com.emc.storageos.volumecontroller.impl.smis.SRDFOperations.Mode;
@@ -878,4 +885,118 @@ public class SRDFUtils implements SmisConstants {
         }
         return null;
     }
+
+    /**
+     * Utility method that would Create a RemoteReplicationSet between a StorageSystem and its Remote counterpart
+     * 
+     * @param Reference to storageSystem
+     * @param Reference to remoteSystem
+     * @return RemoteReplicationSet
+     */
+    public static RemoteReplicationSet createRemoteReplicationSet(StorageSystem storageSystem, StorageSystem remoteSystem) {
+
+        Set<RemoteReplicationSet.ElementType> supportedElementTypes = new HashSet<>();
+        supportedElementTypes.add(RemoteReplicationSet.ElementType.REPLICATION_GROUP);
+        supportedElementTypes.add(RemoteReplicationSet.ElementType.REPLICATION_PAIR);
+
+        HashSet<RemoteReplicationSet.ReplicationRole> replicationRoleSource = new HashSet<>();
+        replicationRoleSource.add(RemoteReplicationSet.ReplicationRole.SOURCE);
+        HashSet<RemoteReplicationSet.ReplicationRole> replicationRoleTarget = new HashSet<>();
+        replicationRoleTarget.add(RemoteReplicationSet.ReplicationRole.TARGET);
+
+        // TODO: VMAX Does not enforce consistency but ViPR maintains consistency for the Groups? Should
+        // isGroupConsistencyEnforcedAutomatically be set to TRUE?
+
+        Set<RemoteReplicationMode> SRDFReplicationModes = new HashSet<>();
+        SRDFReplicationModes.add(new RemoteReplicationMode(SupportedCopyModes.SYNCHRONOUS.name(), false, false));
+        SRDFReplicationModes.add(new RemoteReplicationMode(SupportedCopyModes.ASYNCHRONOUS.name(), false, false));
+        SRDFReplicationModes.add(new RemoteReplicationMode(SupportedCopyModes.ADAPTIVECOPY.name(), false, false));
+        if (null != storageSystem.getSupportedReplicationTypes()
+                && storageSystem.getSupportedReplicationTypes().contains(SupportedReplicationTypes.SRDFMetro.toString()) &&
+                null != remoteSystem.getSupportedReplicationTypes()
+                && remoteSystem.getSupportedReplicationTypes().contains(SupportedReplicationTypes.SRDFMetro.toString())) {
+            SRDFReplicationModes.add(new RemoteReplicationMode(SupportedCopyModes.ACTIVE.name(), false, false));
+        }
+        RemoteReplicationSet rrSet = new RemoteReplicationSet();
+        rrSet.setDeviceLabel(storageSystem.getSerialNumber() + Constants.PLUS + remoteSystem.getSerialNumber());
+        rrSet.setNativeId(storageSystem.getSerialNumber() + Constants.PLUS + remoteSystem.getSerialNumber());
+        rrSet.setSupportedElementTypes(supportedElementTypes);
+        rrSet.setReplicationLinkGranularity(supportedElementTypes);
+        rrSet.setReplicationState("UNKNOWN");
+        rrSet.setSupportedReplicationModes(SRDFReplicationModes);
+        Map<String, Set<RemoteReplicationSet.ReplicationRole>> systemMapSet = new HashMap<>();
+        systemMapSet.put(storageSystem.getSerialNumber(), replicationRoleSource);
+        systemMapSet.put(remoteSystem.getSerialNumber(), replicationRoleTarget);
+        rrSet.setSystemMap(systemMapSet);
+
+        return rrSet;
+    }
+
+    /**
+     * Utility method that would Create a RemoteReplicationGroup for a given RemoteDirectorGroup
+     * 
+     * @param Reference to RemoteDirectorGroup/RAGroup
+     * @param Reference to storageSystem
+     * @param Reference to remoteSystem
+     * @return RemoteReplicationGroup
+     */
+    public static RemoteReplicationGroup createRemoteReplicationGroup(RemoteDirectorGroup raGroup, StorageSystem storageSystem,
+            StorageSystem remoteSystem) {
+        RemoteReplicationGroup rrGroup = new RemoteReplicationGroup();
+        rrGroup.setNativeId(storageSystem.getSerialNumber() + Constants.PLUS + raGroup.getSourceGroupId() + remoteSystem.getSerialNumber()
+                + Constants.PLUS + raGroup.getRemoteGroupId());
+        rrGroup.setDisplayName(rrGroup.getNativeId());
+        rrGroup.setDeviceLabel(raGroup.getLabel());
+        // Need to figure out how to capture this from an RDF group if it has associated CGs
+        rrGroup.setIsGroupConsistencyEnforced(false);
+        rrGroup.setReplicationMode(raGroup.getSupportedCopyMode());
+        // Need to figure out how to capture this from an RDF group. Is it the state on the links or the Connectivity Status
+        rrGroup.setReplicationState(raGroup.getConnectivityStatus());
+        rrGroup.setSourceSystemNativeId(storageSystem.getSerialNumber());
+        rrGroup.setTargetSystemNativeId(remoteSystem.getSerialNumber());
+        return rrGroup;
+    }
+
+    /**
+     * Processes the RemoteReplicationSets and RemoteReplicationGroup needs for RemoteReplicationDataClient discovery
+     * 
+     * @param Reference to dbClient
+     * @param storageSystemURI
+     * @return NONE
+     */
+
+    public static void processRemoteReplicationObjects(DbClient dbClient, URI storageSystemId) {
+        StorageSystem storageSystem = dbClient.queryObject(StorageSystem.class, storageSystemId);
+        if ((storageSystem != null) && (storageSystem.getSystemType().equals(DiscoveredDataObject.Type.vmax.name()))) {
+            List<RemoteReplicationSet> replicationSets = new ArrayList<RemoteReplicationSet>();
+            List<RemoteReplicationGroup> replicationGroups = new ArrayList<RemoteReplicationGroup>();
+            for (String remoteSystemUri : storageSystem.getRemotelyConnectedTo()) {
+                if (remoteSystemUri == null
+                        || NullColumnValueGetter.getNullStr().equals(remoteSystemUri)) {
+                    continue;
+                }
+                StorageSystem remoteSystem = dbClient.queryObject(StorageSystem.class,
+                        URI.create(remoteSystemUri));
+                if (remoteSystem != null) {
+                    // Deal with RRSet
+                    replicationSets.add(createRemoteReplicationSet(storageSystem, remoteSystem));
+                    // Deal with RRGroups...
+                    URIQueryResultList raGroupsInDB = new URIQueryResultList();
+                    dbClient.queryByConstraint(ContainmentConstraint.Factory
+                            .getStorageDeviceRemoteGroupsConstraint(storageSystemId), raGroupsInDB);
+                    Iterator<URI> raGroupIter = raGroupsInDB.iterator();
+                    while (raGroupIter.hasNext()) {
+                        URI raGroupURI = raGroupIter.next();
+                        RemoteDirectorGroup raGroup = dbClient.queryObject(RemoteDirectorGroup.class, raGroupURI);
+                        if (raGroup != null && !raGroup.getInactive()
+                                && remoteSystemUri.equalsIgnoreCase(raGroup.getRemoteStorageSystemUri().toString())) {
+                            replicationGroups.add(createRemoteReplicationGroup(raGroup, storageSystem, remoteSystem));
+                        }
+                    }
+                }
+            }
+
+        }
+    }
+
 }

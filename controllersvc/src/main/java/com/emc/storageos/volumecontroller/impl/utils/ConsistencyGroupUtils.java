@@ -205,10 +205,9 @@ public class ConsistencyGroupUtils {
     }
 
     /**
-     * Find all consistency groups by given alternateLabel, then return storage
-     * systems of these CGs excluding the one specified by exclude parameter.
+     * Find all consistency groups by given alternateLabel
      */
-    public static Set<String> findAllRRConsistencyGrroupSystemsByLabel(String label, BlockConsistencyGroup exclude, DbClient dbClient) {
+    public static Set<String> findAllRRConsistencyGrroupSystemsByAlternateLabel(String label, DbClient dbClient) {
         DataObjectType doType = TypeMap.getDoType(BlockConsistencyGroup.class);
         AlternateIdConstraint constraint = new AlternateIdConstraintImpl(doType.getColumnField("alternateLabel"),
                 label);
@@ -216,9 +215,6 @@ public class ConsistencyGroupUtils {
         dbClient.queryByConstraint(constraint, uris);
         Set<String> systems = new HashSet<>();
         for (URI uri : uris) {
-            if (uri.equals(exclude.getStorageController())) {
-                continue;
-            }
             BlockConsistencyGroup group = dbClient.queryObject(BlockConsistencyGroup.class, uri);
             if (isConsistencyGroupSupportRemoteReplication(group)) {
                 systems.add(group.getStorageController().toString());

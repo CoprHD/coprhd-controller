@@ -308,7 +308,7 @@ public class RemoteReplicationSetService extends TaskResourceService {
             return result;
         }
         Set<String> targetCGSystemsSet = ConsistencyGroupUtils
-                .findAllRRConsistencyGrroupSystemsByLabel(cGroup.getAlternateLabel(), cGroup, _dbClient);
+                .findAllRRConsistencyGrroupSystemsByAlternateLabel(cGroup.getAlternateLabel(), _dbClient);
         Iterator<RemoteReplicationSet> sets = RemoteReplicationUtils.findAllRemoteRepliationSetsIteratively(_dbClient);
         while (sets.hasNext()) {
             RemoteReplicationSet rrSet = sets.next();

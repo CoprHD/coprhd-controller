@@ -1577,6 +1577,7 @@ public class VolumeIngestionUtil {
     public static boolean validateExportMaskMatchesComputeResourceInitiators(DbClient dbClient, ExportGroup exportGroup,
             StringSet computeInitiators,
             UnManagedExportMask unManagedExportMask, List<String> errorMessages) {
+        _logger.info("computeInitiators :{}", computeInitiators);
         // Validate future export group initiators
         if (computeInitiators == null) {
             String errorMessage = String.format(
@@ -1606,6 +1607,7 @@ public class VolumeIngestionUtil {
             _logger.info(message);
             return true;
         }
+        _logger.info("Mask knownInitiatorUris :{}", unManagedExportMask.getKnownInitiatorUris());
 
         // Probably the most common scenario. Don't try to ingest an export mask that doesn't match the export group's initiators.
         String errorMessage = String.format(

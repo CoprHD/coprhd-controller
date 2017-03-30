@@ -1108,7 +1108,7 @@ public class MdsNetworkSystemDevice extends NetworkSystemDeviceImpl implements N
      * @return
      * @throws NetworkDeviceControllerException
      */
-    private boolean isIvrEnabled(NetworkSystem networkSystem) throws NetworkDeviceControllerException {
+    public boolean isIvrEnabled(NetworkSystem networkSystem) throws NetworkDeviceControllerException {
         MDSDialog dialog = null;
         try {
             dialog = setUpDialog(networkSystem);

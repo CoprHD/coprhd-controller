@@ -491,6 +491,10 @@ public class NetworkDiscoveryWorker {
         StringSet routedNetworks = null;
         Network routedNetwork = null;
 
+        if (!this.getDevice().isIvrEnabled(networkSystem)) {
+        	_log.info("NetworkSystem %s does not have IVR feature enabled, skipping routed networks update/discovery");
+        	return;
+        }
         // get the current networks from the database
         Map<URI, Network> allNetworks = DataObjectUtils.toMap(getCurrentTransportZones());
         for (Network network : updatedNetworks) {

@@ -247,4 +247,10 @@ public interface NetworkSystemDevice {
     public Map<String, List<Zone>> getEndpointsZones(NetworkSystem networkSystem,
             String fabricWwn, String nativeId, Collection<String> endpointsWwn)
             throws NetworkDeviceControllerException;
+    
+    /**
+     * @param networkSystem NetworkSystem entry
+     * @return true if the NetworkSystem has IVR feature enabled, false otherwise
+     */
+    public boolean isIvrEnabled(NetworkSystem networkSystem);
 }

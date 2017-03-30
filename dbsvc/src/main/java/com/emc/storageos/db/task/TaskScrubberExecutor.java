@@ -46,6 +46,7 @@ public class TaskScrubberExecutor {
     private final static long MINIMUM_PERIOD_MINS = 60;
     private final static int DELETE_BATCH_SIZE = 100;
     private final static int MAXIMUM_TASK_TO_DELETE = 100 * DELETE_BATCH_SIZE;
+    private final static int MAXIMUM_TASK_IN_ONE_QUERY = 100 * DELETE_BATCH_SIZE;
     private static final String SYSTEM_TENANT_ID = "urn:storageos:TenantOrg:system:";
     
     private final static String TASK_SCRUBBER_LOCK = "task_scrubber_lock";
@@ -195,7 +196,6 @@ public class TaskScrubberExecutor {
         Map<String, List<URI>> notPendingTasks = new HashMap<String, List<URI>>();
         int batch = 0;
         int count = 0;
-        int batchSize = 10000;
         int totalCount = 0; // only used for logging
         while (it.hasNext()) {
             AggregationQueryResultList.AggregatedEntry entry = it.next();
@@ -206,7 +206,7 @@ public class TaskScrubberExecutor {
                 notPendingTasks.get(Integer.toString(batch)).add(entry.getId());
                 totalCount++;
                 count++;
-                if (count >= batchSize) {
+                if (count >= MAXIMUM_TASK_IN_ONE_QUERY) {
                     batch++;
                     count = 0;
                 }

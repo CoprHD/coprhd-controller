@@ -91,6 +91,9 @@ public class ExportPathParameters {
     	} else {
     		log.info("Ports not specified");
     	}
+    	if (getPortGroup() != null) {
+    	    log.info("Storage port group: " + portGroup);
+    	}
     	
     }
 

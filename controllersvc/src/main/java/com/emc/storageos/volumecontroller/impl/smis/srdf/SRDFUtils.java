@@ -99,8 +99,8 @@ public class SRDFUtils implements SmisConstants {
         this.helper = helper;
     }
 
-    public void remoteReplicationDataClient(RemoteReplicationDataClientImpl remoteReplicationDataClient) {
-        this.remoteReplicationDataClient = remoteReplicationDataClient;
+    public static void setRemoteReplicationDataClient(RemoteReplicationDataClientImpl remoteReplicationDataClient) {
+        SRDFUtils.remoteReplicationDataClient = remoteReplicationDataClient;
     }
 
     public CIMInstance getInstance(final CIMObjectPath path, final StorageSystem sourceSystem) {
@@ -949,8 +949,8 @@ public class SRDFUtils implements SmisConstants {
     public static RemoteReplicationGroup createRemoteReplicationGroup(RemoteDirectorGroup raGroup, StorageSystem storageSystem,
             StorageSystem remoteSystem) {
         RemoteReplicationGroup rrGroup = new RemoteReplicationGroup();
-        rrGroup.setNativeId(storageSystem.getSerialNumber() + Constants.PLUS + raGroup.getSourceGroupId() + remoteSystem.getSerialNumber()
-                + Constants.PLUS + raGroup.getRemoteGroupId());
+        rrGroup.setNativeId(storageSystem.getSerialNumber() + Constants.PLUS + raGroup.getSourceGroupId() + Constants.PLUS
+                + remoteSystem.getSerialNumber() + Constants.PLUS + raGroup.getRemoteGroupId());
         rrGroup.setDisplayName(rrGroup.getNativeId());
         rrGroup.setDeviceLabel(raGroup.getLabel());
         // Need to figure out how to capture this from an RDF group if it has associated CGs
@@ -1001,6 +1001,7 @@ public class SRDFUtils implements SmisConstants {
                     }
                 }
             }
+            log.info("Processing RemoteReplicationSets and RemoteReplication Groups for {}", storageSystem.getSerialNumber());
             remoteReplicationDataClient.processRemoteReplicationSetsForStorageSystem(storageSystem, replicationSets);
             remoteReplicationDataClient.processRemoteReplicationGroupsForStorageSystem(storageSystem, replicationGroups);
         }

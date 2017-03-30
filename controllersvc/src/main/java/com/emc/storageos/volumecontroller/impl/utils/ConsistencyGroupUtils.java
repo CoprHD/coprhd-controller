@@ -205,7 +205,7 @@ public class ConsistencyGroupUtils {
     }
 
     /**
-     * Find all consistency groups by given alternateLabel
+     * Find all consistency groups by given alternateLabel, and return their storageControllers
      */
     public static Set<String> findAllRRConsistencyGrroupSystemsByAlternateLabel(String label, DbClient dbClient) {
         DataObjectType doType = TypeMap.getDoType(BlockConsistencyGroup.class);
@@ -216,9 +216,14 @@ public class ConsistencyGroupUtils {
         Set<String> systems = new HashSet<>();
         for (URI uri : uris) {
             BlockConsistencyGroup group = dbClient.queryObject(BlockConsistencyGroup.class, uri);
-            if (isConsistencyGroupSupportRemoteReplication(group)) {
-                systems.add(group.getStorageController().toString());
+            if (!isConsistencyGroupSupportRemoteReplication(group)) {
+                continue;
             }
+            URI storageController = group.getStorageController();
+            if (storageController == null) {
+                continue;
+            }
+            systems.add(storageController.toString());
         }
         return systems;
     }

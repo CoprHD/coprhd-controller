@@ -145,11 +145,11 @@ public class RemoteReplicationGroupService extends TaskResourceService {
                 // Pass ones whose storage system type is not aligned with consistency group
                 continue;
             }
-            if (!rrGroup.getSourceSystem().equals(cGroup.getStorageController())) {
+            if (!URIUtil.equals(rrGroup.getSourceSystem(), cGroup.getStorageController())) {
                 // Pass ones whose source systems isn't equal with source CG's storage system
                 continue;
             }
-            if (!targetCGSystemsSet.contains(rrGroup.getTargetSystem().toString())) {
+            if (!targetCGSystemsSet.contains(URIUtil.toString(rrGroup.getTargetSystem()))) {
                 // Pass ones whose target system is not covered by ones of given CG
                 continue;
             }

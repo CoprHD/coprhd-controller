@@ -475,7 +475,7 @@ public class DiscoveryUtils {
             portsToRunNetworkConnectivity.addAll(notVisiblePorts);
         }
     }
-
+    
     /**
      * checkVirtualNasNotVisible - verifies that all existing virtual nas servers on 
      * given storage system are discovered or not.

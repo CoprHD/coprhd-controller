@@ -57,6 +57,7 @@ import com.emc.storageos.plugins.common.Constants;
 import com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationGroup;
 import com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationMode;
 import com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationSet;
+import com.emc.storageos.volumecontroller.impl.externaldevice.RemoteReplicationDataClientImpl;
 import com.emc.storageos.volumecontroller.impl.smis.CIMObjectPathFactory;
 import com.emc.storageos.volumecontroller.impl.smis.SRDFOperations;
 import com.emc.storageos.volumecontroller.impl.smis.SRDFOperations.Mode;
@@ -78,6 +79,7 @@ public class SRDFUtils implements SmisConstants {
     private DbClient dbClient;
     private CIMObjectPathFactory cimPath;
     private SmisCommandHelper helper;
+    private static RemoteReplicationDataClientImpl remoteReplicationDataClient;
 
     public enum SyncDirection {
         SOURCE_TO_TARGET,
@@ -95,6 +97,10 @@ public class SRDFUtils implements SmisConstants {
 
     public void setHelper(SmisCommandHelper helper) {
         this.helper = helper;
+    }
+
+    public void remoteReplicationDataClient(RemoteReplicationDataClientImpl remoteReplicationDataClient) {
+        this.remoteReplicationDataClient = remoteReplicationDataClient;
     }
 
     public CIMInstance getInstance(final CIMObjectPath path, final StorageSystem sourceSystem) {
@@ -995,7 +1001,8 @@ public class SRDFUtils implements SmisConstants {
                     }
                 }
             }
-
+            remoteReplicationDataClient.processRemoteReplicationSetsForStorageSystem(storageSystem, replicationSets);
+            remoteReplicationDataClient.processRemoteReplicationGroupsForStorageSystem(storageSystem, replicationGroups);
         }
     }
 

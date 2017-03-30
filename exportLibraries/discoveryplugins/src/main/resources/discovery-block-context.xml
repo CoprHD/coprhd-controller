@@ -86,7 +86,6 @@
                 
                 <ref bean ="getSRDFLinkInstance"/>
                 <ref bean ="updateRemoteReplicationObjects"/>
-
 				
 				<!-- get Supported Size ranges of thick Volume -->
 				<ref bean="getSupportedSizeRanges-thin"/>

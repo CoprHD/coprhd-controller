@@ -6237,7 +6237,7 @@ recoverpoint_cleanup_cgs()
 recoverpoint_tests()
 {
     if [ "$RP_RUN_TESTS" = "1" ]; then
-        secho 'Run RP tests'
+        hecho 'Run RP tests'
 
         # Setup CGs
         rp_cg_setup
@@ -6257,7 +6257,7 @@ recoverpoint_tests()
         rp_type=''
 
         if [ "$RP_CDP" = "1" ]; then
-            secho 'RP CDP Tests'
+            hecho 'RP CDP Tests'
             rp_type='cdp'
 
             # RP
@@ -6285,7 +6285,7 @@ recoverpoint_tests()
         fi
 
         if [ "$RP_CRR" = "1" ]; then
-            secho 'RP CRR Tests'
+            hecho 'RP CRR Tests'
             rp_type='crr'
 
             # RP
@@ -6311,7 +6311,7 @@ recoverpoint_tests()
         fi
 
         if [ "$RP_CLR" = "1" ]; then
-            secho 'RP CLR Tests'
+            hecho 'RP CLR Tests'
             rp_type='clr'
 
             # RP

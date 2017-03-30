@@ -16,14 +16,11 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.regex.Pattern;
 
-import org.eclipse.jetty.util.log.Log;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.computesystemcontroller.exceptions.ComputeSystemControllerException;
 import com.emc.storageos.db.client.DbClient;
-import com.emc.storageos.db.client.constraint.ContainmentConstraint;
-import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.ComputeElement;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus;
@@ -45,19 +42,29 @@ public final class HostToComputeElementMatcher {
     private final static String UUID_REGEX = "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$";
     private final static Pattern UUID_PATTERN = Pattern.compile(UUID_REGEX,Pattern.CASE_INSENSITIVE);
 
+    private final static String FIELD_UUID = "uuid";
+    private final static String FIELD_COMPUTE_ELEMENT = "computeElement";
+    private final static String FIELD_REG_STATUS = "registrationStatus";
+    private final static String FIELD_HOST_NAME = "hostName";
+    private final static String FIELD_SERVICE_PROFILE = "serviceProfile";
+    private final static String FIELD_LABEL = "label";
+    private final static String FIELD_DN = "dn";
+    private final static String FIELD_AVAIL = "available";
+    private final static String FIELD_COMPUTE_SYSTEM = "computeSystem";
+
     private HostToComputeElementMatcher(){}
 
     public static synchronized void matchHostToComputeElements(DbClient _dbClient, URI hostId) {
         Collection<URI> hostIds = Arrays.asList(hostId);  // single host
-        matchHosts(_dbClient,hostIds,null);
+        matchHosts(_dbClient, hostIds, null);
     }
 
     public static synchronized void matchHostsToComputeElements(DbClient _dbClient, Collection<URI> hostIds) {
-        matchHosts(_dbClient,hostIds,null);
+        matchHosts(_dbClient, hostIds, null);
     }
 
     public static synchronized void matchAllHostsToComputeElements(DbClient _dbClient, URI computeSystem) {
-        matchHosts(_dbClient,null,computeSystem);
+        matchHosts(_dbClient, null, computeSystem);
     }
 
     private static void matchHosts(DbClient _dbClient,Collection<URI> hostIds, URI computeSystem) {
@@ -89,17 +96,20 @@ public final class HostToComputeElementMatcher {
     private static void load(Collection<URI> hostIds, Collection<URI> computeElementIds, Collection<URI> serviceProfileIds) {
 
         Collection<Host> allHosts = dbClient.queryObjectFields(Host.class,
-                Arrays.asList("uuid", "computeElement", "registrationStatus", "hostName","serviceProfile","label"),
+                Arrays.asList(FIELD_UUID, FIELD_COMPUTE_ELEMENT, FIELD_REG_STATUS,
+                        FIELD_HOST_NAME, FIELD_SERVICE_PROFILE, FIELD_LABEL),
                 getFullyImplementedCollection(hostIds));
 
         Collection<ComputeElement> allComputeElements =
                 dbClient.queryObjectFields(ComputeElement.class,
-                        Arrays.asList("uuid", "registrationStatus", "dn", "available","label","computeSystem"),
+                        Arrays.asList(FIELD_UUID, FIELD_REG_STATUS, FIELD_DN, FIELD_AVAIL,
+                                FIELD_LABEL, FIELD_COMPUTE_SYSTEM),
                         getFullyImplementedCollection(computeElementIds));
 
         Collection<UCSServiceProfile> allUCSServiceProfiles =
                 dbClient.queryObjectFields(UCSServiceProfile.class,
-                        Arrays.asList("uuid", "registrationStatus", "dn", "label","computeSystem"),
+                        Arrays.asList(FIELD_UUID, FIELD_REG_STATUS, FIELD_DN, FIELD_LABEL,
+                                FIELD_COMPUTE_SYSTEM),
                         getFullyImplementedCollection(serviceProfileIds));
 
         hostMap = makeUriMap(allHosts);
@@ -119,7 +129,8 @@ public final class HostToComputeElementMatcher {
                     ComputeElement duplicateCe = computeElementMap.get(ceDuplicateMap.get(ce.getUuid()));
                     String errMsg = "ComputeElements found having the same UUID " +
                             info(ce) + " and " + info(duplicateCe);
-                    if( (computeSystem == null) || ce.getComputeSystem().equals(computeSystem) ||
+                    if( NullColumnValueGetter.isNullURI(computeSystem) ||
+                            ce.getComputeSystem().equals(computeSystem) ||
                             duplicateCe.getComputeSystem().equals(computeSystem)) {
                         failureMessages.append(errMsg); // fail discovery if no UCS or for affected UCS only
                     } else {
@@ -142,7 +153,8 @@ public final class HostToComputeElementMatcher {
                     UCSServiceProfile duplicateSp = serviceProfileMap.get(spDuplicateMap.get(sp.getUuid()));
                     String errMsg = "UCS Service Profiles found having the same UUID " +
                             info(sp) + " and " + info(duplicateSp);
-                    if( (computeSystem == null) || sp.getComputeSystem().equals(computeSystem) ||
+                    if( NullColumnValueGetter.isNullURI(computeSystem) ||
+                            sp.getComputeSystem().equals(computeSystem) ||
                             duplicateSp.getComputeSystem().equals(computeSystem)) {
                         failureMessages.append(errMsg); // fail discovery if no UCS or for affected UCS only
                     } else {

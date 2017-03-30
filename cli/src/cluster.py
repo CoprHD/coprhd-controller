@@ -474,12 +474,12 @@ def delete_parser(subcommand_parsers, common_parser):
                                 dest='name',
                                 help='name of a the cluster',
                                 required=True)
-    mandatory_args.add_argument('-datacenter', '-dc',
+    delete_parser.add_argument('-datacenter', '-dc',
                                metavar='<datacentername>',
                                dest='datacenter',
                                help='name of datacenter',
                                default=None)
-    mandatory_args.add_argument('-vcenter', '-vc',
+    delete_parser.add_argument('-vcenter', '-vc',
                                help='name of a vcenter',
                                dest='vcenter',
                                metavar='<vcentername>',
@@ -524,12 +524,12 @@ def show_parser(subcommand_parsers, common_parser):
                                 dest='name',
                                 help='name of a the cluster',
                                 required=True)
-    mandatory_args.add_argument('-datacenter', '-dc',
+    show_parser.add_argument('-datacenter', '-dc',
                                metavar='<datacentername>',
                                dest='datacenter',
                                help='name of datacenter',
                                default=None)
-    mandatory_args.add_argument('-vcenter', '-vc',
+    show_parser.add_argument('-vcenter', '-vc',
                                help='name of a vcenter',
                                dest='vcenter',
                                metavar='<vcentername>',
@@ -642,7 +642,7 @@ def update_parser(subcommand_parsers, common_parser):
                                dest='tenant',
                                help='new name of tenant',
                                default=None)
-    mandatory_args.add_argument('-datacenter', '-dc',
+    update_parser.add_argument('-datacenter', '-dc',
                                metavar='<datacentername>',
                                dest='datacenter',
                                help='name of datacenter',
@@ -655,7 +655,7 @@ def update_parser(subcommand_parsers, common_parser):
                                metavar='<label>',
                                dest='label',
                                help='new label for the cluster')
-    mandatory_args.add_argument('-vcenter', '-vc',
+    update_parser.add_argument('-vcenter', '-vc',
                                help='name of a vcenter',
                                dest='vcenter',
                                metavar='<vcentername>',
@@ -712,12 +712,12 @@ def detach_parser(subcommand_parsers, common_parser):
                                 dest='name',
                                 help='name of a the cluster',
                                 required=True)
-    mandatory_args.add_argument('-datacenter', '-dc',
+    detach_parser.add_argument('-datacenter', '-dc',
                                metavar='<datacentername>',
                                dest='datacenter',
                                help='name of datacenter',
                                default=None)
-    mandatory_args.add_argument('-vcenter', '-vc',
+    detach_parser.add_argument('-vcenter', '-vc',
                                help='name of a vcenter',
                                dest='vcenter',
                                metavar='<vcentername>',
@@ -755,12 +755,12 @@ def task_parser(subcommand_parsers, common_parser):
                                 dest='name',
                                 help='name of a the cluster',
                                 required=True)
-    mandatory_args.add_argument('-datacenter', '-dc',
+    task_parser.add_argument('-datacenter', '-dc',
                                metavar='<datacentername>',
                                dest='datacenter',
                                help='name of datacenter',
                                default=None)
-    mandatory_args.add_argument('-vcenter', '-vc',
+    task_parser.add_argument('-vcenter', '-vc',
                                help='name of a vcenter',
                                dest='vcenter',
                                metavar='<vcentername>',
@@ -834,12 +834,12 @@ def get_hosts_parser(subcommand_parsers, common_parser):
                                 dest='name',
                                 metavar='<clustername>',
                                 required=True)
-    mandatory_args.add_argument('-datacenter', '-dc',
+    get_hosts_parser.add_argument('-datacenter', '-dc',
                                metavar='<datacentername>',
                                dest='datacenter',
                                help='name of datacenter',
                                default=None)
-    mandatory_args.add_argument('-vcenter', '-vc',
+    get_hosts_parser.add_argument('-vcenter', '-vc',
                                help='name of a vcenter',
                                dest='vcenter',
                                metavar='<vcentername>',
@@ -901,12 +901,12 @@ def list_exportmasks_parser(subcommand_parsers, common_parser):
                                 dest='name',
                                 help='name of a the cluster',
                                 required=True)
-    mandatory_args.add_argument('-datacenter', '-dc',
+    list_exportmasks_parser.add_argument('-datacenter', '-dc',
                                metavar='<datacentername>',
                                dest='datacenter',
                                help='name of datacenter',
                                default=None)
-    mandatory_args.add_argument('-vcenter', '-vc',
+    list_exportmasks_parser.add_argument('-vcenter', '-vc',
                                help='name of a vcenter',
                                dest='vcenter',
                                metavar='<vcentername>',
@@ -950,12 +950,12 @@ def list_umvolumes_parser(subcommand_parsers, common_parser):
                                 dest='name',
                                 help='name of a the cluster',
                                 required=True)
-    mandatory_args.add_argument('-datacenter', '-dc',
+    list_umvols_parser.add_argument('-datacenter', '-dc',
                                metavar='<datacentername>',
                                dest='datacenter',
                                help='name of datacenter',
                                default=None)
-    mandatory_args.add_argument('-vcenter', '-vc',
+    list_umvols_parser.add_argument('-vcenter', '-vc',
                                help='name of a vcenter',
                                dest='vcenter',
                                metavar='<vcentername>',

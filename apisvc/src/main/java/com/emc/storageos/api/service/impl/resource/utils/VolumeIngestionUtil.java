@@ -2260,12 +2260,18 @@ public class VolumeIngestionUtil {
 
                     // determine the varray to check by matching the vplex cluster names 
                     URI varrayToCheck = null;
+                    URI otherVarray = null;
                     if (null != umaskVplexClusterName) {
                         if (umaskVplexClusterName.equalsIgnoreCase(sourceVarrayVplexClusterName)) {
                             varrayToCheck = varrayUri;
+                            otherVarray = haVarrayUri;
                         } else if (umaskVplexClusterName.equalsIgnoreCase(haVarrayVplexClusterName)) {
                             varrayToCheck = haVarrayUri;
+                            otherVarray = varrayUri;
                         }
+                    } else {
+                        _logger.error("Could not determine UnManagedExportMask VPLEX cluster name for mask " + umask.getMaskName());
+                        return false;
                     }
 
                     // if a varray for filtering could be determined, only include those initiators
@@ -2276,10 +2282,15 @@ public class VolumeIngestionUtil {
                         if (initsToCheck != null && !initsToCheck.isEmpty()) {
                             initiators = CustomQueryUtility.iteratorToList(dbModelClient.find(Initiator.class, initsToCheck));
                         } else {
-                            avoidNumPathCheck = true;
+                            List<URI> otherVarrayInits = varraysToInitiators.get(otherVarray);
+                            if (null != otherVarrayInits && !otherVarrayInits.isEmpty()) {
+                                avoidNumPathCheck = true;
+                            }
                         }
                     } else {
-                        _logger.warn("inits not filtered for vplex distributed because a varray to limit by couldn't be determined.");
+                        _logger.error("inits not filtered for vplex distributed because a varray couldn't be determined for mask " 
+                                        + umask.getMaskName());
+                        return false;
                     }
                     _logger.info("initiators after filtering for vplex distributed: " + initiators);
                 }

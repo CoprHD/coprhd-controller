@@ -96,7 +96,6 @@ import com.google.common.collect.Maps;
 import com.iwave.ext.linux.util.VolumeWWNUtils;
 import com.iwave.ext.vmware.HostStorageAPI;
 import com.iwave.ext.vmware.VCenterAPI;
-import com.iwave.ext.vmware.VMWareException;
 import com.iwave.ext.vmware.VMwareUtils;
 import com.vmware.vim25.HostScsiDisk;
 import com.vmware.vim25.InvalidProperty;
@@ -1404,18 +1403,16 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                 storageAPI.refreshStorage();
                 for (String volume : exportGroup.getVolumes().keySet()) {
                     BlockObject blockObject = BlockObject.fetch(_dbClient, URI.create(volume));
-                    try {
-                        for (HostScsiDisk entry : storageAPI.listScsiDisks()) {
-                            if (VolumeWWNUtils.wwnMatches(VMwareUtils.getDiskWwn(entry), blockObject.getWWN())) {
+                    for (HostScsiDisk entry : storageAPI.listScsiDisks()) {
+                        if (VolumeWWNUtils.wwnMatches(VMwareUtils.getDiskWwn(entry), blockObject.getWWN())) {
+                            if (VMwareUtils.isDiskOff(entry)) {
                                 _log.info("Attach SCSI Lun " + entry.getCanonicalName() + " on host " + esxHost.getLabel());
                                 storageAPI.attachScsiLun(entry);
-
-                                // Test mechanism to invoke a failure. No-op on production systems.
-                                InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_055);
                             }
+                            // Test mechanism to invoke a failure. No-op on production systems.
+                            InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_055);
+                            break;
                         }
-                    } catch (VMWareException ex) {
-                        _log.warn(ex.getMessage(), ex);
                     }
 
                     storageAPI.getStorageSystem().rescanVmfs();
@@ -1424,17 +1421,13 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
 
                     if (blockObject != null) {
 
-                        try {
-                            Datastore datastore = getDatastoreByWwn(wwnDatastores, blockObject.getWWN());
-                            if (datastore != null) {
-                                _log.info("Mounting datastore " + datastore.getName() + " on host " + esxHost.getLabel());
-                                storageAPI.mountDatastore(datastore);
+                        Datastore datastore = getDatastoreByWwn(wwnDatastores, blockObject.getWWN());
+                        if (datastore != null && !VMwareUtils.isDatastoreMountedOnHost(datastore, hostSystem)) {
+                            _log.info("Mounting datastore " + datastore.getName() + " on host " + esxHost.getLabel());
+                            storageAPI.mountDatastore(datastore);
 
-                                // Test mechanism to invoke a failure. No-op on production systems.
-                                InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_056);
-                            }
-                        } catch (VMWareException ex) {
-                            _log.warn(ex.getMessage(), ex);
+                            // Test mechanism to invoke a failure. No-op on production systems.
+                            InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_056);
                         }
                     }
 
@@ -1603,14 +1596,19 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                     if (blockObject != null) {
                         Datastore datastore = getDatastoreByWwn(wwnDatastores, blockObject.getWWN());
                         if (datastore != null) {
-                            boolean storageIOControlEnabled = datastore.getIormConfiguration().isEnabled();
-                            if (storageIOControlEnabled) {
-                                setStorageIOControl(api, datastore, false);
-                            }
-                            _log.info("Unmount datastore " + datastore.getName() + " from host " + esxHost.getLabel());
-                            storageAPI.unmountVmfsDatastore(datastore);
-                            if (storageIOControlEnabled) {
-                                setStorageIOControl(api, datastore, true);
+                            if (VMwareUtils.isDatastoreMountedOnHost(datastore, hostSystem)) {
+                                boolean storageIOControlEnabled = datastore.getIormConfiguration().isEnabled();
+                                if (storageIOControlEnabled) {
+                                    setStorageIOControl(api, datastore, false);
+                                }
+                                _log.info("Unmount datastore " + datastore.getName() + " from host " + esxHost.getLabel());
+                                storageAPI.unmountVmfsDatastore(datastore);
+                                if (storageIOControlEnabled) {
+                                    setStorageIOControl(api, datastore, true);
+                                }
+                            } else {
+                                _log.info("Datastore " + datastore.getName() + " is not mounted on host " + esxHost.getLabel()
+                                        + ". Skipping unmounting of datastore.");
                             }
                         }
                     }
@@ -1619,8 +1617,12 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                     InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_030);
                     for (HostScsiDisk entry : storageAPI.listScsiDisks()) {
                         if (VolumeWWNUtils.wwnMatches(VMwareUtils.getDiskWwn(entry), blockObject.getWWN())) {
-                            _log.info("Detach SCSI Lun " + entry.getCanonicalName() + " from host " + esxHost.getLabel());
-                            storageAPI.detachScsiLun(entry);
+                            if (!VMwareUtils.isDiskOff(entry)) {
+                                _log.info("Detach SCSI Lun " + entry.getCanonicalName() + " from host " + esxHost.getLabel());
+                                storageAPI.detachScsiLun(entry);
+                            } else {
+                                _log.info("SCSI Lun " + entry.getCanonicalName() + " is not in a valid state to detach");
+                            }
                         }
                     }
                     storageAPI.refreshStorage();

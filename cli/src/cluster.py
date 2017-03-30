@@ -188,7 +188,7 @@ class Cluster(object):
     
     def cluster_query(self, name, datacenter, vcenter, tenant=None):
         
-        if(datacenter is "" and vcenter is "" ):
+        if(datacenter is None and vcenter is None):
             resources = self.cluster_search(name)
             for resource in resources:
                 details = self.cluster_show_uri(resource['id'])

@@ -1362,12 +1362,8 @@ public class BrocadeNetworkSystemDevice extends NetworkSystemDeviceImpl
         return byFabric;
     }
 
-	
-	/** IVR is a cisco only feature. Return false. 
-	 * @networkSystem 
-	 * @return - False always.
-	 */
-	public boolean isIvrEnabled(NetworkSystem networkSystem) {
-		return false;
+    @Override
+	public boolean isCapableOfRouting(NetworkSystem networkSystem) {
+		return true;
 	}
 }

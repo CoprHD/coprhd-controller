@@ -250,7 +250,7 @@ public interface NetworkSystemDevice {
     
     /**
      * @param networkSystem NetworkSystem entry
-     * @return true if the NetworkSystem has IVR feature enabled, false otherwise
+     * @return  - Always true for Brocade switches, True for Cisco MDS if IVR feature is enabled, false otherwise
      */
-    public boolean isIvrEnabled(NetworkSystem networkSystem);
+    public boolean isCapableOfRouting(NetworkSystem networkSystem);
 }

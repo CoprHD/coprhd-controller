@@ -491,7 +491,7 @@ public class NetworkDiscoveryWorker {
         StringSet routedNetworks = null;
         Network routedNetwork = null;
 
-        if (!this.getDevice().isIvrEnabled(networkSystem)) {
+        if (!this.getDevice().isCapableOfRouting(networkSystem)) {
         	_log.info("NetworkSystem %s does not have IVR feature enabled, skipping routed networks update/discovery");
         	return;
         }

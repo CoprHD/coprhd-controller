@@ -1108,7 +1108,7 @@ public class MdsNetworkSystemDevice extends NetworkSystemDeviceImpl implements N
      * @return
      * @throws NetworkDeviceControllerException
      */
-    public boolean isIvrEnabled(NetworkSystem networkSystem) throws NetworkDeviceControllerException {
+    private boolean isIvrEnabled(NetworkSystem networkSystem) throws NetworkDeviceControllerException {
         MDSDialog dialog = null;
         try {
             dialog = setUpDialog(networkSystem);
@@ -1962,4 +1962,10 @@ public class MdsNetworkSystemDevice extends NetworkSystemDeviceImpl implements N
             disconnect(dialog);
         }
     }
+
+	
+    @Override
+	public boolean isCapableOfRouting(NetworkSystem networkSystem) {
+		return this.isIvrEnabled(networkSystem);
+	}
 }

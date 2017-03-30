@@ -1187,7 +1187,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
 
         param.setExportPathParameters(exportPathParameters);
 
-        return client.blockExports().getExportPathAdjustmentPreview(exportId, param);
+        return client.blockExports().getExportPortGroupAdjustmentPreview(exportId, param);
     }
 
     @Asset("unassignedBlockVolume")

@@ -327,4 +327,30 @@ public class BlockExports extends ProjectResources<ExportGroupRestRep> implement
     public Task<ExportGroupRestRep> pathAdjustment(URI id, ExportPathsAdjustmentParam input) {
         return putTask(input, getIdUrl() + "/paths-adjustment", id);
     }
+    
+    /**
+     * Generate an export port group preview for use with path adjustment
+     * <p>
+     * API Call: <tt>POST /block/exports/{id}/paths-adjustment-preview</tt>
+     *
+     * @param id of the export group
+     * @param input the update configuration.
+     * @return Port Allocate Preview
+     */
+    public ExportPathsAdjustmentPreviewRestRep getExportPortGroupAdjustmentPreview(URI id, ExportPathsAdjustmentPreviewParam input) {
+        return client.post(ExportPathsAdjustmentPreviewRestRep.class, input, getIdUrl() + "/paths-adjustment-preview", id);
+    }
+    
+    /**
+     * Create task to perform port group adjustment based on information retrieved by export port group preview
+     * <p>
+     * API Call: <tt>POST /block/exports/{id}/paths-adjustment</tt>
+     *
+     * @param id of the export group
+     * @param input the update configuration.
+     * @return a task for monitoring the progress of the export paths adjustment
+     */
+    public Task<ExportGroupRestRep> portGroupAdjustment(URI id, ExportPathsAdjustmentParam input) {
+        return putTask(input, getIdUrl() + "/paths-adjustment", id);
+    }
 }

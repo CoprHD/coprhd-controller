@@ -81,7 +81,7 @@ public class ExportPortGroupAdjustmentService extends ViPRService {
             // if we have no affected or removed, the preview as likely not been generated, so we're going to 
             // generate it before running the service. This is to support the api call and allowing the user
             // to omit sending the serialize string. 
-            runExportPathsPreview();
+            runExportPortGroupPreview();
         } else {
             try {
                 if (resultingPaths != null) {
@@ -130,7 +130,7 @@ public class ExportPortGroupAdjustmentService extends ViPRService {
                 toSendAffectedPaths, toSendRemovedPaths, suspendWait);
     }
     
-    private void runExportPathsPreview() {
+    private void runExportPortGroupPreview() {
         ExportPathsAdjustmentPreviewRestRep previewRestRep = execute(new ExportPathsPreview(host, virtualArray, exportId,
               minPaths, maxPaths, pathsPerInitiator, storageSystem, ports));
         List<InitiatorPortMapRestRep> affectedPaths = previewRestRep.getAdjustedPaths();

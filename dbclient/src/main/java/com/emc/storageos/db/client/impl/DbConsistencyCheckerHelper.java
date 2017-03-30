@@ -874,7 +874,7 @@ public class DbConsistencyCheckerHelper {
         @Override
         public String toString() {
             if (0 == getTotal()) {
-                return null;
+                return "\nNo corrupted rows found.";
             }
             StringBuilder builder = new StringBuilder();
             builder.append("\nCorrupted rows by version: ");

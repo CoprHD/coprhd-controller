@@ -322,7 +322,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                         FileShare fileSystem = _dbClient.queryObject(FileShare.class, stat.getResourceId());
                         if (fileSystem != null) {
                             if (!fileSystem.getInactive()) {
-                                if (null != fileSystem.getUsedCapacity() && null != stat.getAllocatedCapacity()&&
+                                if (null != fileSystem.getUsedCapacity() && null != stat.getAllocatedCapacity() &&
                                         !fileSystem.getUsedCapacity().equals(stat.getAllocatedCapacity())) {
                                     fileSystem.setUsedCapacity(stat.getAllocatedCapacity());
                                     fsChanged = true;
@@ -1053,7 +1053,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                         NativeGUIDGenerator.POOL);
                 @SuppressWarnings("deprecation")
                 List<URI> poolURIs = _dbClient
-                .queryByConstraint(AlternateIdConstraint.Factory.getStoragePoolByNativeGuidConstraint(poolNativeGuid));
+                        .queryByConstraint(AlternateIdConstraint.Factory.getStoragePoolByNativeGuidConstraint(poolNativeGuid));
 
                 for (URI poolUri : poolURIs) {
                     StoragePool pool = _dbClient.queryObject(StoragePool.class, poolUri);
@@ -1199,7 +1199,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                 // Check if storage port was already discovered
                 @SuppressWarnings("deprecation")
                 List<URI> portURIs = _dbClient
-                .queryByConstraint(AlternateIdConstraint.Factory.getStoragePortByNativeGuidConstraint(portNativeGuid));
+                        .queryByConstraint(AlternateIdConstraint.Factory.getStoragePortByNativeGuidConstraint(portNativeGuid));
                 for (URI portUri : portURIs) {
                     StoragePort port = _dbClient.queryObject(StoragePort.class, portUri);
                     if (port.getStorageDevice().equals(storageSystemId) && !port.getInactive()) {
@@ -1278,7 +1278,11 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
         namespace = customConfigHandler.getComputedCustomConfigValue(CustomConfigConstants.ISILON_SYSTEM_ACCESS_ZONE_NAMESPACE, "isilon",
                 ds);
         namespace = namespace.replaceAll("=", "");
-        systemAccessZone = IFS_ROOT + "/" + namespace + "/";
+        if (namespace.isEmpty()) {
+            systemAccessZone = IFS_ROOT + "/";
+        } else {
+            systemAccessZone = IFS_ROOT + "/" + namespace + "/";
+        }
         // get the user access zone
         userAccessZone = getUserAccessZonePath(nasServer);
         // create a dataSouce and place the value for system and user access zone
@@ -1305,7 +1309,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
          * fix COP-27008: if system-access-zone's dir has been removed
          * and is just /ifs/
          */
-        pathList.remove("/ifs/");
+        // pathList.remove("/ifs/");
 
         setDiscPathsForUnManaged(pathList);
 
@@ -1712,7 +1716,8 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                                 storageSystem.getSystemType(), storageSystem.getSerialNumber(), umfsQd.getNativeId(), "");
 
                         String qdPathName = umfsQd.getPath();
-                        UnManagedFileQuotaDirectory unManagedFileQd = checkUnManagedFileSystemQuotaDirectoryExistsInDB(fsUnManagedQdNativeGuid);
+                        UnManagedFileQuotaDirectory unManagedFileQd = checkUnManagedFileSystemQuotaDirectoryExistsInDB(
+                                fsUnManagedQdNativeGuid);
 
                         boolean umfsQdExists = (unManagedFileQd == null) ? false : true;
                         if (umfsQdExists) {
@@ -1934,25 +1939,28 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
 
                 int accessZoneDiscPathLength = computeCustomConfigPathLengths(umfsDiscoverPath);
 
-                IsilonApi.IsilonList<IsilonSmartQuota> quotas = isilonApi.listQuotas(null, umfsDiscoverPath);
+                String resumetoken = "";
+                while (resumetoken != null) {
+                    IsilonApi.IsilonList<IsilonSmartQuota> quotas = isilonApi.listQuotas(resumetoken, umfsDiscoverPath);
 
-                for (IsilonSmartQuota quota : quotas.getList()) {
+                    for (IsilonSmartQuota quota : quotas.getList()) {
 
-                    tempQuotaMap.put(quota.getPath(), quota);
-                    String fsNativeId = quota.getPath();
-                    if (isUnderUnmanagedDiscoveryPath(fsNativeId)) {
-                        int fsPathType = isQuotaOrFile(fsNativeId, accessZoneDiscPathLength);
+                        tempQuotaMap.put(quota.getPath(), quota);
+                        String fsNativeId = quota.getPath();
+                        if (isUnderUnmanagedDiscoveryPath(fsNativeId)) {
+                            int fsPathType = isQuotaOrFile(fsNativeId, accessZoneDiscPathLength);
 
-                        if (fsPathType == PATH_IS_FILE) {
-                            fsQuotaMap.put(fsNativeId, quota);
-                        }
-                        if (fsPathType == PATH_IS_QUOTA) {
-                            quotaDirMap.put(fsNativeId, quota);
+                            if (fsPathType == PATH_IS_FILE) {
+                                fsQuotaMap.put(fsNativeId, quota);
+                            }
+                            if (fsPathType == PATH_IS_QUOTA) {
+                                quotaDirMap.put(fsNativeId, quota);
+                            }
                         }
                     }
+                    resumetoken = quotas.getToken();
                 }
             }
-
             Set<String> filePaths = fsQuotaMap.keySet();
             Set<String> quotaPaths = quotaDirMap.keySet();
             /*
@@ -2158,7 +2166,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
 
     private HashMap<String, HashSet<Integer>> discoverAllExports(StorageSystem storageSystem,
             final List<IsilonAccessZone> isilonAccessZones)
-                    throws IsilonCollectionException {
+            throws IsilonCollectionException {
 
         // Discover All FileSystem
         HashMap<String, HashSet<Integer>> allExports = new HashMap<String, HashSet<Integer>>();
@@ -2410,7 +2418,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
             UnManagedFileSystem unManagedFileSystem,
             String unManagedFileSystemNativeGuid, StorageSystem storageSystem,
             StoragePool pool, NASServer nasServer, FileShare fileSystem)
-                    throws IOException, IsilonCollectionException {
+            throws IOException, IsilonCollectionException {
 
         if (null == unManagedFileSystem) {
             unManagedFileSystem = new UnManagedFileSystem();
@@ -2439,12 +2447,12 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
 
         unManagedFileSystemCharacteristics.put(
                 UnManagedFileSystem.SupportedFileSystemCharacterstics.IS_THINLY_PROVISIONED
-                .toString(),
+                        .toString(),
                 TRUE);
 
         unManagedFileSystemCharacteristics.put(
                 UnManagedFileSystem.SupportedFileSystemCharacterstics.IS_FILESYSTEM_EXPORTED
-                .toString(),
+                        .toString(),
                 FALSE);
 
         if (null != pool) {
@@ -2454,8 +2462,8 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                     UnManagedFileSystem.SupportedFileSystemInformation.STORAGE_POOL.toString(), pools);
             StringSet matchedVPools = DiscoveryUtils.getMatchedVirtualPoolsForPool(_dbClient, pool.getId(),
                     unManagedFileSystemCharacteristics
-                    .get(UnManagedFileSystem.SupportedFileSystemCharacterstics.IS_THINLY_PROVISIONED
-                            .toString()));
+                            .get(UnManagedFileSystem.SupportedFileSystemCharacterstics.IS_THINLY_PROVISIONED
+                                    .toString()));
             _log.debug("Matched Pools : {}", Joiner.on("\t").join(matchedVPools));
             if (null == matchedVPools || matchedVPools.isEmpty()) {
                 // clear all existing supported vpools.
@@ -2487,7 +2495,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
 
         unManagedFileSystemCharacteristics.put(
                 UnManagedFileSystem.SupportedFileSystemCharacterstics.IS_INGESTABLE
-                .toString(),
+                        .toString(),
                 TRUE);
         if (null != storageSystem) {
             StringSet systemTypes = new StringSet();
@@ -2531,7 +2539,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
         provisionedCapacity.add(String.valueOf(capacity));
         unManagedFileSystemInformation.put(
                 UnManagedFileSystem.SupportedFileSystemInformation.PROVISIONED_CAPACITY
-                .toString(),
+                        .toString(),
                 provisionedCapacity);
 
         StringSet allocatedCapacity = new StringSet();
@@ -2542,7 +2550,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
         allocatedCapacity.add(String.valueOf(usedCapacity));
         unManagedFileSystemInformation.put(
                 UnManagedFileSystem.SupportedFileSystemInformation.ALLOCATED_CAPACITY
-                .toString(),
+                        .toString(),
                 allocatedCapacity);
 
         String quotaId = fileSystem.getExtensions().get(QUOTA);
@@ -2553,9 +2561,9 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
 
         // Add fileSystemInformation and Characteristics.
         unManagedFileSystem
-        .addFileSystemInformation(unManagedFileSystemInformation);
+                .addFileSystemInformation(unManagedFileSystemInformation);
         unManagedFileSystem
-        .addFileSystemCharacterstcis(unManagedFileSystemCharacteristics);
+                .addFileSystemCharacterstcis(unManagedFileSystemCharacteristics);
 
         // Initialize ExportMap
         unManagedFileSystem.setFsUnManagedExportMap(new UnManagedFSExportMap());
@@ -2712,8 +2720,8 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
         // use NativeGuid to lookup Pools in DB
         @SuppressWarnings("deprecation")
         List<URI> poolURIs = _dbClient
-        .queryByConstraint(AlternateIdConstraint.Factory
-                .getStoragePoolByNativeGuidConstraint(nativeGuid));
+                .queryByConstraint(AlternateIdConstraint.Factory
+                        .getStoragePoolByNativeGuidConstraint(nativeGuid));
         for (URI poolURI : poolURIs) {
             pool = _dbClient.queryObject(StoragePool.class, poolURI);
             if (pool != null && !pool.getInactive()) {
@@ -3614,10 +3622,10 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                     if (sp.getInactive()
                             || !RegistrationStatus.REGISTERED.toString().equalsIgnoreCase(
                                     sp.getRegistrationStatus())
-                                    || !DiscoveredDataObject.CompatibilityStatus.COMPATIBLE.name()
+                            || !DiscoveredDataObject.CompatibilityStatus.COMPATIBLE.name()
                                     .equals(sp.getCompatibilityStatus())
-                                    || !DiscoveryStatus.VISIBLE.name().equals(
-                                            sp.getDiscoveryStatus())) {
+                            || !DiscoveryStatus.VISIBLE.name().equals(
+                                    sp.getDiscoveryStatus())) {
                         continue;
                     }
                     _log.info("found storage port {} for NAS server {} ", sp.getPortName(), nasServer.getNasName());

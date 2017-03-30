@@ -167,7 +167,6 @@ public class BlockObjectMultipleConsistencyGroupsMigrationTest extends DbSimpleM
         TenantOrg tenantOrg = new TenantOrg();
         URI tenantOrgURI = URIUtil.createId(TenantOrg.class);
         tenantOrg.setId(tenantOrgURI);
-        tenantOrg.setLabel("TestTenant");
         _dbClient.createObject(tenantOrg);
 
         Project proj = new Project();
@@ -175,7 +174,7 @@ public class BlockObjectMultipleConsistencyGroupsMigrationTest extends DbSimpleM
         String projectLabel = "project";
         proj.setId(projectURI);
         proj.setLabel(projectLabel);
-        proj.setTenantOrg(new NamedURI(tenantOrgURI, tenantOrg.getLabel()));
+        proj.setTenantOrg(new NamedURI(tenantOrgURI, projectLabel));
         _dbClient.createObject(proj);
     }
 

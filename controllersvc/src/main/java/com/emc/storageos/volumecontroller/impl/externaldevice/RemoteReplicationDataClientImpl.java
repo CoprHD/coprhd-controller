@@ -235,48 +235,6 @@ public class RemoteReplicationDataClientImpl implements RemoteReplicationDataCli
 
     }
 
-    /**
-     * Check that driver pair has valid replication group and replication set properties
-     *
-     * @param driverReplicationPair replication pair
-     * @param sourceStorageSystem source storage system for pair of volumes
-     * @return
-     */
-    private boolean validateDriverPair(RemoteReplicationPair driverReplicationPair, StorageSystem sourceStorageSystem) {
-
-        // natively managed systems, as VMAX, do not have nativeId set, we will use serial number for identity
-        String systemNativeId = (sourceStorageSystem.getNativeId() == null)? sourceStorageSystem.getSerialNumber() : sourceStorageSystem.getNativeId();
-
-        // Check that driver pair has valid replication set
-        String setNativeId = driverReplicationPair.getReplicationSetNativeId();
-        String setNativeGuid = NativeGUIDGenerator.generateRemoteReplicationSetNativeGuid(sourceStorageSystem.getSystemType(), setNativeId);
-        com.emc.storageos.db.client.model.remotereplication.RemoteReplicationSet systemSet =
-                ExternalDeviceDiscoveryUtils.checkRemoteReplicationSetExistsInDB(setNativeGuid, _dbClient);
-        if (systemSet == null) {
-            String message = String.format("Cannot find replication set %s for replication pair %s in database",
-                    setNativeGuid, driverReplicationPair.getNativeId());
-            _log.error(message);
-            return false;
-        }
-
-        // Check that driver pair has valid replication group
-        String groupNativeId = driverReplicationPair.getReplicationGroupNativeId();
-        if (groupNativeId != null) {
-            // replication group is specified in the pair
-            String groupNativeGuid = NativeGUIDGenerator.generateRemoteReplicationGroupNativeGuid(sourceStorageSystem.getSystemType(),
-                    systemNativeId, groupNativeId);
-
-            com.emc.storageos.db.client.model.remotereplication.RemoteReplicationGroup systemGroup =
-                    ExternalDeviceDiscoveryUtils.checkRemoteReplicationGroupExistsInDB(groupNativeGuid, _dbClient);
-            if (systemGroup == null) {
-                String message = String.format("Cannot find replication group %s for replication pair %s in database",
-                        groupNativeGuid, driverReplicationPair.getNativeId());
-                _log.error(message);
-                return false;
-            }
-        }
-        return true;
-    }
 
     /**
      * Return  replication group for the remote replication pair

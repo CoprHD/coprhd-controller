@@ -154,7 +154,7 @@ public class CustomServicesService extends ViPRService {
 
             final CustomServicesTaskResult res;
             try {
-                if (step.getType().equals("Workflow")) {
+                if (step.getType().equals(StepType.WORKFLOW.toString())) {
                     wfExecutor(step.getOperation());
 
                     // We Don't evaluate output/result for Workflow Step. It is already evaluated.
@@ -178,7 +178,7 @@ public class CustomServicesService extends ViPRService {
                 }
                 next = getNext(isSuccess, res, step);
             } catch (final Exception e) {
-                logger.info("failed to execute step. Try to get rollback step. Exception:{}", e);
+                logger.info("failed to execute step. Try to get rollback step. Exception Received:" + e);
                 next = getNext(false, null, step);
             } finally {
                 orderDirCleanup(orderDir);
@@ -258,8 +258,9 @@ public class CustomServicesService extends ViPRService {
                         }
                         break;
                     case ASSET_OPTION_MULTI:
+                    case ASSET_OPTION_SINGLE:
                     // TODO: Handle multi value
-                    // case ASSET_OPTION_MULTI_VALUE:
+
                     case FROM_STEP_INPUT:
                     case FROM_STEP_OUTPUT: {
                         final String[] paramVal = value.getValue().split("\\.");

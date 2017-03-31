@@ -29,7 +29,8 @@ public final class AnsibleHelper {
     private static final org.slf4j.Logger logger = LoggerFactory.getLogger(AnsibleHelper.class);
 
     public static String getOptions(final String key, final Map<String, List<String>> input) {
-        if (input.get(key) != null) {
+
+        if (input != null && input.get(key) != null && StringUtils.isEmpty(input.get(key).get(0))) {
             return StringUtils.strip(input.get(key).get(0).toString(), "\"");
         }
 

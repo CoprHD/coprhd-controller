@@ -33,6 +33,10 @@ public class RemoteReplicationDataClientImpl implements RemoteReplicationDataCli
     private static final Logger _log = LoggerFactory.getLogger(RemoteReplicationDataClientImpl.class);
     private DbClient _dbClient;
 
+    public void setDbClient(DbClient dbClient) {
+        _dbClient = dbClient;
+    }
+
     @Override
     public void processRemoteReplicationSetsForStorageSystem(StorageSystem storageSystem, List<RemoteReplicationSet> replicationSets) {
 

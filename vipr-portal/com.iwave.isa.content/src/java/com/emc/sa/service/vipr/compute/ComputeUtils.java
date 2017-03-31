@@ -1600,6 +1600,6 @@ public class ComputeUtils {
                 errBuff.append(sep + sep + l.getMessage());
             }
         }
-            return errBuff.toString();
+        return errBuff.toString();
     }
 }

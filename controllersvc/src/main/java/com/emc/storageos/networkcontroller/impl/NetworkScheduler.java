@@ -158,6 +158,45 @@ public class NetworkScheduler {
         }
         fabricInfo.setZoneName(zoneName);
     }
+    
+    /**
+     * Generates a zoneName from the input parameters according to the CustomConfig handler.
+     * @param arrayURI -- URI of StorageSystem
+     * @param initiatorPort -- Initiator port address
+     * @param portNetworkAddress -- Port network address
+     * @param fabricId -- Fabric id
+     * @param lsanZone -- true if LSAN zone
+     * @return -- zone name
+     */
+    public String nameZone(URI arrayURI, String initiatorPort, String portNetworkAddress, 
+            String fabricId, boolean lsanZone) {
+        StorageSystem array = _dbClient.queryObject(StorageSystem.class, arrayURI);
+        Initiator initiator = NetworkUtil.findInitiatorInDB(initiatorPort, _dbClient);
+        StoragePort port = NetworkUtil.getStoragePort(portNetworkAddress, _dbClient);
+        String hostName = initiator.getHostName();
+        if (array == null || initiator == null || hostName == null) {
+            return null;
+        }
+        String systemType = array.getSystemType();
+        
+        DataSource dataSource = dataSourceFactory.createZoneNameDataSource(hostName,
+                initiator, port, fabricId, array);
+        if (array.getSystemType().equals(DiscoveredDataObject.Type.vplex.name())) {
+            dataSource.addProperty(CustomConfigConstants.ARRAY_PORT_NAME,
+                    getVPlexPortName(port));
+            dataSource.addProperty(CustomConfigConstants.ARRAY_SERIAL_NUMBER,
+                    getVPlexClusterSerialNumber(port));
+        }
+        String resolvedZoneName = customConfigHandler.resolve(
+                CustomConfigConstants.ZONE_MASK_NAME, systemType, dataSource);
+        validateZoneNameLength(resolvedZoneName, lsanZone, systemType);
+        String zoneName = customConfigHandler.getComputedCustomConfigValue(
+                CustomConfigConstants.ZONE_MASK_NAME, systemType, dataSource);
+        if (lsanZone && DiscoveredDataObject.Type.brocade.name().equals(systemType)) {
+            zoneName = LSAN + zoneName;
+        }
+        return zoneName;
+    }
 
     /**
      * Validates if zone name length is within the allowed character limit on switches.
@@ -182,7 +221,7 @@ public class NetworkScheduler {
      * @param system StorageSystem
      * @return nine character maximum string generated from director and port fields
      */
-    private String getVPlexPortName(StoragePort port) {
+    private static String getVPlexPortName(StoragePort port) {
         String directorDigits = port.getPortGroup().substring(port.getPortGroup().indexOf("-") + 1,
                 port.getPortGroup().lastIndexOf("-"));
         return directorDigits + port.getPortName();
@@ -194,6 +233,7 @@ public class NetworkScheduler {
      * configuring the zone name for a VPLEX port.
      * 
      * @param port A reference to a VPLEX port.
+     * @param dbClient DbClient reference
      * 
      * @return The serial number for the port's cluster.
      */
@@ -202,6 +242,15 @@ public class NetworkScheduler {
         StorageSystem vplexSystem = _dbClient.queryObject(StorageSystem.class, systemURI);
         String portClusterId = ConnectivityUtil.getVplexClusterOfPort(port);
         return VPlexUtil.getVPlexClusterSerialNumber(portClusterId, vplexSystem);
+    }
+    
+    /**
+     * returns true if a zone name designates an LSAN zone
+     * @param zoneName -- name of zone
+     * @return -- true if LSAN zone
+     */
+    public boolean isLSANZone(String zoneName) {
+        return (zoneName.startsWith(LSAN));
     }
 
     /**

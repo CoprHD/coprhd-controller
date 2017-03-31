@@ -22,6 +22,7 @@ import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.ApplicationContext;
 
 import com.emc.storageos.customconfigcontroller.DataSource;
 import com.emc.storageos.customconfigcontroller.DataSourceFactory;
@@ -51,7 +52,9 @@ import com.emc.storageos.db.client.model.StringSetMap;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.ZoneInfo;
 import com.emc.storageos.db.client.model.ZoneInfoMap;
+import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedExportMask;
 import com.emc.storageos.db.client.util.CommonTransformerFunctions;
+import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.DataObjectUtils;
 import com.emc.storageos.db.client.util.ExportMaskNameGenerator;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
@@ -73,6 +76,7 @@ public class ExportMaskUtils {
     private static final Logger _log = LoggerFactory.getLogger(ExportMaskUtils.class);
 
     private static final ExportMaskNameGenerator nameGenerator = new ExportMaskNameGenerator();
+    private static NetworkScheduler networkScheduler = null;
 
     /**
      * Look up export mask for the storage array in the exports.
@@ -764,16 +768,30 @@ public class ExportMaskUtils {
         exportMask.addToExistingVolumesIfAbsent(wwnToHluMap);
 
         // Update the FCZoneReferences if zoning is enables for the varray
-        updateFCZoneReferences(exportGroup, volume, zoneInfoMap, initiators, dbClient);
+        updateFCZoneReferences(exportGroup, exportMask, volume, zoneInfoMap, initiators, dbClient);
         return exportMask;
     }
 
-    public static <T extends BlockObject> void updateFCZoneReferences(ExportGroup exportGroup, T volume,
-            ZoneInfoMap zoneInfoMap, List<Initiator> initiators, DbClient dbClient) {
+    /**
+     * Creates new zone references and updates any as necessary for exported volume ingestion.
+     * @param exportGroup
+     * @param exportMask
+     * @param volume
+     * @param zoneInfoMap
+     * @param initiators
+     * @param dbClient
+     */
+    public static <T extends BlockObject> void updateFCZoneReferences(ExportGroup exportGroup, ExportMask exportMask, 
+            T volume, ZoneInfoMap zoneInfoMap, List<Initiator> initiators, DbClient dbClient) {
         if (NetworkScheduler.isZoningRequired(dbClient, exportGroup.getVirtualArray())) {
-            dbClient.updateObject(getFCZoneReferences(volume, exportGroup, zoneInfoMap, initiators));
+            List<FCZoneReference> updatedRefs = new ArrayList<FCZoneReference>();
+            List<FCZoneReference> refs = createFCZoneReferences(volume, exportGroup, exportMask, 
+                    zoneInfoMap, initiators, updatedRefs, dbClient);
+            dbClient.createObject(refs);
+            if (!updatedRefs.isEmpty()) {
+                dbClient.updateObject(updatedRefs);
+            }
         }
-
     }
 
     /**
@@ -804,21 +822,75 @@ public class ExportMaskUtils {
      *
      * @param volume the FCZoneReference volume
      * @param exportGroup the FCZoneReference export group
+     * @param exportMask the ExportMask being ingested or initialized
      * @param zoneInfoMap the zone info maps
      * @param initiators the initiators
+     * @param updatedZoneReferences OUT parameter of zone references to be updated
+     * @param dbClient -- Database handle
      * @return a list of FCZoneReference
      */
-    private static <T extends BlockObject> List<FCZoneReference> getFCZoneReferences(T volume, ExportGroup exportGroup,
-            ZoneInfoMap zoneInfoMap, List<Initiator> initiators) {
+    private static <T extends BlockObject> List<FCZoneReference> createFCZoneReferences(
+            T volume, ExportGroup exportGroup, ExportMask exportMask,
+            ZoneInfoMap zoneInfoMap, List<Initiator> initiators, List<FCZoneReference> updatedZoneReferences,
+            DbClient dbClient) {
         List<FCZoneReference> refs = new ArrayList<FCZoneReference>();
+        if (networkScheduler == null) {
+            ApplicationContext context = AttributeMatcherFramework.getApplicationContext();
+            networkScheduler = (NetworkScheduler) context.getBean("networkScheduler");
+        }
         for (Initiator initiator : initiators) {
             for (ZoneInfo info : zoneInfoMap.values()) {
                 if (info.getInitiatorId().equals(initiator.getId().toString())) {
-                    refs.add(createFCZoneReference(info, initiator, volume, exportGroup));
+                    boolean hasExistingVolumes = exportMask.hasAnyExistingVolumes();
+                    // Determine if the zone to be ingested has a compatible zone name.
+                    boolean lsanZone = networkScheduler.isLSANZone(info.getZoneName());
+                    String generatedZoneName = networkScheduler.nameZone(volume.getStorageController(), 
+                            info.getInitiatorWwn(), info.getPortWwn(),  info.getFabricId(), lsanZone);
+                    _log.info(String.format("Zone name %s generated zone name %s", info.getZoneName(), generatedZoneName));
+                    boolean usedInUnmanagedMasks = checkZoneUseInUnManagedExportMasks(
+                            exportMask.getNativeId(), info, dbClient);
+                    boolean externalZone = hasExistingVolumes || !generatedZoneName.equals(info.getZoneName()) 
+                                            || usedInUnmanagedMasks;
+                    if (!externalZone) {
+                        // Find any existing zone references so they can be updated to fully managed (i.e. not existingZone)
+                        List<FCZoneReference> existingZoneRefs = networkScheduler.getFCZoneReferencesForKey(info.getZoneReferenceKey());
+                        for (FCZoneReference zoneRef : existingZoneRefs) {
+                            zoneRef.setExistingZone(false);
+                        }
+                        updatedZoneReferences.addAll(existingZoneRefs);
+                    }
+                    refs.add(createFCZoneReference(info, initiator, volume, exportGroup, externalZone));
                 }
             }
         }
         return refs;
+    }
+    
+    /**
+     * Check for zone in UnManagedExportMasks.
+     */
+    static boolean checkZoneUseInUnManagedExportMasks(String exportMaskNativeId, ZoneInfo info, DbClient dbClient) {
+        String initiatorWwn = info.getInitiatorWwn();
+        boolean inUse = false;
+        List<UnManagedExportMask> unmanagedMasks = 
+                CustomQueryUtility.queryActiveResourcesByAltId(dbClient, UnManagedExportMask.class, 
+                "knownInitiatorNetworkIds", initiatorWwn);
+        for (UnManagedExportMask umask : unmanagedMasks) {
+            if (umask.getKnownInitiatorNetworkIds().contains(initiatorWwn) && !umask.getUnmanagedVolumeUris().isEmpty()) {
+                for (ZoneInfo umZoneInfo : umask.getZoningMap().values()) {
+                    if (exportMaskNativeId.equals(umask.getNativeId())) {
+                        continue;
+                    }
+                    if (info.getInitiatorWwn().equals(umZoneInfo.getInitiatorWwn()) 
+                            && info.getPortWwn().equals(umZoneInfo.getPortWwn())) {
+                        _log.info(String.format("UnManagedExportMask %s zone %s is using the same initiator %s and port %s",
+                                umask.getNativeId(), umZoneInfo.getZoneName(), umZoneInfo.getInitiatorWwn(), umZoneInfo.getPortWwn()));
+                        inUse = true;
+                    }
+                }
+            }
+        }
+        return inUse;
     }
 
     /**
@@ -829,10 +901,11 @@ public class ExportMaskUtils {
      * @param initiator the zone initiator
      * @param volume volume the FCZoneReference volume
      * @param exportGroup the FCZoneReference export group
+     * @param externalZone - should be true for externally managed zone
      * @return an instance of FCZoneReference
      */
     private static <T extends BlockObject> FCZoneReference createFCZoneReference(ZoneInfo info,
-            Initiator initiator, T volume, ExportGroup exportGroup) {
+            Initiator initiator, T volume, ExportGroup exportGroup, boolean externalZone) {
         FCZoneReference ref = new FCZoneReference();
         ref.setPwwnKey(info.getZoneReferenceKey());
         ref.setFabricId(info.getFabricId());
@@ -842,7 +915,7 @@ public class ExportMaskUtils {
         ref.setZoneName(info.getZoneName());
         ref.setId(URIUtil.createId(FCZoneReference.class));
         ref.setLabel(FCZoneReference.makeLabel(ref.getPwwnKey(), volume.getId().toString()));
-        ref.setExistingZone(true);
+        ref.setExistingZone(externalZone);
         return ref;
     }
 

@@ -367,7 +367,7 @@ public class URIUtil {
         return returnIds;
     }
 
-    public static boolean equals(URI uri1, URI uri2) {
+    public static boolean uriEquals(URI uri1, URI uri2) {
         return uri1 == null ? uri2 == null : uri1.equals(uri2);
     }
 

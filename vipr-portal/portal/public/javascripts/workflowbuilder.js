@@ -347,6 +347,8 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
     var treecontroller = $element.find('#theSidebar');
     var jspInstance;
     $scope.workflowData = {};
+    $scope.stepInputOptions = [];
+    $scope.stepOutputOptions = [];
     $scope.modified = false;
     $scope.selectedId = '';
 
@@ -524,6 +526,27 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
             if (sourceEndpoint.hasClass("failEndpoint")) {
                 sourceNext.failedStep=connection.targetId
             }
+            // Populate array for input and output from previous steps
+            var inparams = sourceData.inputGroups.input_params.inputGroup;
+            for(var inputparam in inparams) {
+            	if(inparams.hasOwnProperty(inputparam)) {
+            		var inparam_name = inparams[inputparam].name;
+            		var stepidconcate = sourceData.id + "." + inparam_name;
+            		var stepnameconcate = sourceData.friendlyName + " " + inparam_name
+            		
+            		$scope.stepInputOptions.push({id:stepidconcate, name:stepnameconcate});
+            	}
+            }
+            var outparams = sourceData.output;
+            for(var outputparam in outparams) {
+            	if(outparams.hasOwnProperty(outputparam)) {
+            		var outparam_name = outparams[outputparam].name;
+            		var stepidconcate = sourceData.id + "." + outparam_name;
+            		var stepnameconcate = sourceData.friendlyName + " " + outparam_name
+            		
+            		$scope.stepOutputOptions.push({id:stepidconcate, name:stepnameconcate});
+            	}
+            }            
             sourceData.next=sourceNext;
             $scope.modified = true;
             $scope.$apply();
@@ -613,6 +636,9 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
 
     $scope.select = function(stepId) {
         $scope.selectedId = stepId;
+        $scope.InputFieldOption=[{id:'Single', name:'Single Field Input'}, {id:'Table', name:'Table Column'}];
+        $scope.UserInputTypeOption=[{id:'Int', name:'Integer'}, {id:'Str', name:'String'}, {id:'Asset', name:'AssetOption'}, {id:'boolean', name:'Boolean'}];
+        $scope.StepOption=[{id:'Stepin', name:'Step Input'}, {id:'Stepout', name:'Step Output'}];
         var data = diagramContainer.find('#'+stepId).data("oeData");
         $scope.stepData = data;
         $scope.menuOpen = true;

@@ -42,13 +42,13 @@ public class CustomServicesRESTExecution extends ViPRExecutionTask<CustomService
     private final Map<String, List<String>> input;
     private final CustomServicesWorkflowDocument.Step step;
 
-    @Autowired
-    private CoordinatorClient coordinator;
+    private final CoordinatorClient coordinator;
 
     public CustomServicesRESTExecution(final Map<String, List<String>> input,
-            final CustomServicesWorkflowDocument.Step step) {
+            final CustomServicesWorkflowDocument.Step step, final CoordinatorClient coordinator) {
         this.input = input;
         this.step = step;
+        this.coordinator = coordinator;
     }
 
     @Override

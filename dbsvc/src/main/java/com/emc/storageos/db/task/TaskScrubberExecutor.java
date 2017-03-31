@@ -108,7 +108,7 @@ public class TaskScrubberExecutor {
                 List<URI> tenantIds = getTenantIds();
                 
                 for (URI tenantId : tenantIds) {
-                    tasksDeleted += deletePendingTasksForTenant(tenantId, startTimeMarker);
+                    tasksDeleted += deleteOldCompletedTasksForTenant(tenantId, startTimeMarker);
                     if (tasksDeleted >= MAXIMUM_TASK_TO_DELETE) {
                         break;
                     }
@@ -123,6 +123,10 @@ public class TaskScrubberExecutor {
         }
     }
     
+    /**
+     * get the list of all tenant ids
+     * @return
+     */
     private List<URI> getTenantIds() {
         log.debug("getting a list of all tenants");
         List<URI> tenantIds = new ArrayList<URI>();
@@ -136,7 +140,13 @@ public class TaskScrubberExecutor {
         return tenantIds;
     }
     
-    private int deletePendingTasksForTenant(URI tenantId, Calendar startTimeMarker) {
+    /**
+     * deletes old completed tasks for a tenant
+     * @param tenantId tenant to delete tasks for
+     * @param startTimeMarker time that determines which tasks are old
+     * @return the number of tasks deleted
+     */
+    private int deleteOldCompletedTasksForTenant(URI tenantId, Calendar startTimeMarker) {
         log.debug("deleting completed tasks for tenant {}", tenantId);
         int tasksDeleted = 0;
         Map<String, List<URI>> batchedIds = findTasksForTenantNotPending(tenantId);
@@ -157,8 +167,7 @@ public class TaskScrubberExecutor {
                         toBeDeleted.add(task);
                     }
                     if (toBeDeleted.size() >= DELETE_BATCH_SIZE) {
-                        log.info("Deleting {} Tasks for tenant {}", toBeDeleted.size(), tenantId);
-                        dbClient.removeObject(toBeDeleted.toArray(new DataObject[toBeDeleted.size()]));
+                        removeTasks(toBeDeleted, tenantId);
                         toBeDeleted.clear();
                     }
                     if (tasksDeleted >= MAXIMUM_TASK_TO_DELETE) {
@@ -167,8 +176,7 @@ public class TaskScrubberExecutor {
                 }
     
                 if (!toBeDeleted.isEmpty()) {
-                    log.info("Deleting {} Tasks for tenant {}", toBeDeleted.size(), tenantId);
-                    dbClient.removeObject(toBeDeleted.toArray(new DataObject[toBeDeleted.size()]));
+                    removeTasks(toBeDeleted, tenantId);
                 } 
             } catch (Exception e) {
                 log.error(e.getMessage(), e);
@@ -178,13 +186,22 @@ public class TaskScrubberExecutor {
         log.debug("done deleting completed tasks for tenant {}", tenantId);
         return tasksDeleted;
     }
+    
+    /**
+     * remove tasks from db with logging
+     * @param toBeDeleted
+     * @param tenantId
+     */
+    private void removeTasks(List<Task> toBeDeleted, URI tenantId) {
+        log.info("Deleting {} Tasks for tenant {}", toBeDeleted.size(), tenantId);
+        dbClient.removeObject(toBeDeleted.toArray(new DataObject[toBeDeleted.size()]));
+    }
 
     /**
      * returns non-pending task ids for a tenant
      * 
      * @param dbClient
-     * @param resourceId
-     * @return
+     * @return a map of task ids in buckets of 10k each
      */
     private Map<String, List<URI>> findTasksForTenantNotPending(URI tenantId) {
         log.debug("searching for completed tasks for tenant {}", tenantId);
@@ -216,6 +233,12 @@ public class TaskScrubberExecutor {
         return notPendingTasks;
     }
     
+    /**
+     * Acquire a distrubuted lock to ensure no other node will perform task scrubbing concurrently
+     *  wait up to 30 seconds to acquire the lock
+     * 
+     * @return true if the lock was successfully acquired
+     */
     private boolean acquireLock() {
         boolean acquired = false;
         try {
@@ -234,6 +257,9 @@ public class TaskScrubberExecutor {
         return acquired;
     }
     
+    /**
+     * release the distributed task scrubber lock
+     */
     private void releaseLock() {
         log.info("Attempting to release distributed lock {}", TASK_SCRUBBER_LOCK);
         try {

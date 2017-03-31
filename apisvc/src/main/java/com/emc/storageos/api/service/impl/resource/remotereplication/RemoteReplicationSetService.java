@@ -307,8 +307,8 @@ public class RemoteReplicationSetService extends TaskResourceService {
         if (!ConsistencyGroupUtils.isConsistencyGroupSupportRemoteReplication(cGroup)) {
             return result;
         }
-        Set<String> targetCGSystemsSet = ConsistencyGroupUtils
-                .findAllRRConsistencyGrroupSystemsByAlternateLabel(cGroup.getLabel(), _dbClient);
+
+        Set<String> targetCGSystemLabels = getTargetCGSystemLabels(cGroup);
         Iterator<RemoteReplicationSet> sets = RemoteReplicationUtils.findAllRemoteRepliationSetsIteratively(_dbClient);
         while (sets.hasNext()) {
             RemoteReplicationSet rrSet = sets.next();
@@ -317,17 +317,35 @@ public class RemoteReplicationSetService extends TaskResourceService {
                 // Pass ones whose storage system type is not aligned with consistency group
                 continue;
             }
-            if (!rrSet.getSourceSystems().contains(cGroup.getStorageController())) {
+            if (!rrSet.getSourceSystems().contains(cgSystem.getLabel())) {
                 // Pass ones whose source systems can't cover source CG
                 continue;
             }
-            if (!rrSet.getTargetSystems().containsAll(targetCGSystemsSet)) {
+            if (!rrSet.getTargetSystems().containsAll(targetCGSystemLabels)) {
                 // Pass ones whose target systems can't cover target CGs
                 continue;
             }
             result.getRemoteReplicationSets().add(toNamedRelatedResource(rrSet));
         }
         return result;
+    }
+
+    /**
+     * Query all target consistency groups by given source consistency group,
+     * and return their labels
+     */
+    private Set<String> getTargetCGSystemLabels(BlockConsistencyGroup cGroup) {
+        Set<String> targetCGSystemsSet = ConsistencyGroupUtils
+                .findAllRRConsistencyGrroupSystemsByAlternateLabel(cGroup.getLabel(), _dbClient);
+        Set<String> systemLabels = new HashSet<>();
+        for (String uriStr : targetCGSystemsSet) {
+            StorageSystem system = _dbClient.queryObject(StorageSystem.class, URI.create(uriStr));
+            String label;
+            if ((label = system.getLabel()) != null) {
+                systemLabels.add(label);
+            }
+        }
+        return systemLabels;
     }
 
     /**

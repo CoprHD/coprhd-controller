@@ -36,7 +36,7 @@ public enum LsServerOperStates {
     POWER_PROBLEM("power-problem"),
     VOLTAGE_PROBLEM("voltage-problem"),
     INOPERABLE("inoperable"),
-    DECOMISSIONING("decomissioning"),
+    DECOMMISSIONING("decommissioning"),
     BIOS_RESTORE("bios-restore"),
     CMOS_RESET("cmos-reset"),
     DIAGNOSTICS("diagnostics"),

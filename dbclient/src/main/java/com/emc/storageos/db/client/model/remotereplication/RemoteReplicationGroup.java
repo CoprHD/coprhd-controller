@@ -63,6 +63,20 @@ public class RemoteReplicationGroup extends DiscoveredDataObject {
     @Deprecated
     private URI replicationSet;
 
+    // Tenant of this pair
+    private NamedURI tenant;
+
+
+    @Name("tenant")
+    public NamedURI getTenant() {
+        return tenant;
+    }
+
+    public void setTenant(NamedURI tenant) {
+        this.tenant = tenant;
+        setChanged("tenant");
+    }
+
     @Name("nativeId")
     public String getNativeId() {
         return nativeId;

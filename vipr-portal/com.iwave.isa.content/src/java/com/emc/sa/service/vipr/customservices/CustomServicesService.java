@@ -26,6 +26,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import com.emc.sa.service.vipr.customservices.tasks.*;
+import com.emc.sa.service.vipr.tasks.ViPRExecutionTask;
 import org.apache.commons.lang.StringUtils;
 import org.codehaus.jackson.JsonNode;
 import org.codehaus.jackson.map.ObjectMapper;
@@ -44,11 +46,6 @@ import com.emc.sa.service.vipr.ViPRExecutionUtils;
 import com.emc.sa.service.vipr.ViPRService;
 import com.emc.sa.service.vipr.customservices.gson.ViprOperation;
 import com.emc.sa.service.vipr.customservices.gson.ViprTask;
-import com.emc.sa.service.vipr.customservices.tasks.CustomServicesRestTaskResult;
-import com.emc.sa.service.vipr.customservices.tasks.CustomServicesRESTExecution;
-import com.emc.sa.service.vipr.customservices.tasks.CustomServicesTaskResult;
-import com.emc.sa.service.vipr.customservices.tasks.RunAnsible;
-import com.emc.sa.service.vipr.customservices.tasks.RunViprREST;
 import com.emc.sa.workflow.WorkflowHelper;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.model.uimodels.CustomServicesWorkflow;
@@ -75,30 +72,27 @@ public class CustomServicesService extends ViPRService {
     final private Map<String, Map<String, List<String>>> outputPerStep = new HashMap<String, Map<String, List<String>>>();
     private Map<String, Object> params;
     private String oeOrderJson;
-    @Autowired
-    private CoordinatorClient coordinatorClient;
+
     @Autowired
     private DbClient dbClient;
     @Autowired
-    private CustomServicesPrimitiveDAOs daos;
+    private CustomServicesExecutors executor;
 
     private int code;
     private URI uri;
 
     @Override
     public void precheck() throws Exception {
-
         // get input params from order form
         params = ExecutionUtils.currentContext().getParameters();
-	//Assign Parent WFID to null as we get the WF Doc from Order context.
-        uri = null;
+
     }
 
     @Override
     public void execute() throws Exception {
         ExecutionUtils.currentContext().logInfo("customServicesService.title");
         try {
-            wfExecutor();
+            wfExecutor(null);
             ExecutionUtils.currentContext().logInfo("customServicesService.successStatus");
         } catch (final Exception e) {
             ExecutionUtils.currentContext().logError("customServicesService.failedStatus");
@@ -115,7 +109,7 @@ public class CustomServicesService extends ViPRService {
             raw = ExecutionUtils.currentContext().getOrder().getWorkflowDocument();
         } else {
             //Get it from DB
-            CustomServicesWorkflow wf = dbClient.queryObject(CustomServicesWorkflow.class, uri);
+            final CustomServicesWorkflow wf = dbClient.queryObject(CustomServicesWorkflow.class, uri);
             raw = WorkflowHelper.toWorkflowDocumentJson(wf);
         }
         if (null == raw) {
@@ -141,7 +135,7 @@ public class CustomServicesService extends ViPRService {
      *
      * @throws Exception
      */
-    public void wfExecutor() throws Exception {
+    public void wfExecutor(final URI uri) throws Exception {
 
         logger.info("Parsing Workflow Definition");
 
@@ -158,58 +152,20 @@ public class CustomServicesService extends ViPRService {
             ExecutionUtils.currentContext().logInfo("customServicesService.stepStatus", step.getId(), step.getType());
 
             updateInputPerStep(step);
+
             final CustomServicesTaskResult res;
-
             try {
-                StepType type = StepType.fromString(step.getType());
-                switch (type) {
-                    case VIPR_REST:
+                if (step.getType().equals("Workflow")) {
+                    wfExecutor(step.getOperation());
 
-                        final CustomServicesPrimitiveType primitive = daos.get("vipr").get(step.getOperation());
+                    // We Don't evaluate output/result for Workflow Step. It is already evaluated.
+                    // We would have got exception if Sub WF has failed
+                    res = new CustomServicesTaskResult("Success", "No Error", 200, null);
+                } else {
+                    final MakeCustomServicesExecutor task = executor.get(step.getType());
 
-                        if (null == primitive) {
-                            throw InternalServerErrorException.internalServerErrors
-                                    .customServiceExecutionFailed("Primitive not found: " + step.getOperation());
-                        }
-
-                        res = ViPRExecutionUtils.execute(new RunViprREST((CustomServicesViPRPrimitive) (primitive),
-                                getClient().getRestClient(), inputPerStep.get(step.getId())));
-                        break;
-                    case REST:
-
-                        res = ViPRExecutionUtils
-                                .execute(new CustomServicesRESTExecution(coordinatorClient, inputPerStep.get(step.getId()), step));
-                        break;
-                    case LOCAL_ANSIBLE:
-
-                        createOrderDir(orderDir);
-                        res = ViPRExecutionUtils.execute(new RunAnsible(step, inputPerStep.get(step.getId()), params, dbClient, orderDir));
-                        break;
-                    case SHELL_SCRIPT:
-
-                        createOrderDir(orderDir);
-                        res = ViPRExecutionUtils.execute(new RunAnsible(step, inputPerStep.get(step.getId()), params, dbClient, orderDir));
-                        break;
-                    case REMOTE_ANSIBLE:
-
-                        res = ViPRExecutionUtils.execute(new RunAnsible(step, inputPerStep.get(step.getId()), params, dbClient, orderDir));
-                        break;
-                    case WORKFLOW:
-                        uri = step.getOperation();
-                        wfExecutor();
-			// We Don't evaluate output/result for Workflow Step. It is already evaluated.
-			// We would have got exception if Sub WF has failed
-                        res = new CustomServicesTaskResult("Success", "No Error", 200, null);
-
-                        break;
-
-                    default:
-                        logger.error("Operation Type Not found. Type:{}", step.getType());
-
-                        throw InternalServerErrorException.internalServerErrors
-                                .customServiceExecutionFailed("Operation Type not supported" + type);
+                    res = ViPRExecutionUtils.execute(task.makeCustomServicesExecutor(inputPerStep.get(step.getId()), step));
                 }
-
 
                 boolean isSuccess = isSuccess(step, res);
                 if (isSuccess) {
@@ -236,23 +192,6 @@ public class CustomServicesService extends ViPRService {
                 throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed("Operation Timed out");
             }
         }
-    }
-
-    private boolean createOrderDir(final String orderDir) {
-        try {
-            final File file = new File(orderDir);
-            if (!file.exists()) {
-                return file.mkdir();
-            } else {
-                logger.info("Order directory already exists: {}", orderDir);
-                return true;
-            }
-        } catch (final Exception e) {
-            logger.error("Failed to create directory" + e);
-            throw InternalServerErrorException.internalServerErrors
-                    .customServiceExecutionFailed("Failed to create Order directory " + orderDir);
-        }
-
     }
 
     private void orderDirCleanup(final String orderDir) {
@@ -319,8 +258,6 @@ public class CustomServicesService extends ViPRService {
                         }
                         break;
                     case ASSET_OPTION_MULTI:
-
-
                     // TODO: Handle multi value
                     // case ASSET_OPTION_MULTI_VALUE:
                     case FROM_STEP_INPUT:

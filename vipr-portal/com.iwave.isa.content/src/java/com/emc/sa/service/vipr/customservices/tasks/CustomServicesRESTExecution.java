@@ -34,17 +34,19 @@ import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.model.customservices.CustomServicesWorkflowDocument;
 import com.emc.storageos.primitives.CustomServicesConstants;
 import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorException;
+import org.springframework.beans.factory.annotation.Autowired;
 
 public class CustomServicesRESTExecution extends ViPRExecutionTask<CustomServicesTaskResult> {
-
-    private final CoordinatorClient coordinator;
-    private final Map<String, List<String>> input;
-    private final CustomServicesWorkflowDocument.Step step;
     private static final org.slf4j.Logger logger = LoggerFactory.getLogger(CustomServicesRESTExecution.class);
 
-    public CustomServicesRESTExecution(final CoordinatorClient coordinator, final Map<String, List<String>> input,
-                                        final CustomServicesWorkflowDocument.Step step) {
-        this.coordinator = coordinator;
+    private final Map<String, List<String>> input;
+    private final CustomServicesWorkflowDocument.Step step;
+
+    @Autowired
+    private CoordinatorClient coordinator;
+
+    public CustomServicesRESTExecution(final Map<String, List<String>> input,
+            final CustomServicesWorkflowDocument.Step step) {
         this.input = input;
         this.step = step;
     }

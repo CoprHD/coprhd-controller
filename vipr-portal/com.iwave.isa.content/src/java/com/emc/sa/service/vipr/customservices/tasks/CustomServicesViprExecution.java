@@ -25,8 +25,12 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import com.emc.sa.catalog.primitives.CustomServicesPrimitiveDAOs;
+import com.emc.storageos.model.customservices.CustomServicesWorkflowDocument;
+import com.emc.storageos.primitives.CustomServicesPrimitiveType;
 import org.apache.commons.io.IOUtils;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.util.UriTemplate;
 
 import com.emc.sa.engine.ExecutionUtils;
@@ -43,18 +47,26 @@ import com.sun.jersey.api.client.ClientResponse;
 /**
  * This provides ability to run ViPR REST APIs
  */
-public class RunViprREST extends ViPRExecutionTask<CustomServicesTaskResult> {
-
-    private static final org.slf4j.Logger logger = LoggerFactory.getLogger(RunViprREST.class);
-
+public class CustomServicesViprExecution extends ViPRExecutionTask<CustomServicesTaskResult> {
+    private static final org.slf4j.Logger logger = LoggerFactory.getLogger(CustomServicesViprExecution.class);
     private final Map<String, List<String>> input;
-    private final RestClient client;
+    private final RestClient client = getClient().getRestClient();
     private final CustomServicesViPRPrimitive primitive;
+    private final CustomServicesWorkflowDocument.Step step;
 
-    public RunViprREST(final CustomServicesViPRPrimitive primitive, final RestClient client, final Map<String, List<String>> input) {
+    @Autowired
+    private CustomServicesPrimitiveDAOs daos;
+
+    public CustomServicesViprExecution(final Map<String, List<String>> input, final CustomServicesWorkflowDocument.Step step) {
         this.input = input;
-        this.client = client;
-        this.primitive = primitive;
+        this.step = step;
+        final CustomServicesPrimitiveType primitive = daos.get("vipr").get(step.getOperation());
+
+        if (null == primitive) {
+            throw InternalServerErrorException.internalServerErrors
+                    .customServiceExecutionFailed("Primitive not found: " + step.getOperation());
+        }
+        this.primitive = (CustomServicesViPRPrimitive)primitive;
     }
 
     @Override

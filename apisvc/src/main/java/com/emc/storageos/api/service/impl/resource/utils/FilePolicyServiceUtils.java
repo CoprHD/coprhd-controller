@@ -84,7 +84,7 @@ public class FilePolicyServiceUtils {
             }
 
             // validating schedule time
-            String period = " PM";
+            String period = " AM";
             int hour;
             int minute;
             boolean isValid = true;
@@ -115,10 +115,10 @@ public class FilePolicyServiceUtils {
                     } else{
                         scheduleTime.append(minute);
                     }
-                    scheduleTime.append(" ").append(period);
+                    scheduleTime.append(period);
                     policyScheduleparams.setScheduleTime(scheduleTime.toString());
                 } else {
-                    scheduleTime.append(policyScheduleparams.getScheduleTime().trim()).append(" ").append(period);
+                    scheduleTime.append(policyScheduleparams.getScheduleTime().trim()).append(period);
                     policyScheduleparams.setScheduleTime(scheduleTime.toString());
                 }
             } else {
@@ -133,7 +133,7 @@ public class FilePolicyServiceUtils {
                 case HOURS:
                 case DAYS:
                     schedulePolicy.setScheduleRepeat((long) policyScheduleparams.getScheduleRepeat());
-                    schedulePolicy.setScheduleTime(policyScheduleparams.getScheduleTime() + period);
+                    schedulePolicy.setScheduleTime(policyScheduleparams.getScheduleTime());
                     if (schedulePolicy.getScheduleDayOfWeek() != null && !schedulePolicy.getScheduleDayOfWeek().isEmpty()) {
                         schedulePolicy.setScheduleDayOfWeek(NullColumnValueGetter.getNullStr());
                     }
@@ -156,7 +156,7 @@ public class FilePolicyServiceUtils {
                         errorMsg.append("required parameter schedule_day_of_week is missing or empty");
                         return false;
                     }
-                    schedulePolicy.setScheduleTime(policyScheduleparams.getScheduleTime() + period);
+                    schedulePolicy.setScheduleTime(policyScheduleparams.getScheduleTime());
                     if (schedulePolicy.getScheduleDayOfMonth() != null) {
                         schedulePolicy.setScheduleDayOfMonth(0L);
                     }
@@ -166,7 +166,7 @@ public class FilePolicyServiceUtils {
                             && policyScheduleparams.getScheduleDayOfMonth() > 0 && policyScheduleparams.getScheduleDayOfMonth() <= 31) {
                         schedulePolicy.setScheduleDayOfMonth((long) policyScheduleparams.getScheduleDayOfMonth());
                         schedulePolicy.setScheduleRepeat((long) policyScheduleparams.getScheduleRepeat());
-                        schedulePolicy.setScheduleTime(policyScheduleparams.getScheduleTime() + period);
+                        schedulePolicy.setScheduleTime(policyScheduleparams.getScheduleTime());
                         if (schedulePolicy.getScheduleDayOfWeek() != null) {
                             schedulePolicy.setScheduleDayOfWeek(NullColumnValueGetter.getNullStr());
                         }

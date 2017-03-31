@@ -31,7 +31,6 @@ import com.emc.storageos.db.client.model.uimodels.CustomServicesDBScriptResource
 import com.emc.storageos.model.customservices.CustomServicesPrimitiveCreateParam;
 import com.emc.storageos.model.customservices.CustomServicesPrimitiveRestRep;
 import com.emc.storageos.model.customservices.CustomServicesPrimitiveUpdateParam;
-import com.emc.storageos.primitives.CustomServicesPrimitive;
 import com.emc.storageos.primitives.db.script.CustomServicesScriptPrimitive;
 
 /**
@@ -49,7 +48,7 @@ public class CustomServicesScriptPrimitiveDAO implements CustomServicesPrimitive
 
     @Override
     public String getType() {
-        return CustomServicesPrimitive.StepType.SHELL_SCRIPT.toString();
+        return CustomServicesScriptPrimitive.TYPE;
     }
 
     @Override

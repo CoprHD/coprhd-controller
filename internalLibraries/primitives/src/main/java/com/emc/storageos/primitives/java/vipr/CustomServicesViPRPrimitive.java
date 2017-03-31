@@ -50,7 +50,7 @@ public abstract class CustomServicesViPRPrimitive extends CustomServicesPrimitiv
     
     @Override 
     public String type() {
-        return StepType.VIPR_REST.toString();
+        return TYPE;
     }
     
     @Override 

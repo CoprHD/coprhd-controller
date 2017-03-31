@@ -27,6 +27,7 @@ import com.sun.jersey.api.client.WebResource;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.service.vipr.tasks.ViPRExecutionTask;
@@ -34,7 +35,6 @@ import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.model.customservices.CustomServicesWorkflowDocument;
 import com.emc.storageos.primitives.CustomServicesConstants;
 import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorException;
-import org.springframework.beans.factory.annotation.Autowired;
 
 public class CustomServicesRESTExecution extends ViPRExecutionTask<CustomServicesTaskResult> {
     private static final org.slf4j.Logger logger = LoggerFactory.getLogger(CustomServicesRESTExecution.class);

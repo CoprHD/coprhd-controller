@@ -31,7 +31,6 @@ import com.emc.storageos.db.client.model.ModelObject;
 import com.emc.storageos.model.customservices.CustomServicesPrimitiveCreateParam;
 import com.emc.storageos.model.customservices.CustomServicesPrimitiveRestRep;
 import com.emc.storageos.model.customservices.CustomServicesPrimitiveUpdateParam;
-import com.emc.storageos.primitives.CustomServicesPrimitive;
 import com.emc.storageos.primitives.java.vipr.CustomServicesViPRPrimitive;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.google.common.collect.ImmutableList;
@@ -68,7 +67,7 @@ public class CustomServicesViprPrimitiveDAO implements
 
     @Override
     public String getType() {
-        return CustomServicesPrimitive.StepType.VIPR_REST.toString();
+        return CustomServicesViPRPrimitive.TYPE;
     }
 
     @Override

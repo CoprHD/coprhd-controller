@@ -1570,12 +1570,12 @@ def add_cluster_parser(subcommand_parsers, common_parser):
                                 metavar='<datacentername>',
                                 dest='datacenter',
                                 help='name of datacenter',
-                                default="")
+                                default=None)
     add_cluster_parser.add_argument('-vcenter', '-vc',
                                 help='name of a vcenter',
                                 dest='vcenter',
                                 metavar='<vcentername>',
-                                default="")                                
+                                default=None)                                
     add_cluster_parser.add_argument('-tenant', '-tn',
                                     metavar='<tenantname>',
                                     dest='tenant',

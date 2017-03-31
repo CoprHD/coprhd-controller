@@ -170,6 +170,13 @@ public class TaskScrubberExecutor {
                         removeTasks(toBeDeleted, tenantId);
                         toBeDeleted.clear();
                     }
+                    
+                    // Don't delete more than MAXIMUM_TASK_TO_DELETE tasks in one iteration
+                    // Prior to 3.6, a bug may have caused old completed tasks to not be cleaned up
+                    // Having a maximum number of tasks to delete per iteration will prevent the 
+                    // system from being overloaded while catching up; we want to avoid customers
+                    // experiencing poor performance just after upgrade to 3.6 because they may
+                    // have many tasks that now can be cleaned up
                     if (tasksDeleted >= MAXIMUM_TASK_TO_DELETE) {
                         break;
                     }

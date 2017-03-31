@@ -79,7 +79,7 @@ public class SRDFUtils implements SmisConstants {
     private DbClient dbClient;
     private CIMObjectPathFactory cimPath;
     private SmisCommandHelper helper;
-    private static RemoteReplicationDataClientImpl remoteReplicationDataClient;
+    private RemoteReplicationDataClientImpl remoteReplicationDataClient;
 
     public enum SyncDirection {
         SOURCE_TO_TARGET,
@@ -99,8 +99,8 @@ public class SRDFUtils implements SmisConstants {
         this.helper = helper;
     }
 
-    public static void setRemoteReplicationDataClient(RemoteReplicationDataClientImpl remoteReplicationDataClient) {
-        SRDFUtils.remoteReplicationDataClient = remoteReplicationDataClient;
+    public void setRemoteReplicationDataClient(RemoteReplicationDataClientImpl remoteReplicationDataClient) {
+        this.remoteReplicationDataClient = remoteReplicationDataClient;
     }
 
     public CIMInstance getInstance(final CIMObjectPath path, final StorageSystem sourceSystem) {
@@ -899,7 +899,7 @@ public class SRDFUtils implements SmisConstants {
      * @param Reference to remoteSystem
      * @return RemoteReplicationSet
      */
-    public static RemoteReplicationSet createRemoteReplicationSet(StorageSystem storageSystem, StorageSystem remoteSystem) {
+    public RemoteReplicationSet createRemoteReplicationSet(StorageSystem storageSystem, StorageSystem remoteSystem) {
 
         Set<RemoteReplicationSet.ElementType> supportedElementTypes = new HashSet<>();
         supportedElementTypes.add(RemoteReplicationSet.ElementType.REPLICATION_GROUP);
@@ -946,7 +946,7 @@ public class SRDFUtils implements SmisConstants {
      * @param Reference to remoteSystem
      * @return RemoteReplicationGroup
      */
-    public static RemoteReplicationGroup createRemoteReplicationGroup(RemoteDirectorGroup raGroup, StorageSystem storageSystem,
+    public RemoteReplicationGroup createRemoteReplicationGroup(RemoteDirectorGroup raGroup, StorageSystem storageSystem,
             StorageSystem remoteSystem) {
         RemoteReplicationGroup rrGroup = new RemoteReplicationGroup();
         rrGroup.setNativeId(storageSystem.getSerialNumber() + Constants.PLUS + raGroup.getSourceGroupId() + Constants.PLUS
@@ -971,7 +971,7 @@ public class SRDFUtils implements SmisConstants {
      * @return NONE
      */
 
-    public static void processRemoteReplicationObjects(DbClient dbClient, URI storageSystemId) {
+    public void processRemoteReplicationObjects(DbClient dbClient, URI storageSystemId) {
         StorageSystem storageSystem = dbClient.queryObject(StorageSystem.class, storageSystemId);
         if ((storageSystem != null) && (storageSystem.getSystemType().equals(DiscoveredDataObject.Type.vmax.name()))) {
             List<RemoteReplicationSet> replicationSets = new ArrayList<RemoteReplicationSet>();

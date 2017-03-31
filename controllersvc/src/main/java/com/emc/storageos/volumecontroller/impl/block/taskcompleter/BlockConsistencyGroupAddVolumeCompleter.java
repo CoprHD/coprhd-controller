@@ -49,8 +49,12 @@ public class BlockConsistencyGroupAddVolumeCompleter extends BlockConsistencyGro
                 for (URI voluri : addVolumeList) {
                     Volume volume = dbClient.queryObject(Volume.class, voluri);
                     if (volume != null && !volume.getInactive()) {
-                        volume.setReplicationGroupInstance(groupName);
-                        volume.setConsistencyGroup(this.getConsistencyGroupURI());
+                        boolean isFullCopy = ControllerUtils.isVolumeFullCopy(volume, dbClient);
+                        // No need to set replication group instance and cg uri for clone
+                        if (!isFullCopy) {
+                            volume.setReplicationGroupInstance(groupName);
+                            volume.setConsistencyGroup(this.getConsistencyGroupURI());
+                        }
 
                         boolean isVplexBackendVolume = Volume.checkForVplexBackEndVolume(dbClient, volume);
                         if (volumeGroup != null && !isVplexBackendVolume) {

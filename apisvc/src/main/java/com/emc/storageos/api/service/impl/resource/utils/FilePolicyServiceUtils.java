@@ -103,9 +103,23 @@ public class FilePolicyServiceUtils {
                 hour = Integer.parseInt(policyScheduleparams.getScheduleTime());
                 minute = 0;
             }
+            StringBuilder scheduleTime = new StringBuilder();
             if (isValid && (hour >= 0 && hour < 24) && (minute >= 0 && minute < 60)) {
-                if (hour < 12) {
-                    period = " AM";
+                if (hour > 12) {
+                    period = " PM";
+                    hour-=12;
+                    scheduleTime.append(hour);
+                    scheduleTime.append(":");
+                    if(minute == 0){
+                        scheduleTime.append("00");
+                    } else{
+                        scheduleTime.append(minute);
+                    }
+                    scheduleTime.append(" ").append(period);
+                    policyScheduleparams.setScheduleTime(scheduleTime.toString());
+                } else {
+                    scheduleTime.append(policyScheduleparams.getScheduleTime().trim()).append(" ").append(period);
+                    policyScheduleparams.setScheduleTime(scheduleTime.toString());
                 }
             } else {
                 errorMsg.append("Schedule time: " + policyScheduleparams.getScheduleTime() + " is invalid");

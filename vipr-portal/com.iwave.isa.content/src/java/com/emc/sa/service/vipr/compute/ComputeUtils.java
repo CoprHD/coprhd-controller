@@ -84,6 +84,8 @@ import com.emc.vipr.client.exceptions.ViPRException;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.iwave.ext.vmware.VCenterAPI;
+import com.iwave.ext.vmware.VMwareUtils;
+import com.vmware.vim25.HostSystemConnectionState;
 import com.vmware.vim25.mo.ClusterComputeResource;
 import com.vmware.vim25.mo.HostSystem;
 
@@ -965,7 +967,8 @@ public class ComputeUtils {
         for (HostRestRep host : hosts) {
             if ((!NullColumnValueGetter.isNullURI(vcenterId)
                     || !NullColumnValueGetter.isNullURI(cluster.getVcenterDataCenter()))
-                    && (host.getvCenterDataCenter() == null)) {
+                    && (host.getvCenterDataCenter() == null) && host.getType() != null
+                            && host.getType().equalsIgnoreCase(HostType.Esx.name())) {
                 orderErrors.append(
                         ExecutionUtils.getMessage("compute.cluster.vcenter.push.failed", host.getHostName()) + "  ");
             }
@@ -1443,6 +1446,17 @@ public class ComputeUtils {
                         ExecutionUtils.currentContext().logInfo("computeutils.removebootvolumes.validation.skipped.hostnotinvcenter",
                                 host.getHostName());
                         continue;
+                    }
+                    HostSystemConnectionState connectionState = VMwareUtils.getConnectionState(hostSystem);
+                    if (connectionState == null || connectionState == HostSystemConnectionState.notResponding
+                            || connectionState == HostSystemConnectionState.disconnected) {
+                        String exMsg = "Validation of boot volume usage on host %s failed. "
+                                + "Validation failed because host is in a disconnected state or not responding state, and therefore cannot be validated. "
+                                + "Cannot decommission in current state.  Recommended to either re-connect the host or remove the host from vCenter, "
+                                + "run vCenter discovery and address actionable events before attempting decommission of hosts in this cluster.";
+                        // Failing by throwing an exception, because returning a false
+                        // will print a boot volume re-purposed error message which is kind of misleading or incorrect reason for the failure.
+                        throw new IllegalStateException(String.format(exMsg, host.getHostName()));
                     }
                 } catch (ExecutionException e) {
                     if (e.getCause() instanceof IllegalStateException) {

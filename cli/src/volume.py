@@ -2871,12 +2871,12 @@ def unmanaged_parser(subcommand_parsers, common_parser):
                                metavar='<datacentername>',
                                dest='datacenter',
                                help='name of datacenter',
-                               default="")
+                               default=None)
     ingest_parser.add_argument('-vcenter', '-vc',
                                help='name of a vcenter',
                                dest='vcenter',
                                metavar='<vcentername>',
-                               default="")
+                               default=None)
     ingest_parser.add_argument('-ingestmethod', '-inmd',
                                 metavar='<ingest method>',
                                 dest='ingestmethod',

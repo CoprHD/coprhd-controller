@@ -26,8 +26,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import com.emc.sa.service.vipr.customservices.tasks.*;
-import com.emc.sa.service.vipr.tasks.ViPRExecutionTask;
+
 import org.apache.commons.lang.StringUtils;
 import org.codehaus.jackson.JsonNode;
 import org.codehaus.jackson.map.ObjectMapper;
@@ -39,15 +38,17 @@ import org.springframework.expression.ExpressionParser;
 import org.springframework.expression.spel.standard.SpelExpressionParser;
 import org.springframework.expression.spel.support.StandardEvaluationContext;
 
-import com.emc.sa.catalog.primitives.CustomServicesPrimitiveDAOs;
 import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.engine.service.Service;
 import com.emc.sa.service.vipr.ViPRExecutionUtils;
 import com.emc.sa.service.vipr.ViPRService;
 import com.emc.sa.service.vipr.customservices.gson.ViprOperation;
 import com.emc.sa.service.vipr.customservices.gson.ViprTask;
+import com.emc.sa.service.vipr.customservices.tasks.CustomServicesExecutors;
+import com.emc.sa.service.vipr.customservices.tasks.CustomServicesRestTaskResult;
+import com.emc.sa.service.vipr.customservices.tasks.CustomServicesTaskResult;
+import com.emc.sa.service.vipr.customservices.tasks.MakeCustomServicesExecutor;
 import com.emc.sa.workflow.WorkflowHelper;
-import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.model.uimodels.CustomServicesWorkflow;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.model.customservices.CustomServicesWorkflowDocument;
@@ -56,8 +57,6 @@ import com.emc.storageos.model.customservices.CustomServicesWorkflowDocument.Ste
 import com.emc.storageos.primitives.CustomServicesConstants;
 import com.emc.storageos.primitives.CustomServicesConstants.InputType;
 import com.emc.storageos.primitives.CustomServicesPrimitive.StepType;
-import com.emc.storageos.primitives.CustomServicesPrimitiveType;
-import com.emc.storageos.primitives.java.vipr.CustomServicesViPRPrimitive;
 import com.emc.storageos.services.util.Exec;
 import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorException;
 import com.google.common.collect.ImmutableMap;
@@ -164,7 +163,6 @@ public class CustomServicesService extends ViPRService {
                 } else {
                     final MakeCustomServicesExecutor task = executor.get(step.getType());
 
-
                     res = ViPRExecutionUtils.execute(task.makeCustomServicesExecutor(inputPerStep.get(step.getId()), step));
                 }
 
@@ -193,6 +191,7 @@ public class CustomServicesService extends ViPRService {
                 throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed("Operation Timed out");
             }
         }
+
     }
 
     private void orderDirCleanup(final String orderDir) {

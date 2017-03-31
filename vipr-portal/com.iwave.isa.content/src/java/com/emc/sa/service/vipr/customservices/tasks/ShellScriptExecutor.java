@@ -17,7 +17,7 @@ public class ShellScriptExecutor implements MakeCustomServicesExecutor {
         final String orderDir = String.format("%s%s/", CustomServicesConstants.ORDER_DIR_PATH,
                 ExecutionUtils.currentContext().getOrder().getOrderNumber());
 
-        createOrderDir(orderDir);
+        MakeCustomServicesExecutor.createOrderDir(orderDir);
 
         return new CustomServicesShellScriptExecution(input, step);
     }

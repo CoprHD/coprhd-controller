@@ -924,16 +924,16 @@ public class SRDFUtils implements SmisConstants {
             SRDFReplicationModes.add(new RemoteReplicationMode(SupportedCopyModes.ACTIVE.name(), false, false));
         }
         // Sort the SRC/TGT string as we will only report one RRSet for both Storage Systems
-        String lableformat = null;
+        String labelFormat = null;
         if (storageSystem.getSerialNumber().compareToIgnoreCase(remoteSystem.getSerialNumber()) >= 0) {
-            lableformat = storageSystem.getSerialNumber() + Constants.PLUS + remoteSystem.getSerialNumber();
+            labelFormat = storageSystem.getSerialNumber() + Constants.PLUS + remoteSystem.getSerialNumber();
         } else {
-            lableformat = remoteSystem.getSerialNumber() + Constants.PLUS + storageSystem.getSerialNumber();
+            labelFormat = remoteSystem.getSerialNumber() + Constants.PLUS + storageSystem.getSerialNumber();
         }
 
         RemoteReplicationSet rrSet = new RemoteReplicationSet();
-        rrSet.setDeviceLabel(lableformat);
-        rrSet.setNativeId(lableformat);
+        rrSet.setDeviceLabel(labelFormat);
+        rrSet.setNativeId(labelFormat);
         rrSet.setSupportedElementTypes(supportedElementTypes);
         rrSet.setReplicationLinkGranularity(supportedElementTypes);
         rrSet.setReplicationState("UNKNOWN");

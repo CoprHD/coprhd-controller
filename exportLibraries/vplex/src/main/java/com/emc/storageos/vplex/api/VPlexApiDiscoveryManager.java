@@ -17,6 +17,7 @@ import java.util.Set;
 import org.codehaus.jettison.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.util.CollectionUtils;
 
 import com.emc.storageos.vplex.api.clientdata.VolumeInfo;
 import com.sun.jersey.api.client.ClientResponse;
@@ -1569,12 +1570,11 @@ public class VPlexApiDiscoveryManager {
      * Returns a cached List of VPlexInitiatorInfo objects for the cluster.
      * 
      * @param clusterName indicates which VPlex cluster to check
+     * @param fetchFromArray {@link Boolean} if true passed, Fetch the initiator information from array and updates the local cache
      * @return a List of VPlexInitiatorInfos for the given cluster
      */
-    synchronized List<VPlexInitiatorInfo> getInitiatorInfoForCluster(String clusterName) {
-        if (!_vplexClusterInitiatorInfoCache.containsKey(clusterName) ||
-                _vplexClusterInitiatorInfoCache.get(clusterName) == null ||
-                _vplexClusterInitiatorInfoCache.get(clusterName).isEmpty()) {
+    synchronized List<VPlexInitiatorInfo> getInitiatorInfoForCluster(String clusterName, Boolean fetchFromArray) {
+        if (fetchFromArray || CollectionUtils.isEmpty(_vplexClusterInitiatorInfoCache.get(clusterName))) {
             long start = System.currentTimeMillis();
             s_logger.info("refreshing VPlexInitiatorInfo cache for cluster " + clusterName);
 
@@ -2067,7 +2067,7 @@ public class VPlexApiDiscoveryManager {
                                 VPlexStorageViewInfo.class);
 
                 if (includeInitiatorDetails) {
-                    Map<String, String> initInfoMap = getInitiatorNameToWwnMap(clusterName);
+                    Map<String, String> initInfoMap = getInitiatorNameToWwnMap(clusterName, true);
                     for (VPlexStorageViewInfo sv : storageViews) {
                             // update storage views with wwpn info
                         for (String initName : sv.getInitiators()) {
@@ -3274,12 +3274,13 @@ public class VPlexApiDiscoveryManager {
      * Returns a map of Initiator WWN to Initiator Name
      * 
      * @param clusterName VPlex cluster ID
+     * @param fetchFromArray {@link Boolean} if true passed, Fetch the initiator information from array and updates the local cache
      * @return map of Initiator WWN to Initiator Name
      */
-    Map<String, String> getInitiatorWwnToNameMap(String clusterName) {
+    Map<String, String> getInitiatorWwnToNameMap(String clusterName, boolean fetchFromArray) {
         Map<String, String> result = new HashMap<String, String>();
 
-        List<VPlexInitiatorInfo> initiatorInfoList = getInitiatorInfoForCluster(clusterName);
+        List<VPlexInitiatorInfo> initiatorInfoList = getInitiatorInfoForCluster(clusterName, fetchFromArray);
 
         for (VPlexInitiatorInfo initiatorInfo : initiatorInfoList) {
             if (initiatorInfo.getName() != null
@@ -3294,13 +3295,14 @@ public class VPlexApiDiscoveryManager {
      * Returns a map of Initiator Name to Initiator WWN
      * 
      * @param clusterName VPlex cluster ID
+     * @param fetchFromArray {@link Boolean} if true passed, Fetch the initiator information from array and updates the local cache
      * @return map of Initiator Name to Initiator WWN
      */
-    Map<String, String> getInitiatorNameToWwnMap(String clusterName) {
+    Map<String, String> getInitiatorNameToWwnMap(String clusterName, boolean fetchFromArray) {
         Map<String, String> result = new HashMap<String, String>();
 
         List<VPlexInitiatorInfo> initiatorInfoList;
-        initiatorInfoList = getInitiatorInfoForCluster(clusterName);
+        initiatorInfoList = getInitiatorInfoForCluster(clusterName, fetchFromArray);
 
         for (VPlexInitiatorInfo initiatorInfo : initiatorInfoList) {
             if (initiatorInfo.getName() != null

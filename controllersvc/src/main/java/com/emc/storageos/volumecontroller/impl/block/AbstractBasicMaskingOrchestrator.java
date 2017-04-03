@@ -20,7 +20,6 @@ import java.util.Set;
 
 import org.springframework.util.StringUtils;
 
-import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.DataObject.Flag;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
@@ -881,7 +880,7 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
 
             if (isValidationNeeded && StringUtils.hasText(errorMessage)) {
                 throw DeviceControllerException.exceptions.removeInitiatorValidationError(Joiner.on(", ").join(initiatorNames),
-                        storage.forDisplay(),
+                        storage.getLabel(),
                         errorMessage.toString());
             }
 

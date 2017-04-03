@@ -9,15 +9,7 @@ import static com.emc.storageos.api.mapper.TaskMapper.toTask;
 
 import java.net.URI;
 
-import javax.ws.rs.Consumes;
-import javax.ws.rs.DELETE;
-import javax.ws.rs.GET;
-import javax.ws.rs.POST;
-import javax.ws.rs.PUT;
-import javax.ws.rs.Path;
-import javax.ws.rs.PathParam;
-import javax.ws.rs.Produces;
-import javax.ws.rs.QueryParam;
+import javax.ws.rs.*;
 import javax.ws.rs.core.MediaType;
 
 import org.slf4j.Logger;
@@ -35,13 +27,9 @@ import com.emc.storageos.db.client.model.SMBShareMap;
 import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.exceptions.DatabaseException;
+import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.TaskResourceRep;
-import com.emc.storageos.model.file.FileExportUpdateParam;
-import com.emc.storageos.model.file.FileShareRestRep;
-import com.emc.storageos.model.file.FileSystemDeleteParam;
-import com.emc.storageos.model.file.FileSystemExportList;
-import com.emc.storageos.model.file.FileSystemExportParam;
-import com.emc.storageos.model.file.FileSystemParam;
+import com.emc.storageos.model.file.*;
 import com.emc.storageos.security.authorization.Role;
 import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
@@ -292,8 +280,8 @@ public class InternalFileResource extends ResourceService {
             }
 
             fs.setOriginalProject(fs.getProject().getURI());
-            fs.setTenant(new NamedURI(rootTenant.getId(), rootTenant.getLabel()));
-            fs.setProject(new NamedURI(_internalProject.getId(), _internalProject.getLabel()));
+            fs.setTenant(new NamedURI(rootTenant.getId(), fs.getLabel()));
+            fs.setProject(new NamedURI(_internalProject.getId(), fs.getLabel()));
             fs.addInternalFlags(INTERNAL_FILESHARE_FLAGS);
             _dbClient.updateAndReindexObject(fs);
 
@@ -332,8 +320,8 @@ public class InternalFileResource extends ResourceService {
         ArgValidator.checkFieldNotNull(project.getTenantOrg(), "tenantOrg");
         ArgValidator.checkFieldNotNull(project.getTenantOrg().getURI(), "tenantOrg");
 
-        fs.setTenant(new NamedURI(project.getTenantOrg().getURI(), project.getTenantOrg().getName()));
-        fs.setProject(new NamedURI(releasedProject, project.getLabel()));
+        fs.setTenant(new NamedURI(project.getTenantOrg().getURI(), fs.getLabel()));
+        fs.setProject(new NamedURI(releasedProject, fs.getLabel()));
         fs.setOriginalProject(null);
         fs.clearInternalFlags(INTERNAL_FILESHARE_FLAGS);
         _dbClient.updateAndReindexObject(fs);

@@ -2439,7 +2439,7 @@ public class BlockService extends TaskResourceService {
         String snapshotNamePattern = param.getName();
         String snapshotName = TimeUtils.formatDateForCurrent(snapshotNamePattern);
         blockServiceApiImpl.validateCreateSnapshot(requestedVolume, volumesToSnap,
-                snapshotType, snapshotName, getFullCopyManager());
+                snapshotType, snapshotName, readOnly, getFullCopyManager());
 
         // Create the snapshots for the volume(s) being snapped and
         // initialize the task list.

@@ -1377,7 +1377,7 @@ public class DbClientImpl implements DbClient {
         DataObjectType doType = null;
         RemovedColumnsList removedList = new RemovedColumnsList();
         for (DataObject dataObject : allObjects) {
-            _log.info("Try to remove data object {}", dataObject.getId());
+            _log.debug("Try to remove data object {}", dataObject.getId());
             checkGeoVersionForMutation(dataObject);
             doType = TypeMap.getDoType(dataObject.getClass());
             // delete all the index columns for this object first

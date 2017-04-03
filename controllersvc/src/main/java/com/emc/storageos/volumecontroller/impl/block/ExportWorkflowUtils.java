@@ -143,6 +143,7 @@ public class ExportWorkflowUtils {
      * @param blockStorageControllerUri the block storage controller. This will always
      *            be used for adding/removing initiators as we
      *            do not want a protection controller doing this.
+     * @param workFlowList holds workflow and sub workflow instances to release all locks during failure
      * @param storageUri the storage controller used to perform the export update.
      *            This can be either a block storage controller or protection
      *            controller.
@@ -157,7 +158,7 @@ public class ExportWorkflowUtils {
             ExportMask exportMask,
             Map<URI, Integer> addedBlockObjects,
             Map<URI, Integer> removedBlockObjects,
-            List<URI> addedInitiators, List<URI> removedInitiators, URI blockStorageControllerUri)
+            List<URI> addedInitiators, List<URI> removedInitiators, URI blockStorageControllerUri, List<Workflow> workflowList)
             throws IOException, WorkflowException, WorkflowRestartedException {
 
         // Filter the addedInitiators for non VPLEX system by the Export Group varray.
@@ -174,6 +175,7 @@ public class ExportWorkflowUtils {
         // This helps us to preserve parent/child relationships.
         String exportGroupUpdateStepId = workflow.createStepId();
         Workflow storageWorkflow = newWorkflow("storageSystemExportGroupUpdate", false, exportGroupUpdateStepId);
+        workflowList.add(storageWorkflow);
         DiscoveredSystemObject storageSystem = getStorageSystem(_dbClient, blockStorageControllerUri);
         String stepId = null;
 
@@ -236,7 +238,9 @@ public class ExportWorkflowUtils {
             }
         }
 
-        if (exportMask == null) {
+        boolean addObject = (addedInitiators != null && !addedInitiators.isEmpty())
+                || (addedBlockObjects != null && !addedBlockObjects.isEmpty());
+        if (exportMask == null && addObject) { // recreate export mask only for add initiator/volume
             if (addedInitiators == null) {
                 addedInitiators = new ArrayList<URI>();
             }

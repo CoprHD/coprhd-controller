@@ -1978,7 +1978,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
                 varrayURIs.add(haVarray);
             }
             Map<URI, List<URI>> varrayToInitiators = VPlexUtil.partitionInitiatorsByVarray(
-                    _dbClient, _blockScheduler, initiators, varrayURIs, vplexSystem);
+                    _dbClient, initiators, varrayURIs, vplexSystem);
 
             if (varrayToInitiators.isEmpty()) {
                 throw VPlexApiException.exceptions
@@ -3554,7 +3554,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
             }
             List<URI> exportGroupInitiatorList = StringSetUtil.stringSetToUriList(exportGroup.getInitiators());
             Map<URI, List<URI>> varrayToInitiators = VPlexUtil.partitionInitiatorsByVarray(
-                    _dbClient, _blockScheduler,
+                    _dbClient, 
                     exportGroupInitiatorList,
                     varrayURIs, vplexSystem);
 
@@ -4204,7 +4204,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
                 // Partition the Initiators by Varray. We may need to do two different ExportMasks,
                 // one for each of the varrays.
                 Map<URI, List<URI>> varraysToInitiators = VPlexUtil.partitionInitiatorsByVarray(
-                        _dbClient, _blockScheduler, initURIs, varrayList, vplex);
+                        _dbClient, initURIs, varrayList, vplex);
 
                 if (varraysToInitiators.isEmpty()) {
                     throw VPlexApiException.exceptions

@@ -2776,19 +2776,10 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
         return null;
     }
 
-    private PhysicalNAS getSystemPhysicalNAS(StorageSystem system) {
-        List<URI> nasServers = _dbClient.queryByType(PhysicalNAS.class, true);
-        List<PhysicalNAS> phyNasServers = _dbClient.queryObject(PhysicalNAS.class, nasServers);
-        for (PhysicalNAS nasServer : phyNasServers) {
-            if (nasServer.getStorageDeviceURI().toString().equalsIgnoreCase(system.getId().toString())) {
-                return nasServer;
-            }
-        }
-        return null;
-    }
-
     /**
-     * get the NAS server list
+     * This function will get the list of access zones present in the system,
+     * validate the access zones and return only the valid access zones,
+     * so that UMFS discovery would process only objects of required access zones!!
      * 
      * @param storageSystem
      * @param accessZones

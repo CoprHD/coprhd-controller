@@ -1615,8 +1615,8 @@ public class StorageScheduler implements Scheduler {
         volume.setCapacity(size);
         volume.setThinlyProvisioned(VirtualPool.ProvisioningType.Thin.toString().equalsIgnoreCase(vpool.getSupportedProvisioningType()));
         volume.setVirtualPool(vpool.getId());
-        volume.setProject(new NamedURI(project.getId(), project.getLabel()));
-        volume.setTenant(new NamedURI(project.getTenantOrg().getURI(), project.getTenantOrg().getName()));
+        volume.setProject(new NamedURI(project.getId(), volume.getLabel()));
+        volume.setTenant(new NamedURI(project.getTenantOrg().getURI(), volume.getLabel()));
         volume.setVirtualArray(varray.getId());
         volume.setOpStatus(new OpStatusMap());
         if (vpool.getDedupCapable() != null) {
@@ -1678,8 +1678,8 @@ public class StorageScheduler implements Scheduler {
         }
         volume.setThinlyProvisioned(VirtualPool.ProvisioningType.Thin.toString().equalsIgnoreCase(vpool.getSupportedProvisioningType()));
         volume.setVirtualPool(vpool.getId());
-        volume.setProject(new NamedURI(project.getId(), project.getLabel()));
-        volume.setTenant(new NamedURI(project.getTenantOrg().getURI(), project.getTenantOrg().getName()));
+        volume.setProject(new NamedURI(project.getId(), volume.getLabel()));
+        volume.setTenant(new NamedURI(project.getTenantOrg().getURI(), volume.getLabel()));
         volume.setVirtualArray(neighborhood.getId());
         URI poolId = placement.getCandidatePools().get(0);
         if (null != poolId) {
@@ -1806,8 +1806,8 @@ public class StorageScheduler implements Scheduler {
         createdMirror.setProtocol(new StringSet());
         createdMirror.getProtocol().addAll(volume.getProtocol());
         createdMirror.setCapacity(volume.getCapacity());
-        createdMirror.setProject(new NamedURI(volume.getProject().getURI(), volume.getProject().getName()));
-        createdMirror.setTenant(new NamedURI(volume.getTenant().getURI(), volume.getTenant().getName()));
+        createdMirror.setProject(new NamedURI(volume.getProject().getURI(), createdMirror.getLabel()));
+        createdMirror.setTenant(new NamedURI(volume.getTenant().getURI(), createdMirror.getLabel()));
         createdMirror.setPool(recommendedPoolURI);
         createdMirror.setVirtualPool(vPool.getId());
         createdMirror.setSyncState(SynchronizationState.UNKNOWN.toString());

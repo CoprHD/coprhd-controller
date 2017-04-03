@@ -434,8 +434,8 @@ public abstract class BlockIngestOrchestrator {
         updateBlockObjectNativeIds(volume, unManagedVolume);
         setProtocol(pool, volume, vPool);
 
-        volume.setTenant(new NamedURI(project.getTenantOrg().getURI(), project.getTenantOrg().getName()));
-        volume.setProject(new NamedURI(project.getId(), project.getLabel()));
+        volume.setTenant(new NamedURI(project.getTenantOrg().getURI(), volume.getLabel()));
+        volume.setProject(new NamedURI(project.getId(), volume.getLabel()));
         try {
             PropertySetterUtil.addVolumeDetails(unManagedVolume.getVolumeInformation(), volume);
         } catch (Exception e) {

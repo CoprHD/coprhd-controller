@@ -1950,7 +1950,7 @@ test_7() {
     common_failure_injections="failure_004_final_step_in_workflow_complete \
                                failure_004:failure_016_Export_doRemoveInitiator"
 
-    network_failure_injections="failure_047_NetworkDeviceController.zoneExportMaskCreate_before_zone"
+    network_failure_injections="failure_058_NetworkDeviceController.zoneExportAddInitiators_before_zone"
     if [ "${BROCADE}" = "1" ]
     then
 	network_failure_injections="failure_049_BrocadeNetworkSMIS.getWEBMClient"
@@ -1973,7 +1973,7 @@ test_7() {
     failure_injections="${common_failure_injections} ${storage_failure_injections} ${network_failure_injections}"
 
     # Placeholder when a specific failure case is being worked...
-    #failure_injections="failure_004:failure_024_Export_zone_removeInitiator_before_delete"
+    # failure_injections="failure_058_NetworkDeviceController.zoneExportAddInitiators_before_zone"
 
     for failure in ${failure_injections}
     do
@@ -2285,7 +2285,7 @@ test_9() {
       set_artificial_failure none
 
       # Remove the volume
-      if [ "${failure}" != "failure_015_SmisCommandHelper.invokeMethod_EMCListSFSEntries" -a "${failure}" != "failure_015_SmisCommandHelper.invokeMethod_DeleteGroup" ]; then
+      if [ "${failure}" != "failure_015_SmisCommandHelper.invokeMethod_EMCListSFSEntries" ]; then
           runcmd volume delete ${PROJECT}/${volname} --wait
       fi
 
@@ -2472,7 +2472,7 @@ test_11() {
     failure_injections="${common_failure_injections} ${storage_failure_injections}"
 
     # Placeholder when a specific failure case is being worked...
-    # failure_injections="failure_003_late_in_add_initiator_to_mask"
+    # failure_injections="failure_004_final_step_in_workflow_complete"
 
     for failure in ${failure_injections}
     do
@@ -2573,7 +2573,7 @@ test_12() {
 
     # Placeholder when a specific failure case is being worked...
     # failure_injections="failure_firewall"
-    # failure_injections="failure_015_SmisCommandHelper.invokeMethod_DeleteGroup"
+    # failure_injections="failure_004_final_step_in_workflow_complete"
 
     for failure in ${failure_injections}
     do
@@ -2645,8 +2645,7 @@ test_12() {
       then
 	  # turn off firewall
 	  runcmd /usr/sbin/iptables -D INPUT 1
-      elif [ "${failure}" != "failure_015_SmisCommandHelper.invokeMethod_*" ]
-      then
+      else
 	  # Verify injected failures were hit
 	  verify_failures ${failure}
       fi
@@ -2746,7 +2745,11 @@ test_13() {
       runcmd export_group create $PROJECT ${expname}1 $NH --type Cluster --volspec "${PROJECT}/${VOLNAME}-1,${PROJECT}/${VOLNAME}-2" --cluster "${TENANT}/${CLUSTER}"
 
       # Snap the state before the second host was added.  This is the state we expect after successful retry of remHost later.
+      runcmd export_group update ${PROJECT}/${expname}1 --remHosts ${HOST2}
       snap_db 2 "${cfs[@]}"
+
+      # Add the second host back
+      runcmd export_group update $PROJECT/${expname}1 --addHosts ${HOST2}
 
       # Turn on failure at a specific point
       set_artificial_failure ${failure}
@@ -2761,8 +2764,7 @@ test_13() {
       then
 	  # turn off firewall
 	  runcmd /usr/sbin/iptables -D INPUT 1
-      elif [ "${failure}" != "failure_015_SmisCommandHelper.invokeMethod_*" ]
-      then
+      else 
 	  # Verify injected failures were hit
 	  verify_failures ${failure}
       fi

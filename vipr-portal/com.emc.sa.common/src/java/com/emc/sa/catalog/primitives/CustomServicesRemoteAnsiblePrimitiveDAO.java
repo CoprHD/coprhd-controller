@@ -46,7 +46,7 @@ import com.google.common.collect.ImmutableSet;
 public class CustomServicesRemoteAnsiblePrimitiveDAO implements CustomServicesPrimitiveDAO<CustomServicesRemoteAnsiblePrimitive> {
 
     @Autowired
-    CustomServicesPrimitiveManager primitiveManager;
+    private CustomServicesPrimitiveManager primitiveManager;
     @Autowired
     private ModelClient client;
     @Autowired

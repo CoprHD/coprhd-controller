@@ -194,31 +194,14 @@ public class CustomServicesRESTApiPrimitiveDAO implements CustomServicesPrimitiv
         final CustomServicesPrimitiveUpdateParam param = update.param();
         final CustomServicesDBRESTApiPrimitive primitive = update.primitive();
         final StringSetMap input = CustomServicesDBHelper.updateInput(REQUEST_INPUT_TYPES, param.getInput(), primitive);
+
         
         if( null != param.getAttributes() &&
            ( null != param.getAttributes().get(CustomServicesConstants.BODY) || 
              null != param.getAttributes().get(CustomServicesConstants.PATH))) {
-            final Set<String> pathParams = getPathParams((null == param.getAttributes().get(CustomServicesConstants.PATH)) ? primitive.getAttributes().get(CustomServicesConstants.PATH) : param.getAttributes().get(CustomServicesConstants.PATH));
-            final Set<String> bodyParams = getBodyParams((null == param.getAttributes().get(CustomServicesConstants.BODY)) ? primitive.getAttributes().get(CustomServicesConstants.BODY) : param.getAttributes().get(CustomServicesConstants.BODY));
-            final StringSet inputParams = new StringSet();
-            inputParams.addAll(pathParams);
-            inputParams.addAll(bodyParams);
-            
-            final StringSet updateParams = primitive.getInput().get(CustomServicesConstants.INPUT_PARAMS) == null ? new StringSet() : primitive.getInput().get(CustomServicesConstants.INPUT_PARAMS);
-            // Remove any existing params that are not in the new 
-            // input set
-            for( final String existingParam : updateParams) {
-                if( !inputParams.contains(existingParam)) {
-                    updateParams.remove(existingParam);
-                }
-            }
-            
-            //Add any existing params that were not present in the existing set
-            for( final String newParam : inputParams) {
-                if( !updateParams.contains(newParam)) {
-                    updateParams.add(newParam);
-                }
-            }
+            final StringSet updateParams = updateInputParams(
+                    param.getAttributes(),
+                    primitive);
             input.put(CustomServicesConstants.INPUT_PARAMS.toString(), updateParams);
         }
         
@@ -226,6 +209,33 @@ public class CustomServicesRESTApiPrimitiveDAO implements CustomServicesPrimitiv
         return input;
     }
     
+    private static StringSet updateInputParams( final Map<String, String> attributes, final CustomServicesDBRESTApiPrimitive primitive) {
+        final StringSet inputParams = new StringSet();
+        final String path = (null == attributes.get(CustomServicesConstants.PATH)) ? primitive.getAttributes().get(CustomServicesConstants.PATH) : attributes.get(CustomServicesConstants.PATH);
+        final String body = (null == attributes.get(CustomServicesConstants.BODY)) ? primitive.getAttributes().get(CustomServicesConstants.BODY) : attributes.get(CustomServicesConstants.BODY);
+        inputParams.addAll(getPathParams(path));
+        inputParams.addAll(getBodyParams(body));
+        
+        final StringSet updateParams = primitive.getInput().get(CustomServicesConstants.INPUT_PARAMS) == null ? new StringSet() : primitive.getInput().get(CustomServicesConstants.INPUT_PARAMS);
+        
+        // Remove any existing params that are not in the new 
+        // input set
+        for( final String existingParam : updateParams) {
+            if( !inputParams.contains(existingParam)) {
+                updateParams.remove(existingParam);
+            }
+        }
+        
+        //Add any existing params that were not present in the existing set
+        for( final String newParam : inputParams) {
+            if( !updateParams.contains(newParam)) {
+                updateParams.add(newParam);
+            }
+        }
+        
+        return updateParams;
+    }
+
     private static Set<String> getBodyParams(final String body) {
         final Matcher m = Pattern.compile("\\$(\\w+)").matcher(body);
         final Set<String> params = new StringSet();

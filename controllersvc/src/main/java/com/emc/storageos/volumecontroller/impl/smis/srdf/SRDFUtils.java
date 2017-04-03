@@ -923,7 +923,6 @@ public class SRDFUtils implements SmisConstants {
                 && remoteSystem.getSupportedReplicationTypes().contains(SupportedReplicationTypes.SRDFMetro.toString())) {
             SRDFReplicationModes.add(new RemoteReplicationMode(SupportedCopyModes.ACTIVE.name(), false, false));
         }
-        RemoteReplicationSet rrSet = new RemoteReplicationSet();
         // Sort the SRC/TGT string as we will only report one RRSet for both Storage Systems
         String lableformat = null;
         if (storageSystem.getSerialNumber().compareToIgnoreCase(remoteSystem.getSerialNumber()) >= 0) {
@@ -931,6 +930,8 @@ public class SRDFUtils implements SmisConstants {
         } else {
             lableformat = remoteSystem.getSerialNumber() + Constants.PLUS + storageSystem.getSerialNumber();
         }
+
+        RemoteReplicationSet rrSet = new RemoteReplicationSet();
         rrSet.setDeviceLabel(lableformat);
         rrSet.setNativeId(lableformat);
         rrSet.setSupportedElementTypes(supportedElementTypes);

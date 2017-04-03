@@ -286,7 +286,7 @@ public class CustomServicesService extends ViPRService {
                 final String name = value.getName();
                 switch (CustomServicesConstants.InputType.fromString(value.getType())) {
                     case FROM_USER:
-                    case ASSET_OPTION_SINGLE:
+                    case ASSET_OPTION:
                         final String friendlyName = value.getFriendlyName();
                         if (params.get(friendlyName) != null && !StringUtils.isEmpty(params.get(friendlyName).toString())) {
                             inputs.put(name, Arrays.asList(params.get(friendlyName).toString().split(",")));

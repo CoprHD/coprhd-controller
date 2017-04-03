@@ -202,11 +202,11 @@ public class CustomServicesPrimitiveService extends CatalogTaggedResourceService
 
     /**
      * Get a list of resources of a given type
-     * 
+     *
      * @brief Get a list of Custom Services resources
-     * 
+     *
      * @param type The type of the custom services resource to list
-     * 
+     *
      * @return a list of resources of the given type
      */
     @GET
@@ -246,21 +246,31 @@ public class CustomServicesPrimitiveService extends CatalogTaggedResourceService
     }
 
     /**
-     * Download a primitive file resource
-     * 
-     * @param type The type of the primitive resource
-     * @param id The ID of the resource to download
-     * @param response HttpServletResponse the servlet response to update with the file octet stream
-     * @return Response containing the octet stream of the primitive file resource
+     * Get the primitive resource details
+     * @param type The type of the primitive file resource
+     * @param id The ID of the resource
+     * @return A rest response containing details of the requested resource
      */
     @GET
     @Path("resource/{type}/{id}")
-    public Response download(@PathParam("type") final String type,
-            @PathParam("id") final URI id,
+    public CustomServicesPrimitiveResourceRestRep getResource(@PathParam("type") final String type, @PathParam("id") final URI id) {
+        final CustomServicesResourceDAO<?> dao = resourceDAOs.get(type);
+        return CustomServicesPrimitiveMapper.map(getResourceNullSafe(id, dao));
+
+    }
+
+    /**
+     * Download the resource and set it in the response header
+     * @param type The type of the primitive file resource
+     * @param id The ID of the resource to download
+     * @param response HttpServletResponse the servlet response to update with the file octet stream
+     * @return Response containing the octet stream of the primitive resource
+     */
+    @GET
+    @Path("resource/{type}/{id}/download")
+    public Response download(@PathParam("type") final String type, @PathParam("id") final URI id,
             @Context final HttpServletResponse response) {
-
-        final CustomServicesResourceDAO<?> dao = getResourceDAO(type, true);
-
+        final CustomServicesResourceDAO<?> dao = resourceDAOs.get(type);
         final CustomServicesPrimitiveResourceType resource = getResourceNullSafe(id, dao);
         final ModelObject model = toModelObject(resource);
         ArgValidator.checkEntity(model, id, true);

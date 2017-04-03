@@ -23,17 +23,13 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.URI;
-import java.nio.charset.Charset;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.apache.commons.codec.binary.Base64;
+import org.apache.commons.collections.MapUtils;
 import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
 import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
 import org.apache.commons.compress.compressors.gzip.GzipCompressorInputStream;
@@ -44,6 +40,8 @@ import org.slf4j.LoggerFactory;
 import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.service.vipr.tasks.ViPRExecutionTask;
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.URIUtil;
+import com.emc.storageos.db.client.model.uimodels.CustomServicesDBAnsibleInventoryResource;
 import com.emc.storageos.db.client.model.uimodels.CustomServicesDBAnsiblePrimitive;
 import com.emc.storageos.db.client.model.uimodels.CustomServicesDBAnsibleResource;
 import com.emc.storageos.db.client.model.uimodels.CustomServicesDBScriptPrimitive;
@@ -117,12 +115,10 @@ public class RunAnsible extends ViPRExecutionTask<CustomServicesTaskResult> {
                                 .customServiceExecutionFailed(primitive.getResource() + " not found in DB");
                     }
 
-                    // Currently, the stepId is set to random hash values in the UI. If this changes then we have to change the following to
-                    // generate filename with URI from step.getOperation()
-                    final String scriptFileName = String.format("%s%s.sh", orderDir, step.getId());
+                    final String scriptFileName = String.format("%s%s.sh", orderDir, URIUtil.parseUUIDFromURI(scriptid).replace("-", ""));
 
                     final byte[] bytes = Base64.decodeBase64(script.getResource());
-                    writeShellScripttoFile(bytes, scriptFileName);
+                    writeResourceToFile(bytes, scriptFileName);
 
                     final String inputToScript = makeParam(input);
                     logger.debug("input is {}", inputToScript);
@@ -132,8 +128,22 @@ public class RunAnsible extends ViPRExecutionTask<CustomServicesTaskResult> {
                 case LOCAL_ANSIBLE:
                     final CustomServicesDBAnsiblePrimitive ansiblePrimitive = dbClient.queryObject(CustomServicesDBAnsiblePrimitive.class,
                             scriptid);
+
+                    if (null == ansiblePrimitive) {
+                        logger.error("Error retrieving the ansible primitive from DB. {} not found in DB", scriptid);
+                        throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed(scriptid + " not found in DB");
+                    }
+
                     final CustomServicesDBAnsibleResource ansiblePackageId = dbClient.queryObject(CustomServicesDBAnsibleResource.class,
                             ansiblePrimitive.getResource());
+
+                    if (null == ansiblePackageId) {
+                        logger.error("Error retrieving the resource for the ansible primitive from DB. {} not found in DB",
+                                ansiblePrimitive.getResource());
+
+                        throw InternalServerErrorException.internalServerErrors
+                                .customServiceExecutionFailed(ansiblePrimitive.getResource() + " not found in DB");
+                    }
 
                     // get the playbook which the user has specified during primitive creation from DB.
                     // The playbook (resolved to the path in the archive) represents the playbook to execute
@@ -145,11 +155,34 @@ public class RunAnsible extends ViPRExecutionTask<CustomServicesTaskResult> {
                     // uncompress Ansible archive to orderDir
                     uncompressArchive(ansibleArchive);
 
-                    // TODO: Hard coded for testing. The following will be removed after completing COP-27888
-                    final String hosts = "/opt/storageos/ansi_logs/hosts";
+                    final String hostFileFromStep = getHostFileFromStepInput();
+
+                    if (StringUtils.isBlank(hostFileFromStep)) {
+                        logger.error("Error retrieving the inventory resource from the ansible primitive step");
+
+                        throw InternalServerErrorException.internalServerErrors
+                                .customServiceExecutionFailed("Inventory resource not found in step input");
+                    }
+
+                    final CustomServicesDBAnsibleInventoryResource inventoryResource = dbClient
+                            .queryObject(CustomServicesDBAnsibleInventoryResource.class, URI.create(hostFileFromStep));
+
+                    if (null == inventoryResource) {
+                        logger.error("Error retrieving the inventory resource for the ansible primitive from DB. {} not found in DB",
+                                hostFileFromStep);
+
+                        throw InternalServerErrorException.internalServerErrors
+                                .customServiceExecutionFailed(hostFileFromStep + " not found in DB");
+                    }
+
+                    final String inventoryFileName = String.format("%s%s", orderDir,
+                            URIUtil.parseUUIDFromURI(URI.create(hostFileFromStep)).replace("-", ""));
+
+                    final byte[] inventoryResourceBytes = Base64.decodeBase64(inventoryResource.getResource());
+                    writeResourceToFile(inventoryResourceBytes, inventoryFileName);
 
                     final String user = ExecutionUtils.currentContext().getOrder().getSubmittedByUserId();
-                    result = executeLocal(hosts, makeExtraArg(input), String.format("%s%s", orderDir, playbook), user);
+                    result = executeLocal(inventoryFileName, makeExtraArg(input), String.format("%s%s", orderDir, playbook), user);
                     break;
                 case REMOTE_ANSIBLE:
                     result = executeRemoteCmd(makeExtraArg(input));
@@ -176,12 +209,12 @@ public class RunAnsible extends ViPRExecutionTask<CustomServicesTaskResult> {
         return new CustomServicesTaskResult(parseOut(result.getStdOutput()), result.getStdError(), result.getExitValue(), null);
     }
 
-    private void writeShellScripttoFile(final byte[] bytes, final String scriptFileName){
-        try (FileOutputStream fileOuputStream = new FileOutputStream(scriptFileName)) {
+    private void writeResourceToFile(final byte[] bytes, final String fileName) {
+        try (FileOutputStream fileOuputStream = new FileOutputStream(fileName)) {
             fileOuputStream.write(bytes);
         } catch (final IOException e) {
             throw InternalServerErrorException.internalServerErrors
-                    .customServiceExecutionFailed("Creating Shell Script file failed with exception:" +
+                    .customServiceExecutionFailed("Creating file failed with exception:" +
                             e.getMessage());
         }
     }
@@ -229,28 +262,29 @@ public class RunAnsible extends ViPRExecutionTask<CustomServicesTaskResult> {
         return out;
     }
 
-    // TODO: Hard coded everything for testing. The following will be removed after completing COP-27888
-    // During upload of primitive, user will specify if hosts file is already present or not?
-    // If already present, then get it from the param. currently the host file is not stored in DB
-    // If not present, dynamically create one with the given hostgroups and IpAddress(e.g: webservers, linuxhosts ...etc)
-    // If nothing is given by user default to localhost
-
-    private String getHostFile() throws IOException {
-        final boolean isHostFilePresent = false;
-        String hosts;
-        if (isHostFilePresent) {
-            hosts = "/opt/storageos/ansi/hosts";
-        } else {
-            List<String> lines = Arrays.asList("[webservers]", "10.247.66.88");
-            Path file = Paths.get("/opt/storageos/ansi/hosts");
-            Files.write(file, lines, Charset.forName("UTF-8"));
-            hosts = "/opt/storageos/ansi/hosts";
+    private String getHostFileFromStepInput() {
+        final Map<String, CustomServicesWorkflowDocument.InputGroup> inputType = step.getInputGroups();
+        if (MapUtils.isEmpty(inputType)) {
+            return null;
         }
 
-        if (hosts == null || hosts.isEmpty())
-            hosts = "localhost,";
+        if (inputType.containsKey(CustomServicesConstants.ANSIBLE_OPTIONS)) {
+            return getOptions(CustomServicesConstants.ANSIBLE_HOST_FILE);
+        } else {
+            return null;
+        }
 
-        return hosts;
+    }
+
+    //TODO: remove thsi comment. Obtained as part of changes done by Sonali for PR 4513.
+    private String getOptions(final String key) {
+        if (input.get(key) != null) {
+            return StringUtils.strip(input.get(key).get(0).toString(), "\"");
+        }
+        logger.info("key not defined. key:{}", key);
+
+        logger.error("Can't find the value for:{}", key);
+        return null;
     }
 
     // Execute Ansible playbook on remote node. Playbook is also in remote node

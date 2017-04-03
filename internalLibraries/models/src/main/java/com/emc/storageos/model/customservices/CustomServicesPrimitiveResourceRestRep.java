@@ -27,6 +27,16 @@ import com.emc.storageos.model.DataObjectRestRep;
 public class CustomServicesPrimitiveResourceRestRep extends DataObjectRestRep {
 
     private List<Attribute> attributes;
+    private String parentId;
+
+    @XmlElement(name = "parent_id")
+    public String getParent() {
+        return parentId;
+    }
+
+    public void setParentId(final String parentId) {
+        this.parentId = parentId;
+    }
     
     public List<Attribute> getAttributes() {
         return attributes;

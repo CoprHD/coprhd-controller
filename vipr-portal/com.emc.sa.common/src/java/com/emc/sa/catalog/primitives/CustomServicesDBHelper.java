@@ -436,7 +436,7 @@ public final class CustomServicesDBHelper {
         if (null != primitive.getAttributes()) {
             for (final Entry<String, String> attribute : primitive.getAttributes().entrySet()) {
                 if (!primitive.attributeKeys().contains(attribute.getKey())) {
-                    throw new IllegalStateException("Unknow attribute key: " + attribute.getKey());
+                    throw new IllegalStateException("Unknown attribute key: " + attribute.getKey());
                 }
                 attributeMap.put(attribute.getKey(), attribute.getValue());
             }

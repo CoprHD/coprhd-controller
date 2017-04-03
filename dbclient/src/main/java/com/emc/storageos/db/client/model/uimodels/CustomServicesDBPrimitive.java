@@ -19,6 +19,7 @@ package com.emc.storageos.db.client.model.uimodels;
 import java.util.Set;
 
 import com.emc.storageos.db.client.model.Name;
+import com.emc.storageos.db.client.model.NamedRelationIndex;
 import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
@@ -31,7 +32,7 @@ import com.emc.storageos.db.client.model.StringSetMap;
 public abstract class CustomServicesDBPrimitive extends CustomServicesPrimitiveModel {
 
     private static final long serialVersionUID = 1L;
-    
+
     private static final String FRIENDLY_NAME = "friendlyName";
     private static final String DESCRIPTION = "description";
     private static final String SUCCESS_CRITERIA = "successCriteria";
@@ -39,7 +40,7 @@ public abstract class CustomServicesDBPrimitive extends CustomServicesPrimitiveM
     private static final String INPUT = "input";
     private static final String OUTPUT = "output";
     private static final String RESOURCE = "resource";
-    
+
     private String friendlyName;
     private String description;
     private String successCriteria;
@@ -48,9 +49,11 @@ public abstract class CustomServicesDBPrimitive extends CustomServicesPrimitiveM
     private StringSet output;
     private NamedURI resource;
 
-    public CustomServicesDBPrimitive() {}
-    
+    public CustomServicesDBPrimitive() {
+    }
+
     public abstract Set<String> attributeKeys();
+
     public abstract Set<String> inputTypes();
 
     @Name(FRIENDLY_NAME)
@@ -88,38 +91,39 @@ public abstract class CustomServicesDBPrimitive extends CustomServicesPrimitiveM
         return output;
 
     }
-    
-    @Name(ATTRIBUTES)
-    public StringMap getAttributes() {
-        return attributes;
-    }
-    
-    public void setAttributes(final StringMap attributes) {
-        this.attributes = attributes;
-        setChanged(ATTRIBUTES);
-    }
 
     public void setOutput(final StringSet output) {
         this.output = output;
         setChanged(OUTPUT);
     }
-    
+
+    @Name(ATTRIBUTES)
+    public StringMap getAttributes() {
+        return attributes;
+    }
+
+    public void setAttributes(final StringMap attributes) {
+        this.attributes = attributes;
+        setChanged(ATTRIBUTES);
+    }
+
     @Name(INPUT)
     public StringSetMap getInput() {
         return input;
     }
-    
+
     public void setInput(final StringSetMap input) {
         this.input = input;
         setChanged(INPUT);
     }
-    
+
+    @NamedRelationIndex(cf = "NamedRelation", type = CustomServicesDBResource.class)
     @Name(RESOURCE)
     public NamedURI getResource() {
         return resource;
     }
-    
-    public void setResource( final NamedURI resource ) {
+
+    public void setResource(final NamedURI resource) {
         this.resource = resource;
         setChanged(RESOURCE);
     }

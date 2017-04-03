@@ -57,6 +57,8 @@ public abstract class CustomServicesDBResource extends CustomServicesPrimitiveRe
 
     @Name(PARENTID)
     @AlternateId("CustomServicesDBResourceParentIdIndex")
+    // @RelationIndex(cf = "parentIdIndex", type = CustomServicesDBResource.class)
+    // @IndexByKey
     public URI getParentId() {
         return parentId;
     }

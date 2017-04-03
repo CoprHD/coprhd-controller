@@ -16,6 +16,7 @@
  */
 package com.emc.storageos.primitives.db;
 
+import java.net.URI;
 import java.util.Map;
 import java.util.Set;
 
@@ -32,7 +33,7 @@ public abstract class CustomServicesDBResourceType<Resource extends CustomServic
     
     private final Resource resource;
     private final Map<String, Set<String>> attributes;
-    
+
     public CustomServicesDBResourceType(final Resource resource,
             final Map<String, Set<String>> attributes) {
         this.resource = resource;
@@ -56,5 +57,10 @@ public abstract class CustomServicesDBResourceType<Resource extends CustomServic
     @Override
     public String name() {
         return resource.getLabel();
+    }
+
+    @Override
+    public URI parentId() {
+        return resource.getParentId();
     }
 }

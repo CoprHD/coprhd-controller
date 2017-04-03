@@ -16,6 +16,7 @@
  */
 package com.emc.storageos.primitives.java;
 
+import java.net.URI;
 import java.util.Map;
 import java.util.Set;
 
@@ -55,6 +56,11 @@ public class CustomServicesNoResourceType implements CustomServicesPrimitiveReso
     @Override
     public String suffix() {
         return EMPTY_STRING;
+    }
+
+    @Override
+    public URI parentId() {
+        return null;
     }
 
 }

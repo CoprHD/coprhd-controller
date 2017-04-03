@@ -905,10 +905,9 @@ public class SRDFUtils implements SmisConstants {
         supportedElementTypes.add(RemoteReplicationSet.ElementType.REPLICATION_GROUP);
         supportedElementTypes.add(RemoteReplicationSet.ElementType.REPLICATION_PAIR);
 
-        HashSet<RemoteReplicationSet.ReplicationRole> replicationRoleSource = new HashSet<>();
-        replicationRoleSource.add(RemoteReplicationSet.ReplicationRole.SOURCE);
-        HashSet<RemoteReplicationSet.ReplicationRole> replicationRoleTarget = new HashSet<>();
-        replicationRoleTarget.add(RemoteReplicationSet.ReplicationRole.TARGET);
+        HashSet<RemoteReplicationSet.ReplicationRole> replicationRoles = new HashSet<>();
+        replicationRoles.add(RemoteReplicationSet.ReplicationRole.SOURCE);
+        replicationRoles.add(RemoteReplicationSet.ReplicationRole.TARGET);
 
         // TODO: VMAX Does not enforce consistency but ViPR maintains consistency for the Groups? Should
         // isGroupConsistencyEnforcedAutomatically be set to TRUE?
@@ -939,10 +938,8 @@ public class SRDFUtils implements SmisConstants {
         rrSet.setReplicationState("UNKNOWN");
         rrSet.setSupportedReplicationModes(SRDFReplicationModes);
         Map<String, Set<RemoteReplicationSet.ReplicationRole>> systemMapSet = new HashMap<>();
-        systemMapSet.put(storageSystem.getSerialNumber(), replicationRoleSource);
-        systemMapSet.put(storageSystem.getSerialNumber(), replicationRoleTarget);
-        systemMapSet.put(remoteSystem.getSerialNumber(), replicationRoleSource);
-        systemMapSet.put(remoteSystem.getSerialNumber(), replicationRoleTarget);
+        systemMapSet.put(storageSystem.getSerialNumber(), replicationRoles);
+        systemMapSet.put(remoteSystem.getSerialNumber(), replicationRoles);
         rrSet.setSystemMap(systemMapSet);
 
         return rrSet;

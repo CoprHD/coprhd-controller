@@ -77,16 +77,24 @@ public class FileSnapshotPolicyMigration extends BaseCustomMigrationCallback {
                 fileSnapshotPolicy.setApplyAt(FilePolicyApplyLevel.file_system.name());
 
                 if (schedulePolicy.getAssignedResources() != null && !schedulePolicy.getAssignedResources().isEmpty()) {
-                    StringSet setPoliciesToFS = new StringSet();
-                    setPoliciesToFS.add(fileSnapshotPolicy.getId().toString());
                     List<URI> fileShareURIs = getAssignedResourcesURIs(schedulePolicy.getAssignedResources());
                     for (URI fsURI : fileShareURIs) {
                         FileShare fs = dbClient.queryObject(FileShare.class, fsURI);
                         if (!fs.getInactive()) {
                             StorageSystem system = dbClient.queryObject(StorageSystem.class, fs.getStorageDevice());
                             updatePolicyStorageResouce(system, fileSnapshotPolicy, fs);
-                            fs.setFilePolicies(setPoliciesToFS);
+                            // Remove the existing schedule policy from fs
+                            // add new file policy to fs!!
+                            StringSet fsExistingPolicies = fs.getFilePolicies();
+                            if (fsExistingPolicies != null) {
+                                fsExistingPolicies.clear();
+                            } else {
+                                fsExistingPolicies = new StringSet();
+                            }
+                            fsExistingPolicies.add(fileSnapshotPolicy.getId().toString());
+                            fs.setFilePolicies(fsExistingPolicies);
                             dbClient.updateObject(fs);
+
                             URI associatedVPId = fs.getVirtualPool();
                             associatedVP = dbClient.queryObject(VirtualPool.class, associatedVPId);
                             associatedVP.setAllowFilePolicyAtFSLevel(true);

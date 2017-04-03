@@ -29,10 +29,8 @@ if [ "$1"x != "x" ]; then
       shift
    fi
 fi
-sconf=$(dirname $CONFIG_FILE)
+export sconf=$(dirname $CONFIG_FILE)
 
-# TODO: remove this once Nathan commits
-subs/duvalidation false
 
 if [ "$1"x != "x" ]; then
       BOURNE_IP=$1
@@ -53,6 +51,10 @@ if [ "$password" = "" ]; then
 else
     security login root $password
 fi
+
+# Set properties needed for the test run
+subs/setproperty validation_check false
+subs/setproperty controller_pathadjust_require_suspend false
 
 export project=ap
 source subs/tenantProject 
@@ -339,4 +341,6 @@ deleteAllVolumes
 
 echoit "adjustPaths passed"
 date
+subs/setproperty validation_check true
+subs/setproperty controller_pathadjust_require_suspend true
 

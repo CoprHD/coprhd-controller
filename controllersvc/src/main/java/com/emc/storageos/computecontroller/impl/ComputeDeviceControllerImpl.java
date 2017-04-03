@@ -10,9 +10,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-import com.emc.storageos.db.client.model.OpStatusMap;
-import com.emc.storageos.db.client.model.Task;
-import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -31,9 +28,11 @@ import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Initiator;
+import com.emc.storageos.db.client.model.OpStatusMap;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.Operation.Status;
 import com.emc.storageos.db.client.model.ScopedLabel;
+import com.emc.storageos.db.client.model.Task;
 import com.emc.storageos.db.client.model.UCSServiceProfile;
 import com.emc.storageos.db.client.model.UCSServiceProfileTemplate;
 import com.emc.storageos.db.client.model.VcenterDataCenter;
@@ -47,6 +46,7 @@ import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
+import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
 import com.emc.storageos.util.ExportUtils;
 import com.emc.storageos.util.InvokeTestFailure;
 import com.emc.storageos.vcentercontroller.VcenterController;
@@ -801,20 +801,25 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
             waitFor = workflow.createStep(CHECK_HOST_INITIATORS,
                     "Check for host initiators", waitFor, cs.getId(),
                     cs.getSystemType(), this.getClass(), new Workflow.Method("checkHostInitiators", hostId),
-                    new Workflow.Method(ROLLBACK_NOTHING_METHOD),
-                    null);
+                    null, null);
 
-            waitFor = workflow.createStep(DEACTIVATION_MAINTENANCE_MODE,
-                    "If synced with vCenter, put the host in maintenance mode", waitFor, cs.getId(),
-                    cs.getSystemType(), this.getClass(), new Workflow.Method("putHostInMaintenanceMode", hostId),
-                    new Workflow.Method(ROLLBACK_NOTHING_METHOD),
-                    null);
+            // If host has a vcenter associated and OS type is NO_OS then skip vcenter operations, because
+            // NO_OS host types cannot be pushed to vcenter, the host has got its vcenterdatacenter association, because
+            // any update to the host using the hostService automatically adds this association.
+            if (!NullColumnValueGetter.isNullURI(host.getVcenterDataCenter()) && host.getType() != null
+                    && host.getType().equalsIgnoreCase((Host.HostType.No_OS).name())) {
+                log.info("Skipping Vcenter host cleanup steps because No_OS is specified on host " + hostId);
+            } else {
+                waitFor = workflow.createStep(DEACTIVATION_MAINTENANCE_MODE,
+                        "If synced with vCenter, put the host in maintenance mode", waitFor, cs.getId(),
+                        cs.getSystemType(), this.getClass(), new Workflow.Method("putHostInMaintenanceMode", hostId),
+                        null, null);
 
-            waitFor = workflow.createStep(DEACTIVATION_REMOVE_HOST_VCENTER,
-                    "If synced with vCenter, remove the host from the cluster", waitFor, cs.getId(),
-                    cs.getSystemType(), this.getClass(), new Workflow.Method("removeHostFromVcenterCluster", hostId),
-                    new Workflow.Method(ROLLBACK_NOTHING_METHOD),
-                    null);
+                waitFor = workflow.createStep(DEACTIVATION_REMOVE_HOST_VCENTER,
+                        "If synced with vCenter, remove the host from the cluster", waitFor, cs.getId(),
+                        cs.getSystemType(), this.getClass(), new Workflow.Method("removeHostFromVcenterCluster", hostId),
+                        null, null);
+            }            
         }
 
         return waitFor;
@@ -885,19 +890,18 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
             //TODO: need to break this up into individual smaller steps so that we can try to recover using rollback if decommission failed
             waitFor = workflow.createStep(DEACTIVATION_COMPUTE_SYSTEM_HOST, "Unbind blade from service profile",
                     waitFor, cs.getId(), cs.getSystemType(), this.getClass(), new Workflow.Method(
-                            "deactiveComputeSystemHost", cs.getId(), hostId),
-                    new Workflow.Method(ROLLBACK_NOTHING_METHOD), null);
+                            "deactivateComputeSystemHost", cs.getId(), hostId), null, null);
 
             if (deactivateBootVolume && !NullColumnValueGetter.isNullURI(host.getBootVolumeId())) {
                 waitFor = workflow.createStep(DEACTIVATION_COMPUTE_SYSTEM_BOOT_VOLUME_UNTAG,
                         "Untag the boot volume for the host", waitFor, cs.getId(), cs.getSystemType(),
                         this.getClass(), new Workflow.Method("untagBlockBootVolume", hostId, volumeDescriptors),
-                        new Workflow.Method(ROLLBACK_NOTHING_METHOD), null);
+                        null, null);
 
                 waitFor = workflow.createStep(DEACTIVATION_COMPUTE_SYSTEM_BOOT_VOLUME,
                         "Delete the boot volume for the host", waitFor, cs.getId(), cs.getSystemType(),
                         this.getClass(), new Workflow.Method("deleteBlockBootVolume", hostId, volumeDescriptors),
-                        new Workflow.Method(ROLLBACK_NOTHING_METHOD), null);
+                        null, null);
             } else if (!deactivateBootVolume) {
                 log.info("flag deactivateBootVolume set to false");
             } else if (!NullColumnValueGetter.isNullURI(host.getBootVolumeId())){
@@ -926,7 +930,7 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
             List<Initiator> initiatorsForMask = ExportUtils.getExportMaskInitiators(exportMask.getId(), _dbClient);
             for (Initiator initiator : initiatorsForMask){
                 if (!initiators.contains(initiator)){
-                    log.error("Volume is exported to initiator " + initiator.getLabel() + "which does not belong to host "+ host.getLabel());
+                    log.error("Volume is exported to initiator " + initiator.getLabel() + " which does not belong to host "+ host.getLabel());
                     return false;
                 }
             }
@@ -1056,8 +1060,6 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
                 return;
             }
             
-            
-
             String task = UUID.randomUUID().toString();
 
             URI bootVolumeId = getBootVolumeIdFromDescriptors(volumeDescriptors, host);
@@ -1481,13 +1483,13 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
      * @param csId
      *            {@link URI} compute system URI
      * @param hostId
-     *            {@link URI} hsot URI
+     *            {@link URI} host URI
      * @param stepId
      *            step id
      */
-    public void deactiveComputeSystemHost(URI csId, URI hostId, String stepId) {
+    public void deactivateComputeSystemHost(URI csId, URI hostId, String stepId) {
 
-        log.info("deactiveComputeSystemHost");
+        log.info("deactivateComputeSystemHost");
 
         Host host = null;
 

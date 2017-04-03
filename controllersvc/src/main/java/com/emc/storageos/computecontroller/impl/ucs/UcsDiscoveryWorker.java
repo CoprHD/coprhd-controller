@@ -2262,8 +2262,8 @@ public class UcsDiscoveryWorker {
         return new Integer(0);
     }
 
-    private void matchComputeBladesToHosts(ComputeSystem cs) {
-        HostToComputeElementMatcher.matchUcsComputeElements(_dbClient,cs.getId());
+    private void matchComputeBladesToHosts(ComputeSystem computeSystem) {
+        HostToComputeElementMatcher.matchAllHostsToComputeElements(_dbClient, computeSystem.getId());
     }
 
     /**

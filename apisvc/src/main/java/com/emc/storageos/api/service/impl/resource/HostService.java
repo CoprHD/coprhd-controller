@@ -2452,18 +2452,20 @@ public class HostService extends TaskResourceService {
             for (IpInterface ipInterface : ipInterfaces) {
                 if (ipInterface.getIpAddress() != null && ipInterface.getIpAddress().equals(param.getHostIp())) {
                     if (!NullColumnValueGetter.isNullURI(ipInterface.getHost())) {
-                        Host hostWithSameIp = queryObject(Host.class, ipInterface.getHost(), true);
+                        Host hostWithSameIp = _dbClient.queryObject(Host.class, ipInterface.getHost());
                         if (hostWithSameIp != null) {
                             _log.error("Found duplicate IP {} for existing host {}.  Host with same IP exists already.",
                                     param.getHostIp(), hostWithSameIp.getLabel());
                             throw APIException.badRequests.hostWithDuplicateIP(host.getLabel(), param.getHostIp(),
                                     hostWithSameIp.getLabel());
                         } else {
-                            _log.error(
-                                    "Found duplicate IP {} for existing host URI {}.  Host with same IP exists already.",
+                            // If there is a valid IpInterface object, but the host inside it is no longer in the 
+                            // database, then we take this opportunity to clear out the object before it causes more
+                            // issues.
+                            _log.warn(
+                                    "Found duplicate IP {} for non-existent host URI {}.  Deleting IP Interface.",
                                     param.getHostIp(), ipInterface.getHost().toString());
-                            throw APIException.badRequests.hostWithDuplicateIP(host.getLabel(), param.getHostIp(),
-                                    ipInterface.getHost().toString());
+                            _dbClient.markForDeletion(ipInterface);
                         }
                     } else {
                         _log.error(

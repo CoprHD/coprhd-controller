@@ -215,7 +215,7 @@ public class CustomServicesPrimitiveService extends CatalogTaggedResourceService
     public CustomServicesPrimitiveResourceList getResources(@PathParam("type") final String type,
             @QueryParam("parentId") final String parentId) {
 
-        final CustomServicesResourceDAO<?> dao = resourceDAOs.get(type);
+        final CustomServicesResourceDAO<?> dao = getResourceDAO(type, true);
         final List<NamedElement> resources = dao.listResources(parentId);
 
         return CustomServicesPrimitiveMapper.toCustomServicesPrimitiveResourceList(type, resources);
@@ -239,7 +239,6 @@ public class CustomServicesPrimitiveService extends CatalogTaggedResourceService
 
         ArgValidator.checkFieldNotNull(name, "name");
         final CustomServicesResourceDAO<?> dao = getResourceDAO(type, true);
-
         final byte[] stream = read(request);
         final CustomServicesPrimitiveResourceType resource = dao.createResource(name, stream, parentId);
         return CustomServicesPrimitiveMapper.map(resource);
@@ -254,7 +253,7 @@ public class CustomServicesPrimitiveService extends CatalogTaggedResourceService
     @GET
     @Path("resource/{type}/{id}")
     public CustomServicesPrimitiveResourceRestRep getResource(@PathParam("type") final String type, @PathParam("id") final URI id) {
-        final CustomServicesResourceDAO<?> dao = resourceDAOs.get(type);
+        final CustomServicesResourceDAO<?> dao = getResourceDAO(type, true);
         return CustomServicesPrimitiveMapper.map(getResourceNullSafe(id, dao));
 
     }
@@ -270,7 +269,7 @@ public class CustomServicesPrimitiveService extends CatalogTaggedResourceService
     @Path("resource/{type}/{id}/download")
     public Response download(@PathParam("type") final String type, @PathParam("id") final URI id,
             @Context final HttpServletResponse response) {
-        final CustomServicesResourceDAO<?> dao = resourceDAOs.get(type);
+        final CustomServicesResourceDAO<?> dao = getResourceDAO(type, true);
         final CustomServicesPrimitiveResourceType resource = getResourceNullSafe(id, dao);
         final ModelObject model = toModelObject(resource);
         ArgValidator.checkEntity(model, id, true);

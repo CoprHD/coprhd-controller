@@ -1843,6 +1843,7 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice implem
                 for (int i=0; i<driverRRPairs.size(); i++) {
                     systemReplicationPairs.get(i).setNativeId(driverRRPairs.get(i).getNativeId());
                     systemReplicationPairs.get(i).setReplicationState(driverRRPairs.get(i).getReplicationState());
+                    systemReplicationPairs.get(i).setReplicationDirection(driverRRPairs.get(i).getReplicationDirection());
                 }
                 dbClient.updateObject(systemReplicationPairs);
 //                try {
@@ -1890,6 +1891,7 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice implem
                 for (int i=0; i<driverRRPairs.size(); i++) {
                     systemReplicationPairs.get(i).setNativeId(driverRRPairs.get(i).getNativeId());
                     systemReplicationPairs.get(i).setReplicationState(driverRRPairs.get(i).getReplicationState());
+                    systemReplicationPairs.get(i).setReplicationDirection(driverRRPairs.get(i).getReplicationDirection());
                 }
                 dbClient.updateObject(systemReplicationPairs);
 //                try {

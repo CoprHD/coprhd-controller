@@ -1361,4 +1361,9 @@ public class BrocadeNetworkSystemDevice extends NetworkSystemDeviceImpl
         }
         return byFabric;
     }
+
+    @Override
+	public boolean isCapableOfRouting(NetworkSystem networkSystem) {
+		return true;
+	}
 }

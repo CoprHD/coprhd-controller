@@ -1978,7 +1978,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
                 varrayURIs.add(haVarray);
             }
             Map<URI, List<URI>> varrayToInitiators = VPlexUtil.partitionInitiatorsByVarray(
-                    _dbClient, _blockScheduler, initiators, varrayURIs, vplexSystem);
+                    _dbClient, initiators, varrayURIs, vplexSystem);
 
             if (varrayToInitiators.isEmpty()) {
                 throw VPlexApiException.exceptions
@@ -3554,7 +3554,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
             }
             List<URI> exportGroupInitiatorList = StringSetUtil.stringSetToUriList(exportGroup.getInitiators());
             Map<URI, List<URI>> varrayToInitiators = VPlexUtil.partitionInitiatorsByVarray(
-                    _dbClient, _blockScheduler,
+                    _dbClient, 
                     exportGroupInitiatorList,
                     varrayURIs, vplexSystem);
 
@@ -4204,7 +4204,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
                 // Partition the Initiators by Varray. We may need to do two different ExportMasks,
                 // one for each of the varrays.
                 Map<URI, List<URI>> varraysToInitiators = VPlexUtil.partitionInitiatorsByVarray(
-                        _dbClient, _blockScheduler, initURIs, varrayList, vplex);
+                        _dbClient, initURIs, varrayList, vplex);
 
                 if (varraysToInitiators.isEmpty()) {
                     throw VPlexApiException.exceptions
@@ -7649,8 +7649,8 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
             Volume srcSideAssocVolume = null;
             if (existingVolume != null) {
                 srcSideAssocVolume = existingVolume;
-                existingVolume.setProject(new NamedURI(vplexSystemProject, _dbClient.queryObject(Project.class, vplexSystemProject).getLabel()));
-                existingVolume.setTenant(new NamedURI(vplexSystemTenant, _dbClient.queryObject(TenantOrg.class, vplexSystemTenant).getLabel()));
+                existingVolume.setProject(new NamedURI(vplexSystemProject, existingVolume.getLabel()));
+                existingVolume.setTenant(new NamedURI(vplexSystemTenant, existingVolume.getLabel()));
                 existingVolume.setLabel(newLabel);
                 existingVolume.setVirtualPool(newCosURI);
                 existingVolume.addInternalFlags(Flag.INTERNAL_OBJECT);
@@ -13016,8 +13016,8 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
         volume.setVirtualPool(vpool.getId());
         URI projectId = source.getProject().getURI();
         Project project = getDataObject(Project.class, projectId, _dbClient);
-        volume.setProject(new NamedURI(projectId, project.getLabel()));
-        volume.setTenant(new NamedURI(project.getTenantOrg().getURI(), project.getTenantOrg().getName()));
+        volume.setProject(new NamedURI(projectId, volume.getLabel()));
+        volume.setTenant(new NamedURI(project.getTenantOrg().getURI(), volume.getLabel()));
         volume.setVirtualArray(source.getVirtualArray());
         volume.setPool(source.getPool());
 

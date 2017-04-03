@@ -148,14 +148,16 @@ public class ExportBlockVolumeHelper {
             virtualArrayId = getVirtualArrayId(blockResource);
             // see if we can find an export that uses this block resource
             export = findExistingExportGroup(blockResource, virtualArrayId);
-            isEmptyExport = true;
+            boolean createExport = export == null;
+            isEmptyExport = export != null && BlockStorageUtils.isEmptyExport(export);
             // If did not find export group for the host/cluster, try find existing empty export with
             // host/cluster name
             if (export == null) {
                 export = BlockStorageUtils.findExportsByName(exportName, projectId, virtualArrayId);
                 isEmptyExport = export != null && BlockStorageUtils.isEmptyExport(export);
+                createExport = export == null || !isEmptyExport;
             }
-            if (export == null || !isEmptyExport) {
+            if (createExport) {
                 newVolumes.add(blockResource.getId());
             }
             // Export exists, check if volume belongs to it

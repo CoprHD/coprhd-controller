@@ -30,6 +30,7 @@ import javax.cim.CIMObjectPath;
 import javax.wbem.CloseableIterator;
 import javax.wbem.WBEMException;
 
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -924,14 +925,23 @@ public class SRDFUtils implements SmisConstants {
             SRDFReplicationModes.add(new RemoteReplicationMode(SupportedCopyModes.ACTIVE.name(), false, false));
         }
         RemoteReplicationSet rrSet = new RemoteReplicationSet();
-        rrSet.setDeviceLabel(storageSystem.getSerialNumber() + Constants.PLUS + remoteSystem.getSerialNumber());
-        rrSet.setNativeId(storageSystem.getSerialNumber() + Constants.PLUS + remoteSystem.getSerialNumber());
+        // Sort the SRC/TGT string as we will only report one RRSet for both Storage Systems
+        String lableformat = null;
+        if (storageSystem.getSerialNumber().compareToIgnoreCase(remoteSystem.getSerialNumber()) >= 0) {
+            lableformat = storageSystem.getSerialNumber() + Constants.PLUS + remoteSystem.getSerialNumber();
+        } else {
+            lableformat = remoteSystem.getSerialNumber() + Constants.PLUS + storageSystem.getSerialNumber();
+        }
+        rrSet.setDeviceLabel(lableformat);
+        rrSet.setNativeId(lableformat);
         rrSet.setSupportedElementTypes(supportedElementTypes);
         rrSet.setReplicationLinkGranularity(supportedElementTypes);
         rrSet.setReplicationState("UNKNOWN");
         rrSet.setSupportedReplicationModes(SRDFReplicationModes);
         Map<String, Set<RemoteReplicationSet.ReplicationRole>> systemMapSet = new HashMap<>();
         systemMapSet.put(storageSystem.getSerialNumber(), replicationRoleSource);
+        systemMapSet.put(storageSystem.getSerialNumber(), replicationRoleTarget);
+        systemMapSet.put(remoteSystem.getSerialNumber(), replicationRoleSource);
         systemMapSet.put(remoteSystem.getSerialNumber(), replicationRoleTarget);
         rrSet.setSystemMap(systemMapSet);
 

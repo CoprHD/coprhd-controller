@@ -22,7 +22,6 @@ import java.net.URI;
 import java.nio.file.FileSystems;
 import java.util.List;
 
-import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
 import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
 import org.apache.commons.compress.compressors.gzip.GzipCompressorInputStream;
@@ -38,6 +37,7 @@ import com.emc.storageos.db.client.model.StringSetMap;
 import com.emc.storageos.db.client.model.uimodels.CustomServicesDBAnsibleResource;
 import com.emc.storageos.primitives.db.ansible.CustomServicesAnsiblePrimitive;
 import com.emc.storageos.primitives.db.ansible.CustomServicesAnsibleResource;
+import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorException;
 
 /**
@@ -71,6 +71,11 @@ public class CustomServicesAnsibleResourceDAO implements CustomServicesResourceD
         attributes.put("playbooks", getPlaybooks(stream));
         return CustomServicesDBHelper.createResource(CustomServicesAnsibleResource.class, CustomServicesDBAnsibleResource.class,
                 primitiveManager, name, stream, attributes, null);
+    }
+
+    @Override
+    public String getResourceModel() {
+        return CustomServicesDBAnsibleResource.class.getSimpleName();
     }
 
     @Override

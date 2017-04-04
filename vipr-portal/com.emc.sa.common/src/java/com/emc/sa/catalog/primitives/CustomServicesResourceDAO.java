@@ -81,4 +81,11 @@ public interface CustomServicesResourceDAO<Resource extends CustomServicesPrimit
      * @return the primitive resource model type
      */
     public Class<Resource> getResourceType();
+
+    /**
+     * Get the name of the resource persistence model class
+     *
+     * @return the name of the resource persistence model class
+     */
+    public String getResourceModel();
 }

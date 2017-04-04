@@ -103,13 +103,13 @@ public final class CustomServicesPrimitiveMapper extends DbObjectMapper {
 
         final ResourceTypeEnum type = ResourceTypeMapping.getResourceType(CustomServicesPrimitiveResourceModel.class);
 
-        return makeResourceLink(type.getService(), primitiveType.type(), primitiveType.resource());
+        return makeResourceLink(type.getService(), primitiveType.resource());
     }
 
-    private static NamedRelatedResourceRep makeResourceLink(final String service, final String type, final NamedURI id)
+    private static NamedRelatedResourceRep makeResourceLink(final String service, final NamedURI id)
             throws URISyntaxException {
         StringBuilder builder = new StringBuilder(service)
-                .append(type).append("/").append(id.getURI());
+                .append("/").append(id.getURI());
         return new NamedRelatedResourceRep(id.getURI(), new RestLinkRep("resource", new URI(builder.toString())), id.getName());
     }
 

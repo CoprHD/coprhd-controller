@@ -72,7 +72,7 @@ public class PathConstants {
     public static final String WF_DIRECTORY_DELETE = "/workflow/directory/{id}/deactivate";
     public static final String CUSTOM_SERVICES_PRIMITIVES = "/primitives";
     public static final String CUSTOM_SERVICES_PRIMITIVE = "/primitives/{id}";
-    public static final String CUSTOM_SERVICES_PRIMITIVE_RESOURCE = "/primitives/resource/{type}";
+    public static final String CUSTOM_SERVICES_PRIMITIVE_RESOURCE = "/primitives/resource";
     public static final String CUSTOM_SERVICES_WORKFLOWS = "/workflows";
     public static final String CUSTOM_SERVICES_WORKFLOW_DELETE = "/workflows/{id}/deactivate";
     public static final String CUSTOM_SERVICES_WORKFLOW_VALIDATE = "/workflows/{id}/validate";

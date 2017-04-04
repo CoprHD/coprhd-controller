@@ -30,7 +30,7 @@ public class CustomServicesPrimitiveResourceRestRep extends DataObjectRestRep {
     private String parentId;
 
     @XmlElement(name = "parent_id")
-    public String getParent() {
+    public String getParentId() {
         return parentId;
     }
 

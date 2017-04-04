@@ -72,6 +72,11 @@ public class CustomServicesScriptResourceDAO implements CustomServicesResourceDA
     }
 
     @Override
+    public String getResourceModel() {
+        return CustomServicesDBScriptResource.class.getSimpleName();
+    }
+
+    @Override
     public void deactivateResource(final URI id) {
         CustomServicesDBHelper.deactivateResource(CustomServicesDBScriptResource.class, primitiveManager, client, id);
     }

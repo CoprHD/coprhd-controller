@@ -85,7 +85,6 @@
                 <ref bean="getSRDFRelations"/>
                 
                 <ref bean ="getSRDFLinkInstance"/>
-                <ref bean ="updateRemoteReplicationObjects"/>
 				
 				<!-- get Supported Size ranges of thick Volume -->
 				<ref bean="getSupportedSizeRanges-thin"/>
@@ -506,21 +505,6 @@
 
     <bean id="supportedAsynchronousActionsProcessor"
           class="com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.processor.SupportedAsynchronousActionsProcessor" />
-
-    <!-- Bean to update the Remote Replication Objects -->
-    <bean id="updateRemoteReplicationObjects"
-        class="com.emc.storageos.plugins.common.domainmodel.Operation">
-        <property name="arguments">
-            <list>
-                <ref bean="dbclient" />
-                <ref bean="systemId" />
-            </list>
-        </property>
-        <property name="instance" ref="vmaxSrdfUtils" />
-        <property name="method" value="processRemoteReplicationObjects" />
-        <property name="message" value="Invoking method to update the RemoteReplication Objects"/>
-    </bean>
-    
 
     <bean id="tierBookKeeping" class="com.emc.storageos.plugins.common.domainmodel.Operation">
 		<property name="arguments">

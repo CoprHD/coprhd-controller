@@ -69,14 +69,8 @@ public final class CustomServicesPrimitiveMapper extends DbObjectMapper {
         final CustomServicesPrimitiveResourceRestRep to = new CustomServicesPrimitiveResourceRestRep();
         mapDataObjectFields(from.asModelObject(), to);
         final List<CustomServicesPrimitiveResourceRestRep.Attribute> attributes = new ArrayList<CustomServicesPrimitiveResourceRestRep.Attribute>();
-//        for (final String eachKey : from.attributes().keySet()) {
-//            CustomServicesPrimitiveResourceRestRep.Attribute attribute = new CustomServicesPrimitiveResourceRestRep.Attribute();
-//            attribute.setName(eachKey);
-//            attribute.setValues(new ArrayList<>(from.attributes().get(eachKey)));
-//            attributes.add(attribute);
-//        }
         for (final Entry<String, Set<String>> entry : from.attributes().entrySet()) {
-            CustomServicesPrimitiveResourceRestRep.Attribute attribute = new CustomServicesPrimitiveResourceRestRep.Attribute() {
+            final CustomServicesPrimitiveResourceRestRep.Attribute attribute = new CustomServicesPrimitiveResourceRestRep.Attribute() {
                 {
                     setName(entry.getKey());
                     setValues(new ArrayList<>(entry.getValue()));

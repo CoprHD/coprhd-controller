@@ -220,18 +220,18 @@ public class CustomServicesRESTApiPrimitiveDAO implements CustomServicesPrimitiv
         
         // Remove any existing params that are not in the new 
         // input set
+        final StringSet remove = new StringSet();
         for( final String existingParam : updateParams) {
             if( !inputParams.contains(existingParam)) {
-                updateParams.remove(existingParam);
+                remove.add(existingParam);
             }
         }
+        ;
+        updateParams.removeAll(remove);
         
-        //Add any existing params that were not present in the existing set
-        for( final String newParam : inputParams) {
-            if( !updateParams.contains(newParam)) {
-                updateParams.add(newParam);
-            }
-        }
+        
+        // Add all of the input params
+        updateParams.addAll(inputParams);
         
         return updateParams;
     }

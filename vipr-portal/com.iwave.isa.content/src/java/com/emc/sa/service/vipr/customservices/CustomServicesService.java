@@ -91,7 +91,7 @@ public class CustomServicesService extends ViPRService {
     public void execute() throws Exception {
         ExecutionUtils.currentContext().logInfo("customServicesService.title");
         try {
-            wfExecutor(null);
+            wfExecutor(null, null);
             ExecutionUtils.currentContext().logInfo("customServicesService.successStatus");
         } catch (final Exception e) {
             ExecutionUtils.currentContext().logError("customServicesService.failedStatus");
@@ -134,7 +134,7 @@ public class CustomServicesService extends ViPRService {
      *
      * @throws Exception
      */
-    public void wfExecutor(final URI uri) throws Exception {
+    public void wfExecutor(final URI uri, final Map<String, CustomServicesWorkflowDocument.InputGroup> stepInput) throws Exception {
 
         logger.info("Parsing Workflow Definition");
 
@@ -150,36 +150,37 @@ public class CustomServicesService extends ViPRService {
 
             ExecutionUtils.currentContext().logInfo("customServicesService.stepStatus", step.getId(), step.getType());
 
-            updateInputPerStep(step);
+            Step updatedStep = updatesubWfInput(step, stepInput);
+            updateInputPerStep(updatedStep);
 
             final CustomServicesTaskResult res;
             try {
-                if (step.getType().equals(StepType.WORKFLOW.toString())) {
-                    wfExecutor(step.getOperation());
+                if (updatedStep.getType().equals(StepType.WORKFLOW.toString())) {
+                    wfExecutor(updatedStep.getOperation(), updatedStep.getInputGroups());
 
                     // We Don't evaluate output/result for Workflow Step. It is already evaluated.
                     // We would have got exception if Sub WF has failed
                     res = new CustomServicesTaskResult("Success", "No Error", 200, null);
                 } else {
-                    final MakeCustomServicesExecutor task = executor.get(step.getType());
+                    final MakeCustomServicesExecutor task = executor.get(updatedStep.getType());
 
-                    res = ViPRExecutionUtils.execute(task.makeCustomServicesExecutor(inputPerStep.get(step.getId()), step));
+                    res = ViPRExecutionUtils.execute(task.makeCustomServicesExecutor(inputPerStep.get(updatedStep.getId()), updatedStep));
                 }
 
-                boolean isSuccess = isSuccess(step, res);
+                boolean isSuccess = isSuccess(updatedStep, res);
                 if (isSuccess) {
                     try {
-                        updateOutputPerStep(step, res);
+                        updateOutputPerStep(updatedStep, res);
                     } catch (final Exception e) {
                         logger.info("Failed to parse output" + e);
 
                         isSuccess = false;
                     }
                 }
-                next = getNext(isSuccess, res, step);
+                next = getNext(isSuccess, res, updatedStep);
             } catch (final Exception e) {
                 logger.info("failed to execute step. Try to get rollback step. Exception Received:" + e);
-                next = getNext(false, null, step);
+                next = getNext(false, null, updatedStep);
             } finally {
                 orderDirCleanup(orderDir);
             }
@@ -192,6 +193,44 @@ public class CustomServicesService extends ViPRService {
             }
         }
 
+    }
+
+    private Step updatesubWfInput(final Step step, final Map<String, CustomServicesWorkflowDocument.InputGroup> stepInput) {
+        if (step.getType().equals(StepType.WORKFLOW.toString()) || stepInput == null || step.getInputGroups() == null) {
+            return null;
+        }
+
+        for (final CustomServicesWorkflowDocument.InputGroup inputGroup : step.getInputGroups().values()) {
+            for (final Input value : inputGroup.getInputGroup()) {
+                final String name = value.getFriendlyName();
+                switch (CustomServicesConstants.InputType.fromString(value.getType())) {
+                    case FROM_USER:
+                    case ASSET_OPTION:
+                        if (!value.getType().equals(getType(name, stepInput))){
+                            logger.info("Change the type");
+                            value.setType(getType(name, stepInput));
+                        }
+                        break;
+                    default:
+                        logger.info("do nothing");
+                }
+            }
+        }
+
+        return step;
+    }
+
+    private String getType(final String name, final Map<String, CustomServicesWorkflowDocument.InputGroup> stepInput) {
+        for (final CustomServicesWorkflowDocument.InputGroup inputGroup : stepInput.values()) {
+            for (final Input value : inputGroup.getInputGroup()) {
+                final String name1 = value.getFriendlyName();
+                if (name1.equals(name)) {
+                    return value.getType();
+                }
+            }
+        }
+
+        return null;
     }
 
     private void orderDirCleanup(final String orderDir) {
@@ -238,6 +277,9 @@ public class CustomServicesService extends ViPRService {
      * @param step It is the JSON Object of Step
      */
     private void updateInputPerStep(final Step step) throws Exception {
+        if (step.getType().equals(StepType.WORKFLOW.toString())) {
+            return;
+        }
         if (step.getInputGroups() == null) {
             return;
         }

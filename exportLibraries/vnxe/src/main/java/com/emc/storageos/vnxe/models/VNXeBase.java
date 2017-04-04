@@ -7,6 +7,9 @@ package com.emc.storageos.vnxe.models;
 
 import javax.xml.bind.annotation.XmlRootElement;
 
+import org.codehaus.jackson.annotate.JsonIgnoreProperties;
+
+@JsonIgnoreProperties(ignoreUnknown = true)
 @XmlRootElement
 public class VNXeBase {
     private String id;

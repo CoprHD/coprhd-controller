@@ -88,10 +88,10 @@ public class FileSnapshotPolicyMigration extends BaseCustomMigrationCallback {
                             // Remove the existing schedule policy from fs
                             // add new file policy to fs!!
                             StringSet fsExistingPolicies = fs.getFilePolicies();
-                            Set<String> snapSchedulesToRemove = new HashSet<String>();
-                            if (fsExistingPolicies != null) {
-                                for (Iterator<String> iterator = fsExistingPolicies.iterator(); iterator.hasNext();) {
-                                    String existingSnapPolicyId = iterator.next();
+
+                            if (fsExistingPolicies != null && !fsExistingPolicies.isEmpty()) {
+                                Set<String> snapSchedulesToRemove = new HashSet<String>();
+                                for (String existingSnapPolicyId : fsExistingPolicies) {
                                     if (URIUtil.isType(URI.create(existingSnapPolicyId), SchedulePolicy.class)) {
                                         snapSchedulesToRemove.add(existingSnapPolicyId);
                                     }

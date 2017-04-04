@@ -339,11 +339,10 @@ public class ExportGroupService extends TaskResourceService {
         // If ExportPathParameter block is present, and volumes are present, validate have permissions.
         // Processing will be in the aysnc. task.
         ExportPathParameters pathParam = param.getExportPathParameters();
-        if (pathParam != null && !volumeMap.keySet().isEmpty()) {
+        if (pathParam != null && pathParam.getPortGroup()== null && !volumeMap.keySet().isEmpty()) {
             // Only [RESTRICTED_]SYSTEM_ADMIN may override the Vpool export parameters
             if (!_permissionsHelper.userHasGivenRole(user,
-                    null, Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN) &&
-                    pathParam.getPortGroup() == null) {
+                    null, Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN)) {
                 throw APIException.forbidden.onlySystemAdminsCanOverrideVpoolPathParameters(exportGroup.getLabel());
             }
         }
@@ -2948,6 +2947,7 @@ public class ExportGroupService extends TaskResourceService {
         Boolean isPGCompatible = null;
         URI portGroupParam = pathParam.getPortGroup();
         URI pgSystemURI = null;
+        String portGroupName = null;
         if (portGroupParam == null) {
             isPGCompatible = Boolean.TRUE;
         } else {
@@ -2955,6 +2955,7 @@ public class ExportGroupService extends TaskResourceService {
             if (portGroup == null || !portGroup.isUsable()) {
                 throw APIException.badRequests.portGroupInvalid(portGroupParam.toString());
             }
+            portGroupName = portGroup.getNativeGuid();
             pgSystemURI = portGroup.getStorageDevice();
         }
         for (String initiatorId : initiators) {
@@ -3018,7 +3019,7 @@ public class ExportGroupService extends TaskResourceService {
             throw APIException.badRequests.cannotOverrideVpoolPathsBecauseExistingExports(builder.toString());
         }
         if (isPGCompatible != null && isPGCompatible == Boolean.FALSE) {
-            throw APIException.badRequests.portGroupInvalid(portGroupParam.toString());
+            throw APIException.badRequests.cannotOverridePortGroupBecauseExistingExports(portGroupName);
         }
     }
 

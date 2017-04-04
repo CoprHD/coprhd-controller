@@ -14,6 +14,13 @@ from bourne import Bourne
 # remotereplicatingroup functions
 #----------------------------------------------------------------------
 
+# list groups
+def remotereplicationgroup_list(args):
+    bourne.connect(args.ip)
+    groups = bourne.replicationgroup_list()
+    for group in groups:
+        print group
+
 # Create remote replication group.
 def remotereplicationgroup_create(args):
     bourne.connect(args.ip)
@@ -67,6 +74,9 @@ parser = argparse.ArgumentParser(description = 'Bourne remotereplication group c
 parser.add_argument('cmd', help = 'cmd = (create )')
 parser.add_argument('--ip',	metavar = 'ipaddr',	help = 'IP address of bourne', default=bourne_ip)
 
+# remote replication group list
+list = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+
 # remotereplicationgroup create_storage_type
 create_storage_type = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
 create_storage_type.add_argument('storage_type_name', help = 'The name of the storage system type.')
@@ -103,7 +113,10 @@ try:
 
     bourne = Bourne()
 
-    if (cmd == "create"):
+    if (cmd == "list"):
+        args = list.parse_args()
+        remotereplicationgroup_list(args)
+    elif (cmd == "create"):
         args = create.parse_args()
         remotereplicationgroup_create(args)
     elif (cmd == "create_storage_type"):

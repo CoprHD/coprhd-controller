@@ -6924,6 +6924,16 @@ sbsdk_remote_replication_setup()
     sbsdk_remote_replication_setup_once
     sbsdk_remote_replication_setup_once1
 
+    ##
+    rr_groups=`remotereplicationgroup list | wc -l`
+    secho "Discovered ${rr_groups} remote replication groups."
+    if [ "$rr_groups" -eq 0 ]; then
+            secho "Failed to discover remote replication groups."
+            exit -1
+    fi
+
+    ##
+
     #Define variables
     # System names are important to align with remote replication configuration in driver simulator.
     SBSDK_DRIVER_REPLICATION_SET1=replicationSet1

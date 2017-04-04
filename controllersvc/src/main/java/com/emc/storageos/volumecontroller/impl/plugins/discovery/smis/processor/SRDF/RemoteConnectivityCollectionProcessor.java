@@ -7,6 +7,7 @@ package com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.processor
 import java.io.IOException;
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -24,6 +25,7 @@ import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.model.RemoteDirectorGroup;
 import com.emc.storageos.db.client.model.RemoteDirectorGroup.ConnectivityStatus;
+import com.emc.storageos.db.client.model.RemoteDirectorGroup.SupportedCopyModes;
 import com.emc.storageos.db.client.model.StorageProvider;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StorageSystem.SupportedReplicationTypes;
@@ -33,7 +35,10 @@ import com.emc.storageos.plugins.AccessProfile;
 import com.emc.storageos.plugins.BaseCollectionException;
 import com.emc.storageos.plugins.common.Constants;
 import com.emc.storageos.plugins.common.domainmodel.Operation;
+import com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationMode;
+import com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationSet;
 import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
+import com.emc.storageos.volumecontroller.impl.externaldevice.RemoteReplicationDataClientImpl;
 import com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.processor.StorageProcessor;
 
 //Processor used in finding out active SRDF RA Groups
@@ -75,17 +80,28 @@ public class RemoteConnectivityCollectionProcessor extends StorageProcessor {
 
             updateSupportedCopyModes(srdfSupported, device);
             updateRemoteConnectedStorageSystems(device, remoteConnectedStorageSystems);
-            _dbClient.persistObject(device);
+            _dbClient.updateObject(device);
 
             if (!newlyAddedGroups.isEmpty()) {
                 _dbClient.createObject(newlyAddedGroups);
             }
 
             if (!modifiedGroups.isEmpty()) {
-                _dbClient.persistObject(modifiedGroups);
+                _dbClient.updateObject(modifiedGroups);
             }
 
             performRAGroupsBookKeeping(raGroupIds, device.getId());
+            
+            List<RemoteReplicationSet> replicationSets = new ArrayList<RemoteReplicationSet>();
+            for (String remoteConnectedSystem : remoteConnectedStorageSystems) {
+                StorageSystem remoteSystem = _dbClient.queryObject(StorageSystem.class, URI.create(remoteConnectedSystem));
+                if (remoteSystem != null) {
+                    replicationSets.add(createRemoteReplicationSet(device, remoteSystem));
+                }
+            }
+            RemoteReplicationDataClientImpl remoteReplicationDataClient = new RemoteReplicationDataClientImpl();
+            remoteReplicationDataClient.setDbClient(_dbClient);
+            remoteReplicationDataClient.processRemoteReplicationSetsForStorageSystem(device, replicationSets);
 
         } catch (Exception e) {
             _log.error("Finding out Active RA Groups Failed.SRDF will not be supported on this Array {} ", device.getNativeGuid(), e);
@@ -287,6 +303,59 @@ public class RemoteConnectivityCollectionProcessor extends StorageProcessor {
             throws BaseCollectionException {
         // TODO Auto-generated method stub
 
+    }
+
+    /**
+     * Utility method that would Create a RemoteReplicationSet between a StorageSystem and its Remote counterpart
+     * 
+     * @param Reference to storageSystem
+     * @param Reference to remoteSystem
+     * @return RemoteReplicationSet
+     */
+    private RemoteReplicationSet createRemoteReplicationSet(StorageSystem storageSystem, StorageSystem remoteSystem) {
+
+        Set<RemoteReplicationSet.ElementType> supportedElementTypes = new HashSet<>();
+        supportedElementTypes.add(RemoteReplicationSet.ElementType.REPLICATION_GROUP);
+        supportedElementTypes.add(RemoteReplicationSet.ElementType.REPLICATION_PAIR);
+
+        HashSet<RemoteReplicationSet.ReplicationRole> replicationRoles = new HashSet<>();
+        replicationRoles.add(RemoteReplicationSet.ReplicationRole.SOURCE);
+        replicationRoles.add(RemoteReplicationSet.ReplicationRole.TARGET);
+
+        // TODO: VMAX Does not enforce consistency but ViPR maintains consistency for the Groups? Should
+        // isGroupConsistencyEnforcedAutomatically be set to TRUE?
+
+        Set<RemoteReplicationMode> SRDFReplicationModes = new HashSet<>();
+        SRDFReplicationModes.add(new RemoteReplicationMode(SupportedCopyModes.SYNCHRONOUS.name(), false, false));
+        SRDFReplicationModes.add(new RemoteReplicationMode(SupportedCopyModes.ASYNCHRONOUS.name(), false, false));
+        SRDFReplicationModes.add(new RemoteReplicationMode(SupportedCopyModes.ADAPTIVECOPY.name(), false, false));
+        if (null != storageSystem.getSupportedReplicationTypes()
+                && storageSystem.getSupportedReplicationTypes().contains(SupportedReplicationTypes.SRDFMetro.toString()) &&
+                null != remoteSystem.getSupportedReplicationTypes()
+                && remoteSystem.getSupportedReplicationTypes().contains(SupportedReplicationTypes.SRDFMetro.toString())) {
+            SRDFReplicationModes.add(new RemoteReplicationMode(SupportedCopyModes.ACTIVE.name(), false, false));
+        }
+        // Sort the SRC/TGT string as we will only report one RRSet for both Storage Systems
+        String labelFormat = null;
+        if (storageSystem.getSerialNumber().compareToIgnoreCase(remoteSystem.getSerialNumber()) >= 0) {
+            labelFormat = storageSystem.getSerialNumber() + Constants.PLUS + remoteSystem.getSerialNumber();
+        } else {
+            labelFormat = remoteSystem.getSerialNumber() + Constants.PLUS + storageSystem.getSerialNumber();
+        }
+
+        RemoteReplicationSet rrSet = new RemoteReplicationSet();
+        rrSet.setDeviceLabel(labelFormat);
+        rrSet.setNativeId(labelFormat);
+        rrSet.setSupportedElementTypes(supportedElementTypes);
+        rrSet.setReplicationLinkGranularity(supportedElementTypes);
+        rrSet.setReplicationState("UNKNOWN");
+        rrSet.setSupportedReplicationModes(SRDFReplicationModes);
+        Map<String, Set<RemoteReplicationSet.ReplicationRole>> systemMapSet = new HashMap<>();
+        systemMapSet.put(storageSystem.getSerialNumber(), replicationRoles);
+        systemMapSet.put(remoteSystem.getSerialNumber(), replicationRoles);
+        rrSet.setSystemMap(systemMapSet);
+
+        return rrSet;
     }
 
 }

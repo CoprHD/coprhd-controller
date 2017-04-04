@@ -20,6 +20,7 @@ import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.util.CollectionUtils;
 
 import com.emc.storageos.customconfigcontroller.CustomConfigConstants;
 import com.emc.storageos.customconfigcontroller.DataSource;
@@ -64,6 +65,7 @@ import com.emc.storageos.hds.model.WorldWideName;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.networkcontroller.impl.NetworkDeviceController;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
+import com.emc.storageos.util.ExportUtils;
 import com.emc.storageos.util.NetworkLite;
 import com.emc.storageos.util.NetworkUtil;
 import com.emc.storageos.volumecontroller.TaskCompleter;
@@ -1616,7 +1618,17 @@ public class HDSExportOperations implements ExportMaskOperations {
                 exportMask.addToExistingVolumesIfAbsent(volumesExistsOnHSD);
                 exportMask
                         .addToExistingInitiatorsIfAbsent(initiatorsExistsOnHSD);
-
+                List<Initiator> initiatorList = new ArrayList<>();
+                if (!CollectionUtils.isEmpty(initiatorsExistsOnHSD)) {
+                    for (String port : initiatorsExistsOnHSD) {
+                        // String normalizedPort = Initiator.normalizePort(port);
+                        Initiator existingInitiator = ExportUtils.getInitiator(Initiator.toPortNetworkId(port), dbClient);
+                        if (existingInitiator != null && !existingInitiator.getInactive()) {
+                            initiatorList.add(existingInitiator);
+                        }
+                    }
+                }
+                exportMask.addInitiators(initiatorList);
                 String strExistingInitiators = "";
                 String strExistingVolumes = "";
                 

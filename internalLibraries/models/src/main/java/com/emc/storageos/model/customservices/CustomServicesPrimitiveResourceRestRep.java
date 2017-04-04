@@ -16,6 +16,7 @@
  */
 package com.emc.storageos.model.customservices;
 
+import java.net.URI;
 import java.util.List;
 
 import javax.xml.bind.annotation.XmlElement;
@@ -27,14 +28,14 @@ import com.emc.storageos.model.DataObjectRestRep;
 public class CustomServicesPrimitiveResourceRestRep extends DataObjectRestRep {
 
     private List<Attribute> attributes;
-    private String parentId;
+    private URI parentId;
 
     @XmlElement(name = "parent_id")
-    public String getParentId() {
+    public URI getParentId() {
         return parentId;
     }
 
-    public void setParentId(final String parentId) {
+    public void setParentId(final URI parentId) {
         this.parentId = parentId;
     }
     

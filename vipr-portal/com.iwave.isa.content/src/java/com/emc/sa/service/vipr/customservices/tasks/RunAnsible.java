@@ -155,7 +155,7 @@ public class RunAnsible extends ViPRExecutionTask<CustomServicesTaskResult> {
                     // uncompress Ansible archive to orderDir
                     uncompressArchive(ansibleArchive);
 
-                    final String hostFileFromStep = getHostFileFromStepInput();
+                    final String hostFileFromStep = getOptions(CustomServicesConstants.ANSIBLE_HOST_FILE);
 
                     if (StringUtils.isBlank(hostFileFromStep)) {
                         logger.error("Error retrieving the inventory resource from the ansible primitive step");
@@ -262,23 +262,9 @@ public class RunAnsible extends ViPRExecutionTask<CustomServicesTaskResult> {
         return out;
     }
 
-    private String getHostFileFromStepInput() {
-        final Map<String, CustomServicesWorkflowDocument.InputGroup> inputType = step.getInputGroups();
-        if (MapUtils.isEmpty(inputType)) {
-            return null;
-        }
-
-        if (inputType.containsKey(CustomServicesConstants.ANSIBLE_OPTIONS)) {
-            return getOptions(CustomServicesConstants.ANSIBLE_HOST_FILE);
-        } else {
-            return null;
-        }
-
-    }
-
-    //TODO: remove thsi comment. Obtained as part of changes done by Sonali for PR 4513.
+    //TODO: remove this comment. Obtained as part of changes done by Sonali for PR 4513.
     private String getOptions(final String key) {
-        if (input.get(key) != null) {
+        if (input.containsKey(key) && input.get(key) != null) {
             return StringUtils.strip(input.get(key).get(0).toString(), "\"");
         }
         logger.info("key not defined. key:{}", key);

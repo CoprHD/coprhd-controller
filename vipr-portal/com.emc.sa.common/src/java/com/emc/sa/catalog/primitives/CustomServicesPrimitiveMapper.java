@@ -22,10 +22,12 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 
 import com.emc.storageos.api.mapper.DbObjectMapper;
 import com.emc.storageos.api.service.impl.response.ResourceTypeMapping;
 import com.emc.storageos.db.client.constraint.NamedElementQueryResultList.NamedElement;
+import com.emc.storageos.db.client.model.AbstractChangeTrackingSet;
 import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.uimodels.CustomServicesDBResource;
 import com.emc.storageos.db.client.model.uimodels.CustomServicesPrimitiveResourceModel;
@@ -36,6 +38,7 @@ import com.emc.storageos.model.customservices.CustomServicesPrimitiveResourceLis
 import com.emc.storageos.model.customservices.CustomServicesPrimitiveResourceRestRep;
 import com.emc.storageos.model.customservices.CustomServicesPrimitiveRestRep;
 import com.emc.storageos.model.customservices.CustomServicesPrimitiveRestRep.InputGroup;
+import com.emc.storageos.model.customservices.CustomServicesValidationResponse;
 import com.emc.storageos.model.customservices.InputParameterRestRep;
 import com.emc.storageos.model.customservices.OutputParameterRestRep;
 import com.emc.storageos.primitives.CustomServicesPrimitive;
@@ -66,17 +69,26 @@ public final class CustomServicesPrimitiveMapper extends DbObjectMapper {
     public static CustomServicesPrimitiveResourceRestRep map(final CustomServicesPrimitiveResourceType from) {
         final CustomServicesPrimitiveResourceRestRep to = new CustomServicesPrimitiveResourceRestRep();
         mapDataObjectFields(from.asModelObject(), to);
-        List<CustomServicesPrimitiveResourceRestRep.Attribute> attributes = new ArrayList<>();
-        for (final String eachKey : from.attributes().keySet()) {
-            CustomServicesPrimitiveResourceRestRep.Attribute attribute = new CustomServicesPrimitiveResourceRestRep.Attribute();
-            attribute.setName(eachKey);
-            attribute.setValues(new ArrayList<>(from.attributes().get(eachKey)));
+        final List<CustomServicesPrimitiveResourceRestRep.Attribute> attributes = new ArrayList<CustomServicesPrimitiveResourceRestRep.Attribute>();
+//        for (final String eachKey : from.attributes().keySet()) {
+//            CustomServicesPrimitiveResourceRestRep.Attribute attribute = new CustomServicesPrimitiveResourceRestRep.Attribute();
+//            attribute.setName(eachKey);
+//            attribute.setValues(new ArrayList<>(from.attributes().get(eachKey)));
+//            attributes.add(attribute);
+//        }
+        for (final Entry<String, Set<String>> entry : from.attributes().entrySet()) {
+            CustomServicesPrimitiveResourceRestRep.Attribute attribute = new CustomServicesPrimitiveResourceRestRep.Attribute() {
+                {
+                    setName(entry.getKey());
+                    setValues(new ArrayList<>(entry.getValue()));
+                }
+            };
             attributes.add(attribute);
         }
         to.setAttributes(attributes);
 
         if(from.parentId() != null){
-            to.setParentId(from.parentId().toString());
+            to.setParentId(from.parentId());
         }
 
         return to;

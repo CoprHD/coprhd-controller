@@ -2,8 +2,10 @@ package com.emc.storageos.db.client.upgrade.callbacks;
 
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Set;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -86,12 +88,16 @@ public class FileSnapshotPolicyMigration extends BaseCustomMigrationCallback {
                             // Remove the existing schedule policy from fs
                             // add new file policy to fs!!
                             StringSet fsExistingPolicies = fs.getFilePolicies();
+                            Set<String> snapSchedulesToRemove = new HashSet<String>();
                             if (fsExistingPolicies != null) {
                                 for (Iterator<String> iterator = fsExistingPolicies.iterator(); iterator.hasNext();) {
                                     String existingSnapPolicyId = iterator.next();
                                     if (URIUtil.isType(URI.create(existingSnapPolicyId), SchedulePolicy.class)) {
-                                        iterator.remove();
+                                        snapSchedulesToRemove.add(existingSnapPolicyId);
                                     }
+                                }
+                                if (!snapSchedulesToRemove.isEmpty()) {
+                                    fsExistingPolicies.removeAll(snapSchedulesToRemove);
                                 }
                             } else {
                                 fsExistingPolicies = new StringSet();

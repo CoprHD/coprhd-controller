@@ -498,12 +498,10 @@ public class BlockVirtualPoolUpdateBuilder extends VirtualPoolUpdateBuilder {
 
     private static List<VirtualPoolRemoteReplicationSettingsParam> getRemoteReplicationSettings(
             BlockVirtualPoolProtectionParam protection) {
-        if(protection != null ){
-            
-            VirtualPoolRemoteReplicationParam param =protection.getRemoteReplicationParam();
-            return param != null ? param.getRemoteReplicationSettings() : Collections.emptyList();
+        if(protection != null && protection.getRemoteReplicationParam() != null && protection.getRemoteReplicationParam().getRemoteReplicationSettings() != null) {
+            return protection.getRemoteReplicationParam().getRemoteReplicationSettings();
         }
-         return Collections.emptyList();
+        return Collections.emptyList();
     }
 
 

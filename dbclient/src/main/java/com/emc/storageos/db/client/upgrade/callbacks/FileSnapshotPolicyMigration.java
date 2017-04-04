@@ -87,7 +87,12 @@ public class FileSnapshotPolicyMigration extends BaseCustomMigrationCallback {
                             // add new file policy to fs!!
                             StringSet fsExistingPolicies = fs.getFilePolicies();
                             if (fsExistingPolicies != null) {
-                                fsExistingPolicies.clear();
+                                for (Iterator<String> iterator = fsExistingPolicies.iterator(); iterator.hasNext();) {
+                                    String existingSnapPolicyId = iterator.next();
+                                    if (URIUtil.isType(URI.create(existingSnapPolicyId), SchedulePolicy.class)) {
+                                        iterator.remove();
+                                    }
+                                }
                             } else {
                                 fsExistingPolicies = new StringSet();
                             }

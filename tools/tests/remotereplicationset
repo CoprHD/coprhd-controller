@@ -53,7 +53,7 @@ try:
 
     if (cmd == "list"):
         args = list.parse_args()
-        remotereplicationgroup_list(args)
+        remotereplicationset_list(args)
     else:
         parser.print_help()
 

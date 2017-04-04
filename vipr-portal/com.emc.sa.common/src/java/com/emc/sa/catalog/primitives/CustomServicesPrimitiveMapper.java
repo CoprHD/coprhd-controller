@@ -42,7 +42,6 @@ import com.emc.storageos.model.customservices.CustomServicesValidationResponse;
 import com.emc.storageos.model.customservices.InputParameterRestRep;
 import com.emc.storageos.model.customservices.OutputParameterRestRep;
 import com.emc.storageos.primitives.CustomServicesPrimitive;
-import com.emc.storageos.primitives.CustomServicesPrimitive.InputType;
 import com.emc.storageos.primitives.CustomServicesPrimitiveResourceType;
 import com.emc.storageos.primitives.CustomServicesPrimitiveType;
 import com.emc.storageos.primitives.input.BasicInputParameter;
@@ -148,13 +147,13 @@ public final class CustomServicesPrimitiveMapper extends DbObjectMapper {
     }
 
     private static Map<String, InputGroup> mapInput(
-            final Map<InputType, List<InputParameter>> input) {
-        final ImmutableMap.Builder<String, InputGroup> builder = ImmutableMap.<String, InputGroup> builder();
+            final Map<String, List<InputParameter>> input) {
+        final ImmutableMap.Builder<String, InputGroup> builder = ImmutableMap.<String, InputGroup>builder();
 
-        for (final Entry<InputType, List<InputParameter>> entry : input.entrySet()) {
+        for(final Entry<String, List<InputParameter>> entry : input.entrySet()) {
             builder.put(entry.getKey().toString(), mapInputGroup(entry.getValue()));
         }
-
+        
         return builder.build();
     }
 
@@ -181,9 +180,9 @@ public final class CustomServicesPrimitiveMapper extends DbObjectMapper {
 
     private static List<OutputParameterRestRep> mapOutput(
             final List<OutputParameter> output) {
-        ImmutableList.Builder<OutputParameterRestRep> builder = ImmutableList.<OutputParameterRestRep> builder();
-        if (output != null) {
-            for (final OutputParameter param : output) {
+        ImmutableList.Builder<OutputParameterRestRep> builder = ImmutableList.<OutputParameterRestRep>builder();
+        if(output != null ) {
+            for(final OutputParameter param : output) {
                 builder.add(mapOutputParameter(param));
             }
         }
@@ -193,10 +192,10 @@ public final class CustomServicesPrimitiveMapper extends DbObjectMapper {
     private static OutputParameterRestRep mapOutputParameter(
             final OutputParameter param) {
         final OutputParameterRestRep restRep = new OutputParameterRestRep();
-
+        
         restRep.setName(param.getName());
         restRep.setType(param.getType().name());
-
+        
         return restRep;
     }
 }

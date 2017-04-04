@@ -16,9 +16,6 @@
  */
 package com.emc.storageos.db.client.model.uimodels;
 
-import java.util.Collections;
-import java.util.Set;
-
 import com.emc.storageos.db.client.model.Cf;
 
 /**
@@ -29,17 +26,5 @@ import com.emc.storageos.db.client.model.Cf;
 public class CustomServicesDBScriptPrimitive extends CustomServicesDBPrimitive {
     
     private static final long serialVersionUID = 1L;
-    private static final Set<String> ATTRIBUTES = Collections.emptySet();
-    private static final Set<String> INPUT_TYPES = Collections.singleton("input_params");
-    
-    @Override
-    public Set<String> attributeKeys() {
-        return ATTRIBUTES;
-    }
-
-    @Override
-    public Set<String> inputTypes() {
-        return INPUT_TYPES;
-    }
 
 }

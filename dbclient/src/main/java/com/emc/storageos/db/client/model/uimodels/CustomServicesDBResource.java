@@ -53,6 +53,7 @@ public abstract class CustomServicesDBResource extends CustomServicesPrimitiveRe
 
     public void setAttributes(final StringSetMap attributes) {
         this.attributes = attributes;
+        setChanged(ATTRIBUTES);
     }
 
     @Name(PARENTID)

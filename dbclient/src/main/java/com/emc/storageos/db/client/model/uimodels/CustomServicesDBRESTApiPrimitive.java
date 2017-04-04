@@ -18,11 +18,9 @@ package com.emc.storageos.db.client.model.uimodels;
 
 import com.emc.storageos.db.client.model.Cf;
 
-/**
- * Database column family for ansible primitives
- *
- */
-@Cf("CustomServicesDBAnsiblePrimitive")
-public class CustomServicesDBAnsiblePrimitive extends CustomServicesDBPrimitive {
+@Cf("CustomServicesDBRESTApiPrimitive")
+public class CustomServicesDBRESTApiPrimitive extends CustomServicesDBPrimitive {
+
     private static final long serialVersionUID = 1L;
+    
 }

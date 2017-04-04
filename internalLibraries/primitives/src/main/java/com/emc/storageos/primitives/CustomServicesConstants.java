@@ -38,10 +38,14 @@ public final class CustomServicesConstants {
     public static final int INPUT_FIELD = 1;
     public static final String WF_ID = "WorkflowId";
 
+    //Primitive/resource types
     public static final String VIPR_PRIMITIVE_TYPE = "vipr";
     public static final String SCRIPT_PRIMITIVE_TYPE = "script";
     public static final String ANSIBLE_PRIMITIVE_TYPE = "ansible";
+    public static final String REST_API_PRIMITIVE_TYPE = "rest";
+    public static final String REMOTE_ANSIBLE_PRIMTIVE_TYPE = "remote_ansible";
     public static final String ANSIBLE_INVENTORY_TYPE = "ansible_inventory";
+    
     // SuccessCriteria Constants
     public static final String RETURN_CODE = "code";
     public static final String TASK = "task";
@@ -60,7 +64,7 @@ public final class CustomServicesConstants {
     public static final String REMOVE_OPTION = "-rf";
     // Ansible Options
     public static final String ANSIBLE_BIN = "remote_ansible_bin";
-    public static final String ANSIBLE_PLAYBOOK = "remote_node_playbook";
+    public static final String ANSIBLE_PLAYBOOK = "playbook";
     public static final String ANSIBLE_HOST_FILE = "host_file";
     public static final String ANSIBLE_USER = "remote_ansible_user";
     public static final String ANSIBLE_COMMAND_LINE = "ansible_command_line_arg";
@@ -72,10 +76,13 @@ public final class CustomServicesConstants {
     public static final String CONNECTION_DETAILS = "connection_details";
     public static final String ANSIBLE_OPTIONS = "ansible_options";
     public static final String REST_OPTIONS = "rest_options";
-
+    public static final String QUERY_PARAMS ="query_params";
+    public static final String CREDENTIALS = "credentials";
+    public static final String HEADERS = "headers";
+    
     //REST options
     public static final String PROTOCOL = "protocol";
-    public static final String AUTH_TYPE = "AuthType";
+    public static final String AUTH_TYPE = "auth";
     public static final String USER = "user";
     public static final String PASSWORD = "password";
     public static final String ACCEPT_TYPE = "Accept-Type";
@@ -85,7 +92,7 @@ public final class CustomServicesConstants {
     public static final String TARGET = "target";
     public static final String PATH = "path";
     public static final String PORT = "port";
-    public static final String HEADERS = "headers";
+    
 
     //Execution Result
     public static final String OPERATION_OUTPUT = "operation_output";

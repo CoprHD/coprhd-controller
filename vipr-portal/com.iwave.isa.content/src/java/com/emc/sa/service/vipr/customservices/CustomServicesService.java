@@ -25,7 +25,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.commons.collections.MultiMap;
 import org.apache.commons.lang.StringUtils;
 import org.codehaus.jackson.JsonNode;
 import org.codehaus.jackson.map.ObjectMapper;
@@ -44,8 +43,8 @@ import com.emc.sa.service.vipr.ViPRExecutionUtils;
 import com.emc.sa.service.vipr.ViPRService;
 import com.emc.sa.service.vipr.customservices.gson.ViprOperation;
 import com.emc.sa.service.vipr.customservices.gson.ViprTask;
-import com.emc.sa.service.vipr.customservices.tasks.CustomServicesRestTaskResult;
 import com.emc.sa.service.vipr.customservices.tasks.CustomServicesRESTExecution;
+import com.emc.sa.service.vipr.customservices.tasks.CustomServicesRestTaskResult;
 import com.emc.sa.service.vipr.customservices.tasks.CustomServicesTaskResult;
 import com.emc.sa.service.vipr.customservices.tasks.RunAnsible;
 import com.emc.sa.service.vipr.customservices.tasks.RunViprREST;
@@ -284,7 +283,7 @@ public class CustomServicesService extends ViPRService {
         for (final CustomServicesWorkflowDocument.InputGroup inputGroup : step.getInputGroups().values()) {
             for (final Input value : inputGroup.getInputGroup()) {
                 final String name = value.getName();
-                switch (CustomServicesConstants.InputType.fromString(value.getType())) {
+                switch (InputType.fromString(value.getType())) {
                     case FROM_USER:
                     case ASSET_OPTION:
                         final String friendlyName = value.getFriendlyName();

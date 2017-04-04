@@ -310,7 +310,12 @@ public class FileStorageScheduler implements Scheduler {
         List<URI> storagePortURIList = new ArrayList<URI>();
         for (Iterator<StoragePort> iterator = ports.iterator(); iterator.hasNext();) {
             StoragePort storagePort = iterator.next();
-            storagePortURIList.add(storagePort.getId());
+            //storageport must be part of network
+            if(!NullColumnValueGetter.isNullURI(storagePort.getNetwork())) {
+                storagePortURIList.add(storagePort.getId());
+                _log.info("Recommended portNetworkId {} and networkId {}",
+                        storagePort.getPortNetworkId(), storagePort.getNetwork());
+            }
         }
 
         for (Iterator<Recommendation> iterator = poolRecommendations.iterator(); iterator.hasNext();) {

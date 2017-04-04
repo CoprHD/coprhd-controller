@@ -13,28 +13,8 @@ import java.net.URI;
 import java.util.List;
 import java.util.Set;
 
-import jobs.vipr.AutoTierPolicyNamesCall;
-import jobs.vipr.ConnectedBlockVirtualPoolsCall;
-import jobs.vipr.ConnectedVirtualArraysCall;
-import jobs.vipr.MatchingBlockStoragePoolsCall;
-import jobs.vipr.VirtualArraysCall;
-import models.ConnectivityTypes;
-import models.HighAvailability;
-import models.ProtectionSystemTypes;
-import models.SizeUnit;
-import models.StorageSystemTypes;
-
 import org.apache.commons.lang.BooleanUtils;
 import org.apache.commons.lang.StringUtils;
-
-import play.Logger;
-import play.data.validation.Max;
-import play.data.validation.Min;
-import play.data.validation.Validation;
-import play.i18n.Messages;
-import util.VirtualPoolUtils;
-import util.builders.BlockVirtualPoolBuilder;
-import util.builders.BlockVirtualPoolUpdateBuilder;
 
 import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.vpool.BlockVirtualPoolParam;
@@ -53,6 +33,24 @@ import com.emc.vipr.client.core.util.ResourceUtils;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.google.gson.Gson;
+
+import jobs.vipr.AutoTierPolicyNamesCall;
+import jobs.vipr.ConnectedBlockVirtualPoolsCall;
+import jobs.vipr.ConnectedVirtualArraysCall;
+import jobs.vipr.MatchingBlockStoragePoolsCall;
+import models.ConnectivityTypes;
+import models.HighAvailability;
+import models.ProtectionSystemTypes;
+import models.SizeUnit;
+import models.StorageSystemTypes;
+import play.Logger;
+import play.data.validation.Max;
+import play.data.validation.Min;
+import play.data.validation.Validation;
+import play.i18n.Messages;
+import util.VirtualPoolUtils;
+import util.builders.BlockVirtualPoolBuilder;
+import util.builders.BlockVirtualPoolUpdateBuilder;
 
 public class BlockVirtualPoolForm extends VirtualPoolCommonForm<BlockVirtualPoolRestRep> {
     @Min(0)
@@ -662,9 +660,10 @@ public class BlockVirtualPoolForm extends VirtualPoolCommonForm<BlockVirtualPool
         return new ConnectedBlockVirtualPoolsCall(uris(haVirtualArray));
     }
 
-    public VirtualArraysCall remoteReplicationVirtualArrays() {
-        // currently get all the VirtualArrays by ignoring any filter.
-        return new VirtualArraysCall();
+    public ConnectedVirtualArraysCall remoteReplicationVirtualArrays() {
+        boolean isRR = ProtectionSystemTypes.isRemoteReplication(remoteProtection);
+        List<URI> varrayIds = isRR ? uris(virtualArrays) : uris();
+        return new ConnectedVirtualArraysCall(varrayIds, ConnectivityTypes.REMOTE_REPLICATION);
     }
 
     public ConnectedBlockVirtualPoolsCall remoteReplicationVirtualPools() {

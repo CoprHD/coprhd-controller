@@ -1414,7 +1414,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
 
             // get the associated storage port for vnas Server
             List<IsilonAccessZone> isilonAccessZones = isilonApi.getAccessZones(null);
-            Map<String, NASServer> nasServers = getNASServer(storageSystem, isilonAccessZones);
+            Map<String, NASServer> nasServers = validateAndGetNASServer(storageSystem, isilonAccessZones);
             // update the path from controller configuration
             updateDiscoveryPathForUnManagedFS(nasServers, storageSystem);
 
@@ -1469,6 +1469,10 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                             // Get valid storage port from the NAS server!!!
                             _log.info("fs path {} and nas server details {}", fs.getPath(), nasServer.toString());
                             storagePort = getStoragePortFromNasServer(nasServer);
+                            if (storagePort == null) {
+                                _log.info("No valid storage port found for nas server {}", nasServer.toString());
+                                continue;
+                            }
                         } else {
                             _log.info("fs path {} and vnas server not found", fs.getPath());
                             continue; // Skip further ingestion steps on this file share & move to next file share
@@ -2773,35 +2777,45 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
     }
 
     /**
-     * get the NAS server list
+     * This function will get the list of access zones present in the system,
+     * validate the access zones and return only the valid access zones,
+     * so that UMFS discovery would process only objects of required access zones!!
      * 
      * @param storageSystem
      * @param accessZones
      * @return
      */
-    private Map<String, NASServer> getNASServer(final StorageSystem storageSystem,
+    private Map<String, NASServer> validateAndGetNASServer(final StorageSystem storageSystem,
             List<IsilonAccessZone> accessZones) {
         NASServer nasServer = null;
+        List<IsilonAccessZone> InvalidAccessZones = new ArrayList<IsilonAccessZone>();
         Map<String, NASServer> accessZonesMap = new HashMap<String, NASServer>();
         if (accessZones != null && !accessZones.isEmpty()) {
             for (IsilonAccessZone isilonAccessZone : accessZones) {
                 if (isilonAccessZone.isSystem() == false) {
                     nasServer = findvNasByNativeId(storageSystem, isilonAccessZone.getZone_id().toString());
-                    if (nasServer != null) {
+                    if (nasServer != null && !nasServer.getInactive()
+                            && DiscoveredDataObject.DiscoveryStatus.VISIBLE.name().equals(nasServer.getDiscoveryStatus())) {
                         accessZonesMap.put(isilonAccessZone.getPath() + "/", nasServer);
                     } else {
-                        _log.info("Nas server not available for path  {}, hence this filesystem will not be ingested",
-                                isilonAccessZone.getPath());
+                        InvalidAccessZones.add(isilonAccessZone);
+                        _log.info("Nas server {} is not valid, hence filesystem's will not be ingested",
+                                isilonAccessZone.getName());
                     }
                 } else {
                     nasServer = findPhysicalNasByNativeId(storageSystem, isilonAccessZone.getZone_id().toString());
-                    if (nasServer != null) {
+                    if (nasServer != null && !nasServer.getInactive()) {
                         accessZonesMap.put(isilonAccessZone.getPath() + "/", nasServer);
                     } else {
-                        _log.info("Nas server not available for path  {}, hence this filesystem will not be ingested",
-                                isilonAccessZone.getPath());
+                        InvalidAccessZones.add(isilonAccessZone);
+                        _log.info("Nas server {} is not valid, hence filesystem's will not be ingested",
+                                isilonAccessZone.getName());
                     }
                 }
+            }
+            // Remove the invalid nas servers, so that we do not discover any object of it!!!
+            if (!InvalidAccessZones.isEmpty()) {
+                accessZones.removeAll(InvalidAccessZones);
             }
         }
         return accessZonesMap;

@@ -64,7 +64,7 @@ public class FileSnapshotPolicyMigration extends BaseCustomMigrationCallback {
                         "Policy created from Schedule Policy " + schedulePolicy.getLabel() + " while system upgrade");
                 String polName = schedulePolicy.getLabel() + "_File_Snapshot_Policy";
                 fileSnapshotPolicy.setLabel(polName);
-                fileSnapshotPolicy.setFilePolicyName(polName);
+                fileSnapshotPolicy.setFilePolicyName(schedulePolicy.getLabel());
                 fileSnapshotPolicy.setFilePolicyType(FilePolicyType.file_snapshot.name());
                 fileSnapshotPolicy.setScheduleFrequency(schedulePolicy.getScheduleFrequency());
                 fileSnapshotPolicy.setScheduleRepeat(schedulePolicy.getScheduleRepeat());

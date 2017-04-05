@@ -47,7 +47,7 @@
                         				<control-group v-field="input.AssetOption" ng-if="input.type=='AssetOption'" >
                         					<select-one options="AssetOptionTypes" auto-default v-disabled='locked'></select-one>
                         				</control-group>
-  										<control-group v-field="input.value" ng-if="input.type=='InputFromUser'">
+  										<control-group v-field="input.defaultValue" ng-if="input.type=='InputFromUser'">
                         					<input-text></input-text>
                         				</control-group>
                         				<control-group v-field='input.inputFieldType' ng-if="input.type=='InputFromUser'">

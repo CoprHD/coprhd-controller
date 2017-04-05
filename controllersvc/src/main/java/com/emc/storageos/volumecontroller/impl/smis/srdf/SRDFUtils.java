@@ -50,7 +50,6 @@ import com.emc.storageos.db.client.model.VpoolRemoteCopyProtectionSettings;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.plugins.common.Constants;
-import com.emc.storageos.volumecontroller.impl.externaldevice.RemoteReplicationDataClientImpl;
 import com.emc.storageos.volumecontroller.impl.smis.CIMObjectPathFactory;
 import com.emc.storageos.volumecontroller.impl.smis.SRDFOperations;
 import com.emc.storageos.volumecontroller.impl.smis.SRDFOperations.Mode;
@@ -72,7 +71,6 @@ public class SRDFUtils implements SmisConstants {
     private DbClient dbClient;
     private CIMObjectPathFactory cimPath;
     private SmisCommandHelper helper;
-    private RemoteReplicationDataClientImpl remoteReplicationDataClient;
 
     public enum SyncDirection {
         SOURCE_TO_TARGET,
@@ -90,10 +88,6 @@ public class SRDFUtils implements SmisConstants {
 
     public void setHelper(SmisCommandHelper helper) {
         this.helper = helper;
-    }
-
-    public void setRemoteReplicationDataClient(RemoteReplicationDataClientImpl remoteReplicationDataClient) {
-        this.remoteReplicationDataClient = remoteReplicationDataClient;
     }
 
     public CIMInstance getInstance(final CIMObjectPath path, final StorageSystem sourceSystem) {
@@ -300,7 +294,7 @@ public class SRDFUtils implements SmisConstants {
      * Gets associated ViPR volumes based on the SRDF group
      * 
      * @param system The provider system to collect synchronization instances from.
-     * @param target The subject of the association query.
+     * @param group The subject of the association query.
      * @return A list of Volumes
      */
     public List<Volume> getAssociatedVolumesForSRDFGroup(StorageSystem system, RemoteDirectorGroup group) {

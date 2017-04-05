@@ -37,6 +37,10 @@ public class RemoteReplicationDataClientImpl implements RemoteReplicationDataCli
         _dbClient = dbClient;
     }
 
+    public RemoteReplicationDataClientImpl(DbClient _dbClient) {
+        this._dbClient = _dbClient;
+    }
+
     @Override
     public void processRemoteReplicationSetsForStorageSystem(StorageSystem storageSystem, List<RemoteReplicationSet> replicationSets) {
 

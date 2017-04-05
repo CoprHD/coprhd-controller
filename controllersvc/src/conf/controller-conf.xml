@@ -310,7 +310,6 @@
         <property name="dbClient" ref="dbclient"/>
         <property name="helper" ref="vmaxSmisCommandHelper"/>
         <property name="cimObjectPathFactory" ref="vmaxCIMObjectPathFactoryAdapter"/>
-        <property name="remoteReplicationDataClient" ref="remoteReplicationDataClient"/>
     </bean>
 
     <bean id="vmaxSrdfOperations" class="com.emc.storageos.volumecontroller.impl.smis.SRDFOperations">

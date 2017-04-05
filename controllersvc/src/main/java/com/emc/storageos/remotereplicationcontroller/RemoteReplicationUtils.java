@@ -6,30 +6,33 @@ import static com.emc.storageos.db.client.util.CustomQueryUtility.queryActiveRes
 
 import java.net.URI;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
-import com.emc.storageos.db.client.model.StorageSystem;
-import com.emc.storageos.db.client.model.remotereplication.RemoteReplicationSet;
-import com.emc.storageos.svcs.errorhandling.resources.APIException;
-import com.emc.storageos.volumecontroller.impl.externaldevice.RemoteReplicationElement;
-import com.emc.storageos.volumecontroller.impl.plugins.ExternalDeviceDiscoveryUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
+import com.emc.storageos.db.client.model.RemoteDirectorGroup;
+import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.remotereplication.RemoteReplicationGroup;
 import com.emc.storageos.db.client.model.remotereplication.RemoteReplicationPair;
+import com.emc.storageos.db.client.model.remotereplication.RemoteReplicationSet;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
+import com.emc.storageos.plugins.common.Constants;
+import com.emc.storageos.storagedriver.model.StorageVolume;
+import com.emc.storageos.svcs.errorhandling.resources.APIException;
+import com.emc.storageos.volumecontroller.impl.externaldevice.RemoteReplicationDataClient;
+import com.emc.storageos.volumecontroller.impl.externaldevice.RemoteReplicationDataClientImpl;
+import com.emc.storageos.volumecontroller.impl.externaldevice.RemoteReplicationElement;
+import com.emc.storageos.volumecontroller.impl.smis.srdf.SRDFUtils;
 
 public class RemoteReplicationUtils {
     private static final Logger _log = LoggerFactory.getLogger(RemoteReplicationUtils.class);
@@ -185,5 +188,71 @@ public class RemoteReplicationUtils {
         List<URI> ids = dbClient.queryByType(RemoteReplicationGroup.class, true);
         _log.info("Found groups: {}", ids);
         return dbClient.queryIterativeObjects(RemoteReplicationGroup.class, ids);
+    }
+
+    /**
+     * Create remote replication pair for srdf volume pair.
+     *
+     * @param source srdf source volume
+     * @param target srdf target volume
+     */
+    public static void createRemoteReplicationPairForSrdfPair(Volume source, Volume target, DbClient dbClient) {
+
+        _log.info("Processing srdf pair: {} -> {}", source.getId(), target.getId());
+        StorageSystem sourceSystem = dbClient.queryObject(StorageSystem.class, source.getStorageController());
+        StorageSystem targetSystem = dbClient.queryObject(StorageSystem.class, target.getStorageController());
+        RemoteDirectorGroup rdGroup = dbClient.queryObject(RemoteDirectorGroup.class, target.getSrdfGroup());
+
+        // Get native id for rr set.
+        String rrSetNativeId = getRemoteReplicationSetNativeIdForSrdfSet(sourceSystem, targetSystem);
+
+        // Get nativeId for rr group.
+        String rrGroupNativeId = getRemoteReplicationGroupNativeIdForSrdfGroup(sourceSystem, targetSystem, rdGroup);
+
+        String replicationMode = target.getSrdfCopyMode();
+
+        StorageVolume driverSourceVolume = new StorageVolume();
+        driverSourceVolume.setStorageSystemId(sourceSystem.getSerialNumber());
+        driverSourceVolume.setNativeId(source.getNativeId());
+        //
+        StorageVolume driverTargetVolume = new StorageVolume();
+        driverTargetVolume.setStorageSystemId(targetSystem.getSerialNumber());
+        driverTargetVolume.setNativeId(target.getNativeId());
+
+        com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationPair
+                rrPair = new com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationPair();
+        rrPair.setNativeId(getRemoteReplicationPairNativeIdForSrdfPair(source, target));
+        rrPair.setReplicationSetNativeId(rrSetNativeId);
+        rrPair.setReplicationGroupNativeId(rrGroupNativeId);
+        rrPair.setSourceVolume(driverSourceVolume);
+        rrPair.setTargetVolume(driverTargetVolume);
+        rrPair.setReplicationMode(replicationMode);
+        rrPair.setReplicationState(rdGroup.getConnectivityStatus());
+        rrPair.setReplicationDirection(SRDFUtils.SyncDirection.SOURCE_TO_TARGET.toString());
+
+        RemoteReplicationDataClient remoteReplicationDataClient = new RemoteReplicationDataClientImpl(dbClient);
+        remoteReplicationDataClient.createRemoteReplicationPair(rrPair, source.getId(), target.getId());
+    }
+
+    public static String getRemoteReplicationGroupNativeIdForSrdfGroup(StorageSystem sourceSystem, StorageSystem targetSystem,
+                                                                      RemoteDirectorGroup rdGroup) {
+        return sourceSystem.getSerialNumber() + Constants.PLUS + rdGroup.getSourceGroupId() + Constants.PLUS
+                + targetSystem.getSerialNumber() + Constants.PLUS + rdGroup.getRemoteGroupId();
+    }
+
+
+    public static String getRemoteReplicationSetNativeIdForSrdfSet(StorageSystem sourceSystem, StorageSystem targetSystem) {
+        String rrSetNativeId = null;
+        if (sourceSystem.getSerialNumber().compareToIgnoreCase(targetSystem.getSerialNumber()) >= 0) {
+            rrSetNativeId = sourceSystem.getSerialNumber() + Constants.PLUS + targetSystem.getSerialNumber();
+        } else {
+            rrSetNativeId = targetSystem.getSerialNumber() + Constants.PLUS + targetSystem.getSerialNumber();
+        }
+
+        return rrSetNativeId;
+    }
+
+    public static String getRemoteReplicationPairNativeIdForSrdfPair(Volume source, Volume target) {
+        return source.getNativeId()+ Constants.PLUS + target.getNativeId();
     }
 }

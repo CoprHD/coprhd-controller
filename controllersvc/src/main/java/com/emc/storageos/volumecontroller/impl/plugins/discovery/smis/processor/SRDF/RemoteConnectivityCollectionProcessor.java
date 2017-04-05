@@ -40,6 +40,7 @@ import com.emc.storageos.storagedriver.model.remotereplication.RemoteReplication
 import com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationMode;
 import com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationSet;
 import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
+import com.emc.storageos.volumecontroller.impl.externaldevice.RemoteReplicationDataClient;
 import com.emc.storageos.volumecontroller.impl.externaldevice.RemoteReplicationDataClientImpl;
 import com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.processor.StorageProcessor;
 
@@ -301,8 +302,8 @@ public class RemoteConnectivityCollectionProcessor extends StorageProcessor {
     /**
      * Utility method that would Create a RemoteReplicationSet between a StorageSystem and its Remote counterpart
      * 
-     * @param Reference to storageSystem
-     * @param Reference to remoteSystem
+     * @param storageSystem to storageSystem
+     * @param remoteSystem to remoteSystem
      * @return RemoteReplicationSet
      */
     private RemoteReplicationSet createRemoteReplicationSet(StorageSystem storageSystem, StorageSystem remoteSystem) {
@@ -379,8 +380,7 @@ public class RemoteConnectivityCollectionProcessor extends StorageProcessor {
     /**
      * Processes the RemoteReplicationSets and RemoteReplicationGroup needs for RemoteReplicationDataClient discovery
      * 
-     * @param Reference to dbClient
-     * @param storageSystemURI
+     * @param sourceSystem storage system
      * @return NONE
      */
 
@@ -411,8 +411,7 @@ public class RemoteConnectivityCollectionProcessor extends StorageProcessor {
             }
         }
         _log.info("Processing RemoteReplicationSets and RemoteReplication Groups for {}", sourceSystem.getSerialNumber());
-        RemoteReplicationDataClientImpl remoteReplicationDataClient = new RemoteReplicationDataClientImpl();
-        remoteReplicationDataClient.setDbClient(_dbClient);
+        RemoteReplicationDataClient remoteReplicationDataClient = new RemoteReplicationDataClientImpl(_dbClient);
         remoteReplicationDataClient.processRemoteReplicationSetsForStorageSystem(sourceSystem, replicationSets);
         remoteReplicationDataClient.processRemoteReplicationGroupsForStorageSystem(sourceSystem, replicationGroups);
     }

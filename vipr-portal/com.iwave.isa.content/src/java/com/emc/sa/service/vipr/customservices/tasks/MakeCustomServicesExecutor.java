@@ -27,9 +27,9 @@ import java.util.List;
 import java.util.Map;
 
 public interface MakeCustomServicesExecutor {
-    public static final org.slf4j.Logger logger = LoggerFactory.getLogger(MakeCustomServicesExecutor.class);
 
     public static boolean createOrderDir(final String orderDir) {
+        final org.slf4j.Logger logger = LoggerFactory.getLogger(MakeCustomServicesExecutor.class);
         try {
             final File file = new File(orderDir);
             if (!file.exists()) {
@@ -43,7 +43,6 @@ public interface MakeCustomServicesExecutor {
             throw InternalServerErrorException.internalServerErrors
                     .customServiceExecutionFailed("Failed to create Order directory " + orderDir);
         }
-
     }
     public ViPRExecutionTask<CustomServicesTaskResult> makeCustomServicesExecutor(final Map<String, List<String>> input, final CustomServicesWorkflowDocument.Step step);
     public String getType();

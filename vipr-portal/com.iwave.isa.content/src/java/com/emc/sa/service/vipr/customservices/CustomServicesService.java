@@ -122,7 +122,7 @@ public class CustomServicesService extends ViPRService {
         for (final Step step : steps) {
             builder.put(step.getId(), step);
         }
-        ImmutableMap<String, Step> stepsHash = builder.build();
+        final ImmutableMap<String, Step> stepsHash = builder.build();
 
         ExecutionUtils.currentContext().logInfo("customServicesService.status", obj.getName(), obj.getDescription());
 
@@ -150,14 +150,14 @@ public class CustomServicesService extends ViPRService {
 
             ExecutionUtils.currentContext().logInfo("customServicesService.stepStatus", step.getId(), step.getType());
 
-            Step updatedStep = updatesubWfInput(step, stepInput);
-logger.info("update sub wf is done");
+            final Step updatedStep = updatesubWfInput(step, stepInput);
+
             updateInputPerStep(updatedStep);
-		logger.info("done updating input type :{}", updatedStep.getType());
+
             final CustomServicesTaskResult res;
             try {
                 if (updatedStep.getType().equals(StepType.WORKFLOW.toString())) {
-		logger.info("oper:{} input groups:{}", updatedStep.getOperation(), updatedStep.getInputGroups());
+
                     wfExecutor(updatedStep.getOperation(), updatedStep.getInputGroups());
 
                     // We Don't evaluate output/result for Workflow Step. It is already evaluated.
@@ -181,7 +181,7 @@ logger.info("update sub wf is done");
                 }
                 next = getNext(isSuccess, res, updatedStep);
             } catch (final Exception e) {
-                logger.info("failed to execute step. Try to get rollback step. Exception Received:" + e + e.getStackTrace() +"*****"+e.getStackTrace()[1].getLineNumber() +e.getStackTrace()[1].getMethodName() + e.getStackTrace()[0].getLineNumber() + e.getStackTrace()[0].getMethodName());
+                logger.info("failed to execute step. Try to get rollback step. Exception Received:" + e + e.getStackTrace()[0].getLineNumber());
                 next = getNext(false, null, updatedStep);
             } finally {
                 orderDirCleanup(orderDir);
@@ -194,12 +194,10 @@ logger.info("update sub wf is done");
                 throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed("Operation Timed out");
             }
         }
-
     }
 
     private Step updatesubWfInput(final Step step, final Map<String, CustomServicesWorkflowDocument.InputGroup> stepInput) {
         if (step.getType().equals(StepType.WORKFLOW.toString()) || stepInput == null || step.getInputGroups() == null) {
-		logger.info("give step as is");
             return step;
         }
 
@@ -209,17 +207,17 @@ logger.info("update sub wf is done");
                 switch (CustomServicesConstants.InputType.fromString(value.getType())) {
                     case FROM_USER:
                     case ASSET_OPTION:
-                           for (final CustomServicesWorkflowDocument.InputGroup inputGroup1 : stepInput.values()) {
-                                for (final Input value1 : inputGroup1.getInputGroup()) {
-                                    final String name1 = value1.getFriendlyName();
-                                    if (name1.equals(name)) {
-                                        logger.info("Change the type name:{}", name);
-                                        value.setType(value1.getType());
-                                        value.setValue(value1.getValue());
-                                        value.setDefaultValue(value1.getDefaultValue());
-                                    }
+                        for (final CustomServicesWorkflowDocument.InputGroup inputGroup1 : stepInput.values()) {
+                            for (final Input value1 : inputGroup1.getInputGroup()) {
+                                final String name1 = value1.getFriendlyName();
+                                if (name1.equals(name)) {
+                                    logger.debug("Change the type name:{}", name);
+                                    value.setType(value1.getType());
+                                    value.setValue(value1.getValue());
+                                    value.setDefaultValue(value1.getDefaultValue());
                                 }
-			}
+                            }
+                        }
                         break;
                     default:
                         logger.info("do nothing");
@@ -229,6 +227,7 @@ logger.info("update sub wf is done");
 
         return step;
     }
+
 
     private void orderDirCleanup(final String orderDir) {
         try {
@@ -275,18 +274,16 @@ logger.info("update sub wf is done");
      */
     private void updateInputPerStep(final Step step) throws Exception {
         if (step.getType().equals(StepType.WORKFLOW.toString())) {
-		logger.info("it is a wf type");
             return;
         }
         if (step.getInputGroups() == null) {
-		logger.info("ingroup is null");
             return;
         }
         final Map<String, List<String>> inputs = new HashMap<String, List<String>>();
         for (final CustomServicesWorkflowDocument.InputGroup inputGroup : step.getInputGroups().values()) {
             for (final Input value : inputGroup.getInputGroup()) {
                 final String name = value.getName();
-			logger.info("name is:{}", name);
+
                 switch (CustomServicesConstants.InputType.fromString(value.getType())) {
                     case FROM_USER:
                     case ASSET_OPTION:

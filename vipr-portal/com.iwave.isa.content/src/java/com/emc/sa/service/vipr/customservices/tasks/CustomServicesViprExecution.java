@@ -50,7 +50,7 @@ import com.sun.jersey.api.client.ClientResponse;
 public class CustomServicesViprExecution extends ViPRExecutionTask<CustomServicesTaskResult> {
     private static final org.slf4j.Logger logger = LoggerFactory.getLogger(CustomServicesViprExecution.class);
     private final Map<String, List<String>> input;
-    private final RestClient client = getClient().getRestClient();
+    private final RestClient client;
     private final CustomServicesViPRPrimitive primitive;
     private final CustomServicesWorkflowDocument.Step step;
 
@@ -67,6 +67,7 @@ public class CustomServicesViprExecution extends ViPRExecutionTask<CustomService
                     .customServiceExecutionFailed("Primitive not found: " + step.getOperation());
         }
         this.primitive = (CustomServicesViPRPrimitive)primitive;
+        client = getClient().getRestClient();
     }
 
     @Override
@@ -86,11 +87,11 @@ public class CustomServicesViprExecution extends ViPRExecutionTask<CustomService
 
         String path = makePath(templatePath);
 
-        ExecutionUtils.currentContext().logInfo("runViprREST.startInfo", primitive.friendlyName());
+        ExecutionUtils.currentContext().logInfo("customServicesViprExecution.startInfo", primitive.friendlyName());
 
         CustomServicesTaskResult result = makeRestCall(path, requestBody, method);
 
-        ExecutionUtils.currentContext().logInfo("runViprREST.doneInfo", primitive.friendlyName());
+        ExecutionUtils.currentContext().logInfo("customServicesViprExecution.doneInfo", primitive.friendlyName());
 
         return result;
     }

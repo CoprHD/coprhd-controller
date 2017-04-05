@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 Dell Inc. or its subsidiaries.
+ * Copyright 2017 Dell Inc. or its subsidiaries.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -48,11 +48,10 @@ import com.emc.storageos.primitives.CustomServicesConstants;
 import com.emc.storageos.primitives.CustomServicesPrimitive.StepType;
 import com.emc.storageos.services.util.Exec;
 import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorException;
-import org.springframework.beans.factory.annotation.Autowired;
 
 /**
- * Runs CustomServices Primitives - Shell script or Ansible Playbook.
- * It can run Ansible playbook on local node as well as on Remote node
+ * Runs CustomServices Operation: Ansible Playbook.
+ * It can run Ansible playbook on local node
  *
  */
 public class CustomServicesLocalAnsibleExecution extends ViPRExecutionTask<CustomServicesTaskResult> {
@@ -60,14 +59,12 @@ public class CustomServicesLocalAnsibleExecution extends ViPRExecutionTask<Custo
     private static final org.slf4j.Logger logger = LoggerFactory.getLogger(CustomServicesLocalAnsibleExecution.class);
     private final Step step;
     private final Map<String, List<String>> input;
-    private  String orderDir = String.format("%s%s/", CustomServicesConstants.ORDER_DIR_PATH,
+    private final String orderDir = String.format("%s%s/", CustomServicesConstants.ORDER_DIR_PATH,
             ExecutionUtils.currentContext().getOrder().getOrderNumber());
     private final long timeout;
+    private final DbClient dbClient;
 
-    @Autowired
-    private DbClient dbClient;
-
-    public CustomServicesLocalAnsibleExecution(final Map<String, List<String>> input, Step step) {
+    public CustomServicesLocalAnsibleExecution(final Map<String, List<String>> input, final Step step, final DbClient dbClient) {
         this.input = input;
         this.step = step;
         if (step.getAttributes() == null || step.getAttributes().getTimeout() == -1) {
@@ -75,15 +72,14 @@ public class CustomServicesLocalAnsibleExecution extends ViPRExecutionTask<Custo
         } else {
             this.timeout = step.getAttributes().getTimeout();
         }
+        this.dbClient = dbClient;
     }
 
     @Override
     public CustomServicesTaskResult executeTask() throws Exception {
 
-        ExecutionUtils.currentContext().logInfo("runCustomScript.statusInfo", step.getId());
+        ExecutionUtils.currentContext().logInfo("customServicesScriptExecution.statusInfo", step.getId());
         final URI scriptid = step.getOperation();
-
-        final StepType type = StepType.fromString(step.getType());
 
         final Exec.Result result;
         try {
@@ -113,7 +109,7 @@ public class CustomServicesLocalAnsibleExecution extends ViPRExecutionTask<Custo
             throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed("Custom Service Task Failed" + e);
         }
 
-        ExecutionUtils.currentContext().logInfo("runCustomScript.doneInfo", step.getId());
+        ExecutionUtils.currentContext().logInfo("customServicesScriptExecution.doneInfo", step.getId());
 
         if (result == null) {
             throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed("Script/Ansible execution Failed");

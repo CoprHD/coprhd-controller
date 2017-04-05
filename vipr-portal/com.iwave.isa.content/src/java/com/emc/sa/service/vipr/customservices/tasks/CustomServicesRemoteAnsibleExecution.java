@@ -44,7 +44,7 @@ public class CustomServicesRemoteAnsibleExecution extends ViPRExecutionTask<Cust
     @Autowired
     private DbClient dbClient;
 
-    public CustomServicesRemoteAnsibleExecution(final Map<String, List<String>> input, CustomServicesWorkflowDocument.Step step) {
+    public CustomServicesRemoteAnsibleExecution(final Map<String, List<String>> input, final CustomServicesWorkflowDocument.Step step) {
         this.input = input;
         this.step = step;
         if (step.getAttributes() == null || step.getAttributes().getTimeout() == -1) {
@@ -57,31 +57,29 @@ public class CustomServicesRemoteAnsibleExecution extends ViPRExecutionTask<Cust
     @Override
     public CustomServicesTaskResult executeTask() throws Exception {
 
-        ExecutionUtils.currentContext().logInfo("runCustomScript.statusInfo", step.getId());
+        ExecutionUtils.currentContext().logInfo("customServicesScriptExecution.statusInfo", step.getId());
         final URI scriptid = step.getOperation();
-
-        final CustomServicesPrimitive.StepType type = CustomServicesPrimitive.StepType.fromString(step.getType());
 
         final Exec.Result result;
         try {
-                    result = executeRemoteCmd(AnsibleHelper.makeExtraArg(input));
+            result = executeRemoteCmd(AnsibleHelper.makeExtraArg(input));
 
         } catch (final Exception e) {
             throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed("Custom Service Task Failed" + e);
         }
 
-        ExecutionUtils.currentContext().logInfo("runCustomScript.doneInfo", step.getId());
+        ExecutionUtils.currentContext().logInfo("customServicesScriptExecution.doneInfo", step.getId());
 
         if (result == null) {
-            throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed("Script/Ansible execution Failed");
+            throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed("Remote Ansible execution Failed");
         }
 
         logger.info("CustomScript Execution result:output{} error{} exitValue:{}", result.getStdOutput(), result.getStdError(),
                 result.getExitValue());
 
-        return new CustomServicesTaskResult(AnsibleHelper.parseOut(result.getStdOutput()), result.getStdError(), result.getExitValue(), null);
+        return new CustomServicesTaskResult(AnsibleHelper.parseOut(result.getStdOutput()), result.getStdError(), result.getExitValue(),
+                null);
     }
-
 
 
     // Execute Ansible playbook on remote node. Playbook is also in remote node

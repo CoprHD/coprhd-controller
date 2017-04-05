@@ -45,4 +45,8 @@ public class ShellScriptExecutor implements MakeCustomServicesExecutor {
     @Override public String getType() {
         return TYPE;
     }
+
+    @Override public void setParam(Object object) {
+
+    }
 }

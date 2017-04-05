@@ -54,12 +54,13 @@ public class CustomServicesViprExecution extends ViPRExecutionTask<CustomService
     private final CustomServicesViPRPrimitive primitive;
     private final CustomServicesWorkflowDocument.Step step;
 
-    @Autowired
-    private CustomServicesPrimitiveDAOs daos;
-
-    public CustomServicesViprExecution(final Map<String, List<String>> input, final CustomServicesWorkflowDocument.Step step) {
+    public CustomServicesViprExecution(final Map<String, List<String>> input, final CustomServicesWorkflowDocument.Step step, final CustomServicesPrimitiveDAOs daos, final RestClient client) {
         this.input = input;
         this.step = step;
+        logger.info("operation:{}", step.getOperation());
+        if (daos.get("vipr") == null) {
+            logger.info("daos is null");
+        }
         final CustomServicesPrimitiveType primitive = daos.get("vipr").get(step.getOperation());
 
         if (null == primitive) {
@@ -67,7 +68,8 @@ public class CustomServicesViprExecution extends ViPRExecutionTask<CustomService
                     .customServiceExecutionFailed("Primitive not found: " + step.getOperation());
         }
         this.primitive = (CustomServicesViPRPrimitive)primitive;
-        client = getClient().getRestClient();
+        this.client = client;
+
     }
 
     @Override

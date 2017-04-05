@@ -165,6 +165,7 @@ public class CustomServicesService extends ViPRService {
                     res = new CustomServicesTaskResult("Success", "No Error", 200, null);
                 } else {
                     final MakeCustomServicesExecutor task = executor.get(updatedStep.getType());
+                    task.setParam(getClient().getRestClient());
 
                     res = ViPRExecutionUtils.execute(task.makeCustomServicesExecutor(inputPerStep.get(updatedStep.getId()), updatedStep));
                 }

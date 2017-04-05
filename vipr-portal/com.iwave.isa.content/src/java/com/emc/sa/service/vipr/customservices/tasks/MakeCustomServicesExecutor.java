@@ -46,4 +46,5 @@ public interface MakeCustomServicesExecutor {
     }
     public ViPRExecutionTask<CustomServicesTaskResult> makeCustomServicesExecutor(final Map<String, List<String>> input, final CustomServicesWorkflowDocument.Step step);
     public String getType();
+    public void setParam(Object object);
 }

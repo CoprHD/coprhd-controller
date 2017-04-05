@@ -1842,6 +1842,18 @@ public class HDSExportOperations implements ExportMaskOperations {
                 builder.append(String.format("XM discovered: %s I:{%s} V:{%s}%n", maskName,
                         Joiner.on(',').join(discoveredInitiators), Joiner.on(',').join(discoveredVolumes.keySet())));
 
+                List<Initiator> initiatorList = new ArrayList<>();
+                if (!CollectionUtils.isEmpty(discoveredInitiators)) {
+                    for (String port : discoveredInitiators) {
+                        Initiator existingInitiator = ExportUtils.getInitiator(Initiator.toPortNetworkId(port), dbClient);
+                        if (existingInitiator != null && !existingInitiator.getInactive()) {
+                            initiatorList.add(existingInitiator);
+                        }
+                    }
+                }
+                mask.addInitiators(initiatorList);
+                dbClient.updateObject(mask);
+
                 // Check the initiators and update the lists as necessary
                 boolean addInitiators = false;
                 List<String> initiatorsToAdd = new ArrayList<String>();
@@ -1885,7 +1897,7 @@ public class HDSExportOperations implements ExportMaskOperations {
                     mask.removeFromExistingVolumes(volumesToRemove);
                     mask.addToExistingVolumesIfAbsent(volumesToAdd);
                     ExportMaskUtils.sanitizeExportMaskContainers(dbClient, mask);
-                    dbClient.updateAndReindexObject(mask);
+                    dbClient.updateObject(mask);
                 } else {
                     builder.append("XM refresh: There are no changes to the mask\n");
                 }

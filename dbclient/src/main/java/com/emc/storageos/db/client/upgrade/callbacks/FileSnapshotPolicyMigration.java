@@ -97,7 +97,11 @@ public class FileSnapshotPolicyMigration extends BaseCustomMigrationCallback {
                                     }
                                 }
                                 if (!snapSchedulesToRemove.isEmpty()) {
-                                    fsExistingPolicies.removeAll(snapSchedulesToRemove);
+                                    if (fsExistingPolicies.size() == 1 && snapSchedulesToRemove.size() == 1) {
+                                        fsExistingPolicies.clear();
+                                    } else {
+                                        fsExistingPolicies.removeAll(snapSchedulesToRemove);
+                                    }
                                 }
                             } else {
                                 fsExistingPolicies = new StringSet();

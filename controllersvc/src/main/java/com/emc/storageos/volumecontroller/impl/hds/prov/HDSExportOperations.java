@@ -1621,7 +1621,6 @@ public class HDSExportOperations implements ExportMaskOperations {
                 List<Initiator> initiatorList = new ArrayList<>();
                 if (!CollectionUtils.isEmpty(initiatorsExistsOnHSD)) {
                     for (String port : initiatorsExistsOnHSD) {
-                        // String normalizedPort = Initiator.normalizePort(port);
                         Initiator existingInitiator = ExportUtils.getInitiator(Initiator.toPortNetworkId(port), dbClient);
                         if (existingInitiator != null && !existingInitiator.getInactive()) {
                             initiatorList.add(existingInitiator);

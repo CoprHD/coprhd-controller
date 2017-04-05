@@ -129,7 +129,7 @@ class ExportGroup(object):
 
         return s
 
-    def exportgroup_create(self, name, project, tenant, varray,
+    def exportgroup_create(self, name, datacenter, vcenter, project, tenant, varray,
                            exportgrouptype, export_destination=None):
         '''
         This function will take export group name and project name  as input
@@ -168,8 +168,8 @@ class ExportGroup(object):
                         cluster_obj = Cluster(self.__ipAddr, self.__port)
                         try:
                             cluster_uri = cluster_obj.cluster_query(
-                                export_destination,
-                                fullproj)
+                                export_destination, datacenter, vcenter,
+                                tenant)
                         except SOSError as e:
                             raise e
                         parms['clusters'] = [cluster_uri]
@@ -998,6 +998,16 @@ def create_parser(subcommand_parsers, common_parser):
                                metavar='<tenantname>',
                                dest='tenant',
                                help='container tenant name')
+    create_parser.add_argument('-datacenter', '-dc',
+                                metavar='<datacentername>',
+                                dest='datacenter',
+                                help='name of datacenter',
+                                default=None)
+    create_parser.add_argument('-vcenter', '-vc',
+                                help='name of a vcenter',
+                                dest='vcenter',
+                                metavar='<vcentername>',
+                                default=None)                               
     create_parser.add_argument(
         '-type', '-t',
         help="Type of the ExportGroup: " +
@@ -1017,7 +1027,7 @@ def create_parser(subcommand_parsers, common_parser):
 def exportgroup_create(args):
     try:
         obj = ExportGroup(args.ip, args.port)
-        obj.exportgroup_create(args.name, args.project, args.tenant,
+        obj.exportgroup_create(args.name, args.datacenter, args.vcenter, args.project, args.tenant,
                                args.varray, args.type, args.export_destination)
     except SOSError as e:
         raise common.format_err_msg_and_raise("create", "exportgroup",

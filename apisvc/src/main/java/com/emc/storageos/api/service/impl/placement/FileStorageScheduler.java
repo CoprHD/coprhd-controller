@@ -313,8 +313,6 @@ public class FileStorageScheduler implements Scheduler {
             //storageport must be part of network
             if(!NullColumnValueGetter.isNullURI(storagePort.getNetwork())) {
                 storagePortURIList.add(storagePort.getId());
-                _log.info("Recommended portNetworkId {} and networkId {}",
-                        storagePort.getPortNetworkId(), storagePort.getNetwork());
             }
         }
 

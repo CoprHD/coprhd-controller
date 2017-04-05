@@ -30,7 +30,7 @@ try:
 except:
     bourne_ip = 'localhost'
 
-# remotereplicatingroup cmd cmd_args [--ip ipaddr]
+# remotereplicationgroup cmd cmd_args [--ip ipaddr]
 parser = argparse.ArgumentParser(description = 'Bourne remotereplication set cli usage.')
 parser.add_argument('cmd', help = 'cmd = (create )')
 parser.add_argument('--ip',	metavar = 'ipaddr',	help = 'IP address of bourne', default=bourne_ip)

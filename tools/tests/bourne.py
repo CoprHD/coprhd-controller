@@ -9422,14 +9422,16 @@ class Bourne:
                 return replicationgroup['id']
         raise Exception('bad remote replication group name ' + name)
 
-    def replicationgroup_create(self, systemtype, name, replicationmode, sourcesystem_uri, targetsystem_uri):
+    def replicationgroup_create(self, systemtype, name, replicationmode, sourcesystem_uri, targetsystem_uri, source_ports, target_ports):
 
         parms = {
             'name'      : name,
             'replication_mode'   : replicationmode,
             'source_system'       : sourcesystem_uri,
             'target_system'	   : targetsystem_uri,
-            'storage_system_type'   : systemtype
+            'storage_system_type'   : systemtype,
+            'source_ports'   : source_ports.split(','),
+            'target_ports'   : target_ports.split(',')
         }
 
         o = self.api('POST', URI_REMOTEREPLICATIONGROUP_CREATE, parms)

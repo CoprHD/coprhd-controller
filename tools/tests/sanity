@@ -7138,7 +7138,8 @@ sbsdk_remote_replication_tests()
 
     echo "**** Creating replication group: $REMOTE_REPLICATION_GROUP_NAME *******"
     run remotereplicationgroup create $SBSDK_DRIVER_SYS_TYPE $REMOTE_REPLICATION_GROUP_NAME synchronous \
-                  --source_system $SBSDK_DRIVER_SYS_NATIVEGUID --target_system $SBSDK_DRIVER_SYS_TARGET_NATIVEGUID
+                  --source_system $SBSDK_DRIVER_SYS_NATIVEGUID --target_system $SBSDK_DRIVER_SYS_TARGET_NATIVEGUID \
+                  --source_ports $SBSDK_DRIVER_SYS_PWWN10,$SBSDK_DRIVER_SYS_PWWN11 --target_ports $SBSDK_DRIVER_SYS_PWWN20,$SBSDK_DRIVER_SYS_PWWN21
 
 
     echo "***** Completed SB SDK remote replication sanity tests *****"

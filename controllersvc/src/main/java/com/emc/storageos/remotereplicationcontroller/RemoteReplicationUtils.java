@@ -7,6 +7,7 @@ import static com.emc.storageos.db.client.util.CustomQueryUtility.queryActiveRes
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -26,6 +27,7 @@ import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.db.client.model.remotereplication.RemoteReplicationGroup;
 import com.emc.storageos.db.client.model.remotereplication.RemoteReplicationPair;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 
@@ -171,5 +173,17 @@ public class RemoteReplicationUtils {
         //
 
 
+    }
+
+    public static Iterator<RemoteReplicationSet> findAllRemoteRepliationSetsIteratively(DbClient dbClient) {
+        List<URI> ids = dbClient.queryByType(RemoteReplicationSet.class, true);
+        _log.info("Found sets: {}", ids);
+        return dbClient.queryIterativeObjects(RemoteReplicationSet.class, ids);
+    }
+
+    public static Iterator<RemoteReplicationGroup> findAllRemoteRepliationGroupsIteratively(DbClient dbClient) {
+        List<URI> ids = dbClient.queryByType(RemoteReplicationGroup.class, true);
+        _log.info("Found groups: {}", ids);
+        return dbClient.queryIterativeObjects(RemoteReplicationGroup.class, ids);
     }
 }

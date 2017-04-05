@@ -737,6 +737,8 @@ public class StoragePortService extends TaggedResource {
                             (!vNasVarrys.isEmpty() && !vNasVarrys.containsAll(vArrays) ) ) {
                         _log.info("Remove the varray from vNAS {} ", vNasVarrys.toString());
                         vNas.getAssignedVirtualArrays().removeAll(vArrays);
+                        //remaining vNASvarray of other pointer
+                        vNas.getAssignedVirtualArrays().addAll(vNasVarrys);
                         varraysForvNasUpdated = true;
                     }
                 }

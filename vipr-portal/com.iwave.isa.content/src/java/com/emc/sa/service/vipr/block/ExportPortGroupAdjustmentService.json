@@ -56,17 +56,17 @@
             initialValue: "false",
             required: false
         },
-        exportPathPreview:{
+        exportPortGroupPreview:{
            type:"modal",
            items:{
-                resultingPaths:{
+                resultingPortGroups:{
                     type:"assetType.vipr.exportPortGroupResultingPaths",
                     select: "list",
                     required: false,
                     omitNone: true,
                     modalField: true
                 },
-                removedPaths:{
+                removedPortGroups:{
                     type:"assetType.vipr.exportPortGroupRemovedPaths",
                     select: "list",
                     required: false,

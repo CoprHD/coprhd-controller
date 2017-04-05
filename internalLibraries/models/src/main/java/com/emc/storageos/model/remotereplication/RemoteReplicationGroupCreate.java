@@ -23,13 +23,13 @@ public class RemoteReplicationGroupCreate {
     private URI sourceSystem;
 
     // Source storage system ports of this group
-    private List<URI> sourcePorts;
+    private List<String> sourcePorts;
 
     // Target storage system of this group
     private URI targetSystem;
 
     // Target storage system ports of this group
-    private List<URI> targetPorts;
+    private List<String> targetPorts;
 
     // replication mode of this group
     private String replicationMode;
@@ -43,27 +43,27 @@ public class RemoteReplicationGroupCreate {
 
     @XmlElementWrapper(name = "source_ports", required = true)
     @XmlElement(name = "source_port")
-    public List<URI> getSourcePorts() {
+    public List<String> getSourcePorts() {
         if (sourcePorts == null) {
-            sourcePorts = new ArrayList<URI>();
+            sourcePorts = new ArrayList<String>();
         }
         return sourcePorts;
     }
 
-    public void setSourcePorts(List<URI> sourcePorts) {
+    public void setSourcePorts(List<String> sourcePorts) {
         this.sourcePorts = sourcePorts;
     }
 
     @XmlElementWrapper(name = "target_ports", required = true)
     @XmlElement(name = "target_port")
-    public List<URI> getTargetPorts() {
+    public List<String> getTargetPorts() {
         if (targetPorts == null) {
-            targetPorts = new ArrayList<URI>();
+            targetPorts = new ArrayList<String>();
         }
         return targetPorts;
     }
 
-    public void setTargetPorts(List<URI> targetPorts) {
+    public void setTargetPorts(List<String> targetPorts) {
         this.targetPorts = targetPorts;
     }
 

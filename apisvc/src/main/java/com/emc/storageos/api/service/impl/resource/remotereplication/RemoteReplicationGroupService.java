@@ -11,8 +11,10 @@ import static com.emc.storageos.db.client.util.CustomQueryUtility.queryActiveRes
 import static com.emc.storageos.db.client.util.CustomQueryUtility.queryActiveResourcesByRelation;
 
 import java.net.URI;
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 import javax.ws.rs.Consumes;
@@ -21,6 +23,7 @@ import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 
 import com.emc.storageos.remotereplicationcontroller.RemoteReplicationController;
@@ -28,12 +31,15 @@ import com.emc.storageos.remotereplicationcontroller.RemoteReplicationUtils;
 import com.emc.storageos.security.authorization.ACL;
 
 import com.emc.storageos.storagedriver.storagecapabilities.RemoteReplicationAttributes;
+
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.api.service.impl.resource.ArgValidator;
 import com.emc.storageos.api.service.impl.resource.TaskResourceService;
 import com.emc.storageos.db.client.URIUtil;
+import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.OpStatusMap;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.StoragePort;
@@ -58,8 +64,10 @@ import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationSet;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
+import com.emc.storageos.util.NetworkUtil;
 import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.impl.externaldevice.RemoteReplicationElement;
+import com.emc.storageos.volumecontroller.impl.utils.ConsistencyGroupUtils;
 
 
 @Path("/vdc/block/remotereplicationgroups")
@@ -106,6 +114,48 @@ public class RemoteReplicationGroupService extends TaskResourceService {
             rrGroupList.getRemoteReplicationGroups().add(toNamedRelatedResource(iter.next()));
         }
         return rrGroupList;
+    }
+
+    /**
+     * Get remote replication groups for a given consistency group.
+     */
+    @GET
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/consistency-group/groups")
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR })
+    public RemoteReplicationGroupList getRemoteReplicationGroupsForCG(@QueryParam("consistencyGroup") URI uri) {
+        ArgValidator.checkUri(uri);
+        ArgValidator.checkFieldUriType(uri, BlockConsistencyGroup.class, "id");
+        BlockConsistencyGroup cGroup = ConsistencyGroupUtils.findConsistencyGroupById(uri, _dbClient);
+        if (ConsistencyGroupUtils.isConsistencyGroupEmpty(cGroup)) {
+            // If CG is empty (storageDevice is null) any remote replication group is a match.
+            return getRemoteReplicationGroups();
+        }
+        RemoteReplicationGroupList result = new RemoteReplicationGroupList();
+        if (!ConsistencyGroupUtils.isConsistencyGroupSupportRemoteReplication(cGroup)) {
+            return result;
+        }
+        Set<String> targetCGSystemsSet = ConsistencyGroupUtils
+                .findAllRRConsistencyGrroupSystemsByAlternateLabel(cGroup.getLabel(), _dbClient);
+        Iterator<RemoteReplicationGroup> groups = RemoteReplicationUtils.findAllRemoteRepliationGroupsIteratively(_dbClient);
+        while (groups.hasNext()) {
+            RemoteReplicationGroup rrGroup = groups.next();
+            StorageSystem cgSystem = _dbClient.queryObject(StorageSystem.class, cGroup.getStorageController());
+            if (!StringUtils.equals(cgSystem.getSystemType(), rrGroup.getStorageSystemType())) {
+                // Pass ones whose storage system type is not aligned with consistency group
+                continue;
+            }
+            if (!URIUtil.uriEquals(rrGroup.getSourceSystem(), cGroup.getStorageController())) {
+                // Pass ones whose source systems isn't equal with source CG's storage system
+                continue;
+            }
+            if (!targetCGSystemsSet.contains(URIUtil.toString(rrGroup.getTargetSystem()))) {
+                // Pass ones whose target system is not covered by ones of given CG
+                continue;
+            }
+            result.getRemoteReplicationGroups().add(toNamedRelatedResource(rrGroup));
+        }
+        return result;
     }
 
     /**
@@ -176,10 +226,8 @@ public class RemoteReplicationGroupService extends TaskResourceService {
             }
         }
 
-        List<URI> sourcePorts = param.getSourcePorts();
-        List<URI> targetPorts = param.getTargetPorts();
-        precheckPorts(sourcePorts, sourceSystem, "source ports");
-        precheckPorts(targetPorts, targetSystem, "target ports");
+        List<URI> sourcePortIds = precheckPorts(param.getSourcePorts(), sourceSystem, "source ports");
+        List<URI> targetPortIds = precheckPorts(param.getTargetPorts(), targetSystem, "target ports");
 
         RemoteReplicationGroup rrGroup = prepareRRGroup(param);
         _dbClient.createObject(rrGroup);
@@ -192,7 +240,7 @@ public class RemoteReplicationGroupService extends TaskResourceService {
         // send request to controller
         try {
             RemoteReplicationBlockServiceApiImpl rrServiceApi = getRemoteReplicationServiceApi();
-            rrServiceApi.createRemoteReplicationGroup(rrGroup.getId(), sourcePorts, targetPorts, taskId);
+            rrServiceApi.createRemoteReplicationGroup(rrGroup.getId(), sourcePortIds, targetPortIds, taskId);
         } catch (final ControllerException e) {
             _log.error("Controller Error", e);
             op = rrGroup.getOpStatus().get(taskId);
@@ -571,18 +619,32 @@ public class RemoteReplicationGroupService extends TaskResourceService {
         ArgValidator.checkFieldUriType(systemId, StorageSystem.class, fieldName);
     }
 
-    private void precheckPorts(List<URI> portIds, URI deviceId, String fieldName) {
-        if (portIds == null || portIds.isEmpty()) {
+    /**
+     * Convert ports from portNetworkIds to URIs, and check if it belongs to the
+     * specified storage system, and throw exception if not.
+     *
+     * @param portNetworkIds
+     *            ports that are specified by portNetworkIds
+     * @param deviceId
+     *            the storage system URI that ports should belong to
+     * @param fieldName
+     *            field name string for error message display
+     * @return converted URI list
+     */
+    private List<URI> precheckPorts(List<String> portNetworkIds, URI deviceId, String fieldName) {
+        if (portNetworkIds == null || portNetworkIds.isEmpty()) {
             throw APIException.badRequests.parameterIsNullOrEmpty(fieldName);
         }
 
-        for (URI portId : portIds) {
-            ArgValidator.checkFieldUriType(portId, StoragePort.class, "storage port");
-            StoragePort port = _dbClient.queryObject(StoragePort.class, portId);
+        List<URI> ports = new ArrayList<>();
+        for (String endpoint : portNetworkIds) {
+            StoragePort port = NetworkUtil.getStoragePort(endpoint, _dbClient);
             if (port == null || !deviceId.equals(port.getStorageDevice())) {
-                throw APIException.badRequests.invalidParameterURIInvalid(fieldName, portId);
+                throw APIException.badRequests.invalidParameterNoStoragePort(endpoint, deviceId);
             }
+            ports.add(port.getId());
         }
+        return ports;
     }
 
     @Override

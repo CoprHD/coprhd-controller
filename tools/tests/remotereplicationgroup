@@ -14,6 +14,13 @@ from bourne import Bourne
 # remotereplicatingroup functions
 #----------------------------------------------------------------------
 
+# list groups
+def remotereplicationgroup_list(args):
+    bourne.connect(args.ip)
+    groups = bourne.replicationgroup_list()
+    for group in groups:
+        print group
+
 # Create remote replication group.
 def remotereplicationgroup_create(args):
     bourne.connect(args.ip)
@@ -24,7 +31,7 @@ def remotereplicationgroup_create(args):
     # replicationset_uri = bourne.replicationset_query(args.replicationset_name)
     # print 'Replication set uri: ' + replicationset_uri
 
-    s = bourne.replicationgroup_create(args.system_type, args.name, args.replication_mode, source_system_uri, target_system_uri)
+    s = bourne.replicationgroup_create(args.system_type, args.name, args.replication_mode, source_system_uri, target_system_uri, args.source_ports, args.target_ports)
     if (s['state'] == 'ready'):
         print 'Remote replication group created with id ' + s['resource']['id']
     else:
@@ -67,6 +74,9 @@ parser = argparse.ArgumentParser(description = 'Bourne remotereplication group c
 parser.add_argument('cmd', help = 'cmd = (create )')
 parser.add_argument('--ip',	metavar = 'ipaddr',	help = 'IP address of bourne', default=bourne_ip)
 
+# remote replication group list
+list = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+
 # remotereplicationgroup create_storage_type
 create_storage_type = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
 create_storage_type.add_argument('storage_type_name', help = 'The name of the storage system type.')
@@ -85,6 +95,8 @@ create.add_argument('name', help = 'The name of the remote replication group.')
 create.add_argument('replication_mode', help = 'The name of the group replication mode.')
 create.add_argument('--source_system', help = 'The Native GUID of the source storage system.')
 create.add_argument('--target_system', help = 'The Native GUID of the target storage system.')
+create.add_argument('--source_ports', help = 'The names of source ports')
+create.add_argument('--target_ports', help = 'The names of target ports')
 
 # remotereplicationgroup failover
 failover = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
@@ -103,7 +115,10 @@ try:
 
     bourne = Bourne()
 
-    if (cmd == "create"):
+    if (cmd == "list"):
+        args = list.parse_args()
+        remotereplicationgroup_list(args)
+    elif (cmd == "create"):
         args = create.parse_args()
         remotereplicationgroup_create(args)
     elif (cmd == "create_storage_type"):

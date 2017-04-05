@@ -60,7 +60,8 @@ public class CustomServicesLocalAnsibleExecution extends ViPRExecutionTask<Custo
     private static final org.slf4j.Logger logger = LoggerFactory.getLogger(CustomServicesLocalAnsibleExecution.class);
     private final Step step;
     private final Map<String, List<String>> input;
-    private  String orderDir;
+    private  String orderDir = String.format("%s%s/", CustomServicesConstants.ORDER_DIR_PATH,
+            ExecutionUtils.currentContext().getOrder().getOrderNumber());
     private final long timeout;
 
     @Autowired

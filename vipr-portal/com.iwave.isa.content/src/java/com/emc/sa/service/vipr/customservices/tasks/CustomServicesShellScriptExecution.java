@@ -42,13 +42,13 @@ public class CustomServicesShellScriptExecution extends ViPRExecutionTask<Custom
     private static final org.slf4j.Logger logger = LoggerFactory.getLogger(CustomServicesShellScriptExecution.class);
     private final CustomServicesWorkflowDocument.Step step;
     private final Map<String, List<String>> input;
-    private  String orderDir;
+    private  String orderDir = String.format("%s%s/", CustomServicesConstants.ORDER_DIR_PATH,
+            ExecutionUtils.currentContext().getOrder().getOrderNumber());
     private final long timeout;
 
-    @Autowired
     private DbClient dbClient;
 
-    public CustomServicesShellScriptExecution(final Map<String, List<String>> input, CustomServicesWorkflowDocument.Step step) {
+    public CustomServicesShellScriptExecution(final Map<String, List<String>> input,final CustomServicesWorkflowDocument.Step step,final DbClient dbClient) {
         this.input = input;
         this.step = step;
         if (step.getAttributes() == null || step.getAttributes().getTimeout() == -1) {
@@ -56,6 +56,7 @@ public class CustomServicesShellScriptExecution extends ViPRExecutionTask<Custom
         } else {
             this.timeout = step.getAttributes().getTimeout();
         }
+	this.dbClient = dbClient;
     }
 
     @Override
@@ -64,9 +65,10 @@ public class CustomServicesShellScriptExecution extends ViPRExecutionTask<Custom
         final Exec.Result result;
         try {
             final URI scriptid = step.getOperation();
+logger.info("got scriptid{}", scriptid);
             // get the resource database
             final CustomServicesDBScriptPrimitive primitive = dbClient.queryObject(CustomServicesDBScriptPrimitive.class, scriptid);
-
+logger.info("got primitive");
             if (null == primitive) {
                 logger.error("Error retrieving the script primitive from DB. {} not found in DB", scriptid);
                 throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed(scriptid + " not found in DB");
@@ -74,7 +76,7 @@ public class CustomServicesShellScriptExecution extends ViPRExecutionTask<Custom
 
             final CustomServicesDBScriptResource script = dbClient.queryObject(CustomServicesDBScriptResource.class,
                     primitive.getResource());
-
+logger.info("got script");
             if (null == script) {
                 logger.error("Error retrieving the resource for the script primitive from DB. {} not found in DB",
                         primitive.getResource());
@@ -86,14 +88,15 @@ public class CustomServicesShellScriptExecution extends ViPRExecutionTask<Custom
             // Currently, the stepId is set to random hash values in the UI. If this changes then we have to change the following to
             // generate filename with URI from step.getOperation()
             final String scriptFileName = String.format("%s%s.sh", orderDir, step.getId());
-
+logger.info("get scriptFileName");
             final byte[] bytes = Base64.decodeBase64(script.getResource());
             writeShellScripttoFile(bytes, scriptFileName);
-
+logger.info("write the script file");
             final String inputToScript = makeParam(input);
-            logger.debug("input is {}", inputToScript);
+            logger.info("input is {}", inputToScript);
 
             result = executeCmd(scriptFileName, inputToScript);
+logger.info("exec done");
         } catch (final Exception e) {
             throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed("Custom Service Task Failed" + e);
         }
@@ -123,9 +126,12 @@ public class CustomServicesShellScriptExecution extends ViPRExecutionTask<Custom
 
     // Execute Shell Script resource
     private Exec.Result executeCmd(final String playbook, final String extraVars) {
+	logger.info("in exec");
         final AnsibleCommandLine cmd = new AnsibleCommandLine(CustomServicesConstants.SHELL_BIN, playbook);
         cmd.setShellArgs(extraVars);
+	logger.info("set extra var");
         final String[] cmds = cmd.build();
+	logger.info("start exec");
         return Exec.exec(timeout, cmds);
     }
 

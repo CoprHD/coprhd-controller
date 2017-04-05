@@ -151,11 +151,13 @@ public class CustomServicesService extends ViPRService {
             ExecutionUtils.currentContext().logInfo("customServicesService.stepStatus", step.getId(), step.getType());
 
             Step updatedStep = updatesubWfInput(step, stepInput);
+logger.info("update sub wf is done");
             updateInputPerStep(updatedStep);
-
+		logger.info("done updating input type :{}", updatedStep.getType());
             final CustomServicesTaskResult res;
             try {
                 if (updatedStep.getType().equals(StepType.WORKFLOW.toString())) {
+		logger.info("oper:{} input groups:{}", updatedStep.getOperation(), updatedStep.getInputGroups());
                     wfExecutor(updatedStep.getOperation(), updatedStep.getInputGroups());
 
                     // We Don't evaluate output/result for Workflow Step. It is already evaluated.
@@ -179,7 +181,7 @@ public class CustomServicesService extends ViPRService {
                 }
                 next = getNext(isSuccess, res, updatedStep);
             } catch (final Exception e) {
-                logger.info("failed to execute step. Try to get rollback step. Exception Received:" + e);
+                logger.info("failed to execute step. Try to get rollback step. Exception Received:" + e + e.getStackTrace() +"*****"+e.getStackTrace()[1].getLineNumber() +e.getStackTrace()[1].getMethodName() + e.getStackTrace()[0].getLineNumber() + e.getStackTrace()[0].getMethodName());
                 next = getNext(false, null, updatedStep);
             } finally {
                 orderDirCleanup(orderDir);
@@ -197,7 +199,8 @@ public class CustomServicesService extends ViPRService {
 
     private Step updatesubWfInput(final Step step, final Map<String, CustomServicesWorkflowDocument.InputGroup> stepInput) {
         if (step.getType().equals(StepType.WORKFLOW.toString()) || stepInput == null || step.getInputGroups() == null) {
-            return null;
+		logger.info("give step as is");
+            return step;
         }
 
         for (final CustomServicesWorkflowDocument.InputGroup inputGroup : step.getInputGroups().values()) {
@@ -206,10 +209,17 @@ public class CustomServicesService extends ViPRService {
                 switch (CustomServicesConstants.InputType.fromString(value.getType())) {
                     case FROM_USER:
                     case ASSET_OPTION:
-                        if (!value.getType().equals(getType(name, stepInput))){
-                            logger.info("Change the type");
-                            value.setType(getType(name, stepInput));
-                        }
+                           for (final CustomServicesWorkflowDocument.InputGroup inputGroup1 : stepInput.values()) {
+                                for (final Input value1 : inputGroup1.getInputGroup()) {
+                                    final String name1 = value1.getFriendlyName();
+                                    if (name1.equals(name)) {
+                                        logger.info("Change the type name:{}", name);
+                                        value.setType(value1.getType());
+                                        value.setValue(value1.getValue());
+                                        value.setDefaultValue(value1.getDefaultValue());
+                                    }
+                                }
+			}
                         break;
                     default:
                         logger.info("do nothing");
@@ -218,19 +228,6 @@ public class CustomServicesService extends ViPRService {
         }
 
         return step;
-    }
-
-    private String getType(final String name, final Map<String, CustomServicesWorkflowDocument.InputGroup> stepInput) {
-        for (final CustomServicesWorkflowDocument.InputGroup inputGroup : stepInput.values()) {
-            for (final Input value : inputGroup.getInputGroup()) {
-                final String name1 = value.getFriendlyName();
-                if (name1.equals(name)) {
-                    return value.getType();
-                }
-            }
-        }
-
-        return null;
     }
 
     private void orderDirCleanup(final String orderDir) {
@@ -278,15 +275,18 @@ public class CustomServicesService extends ViPRService {
      */
     private void updateInputPerStep(final Step step) throws Exception {
         if (step.getType().equals(StepType.WORKFLOW.toString())) {
+		logger.info("it is a wf type");
             return;
         }
         if (step.getInputGroups() == null) {
+		logger.info("ingroup is null");
             return;
         }
         final Map<String, List<String>> inputs = new HashMap<String, List<String>>();
         for (final CustomServicesWorkflowDocument.InputGroup inputGroup : step.getInputGroups().values()) {
             for (final Input value : inputGroup.getInputGroup()) {
                 final String name = value.getName();
+			logger.info("name is:{}", name);
                 switch (CustomServicesConstants.InputType.fromString(value.getType())) {
                     case FROM_USER:
                     case ASSET_OPTION:

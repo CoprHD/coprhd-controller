@@ -4,6 +4,17 @@
  */
 package com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.processor.SRDF;
 
+import java.net.URI;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+import javax.cim.CIMObjectPath;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.RemoteDirectorGroup;
 import com.emc.storageos.db.client.model.RemoteDirectorGroup.SupportedCopyModes;
@@ -14,17 +25,6 @@ import com.emc.storageos.plugins.common.domainmodel.Operation;
 import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
 import com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.processor.StorageProcessor;
 import com.google.common.base.Joiner;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import javax.cim.CIMObjectPath;
-
-import java.net.URI;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
 
 public class ConnectivityCollectionRelationshipsProcessor extends StorageProcessor {
     private Logger _log = LoggerFactory
@@ -105,7 +105,7 @@ public class ConnectivityCollectionRelationshipsProcessor extends StorageProcess
                 _log.debug("Updated Volumes {}",
                         Joiner.on("\t").join(remoteGroup.getVolumes()));
             }
-            dbClient.persistObject(remoteGroup);
+            dbClient.updateObject(remoteGroup);
         } catch (Exception e) {
             _log.error("Exception occurred while processing remote connectivity information.", e);
         }

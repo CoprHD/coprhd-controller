@@ -97,6 +97,10 @@ public class FileSnapshotPolicyMigration extends BaseCustomMigrationCallback {
                                     }
                                 }
                                 if (!snapSchedulesToRemove.isEmpty()) {
+                                    /*
+                                     * StringSet.removeAll() does not work if the set has only one entry.
+                                     * Hence the logic below
+                                     */
                                     if (fsExistingPolicies.size() == 1 && snapSchedulesToRemove.size() == 1) {
                                         fsExistingPolicies.clear();
                                     } else {

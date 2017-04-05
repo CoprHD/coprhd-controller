@@ -6,9 +6,9 @@ package com.emc.storageos.db.server;
 
 import java.lang.reflect.Field;
 import java.net.URI;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.UUID;
 
 import org.junit.Assert;
 import org.junit.Before;
@@ -19,7 +19,6 @@ import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.Row;
 import com.datastax.driver.core.SimpleStatement;
 import com.datastax.driver.core.exceptions.DriverException;
-import com.datastax.driver.core.utils.UUIDs;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.impl.CompositeColumnName;
 import com.emc.storageos.db.client.impl.DataObjectType;
@@ -35,7 +34,6 @@ import com.google.common.collect.Sets;
 public class RowMutationTest extends DbsvcTestBase {
 	private RowMutator rowMutator;
 	private String volumeCF = "Volume";
-	private String noExistCF = "no_exists_CF";
 	private String indexCF = "LabelPrefixIndex";
     
     @Before
@@ -160,14 +158,14 @@ public class RowMutationTest extends DbsvcTestBase {
         String cql = String.format("select * from \"%s\" where key='%s'", doType.getCF().getName(), volume.getId().toString());
         ResultSet resultSet = ((DbClientImpl)getDbClient()).getLocalContext().getSession().execute(cql);
         
-        Set<Long> columnTimeUUIDStamps = new HashSet<Long>(); 
+        Set<UUID> columnTimeUUID = new HashSet<UUID>(); 
         for (Row row : resultSet) {
             if (row.getUUID("column4") != null) {
-            	long timestamp = UUIDs.unixTimestamp(row.getUUID("column4"));
-                if (columnTimeUUIDStamps.contains(timestamp)) {
+            	UUID timestamp = row.getUUID("column4");
+                if (columnTimeUUID.contains(timestamp)) {
                 	Assert.fail("timeuuid is duplicated");
                 }
-                columnTimeUUIDStamps.add(timestamp);
+                columnTimeUUID.add(timestamp);
             }
         }
     }

@@ -23,6 +23,7 @@ import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
+import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.RemoteDirectorGroup;
 import com.emc.storageos.db.client.model.RemoteDirectorGroup.ConnectivityStatus;
 import com.emc.storageos.db.client.model.RemoteDirectorGroup.SupportedCopyModes;
@@ -35,6 +36,7 @@ import com.emc.storageos.plugins.AccessProfile;
 import com.emc.storageos.plugins.BaseCollectionException;
 import com.emc.storageos.plugins.common.Constants;
 import com.emc.storageos.plugins.common.domainmodel.Operation;
+import com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationGroup;
 import com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationMode;
 import com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationSet;
 import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
@@ -92,16 +94,7 @@ public class RemoteConnectivityCollectionProcessor extends StorageProcessor {
 
             performRAGroupsBookKeeping(raGroupIds, device.getId());
             
-            List<RemoteReplicationSet> replicationSets = new ArrayList<RemoteReplicationSet>();
-            for (String remoteConnectedSystem : remoteConnectedStorageSystems) {
-                StorageSystem remoteSystem = _dbClient.queryObject(StorageSystem.class, URI.create(remoteConnectedSystem));
-                if (remoteSystem != null) {
-                    replicationSets.add(createRemoteReplicationSet(device, remoteSystem));
-                }
-            }
-            RemoteReplicationDataClientImpl remoteReplicationDataClient = new RemoteReplicationDataClientImpl();
-            remoteReplicationDataClient.setDbClient(_dbClient);
-            remoteReplicationDataClient.processRemoteReplicationSetsForStorageSystem(device, replicationSets);
+            processRemoteReplicationObjects(device);
 
         } catch (Exception e) {
             _log.error("Finding out Active RA Groups Failed.SRDF will not be supported on this Array {} ", device.getNativeGuid(), e);
@@ -356,6 +349,72 @@ public class RemoteConnectivityCollectionProcessor extends StorageProcessor {
         rrSet.setSystemMap(systemMapSet);
 
         return rrSet;
+    }
+
+    /**
+     * Utility method that would Create a RemoteReplicationGroup for a given RemoteDirectorGroup
+     * 
+     * @param Reference to RemoteDirectorGroup/RAGroup
+     * @param Reference to storageSystem
+     * @param Reference to remoteSystem
+     * @return RemoteReplicationGroup
+     */
+    private RemoteReplicationGroup createRemoteReplicationGroup(RemoteDirectorGroup raGroup, StorageSystem storageSystem,
+            StorageSystem remoteSystem) {
+        RemoteReplicationGroup rrGroup = new RemoteReplicationGroup();
+        rrGroup.setNativeId(storageSystem.getSerialNumber() + Constants.PLUS + raGroup.getSourceGroupId() + Constants.PLUS
+                + remoteSystem.getSerialNumber() + Constants.PLUS + raGroup.getRemoteGroupId());
+        rrGroup.setDisplayName(rrGroup.getNativeId());
+        rrGroup.setDeviceLabel(raGroup.getLabel());
+        // Need to figure out how to capture this from an RDF group if it has associated CGs
+        rrGroup.setIsGroupConsistencyEnforced(false);
+        rrGroup.setReplicationMode(raGroup.getSupportedCopyMode());
+        // Need to figure out how to capture this from an RDF group. Is it the state on the links or the Connectivity Status
+        rrGroup.setReplicationState(raGroup.getConnectivityStatus());
+        rrGroup.setSourceSystemNativeId(storageSystem.getSerialNumber());
+        rrGroup.setTargetSystemNativeId(remoteSystem.getSerialNumber());
+        return rrGroup;
+    }
+    
+    /**
+     * Processes the RemoteReplicationSets and RemoteReplicationGroup needs for RemoteReplicationDataClient discovery
+     * 
+     * @param Reference to dbClient
+     * @param storageSystemURI
+     * @return NONE
+     */
+
+    private void processRemoteReplicationObjects(StorageSystem sourceSystem) {
+        List<RemoteReplicationSet> replicationSets = new ArrayList<RemoteReplicationSet>();
+        List<RemoteReplicationGroup> replicationGroups = new ArrayList<RemoteReplicationGroup>();
+        for (String remoteSystemUri : sourceSystem.getRemotelyConnectedTo()) {
+            if (NullColumnValueGetter.isNullValue(remoteSystemUri)) {
+                continue;
+            }
+            StorageSystem remoteSystem = _dbClient.queryObject(StorageSystem.class,
+                    URI.create(remoteSystemUri));
+            if (remoteSystem != null) {
+                // Deal with RRSet
+                replicationSets.add(createRemoteReplicationSet(sourceSystem, remoteSystem));
+                // Deal with RRGroups...
+                URIQueryResultList raGroupsInDB = new URIQueryResultList();
+                _dbClient.queryByConstraint(ContainmentConstraint.Factory
+                        .getStorageDeviceRemoteGroupsConstraint(sourceSystem.getId()), raGroupsInDB);
+                Iterator<RemoteDirectorGroup> raGroupIter = _dbClient.queryIterativeObjects(RemoteDirectorGroup.class, raGroupsInDB);
+                while (raGroupIter.hasNext()) {
+                    RemoteDirectorGroup raGroup = raGroupIter.next();
+                    if (raGroup != null && !raGroup.getInactive()
+                            && remoteSystem.getId().equals(raGroup.getRemoteStorageSystemUri())) {
+                        replicationGroups.add(createRemoteReplicationGroup(raGroup, sourceSystem, remoteSystem));
+                    }
+                }
+            }
+        }
+        _log.info("Processing RemoteReplicationSets and RemoteReplication Groups for {}", sourceSystem.getSerialNumber());
+        RemoteReplicationDataClientImpl remoteReplicationDataClient = new RemoteReplicationDataClientImpl();
+        remoteReplicationDataClient.setDbClient(_dbClient);
+        remoteReplicationDataClient.processRemoteReplicationSetsForStorageSystem(sourceSystem, replicationSets);
+        remoteReplicationDataClient.processRemoteReplicationGroupsForStorageSystem(sourceSystem, replicationGroups);
     }
 
 }

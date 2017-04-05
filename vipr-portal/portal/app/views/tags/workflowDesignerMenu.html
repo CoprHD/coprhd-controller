@@ -39,13 +39,10 @@
                         				<control-group class="col-md-6" v-field='input.tableName'>
                         					<input-text></input-text>
           								</control-group>
-          								<control-group class="col-md-6" v-field="input.userInput">
-    										<boolean-checkbox v-default-value="false"></boolean-checkbox>
-  										</control-group>
    										<control-group class="col-md-6" v-field="input.required">
 											<boolean-checkbox v-default-value="false"></boolean-checkbox>
   										</control-group>
- 										<control-group class="col-md-6" v-field="input.fieldType">
+ 										<control-group class="col-md-6" v-field="input.type">
                         					<select-one options="UserInputTypeOption" auto-default v-disabled='locked'></select-one>
                         				</control-group>
                         				<!--control-group class="col-md-6" v-field="input.StepOption">

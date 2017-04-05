@@ -637,7 +637,7 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
     $scope.select = function(stepId) {
         $scope.selectedId = stepId;
         $scope.InputFieldOption=[{id:'Single', name:'Single Field Input'}, {id:'Table', name:'Table Column'}];
-        $scope.UserInputTypeOption=[{id:'Int', name:'Integer'}, {id:'Str', name:'String'}, {id:'Asset', name:'AssetOption'}, {id:'boolean', name:'Boolean'}];
+        $scope.UserInputTypeOption=[{id:'AssetOption', name:'AssetOption'}, {id:'InputFromUser', name:'InputFromUser'}, {id:'FromOtherStepOutput', name:'FromOtherStepOutput'}, {id:'FromOtherStepInput', name:'FromOtherStepInput'}];
         $scope.StepOption=[{id:'Stepin', name:'Step Input'}, {id:'Stepout', name:'Step Output'}];
         var data = diagramContainer.find('#'+stepId).data("oeData");
         $scope.stepData = data;

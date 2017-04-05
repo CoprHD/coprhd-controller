@@ -1944,6 +1944,15 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                     IsilonApi.IsilonList<IsilonSmartQuota> quotas = isilonApi.listQuotas(resumetoken, umfsDiscoverPath);
 
                     for (IsilonSmartQuota quota : quotas.getList()) {
+                        /**
+                         * This scenario comes when we have "/ifs/" as the discovery path and quotas are discovered with
+                         * /ifs/<access-zone-path> .In this scenario we are going to process such kind of fs/quotas in their
+                         * respective access zone discovery.
+                         */
+                        if ("/ifs/".equals(umfsDiscoverPath) &&
+                                isQuotaUnderAccessZonePath(quota.getPath(), tempAccessZonePath)) {
+                            continue;
+                        }
 
                         tempQuotaMap.put(quota.getPath(), quota);
                         String fsNativeId = quota.getPath();
@@ -3635,5 +3644,14 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
 
         }
         return null;
+    }
+
+    private boolean isQuotaUnderAccessZonePath(String fsNativeId, List<String> tempAccessZonePath) {
+        for (String accessZonePath : tempAccessZonePath) {
+            if (fsNativeId.startsWith(accessZonePath)) {
+                return true;
+            }
+        }
+        return false;
     }
 }

@@ -1898,9 +1898,6 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                 targetLabel = targetLabel.substring(0, targetLabel.length() - 1);
             }
         } else {
-            //BBB
-            s_logger.warn(">>>>>>>>>>>>>>>>>>WTF?!!! no source vol?? =>" + virtualVolume.getLabel());
-            
             targetProject = getVplexProject(vplexSystem, _dbClient, _tenantsService);
             targetLabel = virtualVolume.getLabel();
             if (virtualVolume.getVirtualArray().equals(varray.getId())) {

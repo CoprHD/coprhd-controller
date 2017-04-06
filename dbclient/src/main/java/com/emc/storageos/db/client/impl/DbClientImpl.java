@@ -2111,18 +2111,19 @@ public class DbClientImpl implements DbClient {
     static class KeyspaceTracerFactoryImpl {
         private ConcurrentHashMap<String, AtomicLong> counterMap = new ConcurrentHashMap<String, AtomicLong>();
         private ScheduledExecutorService executor = new NamedScheduledThreadPoolExecutor("DbClientPerformance", 1);
+        private AtomicLong total = new AtomicLong(0);
         
         public KeyspaceTracerFactoryImpl() {
             executor.scheduleAtFixedRate(new Runnable() {
 
                 @Override
                 public void run() {
+                    _log.info("total dbclient calls: {}", total);
                     for (Entry<String, AtomicLong> entry : counterMap.entrySet()) {
                         _log.info("{} -> {}", entry.getKey(), entry.getValue().get());
                     }
-                    System.out.println(count);
-                    count = 0;
                     counterMap.clear();
+                    total.set(0);
                 }
                 
             }, 60, 60, TimeUnit.SECONDS);
@@ -2130,8 +2131,12 @@ public class DbClientImpl implements DbClient {
         
         int count = 0;
         public void newTracer(String type) {
-            count++;
             StackTraceElement stackTraceElement = Thread.currentThread().getStackTrace()[3];
+            if (stackTraceElement.getClassName().startsWith("com.emc.storageos.db.client")) {
+                return;
+            }
+
+            total.getAndIncrement();
             String key = String.format("%s.%s:%s", stackTraceElement.getClassName(), stackTraceElement.getMethodName(), stackTraceElement.getLineNumber());
             counterMap.putIfAbsent(key, new AtomicLong(0));
             counterMap.get(key).getAndIncrement();

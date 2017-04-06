@@ -615,11 +615,10 @@ public class DbClientContext {
                 @Override
                 public void run() {
                     long total = readOperations.get() + writeOperations.get() + otherOperations.get();
-                    if (total > REQUEST_WARNING_THRESHOLD_COUNT) {
                         log.warn("Performance data of DbClient for last 60 seconds");
                         log.warn("{} read operations, {} write operations, {} other operations", 
                                 readOperations.get(), writeOperations.get(), otherOperations.get());
-                    }
+                    
                     
                     readOperations.set(0);
                     writeOperations.set(0);

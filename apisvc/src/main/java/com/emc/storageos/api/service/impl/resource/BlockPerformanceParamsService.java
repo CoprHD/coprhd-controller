@@ -34,9 +34,8 @@ writeRoles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
 public class BlockPerformanceParamsService extends TaggedResource {
 
     // Logger reference
-    private static final Logger s_logger = LoggerFactory.getLogger(BlockPerformanceParamsService.class);
+    private static final Logger logger = LoggerFactory.getLogger(BlockPerformanceParamsService.class);
 
-    
     /**
      * Create a block PerformanceParams instance.
      *
@@ -55,7 +54,7 @@ public class BlockPerformanceParamsService extends TaggedResource {
     public BlockPerformanceParamsRestRep createBlockPerformanceParams(BlockPerformanceParamsCreate param) {
         return null;
     }
-    
+
     /**
      * {@inheritDoc}
      */
@@ -73,7 +72,7 @@ public class BlockPerformanceParamsService extends TaggedResource {
     protected ResourceTypeEnum getResourceType() {
         return ResourceTypeEnum.BLOCK_VPOOL;
     }
-    
+
     /**
      * {@inheritDoc}
      */

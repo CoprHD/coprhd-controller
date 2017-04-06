@@ -7,6 +7,7 @@ package com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.processor
 import java.io.IOException;
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -16,6 +17,7 @@ import java.util.Set;
 
 import javax.cim.CIMInstance;
 
+import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -305,7 +307,7 @@ public class RemoteConnectivityCollectionProcessor extends StorageProcessor {
      * @param Reference to remoteSystem
      * @return RemoteReplicationSet
      */
-    private RemoteReplicationSet createRemoteReplicationSet(StorageSystem storageSystem, StorageSystem remoteSystem) {
+    private RemoteReplicationSet createRemoteReplicationSet(StorageSystem sourceSystem, List<StorageSystem> remoteSystems) {
 
         Set<RemoteReplicationSet.ElementType> supportedElementTypes = new HashSet<>();
         supportedElementTypes.add(RemoteReplicationSet.ElementType.REPLICATION_GROUP);
@@ -318,23 +320,26 @@ public class RemoteConnectivityCollectionProcessor extends StorageProcessor {
         // TODO: VMAX Does not enforce consistency but ViPR maintains consistency for the Groups? Should
         // isGroupConsistencyEnforcedAutomatically be set to TRUE?
 
-        Set<RemoteReplicationMode> SRDFReplicationModes = new HashSet<>();
-        SRDFReplicationModes.add(new RemoteReplicationMode(SupportedCopyModes.SYNCHRONOUS.name(), false, false));
-        SRDFReplicationModes.add(new RemoteReplicationMode(SupportedCopyModes.ASYNCHRONOUS.name(), false, false));
-        SRDFReplicationModes.add(new RemoteReplicationMode(SupportedCopyModes.ADAPTIVECOPY.name(), false, false));
-        if (null != storageSystem.getSupportedReplicationTypes()
-                && storageSystem.getSupportedReplicationTypes().contains(SupportedReplicationTypes.SRDFMetro.toString()) &&
-                null != remoteSystem.getSupportedReplicationTypes()
-                && remoteSystem.getSupportedReplicationTypes().contains(SupportedReplicationTypes.SRDFMetro.toString())) {
-            SRDFReplicationModes.add(new RemoteReplicationMode(SupportedCopyModes.ACTIVE.name(), false, false));
+        Set<RemoteReplicationMode> supportedReplicationModes = new HashSet<>();
+        supportedReplicationModes.add(new RemoteReplicationMode(SupportedCopyModes.SYNCHRONOUS.name(), false, false));
+        supportedReplicationModes.add(new RemoteReplicationMode(SupportedCopyModes.ASYNCHRONOUS.name(), false, false));
+        supportedReplicationModes.add(new RemoteReplicationMode(SupportedCopyModes.ADAPTIVECOPY.name(), false, false));
+        Map<String, Set<RemoteReplicationSet.ReplicationRole>> systemMapSet = new HashMap<>();
+        List<String> systemSerialNumbers = new ArrayList<String>();
+        systemSerialNumbers.add(sourceSystem.getSerialNumber());
+        systemMapSet.put(sourceSystem.getSerialNumber(), replicationRoles);
+        boolean sourceSupportsSRDFMetro = (null != sourceSystem.getSupportedReplicationTypes()
+                && sourceSystem.getSupportedReplicationTypes().contains(SupportedReplicationTypes.SRDFMetro.toString()));
+        for (StorageSystem remoteSystem : remoteSystems) {
+            if (sourceSupportsSRDFMetro && null != remoteSystem.getSupportedReplicationTypes()
+                    && remoteSystem.getSupportedReplicationTypes().contains(SupportedReplicationTypes.SRDFMetro.toString())) {
+                supportedReplicationModes.add(new RemoteReplicationMode(SupportedCopyModes.ACTIVE.name(), false, false));
+            }
+            systemSerialNumbers.add(remoteSystem.getSerialNumber());
+            systemMapSet.put(remoteSystem.getSerialNumber(), replicationRoles);
         }
-        // Sort the SRC/TGT string as we will only report one RRSet for both Storage Systems
-        String labelFormat = null;
-        if (storageSystem.getSerialNumber().compareToIgnoreCase(remoteSystem.getSerialNumber()) >= 0) {
-            labelFormat = storageSystem.getSerialNumber() + Constants.PLUS + remoteSystem.getSerialNumber();
-        } else {
-            labelFormat = remoteSystem.getSerialNumber() + Constants.PLUS + storageSystem.getSerialNumber();
-        }
+        Collections.sort(systemSerialNumbers);
+        String labelFormat = StringUtils.join(systemSerialNumbers, "+");
 
         RemoteReplicationSet rrSet = new RemoteReplicationSet();
         rrSet.setDeviceLabel(labelFormat);
@@ -342,10 +347,7 @@ public class RemoteConnectivityCollectionProcessor extends StorageProcessor {
         rrSet.setSupportedElementTypes(supportedElementTypes);
         rrSet.setReplicationLinkGranularity(supportedElementTypes);
         rrSet.setReplicationState("UNKNOWN");
-        rrSet.setSupportedReplicationModes(SRDFReplicationModes);
-        Map<String, Set<RemoteReplicationSet.ReplicationRole>> systemMapSet = new HashMap<>();
-        systemMapSet.put(storageSystem.getSerialNumber(), replicationRoles);
-        systemMapSet.put(remoteSystem.getSerialNumber(), replicationRoles);
+        rrSet.setSupportedReplicationModes(supportedReplicationModes);
         rrSet.setSystemMap(systemMapSet);
 
         return rrSet;
@@ -387,6 +389,7 @@ public class RemoteConnectivityCollectionProcessor extends StorageProcessor {
     private void processRemoteReplicationObjects(StorageSystem sourceSystem) {
         List<RemoteReplicationSet> replicationSets = new ArrayList<RemoteReplicationSet>();
         List<RemoteReplicationGroup> replicationGroups = new ArrayList<RemoteReplicationGroup>();
+        List<StorageSystem> remoteSystems = new ArrayList<StorageSystem>();
         for (String remoteSystemUri : sourceSystem.getRemotelyConnectedTo()) {
             if (NullColumnValueGetter.isNullValue(remoteSystemUri)) {
                 continue;
@@ -394,8 +397,7 @@ public class RemoteConnectivityCollectionProcessor extends StorageProcessor {
             StorageSystem remoteSystem = _dbClient.queryObject(StorageSystem.class,
                     URI.create(remoteSystemUri));
             if (remoteSystem != null) {
-                // Deal with RRSet
-                replicationSets.add(createRemoteReplicationSet(sourceSystem, remoteSystem));
+                remoteSystems.add(remoteSystem);
                 // Deal with RRGroups...
                 URIQueryResultList raGroupsInDB = new URIQueryResultList();
                 _dbClient.queryByConstraint(ContainmentConstraint.Factory
@@ -410,6 +412,11 @@ public class RemoteConnectivityCollectionProcessor extends StorageProcessor {
                 }
             }
         }
+        // Deal with RRSet
+        if (!remoteSystems.isEmpty()) {
+            replicationSets.add(createRemoteReplicationSet(sourceSystem, remoteSystems));
+        }
+        
         _log.info("Processing RemoteReplicationSets and RemoteReplication Groups for {}", sourceSystem.getSerialNumber());
         RemoteReplicationDataClientImpl remoteReplicationDataClient = new RemoteReplicationDataClientImpl();
         remoteReplicationDataClient.setDbClient(_dbClient);

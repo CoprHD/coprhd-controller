@@ -100,7 +100,9 @@ public enum ResourceTypeEnum {
     FILE_POLICY("file_policy", "/file/file-policies"),
     STORAGE_SYSTEM_TYPE("storage_system_type", "/vdc/storage-system-types"),
     OBJECT_NAMESPACE("object_namespaces", "/vdc/object-namespaces"),
-    ACTIONABLE_EVENT("actionable_event", "/vdc/events");
+    ACTIONABLE_EVENT("actionable_event", "/vdc/events"),
+    BLOCK_PERFORMANCE_PARAMS("block_performance_params", "/block/performance-params");
+    
 
     private final String type;
     private final String service;

@@ -31,11 +31,14 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
+import com.emc.storageos.db.client.URIUtil;
+import com.emc.storageos.db.client.model.uimodels.CustomServicesDBAnsibleInventoryResource;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
 import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
 import org.apache.commons.compress.compressors.gzip.GzipCompressorInputStream;
 import org.apache.commons.compress.utils.IOUtils;
+import org.apache.commons.lang.StringUtils;
 import org.slf4j.LoggerFactory;
 
 import com.emc.sa.engine.ExecutionUtils;
@@ -86,9 +89,19 @@ public class CustomServicesLocalAnsibleExecution extends ViPRExecutionTask<Custo
 
             final CustomServicesDBAnsiblePrimitive ansiblePrimitive = dbClient.queryObject(CustomServicesDBAnsiblePrimitive.class,
                     scriptid);
+            if (null == ansiblePrimitive) {
+                logger.error("Error retrieving the ansible primitive from DB. {} not found in DB", scriptid);
+                throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed(scriptid + " not found in DB");
+            }
             final CustomServicesDBAnsibleResource ansiblePackageId = dbClient.queryObject(CustomServicesDBAnsibleResource.class,
                     ansiblePrimitive.getResource());
+            if (null == ansiblePackageId) {
+                logger.error("Error retrieving the resource for the ansible primitive from DB. {} not found in DB",
+                        ansiblePrimitive.getResource());
 
+                throw InternalServerErrorException.internalServerErrors
+                        .customServiceExecutionFailed(ansiblePrimitive.getResource() + " not found in DB");
+            }
             // get the playbook which the user has specified during primitive creation from DB.
             // The playbook (resolved to the path in the archive) represents the playbook to execute
             final String playbook = ansiblePrimitive.getAttributes().get("playbook");
@@ -99,11 +112,34 @@ public class CustomServicesLocalAnsibleExecution extends ViPRExecutionTask<Custo
             // uncompress Ansible archive to orderDir
             uncompressArchive(ansibleArchive);
 
-            // TODO: Hard coded for testing. The following will be removed after completing COP-27888
-            final String hosts = "/opt/storageos/ansi_logs/hosts";
+            final String hostFileFromStep = AnsibleHelper.getOptions(CustomServicesConstants.ANSIBLE_HOST_FILE, input);
+
+            if (StringUtils.isBlank(hostFileFromStep)) {
+                logger.error("Error retrieving the inventory resource from the ansible primitive step");
+
+                throw InternalServerErrorException.internalServerErrors
+                        .customServiceExecutionFailed("Inventory resource not found in step input");
+            }
+
+            final CustomServicesDBAnsibleInventoryResource inventoryResource = dbClient
+                    .queryObject(CustomServicesDBAnsibleInventoryResource.class, URI.create(hostFileFromStep));
+
+            if (null == inventoryResource) {
+                logger.error("Error retrieving the inventory resource for the ansible primitive from DB. {} not found in DB",
+                        hostFileFromStep);
+
+                throw InternalServerErrorException.internalServerErrors
+                        .customServiceExecutionFailed(hostFileFromStep + " not found in DB");
+            }
+
+            final String inventoryFileName = String.format("%s%s", orderDir,
+                    URIUtil.parseUUIDFromURI(URI.create(hostFileFromStep)).replace("-", ""));
+
+            final byte[] inventoryResourceBytes = Base64.decodeBase64(inventoryResource.getResource());
+            AnsibleHelper.writeResourceToFile(inventoryResourceBytes, inventoryFileName);
 
             final String user = ExecutionUtils.currentContext().getOrder().getSubmittedByUserId();
-            result = executeLocal(hosts, AnsibleHelper.makeExtraArg(input), String.format("%s%s", orderDir, playbook), user);
+            result = executeLocal(inventoryFileName, AnsibleHelper.makeExtraArg(input), String.format("%s%s", orderDir, playbook), user);
 
         } catch (final Exception e) {
             throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed("Custom Service Task Failed" + e);
@@ -145,31 +181,6 @@ public class CustomServicesLocalAnsibleExecution extends ViPRExecutionTask<Custo
         } catch (final IOException e) {
             throw InternalServerErrorException.internalServerErrors.genericApisvcError("Invalid ansible archive", e);
         }
-    }
-
-
-    // TODO: Hard coded everything for testing. The following will be removed after completing COP-27888
-    // During upload of primitive, user will specify if hosts file is already present or not?
-    // If already present, then get it from the param. currently the host file is not stored in DB
-    // If not present, dynamically create one with the given hostgroups and IpAddress(e.g: webservers, linuxhosts ...etc)
-    // If nothing is given by user default to localhost
-
-    private String getHostFile() throws IOException {
-        final boolean isHostFilePresent = false;
-        String hosts;
-        if (isHostFilePresent) {
-            hosts = "/opt/storageos/ansi/hosts";
-        } else {
-            List<String> lines = Arrays.asList("[webservers]", "10.247.66.88");
-            Path file = Paths.get("/opt/storageos/ansi/hosts");
-            Files.write(file, lines, Charset.forName("UTF-8"));
-            hosts = "/opt/storageos/ansi/hosts";
-        }
-
-        if (hosts == null || hosts.isEmpty())
-            hosts = "localhost,";
-
-        return hosts;
     }
 
 

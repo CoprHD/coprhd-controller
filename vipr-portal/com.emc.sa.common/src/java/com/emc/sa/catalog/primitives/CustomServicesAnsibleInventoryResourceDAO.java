@@ -85,6 +85,11 @@ public class CustomServicesAnsibleInventoryResourceDAO implements CustomServices
     }
 
     @Override
+    public String getResourceModel() {
+        return CustomServicesDBAnsibleInventoryResource.class.getSimpleName();
+    }
+
+    @Override
     public void deactivateResource(URI id) {
         CustomServicesDBHelper.deactivateResource(CustomServicesDBAnsibleInventoryResource.class, primitiveManager, client, id);
     }

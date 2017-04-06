@@ -35,7 +35,7 @@ public class CustomServicesAnsiblePrimitive extends
     public static final String TYPE = CustomServicesConstants.ANSIBLE_PRIMITIVE_TYPE;
 
     public CustomServicesAnsiblePrimitive(final CustomServicesDBAnsiblePrimitive primitive,
-            final Map<InputType, List<InputParameter>> input,
+            final Map<String, List<InputParameter>> input,
             final Map<String, String> attributes,
             final List<OutputParameter> output) {
         super(primitive, input, attributes, output);

@@ -14,15 +14,21 @@
  * limitations under the License.
  *
  */
-package com.emc.storageos.db.client.model.uimodels;
+package com.emc.sa.catalog.primitives;
 
-import com.emc.storageos.db.client.model.Cf;
+import com.emc.storageos.db.client.model.StringSetMap;
+import com.emc.storageos.db.client.model.uimodels.CustomServicesDBResource;
+import com.emc.storageos.svcs.errorhandling.resources.APIException;
 
-/**
- * Database column family for ansible primitives
- *
- */
-@Cf("CustomServicesDBAnsiblePrimitive")
-public class CustomServicesDBAnsiblePrimitive extends CustomServicesDBPrimitive {
+public class CustomServicesDBNoResource extends CustomServicesDBResource {
+
     private static final long serialVersionUID = 1L;
+
+    public void setResource(final byte[] resource) {
+        throw APIException.methodNotAllowed.notSupported();
+    }
+    
+    public void setAttributes(final StringSetMap attributes) {
+        throw APIException.methodNotAllowed.notSupported();
+    }
 }

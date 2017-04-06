@@ -29,7 +29,7 @@ import com.emc.apidocs.model.ApiClass;
 import com.emc.apidocs.model.ApiField;
 import com.emc.apidocs.model.ApiMethod;
 import com.emc.apidocs.model.ApiService;
-import com.emc.storageos.primitives.CustomServicesPrimitive.InputType;
+import com.emc.storageos.primitives.CustomServicesConstants;
 import com.emc.storageos.primitives.input.BasicInputParameter;
 import com.emc.storageos.primitives.input.InputParameter;
 import com.emc.storageos.primitives.java.vipr.CustomServicesViPRPrimitive;
@@ -77,7 +77,7 @@ public final class ApiPrimitiveMaker {
     private static final MethodSpec INPUT_METHOD = MethodSpec
             .methodBuilder("input").addAnnotation(Override.class)
             .addModifiers(Modifier.PUBLIC).addStatement("return INPUT")
-            .returns(ParameterizedTypeName.get(ClassName.get(Map.class), TypeName.get(InputType.class), 
+            .returns(ParameterizedTypeName.get(ClassName.get(Map.class), TypeName.get(String.class), 
                     ParameterizedTypeName.get(List.class, InputParameter.class))).build();
     
     private static final MethodSpec OUTPUT_METHOD = MethodSpec
@@ -345,10 +345,10 @@ public final class ApiPrimitiveMaker {
         
         return builder.add(
                 FieldSpec
-                        .builder(ParameterizedTypeName.get(ClassName.get(Map.class), ClassName.get(InputType.class), 
+                        .builder(ParameterizedTypeName.get(ClassName.get(Map.class), ClassName.get(String.class), 
                                 ParameterizedTypeName.get(List.class, InputParameter.class)), "INPUT")
                         .addModifiers(Modifier.PRIVATE, Modifier.FINAL,Modifier.STATIC)
-                        .initializer("$T.of($T.$L, $L)", ImmutableMap.class, InputType.class, InputType.INPUT_PARAMS.name(), "INPUT_LIST")
+                        .initializer("$T.of($T.INPUT_PARAMS, $L)", ImmutableMap.class, CustomServicesConstants.class, "INPUT_LIST")
                         .build()).build();
     }
 

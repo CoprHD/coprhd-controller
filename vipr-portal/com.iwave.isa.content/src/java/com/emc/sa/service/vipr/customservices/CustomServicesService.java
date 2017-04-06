@@ -26,7 +26,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-
 import org.apache.commons.lang.StringUtils;
 import org.codehaus.jackson.JsonNode;
 import org.codehaus.jackson.map.ObjectMapper;
@@ -285,7 +284,7 @@ public class CustomServicesService extends ViPRService {
             for (final Input value : inputGroup.getInputGroup()) {
                 final String name = value.getName();
 
-                switch (CustomServicesConstants.InputType.fromString(value.getType())) {
+                switch (InputType.fromString(value.getType())) {
                     case FROM_USER:
                     case ASSET_OPTION:
                         final String friendlyName = value.getFriendlyName();

@@ -29,15 +29,20 @@ import com.google.common.collect.ImmutableMap;
 public class CustomServicesResourceDAOs {
 
     private final ImmutableMap<String, CustomServicesResourceDAO<?>> typeMap;
+    private final ImmutableMap<String, CustomServicesResourceDAO<?>> modelMap;
 
 
     public CustomServicesResourceDAOs(final List<CustomServicesResourceDAO<?>> daos) {
         final ImmutableMap.Builder<String, CustomServicesResourceDAO<?>> typeMapBuilder = ImmutableMap.<String, CustomServicesResourceDAO<?>>builder();
+        final ImmutableMap.Builder<String, CustomServicesResourceDAO<?>> modelMapBuilder = ImmutableMap
+                .<String, CustomServicesResourceDAO<?>> builder();
         for( final CustomServicesResourceDAO<?> dao : daos ) {
             typeMapBuilder.put(dao.getType().toLowerCase(), dao);
+            modelMapBuilder.put(dao.getResourceModel(), dao);
         }
 
         typeMap = typeMapBuilder.build();
+        modelMap = modelMapBuilder.build();
     }
 
     public CustomServicesResourceDAO<?> get(final String type) {
@@ -48,5 +53,8 @@ public class CustomServicesResourceDAOs {
         return typeMap.keySet();
     }
 
+    public CustomServicesResourceDAO<?> getByModel(String typeName) {
+        return modelMap.get(typeName);
+    }
 
 }

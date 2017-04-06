@@ -28,7 +28,7 @@ import com.emc.storageos.primitives.db.CustomServicesDBResourceType;
  *
  */
 public class CustomServicesAnsibleInventoryResource extends CustomServicesDBResourceType<CustomServicesDBAnsibleInventoryResource> {
-
+    private final static String EMPTY_STRING = "";
     public CustomServicesAnsibleInventoryResource(final CustomServicesDBAnsibleInventoryResource resource,
                                                   final Map<String, Set<String>> attributes) {
         super(resource, attributes);
@@ -36,7 +36,7 @@ public class CustomServicesAnsibleInventoryResource extends CustomServicesDBReso
 
     @Override
     public String suffix() {
-        return null;
+        return EMPTY_STRING;
     }
 
 }

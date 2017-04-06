@@ -17,9 +17,12 @@
 
 package com.emc.sa.service.vipr.customservices.tasks;
 
+import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorException;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.LoggerFactory;
 
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
@@ -76,4 +79,13 @@ public final class AnsibleHelper {
         return out;
     }
 
+    public static void writeResourceToFile(final byte[] bytes, final String fileName) {
+        try (FileOutputStream fileOuputStream = new FileOutputStream(fileName)) {
+            fileOuputStream.write(bytes);
+        } catch (final IOException e) {
+            throw InternalServerErrorException.internalServerErrors
+                    .customServiceExecutionFailed("Creating file failed with exception:" +
+                            e.getMessage());
+        }
+    }
 }

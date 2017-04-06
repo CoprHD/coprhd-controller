@@ -16,9 +16,8 @@
  */
 package com.emc.storageos.db.client.model.uimodels;
 
-import java.util.Set;
-
 import com.emc.storageos.db.client.model.Name;
+import com.emc.storageos.db.client.model.NamedRelationIndex;
 import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
@@ -49,9 +48,6 @@ public abstract class CustomServicesDBPrimitive extends CustomServicesPrimitiveM
     private NamedURI resource;
 
     public CustomServicesDBPrimitive() {}
-    
-    public abstract Set<String> attributeKeys();
-    public abstract Set<String> inputTypes();
 
     @Name(FRIENDLY_NAME)
     public String getFriendlyName() {
@@ -113,7 +109,8 @@ public abstract class CustomServicesDBPrimitive extends CustomServicesPrimitiveM
         this.input = input;
         setChanged(INPUT);
     }
-    
+
+    @NamedRelationIndex(cf = "NamedRelation", type = CustomServicesDBResource.class)
     @Name(RESOURCE)
     public NamedURI getResource() {
         return resource;

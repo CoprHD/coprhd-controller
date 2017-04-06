@@ -20,6 +20,7 @@ package com.emc.sa.service.vipr.customservices.tasks;
 import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.service.vipr.tasks.ViPRExecutionTask;
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.uimodels.CustomServicesDBScriptPrimitive;
 import com.emc.storageos.db.client.model.uimodels.CustomServicesDBScriptResource;
 import com.emc.storageos.model.customservices.CustomServicesWorkflowDocument;
@@ -83,11 +84,9 @@ public class CustomServicesShellScriptExecution extends ViPRExecutionTask<Custom
                         .customServiceExecutionFailed(primitive.getResource() + " not found in DB");
             }
 
-            // Currently, the stepId is set to random hash values in the UI. If this changes then we have to change the following to
-            // generate filename with URI from step.getOperation()
-            final String scriptFileName = String.format("%s%s.sh", orderDir, step.getId());
+            final String scriptFileName = String.format("%s%s.sh", orderDir, URIUtil.parseUUIDFromURI(scriptid).replace("-", ""));
             final byte[] bytes = Base64.decodeBase64(script.getResource());
-            writeShellScripttoFile(bytes, scriptFileName);
+            AnsibleHelper.writeResourceToFile(bytes, scriptFileName);
             final String inputToScript = makeParam(input);
 
             result = executeCmd(scriptFileName, inputToScript);
@@ -106,17 +105,6 @@ public class CustomServicesShellScriptExecution extends ViPRExecutionTask<Custom
                 result.getExitValue());
 
         return new CustomServicesTaskResult(result.getStdOutput(), result.getStdError(), result.getExitValue(), null);
-    }
-
-
-    private void writeShellScripttoFile(final byte[] bytes, final String scriptFileName){
-        try (FileOutputStream fileOuputStream = new FileOutputStream(scriptFileName)) {
-            fileOuputStream.write(bytes);
-        } catch (final IOException e) {
-            throw InternalServerErrorException.internalServerErrors
-                    .customServiceExecutionFailed("Creating Shell Script file failed with exception:" +
-                            e.getMessage());
-        }
     }
 
     // Execute Shell Script resource

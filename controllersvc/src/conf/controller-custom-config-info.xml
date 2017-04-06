@@ -1061,7 +1061,7 @@
         </property>
         <property name="defaultValues">
             <map>
-                <entry key="isilon" value="true"/>
+                <entry key="isilon" value="false"/>
             </map>
         </property>
     </bean>

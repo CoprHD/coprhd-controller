@@ -94,9 +94,9 @@ public class PortMetricsProcessor {
      * Process a cpu metric sample.
      * In this method, the cpu percent busy is passed directly as a double.
      *
-     * @param percentBusy   -- double from 0 to 100.0 indicating percent busy
-     * @param iops          -- a cumulative count of the I/O operations (read and write). This counter is ever increasing (but rolls over).
-     * @param haDomain      -- the StorageHADomain corresponding to this cpu.
+     * @param percentBusy -- double from 0 to 100.0 indicating percent busy
+     * @param iops -- a cumulative count of the I/O operations (read and write). This counter is ever increasing (but rolls over).
+     * @param haDomain -- the StorageHADomain corresponding to this cpu.
      * @param statisticTime -- The statistic time that the collection was made on the array.
      */
     public void processFEAdaptMetrics(Double percentBusy, Long iops, StorageHADomain haDomain, String statisticTime) {
@@ -129,9 +129,9 @@ public class PortMetricsProcessor {
         // Scale percentBusy to 1/10 percent for computing the averages
         percentBusy *= 10.0;
         if (percentBusy >= 0.0) {
-        	computePercentBusyAverages(percentBusy.longValue(), 1000L, iopsDelta,
-        			dbMetrics, haDomain.getNativeGuid(),
-        			haDomain.getAdapterName() + " [cpu]", sampleTime, system);
+            computePercentBusyAverages(percentBusy.longValue(), 1000L, iopsDelta,
+                    dbMetrics, haDomain.getNativeGuid(),
+                    haDomain.getAdapterName() + " [cpu]", sampleTime, system);
         }
 
         // Save the new values and persist.
@@ -518,9 +518,11 @@ public class PortMetricsProcessor {
             URIQueryResultList vNASURIs = new URIQueryResultList();
             _dbClient.queryByConstraint(ContainmentConstraint.Factory.getStorageDeviceVirtualNasConstraint(storageSystemURI),
                     vNASURIs);
-            List<VirtualNAS> virtualNAS = _dbClient.queryObject(VirtualNAS.class, vNASURIs);
+            Iterator<VirtualNAS> virtualNASIterator = _dbClient.queryIterativeObjects(VirtualNAS.class, vNASURIs);
 
-            for (VirtualNAS vNAS : virtualNAS) {
+            while (virtualNASIterator.hasNext()) {
+
+                VirtualNAS vNAS = virtualNASIterator.next();
 
                 if (vNAS != null && !vNAS.getInactive()) {
                     storagePorts = vNAS.getStoragePorts();
@@ -909,14 +911,14 @@ public class PortMetricsProcessor {
 
     /**
      * Overloaded method for isPortUsable for No Network use case
-     *  
+     * 
      * @param storagePort
      * @param vArrays
      * @return TRUE or FALSE
      */
-	public boolean isPortUsable(StoragePort storagePort, Set<String> vArrays) {
-		return isPortUsable(storagePort, vArrays, true);
-	}
+    public boolean isPortUsable(StoragePort storagePort, Set<String> vArrays) {
+        return isPortUsable(storagePort, vArrays, true);
+    }
 
     private boolean isPortUsable(StoragePort storagePort, boolean doLogging) {
         boolean usable = false;
@@ -955,47 +957,46 @@ public class PortMetricsProcessor {
         return usable;
     }
 
-	private boolean isPortUsable(StoragePort storagePort, Set<String> vArrays, boolean doLogging) {
-		boolean usable = false;
+    private boolean isPortUsable(StoragePort storagePort, Set<String> vArrays, boolean doLogging) {
+        boolean usable = false;
 
-		if (storagePort != null
-				&& CompatibilityStatus.COMPATIBLE.name().equalsIgnoreCase(storagePort.getCompatibilityStatus())
-				&& !storagePort.getInactive()
-				&& DiscoveryStatus.VISIBLE.name().equals(storagePort.getDiscoveryStatus())) {
+        if (storagePort != null
+                && CompatibilityStatus.COMPATIBLE.name().equalsIgnoreCase(storagePort.getCompatibilityStatus())
+                && !storagePort.getInactive()
+                && DiscoveryStatus.VISIBLE.name().equals(storagePort.getDiscoveryStatus())) {
 
-			StoragePort.TransportType storagePortTransportType = TransportType.valueOf(storagePort.getTransportType());
-			if (storagePortTransportType == TransportType.FC || storagePortTransportType == TransportType.IP) {
-				if (storagePort.getPortType().equals(StoragePort.PortType.frontend.name())) {
-					// must be registered
-					if (storagePort.getRegistrationStatus().equals(RegistrationStatus.REGISTERED.name())) {
-						// Must be associated with a Network
-						if (URIUtil.isValid(storagePort.getNetwork())) {
-							// must not be OperationalStatus.NOT_OK
-							if (!storagePort.getOperationalStatus().equals(StoragePort.OperationalStatus.NOT_OK.name())) {
-								usable = true;
-							} else {
-								if (doLogging) {
-									_log.info("StoragePort OperationalStatus NOT_OK: " + storagePort.getNativeGuid());
-								}
-							}
-						} else {
-							if (doLogging) {
-								_log.info("StoragePort has no Network association: "
-										+ storagePort.getNativeGuid());
-							}
-						}
-					}
-					else {
-						if (doLogging) {
-							_log.info("StoragePort not REGISTERED: " + storagePort.getNativeGuid());
-						}
-					}
-				}
-			}
-		}
-		return usable;
-	}
-
+            StoragePort.TransportType storagePortTransportType = TransportType.valueOf(storagePort.getTransportType());
+            if (storagePortTransportType == TransportType.FC || storagePortTransportType == TransportType.IP) {
+                if (storagePort.getPortType().equals(StoragePort.PortType.frontend.name())) {
+                    // must be registered
+                    if (storagePort.getRegistrationStatus().equals(RegistrationStatus.REGISTERED.name())) {
+                        // Must be associated with a Network
+                        if (URIUtil.isValid(storagePort.getNetwork())) {
+                            // must not be OperationalStatus.NOT_OK
+                            if (!storagePort.getOperationalStatus().equals(StoragePort.OperationalStatus.NOT_OK.name())) {
+                                usable = true;
+                            } else {
+                                if (doLogging) {
+                                    _log.info("StoragePort OperationalStatus NOT_OK: " + storagePort.getNativeGuid());
+                                }
+                            }
+                        } else {
+                            if (doLogging) {
+                                _log.info("StoragePort has no Network association: "
+                                        + storagePort.getNativeGuid());
+                            }
+                        }
+                    }
+                    else {
+                        if (doLogging) {
+                            _log.info("StoragePort not REGISTERED: " + storagePort.getNativeGuid());
+                        }
+                    }
+                }
+            }
+        }
+        return usable;
+    }
 
     /**
      * Updates the static port usage parameters for a set of ports.
@@ -1187,23 +1188,23 @@ public class PortMetricsProcessor {
         Iterator<URI> maskIt = queryResult.iterator();
         while (maskIt.hasNext()) {
             UnManagedExportMask umask = _dbClient.queryObject(UnManagedExportMask.class, maskIt.next());
-            if (umask != null && umask.getInactive() == false 
-            		&& !checkForMatchingExportMask(umask.getMaskName(), 
-            				umask.getNativeId(), umask.getStorageSystemUri())) {
-            	
+            if (umask != null && umask.getInactive() == false
+                    && !checkForMatchingExportMask(umask.getMaskName(),
+                            umask.getNativeId(), umask.getStorageSystemUri())) {
+
                 StringSet unmanagedVolumeUris = umask.getUnmanagedVolumeUris();
                 Long unmanagedVolumes = (unmanagedVolumeUris != null ? unmanagedVolumeUris.size() : 0L);
                 if (countMetaMembers && unmanagedVolumeUris != null) {
-                	unmanagedVolumes = 0L;
-                	// For VMAX2, count the meta-members instead of the volumes.
-                	for (String unmanagedVolumeUri : unmanagedVolumeUris) {
-                		UnManagedVolume uVolume = _dbClient.queryObject(
-                				UnManagedVolume.class, URI.create(unmanagedVolumeUri));
-                		Long metaMemberCount = getUnManagedVolumeMetaMemberCount(uVolume);
-                		unmanagedVolumes += (metaMemberCount != null ? metaMemberCount : 1L);
-                	}
+                    unmanagedVolumes = 0L;
+                    // For VMAX2, count the meta-members instead of the volumes.
+                    for (String unmanagedVolumeUri : unmanagedVolumeUris) {
+                        UnManagedVolume uVolume = _dbClient.queryObject(
+                                UnManagedVolume.class, URI.create(unmanagedVolumeUri));
+                        Long metaMemberCount = getUnManagedVolumeMetaMemberCount(uVolume);
+                        unmanagedVolumes += (metaMemberCount != null ? metaMemberCount : 1L);
+                    }
                 }
-                
+
                 // Determine initiator count from zoning map in unmanaged export mask.
                 // If the zoningInfoMap is empty, assume one initiator.
                 Long unmanagedInitiators = 0L;
@@ -1230,17 +1231,18 @@ public class PortMetricsProcessor {
         MetricsKeys.putLong(MetricsKeys.unmanagedInitiatorCount, initiatorCount, dbMetrics);
         MetricsKeys.putLong(MetricsKeys.unmanagedVolumeCount, volumeCount, dbMetrics);
     }
-    
+
     /**
-     * Checks to see if there is an ExportMask of the given maskName belonging 
+     * Checks to see if there is an ExportMask of the given maskName belonging
      * to specified device with same nativeId.
+     * 
      * @param maskName -- String mask name. It's an alternate index to ExportMask.
      * @param nativeId -- String native id of mask.
      * @param device -- URI of device
      * @return true if there is a matching ExportMask, false otherwise
      */
     private boolean checkForMatchingExportMask(String maskName, String nativeId, URI device) {
-    	URIQueryResultList uriQueryList = new URIQueryResultList();
+        URIQueryResultList uriQueryList = new URIQueryResultList();
         _dbClient.queryByConstraint(AlternateIdConstraint.Factory
                 .getExportMaskByNameConstraint(maskName), uriQueryList);
         while (uriQueryList.iterator().hasNext()) {
@@ -1251,7 +1253,7 @@ public class PortMetricsProcessor {
                 return true;
             }
         }
-    	return false;
+        return false;
     }
 
     /**
@@ -1479,7 +1481,7 @@ public class PortMetricsProcessor {
         }
         return portMetricsAllocationEnabled;
     }
-    
+
     /**
      * ViPR allocate port based on collected usage metrics, used initiator and volume. The ports which are being heavily used and
      * exceeded configured ceiling, will be eliminated from candidate pools.

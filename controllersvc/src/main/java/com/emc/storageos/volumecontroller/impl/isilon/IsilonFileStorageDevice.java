@@ -663,9 +663,9 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                 String id = null;
                 if (accessZoneName != null) {
                     _log.debug("Export will be created in zone: {}", accessZoneName);
-                    id = isi.createExport(newIsilonExport, accessZoneName);
+                    id = isi.createExport(newIsilonExport, accessZoneName, args.isDisableDNSCheck());
                 } else {
-                    id = isi.createExport(newIsilonExport);
+                    id = isi.createExport(newIsilonExport, args.isDisableDNSCheck());
                 }
 
                 // set file export data and add it to the export map
@@ -683,9 +683,9 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
 
                 // modify current export in isilon.
                 if (accessZoneName != null) {
-                    isi.modifyExport(fExport.getIsilonId(), accessZoneName, newIsilonExport);
+                    isi.modifyExport(fExport.getIsilonId(), accessZoneName, newIsilonExport, args.isDisableDNSCheck());
                 } else {
-                    isi.modifyExport(fExport.getIsilonId(), newIsilonExport);
+                    isi.modifyExport(fExport.getIsilonId(), newIsilonExport, args.isDisableDNSCheck());
                 }
 
                 // update clients
@@ -1833,9 +1833,9 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                 IsilonExport newIsilonExport = setIsilonExport(exportRule);
                 String expId = null;
                 if (zoneName != null) {
-                    expId = isi.createExport(newIsilonExport, zoneName);
+                    expId = isi.createExport(newIsilonExport, zoneName, args.isDisableDNSCheck());
                 } else {
-                    expId = isi.createExport(newIsilonExport);
+                    expId = isi.createExport(newIsilonExport, args.isDisableDNSCheck());
                 }
                 exportRule.setDeviceExportId(expId);
             }
@@ -2019,9 +2019,9 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                             clonedExport.toString());
 
                     if (zoneName != null) {
-                        isi.modifyExport(isilonExportId, zoneName, clonedExport);
+                        isi.modifyExport(isilonExportId, zoneName, clonedExport, args.isDisableDNSCheck());
                     } else {
-                        isi.modifyExport(isilonExportId, clonedExport);
+                        isi.modifyExport(isilonExportId, clonedExport, args.isDisableDNSCheck());
                     }
 
                 }

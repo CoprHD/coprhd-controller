@@ -56,6 +56,7 @@ public class FileDeviceInputOutput {
     private String _opType;
     private boolean isFile;
     private boolean _forceDelete;
+    private boolean disableDNSCheck;
     private long newFSSize;
     private VirtualPool vPool;
     private String opId;
@@ -1120,6 +1121,14 @@ public class FileDeviceInputOutput {
 
     public void setVarray(VirtualArray varray) {
         this.varray = varray;
+    }
+
+    public boolean isDisableDNSCheck() {
+        return disableDNSCheck;
+    }
+
+    public void setDisableDNSCheck(boolean disableDNSCheck) {
+        this.disableDNSCheck = disableDNSCheck;
     }
 
 }

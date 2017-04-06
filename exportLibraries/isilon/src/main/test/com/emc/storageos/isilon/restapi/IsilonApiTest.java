@@ -5,15 +5,17 @@
 
 package com.emc.storageos.isilon.restapi;
 
-import com.emc.storageos.services.util.EnvConfig;
+import java.net.URI;
+import java.util.ArrayList;
+import java.util.List;
+
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.net.URI;
-import java.util.*;
+import com.emc.storageos.services.util.EnvConfig;
 
 /*
  * Test client for IsilonRESTClient
@@ -346,6 +348,8 @@ public class IsilonApiTest {
     @Test
     public void testNFSExports() throws Exception {
 
+        boolean force = false;
+
         _client.createDir(_test_path);
         if (!_client.existsDir(_test_path)) {
             throw new Exception("Create directory --- " + _test_path + ": failed");
@@ -375,7 +379,7 @@ public class IsilonApiTest {
         e1.setReadOnly();
         e1.setComment("New export: unix.rw.nobody");
 
-        String export1Id = _client.createExport(e1);
+        String export1Id = _client.createExport(e1, force);
         Assert.assertTrue(Integer.parseInt(export1Id) > 0);
         IsilonExport exp1 = _client.getExport(export1Id);
         Assert.assertTrue(exp1.getId().toString().equals(export1Id));
@@ -394,7 +398,7 @@ public class IsilonApiTest {
         snapEx1.setComment("New snapshot export: unix.rw.nobody");
         System.out.println("Request to create snap export: " + snapEx1);
 
-        String snapExport1Id = _client.createExport(snapEx1);
+        String snapExport1Id = _client.createExport(snapEx1, force);
         Assert.assertTrue(Integer.parseInt(snapExport1Id) > 0);
         IsilonExport sExp1 = _client.getExport(snapExport1Id);
         Assert.assertTrue(sExp1.getId().toString().equals(snapExport1Id));
@@ -415,7 +419,7 @@ public class IsilonApiTest {
         // modify file system export
         IsilonExport exp_modified = new IsilonExport();
         exp_modified.setComment("modified");
-        _client.modifyExport(export1Id, exp_modified);
+        _client.modifyExport(export1Id, exp_modified, force);
         Assert.assertTrue(_client.getExport(export1Id).getComment().equals("modified"));
 
         // Create export with custom settings: krb5.root.root
@@ -429,7 +433,7 @@ public class IsilonApiTest {
         e2.setMapAll("root"); // to indicate that this export has root permissions (required by PAPI)
         e2.setComment("New export: krb5.root.root");
 
-        String export2Id = _client.createExport(e2);
+        String export2Id = _client.createExport(e2, force);
         Assert.assertTrue(Integer.parseInt(export2Id) > 0);
         IsilonExport exp2 = _client.getExport(export2Id);
         Assert.assertTrue(exp2.getId().toString().equals(export2Id));
@@ -441,7 +445,7 @@ public class IsilonApiTest {
         // modify export
         exp_modified = new IsilonExport();
         exp_modified.setComment("modified export");
-        _client.modifyExport(export2Id, exp_modified);
+        _client.modifyExport(export2Id, exp_modified, force);
         Assert.assertTrue(_client.getExport(export2Id).getComment().equals("modified export"));
 
         // list exports

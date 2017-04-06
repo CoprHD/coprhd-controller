@@ -940,9 +940,13 @@ public class IsilonApi {
      * @return String identifier for the export created
      * @throws IsilonException
      */
-    public String createExport(IsilonExport exp) throws IsilonException {
+    public String createExport(IsilonExport exp, boolean force) throws IsilonException {
 
-        return create(_baseUrl.resolve(URI_NFS_EXPORTS), "Export", exp);
+        if (force) {
+            return create(_baseUrl.resolve(URI_NFS_EXPORTS + "&force=true"), "Export", exp);
+        } else {
+            return create(_baseUrl.resolve(URI_NFS_EXPORTS), "Export", exp);
+        }
     }
 
     /**
@@ -953,9 +957,13 @@ public class IsilonApi {
      * @return String identifier for the export created
      * @throws IsilonException
      */
-    public String createExport(IsilonExport exp, String zoneName) throws IsilonException {
+    public String createExport(IsilonExport exp, String zoneName, boolean force) throws IsilonException {
         String baseUrl = getURIWithZoneName(_baseUrl.resolve(URI_NFS_EXPORTS).toString(), zoneName);
         URI uri = URI.create(baseUrl);
+        if (force) {
+            uri = URI.create(baseUrl + "&force=true");
+        }
+
         return create(uri, "Export", exp);
     }
 
@@ -968,8 +976,12 @@ public class IsilonApi {
      *            IsilonExport object with the modified properties
      * @throws IsilonException
      */
-    public void modifyExport(String id, IsilonExport exp) throws IsilonException {
-        modify(_baseUrl.resolve(URI_NFS_EXPORTS), id, "export", exp);
+    public void modifyExport(String id, IsilonExport exp, boolean force) throws IsilonException {
+        if (force) {
+            modify(_baseUrl.resolve(URI_NFS_EXPORTS + "&force=true"), id, "export", exp);
+        } else {
+            modify(_baseUrl.resolve(URI_NFS_EXPORTS), id, "export", exp);
+        }
     }
 
     /**
@@ -981,9 +993,13 @@ public class IsilonApi {
      *            IsilonExport object with the modified properties
      * @throws IsilonException
      */
-    public void modifyExport(String id, String zoneName, IsilonExport exp) throws IsilonException {
+    public void modifyExport(String id, String zoneName, IsilonExport exp, boolean force) throws IsilonException {
         String uriWithZoneName = getURIWithZoneName(id, zoneName);
-        modify(_baseUrl.resolve(URI_NFS_EXPORTS), uriWithZoneName, "export", exp);
+        if(force){
+            modify(_baseUrl.resolve(URI_NFS_EXPORTS + "&force=true"), uriWithZoneName, "export", exp);
+        }else {
+            modify(_baseUrl.resolve(URI_NFS_EXPORTS), uriWithZoneName, "export", exp);
+        }
     }
 
     /**

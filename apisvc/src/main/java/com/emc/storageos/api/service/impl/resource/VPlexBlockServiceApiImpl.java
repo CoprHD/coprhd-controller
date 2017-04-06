@@ -1388,14 +1388,23 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                         vpoolChangeParam.getMigrationSuspendBeforeDeleteSource());
 
                 List<Volume> volumesNotInRG = new ArrayList<Volume>();
-                taskList = migrateVolumesInReplicationGroup(volumes, vpool, volumesNotInRG, null, operationsWrapper, taskId);
+                taskList = migrateVolumesInReplicationGroup(volumes, vpool, volumesNotInRG, null, operationsWrapper);
 
                 // Migrate volumes not in Replication Group as single volumes
                 if (!volumesNotInRG.isEmpty()) {
+                    // Get the migration descriptors
+                    List<VolumeDescriptor> descriptors = new ArrayList<VolumeDescriptor>();
                     for (Volume volume : volumesNotInRG) {
-                        taskList.getTaskList().addAll(changeVolumeVirtualPool(volume.getStorageController(),
-                                volume, vpool, vpoolChangeParam, taskId).getTaskList());
+                        StorageSystem vplexStorageSystem = _dbClient.queryObject(StorageSystem.class, volume.getStorageController());
+                        descriptors.addAll(createChangeVirtualPoolDescriptors(vplexStorageSystem, volume, vpool, taskId, null, null,
+                                operationsWrapper));
                     }
+                   
+                    // Create the tasks
+                    taskList.getTaskList().addAll(createTasksForVolumes(vpool, volumesNotInRG, taskId).getTaskList());
+                    
+                    // Now we get the Orchestration controller and use it to migrate all the volumes not in a RG.
+                    orchestrateVPoolChanges(volumesNotInRG, descriptors, taskId);
                 }
 
                 return taskList;
@@ -1421,12 +1430,11 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
      * @param volumesInRG A container to store all the volumes in an RG
      * @param controllerOperationsWrapper values from controller called used to determine if
      *            we need to suspend on commit or deletion of source volumes
-     * @param taskId The Task Id
      * @return taskList Tasks generated for RG migrations
      */
     protected TaskList migrateVolumesInReplicationGroup(List<Volume> volumes, VirtualPool vpool,
             List<Volume> volumesNotInRG, List<Volume> volumesInRG,
-            ControllerOperationValuesWrapper controllerOperationValues, String taskId) {
+            ControllerOperationValuesWrapper controllerOperationValues) {
         TaskList taskList = new TaskList();
         // Group all volumes in the request by RG. If there are no volumes in the request
         // that are in an RG then the table will be empty.
@@ -1477,6 +1485,9 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                 verifyTargetSystemsForCGDataMigration(volumesInRGRequest, vpool, cg.getVirtualArray());
             }
 
+            // Create a unique task id.
+            String taskId = UUID.randomUUID().toString();
+            
             // Get all volume descriptors for all volumes to be migrated.
             StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, systemURI);
             List<VolumeDescriptor> descriptors = new ArrayList<VolumeDescriptor>();
@@ -1484,7 +1495,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                 descriptors.addAll(createChangeVirtualPoolDescriptors(storageSystem,
                         volume, vpool, taskId, null, null, controllerOperationValues));
             }
-
+            
             // Create a task object associated with the CG
             taskList.getTaskList().add(createTaskForRG(vpool, rgVolumes, taskId));
 

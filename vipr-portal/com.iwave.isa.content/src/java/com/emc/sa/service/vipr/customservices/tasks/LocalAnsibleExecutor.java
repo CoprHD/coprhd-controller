@@ -17,18 +17,19 @@
 
 package com.emc.sa.service.vipr.customservices.tasks;
 
+import java.util.List;
+import java.util.Map;
+
+import org.springframework.beans.factory.annotation.Autowired;
+
 import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.service.vipr.tasks.ViPRExecutionTask;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.model.customservices.CustomServicesWorkflowDocument;
 import com.emc.storageos.primitives.CustomServicesConstants;
-import org.springframework.beans.factory.annotation.Autowired;
-
-import java.util.List;
-import java.util.Map;
 
 public class LocalAnsibleExecutor implements MakeCustomServicesExecutor {
-    private final static String TYPE = "Local Ansible";
+    private final static String TYPE = CustomServicesConstants.ANSIBLE_PRIMITIVE_TYPE;
     @Autowired
     private DbClient dbClient;
 
@@ -39,7 +40,6 @@ public class LocalAnsibleExecutor implements MakeCustomServicesExecutor {
 
         return new CustomServicesLocalAnsibleExecution(input, step, dbClient);
     }
-
 
     @Override public String getType() {
         return TYPE;

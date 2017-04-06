@@ -23,11 +23,6 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.URI;
-import java.nio.charset.Charset;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
@@ -48,7 +43,6 @@ import com.emc.storageos.db.client.model.uimodels.CustomServicesDBAnsiblePrimiti
 import com.emc.storageos.db.client.model.uimodels.CustomServicesDBAnsibleResource;
 import com.emc.storageos.model.customservices.CustomServicesWorkflowDocument.Step;
 import com.emc.storageos.primitives.CustomServicesConstants;
-import com.emc.storageos.primitives.CustomServicesPrimitive.StepType;
 import com.emc.storageos.services.util.Exec;
 import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorException;
 
@@ -171,10 +165,9 @@ public class CustomServicesLocalAnsibleExecution extends ViPRExecutionTask<Custo
                     if (!parent.exists()) {
                         parent.mkdirs();
                     }
-                    final OutputStream out = new FileOutputStream(curTarget);
-                    IOUtils.copy(tarIn, out);
-                    out.close();
-
+                    try (final OutputStream out = new FileOutputStream(curTarget)) {
+                        IOUtils.copy(tarIn, out);
+                    }
                 }
                 entry = tarIn.getNextTarEntry();
             }
@@ -182,7 +175,6 @@ public class CustomServicesLocalAnsibleExecution extends ViPRExecutionTask<Custo
             throw InternalServerErrorException.internalServerErrors.genericApisvcError("Invalid ansible archive", e);
         }
     }
-
 
     // Execute Ansible playbook on given nodes. Playbook in local node
     private Exec.Result executeLocal(final String ips, final String extraVars, final String playbook, final String user) {

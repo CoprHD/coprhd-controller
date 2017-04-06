@@ -17,17 +17,19 @@
 
 package com.emc.sa.service.vipr.customservices.tasks;
 
-import com.emc.sa.service.vipr.tasks.ViPRExecutionTask;
-import com.emc.storageos.coordinator.client.service.CoordinatorClient;
-import com.emc.storageos.model.customservices.CustomServicesWorkflowDocument;
-import org.springframework.beans.factory.annotation.Autowired;
-
 import java.util.List;
 import java.util.Map;
 
+import org.springframework.beans.factory.annotation.Autowired;
+
+import com.emc.sa.service.vipr.tasks.ViPRExecutionTask;
+import com.emc.storageos.coordinator.client.service.CoordinatorClient;
+import com.emc.storageos.model.customservices.CustomServicesWorkflowDocument;
+import com.emc.storageos.primitives.CustomServicesConstants;
+
 public class RestExecutor implements MakeCustomServicesExecutor {
 
-    private final static String TYPE = "REST API";
+    private final static String TYPE = CustomServicesConstants.REST_API_PRIMITIVE_TYPE;
     @Autowired
     private CoordinatorClient coordinator;
 

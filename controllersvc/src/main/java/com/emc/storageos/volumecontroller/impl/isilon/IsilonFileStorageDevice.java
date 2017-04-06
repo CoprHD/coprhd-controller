@@ -1082,6 +1082,8 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
 
         try {
             _log.info("IsilonFileStorageDevice doExport {} - start", args.getFileObjId());
+            // set theDNS check override force flag to FileDeviceInputOutput argument
+            setDNSCheckOverrideFromCustomConfig(args);
             IsilonApi isi = getIsilonDevice(storage);
             isiExport(isi, args, exportList);
             _log.info("IsilonFileStorageDevice doExport {} - complete", args.getFileObjId());
@@ -1567,6 +1569,8 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         List<ExportRule> exportAdd = args.getExportRulesToAdd();
         List<ExportRule> exportDelete = args.getExportRulesToDelete();
         List<ExportRule> exportModify = args.getExportRulesToModify();
+        // set theDNS check override force flag to FileDeviceInputOutput argument
+        setDNSCheckOverrideFromCustomConfig(args);
 
         // To be processed export rules
         List<ExportRule> exportsToRemove = new ArrayList<>();
@@ -3179,6 +3183,20 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             path = args.getPathWithoutSpecialCharacters(configPath);
         }
         return path;
+    }
+
+    /**
+     * Update the FileDeviceInputOutput agument from custom config for DNS override
+     * 
+     * @param args
+     */
+    private void setDNSCheckOverrideFromCustomConfig(FileDeviceInputOutput args) {
+
+        boolean force = Boolean.valueOf(
+                customConfigHandler.getComputedCustomConfigValue(
+                        CustomConfigConstants.ISILON_DNS_CHECK_OVERRIDE,
+                        "isilon", null));
+        args.setDisableDNSCheck(force);
     }
 
     /**

@@ -62,6 +62,7 @@
                 <ref bean="hostResourceMaximumNumberOfArrays"/>
                 <ref bean="isilonPathCustomization"/>
                 <ref bean="isilonSystemAccessZoneNameSpace"/>
+                <ref bean="isilonDNSCheckOverride"/>
                 <ref bean="isilonUnmanagedFileSystemLocations"/>
                 <ref bean="volumeNamingEnabled"/>
                 <ref bean="volumeNamingProvisionNoExport"/>
@@ -1046,6 +1047,22 @@
             <list>
                 <ref bean="isilonDirLocationsIllegalCharsConstraint"/>
             </list>
+        </property>
+    </bean>
+    
+    <bean id="isilonDNSCheckOverride" class="com.emc.storageos.customconfigcontroller.CustomConfigType">
+    	<property name="name" value="IsilonDNSCheckOverride"/>
+        <property name="configType" value="SimpleValue"/>
+        <property name="type" value="Boolean"/>
+        <property name="scope">
+            <map>
+         <entry key="systemType" value="isilon"/>
+            </map>
+        </property>
+        <property name="defaultValues">
+            <map>
+                <entry key="isilon" value="true"/>
+            </map>
         </property>
     </bean>
     

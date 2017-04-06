@@ -94,5 +94,6 @@ public interface CustomConfigConstants {
     public String ISILON_PATH_CUSTOMIZATION = "IsilonPathCustomization";
     public String ISILON_SYSTEM_ACCESS_ZONE_NAMESPACE = "IsilonSystemAccessZoneNameSpace";
     public String ISILON_UNMANAGED_FILE_SYSTEM_LOCATIONS = "IsilonUnmanagedFileSystemLocations";
+    public String ISILON_DNS_CHECK_OVERRIDE = "isilonDNSCheckOverride";
 
 }

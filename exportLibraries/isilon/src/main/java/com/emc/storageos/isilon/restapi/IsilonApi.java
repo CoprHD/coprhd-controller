@@ -1000,10 +1000,9 @@ public class IsilonApi {
     public void modifyExport(String id, String zoneName, IsilonExport exp, boolean force) throws IsilonException {
         String uriWithZoneName = getURIWithZoneName(id, zoneName);
         if(force){
-            modify(_baseUrl.resolve(URI_NFS_EXPORTS + "&force=true"), uriWithZoneName, "export", exp);
-        }else {
-            modify(_baseUrl.resolve(URI_NFS_EXPORTS), uriWithZoneName, "export", exp);
+            uriWithZoneName = uriWithZoneName + "&force=true";
         }
+        modify(_baseUrl.resolve(URI_NFS_EXPORTS), uriWithZoneName, "export", exp);
     }
 
     /**

@@ -150,11 +150,11 @@ public class DbConsistencyCheckerHelper {
     public void checkCFIndices(DataObjectType doType, boolean toConsole, CheckResult checkResult) throws ConnectionException {
         initSchemaVersions();
         Class objClass = doType.getDataObjectClass();
-        _log.info("Check Data Object CF {} with double confirmed option: {}", objClass, doubleConfirmed);
         if (skipCheckCFs.contains(objClass)) {
-            _log.info(
-                    "Skipping checking CF {}.", objClass);
+            _log.info("Skip checking CF {}.", objClass);
             return;
+        } else {
+            _log.info("Check Data Object CF {} with double confirmed option: {}", objClass, doubleConfirmed);
         }
 
         Map<String, ColumnField> indexedFields = new HashMap<String, ColumnField>();

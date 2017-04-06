@@ -937,6 +937,7 @@ public class IsilonApi {
      * 
      * @param exp
      *            IsilonExport object with paths and clients set
+     * @param force boolean flag to ignore client FQDN check against DNS
      * @return String identifier for the export created
      * @throws IsilonException
      */
@@ -954,6 +955,7 @@ public class IsilonApi {
      * 
      * @param exp
      *            IsilonExport object with paths and clients set
+     * @param force boolean flag to ignore client FQDN check against DNS
      * @return String identifier for the export created
      * @throws IsilonException
      */
@@ -974,6 +976,7 @@ public class IsilonApi {
      *            identifier of the export to modify
      * @param exp
      *            IsilonExport object with the modified properties
+     * @param force boolean flag to ignore client FQDN check against DNS
      * @throws IsilonException
      */
     public void modifyExport(String id, IsilonExport exp, boolean force) throws IsilonException {
@@ -991,6 +994,7 @@ public class IsilonApi {
      *            identifier of the export to modify
      * @param exp
      *            IsilonExport object with the modified properties
+     * @param force boolean flag to ignore client FQDN check against DNS
      * @throws IsilonException
      */
     public void modifyExport(String id, String zoneName, IsilonExport exp, boolean force) throws IsilonException {

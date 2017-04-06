@@ -315,19 +315,25 @@ public class VmaxExportOperations implements ExportMaskOperations {
             String csgName = customConfigHandler.getComputedCustomConfigValue(cascadedSGCustomTemplateName, storage.getSystemType(),
                     cascadedSGDataSource);
 
-         // 3. PortGroup (PG)
+            // 3. PortGroup (PG)
             // check if port group name is specified
             URI portGroupURI = mask.getPortGroup();
             String portGroupName = null;
-            if (!NullColumnValueGetter.isNullURI(portGroupURI) && 
-                    isUsePortGroupEnabled(storage.getSystemType())) {
+            if (isUsePortGroupEnabled(storage.getSystemType())) {
+                if (NullColumnValueGetter.isNullURI(portGroupURI)) {
+                    // It should not happen, but if it does, throw error.
+                    String msg = "The config setting of use existing port group is on, but no port group is specified";
+                    _log.error(msg);
+                    ServiceError serviceError = DeviceControllerException.errors.jobFailedOpMsg("createExportMask", msg);
+                    taskCompleter.error(_dbClient, serviceError);
+                    return;
+                }
                 StoragePortGroup pg = _dbClient.queryObject(StoragePortGroup.class, portGroupURI);
                 portGroupName = pg.getLabel();
                 _dbClient.updateObject(mask);
                 _log.info("port group name: " + portGroupName);
                 
-            }
-            if (portGroupName == null) {
+            } else {
                 DataSource portGroupDataSource = ExportMaskUtils.getExportDatasource(storage, initiatorList, dataSourceFactory,
                         portGroupCustomTemplateName);
                 portGroupName = customConfigHandler.getComputedCustomConfigValue(portGroupCustomTemplateName, storage.getSystemType(),

@@ -509,6 +509,7 @@ public class SystemsMapper {
         to.setId(from.getId());
         to.setStorageDevice(toRelatedResource(ResourceTypeEnum.STORAGE_SYSTEM, from.getStorageDevice()));
         to.setRegistrationStatus(from.getRegistrationStatus());
+        to.setNativeGuid(from.getNativeGuid());
         StringMap metrics= from.getMetrics();
         if (metrics != null && !metrics.isEmpty()) {
             Double portMetric = MetricsKeys.getDoubleOrNull(MetricsKeys.portMetric, metrics);

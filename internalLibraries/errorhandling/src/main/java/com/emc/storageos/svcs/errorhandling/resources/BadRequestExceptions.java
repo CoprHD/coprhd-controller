@@ -3303,4 +3303,10 @@ public interface BadRequestExceptions {
     
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException cannotOverridePortGroupBecauseExistingExports(String newPortgroup);
+    
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException portGroupNotSpecified();
+    
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException cannotExportVolumesFromDifferentSystems(String portGroup);
 }

@@ -567,6 +567,35 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
                 delete sourceData.next.failedStep;
             }
             sourceData.next=sourceNext;
+            // Remove source data after unbind array for input and output from previous steps
+            var inparams = sourceData.inputGroups.input_params.inputGroup;
+            for(var inputparam in inparams) {
+            	if(inparams.hasOwnProperty(inputparam)) {
+            		var inparam_name = inparams[inputparam].name;
+            		var stepidconcate = sourceData.id + "." + inparam_name;
+            		
+            		for (var i =0; i < $scope.stepInputOptions.length; i++) {
+   						if ($scope.stepInputOptions[i].id === stepidconcate) {
+      						$scope.stepInputOptions.splice(i,1);
+      						break;
+  						 }
+  					}
+            	}
+            }
+            var outparams = sourceData.output;
+            for(var outputparam in outparams) {
+            	if(outparams.hasOwnProperty(outputparam)) {
+            		var outparam_name = outparams[outputparam].name;
+            		var stepidconcate = sourceData.id + "." + outparam_name;
+            		
+            		for (var i =0; i < $scope.stepOutputOptions.length; i++) {
+   						if ($scope.stepOutputOptions[i].id === stepidconcate) {
+      						$scope.stepOutputOptions.splice(i,1);
+      						break;
+  						 }
+  					}
+            	}
+            }            
             $scope.modified = true;
             $scope.$apply();
         });

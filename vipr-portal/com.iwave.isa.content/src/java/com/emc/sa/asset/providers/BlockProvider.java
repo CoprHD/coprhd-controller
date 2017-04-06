@@ -86,6 +86,7 @@ import com.emc.storageos.model.customconfig.SimpleValueRep;
 import com.emc.storageos.model.host.HostRestRep;
 import com.emc.storageos.model.host.InitiatorRestRep;
 import com.emc.storageos.model.host.cluster.ClusterRestRep;
+import com.emc.storageos.model.portgroup.StoragePortGroupRestRep;
 import com.emc.storageos.model.ports.StoragePortRestRep;
 import com.emc.storageos.model.project.ProjectRestRep;
 import com.emc.storageos.model.protection.ProtectionSetRestRep;
@@ -394,10 +395,18 @@ public class BlockProvider extends BaseAssetOptionsProvider {
 
             if (storageControllers.size() == 1) {
                 Iterator<URI> it = storageControllers.iterator();
-                List<NamedRelatedResourceRep> portGroups = client.storageSystems().getStoragePortGroups(it.next());
+                URI id = it.next();
+                StorageSystemRestRep storageSystem = client.storageSystems().get(id);
+                String systemType = storageSystem.getSystemType();
+                if (Type.vmax.name().equalsIgnoreCase(systemType)) {
+                    List<NamedRelatedResourceRep> portGroups = client.storageSystems().getStoragePortGroups(id);
+                    for (NamedRelatedResourceRep group : portGroups) {
+                        StoragePortGroupRestRep spg = client.storageSystems().getStoragePortGroup(id, group.getId());
 
-                for (NamedRelatedResourceRep group : portGroups) {
-                    options.add(new AssetOption(group.getId(), group.getName()));
+                        String portMetric = (spg.getPortMetric() != null) ? String.valueOf(Math.round(spg.getPortMetric() * 100 / 100)) + "%" : "N/A";
+                        String label = getMessage("exportPortGroup.portGroups", spg.getName(), portMetric);
+                        options.add(new AssetOption(spg.getId(), label));
+                    }
                 }
             }
         }

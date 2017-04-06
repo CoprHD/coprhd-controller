@@ -1278,7 +1278,11 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
         namespace = customConfigHandler.getComputedCustomConfigValue(CustomConfigConstants.ISILON_SYSTEM_ACCESS_ZONE_NAMESPACE, "isilon",
                 ds);
         namespace = namespace.replaceAll("=", "");
-        systemAccessZone = IFS_ROOT + "/" + namespace + "/";
+        if (namespace.isEmpty()) {
+            systemAccessZone = IFS_ROOT + "/";
+        } else {
+            systemAccessZone = IFS_ROOT + "/" + namespace + "/";
+        }
         // get the user access zone
         userAccessZone = getUserAccessZonePath(nasServer);
         // create a dataSouce and place the value for system and user access zone
@@ -1305,7 +1309,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
          * fix COP-27008: if system-access-zone's dir has been removed
          * and is just /ifs/
          */
-        pathList.remove("/ifs/");
+        // pathList.remove("/ifs/");
 
         setDiscPathsForUnManaged(pathList);
 
@@ -1939,25 +1943,37 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
 
                 int accessZoneDiscPathLength = computeCustomConfigPathLengths(umfsDiscoverPath);
 
-                IsilonApi.IsilonList<IsilonSmartQuota> quotas = isilonApi.listQuotas(null, umfsDiscoverPath);
+                String resumetoken = "";
+                while (resumetoken != null) {
+                    IsilonApi.IsilonList<IsilonSmartQuota> quotas = isilonApi.listQuotas(resumetoken, umfsDiscoverPath);
 
-                for (IsilonSmartQuota quota : quotas.getList()) {
-
-                    tempQuotaMap.put(quota.getPath(), quota);
-                    String fsNativeId = quota.getPath();
-                    if (isUnderUnmanagedDiscoveryPath(fsNativeId)) {
-                        int fsPathType = isQuotaOrFile(fsNativeId, accessZoneDiscPathLength);
-
-                        if (fsPathType == PATH_IS_FILE) {
-                            fsQuotaMap.put(fsNativeId, quota);
+                    for (IsilonSmartQuota quota : quotas.getList()) {
+                        /**
+                         * This scenario comes when we have "/ifs/" as the discovery path and quotas are discovered with
+                         * /ifs/<access-zone-path> .In this scenario we are going to process such kind of fs/quotas in their
+                         * respective access zone discovery.
+                         */
+                        if ("/ifs/".equals(umfsDiscoverPath) &&
+                                isQuotaUnderAccessZonePath(quota.getPath(), tempAccessZonePath)) {
+                            continue;
                         }
-                        if (fsPathType == PATH_IS_QUOTA) {
-                            quotaDirMap.put(fsNativeId, quota);
+
+                        tempQuotaMap.put(quota.getPath(), quota);
+                        String fsNativeId = quota.getPath();
+                        if (isUnderUnmanagedDiscoveryPath(fsNativeId)) {
+                            int fsPathType = isQuotaOrFile(fsNativeId, accessZoneDiscPathLength);
+
+                            if (fsPathType == PATH_IS_FILE) {
+                                fsQuotaMap.put(fsNativeId, quota);
+                            }
+                            if (fsPathType == PATH_IS_QUOTA) {
+                                quotaDirMap.put(fsNativeId, quota);
+                            }
                         }
                     }
+                    resumetoken = quotas.getToken();
                 }
             }
-
             Set<String> filePaths = fsQuotaMap.keySet();
             Set<String> quotaPaths = quotaDirMap.keySet();
             /*
@@ -3653,5 +3669,14 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
 
         }
         return null;
+    }
+
+    private boolean isQuotaUnderAccessZonePath(String fsNativeId, List<String> tempAccessZonePath) {
+        for (String accessZonePath : tempAccessZonePath) {
+            if (fsNativeId.startsWith(accessZonePath)) {
+                return true;
+            }
+        }
+        return false;
     }
 }

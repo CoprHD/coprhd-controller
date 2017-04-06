@@ -28,6 +28,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.regex.Pattern;
 
+import org.eclipse.jetty.util.log.Log;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -1333,7 +1334,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                         vpoolChangeParam.getMigrationSuspendBeforeDeleteSource());
                 List<VolumeDescriptor> descriptors = createChangeVirtualPoolDescriptors(storageSystem, volume, vpool,
                         taskId, null, null,
-                        operationsWrapper);
+                        operationsWrapper, true);
 
                 // Now we get the Orchestration controller and use it to change the virtual pool of the volumes.
                 orchestrateVPoolChanges(Arrays.asList(volume), descriptors, taskId);
@@ -1397,7 +1398,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                     for (Volume volume : volumesNotInRG) {
                         StorageSystem vplexStorageSystem = _dbClient.queryObject(StorageSystem.class, volume.getStorageController());
                         descriptors.addAll(createChangeVirtualPoolDescriptors(vplexStorageSystem, volume, vpool, taskId, null, null,
-                                operationsWrapper));
+                                operationsWrapper, true));
                     }
                    
                     // Create the tasks
@@ -1493,7 +1494,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
             List<VolumeDescriptor> descriptors = new ArrayList<VolumeDescriptor>();
             for (Volume volume : volumesInRGRequest) {
                 descriptors.addAll(createChangeVirtualPoolDescriptors(storageSystem,
-                        volume, vpool, taskId, null, null, controllerOperationValues));
+                        volume, vpool, taskId, null, null, controllerOperationValues, true));
             }
             
             // Create a task object associated with the CG
@@ -1604,18 +1605,22 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
      * @param newVpool The desired VirtualPool.
      * @param taskId The task identifier.
      * @param operationsWrapper a wrapper of various controller options
+     * @param allowHighAvailabilityMigrations Flag to allow HA migration descriptors to be created
      * @throws InternalException
      */
     protected List<VolumeDescriptor> createChangeVirtualPoolDescriptors(StorageSystem vplexSystem, Volume volume,
             VirtualPool newVpool, String taskId, List<Recommendation> recommendations,
             VirtualPoolCapabilityValuesWrapper capabilities,
-            ControllerOperationValuesWrapper operationsWrapper) throws InternalException {
+            ControllerOperationValuesWrapper operationsWrapper, boolean allowHighAvailabilityMigrations) throws InternalException {
         // Get the varray and current vpool for the virtual volume.
         URI volumeVarrayURI = volume.getVirtualArray();
         VirtualArray volumeVarray = _dbClient.queryObject(VirtualArray.class, volumeVarrayURI);
-        s_logger.info("Virtual volume varray is {}", volumeVarrayURI);
         URI volumeVpoolURI = volume.getVirtualPool();
         VirtualPool currentVpool = _dbClient.queryObject(VirtualPool.class, volumeVpoolURI);
+        
+        s_logger.info(String.format("Creating VPLEX change vpool descriptors for volume [%s](%s) "
+                + "which belongs to: varray [%s](%s) - vpool [%s](%s)", volume.getLabel(), volume.getId(), 
+                volumeVarray.getLabel(), volumeVarray.getLabel(), currentVpool.getLabel(), currentVpool.getId()));
 
         List<VolumeDescriptor> descriptors = new ArrayList<VolumeDescriptor>();
 
@@ -1659,19 +1664,21 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                     taskId, recommendations, false, capabilities));
         }
 
-        // Now determine if the backend volume in the HA varray
-        // needs to be migrated.
-        URI haVarrayURI = VirtualPoolChangeAnalyzer.getHaVarrayURI(currentVpool);
-        if (haVarrayURI != null) {
-            VirtualArray haVarray = _dbClient.queryObject(VirtualArray.class, haVarrayURI);
-            VirtualPool currentHaVpool = VirtualPoolChangeAnalyzer.getHaVpool(currentVpool, _dbClient);
-            VirtualPool newHaVpool = VirtualPoolChangeAnalyzer.getNewHaVpool(currentVpool, newVpool, _dbClient);
-
-            if (VirtualPoolChangeAnalyzer.vpoolChangeRequiresMigration(currentHaVpool, newHaVpool)) {
-                Volume migSrcVolume = getAssociatedVolumeInVArray(volume, haVarrayURI);
-                descriptors.addAll(createBackendVolumeMigrationDescriptors(vplexSystem, volume,
-                        migSrcVolume, haVarray, newHaVpool, getVolumeCapacity(migSrcVolume != null ? migSrcVolume : volume),
-                        taskId, recommendations, true, capabilities));
+        if (allowHighAvailabilityMigrations) {
+            // Now determine if the backend volume in the HA varray
+            // needs to be migrated.
+            URI haVarrayURI = VirtualPoolChangeAnalyzer.getHaVarrayURI(currentVpool);
+            if (haVarrayURI != null) {
+                VirtualArray haVarray = _dbClient.queryObject(VirtualArray.class, haVarrayURI);
+                VirtualPool currentHaVpool = VirtualPoolChangeAnalyzer.getHaVpool(currentVpool, _dbClient);
+                VirtualPool newHaVpool = VirtualPoolChangeAnalyzer.getNewHaVpool(currentVpool, newVpool, _dbClient);
+    
+                if (VirtualPoolChangeAnalyzer.vpoolChangeRequiresMigration(currentHaVpool, newHaVpool)) {
+                    Volume migSrcVolume = getAssociatedVolumeInVArray(volume, haVarrayURI);
+                    descriptors.addAll(createBackendVolumeMigrationDescriptors(vplexSystem, volume,
+                            migSrcVolume, haVarray, newHaVpool, getVolumeCapacity(migSrcVolume != null ? migSrcVolume : volume),
+                            taskId, recommendations, true, capabilities));
+                }
             }
         }
 
@@ -1891,6 +1898,9 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                 targetLabel = targetLabel.substring(0, targetLabel.length() - 1);
             }
         } else {
+            //BBB
+            s_logger.warn(">>>>>>>>>>>>>>>>>>WTF?!!! no source vol?? =>" + virtualVolume.getLabel());
+            
             targetProject = getVplexProject(vplexSystem, _dbClient, _tenantsService);
             targetLabel = virtualVolume.getLabel();
             if (virtualVolume.getVirtualArray().equals(varray.getId())) {
@@ -2005,8 +2015,8 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                 migration.getId(),
                 capabilities));
 
-        s_logger.info("Prepared migration {}.", migration.getId());
-
+        printMigrationInfo(migration, sourceVolume, targetVolume);
+        
         return descriptors;
     }
 
@@ -4375,5 +4385,46 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
         s_logger.info("generateLabelFromAssociatedVolume: " + builder.toString());
         return builder.toString();
     }
-
+    
+    /**
+     * Method for logging for migrations.
+     * 
+     * @param migration The migration that has been created
+     * @param sourceVolume The source/original volume to be migrated from (potential to be null for ingested volumes)
+     * @param targetVolume The target volume to be migrated to
+     */
+    private void printMigrationInfo(Migration migration, Volume sourceVolume, Volume targetVolume) {
+        StringBuffer migrationInfo = new StringBuffer();
+        migrationInfo.append("\n+++++++++++++++++++++++++++++++++++++++++++");
+        migrationInfo.append(String.format("\nPrepared Migration: (%s)", migration.getId())); 
+        
+        if (sourceVolume != null) {
+            VirtualArray migrationSourceVarray = _dbClient.queryObject(VirtualArray.class, sourceVolume.getVirtualArray());
+            VirtualPool migrationSourceVpool = _dbClient.queryObject(VirtualPool.class, sourceVolume.getVirtualPool());
+            StoragePool migrationSourcePool =  _dbClient.queryObject(StoragePool.class, sourceVolume.getPool());
+            StorageSystem migrationSourceStorageSystem = _dbClient.queryObject(StorageSystem.class, sourceVolume.getStorageController());
+            
+            migrationInfo.append("\nMigration from... ");
+            migrationInfo.append(String.format("\n\tMigration Source Volume: [%s](%s)", sourceVolume.getLabel(), sourceVolume.getId()));
+            migrationInfo.append(String.format("\n\tMigration Source Varray: [%s](%s)", migrationSourceVarray.getLabel(), migrationSourceVarray.getId()));
+            migrationInfo.append(String.format("\n\tMigration Source Vpool: [%s](%s)", migrationSourceVpool.getLabel(), migrationSourceVpool.getId()));
+            migrationInfo.append(String.format("\n\tMigration Source Pool: [%s](%s)", migrationSourcePool.getLabel(), migrationSourcePool.getId()));
+            migrationInfo.append(String.format("\n\tMigration Source Storage: [%s](%s)", migrationSourceStorageSystem.getLabel(), migrationSourceStorageSystem.getId()));
+        }
+        
+        VirtualArray migrationTargetVarray = _dbClient.queryObject(VirtualArray.class, targetVolume.getVirtualArray());
+        VirtualPool migrationTargetVpool = _dbClient.queryObject(VirtualPool.class, targetVolume.getVirtualPool());
+        StoragePool migrationTargetPool =  _dbClient.queryObject(StoragePool.class, targetVolume.getPool());
+        StorageSystem migrationTargetStorageSystem = _dbClient.queryObject(StorageSystem.class, targetVolume.getStorageController());        
+        
+        migrationInfo.append("\nMigration to... ");
+        migrationInfo.append(String.format("\n\tMigration Target Volume: [%s](%s)", targetVolume.getLabel(), targetVolume.getId()));
+        migrationInfo.append(String.format("\n\tMigration Target Varray: [%s](%s)", migrationTargetVarray.getLabel(), migrationTargetVarray.getId()));
+        migrationInfo.append(String.format("\n\tMigration Target Vpool: [%s](%s)", migrationTargetVpool.getLabel(), migrationTargetVpool.getId()));
+        migrationInfo.append(String.format("\n\tMigration Target Pool: [%s](%s)", migrationTargetPool.getLabel(), migrationTargetPool.getId()));
+        migrationInfo.append(String.format("\n\tnMigration Target Storage: [%s](%s)", migrationTargetStorageSystem.getLabel(), migrationTargetStorageSystem.getId()));
+        migrationInfo.append("\n+++++++++++++++++++++++++++++++++++++++++++");
+        
+        s_logger.info(migrationInfo.toString());        
+    }
 }

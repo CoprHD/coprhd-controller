@@ -4086,12 +4086,33 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
             for (Map.Entry<Volume, VirtualPool> entry : singleMigrations.entrySet()) {
                 Volume migrateVolume = entry.getKey();
                 VirtualPool migrateToVpool = entry.getValue();
+                
+                boolean allowHighAvailabilityMigrations = true;
+                if (!migrateVolume.getAssociatedVolumes().isEmpty()) {
+                    // Prevent HA migration descriptors to be created when associated volumes is <= 1.
+                    // This is mainly an issue for RP+VPLEX journals.
+                    if (migrateVolume.getAssociatedVolumes().size() <= 1) {
+                        allowHighAvailabilityMigrations = false;
+                    }
+                } else {
+                    // This is a last defense - the associated volumes for this virtual volume is
+                    // empty so we must rely on the fact that that RP+VPLEX journals should be
+                    // provisioned as VPLEX Local.
+                    //
+                    // It's possible that some journals may belong to a vpool that has HA enabled and we 
+                    // do not want to create any HA migrations in this case.
+                    //
+                    // Ex: Active Source journals that use the default Source vpool for provisioning.
+                    if (Volume.PersonalityTypes.METADATA.name().equals(migrateVolume.getPersonality())) {
+                        allowHighAvailabilityMigrations = false;
+                    }
+                }
                
                 StorageSystem vplexStorageSystem = _dbClient.queryObject(StorageSystem.class, migrateVolume.getStorageController());
                 migrateVolumeDescriptors.addAll(vplexBlockServiceApiImpl
                         .createChangeVirtualPoolDescriptors(vplexStorageSystem, migrateVolume, migrateToVpool, taskId,
-                                null, null, null));
-            }
+                                null, null, null, allowHighAvailabilityMigrations));
+            }            
 
             // Step 5
             //

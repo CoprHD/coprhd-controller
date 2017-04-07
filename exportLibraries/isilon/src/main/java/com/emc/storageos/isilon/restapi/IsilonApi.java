@@ -937,6 +937,7 @@ public class IsilonApi {
      * 
      * @param exp
      *            IsilonExport object with paths and clients set
+     * @param force boolean flag to ignore client FQDN check against DNS
      * @return String identifier for the export created
      * @throws IsilonException
      */
@@ -954,6 +955,7 @@ public class IsilonApi {
      * 
      * @param exp
      *            IsilonExport object with paths and clients set
+     * @param force boolean flag to ignore client FQDN check against DNS
      * @return String identifier for the export created
      * @throws IsilonException
      */
@@ -974,14 +976,14 @@ public class IsilonApi {
      *            identifier of the export to modify
      * @param exp
      *            IsilonExport object with the modified properties
+     * @param force boolean flag to ignore client FQDN check against DNS
      * @throws IsilonException
      */
     public void modifyExport(String id, IsilonExport exp, boolean force) throws IsilonException {
         if (force) {
-            modify(_baseUrl.resolve(URI_NFS_EXPORTS + "&force=true"), id, "export", exp);
-        } else {
-            modify(_baseUrl.resolve(URI_NFS_EXPORTS), id, "export", exp);
+            id = id + "&force=true";
         }
+        modify(_baseUrl.resolve(URI_NFS_EXPORTS), id, "export", exp);
     }
 
     /**
@@ -991,15 +993,15 @@ public class IsilonApi {
      *            identifier of the export to modify
      * @param exp
      *            IsilonExport object with the modified properties
+     * @param force boolean flag to ignore client FQDN check against DNS
      * @throws IsilonException
      */
     public void modifyExport(String id, String zoneName, IsilonExport exp, boolean force) throws IsilonException {
         String uriWithZoneName = getURIWithZoneName(id, zoneName);
-        if(force){
-            modify(_baseUrl.resolve(URI_NFS_EXPORTS + "&force=true"), uriWithZoneName, "export", exp);
-        }else {
-            modify(_baseUrl.resolve(URI_NFS_EXPORTS), uriWithZoneName, "export", exp);
+        if (force) {
+            uriWithZoneName = uriWithZoneName + "&force=true";
         }
+        modify(_baseUrl.resolve(URI_NFS_EXPORTS), uriWithZoneName, "export", exp);
     }
 
     /**

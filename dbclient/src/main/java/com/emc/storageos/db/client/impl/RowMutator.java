@@ -8,6 +8,7 @@ import com.datastax.driver.core.BatchStatement;
 import com.datastax.driver.core.BoundStatement;
 import com.datastax.driver.core.ConsistencyLevel;
 import com.datastax.driver.core.PreparedStatement;
+import com.datastax.driver.core.Statement;
 import com.datastax.driver.core.exceptions.ConnectionException;
 import com.datastax.driver.core.exceptions.NoHostAvailableException;
 import com.datastax.driver.core.exceptions.QueryExecutionException;
@@ -48,7 +49,7 @@ public class RowMutator {
 
     //we use update statement to do the insert operation because it could reduce our cleanup effort.
     private static final String updateRecordFormat = "UPDATE \"%s\" SET value = ? WHERE key = ? AND column1 = ? AND column2 = ? AND column3 = ? AND column4 = ?";
-    private static final String updateRecordFormat_without_uuid = "UPDATE \"%s\" SET value = ? WHERE key = ? AND column1 = ? AND column2 = ? AND column3 = ?";
+    //private static final String updateRecordFormat_without_uuid = "UPDATE \"%s\" SET value = ? WHERE key = ? AND column1 = ? AND column2 = ? AND column3 = ?";
     private static final String updateIndexFormat = "UPDATE \"%s\" SET value = ? WHERE key = ? AND column1 = ? AND column2 = ? AND column3 = ? AND column4 = ? AND column5 = ?";
     private static final String updateIndexFormat_without_uuid = "UPDATE \"%s\" SET value = ? WHERE key = ? AND column1 = ? AND column2 = ? AND column3 = ? AND column4 = ?";
     private static final String insertTimeSeriesFormat = "INSERT INTO \"%s\" (key, column1, value) VALUES(?, ?, ?) USING TTL ?";
@@ -71,7 +72,7 @@ public class RowMutator {
 
     public void insertRecordColumn(String tableName, String recordKey, CompositeColumnName column, Object val) {
         // todo consider 'ttl'
-        String cqlString = column.getTimeUUID() == null ? String.format(updateRecordFormat_without_uuid, tableName) : String.format(updateRecordFormat, tableName);
+        String cqlString = String.format(updateRecordFormat, tableName);
         PreparedStatement insertPrepared = context.getPreparedStatement(cqlString);
         BoundStatement insert = insertPrepared.bind();
         insert.setString("key", recordKey);
@@ -79,9 +80,8 @@ public class RowMutator {
         insert.setString("column1", column.getOne() == null ? StringUtils.EMPTY : column.getOne());
         insert.setString("column2", column.getTwo() == null ? StringUtils.EMPTY : column.getTwo());
         insert.setString("column3", column.getThree() == null ? StringUtils.EMPTY : column.getThree());
-        if (column.getTimeUUID() != null) {
-            insert.setUUID("column4", column.getTimeUUID());
-        }
+        insert.setUUID("column4", column.getTimeUUID() == null ? getTimeUUID() : column.getTimeUUID());
+        
         ByteBuffer blobVal = getByteBufferFromPrimitiveValue(val);
         insert.setBytes("value", blobVal);
         atomicBatch.add(insert);
@@ -110,14 +110,15 @@ public class RowMutator {
     }
 
     public void deleteRecordColumn(String tableName, String recordKey, CompositeColumnName column) {
+    	if (column.getTimeUUID() != null) {
+    		return;
+    	}
+    	
         Delete.Where deleteRecord = delete().from(String.format("\"%s\"", tableName)).where(eq("key", recordKey))
                 .and(eq("column1", column.getOne() == null ? StringUtils.EMPTY : column.getOne()))
                 .and(eq("column2", column.getTwo() == null ? StringUtils.EMPTY : column.getTwo()))
-                .and(eq("column3", column.getThree() == null ? StringUtils.EMPTY : column.getThree()));
-        UUID uuidColumn = column.getTimeUUID();
-        if (uuidColumn != null) {
-            deleteRecord.and(eq("column4", uuidColumn));
-        }
+                .and(eq("column3", column.getThree() == null ? StringUtils.EMPTY : column.getThree()))
+                .and(eq("column4", column.getTimeUUID()));
         atomicBatch.add(deleteRecord);
     }
 
@@ -189,6 +190,10 @@ public class RowMutator {
     public void deleteGlobalLockRecord(String tableName, String rowKey, String column) {
         Delete.Where deleteRecord = delete().from(String.format("\"%s\"", tableName)).where(eq("key", rowKey)).and(eq("column1", column));
         atomicBatch.add(deleteRecord);
+    }
+    
+    public void addCqlStatement(Statement statement) {
+    	atomicBatch.add(statement);
     }
 
     public static ByteBuffer getByteBufferFromPrimitiveValue(Object val) {

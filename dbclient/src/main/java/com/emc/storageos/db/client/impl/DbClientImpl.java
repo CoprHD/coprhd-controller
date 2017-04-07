@@ -1326,33 +1326,14 @@ public class DbClientImpl implements DbClient {
         }
     }
 
-    public void removeObject(Class<? extends DataObject> clazz, DataObject... object) {
+    public void removeObject(Class<? extends DataObject> clazz, DataObject... objects) {
 
-        List<DataObject> allObjects = Arrays.asList(object);
         DbClientContext context = getDbClientContext(clazz);
-
-        DataObjectType doType = null;
-        RemovedColumnsList removedList = new RemovedColumnsList();
-        for (DataObject dataObject : allObjects) {
-            _log.info("Try to remove data object {}", dataObject.getId());
-            checkGeoVersionForMutation(dataObject);
-            doType = TypeMap.getDoType(dataObject.getClass());
-            // delete all the index columns for this object first
-            if (doType == null) {
-                throw new IllegalArgumentException();
-            }
-            Map<String, List<CompositeColumnName>> result = queryRowWithAllColumns(context, dataObject.getId(), doType.getCF().getName());
-            for (String rowKey : result.keySet()) {
-                for (CompositeColumnName row : result.get(rowKey)) {
-                    removedList.add(rowKey, row);
-                }
-            }       
-        }
-        if (!removedList.isEmpty()) {
-            boolean retryFailedWriteWithLocalQuorum = shouldRetryFailedWriteWithLocalQuorum(clazz);
-            RowMutator mutator = new RowMutator(context, retryFailedWriteWithLocalQuorum);
-            _indexCleaner.removeColumnAndIndex(mutator, doType, removedList);
-        }
+        DataObjectType doType = TypeMap.getDoType(clazz);
+        boolean retryFailedWriteWithLocalQuorum = shouldRetryFailedWriteWithLocalQuorum(clazz);
+        
+        DBDataObjectCleaner cleaner = new DBDataObjectCleaner(context, retryFailedWriteWithLocalQuorum);
+        cleaner.deleteObjects(doType, objects);
     }
 
     @Override

@@ -138,7 +138,7 @@ public class PerformanceParams extends DataObjectWithACLs implements GeoVisibleR
      * 
      * @return true if a limit is set, false otherwise.
      */
-    public boolean isHostIOLimitIOPsSet() {
+    public boolean checkHostIOLimitIOPsSet() {
         return hostIOLimitIOPs != null && hostIOLimitIOPs > 0;
     }
 
@@ -147,7 +147,7 @@ public class PerformanceParams extends DataObjectWithACLs implements GeoVisibleR
      * 
      * @return true if a limit is set, false otherwise.
      */
-    public boolean isHostIOLimitBandwidthSet() {
+    public boolean checkHostIOLimitBandwidthSet() {
         return hostIOLimitBandwidth != null && hostIOLimitBandwidth > 0;
     }
 }

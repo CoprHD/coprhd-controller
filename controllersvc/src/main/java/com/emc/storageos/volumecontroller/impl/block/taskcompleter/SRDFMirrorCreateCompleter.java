@@ -55,14 +55,15 @@ public class SRDFMirrorCreateCompleter extends SRDFTaskCompleter {
             final ServiceCoded coded) throws DeviceControllerException {
         log.info("Completing with status: {}", status);
         setDbClient(dbClient);
-
+        Volume target = null;
+        Volume source = null;
         try {
             switch (status) {
 
                 case ready:
-                    Volume target = getTargetVolume();
+                    target = getTargetVolume();
                     // updating source volume with changed VPool
-                    Volume source = dbClient.queryObject(Volume.class, target.getSrdfParent().getURI());
+                    source = dbClient.queryObject(Volume.class, target.getSrdfParent().getURI());
                     if (null != vpoolChangeURI) {
                         source.setVirtualPool(vpoolChangeURI);
                         dbClient.persistObject(source);
@@ -93,11 +94,6 @@ public class SRDFMirrorCreateCompleter extends SRDFTaskCompleter {
 
                     group.getVolumes().addAll(getVolumeIds());
                     dbClient.persistObject(group);
-
-                    // call remote replication data client to create remote replication pair for this
-                    // srdf pair
-                    RemoteReplicationUtils.createRemoteReplicationPairForSrdfPair(source, target, dbClient);
-
                     break;
 
                 default:
@@ -109,6 +105,12 @@ public class SRDFMirrorCreateCompleter extends SRDFTaskCompleter {
             log.info("Failed to update status for task {}", getOpId(), e);
         } finally {
             super.complete(dbClient, status, coded);
+            if (status.equals(Operation.Status.ready)) {
+                // at that point we call remote replication data client to create remote replication pair for this
+                // srdf pair
+                log.info("Process remote replication pair for srdf link create. Status: {}", status);
+                RemoteReplicationUtils.createRemoteReplicationPairForSrdfPair(source.getId(), target.getId(), dbClient);
+            }
         }
 
     }

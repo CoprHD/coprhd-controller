@@ -10,6 +10,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
+import com.emc.storageos.db.exceptions.DatabaseException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -193,45 +194,52 @@ public class RemoteReplicationUtils {
     /**
      * Create remote replication pair for srdf volume pair.
      *
-     * @param source srdf source volume
-     * @param target srdf target volume
+     * @param sourceUri srdf source volume
+     * @param targetUri srdf target volume
      */
-    public static void createRemoteReplicationPairForSrdfPair(Volume source, Volume target, DbClient dbClient) {
+    public static void createRemoteReplicationPairForSrdfPair(URI sourceUri, URI targetUri, DbClient dbClient) {
 
-        _log.info("Processing srdf pair: {} -> {}", source.getId(), target.getId());
-        StorageSystem sourceSystem = dbClient.queryObject(StorageSystem.class, source.getStorageController());
-        StorageSystem targetSystem = dbClient.queryObject(StorageSystem.class, target.getStorageController());
-        RemoteDirectorGroup rdGroup = dbClient.queryObject(RemoteDirectorGroup.class, target.getSrdfGroup());
+        _log.info("Processing srdf pair: {} -> {}", sourceUri, targetUri);
 
-        // Get native id for rr set.
-        String rrSetNativeId = getRemoteReplicationSetNativeIdForSrdfSet(sourceSystem, targetSystem);
+        try {
+            Volume source = dbClient.queryObject(Volume.class, sourceUri);
+            Volume target = dbClient.queryObject(Volume.class, targetUri);
+            StorageSystem sourceSystem = dbClient.queryObject(StorageSystem.class, source.getStorageController());
+            StorageSystem targetSystem = dbClient.queryObject(StorageSystem.class, target.getStorageController());
+            RemoteDirectorGroup rdGroup = dbClient.queryObject(RemoteDirectorGroup.class, target.getSrdfGroup());
 
-        // Get nativeId for rr group.
-        String rrGroupNativeId = getRemoteReplicationGroupNativeIdForSrdfGroup(sourceSystem, targetSystem, rdGroup);
+            // Get native id for rr set.
+            String rrSetNativeId = getRemoteReplicationSetNativeIdForSrdfSet(sourceSystem, targetSystem);
 
-        String replicationMode = target.getSrdfCopyMode();
+            // Get nativeId for rr group.
+            String rrGroupNativeId = getRemoteReplicationGroupNativeIdForSrdfGroup(sourceSystem, targetSystem, rdGroup);
 
-        StorageVolume driverSourceVolume = new StorageVolume();
-        driverSourceVolume.setStorageSystemId(sourceSystem.getSerialNumber());
-        driverSourceVolume.setNativeId(source.getNativeId());
-        //
-        StorageVolume driverTargetVolume = new StorageVolume();
-        driverTargetVolume.setStorageSystemId(targetSystem.getSerialNumber());
-        driverTargetVolume.setNativeId(target.getNativeId());
+            String replicationMode = target.getSrdfCopyMode();
 
-        com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationPair
-                rrPair = new com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationPair();
-        rrPair.setNativeId(getRemoteReplicationPairNativeIdForSrdfPair(source, target));
-        rrPair.setReplicationSetNativeId(rrSetNativeId);
-        rrPair.setReplicationGroupNativeId(rrGroupNativeId);
-        rrPair.setSourceVolume(driverSourceVolume);
-        rrPair.setTargetVolume(driverTargetVolume);
-        rrPair.setReplicationMode(replicationMode);
-        rrPair.setReplicationState(rdGroup.getConnectivityStatus());
-        rrPair.setReplicationDirection(SRDFUtils.SyncDirection.SOURCE_TO_TARGET.toString());
+            StorageVolume driverSourceVolume = new StorageVolume();
+            driverSourceVolume.setStorageSystemId(sourceSystem.getSerialNumber());
+            driverSourceVolume.setNativeId(source.getNativeId());
+            //
+            StorageVolume driverTargetVolume = new StorageVolume();
+            driverTargetVolume.setStorageSystemId(targetSystem.getSerialNumber());
+            driverTargetVolume.setNativeId(target.getNativeId());
 
-        RemoteReplicationDataClient remoteReplicationDataClient = new RemoteReplicationDataClientImpl(dbClient);
-        remoteReplicationDataClient.createRemoteReplicationPair(rrPair, source.getId(), target.getId());
+            com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationPair
+                    rrPair = new com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationPair();
+            rrPair.setNativeId(getRemoteReplicationPairNativeIdForSrdfPair(source, target));
+            rrPair.setReplicationSetNativeId(rrSetNativeId);
+            rrPair.setReplicationGroupNativeId(rrGroupNativeId);
+            rrPair.setSourceVolume(driverSourceVolume);
+            rrPair.setTargetVolume(driverTargetVolume);
+            rrPair.setReplicationMode(replicationMode);
+            rrPair.setReplicationState(source.getLinkStatus());
+            rrPair.setReplicationDirection(SRDFUtils.SyncDirection.SOURCE_TO_TARGET.toString());
+
+            RemoteReplicationDataClient remoteReplicationDataClient = new RemoteReplicationDataClientImpl(dbClient);
+            remoteReplicationDataClient.createRemoteReplicationPair(rrPair, source.getId(), target.getId());
+        } catch (Throwable th) {
+            _log.error("Failed to create remote replication pair for srdf pair: {} -> {}", sourceUri, targetUri, th);
+        }
     }
 
     public static String getRemoteReplicationGroupNativeIdForSrdfGroup(StorageSystem sourceSystem, StorageSystem targetSystem,

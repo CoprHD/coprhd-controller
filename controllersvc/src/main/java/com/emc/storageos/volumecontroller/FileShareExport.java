@@ -47,6 +47,7 @@ public class FileShareExport implements Serializable {
     private String _mountPath;
     private String _comments;
     private String _isilonId;
+    private Boolean _overrideDnsCheck;
 
     private static final String SEC_SEPARATOR = ",";
 
@@ -139,6 +140,42 @@ public class FileShareExport implements Serializable {
         _mountPath = mountPath;
         _comments = comments;
         _subDirectory = subDirectory;
+    }
+
+    /**
+     * Construction of FileShareExport export
+     * 
+     * @param clients
+     * @param securityType
+     * @param permissions
+     * @param rootUserMapping
+     * @param protocol
+     * @param storagePortName Storage port name.
+     * @param path
+     * @param mountPath
+     * @param overrideDnsCheck disable the DNS check for the client FQDN
+     */
+    public FileShareExport(List<String> clients, String securityType, String permissions, String rootUserMapping,
+            String protocol, String storagePortName, String storagePort, String path, String mountPath, String subDirectory,
+            String comments, Boolean overrideDnsCheck) {
+        _clients = clients;
+        for (String secType : securityType.split(SEC_SEPARATOR)) {
+            if (_securityType == null) {
+                _securityType = new HashSet<SecurityTypes>();
+            }
+            _securityType.add(Enum.valueOf(SecurityTypes.class, secType.trim()));
+
+        }
+        _permissions = Enum.valueOf(Permissions.class, permissions);
+        _rootUserMapping = rootUserMapping;
+        _storagePortName = storagePortName;
+        _protocol = Enum.valueOf(StorageProtocol.File.class, protocol);
+        _storagePort = storagePort;
+        _path = path;
+        _mountPath = mountPath;
+        _comments = comments;
+        _subDirectory = subDirectory;
+        _overrideDnsCheck = overrideDnsCheck;
     }
 
     public String getComments() {
@@ -255,6 +292,14 @@ public class FileShareExport implements Serializable {
 
     public void setIsilonId(String isilonId) {
         this._isilonId = isilonId;
+    }
+
+    public Boolean get_overrideDnsCheck() {
+        return _overrideDnsCheck;
+    }
+
+    public void set_overrideDnsCheck(Boolean _overrideDnsCheck) {
+        this._overrideDnsCheck = _overrideDnsCheck;
     }
 
 }

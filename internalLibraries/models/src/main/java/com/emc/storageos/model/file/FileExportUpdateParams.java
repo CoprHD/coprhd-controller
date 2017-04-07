@@ -17,6 +17,7 @@ public class FileExportUpdateParams implements Serializable {
     protected ExportRules exportRulesToAdd;
     protected ExportRules exportRulesToDelete;
     protected ExportRules exportRulesToModify;
+    protected Boolean overrideDnsCheck;
 
     // Non payload models - for internal use only
     protected String subDir;
@@ -84,6 +85,15 @@ public class FileExportUpdateParams implements Serializable {
      */
     public void setExportRulesToModify(ExportRules exportRulesToModify) {
         this.exportRulesToModify = exportRulesToModify;
+    }
+
+    @XmlElement(name = "override_dns_check", required = false)
+    public Boolean getOverrideDnsCheck() {
+        return overrideDnsCheck;
+    }
+
+    public void setOverrideDnsCheck(Boolean overrideDnsCheck) {
+        this.overrideDnsCheck = overrideDnsCheck;
     }
 
     @Override

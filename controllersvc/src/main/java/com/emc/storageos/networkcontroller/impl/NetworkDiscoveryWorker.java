@@ -505,6 +505,12 @@ public class NetworkDiscoveryWorker {
                    networkSystemNetwork.setRoutedNetworks(null);
                    dbClient.updateObject(networkSystemNetwork);
            }
+           
+           //Update the connected varray assignments
+           _log.info("Updating connected network and varray assignments");
+           for (Network network : DataObjectUtils.toMap(getCurrentTransportZones()).values()) {
+               NetworkAssociationHelper.setNetworkConnectedVirtualArrays(network, false, dbClient);
+           }
            return;
         }
         // get the current networks from the database

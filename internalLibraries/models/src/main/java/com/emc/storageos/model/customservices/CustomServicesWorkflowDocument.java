@@ -87,6 +87,11 @@ public class CustomServicesWorkflowDocument {
         private String defaultValue;
         private String value;
         private String group;
+        private String stepInput;
+        private String stepOutput;
+        private String assetOption;
+        private String inputFieldType;
+        private String tableName;
         private boolean required = true;
         private boolean locked = false;
 
@@ -152,6 +157,46 @@ public class CustomServicesWorkflowDocument {
         }
         public void setLocked(boolean locked) {
             this.locked = locked;
+        }
+
+        @XmlElement(name = "stepInput")
+        public String getStepInput() {
+            return stepInput;
+        }
+        public void setStepInput(String stepinput) {
+            this.stepInput = stepinput;
+        }
+
+        @XmlElement(name = "assetOption")
+        public String getAssetOption() {
+            return assetOption;
+        }
+        public void setAssetOption(String assetoption) {
+            this.assetOption = assetoption;
+        }
+
+        @XmlElement(name = "stepOutput")
+        public String getStepOutput() {
+            return stepOutput;
+        }
+        public void setStepOutput(String stepOutput) {
+            this.stepOutput = stepOutput;
+        }
+
+        @XmlElement(name = "inputFieldType")
+        public String getInputFieldType() {
+            return inputFieldType;
+        }
+        public void setInputFieldType(String inputfieldtype) {
+            this.inputFieldType = inputfieldtype;
+        }
+
+        @XmlElement(name = "tableName")
+        public String getTableName() {
+            return tableName;
+        }
+        public void setTableName(String tablename) {
+            this.tableName = tablename;
         }
     }
 

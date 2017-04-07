@@ -38,13 +38,13 @@
  										<control-group v-field="input.type">
                         					<select-one options="UserInputTypeOption" auto-default v-disabled='locked'></select-one>
                         				</control-group>
-                        				<control-group v-field="input.StepInput" ng-if="input.type=='FromOtherStepInput'">
+                        				<control-group v-field="input.stepInput" ng-if="input.type=='FromOtherStepInput'">
                         					<select-one options="stepInputOptions" auto-default v-disabled='locked'></select-one>
                         				</control-group>
-                        				<control-group v-field="input.StepOutput" ng-if="input.type=='FromOtherStepOutput'" >
+                        				<control-group v-field="input.stepOutput" ng-if="input.type=='FromOtherStepOutput'" >
                         					<select-one options="stepOutputOptions" auto-default v-disabled='locked'></select-one>
                         				</control-group>
-                        				<control-group v-field="input.AssetOption" ng-if="input.type=='AssetOption'" >
+                        				<control-group v-field="input.assetOption" ng-if="input.type=='AssetOption'" >
                         					<select-one options="AssetOptionTypes" auto-default v-disabled='locked'></select-one>
                         				</control-group>
   										<control-group v-field="input.defaultValue" ng-if="input.type=='InputFromUser'">

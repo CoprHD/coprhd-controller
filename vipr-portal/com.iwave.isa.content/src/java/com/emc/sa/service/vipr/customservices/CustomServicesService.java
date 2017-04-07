@@ -77,86 +77,91 @@ public class CustomServicesService extends ViPRService {
     private CustomServicesExecutors executor;
 
     private int code;
-    private URI uri = null;
-    private  Map<String, CustomServicesWorkflowDocument.InputGroup> stepInput = null;
 
     @Override
     public void precheck() throws Exception {
         // get input params from order form
         params = ExecutionUtils.currentContext().getParameters();
-
     }
 
     @Override
     public void execute() throws Exception {
         ExecutionUtils.currentContext().logInfo("customServicesService.title");
+        final String orderDir = String.format("%s%s/", CustomServicesConstants.ORDER_DIR_PATH,
+                ExecutionUtils.currentContext().getOrder().getOrderNumber());
         try {
-            logger.info("Parsing Workflow Definition");
-
-            final ImmutableMap<String, Step> stepsHash = getStepHash(uri);
-            final String orderDir = String.format("%s%s/", CustomServicesConstants.ORDER_DIR_PATH,
-                    ExecutionUtils.currentContext().getOrder().getOrderNumber());
-
-            Step step = stepsHash.get(StepType.START.toString());
-            String next = step.getNext().getDefaultStep();
-            long timeout = System.currentTimeMillis();
-            while (next != null && !next.equals(StepType.END.toString())) {
-                step = stepsHash.get(next);
-
-                ExecutionUtils.currentContext().logInfo("customServicesService.stepStatus", step.getId(), step.getType());
-
-                final Step updatedStep = updatesubWfInput(step, stepInput);
-
-                updateInputPerStep(updatedStep);
-
-                final CustomServicesTaskResult res;
-                try {
-                    if (updatedStep.getType().equals(StepType.WORKFLOW.toString())) {
-
-                        uri = updatedStep.getOperation();
-                        stepInput = updatedStep.getInputGroups();
-                        execute();
-
-                        // We Don't evaluate output/result for Workflow Step. It is already evaluated.
-                        // We would have got exception if Sub WF has failed
-                        res = new CustomServicesTaskResult("Success", "No Error", 200, null);
-                    } else {
-                        final MakeCustomServicesExecutor task = executor.get(updatedStep.getType());
-                        task.setParam(getClient().getRestClient());
-
-                        res = ViPRExecutionUtils.execute(task.makeCustomServicesExecutor(inputPerStep.get(updatedStep.getId()), updatedStep));
-                    }
-
-                    boolean isSuccess = isSuccess(updatedStep, res);
-                    if (isSuccess) {
-                        try {
-                            updateOutputPerStep(updatedStep, res);
-                        } catch (final Exception e) {
-                            logger.info("Failed to parse output" + e);
-
-                            isSuccess = false;
-                        }
-                    }
-                    next = getNext(isSuccess, res, updatedStep);
-                } catch (final Exception e) {
-                    logger.info("failed to execute step. Try to get failure path. Exception Received:" + e + e.getStackTrace()[0].getLineNumber());
-                    next = getNext(false, null, updatedStep);
-                } finally {
-                    orderDirCleanup(orderDir);
-                }
-
-                if (next == null) {
-                    throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed("Failed to get next step");
-                }
-                if ((System.currentTimeMillis() - timeout) > CustomServicesConstants.TIMEOUT) {
-                    throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed("Operation Timed out");
-                }
-            }
+            wfExecutor(null, null);
             ExecutionUtils.currentContext().logInfo("customServicesService.successStatus");
         } catch (final Exception e) {
             ExecutionUtils.currentContext().logError("customServicesService.failedStatus");
 
             throw e;
+        } finally {
+            orderDirCleanup(orderDir);
+        }
+    }
+    /**
+     * Method to parse Workflow Definition JSON
+     *
+     * @throws Exception
+     */
+    public void wfExecutor(final URI uri, final Map<String, CustomServicesWorkflowDocument.InputGroup> stepInput) throws Exception {
+
+        logger.info("Parsing Workflow Definition");
+
+        final ImmutableMap<String, Step> stepsHash = getStepHash(uri);
+
+
+        Step step = stepsHash.get(StepType.START.toString());
+        String next = step.getNext().getDefaultStep();
+        long timeout = System.currentTimeMillis();
+        while (next != null && !next.equals(StepType.END.toString())) {
+            step = stepsHash.get(next);
+
+            ExecutionUtils.currentContext().logInfo("customServicesService.stepStatus", step.getId(), step.getType());
+
+            final Step updatedStep = updatesubWfInput(step, stepInput);
+
+            updateInputPerStep(updatedStep);
+
+            final CustomServicesTaskResult res;
+            try {
+                if (updatedStep.getType().equals(StepType.WORKFLOW.toString())) {
+
+                    wfExecutor(updatedStep.getOperation(), updatedStep.getInputGroups());
+
+                    // We Don't evaluate output/result for Workflow Step. It is already evaluated.
+                    // We would have got exception if Sub WF has failed
+                    res = new CustomServicesTaskResult("Success", "No Error", 200, null);
+                } else {
+                    final MakeCustomServicesExecutor task = executor.get(updatedStep.getType());
+                    task.setParam(getClient().getRestClient());
+
+                    res = ViPRExecutionUtils.execute(task.makeCustomServicesExecutor(inputPerStep.get(updatedStep.getId()), updatedStep));
+                }
+
+                boolean isSuccess = isSuccess(updatedStep, res);
+                if (isSuccess) {
+                    try {
+                        updateOutputPerStep(updatedStep, res);
+                    } catch (final Exception e) {
+                        logger.info("Failed to parse output" + e);
+
+                        isSuccess = false;
+                    }
+                }
+                next = getNext(isSuccess, res, updatedStep);
+            } catch (final Exception e) {
+                logger.info(
+                        "failed to execute step. Try to get failure path. Exception Received:" + e + e.getStackTrace()[0].getLineNumber());
+                next = getNext(false, null, updatedStep);
+            }
+            if (next == null) {
+                throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed("Failed to get next step");
+            }
+            if ((System.currentTimeMillis() - timeout) > CustomServicesConstants.TIMEOUT) {
+                throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed("Operation Timed out");
+            }
         }
     }
 
@@ -228,7 +233,6 @@ public class CustomServicesService extends ViPRService {
 
         return step;
     }
-
 
     private void orderDirCleanup(final String orderDir) {
         try {

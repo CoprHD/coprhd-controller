@@ -57,11 +57,12 @@ public class CustomServicesViprExecution extends ViPRExecutionTask<CustomService
     public CustomServicesViprExecution(final Map<String, List<String>> input, final CustomServicesWorkflowDocument.Step step, final CustomServicesPrimitiveDAOs daos, final RestClient client) {
         this.input = input;
         this.step = step;
-        logger.info("operation:{}", step.getOperation());
-        if (daos.get("vipr") == null) {
-            logger.info("daos is null");
+        if (daos.get(CustomServicesConstants.VIPR_PRIMITIVE_TYPE) == null) {
+            logger.error("ViPR operation DAO not found");
+            throw InternalServerErrorException.internalServerErrors
+                    .customServiceExecutionFailed("ViPR operation DAO not found: " + step.getOperation());
         }
-        final CustomServicesPrimitiveType primitive = daos.get("vipr").get(step.getOperation());
+        final CustomServicesPrimitiveType primitive = daos.get(CustomServicesConstants.VIPR_PRIMITIVE_TYPE).get(step.getOperation());
 
         if (null == primitive) {
             throw InternalServerErrorException.internalServerErrors
@@ -69,7 +70,6 @@ public class CustomServicesViprExecution extends ViPRExecutionTask<CustomService
         }
         this.primitive = (CustomServicesViPRPrimitive)primitive;
         this.client = client;
-
     }
 
     @Override

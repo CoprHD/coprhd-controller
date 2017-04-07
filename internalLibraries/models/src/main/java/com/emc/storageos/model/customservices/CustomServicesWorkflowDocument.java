@@ -159,7 +159,7 @@ public class CustomServicesWorkflowDocument {
             this.locked = locked;
         }
 
-        @XmlElement(name = "stepInput")
+        @XmlElement(name = "step_input")
         public String getStepInput() {
             return stepInput;
         }
@@ -167,7 +167,7 @@ public class CustomServicesWorkflowDocument {
             this.stepInput = stepinput;
         }
 
-        @XmlElement(name = "assetOption")
+        @XmlElement(name = "asset_option")
         public String getAssetOption() {
             return assetOption;
         }
@@ -175,7 +175,7 @@ public class CustomServicesWorkflowDocument {
             this.assetOption = assetoption;
         }
 
-        @XmlElement(name = "stepOutput")
+        @XmlElement(name = "step_output")
         public String getStepOutput() {
             return stepOutput;
         }
@@ -183,7 +183,7 @@ public class CustomServicesWorkflowDocument {
             this.stepOutput = stepOutput;
         }
 
-        @XmlElement(name = "inputFieldType")
+        @XmlElement(name = "input_field_type")
         public String getInputFieldType() {
             return inputFieldType;
         }
@@ -191,7 +191,7 @@ public class CustomServicesWorkflowDocument {
             this.inputFieldType = inputfieldtype;
         }
 
-        @XmlElement(name = "tableName")
+        @XmlElement(name = "table_name")
         public String getTableName() {
             return tableName;
         }

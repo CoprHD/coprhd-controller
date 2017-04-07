@@ -1619,7 +1619,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
         
         s_logger.info(String.format("Creating VPLEX change vpool descriptors for volume [%s](%s) "
                 + "which belongs to: varray [%s](%s) - vpool [%s](%s)", volume.getLabel(), volume.getId(), 
-                volumeVarray.getLabel(), volumeVarray.getLabel(), currentVpool.getLabel(), currentVpool.getId()));
+                volumeVarray.getLabel(), volumeVarray.getId(), currentVpool.getLabel(), currentVpool.getId()));
 
         List<VolumeDescriptor> descriptors = new ArrayList<VolumeDescriptor>();
 

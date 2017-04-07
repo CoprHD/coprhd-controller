@@ -70,7 +70,7 @@ public class BlockPerformanceParamsCreate {
     /**
      * The description for the performance parameters instance.
      */
-    @XmlElement
+    @XmlElement(required = false)
     public String getDescription() {
         return description;
     }
@@ -82,7 +82,7 @@ public class BlockPerformanceParamsCreate {
     /**
      * The FAST policy name for the performance parameters instance.
      */
-    @XmlElement(name = "auto_tiering_policy_name")
+    @XmlElement(name = "auto_tiering_policy_name", required = false)
     public String getAutoTieringPolicyName() {
         return autoTieringPolicyName;
     }
@@ -94,7 +94,7 @@ public class BlockPerformanceParamsCreate {
     /**
      * The compression setting for the performance parameters instance.
      */
-    @XmlElement(name = "compression_enabled")
+    @XmlElement(name = "compression_enabled", required = false)
     public Boolean getCompressionEnabled() {
         return compressionEnabled;
     }
@@ -106,7 +106,7 @@ public class BlockPerformanceParamsCreate {
     /**
      * The host I/O bandwidth limit for the performance parameters instance.
      */
-    @XmlElement(name = "host_io_limit_bandwidth")
+    @XmlElement(name = "host_io_limit_bandwidth", required = false)
     public Integer getHostIOLimitBandwidth() {
         return hostIOLimitBandwidth;
     }
@@ -118,7 +118,7 @@ public class BlockPerformanceParamsCreate {
     /**
      * The host I/O IOPS limit for the performance parameters instance.
      */
-    @XmlElement(name = "host_io_limit_iops")
+    @XmlElement(name = "host_io_limit_iops", required = false)
     public Integer getHostIOLimitIOPs() {
         return hostIOLimitIOPs;
     }
@@ -130,7 +130,7 @@ public class BlockPerformanceParamsCreate {
     /**
      * The thin volume pre-allocation percentage for the performance parameters instance.
      */
-    @XmlElement(name = "thin_volume_preallocation_percentage")
+    @XmlElement(name = "thin_volume_preallocation_percentage", required = false)
     public Integer getThinVolumePreAllocationPercentage() {
         return thinVolumePreAllocationPercentage;
     }
@@ -143,7 +143,7 @@ public class BlockPerformanceParamsCreate {
     /**
      * The deduplication setting for the performance parameters instance.
      */
-    @XmlElement(name = "dedup_capable")
+    @XmlElement(name = "dedup_capable", required = false)
     public Boolean getDedupCapable() {
         return dedupCapable;
     }
@@ -155,7 +155,7 @@ public class BlockPerformanceParamsCreate {
     /**
      * The fast expansion setting for the performance parameters instance.
      */
-    @XmlElement(name = "fast_expansion")
+    @XmlElement(name = "fast_expansion", required = false)
     public Boolean getFastExpansion() {
         return fastExpansion;
     }

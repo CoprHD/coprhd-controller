@@ -835,8 +835,7 @@ public class BlockMapper {
      */
     public static BlockPerformanceParamsRestRep map(PerformanceParams performanceParams) {
         BlockPerformanceParamsRestRep response = new BlockPerformanceParamsRestRep();
-        response.setId(performanceParams.getId());
-        response.setName(performanceParams.getLabel());
+        mapDataObjectFields(performanceParams, response);
         response.setDescription(performanceParams.getDescription());
         response.setAutoTieringPolicyName(performanceParams.getAutoTierPolicyName());
         response.setCompressionEnabled(performanceParams.getCompressionEnabled());

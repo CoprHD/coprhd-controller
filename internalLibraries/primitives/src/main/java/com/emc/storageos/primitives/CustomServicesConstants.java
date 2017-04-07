@@ -34,6 +34,11 @@ public final class CustomServicesConstants {
     public static final String ERROR_MSG_INPUT_NAME_IS_EMPTY = "Input Name is empty";
     public static final String ERROR_MSG_INPUT_NAME_NOT_UNIQUE_IN_STEP = "Input Name is not unique in the step";
 
+    public static final String ERROR_MSG_RESOURCE_NOT_DELETED = "Resource cannot be deleted";
+    public static final String MSG_RESOURCE_DELETED = "Resource is deleted";
+    public static final String ERROR_MSG_RESOURCE_NOT_UPDATED = "Resource cannot be updated";
+    public static final String MSG_RESOURCE_UPDATED = "Resource is updated";
+
     public static final int STEP_ID = 0;
     public static final int INPUT_FIELD = 1;
     public static final String WF_ID = "WorkflowId";

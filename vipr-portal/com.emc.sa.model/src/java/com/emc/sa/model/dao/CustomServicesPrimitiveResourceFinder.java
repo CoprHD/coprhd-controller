@@ -22,6 +22,7 @@ import java.util.Iterator;
 import java.util.List;
 
 import com.emc.storageos.db.client.constraint.NamedElementQueryResultList.NamedElement;
+import com.emc.storageos.db.client.model.uimodels.CustomServicesDBAnsiblePrimitive;
 import com.emc.storageos.db.client.model.uimodels.CustomServicesDBResource;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;

@@ -20,6 +20,8 @@ import java.net.URI;
 import java.util.List;
 
 import com.emc.storageos.db.client.constraint.NamedElementQueryResultList.NamedElement;
+import com.emc.storageos.model.customservices.CustomServicesPrimitiveResourceResponse;
+import com.emc.storageos.model.customservices.CustomServicesPrimitiveResourceRestRep;
 import com.emc.storageos.primitives.CustomServicesPrimitiveResourceType;
 
 /**
@@ -59,14 +61,14 @@ public interface CustomServicesResourceDAO<Resource extends CustomServicesPrimit
      * @param stream New bytes for the resource. They could be null
      * @return The updated resource
      */
-    public Resource updateResource(URI id, String name, byte[] stream);
+    public CustomServicesPrimitiveResourceResponse updateResource(URI id, String name, byte[] stream);
 
     /**
      * Deactivate a resource with the given ID
      * 
      * @param id The ID of the resource to deactivate
      */
-    public void deactivateResource(final URI id);
+    public CustomServicesPrimitiveResourceResponse deactivateResource(final URI id);
 
     /**
      * A list of the resources of the type supported by this DAO

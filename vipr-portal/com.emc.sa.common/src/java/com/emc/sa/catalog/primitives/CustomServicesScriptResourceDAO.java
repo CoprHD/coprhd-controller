@@ -19,6 +19,8 @@ package com.emc.sa.catalog.primitives;
 import java.net.URI;
 import java.util.List;
 
+import com.emc.storageos.db.client.model.uimodels.CustomServicesDBAnsiblePrimitive;
+import com.emc.storageos.db.client.model.uimodels.CustomServicesDBScriptPrimitive;
 import org.apache.commons.lang.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -28,6 +30,7 @@ import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.constraint.NamedElementQueryResultList.NamedElement;
 import com.emc.storageos.db.client.model.StringSetMap;
 import com.emc.storageos.db.client.model.uimodels.CustomServicesDBScriptResource;
+import com.emc.storageos.model.customservices.CustomServicesPrimitiveResourceResponse;
 import com.emc.storageos.primitives.db.script.CustomServicesScriptPrimitive;
 import com.emc.storageos.primitives.db.script.CustomServicesScriptResource;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
@@ -66,9 +69,10 @@ public class CustomServicesScriptResourceDAO implements CustomServicesResourceDA
     }
 
     @Override
-    public CustomServicesScriptResource updateResource(final URI id, final String name, final byte[] stream) {
-        return CustomServicesDBHelper.updateResource(CustomServicesScriptResource.class, CustomServicesDBScriptResource.class,
-                primitiveManager, id, name, stream, null);
+    public CustomServicesPrimitiveResourceResponse updateResource(final URI id, final String name, final byte[] stream) {
+        return CustomServicesDBHelper.updateResource(CustomServicesDBScriptResource.class,
+                primitiveManager, id, name, stream, null,client, null,null,
+                CustomServicesDBScriptPrimitive.class, CustomServicesDBScriptPrimitive.RESOURCE);
     }
 
     @Override
@@ -77,8 +81,10 @@ public class CustomServicesScriptResourceDAO implements CustomServicesResourceDA
     }
 
     @Override
-    public void deactivateResource(final URI id) {
-        CustomServicesDBHelper.deactivateResource(CustomServicesDBScriptResource.class, primitiveManager, client, id);
+    public CustomServicesPrimitiveResourceResponse deactivateResource(final URI id) {
+        // There Script resource is referenced by the script primitive. There are no resource that is dependent on it.
+        return CustomServicesDBHelper.deactivateResource(CustomServicesDBScriptResource.class, primitiveManager, client, id, null, null,
+                CustomServicesDBScriptPrimitive.class, CustomServicesDBScriptPrimitive.RESOURCE);
     }
 
     @Override

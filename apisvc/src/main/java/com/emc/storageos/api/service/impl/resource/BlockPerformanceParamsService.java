@@ -15,6 +15,8 @@ import javax.ws.rs.core.MediaType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.emc.storageos.api.mapper.BlockMapper;
+import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.PerformanceParams;
 import com.emc.storageos.model.ResourceTypeEnum;
@@ -52,7 +54,29 @@ public class BlockPerformanceParamsService extends TaggedResource {
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
     public BlockPerformanceParamsRestRep createBlockPerformanceParams(BlockPerformanceParamsCreate param) {
-        return null;
+        
+        // Verify the name.
+        String performanceParamsName = param.getName();
+        ArgValidator.checkFieldNotEmpty(performanceParamsName, "Name");
+        checkForDuplicateName(performanceParamsName, PerformanceParams.class);
+        
+        URI performanceParamsURI = URIUtil.createId(PerformanceParams.class);
+        logger.info("Creating PerformanceParams instance {} with id {}", performanceParamsName, performanceParamsURI);
+
+        PerformanceParams performanceParams = new PerformanceParams();
+        performanceParams.setId(performanceParamsURI);
+        performanceParams.setLabel(param.getName());
+        performanceParams.setDescription(param.getDescription());
+        performanceParams.setAutoTierPolicyName(param.getAutoTieringPolicyName());
+        performanceParams.setCompressionEnabled(param.getCompressionEnabled());
+        performanceParams.setHostIOLimitBandwidth(param.getHostIOLimitBandwidth());
+        performanceParams.setHostIOLimitIOPs(param.getHostIOLimitIOPs());
+        performanceParams.setThinVolumePreAllocationPercentage(param.getThinVolumePreAllocationPercentage());
+        performanceParams.setDedupCapable(param.getDedupCapable());
+        performanceParams.setFastExpansion(param.getFastExpansion());
+        _dbClient.createObject(performanceParams);
+        
+        return BlockMapper.map(performanceParams);
     }
 
     /**

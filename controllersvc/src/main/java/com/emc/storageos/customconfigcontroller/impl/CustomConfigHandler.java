@@ -111,8 +111,9 @@ public class CustomConfigHandler {
         URIQueryResultList results = new URIQueryResultList();
         dbClient.queryByConstraint(AlternateIdConstraint.Factory.getCustomConfigByConfigType(configName),
                 results);
-        while (results.iterator().hasNext()) {
-            CustomConfig tmpConfig = dbClient.queryObject(CustomConfig.class, results.iterator().next());
+        Iterator<CustomConfig> customConfigResult = dbClient.queryIterativeObjects(CustomConfig.class, results);
+        while (customConfigResult.hasNext()) {
+            CustomConfig tmpConfig = customConfigResult.next();
             if (tmpConfig == null || tmpConfig.getInactive() == true || !tmpConfig.getRegistered()) {
                 continue;
             }

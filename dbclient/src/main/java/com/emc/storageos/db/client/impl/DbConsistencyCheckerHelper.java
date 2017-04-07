@@ -80,7 +80,7 @@ public class DbConsistencyCheckerHelper {
 
     private DbClientImpl dbClient;
     private Set<Class<? extends DataObject>> excludeClasses = new HashSet<Class<? extends DataObject>>(Arrays.asList(PasswordHistory.class));
-    private final Set<Class<? extends DataObject>> skipCheckCFs = new HashSet<>(Arrays.asList(ExecutionState.class, ExecutionLog.class, ExecutionTaskLog.class));
+    private final Set<String> skipCheckCFs = new HashSet<>(Arrays.asList(ExecutionState.class.getSimpleName(), ExecutionLog.class.getSimpleName(), ExecutionTaskLog.class.getSimpleName()));
     private volatile Map<Long, String> schemaVersionsTime;
     private BlockingQueue<Runnable> blockingQueue = new ArrayBlockingQueue<Runnable>(THREAD_POOL_QUEUE_SIZE);
     private ThreadPoolExecutor executor = new ThreadPoolExecutor(5, 20, 50, TimeUnit.MILLISECONDS, blockingQueue);
@@ -150,8 +150,8 @@ public class DbConsistencyCheckerHelper {
     public void checkCFIndices(DataObjectType doType, boolean toConsole, CheckResult checkResult) throws ConnectionException {
         initSchemaVersions();
         Class objClass = doType.getDataObjectClass();
-        if (skipCheckCFs.contains(objClass)) {
-            _log.info("Skip checking CF {}.", objClass);
+        if (skipCheckCFs.contains(objClass.getSimpleName())) {
+            _log.info("Skip checking CF {}", objClass);
             return;
         } else {
             _log.info("Check Data Object CF {} with double confirmed option: {}", objClass, doubleConfirmed);
@@ -271,6 +271,11 @@ public class DbConsistencyCheckerHelper {
 
                     if (objCf == null) {
                         logMessage(String.format("DataObject does not exist for %s", row.getKey()), true, toConsole);
+                        continue;
+                    }
+
+                    if (skipCheckCFs.contains(objCf.getName())) {
+                        _log.debug("Skip checking CF {} for index CF {}", objCf.getName(), indexAndCf.cf.getName());
                         continue;
                     }
 

@@ -27,6 +27,7 @@ import com.sun.jersey.api.client.WebResource;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.service.vipr.tasks.ViPRExecutionTask;
@@ -36,17 +37,18 @@ import com.emc.storageos.primitives.CustomServicesConstants;
 import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorException;
 
 public class CustomServicesRESTExecution extends ViPRExecutionTask<CustomServicesTaskResult> {
-
-    private final CoordinatorClient coordinator;
-    private final Map<String, List<String>> input;
-    private final CustomServicesWorkflowDocument.Step step;
     private static final org.slf4j.Logger logger = LoggerFactory.getLogger(CustomServicesRESTExecution.class);
 
-    public CustomServicesRESTExecution(final CoordinatorClient coordinator, final Map<String, List<String>> input,
-                                        final CustomServicesWorkflowDocument.Step step) {
-        this.coordinator = coordinator;
+    private final Map<String, List<String>> input;
+    private final CustomServicesWorkflowDocument.Step step;
+
+    private final CoordinatorClient coordinator;
+
+    public CustomServicesRESTExecution(final Map<String, List<String>> input,
+            final CustomServicesWorkflowDocument.Step step, final CoordinatorClient coordinator) {
         this.input = input;
         this.step = step;
+        this.coordinator = coordinator;
     }
 
     @Override
@@ -82,8 +84,7 @@ public class CustomServicesRESTExecution extends ViPRExecutionTask<CustomService
             ExecutionUtils.currentContext().logInfo("customServicesRESTExecution.doneInfo", step.getId());
             return result;
         } catch (final Exception e) {
-            logger.error("Received Exception:{}", e);
-            ExecutionUtils.currentContext().logInfo("customServicesRESTExecution.doneInfo","Custom Service Task Failed" + e);
+            ExecutionUtils.currentContext().logError("customServicesRESTExecution.doneInfo","Custom Service Task Failed" + e);
             throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed("Custom Service Task Failed" + e);
         }
     }

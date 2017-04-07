@@ -31,7 +31,7 @@ import com.emc.vipr.client.ViPRCoreClient;
  * It tracks the state of each ViPR REST task started by Custom Services
  */
 public class TaskState {
-    private static final org.slf4j.Logger logger = LoggerFactory.getLogger(RunViprREST.class);
+    private static final org.slf4j.Logger logger = LoggerFactory.getLogger(TaskState.class);
     private final Map<URI, String> taskState = new HashMap<>();
     private final ViPRCoreClient client;
     private final List<URI> tasksStartedByOe;

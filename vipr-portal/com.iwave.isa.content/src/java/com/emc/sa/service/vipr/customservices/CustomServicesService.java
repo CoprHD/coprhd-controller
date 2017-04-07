@@ -18,6 +18,7 @@
 package com.emc.sa.service.vipr.customservices;
 
 import java.io.File;
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -36,20 +37,18 @@ import org.springframework.expression.ExpressionParser;
 import org.springframework.expression.spel.standard.SpelExpressionParser;
 import org.springframework.expression.spel.support.StandardEvaluationContext;
 
-import com.emc.sa.catalog.primitives.CustomServicesPrimitiveDAOs;
 import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.engine.service.Service;
 import com.emc.sa.service.vipr.ViPRExecutionUtils;
 import com.emc.sa.service.vipr.ViPRService;
 import com.emc.sa.service.vipr.customservices.gson.ViprOperation;
 import com.emc.sa.service.vipr.customservices.gson.ViprTask;
-import com.emc.sa.service.vipr.customservices.tasks.CustomServicesRESTExecution;
+import com.emc.sa.service.vipr.customservices.tasks.CustomServicesExecutors;
 import com.emc.sa.service.vipr.customservices.tasks.CustomServicesRestTaskResult;
 import com.emc.sa.service.vipr.customservices.tasks.CustomServicesTaskResult;
-import com.emc.sa.service.vipr.customservices.tasks.RunAnsible;
-import com.emc.sa.service.vipr.customservices.tasks.RunViprREST;
+import com.emc.sa.service.vipr.customservices.tasks.MakeCustomServicesExecutor;
 import com.emc.sa.workflow.WorkflowHelper;
-import com.emc.storageos.coordinator.client.service.CoordinatorClient;
+import com.emc.storageos.db.client.model.uimodels.CustomServicesWorkflow;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.model.customservices.CustomServicesWorkflowDocument;
 import com.emc.storageos.model.customservices.CustomServicesWorkflowDocument.Input;
@@ -57,8 +56,6 @@ import com.emc.storageos.model.customservices.CustomServicesWorkflowDocument.Ste
 import com.emc.storageos.primitives.CustomServicesConstants;
 import com.emc.storageos.primitives.CustomServicesConstants.InputType;
 import com.emc.storageos.primitives.CustomServicesPrimitive.StepType;
-import com.emc.storageos.primitives.CustomServicesPrimitiveType;
-import com.emc.storageos.primitives.java.vipr.CustomServicesViPRPrimitive;
 import com.emc.storageos.services.util.Exec;
 import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorException;
 import com.google.common.collect.ImmutableMap;
@@ -73,63 +70,47 @@ public class CustomServicesService extends ViPRService {
     final private Map<String, Map<String, List<String>>> outputPerStep = new HashMap<String, Map<String, List<String>>>();
     private Map<String, Object> params;
     private String oeOrderJson;
-    @Autowired
-    private CoordinatorClient coordinatorClient;
+
     @Autowired
     private DbClient dbClient;
     @Autowired
-    private CustomServicesPrimitiveDAOs daos;
+    private CustomServicesExecutors executor;
 
-    private ImmutableMap<String, Step> stepsHash;
-    private CustomServicesWorkflowDocument obj;
     private int code;
 
     @Override
     public void precheck() throws Exception {
-
         // get input params from order form
         params = ExecutionUtils.currentContext().getParameters();
-        final String raw = ExecutionUtils.currentContext().getOrder().getWorkflowDocument();
-
-        if (null == raw) {
-            throw InternalServerErrorException.internalServerErrors
-                    .customServiceExecutionFailed("Invalid custom service.  Workflow document cannot be null");
-        }
-
-        obj = WorkflowHelper.toWorkflowDocument(raw);
-        final List<Step> steps = obj.getSteps();
-        final ImmutableMap.Builder<String, Step> builder = ImmutableMap.builder();
-        for (final Step step : steps) {
-            builder.put(step.getId(), step);
-        }
-        stepsHash = builder.build();
     }
 
     @Override
     public void execute() throws Exception {
         ExecutionUtils.currentContext().logInfo("customServicesService.title");
+        final String orderDir = String.format("%s%s/", CustomServicesConstants.ORDER_DIR_PATH,
+                ExecutionUtils.currentContext().getOrder().getOrderNumber());
         try {
-            wfExecutor();
+            wfExecutor(null, null);
             ExecutionUtils.currentContext().logInfo("customServicesService.successStatus");
         } catch (final Exception e) {
             ExecutionUtils.currentContext().logError("customServicesService.failedStatus");
 
             throw e;
+        } finally {
+            orderDirCleanup(orderDir);
         }
     }
-
     /**
      * Method to parse Workflow Definition JSON
      *
      * @throws Exception
      */
-    public void wfExecutor() throws Exception {
+    public void wfExecutor(final URI uri, final Map<String, CustomServicesWorkflowDocument.InputGroup> stepInput) throws Exception {
 
         logger.info("Parsing Workflow Definition");
 
-        ExecutionUtils.currentContext().logInfo("customServicesService.status", obj.getName(), obj.getDescription());
-        final String orderDir = String.format("%s%s/", CustomServicesConstants.ORDER_DIR_PATH,
-                ExecutionUtils.currentContext().getOrder().getOrderNumber());
+        final ImmutableMap<String, Step> stepsHash = getStepHash(uri);
+
 
         Step step = stepsHash.get(StepType.START.toString());
         String next = step.getNext().getDefaultStep();
@@ -139,72 +120,42 @@ public class CustomServicesService extends ViPRService {
 
             ExecutionUtils.currentContext().logInfo("customServicesService.stepStatus", step.getId(), step.getType());
 
-            updateInputPerStep(step);
+            final Step updatedStep = updatesubWfInput(step, stepInput);
+
+            updateInputPerStep(updatedStep);
 
             final CustomServicesTaskResult res;
-
             try {
-                StepType type = StepType.fromString(step.getType());
-                switch (type) {
-                    case VIPR_REST: {
+                if (updatedStep.getType().equals(StepType.WORKFLOW.toString())) {
 
-                        final CustomServicesPrimitiveType primitive = daos.get("vipr").get(step.getOperation());
+                    wfExecutor(updatedStep.getOperation(), updatedStep.getInputGroups());
 
-                        if (null == primitive) {
-                            throw InternalServerErrorException.internalServerErrors
-                                    .customServiceExecutionFailed("Primitive not found: " + step.getOperation());
-                        }
+                    // We Don't evaluate output/result for Workflow Step. It is already evaluated.
+                    // We would have got exception if Sub WF has failed
+                    res = new CustomServicesTaskResult("Success", "No Error", 200, null);
+                } else {
+                    final MakeCustomServicesExecutor task = executor.get(updatedStep.getType());
+                    task.setParam(getClient().getRestClient());
 
-                        res = ViPRExecutionUtils.execute(new RunViprREST((CustomServicesViPRPrimitive) (primitive),
-                                getClient().getRestClient(), inputPerStep.get(step.getId())));
-
-                        break;
-                    }
-                    case REST:
-                        logger.info("Start REST execution");
-                        res = ViPRExecutionUtils
-                                .execute(new CustomServicesRESTExecution(coordinatorClient, inputPerStep.get(step.getId()), step));
-                        break;
-                    case LOCAL_ANSIBLE:
-                        logger.info("Executing Local Ansible step");
-                        createOrderDir(orderDir);
-                        res = ViPRExecutionUtils.execute(new RunAnsible(step, inputPerStep.get(step.getId()), params, dbClient, orderDir));
-                        break;
-                    case SHELL_SCRIPT:
-                        logger.info("Executing Shell Script step");
-                        createOrderDir(orderDir);
-                        res = ViPRExecutionUtils.execute(new RunAnsible(step, inputPerStep.get(step.getId()), params, dbClient, orderDir));
-                        break;
-                    case REMOTE_ANSIBLE: {
-                        logger.info("Executing remote ansible step");
-                        res = ViPRExecutionUtils.execute(new RunAnsible(step, inputPerStep.get(step.getId()), params, dbClient, orderDir));
-                        break;
-                    }
-                    default:
-                        logger.error("Operation Type Not found. Type:{}", step.getType());
-
-                        throw InternalServerErrorException.internalServerErrors
-                                .customServiceExecutionFailed("Operation Type not supported" + type);
+                    res = ViPRExecutionUtils.execute(task.makeCustomServicesExecutor(inputPerStep.get(updatedStep.getId()), updatedStep));
                 }
 
-                boolean isSuccess = isSuccess(step, res);
+                boolean isSuccess = isSuccess(updatedStep, res);
                 if (isSuccess) {
                     try {
-                        updateOutputPerStep(step, res);
+                        updateOutputPerStep(updatedStep, res);
                     } catch (final Exception e) {
                         logger.info("Failed to parse output" + e);
 
                         isSuccess = false;
                     }
                 }
-                next = getNext(isSuccess, res, step);
+                next = getNext(isSuccess, res, updatedStep);
             } catch (final Exception e) {
-                logger.info("failed to execute step. Try to get rollback step");
-                next = getNext(false, null, step);
-            } finally {
-                orderDirCleanup(orderDir);
+                logger.info(
+                        "failed to execute step. Try to get failure path. Exception Received:" + e + e.getStackTrace()[0].getLineNumber());
+                next = getNext(false, null, updatedStep);
             }
-
             if (next == null) {
                 throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed("Failed to get next step");
             }
@@ -214,21 +165,73 @@ public class CustomServicesService extends ViPRService {
         }
     }
 
-    private boolean createOrderDir(final String orderDir) {
-        try {
-            final File file = new File(orderDir);
-            if (!file.exists()) {
-                return file.mkdir();
-            } else {
-                logger.info("Order directory already exists: {}", orderDir);
-                return true;
-            }
-        } catch (final Exception e) {
-            logger.error("Failed to create directory" + e);
+    private ImmutableMap<String, Step> getStepHash(final URI uri) throws Exception {
+
+        final String raw;
+
+        if (uri == null) {
+            raw = ExecutionUtils.currentContext().getOrder().getWorkflowDocument();
+        } else {
+            //Get it from DB
+            final CustomServicesWorkflow wf = dbClient.queryObject(CustomServicesWorkflow.class, uri);
+            raw = WorkflowHelper.toWorkflowDocumentJson(wf);
+        }
+        if (null == raw) {
             throw InternalServerErrorException.internalServerErrors
-                    .customServiceExecutionFailed("Failed to create Order directory " + orderDir);
+                    .customServiceExecutionFailed("Invalid custom service.  Workflow document cannot be null");
+        }
+        final CustomServicesWorkflowDocument obj = WorkflowHelper.toWorkflowDocument(raw);
+
+        final List<Step> steps = obj.getSteps();
+        final ImmutableMap.Builder<String, Step> builder = ImmutableMap.builder();
+        for (final Step step : steps) {
+            builder.put(step.getId(), step);
+        }
+        final ImmutableMap<String, Step> stepsHash = builder.build();
+
+        ExecutionUtils.currentContext().logInfo("customServicesService.status", obj.getName(), obj.getDescription());
+
+        return stepsHash;
+    }
+
+    private boolean needUpdate(final Step step, final Map<String, CustomServicesWorkflowDocument.InputGroup> stepInput) {
+        if (step.getType().equals(StepType.WORKFLOW.toString()) || stepInput == null || step.getInputGroups() == null) {
+            return false;
         }
 
+        return true;
+    }
+
+    private Step updatesubWfInput(final Step step, final Map<String, CustomServicesWorkflowDocument.InputGroup> stepInput) {
+        if(!needUpdate(step, stepInput)) {
+            return step;
+        }
+
+        for (final CustomServicesWorkflowDocument.InputGroup inputGroup : step.getInputGroups().values()) {
+            for (final Input value : inputGroup.getInputGroup()) {
+                final String name = value.getFriendlyName();
+                switch (CustomServicesConstants.InputType.fromString(value.getType())) {
+                    case FROM_USER:
+                    case ASSET_OPTION:
+                        for (final CustomServicesWorkflowDocument.InputGroup inputGroup1 : stepInput.values()) {
+                            for (final Input value1 : inputGroup1.getInputGroup()) {
+                                final String name1 = value1.getFriendlyName();
+                                if (name1.equals(name)) {
+                                    logger.debug("Change the type name:{}", name);
+                                    value.setType(value1.getType());
+                                    value.setValue(value1.getValue());
+                                    value.setDefaultValue(value1.getDefaultValue());
+                                }
+                            }
+                        }
+                        break;
+                    default:
+                        logger.info("do nothing");
+                }
+            }
+        }
+
+        return step;
     }
 
     private void orderDirCleanup(final String orderDir) {
@@ -269,13 +272,20 @@ public class CustomServicesService extends ViPRService {
         return step.getNext().getFailedStep();
     }
 
+    private boolean updateInput(final Step step) {
+        if (step.getType().equals(StepType.WORKFLOW.toString()) || step.getInputGroups() == null) {
+            return false;
+        }
+
+        return true;
+    }
     /**
      * Method to collect all required inputs per step for execution
      *
      * @param step It is the JSON Object of Step
      */
     private void updateInputPerStep(final Step step) throws Exception {
-        if (step.getInputGroups() == null) {
+        if (!updateInput(step)) {
             return;
         }
 
@@ -283,6 +293,7 @@ public class CustomServicesService extends ViPRService {
         for (final CustomServicesWorkflowDocument.InputGroup inputGroup : step.getInputGroups().values()) {
             for (final Input value : inputGroup.getInputGroup()) {
                 final String name = value.getName();
+
                 switch (InputType.fromString(value.getType())) {
                     case FROM_USER:
                     case ASSET_OPTION:
@@ -296,10 +307,9 @@ public class CustomServicesService extends ViPRService {
                         }
                         break;
                     case ASSET_OPTION_MULTI:
-
-
+                    case ASSET_OPTION_SINGLE:
                     // TODO: Handle multi value
-                    // case ASSET_OPTION_MULTI_VALUE:
+
                     case FROM_STEP_INPUT:
                     case FROM_STEP_OUTPUT: {
                         final String[] paramVal = value.getValue().split("\\.");
@@ -331,7 +341,6 @@ public class CustomServicesService extends ViPRService {
                 }
             }
         }
-
         inputPerStep.put(step.getId(), inputs);
     }
 

@@ -352,7 +352,9 @@ public class ExportGroupService extends TaskResourceService {
 
         
         List<VolumeParam> volParams = param.getVolumes();
-        validateAddVolumesForExportGroup(volParams, pathParam.getPortGroup());
+        if (!volParams.isEmpty() && pathParam != null) {
+            validateAddVolumesForExportGroup(volParams, pathParam.getPortGroup());
+        }
         
         // COP-14028
         // Changing the return of a TaskList to return immediately while the underlying tasks are

@@ -1854,9 +1854,5 @@
         <property name="dbClient" ref="dbclient"/>
     </bean>
 
-    <bean id="remoteReplicationDataClient" class="com.emc.storageos.volumecontroller.impl.externaldevice.RemoteReplicationDataClientImpl">
-        <property name="dbClient" ref="dbclient"/>
-    </bean>
-
 </beans>
 

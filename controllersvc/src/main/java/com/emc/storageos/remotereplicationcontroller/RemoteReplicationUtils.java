@@ -6,10 +6,12 @@ import static com.emc.storageos.db.client.util.CustomQueryUtility.queryActiveRes
 
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -211,7 +213,12 @@ public class RemoteReplicationUtils {
             String rrSetNativeId = getRemoteReplicationSetNativeIdForSrdfSet(sourceSystem, targetSystem);
 
             // Get nativeId for rr group.
-            String rrGroupNativeId = getRemoteReplicationGroupNativeIdForSrdfGroup(sourceSystem, targetSystem, rdGroup);
+            String rrGroupNativeId = null;
+            if (rdGroup != null) {
+                rrGroupNativeId = getRemoteReplicationGroupNativeIdForSrdfGroup(sourceSystem, targetSystem, rdGroup);
+            } else {
+                _log.info("RDF group is not defined for srdf pair: {} -> {}", sourceUri, targetUri);
+            }
 
             String replicationMode = target.getSrdfCopyMode();
 
@@ -236,8 +243,9 @@ public class RemoteReplicationUtils {
 
             RemoteReplicationDataClient remoteReplicationDataClient = new RemoteReplicationDataClientImpl(dbClient);
             remoteReplicationDataClient.createRemoteReplicationPair(rrPair, source.getId(), target.getId());
-        } catch (Throwable th) {
-            _log.error("Failed to create remote replication pair for srdf pair: {} -> {}", sourceUri, targetUri, th);
+        } catch (Exception ex) {
+            _log.error("Failed to create remote replication pair for srdf pair: {} -> {}", sourceUri, targetUri, ex);
+            throw new RuntimeException(ex);
         }
     }
 
@@ -248,15 +256,18 @@ public class RemoteReplicationUtils {
     }
 
 
+    /**
+     * Return native id of remote replication set based on srdf set.
+     * @param sourceSystem source system
+     * @param targetSystem target system
+     * @return native id
+     */
     public static String getRemoteReplicationSetNativeIdForSrdfSet(StorageSystem sourceSystem, StorageSystem targetSystem) {
-        String rrSetNativeId = null;
-        if (sourceSystem.getSerialNumber().compareToIgnoreCase(targetSystem.getSerialNumber()) >= 0) {
-            rrSetNativeId = sourceSystem.getSerialNumber() + Constants.PLUS + targetSystem.getSerialNumber();
-        } else {
-            rrSetNativeId = targetSystem.getSerialNumber() + Constants.PLUS + targetSystem.getSerialNumber();
-        }
-
-        return rrSetNativeId;
+        List<String> systemSerialNumbers = new ArrayList<>();
+        systemSerialNumbers.add(sourceSystem.getSerialNumber());
+        systemSerialNumbers.add(targetSystem.getSerialNumber());
+        Collections.sort(systemSerialNumbers);
+        return StringUtils.join(systemSerialNumbers, "+");
     }
 
     public static String getRemoteReplicationPairNativeIdForSrdfPair(Volume source, Volume target) {

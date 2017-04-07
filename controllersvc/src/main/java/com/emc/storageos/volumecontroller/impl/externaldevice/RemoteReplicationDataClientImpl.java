@@ -35,8 +35,8 @@ public class RemoteReplicationDataClientImpl implements RemoteReplicationDataCli
         _dbClient = dbClient;
     }
 
-    public RemoteReplicationDataClientImpl(DbClient _dbClient) {
-        this._dbClient = _dbClient;
+    public RemoteReplicationDataClientImpl(DbClient dbClient) {
+        this._dbClient = dbClient;
     }
 
     public RemoteReplicationDataClientImpl() {

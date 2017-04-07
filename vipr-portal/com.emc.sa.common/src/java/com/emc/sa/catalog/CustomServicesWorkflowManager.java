@@ -34,6 +34,7 @@ public interface CustomServicesWorkflowManager {
     public void delete(final CustomServicesWorkflow workflow);
     public boolean hasCatalogServices(final String name);
     public List<NamedElement> listByStatus(final CustomServicesWorkflowStatus status);
+    public List<NamedElement> listByPrimitiveUsed(final URI primitiveId);
     
     
 }

@@ -110,7 +110,7 @@ public class CustomServicesAnsiblePrimitiveDAO implements
 
     @Override
     public void deactivate(URI id) {
-        CustomServicesDBHelper.deactivate(CustomServicesDBAnsiblePrimitive.class, primitiveManager, client, id);
+        CustomServicesDBHelper.deactivate(CustomServicesDBAnsiblePrimitive.class, primitiveManager, client, id, CustomServicesDBAnsibleResource.class,CustomServicesDBAnsibleInventoryResource.class);
     }
 
     @Override

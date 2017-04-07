@@ -106,7 +106,7 @@ public class CustomServicesScriptPrimitiveDAO implements CustomServicesPrimitive
 
     @Override
     public void deactivate(URI id) {
-        CustomServicesDBHelper.deactivate(CustomServicesDBScriptPrimitive.class, primitiveManager, client, id);
+        CustomServicesDBHelper.deactivate(CustomServicesDBScriptPrimitive.class, primitiveManager, client, id, CustomServicesDBScriptResource.class, null);
     }
 
     @Override

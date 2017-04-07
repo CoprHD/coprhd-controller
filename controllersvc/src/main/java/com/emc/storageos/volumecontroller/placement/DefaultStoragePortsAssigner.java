@@ -454,10 +454,12 @@ public class DefaultStoragePortsAssigner implements StoragePortsAssigner {
      */
     public void assignPortsToHost(Map<Initiator, List<StoragePort>> assignments,
             Map<URI, List<Initiator>> netToNewInitiators, Map<URI, List<StoragePort>> netToAllocatedPorts,
-            ExportPathParams pathParams, Map<Initiator, List<StoragePort>> argExistingAssignments, URI hostURI,
-            Map<Initiator, NetworkLite> initiatorToNetworkLiteMap, Map<URI, Map<String, List<Initiator>>> switchToInitiatorsByNet,
+            ExportPathParams pathParams, Map<Initiator, List<StoragePort>> argExistingAssignments,
+            URI hostURI, Map<Initiator, NetworkLite> initiatorToNetworkLiteMap, 
+            Map<URI, Map<String, List<Initiator>>> switchToInitiatorsByNet,
             Map<URI, Map<String, List<StoragePort>>> switchToStoragePortsByNet) {
         _log.info("Assigning ports for host: " + hostURI);
+        
         Map<String, String> portAddressToSwitchName = makePortAddressToSwitchMap(switchToStoragePortsByNet);
         Map<Initiator, String> initiatorToSwitchName = makeInitiatorToSwitchMap(switchToInitiatorsByNet);
 
@@ -465,6 +467,11 @@ public class DefaultStoragePortsAssigner implements StoragePortsAssigner {
         Map<StoragePort, Integer> portUseCounts = new HashMap<StoragePort, Integer>();
         // Deal with existingAssignments passed in as null, meaning no assignments
         Map<Initiator, List<StoragePort>> existingAssignments = nonNullAssignmentMap(argExistingAssignments);
+        
+        //Remove associated initiators if any, so we can assign the storage ports at the end
+        Map<Initiator, URI> initiatorToassociatedIniURI = makeInitiatorAssociatedInitiatorPairs(netToNewInitiators);
+        Map<URI, Initiator> uriToItsInitiator = makeURIToInitiatorMap(netToNewInitiators, argExistingAssignments);
+        removeAssociatedInitiators(initiatorToassociatedIniURI, netToNewInitiators, argExistingAssignments);
 
         // Determine the Initiators for this particular host.
         Map<URI, List<Initiator>> existingInitiatorsMap = makeHostInitiatorsMap(existingAssignments.keySet());
@@ -538,12 +545,12 @@ public class DefaultStoragePortsAssigner implements StoragePortsAssigner {
                         break;
                     }
 
-                    //try to assigning port form its associated initiator from assignments
+                   /* //try to assigning port form its associated initiator from assignments
                     boolean assigned = assignSamePortsFromAssociateInitiator(initiator, assignments);
                     if (assigned) {
                         // continue from further consideration for this initiator.
                         continue;
-                    }
+                    }*/
                     
                     // Try to find available ports with switch affinity.
                     List<StoragePort> availPorts = new ArrayList<StoragePort>();
@@ -568,7 +575,7 @@ public class DefaultStoragePortsAssigner implements StoragePortsAssigner {
                     if (nonAffinityPorts != null) {
                         availPorts.addAll(nonAffinityPorts);
                     }
-                    if (availPorts != null) {
+                    if (availPorts != null && !availPorts.isEmpty()) {
                         // Assign them and update the current storage paths count
                         assignPorts(assignments, entry.getKey(), initiator, availPorts, portUseCounts, 
                                 portAddressToSwitchName, initiatorToSwitchName);
@@ -580,6 +587,166 @@ public class DefaultStoragePortsAssigner implements StoragePortsAssigner {
                 }
             }
         }
+        
+        //Assign storage ports to associated initiators
+        assignPortsToAssociatedInitiators(uriToItsInitiator, assignments);
+        restoreExistingAssignments(uriToItsInitiator, argExistingAssignments);
+    }
+
+    /**
+     * Restore the the map for associated initiator assignment
+     * @param uriToItsInitiator
+     * @param argExistingAssignments
+     */
+    private void restoreExistingAssignments(Map<URI, Initiator> uriToItsInitiator,
+            Map<Initiator, List<StoragePort>> argExistingAssignments) {
+        
+        assignPortsToAssociatedInitiators(uriToItsInitiator, argExistingAssignments);
+    }
+
+    /**
+     * Creates a map of URI to its Initiator object
+     * This will be used to retrieve the associated initiator to
+     * do the storage ports assignment.
+     * 
+     * @param netToNewInitiators
+     * @param argExistingAssignments
+     * @return
+     */
+    private Map<URI, Initiator> makeURIToInitiatorMap(Map<URI, List<Initiator>> netToNewInitiators, Map<Initiator, List<StoragePort>> argExistingAssignments) {
+        Map<URI, Initiator> uriToInitiator = new HashMap<>();
+        
+        Set<URI> keySet = netToNewInitiators.keySet();
+        for(URI netURI : keySet) {
+            List<Initiator> list = netToNewInitiators.get(netURI);
+            for(Initiator ini : list) {
+                uriToInitiator.put(ini.getId(), ini);
+            }
+        }
+        
+        Set<Initiator> existingAssignmentKeyset = argExistingAssignments.keySet();
+        for(Initiator exIni : existingAssignmentKeyset) {
+            URI uri = exIni.getId();
+            if(!uriToInitiator.containsKey(uri)) {
+                uriToInitiator.put(uri, exIni);
+            }
+        }
+        
+        return uriToInitiator;
+    }
+
+    /**
+     * Assigns storage ports to associated initiators
+     * and adds it as an entry into assignments
+     * 
+     * @param uriToItsInitiator 
+     * 
+     * @param assignments
+     */
+    private void assignPortsToAssociatedInitiators(Map<URI, Initiator> uriToItsInitiator,
+                                                   Map<Initiator, List<StoragePort>> assignments) {
+        
+        Map<Initiator, List<StoragePort>> assignmentsForAssociatedPorts = new HashMap<>();
+        Set<Initiator> iniKeySet = assignments.keySet();
+        for(Initiator initiator : iniKeySet) {
+            URI associatedIniUri = initiator.getAssociatedInitiator();
+            
+            if(!NullColumnValueGetter.isNullURI(associatedIniUri)) {
+                
+              //Get the associated initiator object
+              Initiator associatedInitiator = uriToItsInitiator.get(associatedIniUri);
+              
+              //Get the storage ports assigned to its associated initiator
+              List<StoragePort> assignedStoragePorts = assignments.get(initiator);
+              
+              //Assign these same ports to self
+              if(!assignments.containsKey(associatedInitiator)) {
+                  assignmentsForAssociatedPorts.put(associatedInitiator, assignedStoragePorts);
+                  _log.info("Associated Initiator %s is assigned with storage ports %s",
+                            associatedIniUri, assignedStoragePorts.toString());
+              }              
+              
+            }            
+        }
+        
+        if(!assignmentsForAssociatedPorts.isEmpty()) {
+            assignments.putAll(assignmentsForAssociatedPorts);
+        }
+        
+    }
+
+    /**
+     * Removes associated initiators from the initiator list under consideration
+     * and from the existing assignments.
+     * 
+     * @param associatedPairs
+     * @param netToNewInitiators
+     * @param argExistingAssignments
+     */
+    private void removeAssociatedInitiators(Map<Initiator, URI> associatedPairs,
+                                            Map<URI, List<Initiator>> netToNewInitiators,
+                                            Map<Initiator, List<StoragePort>> argExistingAssignments) {
+        
+        Set<Initiator> associatedIniKeyset = associatedPairs.keySet();
+        for(Initiator ini : associatedIniKeyset) {
+            URI uri = associatedPairs.get(ini);
+            
+            //update the existing assignments
+            Iterator<Map.Entry<Initiator, List<StoragePort>>> it = argExistingAssignments.entrySet().iterator();
+            while(it.hasNext()) {
+                Map.Entry<Initiator, List<StoragePort>> entry = it.next();
+                Initiator key = entry.getKey();
+                if(key.getId().equals(uri) && argExistingAssignments.containsKey(ini)) {
+                    it.remove();
+                }
+            }
+            
+            //update netToNewInitiators
+            Iterator<Map.Entry<URI, List<Initiator>>> it2 = netToNewInitiators.entrySet().iterator();
+            while(it2.hasNext()) {
+                Map.Entry<URI, List<Initiator>> entry2 = it2.next();
+                List<Initiator> value2 = entry2.getValue();
+                
+                Iterator<Initiator> listItr = value2.iterator();
+                for(; listItr.hasNext() ;) {
+                    Initiator lisIni = listItr.next();
+                    if(lisIni.getId().equals(uri) && value2.contains(ini)) {
+                        listItr.remove();
+                    }
+                }
+            }
+        }
+        
+        
+    }
+
+    /**
+     * Creates the map of initiator Vs its associated initiator URI
+     * This would be just one side association, not the full
+     * For e.g : If there are initiators [ Init1-> assocInit1, Init2->assocInit2]
+     * then the resulting map contains [Init1:assocInit1, Init2:assocInit2]
+     * 
+     * @param netToNewInitiators
+     * @return
+     */
+    private Map<Initiator, URI> makeInitiatorAssociatedInitiatorPairs(Map<URI, List<Initiator>> netToNewInitiators) {
+        Map<Initiator, URI> initiatorPairs = new HashMap<>();
+        Set<URI> keyset = netToNewInitiators.keySet();
+        for(URI netURI : keyset) {
+            List<Initiator> initiators = netToNewInitiators.get(netURI);
+            for(Initiator initiator : initiators) {
+                URI associatedInitiator = initiator.getAssociatedInitiator();
+                if(!NullColumnValueGetter.isNullURI(associatedInitiator)) {
+                    
+                    if(!initiatorPairs.containsValue(initiator.getId())) {
+                        initiatorPairs.put(initiator, associatedInitiator);
+                    }
+                    
+                }
+            }
+        }
+        
+        return initiatorPairs;
     }
 
     /**
@@ -629,7 +796,7 @@ public class DefaultStoragePortsAssigner implements StoragePortsAssigner {
                 Initiator initiator = entry.getValue().get(0);
 
                 
-                // give a try to assigning port form its associated initiator from assignments
+                /*// give a try to assigning port form its associated initiator from assignments
                 // not considering for path as it associate is already considered.
                 boolean assigned = assignSamePortsFromAssociateInitiator(initiator, assignments);
                 if (assigned) {
@@ -637,7 +804,7 @@ public class DefaultStoragePortsAssigner implements StoragePortsAssigner {
                     // and do not add this initiator for path consideration.
                     entry.getValue().remove(initiator);
                     continue;
-                }
+                }*/
                 
                 // Determine the ports we can use, based on using affinity, non-affinity, or both.
                 List<StoragePort> allocatedPorts = new ArrayList<StoragePort>();
@@ -990,7 +1157,7 @@ public class DefaultStoragePortsAssigner implements StoragePortsAssigner {
      * @param assignments Map between initiator to Storage port assignment
      * @return true is assigned, false otherwise
      */
-    private boolean assignSamePortsFromAssociateInitiator(Initiator initiator,
+    /*private boolean assignSamePortsFromAssociateInitiator(Initiator initiator,
             Map<Initiator, List<StoragePort>> assignments) {
 
         boolean assigned = false;
@@ -1010,5 +1177,5 @@ public class DefaultStoragePortsAssigner implements StoragePortsAssigner {
         }
         return assigned;
 
-    }
+    }*/
 }

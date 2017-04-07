@@ -210,7 +210,7 @@ public final class CustomServicesDBHelper {
 
         // check and delete the old resource if there are no primitives referencing it
         // check that the resource is not referenced by other primitives
-        if (null != oldResourceId && null == checkResourceNotReferenced(dbModel, CustomServicesDBPrimitive.RESOURCE, client,
+        if (null != resource && null != oldResourceId && null == checkResourceNotReferenced(dbModel, CustomServicesDBPrimitive.RESOURCE, client,
                 oldResourceId.getURI(), resource)) {
             // If so, update the associated inventory files, if exist for the DB model with the new parent id.
             if (null != referencedByresourceType) {
@@ -219,11 +219,12 @@ public final class CustomServicesDBHelper {
                 for (final NamedElement eachResource : refResource) {
                     CustomServicesDBResource refDBResource = primitiveManager.findResource(referencedByresourceType,
                             eachResource.getId());
+                    //update the parent id of the inventory resource
                     refDBResource.setParentId(resource.getId());
                     client.save(refDBResource);
                 }
             }
-            //delete old resource
+            //delete old resource (after updating the inventory, if any exists)
             client.delete(primitiveManager.findResource(resourceType, oldResourceId.getURI()));
         }
 
@@ -367,17 +368,18 @@ public final class CustomServicesDBHelper {
             if (null == resource) {
                 throw APIException.notFound.unableToFindEntityInURL(primitive.getResource().getURI());
             }
-
-            if (null != primitive.getResource() && null == checkResourceNotReferenced(clazz, CustomServicesDBPrimitive.RESOURCE, client,
+            // check that the resource is not referenced by other primitives
+            if (null != resource && null == checkResourceNotReferenced(clazz, CustomServicesDBPrimitive.RESOURCE, client,
                     primitive.getResource().getURI(), resource)) {
-                // check that the resource is not referenced by other primitives
-                // delete the associated inventory files if exist for the DB model
+
+                // Find all the associated inventory files if exist for the DB model
                 if (null != referencedByresourceType) {
                     List<NamedElement> refResource = listResources(referencedByresourceType, client,
                             CustomServicesDBResource.PARENTID, primitive.getResource().getURI().toString());
                     for (final NamedElement eachResource : refResource) {
                         CustomServicesDBResource refDBResource = primitiveManager.findResource(referencedByresourceType,
                                 eachResource.getId());
+                        // delete the associated inventory files if exist for the DB model
                         client.delete(refDBResource);
                     }
                 }

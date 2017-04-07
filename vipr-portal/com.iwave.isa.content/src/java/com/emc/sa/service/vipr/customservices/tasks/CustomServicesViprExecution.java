@@ -27,13 +27,17 @@ import java.util.regex.Pattern;
 
 import org.apache.commons.io.IOUtils;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.util.UriTemplate;
 
+import com.emc.sa.catalog.primitives.CustomServicesPrimitiveDAOs;
 import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.service.vipr.customservices.CustomServicesUtils;
 import com.emc.sa.service.vipr.customservices.gson.ViprOperation;
 import com.emc.sa.service.vipr.tasks.ViPRExecutionTask;
+import com.emc.storageos.model.customservices.CustomServicesWorkflowDocument;
 import com.emc.storageos.primitives.CustomServicesConstants;
+import com.emc.storageos.primitives.CustomServicesPrimitiveType;
 import com.emc.storageos.primitives.java.vipr.CustomServicesViPRPrimitive;
 import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorException;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
@@ -43,18 +47,29 @@ import com.sun.jersey.api.client.ClientResponse;
 /**
  * This provides ability to run ViPR REST APIs
  */
-public class RunViprREST extends ViPRExecutionTask<CustomServicesTaskResult> {
-
-    private static final org.slf4j.Logger logger = LoggerFactory.getLogger(RunViprREST.class);
-
+public class CustomServicesViprExecution extends ViPRExecutionTask<CustomServicesTaskResult> {
+    private static final org.slf4j.Logger logger = LoggerFactory.getLogger(CustomServicesViprExecution.class);
     private final Map<String, List<String>> input;
     private final RestClient client;
     private final CustomServicesViPRPrimitive primitive;
+    private final CustomServicesWorkflowDocument.Step step;
 
-    public RunViprREST(final CustomServicesViPRPrimitive primitive, final RestClient client, final Map<String, List<String>> input) {
+    public CustomServicesViprExecution(final Map<String, List<String>> input, final CustomServicesWorkflowDocument.Step step, final CustomServicesPrimitiveDAOs daos, final RestClient client) {
         this.input = input;
+        this.step = step;
+        if (daos.get(CustomServicesConstants.VIPR_PRIMITIVE_TYPE) == null) {
+            logger.error("ViPR operation DAO not found");
+            throw InternalServerErrorException.internalServerErrors
+                    .customServiceExecutionFailed("ViPR operation DAO not found: " + step.getOperation());
+        }
+        final CustomServicesPrimitiveType primitive = daos.get(CustomServicesConstants.VIPR_PRIMITIVE_TYPE).get(step.getOperation());
+
+        if (null == primitive) {
+            throw InternalServerErrorException.internalServerErrors
+                    .customServiceExecutionFailed("Primitive not found: " + step.getOperation());
+        }
+        this.primitive = (CustomServicesViPRPrimitive)primitive;
         this.client = client;
-        this.primitive = primitive;
     }
 
     @Override
@@ -74,11 +89,11 @@ public class RunViprREST extends ViPRExecutionTask<CustomServicesTaskResult> {
 
         String path = makePath(templatePath);
 
-        ExecutionUtils.currentContext().logInfo("runViprREST.startInfo", primitive.friendlyName());
+        ExecutionUtils.currentContext().logInfo("customServicesViprExecution.startInfo", primitive.friendlyName());
 
         CustomServicesTaskResult result = makeRestCall(path, requestBody, method);
 
-        ExecutionUtils.currentContext().logInfo("runViprREST.doneInfo", primitive.friendlyName());
+        ExecutionUtils.currentContext().logInfo("customServicesViprExecution.doneInfo", primitive.friendlyName());
 
         return result;
     }

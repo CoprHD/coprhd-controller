@@ -9,6 +9,8 @@ import static java.util.Arrays.asList;
 import java.net.URI;
 import java.util.List;
 
+import com.emc.storageos.svcs.errorhandling.model.ServiceError;
+import com.emc.storageos.volumecontroller.impl.smis.SmisException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -111,10 +113,17 @@ public class SRDFMirrorCreateCompleter extends SRDFTaskCompleter {
         } finally {
             super.complete(dbClient, status, coded);
             if (status.equals(Operation.Status.ready)) {
-                // at that point we call remote replication data client to create remote replication pair for this
-                // srdf pair
-                log.info("Process remote replication pair for srdf link create. Status: {}", status);
-                RemoteReplicationUtils.createRemoteReplicationPairForSrdfPair(source.getId(), target.getId(), dbClient);
+                if (source != null && target != null) {
+                    // at that point we call remote replication data client to create remote replication pair
+                    // we can only create remote replication pair for srdf volumes if they are not null here
+                    log.info("Process remote replication pair for srdf link create. Status: {}", status);
+                    try {
+                        RemoteReplicationUtils.createRemoteReplicationPairForSrdfPair(source.getId(), target.getId(), dbClient);
+                    } catch (Exception ex) {
+                        ServiceError error = SmisException.errors.jobFailed(ex.getMessage());
+                        this.error(dbClient, error);
+                    }
+                }
             }
         }
 

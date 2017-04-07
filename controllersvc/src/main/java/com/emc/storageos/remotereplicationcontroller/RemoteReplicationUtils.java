@@ -244,8 +244,9 @@ public class RemoteReplicationUtils {
             RemoteReplicationDataClient remoteReplicationDataClient = new RemoteReplicationDataClientImpl(dbClient);
             remoteReplicationDataClient.createRemoteReplicationPair(rrPair, source.getId(), target.getId());
         } catch (Exception ex) {
-            _log.error("Failed to create remote replication pair for srdf pair: {} -> {}", sourceUri, targetUri, ex);
-            throw new RuntimeException(ex);
+            String msg = String.format("Failed to create remote replication pair for srdf pair: %s -> %s", sourceUri, targetUri);
+            _log.error(msg, ex);
+            throw new RuntimeException(msg, ex);
         }
     }
 

@@ -527,7 +527,10 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
                 sourceNext.failedStep=connection.targetId
             }
             // Populate array for input and output from previous steps
-            var inparams = sourceData.inputGroups.input_params.inputGroup;
+            var inparams = [];
+			if("inputGroups" in sourceData && "input_params" in sourceData.inputGroups){
+    			inparams = sourceData.inputGroups.input_params.inputGroup;
+			}
             for(var inputparam in inparams) {
             	if(inparams.hasOwnProperty(inputparam)) {
             		var inparam_name = inparams[inputparam].name;
@@ -568,7 +571,10 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
             }
             sourceData.next=sourceNext;
             // Remove source data after unbind array for input and output from previous steps
-            var inparams = sourceData.inputGroups.input_params.inputGroup;
+            var inparams = [];
+			if("inputGroups" in sourceData && "input_params" in sourceData.inputGroups){
+    			inparams = sourceData.inputGroups.input_params.inputGroup;
+			}
             for(var inputparam in inparams) {
             	if(inparams.hasOwnProperty(inputparam)) {
             		var inparam_name = inparams[inputparam].name;

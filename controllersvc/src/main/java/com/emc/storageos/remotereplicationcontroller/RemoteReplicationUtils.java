@@ -6,6 +6,7 @@ import static com.emc.storageos.db.client.util.CustomQueryUtility.queryActiveRes
 
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
@@ -210,7 +211,8 @@ public class RemoteReplicationUtils {
             RemoteDirectorGroup rdGroup = dbClient.queryObject(RemoteDirectorGroup.class, target.getSrdfGroup());
 
             // Get native id for rr set.
-            String rrSetNativeId = getRemoteReplicationSetNativeIdForSrdfSet(sourceSystem, targetSystem);
+            List<StorageSystem> storageSystems = Arrays.asList(sourceSystem, targetSystem);
+            String rrSetNativeId = getRemoteReplicationSetNativeIdForSrdfSet(storageSystems);
 
             // Get nativeId for rr group.
             String rrGroupNativeId = null;
@@ -259,14 +261,18 @@ public class RemoteReplicationUtils {
 
     /**
      * Return native id of remote replication set based on srdf set.
-     * @param sourceSystem source system
-     * @param targetSystem target system
+     * @param storageSystems storage systems in the set
      * @return native id
      */
-    public static String getRemoteReplicationSetNativeIdForSrdfSet(StorageSystem sourceSystem, StorageSystem targetSystem) {
+    public static String getRemoteReplicationSetNativeIdForSrdfSet(List<StorageSystem> storageSystems) {
+        if (storageSystems == null || storageSystems.isEmpty()) {
+            return null;
+        }
+        
         List<String> systemSerialNumbers = new ArrayList<>();
-        systemSerialNumbers.add(sourceSystem.getSerialNumber());
-        systemSerialNumbers.add(targetSystem.getSerialNumber());
+        for (StorageSystem system : storageSystems) {
+            systemSerialNumbers.add(system.getSerialNumber());
+        }
         Collections.sort(systemSerialNumbers);
         return StringUtils.join(systemSerialNumbers, "+");
     }

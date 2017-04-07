@@ -7,6 +7,7 @@ package com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.processor
 import java.io.IOException;
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -16,6 +17,7 @@ import java.util.Set;
 
 import javax.cim.CIMInstance;
 
+import com.emc.storageos.remotereplicationcontroller.RemoteReplicationUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -329,14 +331,9 @@ public class RemoteConnectivityCollectionProcessor extends StorageProcessor {
                 && remoteSystem.getSupportedReplicationTypes().contains(SupportedReplicationTypes.SRDFMetro.toString())) {
             SRDFReplicationModes.add(new RemoteReplicationMode(SupportedCopyModes.ACTIVE.name(), false, false));
         }
-        // Sort the SRC/TGT string as we will only report one RRSet for both Storage Systems
-        String labelFormat = null;
-        if (storageSystem.getSerialNumber().compareToIgnoreCase(remoteSystem.getSerialNumber()) >= 0) {
-            labelFormat = storageSystem.getSerialNumber() + Constants.PLUS + remoteSystem.getSerialNumber();
-        } else {
-            labelFormat = remoteSystem.getSerialNumber() + Constants.PLUS + storageSystem.getSerialNumber();
-        }
 
+        List<StorageSystem> storageSystems = Arrays.asList(storageSystem, remoteSystem);
+        String labelFormat = RemoteReplicationUtils.getRemoteReplicationSetNativeIdForSrdfSet(storageSystems);
         RemoteReplicationSet rrSet = new RemoteReplicationSet();
         rrSet.setDeviceLabel(labelFormat);
         rrSet.setNativeId(labelFormat);

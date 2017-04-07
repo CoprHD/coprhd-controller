@@ -981,10 +981,9 @@ public class IsilonApi {
      */
     public void modifyExport(String id, IsilonExport exp, boolean force) throws IsilonException {
         if (force) {
-            modify(_baseUrl.resolve(URI_NFS_EXPORTS + "&force=true"), id, "export", exp);
-        } else {
-            modify(_baseUrl.resolve(URI_NFS_EXPORTS), id, "export", exp);
+            id = id + "&force=true";
         }
+        modify(_baseUrl.resolve(URI_NFS_EXPORTS), id, "export", exp);
     }
 
     /**
@@ -999,7 +998,7 @@ public class IsilonApi {
      */
     public void modifyExport(String id, String zoneName, IsilonExport exp, boolean force) throws IsilonException {
         String uriWithZoneName = getURIWithZoneName(id, zoneName);
-        if(force){
+        if (force) {
             uriWithZoneName = uriWithZoneName + "&force=true";
         }
         modify(_baseUrl.resolve(URI_NFS_EXPORTS), uriWithZoneName, "export", exp);

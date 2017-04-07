@@ -64,7 +64,6 @@ import com.emc.storageos.model.customservices.CustomServicesPrimitiveBulkRestRep
 import com.emc.storageos.model.customservices.CustomServicesPrimitiveCreateParam;
 import com.emc.storageos.model.customservices.CustomServicesPrimitiveList;
 import com.emc.storageos.model.customservices.CustomServicesPrimitiveResourceList;
-import com.emc.storageos.model.customservices.CustomServicesPrimitiveResourceResponse;
 import com.emc.storageos.model.customservices.CustomServicesPrimitiveResourceRestRep;
 import com.emc.storageos.model.customservices.CustomServicesPrimitiveRestRep;
 import com.emc.storageos.model.customservices.CustomServicesPrimitiveUpdateParam;
@@ -250,13 +249,13 @@ public class CustomServicesPrimitiveService extends CatalogTaggedResourceService
     @POST
     @Path("resource/{id}/deactivate")
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    public CustomServicesPrimitiveResourceResponse deactivateResource(@PathParam("id") final URI id) {
+    public Response deactivateResource(@PathParam("id") final URI id) {
         final CustomServicesResourceDAO<?> dao = getResourceDAOFromID(id);
         if (null == dao) {
             throw APIException.notFound.unableToFindEntityInURL(id);
         }
-        return dao.deactivateResource(id);
-
+        dao.deactivateResource(id);
+        return Response.ok().build();
     }
 
     /**
@@ -269,14 +268,16 @@ public class CustomServicesPrimitiveService extends CatalogTaggedResourceService
     @PUT
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("resource/{id}")
-    public CustomServicesPrimitiveResourceResponse updateResource(@Context final HttpServletRequest request, @PathParam("id") final URI id,
+    public CustomServicesPrimitiveResourceRestRep updateResource(@Context final HttpServletRequest request, @PathParam("id") final URI id,
             @QueryParam("name") final String name) {
         final CustomServicesResourceDAO<?> dao = getResourceDAOFromID(id);
         if (null == dao) {
             throw APIException.notFound.unableToFindEntityInURL(id);
         }
         final byte[] stream = read(request);
-        return dao.updateResource(id, name, (stream == null || stream.length == 0) ? null : stream);
+        final CustomServicesPrimitiveResourceType resource = dao.updateResource(id, name,
+                (stream == null || stream.length == 0) ? null : stream);
+        return CustomServicesPrimitiveMapper.map(resource);
     }
 
     /**

@@ -19,8 +19,6 @@ package com.emc.sa.catalog.primitives;
 import java.net.URI;
 import java.util.List;
 
-import com.emc.storageos.model.customservices.CustomServicesPrimitiveResourceResponse;
-import com.emc.storageos.model.customservices.CustomServicesPrimitiveResourceRestRep;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.emc.sa.catalog.CustomServicesPrimitiveManager;
@@ -80,8 +78,9 @@ public class CustomServicesAnsibleInventoryResourceDAO implements CustomServices
     }
 
     @Override
-    public CustomServicesPrimitiveResourceResponse updateResource(final URI id, final String name, final byte[] stream) {
-        return CustomServicesDBHelper.updateResource(CustomServicesDBAnsibleInventoryResource.class,
+    public CustomServicesAnsibleInventoryResource updateResource(final URI id, final String name, final byte[] stream) {
+        return CustomServicesDBHelper.updateResource(CustomServicesAnsibleInventoryResource.class,
+                CustomServicesDBAnsibleInventoryResource.class,
                 primitiveManager, id, name, stream, null,client, null, null,null,null);
     }
 
@@ -91,9 +90,10 @@ public class CustomServicesAnsibleInventoryResourceDAO implements CustomServices
     }
 
     @Override
-    public CustomServicesPrimitiveResourceResponse deactivateResource(URI id) {
+    public void deactivateResource(URI id) {
         // There are no primitives or resource that has the inventory resource as the parent. hence passing null for the last 4 params
-        return CustomServicesDBHelper.deactivateResource(CustomServicesDBAnsibleInventoryResource.class, primitiveManager, client, id, null, null, null, null);
+        CustomServicesDBHelper.deactivateResource(CustomServicesDBAnsibleInventoryResource.class, primitiveManager, client, id, null, null,
+                null, null);
     }
 
     @Override

@@ -146,7 +146,7 @@ public class CustomServicesRESTApiPrimitiveDAO implements CustomServicesPrimitiv
                     }
                 },
                 CustomServicesDBHelper.updateAttributesFunction(ATTRIBUTES),
-                id);
+                id, null);
     }
 
     @Override

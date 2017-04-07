@@ -101,7 +101,7 @@ public class CustomServicesScriptPrimitiveDAO implements CustomServicesPrimitive
                 param, 
                 CustomServicesDBHelper.updateInputFunction(INPUT_TYPES),
                 CustomServicesDBHelper.updateAttributesFunction(ATTRIBUTES),
-                id);
+                id, null);
     }
 
     @Override

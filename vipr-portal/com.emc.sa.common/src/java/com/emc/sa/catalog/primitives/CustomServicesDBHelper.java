@@ -27,6 +27,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
+import com.emc.storageos.db.client.model.uimodels.CustomServicesDBAnsiblePrimitive;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang.StringUtils;
 
@@ -46,13 +47,11 @@ import com.emc.storageos.db.client.model.uimodels.CustomServicesDBResource;
 import com.emc.storageos.db.client.model.uimodels.CustomServicesWorkflow;
 import com.emc.storageos.model.customservices.CustomServicesPrimitiveCreateParam;
 import com.emc.storageos.model.customservices.CustomServicesPrimitiveCreateParam.InputCreateList;
-import com.emc.storageos.model.customservices.CustomServicesPrimitiveResourceResponse;
 import com.emc.storageos.model.customservices.CustomServicesPrimitiveRestRep;
 import com.emc.storageos.model.customservices.CustomServicesPrimitiveUpdateParam;
 import com.emc.storageos.model.customservices.InputUpdateParam;
 import com.emc.storageos.model.customservices.InputUpdateParam.InputUpdateList;
 import com.emc.storageos.model.customservices.OutputUpdateParam;
-import com.emc.storageos.primitives.CustomServicesConstants;
 import com.emc.storageos.primitives.CustomServicesPrimitiveResourceType;
 import com.emc.storageos.primitives.db.CustomServicesDBPrimitiveType;
 import com.emc.storageos.primitives.db.CustomServicesDBResourceType;
@@ -168,7 +167,7 @@ public final class CustomServicesDBHelper {
             final CustomServicesPrimitiveUpdateParam param,
             final Function<UpdatePrimitive<DBModel>, StringSetMap> updateInputFunc,
             final Function <UpdatePrimitive<DBModel>, StringMap> updateAttributesFunc,
-            final URI id) {
+            final URI id, final Class<? extends CustomServicesDBResource> referencedByresourceType) {
         final DBModel primitive = primitiveManager.findById(dbModel, id);
 
         if (null == primitive) {
@@ -187,18 +186,32 @@ public final class CustomServicesDBHelper {
             primitive.setDescription(param.getDescription());
         }
 
-        if (!resourceType.isAssignableFrom(CustomServicesDBNoResource.class)) {
-            final CustomServicesDBResource resource = primitiveManager.findResource(resourceType, param.getResource());
+        final NamedURI oldResourceId = primitive.getResource();
+        CustomServicesDBResource resource = null;
+
+        if (!resourceType.isAssignableFrom(CustomServicesDBNoResource.class) && null != param.getResource()) {
+            resource = primitiveManager.findResource(resourceType, param.getResource());
+            if (null == resource) {
+                throw APIException.notFound.unableToFindEntityInURL(param.getResource());
+            }
+
             primitive.setResource(new NamedURI(resource.getId(), resource.getLabel()));
         } else if (null != param.getResource()) {
             throw APIException.badRequests.invalidParameter("resource", param.getResource().toString());
         }
 
         final UpdatePrimitive<DBModel> updatePrimitive = new UpdatePrimitive<DBModel>(param, primitive);
-        updateInputFunc.apply(updatePrimitive);
+
         updateAttributesFunc.apply(updatePrimitive);
+
+        updateInputFunc.apply(updatePrimitive);
         updateOutput(param.getOutput(), primitive);
+
         client.save(primitive);
+
+        if(null == checkResourceNotInUse(dbModel, CustomServicesDBPrimitive.RESOURCE, referencedByresourceType, CustomServicesDBResource.PARENTID, client,oldResourceId.getURI(), resource)){
+            client.delete(resource);
+        }
         return mapper.apply(primitive);
 
     }
@@ -637,7 +650,8 @@ public final class CustomServicesDBHelper {
      * @param attributes The new attributes of the resource, null if no update
      * @return The updated java object instance of this resource type
      */
-    public static CustomServicesPrimitiveResourceResponse updateResource(
+    public static <T extends CustomServicesDBResourceType<?>> T updateResource(
+            final Class<T> type,
             final Class<? extends CustomServicesDBResource> dbModel,
             final CustomServicesPrimitiveManager primitiveManager,
             final URI id,
@@ -650,34 +664,29 @@ public final class CustomServicesDBHelper {
         if (null == resource) {
             throw APIException.notFound.unableToFindEntityInURL(id);
         }
-        CustomServicesPrimitiveResourceResponse response = new CustomServicesPrimitiveResourceResponse();
-        response.setId(id);
+
         if (null != name) {
             resource.setLabel(name);
         }
         if (null != attributes || null != stream) {
-            response.setError(checkResourceNotInUse(referencedByPrimitive, referencedByPrimitiveColumnName,
+            BadRequestException resourceReferencedexception = checkResourceNotInUse(referencedByPrimitive, referencedByPrimitiveColumnName,
                     referencedByResource, referencedByResourceColumnName, client, id,
-                    resource));
+                    resource);
+            if(resourceReferencedexception != null){
+                throw resourceReferencedexception;
+            }
             resource.setAttributes(attributes);
             resource.setResource(Base64.encodeBase64(stream));
 
-            if (null != response.getError() && StringUtils.isNotBlank(response.getError().getDetails())) {
-                response.setStatus(CustomServicesConstants.ERROR_MSG_RESOURCE_NOT_UPDATED);
-            } else {
-                // update resource
                 primitiveManager.save(resource);
-                response.setStatus(CustomServicesConstants.MSG_RESOURCE_UPDATED);
-            }
-            resource.setAttributes(attributes);
+
         } else {
             // update the name (which is label of the CF). This has no issue with being referenced.
-            response.setStatus(CustomServicesConstants.MSG_RESOURCE_UPDATED);
             primitiveManager.save(resource);
 
         }
 
-        return response;
+        return makeResourceType(type, resource);
     }
 
     /**
@@ -688,7 +697,7 @@ public final class CustomServicesDBHelper {
      * @param client The model client
      * @param id ID of the resource to deactivate
      */
-    public static CustomServicesPrimitiveResourceResponse deactivateResource(
+    public static void deactivateResource(
             final Class<? extends CustomServicesDBResource> dbModel,
             final CustomServicesPrimitiveManager primitiveManager,
             final ModelClient client, final URI id, final Class<? extends CustomServicesDBResource> referencedByResource,
@@ -698,66 +707,42 @@ public final class CustomServicesDBHelper {
         if (null == resource) {
             throw APIException.notFound.unableToFindEntityInURL(id);
         }
-
-        final CustomServicesPrimitiveResourceResponse response = new CustomServicesPrimitiveResourceResponse();
-        response.setId(id);
-        response.setError(checkResourceNotInUse(referencedByPrimitive, referencedByPrimitiveColumnName,
+        BadRequestException resourceReferencedexception = checkResourceNotInUse(referencedByPrimitive, referencedByPrimitiveColumnName,
                 referencedByResource, referencedByResourceColumnName, client, id,
-                resource));
+                resource);
 
-        if (null != response.getError() && StringUtils.isNotBlank(response.getError().getDetails())) {
-            response.setStatus(CustomServicesConstants.ERROR_MSG_RESOURCE_NOT_DELETED);
-        } else {
-            // Error string is empty. Delete resource
-            client.delete(resource);
-            response.setStatus(CustomServicesConstants.MSG_RESOURCE_DELETED);
+        if(resourceReferencedexception != null){
+            throw resourceReferencedexception;
         }
-        return response;
-    }
 
-    private static <T extends CustomServicesDBResource> CustomServicesPrimitiveResourceResponse.Error checkResourceNotInUse(
+            client.delete(resource);
+    }
+    private static <T extends CustomServicesDBResource> BadRequestException checkResourceNotInUse(
             final Class<? extends CustomServicesDBPrimitive> primitiveClazz, final String referencedByPrimitiveColumnName,
             final Class<? extends CustomServicesDBResource> inventoryResourceClazz, final String referencedByResourceColumnName,
             final ModelClient client, final URI resourceId, final T resource) {
 
         List<NamedElement> resourceExistList = Collections.emptyList();
+        BadRequestException resourceReferencedexception = null;
         if (null != primitiveClazz) {
             resourceExistList = client.findBy(primitiveClazz, referencedByPrimitiveColumnName, resourceId);
             if (null != resourceExistList && !resourceExistList.isEmpty()) {
-                //return only if the primitive reference exist
-                return checkError(resourceId, resource, StringUtils.substringAfterLast(primitiveClazz.getName(), "."));
+                return APIException.badRequests.resourceHasActiveReferencesWithType(resource.getClass().getSimpleName(), resourceId,
+                        StringUtils.substringAfterLast(primitiveClazz.getName(), "."));
+//                BadRequestException exception = APIException.badRequests
+//                        .resourceHasActiveReferencesWithType(resource.getClass().getSimpleName(), resourceId, StringUtils.substringAfterLast(primitiveClazz.getName(), "."));
+
             }
         }
 
         if (null != inventoryResourceClazz) {
             resourceExistList = client.findBy(inventoryResourceClazz, referencedByResourceColumnName, resourceId);
             if (null != resourceExistList && !resourceExistList.isEmpty()) {
-                //return only if the resource reference exist
-                return checkError(resourceId, resource, StringUtils.substringAfterLast(inventoryResourceClazz.getName(), "."));
+                return APIException.badRequests.resourceHasActiveReferencesWithType(resource.getClass().getSimpleName(), resourceId,
+                        StringUtils.substringAfterLast(inventoryResourceClazz.getName(), "."));
             }
         }
-
-        return null;
-    }
-
-    public static <T extends CustomServicesDBResource> CustomServicesPrimitiveResourceResponse.Error
-            checkError(final URI resourceId, final T resource, final String refClazzName) {
-        final CustomServicesPrimitiveResourceResponse response = new CustomServicesPrimitiveResourceResponse();
-
-        // throw APIException.badRequests.resourceHasActiveReferencesWithType(resource.getClass().getSimpleName(), resourceId,
-        // refClass);
-        BadRequestException exception = APIException.badRequests
-                .resourceHasActiveReferencesWithType(resource.getClass().getSimpleName(), resourceId, refClazzName);
-
-        final CustomServicesPrimitiveResourceResponse.Error error = new CustomServicesPrimitiveResourceResponse.Error() {
-            {
-                setCode(exception.getServiceCode().getCode());
-                setDescription(exception.getServiceCode().getSummary());
-                setDetails(exception.getMessage());
-            }
-        };
-
-        return error;
+        return resourceReferencedexception;
     }
 
     /**

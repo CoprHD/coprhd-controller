@@ -24,6 +24,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import com.emc.storageos.db.client.model.uimodels.CustomServicesDBAnsibleInventoryResource;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.emc.sa.catalog.CustomServicesPrimitiveManager;
@@ -104,7 +105,7 @@ public class CustomServicesAnsiblePrimitiveDAO implements
                 param, 
                 CustomServicesDBHelper.updateInputFunction(INPUT_TYPES),
                 CustomServicesDBHelper.updateAttributesFunction(ATTRIBUTES),
-                id);
+                id, CustomServicesDBAnsibleInventoryResource.class);
     }
 
     @Override

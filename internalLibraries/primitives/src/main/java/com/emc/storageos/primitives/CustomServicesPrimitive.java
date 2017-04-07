@@ -27,11 +27,12 @@ import com.emc.storageos.primitives.output.OutputParameter;
 public interface CustomServicesPrimitive {
 
     public enum StepType {
-        VIPR_REST("ViPR REST API"),
-        REST("REST API"),
-        LOCAL_ANSIBLE("Local Ansible"),
-        REMOTE_ANSIBLE("Remote Ansible"),
-        SHELL_SCRIPT("Shell Script"),
+        VIPR_REST("vipr"),
+        REST("rest"),
+        LOCAL_ANSIBLE("ansible"),
+        REMOTE_ANSIBLE("remote_ansible"),
+        SHELL_SCRIPT("script"),
+        WORKFLOW("Workflow"),
         START("Start"),
         END("End");
 

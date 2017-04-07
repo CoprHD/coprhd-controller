@@ -295,4 +295,26 @@
         </constructor-arg>
     </bean>
 
+    <bean id="customServicesLocalAnsibleExecutor" class="com.emc.sa.service.vipr.customservices.tasks.LocalAnsibleExecutor"/>
+
+    <bean id="customServicesRemoteAnsibleExecutor" class="com.emc.sa.service.vipr.customservices.tasks.RemoteAnsibleExecutor"/>
+
+    <bean id="customServicesShellScriptExecutor" class="com.emc.sa.service.vipr.customservices.tasks.ShellScriptExecutor" />
+
+    <bean id="customServicesRestExecutor" class="com.emc.sa.service.vipr.customservices.tasks.RestExecutor" />
+
+    <bean id="customServicesViprRestExecutor" class="com.emc.sa.service.vipr.customservices.tasks.ViPRExecutor" />
+
+    <bean id="customServicesExecutors" class="com.emc.sa.service.vipr.customservices.tasks.CustomServicesExecutors" >
+        <constructor-arg>
+            <list>
+                <ref bean="customServicesLocalAnsibleExecutor" />
+                <ref bean="customServicesRemoteAnsibleExecutor" />
+                <ref bean="customServicesShellScriptExecutor" />
+                <ref bean="customServicesRestExecutor" />
+                <ref bean="customServicesViprRestExecutor" />
+            </list>
+        </constructor-arg>
+    </bean>
+
 </beans>

@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -18,7 +19,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.util.CollectionUtils;
 
+import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
+import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.RemoteDirectorGroup;
 import com.emc.storageos.db.client.model.RemoteDirectorGroup.SupportedCopyModes;
 import com.emc.storageos.db.client.model.StoragePool;
@@ -116,13 +119,15 @@ public class RemoteMirrorProtectionMatcher extends AttributeMatcher {
     }
 
     private boolean isRemotelyConnectedViaExpectedCopyMode(StorageSystem system, Map<String, List<String>> remoteCopySettings) {
-        List<URI> raGroupUris = _objectCache.getDbClient().queryByConstraint(
-                ContainmentConstraint.Factory.getStorageDeviceRemoteGroupsConstraint(system.getId()));
-        _logger.info("List of RA Groups {}", Joiner.on("\t").join(raGroupUris));
+        URIQueryResultList queryResult = new URIQueryResultList();
+        _objectCache.getDbClient().queryByConstraint(
+                ContainmentConstraint.Factory.getStorageDeviceRemoteGroupsConstraint(system.getId()), queryResult);
+        _logger.info("List of RA Groups {}", Joiner.on("\t").join(queryResult));
         Set<String> copyModes = getSupportedCopyModesFromGivenRemoteSettings(remoteCopySettings);
         _logger.info("Supported Copy Modes from Given Settings {}", Joiner.on("\t").join(copyModes));
-        for (URI raGroupUri : raGroupUris) {
-            RemoteDirectorGroup raGroup = _objectCache.queryObject(RemoteDirectorGroup.class, raGroupUri);
+        Iterator<RemoteDirectorGroup> iterator = _objectCache.getDbClient().queryIterativeObjects(RemoteDirectorGroup.class, queryResult);
+        while (iterator.hasNext()) {
+            RemoteDirectorGroup raGroup = iterator.next();
             if (null == raGroup || raGroup.getInactive()) {
                 continue;
             }

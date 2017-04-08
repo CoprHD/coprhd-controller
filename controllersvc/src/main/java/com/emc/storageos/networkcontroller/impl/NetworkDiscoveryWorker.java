@@ -237,8 +237,9 @@ public class NetworkDiscoveryWorker {
         dbClient.queryByConstraint(ContainmentConstraint.Factory
                 .getNetworkSystemFCPortConnectionConstraint(dev.getId()), uriList);
         Map<String, FCEndpoint> existingEndpoints = new HashMap<String, FCEndpoint>();
-        for (URI uriold : uriList) {
-            FCEndpoint connection = dbClient.queryObject(FCEndpoint.class, uriold);
+        Iterator<FCEndpoint> result = dbClient.queryIterativeObjects(FCEndpoint.class, uriList);
+        while (result.hasNext()) {
+            FCEndpoint connection = result.next();
             if (connection != null) {
                 existingEndpoints.put(connection.getRemotePortName().toUpperCase(), connection);
             }

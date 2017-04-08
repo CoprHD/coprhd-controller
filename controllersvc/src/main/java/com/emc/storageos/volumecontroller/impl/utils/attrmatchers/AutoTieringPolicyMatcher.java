@@ -175,10 +175,9 @@ public class AutoTieringPolicyMatcher extends AttributeMatcher {
     private Set<String> getAutoTieringPoolsOnVMAX(String policyName, Map<String, Object> attributeMap) {
         Set<String> fastPolicyPools = new HashSet<String>();
         URIQueryResultList result = getAutoTierPolicies(attributeMap, policyName);
-        Iterator<URI> iterator = result.iterator();
+        Iterator<AutoTieringPolicy> iterator = _objectCache.getDbClient().queryIterativeObjects(AutoTieringPolicy.class, result);
         while (iterator.hasNext()) {
-            AutoTieringPolicy policy = _objectCache.queryObject(AutoTieringPolicy.class,
-                    iterator.next());
+            AutoTieringPolicy policy = iterator.next();
             if (isValidAutoTieringPolicy(policy)
                     && isAutoTieringEnabledOnStorageSystem(policy.getStorageSystem())
                     && doesGivenProvisionTypeMatchFastPolicy(
@@ -240,9 +239,9 @@ public class AutoTieringPolicyMatcher extends AttributeMatcher {
         List<URI> systemURIs = new ArrayList<URI>();
         URIQueryResultList result = getAutoTierPolicies(attributeMap, policyName);
         // Iterate through the policies
-        Iterator<URI> iterator = result.iterator();
+        Iterator<AutoTieringPolicy> iterator = _objectCache.getDbClient().queryIterativeObjects(AutoTieringPolicy.class, result);
         while (iterator.hasNext()) {
-            AutoTieringPolicy policy = _objectCache.queryObject(AutoTieringPolicy.class, iterator.next());
+            AutoTieringPolicy policy = iterator.next();
             // If policy is tiering capable.
             if (policy.getPolicyEnabled() && !systemURIs.contains(policy.getStorageSystem())) {
                 systemURIs.add(policy.getStorageSystem());
@@ -313,10 +312,9 @@ public class AutoTieringPolicyMatcher extends AttributeMatcher {
         _objectCache.getDbClient().queryByConstraint(ContainmentConstraint.Factory
                 .getStorageDeviceFASTPolicyConstraint(device.getId()),
                 tieringPolicyResult);
-        Iterator<URI> tieringPolicyItr = tieringPolicyResult.iterator();
-        while (tieringPolicyItr.hasNext()) {
-            AutoTieringPolicy tierPolicy = _objectCache.queryObject(
-                    AutoTieringPolicy.class, tieringPolicyItr.next());
+        Iterator<AutoTieringPolicy> result = _objectCache.getDbClient().queryIterativeObjects(AutoTieringPolicy.class, tieringPolicyResult);
+        while (result.hasNext()) {
+            AutoTieringPolicy tierPolicy = result.next();
             if (null != tierPolicy && tierPolicy.getPolicyEnabled()) {
                 policyNameSet.add(tierPolicy.getPolicyName());
             }
@@ -337,9 +335,9 @@ public class AutoTieringPolicyMatcher extends AttributeMatcher {
         URIQueryResultList fastPolicyResult = new URIQueryResultList();
         _objectCache.getDbClient().queryByConstraint(AlternateIdConstraint.Factory.getPoolFASTPolicyConstraint(poolID.toString()),
                 fastPolicyResult);
-        Iterator<URI> fastPolicyItr = fastPolicyResult.iterator();
-        while (fastPolicyItr.hasNext()) {
-            AutoTieringPolicy tierPolicy = _objectCache.queryObject(AutoTieringPolicy.class, fastPolicyItr.next());
+        Iterator<AutoTieringPolicy> result = _objectCache.getDbClient().queryIterativeObjects(AutoTieringPolicy.class, fastPolicyResult);
+        while (result.hasNext()) {
+            AutoTieringPolicy tierPolicy = result.next();
             if (null != tierPolicy && tierPolicy.getPolicyEnabled()) {
                 policyNameSet.add(tierPolicy.getPolicyName());
             }
@@ -381,9 +379,9 @@ public class AutoTieringPolicyMatcher extends AttributeMatcher {
     private List<StoragePool> getAutoTieringPoolsOnExternalSystem(String policyName, Map<String, Object> attributeMap, List<StoragePool> pools) {
         Set<String> policyPools = new HashSet<String>();
         URIQueryResultList result = getAutoTierPolicies(attributeMap, policyName);
-        Iterator<URI> iterator = result.iterator();
+        Iterator<AutoTieringPolicy> iterator = _objectCache.getDbClient().queryIterativeObjects(AutoTieringPolicy.class, result);
         while (iterator.hasNext()) {
-            AutoTieringPolicy policy = _objectCache.queryObject(AutoTieringPolicy.class, iterator.next());
+            AutoTieringPolicy policy = iterator.next();
             if (isValidAutoTieringPolicy(policy)
                     && isAutoTieringEnabledOnStorageSystem(policy.getStorageSystem())
                     && doesGivenProvisionTypeMatchFastPolicy(attributeMap.get(

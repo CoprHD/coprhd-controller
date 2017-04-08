@@ -24,6 +24,7 @@ import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.DiscoveryStatus;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus;
+import com.emc.storageos.db.client.model.AutoTieringPolicy;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageProtocol;
@@ -174,11 +175,9 @@ public class ProtocolsAttrMatcher extends AttributeMatcher {
             _objectCache.getDbClient().queryByConstraint(
                     ContainmentConstraint.Factory.getStorageDeviceStoragePortConstraint(arrayUri),
                     storagePortURIs);
-            Iterator<URI> storagePortsIter = storagePortURIs.iterator();
-            while (storagePortsIter.hasNext()) {
-                URI storagePortURI = storagePortsIter.next();
-                StoragePort storagePort = _objectCache.queryObject(StoragePort.class,
-                        storagePortURI);
+            Iterator<StoragePort> iterator = _objectCache.getDbClient().queryIterativeObjects(StoragePort.class, storagePortURIs);
+            while (iterator.hasNext()) {
+                StoragePort storagePort = iterator.next();
 
                 // only usable storage port will be checked
                 Set<String> varrays = new HashSet<String>();

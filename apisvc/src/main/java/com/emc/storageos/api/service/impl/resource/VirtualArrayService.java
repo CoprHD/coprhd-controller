@@ -1052,9 +1052,9 @@ public class VirtualArrayService extends TaggedResource {
             URIQueryResultList poolsQueryResult = new URIQueryResultList();
             _dbClient.queryByConstraint(AlternateIdConstraint.Factory
                     .getVirtualArrayStoragePoolsConstraint(varr.toString()), poolsQueryResult);
-            Iterator<URI> poolItr = poolsQueryResult.iterator();
-            while (poolItr.hasNext()) {
-                StoragePool pool = cache.queryObject(StoragePool.class, poolItr.next());
+            Iterator<StoragePool> iterator = _dbClient.queryIterativeObjects(StoragePool.class, poolsQueryResult);
+            while (iterator.hasNext()) {
+                StoragePool pool = iterator.next();
                 poolList.add(pool);
             }
         }

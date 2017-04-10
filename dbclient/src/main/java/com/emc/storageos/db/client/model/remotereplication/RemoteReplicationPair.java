@@ -67,6 +67,12 @@ public class RemoteReplicationPair extends DataObject implements ProjectResource
     // Project of this pair
     private NamedURI project;
 
+    /**
+     * @return true if this rr pair is contained by a rr group (not directly contained in a rr set)
+     */
+    public boolean isGroupPair() {
+        return replicationGroup != null;
+    }
 
     @Override
     @Name("tenant")

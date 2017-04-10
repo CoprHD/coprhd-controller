@@ -3299,6 +3299,9 @@ public interface BadRequestExceptions {
     public BadRequestException invalidRemoteReplicationContext(final String context);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException remoteReplicationOperationPrecheckFailed(final String details);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException remoteReplicationLinkOperationIsNotAllowed(final String elementType, final String elementId, final String operation);
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)

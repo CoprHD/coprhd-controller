@@ -47,7 +47,7 @@ public class FileShareExport implements Serializable {
     private String _mountPath;
     private String _comments;
     private String _isilonId;
-    private Boolean _overrideDnsCheck;
+    private Boolean _bypassDnsCheck;
 
     private static final String SEC_SEPARATOR = ",";
 
@@ -157,7 +157,7 @@ public class FileShareExport implements Serializable {
      */
     public FileShareExport(List<String> clients, String securityType, String permissions, String rootUserMapping,
             String protocol, String storagePortName, String storagePort, String path, String mountPath, String subDirectory,
-            String comments, Boolean overrideDnsCheck) {
+            String comments, Boolean bypassDnsCheck) {
         _clients = clients;
         for (String secType : securityType.split(SEC_SEPARATOR)) {
             if (_securityType == null) {
@@ -175,7 +175,7 @@ public class FileShareExport implements Serializable {
         _mountPath = mountPath;
         _comments = comments;
         _subDirectory = subDirectory;
-        _overrideDnsCheck = overrideDnsCheck;
+        _bypassDnsCheck = bypassDnsCheck;
     }
 
     public String getComments() {
@@ -294,12 +294,12 @@ public class FileShareExport implements Serializable {
         this._isilonId = isilonId;
     }
 
-    public Boolean get_overrideDnsCheck() {
-        return _overrideDnsCheck;
+    public Boolean getBypassDnsCheck() {
+        return _bypassDnsCheck;
     }
 
-    public void set_overrideDnsCheck(Boolean _overrideDnsCheck) {
-        this._overrideDnsCheck = _overrideDnsCheck;
+    public void setBypassDnsCheck(Boolean bypassDnsCheck) {
+        this._bypassDnsCheck = bypassDnsCheck;
     }
 
 }

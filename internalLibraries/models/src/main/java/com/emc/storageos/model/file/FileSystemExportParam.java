@@ -25,7 +25,7 @@ public class FileSystemExportParam {
     private String subDirectory;
     private String mountPoint;
     private String comments;
-    private Boolean overrideDnsCheck;
+    private Boolean bypassDnsCheck;
     private List<String> endpoints;
 
 
@@ -179,13 +179,13 @@ public class FileSystemExportParam {
         this.subDirectory = subDirectory;
     }
 
-    @XmlElement(name = "override_dns_check", required = false)
-    public Boolean getOverrideDnsCheck() {
-        return overrideDnsCheck;
+    @XmlElement(name = "bypass_dns_check", required = false, defaultValue = "false")
+    public Boolean getBypassDnsCheck() {
+        return bypassDnsCheck;
     }
 
-    public void setOverrideDnsCheck(Boolean overrideDnsCheck) {
-        this.overrideDnsCheck = overrideDnsCheck;
+    public void setBypassDnsCheck(Boolean bypassDnsCheck) {
+        this.bypassDnsCheck = bypassDnsCheck;
     }
 
 }

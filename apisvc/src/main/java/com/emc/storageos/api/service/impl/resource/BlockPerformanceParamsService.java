@@ -23,27 +23,20 @@ import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.api.mapper.BlockMapper;
 import com.emc.storageos.api.mapper.DbObjectMapper;
-import com.emc.storageos.api.service.impl.response.BulkList;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.PerformanceParams;
-import com.emc.storageos.db.client.model.VirtualPool;
-import com.emc.storageos.db.client.model.VirtualPool.Type;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
-import com.emc.storageos.db.common.VdcUtil;
 import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.model.block.BlockPerformanceParamsBulkRep;
 import com.emc.storageos.model.block.BlockPerformanceParamsCreate;
 import com.emc.storageos.model.block.BlockPerformanceParamsList;
 import com.emc.storageos.model.block.BlockPerformanceParamsRestRep;
 import com.emc.storageos.model.block.BlockPerformanceParamsUpdate;
-import com.emc.storageos.model.vpool.BlockVirtualPoolBulkRep;
 import com.emc.storageos.security.authorization.ACL;
 import com.emc.storageos.security.authorization.CheckPermission;
 import com.emc.storageos.security.authorization.DefaultPermissions;
 import com.emc.storageos.security.authorization.Role;
-import com.emc.storageos.security.geo.GeoServiceClient;
-import com.emc.storageos.svcs.errorhandling.resources.APIException;
 
 /**
  * API service for creating and managing PerformanceParams instances.
@@ -265,6 +258,14 @@ public class BlockPerformanceParamsService extends TaggedResource {
     @Override
     protected ResourceTypeEnum getResourceType() {
         return ResourceTypeEnum.BLOCK_VPOOL;
+    }
+    
+    /**
+     * {@inheritDoc}
+     */
+    @SuppressWarnings("unchecked")
+    protected Class<PerformanceParams> getResourceClass() {
+        return PerformanceParams.class;
     }
 
     /**

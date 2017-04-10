@@ -3136,8 +3136,8 @@ vplex_tests()
         if [ "$VPLEX_INGEST_PARAM" = "all" -o "$VPLEX_INGEST_PARAM" = "unexported" ] ; then
             vplex_ingest_unexported
             # volume names would have changed after ingestion, based on backend vol with -0 suffix
-            localVolume2="$localVolume2$sourceSideSuffix"
-            localVolume3="$localVolume3$sourceSideSuffix"
+            #localVolume2="$localVolume2$sourceSideSuffix"
+            #localVolume3="$localVolume3$sourceSideSuffix"
         fi
         
         echo "**** Creating host"
@@ -3265,10 +3265,10 @@ vplex_ingest_unexported() {
 
     #echo "**** Ingesting $localVolume1 (has backend snapshot)"
     #run unmanagedvolume ingest_unexport ${NH} cosvplexlocal $PROJECT --volspec "$localVolume1"
-    echo "**** Ingesting $localVolume2$sourceSideSuffix (has backend mirror)"
-    run unmanagedvolume ingest_unexport ${NH} cosvplexlocal $PROJECT --volspec "$localVolume2$sourceSideSuffix"
-    echo "**** Ingesting $localVolume3$sourceSideSuffix"
-    run unmanagedvolume ingest_unexport ${NH} cosvplexlocal $PROJECT --volspec "$localVolume3$sourceSideSuffix"
+    echo "**** Ingesting $localVolume2 (has backend mirror)"
+    run unmanagedvolume ingest_unexport ${NH} cosvplexlocal $PROJECT --volspec "$localVolume2"
+    echo "**** Ingesting $localVolume3"
+    run unmanagedvolume ingest_unexport ${NH} cosvplexlocal $PROJECT --volspec "$localVolume3"
     #echo "**** Ingesting $distVolume2"
     #run unmanagedvolume ingest_unexport ${NH} cosvplexdist $PROJECT --volspec "$distVolume2"
 

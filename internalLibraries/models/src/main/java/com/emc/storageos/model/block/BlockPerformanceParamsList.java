@@ -31,7 +31,7 @@ public class BlockPerformanceParamsList {
     /**
      * Constructor.
      * 
-     * @param performanceParamRepList A list of performance parameter responses.
+     * @param performanceParamsReps A list of performance parameter responses.
      */
     public BlockPerformanceParamsList(List<NamedRelatedResourceRep> performanceParamsReps) {
         this.performanceParamsReps = performanceParamsReps;

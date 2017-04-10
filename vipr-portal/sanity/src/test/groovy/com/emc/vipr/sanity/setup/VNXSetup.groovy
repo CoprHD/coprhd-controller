@@ -22,12 +22,12 @@ class VNXSetup {
 
         client.storageProviders().create(new StorageProviderCreateParam(
             name: VNX_PROVIDER_NAME,
-            ipAddress: properties.SIMULATOR_SMIS_IP,
-            portNumber: 5988,
-            userName: properties.SMIS_USER,
-            password: properties.SMIS_PASSWD,
+            ipAddress: System.getenv("SIMULATOR_SMIS_IP"),
+            portNumber: 7009,
+            userName: System.getenv("HW_SIMULATOR_DEFAULT_USER"),
+            password: System.getenv("HW_SIMULATOR_DEFAULT_PASSWORD"),
             interfaceType: "smis",
-            useSSL: false
+            useSSL: true 
         )).waitFor(API_TASK_TIMEOUT)
 
         client.storageSystems().all.collect {
@@ -53,7 +53,7 @@ class VNXSetup {
             protocols: ['FC'],
             numPaths: 2,
             protection: new BlockVirtualPoolProtectionParam(snapshots: new VirtualPoolProtectionSnapshotsParam(10)),
-            systemType: "vnxblock",
+            systemType: "vmax",
             provisionType: "Thin",
             varrays: [VirtualArraySetup.varrayId]
         )).id

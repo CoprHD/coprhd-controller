@@ -24,8 +24,7 @@ class Sanity {
 
     static void initialize() {
         println "Initializing Sanity Test Harness"
-        properties = SanityProperties.loadProperties()
-
+        println "logging in as user " + System.getenv("SYSADMIN") + " and password " + System.getenv("SYSADMIN_PASSWORD")
         // Initialize java clients
         initClients()
     }
@@ -33,7 +32,6 @@ class Sanity {
     static void setup() {
         initialize()
         SystemSetup.commonSetup()
-        SecuritySetup.setupActiveDirectory()
         VirtualArraySetup.setup()
         ProjectSetup.setup()
         VirtualArraySetup.updateAcls(client.userTenantId)
@@ -42,14 +40,13 @@ class Sanity {
 
     static void initClients() {
         clientConfig = new ClientConfig(
-            host: properties.SANITY_IP,
-            mediaType: properties.CLIENT_MEDIA_TYPE,
-            requestLoggingEnabled: properties.getBoolean("CLIENT_REQUEST_LOGGING", false),
-            ignoreCertificates: properties.getBoolean("CLIENT_IGNORE_CERTIFICATES", true)
+            host: "localhost",
+            mediaType: "application/xml",
+            requestLoggingEnabled: false,
+            ignoreCertificates: true
         )
 
-        println "Using ViPR VIP: ${properties.SANITY_IP}"
-        login(properties.SYSADMIN, properties.SYSADMIN_PASSWORD)
+        login(System.getenv("SYSADMIN"), System.getenv("SYSADMIN_PASSWORD"))
     }
 
     static void login(String username, String password) {

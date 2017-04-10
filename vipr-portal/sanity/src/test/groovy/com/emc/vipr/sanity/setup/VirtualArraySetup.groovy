@@ -54,10 +54,10 @@ class VirtualArraySetup {
         client.networkSystems().create(new NetworkSystemCreate(
             name: 'CiscoMdsSimulator',
             systemType: 'mds',
-            ipAddress: properties.SIMULATOR_CISCO_MDS,
+            ipAddress: System.getenv("SIMULATOR_CISCO_MDS"),
             portNumber: 22,
-            userName: properties.SIMULATOR_CISCO_MDS_USER,
-            password: properties.SIMULATOR_CISCO_MDS_PW
+            userName: System.getenv("SIMULATOR_CISCO_MDS_USER"),
+            password: System.getenv("SIMULATOR_CISCO_MDS_PW")
         )).waitFor(API_TASK_TIMEOUT)
 
         client.networks().all

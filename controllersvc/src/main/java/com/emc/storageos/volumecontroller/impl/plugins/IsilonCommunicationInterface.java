@@ -17,6 +17,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.commons.lang.StringUtils;
 import org.codehaus.jettison.json.JSONException;
@@ -153,6 +154,8 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
     private static final String CHECKPOINT_SCHEDULE = "checkpoint_schedule";
     private static final String ISILON_PATH_CUSTOMIZATION = "IsilonPathCustomization";
 
+    private static final Integer MAX_RECORDS_SIZE = 1000;
+
     private List<String> _discPathsForUnManaged;
     private int _discPathsLength;
     private static String _discCustomPath;
@@ -246,6 +249,34 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                 .getRESTClient(deviceURI, isilonCluster.getUsername(), isilonCluster.getPassword());
     }
 
+    public Map<String, FileShare> getStorageSystemFileShares(URI storageSystemURI) throws IOException {
+
+        Map<String, FileShare> fileSharesMap = new ConcurrentHashMap<String, FileShare>();
+
+        URIQueryResultList results = new URIQueryResultList();
+        try {
+            // Get File systems with given native id!!
+            _dbClient.queryByConstraint(ContainmentConstraint.Factory
+                    .getStorageDeviceFileshareConstraint(storageSystemURI),
+                    results);
+
+        } catch (Exception e) {
+            _log.error(
+                    "Cassandra Database Error while querying Fileshares from system: {}--> ",
+                    storageSystemURI, e);
+        }
+
+        Iterator<FileShare> fileSystemItr = _dbClient.queryIterativeObjects(
+                FileShare.class, results, true);
+        while (fileSystemItr.hasNext()) {
+            FileShare fileShare = fileSystemItr.next();
+            if (fileShare != null && !fileShare.getInactive()) {
+                fileSharesMap.put(fileShare.getNativeGuid(), fileShare);
+            }
+        }
+        return fileSharesMap;
+    }
+
     @Override
     public void collectStatisticsInformation(AccessProfile accessProfile)
             throws BaseCollectionException {
@@ -264,6 +295,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
             initializeKeyMap(accessProfile);
             boolean fsChanged = false;
             List<Stat> stats = new ArrayList<Stat>();
+            List<FileShare> modifiedFileSystems = new ArrayList<FileShare>();
 
             ZeroRecordGenerator zeroRecordGenerator = new FileZeroRecordGenerator();
             CassandraInsertion statsColumnInjector = new FileDBInsertion();
@@ -274,11 +306,22 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
             // compute static load processor code
             computeStaticLoadMetrics(storageSystemId);
 
+            Map<String, FileShare> fileSystemsMap = getStorageSystemFileShares(storageSystemId);
+            if (fileSystemsMap.isEmpty()) {
+                // No file shares for the storage system,
+                // ignore stats collection for the system!!!
+                return;
+            }
             // get first page of quota data, process and insert to database
             IsilonApi.IsilonList<IsilonSmartQuota> quotas = api.listQuotas(null);
             for (IsilonSmartQuota quota : quotas.getList()) {
                 String fsNativeId = quota.getPath();
                 String fsNativeGuid = NativeGUIDGenerator.generateNativeGuid(deviceType, serialNumber, fsNativeId);
+                if (fileSystemsMap.get(fsNativeGuid) == null) {
+                    // No file shares found for the quota
+                    // ignore stats collection for the file system!!!
+                    continue;
+                }
                 Stat stat = recorder.addUsageStat(quota, _keyMap, fsNativeGuid, api);
                 fsChanged = false;
                 if (null != stat) {
@@ -298,13 +341,37 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                                 fsChanged = true;
                             }
                             if (fsChanged) {
-                                _dbClient.updateObject(fileSystem);
+                                modifiedFileSystems.add(fileSystem);
                             }
                         }
                     }
                 }
+
+                // Write the records batch wise!!
+                // Each batch with MAX_RECORDS_SIZE - 100 records!!!
+                if (modifiedFileSystems.size() >= MAX_RECORDS_SIZE) {
+                    _dbClient.updateObject(modifiedFileSystems);
+                    _log.info("Processed {} file systems stats ", modifiedFileSystems.size());
+                    modifiedFileSystems.clear();
+                }
+
+                if (stats.size() >= MAX_RECORDS_SIZE) {
+                    _log.info("Processed {} stats", stats.size());
+                    persistStatsInDB(stats);
+                }
             }
-            persistStatsInDB(stats);
+            // write the remaining records!!
+            if (!modifiedFileSystems.isEmpty()) {
+                _dbClient.updateObject(modifiedFileSystems);
+                _log.info("Processed {} file systems stats ", modifiedFileSystems.size());
+                modifiedFileSystems.clear();
+            }
+
+            if (!stats.isEmpty()) {
+                _log.info("Processed {} stats", stats.size());
+                persistStatsInDB(stats);
+            }
+
             statsCount = statsCount + quotas.size();
             _log.info("Processed {} file system stats for device {} ", quotas.size(), storageSystemId);
 
@@ -333,18 +400,44 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                                     fileSystem.setSoftLimitExceeded(quota.getThresholds().getsoftExceeded());
                                     fsChanged = true;
                                 }
+
                                 if (fsChanged) {
-                                    _dbClient.updateObject(fileSystem);
+                                    modifiedFileSystems.add(fileSystem);
                                 }
+
                             }
                         }
                     }
+
+                    // Write the records batch wise!!
+                    // Each batch with MAX_RECORDS_SIZE - 100 records!!!
+                    if (modifiedFileSystems.size() >= MAX_RECORDS_SIZE) {
+                        _dbClient.updateObject(modifiedFileSystems);
+                        _log.info("Processed {} file systems stats ", modifiedFileSystems.size());
+                        modifiedFileSystems.clear();
+                    }
+
+                    if (stats.size() >= MAX_RECORDS_SIZE) {
+                        _log.info("Processed {} stats", stats.size());
+                        persistStatsInDB(stats);
+                    }
+
                 }
                 statsCount = statsCount + quotas.size();
                 _log.info("Processed {} file system stats for device {} ", quotas.size(), storageSystemId);
             }
             zeroRecordGenerator.identifyRecordstobeZeroed(_keyMap, stats, FileShare.class);
-            persistStatsInDB(stats);
+            // write the remaining records!!
+            if (!modifiedFileSystems.isEmpty()) {
+                _dbClient.updateObject(modifiedFileSystems);
+                _log.info("Processed {} file systems stats ", modifiedFileSystems.size());
+                modifiedFileSystems.clear();
+            }
+
+            if (!stats.isEmpty()) {
+                _log.info("Processed {} stats", stats.size());
+                persistStatsInDB(stats);
+            }
             latestSampleTime = System.currentTimeMillis();
             accessProfile.setLastSampleTime(latestSampleTime);
             _log.info("Done metering device {}, processed {} file system stats ", storageSystemId, statsCount);

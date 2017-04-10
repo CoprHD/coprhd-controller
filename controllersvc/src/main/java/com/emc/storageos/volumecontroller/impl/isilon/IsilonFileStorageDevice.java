@@ -857,9 +857,10 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                     .format(
                             "In expanding Isilon FS requested capacity is less than current capacity of file system. Path: %s, current capacity: %d",
                             quota.getPath(), quota.getThresholds().getHard());
-            _log.error(msg);
-            throw IsilonException.exceptions.expandFsFailedinvalidParameters(quota.getPath(),
-                    quota.getThresholds().getHard());
+            _log.info(msg);
+//            _log.error(msg);
+//            throw IsilonException.exceptions.expandFsFailedinvalidParameters(quota.getPath(),
+//                    quota.getThresholds().getHard());
         }
         // Modify quota for file system.
         IsilonSmartQuota expandedQuota = getExpandedQuota(isi, args, capacity);

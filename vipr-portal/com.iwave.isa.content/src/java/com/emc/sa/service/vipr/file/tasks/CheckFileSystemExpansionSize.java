@@ -24,8 +24,8 @@ public class CheckFileSystemExpansionSize extends ViPRExecutionTask<Void> {
     public void execute() throws Exception {
         for (FileShareRestRep fs : fileSystems) {
             if (Double.parseDouble(fs.getCapacity()) >= sizeInGb.doubleValue()) {
-                throw stateException("file.expand.size.smaller.than.existing", sizeInGb.toString(),
-                        fs.getCapacity());
+//                throw stateException("file.expand.size.smaller.than.existing", sizeInGb.toString(),
+//                        fs.getCapacity());
             }
         }
     }

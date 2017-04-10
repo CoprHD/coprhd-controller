@@ -530,6 +530,11 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         if (!consistencyGroup.created()) {
             throw APIException.badRequests.consistencyGroupNotCreated();
         }
+        
+        // RP CG's must use applications to create snapshots
+        if (isIdEmbeddedInURL(consistencyGroupId) && consistencyGroup.checkForType(Types.RP)) {
+            throw APIException.badRequests.snapshotsNotSupportedForRPCGs();
+        }
 
         // Validate CG information in the request
         validateVolumesInReplicationGroups(consistencyGroup, param.getVolumes(), _dbClient);
@@ -565,13 +570,14 @@ public class BlockConsistencyGroupService extends TaskResourceService {
             String snapshotType = BlockSnapshot.TechnologyType.NATIVE.toString();
             // Validate the snapshot request.
             String snapshotName = TimeUtils.formatDateForCurrent(param.getName());
-            blockServiceApiImpl.validateCreateSnapshot(volumeList.get(0), volumeList, snapshotType, snapshotName, getFullCopyManager());
-            // Set the create inactive flag.
-            final Boolean createInactive = param.getCreateInactive() == null ? Boolean.FALSE
-                    : param.getCreateInactive();
             // Set the read only flag.
             final Boolean readOnly = param.getReadOnly() == null ? Boolean.FALSE : param.getReadOnly();
-
+            // Set the create inactive flag.
+            final Boolean createInactive = param.getCreateInactive() == null ? Boolean.FALSE
+                    : param.getCreateInactive();            
+            
+            blockServiceApiImpl.validateCreateSnapshot(volumeList.get(0), volumeList, snapshotType, snapshotName, readOnly, getFullCopyManager());
+            
             // Prepare and create the snapshots for the group.
             List<URI> snapIdList = new ArrayList<URI>();
             List<BlockSnapshot> snapshotList = new ArrayList<BlockSnapshot>();
@@ -1714,6 +1720,12 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         // in the CG. Note that it will take into account the
         // fact that the volume is in a CG.
         BlockConsistencyGroup cg = queryObject(BlockConsistencyGroup.class, consistencyGroupId, true);
+        
+        // RP CG's must use applications to create snapshots
+        if (isIdEmbeddedInURL(consistencyGroupId) && cg.checkForType(Types.RP)) {
+            throw APIException.badRequests.snapshotsNotSupportedForRPCGs();
+        }
+        
         // Validate CG information in the request
         validateVolumesInReplicationGroups(cg, param.getVolumes(), _dbClient);
         return getSnapshotSessionManager().createSnapshotSession(cg, param, getFullCopyManager());

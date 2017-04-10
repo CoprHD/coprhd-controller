@@ -57,7 +57,7 @@ public class RemoveHostFromClusterService extends ViPRService {
                 preCheckErrors.append("Host doesn't exist for ID " + hostId);
             } else if (!host.getCluster().equals(clusterId)) {
                 preCheckErrors.append("Host " + host.getLabel() + " is not associated with cluster: " + cluster.getLabel());
-            } else if (NullColumnValueGetter.isNullURI(host.getComputeElement())) {
+            } else if (NullColumnValueGetter.isNullURI(host.getComputeElement()) && NullColumnValueGetter.isNullURI(host.getServiceProfile())) {
                 nonVblockhosts.add(host.getLabel());
             }
             hostURIMap.put(hostId, host.getLabel());
@@ -85,12 +85,6 @@ public class RemoveHostFromClusterService extends ViPRService {
             .append(" no longer contains one or more of the hosts requesting decommission.  Cannot decomission in current state.  Recommended " +
             "to run vCenter discovery and address actionable events before attempting decomission of hosts in this cluster.");
         }
-        
-        // Note: currently there is no test if a host was moved to an entirely different vSphere.
-        // If we don't see the host in the vCenter cluster we know it to be associated with, we assume
-        // it was removed manually and/or a decommissioning operation failed on a previous attempt and
-        // we continue from where we left off next time.  Perhaps someone can think of a clever way to 
-        // detect the host is still in use in the future.
         
         if (preCheckErrors.length() > 0) {
             throw new IllegalStateException(preCheckErrors.toString());

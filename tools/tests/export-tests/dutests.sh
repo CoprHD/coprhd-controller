@@ -3103,7 +3103,6 @@ then
    for t in $*
    do
       secho Run $t
-      secho "Start time: $(date)"
       reset_system_props
       prerun_tests
       TEST_OUTPUT_FILE=test_output_${RANDOM}.log
@@ -3125,7 +3124,6 @@ else
      prerun_tests
      TEST_OUTPUT_FILE=test_output_${RANDOM}.log
      reset_counts
-     secho "Start time: $(date)"
      test_${num}
      reset_system_props
      num=`expr ${num} + 1`

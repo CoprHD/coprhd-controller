@@ -19,6 +19,7 @@ import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Vcenter;
 import com.emc.storageos.db.client.model.VcenterDataCenter;
 import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
@@ -379,8 +380,8 @@ public class VcenterControllerImpl implements VcenterController {
             vcenterApiClient.removeHost(vcenterDataCenter.getLabel(), cluster.getExternalId(), host.getHostName());
             _log.info("Successfully removed host " + host.getHostName());
 
-            host.setVcenterDataCenter(null); // Probably doesnt work
-            _dbClient.updateAndReindexObject(host);
+            host.setVcenterDataCenter(NullColumnValueGetter.getNullURI());
+            _dbClient.updateObject(host);
 
             WorkflowStepCompleter.stepSucceded(stepId);
         } catch (Exception e) {

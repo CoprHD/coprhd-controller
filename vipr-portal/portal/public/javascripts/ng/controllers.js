@@ -1690,7 +1690,8 @@ angular.module("portalApp").controller("MyOrdersCtrl", function ($scope) {
             return;
         } else {
             var url = ORDER_MY_LIST + "?startDate=" + encodeURIComponent($scope.rangeStartDate) +
-                "&endDate=" + encodeURIComponent(newEndVal);
+                "&endDate=" + encodeURIComponent(newEndVal) +
+                "&offsetInMinutes=" + getTimeZoneOffset();
             $('.bfh-datepicker-toggle input').attr("readonly", true);
             $('date-picker').click(false);
 
@@ -1726,7 +1727,8 @@ angular.module("portalApp").controller("AllOrdersCtrl", function ($scope) {
             return;
         } else {
             var url = ORDER_ALL_ORDERS + "?startDate=" + encodeURIComponent($scope.rangeStartDate) +
-                "&endDate=" + encodeURIComponent(newEndVal);
+                "&endDate=" + encodeURIComponent(newEndVal) +
+                "&offsetInMinutes=" + getTimeZoneOffset();
             $('.bfh-datepicker-toggle input').attr("readonly", true);
             $('date-picker').click(false);
 

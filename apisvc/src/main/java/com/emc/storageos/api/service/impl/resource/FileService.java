@@ -1249,10 +1249,10 @@ public class FileService extends TaskResourceService {
         // checkQuota
         long expand = newFSsize - fs.getCapacity();
 
-        final long MIN_EXPAND_SIZE = SizeUtil.translateSize("1MB") + 1;
-        if (expand < MIN_EXPAND_SIZE) {
-            throw APIException.badRequests.invalidParameterBelowMinimum("new_size", newFSsize, fs.getCapacity() + MIN_EXPAND_SIZE, "bytes");
-        }
+//        final long MIN_EXPAND_SIZE = SizeUtil.translateSize("1MB") + 1;
+//        if (expand < MIN_EXPAND_SIZE) {
+//            throw APIException.badRequests.invalidParameterBelowMinimum("new_size", newFSsize, fs.getCapacity() + MIN_EXPAND_SIZE, "bytes");
+//        }
 
         Project project = _dbClient.queryObject(Project.class, fs.getProject().getURI());
         TenantOrg tenant = _dbClient.queryObject(TenantOrg.class, fs.getTenant().getURI());
@@ -1263,6 +1263,7 @@ public class FileService extends TaskResourceService {
         Operation op = _dbClient.createTaskOpStatus(FileShare.class, fs.getId(),
                 task, ResourceOperationTypeEnum.EXPAND_FILE_SYSTEM);
         op.setDescription("Filesystem expand");
+
 
         FileServiceApi fileServiceApi = getFileShareServiceImpl(fs, _dbClient);
         try {

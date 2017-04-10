@@ -28,7 +28,7 @@ import com.emc.storageos.db.client.model.FilePolicy;
 import com.emc.storageos.db.client.model.FilePolicy.FilePolicyType;
 import com.emc.storageos.db.client.model.FilePolicy.SnapshotExpireType;
 import com.emc.storageos.model.NamedRelatedResourceRep;
-import com.emc.storageos.model.file.FilePolicyRestRep;
+import com.emc.storageos.model.file.FileSchedulingPolicyRestRep;
 import com.emc.storageos.model.file.policy.FilePolicyCreateParam;
 import com.emc.storageos.model.file.policy.FilePolicyCreateResp;
 import com.emc.storageos.model.file.policy.FilePolicyListRestRep;
@@ -386,7 +386,7 @@ public class FilePolicyApiTest extends ApiTestBase {
 
     @Test
     public void testGetFileSnapshotPolicy() {
-        FilePolicyRestRep fileSnapshotPolicyResp = rSys.path(getFilePolicyURI(createdFileSnapshotPolicyURI)).get(FilePolicyRestRep.class);
+        FileSchedulingPolicyRestRep fileSnapshotPolicyResp = rSys.path(getFilePolicyURI(createdFileSnapshotPolicyURI)).get(FileSchedulingPolicyRestRep.class);
         Assert.assertNotNull(fileSnapshotPolicyResp);
         Assert.assertTrue(createdFileSnapshotPolicyURI.equals(fileSnapshotPolicyResp.getId()));
     }

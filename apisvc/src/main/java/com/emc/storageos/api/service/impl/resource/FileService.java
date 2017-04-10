@@ -121,7 +121,7 @@ import com.emc.storageos.model.file.FileCifsShareACLUpdateParams;
 import com.emc.storageos.model.file.FileExportUpdateParam;
 import com.emc.storageos.model.file.FileNfsACLUpdateParams;
 import com.emc.storageos.model.file.FilePolicyList;
-import com.emc.storageos.model.file.FilePolicyRestRep;
+import com.emc.storageos.model.file.FileSchedulingPolicyRestRep;
 import com.emc.storageos.model.file.FileReplicationCreateParam;
 import com.emc.storageos.model.file.FileReplicationParam;
 import com.emc.storageos.model.file.FileShareBulkRep;
@@ -3585,13 +3585,13 @@ public class FileService extends TaskResourceService {
     @CheckPermission(roles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, acls = { ACL.ANY })
     public FilePolicyList getFileSystemPolicy(@PathParam("id") URI id) {
         FilePolicyList fpList = new FilePolicyList();
-        List<FilePolicyRestRep> fpRestList = new ArrayList<FilePolicyRestRep>();
+        List<FileSchedulingPolicyRestRep> fpRestList = new ArrayList<FileSchedulingPolicyRestRep>();
         ArgValidator.checkFieldUriType(id, FileShare.class, "id");
         FileShare fs = queryResource(id);
 
         StringSet fpolicies = fs.getFilePolicies();
         for (String fpolicy : fpolicies) {
-            FilePolicyRestRep fpRest = new FilePolicyRestRep();
+            FileSchedulingPolicyRestRep fpRest = new FileSchedulingPolicyRestRep();
             URI fpURI = URI.create(fpolicy);
             if (fpURI != null) {
                 SchedulePolicy fp = _permissionsHelper.getObjectById(fpURI, SchedulePolicy.class);
@@ -3737,7 +3737,7 @@ public class FileService extends TaskResourceService {
      * @param fs
      *            FileShare object
      */
-    private void getFilePolicyRestRep(FilePolicyRestRep fpRest, SchedulePolicy fp, FileShare fs) {
+    private void getFilePolicyRestRep(FileSchedulingPolicyRestRep fpRest, SchedulePolicy fp, FileShare fs) {
         String snapshotScheduleName = fp.getPolicyName() + "_" + fs.getName();
         String pattern = snapshotScheduleName + "_YYYY-MM-DD_HH-MM";
         fpRest.setPolicyId(fp.getId());

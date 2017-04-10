@@ -3915,8 +3915,8 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             // Only expand the fileshare if it's an existing fileshare (provisoned capacity is not null and not 0) and
             // new size > existing fileshare's provisioned capacity, otherwise we can ignore.
             if (fileShare.getCapacity() != null
-                    && fileShare.getCapacity().longValue() != 0
-                    && descriptor.getFileSize() > fileShare.getCapacity().longValue()) {
+                    && fileShare.getCapacity().longValue() != 0){
+                    //&& descriptor.getFileSize() > fileShare.getCapacity().longValue()) {
                 filesharesToExpand.put(fileShare.getId(), descriptor.getFileSize());
             }
         }

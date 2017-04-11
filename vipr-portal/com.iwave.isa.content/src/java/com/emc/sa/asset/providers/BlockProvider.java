@@ -457,6 +457,30 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         return options;
     }
 
+    @Asset("exportVolumeForHostPortGroups")
+    @AssetDependencies( {"virtualArray", "windowHost", "project"} )
+    public List<AssetOption> getExportVolumeForWindowsHostPortGroups(AssetOptionsContext ctx, URI vArrayId, URI hostOrClusterId, URI projectId) {
+        return getExportVolumeForHostPortGroups(ctx, vArrayId, hostOrClusterId, projectId);
+    }
+
+    @Asset("exportVolumeForHostPortGroups")
+    @AssetDependencies( {"virtualArray", "linuxHost", "project"} )
+    public List<AssetOption> getExportVolumeForLinuxHostPortGroups(AssetOptionsContext ctx, URI vArrayId, URI hostOrClusterId, URI projectId) {
+        return getExportVolumeForHostPortGroups(ctx, vArrayId, hostOrClusterId, projectId);
+    }
+
+    @Asset("exportVolumeForHostPortGroups")
+    @AssetDependencies( {"virtualArray", "aixHost", "project"} )
+    public List<AssetOption> getExportVolumeForAixHostPortGroups(AssetOptionsContext ctx, URI vArrayId, URI hostOrClusterId, URI projectId) {
+        return getExportVolumeForHostPortGroups(ctx, vArrayId, hostOrClusterId, projectId);
+    }
+
+    @Asset("exportVolumeForHostPortGroups")
+    @AssetDependencies( {"virtualArray", "hpuxHost", "project"} )
+    public List<AssetOption> getExportVolumeForHpuxHostPortGroups(AssetOptionsContext ctx, URI vArrayId, URI hostOrClusterId, URI projectId) {
+        return getExportVolumeForHostPortGroups(ctx, vArrayId, hostOrClusterId, projectId);
+    }
+
     @Asset("exportedBlockVolume")
     @AssetDependencies("project")
     public List<AssetOption> getExportedVolumes(AssetOptionsContext ctx, URI project) {

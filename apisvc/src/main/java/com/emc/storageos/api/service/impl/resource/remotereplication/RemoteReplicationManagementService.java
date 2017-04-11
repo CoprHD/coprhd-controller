@@ -341,38 +341,40 @@ public class RemoteReplicationManagementService extends TaskResourceService {
      * Validate the remote replication pairs based on given parameters described as following:
      * @param rrPairs
      *            the remote replication pair IDs
-     * @param groupContainment
+     * @param inSameGroup
      *            check whether all rr pairs have the same rr group if this param is true,
      *            otherwise check whether all rr pairs have the same rr set
      * @param allowInGroup
      *            when checking whether all rr pairs are in the same rr set,
      *            throw exception if one of the rr pairs is in a rr group and this param is false
+     *            NOTE: this parameter is only used when inSameGroup is false
      * @param checkCG
      *            Check if all the source/target volumes are in the same consistency groups.
      */
-    private void checkContainment(List<RemoteReplicationPair> rrPairs, boolean groupContainment, boolean allowInGroup,
+    private void checkContainment(List<RemoteReplicationPair> rrPairs, boolean inSameGroup, boolean allowInGroup,
             boolean checkCG) {
         URI uri = null;
         URI sourceCG = null;
         URI targetCG = null;
         for (RemoteReplicationPair pair : rrPairs) {
-            if (!groupContainment && !allowInGroup && pair.isGroupPair()) {
+            if (!inSameGroup && !allowInGroup && pair.isGroupPair()) {
                 throw APIException.badRequests.remoteReplicationOperationPrecheckFailed(String.format(
                         "remote repliation pair %s is not directly contained in remote repliation group, which is not allowed",
                         pair.getNativeId()));
             }
-            URI current = groupContainment ? pair.getReplicationGroup() : pair.getReplicationSet();
+            URI current = inSameGroup ? pair.getReplicationGroup() : pair.getReplicationSet();
             if (current == null) {
-                throw APIException.badRequests.remoteReplicationOperationPrecheckFailed(String
-                        .format("remote replication group of remote repliaction pair %s is null", pair.getNativeId()));
+                throw APIException.badRequests.remoteReplicationOperationPrecheckFailed(
+                        String.format("remote replication %s of remote repliaction pair %s is null, which is not allowed",
+                                inSameGroup ? "group" : "set", pair.getNativeId()));
             } else if (uri == null) {
                 uri = current;
             } else if (!uri.equals(current)) {
                 throw APIException.badRequests.remoteReplicationOperationPrecheckFailed(String.format(
-                        "remote replication group of remote replication pair %s is not the same as the others",
-                        pair.getNativeId()));
+                        "remote replication %s of remote replication pair %s is not the same as the others",
+                        inSameGroup ? "group" : "set", pair.getNativeId()));
             }
-            if (!checkCG) {
+            if (!checkCG) { // Following checking will be bypassed if checking CG is not needed
                 continue;
             }
             URI currentSourceCG = _dbClient.queryObject(Volume.class, pair.getSourceElement()).getConsistencyGroup();

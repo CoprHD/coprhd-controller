@@ -133,6 +133,25 @@ public class RemoteReplicationSet extends DiscoveredDataObject {
         return supportedReplicationLinkGranularity;
     }
 
+    public boolean supportRemoteReplicationPairOperation() {
+        return supportedReplicationLinkGranularity != null
+                && supportedReplicationLinkGranularity.contains("REPLICATION_PAIR")
+                && supportedElementTypes != null
+                && supportedElementTypes.contains("REPLICATION_PAIR");
+    }
+
+    public boolean supportRemoteReplicationGroupOperation() {
+        return supportedReplicationLinkGranularity != null
+                && supportedReplicationLinkGranularity.contains("REPLICATION_GROUP")
+                && supportedElementTypes != null
+                && supportedElementTypes.contains("REPLICATION_GROUP");
+    }
+
+    public boolean supportRemoteReplicationSetOperation() {
+        return supportedReplicationLinkGranularity != null
+                && supportedReplicationLinkGranularity.contains("REPLICATION_SET");
+    }
+
     public void setSupportedReplicationLinkGranularity(StringSet supportedReplicationLinkGranularity) {
         this.supportedReplicationLinkGranularity = supportedReplicationLinkGranularity;
         setChanged("supportedReplicationLinkGranularity");

@@ -36,6 +36,7 @@ import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.db.client.model.remotereplication.RemoteReplicationGroup;
 import com.emc.storageos.db.client.model.remotereplication.RemoteReplicationPair;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.model.ResourceTypeEnum;
@@ -178,7 +179,7 @@ public class RemoteReplicationPairService extends TaskResourceService {
         RemoteReplicationElement rrElement =
                 new RemoteReplicationElement(RemoteReplicationSet.ElementType.CONSISTENCY_GROUP, cgURI);
 
-        RemoteReplicationUtils.validateRemoteReplicationOperation(rrElement, RemoteReplicationController.RemoteReplicationOperations.FAIL_OVER);
+        RemoteReplicationUtils.validateRemoteReplicationOperation(_dbClient, rrElement, RemoteReplicationController.RemoteReplicationOperations.FAIL_OVER);
 
         String taskId = UUID.randomUUID().toString();
         TaskList taskList = new TaskList();
@@ -226,7 +227,7 @@ public class RemoteReplicationPairService extends TaskResourceService {
         RemoteReplicationElement rrElement =
                 new RemoteReplicationElement(com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationSet.ElementType.REPLICATION_PAIR, id);
 
-        RemoteReplicationUtils.validateRemoteReplicationOperation(rrElement, RemoteReplicationController.RemoteReplicationOperations.FAIL_OVER);
+        RemoteReplicationUtils.validateRemoteReplicationOperation(_dbClient, rrElement, RemoteReplicationController.RemoteReplicationOperations.FAIL_OVER);
 
         // Create a task for the failover remote replication Pair operation
         Operation op = _dbClient.createTaskOpStatus(RemoteReplicationPair.class, rrPair.getId(),
@@ -270,7 +271,7 @@ public class RemoteReplicationPairService extends TaskResourceService {
         RemoteReplicationElement rrElement =
                 new RemoteReplicationElement(RemoteReplicationSet.ElementType.CONSISTENCY_GROUP, cgURI);
 
-        RemoteReplicationUtils.validateRemoteReplicationOperation(rrElement, RemoteReplicationController.RemoteReplicationOperations.FAIL_BACK);
+        RemoteReplicationUtils.validateRemoteReplicationOperation(_dbClient, rrElement, RemoteReplicationController.RemoteReplicationOperations.FAIL_BACK);
 
         String taskId = UUID.randomUUID().toString();
         TaskList taskList = new TaskList();
@@ -319,7 +320,7 @@ public class RemoteReplicationPairService extends TaskResourceService {
 
         RemoteReplicationElement rrElement =
                 new RemoteReplicationElement(com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationSet.ElementType.REPLICATION_PAIR, id);
-        RemoteReplicationUtils.validateRemoteReplicationOperation(rrElement, RemoteReplicationController.RemoteReplicationOperations.FAIL_BACK);
+        RemoteReplicationUtils.validateRemoteReplicationOperation(_dbClient, rrElement, RemoteReplicationController.RemoteReplicationOperations.FAIL_BACK);
 
         // Create a task for the failback remote replication Pair operation
         Operation op = _dbClient.createTaskOpStatus(RemoteReplicationPair.class, rrPair.getId(),
@@ -362,7 +363,7 @@ public class RemoteReplicationPairService extends TaskResourceService {
 
         RemoteReplicationElement rrElement =
                 new RemoteReplicationElement(RemoteReplicationSet.ElementType.CONSISTENCY_GROUP, cgURI);
-        RemoteReplicationUtils.validateRemoteReplicationOperation(rrElement, RemoteReplicationController.RemoteReplicationOperations.ESTABLISH);
+        RemoteReplicationUtils.validateRemoteReplicationOperation(_dbClient, rrElement, RemoteReplicationController.RemoteReplicationOperations.ESTABLISH);
 
         String taskId = UUID.randomUUID().toString();
         TaskList taskList = new TaskList();
@@ -411,7 +412,7 @@ public class RemoteReplicationPairService extends TaskResourceService {
 
         RemoteReplicationElement rrElement =
                 new RemoteReplicationElement(com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationSet.ElementType.REPLICATION_PAIR, id);
-        RemoteReplicationUtils.validateRemoteReplicationOperation(rrElement, RemoteReplicationController.RemoteReplicationOperations.ESTABLISH);
+        RemoteReplicationUtils.validateRemoteReplicationOperation(_dbClient, rrElement, RemoteReplicationController.RemoteReplicationOperations.ESTABLISH);
 
         // Create a task for the establish remote replication Pair operation
         Operation op = _dbClient.createTaskOpStatus(RemoteReplicationPair.class, rrPair.getId(),
@@ -455,7 +456,7 @@ public class RemoteReplicationPairService extends TaskResourceService {
         RemoteReplicationElement rrElement =
                 new RemoteReplicationElement(RemoteReplicationSet.ElementType.CONSISTENCY_GROUP, cgURI);
 
-        RemoteReplicationUtils.validateRemoteReplicationOperation(rrElement, RemoteReplicationController.RemoteReplicationOperations.SPLIT);
+        RemoteReplicationUtils.validateRemoteReplicationOperation(_dbClient, rrElement, RemoteReplicationController.RemoteReplicationOperations.SPLIT);
 
         String taskId = UUID.randomUUID().toString();
         TaskList taskList = new TaskList();
@@ -504,7 +505,7 @@ public class RemoteReplicationPairService extends TaskResourceService {
 
         RemoteReplicationElement rrElement =
                 new RemoteReplicationElement(com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationSet.ElementType.REPLICATION_PAIR, id);
-        RemoteReplicationUtils.validateRemoteReplicationOperation(rrElement, RemoteReplicationController.RemoteReplicationOperations.SPLIT);
+        RemoteReplicationUtils.validateRemoteReplicationOperation(_dbClient, rrElement, RemoteReplicationController.RemoteReplicationOperations.SPLIT);
 
         // Create a task for the split remote replication Pair operation
         Operation op = _dbClient.createTaskOpStatus(RemoteReplicationPair.class, rrPair.getId(),
@@ -560,7 +561,7 @@ public class RemoteReplicationPairService extends TaskResourceService {
 
         RemoteReplicationElement rrElement =
                 new RemoteReplicationElement(com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationSet.ElementType.REPLICATION_PAIR, id);
-        RemoteReplicationUtils.validateRemoteReplicationOperation(rrElement, RemoteReplicationController.RemoteReplicationOperations.SUSPEND);
+        RemoteReplicationUtils.validateRemoteReplicationOperation(_dbClient, rrElement, RemoteReplicationController.RemoteReplicationOperations.SUSPEND);
 
         // Create a task for the suspend remote replication Pair operation
         Operation op = _dbClient.createTaskOpStatus(RemoteReplicationPair.class, rrPair.getId(),
@@ -616,7 +617,7 @@ public class RemoteReplicationPairService extends TaskResourceService {
 
         RemoteReplicationElement rrElement =
                 new RemoteReplicationElement(com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationSet.ElementType.REPLICATION_PAIR, id);
-        RemoteReplicationUtils.validateRemoteReplicationOperation(rrElement, RemoteReplicationController.RemoteReplicationOperations.RESUME);
+        RemoteReplicationUtils.validateRemoteReplicationOperation(_dbClient, rrElement, RemoteReplicationController.RemoteReplicationOperations.RESUME);
 
         // Create a task for the resume remote replication Pair operation
         Operation op = _dbClient.createTaskOpStatus(RemoteReplicationPair.class, rrPair.getId(),
@@ -673,7 +674,7 @@ public class RemoteReplicationPairService extends TaskResourceService {
         RemoteReplicationElement rrElement =
                 new RemoteReplicationElement(com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationSet.ElementType.REPLICATION_PAIR, id);
 
-        RemoteReplicationUtils.validateRemoteReplicationOperation(rrElement, RemoteReplicationController.RemoteReplicationOperations.SWAP);
+        RemoteReplicationUtils.validateRemoteReplicationOperation(_dbClient, rrElement, RemoteReplicationController.RemoteReplicationOperations.SWAP);
 
         // Create a task for the swap remote replication Pair operation
         Operation op = _dbClient.createTaskOpStatus(RemoteReplicationPair.class, rrPair.getId(),
@@ -724,7 +725,7 @@ public class RemoteReplicationPairService extends TaskResourceService {
 
         String newMode = param.getNewMode();
 
-        RemoteReplicationUtils.validateRemoteReplicationModeChange(rrElement, newMode);
+        RemoteReplicationUtils.validateRemoteReplicationModeChange(_dbClient, rrElement, newMode);
 
         // Create a task for the remote replication mode change
         String taskId = UUID.randomUUID().toString();
@@ -808,7 +809,17 @@ public class RemoteReplicationPairService extends TaskResourceService {
         // todo: validate that this operation is valid:
         //   if pair is in a group
         //   if new group has the same source system, the same target system as current group of the pair
-
+        URI currentGroupId = null;
+        if ((currentGroupId = rrPair.getReplicationGroup()) == null) {
+            // throw exception
+        }
+        RemoteReplicationGroup currentGroup = _dbClient.queryObject(RemoteReplicationGroup.class, currentGroupId);
+        ArgValidator.checkFieldUriType(targetGroup, RemoteReplicationGroup.class, "id");
+        RemoteReplicationGroup newGroup = _dbClient.queryObject(RemoteReplicationGroup.class, targetGroup);
+        if (!URIUtil.uriEquals(currentGroup.getSourceSystem(), newGroup.getSourceSystem()) ||
+                !URIUtil.uriEquals(currentGroup.getTargetSystem(), newGroup.getSourceSystem())) {
+            // throw exception
+        }
     }
 
     @Override

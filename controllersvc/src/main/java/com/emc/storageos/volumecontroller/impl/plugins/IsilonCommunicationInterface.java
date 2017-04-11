@@ -318,13 +318,14 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
             for (IsilonSmartQuota quota : quotas.getList()) {
                 String fsNativeId = quota.getPath();
                 String fsNativeGuid = NativeGUIDGenerator.generateNativeGuid(deviceType, serialNumber, fsNativeId);
-                if (fileSystemsMap.get(fsNativeGuid) == null) {
+                String fsId = fileSystemsMap.get(fsNativeGuid);
+                if (fsId == null || fsId.isEmpty()) {
                     // No file shares found for the quota
                     // ignore stats collection for the file system!!!
                     _log.debug("File System does not exists with nativeid {}. Hence ignoring stats collection.", fsNativeGuid);
                     continue;
                 }
-                Stat stat = recorder.addUsageStat(quota, _keyMap, fsNativeGuid, api);
+                Stat stat = recorder.addUsageStat(quota, _keyMap, fsId, api);
                 fsChanged = false;
                 if (null != stat) {
                     stats.add(stat);

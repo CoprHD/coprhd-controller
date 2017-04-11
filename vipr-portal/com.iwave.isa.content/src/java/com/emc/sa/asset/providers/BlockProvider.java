@@ -458,7 +458,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     }
 
     @Asset("exportVolumeForHostPortGroups")
-    @AssetDependencies( {"virtualArray", "windowHost", "project"} )
+    @AssetDependencies( {"virtualArray", "windowsHost", "project"} )
     public List<AssetOption> getExportVolumeForWindowsHostPortGroups(AssetOptionsContext ctx, URI vArrayId, URI hostOrClusterId, URI projectId) {
         return getExportVolumeForHostPortGroups(ctx, vArrayId, hostOrClusterId, projectId);
     }

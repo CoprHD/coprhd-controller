@@ -4,10 +4,14 @@
  */
 package com.emc.sa.service.vipr.file;
 
-import static com.emc.sa.service.ServiceParams.SNAPSHOT;
+import static com.emc.sa.service.ServiceParams.BYPASS_DNS_CHECK;
 import static com.emc.sa.service.ServiceParams.COMMENT;
+import static com.emc.sa.service.ServiceParams.SNAPSHOT;
+
 import java.net.URI;
+
 import org.apache.commons.lang.StringUtils;
+
 import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.engine.bind.Bindable;
 import com.emc.sa.engine.bind.Param;
@@ -25,6 +29,9 @@ public class ExportFileSnapshotService extends ViPRService {
     @Bindable(itemType = FileStorageUtils.FileExportRule.class)
     protected FileStorageUtils.FileExportRule[] exportRules;
 
+    @Param(BYPASS_DNS_CHECK)
+    protected boolean bypassDnsCheck;
+
     @Override
     public void precheck() throws Exception {
         if (exportRules == null || exportRules.length == 0) {
@@ -37,7 +44,7 @@ public class ExportFileSnapshotService extends ViPRService {
         if (exportRules != null) {
             String exportId = FileStorageUtils.createFileSnapshotExport(snapshot, comment, exportRules[0], null);
             if (exportRules.length > 1 && StringUtils.isNotBlank(exportId)) {
-                FileStorageUtils.updateFileSnapshotExport(snapshot, null, exportRules);
+                FileStorageUtils.updateFileSnapshotExport(snapshot, null, exportRules, bypassDnsCheck);
             }
         }
     }

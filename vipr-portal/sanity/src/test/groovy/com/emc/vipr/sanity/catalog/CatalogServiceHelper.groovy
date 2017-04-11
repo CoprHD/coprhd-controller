@@ -17,7 +17,6 @@ import com.emc.vipr.model.catalog.ExecutionWindowCreateParam
 import com.emc.vipr.model.catalog.ExecutionWindowRestRep
 import com.emc.vipr.model.catalog.ServiceDescriptorRestRep
 import com.emc.vipr.model.catalog.ServiceItemContainerRestRep
-import com.emc.vipr.sanity.CatalogSanity
 
 
 class CatalogServiceHelper {
@@ -44,7 +43,7 @@ class CatalogServiceHelper {
         println ""
 
         println "Place Order"
-        CatalogSanity.services_run++
+        services_run++
         def order = executeService(service, parameters)
         println ""
 

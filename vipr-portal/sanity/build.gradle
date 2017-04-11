@@ -18,10 +18,18 @@ test {
     exclude "com/emc/vipr/sanity/**/*"
 }
 
-task catalog(type: JavaExec) {
+task catalogBlockServices(type: JavaExec) {
     main "org.junit.runner.JUnitCore"
-    args "com.emc.vipr.sanity.CatalogSanity"
+    args "com.emc.vipr.sanity.CatalogBlockServicesSanity"
     classpath = sourceSets.test.runtimeClasspath
     systemProperties System.properties
     environment System.getenv()
+}
+
+task catalogBlockProtectionServices(type: JavaExec) {
+   main "org.junit.runner.JUnitCore"
+   args "com.emc.vipr.sanity.CatalogBlockProtectionServicesSanity"
+   classpath = sourceSets.test.runtimeClasspath
+   systemProperties System.properties
+   environment System.getenv()
 }

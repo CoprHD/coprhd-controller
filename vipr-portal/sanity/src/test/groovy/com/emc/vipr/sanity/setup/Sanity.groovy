@@ -15,6 +15,7 @@ class Sanity {
     static ExtendedProperties properties
     static ClientConfig clientConfig
     static String authToken
+    static int services_run = 0
 
     // Clients
     static ViPRCoreClient client

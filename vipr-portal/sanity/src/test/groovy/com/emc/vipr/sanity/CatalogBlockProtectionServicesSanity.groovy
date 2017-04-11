@@ -9,7 +9,7 @@ import com.emc.vipr.sanity.setup.Sanity
 import com.emc.vipr.sanity.setup.VNXSetup
 
 
-public class CatalogBlockServicesSanity {
+public class CatalogBlockProtectionServicesSanity {
 
     @BeforeClass static void setup() {
         Sanity.setup()
@@ -22,11 +22,11 @@ public class CatalogBlockServicesSanity {
         println "Placed ${Sanity.services_run} catalog orders"
     }
 
-    @Test void createBlockVolumeTest() {
-        BlockServicesHelper.createAndRemoveBlockVolumeTest()
+    @Test void createBlockSnapshotTest() {
+        BlockServicesHelper.createSnapshotAndRemoveBlockVolumeTest()
     }
 
-    @Test void createBlockVolumeForHostTest() {
-        BlockServicesHelper.createAndRemoveBlockVolumeForHostTest()
+    @Test void createBlockFullCopyTest() {
+        BlockServicesHelper.createFullCopyAndRemoveBlockVolumeTest()
     }
 }

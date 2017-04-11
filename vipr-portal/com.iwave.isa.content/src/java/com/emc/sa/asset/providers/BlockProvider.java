@@ -367,13 +367,14 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     }
 
     @Asset("exportVolumePortGroups")
-    public List<AssetOption> getExportVolumePortGroups(AssetOptionsContext ctx) {
-        return getExportVolumePortGroups(ctx, new String(""));
+    @AssetDependencies( {"host", "project"} )
+    public List<AssetOption> getExportVolumePortGroups(AssetOptionsContext ctx, URI hostOrClusterId, URI projectId) {
+        return getExportVolumePortGroups(ctx, new String(""), hostOrClusterId, projectId);
     }
 
     @Asset("exportVolumePortGroups")
-    @AssetDependencies("unassignedBlockVolume")
-    public List<AssetOption> getExportVolumePortGroups(AssetOptionsContext ctx, String selectedVolumes) {
+    @AssetDependencies( {"unassignedBlockVolume", "host", "project"} )
+    public List<AssetOption> getExportVolumePortGroups(AssetOptionsContext ctx, String selectedVolumes, URI hostOrClusterId, URI projectId) {
         final ViPRCoreClient client = api(ctx);
         List<AssetOption> options = Lists.newArrayList();
 
@@ -388,25 +389,30 @@ public class BlockProvider extends BaseAssetOptionsProvider {
 
             List<VolumeRestRep> volumes = client.blockVolumes().getByIds(volumeIds);
 
-            Set<URI> storageControllers = new HashSet<URI>();
+            Set<URI> virtualArrays = new HashSet<URI>();
             for (VolumeRestRep volume : volumes) {
-                storageControllers.add(volume.getStorageController());
+                virtualArrays.add(volume.getVirtualArray().getId());
             }
 
-            if (storageControllers.size() == 1) {
-                Iterator<URI> it = storageControllers.iterator();
+            if (virtualArrays.size() == 1) {
+                Iterator<URI> it = virtualArrays.iterator();
                 URI id = it.next();
-                StorageSystemRestRep storageSystem = client.storageSystems().get(id);
-                String systemType = storageSystem.getSystemType();
-                if (Type.vmax.name().equalsIgnoreCase(systemType)) {
-                    List<NamedRelatedResourceRep> portGroups = client.storageSystems().getStoragePortGroups(id);
-                    for (NamedRelatedResourceRep group : portGroups) {
-                        StoragePortGroupRestRep spg = client.storageSystems().getStoragePortGroup(id, group.getId());
+                VirtualArrayRestRep vArray = client.varrays().get(id);
 
-                        String portMetric = (spg.getPortMetric() != null) ? String.valueOf(Math.round(spg.getPortMetric() * 100 / 100)) + "%" : "N/A";
-                        String label = getMessage("exportPortGroup.portGroups", spg.getName(), portMetric);
-                        options.add(new AssetOption(spg.getId(), label));
-                    }
+                ExportGroupRestRep export = null;
+                if (BlockStorageUtils.isHost(hostOrClusterId)) {
+                    List<ExportGroupRestRep> exports = client.blockExports().findByHost(hostOrClusterId, projectId, id);
+                    export = exports.isEmpty() ? null : exports.get(0);
+                } else {
+                    List<ExportGroupRestRep> exports = client.blockExports().findByCluster(hostOrClusterId, projectId, id);
+                    export = exports.isEmpty() ? null : exports.get(0);
+                }
+
+                List<NamedRelatedResourceRep> portGroups = client.varrays().getStoragePortGroups(id, export != null ? export.getId() : null);
+                for (NamedRelatedResourceRep group : portGroups) {
+                    // TODO: retrieve port metric when information becomes available
+                    String label = getMessage("exportPortGroup.portGroups", group.getName(), "Metric");
+                    options.add(new AssetOption(group.getId(), label));
                 }
             }
         }
@@ -414,17 +420,38 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     }
 
     @Asset("exportVolumeForHostPortGroups")
-    @AssetDependencies("virtualArray")
-    public List<AssetOption> getExportVolumeForHostPortGroups(AssetOptionsContext ctx, URI vArrayId) {
+    @AssetDependencies( {"virtualArray", "host", "project"} )
+    public List<AssetOption> getExportVolumeForHostPortGroups(AssetOptionsContext ctx, URI vArrayId, URI hostOrClusterId, URI projectId) {
         final ViPRCoreClient client = api(ctx);
         List<AssetOption> options = Lists.newArrayList();
         SimpleValueRep value = client.customConfigs().getCustomConfigTypeValue("VMAXUsePortGroupEnabled/value", "vmax");
         if (value.getValue().equalsIgnoreCase("true")) {
-            List<NamedRelatedResourceRep> portGroups = client.varrays().getStoragePortGroups(vArrayId);
+            ExportGroupRestRep export = null;
+            if (BlockStorageUtils.isHost(hostOrClusterId)) {
+                List<ExportGroupRestRep> exports = client.blockExports().findByHost(hostOrClusterId, projectId, vArrayId);
+                export = exports.isEmpty() ? null : exports.get(0);
+            } else {
+                List<ExportGroupRestRep> exports = client.blockExports().findByCluster(hostOrClusterId, projectId, vArrayId);
+                export = exports.isEmpty() ? null : exports.get(0);
+            }
+
+            List<NamedRelatedResourceRep> portGroups = client.varrays().getStoragePortGroups(vArrayId, export != null ? export.getId() : null);
 
             for (NamedRelatedResourceRep group : portGroups) {
-                options.add(new AssetOption(group.getId(), group.getName()));
+                // TODO: retrieve port metric when information becomes available
+                String label = getMessage("exportPortGroup.portGroups", group.getName(), "Metric");
+                options.add(new AssetOption(group.getId(), label));
             }
+            /*
+            List<NamedRelatedResourceRep> portGroups = client.storageSystems().getStoragePortGroups(id);
+            for (NamedRelatedResourceRep group : portGroups) {
+                StoragePortGroupRestRep spg = client.storageSystems().getStoragePortGroup(id, group.getId());
+
+                String portMetric = (spg.getPortMetric() != null) ? String.valueOf(Math.round(spg.getPortMetric() * 100 / 100)) + "%" : "N/A";
+                String label = getMessage("exportPortGroup.portGroups", spg.getName(), portMetric);
+                options.add(new AssetOption(spg.getId(), label));
+            }
+             */
         }
 
         return options;

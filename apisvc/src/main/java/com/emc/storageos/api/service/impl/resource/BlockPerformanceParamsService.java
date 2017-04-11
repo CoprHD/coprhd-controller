@@ -257,7 +257,7 @@ public class BlockPerformanceParamsService extends TaggedResource {
      */
     @Override
     protected ResourceTypeEnum getResourceType() {
-        return ResourceTypeEnum.BLOCK_VPOOL;
+        return ResourceTypeEnum.BLOCK_PERFORMANCE_PARAMS;
     }
     
     /**

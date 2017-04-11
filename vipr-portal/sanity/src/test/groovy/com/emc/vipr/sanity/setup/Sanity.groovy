@@ -24,7 +24,6 @@ class Sanity {
 
     static void initialize() {
         println "Initializing Sanity Test Harness"
-        println "logging in as user " + System.getenv("SYSADMIN") + " and password " + System.getenv("SYSADMIN_PASSWORD")
         // Initialize java clients
         initClients()
     }
@@ -32,6 +31,7 @@ class Sanity {
     static void setup() {
         initialize()
         SystemSetup.commonSetup()
+        SecuritySetup.setupActiveDirectory()
         VirtualArraySetup.setup()
         ProjectSetup.setup()
         VirtualArraySetup.updateAcls(client.userTenantId)

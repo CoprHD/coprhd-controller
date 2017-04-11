@@ -20,14 +20,14 @@ import javax.xml.bind.annotation.XmlRootElement;
 public class FilePolicyList {
 
     // List of schedule policies
-    private List<FileSchedulingPolicyRestRep> filePolicies;
+    private List<FilePolicyRestRep> filePolicies;
 
     @XmlElement(name = "file_policy")
-    public List<FileSchedulingPolicyRestRep> getFilePolicies() {
+    public List<FilePolicyRestRep> getFilePolicies() {
         return filePolicies;
     }
 
-    public void setFilePolicies(List<FileSchedulingPolicyRestRep> filePolicies) {
+    public void setFilePolicies(List<FilePolicyRestRep> filePolicies) {
         this.filePolicies = filePolicies;
     }
 

@@ -12,7 +12,7 @@ import java.util.List;
 import com.emc.storageos.model.BulkIdParam;
 import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.file.FilePolicyList;
-import com.emc.storageos.model.file.FileSchedulingPolicyRestRep;
+import com.emc.storageos.model.file.FilePolicyRestRep;
 import com.emc.storageos.model.schedulepolicy.PolicyParam;
 import com.emc.storageos.model.schedulepolicy.SchedulePolicyBulkRep;
 import com.emc.storageos.model.schedulepolicy.SchedulePolicyList;
@@ -92,7 +92,7 @@ public class SchedulePolicies extends AbstractCoreBulkResources<SchedulePolicyRe
      *            the ID of the file system.
      * @return the list of file policies references for the file system.
      */
-    public List<FileSchedulingPolicyRestRep> listByFileSystem(URI fileSystemId) {
+    public List<FilePolicyRestRep> listByFileSystem(URI fileSystemId) {
         FilePolicyList response = client.get(FilePolicyList.class, getByFileSystemUrl(), fileSystemId);
         return defaultList(response.getFilePolicies());
     }

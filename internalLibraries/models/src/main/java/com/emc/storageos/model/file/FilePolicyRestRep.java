@@ -17,7 +17,7 @@ import com.emc.storageos.model.schedulepolicy.SchedulePolicyRestRep;
  */
 
 @XmlRootElement(name = "file_scheduling_policy")
-public class FileSchedulingPolicyRestRep extends SchedulePolicyRestRep {
+public class FilePolicyRestRep extends SchedulePolicyRestRep {
 
     // Type of the policy
     private String snapshotPattern;

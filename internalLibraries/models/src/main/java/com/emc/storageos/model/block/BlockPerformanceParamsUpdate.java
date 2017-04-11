@@ -49,7 +49,7 @@ public class BlockPerformanceParamsUpdate {
      */
     public BlockPerformanceParamsUpdate()
     {}
-    
+
     /*
      * Required Setters and Getters
      */
@@ -58,7 +58,7 @@ public class BlockPerformanceParamsUpdate {
      * The unique name for the performance parameters instance.
      */
     @XmlElement(required = true)
-    @Length(min = 2, max = 128)
+    @Length(min = 2, max = 30)
     public String getName() {
         return name;
     }
@@ -70,7 +70,7 @@ public class BlockPerformanceParamsUpdate {
     /**
      * The description for the performance parameters instance.
      */
-    @XmlElement(required = false)
+    @XmlElement
     public String getDescription() {
         return description;
     }
@@ -82,7 +82,7 @@ public class BlockPerformanceParamsUpdate {
     /**
      * The FAST policy name for the performance parameters instance.
      */
-    @XmlElement(name = "auto_tiering_policy_name", required = false)
+    @XmlElement(name = "auto_tiering_policy_name")
     public String getAutoTieringPolicyName() {
         return autoTieringPolicyName;
     }
@@ -90,11 +90,11 @@ public class BlockPerformanceParamsUpdate {
     public void setAutoTieringPolicyName(String autoTieringPolicyName) {
         this.autoTieringPolicyName = autoTieringPolicyName;
     }
-    
+
     /**
      * The compression setting for the performance parameters instance.
      */
-    @XmlElement(name = "compression_enabled", required = false)
+    @XmlElement(name = "compression_enabled")
     public Boolean getCompressionEnabled() {
         return compressionEnabled;
     }
@@ -106,7 +106,7 @@ public class BlockPerformanceParamsUpdate {
     /**
      * The host I/O bandwidth limit for the performance parameters instance.
      */
-    @XmlElement(name = "host_io_limit_bandwidth", required = false)
+    @XmlElement(name = "host_io_limit_bandwidth")
     public Integer getHostIOLimitBandwidth() {
         return hostIOLimitBandwidth;
     }
@@ -118,7 +118,7 @@ public class BlockPerformanceParamsUpdate {
     /**
      * The host I/O IOPS limit for the performance parameters instance.
      */
-    @XmlElement(name = "host_io_limit_iops", required = false)
+    @XmlElement(name = "host_io_limit_iops")
     public Integer getHostIOLimitIOPs() {
         return hostIOLimitIOPs;
     }
@@ -130,7 +130,7 @@ public class BlockPerformanceParamsUpdate {
     /**
      * The thin volume pre-allocation percentage for the performance parameters instance.
      */
-    @XmlElement(name = "thin_volume_preallocation_percentage", required = false)
+    @XmlElement(name = "thin_volume_preallocation_percentage")
     public Integer getThinVolumePreAllocationPercentage() {
         return thinVolumePreAllocationPercentage;
     }
@@ -143,7 +143,7 @@ public class BlockPerformanceParamsUpdate {
     /**
      * The deduplication setting for the performance parameters instance.
      */
-    @XmlElement(name = "dedup_capable", required = false)
+    @XmlElement(name = "dedup_capable")
     public Boolean getDedupCapable() {
         return dedupCapable;
     }
@@ -155,7 +155,7 @@ public class BlockPerformanceParamsUpdate {
     /**
      * The fast expansion setting for the performance parameters instance.
      */
-    @XmlElement(name = "fast_expansion", required = false)
+    @XmlElement(name = "fast_expansion")
     public Boolean getFastExpansion() {
         return fastExpansion;
     }

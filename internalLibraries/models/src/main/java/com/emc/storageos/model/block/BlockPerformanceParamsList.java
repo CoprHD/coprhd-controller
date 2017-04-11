@@ -19,7 +19,7 @@ import com.emc.storageos.model.NamedRelatedResourceRep;
  */
 @XmlRootElement(name = "block_performance_params_list")
 public class BlockPerformanceParamsList {
-    
+
     private List<NamedRelatedResourceRep> performanceParamsReps;
 
     /**
@@ -45,7 +45,7 @@ public class BlockPerformanceParamsList {
      * The list of performance parameter responses.
      */
     @XmlElement(name = "performance_params")
-    @JsonProperty("virtualpool")
+    @JsonProperty("performance_params")
     public List<NamedRelatedResourceRep> getPerformanceParams() {
         if (performanceParamsReps == null) {
             performanceParamsReps = new ArrayList<NamedRelatedResourceRep>();

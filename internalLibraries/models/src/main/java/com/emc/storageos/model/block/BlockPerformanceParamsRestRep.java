@@ -14,7 +14,7 @@ import com.emc.storageos.model.DataObjectRestRep;
  */
 @XmlRootElement(name = "block_performance_params")
 public class BlockPerformanceParamsRestRep extends DataObjectRestRep {
-    
+
     // A user supplied description.
     private String description;
 

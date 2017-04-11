@@ -14,7 +14,7 @@ import java.util.List;
 
 @XmlRootElement(name = "bulk_block_performance_params")
 public class BlockPerformanceParamsBulkRep extends BulkRestRep {
-    
+
     // List of performance param instances.
     private List<BlockPerformanceParamsRestRep> performanceParams;
 
@@ -32,7 +32,7 @@ public class BlockPerformanceParamsBulkRep extends BulkRestRep {
     public BlockPerformanceParamsBulkRep(List<BlockPerformanceParamsRestRep> performanceParams) {
         this.performanceParams = performanceParams;
     }
-    
+
     /*
      * Required Setters and getters.
      */

@@ -5,7 +5,6 @@
 package com.emc.sa.service.linux.file;
 
 import static com.emc.sa.service.ServiceParams.ADVISORY_LIMIT;
-import static com.emc.sa.service.ServiceParams.BYPASS_DNS_CHECK;
 import static com.emc.sa.service.ServiceParams.COMMENT;
 import static com.emc.sa.service.ServiceParams.FILESYSTEM_NAME;
 import static com.emc.sa.service.ServiceParams.GRACE_PERIOD;
@@ -66,8 +65,6 @@ public class CreateNFSExportAndMountService extends ViPRService {
 
     protected MountNFSExportHelper mountNFSExportHelper;
 
-    @Param(BYPASS_DNS_CHECK)
-    protected boolean bypassDnsCheck;
 
     @Override
     public void init() throws Exception {
@@ -117,9 +114,10 @@ public class CreateNFSExportAndMountService extends ViPRService {
                 rootUserMapping = domain.trim() + "\\" + rootUserMapping.trim();
             }
             FileStorageUtils.createFileSystemExportWithoutRollBack(fileSystemId, comment, exportList.get(0).getSecurity(),
-                    exportList.get(0).getPermission(), rootUserMapping, exportList.get(0).getExportHosts(), null, bypassDnsCheck);
+                    exportList.get(0).getPermission(), rootUserMapping, exportList.get(0).getExportHosts(), null, false);
             if (!exportList.isEmpty()) {
-                FileStorageUtils.updateFileSystemExport(fileSystemId, null, exportList.toArray(new FileExportRule[exportList.size()]),bypassDnsCheck);
+                FileStorageUtils.updateFileSystemExport(fileSystemId, null, exportList.toArray(new FileExportRule[exportList.size()]),
+                        false);
             }
         }
         // mount the exports

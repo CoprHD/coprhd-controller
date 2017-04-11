@@ -1576,6 +1576,8 @@ public class BlockStorageScheduler {
                 || pathParams.returnExportGroupType().equals(ExportGroup.ExportGroupType.Initiator)) {
             return;
         }
+        
+        Set<URI> ignoreAssociatedIniList = new HashSet<>();
         for (URI hostURI : hostInitiatorsMap.keySet()) {
             // Sum up the ports used for this host.
             String hostName = "<unknown>";
@@ -1585,13 +1587,24 @@ public class BlockStorageScheduler {
                 if (initiator.getHostName() != null) {
                     hostName = initiator.getHostName();
                 }
-                List<StoragePort> ports = assignments.get(initiator);
-                if (ports == null || ports.isEmpty()) {
-                    unassignedInitiators++;
+                
+                URI associatedIniURI = initiator.getAssociatedInitiator();
+                if(!NullColumnValueGetter.isNullURI(associatedIniURI)) {
+                    ignoreAssociatedIniList.add(associatedIniURI);
                 }
-                if (ports != null) {
-                    totalPorts += ports.size();
+                
+                //For path calculation associated initiators should not be accounted
+                if(!ignoreAssociatedIniList.contains(initiator.getId())) {
+                    
+                    List<StoragePort> ports = assignments.get(initiator);
+                    if (ports == null || ports.isEmpty()) {
+                        unassignedInitiators++;
+                    }
+                    if (ports != null) {
+                        totalPorts += ports.size();
+                    }
                 }
+                
             }
             if (totalPorts < pathParams.getMinPaths()) {
                 _log.info(String.format("Host %s (%s) has fewer ports assigned %d than min_paths %d",

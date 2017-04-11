@@ -2630,6 +2630,14 @@ srdf_basic_active_test()
    echo "Rediscovering storage systems"
    run storagedevice discover_all --ignore_error
 
+   # check that we created remote replication pair for this srdf volume
+   rr_pairs=`remotereplicationpair list | wc -l`
+   secho "Found ${rr_pairs} remote replication pairs."
+   if [ "rr_pairs" -eq 0 ]; then
+           secho "Could not find any remote replication pairs."
+           exit 1
+   fi
+
    run volume create ${srdfvolume}2 $SRDF_PROJECT $V3_SRDF_VARRAY ${COS_VMAXBLOCK_V3_SRDF_SOURCE}_active 1GB
    srdf_sleep
    run volume delete $SRDF_PROJECT/${srdfvolume}1 --wait

@@ -860,5 +860,10 @@ public interface ContainmentConstraint extends Constraint {
             return new ContainmentConstraintImpl(scheduledEventId, Order.class, field);
         }
 
+        public static ContainmentConstraint getVolumePerformanceParamsConstraint(URI performanceParamsId) {
+            DataObjectType doType = TypeMap.getDoType(Volume.class);
+            ColumnField field = doType.getColumnField("performanceParams");
+            return new ContainmentConstraintImpl(performanceParamsId, Volume.class, field);
+        }
     }
 }

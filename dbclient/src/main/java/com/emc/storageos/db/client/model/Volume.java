@@ -99,6 +99,9 @@ public class Volume extends BlockObject implements ProjectResource {
     // VPLEX virtual volumes only: Name reference of replication group 
     // that this Volume's backing Volumes belong to.
     private String _backingReplicationGroupInstance;
+    
+    // The URI of the performance parameters for the volume
+    private URI _performanceParams;
 
     // The value alignments 0-4 correspond to SMIS values. Other storage types must map to these values.
     public static enum VolumeAccessState {
@@ -1163,5 +1166,14 @@ public class Volume extends BlockObject implements ProjectResource {
     public String bootVolumeTagValue() {
         return TagUtils.getBlockVolumeBootVolume(this);
     }
-    
+
+    @Name("performanceParams")
+    public URI getPerformanceParams() {
+        return _performanceParams;
+    }
+
+    public void setPerformanceParams(URI performanceParams) {
+        _performanceParams = performanceParams;
+        setChanged("performanceParams");
+    }    
 }

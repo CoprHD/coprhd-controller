@@ -24,8 +24,11 @@ import org.slf4j.LoggerFactory;
 import com.emc.storageos.api.mapper.BlockMapper;
 import com.emc.storageos.api.mapper.DbObjectMapper;
 import com.emc.storageos.db.client.URIUtil;
+import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.PerformanceParams;
+import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.model.block.BlockPerformanceParamsBulkRep;
@@ -37,6 +40,7 @@ import com.emc.storageos.security.authorization.ACL;
 import com.emc.storageos.security.authorization.CheckPermission;
 import com.emc.storageos.security.authorization.DefaultPermissions;
 import com.emc.storageos.security.authorization.Role;
+import com.emc.storageos.svcs.errorhandling.resources.BadRequestException;
 
 /**
  * API service for creating and managing PerformanceParams instances.
@@ -178,6 +182,9 @@ public class BlockPerformanceParamsService extends TaggedResource {
         ArgValidator.checkFieldUriType(id, PerformanceParams.class, "id");
         PerformanceParams performanceParams = _dbClient.queryObject(PerformanceParams.class, id);
         ArgValidator.checkEntity(performanceParams, id, isIdEmbeddedInURL(id));
+        
+        // Verify that no volumes are referencing the instance to be deleted.
+        checkForDelete(performanceParams);
         
         // Mark it for deletion.
         _dbClient.markForDeletion(performanceParams);

@@ -86,6 +86,9 @@ class CreateExportGroupUpdateSchedulingThread implements Runnable {
             if (exportUpdateParam.getExportPathParameters() != null && !addedVolumeParams.keySet().isEmpty()) {
                 exportPathParam = exportGroupService.validateAndCreateExportPathParam(
                         exportUpdateParam.getExportPathParameters(), exportGroup, addedVolumeParams.keySet());
+                if (exportPathParam.getPortGroup() != null) {
+                    exportGroupService.validatePortGroupForExportGroupUpdate(exportGroup, exportPathParam.getPortGroup());
+                }
                 exportGroupService.addBlockObjectsToPathParamMap(addedVolumeParams.keySet(), exportPathParam.getId(), exportGroup);
             }
             // Remove the block objects being deleted from any existing path parameters.

@@ -339,14 +339,23 @@ public class ExportGroupService extends TaskResourceService {
         // If ExportPathParameter block is present, and volumes are present, validate have permissions.
         // Processing will be in the aysnc. task.
         ExportPathParameters pathParam = param.getExportPathParameters();
-        if (pathParam != null && pathParam.getPortGroup()== null && !volumeMap.keySet().isEmpty()) {
+        if (pathParam != null ) {
             // Only [RESTRICTED_]SYSTEM_ADMIN may override the Vpool export parameters
-            if (!_permissionsHelper.userHasGivenRole(user,
-                    null, Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN)) {
+            if ((pathParam.getMaxPaths() != null || 
+                    pathParam.getMaxPaths() != null ||
+                    pathParam.getPathsPerInitiator() != null) &&
+                    !_permissionsHelper.userHasGivenRole(getUserFromContext(),
+                            null, Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN)) {
                 throw APIException.forbidden.onlySystemAdminsCanOverrideVpoolPathParameters(exportGroup.getLabel());
             }
         }
 
+        
+        List<VolumeParam> volParams = param.getVolumes();
+        if (!volParams.isEmpty() && pathParam != null) {
+            validateAddVolumesForExportGroup(volParams, pathParam.getPortGroup());
+        }
+        
         // COP-14028
         // Changing the return of a TaskList to return immediately while the underlying tasks are
         // being built up. Steps:
@@ -1439,9 +1448,12 @@ public class ExportGroupService extends TaskResourceService {
 
         if (param.getExportPathParameters() != null) {
             // Only [RESTRICTED_]SYSTEM_ADMIN may override the Vpool export parameters
-            if (!_permissionsHelper.userHasGivenRole(getUserFromContext(),
-                    null, Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN) &&
-                    param.getExportPathParameters().getPortGroup() == null) {
+            ExportPathParameters pathParam = param.getExportPathParameters();
+            if ((pathParam.getMaxPaths() != null || 
+                    pathParam.getMaxPaths() != null ||
+                    pathParam.getPathsPerInitiator() != null) &&
+                    !_permissionsHelper.userHasGivenRole(getUserFromContext(),
+                            null, Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN)) {
                 throw APIException.forbidden.onlySystemAdminsCanOverrideVpoolPathParameters(exportGroup.getLabel());
             }
         }
@@ -2944,20 +2956,6 @@ public class ExportGroupService extends TaskResourceService {
             // No initiators currently in export, nothing to do
             return;
         }
-        Boolean isPGCompatible = null;
-        URI portGroupParam = pathParam.getPortGroup();
-        URI pgSystemURI = null;
-        String portGroupName = null;
-        if (portGroupParam == null) {
-            isPGCompatible = Boolean.TRUE;
-        } else {
-            StoragePortGroup portGroup = _dbClient.queryObject(StoragePortGroup.class, portGroupParam);
-            if (portGroup == null || !portGroup.isUsable()) {
-                throw APIException.badRequests.portGroupInvalid(portGroupParam.toString());
-            }
-            portGroupName = portGroup.getNativeGuid();
-            pgSystemURI = portGroup.getStorageDevice();
-        }
         for (String initiatorId : initiators) {
             Initiator initiator = _dbClient.queryObject(Initiator.class, URI.create(initiatorId));
             if (initiator == null || initiator.getInactive()) {
@@ -2974,16 +2972,6 @@ public class ExportGroupService extends TaskResourceService {
                             BlockStorageScheduler.calculateExportPathParamForExportMask(_dbClient, exportMask);
                     _log.info(String.format("Existing mask %s (%s) parameters: %s",
                             exportMask.getMaskName(), exportMask.getId(), maskParam));
-
-                    if (portGroupParam != null 
-                            && portGroupParam.equals(exportMask.getPortGroup())) {
-                        isPGCompatible = Boolean.TRUE;
-                    } else if (portGroupParam != null 
-                            && exportMask.getStorageDevice().equals(pgSystemURI)
-                            && isPGCompatible == null) {
-                        // The export mask is for the same storage system, but the port group URI does not match the one in the exportMask
-                        isPGCompatible = Boolean.FALSE;
-                    }
                     // Determine if the mask is compatible with the requested parameters or not.
                     // To be compatible, the mask must have the same paths_per_initiator setting, and
                     // its max paths must be between the requested min paths and max paths.
@@ -3017,9 +3005,6 @@ public class ExportGroupService extends TaskResourceService {
                 builder.append(entry.getValue());
             }
             throw APIException.badRequests.cannotOverrideVpoolPathsBecauseExistingExports(builder.toString());
-        }
-        if (isPGCompatible != null && isPGCompatible == Boolean.FALSE) {
-            throw APIException.badRequests.cannotOverridePortGroupBecauseExistingExports(portGroupName);
         }
     }
 
@@ -3773,6 +3758,69 @@ public class ExportGroupService extends TaskResourceService {
         if (!nonDiscoverableHosts.isEmpty()) {
             String hostList = Joiner.on(",").join(nonDiscoverableHosts);
             throw APIException.badRequests.pathAdjustmentOnNonDiscoverableHostsWithoutSuspend(hostList);
+        }
+    }
+    
+    public void validatePortGroupForExportGroupUpdate(ExportGroup exportGroup, URI portGroupURI) {
+        StoragePortGroup portGroup = _dbClient.queryObject(StoragePortGroup.class, portGroupURI);
+        URI systemURI = portGroup.getStorageDevice();
+        List<ExportMask> masks = ExportMaskUtils.getExportMasks(_dbClient,  exportGroup, systemURI);
+        boolean matched = false;
+        if (masks.isEmpty()) {
+            matched = true;
+        }
+        for (ExportMask mask : masks) {
+            if (portGroupURI.equals(mask.getPortGroup())) {
+                matched = true;
+                break;
+            }
+        }
+        if (!matched) {
+            throw APIException.badRequests.cannotOverridePortGroupBecauseExistingExports(portGroup.getNativeGuid());
+        }
+        
+    }
+    
+    /**
+     * Validate port group to be specified if the volumes to be exported are from VMAX, and the port group setting
+     * is on.
+     * 
+     * @param addVolumes - Volume params to be exported
+     * @param portGroup - Port group URI
+     */
+    public void validateAddVolumesForExportGroup(List<VolumeParam> addVolumes, URI portGroup) {
+        if (addVolumes != null && !addVolumes.isEmpty()) {
+            Set<URI> systems = new HashSet<URI>();
+            for (VolumeParam volParam : addVolumes) {
+                URI blockURI = volParam.getId();
+                BlockObject blockObject = BlockObject.fetch(_dbClient, blockURI);
+                systems.add(blockObject.getStorageController());
+            }
+            boolean isVmax = false;
+            StorageSystem storage = null;
+            for (URI systemURI : systems) {
+                storage = queryObject(StorageSystem.class, systemURI, true);
+                if (Type.vmax.name().equals(storage.getSystemType())) {
+                    isVmax = true;
+                    break;
+                }
+            }
+            if (isVmax) {
+                String value = customConfigHandler.getComputedCustomConfigValue(CustomConfigConstants.VMAX_USE_PORT_GROUP_ENABLED,
+                        "vmax", null);
+                // When use existing port group is on, users should provide a port group
+                if (Boolean.TRUE.toString().equalsIgnoreCase(value) && portGroup == null) {
+                    throw APIException.badRequests.portGroupNotSpecified();
+                } else if (Boolean.TRUE.toString().equalsIgnoreCase(value)) {
+                    // port group is specified, check the port group storage system is the same as the volume system
+                    StoragePortGroup pgObject = queryObject(StoragePortGroup.class, portGroup, true);
+                    if (!storage.getId().equals(pgObject.getStorageDevice()) || systems.size() > 1) {
+                        throw APIException.badRequests.cannotExportVolumesFromDifferentSystems(pgObject.getNativeGuid());
+                    }
+                    
+                }
+                
+            }
         }
     }
 }

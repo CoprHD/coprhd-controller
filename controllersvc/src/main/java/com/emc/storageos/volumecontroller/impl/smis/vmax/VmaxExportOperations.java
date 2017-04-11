@@ -67,6 +67,7 @@ import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus
 import com.emc.storageos.db.client.model.Volume.PersonalityTypes;
 import com.emc.storageos.db.client.util.CommonTransformerFunctions;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
+import com.emc.storageos.db.client.util.StringSetUtil;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.networkcontroller.impl.NetworkDeviceController;
@@ -315,19 +316,25 @@ public class VmaxExportOperations implements ExportMaskOperations {
             String csgName = customConfigHandler.getComputedCustomConfigValue(cascadedSGCustomTemplateName, storage.getSystemType(),
                     cascadedSGDataSource);
 
-         // 3. PortGroup (PG)
+            // 3. PortGroup (PG)
             // check if port group name is specified
             URI portGroupURI = mask.getPortGroup();
             String portGroupName = null;
-            if (!NullColumnValueGetter.isNullURI(portGroupURI) && 
-                    isUsePortGroupEnabled(storage.getSystemType())) {
+            if (isUsePortGroupEnabled(storage.getSystemType())) {
+                if (NullColumnValueGetter.isNullURI(portGroupURI)) {
+                    // It should not happen, but if it does, throw error.
+                    String msg = "The config setting of use existing port group is on, but no port group is specified";
+                    _log.error(msg);
+                    ServiceError serviceError = DeviceControllerException.errors.jobFailedOpMsg("createExportMask", msg);
+                    taskCompleter.error(_dbClient, serviceError);
+                    return;
+                }
                 StoragePortGroup pg = _dbClient.queryObject(StoragePortGroup.class, portGroupURI);
                 portGroupName = pg.getLabel();
                 _dbClient.updateObject(mask);
                 _log.info("port group name: " + portGroupName);
                 
-            }
-            if (portGroupName == null) {
+            } else {
                 DataSource portGroupDataSource = ExportMaskUtils.getExportDatasource(storage, initiatorList, dataSourceFactory,
                         portGroupCustomTemplateName);
                 portGroupName = customConfigHandler.getComputedCustomConfigValue(portGroupCustomTemplateName, storage.getSystemType(),
@@ -1891,6 +1898,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
                         exportMask.setStorageDevice(storage.getId());
                         exportMask.setId(URIUtil.createId(ExportMask.class));
                         exportMask.setCreatedBySystem(false);
+                        
                     }
 
                     // Do some one-time updates for the ExportMask
@@ -1955,6 +1963,35 @@ public class VmaxExportOperations implements ExportMaskOperations {
                                 instance);
                         List<String> storagePortURIs = ExportUtils.storagePortNamesToURIs(_dbClient, storagePorts);
                         exportMask.setStoragePorts(storagePortURIs);
+                        
+                        // Get port group for the new exportMask
+                        if (!foundMaskInDb) {
+                            _log.info("Setting port group for the export mask");
+                            String portGroupName = _helper.getPortGroupForGivenMaskingView(name, storage);
+                            String guid = String.format("%s+%s" , storage.getNativeGuid(), portGroupName);
+                            URIQueryResultList result = new URIQueryResultList();
+                            _dbClient.queryByConstraint(AlternateIdConstraint.Factory
+                                    .getPortGroupNativeGUIdConstraint(guid), result);
+                            Iterator<URI> it = result.iterator();
+                            if (it.hasNext()) {
+                                URI pgURI = it.next();
+                                StoragePortGroup pg = _dbClient.queryObject(StoragePortGroup.class, pgURI);
+                                if (!pg.checkInternalFlags(Flag.INTERNAL_OBJECT)) {
+                                    exportMask.setPortGroup(pgURI);
+                                }
+                            } else {
+                                StoragePortGroup portGroup = new StoragePortGroup();
+                                portGroup.setId(URIUtil.createId(StoragePortGroup.class));
+                                portGroup.setLabel(portGroupName);
+                                portGroup.setNativeGuid(guid);
+                                portGroup.setStorageDevice(storage.getId());
+                                portGroup.setInactive(false);
+                                portGroup.setRegistrationStatus(RegistrationStatus.REGISTERED.name());
+                                portGroup.setStoragePorts(new StringSet(storagePortURIs));
+                                _dbClient.createObject(portGroup);
+                                exportMask.setPortGroup(portGroup.getId());
+                            }
+                        }
                         // Add the mask name to the list for which volumes are already updated
                         maskNames.add(name);
                     }

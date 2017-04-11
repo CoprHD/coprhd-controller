@@ -7897,5 +7897,64 @@ public class SmisCommandHelper implements SmisConstants {
                 _cimArgument.bool(CP_DELETE_WHEN_BECOMES_UNASSOCIATED, Boolean.FALSE)
         };
     }
-          
+         
+    /**
+     * Finds the port group attached to the masking view.
+     *
+     * @param maskingViewName
+     *            name of masking view
+     * @param storage
+     *            storage system
+     * @return name of port group
+     * @throws Exception
+     */
+    public String getPortGroupForGivenMaskingView(String maskingViewName,
+            StorageSystem storage) throws Exception {
+        CIMObjectPath maskingViewPath = _cimPath.getMaskingViewPath(storage, maskingViewName);
+        CIMInstance maskingViewInstance = checkExists(storage, maskingViewPath, false, false);
+        return getPortGroupForGivenMaskingView(maskingViewInstance, maskingViewName, storage);
+    }
+
+    /**
+     * Finds the port group attached to the masking view.
+     *
+     * @param maskingViewInstance
+     *            CIMInstance that points to the Symm_LunMaskingView
+     * @param maskingViewName
+     *            name of masking view
+     * @param storage
+     *            storage system
+     * @return name of port group
+     * @throws Exception
+     */
+    public String getPortGroupForGivenMaskingView(CIMInstance maskingViewInstance, String maskingViewName,
+            StorageSystem storage) throws Exception {
+
+        String discoveredGroupName = null;
+        CloseableIterator<CIMInstance> targetGroupPathItr = null;
+        try {
+            if (null == maskingViewInstance) {
+                _log.error(
+                        "Masking View {} not available in Provider, either its deleted or provider might take some time to sync with Array.  Try again if group is available on Array",
+                        maskingViewName);
+            } else {
+                _log.debug("Masking View {} found", maskingViewName);
+                targetGroupPathItr = getAssociatorInstances(storage, maskingViewInstance.getObjectPath(), null,
+                        SmisCommandHelper.MASKING_GROUP_TYPE.SE_TargetMaskingGroup.toString(), null, null, PS_ELEMENT_NAME);
+                _log.info("Trying to find existing Port Groups under Masking view {}", maskingViewName);
+                while (targetGroupPathItr.hasNext()) {
+                    discoveredGroupName = CIMPropertyFactory.getPropertyValue(
+                            targetGroupPathItr.next(), SmisConstants.CP_ELEMENT_NAME);
+                    _log.info("Port Group Name {} found", discoveredGroupName);
+                }
+            }
+        } catch (Exception e) {
+            _log.error("Failed trying to find existing Storage Groups under Masking View {}", maskingViewName, e);
+            throw e;
+        } finally {
+            closeCIMIterator(targetGroupPathItr);
+        }
+
+        return discoveredGroupName;
+    }
 }

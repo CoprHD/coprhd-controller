@@ -11,6 +11,7 @@ import static com.emc.storageos.api.mapper.DbObjectMapper.toNamedRelatedResource
 
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -39,6 +40,7 @@ import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus;
+import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.model.BulkIdParam;
 import com.emc.storageos.model.RelatedResourceRep;
@@ -283,14 +285,33 @@ public class ComputeVirtualPoolService extends TaggedResource {
         if (cvp.getMatchedComputeElements() != null) {
             Collection<ComputeElement> computeElements = _dbClient.queryObject(ComputeElement.class,
                     toUriList(cvp.getMatchedComputeElements()));
+            Collection<URI> hostIds = _dbClient.queryByType(Host.class, true);
+            Collection<Host> hosts = _dbClient.queryObjectFields(Host.class,
+                Arrays.asList("label", "computeElement"), getFullyImplementedCollection(hostIds));
             for (ComputeElement computeElement : computeElements) {
                 ComputeElementRestRep rest = map(computeElement);
                 if (rest != null) {
+                    for (Host host : hosts){
+                        if (!NullColumnValueGetter.isNullURI(host.getComputeElement()) && host.getComputeElement().equals(computeElement.getId())) {
+                            rest.setHostName(host.getLabel());
+                        }
+                    }
                     result.getList().add(rest);
                 }
             }
         }
         return result;
+    }
+
+    private static <T> Collection<T> getFullyImplementedCollection(Collection<T> collectionIn) {
+        // Convert objects (like URIQueryResultList) that only implement iterator to
+        // fully implemented Collection
+        Collection<T> collectionOut = new ArrayList<>();
+        Iterator<T> iter = collectionIn.iterator();
+        while (iter.hasNext()) {
+            collectionOut.add(iter.next());
+        }
+        return collectionOut;
     }
 
     /**

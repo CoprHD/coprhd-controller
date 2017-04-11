@@ -2997,6 +2997,7 @@ computeSystemElements.computeSystem=Vblock Compute System
 computeSystemElements.model=Model
 computeSystemElements.numberOfCores=Cores
 computeSystemElements.numberOfProcessors=Processors
+computeSystemElements.hostName=Host
 computeSystemElements.numberOfThreads=Threads
 computeSystemElements.processorSpeed=Processor Speed (GHz)
 computeSystemElements.ram=Memory (MB)

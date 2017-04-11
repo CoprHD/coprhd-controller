@@ -167,7 +167,7 @@ public class ComputeSystemService extends TaskResourceService {
             if (!serviceProfileTemplate.getUpdating()) {
                 NamedRelatedResourceRep sptNamedRelatedResource = new NamedRelatedResourceRep();
                 sptNamedRelatedResource.setId(serviceProfileTemplate.getId());
-                sptNamedRelatedResource.setName(serviceProfileTemplate.getLabel());
+                sptNamedRelatedResource.setName(serviceProfileTemplate.getLabel()+ " (Initial Template)");
                 serviceProfileTemplates.add(sptNamedRelatedResource);
             } else {
                 _log.info(" updating service profile template:" + serviceProfileTemplate.getLabel() + " id:"
@@ -177,7 +177,7 @@ public class ComputeSystemService extends TaskResourceService {
                 if (valid) {
                     NamedRelatedResourceRep sptNamedRelatedResource = new NamedRelatedResourceRep();
                     sptNamedRelatedResource.setId(serviceProfileTemplate.getId());
-                    sptNamedRelatedResource.setName(serviceProfileTemplate.getLabel());
+                    sptNamedRelatedResource.setName(serviceProfileTemplate.getLabel()+ " (Updating Template)");
                     serviceProfileTemplates.add(sptNamedRelatedResource);
                 } else {
                     _log.info("invalid uSPT");

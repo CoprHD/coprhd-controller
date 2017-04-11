@@ -34,6 +34,7 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 
+import com.emc.storageos.db.client.model.*;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -64,37 +65,12 @@ import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.ContainmentPrefixConstraint;
 import com.emc.storageos.db.client.constraint.PrefixConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
-import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus;
-import com.emc.storageos.db.client.model.FSExportMap;
-import com.emc.storageos.db.client.model.FileExport;
-import com.emc.storageos.db.client.model.FileExportRule;
-import com.emc.storageos.db.client.model.FilePolicy;
 import com.emc.storageos.db.client.model.FilePolicy.FilePolicyType;
 import com.emc.storageos.db.client.model.FilePolicy.FileReplicationType;
-import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.model.FileShare.MirrorStatus;
 import com.emc.storageos.db.client.model.FileShare.PersonalityTypes;
-import com.emc.storageos.db.client.model.IpInterface;
-import com.emc.storageos.db.client.model.NamedURI;
-import com.emc.storageos.db.client.model.OpStatusMap;
-import com.emc.storageos.db.client.model.Operation;
-import com.emc.storageos.db.client.model.Project;
-import com.emc.storageos.db.client.model.QuotaDirectory;
 import com.emc.storageos.db.client.model.QuotaDirectory.SecurityStyles;
-import com.emc.storageos.db.client.model.SMBFileShare;
-import com.emc.storageos.db.client.model.SMBShareMap;
-import com.emc.storageos.db.client.model.SchedulePolicy;
-import com.emc.storageos.db.client.model.Snapshot;
-import com.emc.storageos.db.client.model.StoragePool;
-import com.emc.storageos.db.client.model.StoragePort;
-import com.emc.storageos.db.client.model.StorageProtocol;
-import com.emc.storageos.db.client.model.StorageSystem;
-import com.emc.storageos.db.client.model.StringSet;
-import com.emc.storageos.db.client.model.Task;
-import com.emc.storageos.db.client.model.TenantOrg;
-import com.emc.storageos.db.client.model.VirtualArray;
-import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.VirtualPool.FileReplicationRPOType;
 import com.emc.storageos.db.client.model.util.TaskUtils;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
@@ -1248,11 +1224,11 @@ public class FileService extends TaskResourceService {
 
         // checkQuota
         long expand = newFSsize - fs.getCapacity();
-
-//        final long MIN_EXPAND_SIZE = SizeUtil.translateSize("1MB") + 1;
-//        if (expand < MIN_EXPAND_SIZE) {
-//            throw APIException.badRequests.invalidParameterBelowMinimum("new_size", newFSsize, fs.getCapacity() + MIN_EXPAND_SIZE, "bytes");
-//        }
+        StorageSystem device = _dbClient.queryObject(StorageSystem.class, fs.getStorageDevice());
+        final long MIN_EXPAND_SIZE = SizeUtil.translateSize("1MB") + 1;
+        if (!device.deviceIsType(DiscoveredDataObject.Type.isilon) && expand < MIN_EXPAND_SIZE) {
+            throw APIException.badRequests.invalidParameterBelowMinimum("new_size", newFSsize, fs.getCapacity() + MIN_EXPAND_SIZE, "bytes");
+        }
 
         Project project = _dbClient.queryObject(Project.class, fs.getProject().getURI());
         TenantOrg tenant = _dbClient.queryObject(TenantOrg.class, fs.getTenant().getURI());

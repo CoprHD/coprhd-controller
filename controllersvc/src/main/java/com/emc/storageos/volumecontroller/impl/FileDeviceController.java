@@ -3916,8 +3916,15 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             // new size > existing fileshare's provisioned capacity, otherwise we can ignore.
             if (fileShare.getCapacity() != null
                     && fileShare.getCapacity().longValue() != 0){
-                    //&& descriptor.getFileSize() > fileShare.getCapacity().longValue()) {
-                filesharesToExpand.put(fileShare.getId(), descriptor.getFileSize());
+                StorageSystem storage =
+                        _dbClient.queryObject(StorageSystem.class, fileShare.getStorageDevice());
+                if(storage.deviceIsType(Type.isilon)) {
+                    filesharesToExpand.put(fileShare.getId(), descriptor.getFileSize());
+                } else if(descriptor.getFileSize() > fileShare.getCapacity().longValue()){
+                    filesharesToExpand.put(fileShare.getId(), descriptor.getFileSize());
+                } else {
+                    //throw exception
+                }
             }
         }
 
@@ -3925,7 +3932,8 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
         for (Map.Entry<URI, Long> entry : filesharesToExpand.entrySet()) {
             _log.info("Creating WF step for Expand FileShare for  {}", entry.getKey().toString());
             FileShare fileShareToExpand = _dbClient.queryObject(FileShare.class, entry.getKey());
-            StorageSystem storage = _dbClient.queryObject(StorageSystem.class, fileShareToExpand.getStorageDevice());
+            StorageSystem storage =
+                    _dbClient.queryObject(StorageSystem.class, fileShareToExpand.getStorageDevice());
             Long fileSize = entry.getValue();
             expandMethod = expandFileSharesMethod(storage.getId(), fileShareToExpand.getId(), fileSize);
             waitFor = workflow.createStep(

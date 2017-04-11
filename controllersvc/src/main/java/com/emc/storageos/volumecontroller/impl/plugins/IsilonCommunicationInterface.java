@@ -154,7 +154,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
     private static final String CHECKPOINT_SCHEDULE = "checkpoint_schedule";
     private static final String ISILON_PATH_CUSTOMIZATION = "IsilonPathCustomization";
 
-    private static final Integer MAX_RECORDS_SIZE = 1000;
+    private static final Integer MAX_RECORDS_SIZE = 100;
 
     private List<String> _discPathsForUnManaged;
     private int _discPathsLength;
@@ -249,9 +249,9 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                 .getRESTClient(deviceURI, isilonCluster.getUsername(), isilonCluster.getPassword());
     }
 
-    public Map<String, FileShare> getStorageSystemFileShares(URI storageSystemURI) throws IOException {
+    public Map<String, String> getStorageSystemFileShares(URI storageSystemURI) throws IOException {
 
-        Map<String, FileShare> fileSharesMap = new ConcurrentHashMap<String, FileShare>();
+        Map<String, String> fileSharesMap = new ConcurrentHashMap<String, String>();
 
         URIQueryResultList results = new URIQueryResultList();
         try {
@@ -262,7 +262,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
 
         } catch (Exception e) {
             _log.error(
-                    "Cassandra Database Error while querying Fileshares from system: {}--> ",
+                    "Exception while querying Fileshares from system: {}--> ",
                     storageSystemURI, e);
         }
 
@@ -271,7 +271,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
         while (fileSystemItr.hasNext()) {
             FileShare fileShare = fileSystemItr.next();
             if (fileShare != null && !fileShare.getInactive()) {
-                fileSharesMap.put(fileShare.getNativeGuid(), fileShare);
+                fileSharesMap.put(fileShare.getNativeGuid(), fileShare.getId().toString());
             }
         }
         return fileSharesMap;
@@ -306,10 +306,11 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
             // compute static load processor code
             computeStaticLoadMetrics(storageSystemId);
 
-            Map<String, FileShare> fileSystemsMap = getStorageSystemFileShares(storageSystemId);
+            Map<String, String> fileSystemsMap = getStorageSystemFileShares(storageSystemId);
             if (fileSystemsMap.isEmpty()) {
                 // No file shares for the storage system,
                 // ignore stats collection for the system!!!
+                _log.info("No file systems found for storage device {}. Hence metering stats collection ignored.", storageSystemId);
                 return;
             }
             // get first page of quota data, process and insert to database
@@ -320,6 +321,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                 if (fileSystemsMap.get(fsNativeGuid) == null) {
                     // No file shares found for the quota
                     // ignore stats collection for the file system!!!
+                    _log.debug("File System does not exists with nativeid {}. Hence ignoring stats collection.", fsNativeGuid);
                     continue;
                 }
                 Stat stat = recorder.addUsageStat(quota, _keyMap, fsNativeGuid, api);

@@ -944,7 +944,7 @@ public class IsilonApi {
     public String createExport(IsilonExport exp, boolean force) throws IsilonException {
 
         if (force) {
-            return create(_baseUrl.resolve(URI_NFS_EXPORTS + "&force=true"), "Export", exp);
+            return create(_baseUrl.resolve(URI_NFS_EXPORTS + "?force=true"), "Export", exp);
         } else {
             return create(_baseUrl.resolve(URI_NFS_EXPORTS), "Export", exp);
         }
@@ -981,7 +981,7 @@ public class IsilonApi {
      */
     public void modifyExport(String id, IsilonExport exp, boolean force) throws IsilonException {
         if (force) {
-            id = id + "&force=true";
+            id = id + "?force=true";
         }
         modify(_baseUrl.resolve(URI_NFS_EXPORTS), id, "export", exp);
     }
@@ -2036,7 +2036,7 @@ public class IsilonApi {
     public IsilonSyncPolicy getReplicationPolicy(String id) throws IsilonException {
         return get(_baseUrl.resolve(URI_REPLICATION_POLICIES), id, "policies", IsilonSyncPolicy.class);
     }
-    
+
     /**
      * Get Replication Policy information from the Isilon array using oneFS v8 above
      * 
@@ -2056,7 +2056,7 @@ public class IsilonApi {
     public IsilonList<IsilonSyncPolicy> getReplicationPolicies() throws IsilonException {
         return list(_baseUrl.resolve(URI_REPLICATION_POLICIES), "policies", IsilonSyncPolicy.class, "");
     }
-    
+
     /**
      * Get All Replication Policies information from the Isilon array
      * 
@@ -2088,7 +2088,7 @@ public class IsilonApi {
     public String createReplicationPolicy(IsilonSyncPolicy replicationPolicy) throws IsilonException {
         return create(_baseUrl.resolve(URI_REPLICATION_POLICIES), "policies", replicationPolicy);
     }
-    
+
     /**
      * Create Replication Policy for isilon array using oneFSv8 and above
      * 
@@ -2113,7 +2113,7 @@ public class IsilonApi {
     public void modifyReplicationPolicy(String id, IsilonSyncPolicy syncPolicy) throws IsilonException {
         modify(_baseUrl.resolve(URI_REPLICATION_POLICIES), id, "policies", syncPolicy);
     }
-    
+
     /**
      * Modify Replication Policyfor isilon array using oneFSv8 and above
      * 

@@ -47,6 +47,8 @@ import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Migration;
 import com.emc.storageos.db.client.model.NFSShareACL;
+import com.emc.storageos.db.client.model.Network;
+import com.emc.storageos.db.client.model.NetworkSystem;
 import com.emc.storageos.db.client.model.ObjectBucketACL;
 import com.emc.storageos.db.client.model.ObjectNamespace;
 import com.emc.storageos.db.client.model.PolicyStorageResource;
@@ -65,6 +67,7 @@ import com.emc.storageos.db.client.model.StorageTier;
 import com.emc.storageos.db.client.model.Task;
 import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.Token;
+import com.emc.storageos.db.client.model.UCSServiceProfile;
 import com.emc.storageos.db.client.model.UCSServiceProfileTemplate;
 import com.emc.storageos.db.client.model.UCSVhbaTemplate;
 import com.emc.storageos.db.client.model.UCSVnicTemplate;
@@ -364,6 +367,12 @@ public interface ContainmentConstraint extends Constraint {
             return new ContainmentConstraintImpl(device, FCEndpoint.class, field);
         }
 
+        public static ContainmentConstraint getNetworkSystemNetworkConstraint(URI networkSystem) {
+            DataObjectType doType = TypeMap.getDoType(Network.class);
+            ColumnField field = doType.getColumnField("networkSystems");
+            return new ContainmentConstraintImpl(networkSystem, Network.class, field);
+        }
+        
         public static ContainmentConstraint getBlockObjectExportGroupConstraint(URI blockObject) {
             DataObjectType doType = TypeMap.getDoType(ExportGroup.class);
             ColumnField field = doType.getColumnField("volumes");
@@ -510,6 +519,13 @@ public interface ContainmentConstraint extends Constraint {
             ColumnField field = doType.getColumnField(COMPUTE_SYSTEM);
             return new ContainmentConstraintImpl(csId, ComputeElement.class, field);
         }
+        
+        public static ContainmentConstraint getComputeSystemServiceProfilesConstraint(URI csId) {
+            DataObjectType doType = TypeMap.getDoType(UCSServiceProfile.class);
+            ColumnField field = doType.getColumnField(COMPUTE_SYSTEM);
+            return new ContainmentConstraintImpl(csId, UCSServiceProfile.class, field);
+        }
+
 
         public static ContainmentConstraint getComputeImageJobsByComputeImageConstraint(URI ciId) {
             DataObjectType doType = TypeMap.getDoType(ComputeImageJob.class);

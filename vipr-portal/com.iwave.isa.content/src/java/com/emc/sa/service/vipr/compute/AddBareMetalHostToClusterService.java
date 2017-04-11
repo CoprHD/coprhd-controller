@@ -14,6 +14,7 @@ import static com.emc.sa.service.ServiceParams.VIRTUAL_POOL;
 
 import java.net.URI;
 import java.util.List;
+import java.util.Map;
 
 import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.engine.bind.Bindable;
@@ -87,14 +88,19 @@ public class AddBareMetalHostToClusterService extends ViPRService {
             }
         }
 
-        // Commenting for COP-26104, this pre-check will not allow order to be resubmitted if
-        // only the shared export group fails and all other steps succeeded.
-        /*if (hostNamesInCluster != null && !hostNamesInCluster.isEmpty() && !existingHostNames.isEmpty()
+        if (hostNamesInCluster != null && !hostNamesInCluster.isEmpty() && !existingHostNames.isEmpty()
                 && hostNamesInCluster.containsAll(existingHostNames)) {
             preCheckErrors.append(
                     ExecutionUtils.getMessage("compute.cluster.host.already.in.cluster") + "  ");
-        }*/
-
+        }
+        
+        if (hostNamesInCluster != null && !hostNamesInCluster.isEmpty() && !existingHostNames.isEmpty()) {
+             for (String hostName : hostNamesInCluster) {
+                if (existingHostNames.contains(hostName)){
+                    preCheckErrors.append(ExecutionUtils.getMessage("compute.cluster.hostname.already.in.cluster", hostName) + "  ");
+                }
+             }
+        }
         if (!ComputeUtils.isCapacityAvailable(getClient(), virtualPool,
                 virtualArray, size, (hostNames.size() - existingHostNames.size()))) {
             preCheckErrors.append(
@@ -120,9 +126,12 @@ public class AddBareMetalHostToClusterService extends ViPRService {
             preCheckErrors.append(
                     ExecutionUtils.getMessage("compute.cluster.service.profile.templates.null", cvp.getName()) + "  ");
         }
+        //TODO COP-28922 Can we add a check to see if the blades and the templates match?
+        // e.g. the blades can be from multiple UCS clusters
 
         if (preCheckErrors.length() > 0) {
-            throw new IllegalStateException(preCheckErrors.toString());
+            throw new IllegalStateException(preCheckErrors.toString() + 
+                    ComputeUtils.getContextErrors(getModelClient()));
         }
     }
 
@@ -132,36 +141,30 @@ public class AddBareMetalHostToClusterService extends ViPRService {
         hostNames = ComputeUtils.removeExistingHosts(hostNames, cluster);
 
         List<Host> hosts = ComputeUtils.createHosts(cluster, computeVirtualPool, hostNames, virtualArray);
+
         logInfo("compute.cluster.hosts.created", ComputeUtils.nonNull(hosts).size());
 
-        // Below step to update the shared export group to the cluster (the
-        // newly added hosts will be taken care of this update cluster
-        // method and in a synchronized way)
-        URI updatedClusterURI = ComputeUtils.updateClusterSharedExports(cluster.getId(), cluster.getLabel());
-        // Make sure the all hosts that are being created belong to the all
-        // of the exportGroups of the cluster, else fail the order.
-        // Not do so and continuing to create bootvolumes to the host we
-        // might end up in "consistent lun violation" issue.
-        if (!ComputeUtils.nonNull(hosts).isEmpty() && null == updatedClusterURI) {
-            logInfo("compute.cluster.sharedexports.update.failed.rollback.started", cluster.getLabel());
-            ComputeUtils.deactivateHosts(hosts);
-            // When the hosts are deactivated, update the cluster shared export groups to reflect the same.
-            ComputeUtils.updateClusterSharedExports(cluster.getId(), cluster.getLabel());
-            logInfo("compute.cluster.sharedexports.update.failed.rollback.completed", cluster.getLabel());
-            throw new IllegalStateException(
-                    ExecutionUtils.getMessage("compute.cluster.sharedexports.update.failed", cluster.getLabel()));
-        } else {
-            logInfo("compute.cluster.sharedexports.updated", cluster.getLabel());
-            List<URI> bootVolumeIds = ComputeUtils.makeBootVolumes(project, virtualArray, virtualPool, size, hosts,
-                    getClient());
-            logInfo("compute.cluster.boot.volumes.created", ComputeUtils.nonNull(bootVolumeIds).size());
-            hosts = ComputeUtils.deactivateHostsWithNoBootVolume(hosts, bootVolumeIds, cluster);
+        Map<Host, URI> hostToBootVolumeIdMap = ComputeUtils.makeBootVolumes(project, virtualArray, virtualPool, size, hosts,
+                getClient());
+        logInfo("compute.cluster.boot.volumes.created", 
+                hostToBootVolumeIdMap != null ? ComputeUtils.nonNull(hostToBootVolumeIdMap.values()).size() : 0);
 
-            List<URI> exportIds = ComputeUtils.exportBootVols(bootVolumeIds, hosts, project, virtualArray, hlu);
-            logInfo("compute.cluster.exports.created", ComputeUtils.nonNull(exportIds).size());
-            hosts = ComputeUtils.deactivateHostsWithNoExport(hosts, exportIds, bootVolumeIds, cluster);
-            ComputeUtils.setHostBootVolumes(hosts, bootVolumeIds);
-        }
+        // Deactivate hosts with no boot volume, return list of hosts remaining.
+        hostToBootVolumeIdMap = ComputeUtils.deactivateHostsWithNoBootVolume(hostToBootVolumeIdMap, cluster);
+
+        // Export the boot volume, return a map of hosts and their EG IDs
+        Map<Host, URI> hostToEgIdMap = ComputeUtils.exportBootVols(hostToBootVolumeIdMap, project, virtualArray, hlu);
+        logInfo("compute.cluster.exports.created", 
+                hostToEgIdMap != null ? ComputeUtils.nonNull(hostToEgIdMap.values()).size(): 0);
+        
+        // Deactivate any hosts where the export failed, return list of hosts remaining
+        hostToBootVolumeIdMap = ComputeUtils.deactivateHostsWithNoExport(hostToBootVolumeIdMap, hostToEgIdMap, cluster);
+        
+        // Set host boot volume ids and set san boot targets. 
+        hosts = ComputeUtils.setHostBootVolumes(hostToBootVolumeIdMap, true);
+
+        ComputeUtils.addHostsToCluster(hosts, cluster);
+        hosts = ComputeUtils.deactivateHostsNotAddedToCluster(hosts, cluster);
 
         String orderErrors = ComputeUtils.getOrderErrors(cluster, copyOfHostNames, null, null);
         if (orderErrors.length() > 0) { // fail order so user can resubmit

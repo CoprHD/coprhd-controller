@@ -265,6 +265,22 @@ TaskResources<HostRestRep> {
         return putTaskURI(input, uriBuilder.build(id));
     }
 
+     /**
+     * Sets boot volume for a host.
+     * <p>
+     * API Call: <tt>PUT /compute/hosts/{id}/update-boot-volume</tt>
+     *
+     * @param id
+     *            the ID of the host.
+     * @return
+     */
+
+    public Task<HostRestRep> updateBootVolume(URI id, HostUpdateParam input) {
+        UriBuilder uriBuilder = client.uriBuilder(getIdUrl());
+        return putTask(input, getIdUrl() + "/update-boot-volume", id);
+    }
+
+
     /**
      * Deactivates a host.
      * <p>

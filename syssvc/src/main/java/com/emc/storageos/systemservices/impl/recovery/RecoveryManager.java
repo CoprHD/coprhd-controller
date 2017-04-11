@@ -15,6 +15,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import com.emc.storageos.coordinator.client.model.*;
+import com.emc.storageos.db.common.DbConfigConstants;
 import com.emc.storageos.services.util.*;
 import com.emc.vipr.model.sys.recovery.DbOfflineStatus;
 import org.slf4j.Logger;
@@ -250,6 +251,7 @@ public class RecoveryManager implements Runnable {
             setRecoveryStatus(RecoveryStatus.Status.SYNCING);
             waitDbsvcStarted();
 
+            validateAutoBootFlag();
             markRecoverySuccessful();
             log.info("Node recovery is done successful");
         } catch (Exception ex) {
@@ -678,6 +680,40 @@ public class RecoveryManager implements Runnable {
         }
         log.info("Recovery status is: {}", status);
         return status;
+    }
+
+    private void validateAutoBootFlag() {
+        String siteId = coordinator.getCoordinatorClient().getSiteId();
+        List<Configuration> configs = coordinator.getCoordinatorClient().queryAllConfiguration(siteId, Constants.DB_CONFIG);
+        if (!isAllAutoBootTrue(configs)) {
+            log.info("Auto boot flag check passed");
+            return;
+        }
+        log.info("Auto boot flag was set true on all nodes, Change to false for one node");
+        for (int i = 0; i < configs.size(); i++) {
+            Configuration config = configs.get(i);
+            if (config.getId() == null || config.getId().equals(Constants.GLOBAL_ID)) {
+                continue;
+            }
+            config.setConfig(DbConfigConstants.AUTOBOOT, "false");
+            coordinator.getCoordinatorClient().persistServiceConfiguration(siteId, config);
+            log.info("Persist autoboot info as false on {} to zk successfully", config.getId());
+            break;
+        }
+    }
+
+    private boolean isAllAutoBootTrue(List<Configuration> configs) {
+        for (int i = 0; i < configs.size(); i++) {
+            Configuration config = configs.get(i);
+            // Bypasses item of "global" and folders of "version", just check db configurations.
+            if (config.getId() == null || config.getId().equals(Constants.GLOBAL_ID)) {
+                continue;
+            }
+            if (!Boolean.parseBoolean(config.getConfig(DbConfigConstants.AUTOBOOT))) { 
+                return false;
+            }
+        }
+        return true;
     }
 
     /**

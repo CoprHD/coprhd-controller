@@ -19,6 +19,7 @@ import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.util.NetworkUtil;
 import com.emc.storageos.vnxe.VNXeApiClient;
 import com.emc.storageos.vnxe.models.VNXeHostInitiator;
+import com.emc.storageos.vnxe.models.VNXeHostInitiator.HostInitiatorTypeEnum;
 import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
 import com.emc.storageos.volumecontroller.impl.validators.ValidatorLogger;
 
@@ -28,7 +29,7 @@ import com.emc.storageos.volumecontroller.impl.validators.ValidatorLogger;
 public class VNXeExportMaskInitiatorsValidator extends AbstractVNXeValidator {
     private static final Logger log = LoggerFactory.getLogger(VNXeExportMaskInitiatorsValidator.class);
     private static final String misMatchInitiatorRemediation = "Remove the initiator from the host on array";
-    private static final String unknownInitiatorRemediation = "Remove the initiator from the host on array, or add the initiator to the host in ViPR";
+    private static final String unknownInitiatorRemediation = "Remove the initiator from the host on array, or add the initiator to the host in CoprHD";
 
     public VNXeExportMaskInitiatorsValidator(StorageSystem storage, ExportMask exportMask) {
         super(storage, exportMask);
@@ -53,7 +54,7 @@ public class VNXeExportMaskInitiatorsValidator extends AbstractVNXeValidator {
             }
 
             // all initiators of VNXe host should be on single ViPR host, or unknown to ViPR
-            String vnxeHostId = getVNXeHostFromInitiators();
+            String vnxeHostId = getHostId();
             if (vnxeHostId == null) {
                 return true;
             }
@@ -62,7 +63,13 @@ public class VNXeExportMaskInitiatorsValidator extends AbstractVNXeValidator {
             URI hostId = null;
             if (initiatorList != null) {
                 for (VNXeHostInitiator initiator : initiatorList) {
-                    String portWWN = initiator.getPortWWN();
+                    String portWWN = null;
+                    if (HostInitiatorTypeEnum.INITIATOR_TYPE_ISCSI.equals(initiator.getType())) {
+                        portWWN = initiator.getInitiatorId();
+                    } else {
+                        portWWN = initiator.getPortWWN();
+                    }
+
                     Initiator viprInitiator = NetworkUtil.findInitiatorInDB(portWWN, dbClient);
                     if (viprInitiator != null) {
                         if (NullColumnValueGetter.isNullURI(hostId)) {
@@ -71,7 +78,7 @@ public class VNXeExportMaskInitiatorsValidator extends AbstractVNXeValidator {
                             log.info("Initiator {} belongs to different host", portWWN);
                             setRemediation(misMatchInitiatorRemediation);
                             getLogger().logDiff(exportMask.getId().toString(), "initiators", ValidatorLogger.NO_MATCHING_ENTRY,
-                                    initiator.getPortWWN());
+                                    portWWN);
                             break;
                         }
                     } else {
@@ -79,7 +86,7 @@ public class VNXeExportMaskInitiatorsValidator extends AbstractVNXeValidator {
                         log.info("Unknown initiator found: {}", portWWN);
                         setRemediation(unknownInitiatorRemediation);
                         getLogger().logDiff(exportMask.getId().toString(), "initiators", ValidatorLogger.NO_MATCHING_ENTRY,
-                                initiator.getPortWWN());
+                                portWWN);
                         break;
                     }
                 }

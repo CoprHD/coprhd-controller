@@ -6,6 +6,8 @@ package models.datatable;
 
 import static com.emc.vipr.client.core.util.ResourceUtils.uri;
 
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
@@ -13,6 +15,9 @@ import java.util.Iterator;
 import java.util.List;
 
 import com.emc.storageos.db.client.model.uimodels.OrderStatus;
+
+import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.collections.Predicate;
 import org.apache.commons.lang.ObjectUtils;
 import org.apache.commons.lang.StringUtils;
 
@@ -26,6 +31,7 @@ import util.datatable.DataTableParams;
 import com.emc.vipr.model.catalog.OrderCount;
 import com.emc.vipr.model.catalog.OrderJobInfo;
 import com.emc.vipr.model.catalog.OrderRestRep;
+
 import util.support.SupportOrderPackageCreator;
 
 public class RecentOrdersDataTable extends OrderDataTable {
@@ -37,6 +43,10 @@ public class RecentOrdersDataTable extends OrderDataTable {
 
     public RecentOrdersDataTable(String tenantId) {
         super(tenantId);
+    }
+
+    public RecentOrdersDataTable(String tenantId, int offsetInMinutes) {
+        super(tenantId, offsetInMinutes);
     }
 
     public int getMaxOrders() {
@@ -97,6 +107,10 @@ public class RecentOrdersDataTable extends OrderDataTable {
         if (info != null && !info.isNoJobOrJobDone()) {
             status = MessagesUtils.get("orders.delete.status", new Date(info.getStartTime()), new Date(info.getEndTime()),
                     info.getCompleted(), info.getTotal(), info.getFailed());
+            if (info.getTotal() >= OrderDataTable.ORDER_MAX_DELETE_PER_GC) {
+                status = String.format("%s %s", status, MessagesUtils.get("orders.delete.all.threshold",
+                        OrderDataTable.ORDER_MAX_DELETE_PER_GC));
+            }
         }
         Logger.info("getDeleteJobStatus: {}", status);
         return status;
@@ -132,14 +146,23 @@ public class RecentOrdersDataTable extends OrderDataTable {
     }
     
     public static String getCanBeDeletedOrderStatuses() {
-        StringBuilder builder = new StringBuilder();
-        for (OrderStatus s : OrderStatus.values()) {
-            if (s.canBeDeleted()) {
-                if (builder.length() != 0) {
-                    builder.append(", ");
-                }
-                builder.append(s.name());
+        List<OrderStatus> canBeDeletedStatus = new ArrayList<OrderStatus>(Arrays.asList(OrderStatus.values()));
+        CollectionUtils.filter(canBeDeletedStatus, new Predicate() {
+            @Override
+            public boolean evaluate(Object o) {
+                return ((OrderStatus) o).canBeDeleted();
             }
+        });
+
+        StringBuilder builder = new StringBuilder();
+        for (int i = 0; i < canBeDeletedStatus.size(); i++) {
+            if (i != 0) {
+                builder.append(", ");
+            }
+            if (i == canBeDeletedStatus.size() - 1) {
+                builder.append("or ");
+            }
+            builder.append(canBeDeletedStatus.get(i).name());
         }
         return builder.toString();
     }

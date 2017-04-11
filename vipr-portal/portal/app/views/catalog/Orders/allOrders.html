@@ -54,7 +54,9 @@
     &{'orders.delete.description'}
     #{/Modal.header}
     #{Modal.body cssClass:'form-horizontal'}
-    <span class="checkedAll-block">&{"orders.delete.all", orderCount}</span>
+    <span class="checkedAll-block">&{"orders.delete.all", orderCount} 
+        #{if orderCount >= models.datatable.OrderDataTable.ORDER_MAX_DELETE_PER_GC}&{"orders.delete.all.threshold", models.datatable.OrderDataTable.ORDER_MAX_DELETE_PER_GC}#{/if}
+    </span>
     <div><span class="help-block">&{"orders.delete.help", canBeDeletedStatuses}</span></div>
     #{/Modal.body}
     #{Modal.footer}
@@ -83,6 +85,7 @@
         aoData.push({"name": "startDate", "value": "${startDate}"});
         aoData.push({"name": "endDate", "value": "${endDate}"});
         aoData.push({"name": "maxDays", "value": "${maxDays}"});
+        aoData.push({"name": "offsetInMinutes", "value": getTimeZoneOffset()});
     }
     table.orders.dataTable.afterCreate(function (dataTable) {
         var itemsJson = #{jsAction @catalog.Orders.itemsJson(':ids')/};
@@ -111,7 +114,8 @@
                 $(".notForRange").hide();
                 $('.max-days-selector').css({'width': '780px', 'margin-left': '-600px', 'margin-right': '120px'});
             } else {
-                var url = #{jsAction @allOrders()/}() + "?maxDays=" + maxDays;
+                var url = #{jsAction @allOrders()/}() + "?maxDays=" + maxDays +
+                        "&offsetInMinutes=" + getTimeZoneOffset();
                 window.location.href = url;
             }
         });
@@ -174,7 +178,8 @@
     function deleteOrders() {
         console.info("start to delete");
         if (isSelectedAll) {
-            var url = #{jsAction @deleteOrders()/}() + "?startDate=${startDate}&endDate=${endDate}&maxDays=${maxDays}";
+            var url = #{jsAction @deleteOrders()/}() + "?startDate=${startDate}&endDate=${endDate}&maxDays=${maxDays}" +
+                    "&offsetInMinutes=" + getTimeZoneOffset();
         } else {
             var url = #{jsAction @deleteOrders(':ids')/}({"ids": selectedIds});
         }
@@ -185,7 +190,8 @@
     function downloadOrders() {
         console.info("start to download");
         if (isSelectedAll) {
-            var url = #{jsAction @downloadOrders()/}() + "?startDate=${startDate}&endDate=${endDate}&maxDays=${maxDays}";
+            var url = #{jsAction @downloadOrders()/}() + "?startDate=${startDate}&endDate=${endDate}&maxDays=${maxDays}" +
+                    "&offsetInMinutes=" + getTimeZoneOffset();
         } else {
             var url = #{jsAction @downloadOrders(':ids')/}({"ids": selectedIds});
         }

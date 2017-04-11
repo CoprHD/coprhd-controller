@@ -4,8 +4,6 @@
  */
 package com.emc.storageos.util;
 
-import java.io.IOException;
-import java.net.InetAddress;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -937,17 +935,17 @@ public class ConnectivityUtil {
     }
 
     /**
-     * This method returns the VPLEX cluster location for the ExportMask. The assumption here is that the passed
-     * ExportMask will not have ports from both VPLEX clusters.
+     * This method returns the VPLEX cluster location for the List of StoragePort URIs. The assumption here is that the passed
+     * List of StoragePorts URIs will not contain ports from both VPLEX clusters. The first port that passes all conditions
+     * will determine the VPLEX cluster id returned.
      * 
-     * @param exportMask the ExportMask object to check for VPLEX cluster location
+     * @param storagePortUris the List of StoragePort URIs to chck
      * @param vplexStorageSystemUri The URI of the VPLEX storage system
      * @param dbClient a reference to the database client
      * @return "1" or "2". Returns "unknown-cluster" if error.
      */
-    public static String getVplexClusterForExportMask(ExportMask exportMask, URI vplexStorageSystemUri, DbClient dbClient) {
+    public static String getVplexClusterForStoragePortUris(List<URI> storagePortUris, URI vplexStorageSystemUri, DbClient dbClient) {
         String vplexCluster = CLUSTER_UNKNOWN;
-        List<URI> storagePortUris = URIUtil.toURIList(exportMask.getStoragePorts());
         if (storagePortUris != null) {
             for (URI uri : storagePortUris) {
                 StoragePort storagePort = dbClient.queryObject(StoragePort.class, uri);
@@ -1095,21 +1093,5 @@ public class ConnectivityUtil {
         }
 
         return foundStorageSystemURI;
-    }
-    
-    /**
-     * pings a resource
-     * @param resource host name or ip address of a resource
-     * @return
-     */
-    public static boolean ping(String resource) {
-         try {
-             InetAddress address = InetAddress.getByName(resource);
-             return address.isReachable(PING_TIMEOUT);
-        } catch (IOException e) {
-            _log.error("Error pinging endpoint " + resource);
-            _log.error(e.getMessage(), e);
-        }
-        return false;
     }
 }

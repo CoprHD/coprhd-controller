@@ -505,6 +505,9 @@ public class ComputeVirtualPoolService extends TaggedResource {
         }
         return ceList;
     }
+    private boolean isRegistered(ComputeElement computeElement) {
+        return RegistrationStatus.REGISTERED.name().equals(computeElement.getRegistrationStatus());
+    }
 
     private boolean isAvailable(ComputeElement computeElement) {
         return RegistrationStatus.REGISTERED.name().equals(computeElement.getRegistrationStatus()) && computeElement.getAvailable();
@@ -543,7 +546,7 @@ public class ComputeVirtualPoolService extends TaggedResource {
                     continue;
                 }
 
-                if (!isAvailable(ce)) {
+                if (!isRegistered(ce)) {
                     continue;
                 }
 
@@ -1696,12 +1699,6 @@ public class ComputeVirtualPoolService extends TaggedResource {
 
             List<URI> staticCeUris = findAllStaticallyAssignedComputeElementsInOtherPools(cvp);
             for (ComputeElement computeElement : addElements) {
-                if (!isAvailable(computeElement)) {
-                    _log.error("Compute element " + computeElement.getId()
-                            + " is not available and thus may not be moved into different pool");
-                    throw APIException.badRequests.changeToComputeVirtualPoolNotSupported(cvp.getLabel(),
-                            "Cannot reassign compute element(s) already used.");
-                }
                 if (staticCeUris.contains(computeElement.getId())) {
                     _log.error("Compute element " + computeElement.getId() + " already statically assigned to a different pool");
                     throw APIException.badRequests.changeToComputeVirtualPoolNotSupported(cvp.getLabel(),
@@ -1729,13 +1726,6 @@ public class ComputeVirtualPoolService extends TaggedResource {
                         + removeElements.size() + " found");
                 throw APIException.badRequests.changeToComputeVirtualPoolNotSupported(cvp.getLabel(),
                         "Invalid remove compute element(s) specified.");
-            }
-            for (ComputeElement computeElement : removeElements) {
-                if (!isAvailable(computeElement)) {
-                    _log.error("Compute element " + computeElement.getId() + " is not available and thus may not be removed");
-                    throw APIException.badRequests.changeToComputeVirtualPoolNotSupported(cvp.getLabel(),
-                            "Cannot remove compute element(s) already used.");
-                }
             }
 
             // Remove against the current collection of compute elements

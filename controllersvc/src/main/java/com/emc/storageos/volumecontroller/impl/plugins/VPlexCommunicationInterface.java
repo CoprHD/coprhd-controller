@@ -75,7 +75,9 @@ import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
 import com.emc.storageos.volumecontroller.impl.StoragePoolAssociationHelper;
 import com.emc.storageos.volumecontroller.impl.StoragePortAssociationHelper;
 import com.emc.storageos.volumecontroller.impl.plugins.metering.vplex.VPlexStatsCollector;
+import com.emc.storageos.volumecontroller.impl.smis.srdf.SRDFUtils;
 import com.emc.storageos.volumecontroller.impl.utils.DiscoveryUtils;
+import com.emc.storageos.volumecontroller.impl.utils.ImplicitUnManagedObjectsMatcher;
 import com.emc.storageos.vplex.api.VPlexApiClient;
 import com.emc.storageos.vplex.api.VPlexApiConstants;
 import com.emc.storageos.vplex.api.VPlexApiException;
@@ -176,13 +178,14 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
         URI mgmntServerURI = accessProfile.getSystemId();
         StorageProvider mgmntServer = null;
         String scanStatusMessage = "Unknown Status";
+        VPlexApiClient client = null;
         try {
             // Get the storage provider representing a VPLEX management server.
             mgmntServer = _dbClient.queryObject(StorageProvider.class, mgmntServerURI);
 
             // Get the Http client for getting information about the VPLEX
             // cluster(s) managed by the VPLEX management server.
-            VPlexApiClient client = getVPlexAPIClient(accessProfile);
+            client = getVPlexAPIClient(accessProfile);
             s_logger.debug("Got handle to VPlex API client");
 
             // Verify the connectivity to the VPLEX management server.
@@ -200,6 +203,12 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
             scanStatusMessage = String.format("Scan job completed successfully for " +
                     "VPLEX management server: %s", mgmntServerURI.toString());
         } catch (Exception e) {
+
+            if (null != client) {
+                // clear cached discovery data in the VPlexApiClient
+                client.clearCaches();
+            }
+
             VPlexCollectionException vce = VPlexCollectionException.exceptions
                     .failedScan(mgmntServer.getIPAddress(), e.getLocalizedMessage());
             scanStatusMessage = vce.getLocalizedMessage();
@@ -545,10 +554,10 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
                             // THIS IS VERY BAD
                             String message = 
                                     String.format("The VPLEX storage system serial number unexpectedly changed. "
-                                    + "Existing VPLEX metro native GUID %s contains the newly-discovered system assembly "
-                                    + "id %s, which indicates a change in VPLEX hardware configuration from metro to local. "
+                                    + "The newly-discovered native GUID %s contains the existing VPLEX metro system assembly "
+                                    + "id %s of VPLEX %s, which indicates a change in VPLEX hardware configuration from metro to local. "
                                     + "Scanning of this Storage Provider cannot continue. Recommended course of action is "
-                                    + "to contact EMC Customer Support.", systemNativeGUID, assemblyId);
+                                    + "to contact EMC Customer Support.", systemNativeGUID, assemblyId, vplex.forDisplay());
                             s_logger.error(message);
                             vplex.setDiscoveryStatus(DataCollectionJobStatus.ERROR.name());
                             vplex.setLastDiscoveryStatusMessage(message);
@@ -589,10 +598,12 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
                 tracker.discoveryMode = ControllerUtils.getPropertyValueFromCoordinator(
                         _coordinator, VplexBackendIngestionContext.DISCOVERY_MODE);
 
+                // get all the detailed virtual volume info from the VPLEX API
                 Map<String, VPlexVirtualVolumeInfo> vvolMap = client.getVirtualVolumes(true);
                 tracker.virtualVolumeFetch = System.currentTimeMillis() - timer;
                 tracker.totalVolumesFetched = vvolMap.size();
 
+                // discover unmanaged storage views
                 timer = System.currentTimeMillis();
                 Map<String, Set<UnManagedExportMask>> volumeToExportMasksMap = new HashMap<String, Set<UnManagedExportMask>>();
                 Map<String, Set<VPlexStorageViewInfo>> volumeToStorageViewMap = new HashMap<String, Set<VPlexStorageViewInfo>>();
@@ -601,10 +612,24 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
                         recoverPointExportMasks);
                 tracker.storageViewFetch = System.currentTimeMillis() - timer;
 
+                // discover unmanaged volumes
                 timer = System.currentTimeMillis();
                 discoverUnmanagedVolumes(accessProfile, client, vvolMap, volumeToExportMasksMap, volumeToStorageViewMap,
                         recoverPointExportMasks, tracker);
                 tracker.unmanagedVolumeProcessing = System.currentTimeMillis() - timer;
+
+                // re-run vpool matching for all vpools so that backend volumes will 
+                // be updated after vvol discovery to match their parent's matched vpools
+                timer = System.currentTimeMillis();
+                List<URI> vpoolURIs = _dbClient.queryByType(VirtualPool.class, true);
+                List<VirtualPool> vpoolList = _dbClient.queryObject(VirtualPool.class, vpoolURIs);
+                Set<URI> srdfEnabledTargetVPools = SRDFUtils.fetchSRDFTargetVirtualPools(_dbClient);
+                Set<URI> rpEnabledTargetVPools = RPHelper.fetchRPTargetVirtualPools(_dbClient);
+                for (VirtualPool vpool : vpoolList) {
+                    ImplicitUnManagedObjectsMatcher.matchVirtualPoolsWithUnManagedVolumes(
+                            vpool, srdfEnabledTargetVPools, rpEnabledTargetVPools, _dbClient, true);
+                }
+                tracker.vpoolMatching = System.currentTimeMillis() - timer;
 
                 s_logger.info(tracker.getPerformanceReport());
             } catch (URISyntaxException ex) {
@@ -1602,11 +1627,11 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
                     for (String initiatorNetworkId : storageView.getInitiatorPwwns()) {
 
                         s_logger.info("looking at initiator network id " + initiatorNetworkId);
-                        if (initiatorNetworkId.matches(ISCSI_PATTERN)
+                        if (initiatorNetworkId != null && initiatorNetworkId.matches(ISCSI_PATTERN)
                                 && (iSCSIUtility.isValidIQNPortName(initiatorNetworkId)
                                         || iSCSIUtility.isValidEUIPortName(initiatorNetworkId))) {
                             s_logger.info("\tiSCSI network id normalized to " + initiatorNetworkId);
-                        } else if (initiatorNetworkId.matches(REGISTERED_PATTERN)) {
+                        } else if (initiatorNetworkId != null && initiatorNetworkId.matches(REGISTERED_PATTERN)) {
                             initiatorNetworkId = initiatorNetworkId.substring(REGISTERED_PORT_PREFIX.length());
                             initiatorNetworkId = WWNUtility.getWWNWithColons(initiatorNetworkId);
                             s_logger.info("\tRegistered network id normalized to " + initiatorNetworkId);
@@ -1882,6 +1907,7 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
         StorageSystem vplexStorageSystem = null;
         String detailedStatusMessage = "Unknown Status";
 
+        VPlexApiClient client = null;
         try {
             s_logger.info("Access Profile Details :  IpAddress : {}, PortNumber : {}",
                     accessProfile.getIpAddress(), accessProfile.getPortNumber());
@@ -1896,8 +1922,12 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
 
             // Get the Http client for getting information about the VPlex
             // storage system.
-            VPlexApiClient client = getVPlexAPIClient(accessProfile);
+            client = getVPlexAPIClient(accessProfile);
             s_logger.debug("Got handle to VPlex API client");
+
+            // clear cached discovery data in the VPlexApiClient
+            client.clearCaches();
+            client.primeCaches();
 
             // The version for the storage system is the version of its active provider
             // and since we are discovering it, the provider was compatible, so the
@@ -1953,6 +1983,20 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
                 errMsgBuilder.append(errMsg);
             }
 
+            // update host initiators with registered initiator names from VPLEX
+            try {
+                updateHostInitiators(client, vplexStorageSystem.getSerialNumber());
+            } catch (VPlexCollectionException vce) {
+                discoverySuccess = false;
+                String errMsg = String.format("Failed host initiator update for VPlex %s",
+                        storageSystemURI.toString());
+                s_logger.error(errMsg, vce);
+                if (errMsgBuilder.length() != 0) {
+                    errMsgBuilder.append(", ");
+                }
+                errMsgBuilder.append(errMsg);
+            }
+
             try {
                 s_logger.info("Discovering connectivity.");
                 discoverConnectivity(vplexStorageSystem);
@@ -1982,14 +2026,16 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
 
             StoragePortAssociationHelper.runUpdatePortAssociationsProcess(allPorts, null, _dbClient, _coordinator, null);
 
-            // clear cached discovery data in the VPlexApiClient
-            client.clearCaches();
-            client.primeCaches();
-
             // discovery succeeds
             detailedStatusMessage = String.format("Discovery completed successfully for Storage System: %s",
                     storageSystemURI.toString());
         } catch (Exception e) {
+
+            if (null != client) {
+                // clear cached discovery data in the VPlexApiClient
+                client.clearCaches();
+            }
+
             VPlexCollectionException vce = VPlexCollectionException.exceptions.failedDiscovery(
                     storageSystemURI.toString(), e.getLocalizedMessage());
             detailedStatusMessage = vce.getLocalizedMessage();
@@ -2007,6 +2053,64 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
                 }
             }
         }
+    }
+
+    /**
+     * Update host Initiator names in ViPR database according to what is found
+     * on each VPLEX cluster as a registered name for the Initiator's port.
+     * 
+     * @param client the VPLEX api client
+     * @param systemSerialNumber the VPLEX system serial number
+     */
+    private void updateHostInitiators(VPlexApiClient client, String systemSerialNumber) {
+
+        // get all the Initiators in vipr
+        List<URI> initiatorUris = _dbClient.queryByType(Initiator.class, true);
+        Iterator<Initiator> hostInitiators = _dbClient.queryIterativeObjects(Initiator.class, initiatorUris, true);
+        List<Initiator> initiatorsToPersist = new ArrayList<Initiator>();
+
+        // assemble a small map of the cluster names to the initiator name key for that cluster.
+        // for example: FNM00114300288:FNM00114600001|cluster-1 and FNM00114300288:FNM00114600001|cluster-2.
+        // this is just for efficiency, so we don't have to assemble the key over and over again.
+        List<String> vplexClusterNames = new ArrayList<String>(client.getClusterIdToNameMap().values());
+        Map<String, String> clusterNameToInitNameKey = new HashMap<String, String>(2);
+        for (String vplexClusterName : vplexClusterNames) {
+            String initiatorNameKey = systemSerialNumber + VPlexApiConstants.INITIATOR_CLUSTER_NAME_DELIM + vplexClusterName;
+            clusterNameToInitNameKey.put(vplexClusterName, initiatorNameKey);
+        }
+
+        // iterate through all the host Initiators in vipr and 
+        // update the initiator names mappings if necessary
+        Boolean[] doRefresh =  new Boolean[] { new Boolean(true) };
+        while (hostInitiators.hasNext()) {
+            Initiator hostInitiator = hostInitiators.next();
+            for (String vplexClusterName : vplexClusterNames) {
+                // find the current name on this vplex cluster hardware for the Initiator portWwn,
+                // and also get the current value found in the database for comparison.
+                String portWwn = hostInitiator.getInitiatorPort();
+                String vplexInitiatorName = client.getInitiatorNameForWwn(
+                        vplexClusterName, WWNUtility.getUpperWWNWithNoColons(portWwn), doRefresh);
+                String initiatorNameKey = clusterNameToInitNameKey.get(vplexClusterName);
+                String viprInitiatorName = hostInitiator.getInitiatorNames().get(initiatorNameKey);
+
+                // if a registered initiator name was found, and it hasn't already been mapped, update the Initiator.
+                // otherwise, if it is mapped in the vipr database, but it's no longer on the vplex, unmap it.
+                if (vplexInitiatorName != null 
+                        && !vplexInitiatorName.startsWith(VPlexApiConstants.UNREGISTERED_INITIATOR_PREFIX)) {
+                    if (!vplexInitiatorName.equals(viprInitiatorName)) {
+                        // map
+                        hostInitiator.mapInitiatorName(initiatorNameKey, vplexInitiatorName);
+                        initiatorsToPersist.add(hostInitiator);
+                    }
+                } else if (hostInitiator.getInitiatorNames().containsKey(initiatorNameKey)) {
+                    // unmap
+                    hostInitiator.unmapInitiatorName(initiatorNameKey);
+                    initiatorsToPersist.add(hostInitiator);
+                }
+            }
+        }
+
+        _dbClient.updateObject(initiatorsToPersist);
     }
 
     /**
@@ -2433,6 +2537,7 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
         for (VPlexClusterInfo clusterInfo : clusterInfoList) {
             String assemblyId = clusterInfo.getTopLevelAssembly();
             if (null == assemblyId || VPlexApiConstants.NULL_ATT_VAL.equals(assemblyId) || assemblyId.isEmpty()) {
+                client.clearCaches();
                 throw VPlexCollectionException.exceptions
                         .failedScanningManagedSystemsNullAssemblyId(
                                 storageProvider.getIPAddress(), clusterInfo.getName());
@@ -2461,6 +2566,7 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
         public long storageViewFetch = 0;
         public long consistencyGroupFetch = 0;
         public long unmanagedVolumeProcessing = 0;
+        public long vpoolMatching = 0;
         public int totalVolumesFetched = 0;
         public int totalVolumesDiscovered = 0;
 
@@ -2486,6 +2592,7 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
             report.append("\tstorage view data fetch: ").append(storageViewFetch).append("ms\n");
             report.append("\tconsistency group data fetch: ").append(consistencyGroupFetch).append("ms\n");
             report.append("\tunmanaged volume processing time: ").append(unmanagedVolumeProcessing).append("ms\n");
+            report.append("\tvpool matching processing time: ").append(unmanagedVolumeProcessing).append("ms\n");
 
             volumeTimeResults = sortByValue(volumeTimeResults);
             report.append("\nTop 20 Longest-Running Volumes...\n");

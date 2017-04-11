@@ -25,6 +25,7 @@ import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.BlockSnapshot;
+import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.ShareACL;
 import com.emc.storageos.db.client.model.StoragePool;
@@ -880,7 +881,8 @@ public class VNXUnityUnManagedObjectDiscoverer {
                         driveTypes);
             }
             StringSet matchedVPools = DiscoveryUtils.getMatchedVirtualPoolsForPool(dbClient, pool.getId(),
-                    unManagedVolumeCharacteristics.get(SupportedVolumeCharacterstics.IS_THINLY_PROVISIONED.toString()));
+                    unManagedVolumeCharacteristics.get(SupportedVolumeCharacterstics.IS_THINLY_PROVISIONED.toString()),
+                    unManagedVolume);
             log.debug("Matched Pools : {}", Joiner.on("\t").join(matchedVPools));
             if (null == matchedVPools || matchedVPools.isEmpty()) {
                 // clear all existing supported vpools.
@@ -1417,6 +1419,7 @@ public class VNXUnityUnManagedObjectDiscoverer {
             List<VNXeBase> iScsiInits = host.getIscsiHostInitiators();
             boolean isVplexHost = false;
             boolean isRPHost = false;
+            Set<URI> hostURIs = new HashSet<>();
             if (fcInits != null && !fcInits.isEmpty()) {
                 for (VNXeBase init : fcInits) {
                     VNXeHostInitiator initiator = apiClient.getHostInitiator(init.getId());
@@ -1429,6 +1432,10 @@ public class VNXUnityUnManagedObjectDiscoverer {
                         knownInitSet.add(knownInitiator.getId().toString());
                         knownNetworkIdSet.add(portwwn);
                         matchedFCInitiators.add(knownInitiator);
+                        URI hostURI = knownInitiator.getHost();
+                        if (!NullColumnValueGetter.isNullURI(hostURI) && URIUtil.isType(hostURI, Host.class)) {
+                            hostURIs.add(hostURI);
+                        }
                     } else {
                         knownInitiator = new Initiator();
                         knownInitiator.setInitiatorPort(portwwn);
@@ -1454,6 +1461,10 @@ public class VNXUnityUnManagedObjectDiscoverer {
                     if (knownInitiator != null) {
                         knownInitSet.add(knownInitiator.getId().toString());
                         knownNetworkIdSet.add(portwwn);
+                        URI hostURI = knownInitiator.getHost();
+                        if (!NullColumnValueGetter.isNullURI(hostURI) && URIUtil.isType(hostURI, Host.class)) {
+                            hostURIs.add(hostURI);
+                        }
                     }
                 }
             }
@@ -1461,6 +1472,12 @@ public class VNXUnityUnManagedObjectDiscoverer {
                 log.info(String.format("The host %s does not have any known initiators", hostId));
                 continue;
             }
+
+            if (hostURIs.size() > 1) {
+                log.warn(String.format("Skip export on host %s as the initiators on the host belong to more than one hosts in DB %s", hostId, Joiner.on(",").join(hostURIs)));
+                continue;
+            }
+
             String firstNetworkId = knownNetworkIdSet.iterator().next();
             UnManagedExportMask mask = getUnManagedExportMask(firstNetworkId, dbClient, systemId);
             mask.setStorageSystemUri(systemId);

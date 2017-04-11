@@ -554,7 +554,7 @@ class ExportGroup(object):
             return action result
          '''
 
-    def exportgroup_add_cluster(self, exportgroupname, tenantname, projectname,
+    def exportgroup_add_cluster(self, exportgroupname, datacenter, vcenter, tenantname, projectname,
                                 clusternames, sync,synctimeout=0, varray=None):
         
         varrayuri = None
@@ -568,7 +568,7 @@ class ExportGroup(object):
         cluster_uris = []
         clusterObject = Cluster(self.__ipAddr, self.__port)
         for clustername in clusternames:
-            cluster_uris.append(clusterObject.cluster_query(clustername,
+            cluster_uris.append(clusterObject.cluster_query(clustername, datacenter, vcenter,
                                                             tenantname))
         parms = {}
         parms['cluster_changes'] = self._add_list(cluster_uris)
@@ -764,11 +764,17 @@ class ExportGroup(object):
 			host_uris.append(host_uri)
 		parms['hosts'] = host_uris
 
-	   parms['use_existing_paths'] = useexisting
+	   if (useexisting):
+	       parms['use_existing_paths'] = "true"
+	   else:
+	       parms['use_existing_paths'] = "false"
 	   return parms
 
 	if (dorealloc):
-		parms['wait_before_remove_paths'] = wait
+ 		if (wait):
+		    parms['wait_before_remove_paths'] = "true"
+		else:
+		    parms['wait_before_remove_paths'] = "false"
 
 		#Call Preview first to fetch all the paths. 
  		rep = self.exportgroup_pathadjustment(name, project, tenant,
@@ -841,9 +847,7 @@ class ExportGroup(object):
 						     self.URI_EXPORT_GROUP_PATH_ADJUSTMENT_PREVIEW.format(exportgroup_uri),
 						     body)
         output = common.json_decode(s)
-
-
-
+            
 	# Display output when verbose is set to true or if the operation is Preview.
  	if (verbose or not self.PATH_ADJ_OPERATION):
     		print operation
@@ -851,7 +855,7 @@ class ExportGroup(object):
 	 	print ' '
 
 	# If opeation is path_adjustment and wait is true and no verbose option selected, then display the task id of the suspended task
-	if (not verbose and self.PATH_ADJ_OPERATION):
+	if (not verbose and wait and self.PATH_ADJ_OPERATION):
 		if (output.get('id')) :
     		    print operation
 		    print 'There are tasks (URIs listed below) that are suspended as part of this operation. Manually resume the tasks.'
@@ -911,15 +915,13 @@ def exportgroup_pathadjustment_parser(subcommand_parsers, common_parser):
 			       nargs='+',
 			       help='list of storage ports')
 	path_adjustment_preview_parser.add_argument('-useexistingpaths', '-useex',
-			       metavar='<useexistingpaths>',
 			       dest='useexistingpaths',
-			       default=False,
-			       help='use existing paths')
-	path_adjustment_preview_parser.add_argument('-verbose', '-vb',
-			       metavar='<verbose>',
+			       help='use existing paths',
+			       action='store_true')
+	path_adjustment_preview_parser.add_argument('-verbose', '-v',
 			       dest='verbose',
-			       default=False,
-			       help='Print verbose output')
+			       help='Print verbose output',
+			       action='store_true')
 	path_adjustment_preview_parser.add_argument('-maxinitiatorsperport', '-maxipp',
 			       metavar='<maxinitiatorsperport>',
 			       dest='maxinitiatorsperport',
@@ -939,10 +941,9 @@ def exportgroup_pathadjustment_parser(subcommand_parsers, common_parser):
 					help='Export group paths adjustment')
 
 	path_adjustment_parser.add_argument('-wait', '-w',
-					metavar='<wait>',
 					dest='wait',
-					default=False,
-					help='Wait before removal of paths')
+					help='Wait before removal of paths',
+					action='store_true')
 
 	path_adjustment_parser.set_defaults(func=exportgroup_pathadjustment)
 	path_adjustment_preview_parser.set_defaults(func=exportgroup_pathadjustment_preview)
@@ -1565,6 +1566,16 @@ def add_cluster_parser(subcommand_parsers, common_parser):
                                 dest='project',
                                 help='name of Project ',
                                 required=True)
+    add_cluster_parser.add_argument('-datacenter', '-dc',
+                                metavar='<datacentername>',
+                                dest='datacenter',
+                                help='name of datacenter',
+                                default=None)
+    add_cluster_parser.add_argument('-vcenter', '-vc',
+                                help='name of a vcenter',
+                                dest='vcenter',
+                                metavar='<vcentername>',
+                                default=None)                                
     add_cluster_parser.add_argument('-tenant', '-tn',
                                     metavar='<tenantname>',
                                     dest='tenant',
@@ -1594,7 +1605,7 @@ def exportgroup_add_cluster(args):
     try:
         objExGroup = ExportGroup(args.ip, args.port)
         objExGroup.exportgroup_add_cluster(
-            args.name, args.tenant, args.project, args.cluster, args.sync,args.synctimeout, args.varray)
+            args.name, args.datacenter, args.vcenter, args.tenant, args.project, args.cluster, args.sync,args.synctimeout, args.varray)
     except SOSError as e:
         raise common.format_err_msg_and_raise("add_cluster", "exportgroup",
                                               e.err_text, e.err_code)
@@ -1637,6 +1648,11 @@ def remove_cluster_parser(subcommand_parsers, common_parser):
                                        dest='tenant',
                                        help='container tenant name')
 
+    remove_cluster_parser.add_argument('-force', '-f',
+                                   dest='force',
+                                   help='force flag',
+                                   action='store_true')
+
     remove_cluster_parser.add_argument('-synchronous', '-sync',
                                        dest='sync',
                                        help='Execute in synchronous mode',
@@ -1652,6 +1668,8 @@ def remove_cluster_parser(subcommand_parsers, common_parser):
 
 
 def exportgroup_remove_cluster(args):
+    if not args.force:
+        raise SOSError(SOSError.CMD_LINE_ERR,"error: -force is mandatory. Use force flag with care, as it removes cluster access to all underlying storage.")
     if not args.sync and args.synctimeout !=0:
         raise SOSError(SOSError.CMD_LINE_ERR,"error: Cannot use synctimeout without Sync ")
     try:
@@ -1738,7 +1756,7 @@ def remove_host_parser(subcommand_parsers, common_parser):
     mandatory_args.add_argument('-name', '-n',
                                 metavar='<exportgroupname>',
                                 dest='name',
-                                help='name of Export Group ',
+                                help='name of Export Group',
                                 required=True)
     mandatory_args.add_argument('-hl', '-hostlabel',
                                 dest='hostlabel',
@@ -1759,6 +1777,10 @@ def remove_host_parser(subcommand_parsers, common_parser):
                                     metavar='<tenantname>',
                                     dest='tenant',
                                     help='container tenant name')
+    remove_host_parser.add_argument('-force', '-f',
+                                   dest='force',
+                                   help='force flag',
+                                   action='store_true')
 
     remove_host_parser.add_argument('-synchronous', '-sync',
                                     dest='sync',
@@ -1775,6 +1797,8 @@ def remove_host_parser(subcommand_parsers, common_parser):
 
 
 def exportgroup_remove_host(args):
+    if not args.force:
+        raise SOSError(SOSError.CMD_LINE_ERR,"error: -force is mandatory. Use force flag with care, as it removes host access to all underlying storage.")
     if not args.sync and args.synctimeout !=0:
         raise SOSError(SOSError.CMD_LINE_ERR,"error: Cannot use synctimeout without Sync ")
     try:

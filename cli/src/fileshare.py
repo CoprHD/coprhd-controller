@@ -16,6 +16,7 @@ import socket
 import commands
 from common import SOSError
 from threading import Timer
+from filepolicy import FilePolicy
 import schedulepolicy
 import virtualpool
 import host
@@ -903,21 +904,20 @@ class Fileshare(object):
     
     def assign_policy(self, filesharename, policyname, tenantname, policyid, targetvarrays):
         assign_request = {}
-        filepolicy_filesystem_assign_param = {}
+        trg_varrays = []
         if (targetvarrays is not None):
             assign_target_varrays = []
             from virtualarray import VirtualArray
             varray_obj = VirtualArray(self.__ipAddr, self.__port)
             if( len(targetvarrays)>1):
-                trg_varrays= target_varrays.split(',')
+                trg_varrays= targetvarrays.split(',')
                 for varray in trg_varrays:
                     uri =  varray_obj.varray_query(varray)
                     assign_target_varrays.append(uri)
             else:
                 uri = varray_obj.varray_query(targetvarrays)
                 assign_target_varrays.append(uri)
-            filepolicy_filesystem_assign_param['target_varrays']= assign_target_varrays
-            assign_request['filepolicy_filesystem_assign_param']= filepolicy_filesystem_assign_param
+            assign_request['target_varrays']= assign_target_varrays
             
         fsname = self.show(filesharename)
         fsid = fsname['id']
@@ -2720,9 +2720,9 @@ def assign_policy_parser(subcommand_parsers, common_parser):
 
 def assign_policy(args):
     try:
-        from schedulepolicy import Schedulepolicy
-        policy = Schedulepolicy(args.ip,
-                        args.port).get_policy_from_name(args.polname, args.tenant)
+        
+        policy = FilePolicy(args.ip,
+                        args.port).filepolicy_query(args.polname)
         policyid = policy['id']
         obj = Fileshare(args.ip, args.port)
         
@@ -2769,9 +2769,8 @@ def unassign_policy_parser(subcommand_parsers, common_parser):
 
 def unassign_policy(args):
     try:
-        from schedulepolicy import Schedulepolicy
-        policy = Schedulepolicy(args.ip,
-                        args.port).get_policy_from_name(args.polname, args.tenant)
+        policy = FilePolicy(args.ip,
+                        args.port).filepolicy_query(args.polname)
         policyid = policy['id']
         obj = Fileshare(args.ip, args.port)
         

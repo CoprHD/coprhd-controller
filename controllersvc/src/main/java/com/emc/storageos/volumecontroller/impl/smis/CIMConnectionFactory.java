@@ -7,6 +7,7 @@ package com.emc.storageos.volumecontroller.impl.smis;
 import java.io.IOException;
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 
 import javax.cim.CIMObjectPath;
@@ -33,7 +34,6 @@ import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.plugins.common.Constants;
 import com.emc.storageos.services.OperationTypeEnum;
-import com.emc.storageos.util.ConnectivityUtil;
 import com.emc.storageos.volumecontroller.impl.monitoring.RecordableBourneEvent;
 import com.emc.storageos.volumecontroller.impl.monitoring.RecordableEventManager;
 import com.emc.storageos.volumecontroller.impl.monitoring.cim.enums.RecordType;
@@ -193,9 +193,9 @@ public class CIMConnectionFactory {
     public void refreshVnXFileConnections() throws IOException, ConnectionManagerException {
         List<URI> allStorageSystemsURIList = _dbClient
                 .queryByType(StorageSystem.class, true);
-        List<StorageSystem> allStorageSystemList = _dbClient.queryObject(
-                StorageSystem.class, allStorageSystemsURIList);
-        for (StorageSystem storageSystem : allStorageSystemList) {
+        Iterator<StorageSystem> allStorageSystemItr = _dbClient.queryIterativeObjects(StorageSystem.class, allStorageSystemsURIList);
+        while (allStorageSystemItr.hasNext()) {
+            StorageSystem storageSystem = allStorageSystemItr.next();
             if (null != storageSystem &&
                     Type.vnxfile.toString().equals(storageSystem.getSystemType())) {
                 CimConnection cimConnection = getConnection(storageSystem);
@@ -280,7 +280,7 @@ public class CIMConnectionFactory {
             // If Provider Connection is active then do the scanner
             // otherwise no point of doing the scanner.
             try {
-                if (ConnectivityUtil.ping(smisProvider.getIPAddress()) && checkConnectionliveness(connection)) {
+                if (checkConnectionliveness(connection)) {
                     if (StorageProvider.ConnectionStatus.NOTCONNECTED.toString().equalsIgnoreCase(
                             smisProvider.getConnectionStatus())) {
                         recordStorageProviderEvent(OperationTypeEnum.STORAGE_PROVIDER_UP,

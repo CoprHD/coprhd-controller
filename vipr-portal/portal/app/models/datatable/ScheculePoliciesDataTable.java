@@ -38,6 +38,7 @@ public class ScheculePoliciesDataTable extends DataTable {
         public String projects;
         public String priority;
         public String description;
+        public boolean isAssigned;
 
         public FileProtectionPolicy(FilePolicyRestRep policy) {
             id = policy.getId().toString();
@@ -52,8 +53,9 @@ public class ScheculePoliciesDataTable extends DataTable {
         private void setAssignedResFromPolicy(FilePolicyRestRep policy) {
             StringBuffer assignRes = new StringBuffer();
             boolean first = true;
-
+            isAssigned = false;
             if (policy.getAssignedResources() != null) {
+                isAssigned = true;
                 for (NamedRelatedResourceRep res : policy.getAssignedResources()) {
                     if (first) {
                         assignRes.append(res.getName());
@@ -70,6 +72,10 @@ public class ScheculePoliciesDataTable extends DataTable {
 
                 } else if (FilePolicyApplyLevel.vpool.name().equals(policy.getAppliedAt())) {
                     vPools = assignRes.toString();
+                } else if (FilePolicyApplyLevel.file_system.name().equals(policy.getAppliedAt())) {
+                    if (policy.getVpool() != null) {
+                        vPools = policy.getVpool().getName();
+                    }
                 }
             }
         }

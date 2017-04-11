@@ -39,6 +39,8 @@ import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.db.client.model.ExportGroup.ExportGroupType;
+import com.emc.storageos.db.client.util.CommonTransformerFunctions;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.exceptions.DeviceControllerErrors;
@@ -54,10 +56,10 @@ import com.emc.storageos.vnxe.models.VNXeBase;
 import com.emc.storageos.vnxe.models.VNXeExportResult;
 import com.emc.storageos.vnxe.models.VNXeHost;
 import com.emc.storageos.vnxe.models.VNXeHostInitiator;
+import com.emc.storageos.vnxe.models.VNXeHostInitiator.HostInitiatorTypeEnum;
 import com.emc.storageos.vnxe.models.VNXeLunSnap;
 import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.VolumeURIHLU;
-import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportMaskDeleteCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportMaskRemoveInitiatorCompleter;
 import com.emc.storageos.volumecontroller.impl.smis.ExportMaskOperations;
 import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
@@ -65,8 +67,10 @@ import com.emc.storageos.volumecontroller.impl.utils.ExportOperationContext;
 import com.emc.storageos.volumecontroller.impl.utils.ExportOperationContext.ExportOperationContextOperation;
 import com.emc.storageos.volumecontroller.impl.validators.ValidatorFactory;
 import com.emc.storageos.volumecontroller.impl.validators.contexts.ExportMaskValidationContext;
+import com.emc.storageos.volumecontroller.impl.validators.vnxe.AbstractVNXeValidator;
 import com.emc.storageos.workflow.WorkflowService;
 import com.google.common.base.Joiner;
+import com.google.common.collect.Collections2;
 import com.google.common.collect.Sets;
 
 public class VNXeExportOperations extends VNXeOperations implements ExportMaskOperations {
@@ -119,6 +123,7 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
             Set<String> processedCGs = new HashSet<String>();
             Collection<VNXeHostInitiator> initiators = prepareInitiators(initiatorList).values();
             VNXeBase host = apiClient.prepareHostsForExport(initiators);
+            validateInitiators(_dbClient, initiatorList, apiClient, host.getId());
 
             String opId = taskCompleter.getOpId();
 
@@ -294,7 +299,9 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
                 ctx.setInitiators(initiatorList);
                 // Allow exceptions to be thrown when not rolling back
                 ctx.setAllowExceptions(!isRollback);
-                validator.exportMaskDelete(ctx).validate();
+                AbstractVNXeValidator deleteMaskValidator = (AbstractVNXeValidator) validator.exportMaskDelete(ctx);
+                deleteMaskValidator.setHostId(hostId);
+                deleteMaskValidator.validate();
 
                 if (removeLastInitiator) {
                     ctx = new ExportMaskValidationContext();
@@ -302,12 +309,15 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
                     ctx.setExportMask(exportMask);
                     ctx.setBlockObjects(volumeURIList, _dbClient);
                     ctx.setAllowExceptions(!isRollback);
-                    validator.removeInitiators(ctx).validate();
+                    AbstractVNXeValidator removeInitiatorsValidator = (AbstractVNXeValidator) validator.removeInitiators(ctx);
+                    removeInitiatorsValidator.setHostId(hostId);
+                    removeInitiatorsValidator.validate();
 
                     boolean hasSharedInitiator = false;
                     for (String strUri : exportMask.getInitiators()) {
                         if (ExportUtils.isInitiatorSharedByMasks(_dbClient, exportMask, URI.create(strUri))) {
                             hasSharedInitiator = true;
+                            _logger.info("Initiators are used by multiple export masks");
                             break;
                         }
                     }
@@ -316,7 +326,23 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
                         // if any initiator is shared, all initiators have to be shared, and each mask should have same set of initiators
                         // Otherwise, removing initiator will not be allowed, user can delete individual export mask
                         Collection<ExportMask> masksWithSharedInitiators = validateAllMasks(_dbClient, exportMask, apiClient, hostId);
+                        _logger.info("Masks use the same initiators {}", Joiner.on(", ").join(
+                                Collections2.transform(masksWithSharedInitiators, CommonTransformerFunctions.fctnDataObjectToForDisplay())));
                         // need to unexport all volumes of all export masks
+                        // except shared export co-exists with exclusive export, don't touch exclusive export
+                        // in case of multiple shared exports (e.g., with different projects), all exported LUNs will be unmapped, regardless exclusive export
+                        String exportType = ExportMaskUtils.getExportType(_dbClient, exportMask);
+                        if (ExportGroupType.Cluster.name().equals(exportType)) {
+                            Iterator<ExportMask> maskIter = masksWithSharedInitiators.iterator();
+                            while (maskIter.hasNext()) {
+                                ExportMask mask = maskIter.next();
+                                if (!ExportGroupType.Cluster.name().equals(ExportMaskUtils.getExportType(_dbClient, mask))) {
+                                    _logger.info("Ignore exclusive export {}", mask.getMaskName());
+                                    maskIter.remove();
+                                }
+                            }
+                        }
+
                         volumesToBeUnmapped.addAll(getExportedVolumes(_dbClient, storage.getId(), masksWithSharedInitiators));
                     }
                 }
@@ -359,11 +385,14 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
             Set<String> lunIds = new HashSet<>();
             if (hostId != null) {
                 lunIds = apiClient.getHostLUNIds(hostId);
+                _logger.info("Mapped resources {}", Joiner.on(", ").join(lunIds));
+
             }
 
             boolean hasLUN = lunIds.isEmpty()? false : true;
             lunIds.removeAll(allExportedVolumes);
             boolean hasUnknownLUN = lunIds.isEmpty()? false : true;
+            _logger.info("Export mask deletion - hasLUN {}, hasUnknownLUN {}", hasLUN, hasUnknownLUN);
 
             for (Initiator initiator : initiatorList) {
                 _logger.info("Processing initiator {}", initiator.getLabel());
@@ -443,7 +472,11 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
                     if (vnxeHostId == null) {
                         vnxeHostId = parentHost.getId();
                     } else if (!vnxeHostId.equals(parentHost.getId())) {
-                        throw new DeviceControllerException("ViPR initiators belong to different hosts");
+                        String msg = String.format(
+                                "Initiator %s belongs to %s, but other initiator belongs to %s. Please move initiator to the correct host",
+                                initiator.getInitiatorPort(), parentHost.getId(), vnxeHostId);
+                        _logger.error(msg);
+                        throw new DeviceControllerException(msg);
                     }
                 }
             }
@@ -612,7 +645,9 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
                 ctx.setInitiators(initiatorList);
                 // Allow exceptions to be thrown when not rolling back
                 ctx.setAllowExceptions(!isRollback);
-                validator.removeVolumes(ctx).validate();
+                AbstractVNXeValidator removeVolumesValidator = (AbstractVNXeValidator) validator.removeVolumes(ctx);
+                removeVolumesValidator.setHostId(hostId);
+                removeVolumesValidator.validate();
             }
 
             String opId = taskCompleter.getOpId();
@@ -699,6 +734,8 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
                 return;
             }
 
+            validateInitiators(_dbClient, initiatorList, apiClient, hostId);
+
             Map<Initiator, VNXeHostInitiator> initiatorMap = prepareInitiators(initiatorList);
             for (Entry<Initiator, VNXeHostInitiator> entry : initiatorMap.entrySet()) {
                 VNXeHostInitiator newInit = entry.getValue();
@@ -725,9 +762,20 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
                         apiClient.setInitiatorHost(init.getId(), hostId);
                     } else {
                         String msg = String.format(
-                                "The new initiator %s does not belong to the same host as other initiators in the ExportMask",
-                                newInit.getInitiatorId());
+                                "Initiator %s belongs to %s, but other initiator belongs to %s. Please move initiator to the correct host",
+                                init.getPortWWN(), host.getId(), hostId);
                         _logger.error(msg);
+
+                        if (!createdInitiators.isEmpty()) {
+                            for (Initiator initiator : createdInitiators) {
+                                exportMask.getInitiators().add(initiator.getId().toString());
+                            }
+                            _dbClient.updateObject(exportMask);
+                            ExportOperationContext.insertContextOperation(taskCompleter,
+                                    VNXeExportOperationContext.OPERATION_ADD_INITIATORS_TO_HOST,
+                                    createdInitiators);
+                        }
+
                         ServiceError error = DeviceControllerErrors.vnxe.jobFailed("addiniator", msg);
                         taskCompleter.error(_dbClient, error);
                         return;
@@ -832,7 +880,9 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
                 ctx.setBlockObjects(volumeURIList, _dbClient);
                 // Allow exceptions to be thrown when not rolling back
                 ctx.setAllowExceptions(!isRollback);
-                validator.removeInitiators(ctx).validate();
+                AbstractVNXeValidator removeInitiatorsValidator = (AbstractVNXeValidator) validator.removeInitiators(ctx);
+                removeInitiatorsValidator.setHostId(vnxeHostId);
+                removeInitiatorsValidator.validate();
 
                 // remove initiator from array, if
                 // 1. rollback, or
@@ -926,6 +976,8 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
                     for (String lunId : existingVolumes) {
                         mask.addToExistingVolumesIfAbsent(lunId, discoveredVolumes.get(lunId).toString());
                     }
+                    // Update user added volume's HLU information in ExportMask and ExportGroup
+                    ExportMaskUtils.updateHLUsInExportMask(mask, discoveredVolumes, _dbClient);
                     _dbClient.updateObject(mask);
                 }
             }
@@ -1037,7 +1089,7 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
                 Initiator viprInitiator = NetworkUtil.findInitiatorInDB(portWWN, dbClient);
                 if (viprInitiator != null) {
                     if (!hostUri.equals(viprInitiator.getHost())) {
-                        String msg = String.format("Initiator {} belongs to different host. Remove the initiator from the host on array", portWWN);
+                        String msg = String.format("Initiator %s is not associated with the correct host. Please move the initiator to the correct host", portWWN);
                         _logger.error(msg);
                         throw new DeviceControllerException(msg);
                     }
@@ -1117,5 +1169,46 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
         }
 
         return volumes;
+    }
+
+    /**
+     * Validate all initiators of VNXeHost on single ViPR host, or unknown to ViPR
+     *
+     * @param dbClient DbClient
+     * @param initiators list of initiators that are/will be in the mask (for export mask creation)
+     * @param apiClient VNXeApiClient
+     * @param vnxeHostId VNXe host Id
+     * @return true if validation is passed
+     */
+    private boolean validateInitiators(DbClient dbClient, List<Initiator> initiators, VNXeApiClient apiClient, String vnxeHostId) {
+        if (ExportMaskUtils.areBackendInitiators(initiators)) {
+            return true;
+        }
+
+        List<VNXeHostInitiator> initiatorList = apiClient.getInitiatorsByHostId(vnxeHostId);
+        URI hostId = null;
+        if (initiatorList != null) {
+            for (VNXeHostInitiator initiator : initiatorList) {
+                String portWWN = null;
+                if (HostInitiatorTypeEnum.INITIATOR_TYPE_ISCSI.equals(initiator.getType())) {
+                    portWWN = initiator.getInitiatorId();
+                } else {
+                    portWWN = initiator.getPortWWN();
+                }
+
+                Initiator viprInitiator = NetworkUtil.findInitiatorInDB(portWWN, dbClient);
+                if (viprInitiator != null) {
+                    if (NullColumnValueGetter.isNullURI(hostId)) {
+                        hostId = viprInitiator.getHost();
+                    } else if (!hostId.equals(viprInitiator.getHost())) {
+                        String msg = String.format("Found initiators with different host Ids. Initiator %s belongs to host %s, but other initiator belongs to host %s",
+                                portWWN, viprInitiator.getHost(), hostId);
+                        throw new DeviceControllerException(msg);
+                    }
+                }
+            }
+        }
+
+        return true;
     }
 }

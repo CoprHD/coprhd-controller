@@ -5,6 +5,7 @@
 package com.emc.storageos.api.service.impl.resource.utils;
 
 import java.net.URI;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.EnumSet;
 import java.util.HashSet;
@@ -18,12 +19,17 @@ import org.slf4j.LoggerFactory;
 import com.emc.storageos.api.service.impl.resource.ArgValidator;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.FilePolicy;
+import com.emc.storageos.db.client.model.FilePolicy.FilePolicyApplyLevel;
 import com.emc.storageos.db.client.model.FilePolicy.FilePolicyType;
 import com.emc.storageos.db.client.model.FilePolicy.ScheduleFrequency;
 import com.emc.storageos.db.client.model.FilePolicy.SnapshotExpireType;
 import com.emc.storageos.db.client.model.FileReplicationTopology;
 import com.emc.storageos.db.client.model.FileShare;
+import com.emc.storageos.db.client.model.FileShare.PersonalityTypes;
 import com.emc.storageos.db.client.model.Project;
+import com.emc.storageos.db.client.model.StringSet;
+import com.emc.storageos.db.client.model.Task;
+import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.VirtualPool.FileReplicationType;
@@ -63,22 +69,30 @@ public class FilePolicyServiceUtils {
         if (policyScheduleparams != null) {
 
             // check schedule frequency is valid or not
+            if (policyScheduleparams.getScheduleFrequency() == null) {
+                errorMsg.append("required parameter schedule_frequency is missing");
+                return false;
+            }
             ArgValidator.checkFieldValueFromEnum(policyScheduleparams.getScheduleFrequency().toUpperCase(), "schedule_frequency",
                     EnumSet.allOf(FilePolicy.ScheduleFrequency.class));
 
             // validating schedule repeat period
-            if (policyScheduleparams.getScheduleRepeat() < 1) {
+            if (policyScheduleparams.getScheduleRepeat() == null || policyScheduleparams.getScheduleRepeat() < 1) {
                 errorMsg.append("required parameter schedule_repeat is missing or value: " + policyScheduleparams.getScheduleRepeat()
                         + " is invalid");
                 return false;
             }
 
             // validating schedule time
-            String period = " PM";
+            String period = " AM";
             int hour;
             int minute;
             boolean isValid = true;
-            if (policyScheduleparams.getScheduleTime().contains(":")) {
+            if (policyScheduleparams.getScheduleTime() == null) {
+                errorMsg.append("required parameter schedule_time is missing");
+                return false;
+            }
+            if (policyScheduleparams.getScheduleTime() != null && policyScheduleparams.getScheduleTime().contains(":")) {
                 String splitTime[] = policyScheduleparams.getScheduleTime().split(":");
                 hour = Integer.parseInt(splitTime[0]);
                 minute = Integer.parseInt(splitTime[1]);
@@ -89,9 +103,23 @@ public class FilePolicyServiceUtils {
                 hour = Integer.parseInt(policyScheduleparams.getScheduleTime());
                 minute = 0;
             }
+            StringBuilder scheduleTime = new StringBuilder();
             if (isValid && (hour >= 0 && hour < 24) && (minute >= 0 && minute < 60)) {
-                if (hour < 12) {
-                    period = " AM";
+                if (hour > 12) {
+                    period = " PM";
+                    hour-=12;
+                    scheduleTime.append(hour);
+                    scheduleTime.append(":");
+                    if(minute == 0){
+                        scheduleTime.append("00");
+                    } else{
+                        scheduleTime.append(minute);
+                    }
+                    scheduleTime.append(period);
+                    policyScheduleparams.setScheduleTime(scheduleTime.toString());
+                } else {
+                    scheduleTime.append(policyScheduleparams.getScheduleTime().trim()).append(period);
+                    policyScheduleparams.setScheduleTime(scheduleTime.toString());
                 }
             } else {
                 errorMsg.append("Schedule time: " + policyScheduleparams.getScheduleTime() + " is invalid");
@@ -101,9 +129,11 @@ public class FilePolicyServiceUtils {
             ScheduleFrequency scheduleFreq = ScheduleFrequency.valueOf(policyScheduleparams.getScheduleFrequency().toUpperCase());
             switch (scheduleFreq) {
 
+                case MINUTES:
+                case HOURS:
                 case DAYS:
                     schedulePolicy.setScheduleRepeat((long) policyScheduleparams.getScheduleRepeat());
-                    schedulePolicy.setScheduleTime(policyScheduleparams.getScheduleTime() + period);
+                    schedulePolicy.setScheduleTime(policyScheduleparams.getScheduleTime());
                     if (schedulePolicy.getScheduleDayOfWeek() != null && !schedulePolicy.getScheduleDayOfWeek().isEmpty()) {
                         schedulePolicy.setScheduleDayOfWeek(NullColumnValueGetter.getNullStr());
                     }
@@ -126,7 +156,7 @@ public class FilePolicyServiceUtils {
                         errorMsg.append("required parameter schedule_day_of_week is missing or empty");
                         return false;
                     }
-                    schedulePolicy.setScheduleTime(policyScheduleparams.getScheduleTime() + period);
+                    schedulePolicy.setScheduleTime(policyScheduleparams.getScheduleTime());
                     if (schedulePolicy.getScheduleDayOfMonth() != null) {
                         schedulePolicy.setScheduleDayOfMonth(0L);
                     }
@@ -136,7 +166,7 @@ public class FilePolicyServiceUtils {
                             && policyScheduleparams.getScheduleDayOfMonth() > 0 && policyScheduleparams.getScheduleDayOfMonth() <= 31) {
                         schedulePolicy.setScheduleDayOfMonth((long) policyScheduleparams.getScheduleDayOfMonth());
                         schedulePolicy.setScheduleRepeat((long) policyScheduleparams.getScheduleRepeat());
-                        schedulePolicy.setScheduleTime(policyScheduleparams.getScheduleTime() + period);
+                        schedulePolicy.setScheduleTime(policyScheduleparams.getScheduleTime());
                         if (schedulePolicy.getScheduleDayOfWeek() != null) {
                             schedulePolicy.setScheduleDayOfWeek(NullColumnValueGetter.getNullStr());
                         }
@@ -153,13 +183,14 @@ public class FilePolicyServiceUtils {
     }
 
     public static void validateSnapshotPolicyExpireParam(FileSnapshotPolicyParam param) {
-        boolean isValidSnapshotExpire;
+        boolean isValidSnapshotExpire = false;
+        if (param.getSnapshotExpireParams().getExpireType() != null) {
+            // check snapshot expire type is valid or not
+            ArgValidator.checkFieldValueFromEnum(param.getSnapshotExpireParams().getExpireType().toUpperCase(), "expire_type",
+                    EnumSet.allOf(FilePolicy.SnapshotExpireType.class));
 
-        // check snapshot expire type is valid or not
-        ArgValidator.checkFieldValueFromEnum(param.getSnapshotExpireParams().getExpireType().toUpperCase(), "expire_type",
-                EnumSet.allOf(FilePolicy.SnapshotExpireType.class));
-
-        isValidSnapshotExpire = validateSnapshotExpireParam(param.getSnapshotExpireParams());
+            isValidSnapshotExpire = validateSnapshotExpireParam(param.getSnapshotExpireParams());
+        }
         if (!isValidSnapshotExpire) {
             int expireTime = param.getSnapshotExpireParams().getExpireValue();
             _log.error("Invalid schedule snapshot expire time {}. Try an expire time between {} hours to {} years",
@@ -220,6 +251,10 @@ public class FilePolicyServiceUtils {
 
             ScheduleFrequency scheduleFreq = ScheduleFrequency.valueOf(policyScheduleparams.getScheduleFrequency().toUpperCase());
             switch (scheduleFreq) {
+                case MINUTES:
+                    break;
+                case HOURS:
+                    break;
                 case DAYS:
                     break;
                 case WEEKS:
@@ -486,12 +521,16 @@ public class FilePolicyServiceUtils {
      * @return true/false
      */
     public static boolean projectHasReplicationPolicy(DbClient dbClient, URI projectURI, URI vpoolURI) {
+        // vpool has replication policy!!!
+        if (vPoolHasReplicationPolicy(dbClient, vpoolURI)) {
+            return true;
+        }
         Project project = dbClient.queryObject(Project.class, projectURI);
         if (project != null && project.getFilePolicies() != null && !project.getFilePolicies().isEmpty()) {
             for (String strPolicy : project.getFilePolicies()) {
                 FilePolicy policy = dbClient.queryObject(FilePolicy.class, URI.create(strPolicy));
                 if (policy.getFilePolicyType().equalsIgnoreCase(FilePolicyType.file_replication.name())
-                        && policy.getFilePolicyVpool() != null && vpoolURI != null
+                        && !NullColumnValueGetter.isNullURI(policy.getFilePolicyVpool()) && vpoolURI != null
                         && policy.getFilePolicyVpool().toString().equalsIgnoreCase(vpoolURI.toString())) {
                     _log.info("Replication policy found for vpool {} and project {}", vpoolURI.toString(), project.getLabel());
                     return true;
@@ -499,5 +538,164 @@ public class FilePolicyServiceUtils {
             }
         }
         return false;
+    }
+
+    /**
+     * Verifies the file system assigned policies in combination with virtual pool/project support replication capability
+     * 
+     * 
+     * @param dbClient
+     * @param vpoolURI
+     * @param projectURI
+     * @param fsUri
+     * @return true/false
+     */
+    public static boolean fsHasReplicationPolicy(DbClient dbClient, URI vpoolURI, URI projectURI, URI fsUri) {
+        // vpool/project has replication policy!!!
+        if (vPoolHasReplicationPolicy(dbClient, vpoolURI) || projectHasReplicationPolicy(dbClient, projectURI, vpoolURI)) {
+            return true;
+        }
+        // file system has replication policy!!
+        FileShare fs = dbClient.queryObject(FileShare.class, fsUri);
+        if (fs != null && fs.getFilePolicies() != null && !fs.getFilePolicies().isEmpty()) {
+            for (String strPolicy : fs.getFilePolicies()) {
+                FilePolicy policy = dbClient.queryObject(FilePolicy.class, URI.create(strPolicy));
+                if (policy.getFilePolicyType().equalsIgnoreCase(FilePolicyType.file_replication.name())) {
+                    _log.info("Replication policy {} found at fs {} ", policy.getFilePolicyName(), fs.getLabel());
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Verifies the vpool assigned policies with similar schedule as given policy
+     * 
+     * 
+     * @param dbClient
+     * @param vpoolURI
+     * @param newPolicy
+     * @return true/false
+     */
+    public static boolean vPoolHasSnapshotPolicyWithSameSchedule(DbClient dbClient, URI vpoolURI, FilePolicy newPolicy) {
+        VirtualPool vPool = dbClient.queryObject(VirtualPool.class, vpoolURI);
+        if (vPool != null && vPool.getFilePolicies() != null && !vPool.getFilePolicies().isEmpty()) {
+            for (String strPolicy : vPool.getFilePolicies()) {
+                FilePolicy policy = dbClient.queryObject(FilePolicy.class, URI.create(strPolicy));
+                if (policy.getFilePolicyType().equalsIgnoreCase(FilePolicyType.file_snapshot.name())) {
+                    if (policy.getScheduleFrequency().equalsIgnoreCase(newPolicy.getScheduleFrequency())
+                            && policy.getScheduleRepeat().longValue() == newPolicy.getScheduleRepeat().longValue()) {
+                        _log.info("Snapshot policy found for vpool {} with similar schedule ", vPool.getLabel());
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Verifies the project assigned policies with similar schedule as given policy
+     * 
+     * 
+     * @param dbClient
+     * @param vpoolURI
+     * @param projectURI
+     * @param newPolicy
+     * @return true/false
+     */
+    public static boolean projectHasSnapshotPolicyWithSameSchedule(DbClient dbClient, URI projectURI, URI vpoolURI, FilePolicy newPolicy) {
+        Project project = dbClient.queryObject(Project.class, projectURI);
+        if (project != null && project.getFilePolicies() != null && !project.getFilePolicies().isEmpty()) {
+            for (String strPolicy : project.getFilePolicies()) {
+                FilePolicy policy = dbClient.queryObject(FilePolicy.class, URI.create(strPolicy));
+                if (policy.getFilePolicyType().equalsIgnoreCase(FilePolicyType.file_snapshot.name())
+                        && !NullColumnValueGetter.isNullURI(policy.getFilePolicyVpool()) && vpoolURI != null
+                        && policy.getFilePolicyVpool().toString().equalsIgnoreCase(vpoolURI.toString())) {
+                    if (policy.getScheduleFrequency().equalsIgnoreCase(newPolicy.getScheduleFrequency())
+                            && policy.getScheduleRepeat().longValue() == newPolicy.getScheduleRepeat().longValue()) {
+                        _log.info("Snapshot policy found for project {} with similar schedule ", project.getLabel());
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Verifies the fs assigned policies with similar schedule as given policy
+     * 
+     * 
+     * @param dbClient
+     * @param vpoolURI
+     * @param newPolicy
+     * @return true/false
+     */
+    public static boolean fsHasSnapshotPolicyWithSameSchedule(DbClient dbClient, URI fsUri, FilePolicy newPolicy) {
+        FileShare fs = dbClient.queryObject(FileShare.class, fsUri);
+        if (fs != null && fs.getFilePolicies() != null && !fs.getFilePolicies().isEmpty()) {
+            for (String strPolicy : fs.getFilePolicies()) {
+                FilePolicy policy = dbClient.queryObject(FilePolicy.class, URI.create(strPolicy));
+                if (policy.getFilePolicyType().equalsIgnoreCase(FilePolicyType.file_snapshot.name())) {
+                    if (policy.getScheduleFrequency().equalsIgnoreCase(newPolicy.getScheduleFrequency())
+                            && policy.getScheduleRepeat().longValue() == newPolicy.getScheduleRepeat().longValue()) {
+                        _log.info("Snapshot policy found for fs {} with similar schedule ", fs.getLabel());
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
+    }
+
+    public static void updateTaskTenant(DbClient dbClient, FilePolicy policy, String policyAction, Task task,
+            URI tenantId) {
+        if (task != null) {
+            if (policyAction != null && policyAction.equalsIgnoreCase("assign") || policyAction.equalsIgnoreCase("unassign")) {
+                if (policy.getApplyAt() != null && FilePolicyApplyLevel.vpool.name().equalsIgnoreCase(policy.getApplyAt())) {
+                    task.setTenant(TenantOrg.SYSTEM_TENANT);
+                } else {
+                    task.setTenant(tenantId);
+                }
+            } else {
+                task.setTenant(TenantOrg.SYSTEM_TENANT);
+            }
+            dbClient.updateObject(task);
+        }
+    }
+    
+    /**
+     * Resets the filesystem relation due to replication policy assigned at higher level
+     * Only to be used when delete FS is FULL type
+     * 
+     * @param _dbClient
+     * @param fileshare
+     */
+    public static void resetReplicationFileSystemsRelation(DbClient _dbClient, FileShare fileshare) {
+        List<FileShare> modifiedFileshares = new ArrayList<>();
+        if (fileshare.getPersonality() != null) {
+            fileshare.setMirrorStatus(NullColumnValueGetter.getNullStr());
+            fileshare.setAccessState(NullColumnValueGetter.getNullStr());
+            fileshare.setPersonality(NullColumnValueGetter.getNullStr());
+            if (fileshare.getMirrorfsTargets() != null && !fileshare.getMirrorfsTargets().isEmpty()) {
+                StringSet targets = fileshare.getMirrorfsTargets();
+                for (String strTargetFs : targets) {
+                    FileShare targetFs = _dbClient.queryObject(FileShare.class, URI.create(strTargetFs));
+                    targetFs.setMirrorStatus(NullColumnValueGetter.getNullStr());
+                    targetFs.setAccessState(NullColumnValueGetter.getNullStr());
+                    targetFs.setParentFileShare(NullColumnValueGetter.getNullNamedURI());
+                    targetFs.setPersonality(NullColumnValueGetter.getNullStr());
+                    modifiedFileshares.add(targetFs);
+                }
+                targets.clear();
+                fileshare.setMirrorfsTargets(targets);
+            }
+        }
+        modifiedFileshares.add(fileshare);
+        if (!modifiedFileshares.isEmpty()) {
+            _dbClient.updateObject(modifiedFileshares);
+        }
     }
 }

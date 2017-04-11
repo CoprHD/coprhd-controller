@@ -102,6 +102,7 @@ import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
 import com.emc.storageos.volumecontroller.placement.BlockStorageScheduler;
 import com.emc.storageos.vplex.api.VPlexApiConstants;
 import com.emc.storageos.vplexcontroller.VPlexControllerUtils;
+import com.emc.storageos.vplexcontroller.VplexBackendIngestionContext;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.Sets;
@@ -1419,10 +1420,11 @@ public class VolumeIngestionUtil {
         if (null != maskUris && !maskUris.isEmpty()) {
             for (URI maskUri : maskUris) {
                 ExportMask exportMask = dbClient.queryObject(ExportMask.class, maskUri);
-                if (null == exportMask) {
-                    continue;
-                }
-                if (hasIncorrectMaskPathForVplex(mask, exportMask, dbClient)) {
+                // skip if the mask is null, the storage device doesn't match, or is on the incorrect vplex cluster path
+                if (null == exportMask
+                        || null == exportMask.getStorageDevice()
+                        || !exportMask.getStorageDevice().equals(mask.getStorageSystemUri())
+                        || VolumeIngestionUtil.hasIncorrectMaskPathForVplex(mask, exportMask, dbClient)) {
                     continue;
                 }
                 return exportMask;
@@ -1575,6 +1577,7 @@ public class VolumeIngestionUtil {
     public static boolean validateExportMaskMatchesComputeResourceInitiators(DbClient dbClient, ExportGroup exportGroup,
             StringSet computeInitiators,
             UnManagedExportMask unManagedExportMask, List<String> errorMessages) {
+        _logger.info("computeInitiators :{}", computeInitiators);
         // Validate future export group initiators
         if (computeInitiators == null) {
             String errorMessage = String.format(
@@ -1604,6 +1607,7 @@ public class VolumeIngestionUtil {
             _logger.info(message);
             return true;
         }
+        _logger.info("Mask knownInitiatorUris :{}", unManagedExportMask.getKnownInitiatorUris());
 
         // Probably the most common scenario. Don't try to ingest an export mask that doesn't match the export group's initiators.
         String errorMessage = String.format(
@@ -1975,8 +1979,8 @@ public class VolumeIngestionUtil {
                                         "UnManagedExportMask {} is a match, as there are no other initiators "
                                         + "unaccounted for in the cluster this host belongs to.",
                                         mask.forDisplay());
-                                if (verifyNumPath(Collections.singletonList(initiatorUris), mask.getZoningMap(),
-                                        volume, vPoolURI, dbClient)) {
+                                if (verifyNumPath(Collections.singletonList(initiatorUris), mask,
+                                        volume, vPoolURI, vArray, dbClient)) {
                                     eligibleMasks.add(mask);
                                 } else {
                                     _logger.info("UnManagedExportMask {} doesn't satisfy the num path requirements, so it'll be skipped.", 
@@ -2001,8 +2005,8 @@ public class VolumeIngestionUtil {
                                 _logger.info(
                                         "Matching UnManagedExportMask {} found, as its initiators are a complete subset of the host's initiators.",
                                         mask.forDisplay());
-                                if (verifyNumPath(Collections.singletonList(initiatorUris), mask.getZoningMap(),
-                                        volume, vPoolURI, dbClient)) {
+                                if (verifyNumPath(Collections.singletonList(initiatorUris), mask,
+                                        volume, vPoolURI, vArray, dbClient)) {
                                     eligibleMasks.add(mask);
                                 } else {
                                     _logger.info("UnManagedExportMask {} doesn't satisfy the num path requirements, so it'll be skipped.", 
@@ -2030,8 +2034,8 @@ public class VolumeIngestionUtil {
                         if (unManagedExportMaskInitiatorsNotInHost.isEmpty()) {
                             _logger.info("Matching UnManagedExportMask {} found, since its initiators "
                                     + "are a complete subset of the host's initiators", mask.getMaskName());
-                            if (verifyNumPath(Collections.singletonList(initiatorUris), mask.getZoningMap(),
-                                    volume, vPoolURI, dbClient)) {
+                            if (verifyNumPath(Collections.singletonList(initiatorUris), mask,
+                                    volume, vPoolURI, vArray, dbClient)) {
                                 eligibleMasks.add(mask);
                             } else {
                                 _logger.info("UnManagedExportMask {} doesn't satisfy the num path requirements, so it'll be skipped.", 
@@ -2125,7 +2129,7 @@ public class VolumeIngestionUtil {
                             } else {
                                 _logger.info("UnManagedExportMask {} found with a subset of initiators from more than a single node in the cluster.",
                                         mask.forDisplay());
-                                if (verifyNumPath(initiatorUris, mask.getZoningMap(), volume, vPoolURI, dbClient)) {
+                                if (verifyNumPath(initiatorUris, mask, volume, vPoolURI, vArray, dbClient)) {
                                     eligibleMasks.add(mask);
                                 } else {
                                     _logger.info("UnManagedExportMask {} doesn't satisfy the num path requirements, so it'll be skipped.", 
@@ -2141,7 +2145,7 @@ public class VolumeIngestionUtil {
                                     mask.getKnownInitiatorUris());
                             if (clusterInitiatorsNotInUnManagedExportMask.isEmpty()) {
                                 _logger.info("UnManagedExportMask {} found with a subset of the cluster's initiators.", mask.forDisplay());
-                                if (verifyNumPath(initiatorUris, mask.getZoningMap(), volume, vPoolURI, dbClient)) {
+                                if (verifyNumPath(initiatorUris, mask, volume, vPoolURI, vArray, dbClient)) {
                                     eligibleMasks.add(mask);
                                 } else {
                                     _logger.info("UnManagedExportMask {} doesn't satisfy the num path requirements, so it'll be skipped.", 
@@ -2200,19 +2204,20 @@ public class VolumeIngestionUtil {
      * @param initiatorUris
      *            a list of initiators sets, each set belongs to one host in the
      *            cluster
-     * @param zoningMap
-     *            the ZoneInfoMap that has the zone mapping between the
-     *            UnManagedExportMask initiators and ports
+     * @param umask
+     *            the UnManagedExportMask being checked
      * @param block
      *            the volume or snapshot for which the zoning are verified
      * @param vPoolURI
      *            - URI of the VPool to ingest blockObject.
+     * @param varrayURI
+     *            - URI of the Varray to ingest blockObject.
      * @param dbClient
      *            an instance of dbclient
      * @return true if the number of paths is valid.
      */
-    private static boolean verifyNumPath(List<Set<String>> initiatorUris, ZoneInfoMap zoningMap, BlockObject block,
-            URI vPoolURI, DbClient dbClient) {
+    private static boolean verifyNumPath(List<Set<String>> initiatorUris, UnManagedExportMask umask, BlockObject block,
+            URI vPoolURI, URI varrayUri, DbClient dbClient) {
         DbModelClientImpl dbModelClient = new DbModelClientImpl(dbClient);
         ExportPathParams pathParams = BlockStorageScheduler.getExportPathParam(block, vPoolURI, dbClient);
         for (Set<String> hostInitiatorUris : initiatorUris) {
@@ -2228,8 +2233,73 @@ public class VolumeIngestionUtil {
                 }
             }
 
+            // if vplex distributed, only verify initiators connected to same vplex cluster as unmanaged export mask
+            if (isVplexVolume(block, dbClient)) {
+                VirtualPool vpool = dbClient.queryObject(VirtualPool.class, vPoolURI);
+                if (VirtualPool.vPoolSpecifiesHighAvailabilityDistributed(vpool)) {
+                    _logger.info("initiators before filtering for vplex distributed: " + initiators);
+
+                    // determine the source and ha vplex cluster names for comparing to the unmanaged export mask
+                    StorageSystem vplex = dbClient.queryObject(StorageSystem.class, umask.getStorageSystemUri());
+                    String sourceVarrayVplexClusterName = VPlexControllerUtils.getVPlexClusterName(dbClient, varrayUri, vplex.getId());
+                    List<URI> varrayUris = new ArrayList<URI>();
+                    varrayUris.add(varrayUri);
+                    URI haVarrayUri = VPlexUtil.getHAVarray(vpool);
+                    String haVarrayVplexClusterName = null;
+                    if (null != haVarrayUri) {
+                        varrayUris.add(haVarrayUri);
+                        haVarrayVplexClusterName = VPlexControllerUtils.getVPlexClusterName(dbClient, haVarrayUri, vplex.getId());
+                    }
+
+                    // determine the vplex cluster name that the unmanaged export mask resides upon
+                    String umaskVplexClusterId = ConnectivityUtil.getVplexClusterForStoragePortUris(
+                            URIUtil.toURIList(umask.getKnownStoragePortUris()), umask.getStorageSystemUri(), dbClient);
+                    String umaskVplexClusterName = VPlexControllerUtils.getClusterNameForId(umaskVplexClusterId, vplex.getId(), dbClient);
+
+                    // partition the host's initiators by virtual array (source or high availability)
+                    Map<URI, List<URI>> varraysToInitiators = 
+                            VPlexUtil.partitionInitiatorsByVarray(dbClient, URIUtil.toURIList(hostInitiatorUris), varrayUris, vplex);
+
+                    // determine the varray to check by matching the vplex cluster names 
+                    URI varrayToCheck = null;
+                    URI otherVarray = null;
+                    if (null != umaskVplexClusterName) {
+                        if (umaskVplexClusterName.equalsIgnoreCase(sourceVarrayVplexClusterName)) {
+                            varrayToCheck = varrayUri;
+                            otherVarray = haVarrayUri;
+                        } else if (umaskVplexClusterName.equalsIgnoreCase(haVarrayVplexClusterName)) {
+                            varrayToCheck = haVarrayUri;
+                            otherVarray = varrayUri;
+                        }
+                    } else {
+                        _logger.error("Could not determine UnManagedExportMask VPLEX cluster name for mask " + umask.getMaskName());
+                        return false;
+                    }
+
+                    // if a varray for filtering could be determined, only include those initiators
+                    // that have network connectivity to the varray of this unmanaged export mask.
+                    // if no initiators match, then skip the num path check, it doesn't apply to this host.
+                    if (null != varrayToCheck) {
+                        List<URI> initsToCheck = varraysToInitiators.get(varrayToCheck);
+                        if (initsToCheck != null && !initsToCheck.isEmpty()) {
+                            initiators = CustomQueryUtility.iteratorToList(dbModelClient.find(Initiator.class, initsToCheck));
+                        } else {
+                            List<URI> otherVarrayInits = varraysToInitiators.get(otherVarray);
+                            if (null != otherVarrayInits && !otherVarrayInits.isEmpty()) {
+                                avoidNumPathCheck = true;
+                            }
+                        }
+                    } else {
+                        _logger.error("inits not filtered for vplex distributed because a varray couldn't be determined for mask " 
+                                        + umask.getMaskName());
+                        return false;
+                    }
+                    _logger.info("initiators after filtering for vplex distributed: " + initiators);
+                }
+            }
+
             if (hasFCInitiators(initiators) && !avoidNumPathCheck) {
-                return verifyHostNumPath(pathParams, initiators, zoningMap, dbClient);
+                return verifyHostNumPath(pathParams, initiators, umask.getZoningMap(), dbClient);
             }
         }
         return true;
@@ -2262,6 +2332,7 @@ public class VolumeIngestionUtil {
      */
     private static boolean verifyHostNumPath(ExportPathParams pathParams,
             List<Initiator> initiators, ZoneInfoMap zoneInfoMap, DbClient dbClient) {
+        _logger.info("verifyHostNumPath for initiators {} with zoningMap {}", initiators, zoneInfoMap);
         if (initiators == null || initiators.isEmpty()) {
             _logger.error("Host has no initiators configured.");
             throw IngestionException.exceptions.hostHasNoInitiators();
@@ -3121,7 +3192,8 @@ public class VolumeIngestionUtil {
                         }
                         for (URI eMaskUri : exportMaskUris) {
                             ExportMask eMask = requestContext.findDataObjectByType(ExportMask.class, eMaskUri, true);
-                            if (null != eMask && eMask.getStorageDevice().equals(unManagedExportMask.getStorageSystemUri())) {
+                            if ((null != eMask) && (null != eMask.getStorageDevice()) && 
+                                    eMask.getStorageDevice().equals(unManagedExportMask.getStorageSystemUri())) {
                                 if (!exportMaskMap.containsKey(eMaskUri)) {
                                     _logger.info("Found Mask {} with matching initiator and matching Storage System", eMaskUri);
                                     exportMaskMap.put(eMaskUri, eMask);
@@ -4576,6 +4648,56 @@ public class VolumeIngestionUtil {
                 }
             }
         }
+    }
+
+    /**
+     * Recursively find a VPLEX parent volume for the given UnManagedVolume. Will first check
+     * VPLEX_PARENT_VOLUME and if not found, will check LOCAL_REPLICA_SOURCE_VOLUME recursively
+     * for its VPLEX_PARENT_VOLUME.
+     * 
+     * @param unManagedVolume the UnManagedVolume to check
+     * @param dbClient a reference to the database client
+     * @param cache an optional cache of loaded VPLEX parent volume guids to UnManagedVolume object for that GUID
+     * @return the root parent VPLEX virtual volume UnManagedVolume, or null if none found
+     */
+    public static UnManagedVolume findVplexParentVolume(UnManagedVolume unManagedVolume, DbClient dbClient, Map<String, UnManagedVolume> cache) {
+        if (unManagedVolume == null || isVplexVolume(unManagedVolume)) {
+            return unManagedVolume;
+        }
+        String vplexParentVolumeGuid = PropertySetterUtil.extractValueFromStringSet(
+                SupportedVolumeInformation.VPLEX_PARENT_VOLUME.toString(),
+                unManagedVolume.getVolumeInformation());
+        if (vplexParentVolumeGuid != null) {
+            if (cache != null && cache.containsKey(vplexParentVolumeGuid)) {
+                return cache.get(vplexParentVolumeGuid);
+            }
+            URIQueryResultList unManagedVolumeList = new URIQueryResultList();
+            dbClient.queryByConstraint(AlternateIdConstraint.Factory
+                    .getVolumeInfoNativeIdConstraint(vplexParentVolumeGuid), unManagedVolumeList);
+            if (unManagedVolumeList.iterator().hasNext()) {
+                UnManagedVolume vplexParentVolume = dbClient.queryObject(UnManagedVolume.class, unManagedVolumeList.iterator().next());
+                if (cache != null) {
+                    cache.put(vplexParentVolumeGuid, vplexParentVolume);
+                }
+                return vplexParentVolume;
+            }
+        } else {
+            String localReplicaSourceVolumeGuid =  PropertySetterUtil.extractValueFromStringSet(
+                    SupportedVolumeInformation.LOCAL_REPLICA_SOURCE_VOLUME.toString(),
+                    unManagedVolume.getVolumeInformation());
+            if (localReplicaSourceVolumeGuid != null) {
+                URIQueryResultList unManagedVolumeList = new URIQueryResultList();
+                dbClient.queryByConstraint(AlternateIdConstraint.Factory
+                        .getVolumeInfoNativeIdConstraint(localReplicaSourceVolumeGuid), unManagedVolumeList);
+                if (unManagedVolumeList.iterator().hasNext()) {
+                    UnManagedVolume localReplicaSourceVolume = 
+                            dbClient.queryObject(UnManagedVolume.class, unManagedVolumeList.iterator().next());
+                    return findVplexParentVolume(localReplicaSourceVolume, dbClient, cache);
+                }
+            }
+        }
+
+        return null;
     }
 
     /**

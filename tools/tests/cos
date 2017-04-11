@@ -73,7 +73,7 @@ def cos_create(args):
                             args.max_snapshots, args.max_mirrors, args.thin_volume_preallocation_percentage,
                             args.long_term_retention, args.drive_type, args.system_type, args.srdf, args.auto_tiering_policy_name, 
                             args.host_io_limit_bandwidth, args.host_io_limit_iops, args.auto_cross_connect, args.placement_policy,
-                            args.compressionEnabled)
+                            args.compressionEnabled, args.schedule_snapshot, args.replication_support, args.filepolicy_at_project, args.filepolicy_at_fs)
     
     print cos
 
@@ -394,6 +394,10 @@ create.add_argument('--host_io_limit_iops', help = 'VMAX host io limit IOPs')
 create.add_argument('--auto_cross_connect', help='Enable auto cross connect export')
 create.add_argument('--placement_policy', help='Resource placement policy')
 create.add_argument('--compressionEnabled', help='Enable compression on VMAX All Flash array')
+create.add_argument('--schedule_snapshot', help='Snapshot schedule')
+create.add_argument('--replication_support',help='replication supported')
+create.add_argument('--filepolicy_at_project', help='Apply filepolicy at project')
+create.add_argument('--filepolicy_at_fs',help='Apply filepolicy at fs')						   
 create.set_defaults(multiVolumeConsistency=False)
 create.set_defaults(max_snapshots=-1)
 create.set_defaults(max_mirrors=0)

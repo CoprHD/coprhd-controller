@@ -18,10 +18,10 @@ public interface ImageServerControllerExceptions {
     public ImageServerControllerException unexpectedException(final String opName, final Throwable e);
 
     @DeclareServiceCode(ServiceCode.IMAGE_SERVER_CONTROLLER_ERROR)
-    public ImageServerControllerException osInstallationTimedOut(final long timeoutValue);
+    public ImageServerControllerException osInstallationTimedOut(final String hostName, final long timeoutValue);
 
     @DeclareServiceCode(ServiceCode.IMAGE_SERVER_CONTROLLER_ERROR)
-    public ImageServerControllerException osInstallationFailed(final String reason);
+    public ImageServerControllerException osInstallationFailed(final String hostName, final String reason);
 
     @DeclareServiceCode(ServiceCode.IMAGE_SERVER_CONTROLLER_ERROR)
     public ImageServerControllerException fileDownloadFailed(final String filePath);
@@ -55,4 +55,10 @@ public interface ImageServerControllerExceptions {
 
     @DeclareServiceCode(ServiceCode.IMAGE_SERVER_CONTROLLER_ERROR)
     public ImageServerControllerException tftpServerNotRunning();
+
+    @DeclareServiceCode(ServiceCode.IMAGE_SERVER_CONTROLLER_ERROR)
+    public ImageServerControllerException deviceNotKnown();
+
+    @DeclareServiceCode(ServiceCode.IMAGE_SERVER_CONTROLLER_ERROR)
+    public ImageServerControllerException missingKickstartParameter(final String paramName);
 }

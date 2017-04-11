@@ -273,17 +273,31 @@ public class FileControllerImpl extends AbstractDiscoveredSystemController imple
 
     @Override
     public void assignFileReplicationPolicyToVirtualPools(URI storageSystemURI, URI targetSystemURI,
-            URI sourceVNasURI, URI targetVNasURI, URI filePolicyToAssign, URI vpoolURI, String opId) throws ControllerException {
+            URI sourceVNasURI, URI targetVArrayURI, URI targetVNasURI, URI filePolicyToAssign, URI vpoolURI, String opId)
+                    throws ControllerException {
         execFS("assignFileReplicationPolicyToVirtualPools", storageSystemURI, targetSystemURI,
                 sourceVNasURI, targetVNasURI, filePolicyToAssign, vpoolURI, opId);
     }
 
     @Override
     public void assignFileReplicationPolicyToProjects(URI storageSystemURI, URI targetSystemURI,
-            URI sourceVNasURI, URI targetVNasURI, URI filePolicyToAssign, URI vpoolURI, URI projectURI, String opId)
+            URI sourceVNasURI, URI targetVArrayURI, URI targetVNasURI,
+            URI filePolicyToAssign, URI vpoolURI, URI projectURI, String opId)
                     throws InternalException {
         execFS("assignFileReplicationPolicyToProjects", storageSystemURI, targetSystemURI,
                 sourceVNasURI, targetVNasURI, filePolicyToAssign, vpoolURI, projectURI, opId);
+    }
+
+    @Override
+    public void performFileReplicationOperation(URI storage, URI copyId,
+            String opType, String opId) throws ControllerException {
+        execFS("performFileReplicationOperation", storage, copyId, opType, opId);
+    }
+
+    @Override
+    public void checkFilePolicyPathHasResourceLabel(URI storage, URI filePolicyURI, URI vNasURI, URI vpoolURI, URI projectURI, String opId) {
+        execFS("checkFilePolicyPathHasResourceLabel", storage, filePolicyURI, vNasURI, vpoolURI, projectURI, opId);
+
     }
 
 }

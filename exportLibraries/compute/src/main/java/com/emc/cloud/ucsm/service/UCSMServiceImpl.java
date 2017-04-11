@@ -242,7 +242,23 @@ public class UCSMServiceImpl implements UCSMService {
         return associatedLsServers;
     }
 
-    public List<LsServer> getAllLsServers(String ucsmURL, String username, String password)
+    /*
+    * returns all service profile on the UCS
+    * @param ucsmURL
+    * @param username
+    * @param password
+    * returns list of LsServers on this UCS
+    */
+    @Override
+    public List<LsServer> getAllServiceProfiles(String ucsmURL, String username, String password)
+            throws ClientGeneralException {
+        List<LsServer> lsServers = getAllLsServers(ucsmURL, username,  password, true);
+        return lsServers;
+    }
+
+    
+
+    private List<LsServer> getAllLsServers(String ucsmURL, String username, String password,boolean serviceProfilesOnly )
             throws ClientGeneralException {
         List<LsServer> lsServers = Collections.synchronizedList(new ArrayList<LsServer>());
 
@@ -273,6 +289,9 @@ public class UCSMServiceImpl implements UCSMService {
                             for (JAXBElement<?> managedObject : configSet.getManagedObject()) {
                                 if (managedObject.getValue() instanceof LsServer) {
                                     LsServer lsServer = (LsServer) managedObject.getValue();
+                                    if (serviceProfilesOnly && !(lsServer.getType().equals("instance"))) {
+                                        continue;
+                                    }
                                     lsServers.add(lsServer);
                                 }
                             }
@@ -499,7 +518,7 @@ public class UCSMServiceImpl implements UCSMService {
 
         LsServer createdServiceProfile = null;
 
-        List<LsServer> existingLsServers = getAllLsServers(ucsmURL, username, password);
+        List<LsServer> existingLsServers = getAllLsServers(ucsmURL, username, password,false);
 
         if (StringUtils.isNotBlank(serviceProfileName)) {
             String serviceProfileNameToUse = serviceProfileName;
@@ -571,7 +590,7 @@ public class UCSMServiceImpl implements UCSMService {
                                     for (JAXBElement<?> contentElement2 : configSet.getManagedObject()) {
                                         if (contentElement2.getValue() != null
                                                 && contentElement2.getValue() instanceof LsServer) {
-                                            return (LsServer) contentElement2.getValue();
+                                            createdServiceProfile = (LsServer) contentElement2.getValue();
                                         }
                                     }
                                 }
@@ -590,8 +609,24 @@ public class UCSMServiceImpl implements UCSMService {
             throw new ClientGeneralException(ClientMessageKeys.EXPECTED_PARAMETER_WAS_NULL,
                     new String[] { "serviceProfileName" });
         }
-
+        if (createdServiceProfile!=null){
+             //re-fetch service profile so we have the correct uuid; else uuid of lsServer says 'derived'
+             createdServiceProfile = getLsServerByDn(ucsmURL, username, password,createdServiceProfile.getDn());
+        }
         return createdServiceProfile;
+    }
+   
+    private LsServer getLsServerByDn(String ucsmURL, String username, String password, String spDn) throws ClientGeneralException {  
+        com.emc.cloud.platform.ucs.in.model.LsServer lsServer = new com.emc.cloud.platform.ucs.in.model.LsServer();
+        lsServer.setDn(spDn);
+
+        LsServer lsServerOut = getManagedObject(ucsmURL, username, password, spDn, true, LsServer.class);
+        if(null == lsServerOut){
+            log.error("Unable to fetch LsServer for spDn {}", spDn);
+            String[] s = {"Unable to fetch LsServer for spDn " + spDn};
+            throw new ClientGeneralException(ClientMessageKeys.UNEXPECTED_FAILURE, s);
+        }
+        return lsServerOut;
     }
 
     @Override
@@ -686,12 +721,6 @@ public class UCSMServiceImpl implements UCSMService {
     private LsServer pushLsServer(ComputeSession computeSession, ObjectFactory factory,
             ConfigConfMo configConfMo) throws ClientGeneralException {
         List<LsServer> lsList = pushConfigConfMo(computeSession, factory, configConfMo, LsServer.class,true);
-        return lsList.get(0);
-    }
-
-    private LsServer pushLsServer(ComputeSession computeSession, ObjectFactory factory,
-            ConfigConfMo configConfMo, boolean returnsObject) throws ClientGeneralException {
-        List<LsServer> lsList = pushConfigConfMo(computeSession, factory, configConfMo, LsServer.class, returnsObject);
         return lsList.get(0);
     }
 
@@ -933,7 +962,7 @@ public class UCSMServiceImpl implements UCSMService {
     }
 
     private LsbootDef createLsBootDef(BootType bootType, String spDN, String version, LsServer lsServerCurrent,
-            Map<String, Map<String, Integer>> hbaToStoragePortMap) {
+            Map<String, Map<String, Integer>> hbaToStoragePortMap) throws ClientGeneralException {
 
         LsbootDef lsbootDef = new LsbootDef();
         lsbootDef.setRn("boot-policy");
@@ -965,7 +994,7 @@ public class UCSMServiceImpl implements UCSMService {
 
     }
 
-    private LsbootSan createLsbootSan(String spDN, Map<String, Map<String, Integer>> hbaToStoragePortMap, LsServer lsServerCurrent) {
+    private LsbootSan createLsbootSan(String spDN, Map<String, Map<String, Integer>> hbaToStoragePortMap, LsServer lsServerCurrent) throws ClientGeneralException {
 
         Map<String, String> hbaToSwitchIdMap = getHBAToSwitchIdMap(lsServerCurrent);
         LsbootSan lsbootSan = new LsbootSan();
@@ -981,7 +1010,7 @@ public class UCSMServiceImpl implements UCSMService {
         return lsbootSan;
     }
 
-    private LsbootSanCatSanImage createLsbootSanCatSanImage(Map<String, Integer> ports, String hba, Map<String, String> hbaToSwitchIdMap) {
+    private LsbootSanCatSanImage createLsbootSanCatSanImage(Map<String, Integer> ports, String hba, Map<String, String> hbaToSwitchIdMap) throws ClientGeneralException {
         LsbootSanCatSanImage lsbootSanCatSanImage = new LsbootSanCatSanImage();
         lsbootSanCatSanImage.setType(BootType.SAN.toString().toLowerCase());
 
@@ -993,7 +1022,12 @@ public class UCSMServiceImpl implements UCSMService {
             lsbootSanCatSanImage.setRn("sanimg-" + SanImagePathType.secondary.toString());
             lsbootSanCatSanImage.setType(SanImagePathType.secondary.toString());
             lsbootSanCatSanImage.setVnicName(hba);
+        }else {
+            log.error("Unable to determine fabric A or B for initiator {}",hba);
+            String[] s = {"Unable to determine fabric A or B for initiator " + hba};
+            throw new ClientGeneralException(ClientMessageKeys.UNEXPECTED_FAILURE, s);
         }
+
 
         /**
          * Only interested in first 2 ports - or just the one port if that's all
@@ -1018,7 +1052,12 @@ public class UCSMServiceImpl implements UCSMService {
                 lsbootSanCatSanImage.getContent().add(factory.createLsbootSanCatSanImagePath(lsbootSanImagePath));
 
             }
+        }else {
+            log.error("Unable to determine array targets for initiator {}",hba);
+            String[] s = {"Unable to determine array targets for initiator " + hba};
+            throw new ClientGeneralException(ClientMessageKeys.UNEXPECTED_FAILURE, s);
         }
+
 
         return lsbootSanCatSanImage;
 
@@ -1177,7 +1216,7 @@ public class UCSMServiceImpl implements UCSMService {
         primary, secondary;
     }
 
-    private LsbootStorage createLsbootStorage(String spDn, Map<String, Map<String, Integer>> hbaToStoragePortMap, LsServer lsServer) {
+    private LsbootStorage createLsbootStorage(String spDn, Map<String, Map<String, Integer>> hbaToStoragePortMap, LsServer lsServer) throws ClientGeneralException { 
 
         Map<String, String> hbaToSwitchIdMap = getHBAToSwitchIdMap(lsServer);
         LsbootStorage lsbootStorage = new LsbootStorage();
@@ -1195,7 +1234,7 @@ public class UCSMServiceImpl implements UCSMService {
     }
 
     private LsbootSanImage createLsbootSanImage(Map<String, Integer> ports, String hba,
-            Map<String, String> hbaToSwitchIdMap) {
+            Map<String, String> hbaToSwitchIdMap)  throws ClientGeneralException {
 
         LsbootSanImage lsbootSanImage = new LsbootSanImage();
 
@@ -1233,7 +1272,12 @@ public class UCSMServiceImpl implements UCSMService {
                 lsbootSanImage.getContent().add(factory.createLsbootSanImagePath(lsbootSanImagePath));
 
             }
+        }else {
+            log.error("Unable to determine array targets for initiator {}",hba);
+            String[] s = {"Unable to determine array targets for initiator " + hba};
+            throw new ClientGeneralException(ClientMessageKeys.UNEXPECTED_FAILURE, s);
         }
+    
 
         return lsbootSanImage;
 
@@ -1675,8 +1719,8 @@ public class UCSMServiceImpl implements UCSMService {
     @Override
     public LsServer getLsServer(String ucsmURL, String username, String password, String uuid)
             throws ClientGeneralException {
-            ComputeSession computeSession = sessionManager.getSession(ucsmURL, username, password);
-            return getLsServer(computeSession, uuid);
+        ComputeSession computeSession = sessionManager.getSession(ucsmURL, username, password);
+        return getLsServer(computeSession, uuid);
     }
 
     public LsServer getLsServer(ComputeSession computeSession, String uuid)
@@ -1752,7 +1796,7 @@ public class UCSMServiceImpl implements UCSMService {
 
         deleteSPMO.getContent().add(factory.createConfigConfMoInConfig(configConfig));
 
-        pushLsServer(computeSession, factory, deleteSPMO, false);
+        pushLsServer(computeSession, factory, deleteSPMO);
 
         log.info("Deleted the Service Profile with dn : " + spDn);
 

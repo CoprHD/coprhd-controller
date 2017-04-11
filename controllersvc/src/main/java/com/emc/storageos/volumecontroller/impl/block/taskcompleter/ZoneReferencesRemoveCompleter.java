@@ -4,6 +4,7 @@
  */
 package com.emc.storageos.volumecontroller.impl.block.taskcompleter;
 
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -14,6 +15,7 @@ import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.FCZoneReference;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.Operation.Status;
+import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.networkcontroller.NetworkFCZoneInfo;
@@ -48,7 +50,12 @@ public class ZoneReferencesRemoveCompleter extends TaskCompleter {
             String refKey = null;
             try {
                 for (NetworkFCZoneInfo fabricInfo : zoneInfoList) {
-                    FCZoneReference ref = dbClient.queryObject(FCZoneReference.class, fabricInfo.getFcZoneReferenceId());
+                    URI fcZoneReferenceId = fabricInfo.getFcZoneReferenceId();
+                    if (NullColumnValueGetter.isNullURI(fcZoneReferenceId)) {
+                        _log.info("fcZoneReferenceId corresponding to zone info {} is null. Nothing to remove.", fabricInfo.toString());
+                        continue;
+                    }
+                    FCZoneReference ref = dbClient.queryObject(FCZoneReference.class, fcZoneReferenceId);
                     if (ref != null) {
                         refKey = ref.getPwwnKey();
                         _log.info(String.format("Remove FCZoneReference key: %s volume %s id %s", ref.getPwwnKey(), ref.getVolumeUri(),

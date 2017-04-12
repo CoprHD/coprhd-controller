@@ -40,7 +40,6 @@ class Sanity {
 
     public static void main(String[] args) {
         setup()
-        VNXSetup.setupSimulator()
         JUnitCore junit = new JUnitCore()
         String catalogTest = System.getenv("CatalogTest")
         Result result = null
@@ -58,7 +57,6 @@ class Sanity {
                 result = junit.run(protectionTests)
                 break
             case "vmware":
-                VCenterSetup.setup()
                 result = junit.run(vmwareTests)
                 break
             default:
@@ -85,9 +83,8 @@ class Sanity {
         ProjectSetup.setup()
         VirtualArraySetup.updateAcls(client.userTenantId)
         HostSetup.setup()
-
-
-
+        VNXSetup.setupSimulator()
+        VCenterSetup.setup()
     }
 
     static void initClients() {

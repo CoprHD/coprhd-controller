@@ -59,6 +59,7 @@ import com.emc.storageos.model.customservices.InputUpdateParam.InputUpdateList;
 import com.emc.storageos.model.customservices.OutputParameterRestRep;
 import com.emc.storageos.model.customservices.OutputUpdateParam;
 import com.emc.storageos.primitives.CustomServicesConstants;
+import com.emc.storageos.primitives.CustomServicesPrimitive.StepType;
 import com.emc.vipr.model.catalog.WFBulkRep;
 import com.emc.vipr.model.catalog.WFDirectoryParam;
 import com.emc.vipr.model.catalog.WFDirectoryRestRep;
@@ -80,7 +81,7 @@ public class WorkflowBuilder extends Controller {
     private static final String VIPR_LIBRARY_ROOT = "viprLib";
     private static final String VIPR_PRIMITIVE_ROOT = "viprrest";
     private static final String NODE_TYPE_FILE = "file";
-    private static final String MY_LIBRARY = "My Library";
+    private static final String MY_LIBRARY = "Custom Library";
     private static final String VIPR_LIBRARY = "ViPR Library";
     private static final String VIPR_PRIMITIVE_LIBRARY = "ViPR REST";
     private static final String JSTREE_A_ATTR_TITLE = "title";
@@ -134,6 +135,10 @@ public class WorkflowBuilder extends Controller {
             this.type = type;
             anchorAttr.put(JSTREE_A_ATTR_TITLE, text);
         }
+
+        public void addBoldAnchorAttr() {
+            this.anchorAttr.put("style", "font-weight:bold;");
+        }
     }
 
     public static void getWFDirectories() {
@@ -165,9 +170,9 @@ public class WorkflowBuilder extends Controller {
         }
 
         // Add primitives
-        addPrimitivesByType(topLevelNodes, WFBuilderNodeTypes.ANSIBLE.toString(), MY_LIBRARY_ROOT, fileParents);
-        addPrimitivesByType(topLevelNodes, WFBuilderNodeTypes.SCRIPT.toString(), MY_LIBRARY_ROOT, fileParents);
-        addPrimitivesByType(topLevelNodes, WFBuilderNodeTypes.VIPR.toString(), VIPR_PRIMITIVE_ROOT, null);
+        addPrimitivesByType(topLevelNodes, StepType.LOCAL_ANSIBLE.toString(), MY_LIBRARY_ROOT, fileParents);
+        addPrimitivesByType(topLevelNodes, StepType.SHELL_SCRIPT.toString(), MY_LIBRARY_ROOT, fileParents);
+        addPrimitivesByType(topLevelNodes, StepType.VIPR_REST.toString(), VIPR_PRIMITIVE_ROOT, null);
 
         // Add workflows
         final CustomServicesWorkflowList customServicesWorkflowList = getCatalogClient()
@@ -177,7 +182,7 @@ public class WorkflowBuilder extends Controller {
             for (NamedRelatedResourceRep o : customServicesWorkflowList
                     .getWorkflows()) {
                 final String parent = fileParents.containsKey(o.getId()) ? fileParents.get(o.getId()).getId().toString() : MY_LIBRARY_ROOT;
-                topLevelNodes.add(new Node(o.getId().toString(), o.getName(), parent, WFBuilderNodeTypes.WORKFLOW.toString()));
+                topLevelNodes.add(new Node(o.getId().toString(), o.getName(), parent, StepType.WORKFLOW.toString()));
             }
         }
 
@@ -186,8 +191,12 @@ public class WorkflowBuilder extends Controller {
 
     // Preparing top level nodes in workflow directory
     private static void prepareRootNodes(final List<Node> topLevelNodes) {
-        topLevelNodes.add(new Node(MY_LIBRARY_ROOT, MY_LIBRARY, NO_PARENT, WFBuilderNodeTypes.FOLDER.toString()));
-        topLevelNodes.add(new Node(VIPR_LIBRARY_ROOT, VIPR_LIBRARY, NO_PARENT, WFBuilderNodeTypes.FOLDER.toString()));
+        final Node myLib = new Node(MY_LIBRARY_ROOT, MY_LIBRARY, NO_PARENT, WFBuilderNodeTypes.FOLDER.toString());
+        myLib.addBoldAnchorAttr();
+        topLevelNodes.add(myLib);
+        final Node viprLib = new Node(VIPR_LIBRARY_ROOT, VIPR_LIBRARY, NO_PARENT, WFBuilderNodeTypes.FOLDER.toString());
+        viprLib.addBoldAnchorAttr();
+        topLevelNodes.add(viprLib);
         topLevelNodes.add(new Node(VIPR_PRIMITIVE_ROOT, VIPR_PRIMITIVE_LIBRARY, VIPR_LIBRARY_ROOT, WFBuilderNodeTypes.FOLDER.toString()));
     }
 
@@ -233,13 +242,13 @@ public class WorkflowBuilder extends Controller {
         CustomServicesWorkflowDocument.Step start = new CustomServicesWorkflowDocument.Step();
         start.setFriendlyName("Start");
         start.setId("Start");
-        start.setPositionX(1793);
-        start.setPositionY(1783);
+        start.setPositionX(1450);
+        start.setPositionY(1800);
         CustomServicesWorkflowDocument.Step end = new CustomServicesWorkflowDocument.Step();
         end.setFriendlyName("End");
         end.setId("End");
-        end.setPositionX(2041);
-        end.setPositionY(1783);
+        end.setPositionX(1450);
+        end.setPositionY(2150);
         List<CustomServicesWorkflowDocument.Step> steps = new ArrayList<CustomServicesWorkflowDocument.Step>();
         steps.add(start);
         steps.add(end);
@@ -401,7 +410,7 @@ public class WorkflowBuilder extends Controller {
                     ? fileParents.get(primitive.getId()).getId().toString() : parentDefault;
             final Node node;
 
-            if (WFBuilderNodeTypes.VIPR.toString().equals(type)) {
+            if (StepType.VIPR_REST.toString().equals(type)) {
                 node = new Node(primitive.getId().toString(),
                         primitive.getFriendlyName(), parent, type);
             } else {
@@ -409,7 +418,6 @@ public class WorkflowBuilder extends Controller {
                         primitive.getName(), parent, type);
             }
 
-            // TODO: remove this later
             node.data = primitive;
             topLevelNodes.add(node);
         }
@@ -577,7 +585,7 @@ public class WorkflowBuilder extends Controller {
             if (null != primitiveResourceRestRep) {
                 final CustomServicesPrimitiveCreateParam primitiveCreateParam = new CustomServicesPrimitiveCreateParam();
                 // TODO - remove this hardcoded string once the enum is available
-                primitiveCreateParam.setType("SCRIPT");
+                primitiveCreateParam.setType(StepType.SHELL_SCRIPT.toString());
                 primitiveCreateParam.setName(shellPrimitive.getName());
                 primitiveCreateParam.setFriendlyName(shellPrimitive.getName());
                 primitiveCreateParam.setDescription(shellPrimitive.getDescription());
@@ -820,7 +828,7 @@ public class WorkflowBuilder extends Controller {
 
                 final CustomServicesPrimitiveCreateParam primitiveCreateParam = new CustomServicesPrimitiveCreateParam();
                 // TODO - remove this hardcoded string once the enum is available
-                primitiveCreateParam.setType("ANSIBLE");
+                primitiveCreateParam.setType(StepType.LOCAL_ANSIBLE.toString());
                 primitiveCreateParam.setName(localAnsible.getName());
                 primitiveCreateParam.setDescription(localAnsible.getDescription());
                 primitiveCreateParam.setFriendlyName(localAnsible.getName());
@@ -929,10 +937,10 @@ public class WorkflowBuilder extends Controller {
         if (null == primitiveRestRep) {
             flash.error("Invalid primitive ID");
         } else {
-            switch (WFBuilderNodeTypes.valueOf(primitiveType)) {
-                case SCRIPT:
+            switch (StepType.fromString(primitiveType)) {
+                case SHELL_SCRIPT:
                     renderJSON(mapPrimitiveScriptRestToForm(primitiveRestRep));
-                case ANSIBLE:
+                case LOCAL_ANSIBLE:
                     renderJSON(mapPrimitiveLARestToForm(primitiveRestRep));
                 default:
                     Logger.error("Invalid primitive type: %s", primitiveType);

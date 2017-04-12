@@ -1,10 +1,20 @@
 
+var folderNodeType = "FOLDER";
+var workflowNodeType = "Workflow";
+var shellNodeType = "script";
+var localAnsibleNodeType = "ansible"
+var restAPINodeType = "rest"
+var viprRestAPINodeType = "vipr";
+
 angular.module("portalApp").controller('builderController', function($scope, $rootScope) { //NOSONAR ("Suppressing Sonar violations of max 100 lines in a function and function complexity")
     $rootScope.$on("addWorkflowTab", function(event, id, name){
        addTab(id,name);
     });
 
     $scope.workflowTabs = {};
+    $scope.isWorkflowTabsEmpty = function () {
+        return $.isEmptyObject($scope.workflowTabs);
+    };
 
     function addTab(id,name) {
         var elementid = id.replace(/:/g,'');
@@ -12,10 +22,18 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
     }
     $scope.closeTab = function(tabID){
         delete $scope.workflowTabs[tabID];
-        $(".nav-tabs li").children('a').first().click();
+        $(".workflow-nav-tabs li").children('a').first().click();
     };
 })
 .controller('treeController', function($element, $scope, $compile, $http, $rootScope) { //NOSONAR ("Suppressing Sonar violations of max 100 lines in a function and function complexity")
+
+    $scope.libOpen = true;
+    $scope.toggleLib = function() {
+        $("#libSidebar").toggleClass("collapsedLib");
+        $("#builderController").toggleClass("col-md-12 col-md-8");
+
+        $scope.libOpen = !$scope.libOpen;
+    }
 
     // if True, will enable menus on jstree
     $scope.libraryMenu = true;
@@ -25,11 +43,7 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
     }
 
     var jstreeContainer = $element.find('#jstree_demo');
-    var folderNodeType = "FOLDER";
-    var workflowNodeType = "WORKFLOW";
-    var shellNodeType = "SCRIPT";
-    var localAnsibleNodeType = "ANSIBLE"
-    var restAPINodeType = "REST"
+
     var fileNodeTypes = [shellNodeType, localAnsibleNodeType, restAPINodeType, workflowNodeType]
     var viprLibIDs = ["viprrest", "viprLib"]
 
@@ -68,24 +82,24 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
                 },
                 "FOLDER": {
                     "icon": "/public/img/customServices/Folder.png",
-                    "valid_children": ["WORKFLOW","FOLDER", "SCRIPT", "ANSIBLE"]
+                    "valid_children": ["Workflow","FOLDER", "script", "ansible"]
                 },
-                "WORKFLOW": {
+                "Workflow": {
                     "icon": "/public/img/customServices/UserDefinedWF.png",
                     "valid_children": [],
                     "li_attr": {"class": "draggable-card"}
                 },
-                "SCRIPT": {
+                "script": {
                     "icon": "/public/img/customServices/UserDefinedOperation.png",
                     "valid_children": [],
                     "li_attr": {"class": "draggable-card"}
                 },
-                "ANSIBLE": {
+                "ansible": {
                     "icon": "/public/img/customServices/UserDefinedOperation.png",
                     "valid_children": [],
                     "li_attr": {"class": "draggable-card"}
                 },
-                "VIPR": {
+                "vipr": {
                     "icon": "/public/img/customServices/ViPROperation.png",
                     "valid_children": [],
                     "li_attr": {"class": "draggable-card"}
@@ -114,9 +128,12 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
         }
         var $item = '<div style="z-index:999;"class="item"><div class="itemText">' + stepName + '</div></div>';
 
-        //move this
         var itemData = jstreeContainer.jstree(true).get_json(treeId).data;
-        $element.data("primitiveData",itemData);
+        // Data is not populated for workflows. So setting required fields here.
+        if($.isEmptyObject(itemData)) {
+            itemData = {"friendlyName":stepName,"type":workflowNodeType};
+        }
+        $rootScope.primitiveData = itemData;
 
         return $( $item );
     }
@@ -344,11 +361,10 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
     }
 })
 
-.controller('tabController', function($element, $scope, $compile, $http) { //NOSONAR ("Suppressing Sonar violations of max 100 lines in a function and function complexity")
+.controller('tabController', function($element, $scope, $compile, $http, $rootScope) { //NOSONAR ("Suppressing Sonar violations of max 100 lines in a function and function complexity")
 
     var diagramContainer = $element.find('#diagramContainer');
     var sbSite = $element.find('#sb-site');
-    var treecontroller = $element.find('#theSidebar');
     var jspInstance;
     $scope.workflowData = {};
     $scope.stepInputOptions = [];
@@ -437,12 +453,12 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
                 cursor: "none"
             },
             ConnectionOverlays: [
-                ["Arrow", {
+                ["PlainArrow", {
                     location: 1,
                     visible:true,
                     id:"ARROW",
-                    width: 25,
-                    length: 25
+                    width: 12,
+                    length: 12
 
                 } ]]
         });
@@ -456,26 +472,28 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
     Shared Endpoint params for each step
     */
     var passEndpoint = {
-        endpoint: ["Dot", {
-            radius: 10
-        }],
-        isSource: true,
-        connector: ["Flowchart", {
-            cornerRadius: 5
-        }],
-        anchors: [1, 0.5, 1, 0,10,0],
-        cssClass: "passEndpoint"
-    };
-
-    var failEndpoint = {
-        endpoint: ["Dot", {
-            radius: 10
+        endpoint: ["Image", {
+            src:"/public/img/customServices/PassEndpoint.png"
         }],
         isSource: true,
         connector: ["Flowchart", {
             cornerRadius: 5
         }],
         anchors: [0.5, 1, 0, 1,0,10],
+		connectorStyle:{ strokeStyle:"#3fac49", lineWidth:1 },
+        cssClass: "passEndpoint"
+    };
+
+    var failEndpoint = {
+        endpoint: ["Image", {
+            src:"/public/img/customServices/FailEndpoint.png"
+        }],
+        isSource: true,
+        connector: ["Flowchart", {
+            cornerRadius: 5
+        }],
+        anchors: [1, 0.5, 1, 0,10,0],
+        connectorStyle:{ strokeStyle:"#ee3825", lineWidth:1 },
         cssClass: "failEndpoint"
     };
 
@@ -503,8 +521,7 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
 
 
         //add data
-        //TODO:remove friendlyName, it will be included in step data already
-        var stepData = jQuery.extend(true, {}, treecontroller.data("primitiveData"));
+        var stepData = $rootScope.primitiveData;
         stepData.operation = stepData.id;
         stepData.id = randomIdHash;
         stepData.positionY = positionY;
@@ -613,7 +630,7 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
 
     function buildJSON() {
         var blocks = []
-        diagramContainer.find(" .item").each(function(idx, elem) {
+        diagramContainer.find(" .item,  .item-start-end").each(function(idx, elem) {
             var $elem = $(elem);
             var $wrapper = $elem.parent();
             var data = $elem.data("oeData");
@@ -684,6 +701,31 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
         $scope.openPage(0);
     }
 
+	var draggableNodeTypes = {"shellNodeType":shellNodeType, "localAnsibleNodeType":localAnsibleNodeType, "restAPINodeType":restAPINodeType, "viprRestAPINodeType":viprRestAPINodeType, "workflowNodeType":workflowNodeType}
+    function getStepIcon(stepType){
+        console.log(stepType);
+        var stepIcon = "UserDefinedOperation.png";
+        if(stepType != null) {
+            switch(stepType.toLowerCase()){
+                case draggableNodeTypes.shellNodeType:
+                    stepIcon = "Script.png";
+                    break;
+                case draggableNodeTypes.localAnsibleNodeType:
+                    stepIcon = "LocalAnsible.png";
+                    break;
+                case draggableNodeTypes.workflowNodeType:
+                    stepIcon = "UserDefinedWF.png";
+                    break;
+                case draggableNodeTypes.restAPINodeType:
+                    stepIcon = "REST.png";
+                    break;
+                case draggableNodeTypes.viprRestAPINodeType:
+                    stepIcon = "ViPRREST.png";
+                    break;
+            }
+        }
+        return "/public/img/customServices/" + stepIcon;
+    }
     function loadStep(step) {
         if(!step.positionY || !step.positionX){
             return;
@@ -693,16 +735,37 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
         var stepName = step.friendlyName;
 
         //create element html
-        //TODO: move html to separate location instead of building in JS when design available
-        var $itemWrapper = '<div id="' + stepId + '-wrapper" class="example-item-card-wrapper"></div>';
-        var $buttonContainer = '<div class="button-container"></div>';
-        var $editButton = '<a class="glyphicon glyphicon-pencil button-step-close" ng-click="select(\''+stepId+'\')"></a>';
-        var $closeButton = '<a class="glyphicon glyphicon-remove button-step-close" ng-click="removeStep(\''+stepId+'\')"></a>';
-        var $item = '<div id="' + stepId + '" class="item" ng-class="{\'highlighted\':selectedId == \'' + stepId + '\'}"><div class="itemText">' + stepName + '</div></div>';
+        var stepDivID = stepId + "-wrapper";
+        var trimmedStepName = stepName;
+        if (stepName.length > 70)
+            trimmedStepName = stepName.substring(0,65)+'...';
+
+        var stepHTML = `
+        <div id="${stepDivID}" class="example-item-card-wrapper">
+            <div  class="button-container">
+                <a class="glyphicon glyphicon-pencil button-step-close" ng-click="select('${stepId}')"></a>
+                <a class="glyphicon glyphicon-remove button-step-close" ng-click="removeStep('${stepId}')"></a>
+            </div>
+            <div style="width:25%; float:left; padding-left:3px; padding-top:2px;">
+                <span class="glyphicon"><img src="${getStepIcon(step.type)}" height="15" width="18"></span>
+            </div>
+            <div id="${stepId}"  class="item" ng-class="{\'highlighted\':(selectedId == '${stepId}' && menuOpen)}">
+                <div class="itemText">${trimmedStepName}</div>
+            </div>
+        </div>
+        `;
+
         if (stepId === "Start" || stepId === "End"){
-            $($item).appendTo(diagramContainer).wrap($itemWrapper);
+            var stepSEHTML = `
+            <div id="${stepDivID}" class="example-item-card-wrapper">
+                <div id="${stepId}"  class="item-start-end" ng-class="{\'highlighted\':selectedId == '${stepId}'}">
+                    <div class="itemTextStartEnd">${stepName}</div>
+                </div>
+            </div>
+            `;
+            $(stepSEHTML).appendTo(diagramContainer);
         } else {
-            $($closeButton).appendTo(diagramContainer).wrap($itemWrapper).after($item).wrap($buttonContainer).before($editButton);
+            $(stepHTML).appendTo(diagramContainer);
         }
         var theNewItemWrapper = diagramContainer.find(' #' + stepId+'-wrapper');
         var theNewItem = diagramContainer.find(' #' + stepId);
@@ -737,11 +800,11 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
         if(step.next){
             if(step.next.defaultStep){
                 var passEndpoint = jspInstance.getEndpoint(step.id+"-pass");
-                jspInstance.connect({source:passEndpoint, target:diagramContainer.find('#' + step.next.defaultStep)});
+                jspInstance.connect({source:passEndpoint, target:diagramContainer.find('#' + step.next.defaultStep), paintStyle:{ strokeStyle:"#3fac49", lineWidth:1 }});
             }
             if(step.next.failedStep){
                 var failEndpoint = jspInstance.getEndpoint(step.id+"-fail");
-                jspInstance.connect({source:failEndpoint, target:diagramContainer.find('#' + step.next.failedStep)});
+                jspInstance.connect({source:failEndpoint, target:diagramContainer.find('#' + step.next.failedStep), paintStyle:{ strokeStyle:"#ee3825", lineWidth:1 }});
             }
         }
     }
@@ -784,6 +847,5 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
     $scope.closeMenu = function() {
         $scope.menuOpen = false;
     }
-
 });
 

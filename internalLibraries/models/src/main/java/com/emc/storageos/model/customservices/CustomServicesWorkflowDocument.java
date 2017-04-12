@@ -87,9 +87,7 @@ public class CustomServicesWorkflowDocument {
         private String defaultValue;
         private String value;
         private String group;
-        private String stepInput;
-        private String stepOutput;
-        private String assetOption;
+        private String description;
         private String inputFieldType;
         private String tableName;
         private boolean required = true;
@@ -159,28 +157,12 @@ public class CustomServicesWorkflowDocument {
             this.locked = locked;
         }
 
-        @XmlElement(name = "step_input")
-        public String getStepInput() {
-            return stepInput;
+        @XmlElement(name = "description")
+        public String getDescription() {
+            return description;
         }
-        public void setStepInput(String stepinput) {
-            this.stepInput = stepinput;
-        }
-
-        @XmlElement(name = "asset_option")
-        public String getAssetOption() {
-            return assetOption;
-        }
-        public void setAssetOption(String assetoption) {
-            this.assetOption = assetoption;
-        }
-
-        @XmlElement(name = "step_output")
-        public String getStepOutput() {
-            return stepOutput;
-        }
-        public void setStepOutput(String stepOutput) {
-            this.stepOutput = stepOutput;
+        public void setDescription(String description) {
+            this.description = description;
         }
 
         @XmlElement(name = "input_field_type")

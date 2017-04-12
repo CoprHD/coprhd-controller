@@ -186,18 +186,19 @@ public final class CustomServicesDBHelper {
         }
 
         final NamedURI oldResourceId = primitive.getResource();
-        CustomServicesDBResource resource = null;
-
-        if (!resourceType.isAssignableFrom(CustomServicesDBNoResource.class) && null != param.getResource()) {
+        final CustomServicesDBResource resource;
+        if(param.getResource() == null) {
+            resource = null;
+        } else if(!resourceType.isAssignableFrom(CustomServicesDBNoResource.class)){
             resource = primitiveManager.findResource(resourceType, param.getResource());
             if (null == resource) {
                 throw APIException.notFound.unableToFindEntityInURL(param.getResource());
             }
-
             primitive.setResource(new NamedURI(resource.getId(), resource.getLabel()));
-        } else if (null != param.getResource()) {
+        } else {
             throw APIException.badRequests.invalidParameter("resource", param.getResource().toString());
         }
+
 
         final UpdatePrimitive<DBModel> updatePrimitive = new UpdatePrimitive<DBModel>(param, primitive);
 
@@ -717,6 +718,12 @@ public final class CustomServicesDBHelper {
         if (null != name) {
             resource.setLabel(name);
         }
+
+        if (null != parentId) {
+            resource.setParentId(parentId);
+        }
+
+
         if (null != attributes || null != stream) {
             BadRequestException resourceReferencedexception = checkResourceNotReferenced(referencedByPrimitive,
                     referencedByPrimitiveColumnName,
@@ -736,7 +743,6 @@ public final class CustomServicesDBHelper {
             }
             resource.setAttributes(attributes);
             resource.setResource(Base64.encodeBase64(stream));
-            resource.setParentId(parentId);
 
             primitiveManager.save(resource);
 

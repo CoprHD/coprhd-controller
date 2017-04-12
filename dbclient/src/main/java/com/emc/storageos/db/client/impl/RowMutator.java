@@ -8,6 +8,7 @@ import com.datastax.driver.core.BatchStatement;
 import com.datastax.driver.core.BoundStatement;
 import com.datastax.driver.core.ConsistencyLevel;
 import com.datastax.driver.core.PreparedStatement;
+import com.datastax.driver.core.SimpleStatement;
 import com.datastax.driver.core.Statement;
 import com.datastax.driver.core.exceptions.ConnectionException;
 import com.datastax.driver.core.exceptions.NoHostAvailableException;
@@ -192,8 +193,8 @@ public class RowMutator {
         atomicBatch.add(deleteRecord);
     }
     
-    public void addCqlStatement(Statement statement) {
-    	atomicBatch.add(statement);
+    public void removeByRowKey(String cf, String key) {
+    	atomicBatch.add(new SimpleStatement(String.format("delete * from \"%s\" where key='%s'", cf, key)));
     }
 
     public static ByteBuffer getByteBufferFromPrimitiveValue(Object val) {

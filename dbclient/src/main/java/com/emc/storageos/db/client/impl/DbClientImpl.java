@@ -1326,14 +1326,34 @@ public class DbClientImpl implements DbClient {
         }
     }
 
-    public void removeObject(Class<? extends DataObject> clazz, DataObject... objects) {
+    public void removeObject(Class<? extends DataObject> clazz, DataObject... object) {
 
+    	List<DataObject> allObjects = Arrays.asList(object);
         DbClientContext context = getDbClientContext(clazz);
-        DataObjectType doType = TypeMap.getDoType(clazz);
+
+        DataObjectType doType = null;
+        RemovedColumnsList removedList = new RemovedColumnsList();
         boolean retryFailedWriteWithLocalQuorum = shouldRetryFailedWriteWithLocalQuorum(clazz);
-        
-        DBDataObjectCleaner cleaner = new DBDataObjectCleaner(context, retryFailedWriteWithLocalQuorum);
-        cleaner.deleteObjects(doType, objects);
+        RowMutator mutator = new RowMutator(context, retryFailedWriteWithLocalQuorum);
+        for (DataObject dataObject : allObjects) {
+            _log.info("Try to remove data object {}", dataObject.getId());
+            checkGeoVersionForMutation(dataObject);
+            doType = TypeMap.getDoType(dataObject.getClass());
+            // delete all the index columns for this object first
+            if (doType == null) {
+                throw new IllegalArgumentException();
+            }
+            Map<String, List<CompositeColumnName>> result = queryRowWithAllColumns(context, dataObject.getId(), doType.getCF().getName());
+            for (String rowKey : result.keySet()) {
+                for (CompositeColumnName row : result.get(rowKey)) {
+                    removedList.add(rowKey, row);
+                }
+            }
+            mutator.removeByRowKey(doType.getCF().getName(), dataObject.getId().toString());
+        }
+        if (!removedList.isEmpty()) {
+            _indexCleaner.removeColumnAndIndex(mutator, doType, removedList);
+        }
     }
 
     @Override

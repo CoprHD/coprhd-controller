@@ -40,9 +40,6 @@ public abstract class DbIndex <T extends CompositeIndexColumnName> {
 
     abstract boolean removeColumn(String recordKey, CompositeColumnName column, String className,
             RowMutator mutator, Map<String, List<CompositeColumnName>> fieldColumnMap);
-    
-    abstract Statement createDeleteColumnStatement(String recordKey, CompositeColumnName column, String className,
-            RowMutator mutator, Map<String, List<CompositeColumnName>> fieldColumnMap);
 
     boolean removeColumn(String recordKey, CompositeColumnName column, String className,
                          RowMutator mutator, Map<String, List<CompositeColumnName>> fieldColumnMap,

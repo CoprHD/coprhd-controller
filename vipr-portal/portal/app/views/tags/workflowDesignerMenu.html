@@ -1,17 +1,4 @@
 <div class="side-container">
-	<button class="slider-button" ng-class="{'slider-open':menuOpen}"
-		ng-click="toggleMenu();">
-		<span
-			ng-class="{'glyphicon-chevron-left':!menuOpen,'glyphicon-chevron-right':menuOpen}"
-			class="glyphicon"></span>
-	</button>
-	<div id="sliderMenu">
-		<a type="button" ng-disabled="!selectedId" class="btn btn-lg"
-			ng-click="openPage(0);"> <span class="glyphicon glyphicon-pencil"></span>
-		</a> <a type="button" class="btn btn-lg" ng-click="openPage(1);"> <span
-			class="glyphicon glyphicon-list"></span>
-		</a>
-	</div>
 	<div id="mySidenav" ng-class="{'sidenav-open':menuOpen}"
 		class="sidenav">
 		<a class="closebtn" ng-click="closeMenu()">&times;</a>
@@ -32,34 +19,34 @@
 							<div ng-repeat="inputParam in stepData.inputGroups.input_params">
 								<div ng-repeat="input in inputParam">
 									<collapse title-key={{input.name}}>
-										<control-group class="col-sm-9" v-field='input.friendlyName' required style="padding: 10px;">
+										<control-group class="col-sm-12" v-field='input.friendlyName' required style="padding: 10px;">
 											<input-text></input-text>
 										</control-group>
-										<control-group class="col-sm-9" v-field='input.decription' style="padding: 10px;">
+										<control-group class="col-sm-12" v-field='input.decription' style="">
                         					<input-text></input-text>
           								</control-group>
-	   									<control-group class="col-sm-9" v-field="input.required" style="padding: 10px;">
+	   									<control-group class="col-sm-12" v-field="input.required" style="">
 											<boolean-checkbox v-default-value="false"></boolean-checkbox>
 	  									</control-group>
-	 									<control-group class="col-sm-9" v-field="input.type" style="padding: 10px;">
+	 									<control-group class="col-sm-12" v-field="input.type" style="">
 	                        				<select-one options="UserInputTypeOption" auto-default v-disabled='locked'></select-one>
 	                        			</control-group>
-	                        			<control-group class="col-sm-9" label-key ="input.stepInput" v-field="input.value" ng-if="input.type=='FromOtherStepInput'" style="padding: 10px;">
+	                        			<control-group class="col-sm-12" label-key ="input.stepInput" v-field="input.value" ng-if="input.type=='FromOtherStepInput'" style="">
 	                        				<select-one options="stepInputOptions" auto-default v-disabled='locked'></select-one>
 	                        			</control-group>
-	                        			<control-group class="col-sm-9" label-key="input.stepOutput" v-field="input.value" ng-if="input.type=='FromOtherStepOutput'" style="padding: 10px;">
+	                        			<control-group class="col-sm-12" label-key="input.stepOutput" v-field="input.value" ng-if="input.type=='FromOtherStepOutput'" style="">
 	                        				<select-one options="stepOutputOptions" auto-default v-disabled='locked'></select-one>
 	                        			</control-group>
-	                        			<control-group class="col-sm-9" label-key="input.assetOption" v-field="input.value" ng-if="input.type=='AssetOption'" style="padding: 10px;">
+	                        			<control-group class="col-sm-12" label-key="input.assetOption" v-field="input.value" ng-if="input.type=='AssetOption'" style="">
 	                        				<select-one options="AssetOptionTypes" auto-default v-disabled='locked'></select-one>
 	                        			</control-group>
-	  									<control-group class="col-sm-9" v-field="input.defaultValue" ng-if="input.type=='InputFromUser'" style="padding: 10px;">
+	  									<control-group class="col-sm-12" v-field="input.defaultValue" ng-if="input.type=='InputFromUser'" style="">
 	                        				<input-text></input-text>
 	                        			</control-group>
-	                        			<control-group class="col-sm-9" v-field='input.inputFieldType' ng-if="input.type=='InputFromUser'" style="padding: 10px;">
+	                        			<control-group class="col-sm-12" v-field='input.inputFieldType' ng-if="input.type=='InputFromUser'" style="">
 	                        				<select-one options="InputFieldOption" auto-default v-disabled='locked'></select-one>
 	                        			</control-group>
-	                        			<control-group class="col-sm-9" v-field='input.tableName' ng-if="input.inputFieldType=='Table'" style="padding: 10px;">
+	                        			<control-group class="col-sm-12" v-field='input.tableName' ng-if="input.inputFieldType=='Table'" style="">
 	                        				<input-text></input-text>
 	          							</control-group>
           							</collapse>

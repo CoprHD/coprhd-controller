@@ -79,7 +79,7 @@ public class WorkflowBuilder extends Controller {
     private static final String VIPR_LIBRARY_ROOT = "viprLib";
     private static final String VIPR_PRIMITIVE_ROOT = "viprrest";
     private static final String NODE_TYPE_FILE = "file";
-    private static final String MY_LIBRARY = "My Library";
+    private static final String MY_LIBRARY = "Custom Library";
     private static final String VIPR_LIBRARY = "ViPR Library";
     private static final String VIPR_PRIMITIVE_LIBRARY = "ViPR REST";
     private static final String JSTREE_A_ATTR_TITLE = "title";
@@ -133,6 +133,10 @@ public class WorkflowBuilder extends Controller {
             this.type = type;
             anchorAttr.put(JSTREE_A_ATTR_TITLE, text);
         }
+
+        public void addBoldAnchorAttr() {
+            this.anchorAttr.put("style", "font-weight:bold;");
+        }
     }
 
     public static void getWFDirectories() {
@@ -185,8 +189,12 @@ public class WorkflowBuilder extends Controller {
 
     // Preparing top level nodes in workflow directory
     private static void prepareRootNodes(final List<Node> topLevelNodes) {
-        topLevelNodes.add(new Node(MY_LIBRARY_ROOT, MY_LIBRARY, NO_PARENT, WFBuilderNodeTypes.FOLDER.toString()));
-        topLevelNodes.add(new Node(VIPR_LIBRARY_ROOT, VIPR_LIBRARY, NO_PARENT, WFBuilderNodeTypes.FOLDER.toString()));
+        Node myLib = new Node(MY_LIBRARY_ROOT, MY_LIBRARY, NO_PARENT, WFBuilderNodeTypes.FOLDER.toString());
+        myLib.addBoldAnchorAttr();
+        topLevelNodes.add(myLib);
+        Node viprLib = new Node(VIPR_LIBRARY_ROOT, VIPR_LIBRARY, NO_PARENT, WFBuilderNodeTypes.FOLDER.toString());
+        viprLib.addBoldAnchorAttr();
+        topLevelNodes.add(viprLib);
         topLevelNodes.add(new Node(VIPR_PRIMITIVE_ROOT, VIPR_PRIMITIVE_LIBRARY, VIPR_LIBRARY_ROOT, WFBuilderNodeTypes.FOLDER.toString()));
     }
 
@@ -232,13 +240,13 @@ public class WorkflowBuilder extends Controller {
         CustomServicesWorkflowDocument.Step start = new CustomServicesWorkflowDocument.Step();
         start.setFriendlyName("Start");
         start.setId("Start");
-        start.setPositionX(1793);
-        start.setPositionY(1783);
+        start.setPositionX(1450);
+        start.setPositionY(1800);
         CustomServicesWorkflowDocument.Step end = new CustomServicesWorkflowDocument.Step();
         end.setFriendlyName("End");
         end.setId("End");
-        end.setPositionX(2041);
-        end.setPositionY(1783);
+        end.setPositionX(1450);
+        end.setPositionY(2150);
         List<CustomServicesWorkflowDocument.Step> steps = new ArrayList<CustomServicesWorkflowDocument.Step>();
         steps.add(start);
         steps.add(end);

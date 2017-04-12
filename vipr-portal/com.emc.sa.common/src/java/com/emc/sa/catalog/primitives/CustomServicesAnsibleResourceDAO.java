@@ -81,7 +81,7 @@ public class CustomServicesAnsibleResourceDAO implements CustomServicesResourceD
     }
 
     @Override
-    public CustomServicesAnsibleResource updateResource(final URI id, final String name, final byte[] stream) {
+    public CustomServicesAnsibleResource updateResource(final URI id, final String name, final byte[] stream, final String parentId) {
         final StringSet playbooks = stream == null ? null : getPlaybooks(stream);
 
         final StringSetMap attributes;
@@ -93,7 +93,7 @@ public class CustomServicesAnsibleResourceDAO implements CustomServicesResourceD
         }
 
         return CustomServicesDBHelper.updateResource(CustomServicesAnsibleResource.class, CustomServicesDBAnsibleResource.class,
-                primitiveManager, id, name, stream, attributes,client,
+                primitiveManager, id, name, stream, attributes, null, client,
                 CustomServicesDBAnsibleInventoryResource.class, CustomServicesDBAnsibleInventoryResource.PARENTID,
                 CustomServicesDBAnsiblePrimitive.class, CustomServicesDBAnsiblePrimitive.RESOURCE);
     }

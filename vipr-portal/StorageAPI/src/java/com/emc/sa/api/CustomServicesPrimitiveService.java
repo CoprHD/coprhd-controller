@@ -269,14 +269,14 @@ public class CustomServicesPrimitiveService extends CatalogTaggedResourceService
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("resource/{id}")
     public CustomServicesPrimitiveResourceRestRep updateResource(@Context final HttpServletRequest request, @PathParam("id") final URI id,
-            @QueryParam("name") final String name) {
+            @QueryParam("name") final String name, @QueryParam("parentId") final String parentId) {
         final CustomServicesResourceDAO<?> dao = getResourceDAOFromID(id);
         if (null == dao) {
             throw APIException.notFound.unableToFindEntityInURL(id);
         }
         final byte[] stream = read(request);
         final CustomServicesPrimitiveResourceType resource = dao.updateResource(id, name,
-                (stream == null || stream.length == 0) ? null : stream);
+                (stream == null || stream.length == 0) ? null : stream, parentId);
         return CustomServicesPrimitiveMapper.map(resource);
     }
 

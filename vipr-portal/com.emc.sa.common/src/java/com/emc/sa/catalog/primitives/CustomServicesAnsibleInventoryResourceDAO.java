@@ -78,10 +78,17 @@ public class CustomServicesAnsibleInventoryResourceDAO implements CustomServices
     }
 
     @Override
-    public CustomServicesAnsibleInventoryResource updateResource(final URI id, final String name, final byte[] stream) {
+    public CustomServicesAnsibleInventoryResource updateResource(final URI id, final String name, final byte[] stream, final String parentId) {
+        ArgValidator.checkFieldNotNull(parentId, "parentId");
+        final URI parentIdURI = URI.create(parentId);
+        CustomServicesAnsibleResource parentResource = CustomServicesDBHelper.getResource(CustomServicesAnsibleResource.class,
+                CustomServicesDBAnsibleResource.class, primitiveManager, parentIdURI);
+        if (null == parentResource) {
+            throw APIException.notFound.unableToFindEntityInURL(parentIdURI);
+        }
         return CustomServicesDBHelper.updateResource(CustomServicesAnsibleInventoryResource.class,
                 CustomServicesDBAnsibleInventoryResource.class,
-                primitiveManager, id, name, stream, null,client, null, null,null,null);
+                primitiveManager, id, name, stream, null, parentIdURI, client, null, null,null,null);
     }
 
     @Override

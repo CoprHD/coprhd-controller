@@ -67,9 +67,9 @@ public class CustomServicesScriptResourceDAO implements CustomServicesResourceDA
     }
 
     @Override
-    public CustomServicesScriptResource updateResource(final URI id, final String name, final byte[] stream) {
+    public CustomServicesScriptResource updateResource(final URI id, final String name, final byte[] stream, final String parentId) {
         return CustomServicesDBHelper.updateResource(CustomServicesScriptResource.class, CustomServicesDBScriptResource.class,
-                primitiveManager, id, name, stream, null,client, null,null,
+                primitiveManager, id, name, stream, null, null, client, null,null,
                 CustomServicesDBScriptPrimitive.class, CustomServicesDBScriptPrimitive.RESOURCE);
     }
 

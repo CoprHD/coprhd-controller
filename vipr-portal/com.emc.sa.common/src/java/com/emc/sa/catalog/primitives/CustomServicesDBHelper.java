@@ -212,18 +212,10 @@ public final class CustomServicesDBHelper {
         // check that the resource is not referenced by other primitives
         if (null != resource && null != oldResourceId && null == checkResourceNotReferenced(dbModel, CustomServicesDBPrimitive.RESOURCE, client,
                 oldResourceId.getURI(), resource)) {
-            // If so, update the associated inventory files, if exist for the DB model with the new parent id.
-            if (null != referencedByresourceType) {
-                List<NamedElement> refResource = listResources(referencedByresourceType, client,
-                        CustomServicesDBResource.PARENTID, oldResourceId.getURI().toString());
-                for (final NamedElement eachResource : refResource) {
-                    CustomServicesDBResource refDBResource = primitiveManager.findResource(referencedByresourceType,
-                            eachResource.getId());
-                    //update the parent id of the inventory resource
-                    refDBResource.setParentId(resource.getId());
-                    client.save(refDBResource);
-                }
-            }
+
+            // Find all the associated inventory files if exist for the old resource and delete the associated inventory files if exist
+            deleteReferencedInventoryResources(oldResourceId.getURI(), primitiveManager, client, referencedByresourceType);
+
             //delete old resource (after updating the inventory, if any exists)
             client.delete(primitiveManager.findResource(resourceType, oldResourceId.getURI()));
         }
@@ -343,6 +335,30 @@ public final class CustomServicesDBHelper {
     }
 
     /**
+     * Delete the inventory files assciated with the resource files
+     *
+     * @param resourceId The resourceId to search for inventory files
+     * @param primitiveManager The database access component
+     * @param client The model client
+     * @param referencedByresourceType The DB component which is the inventory resource to delete
+     */
+    private static void deleteReferencedInventoryResources(final URI resourceId,
+            final CustomServicesPrimitiveManager primitiveManager,
+            final ModelClient client,
+            final Class<? extends CustomServicesDBResource> referencedByresourceType) {
+        if (null != resourceId && null != referencedByresourceType) {
+            final List<NamedElement> refResource = listResources(referencedByresourceType, client,
+                    CustomServicesDBResource.PARENTID, resourceId.toString());
+            for (final NamedElement eachResource : refResource) {
+                final CustomServicesDBResource refDBResource = primitiveManager.findResource(referencedByresourceType,
+                        eachResource.getId());
+                // delete the associated inventory files if exist for the DB model
+                client.delete(refDBResource);
+            }
+        }
+    }
+
+    /**
      * Deactivate primitive with the given ID
      * 
      * @param clazz The database column family class
@@ -372,17 +388,10 @@ public final class CustomServicesDBHelper {
             if (null != resource && null == checkResourceNotReferenced(clazz, CustomServicesDBPrimitive.RESOURCE, client,
                     primitive.getResource().getURI(), resource)) {
 
-                // Find all the associated inventory files if exist for the DB model
-                if (null != referencedByresourceType) {
-                    List<NamedElement> refResource = listResources(referencedByresourceType, client,
-                            CustomServicesDBResource.PARENTID, primitive.getResource().getURI().toString());
-                    for (final NamedElement eachResource : refResource) {
-                        CustomServicesDBResource refDBResource = primitiveManager.findResource(referencedByresourceType,
-                                eachResource.getId());
-                        // delete the associated inventory files if exist for the DB model
-                        client.delete(refDBResource);
-                    }
-                }
+                // Find all the associated inventory files if exist for the DB model and delete the associated inventory files if exist, for
+                // the resource DB model
+                deleteReferencedInventoryResources(primitive.getResource().getURI(), primitiveManager, client, referencedByresourceType);
+
                 // then delete the resource
                 client.delete(resource);
             }
@@ -697,7 +706,7 @@ public final class CustomServicesDBHelper {
             final URI id,
             final String name,
             final byte[] stream,
-            final StringSetMap attributes, final ModelClient client, final Class<? extends CustomServicesDBResource> referencedByResource,
+            final StringSetMap attributes, final URI parentId, final ModelClient client, final Class<? extends CustomServicesDBResource> referencedByResource,
             final String referencedByResourceColumnName,
             final Class<? extends CustomServicesDBPrimitive> referencedByPrimitive, final String referencedByPrimitiveColumnName) {
         final CustomServicesDBResource resource = primitiveManager.findResource(dbModel, id);
@@ -727,6 +736,7 @@ public final class CustomServicesDBHelper {
             }
             resource.setAttributes(attributes);
             resource.setResource(Base64.encodeBase64(stream));
+            resource.setParentId(parentId);
 
             primitiveManager.save(resource);
 
@@ -782,7 +792,7 @@ public final class CustomServicesDBHelper {
             final ModelClient client, final URI resourceId, final T resource) {
 
         List<NamedElement> resourceExistList = Collections.emptyList();
-        BadRequestException resourceReferencedexception = null;
+        final BadRequestException resourceReferencedexception = null;
         if (null != referencedByClazz) {
             resourceExistList = client.findBy(referencedByClazz, referencedByColumnName, resourceId);
             if (null != resourceExistList && !resourceExistList.isEmpty()) {

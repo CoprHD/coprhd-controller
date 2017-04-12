@@ -33,3 +33,11 @@ task catalogBlockProtectionServices(type: JavaExec) {
    systemProperties System.properties
    environment System.getenv()
 }
+
+task catalogVmwareBlockServices(type: JavaExec) {
+   main "org.junit.runner.JUnitCore"
+   args "com.emc.vipr.sanity.CatalogVmwareBlockServicesSanity"
+   classpath = sourceSets.test.runtimeClasspath
+   systemProperties System.properties
+   environment System.getenv()
+}

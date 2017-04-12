@@ -14,6 +14,16 @@ class BlockServicesHelper {
     static def CREATE_BLOCK_VOLUME_FORHOST_SERVICE = "BlockStorageServices/CreateBlockVolumeForAHost"
     static def UNEXPORT_AND_REMOVE_BLOCK_VOLUMES = "BlockStorageServices/UnexportAndRemoveBlockVolumes"
 
+    static def CREATE_VOLUME_AND_DATASTORE_SERVICE = "BlockServicesforVMwarevCenter/CreateVolumeandDatastore"
+
+    static void createVolumeAndDatastoreTest() {
+        println " ## Create Volume and Datastore Test ## "
+        
+        def creationOrder = createVolumeAndDatastore()
+     
+    //    deleteDatastoreAndVolume(creationOrder)
+    }
+
     static void createAndRemoveBlockVolumeForHostTest() {
         println "  ## Create Block Volume for Host Test ## "
 
@@ -142,5 +152,14 @@ class BlockServicesHelper {
         def createdVolumeId = executionInfo.affectedResources[0]
         overrideParameters.volumes = createdVolumeId
         return CatalogServiceHelper.placeOrder(REMOVE_BLOCK_VOLUME_SERVICE, overrideParameters)
+    }
+
+    static def createVolumeAndDatastore() {
+        def overrideParameters = [:]
+        overrideParameters.esxHost = "cluster-1"
+        overrideParameters.name = "create_datastore_volume_test_"+Calendar.instance.time.time
+        overrideParameters.size = "1"
+        overrideParameters.datastoreName = "datastore_"+Calendar.instance.time.time
+        return CatalogServiceHelper.placeOrder(CREATE_VOLUME_AND_DATASTORE_SERVICE, overrideParameters)
     }
 }

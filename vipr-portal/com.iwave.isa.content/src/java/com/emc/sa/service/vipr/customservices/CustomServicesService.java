@@ -422,10 +422,32 @@ public class CustomServicesService extends ViPRService {
         outputPerStep.put(step.getId(), out);
     }
 
-    private void updateViproutput(final Step step, final String res) throws Exception {
+    private void updateViproutput(final Step step, String res) throws Exception {
         logger.info("updateViproutput is called");
         //TODO get the classname from primitive
         final String classname = "TaskList";
+        //TODO Hard code for create volume response
+        res = "{\n"
+                + "  \"task\": [\n"
+                + "    {\n"
+                + "      \"resource\": {\n"
+                + "        \"name\": \"volume5678\",\n"
+                + "        \"id\": \"urn:storageos:Volume:08a68c03-ec03-4c43-be6b-d69d8d10f3cb:\",\n"
+                + "        \"link\": {\n"
+                + "          \"rel\": \"self\",\n"
+                + "          \"href\": \"/block/volumes/urn:storageos:Volume:08a68c03-ec03-4c43-be6b-d69d8d10f3cb:\"\n"
+                + "        }\n"
+                + "      },\n"
+                + "      \"state\": \"pending\",\n"
+                + "      \"start_time\": 1380042421406,\n"
+                + "      \"op_id\": \"3e97cf33-cf9f-4b06-914a-c9286d34bcb7\",\n"
+                + "      \"link\": {\n"
+                + "        \"rel\": \"self\",\n"
+                + "        \"href\": \"/block/volumes/urn:storageos:Volume:08a68c03-ec03-4c43-be6b-d69d8d10f3cb:/tasks/3e97cf33-cf9f-4b06-914a-c9286d34bcb7\"\n"
+                + "      }\n"
+                + "    }\n"
+                + "  ]\n"
+                + "}";
         final ObjectMapper MAPPER = new ObjectMapper();
         final Class<?> clazz = Class.forName(classname);
         final Object taskList = MAPPER.readValue(res, clazz);
@@ -452,13 +474,13 @@ public class CustomServicesService extends ViPRService {
         stepout2.setName("tasks.@task.resource.name");
         CustomServicesWorkflowDocument.Output stepout3 = new CustomServicesWorkflowDocument.Output();
         stepout3.setName("tasks.@task.resource.id");
-        CustomServicesWorkflowDocument.Output stepout4 = new CustomServicesWorkflowDocument.Output();
-        stepout4.setName("tasks.@task.associated_resources.@associated_resource.name");
+        //CustomServicesWorkflowDocument.Output stepout4 = new CustomServicesWorkflowDocument.Output();
+        //stepout4.setName("tasks.@task.associated_resources.@associated_resource.name");
 
         stepOut.add(stepout1);
         stepOut.add(stepout2);
         stepOut.add(stepout3);
-        stepOut.add(stepout4);
+        //stepOut.add(stepout4);
 
         for (final CustomServicesWorkflowDocument.Output out : stepOut) {
             final String outName = out.getName();

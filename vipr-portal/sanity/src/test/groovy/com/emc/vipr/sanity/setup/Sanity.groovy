@@ -28,11 +28,23 @@ class Sanity {
         setup()
         VNXSetup.setupSimulator()
         JUnitCore junit = new JUnitCore()
-        String catalogTest = System.getenv("catalogTest")
-        if (catalogTest.isEmpty() || catalogTest.equalsIgnoreCase("block")) {
-            junit.run(com.emc.vipr.sanity.CatalogBlockServicesSanity)
-        } else {
-            println "Not running any tests. Parameter = " + catalogTest
+        String catalogTest = System.getenv("CatalogTest")
+        switch (catalogTest) {
+            case "catalog":
+                junit.main(com.emc.vipr.sanity.CatalogAPISanity)
+                break
+            case "block":
+                junit.main(com.emc.vipr.sanity.CatalogBlockServicesSanity)
+                break
+            case "protection":
+                junit.main(com.emc.vipr.sanity.CatalogBlockProtectionServicesSanity)
+            case "vmware":
+                VCenterSetup.setup()
+                junit.main(com.emc.vipr.sanity.CatalogVmwareBlockServicesSanity)
+                break
+            default:
+                println "Not running any tests. Parameter = " + catalogTest
+                break
         }
     }
 

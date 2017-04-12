@@ -4824,6 +4824,7 @@ boolean.false=False
 rule.security=Security
 rule.anon=Root User Mapping
 rule.subDir=Sub Directory
+rule.bypassDnsCheck=Bypass DNS Check
 
 shareACL.permission=Permission
 shareACL.name=Name

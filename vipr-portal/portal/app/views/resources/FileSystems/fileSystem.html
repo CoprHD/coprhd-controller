@@ -121,6 +121,11 @@
                     <input-text></input-text>
                 </control-group>
            </div>
+            <div class="row">
+               <control-group v-field="rule.bypassDnsCheck">
+                    <boolean-checkbox v-default-value="false"></boolean-checkbox>
+            </control-group>
+           </div>
            <div class="row" style="padding-top:20px; padding-bottom:0px;">
                 <div class="pull-left col-sm-6" style="text-align:center;"><strong>&{'resources.filesystem.export.endpoints'}</strong></div>
                 <div class="pull-left col-sm-5" style="text-align:center;"><strong>&{'resources.filesystem.export.permission'}</strong></div>
@@ -146,6 +151,7 @@
              <input type="hidden" name="ro" ng-value="ro"/>
              <input type="hidden" name="rw" ng-value="rw"/>
              <input type="hidden" name="root" ng-value="root"/>
+             <input type="hidden" name="bypassDnsCheck" ng-value="rule.bypassDnsCheck"/>
              <div class="row">
                #{Modal.buttonBar}
                  <button type="submit" style="margin-left:45px;" class="btn btn-primary"><i v-icon=ok-sign></i> &{'button.save'}</button>

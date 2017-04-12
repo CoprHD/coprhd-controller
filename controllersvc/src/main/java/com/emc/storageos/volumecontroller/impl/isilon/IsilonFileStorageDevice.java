@@ -449,6 +449,28 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
 
     }
 
+
+    private void isiUpdateQuotaDirs(IsilonApi isi, FileDeviceInputOutput args) throws IsilonException {
+        long qDirSize = args.getNewFSCapacity();
+
+        List<URI> quotaDirURIList = _dbClient
+                .queryByConstraint(ContainmentConstraint.Factory.getQuotaDirectoryConstraint(args.getFsId()));
+
+        QuotaDirectory quotaDir = null;
+        for (URI quotaDirURI : quotaDirURIList) {
+            quotaDir = _dbClient.queryObject(QuotaDirectory.class, quotaDirURI);
+            String quotaId = null;
+            if (quotaDir.getExtensions() != null) {
+                quotaId = quotaDir.getExtensions().get(QUOTA);
+            }
+            if (quotaId != null) {
+                _log.info("IsilonFileStorageDevice doUpdateQuotaDirectory , Update Quota {} with Capacity {}", quotaId, qDirSize);
+                IsilonSmartQuota expandedQuota = getQuotaDirectoryExpandedSmartQuota(quotaDir, qDirSize, args.getFsCapacity(), isi);
+                isi.modifyQuota(quotaId, expandedQuota);
+            }
+        }
+    }
+
     /**
      * Create/modify Isilon SMB share.
      * 
@@ -845,19 +867,29 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         }
     }
 
+    private void isiExpandQuota(IsilonApi isi, String quotaId, FileDeviceInputOutput args) throws ControllerException, IsilonException {
+        Long capacity = args.getNewFSCapacity();
+        IsilonSmartQuota quota = isi.getQuota(quotaId);
+        IsilonSmartQuota expandedQuota = getExpandedQuota(isi, args, capacity);
+        isi.modifyQuota(quotaId, expandedQuota);
+    }
+
+
     private void isiExpandFS(IsilonApi isi, String quotaId, FileDeviceInputOutput args) throws ControllerException, IsilonException {
 
         // get quota from Isilon and check that requested capacity is larger than the current capacity
         Long capacity = args.getNewFSCapacity();
-
         IsilonSmartQuota quota = isi.getQuota(quotaId);
         Long hard = quota.getThresholds().getHard();
         if (capacity.compareTo(hard) < 0) {
+
             String msg = String
                     .format(
                             "In expanding Isilon FS requested capacity is less than current capacity of file system. Path: %s, current capacity: %d",
                             quota.getPath(), quota.getThresholds().getHard());
             _log.info(msg);
+            isiUpdateQuotaDirs(isi, args);
+
 //            _log.error(msg);
 //            throw IsilonException.exceptions.expandFsFailedinvalidParameters(quota.getPath(),
 //                    quota.getThresholds().getHard());
@@ -1379,6 +1411,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                 // Isilon does not allow to update quota directory to zero.
                 if (qDirSize > 0) {
                     _log.info("IsilonFileStorageDevice doUpdateQuotaDirectory , Update Quota {} with Capacity {}", quotaId, qDirSize);
+
                     IsilonSmartQuota expandedQuota = getQuotaDirectoryExpandedSmartQuota(quotaDir, qDirSize, args.getFsCapacity(), isi);
                     isi.modifyQuota(quotaId, expandedQuota);
                 }

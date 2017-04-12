@@ -1230,6 +1230,13 @@ public class FileService extends TaskResourceService {
             throw APIException.badRequests.invalidParameterBelowMinimum("new_size", newFSsize, fs.getCapacity() + MIN_EXPAND_SIZE, "bytes");
         }
 
+        //To shrink the new capacity of size should be greater than used capacity of fileshare.
+        if(device.deviceIsType(DiscoveredDataObject.Type.isilon) && expand < MIN_EXPAND_SIZE ){
+            if( newFSsize > fs.getUsedCapacity()) {
+                throw APIException.badRequests.invalidParameterBelowMinimum("new_size", newFSsize, fs.getUsedCapacity() + MIN_EXPAND_SIZE, "bytes");
+            }
+        }
+
         Project project = _dbClient.queryObject(Project.class, fs.getProject().getURI());
         TenantOrg tenant = _dbClient.queryObject(TenantOrg.class, fs.getTenant().getURI());
         VirtualPool vpool = _dbClient.queryObject(VirtualPool.class, fs.getVirtualPool());

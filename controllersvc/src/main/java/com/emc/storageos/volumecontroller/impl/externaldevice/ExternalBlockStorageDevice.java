@@ -1845,7 +1845,7 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice implem
                     systemReplicationPairs.get(i).setReplicationState(driverRRPairs.get(i).getReplicationState());
                     systemReplicationPairs.get(i).setReplicationDirection(driverRRPairs.get(i).getReplicationDirection());
                 }
-                dbClient.updateObject(systemReplicationPairs);
+                dbClient.createObject(systemReplicationPairs);
 //                try {
 //                    throw new Exception("Injected error");
 //                } catch (InterruptedException e) {
@@ -1893,7 +1893,7 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice implem
                     systemReplicationPairs.get(i).setReplicationState(driverRRPairs.get(i).getReplicationState());
                     systemReplicationPairs.get(i).setReplicationDirection(driverRRPairs.get(i).getReplicationDirection());
                 }
-                dbClient.updateObject(systemReplicationPairs);
+                dbClient.createObject(systemReplicationPairs);
 //                try {
 //                    throw new Exception("Injected error");
 //                } catch (InterruptedException e) {

@@ -15,26 +15,14 @@ import com.emc.sa.asset.BaseAssetOptionsProvider;
 import com.emc.sa.asset.annotation.Asset;
 import com.emc.sa.asset.annotation.AssetDependencies;
 import com.emc.sa.asset.annotation.AssetNamespace;
+import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.remotereplication.RemoteReplicationSetRestRep;
-import com.emc.storageos.model.vpool.BlockVirtualPoolRestRep;
+import com.emc.vipr.client.core.RemoteReplicationSets;
 import com.emc.vipr.model.catalog.AssetOption;
 
 @Component
 @AssetNamespace("vipr")
 public class RemoteReplicationProvider extends BaseAssetOptionsProvider {
-
-    @Asset("remoteReplicationSet")
-    @AssetDependencies({ "project", "blockVirtualPool" })
-    public List<AssetOption> getRemoteReplicationSets(AssetOptionsContext ctx, URI projectId, URI virtualPoolId) {
-        BlockVirtualPoolRestRep vpool = api(ctx).blockVpools().get(virtualPoolId);
-
-        // Only provide remote Replication Sets if the selected VPool supports it
-        if (isSupportedVPool(vpool)) {
-            return createNamedResourceOptions(api(ctx).remoteReplicationSets().listRemoteReplicationSets().getRemoteReplicationSets());
-        } else {
-            return Collections.emptyList();
-        }
-    }
 
     @Asset("remoteReplicationMode")
     @AssetDependencies({ "project", "remoteReplicationSet" })
@@ -51,22 +39,25 @@ public class RemoteReplicationProvider extends BaseAssetOptionsProvider {
     }
 
     @Asset("remoteReplicationGroup")
-    @AssetDependencies({ "project", "remoteReplicationSet" })
-    public List<AssetOption> getRemoteReplicationGroups(AssetOptionsContext ctx, URI projectId, URI remoteReplicationSetID) {
+    @AssetDependencies({ "blockVirtualArray", "blockVirtualPool" })
+    public List<AssetOption> getRemoteReplicationGroups(AssetOptionsContext ctx,
+            URI virtualArrayId, URI virtualPoolId) throws Exception {
+        RemoteReplicationSets setsForPoolVarray = api(ctx).remoteReplicationSets();
 
-        // Only provide remote Replication groups if the if user selected a  Set supports .
-        RemoteReplicationSetRestRep remoteReplicationSet = api(ctx).remoteReplicationSets().getRemoteReplicationSetsRestRep(
-                remoteReplicationSetID.toString());
-        if (remoteReplicationSet != null) {
-            return createNamedResourceOptions(api(ctx).remoteReplicationGroups().listRemoteReplicationGroups().getRemoteReplicationGroups());
-        } else {
+        List<NamedRelatedResourceRep> rrSets = setsForPoolVarray.
+                listRemoteReplicationSets(virtualArrayId,virtualPoolId).getRemoteReplicationSets();
+
+        if ((rrSets == null) || rrSets.isEmpty()) {
             return Collections.emptyList();
         }
+
+        if (rrSets.size() > 1) {
+            throw new IllegalStateException("Invalid number of RemoteReplicationSets (" + rrSets.size() +
+                    ") found for VirtualArray (" + virtualArrayId + ") and VirtualPool (" + virtualPoolId +
+                    ")  RemoteReplicationSets found were: " + rrSets);
+        }
+
+        return createNamedResourceOptions(setsForPoolVarray.
+                getGroupsForSet(rrSets.get(0).getId()).getRemoteReplicationGroups());
     }
-
-
-    private boolean isSupportedVPool(BlockVirtualPoolRestRep vpool) {
-        return vpool != null && vpool.getProtection().getRemoteReplicationParam() != null;
-    }
-
 }

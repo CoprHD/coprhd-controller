@@ -4,6 +4,8 @@
  */
 package com.emc.vipr.client.core;
 
+import java.net.URI;
+import com.emc.storageos.model.remotereplication.RemoteReplicationGroupList;
 import com.emc.storageos.model.remotereplication.RemoteReplicationGroupRestRep;
 import com.emc.storageos.model.remotereplication.RemoteReplicationSetList;
 import com.emc.storageos.model.remotereplication.RemoteReplicationSetRestRep;
@@ -26,7 +28,8 @@ public class RemoteReplicationSets {
 	}
 
 	public RemoteReplicationSetRestRep getRemoteReplicationSetsRestRep(String uuid) {
-        return client.get(RemoteReplicationSetRestRep.class, PathConstants.BLOCK_REMOTE_REPLICATION_SET_URL + "/" + uuid);
+        return client.get(RemoteReplicationSetRestRep.class,
+                PathConstants.BLOCK_REMOTE_REPLICATION_SET_URL + "/" + uuid);
 	}
 
     public RemoteReplicationSetList listRemoteReplicationSets() {
@@ -34,4 +37,14 @@ public class RemoteReplicationSets {
                 PathConstants.BLOCK_REMOTE_REPLICATION_SET_URL);
 	}
 
+    public RemoteReplicationSetList listRemoteReplicationSets(URI varray, URI vpool) {
+        return client.get(RemoteReplicationSetList.class,
+                PathConstants.BLOCK_REMOTE_REPLICATION_SET_URL +
+                "/varray/" + varray + "/vpool/" + vpool);
+    }
+
+    public RemoteReplicationGroupList getGroupsForSet(URI setId) {
+        return client.get(RemoteReplicationGroupList.class,
+                PathConstants.BLOCK_REMOTE_REPLICATION_SET_URL + "/" + setId + "/groups");
+    }
 }

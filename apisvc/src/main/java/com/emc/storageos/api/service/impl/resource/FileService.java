@@ -875,9 +875,10 @@ public class FileService extends TaskResourceService {
 
         _log.info(String.format(
                 "FileShareExport --- FileShare id: %1$s, Clients: %2$s, StoragePort: %3$s, SecurityType: %4$s, " +
-                        "Permissions: %5$s, Root user mapping: %6$s, Protocol: %7$s, path: %8$s, mountPath: %9$s, SubDirectory: %10$s",
+                        "Permissions: %5$s, Root user mapping: %6$s, Protocol: %7$s, path: %8$s, mountPath: %9$s, SubDirectory: %10$s ,byPassDnsCheck: %11$s",
                 id, export.getClients(), sport.getPortName(), export.getSecurityType(), export.getPermissions(),
-                export.getRootUserMapping(), export.getProtocol(), export.getPath(), export.getMountPath(), export.getSubDirectory()));
+                export.getRootUserMapping(), export.getProtocol(), export.getPath(), export.getMountPath(), export.getSubDirectory(),
+                export.getBypassDnsCheck()));
 
         Operation op = _dbClient.createTaskOpStatus(FileShare.class, fs.getId(),
                 task, ResourceOperationTypeEnum.EXPORT_FILE_SYSTEM);

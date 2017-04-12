@@ -1,0 +1,61 @@
+#!/usr/bin/python
+#
+# Copyright (c) 2015 EMC Corporation
+# All Rights Reserved
+#
+
+import argparse
+import sys
+import os
+import time
+from bourne import Bourne
+
+#----------------------------------------------------------------------
+# remotereplicationpair functions
+#----------------------------------------------------------------------
+
+# list pairs
+def remotereplicationpair_list(args):
+    bourne.connect(args.ip)
+    pairs = bourne.replicationpair_list()
+    for pair in pairs:
+        print pair
+
+#----------------------------------------------------------------------
+# command-line parsing
+#----------------------------------------------------------------------
+
+try:
+    bourne_ip = os.environ['BOURNE_IPADDR']
+except:
+    bourne_ip = 'localhost'
+
+# remotereplicationpair cmd cmd_args [--ip ipaddr]
+parser = argparse.ArgumentParser(description = 'Bourne remotereplication pair cli usage.')
+parser.add_argument('cmd', help = 'cmd = (create )')
+parser.add_argument('--ip',	metavar = 'ipaddr',	help = 'IP address of bourne', default=bourne_ip)
+
+# remote replication pair list
+list = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+
+#----------------------------------------------------------------------
+# Main script
+#----------------------------------------------------------------------
+
+try:
+
+    if (len(sys.argv) > 1):
+        cmd = sys.argv[1]
+    else:
+        cmd = None
+
+    bourne = Bourne()
+
+    if (cmd == "list"):
+        args = list.parse_args()
+        remotereplicationpair_list(args)
+    else:
+        parser.print_help()
+
+except:
+    raise

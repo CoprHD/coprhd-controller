@@ -18,6 +18,7 @@ import com.emc.sa.asset.annotation.AssetDependencies;
 import com.emc.sa.asset.annotation.AssetNamespace;
 import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.remotereplication.RemoteReplicationGroupRestRep;
+import com.emc.storageos.model.vpool.BlockVirtualPoolRestRep;
 import com.emc.vipr.client.core.RemoteReplicationSets;
 import com.emc.vipr.model.catalog.AssetOption;
 
@@ -43,6 +44,11 @@ public class RemoteReplicationProvider extends BaseAssetOptionsProvider {
     public List<AssetOption> getRemoteReplicationGroups(AssetOptionsContext ctx,
             URI virtualArrayId, URI virtualPoolId) throws Exception {
         RemoteReplicationSets setsForPoolVarray = api(ctx).remoteReplicationSets();
+
+        BlockVirtualPoolRestRep vpool = api(ctx).blockVpools().get(virtualPoolId);
+        if ((vpool == null) || (vpool.getProtection().getRemoteReplicationParam() == null)) {
+            return Collections.emptyList();
+        }
 
         List<NamedRelatedResourceRep> rrSets = setsForPoolVarray.
                 listRemoteReplicationSets(virtualArrayId,virtualPoolId).getRemoteReplicationSets();

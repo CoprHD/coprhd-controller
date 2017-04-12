@@ -18,6 +18,9 @@
 package com.emc.sa.service.vipr.customservices;
 
 import java.io.File;
+import java.io.IOException;
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -26,8 +29,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import com.emc.storageos.model.DataObjectRestRep;
+import com.emc.storageos.model.TaskList;
+import com.emc.storageos.model.TaskResourceRep;
 import org.apache.commons.lang.StringUtils;
 import org.codehaus.jackson.JsonNode;
+import org.codehaus.jackson.JsonParseException;
+import org.codehaus.jackson.map.JsonMappingException;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -60,6 +68,8 @@ import com.emc.storageos.services.util.Exec;
 import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorException;
 import com.google.common.collect.ImmutableMap;
 import com.google.gson.Gson;
+
+import javax.xml.bind.annotation.XmlElement;
 
 @Service("CustomServicesService")
 public class CustomServicesService extends ViPRService {
@@ -395,6 +405,7 @@ public class CustomServicesService extends ViPRService {
                 }
 
             } else {
+                updateViproutput(step, res.getOut());
 
                 // TODO: Remove this after parsing output is fully implemented
                 // out.put(o.getName(), evaluateValue(result, o.getName()));
@@ -406,6 +417,105 @@ public class CustomServicesService extends ViPRService {
         out.put(CustomServicesConstants.OPERATION_ERROR, Arrays.asList(res.getErr()));
         out.put(CustomServicesConstants.OPERATION_RETURNCODE, Arrays.asList(String.valueOf(res.getReturnCode())));
         outputPerStep.put(step.getId(), out);
+    }
+
+    private void updateViproutput(final Step step, final String res) throws Exception {
+        logger.info("updateViproutput is called");
+        //TODO get the classname from primitive
+        final String classname = "TaskList";
+        final ObjectMapper MAPPER = new ObjectMapper();
+        final Class<?> clazz = Class.forName(classname);
+        final Object taskList = MAPPER.readValue(res, clazz);
+
+        if (taskList instanceof TaskList) {
+            logger.info("it is an instance for TaskList");
+            updateViprTaskoutput((TaskList) taskList, step);
+            logger.info("done with updateViprTaskoutput");
+        } else {
+            DataObjectRestRep obj = (DataObjectRestRep)taskList;
+            Method m = findMethod("name", taskList.getClass().getMethods());
+            m.invoke(this, null);
+        }
+    }
+    private void updateViprTaskoutput(final TaskList taskList, final Step step) throws Exception {
+        logger.info("in updateViprTaskoutput");
+        final List<CustomServicesWorkflowDocument.Output> stepOut = step.getOutput();
+        for (final CustomServicesWorkflowDocument.Output out : stepOut) {
+            final String outName = out.getName();
+            logger.info("output name is :{}", outName);
+
+            final List<TaskResourceRep> taskResourceReps = taskList.getTaskList();
+            for (final TaskResourceRep task : taskResourceReps) {
+                if (outName.contains(".resource")) {
+                    logger.info("it is of resource type");
+                    //tasks.@task.resource.resource.id
+                    final Method method = findMethod("id", task.getResource().getClass().getMethods());
+                    if (method == null) {
+                        logger.info("method is null");
+                    } else {
+                        logger.info("invoke the method");
+                        Object out1 = method.invoke(task.getResource(), null);
+                        logger.info("output value in resource:{}", out1);
+                    }
+                    break;
+                }
+
+                if (outName.contains(".associated_resources")) {
+                    logger.info("it is of associated_resources type");
+                    final Method method = findMethod("name", task.getAssociatedResources().getClass().getMethods());
+
+                    if (method == null) {
+                        logger.info("method is null");
+                    } else {
+                        logger.info("invoke the method");
+
+                        Object out1 = method.invoke(task.getAssociatedResources(), null);
+                        logger.info("output value in associated_resource:{}", out1);
+                    }
+                    break;
+                }
+
+                //TODO parse str
+                final String str = "state";
+                final Method method = findMethod("state", task.getClass().getMethods());
+                Object out1 = method.invoke(task, null);
+                logger.info("output value else:{}", out1);
+            }
+            //TODO parse the name tasks.@task.op_id, tasks.@task.resource.resource.id, tasks.@task.associated_resources.@associated_resource.associated_resources.@associated_resource.name
+        }
+
+
+        /*Field fieldList[] = taskList.getClass().getDeclaredFields();
+        for (int i=0; i<fieldList.length; i++) {
+            fieldList[0].getType().isPrimitive();
+            Method[] methods = taskList.getClass().getDeclaredMethods();
+            if (methods[0].isAnnotationPresent(XmlElement.class)) {
+                XmlElement xyz = methods[0].getAnnotation(XmlElement.class);
+                if (xyz.name().equals("op_id")) {
+                    methods[0].invoke(this, null);
+                }
+            }
+        }*/
+    }
+    private Method findMethod(final String str, final Method[] methods) {
+        logger.info("in findMethod");
+        for (Method method : methods) {
+            XmlElement elem = method.getAnnotation(XmlElement.class);
+            logger.info("elem name:{}", elem.name());
+            if (elem.name().equals(str)) {
+                logger.info("name matched elem:{} str:{}", elem.name(), str);
+                return method;
+            }
+        }
+        logger.info("didnt match in xml. str:{}", str);
+        for (Method method : methods) {
+            final String methodName = "get"+str;
+            if (method.getName().equals(methodName)) {
+                return method;
+            }
+        }
+
+        return null;
     }
 
     private boolean isAnsible(final Step step) {

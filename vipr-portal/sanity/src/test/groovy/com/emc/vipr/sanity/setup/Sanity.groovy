@@ -26,17 +26,17 @@ class Sanity {
     static ViPRPortalClient portal
     static ViPRSystemClient sys
 
-    static Class catalogTests = com.emc.vipr.sanity.CatalogAPISanity
-    static Class blockTests = com.emc.vipr.sanity.CatalogBlockServicesSanity
-    static Class protectionTests = com.emc.vipr.sanity.CatalogBlockProtectionServicesSanity
-    static Class vmwareTests = com.emc.vipr.sanity.CatalogVmwareBlockServicesSanity
+    static Class catalogTests = com.emc.vipr.sanity.CatalogAPISanity.class
+    static Class blockTests = com.emc.vipr.sanity.CatalogBlockServicesSanity.class
+    static Class protectionTests = com.emc.vipr.sanity.CatalogBlockProtectionServicesSanity.class
+    static Class vmwareTests = com.emc.vipr.sanity.CatalogVmwareBlockServicesSanity.class
 
-    static List<Class> allTests = [
+    static allTests = [
         catalogTests,
         blockTests,
         protectionTests,
         vmwareTests
-    ]
+    ] as Class[]
 
     public static void main(String[] args) {
         setup()

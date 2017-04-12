@@ -13,7 +13,7 @@ class AssetOptionServiceHelper {
 
     private static final String AO_PROJECT = "vipr.project"
     private static final String AO_TARGET_VIRTUAL_POOL = "vipr.targetVirtualPool"
-    private static final String AO_BLOCK_VOLUME = "vipr.blockVolume"
+    private static final String AO_SOURCE_BLOCK_VOLUME = "vipr.sourceBlockVolume"
     private static final String AO_VIRTUAL_POOL_CHANGE_OPERATION = "vipr.virtualPoolChangeOperation";
     private static final String AO_INVALID = "invalid.rainbow.dash"
 
@@ -34,7 +34,7 @@ class AssetOptionServiceHelper {
         assertTrue("Zeror asset options are returned for " + AO_INVALID, invalidAssetOptions.size() == 0)
 
         Set availableAssetTypes = [
-            AO_BLOCK_VOLUME,
+            AO_SOURCE_BLOCK_VOLUME,
             AO_VIRTUAL_POOL_CHANGE_OPERATION,
             AO_PROJECT] as Set
 

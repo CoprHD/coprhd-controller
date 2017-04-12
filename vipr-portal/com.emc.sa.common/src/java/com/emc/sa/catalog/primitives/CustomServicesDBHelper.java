@@ -717,6 +717,12 @@ public final class CustomServicesDBHelper {
         if (null != name) {
             resource.setLabel(name);
         }
+
+        if (null != parentId) {
+            resource.setParentId(parentId);
+        }
+
+
         if (null != attributes || null != stream) {
             BadRequestException resourceReferencedexception = checkResourceNotReferenced(referencedByPrimitive,
                     referencedByPrimitiveColumnName,
@@ -736,7 +742,6 @@ public final class CustomServicesDBHelper {
             }
             resource.setAttributes(attributes);
             resource.setResource(Base64.encodeBase64(stream));
-            resource.setParentId(parentId);
 
             primitiveManager.save(resource);
 

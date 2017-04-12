@@ -2,6 +2,7 @@ package com.emc.vipr.sanity.setup
 
 import org.apache.commons.collections.ExtendedProperties
 import org.junit.runner.JUnitCore
+import org.junit.runner.Result
 
 import com.emc.vipr.client.AuthClient
 import com.emc.vipr.client.ClientConfig
@@ -29,22 +30,27 @@ class Sanity {
         VNXSetup.setupSimulator()
         JUnitCore junit = new JUnitCore()
         String catalogTest = System.getenv("CatalogTest")
+        Result result = null
         switch (catalogTest) {
             case "catalog":
-                junit.main(com.emc.vipr.sanity.CatalogAPISanity)
+                result = junit.run(com.emc.vipr.sanity.CatalogAPISanity)
                 break
             case "block":
-                junit.main(com.emc.vipr.sanity.CatalogBlockServicesSanity)
+                result = junit.run(com.emc.vipr.sanity.CatalogBlockServicesSanity)
                 break
             case "protection":
-                junit.main(com.emc.vipr.sanity.CatalogBlockProtectionServicesSanity)
+                result = junit.run(com.emc.vipr.sanity.CatalogBlockProtectionServicesSanity)
             case "vmware":
                 VCenterSetup.setup()
-                junit.main(com.emc.vipr.sanity.CatalogVmwareBlockServicesSanity)
+                result = junit.run(com.emc.vipr.sanity.CatalogVmwareBlockServicesSanity)
                 break
             default:
                 println "Not running any tests. Parameter = " + catalogTest
                 break
+        }
+
+        if (result != null && result.failureCount > 0) {
+            System.exit(1);
         }
     }
 

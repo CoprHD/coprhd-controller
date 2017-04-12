@@ -17,10 +17,10 @@ class VMAXSetup {
     static final String VMAX_PROVIDER_NAME = "VMAX-PROVIDER"
     static final String VMAXBLOCK_VPOOL = "vmaxpool"
 
-    static def vnxBlockVpoolId
+    static def vmaxBlockVpoolId
 
     static void setupSimulator() {
-        println "Setting up VNX Block simulators"
+        println "Setting up VMAX Block simulators"
         if (client.storageProviders().search().byExactName(VMAX_PROVIDER_NAME).first()) {
             return
         }
@@ -59,8 +59,8 @@ class VMAXSetup {
     }
 
     static void setupVpool() {
-        println "Setting up VNX Block Vpools"
-        vnxBlockVpoolId = client.blockVpools().create(new BlockVirtualPoolParam(
+        println "Setting up VMAX Block Vpools"
+        vmaxBlockVpoolId = client.blockVpools().create(new BlockVirtualPoolParam(
                 name: VMAXBLOCK_VPOOL,
                 description: VMAXBLOCK_VPOOL,
                 protocols: ['FC'],
@@ -74,7 +74,7 @@ class VMAXSetup {
     }
 
     static void updateAcls() {
-        client.blockVpools().updateACLs(vnxBlockVpoolId, new ACLAssignmentChanges(
+        client.blockVpools().updateACLs(vmaxBlockVpoolId, new ACLAssignmentChanges(
                 add: [
                     new ACLEntry(tenant: client.getUserTenantId(), aces: ["USE"])
                 ]

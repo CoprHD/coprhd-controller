@@ -9,20 +9,20 @@ import com.emc.storageos.model.vpool.BlockVirtualPoolParam
 import com.emc.storageos.model.vpool.BlockVirtualPoolProtectionParam
 import com.emc.storageos.model.vpool.VirtualPoolProtectionSnapshotsParam
 
-class VNXSetup {
-    static final String VNX_PROVIDER_NAME = "VNX-PROVIDER"
-    static final String VNXBLOCK_VPOOL = "cosvnxb"
+class VMAXSetup {
+    static final String VMAX_PROVIDER_NAME = "VMAX-PROVIDER"
+    static final String VMAXBLOCK_VPOOL = "vmaxpool"
 
     static def vnxBlockVpoolId
 
     static void setupSimulator() {
         println "Setting up VNX Block simulators"
-        if (client.storageProviders().search().byExactName(VNX_PROVIDER_NAME).first()) {
+        if (client.storageProviders().search().byExactName(VMAX_PROVIDER_NAME).first()) {
             return
         }
 
         client.storageProviders().create(new StorageProviderCreateParam(
-                name: VNX_PROVIDER_NAME,
+                name: VMAX_PROVIDER_NAME,
                 ipAddress: System.getenv("SIMULATOR_SMIS_IP"),
                 portNumber: 7009,
                 userName: System.getenv("HW_SIMULATOR_DEFAULT_USER"),
@@ -57,8 +57,8 @@ class VNXSetup {
     static void setupVpool() {
         println "Setting up VNX Block Vpools"
         vnxBlockVpoolId = client.blockVpools().create(new BlockVirtualPoolParam(
-                name: VNXBLOCK_VPOOL,
-                description: VNXBLOCK_VPOOL,
+                name: VMAXBLOCK_VPOOL,
+                description: VMAXBLOCK_VPOOL,
                 protocols: ['FC'],
                 numPaths: 2,
                 protection: new BlockVirtualPoolProtectionParam(snapshots: new VirtualPoolProtectionSnapshotsParam(10)),

@@ -15,7 +15,7 @@ import com.emc.vipr.sanity.setup.ProjectSetup;
 import com.emc.vipr.sanity.setup.SecuritySetup;
 import com.emc.vipr.sanity.setup.SystemSetup;
 import com.emc.vipr.sanity.setup.VCenterSetup;
-import com.emc.vipr.sanity.setup.VNXSetup;
+import com.emc.vipr.sanity.setup.VMAXSetup;
 import com.emc.vipr.sanity.setup.VirtualArraySetup;
 
 
@@ -84,7 +84,7 @@ class Sanity {
         ProjectSetup.setup()
         VirtualArraySetup.updateAcls(client.userTenantId)
         HostSetup.setup()
-        VNXSetup.setupSimulator()
+        VMAXSetup.setupSimulator()
         VCenterSetup.setup()
     }
 

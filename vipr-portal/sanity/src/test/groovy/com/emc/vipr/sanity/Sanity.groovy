@@ -1,3 +1,7 @@
+/*
+ * Copyright (c) 2017 Dell EMC Corporation
+ * All Rights Reserved
+ */
 package com.emc.vipr.sanity
 
 import org.apache.commons.collections.ExtendedProperties
@@ -10,13 +14,13 @@ import com.emc.vipr.client.ViPRCatalogClient2
 import com.emc.vipr.client.ViPRCoreClient
 import com.emc.vipr.client.ViPRPortalClient
 import com.emc.vipr.client.ViPRSystemClient
-import com.emc.vipr.sanity.setup.HostSetup;
-import com.emc.vipr.sanity.setup.ProjectSetup;
-import com.emc.vipr.sanity.setup.SecuritySetup;
-import com.emc.vipr.sanity.setup.SystemSetup;
-import com.emc.vipr.sanity.setup.VCenterSetup;
-import com.emc.vipr.sanity.setup.VMAXSetup;
-import com.emc.vipr.sanity.setup.VirtualArraySetup;
+import com.emc.vipr.sanity.setup.HostSetup
+import com.emc.vipr.sanity.setup.ProjectSetup
+import com.emc.vipr.sanity.setup.SecuritySetup
+import com.emc.vipr.sanity.setup.SystemSetup
+import com.emc.vipr.sanity.setup.VCenterSetup
+import com.emc.vipr.sanity.setup.VMAXSetup
+import com.emc.vipr.sanity.setup.VirtualArraySetup
 
 
 class Sanity {

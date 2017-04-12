@@ -14,6 +14,10 @@ import com.emc.vipr.sanity.catalog.ServiceDescriptorServiceHelper
 import com.emc.vipr.sanity.catalog.UserPreferencesServiceHelper
 
 
+/*
+ * Copyright (c) 2017 Dell EMC Corporation
+ * All Rights Reserved
+ */
 public class CatalogAPISanity {
 
     @Test void catalogCategoryTest() {

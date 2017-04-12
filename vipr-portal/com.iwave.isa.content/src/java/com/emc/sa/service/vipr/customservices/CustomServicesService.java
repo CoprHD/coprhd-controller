@@ -30,6 +30,7 @@ import java.util.Map;
 import java.util.Set;
 
 import com.emc.storageos.model.DataObjectRestRep;
+import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.TaskResourceRep;
 import org.apache.commons.lang.StringUtils;
@@ -392,6 +393,10 @@ public class CustomServicesService extends ViPRService {
         final String result = res.getOut();
         final Map<String, List<String>> out = new HashMap<String, List<String>>();
 
+        if (step.getType().equals(CustomServicesConstants.VIPR_PRIMITIVE_TYPE) ) {
+            logger.info("call updateViproutput");
+            updateViproutput(step, res.getOut());
+        }
         for (final CustomServicesWorkflowDocument.Output o : output) {
             if (isAnsible(step)) {
                 out.put(o.getName(), evaluateAnsibleOut(result, o.getName()));
@@ -405,8 +410,6 @@ public class CustomServicesService extends ViPRService {
                 }
 
             } else {
-                updateViproutput(step, res.getOut());
-
                 // TODO: Remove this after parsing output is fully implemented
                 // out.put(o.getName(), evaluateValue(result, o.getName()));
                 return;
@@ -440,16 +443,38 @@ public class CustomServicesService extends ViPRService {
     private void updateViprTaskoutput(final TaskList taskList, final Step step) throws Exception {
         logger.info("in updateViprTaskoutput");
         final List<CustomServicesWorkflowDocument.Output> stepOut = step.getOutput();
+
+        //TODO remove this after primitive code is ready
+
+        CustomServicesWorkflowDocument.Output stepout1 = new CustomServicesWorkflowDocument.Output();
+        stepout1.setName("tasks.@task.op_id");
+        CustomServicesWorkflowDocument.Output stepout2 = new CustomServicesWorkflowDocument.Output();
+        stepout2.setName("tasks.@task.resource.name");
+        CustomServicesWorkflowDocument.Output stepout3 = new CustomServicesWorkflowDocument.Output();
+        stepout3.setName("tasks.@task.resource.id");
+        CustomServicesWorkflowDocument.Output stepout4 = new CustomServicesWorkflowDocument.Output();
+        stepout4.setName("tasks.@task.associated_resources.@associated_resource.name");
+
+        stepOut.add(stepout1);
+        stepOut.add(stepout2);
+        stepOut.add(stepout3);
+        stepOut.add(stepout4);
+
         for (final CustomServicesWorkflowDocument.Output out : stepOut) {
             final String outName = out.getName();
             logger.info("output name is :{}", outName);
+
+            String[] bits = outName.split(".");
+            String lastOne = bits[bits.length-1];
+
+            logger.info("lastOne:{}", lastOne);
 
             final List<TaskResourceRep> taskResourceReps = taskList.getTaskList();
             for (final TaskResourceRep task : taskResourceReps) {
                 if (outName.contains(".resource")) {
                     logger.info("it is of resource type");
                     //tasks.@task.resource.resource.id
-                    final Method method = findMethod("id", task.getResource().getClass().getMethods());
+                    final Method method = findMethod(lastOne, task.getResource().getClass().getMethods());
                     if (method == null) {
                         logger.info("method is null");
                     } else {
@@ -460,24 +485,28 @@ public class CustomServicesService extends ViPRService {
                     break;
                 }
 
-                if (outName.contains(".associated_resources")) {
+                if (outName.contains("associated_resources")) {
                     logger.info("it is of associated_resources type");
-                    final Method method = findMethod("name", task.getAssociatedResources().getClass().getMethods());
+                    for (final NamedRelatedResourceRep assres : task.getAssociatedResources()) {
+                        final Method method = findMethod(lastOne, assres.getClass().getMethods());
 
-                    if (method == null) {
-                        logger.info("method is null");
-                    } else {
-                        logger.info("invoke the method");
+                        if (method == null) {
+                            logger.info("method is null");
+                        } else {
+                            logger.info("invoke the method");
 
-                        Object out1 = method.invoke(task.getAssociatedResources(), null);
-                        logger.info("output value in associated_resource:{}", out1);
+                            Object out1 = method.invoke(task.getAssociatedResources(), null);
+                            logger.info("output value in associated_resource:{}", out1);
+                        }
+                        break;
                     }
                     break;
+
                 }
 
-                //TODO parse str
-                final String str = "state";
-                final Method method = findMethod("state", task.getClass().getMethods());
+                //TODO implement tenant, service error
+
+                final Method method = findMethod(lastOne, task.getClass().getMethods());
                 Object out1 = method.invoke(task, null);
                 logger.info("output value else:{}", out1);
             }
@@ -497,6 +526,7 @@ public class CustomServicesService extends ViPRService {
             }
         }*/
     }
+
     private Method findMethod(final String str, final Method[] methods) {
         logger.info("in findMethod");
         for (Method method : methods) {

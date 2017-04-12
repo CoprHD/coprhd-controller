@@ -145,6 +145,9 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
         if (folderNodeType === data.node.type) {
             $http.get(routes.WF_directory_delete({"id": data.node.id}));
         }
+        else if (shellNodeType === data.node.type || localAnsibleNodeType === data.node.type) {
+        	$http.get(routes.Primitive_delete({"primitiveId": data.node.id, "dirID": data.parent}));
+        }
         else {
             $http.get(routes.Workflow_delete({"workflowID": data.node.id, "dirID": data.parent}));
         }

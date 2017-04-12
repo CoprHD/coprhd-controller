@@ -1,11 +1,18 @@
 
+var folderNodeType = "FOLDER";
+var workflowNodeType = "Workflow";
+var shellNodeType = "script";
+var localAnsibleNodeType = "ansible"
+var restAPINodeType = "rest"
+var viprRestAPINodeType = "vipr";
+
 angular.module("portalApp").controller('builderController', function($scope, $rootScope) { //NOSONAR ("Suppressing Sonar violations of max 100 lines in a function and function complexity")
     $rootScope.$on("addWorkflowTab", function(event, id, name){
        addTab(id,name);
     });
 
     $scope.workflowTabs = {};
-    $scope.isWorkflowTabsEmpty = function (obj) {
+    $scope.isWorkflowTabsEmpty = function () {
         return $.isEmptyObject($scope.workflowTabs);
     };
 
@@ -36,12 +43,7 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
     }
 
     var jstreeContainer = $element.find('#jstree_demo');
-    var folderNodeType = "FOLDER";
-    var workflowNodeType = "WORKFLOW";
-    var shellNodeType = "SCRIPT";
-    var localAnsibleNodeType = "ANSIBLE"
-    var restAPINodeType = "REST"
-	var viprRestAPINodeType = "ViPR REST API";
+
     var fileNodeTypes = [shellNodeType, localAnsibleNodeType, restAPINodeType, workflowNodeType]
     var viprLibIDs = ["viprrest", "viprLib"]
 
@@ -80,24 +82,24 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
                 },
                 "FOLDER": {
                     "icon": "/public/img/customServices/Folder.png",
-                    "valid_children": ["WORKFLOW","FOLDER", "SCRIPT", "ANSIBLE"]
+                    "valid_children": ["Workflow","FOLDER", "script", "ansible"]
                 },
-                "WORKFLOW": {
+                "Workflow": {
                     "icon": "/public/img/customServices/UserDefinedWF.png",
                     "valid_children": [],
                     "li_attr": {"class": "draggable-card"}
                 },
-                "SCRIPT": {
+                "script": {
                     "icon": "/public/img/customServices/UserDefinedOperation.png",
                     "valid_children": [],
                     "li_attr": {"class": "draggable-card"}
                 },
-                "ANSIBLE": {
+                "ansible": {
                     "icon": "/public/img/customServices/UserDefinedOperation.png",
                     "valid_children": [],
                     "li_attr": {"class": "draggable-card"}
                 },
-                "VIPR": {
+                "vipr": {
                     "icon": "/public/img/customServices/ViPROperation.png",
                     "valid_children": [],
                     "li_attr": {"class": "draggable-card"}
@@ -126,8 +128,11 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
         }
         var $item = '<div style="z-index:999;"class="item"><div class="itemText">' + stepName + '</div></div>';
 
-        //move this
         var itemData = jstreeContainer.jstree(true).get_json(treeId).data;
+        // Data is not populated for workflows. So setting required fields here.
+        if($.isEmptyObject(itemData)) {
+            itemData = {"friendlyName":stepName,"type":workflowNodeType};
+        }
         $rootScope.primitiveData = itemData;
 
         return $( $item );
@@ -356,7 +361,6 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
 
     var diagramContainer = $element.find('#diagramContainer');
     var sbSite = $element.find('#sb-site');
-    var treecontroller = $element.find('#jstree_demo');
     var jspInstance;
     $scope.workflowData = {};
     $scope.stepInputOptions = [];
@@ -513,7 +517,6 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
 
 
         //add data
-        //TODO:remove friendlyName, it will be included in step data already
         var stepData = $rootScope.primitiveData;
         stepData.operation = stepData.id;
         stepData.id = randomIdHash;
@@ -694,27 +697,28 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
         $scope.openPage(0);
     }
 
-	var allNodeTypes = {"shellNodeType":"Shell Script", "localAnsibleNodeType":"Local Ansible", "restAPINodeType":"REST", "viprRestAPINodeType":"ViPR REST API", "workflowNodeType":"WORKFLOW", "folderNodeType":"FOLDER"}
+	var draggableNodeTypes = {"shellNodeType":shellNodeType, "localAnsibleNodeType":localAnsibleNodeType, "restAPINodeType":restAPINodeType, "viprRestAPINodeType":viprRestAPINodeType, "workflowNodeType":workflowNodeType}
     function getStepIcon(stepType){
-        var stepIcon ;
-        switch(stepType){
-            case allNodeTypes.shellNodeType:
-                stepIcon = "Script.png";
-                break;
-            case allNodeTypes.localAnsibleNodeType:
-                stepIcon = "LocalAnsible.png";
-                break;
-            case allNodeTypes.workflowNodeType:
-                stepIcon = "UserDefinedWF.png";
-                break;
-            case allNodeTypes.restAPINodeType:
-                stepIcon = "REST.png";
-                break;
-            case allNodeTypes.viprRestAPINodeType:
-                stepIcon = "ViPRREST.png";
-                break;
-            default:
-                stepIcon = "UserDefinedOperation.png";
+        console.log(stepType);
+        var stepIcon = "UserDefinedOperation.png";
+        if(stepType != null) {
+            switch(stepType.toLowerCase()){
+                case draggableNodeTypes.shellNodeType:
+                    stepIcon = "Script.png";
+                    break;
+                case draggableNodeTypes.localAnsibleNodeType:
+                    stepIcon = "LocalAnsible.png";
+                    break;
+                case draggableNodeTypes.workflowNodeType:
+                    stepIcon = "UserDefinedWF.png";
+                    break;
+                case draggableNodeTypes.restAPINodeType:
+                    stepIcon = "REST.png";
+                    break;
+                case draggableNodeTypes.viprRestAPINodeType:
+                    stepIcon = "ViPRREST.png";
+                    break;
+            }
         }
         return "/public/img/customServices/" + stepIcon;
     }
@@ -731,8 +735,6 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
         var trimmedStepName = stepName;
         if (stepName.length > 70)
             trimmedStepName = stepName.substring(0,65)+'...';
-
-        var stepIcon = getStepIcon(step.type);
 
         var stepHTML = `
         <div id="${stepDivID}" class="example-item-card-wrapper">

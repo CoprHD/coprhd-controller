@@ -69,14 +69,8 @@ class Sanity {
         }
     }
 
-    static void initialize() {
-        println "Initializing Sanity Test Harness"
-        // Initialize java clients
-        initClients()
-    }
-
     static void setup() {
-        initialize()
+        initClients()
         SystemSetup.commonSetup()
         SecuritySetup.setupActiveDirectory()
         VirtualArraySetup.setup()

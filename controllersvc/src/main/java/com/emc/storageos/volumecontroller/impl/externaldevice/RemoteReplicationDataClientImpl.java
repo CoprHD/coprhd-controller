@@ -26,8 +26,6 @@ import com.emc.storageos.storagedriver.model.remotereplication.RemoteReplication
 import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
 import com.emc.storageos.volumecontroller.impl.plugins.ExternalDeviceDiscoveryUtils;
 
-import javax.swing.*;
-
 public class RemoteReplicationDataClientImpl implements RemoteReplicationDataClient {
 
     private static final Logger _log = LoggerFactory.getLogger(RemoteReplicationDataClientImpl.class);
@@ -35,6 +33,13 @@ public class RemoteReplicationDataClientImpl implements RemoteReplicationDataCli
 
     public void setDbClient(DbClient dbClient) {
         _dbClient = dbClient;
+    }
+
+    public RemoteReplicationDataClientImpl(DbClient dbClient) {
+        this._dbClient = dbClient;
+    }
+
+    public RemoteReplicationDataClientImpl() {
     }
 
     @Override

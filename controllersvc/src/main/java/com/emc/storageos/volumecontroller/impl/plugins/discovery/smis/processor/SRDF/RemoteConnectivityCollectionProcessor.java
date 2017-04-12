@@ -7,6 +7,7 @@ package com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.processor
 import java.io.IOException;
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -36,10 +37,12 @@ import com.emc.storageos.plugins.AccessProfile;
 import com.emc.storageos.plugins.BaseCollectionException;
 import com.emc.storageos.plugins.common.Constants;
 import com.emc.storageos.plugins.common.domainmodel.Operation;
+import com.emc.storageos.remotereplicationcontroller.RemoteReplicationUtils;
 import com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationGroup;
 import com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationMode;
 import com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationSet;
 import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
+import com.emc.storageos.volumecontroller.impl.externaldevice.RemoteReplicationDataClient;
 import com.emc.storageos.volumecontroller.impl.externaldevice.RemoteReplicationDataClientImpl;
 import com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.processor.StorageProcessor;
 
@@ -301,8 +304,8 @@ public class RemoteConnectivityCollectionProcessor extends StorageProcessor {
     /**
      * Utility method that would Create a RemoteReplicationSet between a StorageSystem and its Remote counterpart
      * 
-     * @param Reference to storageSystem
-     * @param Reference to remoteSystem
+     * @param storageSystem to storageSystem
+     * @param remoteSystem to remoteSystem
      * @return RemoteReplicationSet
      */
     private RemoteReplicationSet createRemoteReplicationSet(StorageSystem storageSystem, StorageSystem remoteSystem) {
@@ -328,14 +331,9 @@ public class RemoteConnectivityCollectionProcessor extends StorageProcessor {
                 && remoteSystem.getSupportedReplicationTypes().contains(SupportedReplicationTypes.SRDFMetro.toString())) {
             SRDFReplicationModes.add(new RemoteReplicationMode(SupportedCopyModes.ACTIVE.name(), false, false));
         }
-        // Sort the SRC/TGT string as we will only report one RRSet for both Storage Systems
-        String labelFormat = null;
-        if (storageSystem.getSerialNumber().compareToIgnoreCase(remoteSystem.getSerialNumber()) >= 0) {
-            labelFormat = storageSystem.getSerialNumber() + Constants.PLUS + remoteSystem.getSerialNumber();
-        } else {
-            labelFormat = remoteSystem.getSerialNumber() + Constants.PLUS + storageSystem.getSerialNumber();
-        }
 
+        List<StorageSystem> storageSystems = Arrays.asList(storageSystem, remoteSystem);
+        String labelFormat = RemoteReplicationUtils.getRemoteReplicationSetNativeIdForSrdfSet(storageSystems);
         RemoteReplicationSet rrSet = new RemoteReplicationSet();
         rrSet.setDeviceLabel(labelFormat);
         rrSet.setNativeId(labelFormat);
@@ -362,8 +360,7 @@ public class RemoteConnectivityCollectionProcessor extends StorageProcessor {
     private RemoteReplicationGroup createRemoteReplicationGroup(RemoteDirectorGroup raGroup, StorageSystem storageSystem,
             StorageSystem remoteSystem) {
         RemoteReplicationGroup rrGroup = new RemoteReplicationGroup();
-        rrGroup.setNativeId(storageSystem.getSerialNumber() + Constants.PLUS + raGroup.getSourceGroupId() + Constants.PLUS
-                + remoteSystem.getSerialNumber() + Constants.PLUS + raGroup.getRemoteGroupId());
+        rrGroup.setNativeId(RemoteReplicationUtils.getRemoteReplicationGroupNativeIdForSrdfGroup(storageSystem, remoteSystem, raGroup));
         rrGroup.setDisplayName(rrGroup.getNativeId());
         rrGroup.setDeviceLabel(raGroup.getLabel());
         // Need to figure out how to capture this from an RDF group if it has associated CGs
@@ -379,8 +376,7 @@ public class RemoteConnectivityCollectionProcessor extends StorageProcessor {
     /**
      * Processes the RemoteReplicationSets and RemoteReplicationGroup needs for RemoteReplicationDataClient discovery
      * 
-     * @param Reference to dbClient
-     * @param storageSystemURI
+     * @param sourceSystem storage system
      * @return NONE
      */
 
@@ -411,8 +407,7 @@ public class RemoteConnectivityCollectionProcessor extends StorageProcessor {
             }
         }
         _log.info("Processing RemoteReplicationSets and RemoteReplication Groups for {}", sourceSystem.getSerialNumber());
-        RemoteReplicationDataClientImpl remoteReplicationDataClient = new RemoteReplicationDataClientImpl();
-        remoteReplicationDataClient.setDbClient(_dbClient);
+        RemoteReplicationDataClient remoteReplicationDataClient = new RemoteReplicationDataClientImpl(_dbClient);
         remoteReplicationDataClient.processRemoteReplicationSetsForStorageSystem(sourceSystem, replicationSets);
         remoteReplicationDataClient.processRemoteReplicationGroupsForStorageSystem(sourceSystem, replicationGroups);
     }

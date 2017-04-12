@@ -19,7 +19,7 @@ test {
 }
 
 task catalogSanity(type: JavaExec) {
-    main "com.emc.vipr.sanity.setup.Sanity"
+    main "com.emc.vipr.sanity.Sanity"
     classpath = sourceSets.test.runtimeClasspath
     systemProperties System.properties
     environment System.getenv()

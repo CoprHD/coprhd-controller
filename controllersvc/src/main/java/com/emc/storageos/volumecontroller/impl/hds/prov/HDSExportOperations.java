@@ -20,6 +20,7 @@ import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.util.CollectionUtils;
 
 import com.emc.storageos.customconfigcontroller.CustomConfigConstants;
 import com.emc.storageos.customconfigcontroller.DataSource;
@@ -64,6 +65,7 @@ import com.emc.storageos.hds.model.WorldWideName;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.networkcontroller.impl.NetworkDeviceController;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
+import com.emc.storageos.util.ExportUtils;
 import com.emc.storageos.util.NetworkLite;
 import com.emc.storageos.util.NetworkUtil;
 import com.emc.storageos.volumecontroller.TaskCompleter;
@@ -1616,7 +1618,16 @@ public class HDSExportOperations implements ExportMaskOperations {
                 exportMask.addToExistingVolumesIfAbsent(volumesExistsOnHSD);
                 exportMask
                         .addToExistingInitiatorsIfAbsent(initiatorsExistsOnHSD);
-
+                List<Initiator> initiatorList = new ArrayList<>();
+                if (!CollectionUtils.isEmpty(initiatorsExistsOnHSD)) {
+                    for (String port : initiatorsExistsOnHSD) {
+                        Initiator existingInitiator = ExportUtils.getInitiator(Initiator.toPortNetworkId(port), dbClient);
+                        if (existingInitiator != null && !existingInitiator.getInactive()) {
+                            initiatorList.add(existingInitiator);
+                        }
+                    }
+                }
+                exportMask.addInitiators(initiatorList);
                 String strExistingInitiators = "";
                 String strExistingVolumes = "";
                 
@@ -1831,6 +1842,18 @@ public class HDSExportOperations implements ExportMaskOperations {
                 builder.append(String.format("XM discovered: %s I:{%s} V:{%s}%n", maskName,
                         Joiner.on(',').join(discoveredInitiators), Joiner.on(',').join(discoveredVolumes.keySet())));
 
+                List<Initiator> initiatorList = new ArrayList<>();
+                if (!CollectionUtils.isEmpty(discoveredInitiators)) {
+                    for (String port : discoveredInitiators) {
+                        Initiator existingInitiator = ExportUtils.getInitiator(Initiator.toPortNetworkId(port), dbClient);
+                        if (existingInitiator != null && !existingInitiator.getInactive()) {
+                            initiatorList.add(existingInitiator);
+                        }
+                    }
+                }
+                mask.addInitiators(initiatorList);
+                dbClient.updateObject(mask);
+
                 // Check the initiators and update the lists as necessary
                 boolean addInitiators = false;
                 List<String> initiatorsToAdd = new ArrayList<String>();
@@ -1874,7 +1897,7 @@ public class HDSExportOperations implements ExportMaskOperations {
                     mask.removeFromExistingVolumes(volumesToRemove);
                     mask.addToExistingVolumesIfAbsent(volumesToAdd);
                     ExportMaskUtils.sanitizeExportMaskContainers(dbClient, mask);
-                    dbClient.updateAndReindexObject(mask);
+                    dbClient.updateObject(mask);
                 } else {
                     builder.append("XM refresh: There are no changes to the mask\n");
                 }

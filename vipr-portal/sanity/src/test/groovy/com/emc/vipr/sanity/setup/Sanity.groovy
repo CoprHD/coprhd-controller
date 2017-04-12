@@ -1,12 +1,13 @@
 package com.emc.vipr.sanity.setup
 
-import com.emc.vipr.client.ViPRPortalClient
 import org.apache.commons.collections.ExtendedProperties
+import org.junit.runner.JUnitCore
 
 import com.emc.vipr.client.AuthClient
 import com.emc.vipr.client.ClientConfig
 import com.emc.vipr.client.ViPRCatalogClient2
 import com.emc.vipr.client.ViPRCoreClient
+import com.emc.vipr.client.ViPRPortalClient
 import com.emc.vipr.client.ViPRSystemClient
 
 class Sanity {
@@ -23,6 +24,18 @@ class Sanity {
     static ViPRPortalClient portal
     static ViPRSystemClient sys
 
+    static void main() {
+        setup()
+        VNXSetup.setupSimulator()
+        JUnitCore junit = new JUnitCore()
+        String catalogTest = System.getenv("catalogTest")
+        if (catalogTest.isEmpty() || catalogTest.equalsIgnoreCase("block")) {
+            junit.run(com.emc.vipr.sanity.CatalogBlockServicesSanity)
+        } else {
+            println "Not running any tests. Parameter = " + catalogTest
+        }
+    }
+
     static void initialize() {
         println "Initializing Sanity Test Harness"
         // Initialize java clients
@@ -37,15 +50,18 @@ class Sanity {
         ProjectSetup.setup()
         VirtualArraySetup.updateAcls(client.userTenantId)
         HostSetup.setup()
+
+
+
     }
 
     static void initClients() {
         clientConfig = new ClientConfig(
-            host: "localhost",
-            mediaType: "application/xml",
-            requestLoggingEnabled: false,
-            ignoreCertificates: true
-        )
+                host: "localhost",
+                mediaType: "application/xml",
+                requestLoggingEnabled: false,
+                ignoreCertificates: true
+                )
 
         login(System.getenv("SYSADMIN"), System.getenv("SYSADMIN_PASSWORD"))
     }

@@ -481,6 +481,59 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         return getExportVolumeForHostPortGroups(ctx, vArrayId, hostOrClusterId, projectId);
     }
 
+    @Asset("exportSnapshotForHostPortGroups")
+    @AssetDependencies( {"host", "project"} )
+    public List<AssetOption> getExportSnapshotForHostPortGroups(AssetOptionsContext ctx, URI hostOrClusterId, URI projectId) {
+        return getExportSnapshotForHostPortGroups(ctx, new String(""), hostOrClusterId, projectId);
+    }
+
+    @Asset("exportSnapshotForHostPortGroups")
+    @AssetDependencies( {"unassignedBlockSnapshot", "host", "project"} )
+    public List<AssetOption> getExportSnapshotForHostPortGroups(AssetOptionsContext ctx, String selectedSnapshots, URI hostOrClusterId, URI projectId) {
+        final ViPRCoreClient client = api(ctx);
+        List<AssetOption> options = Lists.newArrayList();
+
+        SimpleValueRep value = client.customConfigs().getCustomConfigTypeValue("VMAXUsePortGroupEnabled/value", "vmax");
+        if (value.getValue().equalsIgnoreCase("true")) {
+            List<URI> snapshotIds = Lists.newArrayList();
+            info("Snapshots selected by user: %s", selectedSnapshots);
+            List<String> parsedSnapshotIds = TextUtils.parseCSV(selectedSnapshots);
+            for (String id : parsedSnapshotIds) {
+                snapshotIds.add(uri(id));
+            }
+
+            List<BlockSnapshotRestRep> snapshots = client.blockSnapshots().getByIds(snapshotIds);
+
+            Set<URI> virtualArrays = new HashSet<URI>();
+            for (BlockSnapshotRestRep snapshot : snapshots) {
+                virtualArrays.add(snapshot.getVirtualArray().getId());
+            }
+
+            if (virtualArrays.size() == 1) {
+                Iterator<URI> it = virtualArrays.iterator();
+                URI id = it.next();
+                VirtualArrayRestRep vArray = client.varrays().get(id);
+
+                ExportGroupRestRep export = null;
+                if (BlockStorageUtils.isHost(hostOrClusterId)) {
+                    List<ExportGroupRestRep> exports = client.blockExports().findByHost(hostOrClusterId, projectId, id);
+                    export = exports.isEmpty() ? null : exports.get(0);
+                } else {
+                    List<ExportGroupRestRep> exports = client.blockExports().findByCluster(hostOrClusterId, projectId, id);
+                    export = exports.isEmpty() ? null : exports.get(0);
+                }
+
+                List<NamedRelatedResourceRep> portGroups = client.varrays().getStoragePortGroups(id, export != null ? export.getId() : null);
+                for (NamedRelatedResourceRep group : portGroups) {
+                    // TODO: retrieve port metric when information becomes available
+                    String label = getMessage("exportPortGroup.portGroups", group.getName(), "Metric");
+                    options.add(new AssetOption(group.getId(), label));
+                }
+            }
+        }
+        return options;
+    }
+
     @Asset("exportedBlockVolume")
     @AssetDependencies("project")
     public List<AssetOption> getExportedVolumes(AssetOptionsContext ctx, URI project) {

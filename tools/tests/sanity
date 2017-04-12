@@ -3394,11 +3394,11 @@ vnxblock_discovery()
 # RecoverPoint can be run in a simulated and physical environment.
 #
 
-#########################
-# RecoverPoint Vpool create
-#########################
+#############################
+# RecoverPoint Vpool create #
+#############################
 
-# All varrays for regular targets
+# RP Targets
 rp_targets()
 {
     run cos create block rp_targets$1 $POOLS_AUTO_MATCH \
@@ -3426,6 +3426,7 @@ rp_targets()
     fi
 }
 
+# RP XIO Targets
 rpxio_targets()
 {
     run cos create block rpxio_targets$1 $POOLS_AUTO_MATCH \
@@ -3461,6 +3462,7 @@ rpvplex_targets()
         --protocols FC \
         --numpaths 2 \
         --provisionType 'Thin' \
+        --multiVolumeConsistency \
         --neighborhoods $RECOVERPOINT_VARRAY1 $RECOVERPOINT_VARRAY2 $RECOVERPOINT_VARRAY3 $RECOVERPOINT_VARRAY4 \
         --max_snapshots 10 \
         --highavailability vplex_local
@@ -3486,6 +3488,7 @@ rpvplex_targets()
         --protocols FC \
         --numpaths 2 \
         --provisionType 'Thin' \
+        --multiVolumeConsistency \
         --neighborhoods $RECOVERPOINT_VARRAY1 $RECOVERPOINT_VARRAY2 $RECOVERPOINT_VARRAY3 $RECOVERPOINT_VARRAY4 \
         --max_snapshots 10 \
         --highavailability vplex_local
@@ -3800,7 +3803,7 @@ rpvplex_crr()
         --neighborhoods $RECOVERPOINT_VARRAY1 \
         --multiVolumeConsistency \
         --expandable true \
-        --protectionCoS $RECOVERPOINT_VARRAY2':rpvplex_targets'$1':min' \
+        --protectionCoS $RECOVERPOINT_VARRAY3':rpvplex_targets'$1':min' \
         --rp_copy_mode ASYNCHRONOUS \
         --max_snapshots 10 \
         --rp_rpo_value 5 \
@@ -3818,7 +3821,7 @@ rpvplex_crr()
         --neighborhoods $RECOVERPOINT_VARRAY1 \
         --multiVolumeConsistency \
         --expandable true \
-        --protectionCoS $RECOVERPOINT_VARRAY2':rpvplex_targets'$1':min' \
+        --protectionCoS $RECOVERPOINT_VARRAY3':rpvplex_targets'$1':min' \
         --max_snapshots 10 \
         --rp_copy_mode SYNCHRONOUS \
         --rp_rpo_value 5 \
@@ -3843,7 +3846,7 @@ rpvplex_crr()
         --neighborhoods $RECOVERPOINT_VARRAY1 \
         --multiVolumeConsistency \
         --expandable true \
-        --protectionCoS $RECOVERPOINT_VARRAY2':rpvplex_targets'$1'-migrate:min' \
+        --protectionCoS $RECOVERPOINT_VARRAY3':rpvplex_targets'$1'-migrate:min' \
         --rp_copy_mode ASYNCHRONOUS \
         --max_snapshots 10 \
         --rp_rpo_value 5 \
@@ -3871,7 +3874,7 @@ rpvplex_clr()
         --neighborhoods $RECOVERPOINT_VARRAY1 \
         --multiVolumeConsistency \
         --expandable true \
-        --protectionCoS $RECOVERPOINT_VARRAY1':rpvplex_targets'$1':min',$RECOVERPOINT_VARRAY2':rpvplex_targets'$1':min' \
+        --protectionCoS $RECOVERPOINT_VARRAY1':rpvplex_targets'$1':min',$RECOVERPOINT_VARRAY3':rpvplex_targets'$1':min' \
         --max_snapshots 10 \
         --rp_copy_mode ASYNCHRONOUS \
         --rp_rpo_value 5 \
@@ -3890,7 +3893,7 @@ rpvplex_clr()
         --neighborhoods $RECOVERPOINT_VARRAY1 \
         --multiVolumeConsistency \
         --expandable true \
-        --protectionCoS $RECOVERPOINT_VARRAY1':rpvplex_targets'$1':min',$RECOVERPOINT_VARRAY2':rpvplex_targets'$1':min' \
+        --protectionCoS $RECOVERPOINT_VARRAY1':rpvplex_targets'$1':min',$RECOVERPOINT_VARRAY3':rpvplex_targets'$1':min' \
         --max_snapshots 10 \
         --rp_copy_mode SYNCHRONOUS \
         --rp_rpo_value 5 \
@@ -3916,7 +3919,7 @@ rpvplex_clr()
         --neighborhoods $RECOVERPOINT_VARRAY1 \
         --multiVolumeConsistency \
         --expandable true \
-        --protectionCoS $RECOVERPOINT_VARRAY1':rpvplex_targets'$1'-migrate:min',$RECOVERPOINT_VARRAY2':rpvplex_targets'$1'-migrate:min' \
+        --protectionCoS $RECOVERPOINT_VARRAY1':rpvplex_targets'$1'-migrate:min',$RECOVERPOINT_VARRAY3':rpvplex_targets'$1'-migrate:min' \
         --max_snapshots 10 \
         --rp_copy_mode ASYNCHRONOUS \
         --rp_rpo_value 5 \
@@ -4061,7 +4064,7 @@ rpmp_crr()
         --neighborhoods $RECOVERPOINT_VARRAY1 \
         --multiVolumeConsistency \
         --expandable true \
-        --protectionCoS $RECOVERPOINT_VARRAY2':rpvplex_targets'$1'-migrate:min' \
+        --protectionCoS $RECOVERPOINT_VARRAY3':rp_targets'$1'-migrate:min' \
         --max_snapshots 10 \
         --rp_copy_mode ASYNCHRONOUS \
         --rp_rpo_value 5 \
@@ -4352,10 +4355,23 @@ rp_network_setup()
         # Do once
         nsys=`networksystem list | wc -l`
         [ "$nsys" -gt 0 ] && return;
-
-        #Discover the Brocade SAN switch.
+        #Discover the Brocade SAN switches.
         secho "RecoverPoint network setup"
-        run networksystem create $BROCADE_NETWORK brocade --smisip $BROCADE_IP --smisport 5988 --smisuser $BROCADE_USER --smispw $BROCADE_PW --smisssl false
+
+        run networksystem create $RECOVERPOINT_BROCADE_NETWORK brocade \
+            --smisip $RECOVERPOINT_BROCADE_NETWORK_PROVIDER \
+            --smisport $RECOVERPOINT_BROCADE_NETWORK_PROVIDER_PORT \
+            --smisuser $RECOVERPOINT_BROCADE_NETWORK_PROVIDER_USERNAME \
+            --smispw $RECOVERPOINT_BROCADE_NETWORK_PROVIDER_PASSWORD \
+            --smisssl $RECOVERPOINT_BROCADE_NETWORK_PROVIDER_SSL
+        
+        run networksystem create $RECOVERPOINT_BROCADE_NETWORK2 brocade \
+            --smisip $RECOVERPOINT_BROCADE_NETWORK2_PROVIDER \
+            --smisport $RECOVERPOINT_BROCADE_NETWORK2_PROVIDER_PORT \
+            --smisuser $RECOVERPOINT_BROCADE_NETWORK2_PROVIDER_USERNAME \
+            --smispw $RECOVERPOINT_BROCADE_NETWORK2_PROVIDER_PASSWORD \
+            --smisssl $RECOVERPOINT_BROCADE_NETWORK2_PROVIDER_SSL
+            
         secho "Sleeping 30 seconds..."
         sleep 30
     fi
@@ -4550,8 +4566,8 @@ rp_isolate_rpa_clusters()
         secho 'RecoverPoint isolate RPA clusters'
         if [ "${RPXIO_TESTS}" = "0" ]; then
             run protectionsystem update --ip ${remote_ip} --name $RECOVERPOINT --cluster $RECOVERPOINT_RPA_CLUSTER1 --addvarrays $RECOVERPOINT_VARRAY1
-            run protectionsystem update --ip ${remote_ip} --name $RECOVERPOINT --cluster $RECOVERPOINT_RPA_CLUSTER3 --addvarrays $RECOVERPOINT_VARRAY2
-            run protectionsystem update --ip ${remote_ip} --name $RECOVERPOINT --cluster $RECOVERPOINT_RPA_CLUSTER4 --addvarrays $RECOVERPOINT_VARRAY3
+            run protectionsystem update --ip ${remote_ip} --name $RECOVERPOINT --cluster $RECOVERPOINT_RPA_CLUSTER2 --addvarrays $RECOVERPOINT_VARRAY2
+            run protectionsystem update --ip ${remote_ip} --name $RECOVERPOINT --cluster $RECOVERPOINT_RPA_CLUSTER3 --addvarrays $RECOVERPOINT_VARRAY3
         else
             run protectionsystem update --ip ${remote_ip} --name $RECOVERPOINT --cluster $RECOVERPOINT_XIORPA_CLUSTER1 --addvarrays $RECOVERPOINT_VARRAY1
         fi
@@ -4895,14 +4911,13 @@ recoverpoint_setup()
     fi
 }
 
-#
-# End RP setup functions
-#
+##########################
+# End RP setup functions #
+##########################
 
-#
-# Start RP test functions
-#
-
+###########################
+# Start RP test functions #
+###########################
 recoverpoint_exports_tests()
 {
     hecho 'Running RecoverPoint Export Tests'
@@ -5996,7 +6011,7 @@ recoverpoint_direct_access_test()
             done
         fi
 
-        if [ "$rp_type" = "" || "$RP_VOLUME_COUNT" = "1" ]; then
+        if [[ "$rp_type" = "" || "$RP_VOLUME_COUNT" = "1" ]]; then
             # Only run these tests for single volume tests or non-VPlex.  RP+VPlex with multiple volumes creates unpredicable
             # local array snapshot names so it's hard to match up the source volume name with the snapshot name
             secho 'Creating local array snapshot of source volume when one target copy is in direct access mode'
@@ -6226,10 +6241,9 @@ recoverpoint_cleanup_cgs()
         fi
     fi
 }
-
-#
-# End RP test functions
-#
+#########################
+# End RP test functions #
+#########################
 
 #########################
 # Main RP test function #

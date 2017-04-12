@@ -356,7 +356,7 @@ public class VPlexHDSMaskingOrchestrator extends HDSMaskingOrchestrator
             URI exportGroupURI, URI exportMaskURI,
             List<URI> volumes, List<URI> initiatorURIs) {
         return new Workflow.Method("deleteOrRemoveVolumesFromExportMask", arrayURI,
-                exportGroupURI, exportMaskURI, volumes);
+                exportGroupURI, exportMaskURI, volumes, initiatorURIs);
     }
 
     @Override

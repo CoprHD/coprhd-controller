@@ -319,20 +319,15 @@ public class FileSnapshotService extends TaskResourceService {
         }
 
         verifyFileSnapshotExports(snap, param, path);
-        // check for bypassDnsCheck flag. If null then set to false
-        Boolean dnsCheck = param.getBypassDnsCheck();
-        if (dnsCheck == null) {
-            dnsCheck = false;
-        }
 
         FileShareExport export = new FileShareExport(param.getEndpoints(), param.getSecurityType(), param.getPermissions(),
                 param.getRootUserMapping(), param.getProtocol(), sport.getPortGroup(), sport.getPortNetworkId(), path, mountPath,
-                param.getSubDirectory(), param.getComments(), dnsCheck);
+                param.getSubDirectory(), param.getComments());
         _log.info("FileSnapExport --- FileSnap id: " + id + ", Clients: " + export.getClients() + ", StoragePort:" + sport.getPortName()
                 + ", StoragePort :" + export.getStoragePort() + ", SecurityType: " + export.getSecurityType() +
                 ", Permissions: " + export.getPermissions() + ", Root user mapping: " + export.getRootUserMapping() + ",Protocol: "
                 + export.getProtocol() +
-                ",path:" + export.getPath() + ",mountPath:" + export.getMountPath() + ",byPassDnsCheck:" + export.getBypassDnsCheck());
+                ",path:" + export.getPath() + ",mountPath:" + export.getMountPath());
 
         Operation op = _dbClient.createTaskOpStatus(Snapshot.class, snap.getId(),
                 task, ResourceOperationTypeEnum.EXPORT_FILE_SNAPSHOT);
@@ -1240,10 +1235,6 @@ public class FileSnapshotService extends TaskResourceService {
         String task = UUID.randomUUID().toString();
         // Validate the FS id.
         ArgValidator.checkFieldUriType(id, Snapshot.class, "id");
-        // check for bypassDnsCheck flag. If null then set to false
-        if (param.getBypassDnsCheck() == null) {
-            param.setBypassDnsCheck(false);
-        }
         Snapshot snap = queryResource(id);
 
         ArgValidator.checkEntity(snap, id, true);

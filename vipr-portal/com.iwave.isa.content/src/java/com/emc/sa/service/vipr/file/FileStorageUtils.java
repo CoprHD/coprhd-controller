@@ -569,8 +569,7 @@ public class FileStorageUtils {
         return exportId;
     }
 
-    public static String updateFileSnapshotExport(URI fileSnapshotId, String subDirectory, FileExportRule[] fileExportRules,
-            boolean bypassDnsCheck) {
+    public static String updateFileSnapshotExport(URI fileSnapshotId, String subDirectory, FileExportRule[] fileExportRules) {
         List<ExportRule> exportRuleList = getFileSnapshotExportRules(fileSnapshotId, false, subDirectory);
         Set<String> existingRuleSet = Sets.newHashSet();
         for (ExportRule rule : exportRuleList) {
@@ -622,7 +621,6 @@ public class FileStorageUtils {
             exportRulesToModify.setExportRules(exportRuleListToModify);
             params.setExportRulesToModify(exportRulesToModify);
         }
-        params.setBypassDnsCheck(bypassDnsCheck);
         Task<FileSnapshotRestRep> task = execute(new UpdateFileSnapshotExport(fileSnapshotId, subDirectory, params));
         addAffectedResource(task);
         String exportId = task.getResourceId().toString();

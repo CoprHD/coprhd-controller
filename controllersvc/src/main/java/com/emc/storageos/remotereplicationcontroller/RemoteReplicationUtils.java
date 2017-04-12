@@ -1,6 +1,7 @@
 package com.emc.storageos.remotereplicationcontroller;
 
 
+import static com.emc.storageos.db.client.util.CustomQueryUtility.queryActiveResourcesByAltId;
 import static com.emc.storageos.db.client.util.CustomQueryUtility.queryActiveResourcesByRelation;
 import static com.emc.storageos.db.client.util.CustomQueryUtility.queryActiveResourcesUriByAltId;
 
@@ -24,7 +25,6 @@ import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.StringMap;
-import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
@@ -147,45 +147,87 @@ public class RemoteReplicationUtils {
         //     parent set supports operations on groups;
         //   For sets:
         //     set supports operations on sets;
-        //
-        // I think here we'll need a dbClient to check the supported granularities by the rr set
-        String errMessage = null;
         switch (rrElement.getType()) {
             case REPLICATION_PAIR:
                 RemoteReplicationPair rrPair = dbClient.queryObject(RemoteReplicationPair.class, rrElement.getElementUri());
-                RemoteReplicationSet rrSet = dbClient.queryObject(RemoteReplicationSet.class, rrPair.getReplicationSet());
-                if (!rrSet.supportRemoteReplicationPairOperation()) {
-                    errMessage = String.format("remote repliation set %s doesn't support operation of pair granularity", rrSet.getNativeId());
-                    isOperationValid = false;
-                    break;
-                }
-                URI rrGroupUri;
-                if ((rrGroupUri = rrPair.getReplicationGroup()) == null) {
-                    break;
-                }
-                RemoteReplicationGroup rrGroup = dbClient.queryObject(RemoteReplicationGroup.class, rrGroupUri);
-                if (rrGroup.getIsGroupConsistencyEnforced() == Boolean.TRUE) {
-                    errMessage = String.format("remote repliation group %s should not enforce group consistency", rrGroup.getNativeId());
-                    isOperationValid = false;
-                    break;
-                }
+                isOperationValid = supportOperationOnRrPair(rrPair, dbClient, true);
                 break;
             case CONSISTENCY_GROUP:
-                // TODO How to get the rr pair for a cg
+                BlockConsistencyGroup cg = dbClient.queryObject(BlockConsistencyGroup.class, rrElement.getElementUri());
+                List<RemoteReplicationPair> rrPairs = getRemoteReplicationPairsForCG(cg, dbClient);
+                for (RemoteReplicationPair pair : rrPairs) {
+                    if (!(isOperationValid &= supportOperationOnRrPair(pair, dbClient, true))) {
+                        break;
+                    }
+                }
                 break;
             case REPLICATION_GROUP:
-                // TODO How to get the rr set for a rr group, since the getReplicationSet method is deprecated
+                RemoteReplicationGroup rrGroup = dbClient.queryObject(RemoteReplicationGroup.class, rrElement.getElementUri());
+                RemoteReplicationSet rrSet = getRemoteReplicationSetForRrGroup(dbClient, rrGroup);
+                if (rrSet == null || !rrSet.supportRemoteReplicationGroupOperation()) {
+                    isOperationValid = false;
+                }
                 break;
             case REPLICATION_SET:
                 rrSet = dbClient.queryObject(RemoteReplicationSet.class, rrElement.getElementUri());
-                // TODO How to check if a set support operations on sets
+                if (!rrSet.supportRemoteReplicationSetOperation()) {
+                    isOperationValid = false;
+                }
                 break;
         }
 
         if (!isOperationValid) { // bad request
             throw APIException.badRequests.remoteReplicationLinkOperationIsNotAllowed(rrElement.getType().toString(), rrElement.getElementUri().toString(),
-                    operation.toString(), errMessage);
+                    operation.toString());
         }
+    }
+
+    /**
+     * Find a remote replication set that meets below constraints:
+     *  1. has the same storage system type with the given remote replication group;
+     *  2. contains both the source and target systems of the remote replication group.
+     */
+    private static RemoteReplicationSet getRemoteReplicationSetForRrGroup(DbClient dbClient, RemoteReplicationGroup rrGroup) {
+        List<RemoteReplicationSet> rrSets =
+                queryActiveResourcesByAltId(dbClient, RemoteReplicationSet.class, "storageSystemType", rrGroup.getStorageSystemType());
+        for (RemoteReplicationSet rrSet : rrSets) {
+            if (rrSet.getSystemToRolesMap().containsKey(rrGroup.getSourceSystem().toString())
+                    && rrSet.getSystemToRolesMap().containsKey(rrGroup.getTargetSystem().toString())) {
+                return rrSet;
+            }
+        }
+        // should not run here because there's must be a rr set for a rr group
+        return null;
+    }
+
+    /**
+     * @param rrPair
+     *            remote replication pair to be validated
+     * @param dbClient
+     * @param checkRrGroupEnforcement
+     *            whether it's needed to check group consistency enforcement of
+     *            rr pair's parent rr group (if has)
+     * @return true if rr set of given rr pair support rr pair granularity
+     *         operation and its rr group (if has) doesn't enforce group group
+     *         consistency when checkRrGroupEnforcement is true
+     */
+    private static boolean supportOperationOnRrPair(RemoteReplicationPair rrPair, DbClient dbClient, boolean checkRrGroupEnforcement) {
+        RemoteReplicationSet rrSet = dbClient.queryObject(RemoteReplicationSet.class, rrPair.getReplicationSet());
+        if (!rrSet.supportRemoteReplicationPairOperation()) {
+            return false;
+        }
+        if (!checkRrGroupEnforcement) {
+            return true;
+        }
+        URI rrGroupUri;
+        if ((rrGroupUri = rrPair.getReplicationGroup()) == null) {
+            return true;
+        }
+        RemoteReplicationGroup rrGroup = dbClient.queryObject(RemoteReplicationGroup.class, rrGroupUri);
+        if (rrGroup.getIsGroupConsistencyEnforced() == Boolean.TRUE) {
+            return false;
+        }
+        return false;
     }
 
     public static void validateRemoteReplicationModeChange(DbClient dbClient, RemoteReplicationElement rrElement, String newMode) {
@@ -206,46 +248,45 @@ public class RemoteReplicationUtils {
         //       validate that set supports new replication mode;
         //
         boolean isChangeValid = true;
-        String errMessage = null;
         switch (rrElement.getType()) {
             case REPLICATION_PAIR:
                 RemoteReplicationPair rrPair = dbClient.queryObject(RemoteReplicationPair.class, rrElement.getElementUri());
-                RemoteReplicationSet rrSet = dbClient.queryObject(RemoteReplicationSet.class, rrPair.getReplicationSet());
-                if (!rrSet.supportRemoteReplicationPairOperation()) {
-                    // throw exception
-                }
-                if (rrPair.getReplicationGroup() != null) {
-                    // throw exception
-                }
-                StringSet modes;
-                if ((modes = rrSet.getSupportedReplicationModes()) == null || !modes.contains(newMode)) {
-                    // throw exception
-                }
+                isChangeValid = supportModeChangeOnRrPair(rrPair, dbClient, newMode);
                 break;
             case CONSISTENCY_GROUP:
-                // TODO how to get rr pair and rr set for a cg
+                BlockConsistencyGroup cg = dbClient.queryObject(BlockConsistencyGroup.class, rrElement.getElementUri());
+                List<RemoteReplicationPair> rrPairs = getRemoteReplicationPairsForCG(cg, dbClient);
+                for (RemoteReplicationPair pair : rrPairs) {
+                    if (!(isChangeValid &= supportModeChangeOnRrPair(pair, dbClient, newMode))) {
+                        break;
+                    }
+                }
                 break;
             case REPLICATION_GROUP:
                 RemoteReplicationGroup rrGroup = dbClient.queryObject(RemoteReplicationGroup.class, rrElement.getElementUri());
                 if (rrGroup.getReachable() != Boolean.TRUE) {
-                    // throw Exception
+                    isChangeValid = false;
+                    break;
                 }
-                // TODO how to get parent set since getReplicationSet method is deprecated.
+                RemoteReplicationSet rrSet = getRemoteReplicationSetForRrGroup(dbClient, rrGroup);
+                isChangeValid = rrSet.supportRemoteReplicationGroupOperation() && rrSet.supportMode(newMode);
                 break;
             case REPLICATION_SET:
                 rrSet = dbClient.queryObject(RemoteReplicationSet.class, rrElement.getElementUri());
-                if (rrSet.getReachable() != Boolean.TRUE) {
-                    // throw exception
-                }
-                // TODO how to check if a rr set support set operation?
-                if ((modes = rrSet.getSupportedReplicationModes()) == null || !modes.contains(newMode)) {
-                    // throw exception
-                }
+                isChangeValid = rrSet.getReachable() == Boolean.TRUE && rrSet.supportRemoteReplicationSetOperation()
+                        && rrSet.supportMode(newMode);
                 break;
         }
         if (!isChangeValid) {
-            // need to throw exception with detailed error message
+            throw APIException.badRequests.remoteReplicationLinkOperationIsNotAllowed(rrElement.getType().toString(),
+                    rrElement.getElementUri().toString(), newMode);
         }
+    }
+
+    private static boolean supportModeChangeOnRrPair(RemoteReplicationPair rrPair, DbClient dbClient, String newMode) {
+        RemoteReplicationSet rrSet = dbClient.queryObject(RemoteReplicationSet.class, rrPair.getReplicationSet());
+        return rrSet.getReachable() == Boolean.TRUE && rrSet.supportRemoteReplicationPairOperation()
+                && rrPair.getReplicationGroup() == null && rrSet.supportMode(newMode);
     }
 
     public static Iterator<RemoteReplicationSet> findAllRemoteRepliationSetsIteratively(DbClient dbClient) {

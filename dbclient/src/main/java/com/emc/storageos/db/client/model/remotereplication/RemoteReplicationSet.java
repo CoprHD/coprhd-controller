@@ -164,6 +164,11 @@ public class RemoteReplicationSet extends DiscoveredDataObject {
         return supportedReplicationModes;
     }
 
+    public boolean supportMode(String mode) {
+        return supportedReplicationModes != null &&
+                supportedReplicationModes.contains(mode);
+    }
+
     public void setSupportedReplicationModes(StringSet supportedReplicationModes) {
         this.supportedReplicationModes = supportedReplicationModes;
         setChanged("supportedReplicationModes");

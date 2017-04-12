@@ -811,14 +811,16 @@ public class RemoteReplicationPairService extends TaskResourceService {
         //   if new group has the same source system, the same target system as current group of the pair
         URI currentGroupId = null;
         if ((currentGroupId = rrPair.getReplicationGroup()) == null) {
-            // throw exception
+            throw APIException.badRequests.remoteReplicationPairMoveOperationIsNotAllowed(rrPair.getNativeId(), targetGroup.toString(),
+                    "Current remote replication group is null");
         }
         RemoteReplicationGroup currentGroup = _dbClient.queryObject(RemoteReplicationGroup.class, currentGroupId);
         ArgValidator.checkFieldUriType(targetGroup, RemoteReplicationGroup.class, "id");
         RemoteReplicationGroup newGroup = _dbClient.queryObject(RemoteReplicationGroup.class, targetGroup);
         if (!URIUtil.uriEquals(currentGroup.getSourceSystem(), newGroup.getSourceSystem()) ||
                 !URIUtil.uriEquals(currentGroup.getTargetSystem(), newGroup.getSourceSystem())) {
-            // throw exception
+            throw APIException.badRequests.remoteReplicationPairMoveOperationIsNotAllowed(rrPair.getNativeId(), targetGroup.toString(),
+                    "new remote replication group's source or target system is not the same as the old one");
         }
     }
 

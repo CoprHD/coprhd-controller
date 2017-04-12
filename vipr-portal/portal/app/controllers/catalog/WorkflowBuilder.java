@@ -66,6 +66,7 @@ import com.emc.vipr.model.catalog.WFDirectoryUpdateParam;
 import com.emc.vipr.model.catalog.WFDirectoryWorkflowsUpdateParam;
 import com.google.common.collect.ImmutableMap;
 import com.google.gson.annotations.SerializedName;
+import com.sun.jersey.api.client.ClientResponse;
 
 import controllers.Common;
 
@@ -368,6 +369,23 @@ public class WorkflowBuilder extends Controller {
         }
     }
 
+    public static void deletePrimitive(final String primitiveId,
+            final String dirID) {
+        try {
+            final URI primitiveURI = new URI(primitiveId);
+            // Delete primitive need to worry about error reporting
+            ClientResponse response = getCatalogClient().customServicesPrimitives().deletePrimitive(primitiveURI);
+
+            // Delete this reference in WFDirectory
+            final WFDirectoryUpdateParam param = new WFDirectoryUpdateParam();
+            final Set<URI> removeWorkflows = new HashSet<URI>();
+            removeWorkflows.add(primitiveURI);
+            param.setWorkflows(new WFDirectoryWorkflowsUpdateParam(null, removeWorkflows));
+            getCatalogClient().wfDirectories().edit(new URI(dirID), param);
+        } catch (final Exception e) {
+            Logger.error(e.getMessage());
+        }
+    }
 
     private static void addPrimitivesByType(final List<Node> topLevelNodes, final String type, String parentDefault,
             final Map<URI, WFDirectoryRestRep> fileParents) {

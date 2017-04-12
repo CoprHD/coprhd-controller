@@ -23,7 +23,7 @@ import com.emc.vipr.model.catalog.AssetOption;
 @Component
 @AssetNamespace("vipr")
 public class RemoteReplicationProvider extends BaseAssetOptionsProvider {
-
+/**
     @Asset("remoteReplicationMode")
     @AssetDependencies({ "project", "remoteReplicationSet" })
     public List<AssetOption>
@@ -37,7 +37,7 @@ public class RemoteReplicationProvider extends BaseAssetOptionsProvider {
             return Collections.emptyList();
         }
     }
-
+**/
     @Asset("remoteReplicationGroup")
     @AssetDependencies({ "blockVirtualArray", "blockVirtualPool" })
     public List<AssetOption> getRemoteReplicationGroups(AssetOptionsContext ctx,

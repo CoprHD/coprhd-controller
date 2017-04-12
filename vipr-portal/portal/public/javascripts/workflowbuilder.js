@@ -29,7 +29,7 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
 
     $scope.libOpen = true;
     $scope.toggleLib = function() {
-        $("#libSidebar").toggleClass("collapsed");
+        $("#libSidebar").toggleClass("collapsedLib");
         $("#builderController").toggleClass("col-md-12 col-md-8");
 
         $scope.libOpen = !$scope.libOpen;

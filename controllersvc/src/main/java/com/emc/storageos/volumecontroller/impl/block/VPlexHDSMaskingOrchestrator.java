@@ -432,7 +432,6 @@ public class VPlexHDSMaskingOrchestrator extends HDSMaskingOrchestrator
                 }
                 device.doExportRemoveVolumes(array, exportMask, passedVolumesInMask, initiators, completer);
             }
-            completer.ready(_dbClient);
         } catch (Exception ex) {
             _log.error("Failed to delete or remove volumes to export mask for hds: ", ex);
             VPlexApiException vplexex = DeviceControllerExceptions.vplex.addStepsForCreateVolumesFailed(ex);

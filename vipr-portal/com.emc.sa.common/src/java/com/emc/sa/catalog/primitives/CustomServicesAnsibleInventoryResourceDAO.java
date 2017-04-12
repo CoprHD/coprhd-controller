@@ -78,10 +78,17 @@ public class CustomServicesAnsibleInventoryResourceDAO implements CustomServices
     }
 
     @Override
-    public CustomServicesAnsibleInventoryResource updateResource(final URI id, final String name, final byte[] stream) {
+    public CustomServicesAnsibleInventoryResource updateResource(final URI id, final String name, final byte[] stream, final String parentId) {
+        ArgValidator.checkFieldNotNull(parentId, "parentId");
+        final URI parentIdURI = URI.create(parentId);
+        CustomServicesAnsibleResource parentResource = CustomServicesDBHelper.getResource(CustomServicesAnsibleResource.class,
+                CustomServicesDBAnsibleResource.class, primitiveManager, parentIdURI);
+        if (null == parentResource) {
+            throw APIException.notFound.unableToFindEntityInURL(parentIdURI);
+        }
         return CustomServicesDBHelper.updateResource(CustomServicesAnsibleInventoryResource.class,
                 CustomServicesDBAnsibleInventoryResource.class,
-                primitiveManager, id, name, stream, null);
+                primitiveManager, id, name, stream, null, parentIdURI, client, null, null,null,null);
     }
 
     @Override
@@ -91,7 +98,9 @@ public class CustomServicesAnsibleInventoryResourceDAO implements CustomServices
 
     @Override
     public void deactivateResource(URI id) {
-        CustomServicesDBHelper.deactivateResource(CustomServicesDBAnsibleInventoryResource.class, primitiveManager, client, id);
+        // There are no primitives or resource that has the inventory resource as the parent. hence passing null for the last 4 params
+        CustomServicesDBHelper.deactivateResource(CustomServicesDBAnsibleInventoryResource.class, primitiveManager, client, id, null, null,
+                null, null);
     }
 
     @Override

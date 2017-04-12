@@ -71,11 +71,17 @@ public class CustomServicesWorkflowService extends CatalogTaggedResourceService 
 
     @GET
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    public CustomServicesWorkflowList getWorkflows(@QueryParam("status") String status) {
+    public CustomServicesWorkflowList getWorkflows(@QueryParam("status") String status, @QueryParam("primitiveId") String primitiveId) {
         List<NamedElement> elements;
+        if(null != status && null != primitiveId){
+            //TODO: currently throwing exception. Implement if both status and primitive id are passed, get the workflows that are in the requested status state and that uses the primitiveId
+            throw APIException.methodNotAllowed.notSupportedWithReason("Querying workflow by both status and primitives are not supported currently.");
+        }
         if (null != status) {
             ArgValidator.checkFieldValueFromEnum(status, "status", CustomServicesWorkflowStatus.class);
             elements = customServicesWorkflowManager.listByStatus(CustomServicesWorkflowStatus.valueOf(status));
+        } else if (null != primitiveId) {
+            elements = customServicesWorkflowManager.listByPrimitiveUsed(URI.create(primitiveId));
         } else {
             elements = customServicesWorkflowManager.list();
         }

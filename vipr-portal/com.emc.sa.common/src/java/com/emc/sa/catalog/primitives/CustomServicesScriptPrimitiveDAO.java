@@ -101,12 +101,12 @@ public class CustomServicesScriptPrimitiveDAO implements CustomServicesPrimitive
                 param, 
                 CustomServicesDBHelper.updateInputFunction(INPUT_TYPES),
                 CustomServicesDBHelper.updateAttributesFunction(ATTRIBUTES),
-                id);
+                id, null);
     }
 
     @Override
     public void deactivate(URI id) {
-        CustomServicesDBHelper.deactivate(CustomServicesDBScriptPrimitive.class, primitiveManager, client, id);
+        CustomServicesDBHelper.deactivate(CustomServicesDBScriptPrimitive.class, primitiveManager, client, id, CustomServicesDBScriptResource.class, null);
     }
 
     @Override

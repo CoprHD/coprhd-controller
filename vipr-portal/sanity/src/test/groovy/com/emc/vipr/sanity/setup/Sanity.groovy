@@ -24,7 +24,7 @@ class Sanity {
     static ViPRPortalClient portal
     static ViPRSystemClient sys
 
-    static void main() {
+    public static void main(String[] args) {
         setup()
         VNXSetup.setupSimulator()
         JUnitCore junit = new JUnitCore()

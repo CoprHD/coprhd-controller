@@ -465,7 +465,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             }
             if (quotaId != null) {
                 _log.info("IsilonFileStorageDevice doUpdateQuotaDirectory , Update Quota {} with Capacity {}", quotaId, qDirSize);
-                IsilonSmartQuota expandedQuota = getQuotaDirectoryExpandedSmartQuota(quotaDir, qDirSize, args.getFsCapacity(), isi);
+                IsilonSmartQuota expandedQuota = getQuotaDirectoryExpandedSmartQuota(quotaDir, qDirSize, args.getNewFSCapacity(), isi);
                 isi.modifyQuota(quotaId, expandedQuota);
             }
         }
@@ -881,22 +881,20 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         Long capacity = args.getNewFSCapacity();
         IsilonSmartQuota quota = isi.getQuota(quotaId);
         Long hard = quota.getThresholds().getHard();
-        if (capacity.compareTo(hard) < 0) {
 
+        // Modify quota for file system.
+        IsilonSmartQuota expandedQuota = getExpandedQuota(isi, args, capacity);
+        isi.modifyQuota(quotaId, expandedQuota);
+
+        //update the quota directory of fileshare
+        if (capacity.compareTo(hard) < 0) {
             String msg = String
                     .format(
                             "In expanding Isilon FS requested capacity is less than current capacity of file system. Path: %s, current capacity: %d",
                             quota.getPath(), quota.getThresholds().getHard());
             _log.info(msg);
             isiUpdateQuotaDirs(isi, args);
-
-//            _log.error(msg);
-//            throw IsilonException.exceptions.expandFsFailedinvalidParameters(quota.getPath(),
-//                    quota.getThresholds().getHard());
         }
-        // Modify quota for file system.
-        IsilonSmartQuota expandedQuota = getExpandedQuota(isi, args, capacity);
-        isi.modifyQuota(quotaId, expandedQuota);
     }
 
     private IsilonSmartQuota getExpandedQuota(IsilonApi isi, FileDeviceInputOutput args, Long capacity) {

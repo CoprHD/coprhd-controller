@@ -20,6 +20,12 @@ import com.emc.storageos.db.client.model.StringSetMap;
 @Cf("RemoteReplicationSet")
 public class RemoteReplicationSet extends DiscoveredDataObject {
 
+    enum OperationGranularity {
+        REPLICATION_SET,
+        REPLICATION_GROUP,
+        REPLICATION_PAIR
+    }
+
     // native id of replication set.
     private String nativeId;
 
@@ -135,21 +141,17 @@ public class RemoteReplicationSet extends DiscoveredDataObject {
 
     public boolean supportRemoteReplicationPairOperation() {
         return supportedReplicationLinkGranularity != null
-                && supportedReplicationLinkGranularity.contains("REPLICATION_PAIR")
-                && supportedElementTypes != null
-                && supportedElementTypes.contains("REPLICATION_PAIR");
+                && supportedReplicationLinkGranularity.contains(OperationGranularity.REPLICATION_PAIR.toString());
     }
 
     public boolean supportRemoteReplicationGroupOperation() {
         return supportedReplicationLinkGranularity != null
-                && supportedReplicationLinkGranularity.contains("REPLICATION_GROUP")
-                && supportedElementTypes != null
-                && supportedElementTypes.contains("REPLICATION_GROUP");
+                && supportedReplicationLinkGranularity.contains(OperationGranularity.REPLICATION_GROUP.toString());
     }
 
     public boolean supportRemoteReplicationSetOperation() {
         return supportedReplicationLinkGranularity != null
-                && supportedReplicationLinkGranularity.contains("REPLICATION_SET");
+                && supportedReplicationLinkGranularity.contains(OperationGranularity.REPLICATION_SET.toString());
     }
 
     public void setSupportedReplicationLinkGranularity(StringSet supportedReplicationLinkGranularity) {

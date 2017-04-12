@@ -68,6 +68,18 @@ public class FileDeviceInputOutput {
     private List<ExportRule> exportRulesToAdd = new ArrayList<>();
     private List<ExportRule> exportRulesToModify = new ArrayList<>();
     private List<ExportRule> exportRulesToDelete = new ArrayList<>();
+
+    public List<QuotaDirectory> getUpdateQuota() {
+        return updateQuota;
+    }
+
+    public void setUpdateQuota(List<QuotaDirectory> updateQuota) {
+        this.updateQuota = updateQuota;
+    }
+
+    //quota directory
+    private List<QuotaDirectory> updateQuota = new ArrayList<>();
+
     private List<ExportRule> existingDBExportRules = new ArrayList<>();
 
     private String comments = "";

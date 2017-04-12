@@ -451,22 +451,22 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
 
 
     private void isiUpdateQuotaDirs(IsilonApi isi, FileDeviceInputOutput args) throws IsilonException {
-        long qDirSize = args.getNewFSCapacity();
-
-        List<URI> quotaDirURIList = _dbClient
-                .queryByConstraint(ContainmentConstraint.Factory.getQuotaDirectoryConstraint(args.getFsId()));
-
-        QuotaDirectory quotaDir = null;
-        for (URI quotaDirURI : quotaDirURIList) {
-            quotaDir = _dbClient.queryObject(QuotaDirectory.class, quotaDirURI);
-            String quotaId = null;
-            if (quotaDir.getExtensions() != null) {
-                quotaId = quotaDir.getExtensions().get(QUOTA);
-            }
-            if (quotaId != null) {
-                _log.info("IsilonFileStorageDevice doUpdateQuotaDirectory , Update Quota {} with Capacity {}", quotaId, qDirSize);
-                IsilonSmartQuota expandedQuota = getQuotaDirectoryExpandedSmartQuota(quotaDir, qDirSize, args.getNewFSCapacity(), isi);
-                isi.modifyQuota(quotaId, expandedQuota);
+        long capacity = args.getNewFSCapacity();
+        List<QuotaDirectory> quotaDirectories = args.getUpdateQuota();
+        if (quotaDirectories != null) {
+            for (QuotaDirectory qd : quotaDirectories) {
+                //get the quota directires that need to be updated.
+                if(qd.getSize().compareTo(capacity) > 0) {
+                    String quotaId = null;
+                    if (qd.getExtensions() != null) {
+                        quotaId = qd.getExtensions().get(QUOTA);
+                    }
+                    if (quotaId != null) {
+                        _log.info("IsilonFileStorageDevice doUpdateQuotaDirectory , Update Quota {} with Capacity {}", quotaId, capacity);
+                        IsilonSmartQuota expandedQuota = getQuotaDirectoryExpandedSmartQuota(qd, capacity, args.getNewFSCapacity(), isi);
+                        isi.modifyQuota(quotaId, expandedQuota);
+                    }
+                }
             }
         }
     }
@@ -886,7 +886,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         IsilonSmartQuota expandedQuota = getExpandedQuota(isi, args, capacity);
         isi.modifyQuota(quotaId, expandedQuota);
 
-        //update the quota directory of fileshare
+        //update the quota directories of fileshare
         if (capacity.compareTo(hard) < 0) {
             String msg = String
                     .format(

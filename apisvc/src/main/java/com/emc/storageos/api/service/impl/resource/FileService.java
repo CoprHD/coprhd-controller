@@ -1228,11 +1228,10 @@ public class FileService extends TaskResourceService {
         final long MIN_EXPAND_SIZE = SizeUtil.translateSize("1MB") + 1;
         if (!device.deviceIsType(DiscoveredDataObject.Type.isilon) && expand < MIN_EXPAND_SIZE) {
             throw APIException.badRequests.invalidParameterBelowMinimum("new_size", newFSsize, fs.getCapacity() + MIN_EXPAND_SIZE, "bytes");
-        }
-
-        //To shrink the new capacity of size should be greater than used capacity of fileshare.
-        if(device.deviceIsType(DiscoveredDataObject.Type.isilon) && expand < MIN_EXPAND_SIZE ){
-            if( newFSsize > fs.getUsedCapacity()) {
+        } else {
+            long quotaExpand = newFSsize - fs.getUsedCapacity();
+            //To shrink the new capacity of size should be greater than used capacity of fileshare.
+            if(quotaExpand < MIN_EXPAND_SIZE ){
                 throw APIException.badRequests.invalidParameterBelowMinimum("new_size", newFSsize, fs.getUsedCapacity() + MIN_EXPAND_SIZE, "bytes");
             }
         }
@@ -1246,7 +1245,6 @@ public class FileService extends TaskResourceService {
         Operation op = _dbClient.createTaskOpStatus(FileShare.class, fs.getId(),
                 task, ResourceOperationTypeEnum.EXPAND_FILE_SYSTEM);
         op.setDescription("Filesystem expand");
-
 
         FileServiceApi fileServiceApi = getFileShareServiceImpl(fs, _dbClient);
         try {

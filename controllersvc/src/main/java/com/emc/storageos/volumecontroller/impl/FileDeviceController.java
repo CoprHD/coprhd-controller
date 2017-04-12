@@ -946,6 +946,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
     public void expandFS(URI storage, URI uri, long newFSsize, String opId) throws ControllerException {
         ControllerUtils.setThreadLocalLogData(uri, opId);
         FileShare fs = null;
+        List<QuotaDirectory> qdList = null;
         try {
             StorageSystem storageObj = _dbClient.queryObject(StorageSystem.class, storage);
             FileDeviceInputOutput args = new FileDeviceInputOutput();
@@ -956,6 +957,15 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             args.setFileOperation(true);
             args.setNewFSCapacity(newFSsize);
             args.setOpId(opId);
+            List<URI> qdirUriList = new ArrayList<>();
+            if(storageObj.deviceIsType(Type.isilon)) {
+                quotaDirectoriesExistsOnFS(args, qdirUriList);
+                if(qdirUriList != null && !qdirUriList.isEmpty()) {
+                    qdList = _dbClient.queryObject(
+                            QuotaDirectory.class, qdirUriList);
+                    args.setUpdateQuota(qdList);
+                }
+            }
             // work flow and we need to add TaskCompleter(TBD for vnxfile)
             WorkflowStepCompleter.stepExecuting(opId);
             // Acquire lock for VNXFILE Storage System
@@ -978,6 +988,9 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             }
             // Set status
             fs.getOpStatus().updateTaskStatus(opId, result.toOperation());
+            if(null != qdirUriList && !qdirUriList.isEmpty()) {
+                _dbClient.updateObject(qdList);
+            }
             _dbClient.updateObject(fs);
 
             String eventMsg = result.isCommandSuccess() ? "" : result.getMessage();
@@ -3080,29 +3093,30 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
         return false;
     }
 
-    private boolean quotaDirectoriesExistsOnFS(FileShare fs) {
+    private void quotaDirectoriesExistsOnFS(FileDeviceInputOutput args, List<URI> quotaDirList) {
         _log.info(" Setting Snapshots to InActive with Force Delete ");
-
+        Long capacity = args.getNewFSCapacity();
         URIQueryResultList qdIDList = new URIQueryResultList();
 
         _dbClient.queryByConstraint(ContainmentConstraint.Factory
-                .getQuotaDirectoryConstraint(fs.getId()), qdIDList);
+                .getQuotaDirectoryConstraint(args.getFsId()), qdIDList);
 
-        _log.info("getQuotaDirectories : FS {}: {} ", fs.getId().toString(),
+        _log.info("getQuotaDirectories : FS {}: {} ", args.getFsId().toString(),
                 qdIDList.toString());
         List<QuotaDirectory> qdList = _dbClient.queryObject(
                 QuotaDirectory.class, qdIDList);
 
         if (qdList != null) {
             for (QuotaDirectory qd : qdList) {
-                if (!qd.getInactive()) {
-                    return true;
+                //get the quota directires that need to be updated.
+                if(qd.getSize().compareTo(capacity) > 0) {
+                    quotaDirList.add(qd.getId());
                 }
             }
         }
-
-        return false;
     }
+
+    private URIQueryResultList quotaDirExistsOnFS(FileShare fs)
 
     private List<ShareACL> queryExistingShareAcls(FileDeviceInputOutput args) {
 

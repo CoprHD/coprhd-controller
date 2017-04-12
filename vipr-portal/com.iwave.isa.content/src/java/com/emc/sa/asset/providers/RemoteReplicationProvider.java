@@ -5,6 +5,7 @@
 package com.emc.sa.asset.providers;
 
 import java.net.URI;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
@@ -16,28 +17,27 @@ import com.emc.sa.asset.annotation.Asset;
 import com.emc.sa.asset.annotation.AssetDependencies;
 import com.emc.sa.asset.annotation.AssetNamespace;
 import com.emc.storageos.model.NamedRelatedResourceRep;
-import com.emc.storageos.model.remotereplication.RemoteReplicationSetRestRep;
+import com.emc.storageos.model.remotereplication.RemoteReplicationGroupRestRep;
 import com.emc.vipr.client.core.RemoteReplicationSets;
 import com.emc.vipr.model.catalog.AssetOption;
 
 @Component
 @AssetNamespace("vipr")
 public class RemoteReplicationProvider extends BaseAssetOptionsProvider {
-/**
-    @Asset("remoteReplicationMode")
-    @AssetDependencies({ "project", "remoteReplicationSet" })
-    public List<AssetOption>
-            getRemoteReplicationModes(AssetOptionsContext ctx, URI projectId, URI remoteReplicationSetID) {
 
-        RemoteReplicationSetRestRep remoteReplicationSet = api(ctx).remoteReplicationSets().getRemoteReplicationSetsRestRep(
-                remoteReplicationSetID.toString());
-        if (remoteReplicationSet != null)
-            return createStringOptions(remoteReplicationSet.getSupportedReplicationModes());
+    @Asset("remoteReplicationMode")
+    @AssetDependencies({ "remoteReplicationGroup" })
+    public List<AssetOption>
+            getRemoteReplicationModes(AssetOptionsContext ctx, URI remoteReplicationGroupID) {
+        RemoteReplicationGroupRestRep remoteReplicationGroup = api(ctx).remoteReplicationGroups().getRemoteReplicationGroupsRestRep(
+                remoteReplicationGroupID.toString());
+        if (remoteReplicationGroup != null)
+            return createStringOptions(Arrays.asList(remoteReplicationGroup.getReplicationMode()));
         else {
             return Collections.emptyList();
         }
     }
-**/
+
     @Asset("remoteReplicationGroup")
     @AssetDependencies({ "blockVirtualArray", "blockVirtualPool" })
     public List<AssetOption> getRemoteReplicationGroups(AssetOptionsContext ctx,

@@ -58,7 +58,8 @@
           },
           remoteReplicationMode:{
             type:"assetType.vipr.remoteReplicationMode",
-            required:false
+            required:true,
+            omitNone: true
          }
         }
       }

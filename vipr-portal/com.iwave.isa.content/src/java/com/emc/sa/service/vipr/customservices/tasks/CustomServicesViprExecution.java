@@ -93,6 +93,7 @@ public class CustomServicesViprExecution extends ViPRExecutionTask<CustomService
 
         CustomServicesTaskResult result = makeRestCall(path, requestBody, method);
 
+        logger.info("result is:{}", result.getOut());
         ExecutionUtils.currentContext().logInfo("customServicesViprExecution.doneInfo", primitive.friendlyName());
 
         return result;

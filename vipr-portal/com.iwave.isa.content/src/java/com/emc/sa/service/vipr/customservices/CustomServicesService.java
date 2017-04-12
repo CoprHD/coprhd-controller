@@ -19,6 +19,7 @@ package com.emc.sa.service.vipr.customservices;
 
 import java.io.File;
 import java.io.IOException;
+import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.net.URI;
@@ -38,6 +39,7 @@ import org.codehaus.jackson.JsonNode;
 import org.codehaus.jackson.JsonParseException;
 import org.codehaus.jackson.map.JsonMappingException;
 import org.codehaus.jackson.map.ObjectMapper;
+import org.codehaus.jackson.xc.JaxbAnnotationIntrospector;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.expression.EvaluationContext;
@@ -425,7 +427,7 @@ public class CustomServicesService extends ViPRService {
     private void updateViproutput(final Step step, String res) throws Exception {
         logger.info("updateViproutput is called");
         //TODO get the classname from primitive
-        final String classname = "TaskList";
+        final String classname = "com.emc.storageos.modelTaskList";
         //TODO Hard code for create volume response
         res = "{\n"
                 + "  \"task\": [\n"
@@ -448,9 +450,14 @@ public class CustomServicesService extends ViPRService {
                 + "    }\n"
                 + "  ]\n"
                 + "}";
+
+        logger.info("res string is:{}", res);
         final ObjectMapper MAPPER = new ObjectMapper();
+        MAPPER.setAnnotationIntrospector(new JaxbAnnotationIntrospector());
         final Class<?> clazz = Class.forName(classname);
-        final Object taskList = MAPPER.readValue(res, clazz);
+        logger.info("didnt receive classNF exception");
+
+        final Object taskList = MAPPER.readValue(res, clazz.newInstance().getClass());
 
         if (taskList instanceof TaskList) {
             logger.info("it is an instance for TaskList");
@@ -464,8 +471,8 @@ public class CustomServicesService extends ViPRService {
     }
     private void updateViprTaskoutput(final TaskList taskList, final Step step) throws Exception {
         logger.info("in updateViprTaskoutput");
-        final List<CustomServicesWorkflowDocument.Output> stepOut = step.getOutput();
-
+       // final List<CustomServicesWorkflowDocument.Output> stepOut = step.getOutput();
+        final List<CustomServicesWorkflowDocument.Output> stepOut = new ArrayList<CustomServicesWorkflowDocument.Output>();
         //TODO remove this after primitive code is ready
 
         CustomServicesWorkflowDocument.Output stepout1 = new CustomServicesWorkflowDocument.Output();
@@ -486,7 +493,7 @@ public class CustomServicesService extends ViPRService {
             final String outName = out.getName();
             logger.info("output name is :{}", outName);
 
-            String[] bits = outName.split(".");
+            String[] bits = outName.split("\\.");
             String lastOne = bits[bits.length-1];
 
             logger.info("lastOne:{}", lastOne);
@@ -552,11 +559,26 @@ public class CustomServicesService extends ViPRService {
     private Method findMethod(final String str, final Method[] methods) {
         logger.info("in findMethod");
         for (Method method : methods) {
+            logger.info("method name:{}", method.getName());
+            Annotation[] annotations = method.getDeclaredAnnotations();
+            for(Annotation annotation : annotations){
+                if (annotation instanceof XmlElement) {
+                    logger.info("annotation of type xmlelem");
+                    logger.info("xml annot name:{}", ((XmlElement) annotation).name());
+                    if(str.equals(((XmlElement) annotation).name())){
+                        logger.info("FOUND annot:{}", str);
+                    }
+                }
+            }
             XmlElement elem = method.getAnnotation(XmlElement.class);
-            logger.info("elem name:{}", elem.name());
-            if (elem.name().equals(str)) {
-                logger.info("name matched elem:{} str:{}", elem.name(), str);
-                return method;
+            if (elem != null) {
+                logger.info("elem name:{}", elem.name());
+                if (elem.name().equals(str)) {
+                    logger.info("name matched elem:{} str:{}", elem.name(), str);
+                    return method;
+                }
+            } else {
+                logger.info("elem is null for method:{}", method.getName());
             }
         }
         logger.info("didnt match in xml. str:{}", str);

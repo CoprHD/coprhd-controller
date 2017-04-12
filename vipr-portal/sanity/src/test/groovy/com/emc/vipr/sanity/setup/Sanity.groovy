@@ -11,6 +11,7 @@ import com.emc.vipr.client.ViPRCoreClient
 import com.emc.vipr.client.ViPRPortalClient
 import com.emc.vipr.client.ViPRSystemClient
 
+
 class Sanity {
     static final Integer API_TASK_TIMEOUT = 120000
 
@@ -25,6 +26,18 @@ class Sanity {
     static ViPRPortalClient portal
     static ViPRSystemClient sys
 
+    static Class catalogTests = com.emc.vipr.sanity.CatalogAPISanity
+    static Class blockTests = com.emc.vipr.sanity.CatalogBlockServicesSanity
+    static Class protectionTests = com.emc.vipr.sanity.CatalogBlockProtectionServicesSanity
+    static Class vmwareTests = com.emc.vipr.sanity.CatalogVmwareBlockServicesSanity
+
+    static List<Class> allTests = [
+        catalogTests,
+        blockTests,
+        protectionTests,
+        vmwareTests
+    ]
+
     public static void main(String[] args) {
         setup()
         VNXSetup.setupSimulator()
@@ -32,17 +45,21 @@ class Sanity {
         String catalogTest = System.getenv("CatalogTest")
         Result result = null
         switch (catalogTest) {
+            case "all":
+                result = junit.run(allTests)
+                break
             case "catalog":
-                result = junit.run(com.emc.vipr.sanity.CatalogAPISanity)
+                result = junit.run(catalogTests)
                 break
             case "block":
-                result = junit.run(com.emc.vipr.sanity.CatalogBlockServicesSanity)
+                result = junit.run(blockTests)
                 break
             case "protection":
-                result = junit.run(com.emc.vipr.sanity.CatalogBlockProtectionServicesSanity)
+                result = junit.run(protectionTests)
+                break
             case "vmware":
                 VCenterSetup.setup()
-                result = junit.run(com.emc.vipr.sanity.CatalogVmwareBlockServicesSanity)
+                result = junit.run(vmwareTests)
                 break
             default:
                 println "Not running any tests. Parameter = " + catalogTest

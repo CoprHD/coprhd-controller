@@ -1,4 +1,4 @@
-package com.emc.vipr.sanity
+package com.emc.vipr.sanity.tests
 
 import org.junit.Test
 

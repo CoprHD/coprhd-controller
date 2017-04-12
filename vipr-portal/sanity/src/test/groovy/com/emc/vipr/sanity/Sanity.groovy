@@ -1,4 +1,4 @@
-package com.emc.vipr.sanity.setup
+package com.emc.vipr.sanity
 
 import org.apache.commons.collections.ExtendedProperties
 import org.junit.runner.JUnitCore
@@ -10,6 +10,13 @@ import com.emc.vipr.client.ViPRCatalogClient2
 import com.emc.vipr.client.ViPRCoreClient
 import com.emc.vipr.client.ViPRPortalClient
 import com.emc.vipr.client.ViPRSystemClient
+import com.emc.vipr.sanity.setup.HostSetup;
+import com.emc.vipr.sanity.setup.ProjectSetup;
+import com.emc.vipr.sanity.setup.SecuritySetup;
+import com.emc.vipr.sanity.setup.SystemSetup;
+import com.emc.vipr.sanity.setup.VCenterSetup;
+import com.emc.vipr.sanity.setup.VNXSetup;
+import com.emc.vipr.sanity.setup.VirtualArraySetup;
 
 
 class Sanity {
@@ -26,10 +33,10 @@ class Sanity {
     static ViPRPortalClient portal
     static ViPRSystemClient sys
 
-    static Class catalogTests = com.emc.vipr.sanity.CatalogAPISanity.class
-    static Class blockTests = com.emc.vipr.sanity.CatalogBlockServicesSanity.class
-    static Class protectionTests = com.emc.vipr.sanity.CatalogBlockProtectionServicesSanity.class
-    static Class vmwareTests = com.emc.vipr.sanity.CatalogVmwareBlockServicesSanity.class
+    static Class catalogTests = com.emc.vipr.sanity.tests.CatalogAPISanity.class
+    static Class blockTests = com.emc.vipr.sanity.tests.CatalogBlockServicesSanity.class
+    static Class protectionTests = com.emc.vipr.sanity.tests.CatalogBlockProtectionServicesSanity.class
+    static Class vmwareTests = com.emc.vipr.sanity.tests.CatalogVmwareBlockServicesSanity.class
 
     static allTests = [
         catalogTests,

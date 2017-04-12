@@ -1,8 +1,10 @@
 package com.emc.vipr.sanity.setup
 
-import static com.emc.vipr.sanity.setup.Sanity.*
-import com.emc.storageos.model.property.PropertyInfoUpdate
+import static com.emc.vipr.sanity.Sanity.*
+
 import java.util.concurrent.TimeoutException
+
+import com.emc.storageos.model.property.PropertyInfoUpdate
 
 class SystemSetup {
     // Sleep time of 15 seconds between calls

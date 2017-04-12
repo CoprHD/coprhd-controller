@@ -1,6 +1,6 @@
 package com.emc.vipr.sanity.catalog
 
-import static com.emc.vipr.sanity.setup.Sanity.*
+import static com.emc.vipr.sanity.Sanity.*
 import static org.junit.Assert.*
 
 class BlockServicesHelper {
@@ -18,10 +18,10 @@ class BlockServicesHelper {
 
     static void createVolumeAndDatastoreTest() {
         println " ## Create Volume and Datastore Test ## "
-        
+
         def creationOrder = createVolumeAndDatastore()
-     
-    //    deleteDatastoreAndVolume(creationOrder)
+
+        //    deleteDatastoreAndVolume(creationOrder)
     }
 
     static void createAndRemoveBlockVolumeForHostTest() {

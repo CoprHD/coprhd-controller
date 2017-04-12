@@ -2,6 +2,9 @@ package com.emc.vipr.sanity.setup
 
 import org.apache.commons.configuration.CompositeConfiguration
 import org.apache.commons.configuration.SystemConfiguration
+
+import com.emc.vipr.sanity.Sanity;
+
 import org.apache.commons.configuration.PropertiesConfiguration
 import org.apache.commons.configuration.ConfigurationConverter
 

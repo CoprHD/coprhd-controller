@@ -1,7 +1,7 @@
 package com.emc.vipr.sanity.catalog
 
+import static com.emc.vipr.sanity.Sanity.*
 import static com.emc.vipr.sanity.catalog.OrderStatus.*
-import static com.emc.vipr.sanity.setup.Sanity.*
 import static org.junit.Assert.*
 
 import com.emc.storageos.model.BulkIdParam

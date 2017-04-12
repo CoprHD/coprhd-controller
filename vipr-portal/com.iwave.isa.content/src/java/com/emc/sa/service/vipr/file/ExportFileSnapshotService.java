@@ -4,13 +4,10 @@
  */
 package com.emc.sa.service.vipr.file;
 
-import static com.emc.sa.service.ServiceParams.COMMENT;
 import static com.emc.sa.service.ServiceParams.SNAPSHOT;
-
+import static com.emc.sa.service.ServiceParams.COMMENT;
 import java.net.URI;
-
 import org.apache.commons.lang.StringUtils;
-
 import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.engine.bind.Bindable;
 import com.emc.sa.engine.bind.Param;

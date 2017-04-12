@@ -35,12 +35,14 @@ import com.emc.storageos.remotereplicationcontroller.RemoteReplicationUtils;
 import com.emc.storageos.security.authorization.ACL;
 
 import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.api.service.impl.resource.ArgValidator;
 import com.emc.storageos.api.service.impl.resource.TaskResourceService;
 import com.emc.storageos.db.client.URIUtil;
+import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.OpStatusMap;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.StoragePool;
@@ -68,6 +70,7 @@ import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.impl.externaldevice.RemoteReplicationElement;
+import com.emc.storageos.volumecontroller.impl.utils.ConsistencyGroupUtils;
 import com.emc.storageos.volumecontroller.impl.utils.ObjectLocalCache;
 import com.emc.storageos.volumecontroller.impl.utils.attrmatchers.NeighborhoodsMatcher;
 
@@ -120,9 +123,7 @@ public class RemoteReplicationSetService extends TaskResourceService {
         _log.info("Called: getRemoteReplicationSets()");
         RemoteReplicationSetList rrSetList = new RemoteReplicationSetList();
 
-        List<URI> ids = _dbClient.queryByType(RemoteReplicationSet.class, true);
-        _log.info("Found sets: {}", ids);
-        Iterator<RemoteReplicationSet> iter = _dbClient.queryIterativeObjects(RemoteReplicationSet.class, ids);
+        Iterator<RemoteReplicationSet> iter = RemoteReplicationUtils.findAllRemoteRepliationSetsIteratively(_dbClient);
         while (iter.hasNext()) {
             rrSetList.getRemoteReplicationSets().add(toNamedRelatedResource(iter.next()));
         }
@@ -165,8 +166,7 @@ public class RemoteReplicationSetService extends TaskResourceService {
             allTargetSystems.addAll(targetDevices);
         }
 
-        List<URI> uris = _dbClient.queryByType(RemoteReplicationSet.class, true);
-        Iterator<RemoteReplicationSet> it = _dbClient.queryIterativeObjects(RemoteReplicationSet.class, uris);
+        Iterator<RemoteReplicationSet> it = RemoteReplicationUtils.findAllRemoteRepliationSetsIteratively(_dbClient);
         outloop:
         while (it.hasNext()) {
             RemoteReplicationSet rrSet = it.next();
@@ -286,6 +286,48 @@ public class RemoteReplicationSetService extends TaskResourceService {
             }
         }
         return rrGroupList;
+    }
+
+    /**
+     * Get remote replication sets for a given consistency group.
+     */
+    @GET
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/consistency-group/sets")
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR })
+    public RemoteReplicationSetList getRemoteReplicationSetsForCG(@QueryParam("consistencyGroup") URI uri) {
+        ArgValidator.checkUri(uri);
+        ArgValidator.checkFieldUriType(uri, BlockConsistencyGroup.class, "id");
+        BlockConsistencyGroup cGroup = ConsistencyGroupUtils.findConsistencyGroupById(uri, _dbClient);
+        if (ConsistencyGroupUtils.isConsistencyGroupEmpty(cGroup)) {
+            // If CG is empty (storageDevice is null) any remote replication set is a match.
+            return getRemoteReplicationSets();
+        }
+        RemoteReplicationSetList result = new RemoteReplicationSetList();
+        if (!ConsistencyGroupUtils.isConsistencyGroupSupportRemoteReplication(cGroup)) {
+            return result;
+        }
+        Set<String> targetCGSystemsSet = ConsistencyGroupUtils
+                .findAllRRConsistencyGrroupSystemsByAlternateLabel(cGroup.getLabel(), _dbClient);
+        Iterator<RemoteReplicationSet> sets = RemoteReplicationUtils.findAllRemoteRepliationSetsIteratively(_dbClient);
+        while (sets.hasNext()) {
+            RemoteReplicationSet rrSet = sets.next();
+            StorageSystem cgSystem = _dbClient.queryObject(StorageSystem.class, cGroup.getStorageController());
+            if (!StringUtils.equals(cgSystem.getSystemType(), rrSet.getStorageSystemType())) {
+                // Pass ones whose storage system type is not aligned with consistency group
+                continue;
+            }
+            if (!rrSet.getSourceSystems().contains(URIUtil.toString(cGroup.getStorageController()))) {
+                // Pass ones whose source systems can't cover source CG
+                continue;
+            }
+            if (!rrSet.getTargetSystems().containsAll(targetCGSystemsSet)) {
+                // Pass ones whose target systems can't cover target CGs
+                continue;
+            }
+            result.getRemoteReplicationSets().add(toNamedRelatedResource(rrSet));
+        }
+        return result;
     }
 
     /**

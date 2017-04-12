@@ -2141,6 +2141,22 @@ srdf_setup()
     echo 'SRDF setup'
     srdf_setup_once
     srdf_common_setup
+
+    # check that we created remote replication sets after srdf discovery
+    rr_sets=`remotereplicationset list | wc -l`
+    secho "Discovered ${rr_sets} remote replication sets in srdf configuration."
+    if [ "$rr_sets" -eq 0 ]; then
+            secho "Failed to discover remote replication sets in srdf configuration."
+            exit 1
+    fi
+
+    # check that we created remote replication groups after srdf discovery
+    rr_groups=`remotereplicationgroup list | wc -l`
+    secho "Discovered ${rr_groups} remote replication groups in srdf configuration."
+    if [ "$rr_groups" -eq 0 ]; then
+            secho "Failed to discover remote replication groups in srdf configuration ."
+            exit 1
+    fi
 }
 
 srdf_setup_once()
@@ -6929,7 +6945,7 @@ sbsdk_remote_replication_setup()
     secho "Discovered ${rr_groups} remote replication groups."
     if [ "$rr_groups" -eq 0 ]; then
             secho "Failed to discover remote replication groups."
-            exit -1
+            exit 1
     fi
 
     ##
@@ -7138,7 +7154,8 @@ sbsdk_remote_replication_tests()
 
     echo "**** Creating replication group: $REMOTE_REPLICATION_GROUP_NAME *******"
     run remotereplicationgroup create $SBSDK_DRIVER_SYS_TYPE $REMOTE_REPLICATION_GROUP_NAME synchronous \
-                  --source_system $SBSDK_DRIVER_SYS_NATIVEGUID --target_system $SBSDK_DRIVER_SYS_TARGET_NATIVEGUID
+                  --source_system $SBSDK_DRIVER_SYS_NATIVEGUID --target_system $SBSDK_DRIVER_SYS_TARGET_NATIVEGUID \
+                  --source_ports $SBSDK_DRIVER_SYS_PWWN10,$SBSDK_DRIVER_SYS_PWWN11 --target_ports $SBSDK_DRIVER_SYS_PWWN20,$SBSDK_DRIVER_SYS_PWWN21
 
 
     echo "***** Completed SB SDK remote replication sanity tests *****"

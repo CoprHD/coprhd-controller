@@ -10,10 +10,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 
-import models.DriveTypes;
-import models.HighAvailability;
-import models.VirtualPoolPlacementPolicy;
-
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.ObjectUtils;
 import org.apache.commons.lang.StringUtils;
@@ -40,6 +36,10 @@ import com.emc.storageos.model.vpool.VirtualPoolRemoteReplicationParam;
 import com.emc.storageos.model.vpool.VirtualPoolRemoteReplicationSettingsParam;
 import com.emc.storageos.model.vpool.VirtualPoolRemoteReplicationUpdateParam;
 import com.google.common.collect.Sets;
+
+import models.DriveTypes;
+import models.HighAvailability;
+import models.VirtualPoolPlacementPolicy;
 
 public class BlockVirtualPoolUpdateBuilder extends VirtualPoolUpdateBuilder {
     private static final String NO_AUTO_TIER_POLICY = "none";
@@ -498,12 +498,10 @@ public class BlockVirtualPoolUpdateBuilder extends VirtualPoolUpdateBuilder {
 
     private static List<VirtualPoolRemoteReplicationSettingsParam> getRemoteReplicationSettings(
             BlockVirtualPoolProtectionParam protection) {
-        if(protection != null ){
-            
-            VirtualPoolRemoteReplicationParam param =protection.getRemoteReplicationParam();
-            return param != null ? param.getRemoteReplicationSettings() : null;
+        if(protection != null && protection.getRemoteReplicationParam() != null && protection.getRemoteReplicationParam().getRemoteReplicationSettings() != null) {
+            return protection.getRemoteReplicationParam().getRemoteReplicationSettings();
         }
-         return null;
+        return Collections.emptyList();
     }
 
 

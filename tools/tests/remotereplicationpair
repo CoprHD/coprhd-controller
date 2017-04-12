@@ -11,7 +11,7 @@ import time
 from bourne import Bourne
 
 #----------------------------------------------------------------------
-# remotereplicatingpair functions
+# remotereplicationpair functions
 #----------------------------------------------------------------------
 
 # list pairs
@@ -30,7 +30,7 @@ try:
 except:
     bourne_ip = 'localhost'
 
-# remotereplicationgroup cmd cmd_args [--ip ipaddr]
+# remotereplicationpair cmd cmd_args [--ip ipaddr]
 parser = argparse.ArgumentParser(description = 'Bourne remotereplication pair cli usage.')
 parser.add_argument('cmd', help = 'cmd = (create )')
 parser.add_argument('--ip',	metavar = 'ipaddr',	help = 'IP address of bourne', default=bourne_ip)

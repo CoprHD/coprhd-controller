@@ -2633,7 +2633,7 @@ srdf_basic_active_test()
    # check that we created remote replication pair for this srdf volume
    rr_pairs=`remotereplicationpair list | wc -l`
    secho "Found ${rr_pairs} remote replication pairs."
-   if [ "rr_pairs" -eq 0 ]; then
+   if [ "$rr_pairs" -eq 0 ]; then
            secho "Could not find any remote replication pairs."
            exit 1
    fi

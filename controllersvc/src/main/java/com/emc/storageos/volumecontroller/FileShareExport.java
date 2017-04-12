@@ -47,7 +47,7 @@ public class FileShareExport implements Serializable {
     private String _mountPath;
     private String _comments;
     private String _isilonId;
-    private boolean _bypassDnsCheck;
+    private Boolean _bypassDnsCheck;
 
     private static final String SEC_SEPARATOR = ",";
 
@@ -294,11 +294,14 @@ public class FileShareExport implements Serializable {
         this._isilonId = isilonId;
     }
 
-    public boolean getBypassDnsCheck() {
+    public Boolean getBypassDnsCheck() {
+        if (_bypassDnsCheck == null) {
+            return false;
+        }
         return _bypassDnsCheck;
     }
 
-    public void setBypassDnsCheck(boolean bypassDnsCheck) {
+    public void setBypassDnsCheck(Boolean bypassDnsCheck) {
         this._bypassDnsCheck = bypassDnsCheck;
     }
 

@@ -158,7 +158,6 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
     };
 
     function deleteDir(event, data) {
-    	// ALIK: add delete logic here
         if (folderNodeType === data.node.type) {
             $http.get(routes.WF_directory_delete({"id": data.node.id}));
         }

@@ -74,6 +74,13 @@ public interface CustomServicesResourceDAO<Resource extends CustomServicesPrimit
      * @return A named element list of resources
      */
     public List<NamedElement> listResources(final String parentId);
+    
+    /**
+     * List all resources that have the given resource as the parent
+     * @param uri
+     * @return A named element list of related resources
+     */
+    public List<NamedElement> listRelatedResources(final URI uri);
 
     /**
      * Get the resource model type that this dao supports

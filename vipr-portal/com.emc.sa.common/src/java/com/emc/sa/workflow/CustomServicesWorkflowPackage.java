@@ -1,0 +1,164 @@
+/*
+ * Copyright 2017 Dell Inc. or its subsidiaries.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ */
+package com.emc.sa.workflow;
+
+import java.io.IOException;
+import java.net.URI;
+import java.util.HashMap;
+import java.util.Map;
+
+import com.emc.storageos.db.client.model.uimodels.CustomServicesDBPrimitive;
+import com.emc.storageos.db.client.model.uimodels.CustomServicesDBResource;
+import com.emc.storageos.db.client.model.uimodels.CustomServicesWorkflow;
+import com.google.common.collect.ImmutableMap;
+
+
+public class CustomServicesWorkflowPackage {
+
+    private final WorkflowMetadata metadata;
+    private final ImmutableMap<URI, CustomServicesWorkflow> workflows;
+    private final ImmutableMap<URI, CustomServicesDBPrimitive> operations;
+    private final ImmutableMap<URI, ResourcePackage> resources;
+    
+    private CustomServicesWorkflowPackage(final WorkflowMetadata metadata,
+            final ImmutableMap<URI, CustomServicesWorkflow> subWorkflows,
+            final ImmutableMap<URI, CustomServicesDBPrimitive> operations,
+            final ImmutableMap<URI, ResourcePackage> resources) {
+        this.metadata = metadata;
+        this.workflows = subWorkflows;
+        this.operations = operations;
+        this.resources = resources;
+    }
+    
+    public WorkflowMetadata metadata() {
+        return metadata;
+    }
+    
+    public ImmutableMap<URI, CustomServicesWorkflow> workflows() {
+        return workflows;
+    }
+    
+    public ImmutableMap<URI, CustomServicesDBPrimitive> operations() {
+        return operations;
+    }
+    
+    public ImmutableMap<URI, ResourcePackage> resources() {
+        return resources;
+    }
+    
+    public static class Builder {
+        private WorkflowMetadata metadata;
+        private Map<URI, CustomServicesWorkflow> workflows = new HashMap<URI, CustomServicesWorkflow>();
+        private Map<URI, CustomServicesDBPrimitive> operations = new HashMap<URI, CustomServicesDBPrimitive>();
+        private Map<URI, ResourcePackage> resources = new HashMap<URI, ResourcePackage>();
+        
+        public void metadata(final WorkflowMetadata metadata) {
+            this.metadata = metadata;
+        }
+        
+        public Builder addWorkflow(final CustomServicesWorkflow workflow) {
+            this.workflows.put(workflow.getId(), workflow);
+            return this;
+        }
+        
+        public Builder addOperation(final CustomServicesDBPrimitive operation) {
+            this.operations.put(operation.getId(), operation);
+            return this;
+        }
+        
+        public Builder addResource(final ResourcePackage resourcePackage) {
+            this.resources.put(resourcePackage.metadata().getId(), resourcePackage);
+            return this;
+        }
+        
+        public CustomServicesWorkflowPackage build() {
+            return new CustomServicesWorkflowPackage(metadata, ImmutableMap.copyOf(workflows), ImmutableMap.copyOf(operations), ImmutableMap.copyOf(resources));
+        }
+
+    }
+    
+    public static class WorkflowMetadata {
+        private URI id;
+        private String version;
+        
+        public WorkflowMetadata() {}
+        
+        public WorkflowMetadata(final URI id, final String version) {
+            this.id = id;
+            this.version = version;
+        }
+        
+        public URI getId() {
+            return id;
+        }
+        
+        public void setId(final URI id) {
+            this.id = id;
+        }
+        
+        public void setVersion(final String version) {
+            this.version = version;
+        }
+        
+        public String getVersion() {
+            return version;
+        }
+    }
+    
+    public static class ResourcePackage {
+        private final CustomServicesDBResource metadata;
+        private final byte[] bytes;
+        
+        public ResourcePackage(CustomServicesDBResource metadata, byte[] bytes) {
+            this.metadata = metadata;
+            this.bytes = bytes;
+        }
+        
+        public CustomServicesDBResource metadata() {
+            return metadata;
+        }
+        
+        public byte[] bytes() {
+            return bytes;
+        }
+        
+        public static class ResourceBuilder {
+            private CustomServicesDBResource metadata;
+            private byte[] bytes;
+            
+            public void metadata(final CustomServicesDBResource metadata) {
+                this.metadata = metadata;
+            }
+            
+            public void bytes(byte[] bytes) {
+                this.bytes = bytes;
+            }
+            
+            public ResourcePackage build() throws IOException {
+                if( null == metadata ) {
+                    throw new IOException();
+                }
+                if( null == bytes ) {
+                    throw new IOException();
+                }
+                
+                return new ResourcePackage(metadata, bytes);
+            }
+            
+        }
+    }
+}

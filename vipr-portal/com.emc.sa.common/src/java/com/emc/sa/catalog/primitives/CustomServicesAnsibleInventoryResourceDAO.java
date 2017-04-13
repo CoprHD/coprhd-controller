@@ -101,6 +101,11 @@ public class CustomServicesAnsibleInventoryResourceDAO implements CustomServices
     }
 
     @Override
+    public List<NamedElement> listRelatedResources(final URI parentId ) {
+        return CustomServicesDBHelper.EMPTY_ELEMENT_LIST;
+    }
+    
+    @Override
     public Class<CustomServicesAnsibleInventoryResource> getResourceType() {
         return CustomServicesAnsibleInventoryResource.class;
     }

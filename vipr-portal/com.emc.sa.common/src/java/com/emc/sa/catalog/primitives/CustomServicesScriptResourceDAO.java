@@ -44,7 +44,7 @@ public class CustomServicesScriptResourceDAO implements CustomServicesResourceDA
     private ModelClient client;
     @Autowired
     private DbClient dbClient;
-
+    
     @Override
     public String getType() {
         return CustomServicesScriptPrimitive.TYPE;
@@ -89,6 +89,11 @@ public class CustomServicesScriptResourceDAO implements CustomServicesResourceDA
         }
         return CustomServicesDBHelper.listResources(CustomServicesDBScriptResource.class, client,
                 CustomServicesDBScriptResource.PARENTID, parentId);
+    }
+    
+    @Override
+    public List<NamedElement> listRelatedResources(final URI parentId ) {
+        return CustomServicesDBHelper.EMPTY_ELEMENT_LIST;
     }
 
     @Override

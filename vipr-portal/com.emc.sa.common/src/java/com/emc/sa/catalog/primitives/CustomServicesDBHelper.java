@@ -20,6 +20,7 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.net.URI;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -75,7 +76,8 @@ public final class CustomServicesDBHelper {
     @SuppressWarnings("rawtypes")
     private static final Class<Map> RESOURCE_ATTRIBUTES_ARG = Map.class;
 
-    
+    public static final List<NamedElement> EMPTY_ELEMENT_LIST = Collections.emptyList();
+
     private CustomServicesDBHelper() {
     }
 

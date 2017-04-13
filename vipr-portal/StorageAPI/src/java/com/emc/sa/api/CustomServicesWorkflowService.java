@@ -16,14 +16,19 @@
  */
 package com.emc.sa.api;
 
-import static com.emc.sa.api.mapper.CustomServicesWorkflowMapper.map;
-import static com.emc.sa.api.mapper.CustomServicesWorkflowMapper.mapList;
+import static com.emc.sa.workflow.CustomServicesWorkflowMapper.map;
+import static com.emc.sa.workflow.CustomServicesWorkflowMapper.mapList;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.URI;
 import java.util.Iterator;
 import java.util.List;
 
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.PUT;
@@ -31,14 +36,18 @@ import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
+import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.emc.sa.api.mapper.CustomServicesWorkflowFilter;
-import com.emc.sa.api.mapper.CustomServicesWorkflowMapper;
 import com.emc.sa.catalog.CustomServicesWorkflowManager;
+import com.emc.sa.catalog.primitives.CustomServicesPrimitiveDAOs;
+import com.emc.sa.catalog.primitives.CustomServicesResourceDAOs;
+import com.emc.sa.model.dao.ModelClient;
+import com.emc.sa.workflow.CustomServicesWorkflowMapper;
 import com.emc.sa.workflow.ValidationHelper;
 import com.emc.sa.workflow.WorkflowHelper;
 import com.emc.storageos.api.service.impl.resource.ArgValidator;
@@ -60,6 +69,7 @@ import com.emc.storageos.security.authorization.ACL;
 import com.emc.storageos.security.authorization.DefaultPermissions;
 import com.emc.storageos.security.authorization.Role;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
+import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorException;
 
 @DefaultPermissions(readRoles = { Role.TENANT_ADMIN, Role.SYSTEM_MONITOR, Role.SYSTEM_ADMIN }, writeRoles = {
         Role.TENANT_ADMIN }, readAcls = { ACL.ANY })
@@ -67,7 +77,13 @@ import com.emc.storageos.svcs.errorhandling.resources.APIException;
 public class CustomServicesWorkflowService extends CatalogTaggedResourceService {
 
     @Autowired
+    private ModelClient client;
+    @Autowired
     private CustomServicesWorkflowManager customServicesWorkflowManager;
+    @Autowired
+    private CustomServicesPrimitiveDAOs daos;
+    @Autowired
+    private CustomServicesResourceDAOs resourceDAOs;
 
     @GET
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
@@ -220,6 +236,35 @@ public class CustomServicesWorkflowService extends CatalogTaggedResourceService 
         return (CustomServicesWorkflowBulkRep) super.getBulkResources(ids);
     }
 
+    @POST
+    @Consumes({ MediaType.APPLICATION_OCTET_STREAM })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/import")
+    public CustomServicesWorkflowRestRep importWorkflow(
+            @Context final HttpServletRequest request) {
+        final byte[] stream = read(request);
+        return map(WorkflowHelper.importWorkflow(stream, client));
+    }
+    
+    /**
+     * Download the resource and set it in the response header
+     * 
+     * @param id The ID of the resource to download
+     * @param response HttpServletResponse the servlet response to update with the file octet stream
+     * @return Response containing the octet stream of the primitive resource
+     */
+    @GET
+    @Path("{id}/export")
+    public Response download(@PathParam("id") final URI id,
+            @Context final HttpServletResponse response) {
+        final byte[] bytes = WorkflowHelper.exportWorkflow(id, client, daos, resourceDAOs);
+        response.setContentLength(bytes.length);
+
+        response.setHeader("Content-Disposition", "attachment; filename="+
+                id.toString() + ".tar.gz");
+        return Response.ok(bytes).build();
+    }
+    
     @Override
     protected CustomServicesWorkflow queryResource(URI id) {
         return customServicesWorkflowManager.getById(id);
@@ -261,6 +306,20 @@ public class CustomServicesWorkflowService extends CatalogTaggedResourceService 
         ArgValidator.checkEntityNotNull(workflow, id, true);
 
         return workflow;
+    }
+    
+    private byte[] read(final HttpServletRequest request) {
+        try(final ByteArrayOutputStream file = new ByteArrayOutputStream()) {
+            final byte buffer[] = new byte[2048];
+            final InputStream in = request.getInputStream();
+            int nRead = 0;
+            while ((nRead = in.read(buffer)) > 0) {
+                file.write(buffer, 0, nRead);
+            }
+            return file.toByteArray();
+        } catch (final IOException e) {
+            throw InternalServerErrorException.internalServerErrors.genericApisvcError("failed to read octet stream", e);
+        }
     }
 
 }

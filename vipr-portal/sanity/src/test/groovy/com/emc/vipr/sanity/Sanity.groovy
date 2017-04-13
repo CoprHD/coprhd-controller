@@ -7,6 +7,8 @@ package com.emc.vipr.sanity
 import org.apache.commons.collections.ExtendedProperties
 import org.junit.runner.JUnitCore
 import org.junit.runner.Result
+import org.junit.runner.notification.Failure
+import org.junit.runner.notification.RunListener
 
 import com.emc.vipr.client.AuthClient
 import com.emc.vipr.client.ClientConfig
@@ -52,6 +54,21 @@ class Sanity {
     public static void main(String[] args) {
         setup()
         JUnitCore junit = new JUnitCore()
+        junit.addListener(new RunListener() {
+                    @Override
+                    public void testFailure(Failure failure) throws Exception {
+                        println failure.getDescription().getDisplayName()
+                        println failure.getException()
+                        println failure.getTrace()
+                    }
+                    @Override
+                    public void testAssumptionFailure(Failure failure) {
+                        println failure.getDescription().getDisplayName()
+                        println failure.getException()
+                        println failure.getTrace()
+                    }
+                });
+
         String catalogTest = System.getenv("CatalogTest")
         Result result = null
         switch (catalogTest) {

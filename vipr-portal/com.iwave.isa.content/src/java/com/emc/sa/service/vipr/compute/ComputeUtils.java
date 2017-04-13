@@ -23,7 +23,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 
 import org.apache.commons.collections.MapUtils;
-import org.apache.commons.lang.StringUtils;
 
 import com.emc.sa.engine.ExecutionException;
 import com.emc.sa.engine.ExecutionUtils;
@@ -221,8 +220,14 @@ public class ComputeUtils {
         if ((hosts != null) && (cluster != null)) {
             for (Host host : hosts) {
                 if (host != null) {
-                    ExecutionUtils.currentContext().logInfo("computeutils.clusterexport.addhost", host.getLabel(), cluster.getLabel());
-                    execute(new AddHostToCluster(host.getId(), cluster.getId()));
+                    try {
+                        ExecutionUtils.currentContext().logInfo("computeutils.clusterexport.addhost", host.getLabel(),
+                                cluster.getLabel());
+                        execute(new AddHostToCluster(host.getId(), cluster.getId()));
+                    } catch (Exception ex) {
+                        ExecutionUtils.currentContext().logError(ex, "computeutils.clusterexport.addhost.failure",
+                                host.getLabel(), cluster.getLabel());
+                    }
                 }
             }
         }else {

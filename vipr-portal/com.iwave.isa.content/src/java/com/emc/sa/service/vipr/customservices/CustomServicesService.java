@@ -25,12 +25,7 @@ import java.lang.reflect.Method;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.net.URI;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 import com.emc.storageos.db.client.model.StorageProtocol;
 import com.emc.storageos.model.*;
@@ -587,6 +582,18 @@ public class CustomServicesService extends ViPRService {
         }*/
     //}
 
+    private boolean isPrimitive(Class<?> primitiveclass){
+
+        if (primitiveclass.isPrimitive()
+                || primitiveclass.equals(String.class)
+                || primitiveclass.equals(URI.class)
+                || primitiveclass.equals(Calendar.class)
+                || primitiveclass.equals(Date.class)) {
+            return true;
+        }
+
+        return false;
+    }
     private void ifprimitivetheninvoke(String[] bits, int i, Object className ) throws Exception {
 
         logger.info("in ifprimitivetheninvoke");
@@ -595,7 +602,7 @@ public class CustomServicesService extends ViPRService {
         logger.info("bit:{}", bits[i]);
 
         //1) primitive
-        if (method.getReturnType().isPrimitive() || method.getReturnType().equals(String.class)) {
+        if (isPrimitive(method.getReturnType())) {
             logger.info("it is of primitive type");
             if (i == bits.length - 1) {
                 logger.info("it is the last bit also:{}", bits[i]);
@@ -608,10 +615,19 @@ public class CustomServicesService extends ViPRService {
         if (returnType instanceof ParameterizedType) {
             logger.info("return type is parameterized");
             Type t = ((ParameterizedType) returnType).getRawType();
-            if (t.getClass().isPrimitive()) {
+            if (isPrimitive(t.getClass())) {
                 logger.info("it is primitive array type");
+                return;
+            } else {
+                //4) Collection Non primitive
+                logger.info("it is not primitive array type");
+                List<?> o = (List<?>) method.invoke(className, null);
+                for (Object o1 : o) {
+                    logger.info("invoke again");
+                    ifprimitivetheninvoke(bits, i + 1, o1);
+                }
             }
-            return;
+
         }
         //2) Class single object
         if (returnType instanceof Class<?>) {
@@ -621,7 +637,7 @@ public class CustomServicesService extends ViPRService {
         }
 
 
-        //4) Collection Non primitive
+ /*       //4) Collection Non primitive
         if (returnType instanceof ParameterizedType) {
             logger.info("return type of ParameterizedType 2");
             Type t = ((ParameterizedType) returnType).getRawType();
@@ -634,6 +650,7 @@ public class CustomServicesService extends ViPRService {
                 }
             }
         }
+        */
     }
 
     private Method findMethod(final String str, final Method[] methods) {

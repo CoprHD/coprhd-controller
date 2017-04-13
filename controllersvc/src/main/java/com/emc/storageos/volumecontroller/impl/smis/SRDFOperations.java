@@ -38,6 +38,7 @@ import javax.cim.UnsignedInteger16;
 import javax.wbem.CloseableIterator;
 import javax.wbem.WBEMException;
 
+import com.emc.storageos.remotereplicationcontroller.RemoteReplicationUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -1504,6 +1505,18 @@ public class SRDFOperations implements SmisConstants {
         } finally {
             if (error == null) {
                 completer.ready(dbClient);
+                if (target != null) {
+                    // at that point we call remote replication data client to delete remote replication pair
+                    // we can only delete remote replication pair for srdf volumes if they are not null here
+                    try {
+                        URI sourceUri = target.getSrdfParent().getURI();
+                        log.info("Process remote replication pair for srdf link detach. Sourrce/Target: {}/{}", sourceUri, target.getId());
+                        RemoteReplicationUtils.deleteRemoteReplicationPairForSrdfPair(sourceUri, target.getId(), dbClient);
+                    } catch (Exception ex) {
+                        ServiceError serviceError = SmisException.errors.jobFailed(ex.getMessage());
+                        completer.error(dbClient, serviceError);
+                    }
+                }
             } else {
                 completer.error(dbClient, error);
             }

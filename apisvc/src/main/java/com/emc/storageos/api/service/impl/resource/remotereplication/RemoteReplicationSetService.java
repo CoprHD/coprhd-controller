@@ -184,10 +184,15 @@ public class RemoteReplicationSetService extends TaskResourceService {
                 }
             }
 
-            if ( (rrSet.getStorageSystemType() != null) &&
-                    (vpool.getSupportedProvisioningType() != null) &&
+            if ( (rrSet.getStorageSystemType() == null) || rrSet.getStorageSystemType().isEmpty()) {
+                throw new RuntimeException("No StorageType defined for RemoteReplicationSet '" +
+                        rrSet.getLabel() + "' (" + rrSet.getId() + ")");
+            }
+
+            if ( (vpool.getSupportedProvisioningType() == null) ||
+                    vpool.getSupportedProvisioningType().isEmpty() ||
                     !rrSet.getStorageSystemType().equals(vpool.getSupportedProvisioningType()) ) {
-                continue outloop; // filter out if storage system types doesn't match
+                continue outloop; // vpool storage system type must exist & match set's
             }
 
             /* Finally, a rr set is qualified and put in result collection only if it meets following conditions:

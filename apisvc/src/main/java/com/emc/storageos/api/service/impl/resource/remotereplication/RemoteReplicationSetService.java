@@ -189,9 +189,9 @@ public class RemoteReplicationSetService extends TaskResourceService {
                         rrSet.getLabel() + "' (" + rrSet.getId() + ")");
             }
 
-            if ( (vpool.getSupportedProvisioningType() == null) ||
-                    vpool.getSupportedProvisioningType().isEmpty() ||
-                    !rrSet.getStorageSystemType().equals(vpool.getSupportedProvisioningType()) ) {
+            if ( (vpool.getArrayInfo() == null) ||
+                    (vpool.getArrayInfo().size() != 1) ||
+                    !rrSet.getStorageSystemType().equals(vpool.getArrayInfo().get(0)) ) {
                 continue outloop; // vpool storage system type must exist & match set's
             }
 

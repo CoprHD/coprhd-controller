@@ -6,7 +6,9 @@ package com.emc.storageos.api.service.impl.resource.remotereplication;
 
 
 import java.net.URI;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 import javax.ws.rs.Consumes;
@@ -35,6 +37,7 @@ import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.TaskResourceRep;
 import com.emc.storageos.model.remotereplication.RemoteReplicationOperationParam;
 import com.emc.storageos.model.remotereplication.RemoteReplicationOperationParam.OperationContext;
+import com.emc.storageos.remotereplicationcontroller.RemoteReplicationUtils;
 import com.emc.storageos.security.authorization.ACL;
 import com.emc.storageos.security.authorization.DefaultPermissions;
 import com.emc.storageos.security.authorization.Role;
@@ -266,6 +269,28 @@ public class RemoteReplicationManagementService extends TaskResourceService {
     }
 
 
+    private Set<URI> getSetPairIdsByRrSet(URI rrSetId) {
+        List<RemoteReplicationPair> pairs = RemoteReplicationUtils.findAllRemoteRepliationPairsByRrSet(rrSetId, _dbClient);
+        Set<URI> setPairIds = new HashSet<>();
+        for (RemoteReplicationPair pair : pairs) {
+            if (!pair.isGroupPair()) {
+                setPairIds.add(pair.getId());
+            }
+        }
+        return setPairIds;
+    }
+
+    private Set<URI> getGroupPairIdsByRrGroup(URI rrGroupId) {
+        List<RemoteReplicationPair> pairs = RemoteReplicationUtils.findAllRemoteRepliationPairsByRrGroup(rrGroupId, _dbClient);
+        Set<URI> setPairIds = new HashSet<>();
+        for (RemoteReplicationPair pair : pairs) {
+            if (pair.isGroupPair()) {
+                setPairIds.add(pair.getId());
+            }
+        }
+        return setPairIds;
+    }
+
     /**
      * Validate parameters according to context of the operation.
      * @param operationParam
@@ -286,54 +311,56 @@ public class RemoteReplicationManagementService extends TaskResourceService {
          *
          *
          */
-        // TODO: complete
-        String contextStr = operationParam.getOperationContext();
-        List<URI> elementURIs = operationParam.getIds();
-        RemoteReplicationOperationParam.OperationContext context;
-        try {
-             context = RemoteReplicationOperationParam.OperationContext.valueOf(contextStr);
-        } catch (Exception ex) {
-            // error
-            throw APIException.badRequests.invalidRemoteReplicationContext(contextStr);
+        OperationContext context = validateOperationContext(operationParam.getOperationContext());
+        Set<URI> rrPairIds = new HashSet<>(operationParam.getIds());
+        for (URI rrPairId : rrPairIds) {
+            ArgValidator.checkFieldUriType(rrPairId, RemoteReplicationPair.class, "id");
         }
 
-        for (URI id : elementURIs) {
-            ArgValidator.checkFieldUriType(id, RemoteReplicationPair.class, "id");
-        }
-
-        if (context == OperationContext.RR_PAIR) {
-            // No additional validation needed for RR_PAIR context
-            return;
-        }
-
-        List<RemoteReplicationPair> rrPairs =_dbClient.queryObject(RemoteReplicationPair.class, operationParam.getIds());
+        List<RemoteReplicationPair> rrPairs =_dbClient.queryObject(RemoteReplicationPair.class, rrPairIds);
         if (rrPairs.isEmpty()) {
             throw APIException.badRequests.remoteReplicationOperationPrecheckFailed("remote repliation pair IDs are not found");
         }
+        
+
         switch (context) {
             case RR_SET:
-                // All pairs should be in the same remote replication set
                 checkContainment(rrPairs, false, true, false);
+                URI rrSetId = rrPairs.get(0).getReplicationSet();
+                Set<URI> setPairIds = getSetPairIdsByRrSet(rrSetId);
+                if (!rrPairIds.containsAll(setPairIds)) {
+                    throw APIException.badRequests.remoteReplicationOperationPrecheckFailed(String.format(
+                            "Given remote repliation pair ids should contain all set pairs of remote repliation set %s",
+                            rrSetId));
+                }
                 break;
             case RR_GROUP:
-                // All pairs should be in the same remote replication group
                 checkContainment(rrPairs, true, true, false);
+                URI rrGroupId = rrPairs.get(0).getReplicationGroup();
+                Set<URI> groupPairIds =getGroupPairIdsByRrGroup(rrGroupId);
+                if (!rrPairIds.containsAll(groupPairIds)) {
+                    throw APIException.badRequests.remoteReplicationOperationPrecheckFailed(String.format(
+                            "Given remote repliation pair ids should contain all set pairs of remote repliation group %s",
+                            rrGroupId));
+                }
                 break;
             case RR_PAIR:
                 // No additional validation needed
                 break;
             case RR_SET_CG:
-                // All pairs should be in the same remote replication set directly (not allowed in a rr group)
-                // All source volumes should be in the same cg
-                // All target volumes should be in the same cg
                 checkContainment(rrPairs, false, false, true);
                 break;
             case RR_GROUP_CG:
-                // All pairs should be in the same remove replication group
-                // All source volumes should be in the same cg
-                // All target volumes should be in the same cg
                 checkContainment(rrPairs, true, true, true);
                 break;
+        }
+    }
+
+    private OperationContext validateOperationContext(String contextStr) {
+        try {
+            return OperationContext.valueOf(contextStr);
+        } catch (Exception e) {
+            throw APIException.badRequests.invalidRemoteReplicationContext(contextStr);
         }
     }
 
@@ -357,26 +384,29 @@ public class RemoteReplicationManagementService extends TaskResourceService {
         URI sourceCG = null;
         URI targetCG = null;
         for (RemoteReplicationPair pair : rrPairs) {
+            // When operation context is RR_SET_CG, pairs should be directly contained by rr set
             if (!inSameGroup && !allowInGroup && pair.isGroupPair()) {
                 throw APIException.badRequests.remoteReplicationOperationPrecheckFailed(String.format(
                         "remote repliation pair %s is not directly contained in remote repliation group, which is not allowed",
                         pair.getNativeId()));
             }
-            URI current = inSameGroup ? pair.getReplicationGroup() : pair.getReplicationSet();
-            if (current == null) {
+            // Check all pairs have the same rr pair or rr group
+            URI currentPairOrGroup = inSameGroup ? pair.getReplicationGroup() : pair.getReplicationSet();
+            if (currentPairOrGroup == null) {
                 throw APIException.badRequests.remoteReplicationOperationPrecheckFailed(
                         String.format("remote replication %s of remote repliaction pair %s is null, which is not allowed",
                                 inSameGroup ? "group" : "set", pair.getNativeId()));
             } else if (uri == null) {
-                uri = current;
-            } else if (!uri.equals(current)) {
+                uri = currentPairOrGroup;
+            } else if (!uri.equals(currentPairOrGroup)) {
                 throw APIException.badRequests.remoteReplicationOperationPrecheckFailed(String.format(
                         "remote replication %s of remote replication pair %s is not the same as the others",
                         inSameGroup ? "group" : "set", pair.getNativeId()));
             }
-            if (!checkCG) { // Following checking will be bypassed if checking CG is not needed
+            if (!checkCG) {
                 continue;
             }
+            // Check all pairs have same source and target consistency groups
             URI currentSourceCG = _dbClient.queryObject(Volume.class, pair.getSourceElement()).getConsistencyGroup();
             if (currentSourceCG == null) {
                 throw APIException.badRequests.remoteReplicationOperationPrecheckFailed(String.format(
@@ -408,7 +438,4 @@ public class RemoteReplicationManagementService extends TaskResourceService {
         // delegate to BlockService method
         return null;
     }
-
-
-
 }

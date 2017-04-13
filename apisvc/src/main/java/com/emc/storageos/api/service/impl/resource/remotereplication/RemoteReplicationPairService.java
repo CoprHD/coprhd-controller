@@ -817,6 +817,9 @@ public class RemoteReplicationPairService extends TaskResourceService {
         RemoteReplicationGroup currentGroup = _dbClient.queryObject(RemoteReplicationGroup.class, currentGroupId);
         ArgValidator.checkFieldUriType(targetGroup, RemoteReplicationGroup.class, "id");
         RemoteReplicationGroup newGroup = _dbClient.queryObject(RemoteReplicationGroup.class, targetGroup);
+        if (newGroup == null) {
+            throw APIException.badRequests.invalidURI(targetGroup);
+        }
         if (!URIUtil.uriEquals(currentGroup.getSourceSystem(), newGroup.getSourceSystem()) ||
                 !URIUtil.uriEquals(currentGroup.getTargetSystem(), newGroup.getSourceSystem())) {
             throw APIException.badRequests.remoteReplicationPairMoveOperationIsNotAllowed(rrPair.getNativeId(), targetGroup.toString(),

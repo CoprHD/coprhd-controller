@@ -477,11 +477,11 @@ public class CustomServicesService extends ViPRService {
         //TODO remove this after primitive code is ready
 
         CustomServicesWorkflowDocument.Output stepout1 = new CustomServicesWorkflowDocument.Output();
-        stepout1.setName("tasks.@task.op_id");
+        stepout1.setName("tasks.task.op_id");
         CustomServicesWorkflowDocument.Output stepout2 = new CustomServicesWorkflowDocument.Output();
-        stepout2.setName("tasks.@task.resource.name");
+        stepout2.setName("tasks.task.resource.name");
         CustomServicesWorkflowDocument.Output stepout3 = new CustomServicesWorkflowDocument.Output();
-        stepout3.setName("tasks.@task.resource.id");
+        stepout3.setName("tasks.task.resource.id");
         //CustomServicesWorkflowDocument.Output stepout4 = new CustomServicesWorkflowDocument.Output();
         //stepout4.setName("tasks.@task.associated_resources.@associated_resource.name");
 
@@ -499,7 +499,7 @@ public class CustomServicesService extends ViPRService {
 
             logger.info("lastOne:{}", lastOne);
 
-            ifprimitivetheninvoke(bits, 0, taskList);
+            ifprimitivetheninvoke(bits, 1, taskList);
             /*
             final List<TaskResourceRep> taskResourceReps = taskList.getTaskList();
             for (final TaskResourceRep task : taskResourceReps) {

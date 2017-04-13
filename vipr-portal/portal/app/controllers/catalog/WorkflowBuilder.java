@@ -520,7 +520,18 @@ public class WorkflowBuilder extends Controller {
     private static void editShellScriptPrimitive(final ShellScriptPrimitiveForm shellPrimitive) {
         try {
             final URI shellPrimitiveID = new URI(shellPrimitive.getId());
-            final CustomServicesPrimitiveRestRep primitiveRestRep = getCatalogClient().customServicesPrimitives().getPrimitive(shellPrimitiveID);
+            // Check primitive is already used in workflow/s
+            final CustomServicesWorkflowList customServicesWorkflowList = getCatalogClient().customServicesPrimitives().getWorkflows(
+                    shellPrimitive.getId());
+            if (customServicesWorkflowList != null && customServicesWorkflowList.getWorkflows() != null) {
+                if (customServicesWorkflowList.getWorkflows().size() > 0) {
+                    flash.error("Primitive id: %s is already being used in Workflow", shellPrimitive.getId());
+                    return;
+                }
+            }
+
+            final CustomServicesPrimitiveRestRep primitiveRestRep = getCatalogClient().customServicesPrimitives().getPrimitive(
+                    shellPrimitiveID);
             if (null != primitiveRestRep) {
                 // Update name, description
                 final CustomServicesPrimitiveUpdateParam primitiveUpdateParam = new CustomServicesPrimitiveUpdateParam();
@@ -545,18 +556,19 @@ public class WorkflowBuilder extends Controller {
                 primitiveUpdateParam.setOutput(outputUpdateParam);
 
                 if (shellPrimitive.newScript) {
-                    // TODO: delete old resource
-
                     // create new resource
                     final CustomServicesPrimitiveResourceRestRep primitiveResourceRestRep = getCatalogClient().customServicesPrimitives()
                             .createPrimitiveResource("SCRIPT", shellPrimitive.script, shellPrimitive.scriptName);
                     if (null != primitiveResourceRestRep) {
-                        // TODO: update resource link
+                        // Update resource link
+                        primitiveUpdateParam.setResource(primitiveResourceRestRep.getId());
+                        getCatalogClient().customServicesPrimitives().updatePrimitive(shellPrimitiveID, primitiveUpdateParam);
                     }
                 }
-                // TODO: update script name ( if it is different from existing name)
-
-                getCatalogClient().customServicesPrimitives().updatePrimitive(shellPrimitiveID, primitiveUpdateParam);
+                else {
+                    // Update the existing
+                    getCatalogClient().customServicesPrimitives().updatePrimitive(shellPrimitiveID, primitiveUpdateParam);
+                }
             }
         } catch (final Exception e) {
             Logger.error(e.getMessage());

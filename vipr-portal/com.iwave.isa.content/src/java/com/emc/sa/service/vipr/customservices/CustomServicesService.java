@@ -22,6 +22,8 @@ import java.io.IOException;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.lang.reflect.ParameterizedType;
+import java.lang.reflect.Type;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -30,10 +32,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import com.emc.storageos.model.DataObjectRestRep;
-import com.emc.storageos.model.NamedRelatedResourceRep;
-import com.emc.storageos.model.TaskList;
-import com.emc.storageos.model.TaskResourceRep;
+import com.emc.storageos.db.client.model.StorageProtocol;
+import com.emc.storageos.model.*;
+import com.emc.storageos.model.errorhandling.ServiceErrorRestRep;
 import org.apache.commons.lang.StringUtils;
 import org.codehaus.jackson.JsonNode;
 import org.codehaus.jackson.JsonParseException;
@@ -427,7 +428,7 @@ public class CustomServicesService extends ViPRService {
     private void updateViproutput(final Step step, String res) throws Exception {
         logger.info("updateViproutput is called");
         //TODO get the classname from primitive
-        final String classname = "com.emc.storageos.modelTaskList";
+        final String classname = "com.emc.storageos.model.TaskList";
         //TODO Hard code for create volume response
         res = "{\n"
                 + "  \"task\": [\n"
@@ -498,6 +499,8 @@ public class CustomServicesService extends ViPRService {
 
             logger.info("lastOne:{}", lastOne);
 
+            ifprimitivetheninvoke(bits, 0, taskList);
+            /*
             final List<TaskResourceRep> taskResourceReps = taskList.getTaskList();
             for (final TaskResourceRep task : taskResourceReps) {
                 if (outName.contains(".resource")) {
@@ -532,12 +535,40 @@ public class CustomServicesService extends ViPRService {
                     break;
 
                 }
+                if (outName.contains("tenant")) {
+                    logger.info("it is of tenant type");
+                    RelatedResourceRep resourcerep = task.getTenant();
+                    final Method method = findMethod(lastOne, resourcerep.getClass().getMethods());
+                    if (method == null) {
+                        logger.info("method is null");
+                    } else {
+                        logger.info("invoke the method");
 
-                //TODO implement tenant, service error
+                        Object out1 = method.invoke(task.getTenant(), null);
+                        logger.info("output value in associated_resource:{}", out1);
+                    }
+                    break;
+                }
+
+                if (outName.contains("serviceerror")) {
+                    logger.info("it is of serviceerror type");
+                    ServiceErrorRestRep resourcerep = task.getServiceError();
+                    final Method method = findMethod(lastOne, resourcerep.getClass().getMethods());
+                    if (method == null) {
+                        logger.info("method is null");
+                    } else {
+                        logger.info("invoke the method");
+
+                        Object out1 = method.invoke(task.getServiceError(), null);
+                        logger.info("output value in associated_resource:{}", out1);
+                    }
+                    break;
+                }
 
                 final Method method = findMethod(lastOne, task.getClass().getMethods());
                 Object out1 = method.invoke(task, null);
                 logger.info("output value else:{}", out1);
+                */
             }
             //TODO parse the name tasks.@task.op_id, tasks.@task.resource.resource.id, tasks.@task.associated_resources.@associated_resource.associated_resources.@associated_resource.name
         }
@@ -554,6 +585,55 @@ public class CustomServicesService extends ViPRService {
                 }
             }
         }*/
+    //}
+
+    private void ifprimitivetheninvoke(String[] bits, int i, Object className ) throws Exception {
+
+        logger.info("in ifprimitivetheninvoke");
+        Method method = findMethod(bits[i], className.getClass().getMethods());
+
+        logger.info("bit:{}", bits[i]);
+
+        //1) primitive
+        if (method.getReturnType().isPrimitive() || method.getReturnType().equals(String.class)) {
+            logger.info("it is of primitive type");
+            if (i == bits.length - 1) {
+                logger.info("it is the last bit also:{}", bits[i]);
+                logger.info("value:{}", method.invoke(className, null));
+            }
+            return;
+        }
+        //3) Collection primitive
+        Type returnType = method.getGenericReturnType();
+        if (returnType instanceof ParameterizedType) {
+            logger.info("return type is parameterized");
+            Type t = ((ParameterizedType) returnType).getRawType();
+            if (t.getClass().isPrimitive()) {
+                logger.info("it is primitive array type");
+            }
+            return;
+        }
+        //2) Class single object
+        if (returnType instanceof Class<?>) {
+            logger.info("return type class single obj");
+            ifprimitivetheninvoke(bits, i + 1, method.invoke(className, null));
+
+        }
+
+
+        //4) Collection Non primitive
+        if (returnType instanceof ParameterizedType) {
+            logger.info("return type of ParameterizedType 2");
+            Type t = ((ParameterizedType) returnType).getRawType();
+            if (!t.getClass().isPrimitive()) {
+                logger.info("it is not primitive array type");
+                List<?> o = (List<?>) method.invoke(className, null);
+                for (Object o1 : o) {
+                    logger.info("invoke again");
+                    ifprimitivetheninvoke(bits, i + 1, o1);
+                }
+            }
+        }
     }
 
     private Method findMethod(final String str, final Method[] methods) {
@@ -573,7 +653,7 @@ public class CustomServicesService extends ViPRService {
             XmlElement elem = method.getAnnotation(XmlElement.class);
             if (elem != null) {
                 logger.info("elem name:{}", elem.name());
-                if (elem.name().equals(str)) {
+                if (elem.name().equals(str) && isGetter(method)) {
                     logger.info("name matched elem:{} str:{}", elem.name(), str);
                     return method;
                 }
@@ -590,6 +670,13 @@ public class CustomServicesService extends ViPRService {
         }
 
         return null;
+    }
+
+    public static boolean isGetter(Method method){
+        if(!method.getName().startsWith("get"))      return false;
+        if(method.getParameterTypes().length != 0)   return false;
+        if(void.class.equals(method.getReturnType())) return false;
+        return true;
     }
 
     private boolean isAnsible(final Step step) {

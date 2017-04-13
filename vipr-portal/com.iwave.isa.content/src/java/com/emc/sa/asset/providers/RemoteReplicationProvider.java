@@ -5,7 +5,7 @@
 package com.emc.sa.asset.providers;
 
 import java.net.URI;
-import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
@@ -17,7 +17,7 @@ import com.emc.sa.asset.annotation.Asset;
 import com.emc.sa.asset.annotation.AssetDependencies;
 import com.emc.sa.asset.annotation.AssetNamespace;
 import com.emc.storageos.model.NamedRelatedResourceRep;
-import com.emc.storageos.model.remotereplication.RemoteReplicationGroupRestRep;
+import com.emc.storageos.model.remotereplication.RemoteReplicationSetRestRep;
 import com.emc.storageos.model.vpool.BlockVirtualPoolRestRep;
 import com.emc.vipr.client.core.RemoteReplicationSets;
 import com.emc.vipr.model.catalog.AssetOption;
@@ -26,44 +26,66 @@ import com.emc.vipr.model.catalog.AssetOption;
 @AssetNamespace("vipr")
 public class RemoteReplicationProvider extends BaseAssetOptionsProvider {
 
+    private RemoteReplicationSets setsForPoolVarray;
+
     @Asset("remoteReplicationMode")
-    @AssetDependencies({ "remoteReplicationGroup" })
+    @AssetDependencies({ "blockVirtualArray", "blockVirtualPool" })
     public List<AssetOption>
-            getRemoteReplicationModes(AssetOptionsContext ctx, URI remoteReplicationGroupID) {
-        RemoteReplicationGroupRestRep remoteReplicationGroup = api(ctx).remoteReplicationGroups().getRemoteReplicationGroupsRestRep(
-                remoteReplicationGroupID.toString());
-        if (remoteReplicationGroup != null)
-            return createStringOptions(Arrays.asList(remoteReplicationGroup.getReplicationMode()));
-        else {
+    getRemoteReplicationModes(AssetOptionsContext ctx, URI virtualArrayId, URI virtualPoolId) {
+
+        NamedRelatedResourceRep rrSet = getRrSet(ctx,virtualArrayId, virtualPoolId);
+        if(rrSet == null) {
             return Collections.emptyList();
         }
+
+        RemoteReplicationSetRestRep rrSetObj = api(ctx).remoteReplicationSets().
+                getRemoteReplicationSetsRestRep(rrSet.getId().toString());
+
+        List<AssetOption> options = new ArrayList<>();
+        for(String mode : rrSetObj.getSupportedReplicationModes()) {
+            options.add(new AssetOption(mode,mode));
+        }
+        return options;
     }
 
     @Asset("remoteReplicationGroup")
     @AssetDependencies({ "blockVirtualArray", "blockVirtualPool" })
     public List<AssetOption> getRemoteReplicationGroups(AssetOptionsContext ctx,
             URI virtualArrayId, URI virtualPoolId) throws Exception {
-        RemoteReplicationSets setsForPoolVarray = api(ctx).remoteReplicationSets();
+
+        NamedRelatedResourceRep rrSet = getRrSet(ctx,virtualArrayId, virtualPoolId);
+        if(rrSet == null) {
+            return Collections.emptyList();
+        }
+
+        return createNamedResourceOptions(setsForPoolVarray.
+                getGroupsForSet(rrSet.getId()).getRemoteReplicationGroups());
+    }
+
+    private NamedRelatedResourceRep getRrSet(AssetOptionsContext ctx,URI virtualArrayId, URI virtualPoolId) {
+
+        if(setsForPoolVarray == null) {
+            setsForPoolVarray = api(ctx).remoteReplicationSets();
+        }
 
         BlockVirtualPoolRestRep vpool = api(ctx).blockVpools().get(virtualPoolId);
         if ((vpool == null) || (vpool.getProtection().getRemoteReplicationParam() == null)) {
-            return Collections.emptyList();
+            return null;
         }
 
         List<NamedRelatedResourceRep> rrSets = setsForPoolVarray.
                 listRemoteReplicationSets(virtualArrayId,virtualPoolId).getRemoteReplicationSets();
 
         if ((rrSets == null) || rrSets.isEmpty()) {
-            return Collections.emptyList();
+            return null;
         }
 
         if (rrSets.size() > 1) {
             throw new IllegalStateException("Invalid number of RemoteReplicationSets (" + rrSets.size() +
                     ") found for VirtualArray (" + virtualArrayId + ") and VirtualPool (" + virtualPoolId +
-                    ")  RemoteReplicationSets found were: " + rrSets);
+                    ").  RemoteReplicationSets found were: " + rrSets);
         }
 
-        return createNamedResourceOptions(setsForPoolVarray.
-                getGroupsForSet(rrSets.get(0).getId()).getRemoteReplicationGroups());
+        return rrSets.get(0);
     }
 }

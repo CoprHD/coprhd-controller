@@ -241,7 +241,46 @@ public class RemoteReplicationDataClientImpl implements RemoteReplicationDataCli
 
     @Override
     public void deleteRemoteReplicationPair(RemoteReplicationPair driverReplicationPair, URI sourceVolumeURI, URI targetVolumeURI) throws DatabaseException {
-
+        com.emc.storageos.db.client.model.remotereplication.RemoteReplicationPair rrPairToDelete = null;
+        try {
+            Volume sourceVolume = _dbClient.queryObject(Volume.class, sourceVolumeURI);
+            Volume targetVolume = _dbClient.queryObject(Volume.class, targetVolumeURI);
+            if (sourceVolume == null) {
+                String message = String.format("Cannot find volume %s for replication pair %s",
+                        sourceVolumeURI, driverReplicationPair.getNativeId());
+                _log.error(message);
+                return;
+            }
+            if (targetVolume == null) {
+                String message = String.format("Cannot find volume %s for replication pair %s",
+                        targetVolumeURI, driverReplicationPair.getNativeId());
+                _log.error(message);
+                return;
+            }
+            // Find system remote replication pair for the driver pair and source and target volumes
+            List<com.emc.storageos.db.client.model.remotereplication.RemoteReplicationPair> rrPairs =
+                    queryActiveResourcesByRelation(_dbClient, sourceVolumeURI, com.emc.storageos.db.client.model.remotereplication.RemoteReplicationPair.class,
+                            "sourceElement");
+            for (com.emc.storageos.db.client.model.remotereplication.RemoteReplicationPair rrPair : rrPairs) {
+                if (rrPair.getTargetElement().getURI().equals(targetVolumeURI) && rrPair.getNativeId().equals(driverReplicationPair.getNativeId())) {
+                     rrPairToDelete = rrPair;
+                     break;
+                }
+            }
+            if (rrPairToDelete == null) {
+                String message = String.format("Cannot find remote replication pair with native id %s for source volume %s and target volume %s",
+                driverReplicationPair.getNativeId(), sourceVolumeURI, targetVolumeURI);
+                _log.error(message);
+                return;
+            }
+            _log.info("Found system replication pair to delete: {}, source volume {}, target volume {}.",
+                    rrPairToDelete.getNativeId(), sourceVolumeURI, targetVolumeURI);
+            _dbClient.markForDeletion(rrPairToDelete);
+        } catch (Exception ex) {
+            String message = String.format("Failed to delete replication pair %s with source/target volumes %s/%s",
+                    driverReplicationPair.getNativeId(), sourceVolumeURI, targetVolumeURI);
+            _log.error(message, ex);
+        }
     }
 
 

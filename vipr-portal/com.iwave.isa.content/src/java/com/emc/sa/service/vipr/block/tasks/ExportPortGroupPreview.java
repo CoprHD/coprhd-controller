@@ -20,12 +20,12 @@ public class ExportPortGroupPreview extends ViPRExecutionTask<ExportPathsAdjustm
     private Integer maxPaths;
     private Integer pathsPerInitiator;
     private URI storageSystemId;
-    private List<URI> ports;
+    private List<URI> portGroups;
     
     private URI exportId;
     
     public ExportPortGroupPreview(URI hostOrClusterId, URI virtualArray, URI exportId, Integer minPaths, Integer maxPaths, 
-            Integer pathsPerInitiator, URI storageSystemId, List<URI> ports) {
+            Integer pathsPerInitiator, URI storageSystemId, List<URI> portGroups) {
         
         this.hostOrClusterId = hostOrClusterId;
         this.virtualArray = virtualArray;
@@ -33,12 +33,12 @@ public class ExportPortGroupPreview extends ViPRExecutionTask<ExportPathsAdjustm
         this.maxPaths = maxPaths;
         this.pathsPerInitiator = pathsPerInitiator;
         this.storageSystemId = storageSystemId;
-        this.ports = ports;
+        this.portGroups = portGroups;
         
         this.exportId = exportId;
         
         provideDetailArgs(this.exportId, this.hostOrClusterId, this.virtualArray, this.minPaths, this.maxPaths, 
-                this.pathsPerInitiator, this.storageSystemId, ports != null ? this.ports.toString() : "N/A");
+                this.pathsPerInitiator, this.storageSystemId, portGroups != null ? this.portGroups.toString() : "N/A");
     }
     
     @Override
@@ -50,8 +50,8 @@ public class ExportPortGroupPreview extends ViPRExecutionTask<ExportPathsAdjustm
         exportPathParameters.setMaxPaths(maxPaths);
         exportPathParameters.setPathsPerInitiator(pathsPerInitiator);
         
-        if (ports != null) {
-            exportPathParameters.setStoragePorts(ports);
+        if (portGroups != null) {
+            exportPathParameters.setStoragePorts(portGroups);
         }
  
         param.setStorageSystem(storageSystemId);

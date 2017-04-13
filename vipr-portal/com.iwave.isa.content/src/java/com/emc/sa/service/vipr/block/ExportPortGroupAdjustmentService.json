@@ -46,7 +46,7 @@
             type:"assetType.vipr.exportPathVirtualArray",
             lockable: true
         },
-        portGroups:{
+        portGroup:{
             type:"assetType.vipr.exportPathPortGroups",
             select: "many",
             required: false

@@ -1130,25 +1130,32 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     }
     
     @Asset("exportPathPortGroups")
-    @AssetDependencies({ "exportPathVirtualArray", "exportPathStorageSystem" })
-    public List<AssetOption> getExportPortGroups(AssetOptionsContext ctx, URI vArrayId, URI storageSystemId) {
+    @AssetDependencies({ "exportPathVirtualArray" })
+    public List<AssetOption> getExportPortGroups(AssetOptionsContext ctx, URI vArrayId) {
         final ViPRCoreClient client = api(ctx);
         List<AssetOption> options = Lists.newArrayList();
 
         SimpleValueRep value = client.customConfigs().getCustomConfigTypeValue("VMAXUsePortGroupEnabled/value", "vmax");
         if (value.getValue().equalsIgnoreCase("true")) {
-            StorageSystemRestRep storageSystem = client.storageSystems().get(storageSystemId);
-            String systemType = storageSystem.getSystemType();
-            if (Type.vmax.name().equalsIgnoreCase(systemType)) {
-                List<NamedRelatedResourceRep> portGroups = client.storageSystems().getStoragePortGroups(storageSystemId);
-                for (NamedRelatedResourceRep group : portGroups) {
-                    StoragePortGroupRestRep spg = client.storageSystems().getStoragePortGroup(storageSystemId, group.getId());
+            List<NamedRelatedResourceRep> portGroups = client.varrays().getStoragePortGroups(vArrayId);
 
-                    String portMetric = (spg.getPortMetric() != null) ? String.valueOf(Math.round(spg.getPortMetric() * 100 / 100)) + "%" : "N/A";
-                    String label = getMessage("exportPortGroup.portGroups", spg.getName(), portMetric);
-                    options.add(new AssetOption(spg.getId(), label));
-                }
+            for (NamedRelatedResourceRep group : portGroups) {
+                String label = getMessage("exportPortGroup.portGroups", group.getName(), "Metric");
+                options.add(new AssetOption(group.getId(), label));
             }
+//            StorageSystemRestRep storageSystem = client.storageSystems().get(storageSystemId);
+//            String systemType = storageSystem.getSystemType();
+//            if (Type.vmax.name().equalsIgnoreCase(systemType)) {
+                
+//                List<NamedRelatedResourceRep> portGroups = client.storageSystems().getStoragePortGroups(storageSystemId);
+//                for (NamedRelatedResourceRep group : portGroups) {
+//                    StoragePortGroupRestRep spg = client.storageSystems().getStoragePortGroup(storageSystemId, group.getId());
+//
+//                    String portMetric = (spg.getPortMetric() != null) ? String.valueOf(Math.round(spg.getPortMetric() * 100 / 100)) + "%" : "N/A";
+//                    String label = getMessage("exportPortGroup.portGroups", spg.getName(), portMetric);
+//                    options.add(new AssetOption(spg.getId(), label));
+//                }
+//            }
         }
         return options;
     }

@@ -331,14 +331,14 @@ public class BlockExports extends ProjectResources<ExportGroupRestRep> implement
     /**
      * Generate an export port group preview for use with path adjustment
      * <p>
-     * API Call: <tt>POST /block/exports/{id}/paths-adjustment-preview</tt>
+     * API Call: <tt>POST /block/exports/{id}/paths-adjustment-port-group-preview</tt>
      *
      * @param id of the export group
      * @param input the update configuration.
      * @return Port Allocate Preview
      */
     public ExportPathsAdjustmentPreviewRestRep getExportPortGroupAdjustmentPreview(URI id, ExportPathsAdjustmentPreviewParam input) {
-        return client.post(ExportPathsAdjustmentPreviewRestRep.class, input, getIdUrl() + "/paths-adjustment-preview", id);
+        return client.post(ExportPathsAdjustmentPreviewRestRep.class, input, getIdUrl() + "/paths-adjustment-port-group-preview", id);
     }
     
     /**

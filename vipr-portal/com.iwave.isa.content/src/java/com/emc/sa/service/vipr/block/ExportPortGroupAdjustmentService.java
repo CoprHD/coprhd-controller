@@ -9,12 +9,11 @@ import static com.emc.sa.service.ServiceParams.EXPORT;
 import static com.emc.sa.service.ServiceParams.MIN_PATHS;
 import static com.emc.sa.service.ServiceParams.MAX_PATHS;
 import static com.emc.sa.service.ServiceParams.PATHS_PER_INITIATOR;
-import static com.emc.sa.service.ServiceParams.PORTS;
+import static com.emc.sa.service.ServiceParams.PORT_GROUP;
 import static com.emc.sa.service.ServiceParams.STORAGE_SYSTEM;
 import static com.emc.sa.service.ServiceParams.VIRTUAL_ARRAY;
 import static com.emc.sa.service.ServiceParams.RESULTING_PATHS;
 import static com.emc.sa.service.ServiceParams.REMOVED_PATHS;
-import static com.emc.sa.service.ServiceParams.USE_EXISTING_PATHS;
 import static com.emc.sa.service.ServiceParams.SUSPEND_WAIT;
 
 
@@ -28,7 +27,7 @@ import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.engine.bind.Param;
 import com.emc.sa.engine.service.Service;
 import com.emc.sa.service.vipr.ViPRService;
-import com.emc.sa.service.vipr.block.tasks.ExportPathsPreview;
+import com.emc.sa.service.vipr.block.tasks.ExportPortGroupPreview;
 import com.emc.sa.util.CatalogSerializationUtils;
 import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.block.export.ExportPathsAdjustmentPreviewRestRep;
@@ -59,8 +58,8 @@ public class ExportPortGroupAdjustmentService extends ViPRService {
     @Param(STORAGE_SYSTEM)
     protected URI storageSystem;
     
-    @Param(value = PORTS, required = false)
-    protected List<URI> ports;
+    @Param(value = PORT_GROUP, required = false)
+    protected List<URI> portGroups;
     
     @Param(SUSPEND_WAIT)
     protected boolean suspendWait;
@@ -131,8 +130,8 @@ public class ExportPortGroupAdjustmentService extends ViPRService {
     }
     
     private void runExportPortGroupPreview() {
-        ExportPathsAdjustmentPreviewRestRep previewRestRep = execute(new ExportPathsPreview(host, virtualArray, exportId,
-              minPaths, maxPaths, pathsPerInitiator, storageSystem, ports));
+        ExportPathsAdjustmentPreviewRestRep previewRestRep = execute(new ExportPortGroupPreview(host, virtualArray, exportId,
+              minPaths, maxPaths, pathsPerInitiator, storageSystem, portGroups));
         List<InitiatorPortMapRestRep> affectedPaths = previewRestRep.getAdjustedPaths();
         List<InitiatorPortMapRestRep> removedPaths = previewRestRep.getRemovedPaths();
           

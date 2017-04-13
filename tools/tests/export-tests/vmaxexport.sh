@@ -28,14 +28,14 @@
 #
 # These test cases exercise our ability to perform:
 # -------------------------------------------------
-# -	Create export (Host, Volumes)
-# -	Create export (Cluster, Volumes)
-# -	Add Host to export*
-# -	Remove Host from export*
-# -	Add Cluster to export*
-# -	Remove Cluster from export*
-# -     Add Volume to export
-# -     Remove Volume from export
+# -    Create export (Host, Volumes)
+# -    Create export (Cluster, Volumes)
+# -    Add Host to export*
+# -    Remove Host from export*
+# -    Add Cluster to export*
+# -    Remove Cluster from export*
+# -    Add Volume to export
+# -    Remove Volume from export
 #
 # set -x
 
@@ -63,6 +63,11 @@ if [ "$1"x != "x" ]; then
    fi
 fi
 
+if [[ "$2" != "vmax2" && "$2" != "vmax3" ]]; then
+    echo "Invalid vmax type: $2 (should be 'vmax2' or 'vmax3')"
+    Usage
+fi
+ 
 
 LAST_3DIGITS=""
 SN=""
@@ -70,19 +75,17 @@ NATIVEGUID=""
 SMIS_IP=""
 
 if [ "$2" = "vmax2" ]
-	then 
-		LAST_3DIGITS=$VMAX2_ID_3DIGITS
-		SN=$VMAX2_SN
-		NATIVEGUID=$VMAX2_NATIVEGUID
-		SMIS_IP=$VMAX2_SMIS_IP
-	else
-		LAST_3DIGITS=$VMAX_ID_3DIGITS
-		SN=$VMAX_SN
-		NATIVEGUID=$VMAX_NATIVEGUID
-		SMIS_IP=$VMAX_SMIS_IP
-		echo "Export sanity test cases for VMAX3 is not ready"
-		exit
-		# vmax3_setup $3
+    then 
+        LAST_3DIGITS=$VMAX2_ID_3DIGITS
+        SN=$VMAX2_SN
+        NATIVEGUID=$VMAX2_NATIVEGUID
+        SMIS_IP=$VMAX2_SMIS_IP
+    else
+        # vmax3
+        LAST_3DIGITS=$VMAX_ID_3DIGITS
+        SN=$VMAX_SN
+        NATIVEGUID=$VMAX_NATIVEGUID
+        SMIS_IP=$VMAX_SMIS_IP
 fi;
 
 VERIFY_EXPORT_COUNT=0
@@ -279,7 +282,7 @@ setup() {
 
     # Increase allocation percentage
     syssvc $SANITY_CONFIG_FILE localhost set_prop controller_max_thin_pool_subscription_percentage 600
-	
+    
     #Disable validation check
     syssvc $SANITY_CONFIG_FILE localhost set_prop validation_check false
 
@@ -341,15 +344,15 @@ setup() {
     fi
 
     # make a base cos for protected volumes
-    runcmd cos create block ${VPOOL_BASE}					\
-	--description Base true \
-	--protocols FC 			\
-	--numpaths 1				\
-	--provisionType 'Thin'			\
-	--max_snapshots 10                     \
-	--max_mirrors 10                       \
-	--expandable false                     \
-	--neighborhoods $NH                    
+    runcmd cos create block ${VPOOL_BASE}\
+            --description Base true     \
+            --protocols FC              \
+            --numpaths 1                \
+            --provisionType 'Thin'      \
+            --max_snapshots 10          \
+            --max_mirrors 10            \
+            --expandable false          \
+            --neighborhoods $NH
 
    runcmd cos update block $VPOOL_BASE --storage ${NATIVEGUID}
    runcmd cos allow $VPOOL_BASE block $TENANT
@@ -1046,7 +1049,7 @@ test_20() {
 
     # creat VPool
     runcmd cos create block $VPOOL_FAST \
-          			 --description FAST true \
+                                 --description FAST true \
                                  --protocols FC \
                                  --numpaths 1 \
                                  --max_snapshots 2 \
@@ -1211,8 +1214,8 @@ test_24() {
         expname=${EXPORT_GROUP_NAME}_24_${type}
         typearg="";
         if [ "$type" != "" ]
-	then
-		typearg="--type $type"
+        then
+            typearg="--type $type"
         fi
 
         echo "Creating export group with name [${expname}], type [${type}]"
@@ -1662,7 +1665,7 @@ exisitingintiatorstest() {
  
 eg_update_concurrency_test() {
     test_31;
-    test_32;	
+    test_32;    
     test_33;
 }
 # Add/Remove hosts concurrently and verify the Export Group update call's status

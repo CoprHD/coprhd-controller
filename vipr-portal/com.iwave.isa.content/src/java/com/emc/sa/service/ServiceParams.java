@@ -147,6 +147,8 @@ public interface ServiceParams {
     public String OPLOCK = "oplock";
     public String SECURITY_STYLE = "securityStyle";
     public String QUOTA_DIRECTORIES = "quotaDirectories";
+    public String DIRECTORY_ACLS = "directoryAcls";
+    public String ROOT_USER = "rootUser";
 
     public String SOFT_QUOTA = "softQuota";
     public String HARD_QUOTA = "hardQuota";

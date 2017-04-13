@@ -96,6 +96,7 @@ import com.emc.storageos.util.VersionChecker;
 import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.FileControllerConstants;
 import com.emc.storageos.volumecontroller.FileDeviceInputOutput;
+import com.emc.storageos.volumecontroller.FileSMBShare;
 import com.emc.storageos.volumecontroller.FileShareExport;
 import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.BiosCommandResult;
@@ -480,15 +481,20 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             }
 
         } else {
-            /**
-             * inheritablePathAcl - true: Apply Windows Default ACLs false: Do
-             * not change existing permissions.
-             **/
-            boolean inheritablePathAcl = true;
-            if (configinfo != null && configinfo.containsKey("inheritablePathAcl")) {
-                inheritablePathAcl = Boolean.parseBoolean(configinfo.get("inheritablePathAcl"));
-                isilonSMBShare.setInheritablePathAcl(inheritablePathAcl);
+            // inheritable_path_acl;
+            // true: Apply Windows Default ACLs
+            // false: Do not change existing permissions!!!
+            boolean inheritable_path_acl = true;
+            if (smbFileShare.getDirectoryAclsOptions() != null && !smbFileShare.getDirectoryAclsOptions().isEmpty()) {
+                if (smbFileShare.getDirectoryAclsOptions()
+                        .equalsIgnoreCase(FileSMBShare.SMBDirectoryPermissionOption.ApplyWindowsDefaultACLs.name())) {
+                    inheritable_path_acl = true;
+                } else {
+                    inheritable_path_acl = false;
+                }
+                isilonSMBShare.setInheritablePathAcl(inheritable_path_acl);
             }
+
             // new share
             if (zoneName != null) {
                 _log.debug("Share will be created in zone: {}", zoneName);

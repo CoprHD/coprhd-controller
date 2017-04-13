@@ -4,9 +4,9 @@
  */
 package com.emc.storageos.volumecontroller;
 
-import com.emc.storageos.db.client.model.SMBFileShare;
-
 import java.io.Serializable;
+
+import com.emc.storageos.db.client.model.SMBFileShare;
 
 /**
  * FileSMBShare class keeps SMB share data. Transient class.
@@ -26,6 +26,12 @@ public class FileSMBShare implements Serializable {
         full
     }
 
+    // Apply Windows Default ACLs | false: Do not change existing permissions
+    public enum SMBDirectoryPermissionOption {
+        DoNotChangeExistingPermissions,
+        ApplyWindowsDefaultACLs
+    }
+
     private String _name;
     private String _description;
     private PermissionType _permissionType;
@@ -39,6 +45,8 @@ public class FileSMBShare implements Serializable {
     private String _path;
     private boolean _isSubDirPath;
     private String _NetBIOSName;
+    private String _rootUser;
+    private String _directoryAclsOptions;
 
     /**
      * Construction of SMB share
@@ -99,6 +107,8 @@ public class FileSMBShare implements Serializable {
         this._mountPoint = smb.getMountPoint();
         this._path = smb.getPath();
         this._isSubDirPath = Boolean.valueOf(smb.isSubdir());
+        this._directoryAclsOptions = smb.getDirectoryAclsOptions();
+        this._rootUser = smb.getRootUser();
     }
 
     public String getName() {
@@ -177,6 +187,22 @@ public class FileSMBShare implements Serializable {
         this._isSubDirPath = isSubDirPath;
     }
 
+    public String getRootUser() {
+        return _rootUser;
+    }
+
+    public void setRootUser(String rootUser) {
+        this._rootUser = rootUser;
+    }
+
+    public String getDirectoryAclsOptions() {
+        return _directoryAclsOptions;
+    }
+
+    public void setDirectoryAclsOptions(String directoryAclsOptions) {
+        this._directoryAclsOptions = directoryAclsOptions;
+    }
+
     public SMBFileShare getSMBFileShare() {
 
         SMBFileShare smbShare = new SMBFileShare(_name, _description, _permissionType.toString(),
@@ -188,6 +214,8 @@ public class FileSMBShare implements Serializable {
         smbShare.setStoragePortName(_storagePortName);
         smbShare.setStoragePortNetworkId(_storagePortNetworkId);
         smbShare.setNetBIOSName(_NetBIOSName);
+        smbShare.setRootUser(_rootUser);
+        smbShare.setDirectoryAclsOptions(_directoryAclsOptions);
         return smbShare;
 
     }

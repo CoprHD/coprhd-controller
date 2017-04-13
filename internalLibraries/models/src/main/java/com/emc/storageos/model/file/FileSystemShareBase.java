@@ -19,6 +19,8 @@ public class FileSystemShareBase {
     private String permissionType = "allow"; // FileSMBShare.PermissionType.allow.name();
     private String permission; // FileSMBShare.Permission.change.name();
     private String subDirectory;
+    private String directoryAclsOptions;
+    private String rootUser;
 
     public FileSystemShareBase() {
     }
@@ -77,8 +79,8 @@ public class FileSystemShareBase {
      * Permission type for the file share. Default is
      * "allow".
      * Valid values:
-     *   allow = permission type by default
-     *   deny
+     * allow = permission type by default
+     * deny
      */
     @XmlElement(name = "permission_type")
     public String getPermissionType() {
@@ -93,9 +95,9 @@ public class FileSystemShareBase {
      * Permission type for the file share. Default is
      * "change".
      * Valid values:
-     *   read = read permission only
-     *   change = read and write permissions
-     *   full = full control of the file share
+     * read = read permission only
+     * change = read and write permissions
+     * full = full control of the file share
      */
     @XmlElement(name = "permission")
     public String getPermission() {
@@ -113,6 +115,24 @@ public class FileSystemShareBase {
 
     public void setSubDirectory(String subDirectory) {
         this.subDirectory = subDirectory;
+    }
+
+    @XmlElement(name = "directoryAclsOptions")
+    public String getDirectoryAclsOptions() {
+        return directoryAclsOptions;
+    }
+
+    public void setDirectoryAclsOptions(String directoryAclsOptions) {
+        this.directoryAclsOptions = directoryAclsOptions;
+    }
+
+    @XmlElement(name = "rootUser")
+    public String getRootUser() {
+        return rootUser;
+    }
+
+    public void setRootUser(String rootUserMapping) {
+        this.rootUser = rootUserMapping;
     }
 
 }

@@ -4,7 +4,9 @@
  */
 package com.emc.sa.service.vipr.file;
 
+import static com.emc.sa.service.ServiceParams.DIRECTORY_ACLS;
 import static com.emc.sa.service.ServiceParams.FILESYSTEMS;
+import static com.emc.sa.service.ServiceParams.ROOT_USER;
 import static com.emc.sa.service.ServiceParams.SHARE_COMMENT;
 import static com.emc.sa.service.ServiceParams.SUBDIRECTORY;
 import static com.emc.sa.service.ServiceParams.VOLUME_NAME;
@@ -36,6 +38,12 @@ public class CreateFileSystemShareService extends ViPRService {
     @Bindable(itemType = FileStorageUtils.FileSystemACLs.class)
     protected FileStorageUtils.FileSystemACLs[] fileSystemShareACLs;
 
+    @Param(value = DIRECTORY_ACLS, required = false)
+    protected String directoryAcls;
+
+    @Param(value = ROOT_USER, required = false)
+    protected String rootUser;
+
     @Override
     public void precheck() throws Exception {
         if (fileSystemShareACLs != null && fileSystemShareACLs.length > 0) {
@@ -49,7 +57,7 @@ public class CreateFileSystemShareService extends ViPRService {
 
     @Override
     public void execute() throws Exception {
-        FileStorageUtils.createCifsShare(fileSystemId, shareName, shareComment, subDirectory);
+        FileStorageUtils.createCifsShare(fileSystemId, shareName, shareComment, subDirectory, directoryAcls, rootUser);
         clearRollback();
         if (fileSystemShareACLs != null && fileSystemShareACLs.length > 0) {
             FileStorageUtils.setFileSystemShareACL(fileSystemId, shareName, fileSystemShareACLs);

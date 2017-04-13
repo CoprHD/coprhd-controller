@@ -1429,6 +1429,12 @@ public class FileService extends TaskResourceService {
         smbShare.setStoragePortNetworkId(sport.getPortNetworkId());
         smbShare.setStoragePortGroup(sport.getPortGroup());
         smbShare.setSubDirPath(isSubDirPath);
+        if (param.getRootUser() != null && !param.getRootUser().isEmpty()) {
+            smbShare.setRootUser(param.getRootUser());
+        }
+        if (param.getDirectoryAclsOptions() != null && !param.getDirectoryAclsOptions().isEmpty()) {
+            smbShare.setDirectoryAclsOptions(param.getDirectoryAclsOptions());
+        }
 
         _log.info(String.format(
                 "Create file system share --- File system id: %1$s, Share name: %2$s, StoragePort: %3$s, PermissionType: %4$s, " +
@@ -1674,7 +1680,7 @@ public class FileService extends TaskResourceService {
                         .resourceCannotBeDeleted("Please unassign the policy from file system. " + fs.getLabel());
             }
         }
-     // Verify the higher level replication policies assigned
+        // Verify the higher level replication policies assigned
         if (param.getForceDelete() && param.getDeleteType() != null && param.getDeleteType().equalsIgnoreCase("FULL")) {
             if (FilePolicyServiceUtils.vPoolHasReplicationPolicy(_dbClient, fs.getVirtualPool())
                     || FilePolicyServiceUtils.projectHasReplicationPolicy(_dbClient, fs.getProject().getURI(), fs.getVirtualPool())) {

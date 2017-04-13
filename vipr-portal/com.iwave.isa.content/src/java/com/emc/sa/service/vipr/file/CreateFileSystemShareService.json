@@ -64,6 +64,21 @@
           initialValue:"CHANGE"
         }
       }
-    }
+    },
+    
+   shareSettings:{
+      type:"group",
+      collapsed:"true",
+      items:{
+          directoryAcls:{
+            type:"assetType.vipr.fileCIFSDirectoryAcls"
+          },
+   
+          rootUser:{
+            type:"text",
+            required: false,
+          }
+        }
+      }
   }
 }

@@ -18,16 +18,22 @@ public class CreateFileSystemShare extends WaitForTask<FileShareRestRep> {
     private final String shareComment;
     private final URI fileSystemId;
     private final String subDirectory;
+    private final String directoryAcls;
+    private final String rootUser;
 
-    public CreateFileSystemShare(String shareName, String shareComment, String fileSystemId, String subDirectory) {
-        this(shareName, shareComment, uri(fileSystemId), subDirectory);
+    public CreateFileSystemShare(String shareName, String shareComment, String fileSystemId, String subDirectory, String directoryAcls,
+            String rootUser) {
+        this(shareName, shareComment, uri(fileSystemId), subDirectory, directoryAcls, rootUser);
     }
 
-    public CreateFileSystemShare(String shareName, String shareComment, URI fileSystemId, String subDirectory) {
+    public CreateFileSystemShare(String shareName, String shareComment, URI fileSystemId, String subDirectory,
+            String directoryAcls, String rootUser) {
         this.shareName = shareName;
         this.shareComment = shareComment;
         this.fileSystemId = fileSystemId;
         this.subDirectory = subDirectory;
+        this.directoryAcls = directoryAcls;
+        this.rootUser = rootUser;
         provideDetailArgs(fileSystemId, shareName, shareComment, subDirectory);
     }
 
@@ -40,6 +46,12 @@ public class CreateFileSystemShare extends WaitForTask<FileShareRestRep> {
         }
         if (StringUtils.isNotBlank(subDirectory)) {
             fileShare.setSubDirectory(subDirectory);
+        }
+        if (StringUtils.isNotBlank(directoryAcls)) {
+            fileShare.setDirectoryAclsOptions(directoryAcls);
+        }
+        if (StringUtils.isNotBlank(rootUser)) {
+            fileShare.setRootUser(rootUser);
         }
 
         return getClient().fileSystems().share(fileSystemId, fileShare);

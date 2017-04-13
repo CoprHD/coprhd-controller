@@ -8,7 +8,6 @@ import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlTransient;
 
-
 @XmlRootElement(name = "smb_share")
 public class SMBFileShare extends AbstractSerializableNestedObject {
 
@@ -25,6 +24,8 @@ public class SMBFileShare extends AbstractSerializableNestedObject {
     private static final String STORAGE_PORT_NAME = "storagePortName";
     private static final String STORAGE_PORT_NETWORK_ID = "storagePortNetworkId";
     private static final String NETBIOS_NAME = "netbiosName";
+    private static final String ROOT_USER = "rootUser";
+    private static final String DIRECTORY_ACLS_OPTIONS = "directoryAclsOptions";
 
     /**
      * JAXB requirement
@@ -236,4 +237,27 @@ public class SMBFileShare extends AbstractSerializableNestedObject {
         setField(NETBIOS_NAME, netbiosName);
     }
 
+    @XmlElement
+    public String getRootUser() {
+        return getStringField(ROOT_USER);
+    }
+
+    public void setRootUser(String rootUser) {
+        if (rootUser == null) {
+            rootUser = "";
+        }
+        setField(ROOT_USER, rootUser);
+    }
+
+    @XmlElement
+    public String getDirectoryAclsOptions() {
+        return getStringField(DIRECTORY_ACLS_OPTIONS);
+    }
+
+    public void setDirectoryAclsOptions(String aclsOptions) {
+        if (aclsOptions == null) {
+            aclsOptions = "";
+        }
+        setField(DIRECTORY_ACLS_OPTIONS, aclsOptions);
+    }
 }

@@ -85,6 +85,10 @@ public class CustomServicesClient extends AbstractCatalogBulkResources<CustomSer
         return client.postURIOctet(CustomServicesPrimitiveResourceRestRep.class, new FileInputStream(resource), builder.build());
     }
 
+    public CustomServicesPrimitiveResourceRestRep updatePrimitiveResource(final URI id, final String name) throws IOException {
+        return client.put(CustomServicesPrimitiveResourceRestRep.class, PathConstants.CUSTOM_SERVICES_PRIMITIVE_RESOURCE, id, name);
+    }
+
     public CustomServicesPrimitiveRestRep createPrimitive(final CustomServicesPrimitiveCreateParam param) {
         final UriBuilder builder = client.uriBuilder(PathConstants.CUSTOM_SERVICES_PRIMITIVES);
         return client.postURI(CustomServicesPrimitiveRestRep.class, param, builder.build());

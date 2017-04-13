@@ -533,6 +533,11 @@ public class WorkflowBuilder extends Controller {
             final CustomServicesPrimitiveRestRep primitiveRestRep = getCatalogClient().customServicesPrimitives().getPrimitive(
                     shellPrimitiveID);
             if (null != primitiveRestRep) {
+                // Check if it is name change
+                boolean isNameChanged = false;
+                if (!primitiveRestRep.getName().equalsIgnoreCase(shellPrimitive.getName())) {
+                    isNameChanged = true;
+                }
                 // Update name, description
                 final CustomServicesPrimitiveUpdateParam primitiveUpdateParam = new CustomServicesPrimitiveUpdateParam();
                 primitiveUpdateParam.setName(shellPrimitive.getName());
@@ -566,7 +571,11 @@ public class WorkflowBuilder extends Controller {
                     }
                 }
                 else {
-                    // Update the existing
+                    // Update the existing resource id with new name
+                    if (isNameChanged) {
+                        getCatalogClient().customServicesPrimitives().updatePrimitiveResource(primitiveRestRep.getResource().getId(),
+                                shellPrimitive.getName());
+                    }
                     getCatalogClient().customServicesPrimitives().updatePrimitive(shellPrimitiveID, primitiveUpdateParam);
                 }
             }
@@ -580,7 +589,7 @@ public class WorkflowBuilder extends Controller {
             final List<String> left, final List<String> right) {
         final InputUpdateList update = new InputUpdateList();
         update.setInput((List<String>) CollectionUtils.subtract(left, right));
-        return ImmutableMap.<String, InputUpdateList>builder()
+        return ImmutableMap.<String, InputUpdateList> builder()
                 .put(CustomServicesConstants.INPUT_PARAMS, update)
                 .build();
     }

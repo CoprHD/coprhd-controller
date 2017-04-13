@@ -1603,8 +1603,10 @@ public class SmisCommandHelper implements SmisConstants {
         list.add(_cimArgument.string(CP_GROUP_NAME, groupName));
         list.add(_cimArgument.uint16(CP_TYPE, VOLUME_GROUP_TYPE));
         list.add(_cimArgument.string(CP_EMC_SLO, slo));
-        list.add(_cimArgument.string(CP_EMC_SRP, srp));
         list.add(_cimArgument.string(CP_EMC_WORKLOAD, workload));
+        if (srp != null && !Constants.NONE.equalsIgnoreCase(srp)) {
+            list.add(_cimArgument.string(CP_EMC_SRP, srp));
+        }
         if (disableCompression) {
             list.add(_cimArgument.bool(CP_EMC_DISABLE_COMPRESSION, Boolean.TRUE));
         }
@@ -5399,9 +5401,9 @@ public class SmisCommandHelper implements SmisConstants {
                 storagePool = _dbClient.queryObject(StoragePool.class, volume.getPool());
             }
 
-            String srp = storagePool.getPoolName();
             // default values in case autoTierPolicy is not set then use NONE SLO for V3 AFA and Optimized SLO for V3
             String slo = storageSystem.isV3AllFlashArray() ? Constants.NONE.toUpperCase() : Constants.OPTIMIZED_SLO;
+            String srp = Constants.NONE.equalsIgnoreCase(slo) ? Constants.NONE.toUpperCase() : storagePool.getPoolName();
             String workload = Constants.NONE.toUpperCase();
 
             URI policyURI = volume.getAutoTieringPolicyUri();
@@ -5799,8 +5801,9 @@ public class SmisCommandHelper implements SmisConstants {
         if ((null != autoTierPolicyName && Constants.NONE.equalsIgnoreCase(autoTierPolicyName))
                 || (NullColumnValueGetter.isNullURI(policyURI))) {
             String defaultSLO = storageSystem.isV3AllFlashArray() ? Constants.NONE.toUpperCase() : Constants.OPTIMIZED_SLO;
+            String srp = Constants.NONE.equalsIgnoreCase(defaultSLO) ? Constants.NONE.toUpperCase() : storagePool.getPoolName();
             policyName = policyName.append(defaultSLO).append(Constants._plusDelimiter)
-                    .append(Constants.NONE.toUpperCase()).append(Constants._plusDelimiter).append(storagePool.getPoolName());
+                    .append(Constants.NONE.toUpperCase()).append(Constants._plusDelimiter).append(srp);
         } else {
             AutoTieringPolicy autoTierPolicy = _dbClient.queryObject(AutoTieringPolicy.class, policyURI);
             policyName = policyName.append(autoTierPolicy.getVmaxSLO()).append(Constants._plusDelimiter)

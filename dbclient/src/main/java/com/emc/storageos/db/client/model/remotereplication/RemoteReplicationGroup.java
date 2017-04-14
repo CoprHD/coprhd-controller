@@ -9,19 +9,12 @@ import java.net.URI;
 
 import com.emc.storageos.db.client.model.AlternateId;
 import com.emc.storageos.db.client.model.Cf;
-import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.Name;
-import com.emc.storageos.db.client.model.NamedRelationIndex;
 import com.emc.storageos.db.client.model.NamedURI;
-import com.emc.storageos.db.client.model.Project;
-import com.emc.storageos.db.client.model.ProjectResource;
 import com.emc.storageos.db.client.model.RelationIndex;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringMap;
-import com.emc.storageos.db.client.model.StringSet;
-
-import javax.xml.bind.annotation.XmlTransient;
 
 @Cf("RemoteReplicationGroup")
 public class RemoteReplicationGroup extends DiscoveredDataObject {

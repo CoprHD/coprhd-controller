@@ -48,6 +48,7 @@ import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.remotereplication.RemoteReplicationGroup;
 import com.emc.storageos.db.client.model.remotereplication.RemoteReplicationPair;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
+import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.model.TaskResourceRep;
@@ -112,6 +113,34 @@ public class RemoteReplicationGroupService extends TaskResourceService {
         Iterator<RemoteReplicationGroup> iter = _dbClient.queryIterativeObjects(RemoteReplicationGroup.class, ids);
         while (iter.hasNext()) {
             rrGroupList.getRemoteReplicationGroups().add(toNamedRelatedResource(iter.next()));
+        }
+        return rrGroupList;
+    }
+
+    /**
+     * Gets the id, name, and self link for all valid remote replication groups
+     *
+     * Valid groups are reachable, and have source & target systems
+     *
+     * @brief List valid remote replication groups
+     * @return A reference to a RemoteReplicationGroupList.
+     */
+    @GET
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/valid")
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR })
+    public RemoteReplicationGroupList getValidRemoteReplicationGroups() {
+        _log.info("Called: getValidRemoteReplicationGroups()");
+        RemoteReplicationGroupList rrGroupList = new RemoteReplicationGroupList();
+        List<URI> ids = _dbClient.queryByType(RemoteReplicationGroup.class, true);
+        _log.info("Found groups: {}", ids);
+        Iterator<RemoteReplicationGroup> iter = _dbClient.queryIterativeObjects(RemoteReplicationGroup.class, ids);
+        while (iter.hasNext()) {
+            RemoteReplicationGroup grp = iter.next();
+            if (grp.getReachable() && !NullColumnValueGetter.isNullURI(grp.getSourceSystem()) &&
+                    !NullColumnValueGetter.isNullURI(grp.getTargetSystem())) {
+                rrGroupList.getRemoteReplicationGroups().add(toNamedRelatedResource(grp));
+            }
         }
         return rrGroupList;
     }

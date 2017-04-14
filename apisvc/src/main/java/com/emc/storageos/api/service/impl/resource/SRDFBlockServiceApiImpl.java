@@ -19,6 +19,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import com.emc.storageos.util.ExportUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -762,14 +763,7 @@ public class SRDFBlockServiceApiImpl extends AbstractBlockServiceApiImpl<SRDFSch
     public void deleteVolumes(final URI systemURI, final List<URI> volumeURIs,
             final String deletionType, final String task) throws InternalException {
         _log.info("Request to delete {} volume(s) with SRDF Protection", volumeURIs.size());
-
-        // for inventory only delete, cleanup all remote replication pairs for srdf volumes
-        if (VolumeDeleteTypeEnum.VIPR_ONLY.name().equals(deletionType)) {
-            deleteRemoteReplicationPairsForInventoryOnlyDelete(volumeURIs);
-        }
-
         super.deleteVolumes(systemURI, volumeURIs, deletionType, task);
-
     }
 
     /**
@@ -1468,11 +1462,21 @@ public class SRDFBlockServiceApiImpl extends AbstractBlockServiceApiImpl<SRDFSch
         return groupNames;
     }
 
+    @Override
+    protected void cleanupForViPROnlyDelete(List<VolumeDescriptor> volumeDescriptors) {
+        // Remove volumes from ExportGroup(s) and ExportMask(s).
+        super.cleanupForViPROnlyDelete(volumeDescriptors);
+
+        // Remove remote replication pairs for volumes
+        List<URI> volumeURIs = VolumeDescriptor.getVolumeURIs(volumeDescriptors);
+        deleteRemoteReplicationPairsForViPROnlyDelete(volumeURIs);
+    }
+
     /**
      * Delete remote replication pairs for inventory only delete of srdf volumes
      * @param volumeURIs
      */
-    private void deleteRemoteReplicationPairsForInventoryOnlyDelete(List<URI> volumeURIs) {
+    private void deleteRemoteReplicationPairsForViPROnlyDelete(List<URI> volumeURIs) {
         List<URI> processedVolumes = new ArrayList<>();
         try {
             for (URI volURI : volumeURIs) {
@@ -1486,7 +1490,7 @@ public class SRDFBlockServiceApiImpl extends AbstractBlockServiceApiImpl<SRDFSch
                             processedVolumes.add(volume.getId());
                             for (String targetId : volume.getSrdfTargets()) {
                                 URI targetURI = URI.create(targetId);
-                                _log.info("Process remote replication pair for srdf volume. Source/Target: {}/{}", volume.getId(), targetURI);
+                                _log.info("Process remote replication pair for srdf volume. Source: {}/{}, target: {}", volume.getLabel(), volume.getId(), targetURI);
                                 RemoteReplicationUtils.deleteRemoteReplicationPairForSrdfPair(volume.getId(), targetURI, _dbClient);
                             }
                         }

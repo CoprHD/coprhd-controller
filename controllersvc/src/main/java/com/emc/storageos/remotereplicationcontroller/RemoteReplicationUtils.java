@@ -200,7 +200,7 @@ public class RemoteReplicationUtils {
      * @param targetUri srdf target volume
      */
     public static void createRemoteReplicationPairForSrdfPair(URI sourceUri, URI targetUri, DbClient dbClient) {
-        
+
         try {
             com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationPair driverRrPair = null;
             driverRrPair = buildRemoteReplicationPairForSrdfPair(sourceUri, targetUri, dbClient);

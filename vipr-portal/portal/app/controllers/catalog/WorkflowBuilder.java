@@ -525,7 +525,7 @@ public class WorkflowBuilder extends Controller {
                     shellPrimitive.getId());
             if (customServicesWorkflowList != null && customServicesWorkflowList.getWorkflows() != null) {
                 if (customServicesWorkflowList.getWorkflows().size() > 0) {
-                    flash.error("Primitive id: %s is already being used in Workflow", shellPrimitive.getId());
+                    flash.error("Primitive %s is being used in Workflow", shellPrimitive.getName());
                     return;
                 }
             }
@@ -567,17 +567,15 @@ public class WorkflowBuilder extends Controller {
                     if (null != primitiveResourceRestRep) {
                         // Update resource link
                         primitiveUpdateParam.setResource(primitiveResourceRestRep.getId());
-                        getCatalogClient().customServicesPrimitives().updatePrimitive(shellPrimitiveID, primitiveUpdateParam);
                     }
                 }
                 else {
-                    // Update the existing resource id with new name
-                    if (isNameChanged) {
+                    if (isNameChanged) { // Update the existing resource id with new name
                         getCatalogClient().customServicesPrimitives().updatePrimitiveResource(primitiveRestRep.getResource().getId(),
                                 shellPrimitive.getName());
                     }
-                    getCatalogClient().customServicesPrimitives().updatePrimitive(shellPrimitiveID, primitiveUpdateParam);
                 }
+                getCatalogClient().customServicesPrimitives().updatePrimitive(shellPrimitiveID, primitiveUpdateParam);
             }
         } catch (final Exception e) {
             Logger.error(e.getMessage());
@@ -779,14 +777,30 @@ public class WorkflowBuilder extends Controller {
             createLocalAnsiblePrimitive(localAnsible);
         }
         view();
-
     }
 
     private static void editLocalAnsiblePrimitive(final LocalAnsiblePrimitiveForm localAnsible) {
         try {
             final URI localAnsiblePrimitiveID = new URI(localAnsible.getId());
+
+            // Check primitive is already used in workflow/s
+            final CustomServicesWorkflowList customServicesWorkflowList = getCatalogClient().customServicesPrimitives().getWorkflows(
+                    localAnsible.getId());
+            if (customServicesWorkflowList != null && customServicesWorkflowList.getWorkflows() != null) {
+                if (customServicesWorkflowList.getWorkflows().size() > 0) {
+                    flash.error("Primitive %s is being used in Workflow", localAnsible.getName());
+                    return;
+                }
+            }
+
             final CustomServicesPrimitiveRestRep primitiveRestRep = getCatalogClient().customServicesPrimitives().getPrimitive(localAnsiblePrimitiveID);
             if (null != primitiveRestRep) {
+                // Check if it is name change
+                boolean isNameChanged = false;
+                if (!primitiveRestRep.getName().equalsIgnoreCase(localAnsible.getName())) {
+                    isNameChanged = true;
+                }
+
                 // Update name, description
                 final CustomServicesPrimitiveUpdateParam primitiveUpdateParam = new CustomServicesPrimitiveUpdateParam();
                 primitiveUpdateParam.setName(localAnsible.getName());
@@ -813,17 +827,20 @@ public class WorkflowBuilder extends Controller {
                 primitiveUpdateParam.getAttributes().put("playbook", localAnsible.getAnsiblePlaybook());
 
                 if (!localAnsible.isExisting()) {
-                    // TODO: delete old resource
-
                     // create new resource
                     final CustomServicesPrimitiveResourceRestRep primitiveResourceRestRep = getCatalogClient().customServicesPrimitives()
                             .createPrimitiveResource("ANSIBLE", localAnsible.ansiblePackage, localAnsible.ansiblePackageName);
                     if (null != primitiveResourceRestRep) {
-                        // TODO: update resource link
+                        // Update resource link
+                        primitiveUpdateParam.setResource(primitiveResourceRestRep.getId());
                     }
                 }
-                // TODO: update script name ( if it is different from existing name)
-
+                else {
+                    if (isNameChanged) { // Update the existing resource id with new name
+                        getCatalogClient().customServicesPrimitives().updatePrimitiveResource(primitiveRestRep.getResource().getId(),
+                                localAnsible.getName());
+                    }
+                }
                 getCatalogClient().customServicesPrimitives().updatePrimitive(localAnsiblePrimitiveID, primitiveUpdateParam);
             }
         } catch (final Exception e) {

@@ -345,8 +345,8 @@ angular.module("portalApp").controller({
                          {id:'root', name:translate('resources.filesystem.export.permission.root')}];
        
        $scope.$watch('fsId', function () {
-    	   $http.get(routes.FileSystems_getStorageSystemType({id:$scope.id})).success(function(data) {             	            	 
-               if ( data == "isilon" ) {
+    	   $http.get(routes.FileSystems_getStorageSystemJson({id:$scope.fsId})).success(function(data) {             	            	 
+               if ( data.systemType == "isilon" ) {
             	   $scope.isFsOnIsilon = true; 
                }
            });

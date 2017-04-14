@@ -3257,7 +3257,7 @@ vplex_ingest_unexported() {
     echo "**** Discovering Storage Systems for UnManagedVolumes - this may take a while..."
     run storagedevice discover_namespace $VPLEX_VNX1_NATIVEGUID 'UNMANAGED_VOLUMES'
     run storagedevice discover_namespace $VPLEX_VNX2_NATIVEGUID 'UNMANAGED_VOLUMES'
-    run storagedevice discover_namespace $VPLEX_VMAX_NATIVEGUID 'UNMANAGED_VOLUMES'
+    #run storagedevice discover_namespace $VPLEX_VMAX_NATIVEGUID 'UNMANAGED_VOLUMES'
     run storagedevice discover_namespace $VPLEX_GUID 'UNMANAGED_VOLUMES'
 
     echo "**** saving off unexported UnManagedVolume data for debug purposes to /tmp/vipr_unexported_unmanaged_vols.txt"

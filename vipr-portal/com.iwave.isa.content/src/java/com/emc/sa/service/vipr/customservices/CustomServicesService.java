@@ -423,7 +423,8 @@ public class CustomServicesService extends ViPRService {
     private void updateViproutput(final Step step, String res) throws Exception {
         logger.info("updateViproutput is called");
         //TODO get the classname from primitive
-        final String classname = "com.emc.storageos.model.TaskList";
+        //final String classname = "com.emc.storageos.model.TaskList";
+        final String classname = "com.emc.storageos.model.block.VolumeRestRep";
        /* //TODO Hard code for create volume response
         res = "{\n"
                 + "  \"task\": [\n"
@@ -455,17 +456,17 @@ public class CustomServicesService extends ViPRService {
 
         final Object taskList = MAPPER.readValue(res, clazz.newInstance().getClass());
 
-        if (taskList instanceof TaskList) {
-            logger.info("it is an instance for TaskList");
-            updateViprTaskoutput((TaskList) taskList, step);
+        //if (taskList instanceof TaskList) {
+          //  logger.info("it is an instance for TaskList");
+            updateViprTaskoutput(taskList, step);
             logger.info("done with updateViprTaskoutput");
-        } else {
-            DataObjectRestRep obj = (DataObjectRestRep)taskList;
-            Method m = findMethod("name", taskList.getClass().getMethods());
-            m.invoke(this, null);
-        }
+        //} else {
+          //  DataObjectRestRep obj = (DataObjectRestRep)taskList;
+           // Method m = findMethod("name", taskList.getClass().getMethods());
+            //m.invoke(this, null);
+        //}
     }
-    private void updateViprTaskoutput(final TaskList taskList, final Step step) throws Exception {
+    private void updateViprTaskoutput(final Object taskList, final Step step) throws Exception {
         logger.info("in updateViprTaskoutput");
         final List<CustomServicesWorkflowDocument.Output> stepOut = step.getOutput();
         //final List<CustomServicesWorkflowDocument.Output> stepOut = new ArrayList<CustomServicesWorkflowDocument.Output>();
@@ -492,9 +493,7 @@ public class CustomServicesService extends ViPRService {
             String[] bits = outName.split("\\.");
             String lastOne = bits[bits.length-1];
 
-            logger.info("lastOne:{}", lastOne);
-
-            ifprimitivetheninvoke(bits, 1, taskList);
+            ifprimitivetheninvoke(bits, 0, taskList);
             /*
             final List<TaskResourceRep> taskResourceReps = taskList.getTaskList();
             for (final TaskResourceRep task : taskResourceReps) {
@@ -597,8 +596,17 @@ public class CustomServicesService extends ViPRService {
     private void ifprimitivetheninvoke(String[] bits, int i, Object className ) throws Exception {
 
         logger.info("in ifprimitivetheninvoke");
+        if (className == null) {
+            logger.info("class name is null, cannot parse output");
+
+            return;
+        }
         Method method = findMethod(bits[i], className.getClass().getMethods());
 
+        if (method == null) {
+            logger.info("method is null. cannot parse output");
+            return;
+        }
         logger.info("bit:{}", bits[i]);
 
         //1) primitive
@@ -613,11 +621,17 @@ public class CustomServicesService extends ViPRService {
         }
         //3) Collection primitive
         Type returnType = method.getGenericReturnType();
+        if (returnType == null) {
+            logger.info("Cound not find return type of method:{}", method.getName());
+
+            return;
+        }
         if (returnType instanceof ParameterizedType) {
             logger.info("return type is parameterized");
             Type t = ((ParameterizedType) returnType).getRawType();
             if (isPrimitive(t.getClass())) {
                 logger.info("it is primitive array type");
+                logger.info("array value:{}", method.invoke(className, null));
                 return;
             } else {
                 //4) Collection Non primitive

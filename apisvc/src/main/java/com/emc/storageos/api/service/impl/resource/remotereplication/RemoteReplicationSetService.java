@@ -189,12 +189,6 @@ public class RemoteReplicationSetService extends TaskResourceService {
                         rrSet.getLabel() + "' (" + rrSet.getId() + ")");
             }
 
-            if ( (vpool.getArrayInfo() == null) ||
-                    (vpool.getArrayInfo().size() != 1) ||
-                    !rrSet.getStorageSystemType().equals(vpool.getArrayInfo().get(0)) ) {
-                continue outloop; // vpool storage system type must exist & match set's
-            }
-
             /* Finally, a rr set is qualified and put in result collection only if it meets following conditions:
                - Its source systems collection is the subset of ones filtered by given varray and vpool;
                - Its target systems collection is subset of ones of all target varray/vpool pairs;

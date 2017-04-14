@@ -1510,7 +1510,7 @@ public class SRDFOperations implements SmisConstants {
                     // we can only delete remote replication pair for srdf volumes if they are not null here
                     try {
                         URI sourceUri = target.getSrdfParent().getURI();
-                        log.info("Process remote replication pair for srdf link detach. Sourrce/Target: {}/{}", sourceUri, target.getId());
+                        log.info("Process remote replication pair for srdf link detach. Source/Target: {}/{}", sourceUri, target.getId());
                         RemoteReplicationUtils.deleteRemoteReplicationPairForSrdfPair(sourceUri, target.getId(), dbClient);
                     } catch (Exception ex) {
                         ServiceError serviceError = SmisException.errors.jobFailed(ex.getMessage());

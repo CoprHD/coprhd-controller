@@ -19,6 +19,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import com.emc.storageos.model.block.VolumeDeleteTypeEnum;
+import com.emc.storageos.remotereplicationcontroller.RemoteReplicationUtils;
+import com.emc.storageos.volumecontroller.impl.smis.SmisException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -763,7 +766,14 @@ public class SRDFBlockServiceApiImpl extends AbstractBlockServiceApiImpl<SRDFSch
     public void deleteVolumes(final URI systemURI, final List<URI> volumeURIs,
             final String deletionType, final String task) throws InternalException {
         _log.info("Request to delete {} volume(s) with SRDF Protection", volumeURIs.size());
+
+        // for inventory only delete, cleanup all remote replication pairs for srdf volumes
+        if (VolumeDeleteTypeEnum.VIPR_ONLY.name().equals(deletionType)) {
+            deleteRemoteReplicationPairsForInventoryOnlyDelete(volumeURIs);
+        }
+
         super.deleteVolumes(systemURI, volumeURIs, deletionType, task);
+
     }
 
     /**
@@ -1460,6 +1470,36 @@ public class SRDFBlockServiceApiImpl extends AbstractBlockServiceApiImpl<SRDFSch
         }
         // TODO : add target volume volume groups if necessary
         return groupNames;
+    }
+
+    /**
+     * Delete remote replication pairs for inventory only delete of srdf volumes
+     * @param volumeURIs
+     */
+    private void deleteRemoteReplicationPairsForInventoryOnlyDelete(List<URI> volumeURIs) {
+        List<URI> processedVolumes = new ArrayList<>();
+        try {
+            for (URI volURI : volumeURIs) {
+                // get all srdf volumes related to this volume
+                List<URI> srdfVolumes = Volume.fetchSRDFVolumes(_dbClient, volURI);
+                for (URI srdfURI : srdfVolumes) {
+                    Volume volume = _dbClient.queryObject(Volume.class, srdfURI);
+                    if (volume != null && volume.getSrdfTargets() != null && !volume.getSrdfTargets().isEmpty()) {
+                        // this is source volume, remove remote replication pair for this volume and all its targets
+                        if (!processedVolumes.contains(volume.getId())) {
+                            processedVolumes.add(volume.getId());
+                            for (String targetId : volume.getSrdfTargets()) {
+                                URI targetURI = URI.create(targetId);
+                                _log.info("Process remote replication pair for srdf volume. Source/Target: {}/{}", volume.getId(), targetURI);
+                                RemoteReplicationUtils.deleteRemoteReplicationPairForSrdfPair(volume.getId(), targetURI, _dbClient);
+                            }
+                        }
+                    }
+                }
+            }
+        } catch (Exception ex) {
+            _log.error("Failed to process all remote replication pairs for srdf volumes inventory delete.", ex);
+        }
     }
 
 }

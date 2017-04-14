@@ -88,6 +88,7 @@ var routes = {
   Order_allOrders: #{jsAction @catalog.Orders.allOrders() /},
 
   FileSystems_fileSystemExportsJson: #{jsAction @resources.FileSystems.fileSystemExportsJson() /},
+  FileSystems_getStorageSystemType: #{jsAction @resources.FileSystems.getStorageSystemType(':id') /},
   FileSystems_save: #{jsAction @resources.FileSystems.save() /},
   FileSystems_fileSystemQuotaJson: #{jsAction @resources.FileSystems.fileSystemQuotaJson() /},
   FileSystems_getScheculePolicies: #{jsAction @resources.FileSystems.getScheculePolicies() /},

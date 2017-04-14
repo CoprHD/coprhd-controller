@@ -97,7 +97,7 @@
   #{/else}
 
 </div>
-<div ng-controller="FileRessourceCtrl" id="rule"> 
+<div ng-init="fsId='${fileSystem.id}'" ng-controller="FileRessourceCtrl" id="rule"> 
 <input type="hidden" ng-model="ruleTitle">                 
 #{Modal.dialog id:'exportRule'}
   #{Modal.header}
@@ -121,7 +121,7 @@
                     <input-text></input-text>
                 </control-group>
            </div>
-            <div class="row">
+            <div class="row" ng-show="isFsOnIsilon">
                <control-group v-field="rule.bypassDnsCheck">
                     <boolean-checkbox v-default-value="false"></boolean-checkbox>
             </control-group>

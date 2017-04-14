@@ -331,6 +331,7 @@ angular.module("portalApp").controller({
     
     FileRessourceCtrl: function($scope, $http, $window, translate) {
        $scope.edit = false;
+       $scope.isFsOnIsilon = false;
        $scope.rule = {};
        $scope.add = {endpoint:'', permission:'ro'};
        
@@ -342,6 +343,14 @@ angular.module("portalApp").controller({
        $scope.permOpt = [{id:'ro', name:translate('resources.filesystem.export.permission.ro')}, 
                          {id:'rw', name:translate('resources.filesystem.export.permission.rw')}, 
                          {id:'root', name:translate('resources.filesystem.export.permission.root')}];
+       
+       $scope.$watch('fsId', function () {
+    	   $http.get(routes.FileSystems_getStorageSystemType({id:$scope.id})).success(function(data) {             	            	 
+               if ( data == "isilon" ) {
+            	   $scope.isFsOnIsilon = true; 
+               }
+           });
+       });
        
        var setData = function(data) {
               $scope.rule = data;

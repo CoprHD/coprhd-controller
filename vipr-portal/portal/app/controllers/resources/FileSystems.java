@@ -643,6 +643,20 @@ public class FileSystems extends ResourceController {
         render(shares);
     }
 
+    /**
+     * GEt StorageSystem type for given filesystem
+     * 
+     * @param fileSystemId
+     */
+    public static void getStorageSystemType(String fileSystemId) {
+
+        ViPRCoreClient client = BourneUtil.getViprClient();
+        FileShareRestRep fs = client.fileSystems().get(uri(fileSystemId));
+        StorageSystemRestRep sys = client.storageSystems().get(fs.getStorageSystem());
+        render(sys.getSystemType());
+
+    }
+
     public static void fileSystemSnapshots(String fileSystemId) {
 
         ViPRCoreClient client = BourneUtil.getViprClient();

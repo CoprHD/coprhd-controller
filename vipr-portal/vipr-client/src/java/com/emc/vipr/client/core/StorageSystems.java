@@ -285,6 +285,24 @@ public class StorageSystems extends AbstractCoreBulkResources<StorageSystemRestR
         StoragePortGroupList portGroups = client.get(StoragePortGroupList.class, baseUrl + "/{id}/storage-port-groups", storageSystemId);
        return defaultList(portGroups.getPortGroups());
     }
+    
+    /**
+     * Gets the list of storage port group from a storage system
+     *
+     * @param storageSystemId
+     *            the ID of the storage system.
+     * @param exportId
+     *            the ID of the export group
+     * @return the list of storage port groups.
+     */
+    public List<NamedRelatedResourceRep> getStoragePortGroups(URI storageSystemId, URI exportId) {
+        UriBuilder builder = client.uriBuilder(baseUrl + "/{id}/storage-port-groups");
+        if (exportId != null && !exportId.equals("")) {
+            builder = builder.queryParam("export_group", exportId);
+        }
+        StoragePortGroupList portGroups = client.getURI(StoragePortGroupList.class, builder.build(storageSystemId));
+        return defaultList(portGroups.getPortGroups());
+    }
 
     /**
      * Gets the storage port group from a storage system

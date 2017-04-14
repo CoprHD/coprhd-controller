@@ -17,6 +17,7 @@
 
 package com.emc.sa.service.vipr.customservices;
 
+import java.beans.PropertyDescriptor;
 import java.io.File;
 import java.io.IOException;
 import java.lang.annotation.Annotation;
@@ -601,7 +602,7 @@ public class CustomServicesService extends ViPRService {
 
             return;
         }
-        Method method = findMethod(bits[i], className.getClass().getMethods());
+        Method method = findMethod(bits[i], className);
 
         if (method == null) {
             logger.info("method is null. cannot parse output");
@@ -668,13 +669,15 @@ public class CustomServicesService extends ViPRService {
         */
     }
 
-    private Method findMethod(final String str, final Method[] methods) {
+    private Method findMethod(final String str, Object className) throws Exception {
         logger.info("in findMethod");
+        final Method[] methods = className.getClass().getMethods();
         for (Method method : methods) {
             logger.info("method name:{}", method.getName());
             Annotation[] annotations = method.getDeclaredAnnotations();
             for(Annotation annotation : annotations){
                 if (annotation instanceof XmlElement) {
+
                     //logger.info("annotation of type xmlelem");
                     logger.info("xml annot name:{}", ((XmlElement) annotation).name());
                     if(str.equals(((XmlElement) annotation).name())){
@@ -694,13 +697,24 @@ public class CustomServicesService extends ViPRService {
             }
         }
         logger.info("didnt match in xml. str:{}", str);
-        for (Method method : methods) {
-            final String methodName = "get"+str;
-            if (method.getName().equals(methodName)) {
-                return method;
+
+        logger.info("check for field name");
+
+        Field field = className.getClass().getField(str);
+        if (field != null) {
+            PropertyDescriptor pd = new PropertyDescriptor(str, className.getClass());
+            Method getter = pd.getReadMethod();
+            if (getter != null) {
+                if (getter.getAnnotation(XmlElement.class).name().equals("##default")) {
+                    logger.info("Found default getter:{}", getter.getName());
+                    return getter;
+                } else {
+                    logger.info("default is not set");
+                }
             }
         }
 
+        logger.info("couldnot find getter");
         return null;
     }
 

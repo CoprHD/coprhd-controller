@@ -240,45 +240,32 @@ public class RemoteReplicationDataClientImpl implements RemoteReplicationDataCli
     }
 
     @Override
-    public void deleteRemoteReplicationPair(RemoteReplicationPair driverReplicationPair, URI sourceVolumeURI, URI targetVolumeURI) throws DatabaseException {
-        com.emc.storageos.db.client.model.remotereplication.RemoteReplicationPair rrPairToDelete = null;
+    public void deleteRemoteReplicationPair(URI sourceVolumeURI, URI targetVolumeURI) throws DatabaseException {
+        List<com.emc.storageos.db.client.model.remotereplication.RemoteReplicationPair> rrPairsToDelete = new ArrayList<>();
+        List<String> nativeIds = new ArrayList<>();
         try {
-            Volume sourceVolume = _dbClient.queryObject(Volume.class, sourceVolumeURI);
-            Volume targetVolume = _dbClient.queryObject(Volume.class, targetVolumeURI);
-            if (sourceVolume == null) {
-                String message = String.format("Cannot find volume %s for replication pair %s",
-                        sourceVolumeURI, driverReplicationPair.getNativeId());
-                _log.error(message);
-                return;
-            }
-            if (targetVolume == null) {
-                String message = String.format("Cannot find volume %s for replication pair %s",
-                        targetVolumeURI, driverReplicationPair.getNativeId());
-                _log.error(message);
-                return;
-            }
-            // Find system remote replication pair for the driver pair and source and target volumes
+            // Find system remote replication pair for source and target volumes
             List<com.emc.storageos.db.client.model.remotereplication.RemoteReplicationPair> rrPairs =
                     queryActiveResourcesByRelation(_dbClient, sourceVolumeURI, com.emc.storageos.db.client.model.remotereplication.RemoteReplicationPair.class,
                             "sourceElement");
             for (com.emc.storageos.db.client.model.remotereplication.RemoteReplicationPair rrPair : rrPairs) {
-                if (rrPair.getTargetElement().getURI().equals(targetVolumeURI) && rrPair.getNativeId().equals(driverReplicationPair.getNativeId())) {
-                     rrPairToDelete = rrPair;
-                     break;
+                if (rrPair.getTargetElement().getURI().equals(targetVolumeURI)) {
+                     rrPairsToDelete.add(rrPair);
+                     nativeIds.add(rrPair.getNativeId());
                 }
             }
-            if (rrPairToDelete == null) {
-                String message = String.format("Cannot find remote replication pair with native id %s for source volume %s and target volume %s",
-                driverReplicationPair.getNativeId(), sourceVolumeURI, targetVolumeURI);
-                _log.error(message);
+            if (rrPairsToDelete.isEmpty()) {
+                String message = String.format("Cannot find remote replication pairs for source volume %s and target volume %s",
+                        sourceVolumeURI, targetVolumeURI);
+                _log.warn(message);
                 return;
             }
-            _log.info("Found system replication pair to delete: {}, source volume {}, target volume {}.",
-                    rrPairToDelete.getNativeId(), sourceVolumeURI, targetVolumeURI);
-            _dbClient.markForDeletion(rrPairToDelete);
+            _log.info("Found system replication pairs to delete: {}, source volume {}, target volume {}.",
+                    nativeIds, sourceVolumeURI, targetVolumeURI);
+            _dbClient.markForDeletion(rrPairsToDelete);
         } catch (Exception ex) {
-            String message = String.format("Failed to delete replication pair %s with source/target volumes %s/%s",
-                    driverReplicationPair.getNativeId(), sourceVolumeURI, targetVolumeURI);
+            String message = String.format("Failed to delete replication pair for source/target volumes %s/%s",
+                    sourceVolumeURI, targetVolumeURI);
             _log.error(message, ex);
         }
     }

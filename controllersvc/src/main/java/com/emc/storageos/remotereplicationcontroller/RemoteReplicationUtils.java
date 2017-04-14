@@ -224,10 +224,8 @@ public class RemoteReplicationUtils {
 
         _log.info("Processing srdf pair: {} -> {}", sourceUri, targetUri);
         try {
-            com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationPair driverRrPair = null;
-            driverRrPair = buildRemoteReplicationPairForSrdfPair(sourceUri, targetUri, dbClient);
             RemoteReplicationDataClient remoteReplicationDataClient = new RemoteReplicationDataClientImpl(dbClient);
-            remoteReplicationDataClient.deleteRemoteReplicationPair(driverRrPair, sourceUri, sourceUri);
+            remoteReplicationDataClient.deleteRemoteReplicationPair(sourceUri, sourceUri);
         } catch (Exception ex) {
             String msg = String.format("Failed to delete remote replication pair for srdf pair: %s -> %s", sourceUri, targetUri);
             _log.error(msg, ex);

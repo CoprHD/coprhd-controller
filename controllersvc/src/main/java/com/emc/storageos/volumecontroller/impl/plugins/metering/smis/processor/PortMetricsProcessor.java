@@ -29,6 +29,7 @@ import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.AbstractChangeTrackingSet;
 import com.emc.storageos.db.client.model.BlockObject;
+import com.emc.storageos.db.client.model.DataObject.Flag;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.CompatibilityStatus;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.DiscoveryStatus;
@@ -1633,7 +1634,7 @@ public class PortMetricsProcessor {
             URI pgURI = portGroupIter.next();
             StoragePortGroup portGroup = _dbClient.queryObject(StoragePortGroup.class, pgURI);
             if (portGroup != null && !portGroup.getInactive() &&
-                    RegistrationStatus.REGISTERED.name().equalsIgnoreCase(portGroup.getRegistrationStatus())) {
+                    !portGroup.checkInternalFlags(Flag.INTERNAL_OBJECT)) {
                 StringSet ports = portGroup.getStoragePorts();
                 List<StoragePort> portMembers = _dbClient.queryObject(StoragePort.class, StringSetUtil.stringSetToUriList(ports));
                 Double portMetricDouble = 0.0;

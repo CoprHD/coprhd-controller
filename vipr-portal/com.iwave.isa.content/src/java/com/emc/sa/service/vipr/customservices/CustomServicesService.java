@@ -424,7 +424,7 @@ public class CustomServicesService extends ViPRService {
         logger.info("updateViproutput is called");
         //TODO get the classname from primitive
         final String classname = "com.emc.storageos.model.TaskList";
-        //TODO Hard code for create volume response
+       /* //TODO Hard code for create volume response
         res = "{\n"
                 + "  \"task\": [\n"
                 + "    {\n"
@@ -446,7 +446,7 @@ public class CustomServicesService extends ViPRService {
                 + "    }\n"
                 + "  ]\n"
                 + "}";
-
+*/
         logger.info("res string is:{}", res);
         final ObjectMapper MAPPER = new ObjectMapper();
         MAPPER.setAnnotationIntrospector(new JaxbAnnotationIntrospector());
@@ -467,11 +467,11 @@ public class CustomServicesService extends ViPRService {
     }
     private void updateViprTaskoutput(final TaskList taskList, final Step step) throws Exception {
         logger.info("in updateViprTaskoutput");
-       // final List<CustomServicesWorkflowDocument.Output> stepOut = step.getOutput();
-        final List<CustomServicesWorkflowDocument.Output> stepOut = new ArrayList<CustomServicesWorkflowDocument.Output>();
+        final List<CustomServicesWorkflowDocument.Output> stepOut = step.getOutput();
+        //final List<CustomServicesWorkflowDocument.Output> stepOut = new ArrayList<CustomServicesWorkflowDocument.Output>();
         //TODO remove this after primitive code is ready
 
-        CustomServicesWorkflowDocument.Output stepout1 = new CustomServicesWorkflowDocument.Output();
+        /*CustomServicesWorkflowDocument.Output stepout1 = new CustomServicesWorkflowDocument.Output();
         stepout1.setName("tasks.task.op_id");
         CustomServicesWorkflowDocument.Output stepout2 = new CustomServicesWorkflowDocument.Output();
         stepout2.setName("tasks.task.resource.name");
@@ -483,7 +483,7 @@ public class CustomServicesService extends ViPRService {
         stepOut.add(stepout1);
         stepOut.add(stepout2);
         stepOut.add(stepout3);
-        //stepOut.add(stepout4);
+        //stepOut.add(stepout4);*/
 
         for (final CustomServicesWorkflowDocument.Output out : stepOut) {
             final String outName = out.getName();
@@ -607,8 +607,9 @@ public class CustomServicesService extends ViPRService {
             if (i == bits.length - 1) {
                 logger.info("it is the last bit also:{}", bits[i]);
                 logger.info("value:{}", method.invoke(className, null));
+                return;
             }
-            return;
+
         }
         //3) Collection primitive
         Type returnType = method.getGenericReturnType();
@@ -660,7 +661,7 @@ public class CustomServicesService extends ViPRService {
             Annotation[] annotations = method.getDeclaredAnnotations();
             for(Annotation annotation : annotations){
                 if (annotation instanceof XmlElement) {
-                    logger.info("annotation of type xmlelem");
+                    //logger.info("annotation of type xmlelem");
                     logger.info("xml annot name:{}", ((XmlElement) annotation).name());
                     if(str.equals(((XmlElement) annotation).name())){
                         logger.info("FOUND annot:{}", str);

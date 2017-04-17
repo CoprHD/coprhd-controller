@@ -62,7 +62,8 @@ class BlockServicesHelper {
 
         // create snapshot
         def snapshotOrder = createBlockSnapshot()
-        removeBlockSnapshot(snapshotOrder)
+        removeBlockSnapshot(snapshotOrder, "local")
+        removeBlockSnapshot(snapshotOrder, "session")
 
         // place the order to remove the block volume from the creation order
         removeBlockVolume(creationOrder)
@@ -135,15 +136,17 @@ class BlockServicesHelper {
         return CatalogServiceHelper.placeOrder(REMOVE_BLOCK_FULLCOPY_SERVICE, overrideParameters)
     }
 
-    static def removeBlockSnapshot(creationOrder) {
+    static def removeBlockSnapshot(creationOrder, type) {
         def overrideParameters = [:]
         def executionInfo = CatalogServiceHelper.getExecutionInfo(creationOrder)
         assertNotNull(executionInfo)
         assertNotNull(executionInfo.affectedResources)
         assertEquals(1, executionInfo.affectedResources.size())
         def createdVolumeId = executionInfo.affectedResources[0]
-        overrideParameters.snapshots = createdVolumeId
-        overrideParameters.type = "local"
+        if (type.equals("local")) { 
+            overrideParameters.snapshots = createdVolumeId
+        }
+        overrideParameters.type = type 
         return CatalogServiceHelper.placeOrder(REMOVE_BLOCK_SNAPSHOT_SERVICE, overrideParameters)
     }
 

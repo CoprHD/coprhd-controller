@@ -7,18 +7,15 @@ package com.emc.storageos.services.util;
 
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.lang.StringBuilder;
-import java.lang.Thread;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.emc.storageos.services.util.Strings;
 
 public class Exec {
     private static final Logger _log = LoggerFactory.getLogger(Exec.class);
@@ -184,9 +181,11 @@ public class Exec {
     public static Result exec(long timeout, String... args) {
         return exec(timeout, null, args);
     }
-
-
     public static Result exec(long timeout, Pattern maskFilter, String... args) {
+        return exec(timeout,maskFilter,new HashMap<String,String>(),args);
+    }
+
+    public static Result exec(long timeout, Pattern maskFilter, Map<String,String> env, String... args) {
         List<String> cmdList = new ArrayList(Arrays.asList(args));
 
         final String[] cmd = cmdList.toArray(new String[cmdList.size()]);
@@ -202,7 +201,9 @@ public class Exec {
         try {
 
             boolean destroyed = false;
-            Process p = new ProcessBuilder(cmd).start();
+            ProcessBuilder pb = new ProcessBuilder(cmd);
+            pb.environment().putAll(env);
+            Process p = pb.start();
             stdOutputStream = new InputStreamReader(p.getInputStream());
             stdErrorStream = new InputStreamReader(p.getErrorStream());
 

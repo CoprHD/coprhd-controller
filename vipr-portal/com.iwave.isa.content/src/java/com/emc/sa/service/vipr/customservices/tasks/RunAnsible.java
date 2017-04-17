@@ -17,26 +17,6 @@
 
 package com.emc.sa.service.vipr.customservices.tasks;
 
-import java.io.ByteArrayInputStream;
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.OutputStream;
-import java.net.URI;
-import java.util.List;
-import java.util.Map;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
-import org.apache.commons.codec.binary.Base64;
-import org.apache.commons.collections.MapUtils;
-import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
-import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
-import org.apache.commons.compress.compressors.gzip.GzipCompressorInputStream;
-import org.apache.commons.compress.utils.IOUtils;
-import org.apache.commons.lang.StringUtils;
-import org.slf4j.LoggerFactory;
-
 import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.service.vipr.tasks.ViPRExecutionTask;
 import com.emc.storageos.db.client.DbClient;
@@ -53,6 +33,24 @@ import com.emc.storageos.primitives.CustomServicesConstants;
 import com.emc.storageos.primitives.CustomServicesPrimitive.StepType;
 import com.emc.storageos.services.util.Exec;
 import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorException;
+import java.io.ByteArrayInputStream;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.net.URI;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import org.apache.commons.codec.binary.Base64;
+import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
+import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
+import org.apache.commons.compress.compressors.gzip.GzipCompressorInputStream;
+import org.apache.commons.compress.utils.IOUtils;
+import org.apache.commons.lang.StringUtils;
+import org.slf4j.LoggerFactory;
 
 /**
  * Runs CustomServices Primitives - Shell script or Ansible Playbook.
@@ -310,8 +308,12 @@ public class RunAnsible extends ViPRExecutionTask<CustomServicesTaskResult> {
                 .setTags(null)
                 .setExtraVars(extraVars)
                 .build();
-
-        return Exec.exec(timeout, cmds);
+        final Map<String,String> environment = new HashMap<>();
+        final String hostKeyChecking = getOptions(CustomServicesConstants.ANSIBLE_HOST_FILE);
+        if (hostKeyChecking != null ) {
+            environment.put("ANSIBLE_HOST_KEY_CHECKING", String.valueOf(hostKeyChecking));
+        }
+        return Exec.exec(timeout, null, environment, cmds);
     }
 
     // Execute Shell Script resource

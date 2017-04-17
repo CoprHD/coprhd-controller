@@ -3313,7 +3313,7 @@ case $SS in
         SRDF_MODE=${1}
         shift
         echo "SRDF_MODE is $SRDF_MODE"
-        [[ ! "sync async" =~ "$VPLEX_MODE" ]] && Usage
+        [[ ! "sync async" =~ "$SRDF_MODE" ]] && Usage
         export SRDF_MODE
     ;;
     *)

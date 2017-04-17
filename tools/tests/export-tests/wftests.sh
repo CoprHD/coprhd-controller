@@ -32,7 +32,7 @@ source $(dirname $0)/common_subs.sh
 
 Usage()
 {
-    echo 'Usage: wftests.sh <sanity conf file path> (vmax2 | vmax3 | vnx | vplex [local | distributed] | xio | unity | vblock] [-setuphw|-setupsim) [-report] [-cleanup]  [test1 test2 ...]'
+    echo 'Usage: wftests.sh <sanity conf file path> [vmax2 | vmax3 | vnx | vplex [local | distributed] | xio | unity | vblock | srdf [sync | async]] [-setup(hw) | -setupsim] [-report] [-cleanup]  [test1 test2 ...]'
     echo ' (vmax 2 | vmax3 ...: Storage platform to run on.'
     echo ' [-setup(hw) | setupsim]: Run on a new ViPR database, creates SMIS, host, initiators, vpools, varray, volumes (Required to run first, can be used with tests'
     echo ' [-report]: Report results to reporting server: http://lglw1046.lss.emc.com:8081/index.html (Optional)'
@@ -150,6 +150,8 @@ prerun_setup() {
 
     project list --tenant emcworld > /dev/null 2> /dev/null
     if [ $? -eq 0 ]; then
+	   PROJECT=`project list --tenant emcworld | grep YES | head -1 | awk '{print $1}'`
+	   echo PROJECT ${PROJECT}
 	   echo "Seeing if there's an existing base of volumes"
 	   BASENUM=`volume list ${PROJECT} | grep YES | head -1 | awk '{print $1}' | awk -Ft '{print $3}' | awk -F- '{print $1}'`
     else
@@ -169,6 +171,10 @@ prerun_setup() {
        if [ "${SS}" = "xio" ]; then
 	       sstype="xtremio"
        fi
+       if [ "${SS}" = "srdf" ]; then
+	       sstype="vmax"
+       fi
+
 
        # figure out what type of array we're running against
        storage_type=`storagedevice list | grep COMPLETE | grep ${sstype} | awk '{print $1}'`
@@ -908,6 +914,247 @@ xio_setup() {
     run cos update block $VPOOL_CHANGE --storage ${XTREMIO_NATIVEGUID}
 }
 
+srdf_ssh(){
+    SRDF_SSH_ERROR=0
+    SRDF_SSH_RESULT=""
+    SRDF_SSH_RESULT=$(sshpass -p $2 ssh -q -o StrictHostKeyChecking=no -o UserKnownHostsFile=no root@$1 $3) || SRDF_SSH_ERROR=$?
+}
+
+srdf_generate_rdfg_name() {
+    # RDF group name maximum 10 characters
+    echo $(date +"S"%m%d$RANDOM | cut -c1-10)
+}
+
+srdf_create_rdfg() {
+    retry=${SRDF_RDF_CREATE_RETRY}
+    while : ; do
+        SRDF_USED_RDFGS=()
+
+        srdf_get_rdfg_number
+        echo "Creating RDF group ${SRDF_PROJECT} with group number ${SRDF_RDF_NUMBER}"
+        srdf_run_symrdf addgrp -rdfg ${SRDF_RDF_NUMBER} -dir ${SRDF_V3_VMAXA_DIR} -remote_rdfg ${SRDF_RDF_NUMBER} -remote_sid ${SRDF_V3_VMAXB_SID} -remote_dir ${SRDF_V3_VMAXB_DIR}
+        ret=${SRDF_SSH_ERROR}
+        if [ $ret -eq 0 ]; then
+            echo "Completed creating group"
+            return
+        elif [ $ret -eq 1 ]; then
+            echo "Failed to create group"
+            return 1
+        elif [ $retry -gt 0 ]; then
+            retry=$[$retry-1]
+            if [ $ret -eq 2 ]; then
+                sleep ${SRDF_SLEEPING_SECONDS}
+            fi
+
+            if [ $ret -eq 3 ]; then
+                echo "Generate new RDF name"
+                SRDF_PROJECT=$(srdf_generate_rdfg_name)
+            fi
+
+            echo "Retrying with new group name/number"
+        else
+            echo "Failed to create group"
+            return 1
+        fi
+    done
+}
+
+srdf_get_rdfg_number() {
+    srdf_find_rdfgs "${SRDF_V3_VMAXA_SMIS_IP}" "${SRDF_V3_VMAXA_SSH_PW}" "${SRDF_V3_VMAXA_SID}"
+    srdf_find_rdfgs "${SRDF_V3_VMAXB_SMIS_IP}" "${SRDF_V3_VMAXB_SSH_PW}" "${SRDF_V3_VMAXB_SID}"
+
+    declare -A rdfgs
+    for rdfg in ${SRDF_USED_RDFGS}; do
+        rdfgs[$rdfg]=1
+    done
+
+    candidates=()
+    for candidate in {1..250}; do
+        if [[ ! ${rdfgs[$candidate]} ]]; then
+            candidates+=($candidate)
+        fi
+    done
+
+    if [ ${#candidates[@]} -eq 0 ]; then
+        echo "Cannot find available RGF group number"
+        return 1
+    fi
+
+    SRDF_RDF_NUMBER=${candidates[$RANDOM % ${#candidates[@]}]}
+}
+
+srdf_find_rdfgs() {
+    cmd="${SYMCLI_PATH}/symcfg list -sid ${3} -rdfg all | grep '^[ 0-9].*[0-9]$' | awk '{print \$1}' 2>&1"
+    srdf_ssh "${1}" "${2}" "$cmd"
+
+    if [ "${SRDF_SSH_RESULT}" != "" ]; then
+        SRDF_USED_RDFGS+=(${SRDF_SSH_RESULT})
+    else
+        echo "Failed to get RDF groups"
+        return 1
+    fi
+}
+
+srdf_run_symrdf() {
+    cmd="${SYMCLI_PATH}/symrdf $@ -label $SRDF_PROJECT -sid ${SRDF_V3_VMAXA_SID} -noprompt 2>&1"
+    srdf_ssh "${SRDF_V3_VMAXA_SMIS_IP}" "${SRDF_V3_VMAXA_SSH_PW}" "$cmd"
+    ret=${SRDF_SSH_ERROR}
+    if [ $ret -ne 0 ]; then
+        echo "Failed to call symrdf $1 - $SRDF_SSH_RESULT"
+
+        is_present=$(echo ${SRDF_SSH_RESULT} | (grep "^The SYMAPI database file is already locked by another process" || echo ''))
+        if [ "$is_present" != '' ]; then
+            SRDF_SSH_ERROR=2
+            return
+        fi
+
+        is_present=$(echo ${SRDF_SSH_RESULT} | (grep "^The specified dynamic RDF group label is in use" || echo ''))
+        if [ "$is_present" != '' ]; then
+           SRDF_SSH_ERROR=3
+           return
+        fi
+
+        is_present=$(echo ${SRDF_SSH_RESULT} | (grep "^The .* RDF group number specified is already defined" || echo ''))
+        if [ "$is_present" != '' ]; then
+            SRDF_SSH_ERROR=4
+            return
+        fi
+
+        SRDF_SSH_ERROR=1
+        return
+    fi
+
+    is_present=$(echo ${SRDF_SSH_RESULT} | (grep "^Successfully" || echo ''))
+    if [ "$is_present" == '' ]; then
+        echo "Operation $1 failed for RDF group $SRDF_PROJECT - ${SRDF_SSH_RESULT}"
+        SRDF_SSH_ERROR=1
+    else
+        echo "Operation $1 completed for RDF group ${SRDF_PROJECT}"
+    fi
+}
+
+
+srdf_sim_setup() {
+    echo "Test with simulator"
+
+    SRDF_SLEEPING_SECONDS=1
+    SRDF_PROJECT=SRDF$(shuf -i 1-29 -n 1)
+    V3_SRDF_VARRAY=nh
+
+    SRDF_V3_VMAXA_SMIS_IP=${VMAX3_SIMULATOR_SMIS_IP}
+    SRDF_V3_VMAXA_SMIS_PORT=${VMAX3_SIMULATOR_SMIS_PORT}
+    SRDF_V3_VMAXA_SMIS_SSL=${VMAX3_SIMULATOR_SMIS_SSL}
+    SRDF_V3_VMAXA_NATIVEGUID=${VMAX3_SIMULATOR_NATIVE_GUID}
+    SRDF_V3_VMAXB_NATIVEGUID=${VMAX3_SIMULATOR_R2_NATIVE_GUID}
+}
+
+srdf_setup() {
+    # do this only once
+    echo "Setting up SRDF"
+    SRDF_V3_VMAXA_SID=${SRDF_V3_VMAXA_NATIVEGUID:10:24}
+    SRDF_V3_VMAXB_SID=${SRDF_V3_VMAXB_NATIVEGUID:10:24}
+    SRDF_SSH_ERROR=0
+    SRDF_SSH_RESULT=""
+    SRDF_USED_RDFGS=()
+    SRDF_RDF_NUMBER=1
+    SRDF_RDF_CREATE_RETRY=1 # number of times for retry in case of group name/number collision
+
+
+    if [ "${SIM}" = "1" ]; then
+	   srdf_sim_setup
+    else
+        echo "Executing SRDF group setup"
+        SRDF_PROJECT=$(srdf_generate_rdfg_name)
+        # create RDF group first, SRDF_PROJECT may be changed in the call
+        srdf_create_rdfg
+        sleep 1
+        # COP-25856 RDF group is not available 3 minutes after created via symcli, add more time
+        sleep 300
+    fi
+
+    run project create $SRDF_PROJECT --tenant $TENANT
+    PROJECT=$SRDF_PROJECT
+
+    storage_password=$SMIS_PASSWD
+
+    smisprovider show $SRDF_V3_VMAXA_SMIS_DEV &> /dev/null && return $?
+    run smisprovider create $SRDF_V3_VMAXA_SMIS_DEV $SRDF_V3_VMAXA_SMIS_IP $SRDF_V3_VMAXA_SMIS_PORT $SMIS_USER "$SMIS_PASSWD" $SRDF_V3_VMAXA_SMIS_SSL
+
+    if [ "${SIM}" != "1" ]; then
+        smisprovider show $SRDF_V3_VMAXB_SMIS_DEV &> /dev/null && return $?
+        run smisprovider create $SRDF_V3_VMAXB_SMIS_DEV $SRDF_V3_VMAXB_SMIS_IP $SRDF_V3_VMAXB_SMIS_PORT $SMIS_USER "$SMIS_PASSWD" $SRDF_V3_VMAXB_SMIS_SSL
+    fi
+
+    run storagedevice discover_all --ignore_error
+
+    run storagepool update $SRDF_V3_VMAXA_NATIVEGUID --type block --volume_type THIN_ONLY
+    run storagepool update $SRDF_V3_VMAXA_NATIVEGUID --type block --volume_type THICK_ONLY
+
+    setup_varray
+
+    run storagepool update $SRDF_V3_VMAXA_NATIVEGUID --nhadd $NH --type block
+
+    common_setup
+
+    SERIAL_NUMBER=`storagedevice list | grep COMPLETE | awk '{print $2}' | awk -F+ '{print $2}'`
+
+    echo "SRDF V3 Virtual Pool setup" 	
+
+    # Create the target first so it exists when we create the source vpool
+    # Workaround for COP-25718, switch to use matchedPools once it is fixed
+    run cos create block ${VPOOL_BASE}_SRDF_TARGET		          \
+	--description 'Target-Virtual-Pool-for-V3-SRDF-Protection' false \
+			 --protocols FC 		          \
+			 --numpaths 1				  \
+			 --max_snapshots 10 			  \
+			 --provisionType 'Thin'	          \
+			 --neighborhoods $NH                      \
+                         --multiVolumeConsistency                  \
+                         --system_type vmax			
+    
+    run cos update block ${VPOOL_BASE}_SRDF_TARGET --storage ${SRDF_V3_VMAXB_NATIVEGUID}
+    run cos allow ${VPOOL_BASE}_SRDF_TARGET block $TENANT
+
+    case "$SRDF_MODE" in 
+        async)
+            echo "Setting up the virtual pool for SRDF sync mode"
+    	    run cos create block ${VPOOL_BASE}                 \
+			 --description 'Source-Virtual-Pool-for-Async-SRDF-Protection' true \
+			 --protocols FC 		        \
+			 --numpaths 1				\
+			 --max_snapshots 10			\
+	                 --provisionType 'Thin'	        \
+                         --system_type vmax                     \
+                         --multiVolumeConsistency		\
+			 --neighborhoods $NH                    \
+			 --srdf "${NH}:${VPOOL_BASE}_SRDF_TARGET:ASYNCHRONOUS"
+
+    	   run cos update block ${VPOOL_BASE} --storage ${SRDF_V3_VMAXA_NATIVEGUID}
+           run cos allow ${VPOOL_BASE} block $TENANT
+	;; 
+	sync)
+            echo "Setting up the virtual pool for SRDF sync mode"	
+	    run cos create block ${VPOOL_BASE}                 \
+		 	 --description 'Source-Virtual-Pool-for-Sync-SRDF-Protection' true \
+			 --protocols FC 		        \
+			 --numpaths 1				\
+			 --max_snapshots 10			\
+	                 --provisionType 'Thin'	        \
+                         --system_type vmax                     \
+                         --multiVolumeConsistency		\
+			 --neighborhoods $NH                    \
+			 --srdf "${NH}:${VPOOL_BASE}_SRDF_TARGET:SYNCHRONOUS"
+
+	    run cos update block ${VPOOL_BASE} --storage ${SRDF_V3_VMAXA_NATIVEGUID}
+	    run cos allow ${VPOOL_BASE} block $TENANT
+	;;
+	*)
+            secho "Invalid SRDF_MODE: $SRDF_MODE (should be 'sync' or 'async')"
+            Usage
+        ;;
+    esac    
+}
+
 host_setup() {
     run project create $PROJECT --tenant $TENANT 
     secho "Project $PROJECT created."
@@ -987,6 +1234,10 @@ setup_varray() {
 
 setup() {
     storage_type=$1;
+    if [ "${SS}" = "srdf" ]; then
+        storage_type="vmax3";
+    fi
+
 
     syssvc $SANITY_CONFIG_FILE localhost setup
     security add_authn_provider ldap ldap://${LOCAL_LDAP_SERVER_IP} cn=manager,dc=viprsanity,dc=com secret ou=ViPR,dc=viprsanity,dc=com uid=%U CN Local_Ldap_Provider VIPRSANITY.COM ldapViPR* SUBTREE --group_object_classes groupOfNames,groupOfUniqueNames,posixGroup,organizationalRole --group_member_attributes member,uniqueMember,memberUid,roleOccupant
@@ -996,7 +1247,7 @@ setup() {
     syssvc $SANITY_CONFIG_FILE localhost set_prop controller_max_thin_pool_subscription_percentage 600
     syssvc $SANITY_CONFIG_FILE localhost set_prop validation_check true
 
-    if [ "${SS}" = "vmax2" -o "${SS}" = "vmax3" ]; then
+    if [ "${SS}" = "vmax2" -o "${SS}" = "vmax3" -o "${SS}" = "srdf" ]; then
         which symhelper.sh
         if [ $? -ne 0 ]; then
             echo Could not find symhelper.sh path. Please add the directory where the script exists to the path
@@ -1123,6 +1374,24 @@ test_0() {
     verify_export ${expname}1 ${HOST1} gone
     verify_no_zones ${FC_ZONE_A:7} ${HOST1}
 }
+
+# SRDF Test 0
+#
+# Test existing functionality of creating a simple SRDF volume and verify that tests are ready to run.
+#
+test_0_srdf() {
+    echot "Test 0 for SRDF begins"
+    item=${RANDOM}
+    volname=${VOLNAME}-${item}
+    echo "Creating a single SRDF ${SRDF_MODE} mode volume - ${volname}"
+    run volume create ${volname} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB
+    sleep 1
+    # Remove the volume
+    echo "Deleting the volume"
+    runcmd volume delete ${PROJECT}/${volname} --wait        
+}
+
+
 
 snap_db() {
     slot=$1
@@ -2807,6 +3076,7 @@ cleanup_previous_run_artifacts() {
     if [ $? -eq 1 ]; then
 	return;
     fi
+    PROJECT=`project list --tenant emcworld | grep YES | head -1 | awk '{print $1}'`
 
     events list emcworld &> /dev/null
     if [ $? -eq 0 ]; then
@@ -3038,6 +3308,14 @@ case $SS in
         export VPLEX_MODE
         SERIAL_NUMBER=$VPLEX_GUID
     ;;
+    srdf)
+        # set sync or async mode
+        SRDF_MODE=${1}
+        shift
+        echo "SRDF_MODE is $SRDF_MODE"
+        [[ ! "sync async" =~ "$VPLEX_MODE" ]] && Usage
+        export SRDF_MODE
+    ;;
     *)
     Usage
     ;;
@@ -3056,7 +3334,7 @@ do
     	SIM=0;
     	shift 1;
     elif [ "${1}" = "setupsim" -o "${1}" = "-setupsim" ]; then
-    	if [ "$SS" = "xio" -o "$SS" = "vmax3" -o "$SS" = "vmax2" -o "$SS" = "vnx" -o "$SS" = "vplex" ]; then
+    	if [ "$SS" = "xio" -o "$SS" = "vmax3" -o "$SS" = "vmax2" -o "$SS" = "vnx" -o "$SS" = "vplex" -o "$SS" = "srdf" ]; then
     	    echo "Setting up testing based on simulators"
     	    SIM=1;
     	    ZONE_CHECK=0;
@@ -3093,7 +3371,7 @@ then
     if [ "$SS" = "xio" -o "$SS" = "vplex" ]; then
 	   setup_yaml;
     fi
-    if [ "$SS" = "vmax2" -o "$SS" = "vmax3" -o "$SS" = "vnx" ]; then
+    if [ "$SS" = "vmax2" -o "$SS" = "vmax3" -o "$SS" = "vnx" -o "$SS" = "srdf" ]; then
 	   setup_provider;
     fi
 fi

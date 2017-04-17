@@ -1410,13 +1410,16 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                 return taskList;
             }
         }
-
+        
         // Otherwise proceed as we normally would performing
         // individual vpool changes for each volume.
+        String nextTaskId = taskId;
         for (Volume volume : volumes) {
             taskList.getTaskList().addAll(
                     changeVolumeVirtualPool(volume.getStorageController(),
-                            volume, vpool, vpoolChangeParam, taskId).getTaskList());
+                            volume, vpool, vpoolChangeParam, nextTaskId).getTaskList());
+            // Create a unique task id.
+            nextTaskId = UUID.randomUUID().toString();
         }
         return taskList;
     }

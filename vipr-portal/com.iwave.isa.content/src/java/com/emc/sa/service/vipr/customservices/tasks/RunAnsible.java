@@ -309,7 +309,7 @@ public class RunAnsible extends ViPRExecutionTask<CustomServicesTaskResult> {
                 .setExtraVars(extraVars)
                 .build();
         final Map<String,String> environment = new HashMap<>();
-        final String hostKeyChecking = getOptions(CustomServicesConstants.ANSIBLE_HOST_FILE);
+        final String hostKeyChecking = getOptions(CustomServicesConstants.ANSIBLE_HOST_KEY_CHECKING);
         if (hostKeyChecking != null ) {
             environment.put("ANSIBLE_HOST_KEY_CHECKING", String.valueOf(hostKeyChecking));
         }

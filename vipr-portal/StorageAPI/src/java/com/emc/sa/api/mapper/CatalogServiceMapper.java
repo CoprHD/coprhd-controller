@@ -140,6 +140,9 @@ public class CatalogServiceMapper {
         if (param.getExecutionWindowRequired() != null) {
             object.setExecutionWindowRequired(param.getExecutionWindowRequired());
         }
+        if (param.getName() != null) {
+            object.setLabel(param.getName());
+        }
 
         // Reset the order index if the service is moved to a different category
         if (object.getCatalogCategoryId() == null || param.getCatalogCategory().equals(object.getCatalogCategoryId().getURI()) == false) {

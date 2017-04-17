@@ -48,7 +48,7 @@ class VMAXSetup {
 
         client.storageSystems().all.collect {
             if (!it.nativeGuid.equalsIgnoreCase(System.getenv("SIMULATOR_VMAX3_NATIVEGUID"))) {
-                println "Deleteing storage system " + it.id + " with native guid = " + it.nativeGuid
+                println "Deleting storage system " + it.id + " with native guid = " + it.nativeGuid
                 client.storageSystems().deregister(it.id)
                 client.storageSystems().deactivate(it.id)
             }

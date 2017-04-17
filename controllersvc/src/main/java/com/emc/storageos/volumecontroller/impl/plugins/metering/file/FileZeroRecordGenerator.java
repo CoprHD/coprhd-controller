@@ -14,6 +14,7 @@ import org.slf4j.LoggerFactory;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
+import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.DataObject.Flag;
 import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.model.Stat;
@@ -35,12 +36,15 @@ public class FileZeroRecordGenerator extends ZeroRecordGenerator {
      * @param nativeGuid: nativeGuid of the volume.
      * 
      */
+    @Override
     public List<URI> injectResourceURI(final DbClient dbClient, final String nativeGuid) {
-        List<URI> fileshareURIs = null;
+        URIQueryResultList results = new URIQueryResultList();
         try {
-            // Get VolumeUUID
-            fileshareURIs = dbClient.queryByConstraint(AlternateIdConstraint.Factory
-                    .getFileShareNativeIdConstraint(nativeGuid));
+            // Get File systems with given native id!!
+            dbClient.queryByConstraint(
+                    AlternateIdConstraint.Factory.getFileShareNativeIdConstraint(nativeGuid),
+                    results);
+
         } catch (Exception e) {
             // Even if one volume fails, no need to throw exception instead
             // continue processing other volumes
@@ -48,7 +52,7 @@ public class FileZeroRecordGenerator extends ZeroRecordGenerator {
                     "Cassandra Database Error while querying FileshareUUId: {}--> ",
                     nativeGuid, e);
         }
-        return fileshareURIs;
+        return results;
     }
 
     @Override

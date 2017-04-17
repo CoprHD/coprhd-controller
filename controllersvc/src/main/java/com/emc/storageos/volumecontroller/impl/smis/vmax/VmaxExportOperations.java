@@ -862,9 +862,13 @@ public class VmaxExportOperations implements ExportMaskOperations {
                 boolean fastAssociatedAlready = false;
                 // Always treat fast volumes as non-fast if fast is associated on these volumes already
                 // Export fast volumes to 2 different nodes.
-                if (_helper.isFastPolicy(volumeUriHLU.getAutoTierPolicyName())) {
+                String policyName = volumeUriHLU.getAutoTierPolicyName();
+                if (_helper.isFastPolicy(policyName)) {
+                    if (storage.checkIfVmax3()) {
+                        policyName = _helper.getVMAX3FastSettingForVolume(boUri, policyName);
+                    }
                     fastAssociatedAlready = _helper.checkVolumeAssociatedWithAnySGWithPolicy(bo.getNativeId(), storage,
-                            volumeUriHLU.getAutoTierPolicyName());
+                            policyName);
                 }
 
                 // Force the policy name to NONE if any of the following conditions are true:

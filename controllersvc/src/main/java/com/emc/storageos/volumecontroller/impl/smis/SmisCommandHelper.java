@@ -6417,6 +6417,26 @@ public class SmisCommandHelper implements SmisConstants {
     }
 
     /**
+     * Filter volumes that are already part of any Storage Group.
+     *
+     * @param storage
+     * @param deviceIds
+     * @return filtered list
+     * @throws Exception
+     */
+    public Set<String> filterVolumesPartOfAnyStorageGroup(StorageSystem storage,
+            Set<String> deviceIds) throws Exception {
+        Set<String> volumesInSG = new HashSet<String>();
+        for (String deviceId : deviceIds) {
+            if (checkVolumeAssociatedWithAnySG(deviceId, storage)) {
+                volumesInSG.add(deviceId);
+            }
+        }
+        deviceIds.removeAll(volumesInSG);
+        return deviceIds;
+    }
+
+    /**
      * Filter volumes that are already part of the Replication Group.
      *
      * @param storage
@@ -6648,6 +6668,37 @@ public class SmisCommandHelper implements SmisConstants {
             closeCIMIterator(cimPathItr);
         }
         return null;
+    }
+
+    /**
+     * Check if volume is associated with any SG, irrespective of MVs.
+     *
+     * @param volNativeId the vol native id
+     * @param storage the storage
+     * @return true, if successful
+     */
+    public boolean checkVolumeAssociatedWithAnySG(String volNativeId, StorageSystem storage) {
+        CloseableIterator<CIMInstance> sgInstanceIr = null;
+        try {
+            _log.debug("Trying to find if volume {} is associated with any SG", volNativeId);
+            CIMObjectPath volumePath = _cimPath.getVolumePath(storage, volNativeId);
+            sgInstanceIr = getAssociatorInstances(storage, volumePath, null,
+                    SmisCommandHelper.MASKING_GROUP_TYPE.SE_DeviceMaskingGroup.name(), null, null, SmisConstants.PS_ELEMENT_NAME);
+            while (sgInstanceIr.hasNext()) {
+                CIMInstance sgInstance = sgInstanceIr.next();
+                String gpNameFound = (String) sgInstance.getPropertyValue(SmisConstants.CP_ELEMENT_NAME);
+                _log.info("Volume {} available in other SG {}", volNativeId, gpNameFound);
+                return true;
+            }
+        } catch (Exception e) {
+            _log.warn("Find volume associated with any SG failed", e);
+        } finally {
+            if (null != sgInstanceIr) {
+                sgInstanceIr.close();
+            }
+        }
+        _log.debug("No SG found associated for volume {}", volNativeId);
+        return false;
     }
 
     /**

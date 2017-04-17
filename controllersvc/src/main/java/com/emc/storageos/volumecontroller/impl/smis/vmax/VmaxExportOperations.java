@@ -605,17 +605,21 @@ public class VmaxExportOperations implements ExportMaskOperations {
      * @throws Exception
      */
     private void addVolumesToParkingStorageGroup(StorageSystem storage, String policyName, Set<String> volumeDeviceIds) throws Exception {
-        String[] tokens = policyName.split(Constants.SMIS_PLUS_REGEX);
-        CIMObjectPath groupPath = _helper.getVolumeGroupBasedOnSLO(storage, storage, tokens[0], tokens[1], tokens[2]);
-        if (groupPath == null) {
-            groupPath = _helper.createVolumeGroupBasedOnSLO(storage, storage, tokens[0], tokens[1], tokens[2]);
+        // Don't add volumes to parking SLO which are already part of a storage group
+        volumeDeviceIds = _helper.filterVolumesPartOfAnyStorageGroup(storage, volumeDeviceIds);
+        if (!volumeDeviceIds.isEmpty()) {
+            String[] tokens = policyName.split(Constants.SMIS_PLUS_REGEX);
+            CIMObjectPath groupPath = _helper.getVolumeGroupBasedOnSLO(storage, storage, tokens[0], tokens[1], tokens[2]);
+            if (groupPath == null) {
+                groupPath = _helper.createVolumeGroupBasedOnSLO(storage, storage, tokens[0], tokens[1], tokens[2]);
+            }
+            CIMArgument[] inArgs = _helper.getAddVolumesToMaskingGroupInputArguments(storage, groupPath, volumeDeviceIds);
+            CIMArgument[] outArgs = new CIMArgument[5];
+            SmisJob addVolumesToSGJob = new SmisSynchSubTaskJob(null, storage.getId(),
+                    SmisConstants.ADD_MEMBERS);
+            _helper.invokeMethodSynchronously(storage, _cimPath.getControllerConfigSvcPath(storage),
+                    "AddMembers", inArgs, outArgs, addVolumesToSGJob);
         }
-        CIMArgument[] inArgs = _helper.getAddVolumesToMaskingGroupInputArguments(storage, groupPath, volumeDeviceIds);
-        CIMArgument[] outArgs = new CIMArgument[5];
-        SmisJob addVolumesToSGJob = new SmisSynchSubTaskJob(null, storage.getId(),
-                SmisConstants.ADD_MEMBERS);
-        _helper.invokeMethodSynchronously(storage, _cimPath.getControllerConfigSvcPath(storage),
-                "AddMembers", inArgs, outArgs, addVolumesToSGJob);
     }
 
     /**

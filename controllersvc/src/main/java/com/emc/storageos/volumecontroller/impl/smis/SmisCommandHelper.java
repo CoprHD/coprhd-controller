@@ -1280,7 +1280,9 @@ public class SmisCommandHelper implements SmisConstants {
             }
         }
         if (storageDevice.checkIfVmax3()) {
-            list.add(_cimArgument.referenceArray(CP_EMC_COLLECTIONS, toMultiElementArray(count, volumeGroupPath)));
+            if (volumeGroupPath != null) {
+                list.add(_cimArgument.referenceArray(CP_EMC_COLLECTIONS, toMultiElementArray(count, volumeGroupPath)));
+            }
 
             // set volumeType for fully-thin or fully-allocated
             int volumeType = fullyAllocated ? STORAGE_VOLUME_FULLY_ALLOCATED : STORAGE_VOLUME_TYPE_THIN;
@@ -5416,6 +5418,8 @@ public class SmisCommandHelper implements SmisConstants {
                 slo = policy.getVmaxSLO();
                 workload = policy.getVmaxWorkload().toUpperCase();
                 srp = storagePool.getPoolName();
+            } else {
+                return null;
             }
 
             // Try to find existing storage group.

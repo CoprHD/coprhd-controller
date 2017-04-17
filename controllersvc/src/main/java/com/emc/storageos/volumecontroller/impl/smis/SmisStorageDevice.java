@@ -245,7 +245,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
                     poolSetting = _smisStorageDevicePreProcessor.createStoragePoolSetting(
                             storageSystem, storagePool, thinVolumePreAllocationSize);
                 }
-                if (storageSystem.checkIfVmax3() && volumeGroupObjectPath != null) {
+                if (storageSystem.checkIfVmax3()) {
                     inArgs = _helper.getCreateVolumesInputArguments(storageSystem, storagePool, volumeLabels,
                             capacity, volumes.size(), isThinlyProvisioned, true, volumeGroupObjectPath,
                             (null != thinVolumePreAllocationSize));

@@ -35,7 +35,7 @@ class OrderServiceHelper {
     static createOrder(URI tenantId, URI service, List<Parameter> params) {
         OrderCreateParam orderCreate = new OrderCreateParam();
         orderCreate.setCatalogService(service);
-        orderCreate.setTenantId(tenantId.toString());
+        orderCreate.setTenantId(tenantId);
         orderCreate.setParameters(params)
 
         return catalog.orders().submit(orderCreate);
@@ -135,11 +135,18 @@ class OrderServiceHelper {
         param4.setLabel("completion");
         param4.setValue("success");
 
+        Parameter param5 = new Parameter();
+        param5.setLabel("password");
+        param5.setFriendlyValue("password");
+        param5.setValue("password");
+        param5.setEncrypted(true);
+
         List<Parameter> params = new ArrayList<Parameter>();
         params.add(param1);
         params.add(param2);
         params.add(param3);
         params.add(param4);
+        params.add(param5);
 
         println "Creating an order"
         println ""
@@ -151,7 +158,7 @@ class OrderServiceHelper {
         assertNotNull(createdOrder.getId());
         assertEquals(sampleService.getId(), createdOrder.getCatalogService().getId());
         assertNotNull(createdOrder.getParameters());
-        assertEquals(4, createdOrder.getParameters().size());
+        assertEquals(5, createdOrder.getParameters().size());
         assertNotNull(createdOrder.getCreationTime());
         assertNotNull(createdOrder.getMessage());
         assertNotNull(createdOrder.getOrderNumber());
@@ -170,7 +177,7 @@ class OrderServiceHelper {
         assertNotNull(anotherOrder.getId());
         assertEquals(sampleService.getId(), anotherOrder.getCatalogService().getId());
         assertNotNull(anotherOrder.getParameters());
-        assertEquals(4, anotherOrder.getParameters().size());
+        assertEquals(5, anotherOrder.getParameters().size());
         assertNotNull(anotherOrder.getCreationTime());
         assertNotNull(anotherOrder.getMessage());
         assertNotNull(anotherOrder.getOrderNumber());
@@ -225,7 +232,7 @@ class OrderServiceHelper {
 
         println "sleeping till order finishes zzzzzzzz ";
         println ""
-        pause(15000);
+        pause(30000);
 
         println "Getting order " + createdOrder.getId();
         OrderRestRep retrievedOrder = catalog.orders().get(createdOrder.getId());
@@ -326,20 +333,6 @@ class OrderServiceHelper {
         assertEquals(Boolean.TRUE, , orderResults.size() >= 2);
         assertEquals(Boolean.TRUE, retrievedOrders.contains(orderIds.get(0)));
         assertEquals(Boolean.TRUE, retrievedOrders.contains(orderIds.get(1)));
-
-        println "Deleting orders";
-        println ""
-
-        catalog.orders().deactivate(createdOrder.getId());
-        catalog.orders().deactivate(anotherOrder.getId());
-
-        println "Getting deactivated order " + createdOrder.getId();
-        println ""
-        retrievedOrder = catalog.orders().get(createdOrder.getId());
-
-        if (retrievedOrder != null) {
-            assertEquals(true, retrievedOrder.getInactive());
-        }
     }
 
     private static void pause(long sleepTime) throws InterruptedException {

@@ -44,7 +44,7 @@ class ApprovalServiceHelper {
     static createOrder(URI tenantId, URI service, List<Parameter> params) {
         OrderCreateParam orderCreate = new OrderCreateParam();
         orderCreate.setCatalogService(service);
-        orderCreate.setTenantId(tenantId.toString());
+        orderCreate.setTenantId(tenantId);
         orderCreate.setParameters(params)
 
         return catalog.orders().submit(orderCreate);

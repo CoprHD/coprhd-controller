@@ -39,6 +39,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 
+import com.emc.storageos.api.mapper.functions.MapStoragePortGroup;
 import com.emc.storageos.api.mapper.functions.MapVirtualArray;
 import com.emc.storageos.api.service.authorization.PermissionsHelper;
 import com.emc.storageos.api.service.impl.resource.utils.GeoVisibilityHelper;
@@ -72,6 +73,8 @@ import com.emc.storageos.model.compute.ComputeSystemBulkRep;
 import com.emc.storageos.model.compute.ComputeSystemRestRep;
 import com.emc.storageos.model.pools.StoragePoolList;
 import com.emc.storageos.model.portgroup.StoragePortGroupList;
+import com.emc.storageos.model.portgroup.StoragePortGroupRestRep;
+import com.emc.storageos.model.portgroup.StoragePortGroupRestRepList;
 import com.emc.storageos.model.ports.StoragePortList;
 import com.emc.storageos.model.search.SearchResultResourceRep;
 import com.emc.storageos.model.search.SearchResults;
@@ -1641,7 +1644,7 @@ public class VirtualArrayService extends TaggedResource {
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/storage-port-groups")
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR }, acls = { ACL.USE })
-    public StoragePortGroupList getVirtualArrayStoragePortGroups(@PathParam("id") URI id,
+    public StoragePortGroupRestRepList getVirtualArrayStoragePortGroups(@PathParam("id") URI id,
             @QueryParam("storage_system") URI storageURI,
             @QueryParam("export_group") URI exportGroupURI) {
 
@@ -1669,7 +1672,7 @@ public class VirtualArrayService extends TaggedResource {
         
         Set<URI> portGroupURIs = new HashSet<URI>();
         
-        StoragePortGroupList portGroups = new StoragePortGroupList();
+        StoragePortGroupRestRepList portGroups = new StoragePortGroupRestRepList();
         Set<URI> excludeSystem = new HashSet<URI>();
         if (exportGroupURI != null) {
             ExportGroup exportGroup = _dbClient.queryObject(ExportGroup.class, exportGroupURI);
@@ -1698,6 +1701,7 @@ public class VirtualArrayService extends TaggedResource {
                 }
             }
         }
+
         for (URI portURI : portURIs) {
             // Get port groups for each port
             StoragePort port = _dbClient.queryObject(StoragePort.class, portURI);
@@ -1717,12 +1721,14 @@ public class VirtualArrayService extends TaggedResource {
                 }                
             }
         }
+
         // return the result.
         for (URI uri : portGroupURIs) {
             StoragePortGroup portGroup= _dbClient.queryObject(StoragePortGroup.class, uri);
             if (portGroup != null && portGroup.isUsable()) {
                 if (portURIs.containsAll(StringSetUtil.stringSetToUriList(portGroup.getStoragePorts()))) {
-                    portGroups.getPortGroups().add(toNamedRelatedResource(portGroup, portGroup.getNativeGuid()));
+                    StoragePortGroupRestRep pgRep = MapStoragePortGroup.getInstance(_dbClient).toStoragePortGroupRestRep(portGroup);
+                    portGroups.getStoragePortGroups().add(pgRep);
                 }
             }
         }

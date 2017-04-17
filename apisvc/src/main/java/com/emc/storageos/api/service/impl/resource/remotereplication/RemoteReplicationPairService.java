@@ -809,8 +809,8 @@ public class RemoteReplicationPairService extends TaskResourceService {
         // todo: validate that this operation is valid:
         //   if pair is in a group
         //   if new group has the same source system, the same target system as current group of the pair
-        URI currentGroupId = null;
-        if ((currentGroupId = rrPair.getReplicationGroup()) == null) {
+        URI currentGroupId = rrPair.getReplicationGroup();
+        if (currentGroupId == null) {
             throw APIException.badRequests.remoteReplicationPairMoveOperationIsNotAllowed(rrPair.getNativeId(), targetGroup.toString(),
                     "Current remote replication group is null");
         }

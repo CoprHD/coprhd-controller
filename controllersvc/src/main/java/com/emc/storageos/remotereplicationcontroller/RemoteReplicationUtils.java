@@ -8,6 +8,7 @@ import static com.emc.storageos.db.client.util.CustomQueryUtility.queryActiveRes
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
@@ -245,11 +246,10 @@ public class RemoteReplicationUtils {
         if (!rrSet.supportRemoteReplicationPairOperation()) {
             return false;
         }
-        URI rrGroupUri;
-        if ((rrGroupUri = rrPair.getReplicationGroup()) == null) {
+        if (!rrPair.isGroupPair()) {
             return true;
         }
-        RemoteReplicationGroup rrGroup = dbClient.queryObject(RemoteReplicationGroup.class, rrGroupUri);
+        RemoteReplicationGroup rrGroup = dbClient.queryObject(RemoteReplicationGroup.class, rrPair.getReplicationGroup());
         if (rrGroup.getIsGroupConsistencyEnforced() == Boolean.TRUE) {
             // No pair operation is allowed if consistency is to be enforced on group level
             return false;
@@ -283,12 +283,7 @@ public class RemoteReplicationUtils {
             case CONSISTENCY_GROUP:
                 BlockConsistencyGroup cg = dbClient.queryObject(BlockConsistencyGroup.class, rrElement.getElementUri());
                 List<RemoteReplicationPair> rrPairs = getRemoteReplicationPairsForCG(cg, dbClient);
-                for (RemoteReplicationPair pair : rrPairs) {
-                    if (!supportModeChangeOnRrPair(pair, dbClient, newMode)) {
-                        isChangeValid = false;
-                        break;
-                    }
-                }
+                isChangeValid = supportModeChangeOnAllRrPairs(rrPairs, dbClient, newMode);
                 break;
             case REPLICATION_GROUP:
                 RemoteReplicationGroup rrGroup = dbClient.queryObject(RemoteReplicationGroup.class, rrElement.getElementUri());
@@ -317,6 +312,17 @@ public class RemoteReplicationUtils {
                 && !rrPair.isGroupPair() && rrSet.supportMode(newMode);
     }
 
+    private static boolean supportModeChangeOnAllRrPairs(Collection<RemoteReplicationPair> rrPairs, DbClient dbClient, String newMode) {
+        for (RemoteReplicationPair rrPair : rrPairs) {
+            RemoteReplicationSet rrSet = dbClient.queryObject(RemoteReplicationSet.class, rrPair.getReplicationSet());
+            if (rrSet.getReachable() != Boolean.TRUE || !rrSet.supportRemoteReplicationPairOperation()
+                    || rrPair.isGroupPair() || !rrSet.supportMode(newMode)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
     public static Iterator<RemoteReplicationSet> findAllRemoteRepliationSetsIteratively(DbClient dbClient) {
         List<URI> ids = dbClient.queryByType(RemoteReplicationSet.class, true);
         _log.info("Found sets: {}", ids);
@@ -342,7 +348,7 @@ public class RemoteReplicationUtils {
     public static List<RemoteReplicationPair> findAllRemoteRepliationPairsByRrGroup(URI rrGroupUri, DbClient dbClient) {
         List<RemoteReplicationPair> result = new ArrayList<RemoteReplicationPair>();
         QueryResultList<URI> uriList = new URIQueryResultList();
-        dbClient.queryByConstraint(ContainmentConstraint.Factory.getRemoteReplicationPairSetConstraint(rrGroupUri), uriList);
+        dbClient.queryByConstraint(ContainmentConstraint.Factory.getRemoteReplicationPairGroupConstraint(rrGroupUri), uriList);
         for (URI uri : uriList) {
             result.add(dbClient.queryObject(RemoteReplicationPair.class, uri));
         }

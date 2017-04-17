@@ -58,6 +58,10 @@ class SecuritySetup {
                     new RoleAssignmentEntry(subjectId: System.getenv("AD_USER_USERNAME"), roles: [
                         'TENANT_ADMIN',
                         'TENANT_APPROVER'
+                    ]),
+                    new RoleAssignmentEntry(subjectId: System.getenv("AD_USER2_USERNAME"), roles: [
+                        'TENANT_ADMIN',
+                        'TENANT_APPROVER'
                     ])]
                 ))
 

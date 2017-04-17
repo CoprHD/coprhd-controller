@@ -217,19 +217,6 @@ class OrderServiceHelper {
         assertEquals(Boolean.TRUE, retrievedOrders.contains(orderIds.get(0)));
         assertEquals(Boolean.TRUE, retrievedOrders.contains(orderIds.get(1)));
 
-        println "Listing orders by user"
-        println ""
-
-        orders =
-                catalog.orders().getUserOrders();
-
-        retrievedOrders = ResourceUtils.ids(orders);
-
-        assertNotNull(orders);
-        assertEquals(Boolean.TRUE, , orders.size() >= 2);
-        assertEquals(Boolean.TRUE, retrievedOrders.contains(orderIds.get(0)));
-        assertEquals(Boolean.TRUE, retrievedOrders.contains(orderIds.get(1)));
-
         println "sleeping till order finishes zzzzzzzz ";
         println ""
         pause(30000);
@@ -341,24 +328,6 @@ class OrderServiceHelper {
 
     static void orderServiceTearDown() {
         println "  ## Order Service Test Clean up ## "
-
-        println "Getting created orders"
-        println ""
-        if (createdOrders != null) {
-
-            createdOrders.each {
-                println "Getting test order: " + it;
-                println ""
-                OrderRestRep orderToDelete =
-                        catalog.orders().get(it);
-                if (orderToDelete != null
-                && !orderToDelete.getInactive()) {
-                    println "Deleting test order: " + it;
-                    println ""
-                    catalog.orders().deactivate(it);
-                }
-            }
-        }
 
         println "Getting created services"
         println ""

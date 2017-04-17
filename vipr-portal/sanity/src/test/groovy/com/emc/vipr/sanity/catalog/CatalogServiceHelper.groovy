@@ -396,11 +396,6 @@ class CatalogServiceHelper {
             assertEquals(true, updatedCategory.getInactive());
         }
 
-        println "Resetting catalog ";
-        println ""
-
-        catalog.categories().resetCatalog(tenantId);
-
         println "Retrieving categories from root";
         println ""
 

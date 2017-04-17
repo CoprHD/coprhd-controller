@@ -8,6 +8,8 @@ import static com.emc.vipr.sanity.Sanity.*
 import static org.junit.Assert.*
 
 import com.emc.storageos.model.BulkIdParam
+import com.emc.vipr.client.AuthClient
+import com.emc.vipr.client.ViPRCatalogClient2
 import com.emc.vipr.client.core.util.ResourceUtils
 import com.emc.vipr.model.catalog.ApprovalRestRep
 import com.emc.vipr.model.catalog.ApprovalUpdateParam
@@ -34,11 +36,14 @@ class ApprovalServiceHelper {
 
     static updateApproval(URI approval) {
 
+        String rootAuthToken = new AuthClient(clientConfig).login(System.getenv("AD_USER2_USERNAME"), System.getenv("AD_USER_PASSWORD"))
+        ViPRCatalogClient2 rootCatalog = new ViPRCatalogClient2(clientConfig).withAuthToken(rootAuthToken)
+
         ApprovalUpdateParam approvalUpdate= new ApprovalUpdateParam();
         approvalUpdate.setApprovalStatus("APPROVED");
         approvalUpdate.setMessage("Updated");
 
-        return catalog.approvals().update(approval, approvalUpdate);
+        return rootCatalog.approvals().update(approval, approvalUpdate);
     }
 
     static createOrder(URI tenantId, URI service, List<Parameter> params) {
@@ -269,30 +274,12 @@ class ApprovalServiceHelper {
         assertNotNull("Updated approval id is not null", updatedApproval.id);
         assertEquals("Check expectd approval status on update", "APPROVED", updatedApproval.approvalStatus);
         assertNotNull("Ensure data actioned is not null on update", updatedApproval.dateActioned);
-        assertEquals("ApprovedBy is set to the current user", catalog.getUserInfo().commonName, updatedApproval.approvedBy)
+        assertEquals("ApprovedBy is set to the current user", System.getenv("AD_USER2_USERNAME"), updatedApproval.approvedBy)
         assertEquals("Check updated message on approval", "Updated", updatedApproval.message);
     }
 
     static void approvalServiceTearDown() {
         println "  ## Order Service Test Clean up ## "
-
-        println "Getting created orders"
-        println ""
-        if (createdOrders != null) {
-
-            createdOrders.each {
-                println "Getting test order: " + it;
-                println ""
-                OrderRestRep orderToDelete =
-                        catalog.orders().get(it);
-                if (orderToDelete != null
-                && !orderToDelete.getInactive()) {
-                    println "Deleting test order: " + it;
-                    println ""
-                    catalog.orders().deactivate(it);
-                }
-            }
-        }
 
         println "Getting created services"
         println ""

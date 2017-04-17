@@ -103,12 +103,12 @@ public class CustomServicesClient extends AbstractCatalogBulkResources<CustomSer
     }
 
     public CustomServicesWorkflowList getWorkflows() {
-        UriBuilder builder = client.uriBuilder(PathConstants.CUSTOM_SERVICES_WORKFLOWS);
+        final UriBuilder builder = client.uriBuilder(PathConstants.CUSTOM_SERVICES_WORKFLOWS);
         return client.getURI(CustomServicesWorkflowList.class, builder.build());
     }
 
     public CustomServicesWorkflowList getWorkflows(String primitiveId) {
-        UriBuilder builder = client.uriBuilder(PathConstants.CUSTOM_SERVICES_WORKFLOWS);
+        final UriBuilder builder = client.uriBuilder(PathConstants.CUSTOM_SERVICES_WORKFLOWS);
         return client.getURI(CustomServicesWorkflowList.class, builder.build());
     }
 
@@ -142,7 +142,11 @@ public class CustomServicesClient extends AbstractCatalogBulkResources<CustomSer
     }
 
     public ClientResponse deletePrimitive(final URI id) {
-        ClientResponse response = client.post(ClientResponse.class, PathConstants.CUSTOM_SERVICES_PRIMITIVE_DELETE, id);
+        final ClientResponse response = client.post(ClientResponse.class, PathConstants.CUSTOM_SERVICES_PRIMITIVE_DELETE, id);
         return response;
+    }
+
+    public CustomServicesPrimitiveResourceRestRep getPrimitiveResource(final URI id) {
+        return client.get(CustomServicesPrimitiveResourceRestRep.class, PathConstants.CUSTOM_SERVICES_PRIMITIVE_RESOURCE, id);
     }
 }

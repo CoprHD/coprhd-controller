@@ -524,7 +524,7 @@ public class WorkflowBuilder extends Controller {
             final CustomServicesWorkflowList customServicesWorkflowList = getCatalogClient().customServicesPrimitives().getWorkflows(
                     shellPrimitive.getId());
             if (customServicesWorkflowList != null && customServicesWorkflowList.getWorkflows() != null) {
-                if (customServicesWorkflowList.getWorkflows().size() > 0) {
+                if (!customServicesWorkflowList.getWorkflows().isEmpty()) {
                     flash.error("Primitive %s is being used in Workflow", shellPrimitive.getName());
                     return;
                 }
@@ -787,7 +787,7 @@ public class WorkflowBuilder extends Controller {
             final CustomServicesWorkflowList customServicesWorkflowList = getCatalogClient().customServicesPrimitives().getWorkflows(
                     localAnsible.getId());
             if (customServicesWorkflowList != null && customServicesWorkflowList.getWorkflows() != null) {
-                if (customServicesWorkflowList.getWorkflows().size() > 0) {
+                if (!customServicesWorkflowList.getWorkflows().isEmpty()) {
                     flash.error("Primitive %s is being used in Workflow", localAnsible.getName());
                     return;
                 }

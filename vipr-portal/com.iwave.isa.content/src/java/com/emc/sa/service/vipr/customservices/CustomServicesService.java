@@ -814,9 +814,17 @@ public class CustomServicesService extends ViPRService {
 
         Field field = getField(className.getClass(), str);
         if (field != null) {
+		logger.info("field is not null");
             PropertyDescriptor pd = new PropertyDescriptor(str, className.getClass());
+                           if (pd == null) {
+                               logger.info("pd is null");
+                               return null;
+                           }
             Method getter = pd.getReadMethod();
             if (getter != null) {
+		if (getter.getAnnotation(XmlElement.class) == null) {
+			return null;
+		}
                 if (getter.getAnnotation(XmlElement.class).name().equals("##default")) {
                     logger.info("Found default getter:{}", getter.getName());
                     return getter;
@@ -831,6 +839,7 @@ public class CustomServicesService extends ViPRService {
     }
 
     private static Field getField(Class<?> clazz, String name) {
+	logger.info("in getField");
         Field field = null;
         while (clazz != null && field == null) {
             try {
@@ -840,6 +849,7 @@ public class CustomServicesService extends ViPRService {
             clazz = clazz.getSuperclass();
         }
 
+	logger.info("donr getField");
         return field;
     }
 

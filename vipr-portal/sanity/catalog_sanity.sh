@@ -4,7 +4,7 @@ workspace=$1
 sanity_conf=$2
 test_type=$3
 
-if [[ -z "$workspace" && -z "$sanity_conf" && -z "$test_type" ]]; then
+if [[ -z "$workspace" || -z "$sanity_conf" || -z "$test_type" ]]; then
    echo "Usage: $0 <location of workspace> <location of sanity.conf> <type of test = all | catalog | block | protection | vmware>"
    exit 1
 fi

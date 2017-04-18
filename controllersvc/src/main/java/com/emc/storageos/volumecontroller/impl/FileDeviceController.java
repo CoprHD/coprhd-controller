@@ -3115,7 +3115,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
         }
     }
 
-    private URIQueryResultList quotaDirExistsOnFS(FileShare fs)
+
 
     private List<ShareACL> queryExistingShareAcls(FileDeviceInputOutput args) {
 

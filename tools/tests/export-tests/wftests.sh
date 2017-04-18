@@ -954,6 +954,20 @@ host_setup() {
     fi
 }
 
+windows_setup() {
+    if [ "${SIM}" != "1" ]; then
+        secho "Setting up Windows hardware host"
+        run hosts create winhost1 $TENANT Windows ${WINDOWS_HOST_IP} --port ${WINDOWS_HOST_PORT} --username ${WINDOWS_HOST_USERNAME} --password ${WINDOWS_HOST_PASSWORD} --discoverable true 
+    else
+        secho "Setting up Windows simulator host"
+        run hosts create winhost1 $TENANT Windows winhost1 --port ${WINDOWS_SIMULATOR_PORT} --username ${WINDOWS_SIMULATOR_USERNAME} --password ${WINDOWS_SIMULATOR_PASSWORD} --discoverable true
+        run transportzone add $NH/${FC_ZONE_A} "00:00:00:00:00:00:00:11"
+        run transportzone add $NH/${FC_ZONE_A} "00:00:00:00:00:00:00:12"
+        run transportzone add $NH/${FC_ZONE_A} "00:00:00:00:00:00:00:13"
+        run transportzone add $NH/${FC_ZONE_A} "00:00:00:00:00:00:00:14"
+    fi 
+}
+
 vcenter_setup() {
     secho "Setup virtual center..."
     runcmd vcenter create vcenter1 ${TENANT} ${VCENTER_SIMULATOR_IP} ${VCENTER_SIMULATOR_PORT} ${VCENTER_SIMULATOR_USERNAME} ${VCENTER_SIMULATOR_PASSWORD}
@@ -978,6 +992,7 @@ vcenter_setup() {
 common_setup() {
     host_setup;
     vcenter_setup;
+    windows_setup;
 }
 
 setup_varray() {

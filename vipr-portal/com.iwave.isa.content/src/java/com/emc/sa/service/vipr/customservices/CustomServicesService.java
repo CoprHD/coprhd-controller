@@ -490,7 +490,8 @@ public class CustomServicesService extends ViPRService {
             if (i == bits.length - 1) {
                 final Object value = method.invoke(className, null);
                 logger.info("value:{}", value);
-                return Arrays.asList((String) value);
+
+                return Arrays.asList(value.toString());
             }
         }
 
@@ -526,9 +527,13 @@ public class CustomServicesService extends ViPRService {
                 final ParameterizedType paramType = (ParameterizedType) returnType;
                 final Class<?> stringListClass = (Class<?>) paramType.getActualTypeArguments()[0];
                 if (isPrimitive(stringListClass)) {
-                    final Object val = method.invoke(className, null);
+                    final List<Object> value = (List<Object>)method.invoke(className, null);
                     logger.info("array value:{}", method.invoke(className, null));
-                    return (List<String>)val;
+                    final List<String> listStringOut = new ArrayList<String>();
+                    for (final Object val : value) {
+                        listStringOut.add(val.toString());
+                    }
+                    return listStringOut;
                 } else {
                     final Type o = paramType.getActualTypeArguments()[0];
                     if (o instanceof Class<?>) {
@@ -546,11 +551,16 @@ public class CustomServicesService extends ViPRService {
                 final ParameterizedType paramType = (ParameterizedType) returnType;
                 final Class<?> stringListClass = (Class<?>) paramType.getActualTypeArguments()[0];
                 if (isPrimitive(stringListClass)) {
-                    final Object set = method.invoke(className, null);
-                    logger.info("array value:{}", method.invoke(className, null));
-                    final List<String> list = new ArrayList<String>((Set<String>)set);
 
-                    return list;
+                    logger.info("array value:{}", method.invoke(className, null));
+                    final Set<Object> value = (Set<Object>)method.invoke(className, null);
+
+                    final List<String> listStringOut = new ArrayList<String>();
+                    for (final Object val : value) {
+                        listStringOut.add(val.toString());
+                    }
+                    return listStringOut;
+
                 } else {
                     final Type o = paramType.getActualTypeArguments()[0];
                     if (o instanceof Class<?>) {

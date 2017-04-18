@@ -107,6 +107,10 @@ public final class InvokeTestFailure {
     public static final String ARTIFICIAL_FAILURE_071 = "failure_071_ComputeDeviceControllerImpl.addStepsPreOsInstall_prepareOsInstallNetworkStep";
     public static final String ARTIFICIAL_FAILURE_072 = "failure_072_ComputeDeviceControllerImpl.addStepsPostOsInstall_setSanBootTargetStep";
     public static final String ARTIFICIAL_FAILURE_073 = "failure_073_UcsComputeDevice.createLsServer_createServiceProfileFromTemplate";
+    public static final String ARTIFICIAL_FAILURE_074 = "failure_074_SRDFDeviceController.createSRDFVolumePairStep_before_link_create";
+    public static final String ARTIFICIAL_FAILURE_075 = "failure_075_SRDFDeviceController.createSRDFVolumePairStep_after_link_create";
+    public static final String ARTIFICIAL_FAILURE_076 = "failure_076_SRDFDeviceController.rollbackSRDFLinksStep_before_link_rollback";
+    public static final String ARTIFICIAL_FAILURE_077 = "failure_077_SRDFDeviceController.rollbackSRDFLinksStep_after_link_rollback";
 
     private static final int FAILURE_SUBSTRING_LENGTH = 11;
 

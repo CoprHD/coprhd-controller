@@ -69,6 +69,7 @@ import com.emc.storageos.primitives.CustomServicesPrimitiveType;
 import com.emc.storageos.primitives.java.vipr.CustomServicesViPRPrimitive;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorException;
+import com.google.common.collect.ImmutableSet;
 
 /**
  * Helper class to perform CRUD operations on a workflow
@@ -83,7 +84,9 @@ public final class WorkflowHelper {
     private static final String RESOURCES_FOLDER = "resources";
     private static final String ROOT = "";
     private static final String METADATA_FILE = "worflow.md";
-    private static final String VERSION = "1";
+    private static final String CURRENT_VERSION = "1";
+    private static final ImmutableSet<String> SUPPORTED_VERSIONS = ImmutableSet.<String>builder()
+            .add(CURRENT_VERSION).build();
     
     private WorkflowHelper() {}
     
@@ -203,7 +206,12 @@ public final class WorkflowHelper {
                     switch(parent) {
                         case ROOT:
                             if( path.getFileName().toString().equals(METADATA_FILE)) {
-                                builder.metadata(MAPPER.readValue(bytes, WorkflowMetadata.class));
+                                final WorkflowMetadata workflowMetadata = MAPPER.readValue(bytes, WorkflowMetadata.class);
+                                if( !SUPPORTED_VERSIONS.contains(workflowMetadata.getVersion())) {
+                                    //TODO better exception when version not supported
+                                    throw APIException.methodNotAllowed.notSupported();
+                                }
+                                builder.metadata(workflowMetadata);
                             }
                             break;
                         case WORKFLOWS_FOLDER:

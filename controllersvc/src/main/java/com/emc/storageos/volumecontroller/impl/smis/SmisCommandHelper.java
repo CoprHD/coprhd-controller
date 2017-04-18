@@ -3174,14 +3174,14 @@ public class SmisCommandHelper implements SmisConstants {
             CIMObjectPath objectPath,
             boolean propagated,
             boolean includeClassOrigin,
-            String[] propertyList) throws Exception {
+            String[] propertyList) throws WBEMException {
         CIMInstance cimInstance = null;
         CimConnection connection = _cimConnection.getConnection(storage);
         WBEMClient client = connection.getCimClient();
         try {
             cimInstance = client.getInstance(objectPath, propagated, includeClassOrigin, propertyList);
-        } catch (Exception e) {
-            throw e;
+        } catch (WBEMException we) {
+            throw we;
         }
         return cimInstance;
     }
@@ -3302,7 +3302,7 @@ public class SmisCommandHelper implements SmisConstants {
     }
 
     public boolean checkVolumeGroupAssociatedWithPolicy(StorageSystem storage,
-            CIMObjectPath volumechildGroupPath, String expectedPolicyName) throws Exception {
+            CIMObjectPath volumechildGroupPath, String expectedPolicyName) throws WBEMException {
         String policyNameOnGroup = null;
         if (storage.checkIfVmax3()) {
             policyNameOnGroup = getVMAX3FastSettingAssociatedWithVolumeGroup(storage, volumechildGroupPath);
@@ -3335,12 +3335,15 @@ public class SmisCommandHelper implements SmisConstants {
     }
 
     public String getVMAX3FastSettingAssociatedWithVolumeGroup(StorageSystem storage,
-            CIMObjectPath volumechildGroupPath) throws Exception {
+            CIMObjectPath volumechildGroupPath) throws WBEMException {
         String fastSetting = Constants.NONE;
         _log.debug("Finding out Fast Policy Associated with Storage Group {}", volumechildGroupPath);
         CIMInstance groupInstance = getInstance(storage, volumechildGroupPath, false, false, PS_V3_FAST_SETTING_PROPERTIES);
-        fastSetting = CIMPropertyFactory.getPropertyValue(groupInstance, CP_FAST_SETTING);
-        _log.debug("Found Fast setting {} associated with Storage Group {}", fastSetting, volumechildGroupPath);
+        String fastSettingOnSG = CIMPropertyFactory.getPropertyValue(groupInstance, CP_FAST_SETTING);
+        _log.debug("Found Fast setting {} associated with Storage Group {}", fastSettingOnSG, volumechildGroupPath);
+        if (!fastSettingOnSG.isEmpty()) {
+            fastSetting = fastSettingOnSG;
+        }
         return fastSetting;
     }
 
@@ -6627,8 +6630,8 @@ public class SmisCommandHelper implements SmisConstants {
         String hostIOLimitIOPs = CIMPropertyFactory.getPropertyValue(groupInstance, EMC_MAX_IO);
 
         if (storage.checkIfVmax3()) {
-            storageGroupPolicyLimitsParam = new StorageGroupPolicyLimitsParam(CIMPropertyFactory.getPropertyValue(groupInstance,
-                    CP_FAST_SETTING),
+            storageGroupPolicyLimitsParam = new StorageGroupPolicyLimitsParam(
+                    getVMAX3FastSettingAssociatedWithVolumeGroup(storage, groupInstance.getObjectPath()),
                     hostIOLimitBandwidth,
                     hostIOLimitIOPs, storage);
             storageGroupPolicyLimitsParam
@@ -6759,11 +6762,13 @@ public class SmisCommandHelper implements SmisConstants {
                 CIMInstance sgInstance = sgInstanceIr.next();
                 String gpNameFound = (String) sgInstance.getPropertyValue(SmisConstants.CP_ELEMENT_NAME);
                 _log.info("Volume {} available in other SG {}", volNativeId, gpNameFound);
+                if (storage.checkIfVmax3() && gpNameFound != null && gpNameFound.startsWith(Constants.STORAGE_GROUP_PREFIX)) {
+                    continue;   // skip parking SLO SG
+                }
                 if (checkVolumeGroupAssociatedWithPolicy(storage, sgInstance.getObjectPath(), policy)) {
                     return true;
                 }
             }
-
         } catch (Exception e) {
             _log.warn("Find volume associated with any phantom SG with right policy failed", e);
         } finally {

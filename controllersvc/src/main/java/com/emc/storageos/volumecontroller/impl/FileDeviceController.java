@@ -957,6 +957,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             args.setFileOperation(true);
             args.setNewFSCapacity(newFSsize);
             args.setOpId(opId);
+            //
             List<URI> qdirUriList = new ArrayList<>();
             if(storageObj.deviceIsType(Type.isilon)) {
                 quotaDirectoriesExistsOnFS(args, qdirUriList);
@@ -3094,7 +3095,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
     }
 
     private void quotaDirectoriesExistsOnFS(FileDeviceInputOutput args, List<URI> quotaDirList) {
-        _log.info(" Setting Snapshots to InActive with Force Delete ");
+        _log.info("quotaDirectoriesExistsOnFS()- get the quota that need to downsize");
         Long capacity = args.getNewFSCapacity();
         URIQueryResultList qdIDList = new URIQueryResultList();
 
@@ -3105,13 +3106,10 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                 qdIDList.toString());
         List<QuotaDirectory> qdList = _dbClient.queryObject(
                 QuotaDirectory.class, qdIDList);
-
+        //set the quota size
         if (qdList != null) {
             for (QuotaDirectory qd : qdList) {
-                //get the quota directires that need to be updated.
-                if(qd.getSize().compareTo(capacity) > 0) {
-                    quotaDirList.add(qd.getId());
-                }
+                qd.setSize(capacity);
             }
         }
     }

@@ -1229,10 +1229,12 @@ public class FileService extends TaskResourceService {
         if (!device.deviceIsType(DiscoveredDataObject.Type.isilon) && expand < MIN_EXPAND_SIZE) {
             throw APIException.badRequests.invalidParameterBelowMinimum("new_size", newFSsize, fs.getCapacity() + MIN_EXPAND_SIZE, "bytes");
         } else {
-            long quotaExpand = newFSsize - fs.getUsedCapacity();
-            //To shrink the new capacity of size should be greater than used capacity of fileshare.
-            if(quotaExpand < MIN_EXPAND_SIZE ){
-                throw APIException.badRequests.invalidParameterBelowMinimum("new_size", newFSsize, fs.getUsedCapacity() + MIN_EXPAND_SIZE, "bytes");
+            if (device.deviceIsType(DiscoveredDataObject.Type.isilon)) {
+                long quotaExpand = newFSsize - fs.getUsedCapacity();
+                //To shrink the new capacity of size should be greater than used capacity of fileshare.
+                if (quotaExpand < MIN_EXPAND_SIZE) {
+                    throw APIException.badRequests.invalidParameterBelowMinimum("new_size", newFSsize, fs.getUsedCapacity() + MIN_EXPAND_SIZE, "bytes");
+                }
             }
         }
 

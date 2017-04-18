@@ -256,18 +256,24 @@ public class CustomServicesService extends ViPRService {
         }
     }
 
-    private boolean isSuccess(Step step, CustomServicesTaskResult result) {
+    private boolean isSuccess(final Step step, final CustomServicesTaskResult result) {
         if (result == null)
             return false;
-        // TODO commented this till I fix evaluation from the primitive
-        return true;
-        /*
-         * if (step.getSuccessCriteria() == null) {
-         * return evaluateDefaultValue(step, result.getReturnCode());
-         * } else {
-         * return findStatus(step.getSuccessCriteria(), result);
-         * }
-         */
+
+        if (step.getType().equals(CustomServicesConstants.VIPR_PRIMITIVE_TYPE) ||  step.getType().equals(
+                CustomServicesConstants.REST_API_PRIMITIVE_TYPE)) {
+            if (result.getReturnCode() >= 200 && result.getReturnCode() < 300) {
+                return true;
+            } else {
+                return false;
+            }
+        }
+
+        if (result.getReturnCode() == 0) {
+            return true;
+        } else {
+            return false;
+        }
     }
 
     private String getNext(final boolean status, final CustomServicesTaskResult result, final Step step) {
@@ -393,25 +399,24 @@ public class CustomServicesService extends ViPRService {
         final Map<String, List<String>> out = new HashMap<String, List<String>>();
 
         if (step.getType().equals(CustomServicesConstants.VIPR_PRIMITIVE_TYPE) ) {
-            logger.info("call updateViproutput");
-            updateViproutput(step, res.getOut());
-        }
-        for (final CustomServicesWorkflowDocument.Output o : output) {
-            if (isAnsible(step)) {
-                out.put(o.getName(), evaluateAnsibleOut(result, o.getName()));
-            } else if (step.getType().equals(StepType.REST.toString())) {
-                final CustomServicesRestTaskResult restResult = (CustomServicesRestTaskResult) res;
-                final Set<Map.Entry<String, List<String>>> headers = restResult.getHeaders();
-                for (final Map.Entry<String, List<String>> entry : headers) {
-                    if (entry.getKey().equals(o.getName())) {
-                        out.put(o.getName(), entry.getValue());
+            try {
+                updateViproutput(step, res.getOut());
+            } catch (Exception e) {
+                logger.warn("Could not parse ViPR REST Output properly:{}", e);
+            }
+        } else {
+            for (final CustomServicesWorkflowDocument.Output o : output) {
+                if (isAnsible(step)) {
+                    out.put(o.getName(), evaluateAnsibleOut(result, o.getName()));
+                } else if (step.getType().equals(StepType.REST.toString())) {
+                    final CustomServicesRestTaskResult restResult = (CustomServicesRestTaskResult) res;
+                    final Set<Map.Entry<String, List<String>>> headers = restResult.getHeaders();
+                    for (final Map.Entry<String, List<String>> entry : headers) {
+                        if (entry.getKey().equals(o.getName())) {
+                            out.put(o.getName(), entry.getValue());
+                        }
                     }
                 }
-
-            } else {
-                // TODO: Remove this after parsing output is fully implemented
-                // out.put(o.getName(), evaluateValue(result, o.getName()));
-                return;
             }
         }
         //set the default result.
@@ -421,168 +426,38 @@ public class CustomServicesService extends ViPRService {
         outputPerStep.put(step.getId(), out);
     }
 
-    private void updateViproutput(final Step step, String res) throws Exception {
-        logger.info("updateViproutput is called");
+    private void updateViproutput(final Step step, final String res) throws Exception {
         //TODO get the classname from primitive
         //final String classname = "com.emc.storageos.model.TaskList";
         final String classname = "com.emc.storageos.model.block.VolumeRestRep";
-       /* //TODO Hard code for create volume response
-        res = "{\n"
-                + "  \"task\": [\n"
-                + "    {\n"
-                + "      \"resource\": {\n"
-                + "        \"name\": \"volume5678\",\n"
-                + "        \"id\": \"urn:storageos:Volume:08a68c03-ec03-4c43-be6b-d69d8d10f3cb:\",\n"
-                + "        \"link\": {\n"
-                + "          \"rel\": \"self\",\n"
-                + "          \"href\": \"/block/volumes/urn:storageos:Volume:08a68c03-ec03-4c43-be6b-d69d8d10f3cb:\"\n"
-                + "        }\n"
-                + "      },\n"
-                + "      \"state\": \"pending\",\n"
-                + "      \"start_time\": 1380042421406,\n"
-                + "      \"op_id\": \"3e97cf33-cf9f-4b06-914a-c9286d34bcb7\",\n"
-                + "      \"link\": {\n"
-                + "        \"rel\": \"self\",\n"
-                + "        \"href\": \"/block/volumes/urn:storageos:Volume:08a68c03-ec03-4c43-be6b-d69d8d10f3cb:/tasks/3e97cf33-cf9f-4b06-914a-c9286d34bcb7\"\n"
-                + "      }\n"
-                + "    }\n"
-                + "  ]\n"
-                + "}";
-*/
-        logger.info("res string is:{}", res);
+
+        logger.debug("Result is:{}", res);
         final ObjectMapper MAPPER = new ObjectMapper();
         MAPPER.setAnnotationIntrospector(new JaxbAnnotationIntrospector());
         final Class<?> clazz = Class.forName(classname);
-        logger.info("didn't receive classNF exception");
 
         final Object taskList = MAPPER.readValue(res, clazz.newInstance().getClass());
 
-        //if (taskList instanceof TaskList) {
-          //  logger.info("it is an instance for TaskList");
-            updateViprTaskoutput(taskList, step);
-            logger.info("done with updateViprTaskoutput");
-        //} else {
-          //  DataObjectRestRep obj = (DataObjectRestRep)taskList;
-           // Method m = findMethod("name", taskList.getClass().getMethods());
-            //m.invoke(this, null);
-        //}
+        outputPerStep.put(step.getId(), updateViprTaskoutput(taskList, step));
     }
-    private void updateViprTaskoutput(final Object taskList, final Step step) throws Exception {
-        logger.info("in updateViprTaskoutput");
+
+    private Map<String, List<String>> updateViprTaskoutput(final Object taskList, final Step step) throws Exception {
         final List<CustomServicesWorkflowDocument.Output> stepOut = step.getOutput();
-        //final List<CustomServicesWorkflowDocument.Output> stepOut = new ArrayList<CustomServicesWorkflowDocument.Output>();
-        //TODO remove this after primitive code is ready
 
-        /*CustomServicesWorkflowDocument.Output stepout1 = new CustomServicesWorkflowDocument.Output();
-        stepout1.setName("tasks.task.op_id");
-        CustomServicesWorkflowDocument.Output stepout2 = new CustomServicesWorkflowDocument.Output();
-        stepout2.setName("tasks.task.resource.name");
-        CustomServicesWorkflowDocument.Output stepout3 = new CustomServicesWorkflowDocument.Output();
-        stepout3.setName("tasks.task.resource.id");
-        //CustomServicesWorkflowDocument.Output stepout4 = new CustomServicesWorkflowDocument.Output();
-        //stepout4.setName("tasks.@task.associated_resources.@associated_resource.name");
-
-        stepOut.add(stepout1);
-        stepOut.add(stepout2);
-        stepOut.add(stepout3);
-        //stepOut.add(stepout4);*/
-
+        final Map<String, List<String>> output = new HashMap<String, List<String>>();
         for (final CustomServicesWorkflowDocument.Output out : stepOut) {
             final String outName = out.getName();
-            logger.info("output name is :{}", outName);
+            logger.info("output to parse:{}", outName);
 
-            String[] bits = outName.split("\\.");
-            String lastOne = bits[bits.length-1];
+            final String[] bits = outName.split("\\.");
 
-            ifprimitivetheninvoke(bits, 0, taskList);
-            /*
-            final List<TaskResourceRep> taskResourceReps = taskList.getTaskList();
-            for (final TaskResourceRep task : taskResourceReps) {
-                if (outName.contains(".resource")) {
-                    logger.info("it is of resource type");
-                    //tasks.@task.resource.resource.id
-                    final Method method = findMethod(lastOne, task.getResource().getClass().getMethods());
-                    if (method == null) {
-                        logger.info("method is null");
-                    } else {
-                        logger.info("invoke the method");
-                        Object out1 = method.invoke(task.getResource(), null);
-                        logger.info("output value in resource:{}", out1);
-                    }
-                    break;
-                }
-
-                if (outName.contains("associated_resources")) {
-                    logger.info("it is of associated_resources type");
-                    for (final NamedRelatedResourceRep assres : task.getAssociatedResources()) {
-                        final Method method = findMethod(lastOne, assres.getClass().getMethods());
-
-                        if (method == null) {
-                            logger.info("method is null");
-                        } else {
-                            logger.info("invoke the method");
-
-                            Object out1 = method.invoke(task.getAssociatedResources(), null);
-                            logger.info("output value in associated_resource:{}", out1);
-                        }
-                        break;
-                    }
-                    break;
-
-                }
-                if (outName.contains("tenant")) {
-                    logger.info("it is of tenant type");
-                    RelatedResourceRep resourcerep = task.getTenant();
-                    final Method method = findMethod(lastOne, resourcerep.getClass().getMethods());
-                    if (method == null) {
-                        logger.info("method is null");
-                    } else {
-                        logger.info("invoke the method");
-
-                        Object out1 = method.invoke(task.getTenant(), null);
-                        logger.info("output value in associated_resource:{}", out1);
-                    }
-                    break;
-                }
-
-                if (outName.contains("serviceerror")) {
-                    logger.info("it is of serviceerror type");
-                    ServiceErrorRestRep resourcerep = task.getServiceError();
-                    final Method method = findMethod(lastOne, resourcerep.getClass().getMethods());
-                    if (method == null) {
-                        logger.info("method is null");
-                    } else {
-                        logger.info("invoke the method");
-
-                        Object out1 = method.invoke(task.getServiceError(), null);
-                        logger.info("output value in associated_resource:{}", out1);
-                    }
-                    break;
-                }
-
-                final Method method = findMethod(lastOne, task.getClass().getMethods());
-                Object out1 = method.invoke(task, null);
-                logger.info("output value else:{}", out1);
-                */
-            }
-            //TODO parse the name tasks.@task.op_id, tasks.@task.resource.resource.id, tasks.@task.associated_resources.@associated_resource.associated_resources.@associated_resource.name
+            output.put(out.getName(),ifprimitivetheninvoke(bits, 0, taskList) );
         }
 
+        return output;
+    }
 
-        /*Field fieldList[] = taskList.getClass().getDeclaredFields();
-        for (int i=0; i<fieldList.length; i++) {
-            fieldList[0].getType().isPrimitive();
-            Method[] methods = taskList.getClass().getDeclaredMethods();
-            if (methods[0].isAnnotationPresent(XmlElement.class)) {
-                XmlElement xyz = methods[0].getAnnotation(XmlElement.class);
-                if (xyz.name().equals("op_id")) {
-                    methods[0].invoke(this, null);
-                }
-            }
-        }*/
-    //}
-
-    private boolean isPrimitive(Class<?> primitiveclass){
+    private boolean isPrimitive(final Class<?> primitiveclass){
 
         if (primitiveclass.isPrimitive()
                 || primitiveclass.equals(String.class)
@@ -594,38 +469,36 @@ public class CustomServicesService extends ViPRService {
 
         return false;
     }
-    private void ifprimitivetheninvoke(String[] bits, int i, Object className ) throws Exception {
 
-        logger.info("in ifprimitivetheninvoke");
+    private List<String> ifprimitivetheninvoke(final String[] bits, final int i, final Object className ) throws Exception {
+
         if (className == null) {
-            logger.info("class name is null, cannot parse output");
+            logger.error("class name is null, cannot parse output");
 
-            return;
+            return null;
         }
-        Method method = findMethod(bits[i], className);
+        final Method method = findMethod(bits[i], className);
 
         if (method == null) {
             logger.info("method is null. cannot parse output");
-            return;
+            return null;
         }
-        logger.info("bit:{}", bits[i]);
+        logger.debug("bit:{}", bits[i]);
 
         //1) primitive
         if (isPrimitive(method.getReturnType())) {
-            logger.info("it is of primitive type");
             if (i == bits.length - 1) {
-                logger.info("it is the last bit also:{}", bits[i]);
-                logger.info("value:{}", method.invoke(className, null));
-                return;
+                final Object value = method.invoke(className, null);
+                logger.info("value:{}", value);
+                return Arrays.asList((String) value);
             }
-
         }
 
-        Type returnType = method.getGenericReturnType();
+        final Type returnType = method.getGenericReturnType();
         if (returnType == null) {
             logger.info("Cound not find return type of method:{}", method.getName());
 
-            return;
+            return null;
         }
 
         //2) Class single object
@@ -637,209 +510,99 @@ public class CustomServicesService extends ViPRService {
 
         //3) Collection primitive
         if (Collection.class.isAssignableFrom(method.getReturnType())) {
-            logger.info("calling getandexec");
-            getandexec(method, bits, i, className);
-        }
-        logger.info("done ****");
-/*
-        //it is a collection
-        if (returnType instanceof ParameterizedType) {
-            //type of collection? hash, map, list, set
-
-
-            /*
-
-            boolean isMap = Map.class.isAssignableFrom(f.getType());
-
-             ParameterizedType stringListType = (ParameterizedType) stringListField.getGenericType();
-        Class<?> stringListClass = (Class<?>) stringListType.getActualTypeArguments()[0];
-        System.out.println(stringListClass); // class java.lang.String.
-
-           Class returnClass = method.getReturnType();
-            if (Collection.class.isAssignableFrom(returnClass)) {
-                Type returnType = method.getGenericReturnType();
-                if (returnType instanceof ParameterizedType) {
-                    ParameterizedType paramType = (ParameterizedType) returnType;
-                    Type[] argTypes = paramType.getActualTypeArguments();
-                    if (argTypes.length > 0) {
-                        System.out.println("Generic type is " + argTypes[0]);
-                    }
-                }
-            }
-             */
-  /*      }
-        if (returnType instanceof ParameterizedType) {
-            logger.info("return type is parameterized");
-            Type t = ((ParameterizedType) returnType).getRawType();
-            if (isPrimitive(t.getClass())) {
-                logger.info("it is primitive array type");
-                logger.info("array value:{}", method.invoke(className, null));
-                return;
-            } else {
-                //4) Collection Non primitive List<Object>
-                logger.info("it is not primitive array type");
-                List<?> o = (List<?>) method.invoke(className, null);
-                for (Object o1 : o) {
-                    logger.info("invoke again");
-                    ifprimitivetheninvoke(bits, i + 1, o1);
-                }
-            }
+            return getCollectionValue(method, bits, i, className);
 
         }
 
-*/
-
- /*       //4) Collection Non primitive
-        if (returnType instanceof ParameterizedType) {
-            logger.info("return type of ParameterizedType 2");
-            Type t = ((ParameterizedType) returnType).getRawType();
-            if (!t.getClass().isPrimitive()) {
-                logger.info("it is not primitive array type");
-                List<?> o = (List<?>) method.invoke(className, null);
-                for (Object o1 : o) {
-                    logger.info("invoke again");
-                    ifprimitivetheninvoke(bits, i + 1, o1);
-                }
-            }
-        }
-        */
-
+        return null;
     }
 
-    private void getandexec(Method method, String[] bits, int i, Object className) throws Exception {
-        logger.info("in getandexec");
-        Class returnClass = method.getReturnType();
+    private List<String> getCollectionValue(final Method method, final String[] bits, final int i, final Object className) throws Exception {
+        final Class returnClass = method.getReturnType();
         if (List.class.isAssignableFrom(returnClass)) {
             logger.info("type is list");
-            Type returnType = method.getGenericReturnType();
+            final Type returnType = method.getGenericReturnType();
             if (returnType instanceof ParameterizedType) {
-                ParameterizedType paramType = (ParameterizedType) returnType;
-                Class<?> stringListClass = (Class<?>) paramType.getActualTypeArguments()[0];
+                final ParameterizedType paramType = (ParameterizedType) returnType;
+                final Class<?> stringListClass = (Class<?>) paramType.getActualTypeArguments()[0];
                 if (isPrimitive(stringListClass)) {
-                    logger.info("it is primitive type");
+                    final Object val = method.invoke(className, null);
                     logger.info("array value:{}", method.invoke(className, null));
-                    return;
+                    return (List<String>)val;
                 } else {
-                    logger.info("not primitive type");
-                    Type o = paramType.getActualTypeArguments()[0];
+                    final Type o = paramType.getActualTypeArguments()[0];
                     if (o instanceof Class<?>) {
-                        logger.info("object type list invoke again");
-                        for (Object o1 : (List<?>) method.invoke(className, null))
+                        for (final Object o1 : (List<?>) method.invoke(className, null)) {
                             ifprimitivetheninvoke(bits, i + 1, o1);
-                    } else {
-                        logger.info("not obj type list");
+                        }
                     }
                 }
             }
         }
         else if (Set.class.isAssignableFrom(returnClass)) {
             logger.info("type is set");
-            Type returnType = method.getGenericReturnType();
+            final Type returnType = method.getGenericReturnType();
             if (returnType instanceof ParameterizedType) {
-                ParameterizedType paramType = (ParameterizedType) returnType;
-                Class<?> stringListClass = (Class<?>) paramType.getActualTypeArguments()[0];
+                final ParameterizedType paramType = (ParameterizedType) returnType;
+                final Class<?> stringListClass = (Class<?>) paramType.getActualTypeArguments()[0];
                 if (isPrimitive(stringListClass)) {
-                    logger.info("it is primitive type");
+                    final Object set = method.invoke(className, null);
                     logger.info("array value:{}", method.invoke(className, null));
-                    return;
-                } else {
-                    logger.info("not primitive type");
-                    Type o = paramType.getActualTypeArguments()[0];
-                    if (o instanceof Class<?>) {
-                        logger.info("object type set invoke again");
-                        for (Object o1 : (Set<?>) method.invoke(className, null))
-                            ifprimitivetheninvoke(bits, i + 1, o1);
+                    final List<String> list = new ArrayList<String>((Set<String>)set);
 
-                    } else {
-                        logger.info("not obj type set");
-                    }
-                }
-            }
-        }
-        else if (Map.class.isAssignableFrom(returnClass)) {
-            logger.info("type is map");
-            Type returnType = method.getGenericReturnType();
-            if (returnType instanceof ParameterizedType) {
-                ParameterizedType paramType = (ParameterizedType) returnType;
-                Class<?> stringListClass = (Class<?>) paramType.getActualTypeArguments()[0];
-                if (isPrimitive(stringListClass)) {
-                    logger.info("it is primitive type");
-                    logger.info("array value:{}", method.invoke(className, null));
-                    return;
+                    return list;
                 } else {
-                    logger.info("not primitive type");
-                    Type o = paramType.getActualTypeArguments()[0];
+                    final Type o = paramType.getActualTypeArguments()[0];
                     if (o instanceof Class<?>) {
-                        logger.info("object type invoke again");
-                        for (Object o1 : ((Map<?, ?>)method.invoke(className, null)).entrySet())
+                        for (final Object o1 : (Set<?>) method.invoke(className, null)) {
                             ifprimitivetheninvoke(bits, i + 1, o1);
-                    } else {
-                        logger.info("not obj type map");
+                        }
                     }
                 }
             }
         }
+
+        //We do not support any other collection type
+        return null;
     }
 
-    private Method findMethod(final String str, Object className) throws Exception {
-        logger.info("in findMethod");
+    private Method findMethod(final String str, final Object className) throws Exception {
         final Method[] methods = className.getClass().getMethods();
         for (Method method : methods) {
             logger.info("method name:{}", method.getName());
-            Annotation[] annotations = method.getDeclaredAnnotations();
-            for(Annotation annotation : annotations){
-                if (annotation instanceof XmlElement) {
-
-                    //logger.info("annotation of type xmlelem");
-                    logger.info("xml annot name:{}", ((XmlElement) annotation).name());
-                    if(str.equals(((XmlElement) annotation).name())){
-                        logger.info("FOUND annot:{}", str);
-                    }
-                }
-            }
             XmlElement elem = method.getAnnotation(XmlElement.class);
             if (elem != null) {
-                logger.info("elem name:{}", elem.name());
                 if (elem.name().equals(str) && isGetter(method)) {
                     logger.info("name matched elem:{} str:{}", elem.name(), str);
                     return method;
                 }
-            } else {
-                logger.info("elem is null for method:{}", method.getName());
             }
         }
-        logger.info("didnt match in xml. str:{}", str);
+        logger.info("didn't match in xml. str:{} check for getter", str);
 
-        logger.info("check for field name");
-
-        Field field = getField(className.getClass(), str);
+        final Field field = getField(className.getClass(), str);
         if (field != null) {
-		logger.info("field is not null");
-            PropertyDescriptor pd = new PropertyDescriptor(str, className.getClass());
-                           if (pd == null) {
-                               logger.info("pd is null");
-                               return null;
-                           }
-            Method getter = pd.getReadMethod();
+            final PropertyDescriptor pd = new PropertyDescriptor(str, className.getClass());
+            if (pd == null) {
+                return null;
+            }
+            final Method getter = pd.getReadMethod();
             if (getter != null) {
-		if (getter.getAnnotation(XmlElement.class) == null) {
-			return null;
-		}
+                if (getter.getAnnotation(XmlElement.class) == null) {
+                    return null;
+                }
                 if (getter.getAnnotation(XmlElement.class).name().equals("##default")) {
-                    logger.info("Found default getter:{}", getter.getName());
                     return getter;
-                } else {
-                    logger.info("default is not set");
                 }
             }
         }
 
         logger.info("could not find getter");
+
         return null;
     }
 
-    private static Field getField(Class<?> clazz, String name) {
-	logger.info("in getField");
+    private static Field getField(Class<?> clazz, final String name) {
         Field field = null;
         while (clazz != null && field == null) {
             try {
@@ -849,14 +612,16 @@ public class CustomServicesService extends ViPRService {
             clazz = clazz.getSuperclass();
         }
 
-	logger.info("donr getField");
         return field;
     }
 
     public static boolean isGetter(Method method){
-        if(!method.getName().startsWith("get"))      return false;
-        if(method.getParameterTypes().length != 0)   return false;
-        if(void.class.equals(method.getReturnType())) return false;
+        if(!method.getName().startsWith("get")
+                || method.getParameterTypes().length != 0
+                || void.class.equals(method.getReturnType())) {
+            return false;
+        }
+
         return true;
     }
 
@@ -866,170 +631,6 @@ public class CustomServicesService extends ViPRService {
             return true;
 
         return false;
-    }
-
-    /**
-     * Evaluate
-     *
-     * @param step
-     * @param returnCode
-     * @return
-     */
-    private boolean evaluateDefaultValue(final Step step, final int returnCode) {
-        if (isAnsible(step)) {
-            if (returnCode == 0)
-                return true;
-
-            return false;
-        }
-
-        // TODO get returncode for REST API from DB. Now it is hard coded.
-        int code = 200;
-        if (returnCode == code)
-            return true;
-
-        return false;
-    }
-
-    /**
-     * This evaluates the expression from ViPR GSON structure.
-     * e.g: It evaluates "task.resource.id" from ViPR REST Response
-     *
-     * @param result
-     * @param value
-     * @return
-     */
-    private List<String> evaluateValue(final String result, String value) throws Exception {
-
-        final Gson gson = new Gson();
-        final ViprOperation res = gson.fromJson(result, ViprOperation.class);
-        final ExpressionParser parser = new SpelExpressionParser();
-
-        logger.debug("Find value of:{}", value);
-        List<String> valueList = new ArrayList<String>();
-
-        if (!value.contains(CustomServicesConstants.TASK)) {
-            Expression expr = parser.parseExpression(value);
-            EvaluationContext context = new StandardEvaluationContext(res);
-            String val = (String) expr.getValue(context);
-
-            valueList.add(val);
-
-        } else {
-
-            String[] values = value.split("task.", 2);
-            if (values.length != 2) {
-                throw InternalServerErrorException.internalServerErrors
-                        .customServiceExecutionFailed("Cannot evaluate values with statement:" + value);
-            }
-            value = values[1];
-            Expression expr = parser.parseExpression(value);
-
-            ViprTask[] tasks = res.getTask();
-            for (ViprTask task : tasks) {
-                EvaluationContext context = new StandardEvaluationContext(task);
-                String v = (String) expr.getValue(context);
-                valueList.add(v);
-            }
-
-            logger.info("valueList is:{}", valueList);
-        }
-
-        return valueList;
-    }
-
-    /**
-     * This evaluates the status of a step from the SuccessCriteria mentioned in workflow definition JSON
-     * e.g: Supported Expression Language for SuccessCriteria
-     * Supported condition type code == x [x can be any number]
-     * "returnCode == 404"
-     * "returnCode == 0"
-     * "task_state == 'pending' and description == 'create export1' and returnCode == 400"
-     * "state == 'ready'";
-     * Note: and, or cannot be part of lvalue or rvalue
-     *
-     * @param successCriteria
-     * @param res
-     * @return
-     */
-    private boolean findStatus(String successCriteria, final CustomServicesTaskResult res) {
-        try {
-
-            if (successCriteria == null)
-                return true;
-
-            if (successCriteria != null && res == null)
-                return false;
-
-            String result = res.getOut();
-
-            SuccessCriteria sc = new SuccessCriteria();
-            ExpressionParser parser = new SpelExpressionParser();
-            EvaluationContext con2 = new StandardEvaluationContext(sc);
-            String[] statements = successCriteria.split("\\bor\\b|\\band\\b");
-
-            if (statements.length == 0)
-                return false;
-
-            int p = 0;
-            for (String statement : statements) {
-                if (statement.trim().startsWith(CustomServicesConstants.RETURN_CODE)) {
-                    Expression e2 = parser.parseExpression(statement);
-
-                    sc.setCode(res.getReturnCode());
-                    boolean val = e2.getValue(con2, Boolean.class);
-                    logger.info("Evaluated value for errorCode or returnCode is:{}", val);
-
-                    successCriteria = successCriteria.replace(statement, " " + val + " ");
-
-                    continue;
-                }
-
-                String arr[] = StringUtils.split(statement);
-                String lvalue = arr[0];
-
-                if (!lvalue.contains(CustomServicesConstants.TASK)) {
-
-                    List<String> evaluatedValues = evaluateValue(result, lvalue);
-                    sc.setEvaluateVal(evaluatedValues.get(0), p);
-                    successCriteria = successCriteria.replace(lvalue, " evaluateVal[" + p + "]");
-                    p++;
-
-                    continue;
-                }
-
-                // TODO accepted format is task_state but spel expects task.state. Could not find a regex for that
-                String lvalue1 = lvalue.replace("_", ".");
-
-                List<String> evaluatedValues = evaluateValue(result, lvalue1);
-
-                boolean val2 = true;
-
-                if (evaluatedValues.isEmpty())
-                    return false;
-
-                String exp1 = statement.replace(lvalue, "eval");
-                for (String evaluatedValue : evaluatedValues) {
-                    sc.setEval(evaluatedValue);
-                    Expression e = parser.parseExpression(exp1);
-                    val2 = val2 && e.getValue(con2, Boolean.class);
-                }
-
-                successCriteria = successCriteria.replace(statement, " " + val2 + " ");
-            }
-
-            logger.info("Success Criteria to evaluate:{}", successCriteria);
-            Expression e1 = parser.parseExpression(successCriteria);
-            boolean val1 = e1.getValue(con2, Boolean.class);
-
-            logger.info("Evaluated Value is:{}" + val1);
-
-            return val1;
-        } catch (final Exception e) {
-            logger.error("Cannot evaluate success Criteria:{} Exception:{}", successCriteria, e);
-
-            return false;
-        }
     }
 }
 

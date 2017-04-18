@@ -82,7 +82,7 @@ public class CustomServicesWorkflowDocument {
     public static class Input {
 
         private String name;
-        private String type;
+        private String type; //type of CustomServicesConstants.InputType
         private String friendlyName;
         private String defaultValue;
         private String value;

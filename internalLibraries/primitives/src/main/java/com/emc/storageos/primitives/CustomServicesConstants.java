@@ -113,11 +113,9 @@ public final class CustomServicesConstants {
         FROM_USER_MULTI("InputFromUserMulti"),
         ASSET_OPTION_SINGLE("AssetOptionSingle"),
         ASSET_OPTION_MULTI("AssetOptionMulti"),
-        HARDCODED("Hardcoded"),
         FROM_STEP_INPUT("FromOtherStepInput"),
         FROM_STEP_OUTPUT("FromOtherStepOutput"),
         ASSET_OPTION("AssetOption"), // TODO: Change this to the above values.
-        HARDCODEDVALUE("HardcodedValue"),
         INVALID("Invalid");
 
         private final String inputType;

@@ -45,10 +45,72 @@ test_windows_expand_mount() {
     done
 }
 
+test_expand_host_filesystem() {
+    test_name="test_expand_host_filesystem"
+    echot "Test ${test_name} Begins"
 
+    failure_injections="${HAPPY_PATH_TEST_INJECTION}"
+
+    supported_os="hpux"
+
+    for os in ${supported_os}
+    do
+	volume="FS-${BASENUM}"
+
+	if [ "${os}" = "hpux" ]
+	then
+	    hostname=hpuxhost1
+	    service_category=BlockServicesforHP-UX
+	fi
+	
+	set -x
+	unix_create_volume_and_mount $TENANT ${hostname} "${volume}" "/${volume}" ${NH} ${VPOOL_BASE} ${PROJECT} ${service_category}
+	set +x
+
+	for failure in ${failure_injections}
+	do
+            secho "Running ${test_name} with failure scenario: ${failure}..."
+            TEST_OUTPUT_FILE=test_output_${RANDOM}.log
+            reset_counts
+            column_family="Host Volume ExportGroup ExportMask Cluster"
+            random_number=${RANDOM}
+            mkdir -p results/${random_number}
+
+            # Snap DB
+            snap_db 1 "${column_family[@]}"
+            # Turn on failure at a specific point
+            set_artificial_failure ${failure}
+
+	    # Run expand filesystem
+	    set -x
+            unix_expand_volume $TENANT ${hostname} ${volume} ${PROJECT} "5" ${service_category}
+	    set +x
+
+            # Verify injected failures were hit
+            # verify_failures ${failure}
+
+            # Snap DB
+            snap_db 2 "${column_family[@]}"
+
+            # Validate DB
+            validate_db 1 2 "${column_family[@]}"
+            # Report results
+            report_results ${test_name} ${failure}
+
+            # Add a break in the output
+            echo " "
+	done
+
+	# Turn off failure
+	set_artificial_failure none
+
+	set -x
+	unix_unmount_and_delete_volume $TENANT ${hostname} "${volume}" "/${volume}" ${NH} ${VPOOL_BASE} ${PROJECT} ${service_category}
+	set +x
+    done
+}
 
 #### Service Catalog methods are below ####
-
 
 windows_create_and_mount_volume() {
     # tenant hostname volname varray vpool project
@@ -84,3 +146,50 @@ windows_unmount_and_delete_volume() {
     echo "=== catalog order UnmountandDeleteVolume ${tenant_arg} host=${host_id},volumes=${volume_id}"    
     echo `catalog order UnmountandDeleteVolume ${tenant_arg} host=${host_id},volumes=${volume_id} BlockServicesforWindows`
 }
+
+unix_expand_volume() {
+    # tenant hostname volname project size
+    tenant_arg=$1
+    host_id=`hosts list ${tenant_arg} | grep "${2} " | awk '{print $4}'`
+    volume_id=`volume list ${4} | grep "${3}" | awk '{print $7}'`
+    size=$5
+
+    service_category="${6}"
+
+    echo "=== catalog order ExpandBlockVolume ${tenant_arg} host=${host_id},size=${size},volumes=${volume_id} ${service_category}"
+    echo `catalog order ExpandBlockVolume ${tenant_arg} host=${host_id},size=${size},volumes=${volume_id} ${service_category}`
+}
+
+unix_create_volume_and_mount() {
+    # host, virtualArray, virtualPool, project, name, consistencyGroup, size, mountPoint, hlu
+    tenant_arg=$1
+    hostname_arg=$2
+    volname_arg=$3
+    mountpoint_arg=$4
+
+    virtualarray_id=`neighborhood list | grep "${5} " | awk '{print $3}'`
+    virtualpool_id=`cos list block | grep "${6} " | grep -v description | awk '{print $3}'`
+    project_id=`project list --tenant ${tenant_arg} | grep -v owner | grep "${7} " | awk '{print $4}'`
+
+    service_category="${8}"
+
+    host_id=`hosts list ${tenant_arg} | grep ${hostname_arg} | awk '{print $4}'`
+
+    echo "=== catalog order CreateAndMountBlockVolume ${tenant_arg} project=${project_id},name=${volname_arg},virtualPool=${virtualpool_id},virtualArray=${virtualarray_id},host=${host_id},size=1,mountPoint=${mountpoint_arg} ${service_category}"
+    echo `catalog order CreateAndMountBlockVolume ${tenant_arg} project=${project_id},name=${volname_arg},virtualPool=${virtualpool_id},virtualArray=${virtualarray_id},host=${host_id},size=1,mountPoint=${mountpoint_arg} ${service_category}`
+}
+
+unix_unmount_and_delete_volume() {
+    # host, name
+    tenant_arg=$1
+    hostname_arg=$2
+    volname_arg=$3
+
+    service_category="${8}"
+
+    host_id=`hosts list ${tenant_arg} | grep ${hostname_arg} | awk '{print $4}'`
+
+    echo "=== catalog order UnmountandDeleteVolumeonHPUX ${tenant_arg} name=${volname_arg},host=${host_id} ${service_category}"
+    echo `catalog order UnmountandDeleteVolumeonHPUX ${tenant_arg} name=${volname_arg},host=${host_id} ${service_category}`
+}
+

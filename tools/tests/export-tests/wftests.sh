@@ -969,6 +969,16 @@ windows_setup() {
     fi 
 }
 
+hpux_setup() {
+    if [ "${SIM}" != "1" ]; then
+        secho "Setting up HP-UX hardware host"
+        run hosts create hpuxhost1 $TENANT HPUX ${HPUX_HOST_IP} --port ${HPUX_HOST_PORT} --username ${HPUX_HOST_USERNAME} --password ${HPUX_HOST_PASSWORD} --discoverable true 
+    else
+        secho "HP-UX simulator does not exist!  Failing."
+	exit 1;
+    fi 
+}
+
 vcenter_setup() {
     secho "Setup virtual center..."
     runcmd vcenter create vcenter1 ${TENANT} ${VCENTER_SIMULATOR_IP} ${VCENTER_SIMULATOR_PORT} ${VCENTER_SIMULATOR_USERNAME} ${VCENTER_SIMULATOR_PASSWORD}
@@ -994,6 +1004,7 @@ common_setup() {
     host_setup;
     vcenter_setup;
     windows_setup;
+    hpux_setup;
 }
 
 setup_varray() {

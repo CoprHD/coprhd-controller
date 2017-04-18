@@ -205,7 +205,7 @@ public class RemoteReplicationUtils {
             com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationPair driverRrPair = null;
             driverRrPair = buildRemoteReplicationPairForSrdfPair(sourceUri, targetUri, dbClient);
             RemoteReplicationDataClient remoteReplicationDataClient = new RemoteReplicationDataClientImpl(dbClient);
-            remoteReplicationDataClient.createRemoteReplicationPair(driverRrPair, sourceUri, sourceUri);
+            remoteReplicationDataClient.createRemoteReplicationPair(driverRrPair, sourceUri, targetUri);
         } catch (Exception ex) {
             String msg = String.format("Failed to create remote replication pair for srdf pair: %s -> %s", sourceUri, targetUri);
             _log.error(msg, ex);

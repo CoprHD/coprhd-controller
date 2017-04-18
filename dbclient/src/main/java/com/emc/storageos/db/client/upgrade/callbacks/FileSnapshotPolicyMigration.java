@@ -2,8 +2,10 @@ package com.emc.storageos.db.client.upgrade.callbacks;
 
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Set;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -64,7 +66,7 @@ public class FileSnapshotPolicyMigration extends BaseCustomMigrationCallback {
                         "Policy created from Schedule Policy " + schedulePolicy.getLabel() + " while system upgrade");
                 String polName = schedulePolicy.getLabel() + "_File_Snapshot_Policy";
                 fileSnapshotPolicy.setLabel(polName);
-                fileSnapshotPolicy.setFilePolicyName(polName);
+                fileSnapshotPolicy.setFilePolicyName(schedulePolicy.getLabel());
                 fileSnapshotPolicy.setFilePolicyType(FilePolicyType.file_snapshot.name());
                 fileSnapshotPolicy.setScheduleFrequency(schedulePolicy.getScheduleFrequency());
                 fileSnapshotPolicy.setScheduleRepeat(schedulePolicy.getScheduleRepeat());
@@ -77,16 +79,41 @@ public class FileSnapshotPolicyMigration extends BaseCustomMigrationCallback {
                 fileSnapshotPolicy.setApplyAt(FilePolicyApplyLevel.file_system.name());
 
                 if (schedulePolicy.getAssignedResources() != null && !schedulePolicy.getAssignedResources().isEmpty()) {
-                    StringSet setPoliciesToFS = new StringSet();
-                    setPoliciesToFS.add(fileSnapshotPolicy.getId().toString());
                     List<URI> fileShareURIs = getAssignedResourcesURIs(schedulePolicy.getAssignedResources());
                     for (URI fsURI : fileShareURIs) {
                         FileShare fs = dbClient.queryObject(FileShare.class, fsURI);
                         if (!fs.getInactive()) {
                             StorageSystem system = dbClient.queryObject(StorageSystem.class, fs.getStorageDevice());
                             updatePolicyStorageResouce(system, fileSnapshotPolicy, fs);
-                            fs.setFilePolicies(setPoliciesToFS);
+                            // Remove the existing schedule policy from fs
+                            // add new file policy to fs!!
+                            StringSet fsExistingPolicies = fs.getFilePolicies();
+
+                            if (fsExistingPolicies != null && !fsExistingPolicies.isEmpty()) {
+                                Set<String> snapSchedulesToRemove = new HashSet<String>();
+                                for (String existingSnapPolicyId : fsExistingPolicies) {
+                                    if (URIUtil.isType(URI.create(existingSnapPolicyId), SchedulePolicy.class)) {
+                                        snapSchedulesToRemove.add(existingSnapPolicyId);
+                                    }
+                                }
+                                if (!snapSchedulesToRemove.isEmpty()) {
+                                    /*
+                                     * StringSet.removeAll() does not work if the set has only one entry.
+                                     * Hence the logic below
+                                     */
+                                    if (fsExistingPolicies.size() == 1 && snapSchedulesToRemove.size() == 1) {
+                                        fsExistingPolicies.clear();
+                                    } else {
+                                        fsExistingPolicies.removeAll(snapSchedulesToRemove);
+                                    }
+                                }
+                            } else {
+                                fsExistingPolicies = new StringSet();
+                            }
+                            fsExistingPolicies.add(fileSnapshotPolicy.getId().toString());
+                            fs.setFilePolicies(fsExistingPolicies);
                             dbClient.updateObject(fs);
+
                             URI associatedVPId = fs.getVirtualPool();
                             associatedVP = dbClient.queryObject(VirtualPool.class, associatedVPId);
                             associatedVP.setAllowFilePolicyAtFSLevel(true);

@@ -29,7 +29,7 @@ import controllers.catalog.Orders;
 
 public class OrderDataTable extends DataTable {
     public static final int ORDER_MAX_COUNT = 6000;
-    public static final int ORDER_MAX_DELETE_PER_GC = 200000;
+    public static final int ORDER_MAX_DELETE_PER_GC = 20000;
     protected static final String ORDER_MAX_COUNT_STR = String.valueOf(ORDER_MAX_COUNT);
     protected SimpleDateFormat localDateFormat = new SimpleDateFormat("yyyy-MM-dd");
     protected UserInfo userInfo;

@@ -201,11 +201,70 @@ public class RemoteReplicationUtils {
      */
     public static void createRemoteReplicationPairForSrdfPair(URI sourceUri, URI targetUri, DbClient dbClient) {
 
-        _log.info("Processing srdf pair: {} -> {}", sourceUri, targetUri);
+        try {
+            com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationPair driverRrPair = null;
+            driverRrPair = buildRemoteReplicationPairForSrdfPair(sourceUri, targetUri, dbClient);
+            RemoteReplicationDataClient remoteReplicationDataClient = new RemoteReplicationDataClientImpl(dbClient);
+            remoteReplicationDataClient.createRemoteReplicationPair(driverRrPair, sourceUri, sourceUri);
+        } catch (Exception ex) {
+            String msg = String.format("Failed to create remote replication pair for srdf pair: %s -> %s", sourceUri, targetUri);
+            _log.error(msg, ex);
+            throw new RuntimeException(msg, ex);
+        }
+    }
 
+    /**
+     * Delete remote replication pair for srdf volume pair.
+     *
+     * @param sourceUri srdf source volume
+     * @param targetUri srdf target volume
+     */
+    public static void deleteRemoteReplicationPairForSrdfPair(URI sourceUri, URI targetUri, DbClient dbClient) {
+        String sourceLabel = null;
+        String targetLabel = null;
         try {
             Volume source = dbClient.queryObject(Volume.class, sourceUri);
             Volume target = dbClient.queryObject(Volume.class, targetUri);
+            if (source == null) {
+                _log.warn("Srdf source volume does not exist in database. ID: {}", sourceUri);
+            } else {
+                sourceLabel = source.getLabel();
+            }
+            if (target == null) {
+                _log.warn("Srdf target volume does not exist in database. ID: {}", targetUri);
+            } else {
+                targetLabel = target.getLabel();
+            }
+            _log.info(String.format("Processing srdf pair: %s/%s -> %s/%s", sourceLabel, sourceUri, targetLabel, targetUri));
+
+            RemoteReplicationDataClient remoteReplicationDataClient = new RemoteReplicationDataClientImpl(dbClient);
+            remoteReplicationDataClient.deleteRemoteReplicationPair(sourceUri, sourceUri);
+        } catch (Exception ex) {
+            String msg = String.format("Failed to delete remote replication pair for srdf pair: %s/%s -> %s/%s",
+                    sourceLabel, sourceUri, targetLabel, targetUri);
+            _log.error(msg, ex);
+            throw new RuntimeException(msg, ex);
+        }
+    }
+
+    /**
+     * Builds sb sdk remote replication pair for srdf source and target volumes.
+     *
+     * @param sourceUri
+     * @param targetUri
+     * @param dbClient
+     * @return sb sdk remote replication pair
+     */
+    public static com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationPair
+       buildRemoteReplicationPairForSrdfPair(URI sourceUri, URI targetUri, DbClient dbClient) {
+
+        try {
+            com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationPair
+                    driverRrPair = new com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationPair();
+            Volume source = dbClient.queryObject(Volume.class, sourceUri);
+            Volume target = dbClient.queryObject(Volume.class, targetUri);
+
+            _log.info(String.format("Processing srdf pair: %s/%s -> %s/%s", source.getLabel(), sourceUri, target.getLabel(), targetUri));
             StorageSystem sourceSystem = dbClient.queryObject(StorageSystem.class, source.getStorageController());
             StorageSystem targetSystem = dbClient.queryObject(StorageSystem.class, target.getStorageController());
             RemoteDirectorGroup rdGroup = dbClient.queryObject(RemoteDirectorGroup.class, target.getSrdfGroup());
@@ -232,21 +291,18 @@ public class RemoteReplicationUtils {
             driverTargetVolume.setStorageSystemId(targetSystem.getSerialNumber());
             driverTargetVolume.setNativeId(target.getNativeId());
 
-            com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationPair
-                    rrPair = new com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationPair();
-            rrPair.setNativeId(getRemoteReplicationPairNativeIdForSrdfPair(source, target));
-            rrPair.setReplicationSetNativeId(rrSetNativeId);
-            rrPair.setReplicationGroupNativeId(rrGroupNativeId);
-            rrPair.setSourceVolume(driverSourceVolume);
-            rrPair.setTargetVolume(driverTargetVolume);
-            rrPair.setReplicationMode(replicationMode);
-            rrPair.setReplicationState(source.getLinkStatus());
-            rrPair.setReplicationDirection(SRDFUtils.SyncDirection.SOURCE_TO_TARGET.toString());
+            driverRrPair.setNativeId(getRemoteReplicationPairNativeIdForSrdfPair(source, target));
+            driverRrPair.setReplicationSetNativeId(rrSetNativeId);
+            driverRrPair.setReplicationGroupNativeId(rrGroupNativeId);
+            driverRrPair.setSourceVolume(driverSourceVolume);
+            driverRrPair.setTargetVolume(driverTargetVolume);
+            driverRrPair.setReplicationMode(replicationMode);
+            driverRrPair.setReplicationState(source.getLinkStatus());
+            driverRrPair.setReplicationDirection(SRDFUtils.SyncDirection.SOURCE_TO_TARGET.toString());
 
-            RemoteReplicationDataClient remoteReplicationDataClient = new RemoteReplicationDataClientImpl(dbClient);
-            remoteReplicationDataClient.createRemoteReplicationPair(rrPair, source.getId(), target.getId());
+            return driverRrPair;
         } catch (Exception ex) {
-            String msg = String.format("Failed to create remote replication pair for srdf pair: %s -> %s", sourceUri, targetUri);
+            String msg = String.format("Failed to build remote replication pair for srdf pair: %s -> %s", sourceUri, targetUri);
             _log.error(msg, ex);
             throw new RuntimeException(msg, ex);
         }

@@ -1099,7 +1099,7 @@ nodeRecovery.precheck.fail.allgood=All nodes and services are active. Node recov
 nodeRecovery.precheck.fail.drorgeo=Don't support node recovery on vApp in DR/GEO environment
 nodeRecovery.precheck.fail.unreachable=There is node unreachable, please power it on and refresh this page
 nodeRecovery.precheck.fail.quorum=Can't do node recovery because that the count of node with db service corrupted is more than quorum node count of this site
-nodeRecovery.precheck.fail.other=Node corrupted for other reason that node recovery is not support.Please contact customer support.
+nodeRecovery.precheck.fail.other=Node corruption is detected. Automated Node Recovery can't address detected issues. Please contact customer support for assistance.
 nodeRecovery.precheck.success=Database service on node %s needs to be recovered
 
 # System Health Dashboard
@@ -2476,7 +2476,7 @@ vpool.rp.error.notMultiVolumeConsistent=Multi-volume consistency must be enabled
 rpCopy.title=RecoverPoint Copy
 rpCopy.virtualArray=Virtual Array
 rpCopy.virtualArray.help=Select the target Virtual Array for this RecoverPoint copy.
-rpCopy.virtualArray.error.duplicate=Virtual Arrays can only be used in once in the list of copies
+rpCopy.virtualArray.error.duplicate=Virtual Arrays can only be used once in the list of copies
 rpCopy.virtualPool=Virtual Pool
 rpCopy.virtualPool.help=Optionally select a target Virtual Pool for this RecoverPoint copy (defaults to same Virtual Pool as the source volume)
 rpCopy.journalVArray=Journal Virtual Array
@@ -2494,7 +2494,7 @@ vpool.srdfCopies.help=Configure target Virtual Arrays and optional target Virtua
 srdfCopy.title=SRDF Copy
 srdfCopy.virtualArray=Virtual Array
 srdfCopy.virtualArray.help=Select the target Virtual Array for this SRDF copy.
-srdfCopy.virtualArray.error.duplicate=Virtual Arrays can only be used in once in the list of copies
+srdfCopy.virtualArray.error.duplicate=Virtual Arrays can only be used once in the list of copies
 srdfCopy.virtualPool=Virtual Pool
 srdfCopy.virtualPool.help=Optionally select a target Virtual Pool for this SRDF copy (defaults to same Virtual Pool as the source volume)
 
@@ -2505,10 +2505,10 @@ vpool.remoteReplications.help=Configure target Virtual Arrays and optional targe
 remoteReplication.title=Remote Replications
 remoteReplication.virtualArray=Virtual Array
 remoteReplication.virtualArray.help=Select the target Virtual Array for this Remote Replication.
-remoteReplication.virtualArray.error.duplicate=Virtual Arrays can only be used in once in the list of Remote Replication
+remoteReplication.virtualArray.error.duplicate=Virtual Arrays can only be used once in the list of Remote Replication
 remoteReplication.virtualPool=Virtual Pool
 remoteReplication.virtualPool.help=Optionally select a target Virtual Pool for this Remote Replications(defaults to same Virtual Pool as the source volume)
-remoteReplications.virtualArray.error.duplicate=Virtual Arrays can only be used in once in the list of Remote Replications.
+remoteReplications.virtualArray.error.duplicate=Virtual Arrays can only be used once in the list of Remote Replications.
 
 # Quota
 vpool.enableQuota=Enable Quota

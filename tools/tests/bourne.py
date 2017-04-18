@@ -531,6 +531,7 @@ URI_REMOTEREPLICATIONGROUP_CREATE        = URI_SERVICES_BASE   + '/vdc/block/rem
 URI_REMOTEREPLICATIONGROUP_FAILOVER        = URI_SERVICES_BASE   + '/vdc/block/remotereplicationgroups/{0}/failover'
 URI_REMOTEREPLICATIONGROUP_TASK          = URI_SERVICES_BASE   + '/vdc/block/remotereplicationgroups/{0}/tasks/{1}'
 URI_STORAGE_SYSTEM_TYPE_CREATE           = URI_SERVICES_BASE   + '/vdc/storage-system-types/internal'
+URI_REMOTEREPLICATIONPAIR_LIST            = URI_SERVICES_BASE   + '/vdc/block/remotereplicationpairs'
 
 URI_VNAS_SERVERS                = URI_SERVICES_BASE + '/vdc/vnas-servers'
 URI_VNAS_SERVER                 = URI_SERVICES_BASE + '/vdc/vnas-servers/{0}'
@@ -9464,6 +9465,19 @@ class Bourne:
         self.assert_is_dict(o)
         print '@@@@: ' + str(o) + ' :@@@@'
         return o
+
+    # remote replication pair APIs
+    def replicationpair_list(self):
+        o = self.api('GET', URI_REMOTEREPLICATIONPAIR_LIST)
+        if (not o):
+            return {};
+        else:
+            return o['remote_replication_pair']
+
+
+    #
+    #  End of remote replication API
+    #
 
 
     # ComputeSystem Resources - ComputeSystem

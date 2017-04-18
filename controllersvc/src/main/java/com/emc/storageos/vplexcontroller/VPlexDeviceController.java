@@ -3723,7 +3723,11 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
 
                 exportMask.addToUserCreatedVolumes(volume);
             }
-
+            // We also need to update the volume/lun id map in the export mask
+            // to those assigned by the VPLEX.
+            _log.info("Updating volume/lun map in export mask {}", exportMask.getId());
+            exportMask.addVolumes(updatedVolumeMap);
+            _dbClient.updateObject(exportMask);
             InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_002);
 
             completer.ready(_dbClient);

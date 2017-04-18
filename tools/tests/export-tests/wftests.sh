@@ -1507,6 +1507,27 @@ test_1() {
                                     failure_004:failure_041_XtremIOStorageDeviceController.doDeleteVolume_after_delete_volume"
     fi
 
+    if [ "${SS}" = "srdf" ]
+    then
+	common_failure_injections="failure_004_final_step_in_workflow_complete \
+			       failure_005_BlockDeviceController.createVolumes_before_device_create \
+                               failure_006_BlockDeviceController.createVolumes_after_device_create \
+                               failure_004:failure_013_BlockDeviceController.rollbackCreateVolumes_before_device_delete \
+                               failure_004:failure_014_BlockDeviceController.rollbackCreateVolumes_after_device_delete
+                               failure_074_SRDFDeviceController.createSRDFVolumePairStep_before_link_create \
+                               failure_075_SRDFDeviceController.createSRDFVolumePairStep_after_link_create \
+                               failure_004:failure_076_SRDFDeviceController.rollbackSRDFLinksStep_before_link_rollback \
+                               failure_004:failure_077_SRDFDeviceController.rollbackSRDFLinksStep_after_link_rollback"
+
+	storage_failure_injections="failure_004:failure_015_SmisCommandHelper.invokeMethod_ReturnElementsToStoragePool \
+	                            failure_015_SmisCommandHelper.invokeMethod_EMCCreateMultipleTypeElementsFromStoragePool \
+				    failure_015_SmisCommandHelper.invokeMethod_GetDefaultReplicationSettingData \
+				    failure_015_SmisCommandHelper.invokeMethod_CreateElementReplica \
+                                    failure_011_VNXVMAX_Post_Placement_outside_trycatch \
+                                    failure_012_VNXVMAX_Post_Placement_inside_trycatch"
+    fi
+
+
     failure_injections="${common_failure_injections} ${storage_failure_injections}"
 
     # Placeholder when a specific failure case is being worked...

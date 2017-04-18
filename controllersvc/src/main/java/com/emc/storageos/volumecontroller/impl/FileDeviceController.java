@@ -3106,13 +3106,12 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
 
     private void setQuotaDirectoriesExistsOnFS(FileDeviceInputOutput fsArgs) {
         _log.info("setQuotaDirectoriesExistsOnFS- get the quota that need to downsize");
-        List<URI> quotaDirURIList = _dbClient
-                .queryByConstraint(ContainmentConstraint.Factory.getQuotaDirectoryConstraint(fsArgs.getFsId()));
 
-        if(null != quotaDirURIList && !quotaDirURIList.isEmpty()) {
-            List<QuotaDirectory> quotaDirectoryList = _dbClient.queryObject(
-                    QuotaDirectory.class, quotaDirURIList);
-            for (QuotaDirectory quotaDirectory : quotaDirectoryList) {
+        ContainmentConstraint containmentConstraint = ContainmentConstraint.Factory.getQuotaDirectoryConstraint(fsArgs.getFsId());
+        List<QuotaDirectory> fsQuotaDirs = CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient, QuotaDirectory.class,
+                containmentConstraint);
+        if(null != fsQuotaDirs) {
+            for (QuotaDirectory quotaDirectory : fsQuotaDirs) {
                 _log.info("getQuotaDirectories of : FS {}: {}",
                         fsArgs.getFsId().toString(), quotaDirectory.getPath());
                 if (quotaDirectory != null && (!quotaDirectory.getInactive())) {
@@ -3121,10 +3120,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                     }
                 }
             }
-            fsArgs.setUpdateQuota(quotaDirectoryList);
-        } else {
-            _log.info("getQuotaDirectories of : FS {}: {} ", fsArgs.getFsId().toString(),
-                    "empty");
+            fsArgs.setUpdateQuota(fsQuotaDirs);
         }
     }
 

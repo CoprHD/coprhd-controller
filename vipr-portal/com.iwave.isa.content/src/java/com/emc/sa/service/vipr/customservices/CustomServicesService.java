@@ -453,7 +453,7 @@ public class CustomServicesService extends ViPRService {
         final ObjectMapper MAPPER = new ObjectMapper();
         MAPPER.setAnnotationIntrospector(new JaxbAnnotationIntrospector());
         final Class<?> clazz = Class.forName(classname);
-        logger.info("didnt receive classNF exception");
+        logger.info("didn't receive classNF exception");
 
         final Object taskList = MAPPER.readValue(res, clazz.newInstance().getClass());
 
@@ -620,13 +620,54 @@ public class CustomServicesService extends ViPRService {
             }
 
         }
-        //3) Collection primitive
+
         Type returnType = method.getGenericReturnType();
         if (returnType == null) {
             logger.info("Cound not find return type of method:{}", method.getName());
 
             return;
         }
+
+        //2) Class single object
+        if (returnType instanceof Class<?>) {
+            logger.info("return type class single obj");
+            ifprimitivetheninvoke(bits, i + 1, method.invoke(className, null));
+
+        }
+
+        //3) Collection primitive
+        if (Collection.class.isAssignableFrom(method.getReturnType())) {
+            logger.info("calling getandexec");
+            getandexec(method, bits, i, className);
+        }
+        logger.info("done ****");
+/*
+        //it is a collection
+        if (returnType instanceof ParameterizedType) {
+            //type of collection? hash, map, list, set
+
+
+            /*
+
+            boolean isMap = Map.class.isAssignableFrom(f.getType());
+
+             ParameterizedType stringListType = (ParameterizedType) stringListField.getGenericType();
+        Class<?> stringListClass = (Class<?>) stringListType.getActualTypeArguments()[0];
+        System.out.println(stringListClass); // class java.lang.String.
+
+           Class returnClass = method.getReturnType();
+            if (Collection.class.isAssignableFrom(returnClass)) {
+                Type returnType = method.getGenericReturnType();
+                if (returnType instanceof ParameterizedType) {
+                    ParameterizedType paramType = (ParameterizedType) returnType;
+                    Type[] argTypes = paramType.getActualTypeArguments();
+                    if (argTypes.length > 0) {
+                        System.out.println("Generic type is " + argTypes[0]);
+                    }
+                }
+            }
+             */
+  /*      }
         if (returnType instanceof ParameterizedType) {
             logger.info("return type is parameterized");
             Type t = ((ParameterizedType) returnType).getRawType();
@@ -635,7 +676,7 @@ public class CustomServicesService extends ViPRService {
                 logger.info("array value:{}", method.invoke(className, null));
                 return;
             } else {
-                //4) Collection Non primitive
+                //4) Collection Non primitive List<Object>
                 logger.info("it is not primitive array type");
                 List<?> o = (List<?>) method.invoke(className, null);
                 for (Object o1 : o) {
@@ -645,13 +686,8 @@ public class CustomServicesService extends ViPRService {
             }
 
         }
-        //2) Class single object
-        if (returnType instanceof Class<?>) {
-            logger.info("return type class single obj");
-            ifprimitivetheninvoke(bits, i + 1, method.invoke(className, null));
 
-        }
-
+*/
 
  /*       //4) Collection Non primitive
         if (returnType instanceof ParameterizedType) {
@@ -667,6 +703,82 @@ public class CustomServicesService extends ViPRService {
             }
         }
         */
+
+    }
+
+    private void getandexec(Method method, String[] bits, int i, Object className) throws Exception {
+        logger.info("in getandexec");
+        Class returnClass = method.getReturnType();
+        if (List.class.isAssignableFrom(returnClass)) {
+            logger.info("type is list");
+            Type returnType = method.getGenericReturnType();
+            if (returnType instanceof ParameterizedType) {
+                ParameterizedType paramType = (ParameterizedType) returnType;
+                Class<?> stringListClass = (Class<?>) paramType.getActualTypeArguments()[0];
+                if (isPrimitive(stringListClass)) {
+                    logger.info("it is primitive type");
+                    logger.info("array value:{}", method.invoke(className, null));
+                    return;
+                } else {
+                    logger.info("not primitive type");
+                    Type o = paramType.getActualTypeArguments()[0];
+                    if (o instanceof Class<?>) {
+                        logger.info("object type list invoke again");
+                        for (Object o1 : (List<?>) method.invoke(className, null))
+                            ifprimitivetheninvoke(bits, i + 1, o1);
+                    } else {
+                        logger.info("not obj type list");
+                    }
+                }
+            }
+        }
+        else if (Set.class.isAssignableFrom(returnClass)) {
+            logger.info("type is set");
+            Type returnType = method.getGenericReturnType();
+            if (returnType instanceof ParameterizedType) {
+                ParameterizedType paramType = (ParameterizedType) returnType;
+                Class<?> stringListClass = (Class<?>) paramType.getActualTypeArguments()[0];
+                if (isPrimitive(stringListClass)) {
+                    logger.info("it is primitive type");
+                    logger.info("array value:{}", method.invoke(className, null));
+                    return;
+                } else {
+                    logger.info("not primitive type");
+                    Type o = paramType.getActualTypeArguments()[0];
+                    if (o instanceof Class<?>) {
+                        logger.info("object type set invoke again");
+                        for (Object o1 : (Set<?>) method.invoke(className, null))
+                            ifprimitivetheninvoke(bits, i + 1, o1);
+
+                    } else {
+                        logger.info("not obj type set");
+                    }
+                }
+            }
+        }
+        else if (Map.class.isAssignableFrom(returnClass)) {
+            logger.info("type is map");
+            Type returnType = method.getGenericReturnType();
+            if (returnType instanceof ParameterizedType) {
+                ParameterizedType paramType = (ParameterizedType) returnType;
+                Class<?> stringListClass = (Class<?>) paramType.getActualTypeArguments()[0];
+                if (isPrimitive(stringListClass)) {
+                    logger.info("it is primitive type");
+                    logger.info("array value:{}", method.invoke(className, null));
+                    return;
+                } else {
+                    logger.info("not primitive type");
+                    Type o = paramType.getActualTypeArguments()[0];
+                    if (o instanceof Class<?>) {
+                        logger.info("object type invoke again");
+                        for (Object o1 : ((Map<?, ?>)method.invoke(className, null)).entrySet())
+                            ifprimitivetheninvoke(bits, i + 1, o1);
+                    } else {
+                        logger.info("not obj type map");
+                    }
+                }
+            }
+        }
     }
 
     private Method findMethod(final String str, Object className) throws Exception {
@@ -700,7 +812,7 @@ public class CustomServicesService extends ViPRService {
 
         logger.info("check for field name");
 
-        Field field = className.getClass().getField(str);
+        Field field = getField(className.getClass(), str);
         if (field != null) {
             PropertyDescriptor pd = new PropertyDescriptor(str, className.getClass());
             Method getter = pd.getReadMethod();
@@ -714,8 +826,21 @@ public class CustomServicesService extends ViPRService {
             }
         }
 
-        logger.info("couldnot find getter");
+        logger.info("could not find getter");
         return null;
+    }
+
+    private static Field getField(Class<?> clazz, String name) {
+        Field field = null;
+        while (clazz != null && field == null) {
+            try {
+                field = clazz.getDeclaredField(name);
+            } catch (Exception e) {
+            }
+            clazz = clazz.getSuperclass();
+        }
+
+        return field;
     }
 
     public static boolean isGetter(Method method){

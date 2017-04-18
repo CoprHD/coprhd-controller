@@ -438,10 +438,19 @@ public class CustomServicesService extends ViPRService {
 
         final Object taskList = MAPPER.readValue(res, clazz.newInstance().getClass());
 
-        outputPerStep.put(step.getId(), updateViprTaskoutput(taskList, step));
+        outputPerStep.put(step.getId(), parseViprOutput(taskList, step));
+
+        Map<String, List<String>> map = outputPerStep.get(step.getId());
+        for ( Map.Entry<String, List<String>> l : map.entrySet()) {
+            logger.info("output key:{}", l.getKey());
+            List<String> values = l.getValue();
+            for (String val: values) {
+                logger.info("value is:{}", val);
+            }
+        }
     }
 
-    private Map<String, List<String>> updateViprTaskoutput(final Object taskList, final Step step) throws Exception {
+    private Map<String, List<String>> parseViprOutput(final Object taskList, final Step step) throws Exception {
         final List<CustomServicesWorkflowDocument.Output> stepOut = step.getOutput();
 
         final Map<String, List<String>> output = new HashMap<String, List<String>>();

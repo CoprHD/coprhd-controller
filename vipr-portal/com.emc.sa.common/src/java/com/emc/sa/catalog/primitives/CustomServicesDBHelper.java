@@ -46,10 +46,15 @@ import com.emc.storageos.db.client.model.uimodels.CustomServicesDBResource;
 import com.emc.storageos.db.client.model.uimodels.CustomServicesWorkflow;
 import com.emc.storageos.model.customservices.CustomServicesPrimitiveCreateParam;
 import com.emc.storageos.model.customservices.CustomServicesPrimitiveCreateParam.InputCreateList;
+import com.emc.storageos.model.customservices.CustomServicesPrimitiveResourceRestRep;
+import com.emc.storageos.model.customservices.CustomServicesPrimitiveResourceRestRep.Attribute;
 import com.emc.storageos.model.customservices.CustomServicesPrimitiveRestRep;
+import com.emc.storageos.model.customservices.CustomServicesPrimitiveRestRep.InputGroup;
 import com.emc.storageos.model.customservices.CustomServicesPrimitiveUpdateParam;
+import com.emc.storageos.model.customservices.InputParameterRestRep;
 import com.emc.storageos.model.customservices.InputUpdateParam;
 import com.emc.storageos.model.customservices.InputUpdateParam.InputUpdateList;
+import com.emc.storageos.model.customservices.OutputParameterRestRep;
 import com.emc.storageos.model.customservices.OutputUpdateParam;
 import com.emc.storageos.primitives.CustomServicesPrimitiveResourceType;
 import com.emc.storageos.primitives.db.CustomServicesDBPrimitiveType;
@@ -384,6 +389,24 @@ public final class CustomServicesDBHelper {
         }
         return input.build();
     }
+    
+    /**
+     * @param inputGroups
+     * @return
+     */
+    private static StringSetMap mapInput(Map<String, InputGroup> inputGroups) {
+        final StringSetMap input = new StringSetMap();
+        if( null != inputGroups ) {
+            for(  final Entry<String, InputGroup> inputGroup : inputGroups.entrySet() ) {
+                final StringSet set = new StringSet();
+                for( final InputParameterRestRep param : inputGroup.getValue().getInputGroup()) {
+                    set.add(param.getName());
+                }
+               input.put(inputGroup.getKey(), set);
+            }
+        }
+        return input;
+    }
 
     /**
      * Get an input type given a string and the supported set of input types
@@ -430,6 +453,21 @@ public final class CustomServicesDBHelper {
         }
         return output.build();
     }
+    
+    /**
+     * Convert a list of output parameters to a StringSet
+     * @param output
+     * @return
+     */
+    private static StringSet mapOutput(List<OutputParameterRestRep> output) {
+        final StringSet set = new StringSet();
+        if( null != output ) {
+            for(final OutputParameterRestRep param : output) {
+                set.add(param.getName());
+            }
+        }
+        return set;
+    }
 
     /**
      * Convert a given primitive instance's StringMap attributes to a Map
@@ -450,6 +488,19 @@ public final class CustomServicesDBHelper {
         return attributeMap.build();
     }
 
+    /**
+     * Convert a given map of attributes to a StringMap
+     * @param attributes
+     * @return
+     */
+    private static StringMap mapAttributes(final Map<String, String> attributes) {
+        final StringMap map = new StringMap();
+        if( null != map ) {
+            map.putAll(attributes);
+        }
+        return map;
+    }
+    
     /**
      * Make a string key into an InputParameter object
      * 
@@ -579,6 +630,23 @@ public final class CustomServicesDBHelper {
             }
         }
         return attributes.build();
+    }
+    
+    /**
+     * Given a List of attributes create a StringSetMap
+     * @param attributes list of Attribute
+     * @return StringSetMap representation of the attributes
+     */
+    private static StringSetMap mapResourceAttributes(List<Attribute> attributes) {
+        final StringSetMap map = new StringSetMap();
+        if( null != attributes && !attributes.isEmpty()) {
+            for( final Attribute attribute : attributes) {
+                final StringSet set = new StringSet();
+                set.addAll(attribute.getValues());
+                map.put(attribute.getName(), set);
+            }
+        }
+        return map;
     }
 
     /**
@@ -758,5 +826,53 @@ public final class CustomServicesDBHelper {
         };
     }
     
-    
+    /**
+     * @param clazz
+     * @param resource
+     * @param bytes
+     */
+    public static <T extends CustomServicesDBResource> T importResource(final Class<T> clazz, 
+            final CustomServicesPrimitiveResourceRestRep resource,
+            final byte[] bytes) {
+        try {
+            final T dbResource = clazz.newInstance();
+            dbResource.setId(resource.getId());
+            dbResource.setLabel(resource.getName());
+            dbResource.setInactive(false);
+            dbResource.setParentId(resource.getParentId());
+            dbResource.setAttributes(mapResourceAttributes(resource.getAttributes()));
+            dbResource.setResource(bytes);
+            return dbResource;
+        } catch (final InstantiationException | IllegalAccessException e) {
+            throw new RuntimeException("Invalid DB model: " + clazz, e);
+        }
+    }
+
+    /**
+     * @param clazz
+     * @param operation
+     * @return
+     */
+    public static <T extends CustomServicesDBPrimitive> T makeDBPrimitive(final Class<T> clazz,
+            final CustomServicesPrimitiveRestRep operation) {
+        T model;
+        try {
+            model = clazz.newInstance();
+            model.setId(operation.getId());
+            model.setLabel(operation.getName());
+            model.setInactive(false);
+            model.setDescription(operation.getDescription());
+            model.setFriendlyName(operation.getFriendlyName());
+            model.setInput(mapInput(operation.getInputGroups()));
+            model.setOutput(mapOutput(operation.getOutput()));
+            model.setAttributes(mapAttributes(operation.getAttributes()));
+            model.setResource(new NamedURI(operation.getResource().getId(), 
+                    operation.getResource().getName()));
+            model.setSuccessCriteria(operation.getSuccessCriteria());
+        } catch (final InstantiationException | IllegalAccessException e) {
+            throw new RuntimeException("Invalid DB model "+ clazz, e);
+        }
+        
+        return model;
+    }
 }

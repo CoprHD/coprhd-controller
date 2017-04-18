@@ -36,6 +36,7 @@ import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.StringSetMap;
 import com.emc.storageos.db.client.model.uimodels.CustomServicesDBAnsibleInventoryResource;
 import com.emc.storageos.db.client.model.uimodels.CustomServicesDBAnsibleResource;
+import com.emc.storageos.model.customservices.CustomServicesPrimitiveResourceRestRep;
 import com.emc.storageos.primitives.db.ansible.CustomServicesAnsiblePrimitive;
 import com.emc.storageos.primitives.db.ansible.CustomServicesAnsibleResource;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
@@ -144,6 +145,12 @@ public class CustomServicesAnsibleResourceDAO implements CustomServicesResourceD
         } catch (final IOException e) {
             throw InternalServerErrorException.internalServerErrors.genericApisvcError("Invalid ansible archive", e);
         }
+    }
+
+    @Override
+    public void importResource(final CustomServicesPrimitiveResourceRestRep resource, final byte[] bytes) {
+        final CustomServicesDBAnsibleResource model = CustomServicesDBHelper.importResource(CustomServicesDBAnsibleResource.class, resource, bytes);
+        client.save(model);
     }
 
 }

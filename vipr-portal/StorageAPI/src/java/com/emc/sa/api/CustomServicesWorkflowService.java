@@ -40,10 +40,13 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.emc.sa.api.mapper.CustomServicesWorkflowFilter;
 import com.emc.sa.catalog.CustomServicesWorkflowManager;
+import com.emc.sa.catalog.WorkflowDirectoryManager;
 import com.emc.sa.catalog.primitives.CustomServicesPrimitiveDAOs;
 import com.emc.sa.catalog.primitives.CustomServicesResourceDAOs;
 import com.emc.sa.model.dao.ModelClient;
@@ -56,6 +59,7 @@ import com.emc.storageos.api.service.impl.response.BulkList.ResourceFilter;
 import com.emc.storageos.db.client.constraint.NamedElementQueryResultList.NamedElement;
 import com.emc.storageos.db.client.model.uimodels.CustomServicesWorkflow;
 import com.emc.storageos.db.client.model.uimodels.CustomServicesWorkflow.CustomServicesWorkflowStatus;
+import com.emc.storageos.db.client.model.uimodels.WFDirectory;
 import com.emc.storageos.model.BulkIdParam;
 import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.model.customservices.CustomServicesValidationResponse;
@@ -76,15 +80,21 @@ import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorExcepti
 @Path("/workflows")
 public class CustomServicesWorkflowService extends CatalogTaggedResourceService {
 
+    private static final Logger log = LoggerFactory.getLogger(CustomServicesWorkflowService.class);
+    
     @Autowired
     private ModelClient client;
     @Autowired
     private CustomServicesWorkflowManager customServicesWorkflowManager;
     @Autowired
+    private WorkflowDirectoryManager wfDirectoryManager;
+    @Autowired
     private CustomServicesPrimitiveDAOs daos;
     @Autowired
     private CustomServicesResourceDAOs resourceDAOs;
 
+    private WFDirectory topLevelDirectory;
+    
     @GET
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     public CustomServicesWorkflowList getWorkflows(@QueryParam("status") String status) {
@@ -241,9 +251,16 @@ public class CustomServicesWorkflowService extends CatalogTaggedResourceService 
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/import")
     public CustomServicesWorkflowRestRep importWorkflow(
-            @Context final HttpServletRequest request) {
+            @Context final HttpServletRequest request,
+            @QueryParam("directory") final URI directory) {
+        final WFDirectory wfDirectory;
+        if( null != directory ) {
+            wfDirectory = wfDirectoryManager.getWFDirectoryById(directory);
+        } else {
+            wfDirectory = null;
+        }
         final byte[] stream = read(request);
-        return map(WorkflowHelper.importWorkflow(stream, client));
+        return map(WorkflowHelper.importWorkflow(stream, wfDirectory, client, daos, resourceDAOs));
     }
     
     /**

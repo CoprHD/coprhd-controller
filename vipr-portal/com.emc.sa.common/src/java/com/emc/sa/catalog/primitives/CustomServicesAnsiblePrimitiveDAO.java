@@ -132,4 +132,10 @@ public class CustomServicesAnsiblePrimitiveDAO implements
     public boolean hasResource() {
         return true;
     }
+
+    @Override
+    public void importPrimitive(final CustomServicesPrimitiveRestRep operation) {
+        final CustomServicesDBAnsiblePrimitive primitive = CustomServicesDBHelper.makeDBPrimitive(CustomServicesDBAnsiblePrimitive.class, operation);
+        client.save(primitive);
+    }
 }

@@ -29,6 +29,7 @@ import com.emc.storageos.db.client.constraint.NamedElementQueryResultList.NamedE
 import com.emc.storageos.db.client.model.StringSetMap;
 import com.emc.storageos.db.client.model.uimodels.CustomServicesDBAnsibleInventoryResource;
 import com.emc.storageos.db.client.model.uimodels.CustomServicesDBAnsibleResource;
+import com.emc.storageos.model.customservices.CustomServicesPrimitiveResourceRestRep;
 import com.emc.storageos.primitives.CustomServicesConstants;
 import com.emc.storageos.primitives.db.ansible.CustomServicesAnsibleInventoryResource;
 import com.emc.storageos.primitives.db.ansible.CustomServicesAnsibleResource;
@@ -110,4 +111,9 @@ public class CustomServicesAnsibleInventoryResourceDAO implements CustomServices
         return CustomServicesAnsibleInventoryResource.class;
     }
 
+    @Override
+    public void importResource(final CustomServicesPrimitiveResourceRestRep resource, final byte[] bytes) {
+        final CustomServicesDBAnsibleInventoryResource model = CustomServicesDBHelper.importResource(CustomServicesDBAnsibleInventoryResource.class, resource, bytes);
+        client.save(model);
+    }
 }

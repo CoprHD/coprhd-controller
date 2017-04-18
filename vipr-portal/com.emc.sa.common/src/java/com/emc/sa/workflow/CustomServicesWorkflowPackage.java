@@ -21,22 +21,22 @@ import java.net.URI;
 import java.util.HashMap;
 import java.util.Map;
 
-import com.emc.storageos.db.client.model.uimodels.CustomServicesDBPrimitive;
-import com.emc.storageos.db.client.model.uimodels.CustomServicesDBResource;
-import com.emc.storageos.db.client.model.uimodels.CustomServicesWorkflow;
+import com.emc.storageos.model.customservices.CustomServicesPrimitiveResourceRestRep;
+import com.emc.storageos.model.customservices.CustomServicesPrimitiveRestRep;
+import com.emc.storageos.model.customservices.CustomServicesWorkflowRestRep;
 import com.google.common.collect.ImmutableMap;
 
 
 public class CustomServicesWorkflowPackage {
 
     private final WorkflowMetadata metadata;
-    private final ImmutableMap<URI, CustomServicesWorkflow> workflows;
-    private final ImmutableMap<URI, CustomServicesDBPrimitive> operations;
+    private final ImmutableMap<URI, CustomServicesWorkflowRestRep> workflows;
+    private final ImmutableMap<URI, CustomServicesPrimitiveRestRep> operations;
     private final ImmutableMap<URI, ResourcePackage> resources;
     
     private CustomServicesWorkflowPackage(final WorkflowMetadata metadata,
-            final ImmutableMap<URI, CustomServicesWorkflow> subWorkflows,
-            final ImmutableMap<URI, CustomServicesDBPrimitive> operations,
+            final ImmutableMap<URI, CustomServicesWorkflowRestRep> subWorkflows,
+            final ImmutableMap<URI, CustomServicesPrimitiveRestRep> operations,
             final ImmutableMap<URI, ResourcePackage> resources) {
         this.metadata = metadata;
         this.workflows = subWorkflows;
@@ -48,11 +48,11 @@ public class CustomServicesWorkflowPackage {
         return metadata;
     }
     
-    public ImmutableMap<URI, CustomServicesWorkflow> workflows() {
+    public ImmutableMap<URI, CustomServicesWorkflowRestRep> workflows() {
         return workflows;
     }
     
-    public ImmutableMap<URI, CustomServicesDBPrimitive> operations() {
+    public ImmutableMap<URI, CustomServicesPrimitiveRestRep> operations() {
         return operations;
     }
     
@@ -62,20 +62,20 @@ public class CustomServicesWorkflowPackage {
     
     public static class Builder {
         private WorkflowMetadata metadata;
-        private Map<URI, CustomServicesWorkflow> workflows = new HashMap<URI, CustomServicesWorkflow>();
-        private Map<URI, CustomServicesDBPrimitive> operations = new HashMap<URI, CustomServicesDBPrimitive>();
+        private Map<URI, CustomServicesWorkflowRestRep> workflows = new HashMap<URI, CustomServicesWorkflowRestRep>();
+        private Map<URI, CustomServicesPrimitiveRestRep> operations = new HashMap<URI, CustomServicesPrimitiveRestRep>();
         private Map<URI, ResourcePackage> resources = new HashMap<URI, ResourcePackage>();
         
         public void metadata(final WorkflowMetadata metadata) {
             this.metadata = metadata;
         }
         
-        public Builder addWorkflow(final CustomServicesWorkflow workflow) {
+        public Builder addWorkflow(final CustomServicesWorkflowRestRep workflow) {
             this.workflows.put(workflow.getId(), workflow);
             return this;
         }
         
-        public Builder addOperation(final CustomServicesDBPrimitive operation) {
+        public Builder addOperation(final CustomServicesPrimitiveRestRep operation) {
             this.operations.put(operation.getId(), operation);
             return this;
         }
@@ -120,15 +120,15 @@ public class CustomServicesWorkflowPackage {
     }
     
     public static class ResourcePackage {
-        private final CustomServicesDBResource metadata;
+        private final CustomServicesPrimitiveResourceRestRep metadata;
         private final byte[] bytes;
         
-        public ResourcePackage(CustomServicesDBResource metadata, byte[] bytes) {
+        public ResourcePackage(CustomServicesPrimitiveResourceRestRep metadata, byte[] bytes) {
             this.metadata = metadata;
             this.bytes = bytes;
         }
         
-        public CustomServicesDBResource metadata() {
+        public CustomServicesPrimitiveResourceRestRep metadata() {
             return metadata;
         }
         
@@ -137,10 +137,10 @@ public class CustomServicesWorkflowPackage {
         }
         
         public static class ResourceBuilder {
-            private CustomServicesDBResource metadata;
+            private CustomServicesPrimitiveResourceRestRep metadata;
             private byte[] bytes;
             
-            public void metadata(final CustomServicesDBResource metadata) {
+            public void metadata(final CustomServicesPrimitiveResourceRestRep metadata) {
                 this.metadata = metadata;
             }
             

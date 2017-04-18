@@ -93,7 +93,7 @@ public class CustomServicesWorkflowService extends CatalogTaggedResourceService 
     @Autowired
     private CustomServicesResourceDAOs resourceDAOs;
 
-    private WFDirectory topLevelDirectory;
+    private static final WFDirectory NO_DIR = new WFDirectory();
     
     @GET
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
@@ -257,7 +257,7 @@ public class CustomServicesWorkflowService extends CatalogTaggedResourceService 
         if( null != directory ) {
             wfDirectory = wfDirectoryManager.getWFDirectoryById(directory);
         } else {
-            wfDirectory = null;
+            wfDirectory = NO_DIR;
         }
         final byte[] stream = read(request);
         return map(WorkflowHelper.importWorkflow(stream, wfDirectory, client, daos, resourceDAOs));
@@ -274,12 +274,19 @@ public class CustomServicesWorkflowService extends CatalogTaggedResourceService 
     @Path("{id}/export")
     public Response download(@PathParam("id") final URI id,
             @Context final HttpServletResponse response) {
-        final byte[] bytes = WorkflowHelper.exportWorkflow(id, client, daos, resourceDAOs);
-        response.setContentLength(bytes.length);
+        CustomServicesWorkflow customServicesWorkflow = getCustomServicesWorkflow(id);
+        switch (CustomServicesWorkflowStatus.valueOf(customServicesWorkflow.getState())) {
+            case PUBLISHED:
+                final byte[] bytes = WorkflowHelper.exportWorkflow(id, client, daos, resourceDAOs);
+                response.setContentLength(bytes.length);
 
-        response.setHeader("Content-Disposition", "attachment; filename="+
-                id.toString() + ".tar.gz");
-        return Response.ok(bytes).build();
+                response.setHeader("Content-Disposition", "attachment; filename="+
+                        id.toString() + ".tar.gz");
+                return Response.ok(bytes).build();
+            default:
+                //TODO: Add better exception for non-published wf
+                throw APIException.methodNotAllowed.notSupported();
+        }
     }
     
     @Override

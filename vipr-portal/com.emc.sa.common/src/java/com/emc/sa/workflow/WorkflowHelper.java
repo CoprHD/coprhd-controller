@@ -285,6 +285,10 @@ public final class WorkflowHelper {
                     throw new RuntimeException("Type not found for ID " + operation.getKey());
                 }
                 dao.importPrimitive(operation.getValue());
+                if( null != wfDirectory.getId()) {
+                    wfDirectory.addWorkflows(Collections.singleton(operation.getKey()));
+                    client.save(wfDirectory);
+                }
             }else {
                 log.info("Primitive " + operation.getKey() + " previously imported");
             }
@@ -319,7 +323,7 @@ public final class WorkflowHelper {
         dbWorkflow.setSteps(toStepsJson(workflow.getDocument().getSteps()));
         dbWorkflow.setPrimitives(getPrimitives(workflow.getDocument()));
         client.save(dbWorkflow);
-        if( null != wfDirectory) {
+        if( null != wfDirectory.getId()) {
             wfDirectory.addWorkflows(Collections.singleton(workflow.getId()));
             client.save(wfDirectory);
         }

@@ -955,17 +955,13 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             StoragePool pool = _dbClient.queryObject(StoragePool.class, fs.getPool());
             args.addStoragePool(pool);
             args.setFileOperation(true);
+            //update fs object with new size, once back is updated then update the fs in db also
             args.setNewFSCapacity(newFSsize);
             args.setOpId(opId);
-            //
-            List<URI> qdirUriList = new ArrayList<>();
+
+            //update quota with new size.
             if(storageObj.deviceIsType(Type.isilon)) {
-                quotaDirectoriesExistsOnFS(args, qdirUriList);
-                if(qdirUriList != null && !qdirUriList.isEmpty()) {
-                    qdList = _dbClient.queryObject(
-                            QuotaDirectory.class, qdirUriList);
-                    args.setUpdateQuota(qdList);
-                }
+                setQuotaDirectoriesExistsOnFS(args);
             }
             // work flow and we need to add TaskCompleter(TBD for vnxfile)
             WorkflowStepCompleter.stepExecuting(opId);
@@ -989,9 +985,12 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             }
             // Set status
             fs.getOpStatus().updateTaskStatus(opId, result.toOperation());
-            if(null != qdirUriList && !qdirUriList.isEmpty()) {
-                _dbClient.updateObject(qdList);
+            //update the quota of fs
+            List<QuotaDirectory> qdirList = args.getUpdateQuota();
+            if(null != qdirList && !qdirList.isEmpty()) {
+                _dbClient.updateObject(qdirList);
             }
+            //final update the fs in db
             _dbClient.updateObject(fs);
 
             String eventMsg = result.isCommandSuccess() ? "" : result.getMessage();
@@ -3094,23 +3093,25 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
         return false;
     }
 
-    private void quotaDirectoriesExistsOnFS(FileDeviceInputOutput args, List<URI> quotaDirList) {
-        _log.info("quotaDirectoriesExistsOnFS()- get the quota that need to downsize");
+    private void setQuotaDirectoriesExistsOnFS(FileDeviceInputOutput args) {
+        _log.info("setQuotaDirectoriesExistsOnFS()- get the quota that need to downsize");
         Long capacity = args.getNewFSCapacity();
         URIQueryResultList qdIDList = new URIQueryResultList();
 
         _dbClient.queryByConstraint(ContainmentConstraint.Factory
                 .getQuotaDirectoryConstraint(args.getFsId()), qdIDList);
 
-        _log.info("getQuotaDirectories : FS {}: {} ", args.getFsId().toString(),
+        _log.info("getQuotaDirectories of : FS {}: {} ", args.getFsId().toString(),
                 qdIDList.toString());
         List<QuotaDirectory> qdList = _dbClient.queryObject(
                 QuotaDirectory.class, qdIDList);
+
         //set the quota size
-        if (qdList != null) {
-            for (QuotaDirectory qd : qdList) {
-                qd.setSize(capacity);
+        if (qdList != null && !qdList.isEmpty()) {
+            for (QuotaDirectory quotaDirectory : qdList) {
+                quotaDirectory.setSize(capacity);
             }
+            args.setUpdateQuota(qdList);
         }
     }
 
@@ -3931,6 +3932,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                 StorageSystem storage =
                         _dbClient.queryObject(StorageSystem.class, fileShare.getStorageDevice());
                 if(storage.deviceIsType(Type.isilon)) {
+                    _log.info("if the storagesystem is isilon");
                     filesharesToExpand.put(fileShare.getId(), descriptor.getFileSize());
                 } else if(descriptor.getFileSize() > fileShare.getCapacity().longValue()){
                     filesharesToExpand.put(fileShare.getId(), descriptor.getFileSize());

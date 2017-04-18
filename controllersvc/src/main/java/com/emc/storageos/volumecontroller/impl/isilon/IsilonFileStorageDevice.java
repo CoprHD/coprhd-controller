@@ -449,11 +449,11 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
 
     }
 
-
     private void isiUpdateQuotaDirs(IsilonApi isi, FileDeviceInputOutput args) throws IsilonException {
         long capacity = args.getNewFSCapacity();
         List<QuotaDirectory> quotaDirectories = args.getUpdateQuota();
-        if (quotaDirectories != null) {
+        if (quotaDirectories != null && !quotaDirectories.isEmpty()) {
+            IsilonSmartQuota expandedQuota = null;
             for (QuotaDirectory qd : quotaDirectories) {
                 //get the quota directires that need to be updated.
                 if(qd.getSize().compareTo(capacity) > 0) {
@@ -462,8 +462,8 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                         quotaId = qd.getExtensions().get(QUOTA);
                     }
                     if (quotaId != null) {
-                        _log.info("IsilonFileStorageDevice doUpdateQuotaDirectory , Update Quota {} with Capacity {}", quotaId, capacity);
-                        IsilonSmartQuota expandedQuota = getQuotaDirectoryExpandedSmartQuota(qd, capacity, args.getNewFSCapacity(), isi);
+                        _log.info("IsilonFileStorageDevice doUpdateQuotaDirectory , Update Quota {} with Capacity {}", qd.getPath(), capacity);
+                        expandedQuota = getQuotaDirectoryExpandedSmartQuota(qd, capacity, args.getNewFSCapacity(), isi);
                         isi.modifyQuota(quotaId, expandedQuota);
                     }
                 }
@@ -882,7 +882,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         IsilonSmartQuota quota = isi.getQuota(quotaId);
         Long hard = quota.getThresholds().getHard();
 
-        // Modify quota for file system.
+        // Modify quoties for fileshare
         IsilonSmartQuota expandedQuota = getExpandedQuota(isi, args, capacity);
         isi.modifyQuota(quotaId, expandedQuota);
 

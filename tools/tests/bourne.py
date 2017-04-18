@@ -8434,14 +8434,14 @@ class Bourne:
 
    
     # Service Catalog 
-    def catalog_search(self, servicename, tenant):
+    def catalog_search(self, servicename, tenant, categoryName=None):
         catalog_services = self.api('GET', URI_CATALOG_SERVICE_SEARCH_NAME.format(servicename))
         for catalog_service in catalog_services['resource']:
             service = self.catalog_service_query(catalog_service['id'])
             category = self.catalog_category_query(service['catalog_category']['id'])
-            if category['tenant']['id'] == tenant and service['name'] == servicename:
+            if category['tenant']['id'] == tenant and service['name'] == servicename and (categoryName is not None and categoryName == category['name']):
                 return service 
-        raise Exception('unable to find service ' + servicename + ' in tenant ' + tenant)
+        raise Exception('unable to find service ' + servicename + ' in tenant ' + tenant + ' in category ' + categoryName)
 
     def catalog_category_query(self, id):
         return self.api('GET', URI_CATALOG_CATEGORY.format(id))
@@ -8468,10 +8468,10 @@ class Bourne:
         tenant = self.__tenant_id_from_label(tenant)
         return self.api('POST', URI_CATALOG_CATEGORY_UPGRADE.format(tenant))
  
-    def catalog_order(self, servicename, tenant, parameters):
+    def catalog_order(self, servicename, tenant, parameters, category=None):
         tenant = self.__tenant_id_from_label(tenant)
         self.catalog_upgrade(tenant)
-        service = self.catalog_search(servicename, tenant)
+        service = self.catalog_search(servicename, tenant, category)
         parms = { 'tenantId': tenant,
                   'catalog_service': service['id']
                 }

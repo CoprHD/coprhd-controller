@@ -28,6 +28,7 @@
 #set -x
 
 source $(dirname $0)/wftests_host_cluster.sh
+source $(dirname $0)/wftests_host_expand_mount.sh
 source $(dirname $0)/common_subs.sh
 
 Usage()

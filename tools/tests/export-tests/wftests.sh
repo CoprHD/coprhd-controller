@@ -1521,10 +1521,8 @@ test_1() {
 
 	storage_failure_injections="failure_004:failure_015_SmisCommandHelper.invokeMethod_ReturnElementsToStoragePool \
 	                            failure_015_SmisCommandHelper.invokeMethod_EMCCreateMultipleTypeElementsFromStoragePool \
-				    failure_015_SmisCommandHelper.invokeMethod_GetDefaultReplicationSettingData \
-				    failure_015_SmisCommandHelper.invokeMethod_CreateElementReplica \
-                                    failure_011_VNXVMAX_Post_Placement_outside_trycatch \
-                                    failure_012_VNXVMAX_Post_Placement_inside_trycatch"
+		                    failure_015_SmisCommandHelper.invokeMethod_GetDefaultReplicationSettingData \
+	                            failure_015_SmisCommandHelper.invokeMethod_CreateElementReplica"
     fi
 
 

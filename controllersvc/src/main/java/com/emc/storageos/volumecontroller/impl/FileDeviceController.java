@@ -3094,7 +3094,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
     }
 
     private void setQuotaDirectoriesExistsOnFS(FileDeviceInputOutput args) {
-        _log.info("setQuotaDirectoriesExistsOnFS()- get the quota that need to downsize");
+        _log.info("setQuotaDirectoriesExistsOnFS- get the quota that need to downsize");
         Long capacity = args.getNewFSCapacity();
         URIQueryResultList qdIDList = new URIQueryResultList();
 
@@ -3115,6 +3115,29 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
         }
     }
 
+    private boolean quotaDirectoriesExistsOnFS(FileShare fs) {
+        _log.info(" Setting Snapshots to InActive with Force Delete ");
+
+        URIQueryResultList qdIDList = new URIQueryResultList();
+
+        _dbClient.queryByConstraint(ContainmentConstraint.Factory
+                .getQuotaDirectoryConstraint(fs.getId()), qdIDList);
+
+        _log.info("getQuotaDirectories : FS {}: {} ", fs.getId().toString(),
+                qdIDList.toString());
+        List<QuotaDirectory> qdList = _dbClient.queryObject(
+                QuotaDirectory.class, qdIDList);
+
+        if (qdList != null) {
+            for (QuotaDirectory qd : qdList) {
+                if (!qd.getInactive()) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
 
 
     private List<ShareACL> queryExistingShareAcls(FileDeviceInputOutput args) {

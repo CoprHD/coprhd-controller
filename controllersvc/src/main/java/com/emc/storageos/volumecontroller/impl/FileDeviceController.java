@@ -133,6 +133,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
 
     private static final String UNMOUNT_FILESYSTEM_EXPORT_METHOD = "unmountDevice";
     private static final String CHECK_IF_MOUNT_EXISTS_ON_HOST = "checkIfMountExistsOnHost";
+    private static final String QUOTA = "quota";
 
     private WorkflowService _workflowService;
 
@@ -3105,23 +3106,20 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
 
     private void setQuotaDirectoriesExistsOnFS(FileDeviceInputOutput fsArgs) {
         _log.info("setQuotaDirectoriesExistsOnFS- get the quota that need to downsize");
-        Long capacity = fsArgs.getNewFSCapacity();
+        List<URI> quotaDirURIList = _dbClient
+                .queryByConstraint(ContainmentConstraint.Factory.getQuotaDirectoryConstraint(fsArgs.getFsId()));
 
-
-        URIQueryResultList qdIDList = new URIQueryResultList();
-
-        _dbClient.queryByConstraint(ContainmentConstraint.Factory
-                .getQuotaDirectoryConstraint(fsArgs.getFsId()), qdIDList);
-
-        List<QuotaDirectory> quotaDirectoryList = _dbClient.queryObject(
-                QuotaDirectory.class, qdIDList);
-
-        //set the quota size
-        if (quotaDirectoryList != null && !quotaDirectoryList.isEmpty()) {
+        if(null != quotaDirURIList && !quotaDirURIList.isEmpty()) {
+            List<QuotaDirectory> quotaDirectoryList = _dbClient.queryObject(
+                    QuotaDirectory.class, quotaDirURIList);
             for (QuotaDirectory quotaDirectory : quotaDirectoryList) {
                 _log.info("getQuotaDirectories of : FS {}: {}",
                         fsArgs.getFsId().toString(), quotaDirectory.getPath());
-                quotaDirectory.setSize(capacity);
+                if (quotaDirectory != null && (!quotaDirectory.getInactive())) {
+                    if (quotaDirectory.getExtensions() != null && quotaDirectory.getExtensions().containsKey(QUOTA)) {
+                        quotaDirectory.setSize(fsArgs.getNewFSCapacity());
+                    }
+                }
             }
             fsArgs.setUpdateQuota(quotaDirectoryList);
         } else {

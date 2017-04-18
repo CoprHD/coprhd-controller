@@ -75,17 +75,13 @@ public interface RemoteReplicationDataClient {
                                             URI sourceVolume, URI targetVolume) throws DatabaseException;
 
     /**
-     * Implementation of this method deletes remote replication pair in database.
-     * Implementation uses {@code nativeId} of the {@code RemoteReplicationPair} and {@code storageSystemType} of the storage controllers of
-     * provided source and target volume URIs as global identity of the {@code replicationPair}.
+     * Implementation of this method deletes remote replication pair for source and target volumes in database.
      *
-     * @param replicationPair, remote replication pair, type: Input.
      * @param sourceVolume URI of source volume
      * @param targetVolume URI of target volume
      *
      * @throws DatabaseException {@inheritDoc}
      */
-    public void deleteRemoteReplicationPair(com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationPair replicationPair,
-                                            URI sourceVolume, URI targetVolume) throws DatabaseException;
+    public void deleteRemoteReplicationPair(URI sourceVolume, URI targetVolume) throws DatabaseException;
 
 }

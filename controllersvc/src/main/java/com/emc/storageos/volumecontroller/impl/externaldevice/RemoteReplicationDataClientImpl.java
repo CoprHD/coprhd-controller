@@ -240,8 +240,34 @@ public class RemoteReplicationDataClientImpl implements RemoteReplicationDataCli
     }
 
     @Override
-    public void deleteRemoteReplicationPair(RemoteReplicationPair driverReplicationPair, URI sourceVolumeURI, URI targetVolumeURI) throws DatabaseException {
-
+    public void deleteRemoteReplicationPair(URI sourceVolumeURI, URI targetVolumeURI) throws DatabaseException {
+        List<com.emc.storageos.db.client.model.remotereplication.RemoteReplicationPair> rrPairsToDelete = new ArrayList<>();
+        List<String> nativeIds = new ArrayList<>();
+        try {
+            // Find system remote replication pair for source and target volumes
+            List<com.emc.storageos.db.client.model.remotereplication.RemoteReplicationPair> rrPairs =
+                    queryActiveResourcesByRelation(_dbClient, sourceVolumeURI, com.emc.storageos.db.client.model.remotereplication.RemoteReplicationPair.class,
+                            "sourceElement");
+            for (com.emc.storageos.db.client.model.remotereplication.RemoteReplicationPair rrPair : rrPairs) {
+                if (rrPair.getTargetElement().getURI().equals(targetVolumeURI)) {
+                     rrPairsToDelete.add(rrPair);
+                     nativeIds.add(rrPair.getNativeId());
+                }
+            }
+            if (rrPairsToDelete.isEmpty()) {
+                String message = String.format("Cannot find remote replication pairs for source volume %s and target volume %s",
+                        sourceVolumeURI, targetVolumeURI);
+                _log.warn(message);
+                return;
+            }
+            _log.info("Found system replication pairs to delete: {}, source volume {}, target volume {}.",
+                    nativeIds, sourceVolumeURI, targetVolumeURI);
+            _dbClient.markForDeletion(rrPairsToDelete);
+        } catch (Exception ex) {
+            String message = String.format("Failed to delete replication pair for source/target volumes %s/%s",
+                    sourceVolumeURI, targetVolumeURI);
+            _log.error(message, ex);
+        }
     }
 
 

@@ -43,11 +43,9 @@ import com.emc.storageos.api.service.impl.resource.ArgValidator;
 import com.emc.storageos.api.service.impl.resource.TaskResourceService;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
-import com.emc.storageos.db.client.model.OpStatusMap;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StorageSystemType;
-import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.remotereplication.RemoteReplicationGroup;
@@ -56,7 +54,6 @@ import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.model.TaskResourceRep;
-import com.emc.storageos.model.remotereplication.RemoteReplicationGroupCreate;
 import com.emc.storageos.model.remotereplication.RemoteReplicationGroupList;
 import com.emc.storageos.model.remotereplication.RemoteReplicationModeChangeParam;
 import com.emc.storageos.model.remotereplication.RemoteReplicationSetList;
@@ -185,6 +182,11 @@ public class RemoteReplicationSetService extends TaskResourceService {
                     continue outloop; 
                     // filter out rr sets whose target systems have no overlap with target devices of current pair
                 }
+            }
+
+            if ( (rrSet.getStorageSystemType() == null) || rrSet.getStorageSystemType().isEmpty()) {
+                throw new RuntimeException("No StorageType defined for RemoteReplicationSet '" +
+                        rrSet.getLabel() + "' (" + rrSet.getId() + ")");
             }
 
             /* Finally, a rr set is qualified and put in result collection only if it meets following conditions:

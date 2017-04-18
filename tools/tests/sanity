@@ -2642,6 +2642,13 @@ srdf_basic_active_test()
    srdf_sleep
    run volume delete $SRDF_PROJECT/${srdfvolume}1 --wait
    run volume delete $SRDF_PROJECT/${srdfvolume}2 --wait
+   # check that all remote replication pair for the srdf volumes have been removed
+   rr_pairs=`remotereplicationpair list | wc -l`
+   secho "Found ${rr_pairs} remote replication pairs."
+   if [ "$rr_pairs" -gt 0 ]; then
+          secho "Found remote replication pairs after volumes have been deleted."
+          exit 1
+   fi
 
    # rediscover storage systems for RDF group mode getting updated
    echo "Rediscovering storage systems"
@@ -7163,6 +7170,14 @@ sbsdk_remote_replication_tests()
     #Delete the volume
     echo "***** Deleting volume $VOLUME_IN_GROUP_NAME *****"
     run volume delete $PROJECT/$VOLUME_IN_GROUP_NAME --wait
+
+    # check that all remote replication pair for the volumes have been removed
+    rr_pairs=`remotereplicationpair list | wc -l`
+    secho "Found ${rr_pairs} remote replication pairs."
+    if [ "$rr_pairs" -gt 0 ]; then
+          secho "Found remote replication pairs after volumes have been deleted."
+          exit 1
+    fi
 
     #Create a replication group
     REMOTE_REPLICATION_GROUP_NAME=SBSDK_RemoteReplicationGroup-${RANDOM}

@@ -80,7 +80,7 @@ public class RemoteReplicationConfiguration {
         replicationGroup1_set1.setIsGroupConsistencyEnforced(true);
         replicationGroup1_set1.setReplicationState("ACTIVE");
         // group replication mode
-        replicationGroup1_set1.setReplicationMode(replicationModeSync.getReplicationModeName());
+        replicationGroup1_set1.setReplicationMode(replicationModeAsync.getReplicationModeName());
         //replicationGroup1_set1.setReplicationLinkGranularity(replicationLinkGranularity);
         // source and target systems
         replicationGroup1_set1.setSourceSystemNativeId(SourceStorageSystems.source_replicationGroup1_set1.toString());
@@ -171,9 +171,7 @@ public class RemoteReplicationConfiguration {
         // set system map
         Map<String, Set<RemoteReplicationSet.ReplicationRole>> systemMapSet1 = new HashMap<>();
         systemMapSet1.put(SourceStorageSystems.source_replicationGroup1_set1.toString(), replicationRoleSource);
-        systemMapSet1.put(SourceStorageSystems.source_replicationGroup2_set1.toString(), replicationRoleSource);
         systemMapSet1.put(TargetStorageSystems.target_replicationGroup1_set1.toString(), replicationRoleTarget);
-        systemMapSet1.put(TargetStorageSystems.target_replicationGroup2_set1.toString(), replicationRoleTarget);
         replicationSet1.setSystemMap(systemMapSet1);
 
         // initialize set 2.

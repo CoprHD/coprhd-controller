@@ -33,4 +33,10 @@ public class RemoteReplicationGroups {
                 PathConstants.BLOCK_REMOTE_REPLICATION_GROUP_URL);
     }
 
+    public RemoteReplicationGroupList listValidRemoteReplicationGroups() {
+        // valid groups are: reachable, have source & target systems
+        return client.get(RemoteReplicationGroupList.class,
+                PathConstants.BLOCK_REMOTE_REPLICATION_GROUP_URL + "/valid");
+    }
+
 }

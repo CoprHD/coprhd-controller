@@ -2722,7 +2722,7 @@ abstract public class AbstractDefaultMaskingOrchestrator {
      */
     private boolean maskHasPortGroup(ExportMask mask, URI portGroup) {
         boolean result = false;
-        if ((portGroup == null && NullColumnValueGetter.isNullURI(mask.getPortGroup())) ||
+        if (portGroup == null ||
                 (portGroup != null && portGroup.equals(mask.getPortGroup()))) {
             result = true;
         }

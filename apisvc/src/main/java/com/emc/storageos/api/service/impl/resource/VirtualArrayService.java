@@ -1662,13 +1662,6 @@ public class VirtualArrayService extends TaggedResource {
         for (URI portURI : storagePortURIs) {
             portURIs.add(portURI);
         }
-        URIQueryResultList connectedPortURIs = new URIQueryResultList();
-        _dbClient.queryByConstraint(AlternateIdConstraint.Factory
-                .getImplicitVirtualArrayStoragePortsConstraint(id.toString()),
-                connectedPortURIs);
-        for (URI portURI : connectedPortURIs) {
-            portURIs.add(portURI);
-        }
         
         Set<URI> portGroupURIs = new HashSet<URI>();
         

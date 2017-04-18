@@ -5423,19 +5423,16 @@ public class SmisCommandHelper implements SmisConstants {
                 storagePool = _dbClient.queryObject(StoragePool.class, volume.getPool());
             }
 
-            // default values in case autoTierPolicy is not set
-            String slo = Constants.NONE.toUpperCase();
+            String srp = storagePool.getPoolName();
+            // default values in case autoTierPolicy is not set then use NONE SLO for V3 AFA and Optimized SLO for V3
+            String slo = storageSystem.isV3AllFlashArray() ? Constants.NONE.toUpperCase() : Constants.OPTIMIZED_SLO;
             String workload = Constants.NONE.toUpperCase();
-            String srp = Constants.NONE.toUpperCase();
 
             URI policyURI = volume.getAutoTieringPolicyUri();
             if (!NullColumnValueGetter.isNullURI(policyURI)) {
                 AutoTieringPolicy policy = _dbClient.queryObject(AutoTieringPolicy.class, policyURI);
                 slo = policy.getVmaxSLO();
                 workload = policy.getVmaxWorkload().toUpperCase();
-                srp = storagePool.getPoolName();
-            } else {
-                return null;
             }
 
             // Try to find existing storage group.
@@ -6754,7 +6751,7 @@ public class SmisCommandHelper implements SmisConstants {
             String policy) {
         CloseableIterator<CIMInstance> sgInstanceIr = null;
         try {
-            _log.info("Trying to find volume {} is associated with any phantom SG with expected FAST {}", volNativeId, policy);
+            _log.info("Trying to find if volume {} is associated with any phantom SG with expected FAST {}", volNativeId, policy);
             CIMObjectPath volumePath = _cimPath.getVolumePath(storage, volNativeId);
             sgInstanceIr = getAssociatorInstances(storage, volumePath, null,
                     SmisCommandHelper.MASKING_GROUP_TYPE.SE_DeviceMaskingGroup.name(), null, null, SmisConstants.PS_ELEMENT_NAME);

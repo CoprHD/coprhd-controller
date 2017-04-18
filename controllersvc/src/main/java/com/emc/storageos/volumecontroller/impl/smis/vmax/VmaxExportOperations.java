@@ -868,7 +868,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
                 // Export fast volumes to 2 different nodes.
                 String policyName = volumeUriHLU.getAutoTierPolicyName();
                 if (_helper.isFastPolicy(policyName)) {
-                    if (storage.checkIfVmax3()) {
+                    if (isVmax3) {
                         policyName = _helper.getVMAX3FastSettingForVolume(boUri, policyName);
                     }
                     fastAssociatedAlready = _helper.checkVolumeAssociatedWithAnySGWithPolicy(bo.getNativeId(), storage,
@@ -3738,7 +3738,35 @@ public class VmaxExportOperations implements ExportMaskOperations {
         WBEMClient client = _helper.getConnection(storage).getCimClient();
 
         for (VolumeURIHLU volumeUriHLU : volumeURIHLUs) {
-            policyToVolumeGroup.put(new StorageGroupPolicyLimitsParam(volumeUriHLU, storage, _helper), volumeUriHLU);
+            StorageGroupPolicyLimitsParam sgPolicyLimitsParam = null;
+            URI boUri = volumeUriHLU.getVolumeURI();
+            BlockObject bo = BlockObject.fetch(_dbClient, boUri);
+            String policyName = volumeUriHLU.getAutoTierPolicyName();
+            boolean fastAssociatedAlready = false;
+            // Always treat fast volumes as non-fast if fast is associated on these volumes already
+            // Export fast volumes to 2 different nodes.
+            if (_helper.isFastPolicy(policyName)) {
+                policyName = _helper.getVMAX3FastSettingForVolume(boUri, policyName);
+                fastAssociatedAlready = _helper.checkVolumeAssociatedWithAnySGWithPolicy(bo.getNativeId(), storage,
+                        policyName);
+            }
+
+            // Force the policy name to NONE if any of the following conditions are true:
+            // 1. FAST policy is already associated.
+            // 2. The BO is a RP Journal - Per RecoverPoint best practices a journal volume
+            // should not be created with a FAST policy assigned.
+            if (fastAssociatedAlready || isRPJournalVolume(bo)) {
+                _log.info("Forcing policy name to NONE to prevent volume from using FAST policy.");
+                volumeUriHLU.setAutoTierPolicyName(Constants.NONE);
+                sgPolicyLimitsParam = new StorageGroupPolicyLimitsParam(Constants.NONE,
+                        volumeUriHLU.getHostIOLimitBandwidth(),
+                        volumeUriHLU.getHostIOLimitIOPs(),
+                        storage);
+            } else {
+                sgPolicyLimitsParam = new StorageGroupPolicyLimitsParam(volumeUriHLU, storage, _helper);
+            }
+
+            policyToVolumeGroup.put(sgPolicyLimitsParam, volumeUriHLU);
         }
 
         _log.info("{} Groups generated based on grouping volumes by fast policy", policyToVolumeGroup.size());

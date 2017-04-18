@@ -945,10 +945,12 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
 
     @Override
     public void expandFS(URI storage, URI uri, long newFSsize, String opId) throws ControllerException {
+
         ControllerUtils.setThreadLocalLogData(uri, opId);
         FileShare fs = null;
         List<QuotaDirectory> qdList = null;
         try {
+            _log.info("expandFS - starts");
             StorageSystem storageObj = _dbClient.queryObject(StorageSystem.class, storage);
             FileDeviceInputOutput args = new FileDeviceInputOutput();
             fs = _dbClient.queryObject(FileShare.class, uri);
@@ -964,9 +966,10 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             //update quota with new size.
 
             if(storageObj.deviceIsType(Type.isilon)) {
-                final long MIN_EXPAND_SIZE = SizeUtil.translateSize("1MB") + 1;
                 long expand = newFSsize - fs.getCapacity();
-                if(expand < MIN_EXPAND_SIZE) {
+                Long newcapcity  = expand;
+                _log.info("new capacity", newcapcity.toString());
+                if(expand < 0) {
                     setQuotaDirectoriesExistsOnFS(args);
                 }
             }

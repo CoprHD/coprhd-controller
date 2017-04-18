@@ -1051,6 +1051,7 @@ srdf_sim_setup() {
 srdf_setup() {
     # do this only once
     echo "Setting up SRDF"
+    SRDF_V3_VMAXA_SMIS_DEV=SRDF-V3-VMAX-1-SIM
     SRDF_V3_VMAXA_SID=${SRDF_V3_VMAXA_NATIVEGUID:10:24}
     SRDF_V3_VMAXB_SID=${SRDF_V3_VMAXB_NATIVEGUID:10:24}
     SRDF_SSH_ERROR=0
@@ -1682,6 +1683,30 @@ test_2() {
                                     failure_004:failure_041_XtremIOStorageDeviceController.doDeleteVolume_after_delete_volume"
     fi
 
+    if [ "${SS}" = "srdf" ]
+    then
+	common_failure_injections="failure_004_final_step_in_workflow_complete \
+			       failure_005_BlockDeviceController.createVolumes_before_device_create \
+                               failure_006_BlockDeviceController.createVolumes_after_device_create \
+                               failure_004:failure_013_BlockDeviceController.rollbackCreateVolumes_before_device_delete \
+                               failure_004:failure_014_BlockDeviceController.rollbackCreateVolumes_after_device_delete
+                               failure_078_SRDFDeviceController.createSrdfCgPairsStep_before_cg_pairs_create \
+                               failure_079_SRDFDeviceController.createSrdfCgPairsStep_after_cg_pairs_create \
+                               failure_004:failure_076_SRDFDeviceController.rollbackSRDFLinksStep_before_link_rollback \
+                               failure_004:failure_077_SRDFDeviceController.rollbackSRDFLinksStep_after_link_rollback"
+
+	storage_failure_injections="failure_015_SmisCommandHelper.invokeMethod_CreateGroup \
+                                    failure_015_SmisCommandHelper.invokeMethod_EMCCreateMultipleTypeElementsFromStoragePool \
+                                    failure_015_SmisCommandHelper.invokeMethod_AddMembers \
+                                    failure_015_SmisCommandHelper.invokeMethod_GetDefaultReplicationSettingData \
+	                            failure_015_SmisCommandHelper.invokeMethod_CreateGroupReplica \
+                                    failure_015_SmisCommandHelper.invokeMethod_EMCRefreshSystem\
+                                    failure_004:failure_015_SmisCommandHelper.invokeMethod_RemoveMembers \
+                                    failure_004:failure_015_SmisCommandHelper.invokeMethod_DeleteGroup \
+                                    failure_004:failure_015_SmisCommandHelper.invokeMethod_ReturnElementsToStoragePool"    
+    fi
+
+
     failure_injections="${common_failure_injections} ${storage_failure_injections}"
 
     # Placeholder when a specific failure case is being worked...
@@ -1708,6 +1733,11 @@ test_2() {
 
       # Create a new CG
       CGNAME=wf-test2-cg-${item}
+      if [ "${SS}" = "srdf" ]
+      then
+          CGNAME=cg${item}
+      fi
+
       runcmd blockconsistencygroup create ${PROJECT} ${CGNAME}
 
       # Check the state of the volume that doesn't exist

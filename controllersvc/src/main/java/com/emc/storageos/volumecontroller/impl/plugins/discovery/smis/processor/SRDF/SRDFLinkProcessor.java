@@ -20,7 +20,6 @@ import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.Volume.LinkStatus;
 import com.emc.storageos.db.client.model.Volume.PersonalityTypes;
-import com.emc.storageos.db.client.model.remotereplication.RemoteReplicationPair;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.plugins.BaseCollectionException;
 import com.emc.storageos.plugins.common.Constants;
@@ -91,35 +90,12 @@ public class SRDFLinkProcessor extends StorageProcessor {
                 expectedTargetVolume.setLinkStatus(newStatus);
                 dbClient.persistObject(expectedSourceVolume);
                 dbClient.persistObject(expectedTargetVolume);
-                createOrUpdateRemoteReplicationPair(expectedSourceVolume, expectedTargetVolume, dbClient);
+                RemoteReplicationUtils.updateRemoteReplicationPairForSrdfPair(expectedSourceVolume.getId(), expectedTargetVolume.getId(), dbClient);
             }
         } //
         catch (Exception e) {
             _log.error("Validating SRDF Source and Target characteristics failed :", e);
         }
-    }
-
-    /**
-     * @param expectedSourceVolume
-     * @param expectedTargetVolume
-     * @param dbClient
-     */
-    private void createOrUpdateRemoteReplicationPair(Volume expectedSourceVolume, Volume expectedTargetVolume, DbClient dbClient) {
-        List<RemoteReplicationPair> rrSrcPairs = RemoteReplicationUtils.getRemoteReplicationPairsForSourceElement(expectedSourceVolume.getId(), dbClient);
-        if (rrSrcPairs == null || rrSrcPairs.isEmpty()) {
-            // check for the expected target as the source
-            List<RemoteReplicationPair> rrTgtPairs = RemoteReplicationUtils.getRemoteReplicationPairsForSourceElement(expectedTargetVolume.getId(), dbClient);
-            if (rrTgtPairs == null || rrTgtPairs.isEmpty()) {
-                // no pair exists for source and target, create a new one
-                RemoteReplicationUtils.createRemoteReplicationPairForSrdfPair(expectedSourceVolume.getId(), expectedTargetVolume.getId(), dbClient);
-            } else {
-                // TODO SBSDK we have a remote replication pair with source and target switched; need to modify this.
-            }
-        } else {
-            // TODO SBSDK we have an existing remote replication pair; need to update it with current information
-            //RemoteReplicationUtils.updateRemoteReplicationPairForSrdfPair(expectedSourceVolume.getId(), expectedTargetVolume.getId(), dbClient);
-        }
-        
     }
 
     @Override

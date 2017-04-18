@@ -336,4 +336,18 @@ public class RemoteReplicationUtils {
     public static String getRemoteReplicationPairNativeIdForSrdfPair(Volume source, Volume target) {
         return source.getNativeId()+ Constants.PLUS + target.getNativeId();
     }
+
+    /**
+     * updates properties of a RemoteReplicationPairobject for an SRDF source and target; will handle swapping source and target
+     * creates a new pair object if there isn't already one for the source and target pair
+     * 
+     * @param sourceVolumeId
+     * @param targetVolumeId
+     * @param dbClient
+     */
+    public static void updateRemoteReplicationPairForSrdfPair(URI sourceVolumeId, URI targetVolumeId, DbClient dbClient) {
+        com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationPair driverRrPair = buildRemoteReplicationPairForSrdfPair(sourceVolumeId, targetVolumeId, dbClient);
+        RemoteReplicationDataClient remoteReplicationDataClient = new RemoteReplicationDataClientImpl(dbClient);
+        remoteReplicationDataClient.updateRemoteReplicationPair(driverRrPair, sourceVolumeId, targetVolumeId);
+    }
 }

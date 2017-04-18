@@ -450,6 +450,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
     }
 
     private void isiUpdateQuotaDirs(IsilonApi isi, FileDeviceInputOutput args) throws IsilonException {
+        _log.info("isiUpdateQuotaDirs - update the quota directires of fileshare");
         long capacity = args.getNewFSCapacity();
         List<QuotaDirectory> quotaDirectories = args.getUpdateQuota();
         if (quotaDirectories != null && !quotaDirectories.isEmpty()) {

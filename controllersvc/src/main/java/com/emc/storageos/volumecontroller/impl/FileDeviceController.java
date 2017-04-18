@@ -20,6 +20,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
+import com.emc.storageos.db.client.util.SizeUtil;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -957,11 +958,17 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             args.setFileOperation(true);
             //update fs object with new size, once back is updated then update the fs in db also
             args.setNewFSCapacity(newFSsize);
+
             args.setOpId(opId);
 
             //update quota with new size.
+
             if(storageObj.deviceIsType(Type.isilon)) {
-                setQuotaDirectoriesExistsOnFS(args);
+                final long MIN_EXPAND_SIZE = SizeUtil.translateSize("1MB") + 1;
+                long expand = newFSsize - fs.getCapacity();
+                if(expand < MIN_EXPAND_SIZE) {
+                    setQuotaDirectoriesExistsOnFS(args);
+                }
             }
             // work flow and we need to add TaskCompleter(TBD for vnxfile)
             WorkflowStepCompleter.stepExecuting(opId);
@@ -3101,17 +3108,22 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
         _dbClient.queryByConstraint(ContainmentConstraint.Factory
                 .getQuotaDirectoryConstraint(args.getFsId()), qdIDList);
 
-        _log.info("getQuotaDirectories of : FS {}: {} ", args.getFsId().toString(),
-                qdIDList.toString());
+        _log.info("getQuotaDirectories of : FS {}: size {} ", args.getFsId().toString(),
+                qdIDList.size());
         List<QuotaDirectory> qdList = _dbClient.queryObject(
                 QuotaDirectory.class, qdIDList);
 
         //set the quota size
         if (qdList != null && !qdList.isEmpty()) {
             for (QuotaDirectory quotaDirectory : qdList) {
+                _log.info("getQuotaDirectories of : FS {}: {}",
+                        args.getFsId().toString(), quotaDirectory.getPath());
                 quotaDirectory.setSize(capacity);
             }
             args.setUpdateQuota(qdList);
+        } else {
+            _log.info("getQuotaDirectories of : FS {}: {} ", args.getFsId().toString(),
+                    "empty");
         }
     }
 

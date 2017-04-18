@@ -3106,24 +3106,24 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
     private void setQuotaDirectoriesExistsOnFS(FileDeviceInputOutput args) {
         _log.info("setQuotaDirectoriesExistsOnFS- get the quota that need to downsize");
         Long capacity = args.getNewFSCapacity();
+
+
         URIQueryResultList qdIDList = new URIQueryResultList();
 
         _dbClient.queryByConstraint(ContainmentConstraint.Factory
                 .getQuotaDirectoryConstraint(args.getFsId()), qdIDList);
 
-        _log.info("getQuotaDirectories of : FS {}: size {} ", args.getFsId().toString(),
-                qdIDList.size());
-        List<QuotaDirectory> qdList = _dbClient.queryObject(
+        List<QuotaDirectory> quotaDirectoryList = _dbClient.queryObject(
                 QuotaDirectory.class, qdIDList);
 
         //set the quota size
-        if (qdList != null && !qdList.isEmpty()) {
-            for (QuotaDirectory quotaDirectory : qdList) {
+        if (quotaDirectoryList != null && !quotaDirectoryList.isEmpty()) {
+            for (QuotaDirectory quotaDirectory : quotaDirectoryList) {
                 _log.info("getQuotaDirectories of : FS {}: {}",
                         args.getFsId().toString(), quotaDirectory.getPath());
                 quotaDirectory.setSize(capacity);
             }
-            args.setUpdateQuota(qdList);
+            args.setUpdateQuota(quotaDirectoryList);
         } else {
             _log.info("getQuotaDirectories of : FS {}: {} ", args.getFsId().toString(),
                     "empty");

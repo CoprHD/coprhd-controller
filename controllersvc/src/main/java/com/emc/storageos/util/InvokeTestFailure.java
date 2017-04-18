@@ -111,6 +111,8 @@ public final class InvokeTestFailure {
     public static final String ARTIFICIAL_FAILURE_075 = "failure_075_SRDFDeviceController.createSRDFVolumePairStep_after_link_create";
     public static final String ARTIFICIAL_FAILURE_076 = "failure_076_SRDFDeviceController.rollbackSRDFLinksStep_before_link_rollback";
     public static final String ARTIFICIAL_FAILURE_077 = "failure_077_SRDFDeviceController.rollbackSRDFLinksStep_after_link_rollback";
+    public static final String ARTIFICIAL_FAILURE_078 = "failure_078_SRDFDeviceController.createSrdfCgPairsStep_before_cg_pairs_create";
+    public static final String ARTIFICIAL_FAILURE_079 = "failure_079_SRDFDeviceController.createSrdfCgPairsStep_after_cg_pairs_create";
 
     private static final int FAILURE_SUBSTRING_LENGTH = 11;
 

@@ -1861,7 +1861,9 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
             List<URI> combined = new ArrayList<URI>(sourceURIs);
             combined.addAll(targetURIs);
             completer = new SRDFMirrorCreateCompleter(combined, vpoolChangeUri, opId);
+            InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_078);
             getRemoteMirrorDevice().doCreateCgPairs(system, sourceURIs, targetURIs, completer);
+            InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_079);
         } catch (Exception e) {
             ServiceError error = DeviceControllerException.errors.jobFailed(e);
             if (null != completer) {

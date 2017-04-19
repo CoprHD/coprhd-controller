@@ -34,6 +34,8 @@ import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.constraint.NamedElementQueryResultList.NamedElement;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.StringSetMap;
+import com.emc.storageos.db.client.model.uimodels.CustomServicesDBAnsibleInventoryResource;
+import com.emc.storageos.db.client.model.uimodels.CustomServicesDBAnsiblePrimitive;
 import com.emc.storageos.db.client.model.uimodels.CustomServicesDBAnsibleResource;
 import com.emc.storageos.primitives.db.ansible.CustomServicesAnsiblePrimitive;
 import com.emc.storageos.primitives.db.ansible.CustomServicesAnsibleResource;
@@ -79,7 +81,7 @@ public class CustomServicesAnsibleResourceDAO implements CustomServicesResourceD
     }
 
     @Override
-    public CustomServicesAnsibleResource updateResource(final URI id, final String name, final byte[] stream) {
+    public CustomServicesAnsibleResource updateResource(final URI id, final String name, final byte[] stream, final String parentId) {
         final StringSet playbooks = stream == null ? null : getPlaybooks(stream);
 
         final StringSetMap attributes;
@@ -91,12 +93,17 @@ public class CustomServicesAnsibleResourceDAO implements CustomServicesResourceD
         }
 
         return CustomServicesDBHelper.updateResource(CustomServicesAnsibleResource.class, CustomServicesDBAnsibleResource.class,
-                primitiveManager, id, name, stream, attributes);
+                primitiveManager, id, name, stream, attributes, null, client,
+                CustomServicesDBAnsibleInventoryResource.class, CustomServicesDBAnsibleInventoryResource.PARENTID,
+                CustomServicesDBAnsiblePrimitive.class, CustomServicesDBAnsiblePrimitive.RESOURCE);
     }
 
     @Override
     public void deactivateResource(URI id) {
-        CustomServicesDBHelper.deactivateResource(CustomServicesDBAnsibleResource.class, primitiveManager, client, id);
+        // The Ansible resource is referenced by ansible primitive and the ansible inventory resource
+        CustomServicesDBHelper.deactivateResource(CustomServicesDBAnsibleResource.class, primitiveManager, client, id,
+                CustomServicesDBAnsibleInventoryResource.class, CustomServicesDBAnsibleInventoryResource.PARENTID,
+                CustomServicesDBAnsiblePrimitive.class, CustomServicesDBAnsiblePrimitive.RESOURCE);
     }
 
     @Override

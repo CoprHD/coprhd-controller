@@ -146,12 +146,12 @@ public class CustomServicesRESTApiPrimitiveDAO implements CustomServicesPrimitiv
                     }
                 },
                 CustomServicesDBHelper.updateAttributesFunction(ATTRIBUTES),
-                id);
+                id, null);
     }
 
     @Override
     public void deactivate(final URI id) {
-        CustomServicesDBHelper.deactivate(CustomServicesDBRESTApiPrimitive.class, primitiveManager, client, id);
+        CustomServicesDBHelper.deactivate(CustomServicesDBRESTApiPrimitive.class, primitiveManager, client, id, CustomServicesDBNoResource.class, null);
     }
 
     @Override

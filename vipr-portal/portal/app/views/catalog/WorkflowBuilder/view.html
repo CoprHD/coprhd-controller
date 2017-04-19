@@ -29,7 +29,7 @@
     }
 
     .jstree-anchor {
-        width: 350px;
+        width: 300px;
         text-overflow: ellipsis;
         overflow: hidden;
     }
@@ -45,58 +45,51 @@
         padding-top: 7px;
         padding-bottom: 7px;
     }
-
 </style>
-
-<div id="builderController" ng-controller="builderController" class="row">
-    <div class="builder-column">
-        <ul id="wftabs" class="nav nav-tabs" role="tablist">
-            <li class="active"><a href="#home" role="tab" data-toggle="tab" data-id="home"><span class="glyphicon glyphicon-home "></span>&nbsp;Workflow Library</a></li>
-            <li ng-repeat="workflowTab in workflowTabs" class=""><a href="{{workflowTab.href}}" role="tab" data-toggle="tab">{{workflowTab.name}}<button class="close" ng-click="closeTab(workflowTab.elementid)" type="button" title="Close tab"><span aria-hidden="true">&times;</span></button></a></li>
-        </ul>
-
-        <div class="tab-content">
-            <div ng-controller="treeController" class="tab-pane active" id="home" ng-init="initializeTreeConfig(true)">
-                #{alerts/}
-                <div class="col-md-5">
-                    <div id="theSidebar" class="home-sidebar" >
-                        <div class="input-group">
-                            <input style="float:left;width:300px;margin-right:10px;"  class="search-input form-control" placeholder="Search..."></input>
-                            <input style="width:200px;" class="form-control" placeholder="Filter By"></input>
-                        </div>
-                        <div style="overflow: auto; height:90%; padding: 10px;overflow-x: hidden;">
-                            <div id="jstree_demo" >
-                            </div>
-                        </div>
-                    </div>
+<div id="row-main" class="row">
+    <div ng-controller="treeController" ng-init="initializeTreeConfig(true)">
+        <div id="libSidebar" class="col-md-4" style="padding-right:0px; padding-left:5px;">
+            <div id="theSidebar" class="home-sidebar" >
+                <div class="input-group">
+                    <input style="float:left;width:200px;margin-right:10px;"  class="search-input form-control" placeholder="Search..."></input>
+                    <input style="width:175px;" class="form-control" placeholder="Filter By"></input>
                 </div>
-                <div class="col-md-7">
-                    <div style="height:80vh; border:1px solid #000; padding:20px;">
-                        <div ng-show="shellPreview">
-                            <dl class="dl-horizontal">
-                                <!--TODO: Remove this temporary data.-->
-                                <dt>Name:</dt>
-                                <dd>My Shell Script1</dd>
-                                <dt>Description:</dt>
-                                <dd>My shell script description</dd>
-                                <dt>Type:</dt>
-                                <dd>Shell Script</dd>
-                                <dt>Inputs:</dt>
-                                <dd>input1, input2</dd>
-                                <dt>Outputs:</dt>
-                                <dd>output1, output2</dd>
-                            </dl>
-                        </div>
-                        <div ng-show="noPreview">
-                            No Preview
-                        </div>
-                    </div>
-                    <div style="padding:10px;">
-                        <p><strong>My Workflow description</strong><br>Updated on 10/10/10</p>
+                <div style="overflow: auto; height:100%; overflow-x: hidden;">
+                    <div id="jstree_demo" style="padding-top:10px;">
                     </div>
                 </div>
             </div>
-            #{workflowDesigner/}
+        </div>
+
+        <div>
+            <button class="lib-slider-button"  ng-click="toggleLib();">
+                <span ng-class="{'glyphicon-chevron-left':libOpen,'glyphicon-chevron-right':!libOpen}" class="glyphicon" style="width:8px;font-size:10px;"></span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Workflow Tabs -->
+    <div id="builderController" ng-controller="builderController" class="col-md-8" style="-webkit-transition-duration: 0.8s;">
+        <div class="builder-column">
+            <div ng-show="isWorkflowTabsEmpty()">
+                <div class="homeTab">
+                        <div>
+                            Create new workflow in custom library and/or edit
+                        </div>
+                </div>
+            </div>
+
+            <ul id="wftabs" class="nav nav-tabs workflow-nav-tabs" role="tablist" ng-hide="isWorkflowTabsEmpty()">
+                <li ng-repeat="workflowTab in workflowTabs" class="">
+                    <a href="{{workflowTab.href}}" role="tab" data-toggle="tab">{{workflowTab.name}}
+                        <button class="close" ng-click="closeTab(workflowTab.elementid)" type="button" title="Close tab"><span aria-hidden="true">&times;</span></button>
+                    </a>
+                </li>
+            </ul>
+
+            <div class="tab-content">
+                #{workflowDesigner/}
+            </div>
         </div>
     </div>
 </div>

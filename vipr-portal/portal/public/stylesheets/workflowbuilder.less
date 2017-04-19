@@ -7,10 +7,22 @@
     left: 88px;
     top: 159px;
     max-width: 100vw;
-    overflow: hidden;
     border: 1px solid rgb(192, 192, 192);
 }
 
+.homeTab{
+    background-color: #fcfcfc;
+    height:100vh;
+    text-align: center;
+    padding-top: 300px;
+    font-size: 30px;
+    color: #efeded;
+}
+
+.newEditor {
+    height:80vh;
+
+}
 .success-icon {
     color:#5cb85c;
 }
@@ -26,13 +38,11 @@
     height:4000px;
     position:relative;
     background-image: url("/public/img/grid.png");
+	background-color: #f7f7f7;
 }
 .example-item-card-wrapper {
     position:absolute;
-    overflow: visible;
     z-index:200;
-    min-width: 100px;
-    //min-height: 70px;
 }
 
 .example-item-card-wrapper a {
@@ -40,14 +50,27 @@
 }
 
 .item {
-    margin-top: 0;
+    margin-top: 2px;
     margin-bottom: 0;
-    padding-bottom:15px;
-    padding-top:15px;
-    background-color: #428bca;
+    padding-top:10px;
+    background-color: white;
     border-color: #357ebd;
     border-radius: 3px;
     pointer-events:none;
+    border: 2px solid grey;
+    height: 75px;
+    width: 175px;
+    text-overflow: ellipsis;
+    word-wrap: break-word;
+	
+}
+
+.item-start-end {
+    height:40px;
+    width:70px;
+    border: 2px solid #428bca;
+    border-radius:50%;
+    background-color: #428bca;
 }
 
 .sidebar {
@@ -61,7 +84,7 @@
     background-color: white !important;
     z-index:999 !important;
     width: 100%;
-    height: 80vh;
+    height: 90vh;
 }
 
 .buttonbar {
@@ -89,16 +112,25 @@
 
 .jsplumb-endpoint {
     z-index: 5;
-    opacity: 0.2;
+    //opacity: 0.2;
     stroke: none;
 }
 
 .itemText {
+    color: black;
+    font-size: 13px;
+    pointer-events:none;
+    float: left;
+    width: inherit;
+    padding: 5px;
+}
+
+.itemTextStartEnd {
     color: white;
     text-align: center;
     margin: 10px;
     font-size: 15px;
-    pointer-events:none;
+
 }
 
 .draggable-card {
@@ -117,7 +149,7 @@
 
 .button-step-close {
     margin: 5px;
-    color: white;
+    color: black;
 }
 
 .button-container {
@@ -126,7 +158,8 @@
 }
 
 .highlighted {
-    border: 2px solid limegreen;
+    border: 2px solid #67bbe0;
+	background-color: #beebff;
 }
 
 table, th , td {
@@ -142,7 +175,7 @@ table, th , td {
     width: 0; /* 0 width - change this with JavaScript */
     position: absolute; /* Stay in place */
     z-index: 2; /* Stay on top */
-    right: 52px;
+    right: 6px;
     background-color: #eee; /* Black*/
     overflow-x: hidden; /* Disable horizontal scroll */
     padding-top: 20px; /* Place content 60px from the top */
@@ -151,7 +184,7 @@ table, th , td {
 }
 
 .sidenav-open {
-    width: 900px;
+    width: 600px;
     padding-left: 20px;
     padding-right: 20px;
 }
@@ -171,18 +204,17 @@ table, th , td {
     margin-left: 50px;
 }
 
-.slider-button {
+.lib-slider-button {
     padding: 1px;
-    height: 100%;
+    height: 100vh;
     position: absolute;
     z-index: 1; /* Stay on top */
-    right: 52px;
     transition: margin-right .5s;
     margin-right: 0px;
 }
 
 .slider-open {
-    margin-right: 900px;
+    margin-right: 600px;
 }
 
 #sliderMenu {
@@ -200,10 +232,50 @@ table, th , td {
     position: absolute;
     right: 8px;
     bottom: 8px;
-    top: 159px;
+    top: 105px;
+
     z-index: 1;
 }
 
 .builder-container {
     clear: both;
+}
+
+#libSidebar {
+  /* for the animation */
+  transition: margin 0.8s ease;
+}
+
+.collapsedLib {
+  /* hide it for small displays*/
+  display: none;
+}
+
+@media (min-width: 992px) {
+  .collapsedLib {
+    display: block;
+    /* same width as sidebar */
+    margin-left: -33.334%;
+  }
+}
+
+#row-main {
+  /* necessary to hide collapsed sidebar */
+  overflow-x: hidden;
+}
+
+#builderController {
+  /* for the animation */
+  transition: width 0.8s ease;
+}
+
+#inputDiv .col-sm-3,
+#inputDiv .col-sm-9,
+#inputDiv .col-sm-12{
+   padding-right: 0 !important;
+   padding-left: 0 !important;
+}
+
+#inputDiv .form-group {
+   margin-bottom: 0 !important;
 }

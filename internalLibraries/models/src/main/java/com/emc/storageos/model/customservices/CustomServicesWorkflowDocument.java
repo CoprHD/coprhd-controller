@@ -87,6 +87,9 @@ public class CustomServicesWorkflowDocument {
         private String defaultValue;
         private String value;
         private String group;
+        private String description;
+        private String inputFieldType;
+        private String tableName;
         private boolean required = true;
         private boolean locked = false;
 
@@ -152,6 +155,30 @@ public class CustomServicesWorkflowDocument {
         }
         public void setLocked(boolean locked) {
             this.locked = locked;
+        }
+
+        @XmlElement(name = "description")
+        public String getDescription() {
+            return description;
+        }
+        public void setDescription(String description) {
+            this.description = description;
+        }
+
+        @XmlElement(name = "input_field_type")
+        public String getInputFieldType() {
+            return inputFieldType;
+        }
+        public void setInputFieldType(String inputfieldtype) {
+            this.inputFieldType = inputfieldtype;
+        }
+
+        @XmlElement(name = "table_name")
+        public String getTableName() {
+            return tableName;
+        }
+        public void setTableName(String tablename) {
+            this.tableName = tablename;
         }
     }
 

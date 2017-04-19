@@ -1022,8 +1022,7 @@ public class HostService extends TaskResourceService {
                 ResourceOperationTypeEnum.ADD_HOST_PAIRED_INITIATOR);
 
         // if host in use. update export with new initiator
-        if (ComputeSystemHelper.isHostInUse(_dbClient, host.getId())
-                && (cluster == null || cluster.getAutoExportEnabled())) {
+        if (ComputeSystemHelper.isHostInUse(_dbClient, host.getId())) {
             ComputeSystemController controller = getController(ComputeSystemController.class, null);
             controller.addInitiatorsToExport(firstInitiator.getHost(),
                     Arrays.asList(firstInitiator.getId(), secondInitiator.getId()), taskId);

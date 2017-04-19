@@ -37,6 +37,7 @@ import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.NamedElementQueryResultList.NamedElement;
 import com.emc.storageos.db.client.model.AbstractChangeTrackingSet;
+import com.emc.storageos.db.client.model.ModelObject;
 import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
@@ -80,7 +81,6 @@ public final class CustomServicesDBHelper {
 
     @SuppressWarnings("rawtypes")
     private static final Class<Map> RESOURCE_ATTRIBUTES_ARG = Map.class;
-
     public static final List<NamedElement> EMPTY_ELEMENT_LIST = Collections.emptyList();
 
     private CustomServicesDBHelper() {
@@ -90,7 +90,7 @@ public final class CustomServicesDBHelper {
      * Given a DB column family and an ID get the primitive from the database and return it
      * as a primitive type java object
      * 
-     * @param type The primitive type
+     * @param mapper The primitive mapper
      * @param clazz the column family java class
      * @param primitiveManager The database access component
      * @param id The id of the primitive
@@ -109,7 +109,7 @@ public final class CustomServicesDBHelper {
      * Given a creation param, DB column family, and primitive type save a new primitive to the DB
      * and return the primitive type java object
      * 
-     * @param type The primitive type java object
+     * @param mapper The primitive mapper
      * @param dbModel The database column family java class
      * @param resourceType The resource
      * @param primitiveManager The database access component
@@ -134,11 +134,11 @@ public final class CustomServicesDBHelper {
         primitive.setLabel(param.getName());
         primitive.setFriendlyName(param.getFriendlyName());
         primitive.setDescription(param.getDescription());
-        
-        if( !resourceType.isAssignableFrom(CustomServicesDBNoResource.class)) {
+
+        if (!resourceType.isAssignableFrom(CustomServicesDBNoResource.class)) {
             final CustomServicesDBResource resource = primitiveManager.findResource(resourceType, param.getResource());
             primitive.setResource(new NamedURI(resource.getId(), resource.getLabel()));
-        } else if( null != param.getResource() ) {
+        } else if (null != param.getResource()) {
             throw APIException.badRequests.invalidParameter("resource", param.getResource().toString());
         }
         primitive.setAttributes(createAttributesFunc.apply(param));
@@ -153,7 +153,7 @@ public final class CustomServicesDBHelper {
      * Given an ID, update param, DB column family, and primitive type save a new primitive to the DB
      * and return the primitive type java object
      * 
-     * @param type The primitive type class
+     * @param mapper The primitive mapper
      * @param dbModel The DB column family class
      * @param resourceType The resource
      * @param primitiveManager The database access component
@@ -171,8 +171,8 @@ public final class CustomServicesDBHelper {
             final ModelClient client,
             final CustomServicesPrimitiveUpdateParam param,
             final Function<UpdatePrimitive<DBModel>, StringSetMap> updateInputFunc,
-            final Function <UpdatePrimitive<DBModel>, StringMap> updateAttributesFunc,
-            final URI id) {
+            final Function<UpdatePrimitive<DBModel>, StringMap> updateAttributesFunc,
+            final URI id, final Class<? extends CustomServicesDBResource> referencedByresourceType) {
         final DBModel primitive = primitiveManager.findById(dbModel, id);
 
         if (null == primitive) {
@@ -190,16 +190,48 @@ public final class CustomServicesDBHelper {
         if (null != param.getDescription()) {
             primitive.setDescription(param.getDescription());
         }
+
+        final NamedURI oldResourceId = primitive.getResource();
+        final CustomServicesDBResource resource;
+        if(param.getResource() == null) {
+            resource = null;
+        } else if(!resourceType.isAssignableFrom(CustomServicesDBNoResource.class)){
+            resource = primitiveManager.findResource(resourceType, param.getResource());
+            if (null == resource) {
+                throw APIException.notFound.unableToFindEntityInURL(param.getResource());
+            }
+            primitive.setResource(new NamedURI(resource.getId(), resource.getLabel()));
+        } else {
+            throw APIException.badRequests.invalidParameter("resource", param.getResource().toString());
+        }
+
+
         final UpdatePrimitive<DBModel> updatePrimitive = new UpdatePrimitive<DBModel>(param, primitive);
-        updateInputFunc.apply(updatePrimitive);
+
         updateAttributesFunc.apply(updatePrimitive);
+
+        updateInputFunc.apply(updatePrimitive);
         updateOutput(param.getOutput(), primitive);
+
         client.save(primitive);
+
+        // check and delete the old resource if there are no primitives referencing it
+        // check that the resource is not referenced by other primitives
+        if (null != resource && null != oldResourceId && null == checkResourceNotReferenced(dbModel, CustomServicesDBPrimitive.RESOURCE, client,
+                oldResourceId.getURI(), resource)) {
+
+            // Find all the associated inventory files if exist for the old resource and delete the associated inventory files if exist
+            deleteReferencedInventoryResources(oldResourceId.getURI(), primitiveManager, client, referencedByresourceType);
+
+            //delete old resource (after updating the inventory, if any exists)
+            client.delete(primitiveManager.findResource(resourceType, oldResourceId.getURI()));
+        }
+
         return mapper.apply(primitive);
 
     }
 
-    public static StringMap updateAttributes( final Set<String> attributeKeys,
+    public static StringMap updateAttributes(final Set<String> attributeKeys,
             final Map<String, String> attributes,
             final CustomServicesDBPrimitive primitive) {
         final StringMap update = primitive.getAttributes() == null ? new StringMap() : primitive.getAttributes();
@@ -218,7 +250,7 @@ public final class CustomServicesDBHelper {
     /**
      * @param param
      * @param primitive
-     * @return 
+     * @return
      */
     public static StringSetMap updateInput(final Set<String> inputTypes,
             final InputUpdateParam param,
@@ -310,6 +342,30 @@ public final class CustomServicesDBHelper {
     }
 
     /**
+     * Delete the inventory files assciated with the resource files
+     *
+     * @param resourceId The resourceId to search for inventory files
+     * @param primitiveManager The database access component
+     * @param client The model client
+     * @param referencedByresourceType The DB component which is the inventory resource to delete
+     */
+    private static void deleteReferencedInventoryResources(final URI resourceId,
+            final CustomServicesPrimitiveManager primitiveManager,
+            final ModelClient client,
+            final Class<? extends CustomServicesDBResource> referencedByresourceType) {
+        if (null != resourceId && null != referencedByresourceType) {
+            final List<NamedElement> refResource = listResources(referencedByresourceType, client,
+                    CustomServicesDBResource.PARENTID, resourceId.toString());
+            for (final NamedElement eachResource : refResource) {
+                final CustomServicesDBResource refDBResource = primitiveManager.findResource(referencedByresourceType,
+                        eachResource.getId());
+                // delete the associated inventory files if exist for the DB model
+                client.delete(refDBResource);
+            }
+        }
+    }
+
+    /**
      * Deactivate primitive with the given ID
      * 
      * @param clazz The database column family class
@@ -320,15 +376,33 @@ public final class CustomServicesDBHelper {
     public static void deactivate(final Class<? extends CustomServicesDBPrimitive> clazz,
             final CustomServicesPrimitiveManager primitiveManager,
             final ModelClient client,
-            final URI id) {
+            final URI id, final Class<? extends CustomServicesDBResource> resourceType,
+            final Class<? extends CustomServicesDBResource> referencedByresourceType) {
         final CustomServicesDBPrimitive primitive = primitiveManager.findById(clazz, id);
         if (null == primitive) {
             throw APIException.notFound.unableToFindEntityInURL(id);
         }
 
         checkNotInUse(client, id, primitive);
-
         client.delete(primitive);
+
+        if (!resourceType.isAssignableFrom(CustomServicesDBNoResource.class)) {
+            final CustomServicesDBResource resource = primitiveManager.findResource(resourceType, primitive.getResource().getURI());
+            if (null == resource) {
+                throw APIException.notFound.unableToFindEntityInURL(primitive.getResource().getURI());
+            }
+            // check that the resource is not referenced by other primitives
+            if (null != resource && null == checkResourceNotReferenced(clazz, CustomServicesDBPrimitive.RESOURCE, client,
+                    primitive.getResource().getURI(), resource)) {
+
+                // Find all the associated inventory files if exist for the DB model and delete the associated inventory files if exist, for
+                // the resource DB model
+                deleteReferencedInventoryResources(primitive.getResource().getURI(), primitiveManager, client, referencedByresourceType);
+
+                // then delete the resource
+                client.delete(resource);
+            }
+        }
     }
 
     /**
@@ -376,10 +450,10 @@ public final class CustomServicesDBHelper {
     /**
      * Map input of a given primitive from a StringSet map to the input parameter map
      * 
-     * @param primitive A primitive instance
+     * @param inputTypes A primitive instance inputTypes
      * @return An input parameter map
      */
-    public static Map<String, List<InputParameter>> mapInput(final Set<String> inputTypes, 
+    public static Map<String, List<InputParameter>> mapInput(final Set<String> inputTypes,
             final StringSetMap inputMap) {
         final Builder<String, List<InputParameter>> input = ImmutableMap.<String, List<InputParameter>> builder();
         if (null != inputMap) {
@@ -441,7 +515,7 @@ public final class CustomServicesDBHelper {
     /**
      * Convert a given primitive instance's out from a StringSet into a list of OutputParameter
      * 
-     * @param primitive The primitive instance
+     * @param outputSet The primitive instance outputSet
      * @return The converted List of output parameters
      */
     public static List<OutputParameter> mapOutput(final StringSet outputSet) {
@@ -472,7 +546,8 @@ public final class CustomServicesDBHelper {
     /**
      * Convert a given primitive instance's StringMap attributes to a Map
      * 
-     * @param primitive The primitive instance
+     * @param attributeKeys The primitive instance attributeKeys
+     * @param attributes The primitive instance attributes
      * @return The converted attributes map
      */
     static Map<String, String> mapAttributes(final Set<String> attributeKeys, final StringMap attributes) {
@@ -686,7 +761,6 @@ public final class CustomServicesDBHelper {
     /**
      * Given a resource ID and parameters update a resource in the database
      * 
-     * @param type The java class of the resource type
      * @param dbModel The database column family of the resource
      * @param primitiveManager The database access component
      * @param id The ID of the resource
@@ -702,21 +776,51 @@ public final class CustomServicesDBHelper {
             final URI id,
             final String name,
             final byte[] stream,
-            final StringSetMap attributes) {
+            final StringSetMap attributes, final URI parentId, final ModelClient client, final Class<? extends CustomServicesDBResource> referencedByResource,
+            final String referencedByResourceColumnName,
+            final Class<? extends CustomServicesDBPrimitive> referencedByPrimitive, final String referencedByPrimitiveColumnName) {
         final CustomServicesDBResource resource = primitiveManager.findResource(dbModel, id);
         if (null == resource) {
             throw APIException.notFound.unableToFindEntityInURL(id);
         }
+
         if (null != name) {
             resource.setLabel(name);
         }
-        if (null != attributes) {
+
+        if (null != parentId) {
+            resource.setParentId(parentId);
+        }
+
+
+        if (null != attributes || null != stream) {
+            BadRequestException resourceReferencedexception = checkResourceNotReferenced(referencedByPrimitive,
+                    referencedByPrimitiveColumnName,
+                    client, id,
+                    resource);
+
+            if (resourceReferencedexception != null) {
+                throw resourceReferencedexception;
+            }
+
+            resourceReferencedexception = checkResourceNotReferenced(referencedByResource, referencedByResourceColumnName,
+                    client, id,
+                    resource);
+
+            if (resourceReferencedexception != null) {
+                throw resourceReferencedexception;
+            }
             resource.setAttributes(attributes);
-        }
-        if (null != stream) {
             resource.setResource(Base64.encodeBase64(stream));
+
+            primitiveManager.save(resource);
+
+        } else {
+            // update the name (which is label of the CF). This has no issue with being referenced.
+            primitiveManager.save(resource);
+
         }
-        primitiveManager.save(resource);
+
         return makeResourceType(type, resource);
     }
 
@@ -731,15 +835,47 @@ public final class CustomServicesDBHelper {
     public static void deactivateResource(
             final Class<? extends CustomServicesDBResource> dbModel,
             final CustomServicesPrimitiveManager primitiveManager,
-            final ModelClient client, final URI id) {
+            final ModelClient client, final URI id, final Class<? extends CustomServicesDBResource> referencedByResource,
+            final String referencedByResourceColumnName,
+            final Class<? extends CustomServicesDBPrimitive> referencedByPrimitive, final String referencedByPrimitiveColumnName) {
         final CustomServicesDBResource resource = primitiveManager.findResource(dbModel, id);
         if (null == resource) {
             throw APIException.notFound.unableToFindEntityInURL(id);
         }
+        BadRequestException resourceReferencedexception = checkResourceNotReferenced(referencedByPrimitive,
+                referencedByPrimitiveColumnName,
+                client, id,
+                resource);
 
-        // TODO add in use check
+        if (resourceReferencedexception != null) {
+            throw resourceReferencedexception;
+        }
+
+        resourceReferencedexception = checkResourceNotReferenced(referencedByResource, referencedByResourceColumnName,
+                client, id,
+                resource);
+
+        if (resourceReferencedexception != null) {
+            throw resourceReferencedexception;
+        }
 
         client.delete(resource);
+    }
+
+    private static <T extends CustomServicesDBResource> BadRequestException checkResourceNotReferenced(
+            final Class<? extends ModelObject> referencedByClazz, final String referencedByColumnName,
+            final ModelClient client, final URI resourceId, final T resource) {
+
+        List<NamedElement> resourceExistList = Collections.emptyList();
+        final BadRequestException resourceReferencedexception = null;
+        if (null != referencedByClazz) {
+            resourceExistList = client.findBy(referencedByClazz, referencedByColumnName, resourceId);
+            if (null != resourceExistList && !resourceExistList.isEmpty()) {
+                return APIException.badRequests.resourceHasActiveReferencesWithType(resource.getClass().getSimpleName(), resourceId,
+                        StringUtils.substringAfterLast(referencedByClazz.getName(), "."));
+            }
+        }
+        return resourceReferencedexception;
     }
 
     /**
@@ -767,25 +903,7 @@ public final class CustomServicesDBHelper {
 
         }).iterator();
     }
-    
-    public static class UpdatePrimitive<DBModel extends CustomServicesDBPrimitive> {
-        private final CustomServicesPrimitiveUpdateParam param;
-        private final DBModel primitive;
 
-        public UpdatePrimitive(final CustomServicesPrimitiveUpdateParam param, final DBModel primitive) {
-            this.param = param;
-            this.primitive = primitive;
-        }
-        
-        public CustomServicesPrimitiveUpdateParam param() {
-            return param;
-        }
-        
-        public DBModel primitive() {
-            return primitive;
-        }
-    }
-    
     public static Function<CustomServicesPrimitiveCreateParam, StringSetMap> createInputFunction(final Set<String> inputTypes) {
         return new Function<CustomServicesPrimitiveCreateParam, StringSetMap>() {
             @Override
@@ -803,33 +921,39 @@ public final class CustomServicesDBHelper {
             }
         };
     }
-    
-    public static <DBModel extends CustomServicesDBPrimitive> Function<UpdatePrimitive<DBModel>, StringSetMap> updateInputFunction(final Set<String> inputTypes) {
+
+    public static <DBModel extends CustomServicesDBPrimitive> Function<UpdatePrimitive<DBModel>, StringSetMap>
+            updateInputFunction(final Set<String> inputTypes) {
         return new Function<UpdatePrimitive<DBModel>, StringSetMap>() {
 
             @Override
             public StringSetMap apply(final UpdatePrimitive<DBModel> update) {
                 return CustomServicesDBHelper.updateInput(inputTypes, update.param().getInput(), update.primitive());
             }
-            
+
         };
     }
-    
-    public static <DBModel extends CustomServicesDBPrimitive> Function<UpdatePrimitive<DBModel>, StringMap> updateAttributesFunction(final Set<String> attributes) {
+
+    public static <DBModel extends CustomServicesDBPrimitive> Function<UpdatePrimitive<DBModel>, StringMap>
+            updateAttributesFunction(final Set<String> attributes) {
         return new Function<UpdatePrimitive<DBModel>, StringMap>() {
 
             @Override
             public StringMap apply(final UpdatePrimitive<DBModel> update) {
-               return updateAttributes(attributes, update.param().getAttributes(), update.primitive());
+                return updateAttributes(attributes, update.param().getAttributes(), update.primitive());
             }
-            
+
         };
     }
     
     /**
-     * @param clazz
-     * @param resource
-     * @param bytes
+     * Make a DB resource of a given type given the resource REST model and file bytes
+     * 
+     * @param clazz The type of resource to create
+     * @param resource The REST model for the resource
+     * @param bytes the file bytes
+     * 
+     * @return An instance of the DB model given the REST model
      */
     public static <T extends CustomServicesDBResource> T importResource(final Class<T> clazz, 
             final CustomServicesPrimitiveResourceRestRep resource,
@@ -849,9 +973,12 @@ public final class CustomServicesDBHelper {
     }
 
     /**
-     * @param clazz
-     * @param operation
-     * @return
+     * Make a DB primitive of the given type given the REST model
+     * 
+     * @param clazz The type of the primitive to create
+     * @param operation The REST model
+     * 
+     * @return An instance of the DB model given the REST model
      */
     public static <T extends CustomServicesDBPrimitive> T makeDBPrimitive(final Class<T> clazz,
             final CustomServicesPrimitiveRestRep operation) {
@@ -875,4 +1002,23 @@ public final class CustomServicesDBHelper {
         
         return model;
     }
+
+    public static class UpdatePrimitive<DBModel extends CustomServicesDBPrimitive> {
+        private final CustomServicesPrimitiveUpdateParam param;
+        private final DBModel primitive;
+
+        public UpdatePrimitive(final CustomServicesPrimitiveUpdateParam param, final DBModel primitive) {
+            this.param = param;
+            this.primitive = primitive;
+        }
+
+        public CustomServicesPrimitiveUpdateParam param() {
+            return param;
+        }
+
+        public DBModel primitive() {
+            return primitive;
+        }
+    }
+
 }

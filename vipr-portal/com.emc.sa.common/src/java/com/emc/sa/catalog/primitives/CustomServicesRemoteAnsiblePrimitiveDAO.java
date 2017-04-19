@@ -115,12 +115,12 @@ public class CustomServicesRemoteAnsiblePrimitiveDAO implements CustomServicesPr
                 param,
                 CustomServicesDBHelper.updateInputFunction(INPUT_TYPES), 
                 CustomServicesDBHelper.updateAttributesFunction(ATTRIBUTES),
-                id);
+                id, null);
     }
 
     @Override
     public void deactivate(URI id) {
-        CustomServicesDBHelper.deactivate(CustomServicesDBRemoteAnsiblePrimitive.class, primitiveManager, client, id);
+        CustomServicesDBHelper.deactivate(CustomServicesDBRemoteAnsiblePrimitive.class, primitiveManager, client, id, CustomServicesDBNoResource.class, null);
     }
 
     @Override

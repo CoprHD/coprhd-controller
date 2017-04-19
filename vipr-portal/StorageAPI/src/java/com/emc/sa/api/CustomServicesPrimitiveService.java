@@ -246,6 +246,40 @@ public class CustomServicesPrimitiveService extends CatalogTaggedResourceService
         return CustomServicesPrimitiveMapper.map(resource);
     }
 
+    @POST
+    @Path("resource/{id}/deactivate")
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    public Response deactivateResource(@PathParam("id") final URI id) {
+        final CustomServicesResourceDAO<?> dao = getResourceDAOFromID(id);
+        if (null == dao) {
+            throw APIException.notFound.unableToFindEntityInURL(id);
+        }
+        dao.deactivateResource(id);
+        return Response.ok().build();
+    }
+
+    /**
+     * Update a primitive resource
+     *
+     * @param id the ID of the primitivie to be updated
+     * @param name The user defined name of the resource to be updated
+     * @return
+     */
+    @PUT
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("resource/{id}")
+    public CustomServicesPrimitiveResourceRestRep updateResource(@Context final HttpServletRequest request, @PathParam("id") final URI id,
+            @QueryParam("name") final String name, @QueryParam("parentId") final String parentId) {
+        final CustomServicesResourceDAO<?> dao = getResourceDAOFromID(id);
+        if (null == dao) {
+            throw APIException.notFound.unableToFindEntityInURL(id);
+        }
+        final byte[] stream = read(request);
+        final CustomServicesPrimitiveResourceType resource = dao.updateResource(id, name,
+                (stream == null || stream.length == 0) ? null : stream, parentId);
+        return CustomServicesPrimitiveMapper.map(resource);
+    }
+
     /**
      * Get the primitive resource details
      * 

@@ -27,6 +27,7 @@ import com.emc.sa.model.dao.ModelClient;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.constraint.NamedElementQueryResultList.NamedElement;
 import com.emc.storageos.db.client.model.StringSetMap;
+import com.emc.storageos.db.client.model.uimodels.CustomServicesDBScriptPrimitive;
 import com.emc.storageos.db.client.model.uimodels.CustomServicesDBScriptResource;
 import com.emc.storageos.model.customservices.CustomServicesPrimitiveResourceRestRep;
 import com.emc.storageos.primitives.db.script.CustomServicesScriptPrimitive;
@@ -67,9 +68,10 @@ public class CustomServicesScriptResourceDAO implements CustomServicesResourceDA
     }
 
     @Override
-    public CustomServicesScriptResource updateResource(final URI id, final String name, final byte[] stream) {
+    public CustomServicesScriptResource updateResource(final URI id, final String name, final byte[] stream, final String parentId) {
         return CustomServicesDBHelper.updateResource(CustomServicesScriptResource.class, CustomServicesDBScriptResource.class,
-                primitiveManager, id, name, stream, null);
+                primitiveManager, id, name, stream, null, null, client, null,null,
+                CustomServicesDBScriptPrimitive.class, CustomServicesDBScriptPrimitive.RESOURCE);
     }
 
     @Override
@@ -79,7 +81,9 @@ public class CustomServicesScriptResourceDAO implements CustomServicesResourceDA
 
     @Override
     public void deactivateResource(final URI id) {
-        CustomServicesDBHelper.deactivateResource(CustomServicesDBScriptResource.class, primitiveManager, client, id);
+        // There Script resource is referenced by the script primitive. There are no resource that is dependent on it.
+        CustomServicesDBHelper.deactivateResource(CustomServicesDBScriptResource.class, primitiveManager, client, id, null, null,
+                CustomServicesDBScriptPrimitive.class, CustomServicesDBScriptPrimitive.RESOURCE);
     }
 
     @Override

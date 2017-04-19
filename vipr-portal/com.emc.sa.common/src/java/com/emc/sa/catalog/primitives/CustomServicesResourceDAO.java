@@ -60,7 +60,7 @@ public interface CustomServicesResourceDAO<Resource extends CustomServicesPrimit
      * @param stream New bytes for the resource. They could be null
      * @return The updated resource
      */
-    public Resource updateResource(URI id, String name, byte[] stream);
+    public Resource updateResource(final URI id, final String name, final byte[] stream, final String parentId);
 
     /**
      * Deactivate a resource with the given ID

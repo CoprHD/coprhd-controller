@@ -96,4 +96,9 @@ public class CustomServicesWorkflowManagerImpl implements
         }
         return false;
     }
+
+    @Override
+    public List<NamedElement> listByPrimitiveUsed(final URI primitiveId) {
+        return client.customServicesWorkflows().getByPrimitive(primitiveId);
+    }
 }

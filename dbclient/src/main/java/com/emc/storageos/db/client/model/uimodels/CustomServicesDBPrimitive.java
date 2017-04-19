@@ -37,7 +37,7 @@ public abstract class CustomServicesDBPrimitive extends CustomServicesPrimitiveM
     private static final String ATTRIBUTES = "attributes";
     private static final String INPUT = "input";
     private static final String OUTPUT = "output";
-    private static final String RESOURCE = "resource";
+    public static final String RESOURCE = "resource";
     
     private String friendlyName;
     private String description;

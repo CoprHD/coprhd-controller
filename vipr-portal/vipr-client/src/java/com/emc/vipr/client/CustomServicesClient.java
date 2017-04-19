@@ -41,6 +41,7 @@ import com.emc.storageos.model.customservices.CustomServicesWorkflowUpdateParam;
 import com.emc.vipr.client.catalog.AbstractCatalogBulkResources;
 import com.emc.vipr.client.catalog.impl.PathConstants;
 import com.emc.vipr.client.impl.RestClient;
+import com.sun.jersey.api.client.ClientResponse;
 
 /**
  * Client for Custom Services APIs - primitives, workflows
@@ -129,5 +130,10 @@ public class CustomServicesClient extends AbstractCatalogBulkResources<CustomSer
 
     public void deleteWorkflow(final URI id) {
         client.post(String.class,PathConstants.CUSTOM_SERVICES_WORKFLOW_DELETE,id);
+    }
+
+    public ClientResponse deletePrimitive(final URI id) {
+    	ClientResponse response = client.post(ClientResponse.class,PathConstants.CUSTOM_SERVICES_PRIMITIVE_DELETE,id);
+    	return response;
     }
 }

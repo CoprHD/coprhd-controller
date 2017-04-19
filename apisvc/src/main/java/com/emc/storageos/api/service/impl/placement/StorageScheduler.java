@@ -600,9 +600,11 @@ public class StorageScheduler implements Scheduler {
                 capabilities.put(VirtualPoolCapabilityValuesWrapper.ARRAY_AFFINITY, true);
                 provMapBuilder.putAttributeInMap(AttributeMatcher.Attributes.array_affinity.name(), true);
             }
-            
-            // port group could be only specified for native vmax
-            if (usePortGroup) {
+        } 
+        
+        if (usePortGroup) {
+            if (!(VirtualPool.vPoolSpecifiesHighAvailability(vpool) ||
+                    VirtualPool.vPoolSpecifiesHighAvailabilityDistributed(vpool))) {
                 URI pgSystemURI = portGroup.getStorageDevice();
                 boolean setSystemMatcher = true;
                 if (consistencyGroup != null) {
@@ -623,12 +625,12 @@ public class StorageScheduler implements Scheduler {
                     storageSystemSet.add(pgSystemURI.toString());
                     provMapBuilder.putAttributeInMap(AttributeMatcher.Attributes.storage_system.name(), storageSystemSet);
                 }
+            } else {
+                // port group could be only specified for native vmax
+                throw APIException.badRequests.portGroupValidForVMAXOnly();
             }
-        } else if (usePortGroup) {
-            // port group could be only specified for native vmax
-            throw APIException.badRequests.portGroupValidForVMAXOnly();
         }
-
+        
         Map<String, Object> attributeMap = provMapBuilder.buildMap();
         if (optionalAttributes != null) {
             attributeMap.putAll(optionalAttributes);

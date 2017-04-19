@@ -14616,6 +14616,7 @@ portgroup_operations_tests()
     echo "Deleting volume $vol1"
     run export_group delete ${PROJECT}/${eg}
     run volume delete ${PROJECT}/${vol1} --wait
+    run volume delete ${PROJECT}/${vol2} --wait
     storageportgroup delete ${VMAX_NATIVEGUID}/${portgroup}
 
     echo "**** Done port group operations tests"

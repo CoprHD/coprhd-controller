@@ -103,7 +103,6 @@ import com.emc.storageos.db.client.util.StringMapUtil;
 import com.emc.storageos.db.client.util.StringSetUtil;
 import com.emc.storageos.model.BulkIdParam;
 import com.emc.storageos.model.BulkRestRep;
-import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.RelatedResourceRep;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.model.ResourceTypeEnum;
@@ -117,7 +116,6 @@ import com.emc.storageos.model.block.export.ExportPathsAdjustmentPreviewParam;
 import com.emc.storageos.model.block.export.ExportPathsAdjustmentParam;
 import com.emc.storageos.model.block.export.ExportUpdateParam;
 import com.emc.storageos.model.block.export.ITLRestRepList;
-import com.emc.storageos.model.block.export.InitiatorParam;
 import com.emc.storageos.model.block.export.InitiatorPathParam;
 import com.emc.storageos.model.block.export.InitiatorPortMapRestRep;
 import com.emc.storageos.model.block.export.ExportPathsAdjustmentPreviewRestRep;
@@ -352,8 +350,16 @@ public class ExportGroupService extends TaskResourceService {
 
         
         List<VolumeParam> volParams = param.getVolumes();
-        if (!volParams.isEmpty() && pathParam != null) {
-            validateAddVolumesForExportGroup(volParams, pathParam.getPortGroup());
+        if (!volParams.isEmpty()) {
+            Set<URI> addingVolumes = new HashSet<URI>();
+            for (VolumeParam volParm : volParams) {
+                addingVolumes.add(volParm.getId());
+            }
+            if (pathParam == null) {
+                validatePortGroupWhenAddVolumesForExportGroup(addingVolumes, null, null);
+            } else {
+                validatePortGroupWhenAddVolumesForExportGroup(addingVolumes, pathParam.getPortGroup(), null);
+            }
         }
         
         // COP-14028
@@ -3761,25 +3767,6 @@ public class ExportGroupService extends TaskResourceService {
         }
     }
     
-    public void validatePortGroupForExportGroupUpdate(ExportGroup exportGroup, URI portGroupURI) {
-        StoragePortGroup portGroup = _dbClient.queryObject(StoragePortGroup.class, portGroupURI);
-        URI systemURI = portGroup.getStorageDevice();
-        List<ExportMask> masks = ExportMaskUtils.getExportMasks(_dbClient,  exportGroup, systemURI);
-        boolean matched = false;
-        if (masks.isEmpty()) {
-            matched = true;
-        }
-        for (ExportMask mask : masks) {
-            if (portGroupURI.equals(mask.getPortGroup())) {
-                matched = true;
-                break;
-            }
-        }
-        if (!matched) {
-            throw APIException.badRequests.cannotOverridePortGroupBecauseExistingExports(portGroup.getNativeGuid());
-        }
-        
-    }
     
     /**
      * Validate port group to be specified if the volumes to be exported are from VMAX, and the port group setting
@@ -3788,11 +3775,10 @@ public class ExportGroupService extends TaskResourceService {
      * @param addVolumes - Volume params to be exported
      * @param portGroup - Port group URI
      */
-    public void validateAddVolumesForExportGroup(List<VolumeParam> addVolumes, URI portGroup) {
+    public void validatePortGroupWhenAddVolumesForExportGroup(Collection<URI> addVolumes, URI portGroup, ExportGroup exportGroup) {
         if (addVolumes != null && !addVolumes.isEmpty()) {
             Set<URI> systems = new HashSet<URI>();
-            for (VolumeParam volParam : addVolumes) {
-                URI blockURI = volParam.getId();
+            for (URI blockURI : addVolumes) {
                 BlockObject blockObject = BlockObject.fetch(_dbClient, blockURI);
                 systems.add(blockObject.getStorageController());
             }
@@ -3808,16 +3794,33 @@ public class ExportGroupService extends TaskResourceService {
             if (isVmax) {
                 String value = customConfigHandler.getComputedCustomConfigValue(CustomConfigConstants.VMAX_USE_PORT_GROUP_ENABLED,
                         "vmax", null);
-                // When use existing port group is on, users should provide a port group
-                if (Boolean.TRUE.toString().equalsIgnoreCase(value) && portGroup == null) {
-                    throw APIException.badRequests.portGroupNotSpecified();
-                } else if (Boolean.TRUE.toString().equalsIgnoreCase(value)) {
+                boolean useExistingPortGroup = Boolean.TRUE.toString().equalsIgnoreCase(value);
+                if (!useExistingPortGroup) {
+                    return;
+                }
+                if (exportGroup == null && portGroup == null) {
+                    // create export group case, When use existing port group is on, users should provide a port group
+                   throw APIException.badRequests.portGroupNotSpecified();
+                } else if (exportGroup == null) {
                     // port group is specified, check the port group storage system is the same as the volume system
                     StoragePortGroup pgObject = queryObject(StoragePortGroup.class, portGroup, true);
                     if (!storage.getId().equals(pgObject.getStorageDevice()) || systems.size() > 1) {
                         throw APIException.badRequests.cannotExportVolumesFromDifferentSystems(pgObject.getNativeGuid());
+                        
                     }
-                    
+                } else if (exportGroup != null){
+                    // update export group. check if export mask exists. if not, need to specify port group if using 
+                    // existing port group
+                    List<ExportMask> masks = ExportMaskUtils.getExportMasks(_dbClient,  exportGroup, storage.getId());
+                    if (masks.isEmpty() && portGroup == null) {
+                        throw APIException.badRequests.portGroupNotSpecified();
+                    } else if (!masks.isEmpty() && portGroup != null) {
+                        StoragePortGroup pgObject = queryObject(StoragePortGroup.class, portGroup, true);
+                        if (!storage.getId().equals(pgObject.getStorageDevice()) || systems.size() > 1) {
+                            throw APIException.badRequests.cannotExportVolumesFromDifferentSystems(pgObject.getNativeGuid());
+                            
+                        }
+                    }
                 }
                 
             }

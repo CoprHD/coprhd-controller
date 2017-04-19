@@ -26,6 +26,7 @@ import com.emc.storageos.model.compute.ComputeSystemRestRep;
 import com.emc.storageos.model.host.HostRestRep;
 import com.emc.storageos.model.host.InitiatorRestRep;
 import com.emc.storageos.model.portgroup.StoragePortGroupList;
+import com.emc.storageos.model.portgroup.StoragePortGroupRestRepList;
 import com.emc.storageos.model.varray.AttributeList;
 import com.emc.storageos.model.varray.VArrayAttributeList;
 import com.emc.storageos.model.varray.VirtualArrayBulkRep;
@@ -441,12 +442,14 @@ public class VirtualArrays extends AbstractCoreBulkResources<VirtualArrayRestRep
      *            the ID of the export group.
      * @return the list of storage port groups.
      */
-    public List<NamedRelatedResourceRep> getStoragePortGroups(URI vArrayId, URI exportId) {
+    public StoragePortGroupRestRepList getStoragePortGroups(URI vArrayId, URI exportId, URI storageSystemId) {
         UriBuilder builder = client.uriBuilder(baseUrl + "/{id}/storage-port-groups");
         if (exportId != null && !exportId.equals("")) {
             builder = builder.queryParam("export_group", exportId);
         }
-        StoragePortGroupList portGroups = client.getURI(StoragePortGroupList.class, builder.build(vArrayId));
-       return defaultList(portGroups.getPortGroups());
+        if (storageSystemId != null && !storageSystemId.equals("")) {
+            builder = builder.queryParam("storage_system", storageSystemId);
+        }
+        return client.getURI(StoragePortGroupRestRepList.class, builder.build(vArrayId));
     }
 }

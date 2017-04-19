@@ -39,6 +39,7 @@ import play.data.validation.Valid;
 import play.mvc.Controller;
 import play.mvc.With;
 import util.StringOption;
+import org.apache.commons.io.FilenameUtils;
 
 import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.customservices.CustomServicesPrimitiveCreateParam;
@@ -562,8 +563,9 @@ public class WorkflowBuilder extends Controller {
 
                 if (shellPrimitive.newScript) {
                     // create new resource
+                    String filename = FilenameUtils.getBaseName(shellPrimitive.getScript().getName());
                     final CustomServicesPrimitiveResourceRestRep primitiveResourceRestRep = getCatalogClient().customServicesPrimitives()
-                            .createPrimitiveResource("SCRIPT", shellPrimitive.script, shellPrimitive.scriptName);
+                            .createPrimitiveResource("SCRIPT", shellPrimitive.script, filename);
                     if (null != primitiveResourceRestRep) {
                         // Update resource link
                         primitiveUpdateParam.setResource(primitiveResourceRestRep.getId());
@@ -599,8 +601,10 @@ public class WorkflowBuilder extends Controller {
     private static void createShellScriptPrimitive(final ShellScriptPrimitiveForm shellPrimitive) {
         try {
 
+            String filename = FilenameUtils.getBaseName(shellPrimitive.getScript().getName());
+
             final CustomServicesPrimitiveResourceRestRep primitiveResourceRestRep = getCatalogClient().customServicesPrimitives()
-                    .createPrimitiveResource("SCRIPT", shellPrimitive.script, shellPrimitive.scriptName);
+                    .createPrimitiveResource("SCRIPT", shellPrimitive.script, filename);
             if (null != primitiveResourceRestRep) {
                 final CustomServicesPrimitiveCreateParam primitiveCreateParam = new CustomServicesPrimitiveCreateParam();
                 // TODO - remove this hardcoded string once the enum is available
@@ -833,7 +837,7 @@ public class WorkflowBuilder extends Controller {
                     // Check if it is name change
                     boolean isNameChanged = false;
                     final CustomServicesPrimitiveResourceRestRep primitiveResourceRestRep = getCatalogClient().customServicesPrimitives()
-                            .getPrimitiveResource(localAnsiblePrimitiveID);
+                            .getPrimitiveResource(primitiveRestRep.getResource().getId());
                     if(primitiveResourceRestRep!= null && primitiveResourceRestRep.getName() != null) {
                         if(primitiveResourceRestRep.getName().equalsIgnoreCase(localAnsible.getName())) {
                             isNameChanged = true;

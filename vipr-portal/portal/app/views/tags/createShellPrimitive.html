@@ -49,13 +49,7 @@ inputOutputTabID = 'inputOutputContent';
                                 #{Form.fileUploadControlGroup field:field/}
                             #{/field}
                         </div>
-
-                        <control-group v-field='shellPrimitive.scriptName' labelWidth="1" required >
-                            <input-text></input-text>
-                        </control-group>
-
                     #{/Modal.body}
-
                 </div>
                 <div class="tab-pane" id="${inputOutputTabID}">
                     #{Modal.body}
@@ -133,10 +127,6 @@ inputOutputTabID = 'inputOutputContent';
         if (isBlank($('#shellPrimitive_name').val())) {
             complete = false;
         }
-        else if (isBlank($('#shellPrimitive_scriptName').val())) {
-            complete = false;
-        }
-
         // If form is complete, enable FINISH button
         if (complete) {
             $('#finishButton').prop('disabled', false);

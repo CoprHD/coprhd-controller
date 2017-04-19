@@ -6920,6 +6920,7 @@ sbsdk_setup()
                      --expandable false 
     run cos allow $SBSDK_DRIVER_SYS_VPOOL_NAME block $TENANT
     run cos update block $SBSDK_DRIVER_SYS_VPOOL_NAME --storage $SBSDK_DRIVER_SYS_NATIVEGUID
+    run cos update block $SBSDK_DRIVER_SYS_VPOOL_NAME --use_matched false
 
     echo "***** Completed setup for SB SDK sanity tests *****"
 }

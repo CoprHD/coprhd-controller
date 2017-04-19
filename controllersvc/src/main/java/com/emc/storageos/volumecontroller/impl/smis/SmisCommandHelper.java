@@ -4104,7 +4104,7 @@ public class SmisCommandHelper implements SmisConstants {
         // when we replace "+"s bu "_"s we hit the existing mask on device. We will also convert them to lower case to avoid
         // hitting case sensitive issue during the search
         String storageGroupNameTemp = storageGroupName.replaceAll(Constants.SMIS_PLUS_REGEX, Constants.HYPHEN);
-        _log.info("Converted storage group name from {} to {} .", storageGroupName, storageGroupNameTemp);
+        _log.info("Converted storage group name from {} to {}", storageGroupName, storageGroupNameTemp);
         String result = storageGroupNameTemp;
         // Is 'storageGroupName' already in the list of existing names?
         if (existingGroupNames.contains(storageGroupNameTemp.toLowerCase())) {
@@ -5498,11 +5498,11 @@ public class SmisCommandHelper implements SmisConstants {
             CIMArgument[] inArgs = getAddOrRemoveMaskingGroupMembersInputArguments(maskingGroupPath, memberPaths, forceFlag);
             CIMArgument[] outArgs = new CIMArgument[5];
 
-            _log.info("Invoking remove volume:" + nativeId + " from storage group:" + returnedgroupName);
+            _log.info("Invoking remove volume {} from parking storage group {}", nativeId, returnedgroupName);
             invokeMethodSynchronously(storage, _cimPath.getControllerConfigSvcPath(storage),
                     SmisConstants.REMOVE_MEMBERS, inArgs, outArgs, null);
         } else {
-            _log.info("Looks like volume is already removed from the storage group,"
+            _log.info("Looks like volume is already removed from the parking storage group,"
                     + " could not find storage group for the volume {} on the storage system {}",
                     nativeId, storage.getNativeGuid());
         }

@@ -881,7 +881,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         // get quota from Isilon and check that requested capacity is larger than the current capacity
         Long capacity = args.getNewFSCapacity();
         IsilonSmartQuota quota = isi.getQuota(quotaId);
-        Long hard = quota.getThresholds().getHard();
+        //Long hard = quota.getThresholds().getHard();
 
         // Modify quoties for fileshare
         IsilonSmartQuota expandedQuota = getExpandedQuota(isi, args, capacity);
@@ -1427,8 +1427,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                                     "Shriking the Isilon FS failed, because the filesystem capacity is less than current usage capacity of file system. Path: %s, current usage capacity: %d",
                                     quotaDir.getPath(), quotaUsageSpace);
                     _log.error("doUpdateQuotaDirectory : " + msg);
-                    ServiceError error = DeviceControllerErrors.isilon
-                            .jobFailed(msg);
+                    ServiceError error = DeviceControllerErrors.isilon.jobFailed(msg);
                     return BiosCommandResult.createErrorResult(error);
                 }
 

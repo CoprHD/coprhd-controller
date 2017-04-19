@@ -1233,11 +1233,13 @@ public class FileService extends TaskResourceService {
             if (device.deviceIsType(DiscoveredDataObject.Type.isilon) && expand < MIN_EXPAND_SIZE) {
                 long quotasize = 0;
                 List<QuotaDirectory> quotaDirs = queryDBQuotaDirectories(fs);
-                // validate -1 check if any quota_size is greater than new_size_to_shrink
-                for(QuotaDirectory quotaDir : quotaDirs) {
-                    quotasize = newFSsize - quotaDir.getSize();
-                    if(quotasize < MIN_EXPAND_SIZE) {
-                        throw APIException.badRequests.invalidParameterBelowMinimum("new_size", newFSsize, quotaDir.getSize() + MIN_EXPAND_SIZE, "bytes");
+                if (null != quotaDirs && !quotaDirs.isEmpty()){
+                    // validate -1 check if any quota_size is greater than new_size_to_shrink
+                    for (QuotaDirectory quotaDir : quotaDirs) {
+                        quotasize = newFSsize - quotaDir.getSize();
+                        if (quotasize < MIN_EXPAND_SIZE) {
+                            throw APIException.badRequests.invalidParameterBelowMinimum("new_size", newFSsize, quotaDir.getSize() + MIN_EXPAND_SIZE, "bytes");
+                        }
                     }
                 }
 //                //validation -2  new_size_to_shrink should be greater usage capacity of filesystem.

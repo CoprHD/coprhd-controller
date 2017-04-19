@@ -1178,7 +1178,9 @@ public class NetworkScheduler {
             // sets existingZone which will prohibit deletion.
             for (NetworkFCZoneInfo fabricInfo : ourReferences) {
             	fabricInfo.setLastReference(!live);
-            	fabricInfo.setExistingZone(hasExistingVolumes);
+            	if (hasExistingVolumes) {
+            		fabricInfo.setExistingZone(true);
+            	}
             	// Pick an alternate device, just in case
             	NetworkLite portNet = getStoragePortNetwork(port);
             	NetworkLite iniNet = BlockStorageScheduler.lookupNetworkLite(_dbClient,

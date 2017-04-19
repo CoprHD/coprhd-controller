@@ -874,18 +874,18 @@ public class ExportMaskUtils {
                         // Find any existing zone references so they can be updated to fully managed (i.e. not existingZone)
                         List<FCZoneReference> existingZoneRefs = networkScheduler.getFCZoneReferencesForKey(info.getZoneReferenceKey());
                         for (FCZoneReference zoneRef : existingZoneRefs) {
-                        	if (exportGroup.hasBlockObject(zoneRef.getVolumeUri())) {
-                        		// Our own exportGroup has this volume, don't bother checking
-                        		continue;
-                        	}
-                        	// Check for zoneRef with invalid volume URI
-                        	BlockObject blockObject = BlockObject.fetch(dbClient, zoneRef.getVolumeUri());
-                        	if (blockObject == null) {
+                        	// If we're not in the process of ingesting this volume (in ingesting it would be in ExportGroup)
+                        	// and the zoneRef URI is invalid, mark the zone reference for deletion as it is stale, and do not process it.
+                        	if (!exportGroup.hasBlockObject(zoneRef.getVolumeUri())) {
+                        		BlockObject blockObject = BlockObject.fetch(dbClient, zoneRef.getVolumeUri());
+                        		if (blockObject == null) {
                         		_log.info(String.format("Deleting FCZoneReference %s which has invalid volume URI %s", 
                         				zoneRef.getZoneName(), zoneRef.getVolumeUri()));
                         		dbClient.markForDeletion(zoneRef);
                         		continue;
+                        		}
                         	}
+                        	// Update this reference to fully managed (existingZone = false)
                             zoneRef.setExistingZone(false);
                             updatedZoneReferences.add(zoneRef);
                         }

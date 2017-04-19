@@ -138,6 +138,14 @@ verifynozones() {
 
 source subs/discovery
 source $sconf/simvplexvmax.conf
+
+# Deregister storage devices we don't wish to use
+storagedevice deregister $VPLEX_SIM_VMAX2_NATIVEGUID
+storagedevice deregister $VPLEX_SIM_VMAX3_NATIVEGUID
+storagedevice deregister $VPLEX_SIM_VMAX4_NATIVEGUID
+storagedevice deregister $VPLEX_SIM_VMAX6_NATIVEGUID
+storagedevice deregister $VPLEX_SIM_VMAX7_NATIVEGUID
+
 vplex=$(storagedevice list | grep VPLEX+FNM0013090030 |  awk ' {print $2; }')
 echo VPLEX $vplex
 source subs/mkvplexvarrays 
@@ -149,12 +157,7 @@ SITE2=VPLEX+FNM00130900300_FNM00130900301_cluster2
 # emcArrays2=SYMMETRIX+999024668923,SYMMETRIX+999334388821,SYMMETRIX+999000414197
 # The simulator configuration must match these choices. This matches vplex sim sanity.conf.
 storageport update $VPLEX_SIM_VMAX1_NATIVEGUID FC --addvarrays $SITE1
-storageport update $VPLEX_SIM_VMAX2_NATIVEGUID FC --addvarrays $SITE1
-storageport update $VPLEX_SIM_VMAX3_NATIVEGUID FC --addvarrays $SITE1
-storageport update $VPLEX_SIM_VMAX4_NATIVEGUID FC --addvarrays $SITE1
 storageport update $VPLEX_SIM_VMAX5_NATIVEGUID FC --addvarrays $SITE2
-storageport update $VPLEX_SIM_VMAX6_NATIVEGUID FC --addvarrays $SITE2
-storageport update $VPLEX_SIM_VMAX7_NATIVEGUID FC --addvarrays $SITE2
 
 source subs/hosts
 aclusterName=aclus${hostseed}

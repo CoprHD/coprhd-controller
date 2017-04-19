@@ -47,7 +47,7 @@ public class RemoteReplicationConfiguration {
          * All groups enforce group consistency.
          *
          * Each replication set has two source and two target systems.
-         * Each replication set supports links operations for groups and pairs.
+         * Each replication set supports link operations for groups and pairs.
          * The same for replication groups.
          *
          * Elements in each replication set can be groups and pairs.
@@ -96,13 +96,13 @@ public class RemoteReplicationConfiguration {
         replicationGroup2_set1.setIsGroupConsistencyEnforced(true);
         replicationGroup2_set1.setReplicationState("ACTIVE");
         // group replication mode
-        replicationGroup2_set1.setReplicationMode(replicationModeAsync.getReplicationModeName());
+        replicationGroup2_set1.setReplicationMode(replicationModeSync.getReplicationModeName());
         // group link granularity
         //replicationGroup2_set1.setReplicationLinkGranularity(replicationLinkGranularity);
 
-        // source and target systems
-        replicationGroup2_set1.setSourceSystemNativeId(SourceStorageSystems.source_replicationGroup2_set1.toString());
-        replicationGroup2_set1.setTargetSystemNativeId(TargetStorageSystems.target_replicationGroup2_set1.toString());
+        // source and target systems (make the systems the same as in group1)
+        replicationGroup2_set1.setSourceSystemNativeId(SourceStorageSystems.source_replicationGroup1_set1.toString());
+        replicationGroup2_set1.setTargetSystemNativeId(TargetStorageSystems.target_replicationGroup1_set1.toString());
 
         /*
          * group: replicationGroup1_set2

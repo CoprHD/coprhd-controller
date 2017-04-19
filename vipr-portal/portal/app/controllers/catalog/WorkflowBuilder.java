@@ -795,13 +795,7 @@ public class WorkflowBuilder extends Controller {
 
             final CustomServicesPrimitiveRestRep primitiveRestRep = getCatalogClient().customServicesPrimitives().getPrimitive(localAnsiblePrimitiveID);
             if (null != primitiveRestRep) {
-                // Check if it is name change
-                boolean isNameChanged = false;
-                if (!primitiveRestRep.getName().equalsIgnoreCase(localAnsible.getName())) {
-                    isNameChanged = true;
-                }
-
-                // Update name, description
+                 // Update name, description
                 final CustomServicesPrimitiveUpdateParam primitiveUpdateParam = new CustomServicesPrimitiveUpdateParam();
                 primitiveUpdateParam.setName(localAnsible.getName());
                 primitiveUpdateParam.setDescription(localAnsible.getDescription());
@@ -836,6 +830,15 @@ public class WorkflowBuilder extends Controller {
                     }
                 }
                 else {
+                    // Check if it is name change
+                    boolean isNameChanged = false;
+                    final CustomServicesPrimitiveResourceRestRep primitiveResourceRestRep = getCatalogClient().customServicesPrimitives()
+                            .getPrimitiveResource(localAnsiblePrimitiveID);
+                    if(primitiveResourceRestRep!= null && primitiveResourceRestRep.getName() != null) {
+                        if(primitiveResourceRestRep.getName().equalsIgnoreCase(localAnsible.getName())) {
+                            isNameChanged = true;
+                        }
+                    }
                     if (isNameChanged) { // Update the existing resource id with new name
                         getCatalogClient().customServicesPrimitives().updatePrimitiveResource(primitiveRestRep.getResource().getId(),
                                 localAnsible.getName());

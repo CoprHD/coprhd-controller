@@ -26,6 +26,7 @@ public class ZoneInfo extends AbstractSerializableNestedObject {
     private static final String NETWORK_WWN = "networkWwn";
     private static final String FABRIC_ID = "fabricId";
     private static final String NETWORK_SYSTEM_ID = "networkSystemId";
+    private static final String MEMBER_COUNT = "memberCount";
 
     public ZoneInfo() {
     }
@@ -109,6 +110,15 @@ public class ZoneInfo extends AbstractSerializableNestedObject {
 
     public void setNetworkSystemId(String id) {
         setField(NETWORK_SYSTEM_ID, id == null ? "" : id);
+    }
+    
+    @XmlElement(name = "member_count")
+    public Integer getMemberCount() {
+    	return getIntField(MEMBER_COUNT);
+    }
+    
+    public void setMemberCount(Integer memberCount) {
+    	setField(MEMBER_COUNT, memberCount == null ? "0" : memberCount.toString());
     }
 
     public String getZoneReferenceKey() {

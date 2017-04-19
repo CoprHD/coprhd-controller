@@ -162,22 +162,24 @@ public class NetworkScheduler {
     /**
      * Generates a zoneName from the input parameters according to the CustomConfig handler.
      * @param arrayURI -- URI of StorageSystem
+     * @param networkSystemURI -- URI of network system
      * @param initiatorPort -- Initiator port address
      * @param portNetworkAddress -- Port network address
      * @param fabricId -- Fabric id
      * @param lsanZone -- true if LSAN zone
      * @return -- zone name
      */
-    public String nameZone(URI arrayURI, String initiatorPort, String portNetworkAddress, 
-            String fabricId, boolean lsanZone) {
+    public String nameZone(URI arrayURI, URI networkSystemURI, 
+    		String initiatorPort, String portNetworkAddress, String fabricId, boolean lsanZone) {
         StorageSystem array = _dbClient.queryObject(StorageSystem.class, arrayURI);
+        NetworkSystem networkSystem = _dbClient.queryObject(NetworkSystem.class, networkSystemURI);
         Initiator initiator = NetworkUtil.findInitiatorInDB(initiatorPort, _dbClient);
         StoragePort port = NetworkUtil.getStoragePort(portNetworkAddress, _dbClient);
         String hostName = initiator.getHostName();
         if (array == null || initiator == null || hostName == null) {
             return null;
         }
-        String systemType = array.getSystemType();
+        
         
         DataSource dataSource = dataSourceFactory.createZoneNameDataSource(hostName,
                 initiator, port, fabricId, array);
@@ -187,6 +189,7 @@ public class NetworkScheduler {
             dataSource.addProperty(CustomConfigConstants.ARRAY_SERIAL_NUMBER,
                     getVPlexClusterSerialNumber(port));
         }
+        String systemType = networkSystem.getSystemType();
         String resolvedZoneName = customConfigHandler.resolve(
                 CustomConfigConstants.ZONE_MASK_NAME, systemType, dataSource);
         validateZoneNameLength(resolvedZoneName, lsanZone, systemType);
@@ -1170,26 +1173,23 @@ public class NetworkScheduler {
                 }
             }
 
-            // If there are still live references, can't delete the zone.
-            // Cannot delete the zones if the ExportMask has existing volumes either.
-            // So leave _fabricInfo._isLastReference == false
-            // Otherwise mark it true so the zone will be taken out.
-            if (live == false && hasExistingVolumes == false) {
-                for (NetworkFCZoneInfo fabricInfo : ourReferences) {
-                    fabricInfo._isLastReference = true;
-
-                    // Pick an alternate device, just in case
-                    NetworkLite portNet = getStoragePortNetwork(port);
-                    NetworkLite iniNet = BlockStorageScheduler.lookupNetworkLite(_dbClient,
-                            StorageProtocol.block2Transport("FC"), initiatorPort);
-                    List<NetworkSystem> networkSystems = getZoningNetworkSystems(iniNet, portNet);
-                    for (NetworkSystem ns : networkSystems) {
-                        if (!ns.getId().equals(fabricInfo.getNetworkDeviceId())) {
-                            fabricInfo.setAltNetworkDeviceId(ns.getId());
-                            break;
-                        }
-                    }
-                }
+            // If there are still live references, can't delete the zone. (lstReference = false)
+            // Cannot delete the zones if the ExportMask has existing volumes either, this
+            // sets existingZone which will prohibit deletion.
+            for (NetworkFCZoneInfo fabricInfo : ourReferences) {
+            	fabricInfo.setLastReference(!live);
+            	fabricInfo.setExistingZone(hasExistingVolumes);
+            	// Pick an alternate device, just in case
+            	NetworkLite portNet = getStoragePortNetwork(port);
+            	NetworkLite iniNet = BlockStorageScheduler.lookupNetworkLite(_dbClient,
+            			StorageProtocol.block2Transport("FC"), initiatorPort);
+            	List<NetworkSystem> networkSystems = getZoningNetworkSystems(iniNet, portNet);
+            	for (NetworkSystem ns : networkSystems) {
+            		if (!ns.getId().equals(fabricInfo.getNetworkDeviceId())) {
+            			fabricInfo.setAltNetworkDeviceId(ns.getId());
+            			break;
+            		}
+            	}
             }
             return ourReferences;
         }

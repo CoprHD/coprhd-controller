@@ -24,6 +24,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
 
+import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.customconfigcontroller.DataSource;
 import com.emc.storageos.customconfigcontroller.DataSourceFactory;
 import com.emc.storageos.db.client.DbClient;
@@ -65,6 +66,8 @@ import com.emc.storageos.db.joiner.Joiner;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.networkcontroller.impl.NetworkScheduler;
 import com.emc.storageos.util.ExportUtils;
+import com.emc.storageos.volumecontroller.impl.ControllerServiceImpl;
+import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.emc.storageos.volumecontroller.impl.block.ExportMaskPolicy;
 import com.google.common.base.Strings;
 import com.google.common.collect.Collections2;
@@ -77,6 +80,9 @@ public class ExportMaskUtils {
 
     private static final ExportMaskNameGenerator nameGenerator = new ExportMaskNameGenerator();
     private static NetworkScheduler networkScheduler = null;
+    private static CoordinatorClient coordinator = null;
+    
+    private static final String INGEST_ZONES_WITH_NON_VIPR_NAME = "controller_ingest_zones_with_non_vipr_name";
 
     /**
      * Look up export mask for the storage array in the exports.
@@ -833,7 +839,14 @@ public class ExportMaskUtils {
             T volume, ExportGroup exportGroup, ExportMask exportMask,
             ZoneInfoMap zoneInfoMap, List<Initiator> initiators, List<FCZoneReference> updatedZoneReferences,
             DbClient dbClient) {
-        List<FCZoneReference> refs = new ArrayList<FCZoneReference>();
+    	boolean bypassNameCheck = false;
+    	if (coordinator == null) {
+    		ApplicationContext context = AttributeMatcherFramework.getApplicationContext();
+    		coordinator = (CoordinatorClient) context.getBean("coordinator");
+    	}
+    	bypassNameCheck = Boolean.valueOf(ControllerUtils.getPropertyValueFromCoordinator(
+				coordinator, INGEST_ZONES_WITH_NON_VIPR_NAME));
+        List<FCZoneReference> createdRefs = new ArrayList<FCZoneReference>();
         if (networkScheduler == null) {
             ApplicationContext context = AttributeMatcherFramework.getApplicationContext();
             networkScheduler = (NetworkScheduler) context.getBean("networkScheduler");
@@ -841,29 +854,47 @@ public class ExportMaskUtils {
         for (Initiator initiator : initiators) {
             for (ZoneInfo info : zoneInfoMap.values()) {
                 if (info.getInitiatorId().equals(initiator.getId().toString())) {
-                    boolean hasExistingVolumes = exportMask.hasAnyExistingVolumes();
+                    Boolean hasExistingVolumes = exportMask.hasAnyExistingVolumes();
                     // Determine if the zone to be ingested has a compatible zone name.
-                    boolean lsanZone = networkScheduler.isLSANZone(info.getZoneName());
+                    Boolean lsanZone = networkScheduler.isLSANZone(info.getZoneName());
+                    // Determine if the zone has more than two members. We can't currently manage smart zones fully.
+                    Boolean smartZone = (info.getMemberCount() > 2);
+                    _log.info(String.format("zone %s existingVolumes %s lsanZone %s smartZone %s", info.getZoneName(),
+                    		hasExistingVolumes.toString(), lsanZone.toString(), smartZone.toString()));
                     String generatedZoneName = networkScheduler.nameZone(volume.getStorageController(), 
-                            info.getInitiatorWwn(), info.getPortWwn(),  info.getFabricId(), lsanZone);
+                    		URI.create(info.getNetworkSystemId()),info.getInitiatorWwn(), info.getPortWwn(), 
+                    		info.getFabricId(), lsanZone);
                     _log.info(String.format("Zone name %s generated zone name %s", info.getZoneName(), generatedZoneName));
                     boolean usedInUnmanagedMasks = checkZoneUseInUnManagedExportMasks(
                             exportMask.getNativeId(), info, dbClient);
-                    boolean externalZone = hasExistingVolumes || !generatedZoneName.equals(info.getZoneName()) 
-                                            || usedInUnmanagedMasks;
+                    boolean externalZone = hasExistingVolumes  
+                    						|| ( !bypassNameCheck && !generatedZoneName.equals(info.getZoneName()) ) 
+                                            || usedInUnmanagedMasks || smartZone;
                     if (!externalZone) {
                         // Find any existing zone references so they can be updated to fully managed (i.e. not existingZone)
                         List<FCZoneReference> existingZoneRefs = networkScheduler.getFCZoneReferencesForKey(info.getZoneReferenceKey());
                         for (FCZoneReference zoneRef : existingZoneRefs) {
+                        	if (exportGroup.hasBlockObject(zoneRef.getVolumeUri())) {
+                        		// Our own exportGroup has this volume, don't bother checking
+                        		continue;
+                        	}
+                        	// Check for zoneRef with invalid volume URI
+                        	BlockObject blockObject = BlockObject.fetch(dbClient, zoneRef.getVolumeUri());
+                        	if (blockObject == null) {
+                        		_log.info(String.format("Deleting FCZoneReference %s which has invalid volume URI %s", 
+                        				zoneRef.getZoneName(), zoneRef.getVolumeUri()));
+                        		dbClient.markForDeletion(zoneRef);
+                        		continue;
+                        	}
                             zoneRef.setExistingZone(false);
+                            updatedZoneReferences.add(zoneRef);
                         }
-                        updatedZoneReferences.addAll(existingZoneRefs);
                     }
-                    refs.add(createFCZoneReference(info, initiator, volume, exportGroup, externalZone));
+                    createdRefs.add(createFCZoneReference(info, initiator, volume, exportGroup, externalZone));
                 }
             }
         }
-        return refs;
+        return createdRefs;
     }
     
     /**

@@ -898,11 +898,17 @@ public class NetworkDeviceController implements NetworkController {
      * 
      * @param token String Workflow stepId
      * @param result BiosCommandResult
+     * @param warningMessage - optional warning message if completed successfully (can be null)
      */
-    private void completeWorkflowState(String token, String operation, BiosCommandResult result) {
+    private void completeWorkflowState(String token, String operation, BiosCommandResult result, 
+    		String warningMessage) {
         // Update the workflow state.
         if (Operation.Status.valueOf(result.getCommandStatus()).equals(Operation.Status.ready)) {
-            WorkflowStepCompleter.stepSucceded(token);
+        	if (warningMessage != null && !warningMessage.isEmpty()) {
+        		WorkflowStepCompleter.stepSucceeded(token, warningMessage);
+        	} else {
+                WorkflowStepCompleter.stepSucceded(token);
+        	}
         } else if (Operation.Status.valueOf(result.getCommandStatus()).equals(Operation.Status.error)) {
             ServiceError svcError = NetworkDeviceControllerException.errors.zoneOperationFailed(
                     operation, result.getMessage());
@@ -1057,7 +1063,7 @@ public class NetworkDeviceController implements NetworkController {
             WorkflowService.getInstance().storeStepData(token, context);
 
             // Update the workflow state.
-            completeWorkflowState(token, "zoneExportMaskCreate", result);
+            completeWorkflowState(token, "zoneExportMaskCreate", result, null);
 
         } catch (Exception ex) {
             _log.error("Exception zoning Export Masks", ex);
@@ -1240,7 +1246,7 @@ public class NetworkDeviceController implements NetworkController {
             WorkflowService.getInstance().storeStepData(token, context);
 
             // Update the workflow state.
-            completeWorkflowState(token, "zoneExportAddInitiators", result);
+            completeWorkflowState(token, "zoneExportAddInitiators", result, null);
 
             return status;
         } catch (Exception ex) {
@@ -1292,6 +1298,7 @@ public class NetworkDeviceController implements NetworkController {
         TaskCompleter taskCompleter = null;
         boolean status = false;
         try {
+        	StringBuilder warningMessage = new StringBuilder();
             if (zoningParams.isEmpty()) {
                 _log.info("zoningParams is empty, returning");
                 WorkflowStepCompleter.stepSucceded(stepId);
@@ -1330,6 +1337,13 @@ public class NetworkDeviceController implements NetworkController {
                     }
                     rollbackList.add(info);
                 }
+                // Issue warning for zones that are lastRef but existing, as they won't be removed.
+                if (info.isLastReference() && info.isExistingZone()) {
+                	if (warningMessage.length() == 0) {
+                		warningMessage.append("Zones which will not be deleted because they may be used externally:\n");
+                	}
+                	warningMessage.append(info.getZoneName() + "\n");
+                }
             }
 
             // Create a local completer to handle DB cleanup in the case of failure.
@@ -1355,7 +1369,7 @@ public class NetworkDeviceController implements NetworkController {
             }
 
             // Update the workflow state.
-            completeWorkflowState(stepId, "zoneExportMasksDelete", result);
+            completeWorkflowState(stepId, "zoneExportMasksDelete", result, warningMessage.toString());
 
             _log.info("Successfully removed zones for ExportGroup: {}", exportGroupId.toString());
         } catch (Exception ex) {
@@ -1551,7 +1565,7 @@ public class NetworkDeviceController implements NetworkController {
             InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_025);
 
             // Update the workflow state.
-            completeWorkflowState(stepId, "zoneExportRemoveInitiators", result);
+            completeWorkflowState(stepId, "zoneExportRemoveInitiators", result, null);
 
             if (result.isCommandSuccess()) {
                 isOperationSuccessful = true;
@@ -1634,7 +1648,7 @@ public class NetworkDeviceController implements NetworkController {
                     context.isAddingZones());
             InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_021);
 
-            completeWorkflowState(taskId, "ZoneRollback", result);
+            completeWorkflowState(taskId, "ZoneRollback", result, null);
 
             if (result.isCommandSuccess() && !lastReferenceZoneInfo.isEmpty()) {
                 _log.info("There seems to be last reference zones that were removed, clean those zones from the zoning map.");
@@ -2107,6 +2121,7 @@ public class NetworkDeviceController implements NetworkController {
                             info.setNetworkWwn(NetworkUtil.getNetworkWwn(network));
                             info.setFabricId(network.getNativeId());
                             info.setNetworkSystemId(networkSystem.getId().toString());
+                            info.setMemberCount(zone.getMembers().size());
                             map.put(info.getZoneReferenceKey(), info);
                         }
                     }

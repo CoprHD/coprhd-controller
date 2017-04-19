@@ -955,7 +955,7 @@ public final class CustomServicesDBHelper {
      * 
      * @return An instance of the DB model given the REST model
      */
-    public static <T extends CustomServicesDBResource> T importResource(final Class<T> clazz, 
+    public static <T extends CustomServicesDBResource> T makeDBResource(final Class<T> clazz, 
             final CustomServicesPrimitiveResourceRestRep resource,
             final byte[] bytes) {
         try {

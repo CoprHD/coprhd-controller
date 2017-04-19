@@ -122,7 +122,7 @@ public class CustomServicesAnsibleInventoryResourceDAO implements CustomServices
 
     @Override
     public void importResource(final CustomServicesPrimitiveResourceRestRep resource, final byte[] bytes) {
-        final CustomServicesDBAnsibleInventoryResource model = CustomServicesDBHelper.importResource(CustomServicesDBAnsibleInventoryResource.class, resource, bytes);
+        final CustomServicesDBAnsibleInventoryResource model = CustomServicesDBHelper.makeDBResource(CustomServicesDBAnsibleInventoryResource.class, resource, bytes);
         client.save(model);
     }
 }

@@ -305,7 +305,7 @@ public class RemoteReplicationUtils {
                 break;
         }
         if (!isChangeValid) {
-            throw APIException.badRequests.remoteReplicationLinkOperationIsNotAllowed(rrElement.getType().toString(),
+            throw APIException.badRequests.remoteReplicationModeChangeIsNotAllowed(rrElement.getType().toString(),
                     rrElement.getElementUri().toString(), newMode);
         }
     }

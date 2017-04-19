@@ -356,7 +356,7 @@ public class VPlexHDSMaskingOrchestrator extends HDSMaskingOrchestrator
             URI exportGroupURI, URI exportMaskURI,
             List<URI> volumes, List<URI> initiatorURIs) {
         return new Workflow.Method("deleteOrRemoveVolumesFromExportMask", arrayURI,
-                exportGroupURI, exportMaskURI, volumes);
+                exportGroupURI, exportMaskURI, volumes, initiatorURIs);
     }
 
     @Override
@@ -432,7 +432,6 @@ public class VPlexHDSMaskingOrchestrator extends HDSMaskingOrchestrator
                 }
                 device.doExportRemoveVolumes(array, exportMask, passedVolumesInMask, initiators, completer);
             }
-            completer.ready(_dbClient);
         } catch (Exception ex) {
             _log.error("Failed to delete or remove volumes to export mask for hds: ", ex);
             VPlexApiException vplexex = DeviceControllerExceptions.vplex.addStepsForCreateVolumesFailed(ex);

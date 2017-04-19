@@ -6,7 +6,8 @@
 package com.emc.storageos.volumecontroller.impl.plugins.metering.isilon;
 
 import java.net.URI;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Map;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -14,6 +15,7 @@ import org.slf4j.LoggerFactory;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
+import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.model.Snapshot;
 import com.emc.storageos.db.client.model.Stat;
 import com.emc.storageos.db.exceptions.DatabaseException;
@@ -82,7 +84,7 @@ public class IsilonStatsRecorder {
      */
     public Stat addUsageStat(IsilonSmartQuota quota, Map<String, Object> keyMap, String fsNativeGuid, IsilonApi isilonApi) {
 
-        Stat stat = zeroRecordGenerator.injectattr(keyMap, fsNativeGuid, null);
+        Stat stat = zeroRecordGenerator.injectattr(keyMap, fsNativeGuid, FileShare.class);
         if (stat != null) {
             try {
                 DbClient dbClient = (DbClient) keyMap.get(Constants.dbClient);
@@ -94,15 +96,14 @@ public class IsilonStatsRecorder {
                 long provisionedCapacity = 0L;
                 Thresholds threshold = quota.getThresholds();
                 if (threshold != null && threshold.getHard() != null) {
-                	provisionedCapacity = threshold.getHard();
+                    provisionedCapacity = threshold.getHard();
                 }
                 stat.setProvisionedCapacity(provisionedCapacity);
                 long usedCapacity = quota.getUsagePhysical();
                 stat.setAllocatedCapacity(usedCapacity);
 
                 URIQueryResultList snapURIList = new URIQueryResultList();
-                dbClient.queryByConstraint(ContainmentConstraint.
-                        Factory.getFileshareSnapshotConstraint(stat.getResourceId()), snapURIList);
+                dbClient.queryByConstraint(ContainmentConstraint.Factory.getFileshareSnapshotConstraint(stat.getResourceId()), snapURIList);
 
                 // Set snapshot count.
                 // Set snapshot size. Get current data for snapshot size (snapshot size changes dynamically).

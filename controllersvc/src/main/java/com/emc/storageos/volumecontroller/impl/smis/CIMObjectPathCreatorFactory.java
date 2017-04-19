@@ -28,7 +28,6 @@ import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.plugins.common.Constants;
-import com.sun.xml.internal.xsom.impl.scd.Iterators.Map;
 
 /**
  * This class will contain functions and properties related to creating CIMObjectPath objects.
@@ -86,7 +85,7 @@ public class CIMObjectPathCreatorFactory extends AbstractCIMObjectPathFactory {
     public CIMObjectPath getStorageSynchronized(StorageSystem sourceSystem, BlockObject source, StorageSystem targetSystem,
             BlockObject target) {
         CIMObjectPath sourcePath = cimAdapter.getBlockObjectPath(sourceSystem, sourceSystem, source);
-        CIMObjectPath targetPath = cimAdapter.getBlockObjectPath(targetSystem, sourceSystem, target);
+        CIMObjectPath targetPath = cimAdapter.getBlockObjectPath(sourceSystem, targetSystem, target);
         CIMProperty[] propKeys = { cimPropertyFactory.string(CP_SYNCED_ELEMENT, targetPath.toString()),
                 cimPropertyFactory.string(CP_SYSTEM_ELEMENT, sourcePath.toString()) };
         String protocol = sourceSystem.getSmisUseSSL() ? CimConstants.SECURE_PROTOCOL : CimConstants.DEFAULT_PROTOCOL;
@@ -248,7 +247,7 @@ public class CIMObjectPathCreatorFactory extends AbstractCIMObjectPathFactory {
         try {
             // Get all of the Storage Processor Systems associated with the Storage System
             storageProcessorSystemItr = cimConnectionFactory.getConnection(storageDevice).getCimClient()
-                    .associatorInstances(storageSystemPath, null, SYMM_STORAGE_PROCESSOR_SYSTEM, null, null, false, null);
+                    .associatorInstances(storageSystemPath, null, EMC_STORAGE_PROCESSOR_SYSTEM, null, null, false, null);
             while (storageProcessorSystemItr.hasNext()) {
                 CIMInstance cimSPSInstance = storageProcessorSystemItr.next();
                 // Get all of the Protocol Endpoints associated with the Storage Processor System
@@ -330,17 +329,17 @@ public class CIMObjectPathCreatorFactory extends AbstractCIMObjectPathFactory {
     }
 
     @Override
-    public CIMObjectPath getBlockObjectPath(StorageSystem storage, StorageSystem source, BlockObject blockObject) {
+    public CIMObjectPath getBlockObjectPath(StorageSystem forProvider, StorageSystem source, BlockObject blockObject) {
 
         @SuppressWarnings("rawtypes")
         CIMProperty[] volumeKeys = {
                 cimPropertyFactory.string(CP_CREATION_CLASS_NAME, prefixWithParamName(STORAGE_VOLUME)),
                 cimPropertyFactory.string(CP_DEVICE_ID, blockObject.getNativeId()),
                 cimPropertyFactory.string(CP_SYSTEM_CREATION_CLASS_NAME, prefixWithParamName(STORAGE_SYSTEM)),
-                cimPropertyFactory.string(CP_SYSTEM_NAME, getSystemName(storage))
+                cimPropertyFactory.string(CP_SYSTEM_NAME, getSystemName(source))
         };
         return CimObjectPathCreator.createInstance(null, null, null,
-                cimConnectionFactory.getNamespace(storage), prefixWithParamName(STORAGE_VOLUME), volumeKeys);
+                cimConnectionFactory.getNamespace(forProvider), prefixWithParamName(STORAGE_VOLUME), volumeKeys);
     }
 
     @Override

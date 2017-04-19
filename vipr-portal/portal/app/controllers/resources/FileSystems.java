@@ -217,7 +217,9 @@ public class FileSystems extends ResourceController {
             if (project != null && project.getFileProtectionPolicies() != null && !project.getFileProtectionPolicies().isEmpty()) {
                 for (String uriPolicy : project.getFileProtectionPolicies()) {
                     FilePolicyRestRep policyRestRep = client.fileProtectionPolicies().get(uri(uriPolicy));
-                    if (policyRestRep != null && "file_replication".equalsIgnoreCase(policyRestRep.getType())) {
+                    if (policyRestRep != null && "file_replication".equalsIgnoreCase(policyRestRep.getType())
+                            && policyRestRep.getVpool() != null && policyRestRep.getVpool().getId() != null
+                            && policyRestRep.getVpool().getId().equals(vpool.getId())) {
                         return policyRestRep;
                     }
                 }

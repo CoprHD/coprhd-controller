@@ -5023,12 +5023,18 @@ recoverpoint_export_bookmark_tests()
             fi    
         
             run blocksnapshot create ${PROJECT}/${volume}${volume_identifier} ${rpsnap} --type rp
-	    for tgt_varray in ${rp_tgt_varrays}
-	    do
-                #NOTE: RP bookmarks get created with for each target copy (virtual array)
+            for tgt_varray in ${rp_tgt_varrays}
+            do
+                #NOTE: RP bookmarks get created for each target copy (virtual array)
                 all_bookmarks=("${all_bookmarks[@]}" "${PROJECT}/${volume}${volume_identifier}/${rpsnap}-${tgt_varray}")
-                blocksnapshot show ${PROJECT}/${volume}${volume_identifier}/${rpsnap}-${tgt_varray}
-	    done
+                foundbookmark=`blocksnapshot show ${PROJECT}/${volume}${volume_identifier}/${rpsnap}-${tgt_varray} | grep snapset_label`
+                if [[ "${foundbookmark}" = "" ]]; then
+                    echo "+++ FAILURE - Bookmark ${rpsnap}-${tgt_varray} not created."
+                    exit 1
+                else
+                    echo "+++ SUCCESS - Bookmark ${rpsnap}-${tgt_varray} created."   
+                fi
+	       done
         done
 
         recoverpoint_export_host_setup ${vpool} ${rptype}
@@ -5045,10 +5051,27 @@ recoverpoint_export_bookmark_tests()
         fi
 
         secho 'Creating 2 RP bookmarks for the same volume.'
-        run blocksnapshot create ${PROJECT}/${volume}${volume_name_modifier} ${rpsnap}-failtest1 --type rp
-        blocksnapshot show ${PROJECT}/${volume}${volume_name_modifier}/${rpsnap}-failtest1-${rp_tgt_varrays[0]}
+        
+        # Fail test bookmark 1
+        run blocksnapshot create ${PROJECT}/${volume}${volume_name_modifier} ${rpsnap}-failtest1 --type rp        
+        foundbookmark=`blocksnapshot show ${PROJECT}/${volume}${volume_name_modifier}/${rpsnap}-failtest1-${rp_tgt_varrays[0]} | grep snapset_label`
+        if [[ "${foundbookmark}" = "" ]]; then
+            echo "+++ FAILURE - Bookmark ${rpsnap}-failtest1-${rp_tgt_varrays[0]} not created."
+            exit 1
+        else
+            echo "+++ SUCCESS - Bookmark ${rpsnap}-failtest1-${rp_tgt_varrays[0]} created."   
+        fi        
+        
+        # Fail test bookmark 2
         run blocksnapshot create ${PROJECT}/${volume}${volume_name_modifier} ${rpsnap}-failtest2 --type rp
         blocksnapshot show ${PROJECT}/${volume}${volume_name_modifier}/${rpsnap}-failtest2-${rp_tgt_varrays[0]}
+        foundbookmark=`blocksnapshot show ${PROJECT}/${volume}${volume_name_modifier}/${rpsnap}-failtest2-${rp_tgt_varrays[0]} | grep snapset_label`
+        if [[ "${foundbookmark}" = "" ]]; then
+            echo "+++ FAILURE - Bookmark ${rpsnap}-failtest2-${rp_tgt_varrays[0]} not created."
+            exit 1
+        else
+            echo "+++ SUCCESS - Bookmark ${rpsnap}-failtest2-${rp_tgt_varrays[0]} created."   
+        fi 
     
         run export_group create $PROJECT ${RP_EXPORT_GROUP} ${rp_tgt_varrays[0]} --type Host --volspec ${PROJECT}/${volume}${volume_name_modifier}/${rpsnap}-failtest1-${rp_tgt_varrays[0]} --hosts "${RP_HOSTNAME}1"
         secho 'Verifying the access state of the target volume is set to READWRITE'
@@ -5991,12 +6014,11 @@ recoverpoint_direct_access_test()
         done	 
 
         # Test creating snapshots after target copy is in direct access mode
-
         if [ "${#rp_tgt_varrays[@]}" -eq "1" ]; then
-            echo 'Attempt to create a RP bookmark on CG with single copy in direct access mode - expected failure'
+            secho 'Attempt to create a RP bookmark on CG with single copy in direct access mode - expected failure'
             fail blocksnapshot create ${PROJECT}/${src_volume} ${rp_bookmark} --type rp
         else 
-            echo 'Creating RP bookmark when 1 CG copy is in direct access mode'
+            secho 'Creating RP bookmark when 1 CG copy is in direct access mode'
             run blocksnapshot create ${PROJECT}/${src_volume} ${rp_bookmark}-2 --type rp
 
             for tgt_varray in ${rp_tgt_varrays[@]}
@@ -6030,8 +6052,8 @@ recoverpoint_direct_access_test()
                 run blocksnapshot create ${PROJECT}/${src_volume}-target-${tgt_varray} ${array_snapshot} --type native 
                 secho 'Verifying that the array snapshot associated with target copy NOT in direct access mode exists'
                 run blocksnapshot show ${PROJECT}/${src_volume}-target-${tgt_varray}/${array_snapshot}-1
-                #secho 'Removing array snapshot after it has been verified'
-                #run blocksnapshot delete ${PROJECT}/${src_volume}/${array_snapshot}
+                secho 'Removing array snapshot after it has been verified'
+                run blocksnapshot delete ${PROJECT}/${src_volume}-target-${tgt_varray}/${array_snapshot}-1
             fi 
         done 
 
@@ -6044,14 +6066,14 @@ recoverpoint_direct_access_test()
             secho 'Remove replication set from consistency group while a copy is in direct access mode (failover) - expected failure'		
             fail volume delete $PROJECT/${new_volume} --wait
         fi
-
+        
         secho 'Expand source volume when one of the RP target copies is in direct access mode'
         run volume expand ${PROJECT}/${src_volume} ${RP_SIZE_EXPAND}
 
         secho 'Export/unexport target volume whose copy is in DIRECT_ACCESS mode'
         recoverpoint_export_host_setup ${rp_src_vpool} ${rp_type}
         sleep 20
-        run export_group create ${PROJECT} ${RP_EXPORT_GROUP} ${rp_tgt_varrays[0]} --type Host --volspec ${PROJECT}/${tgt_volume} --hosts "${RP_HOSTNAME}1"
+        run export_group create ${PROJECT} ${RP_EXPORT_GROUP} ${direct_access_mode_varray} --type Host --volspec ${PROJECT}/${tgt_volume} --hosts "${RP_HOSTNAME}1"
         run export_group delete ${PROJECT}/${RP_EXPORT_GROUP}
 
         secho 'Removing export host '${RP_HOSTNAME}1
@@ -6089,7 +6111,7 @@ recoverpoint_direct_access_test()
         secho 'Setting access mode to direct access'
         run volume change_link ${PROJECT}/${src_volume} accessmode ${PROJECT}/${tgt_volume} rp --am DIRECT_ACCESS
  
-        secho 'Failover Cancel - returning copy image acess to no_access for target copy '${rp_tgt_varrays[0]}
+        secho 'Failover Cancel - returning copy image acess to no_access for target copy '${direct_access_mode_varray}
         run volume change_link ${PROJECT}/${src_volume} failover-cancel ${PROJECT}/${tgt_volume} rp
 
         secho 'Verify the current state of the source and target vols'
@@ -6101,12 +6123,15 @@ recoverpoint_direct_access_test()
         run volume verify ${PROJECT}/${tgt_volume} link_status IN_SYNC
 
         secho 'Failover using consistency group API'
-        run blockconsistencygroup failover $consistency_group --copyType rp --targetVarray ${rp_tgt_varrays[0]}
+        run blockconsistencygroup failover $consistency_group --copyType rp --targetVarray ${direct_access_mode_varray}
         secho 'Setting access mode to direct access using consistency group API'
-        run blockconsistencygroup accessmode $consistency_group --copyType rp --targetVarray ${rp_tgt_varrays[0]} --am DIRECT_ACCESS
+        run blockconsistencygroup accessmode $consistency_group --copyType rp --targetVarray ${direct_access_mode_varray} --am DIRECT_ACCESS
 
-        secho 'Failover Cancel - returning copy image acess to no_access for target copy '${rp_tgt_varrays[0]}
-        run blockconsistencygroup failover_cancel $consistency_group --copyType rp --targetVarray ${rp_tgt_varrays[0]}
+        secho 'Failover Cancel - returning copy image acess to no_access for target copy '${direct_access_mode_varray}
+        run blockconsistencygroup failover_cancel $consistency_group --copyType rp --targetVarray ${direct_access_mode_varray}
+        
+        secho 'Expand source volume when one of the RP target copies is in direct access mode'
+        run volume expand ${PROJECT}/${src_volume} ${RP_SIZE_EXPAND}
 
         secho 'Verify the current state of the source and target vols'
         run volume verify ${PROJECT}/${src_volume} personality SOURCE

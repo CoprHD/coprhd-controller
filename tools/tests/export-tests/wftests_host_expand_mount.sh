@@ -6,63 +6,37 @@
 
 HAPPY_PATH_TEST_INJECTION="happy_path_test_injection"
 
-test_windows_expand_mount() {
-    echot "Test test_windows_expand_mount"
-
-    cfs=("ExportGroup ExportMask Volume Host")
-    test_name="test_windows_expand_mount"
-    random_number=${RANDOM}
-    volume=${VOLNAME}-1-${random_number}
-    winhost=winhost1
-
-    failure_injections="${HAPPY_PATH_TEST_INJECTION}"
-
-    for failure in ${failure_injections}
-    do
-        TEST_OUTPUT_FILE=test_output_${RANDOM}.log
-        reset_counts
-        item=${RANDOM}
-        mkdir -p results/${item}
-
-        # Snap the DB
-        snap_db 1 "${cfs[@]}"
-
-        windows_create_and_mount_volume $TENANT ${winhost} ${volume} ${NH} ${VPOOL_BASE} ${PROJECT}
-
-        windows_expand_volume $TENANT ${winhost} ${volume} ${PROJECT} "5"
-
-        windows_unmount_and_delete_volume $TENANT ${winhost} ${volume} ${PROJECT}
-
-        snap_db 2 "${cfs[@]}"
-
-        # Validate that nothing was left behind
-        validate_db 1 2 "${cfs[@]}"
-
-        # Report results
-        report_results ${test_name} ${failure}
-
-        echo " "
-    done
-}
-
 test_expand_host_filesystem() {
     test_name="test_expand_host_filesystem"
     echot "Test ${test_name} Begins"
 
     failure_injections="${HAPPY_PATH_TEST_INJECTION}"
+    supported_os="windows linux hpux" 
 
-    supported_os="hpux"
-
-    for os in ${supported_os}
+    for os in ${supported_os[@]}
     do
-	volume="FS-${BASENUM}"
+        echo "Running test for ${os}"
+
+	random_number=${RANDOM}
+	volume="FS-${random_number}"
 
 	if [ "${os}" = "hpux" ]
 	then
 	    hostname=hpuxhost1
+	elif [ "${os}" = "linux" ]
+	then
+	    hostname=linuxhost1
+	elif [ "${os}" = "windows" ]
+	then
+	    hostname=winhost1
 	fi
-	
-	unix_create_volume_and_mount $TENANT ${hostname} "${volume}" "/${volume}" ${NH} ${VPOOL_BASE} ${PROJECT} ${os}
+
+        if [ "${os}" = "windows" ]
+        then
+            windows_create_and_mount_volume $TENANT ${hostname} "${volume}" ${NH} ${VPOOL_BASE} ${PROJECT}
+        else
+            unix_create_volume_and_mount $TENANT ${hostname} "${volume}" "/${volume}" ${NH} ${VPOOL_BASE} ${PROJECT} ${os}
+        fi
 
 	for failure in ${failure_injections}
 	do
@@ -79,7 +53,7 @@ test_expand_host_filesystem() {
             set_artificial_failure ${failure}
 
 	    # Run expand filesystem
-            unix_expand_volume $TENANT ${hostname} ${volume} ${PROJECT} "5" ${os}
+            expand_volume $TENANT ${hostname} ${volume} ${PROJECT} "5" ${os}
 
             # Verify injected failures were hit
             # verify_failures ${failure}
@@ -99,8 +73,8 @@ test_expand_host_filesystem() {
 	# Turn off failure
 	set_artificial_failure none
 
-	unix_unmount_and_delete_volume $TENANT ${hostname} "${volume}" ${PROJECT} ${os}
-    done
+	unmount_and_delete_volume $TENANT ${hostname} "${volume}" ${PROJECT} ${os}
+    done 
 }
 
 #### Service Catalog methods are below ####
@@ -115,29 +89,7 @@ windows_create_and_mount_volume() {
     virtualpool_id=`cos list block | grep "${5} " | awk '{print $3}'`
     project_id=`project list --tenant ${tenant_arg} | grep "${6} " | awk '{print $4}'`
     
-    echo "=== catalog order CreateandMountVolume ${tenant_arg} project=${project_id},name=${volname_arg},virtualPool=${virtualpool_id},virtualArray=${virtualarray_id},host=${host_id},size=1,fileSystemType=ntfs,partitionType=GPT,blockSize=DEFAULT,mountPoint=,label="
-    echo `catalog order CreateandMountVolume ${tenant_arg} project=${project_id},name=${volname_arg},virtualPool=${virtualpool_id},virtualArray=${virtualarray_id},host=${host_id},size=1,fileSystemType=ntfs,partitionType=GPT,blockSize=DEFAULT,mountPoint=,label= BlockServicesforWindows`
-}
-
-windows_expand_volume() {
-    # tenant hostname volname project size
-    tenant_arg=$1
-    host_id=`hosts list ${tenant_arg} | grep "${2} " | awk '{print $4}'`
-    volume_id=`volume list ${4} | grep "${3}" | awk '{print $7}'`
-    size=$5
-
-    echo "=== catalog order ExpandVolumeonWindows ${tenant_arg} host=${host_id},size=${size},volumes=${volume_id}"
-    echo `catalog order ExpandVolumeonWindows ${tenant_arg} host=${host_id},size=${size},volumes=${volume_id} BlockServicesforWindows`
-}
-
-windows_unmount_and_delete_volume() {
-    # tenant hostname volname project
-    tenant_arg=$1
-    host_id=`hosts list ${tenant_arg} | grep "${2} " | awk '{print $4}'`
-    volume_id=`volume list ${4} | grep "${3}" | awk '{print $7}'`
-
-    echo "=== catalog order UnmountandDeleteVolume ${tenant_arg} host=${host_id},volumes=${volume_id}"    
-    echo `catalog order UnmountandDeleteVolume ${tenant_arg} host=${host_id},volumes=${volume_id} BlockServicesforWindows`
+    runcmd catalog order CreateandMountVolume ${tenant_arg} project=${project_id},name=${volname_arg},virtualPool=${virtualpool_id},virtualArray=${virtualarray_id},host=${host_id},size=1,fileSystemType=ntfs,partitionType=GPT,blockSize=DEFAULT,mountPoint=,label= BlockServicesforWindows
 }
 
 unix_create_volume_and_mount() {
@@ -152,21 +104,26 @@ unix_create_volume_and_mount() {
     project_id=`project list --tenant ${tenant_arg} | grep -v owner | grep "${7} " | awk '{print $4}'`
 
     os=$8
+ 
+    file_system_type=""
 
     # All OS's share the same service catalog name in this operation.
     service_catalog=CreateAndMountBlockVolume
     if [ "${os}" = "hpux" ]
     then
 	service_category=BlockServicesforHP-UX
+    elif [ "${os}" = "linux" ]
+    then
+        service_category=BlockServicesforLinux
+        file_system_type=",fileSystemType=ext3"
     fi
 
     host_id=`hosts list ${tenant_arg} | grep ${hostname_arg} | awk '{print $4}'`
 
-    echo "=== catalog order ${service_catalog} ${tenant_arg} project=${project_id},name=${volname_arg},virtualPool=${virtualpool_id},virtualArray=${virtualarray_id},host=${host_id},size=1,mountPoint=${mountpoint_arg} ${service_category}"
-    echo `catalog order ${service_catalog} ${tenant_arg} project=${project_id},name=${volname_arg},virtualPool=${virtualpool_id},virtualArray=${virtualarray_id},host=${host_id},size=1,mountPoint=${mountpoint_arg} ${service_category}`
+    runcmd catalog order ${service_catalog} ${tenant_arg} project=${project_id},name=${volname_arg},virtualPool=${virtualpool_id},virtualArray=${virtualarray_id},host=${host_id},size=1,mountPoint=${mountpoint_arg}${file_system_type} ${service_category}
 }
 
-unix_expand_volume() {
+expand_volume() {
     # tenant hostname volname project size
     tenant_arg=$1
     host_id=`hosts list ${tenant_arg} | grep "${2} " | awk '{print $4}'`
@@ -176,20 +133,29 @@ unix_expand_volume() {
 
     service_category=NoneSet
     service_catalog=NoneSet
+    volume_parameter_name="volume"
 
     if [ "${os}" = "hpux" ]
     then
 	service_category=BlockServicesforHP-UX
         service_catalog=ExpandVolumeonHPUX
+    elif [ "${os}" = "linux" ]
+    then
+        service_category=BlockServicesforLinux
+        service_catalog=ExpandLinuxMount
+    elif [ "${os}" = "windows" ]
+    then
+        service_category=BlockServicesforWindows
+        service_catalog=ExpandVolumeonWindows
+        volume_parameter_name="volumes"
     fi
 
-    # unix_expand_volume $TENANT ${hostname} ${volume} ${PROJECT} "5" ${os}
+    # expand_volume $TENANT ${hostname} ${volume} ${PROJECT} "5" ${os}
 
-    echo "=== catalog order ${service_catalog} ${tenant_arg} host=${host_id},size=${size},volume=${volume_id} ${service_category}"
-    echo `catalog order ${service_catalog} ${tenant_arg} host=${host_id},size=${size},volume=${volume_id} ${service_category}`
+    runcmd catalog order ${service_catalog} ${tenant_arg} host=${host_id},size=${size},${volume_parameter_name}=${volume_id} ${service_category}
 }
 
-unix_unmount_and_delete_volume() {
+unmount_and_delete_volume() {
     # host, name
     tenant_arg=$1
     hostname_arg=$2
@@ -199,15 +165,23 @@ unix_unmount_and_delete_volume() {
 
     service_category=NoneSet
     service_catalog=NoneSet
+
     if [ "${os}" = "hpux" ]
     then
 	service_category=BlockServicesforHP-UX
         service_catalog=UnmountandDeleteVolumeonHPUX
+    elif [ "${os}" = "linux" ]
+    then
+        service_category=BlockServicesforLinux
+        service_catalog=UnmountandDeleteVolume
+    elif [ "${os}" = "windows" ]
+    then
+        service_category=BlockServicesforWindows
+        service_catalog=UnmountandDeleteVolume
     fi
 
     host_id=`hosts list ${tenant_arg} | grep ${hostname_arg} | awk '{print $4}'`
     volume_id=`volume list ${PROJECT} | grep "${volname_arg}" | awk '{print $7}'`
 
-    echo "=== catalog order ${service_catalog} ${tenant_arg} volumes=${volname_id},host=${host_id} ${service_category}"
-    echo `catalog order ${service_catalog} ${tenant_arg} volumes=${volname_id},host=${host_id} ${service_category}`
+    runcmd catalog order ${service_catalog} ${tenant_arg} volumes=${volume_id},host=${host_id} ${service_category}
 }

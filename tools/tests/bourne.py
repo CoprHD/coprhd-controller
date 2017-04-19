@@ -8439,7 +8439,7 @@ class Bourne:
         for catalog_service in catalog_services['resource']:
             service = self.catalog_service_query(catalog_service['id'])
             category = self.catalog_category_query(service['catalog_category']['id'])
-            if category['tenant']['id'] == tenant and service['name'] == servicename and (categoryName is not None and categoryName == category['name']):
+            if category['tenant']['id'] == tenant and service['name'] == servicename and (categoryName is None or categoryName == category['name']):
                 return service 
         raise Exception('unable to find service ' + servicename + ' in tenant ' + tenant + ' in category ' + categoryName)
 

@@ -955,6 +955,13 @@ host_setup() {
     fi
 }
 
+linux_setup() {
+    if [ "${SIM}" != "1" ]; then
+        secho "Setting up Linux hardware host"
+        run hosts create linuxhost1 $TENANT Linux ${LINUX_HOST_IP} --port ${LINUX_HOST_PORT} --username ${LINUX_HOST_USERNAME} --password ${LINUX_HOST_PASSWORD} --discoverable true
+    fi
+}
+
 windows_setup() {
     if [ "${SIM}" != "1" ]; then
         secho "Setting up Windows hardware host"
@@ -1005,6 +1012,7 @@ common_setup() {
     vcenter_setup;
     windows_setup;
     hpux_setup;
+    linux_setup;
 }
 
 setup_varray() {

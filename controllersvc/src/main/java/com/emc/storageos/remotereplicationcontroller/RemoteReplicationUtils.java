@@ -18,6 +18,7 @@ import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.emc.storageos.api.service.impl.resource.ArgValidator;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
@@ -277,16 +278,19 @@ public class RemoteReplicationUtils {
         boolean isChangeValid = true;
         switch (rrElement.getType()) {
             case REPLICATION_PAIR:
-                RemoteReplicationPair rrPair = dbClient.queryObject(RemoteReplicationPair.class, rrElement.getElementUri());
+                RemoteReplicationPair rrPair = ArgValidator.checkDataObjectExists(RemoteReplicationPair.class,
+                        rrElement.getElementUri(), dbClient);
                 isChangeValid = supportModeChangeOnRrPair(rrPair, dbClient, newMode);
                 break;
             case CONSISTENCY_GROUP:
-                BlockConsistencyGroup cg = dbClient.queryObject(BlockConsistencyGroup.class, rrElement.getElementUri());
+                BlockConsistencyGroup cg = ArgValidator.checkDataObjectExists(BlockConsistencyGroup.class,
+                        rrElement.getElementUri(), dbClient);
                 List<RemoteReplicationPair> rrPairs = getRemoteReplicationPairsForCG(cg, dbClient);
                 isChangeValid = supportModeChangeOnAllRrPairs(rrPairs, dbClient, newMode);
                 break;
             case REPLICATION_GROUP:
-                RemoteReplicationGroup rrGroup = dbClient.queryObject(RemoteReplicationGroup.class, rrElement.getElementUri());
+                RemoteReplicationGroup rrGroup = ArgValidator.checkDataObjectExists(RemoteReplicationGroup.class,
+                        rrElement.getElementUri(), dbClient);
                 if (rrGroup.getReachable() != Boolean.TRUE) {
                     isChangeValid = false;
                     break;

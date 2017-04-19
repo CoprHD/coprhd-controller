@@ -82,12 +82,14 @@ public class CustomServicesWorkflowDocument {
     public static class Input {
 
         private String name;
-        private String type; //type of CustomServicesConstants.InputType
+        //type of CustomServicesConstants.InputType
+        private String type;
         private String friendlyName;
         private String defaultValue;
         private String value;
         private String group;
         private String description;
+        //type of the value e.g (STRING, INTEGER ...etc)
         private String inputFieldType;
         private String tableName;
         private boolean required = true;

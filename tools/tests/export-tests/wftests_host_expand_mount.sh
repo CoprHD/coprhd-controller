@@ -60,12 +60,9 @@ test_expand_host_filesystem() {
 	if [ "${os}" = "hpux" ]
 	then
 	    hostname=hpuxhost1
-	    service_category=BlockServicesforHP-UX
 	fi
 	
-	set -x
-	unix_create_volume_and_mount $TENANT ${hostname} "${volume}" "/${volume}" ${NH} ${VPOOL_BASE} ${PROJECT} ${service_category}
-	set +x
+	unix_create_volume_and_mount $TENANT ${hostname} "${volume}" "/${volume}" ${NH} ${VPOOL_BASE} ${PROJECT} ${os}
 
 	for failure in ${failure_injections}
 	do
@@ -82,9 +79,7 @@ test_expand_host_filesystem() {
             set_artificial_failure ${failure}
 
 	    # Run expand filesystem
-	    set -x
-            unix_expand_volume $TENANT ${hostname} ${volume} ${PROJECT} "5" ${service_category}
-	    set +x
+            unix_expand_volume $TENANT ${hostname} ${volume} ${PROJECT} "5" ${os}
 
             # Verify injected failures were hit
             # verify_failures ${failure}
@@ -104,9 +99,7 @@ test_expand_host_filesystem() {
 	# Turn off failure
 	set_artificial_failure none
 
-	set -x
-	unix_unmount_and_delete_volume $TENANT ${hostname} "${volume}" "/${volume}" ${NH} ${VPOOL_BASE} ${PROJECT} ${service_category}
-	set +x
+	unix_unmount_and_delete_volume $TENANT ${hostname} "${volume}" ${PROJECT} ${os}
     done
 }
 
@@ -147,19 +140,6 @@ windows_unmount_and_delete_volume() {
     echo `catalog order UnmountandDeleteVolume ${tenant_arg} host=${host_id},volumes=${volume_id} BlockServicesforWindows`
 }
 
-unix_expand_volume() {
-    # tenant hostname volname project size
-    tenant_arg=$1
-    host_id=`hosts list ${tenant_arg} | grep "${2} " | awk '{print $4}'`
-    volume_id=`volume list ${4} | grep "${3}" | awk '{print $7}'`
-    size=$5
-
-    service_category="${6}"
-
-    echo "=== catalog order ExpandBlockVolume ${tenant_arg} host=${host_id},size=${size},volumes=${volume_id} ${service_category}"
-    echo `catalog order ExpandBlockVolume ${tenant_arg} host=${host_id},size=${size},volumes=${volume_id} ${service_category}`
-}
-
 unix_create_volume_and_mount() {
     # host, virtualArray, virtualPool, project, name, consistencyGroup, size, mountPoint, hlu
     tenant_arg=$1
@@ -171,12 +151,42 @@ unix_create_volume_and_mount() {
     virtualpool_id=`cos list block | grep "${6} " | grep -v description | awk '{print $3}'`
     project_id=`project list --tenant ${tenant_arg} | grep -v owner | grep "${7} " | awk '{print $4}'`
 
-    service_category="${8}"
+    os=$8
+
+    # All OS's share the same service catalog name in this operation.
+    service_catalog=CreateAndMountBlockVolume
+    if [ "${os}" = "hpux" ]
+    then
+	service_category=BlockServicesforHP-UX
+    fi
 
     host_id=`hosts list ${tenant_arg} | grep ${hostname_arg} | awk '{print $4}'`
 
-    echo "=== catalog order CreateAndMountBlockVolume ${tenant_arg} project=${project_id},name=${volname_arg},virtualPool=${virtualpool_id},virtualArray=${virtualarray_id},host=${host_id},size=1,mountPoint=${mountpoint_arg} ${service_category}"
-    echo `catalog order CreateAndMountBlockVolume ${tenant_arg} project=${project_id},name=${volname_arg},virtualPool=${virtualpool_id},virtualArray=${virtualarray_id},host=${host_id},size=1,mountPoint=${mountpoint_arg} ${service_category}`
+    echo "=== catalog order ${service_catalog} ${tenant_arg} project=${project_id},name=${volname_arg},virtualPool=${virtualpool_id},virtualArray=${virtualarray_id},host=${host_id},size=1,mountPoint=${mountpoint_arg} ${service_category}"
+    echo `catalog order ${service_catalog} ${tenant_arg} project=${project_id},name=${volname_arg},virtualPool=${virtualpool_id},virtualArray=${virtualarray_id},host=${host_id},size=1,mountPoint=${mountpoint_arg} ${service_category}`
+}
+
+unix_expand_volume() {
+    # tenant hostname volname project size
+    tenant_arg=$1
+    host_id=`hosts list ${tenant_arg} | grep "${2} " | awk '{print $4}'`
+    volume_id=`volume list ${4} | grep "${3}" | awk '{print $7}'`
+    size=$5
+    os=$6
+
+    service_category=NoneSet
+    service_catalog=NoneSet
+
+    if [ "${os}" = "hpux" ]
+    then
+	service_category=BlockServicesforHP-UX
+        service_catalog=ExpandVolumeonHPUX
+    fi
+
+    # unix_expand_volume $TENANT ${hostname} ${volume} ${PROJECT} "5" ${os}
+
+    echo "=== catalog order ${service_catalog} ${tenant_arg} host=${host_id},size=${size},volume=${volume_id} ${service_category}"
+    echo `catalog order ${service_catalog} ${tenant_arg} host=${host_id},size=${size},volume=${volume_id} ${service_category}`
 }
 
 unix_unmount_and_delete_volume() {
@@ -184,12 +194,20 @@ unix_unmount_and_delete_volume() {
     tenant_arg=$1
     hostname_arg=$2
     volname_arg=$3
+    project_arg=$4
+    os=$5
 
-    service_category="${8}"
+    service_category=NoneSet
+    service_catalog=NoneSet
+    if [ "${os}" = "hpux" ]
+    then
+	service_category=BlockServicesforHP-UX
+        service_catalog=UnmountandDeleteVolumeonHPUX
+    fi
 
     host_id=`hosts list ${tenant_arg} | grep ${hostname_arg} | awk '{print $4}'`
+    volume_id=`volume list ${PROJECT} | grep "${volname_arg}" | awk '{print $7}'`
 
-    echo "=== catalog order UnmountandDeleteVolumeonHPUX ${tenant_arg} name=${volname_arg},host=${host_id} ${service_category}"
-    echo `catalog order UnmountandDeleteVolumeonHPUX ${tenant_arg} name=${volname_arg},host=${host_id} ${service_category}`
+    echo "=== catalog order ${service_catalog} ${tenant_arg} volumes=${volname_id},host=${host_id} ${service_category}"
+    echo `catalog order ${service_catalog} ${tenant_arg} volumes=${volname_id},host=${host_id} ${service_category}`
 }
-

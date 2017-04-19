@@ -887,6 +887,14 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         IsilonSmartQuota expandedQuota = getExpandedQuota(isi, args, capacity);
         isi.modifyQuota(quotaId, expandedQuota);
 
+        if(capacity.compareTo(expandedQuota.getUsagePhysical()) < 0) {
+            String msg = String
+                    .format(
+                            "In expanding Isilon FS requested capacity is less than current capacity of file system. Path: %s, current capacity: %d",
+                            quota.getPath(), quota.getThresholds().getHard());
+            _log.error(msg);
+        }
+
         //update the quota directories of fileshare
 //        if (capacity.compareTo(hard) < 0) {
 //            String msg = String
@@ -1407,12 +1415,21 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             }
 
             if (quotaId != null) {
+                IsilonSmartQuota isiCurrentSmartQuota = isi.getQuota(quotaId);
+                long quotaUsageSpace = isiCurrentSmartQuota.getUsagePhysical();
                 // Isilon does not allow to update quota directory to zero.
-                if (qDirSize > 0) {
+                if (qDirSize > 0 && quotaUsageSpace < qDirSize.longValue() ) {
                     _log.info("IsilonFileStorageDevice doUpdateQuotaDirectory , Update Quota {} with Capacity {}", quotaId, qDirSize);
-
                     IsilonSmartQuota expandedQuota = getQuotaDirectoryExpandedSmartQuota(quotaDir, qDirSize, args.getFsCapacity(), isi);
                     isi.modifyQuota(quotaId, expandedQuota);
+                } else {
+                    String msg = String.format(
+                                    "Shriking the Isilon FS failed, because the filesystem capacity is less than current usage capacity of file system. Path: %s, current usage capacity: %d",
+                                    quotaDir.getPath(), quotaUsageSpace);
+                    _log.error("doUpdateQuotaDirectory : " + msg);
+                    ServiceError error = DeviceControllerErrors.isilon
+                            .jobFailed(msg);
+                    return BiosCommandResult.createErrorResult(error);
                 }
 
             } else {

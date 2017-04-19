@@ -1240,14 +1240,14 @@ public class FileService extends TaskResourceService {
                         throw APIException.badRequests.invalidParameterBelowMinimum("new_size", newFSsize, quotaDir.getSize() + MIN_EXPAND_SIZE, "bytes");
                     }
                 }
-                //validation -2  new_size_to_shrink should be greater usage capacity of filesystem.
-                if(null != fs.getUsedCapacity() && fs.getUsedCapacity().longValue() > 0) {
-                    quotasize = newFSsize - fs.getUsedCapacity();
-                    //To shrink the new capacity of size should be greater than used capacity of fileshare.
-                    if (quotasize < MIN_EXPAND_SIZE) {
-                        throw APIException.badRequests.invalidParameterBelowMinimum("new_size", newFSsize, fs.getUsedCapacity() + MIN_EXPAND_SIZE, "bytes");
-                    }
-                }
+//                //validation -2  new_size_to_shrink should be greater usage capacity of filesystem.
+//                if(null != fs.getUsedCapacity() && fs.getUsedCapacity().longValue() > 0) {
+//                    quotasize = newFSsize - fs.getUsedCapacity();
+//                    //To shrink the new capacity of size should be greater than used capacity of fileshare.
+//                    if (quotasize < MIN_EXPAND_SIZE) {
+//                        throw APIException.badRequests.invalidParameterBelowMinimum("new_size", newFSsize, fs.getUsedCapacity() + MIN_EXPAND_SIZE, "bytes");
+//                    }
+//                }
             }
         }
 

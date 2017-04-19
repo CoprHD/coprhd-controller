@@ -108,15 +108,14 @@ public class IsilonApiTest {
         // snapshot shares are not supported,
 
         // Test smb share for snapshots
-        // String dir = "/ifs/testDir";
-        // String snapPath = "/ifs/.snapshot/test_snap/testDir";
-        // String snapPath = "/ifs/.snapshot/testDir_" + suffix + "/testSMB01";
-        // String snap_id = _client.createSnapshot("test_snap_" + suffix, testSMBDir);
         //
-        //
-        // String snapShareId = _client.createShare(new IsilonSMBShare("smbShareTestER20_" + suffix, snapPath, "smb test snap share",
-        // "allow",
-        // "full"));
+        // String snapName = "testSnap" + suffix;
+        // String snapShareName = "testSnapShare" + suffix;
+        // String fsPath = _test_path + "testFile01";
+        // String snapPath = "//ifs//.snapshot/" + snapName + fsPath.substring("//ifs".length());
+        // _client.createDir(fsPath, true);
+        // String snap_id = _client.createSnapshot(snapName, fsPath);
+        // String snapShareId = _client.createShare(new IsilonSMBShare(snapShareName, snapPath, "smb test snap share", "allow", "full"));
         // Assert.assertTrue("SMB share create failed.", (snapShareId != null && !snapShareId.isEmpty()));
         // System.out.println("SMB Share created: id: " + snapShareId);
         //
@@ -124,7 +123,7 @@ public class IsilonApiTest {
         // Assert.assertTrue("SMB share create failed.", snapShare != null);
         //
         // // modify share
-        // _client.modifyShare(snapShareId, new IsilonSMBShare("smbShareTestER20_" + suffix, snapPath, "smb test share modify", "allow",
+        // _client.modifyShare(snapShareId, new IsilonSMBShare(snapShareName, snapPath, "smb test share modify", "allow",
         // "read"));
         //
         // lShares = _client.listShares(null).getList();

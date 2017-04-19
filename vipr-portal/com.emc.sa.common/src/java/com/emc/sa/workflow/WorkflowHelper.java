@@ -68,8 +68,7 @@ import com.emc.storageos.primitives.CustomServicesPrimitiveResourceType;
 import com.emc.storageos.primitives.CustomServicesPrimitiveType;
 import com.emc.storageos.primitives.java.vipr.CustomServicesViPRPrimitive;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
-import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorException;
-import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableList;
 
 /**
  * Helper class to perform CRUD operations on a workflow
@@ -85,7 +84,7 @@ public final class WorkflowHelper {
     private static final String ROOT = "";
     private static final String METADATA_FILE = "worflow.md";
     private static final String CURRENT_VERSION = "1";
-    private static final ImmutableSet<String> SUPPORTED_VERSIONS = ImmutableSet.<String>builder()
+    private static final ImmutableList<String> SUPPORTED_VERSIONS = ImmutableList.<String>builder()
             .add(CURRENT_VERSION).build();
     
     private WorkflowHelper() {}
@@ -208,8 +207,7 @@ public final class WorkflowHelper {
                             if( path.getFileName().toString().equals(METADATA_FILE)) {
                                 final WorkflowMetadata workflowMetadata = MAPPER.readValue(bytes, WorkflowMetadata.class);
                                 if( !SUPPORTED_VERSIONS.contains(workflowMetadata.getVersion())) {
-                                    //TODO better exception when version not supported
-                                    throw APIException.methodNotAllowed.notSupported();
+                                    throw APIException.badRequests.workflowVersionNotSupported(CURRENT_VERSION, SUPPORTED_VERSIONS);
                                 }
                                 builder.metadata(workflowMetadata);
                             }
@@ -246,7 +244,7 @@ public final class WorkflowHelper {
                             }
                             break;
                         default:
-                            throw APIException.badRequests.invalidParameter("archive", "");
+                            throw APIException.badRequests.workflowArchiveContentsInvalid(parent);
                     } 
                     
                 }
@@ -261,7 +259,8 @@ public final class WorkflowHelper {
             return importWorkfow(builder.build(), wfDirectory, client, daos, resourceDAOs);
             
         } catch (final IOException e) {
-            throw InternalServerErrorException.internalServerErrors.genericApisvcError("Invalid workflow import package", e);
+            log.error("Failed to import the archive: ", e);
+            throw APIException.badRequests.workflowArchiveCannotBeImported(e.getMessage());
         }
     }
 
@@ -396,7 +395,7 @@ public final class WorkflowHelper {
      */
     private static CustomServicesWorkflowPackage makeCustomServicesWorkflowPackage(final URI id, final ModelClient client, final CustomServicesPrimitiveDAOs daos, final CustomServicesResourceDAOs resourceDAOs) {
         final CustomServicesWorkflowPackage.Builder builder = new CustomServicesWorkflowPackage.Builder();
-        builder.metadata(new WorkflowMetadata(id, VERSION));
+        builder.metadata(new WorkflowMetadata(id, CURRENT_VERSION));
         addWorkflow(builder, id, client, daos, resourceDAOs);
         return builder.build();
         

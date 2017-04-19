@@ -19,38 +19,32 @@ package com.emc.sa.service.vipr.customservices;
 
 import java.beans.PropertyDescriptor;
 import java.io.File;
-import java.io.IOException;
-import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.net.URI;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.Date;
+import java.util.Calendar;
+import java.util.Collection;
 
-import com.emc.storageos.db.client.model.StorageProtocol;
-import com.emc.storageos.model.*;
-import com.emc.storageos.model.errorhandling.ServiceErrorRestRep;
 import org.apache.commons.lang.StringUtils;
 import org.codehaus.jackson.JsonNode;
-import org.codehaus.jackson.JsonParseException;
-import org.codehaus.jackson.map.JsonMappingException;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.codehaus.jackson.xc.JaxbAnnotationIntrospector;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.expression.EvaluationContext;
-import org.springframework.expression.Expression;
-import org.springframework.expression.ExpressionParser;
-import org.springframework.expression.spel.standard.SpelExpressionParser;
-import org.springframework.expression.spel.support.StandardEvaluationContext;
 
 import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.engine.service.Service;
 import com.emc.sa.service.vipr.ViPRExecutionUtils;
 import com.emc.sa.service.vipr.ViPRService;
-import com.emc.sa.service.vipr.customservices.gson.ViprOperation;
-import com.emc.sa.service.vipr.customservices.gson.ViprTask;
 import com.emc.sa.service.vipr.customservices.tasks.CustomServicesExecutors;
 import com.emc.sa.service.vipr.customservices.tasks.CustomServicesRestTaskResult;
 import com.emc.sa.service.vipr.customservices.tasks.CustomServicesTaskResult;
@@ -67,7 +61,6 @@ import com.emc.storageos.primitives.CustomServicesPrimitive.StepType;
 import com.emc.storageos.services.util.Exec;
 import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorException;
 import com.google.common.collect.ImmutableMap;
-import com.google.gson.Gson;
 
 import javax.xml.bind.annotation.XmlElement;
 

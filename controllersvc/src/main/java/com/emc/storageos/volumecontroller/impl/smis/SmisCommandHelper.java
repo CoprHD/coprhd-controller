@@ -5667,9 +5667,10 @@ public class SmisCommandHelper implements SmisConstants {
 
     /**
      * This method is used to get fast setting value for the volume based on autoTierPolicyName.
-     * fastSetting is combination of SLO+WORKLOAD+SRP. If no policy name is specified then
-     * fastSetting is OPTIMIZED+NONE+SRP_1.
-     * Other example name is BRONZE+DSS+SRP_1 when autoTierPolicy is specified for a volume.
+     * fastSetting is combination of SLO+WORKLOAD+SRP.
+     * For example: BRONZE+DSS+SRP_1 when autoTierPolicy is specified for a volume.
+     * If no policy name is specified or block object is not associated with policy, then
+     * fastSetting is NONE.
      *
      * @param blockObjectURI
      *            BlockObjectURI
@@ -5704,6 +5705,18 @@ public class SmisCommandHelper implements SmisConstants {
             policyName = getPolicyByBlockObject(volume.getPool(), autoTierPolicyName, volume.getAutoTieringPolicyUri());
         }
         return policyName.toString();
+    }
+
+    /**
+     * If policy name is simply NONE, then fastSetting to create is NONE+NONE+NONE for VMAX3.
+     */
+    public String getVMAX3FastSettingWithRightNoneString(StorageSystem storage, String policyName) {
+        if (storage.checkIfVmax3() && Constants.NONE.equalsIgnoreCase(policyName)) {
+            StringBuffer policyNameBuff = new StringBuffer();
+            policyName = (policyNameBuff.append(Constants.NONE.toUpperCase()).append(Constants._plusDelimiter)
+                    .append(Constants.NONE.toUpperCase()).append(Constants._plusDelimiter).append(Constants.NONE.toUpperCase())).toString();
+        }
+        return policyName;
     }
 
     /**
@@ -5825,8 +5838,7 @@ public class SmisCommandHelper implements SmisConstants {
         StringBuffer policyName = new StringBuffer();
         if ((null != autoTierPolicyName && Constants.NONE.equalsIgnoreCase(autoTierPolicyName))
                 || (NullColumnValueGetter.isNullURI(policyURI))) {
-            policyName = policyName.append(Constants.NONE.toUpperCase()).append(Constants._plusDelimiter)
-                    .append(Constants.NONE.toUpperCase()).append(Constants._plusDelimiter).append(Constants.NONE.toUpperCase());
+            policyName = policyName.append(Constants.NONE);
         } else {
             AutoTieringPolicy autoTierPolicy = _dbClient.queryObject(AutoTieringPolicy.class, policyURI);
             policyName = policyName.append(autoTierPolicy.getVmaxSLO()).append(Constants._plusDelimiter)

@@ -607,7 +607,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
     private void addVolumesToParkingStorageGroup(StorageSystem storage, String policyName, Set<String> volumeDeviceIds) throws Exception {
         // Don't add volumes to parking SLO which are already part of a storage group
         volumeDeviceIds = _helper.filterVolumesPartOfAnyStorageGroup(storage, volumeDeviceIds);
-        if (!volumeDeviceIds.isEmpty()) {
+        if (!volumeDeviceIds.isEmpty() && !Constants.NONE.equalsIgnoreCase(policyName)) {
             String[] tokens = policyName.split(Constants.SMIS_PLUS_REGEX);
             CIMObjectPath groupPath = _helper.getVolumeGroupBasedOnSLO(storage, storage, tokens[0], tokens[1], tokens[2]);
             if (groupPath == null) {
@@ -2483,6 +2483,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
                 _log.info("Done invoking remove volume {} from storage group before export.", nativeId);
             }
 
+            policyName = _helper.getVMAX3FastSettingWithRightNoneString(storage, policyName);
             String[] tokens = policyName.split(Constants.SMIS_PLUS_REGEX);
             inArgs = _helper.getCreateVolumeGroupInputArguments(storage, truncatedGroupName, tokens[0], tokens[2], tokens[1],
                     addVolumes ? volumeNames : null, disableCompression);
@@ -4871,6 +4872,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
                                 SmisCommandHelper.MASKING_GROUP_TYPE.SE_DeviceMaskingGroup);
                     } else {
                         newGroup = true;
+                        newPolicyName = _helper.getVMAX3FastSettingWithRightNoneString(storage, newPolicyName);
                         String[] tokens = newPolicyName.split(Constants.SMIS_PLUS_REGEX);
                         newChildGroupPath = _helper.createVolumeGroupBasedOnSLO(storage, storage, tokens[0], tokens[1], tokens[2]);
 

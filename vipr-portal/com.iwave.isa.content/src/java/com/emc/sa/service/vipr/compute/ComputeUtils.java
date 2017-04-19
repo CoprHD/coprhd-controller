@@ -28,6 +28,7 @@ import com.emc.sa.engine.ExecutionException;
 import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.engine.bind.Param;
 import com.emc.sa.machinetags.KnownMachineTags;
+import com.emc.sa.model.dao.ModelClient;
 import com.emc.sa.service.vipr.ViPRExecutionUtils;
 import com.emc.sa.service.vipr.block.BlockStorageUtils;
 import com.emc.sa.service.vipr.block.tasks.GetBlockResource;
@@ -57,8 +58,11 @@ import com.emc.storageos.computesystemcontroller.impl.adapter.VcenterDiscoveryAd
 import com.emc.storageos.db.client.model.Cluster;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Host.HostType;
+import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.Vcenter;
 import com.emc.storageos.db.client.model.VcenterDataCenter;
+import com.emc.storageos.db.client.model.uimodels.ExecutionLog;
+import com.emc.storageos.db.client.model.uimodels.ExecutionLog.LogLevel;
 import com.emc.storageos.db.client.util.EndpointUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.model.block.BlockObjectRestRep;
@@ -216,8 +220,14 @@ public class ComputeUtils {
         if ((hosts != null) && (cluster != null)) {
             for (Host host : hosts) {
                 if (host != null) {
-                    ExecutionUtils.currentContext().logInfo("computeutils.clusterexport.addhost", host.getLabel(), cluster.getLabel());
-                    execute(new AddHostToCluster(host.getId(), cluster.getId()));
+                    try {
+                        ExecutionUtils.currentContext().logInfo("computeutils.clusterexport.addhost", host.getLabel(),
+                                cluster.getLabel());
+                        execute(new AddHostToCluster(host.getId(), cluster.getId()));
+                    } catch (Exception ex) {
+                        ExecutionUtils.currentContext().logError(ex, "computeutils.clusterexport.addhost.failure",
+                                host.getLabel(), cluster.getLabel());
+                    }
                 }
             }
         }else {
@@ -1584,5 +1594,17 @@ public class ComputeUtils {
             deactivateHostURIs(hostDeactivateMap);
         }
         return hostsWithOS;
+    }
+
+    public static String getContextErrors(ModelClient client) {
+        String sep = System.lineSeparator();
+        StringBuffer errBuff = new StringBuffer();
+        StringSet logIds = ExecutionUtils.currentContext().getExecutionState().getLogIds();
+        for(ExecutionLog l : client.executionLogs().findByIds(logIds)) {
+            if(l.getLevel().equals(LogLevel.ERROR.name())) {
+                errBuff.append(sep + sep + l.getMessage());
+            }
+        }
+        return errBuff.toString();
     }
 }

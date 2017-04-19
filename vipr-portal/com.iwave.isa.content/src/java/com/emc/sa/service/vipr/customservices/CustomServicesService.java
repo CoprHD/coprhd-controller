@@ -439,15 +439,6 @@ public class CustomServicesService extends ViPRService {
         final Object taskList = MAPPER.readValue(res, clazz.newInstance().getClass());
 
         outputPerStep.put(step.getId(), parseViprOutput(taskList, step));
-
-        Map<String, List<String>> map = outputPerStep.get(step.getId());
-        for ( Map.Entry<String, List<String>> l : map.entrySet()) {
-            logger.info("output key:{}", l.getKey());
-            List<String> values = l.getValue();
-            for (String val: values) {
-                logger.info("value is:{}", val);
-            }
-        }
     }
 
     private Map<String, List<String>> parseViprOutput(final Object taskList, final Step step) throws Exception {
@@ -460,7 +451,10 @@ public class CustomServicesService extends ViPRService {
 
             final String[] bits = outName.split("\\.");
 
-            output.put(out.getName(),ifprimitivetheninvoke(bits, 0, taskList) );
+            final List<String> list = ifprimitivetheninvoke(bits, 0, taskList);
+            if (list != null) {
+                output.put(out.getName(), list);
+            }
         }
 
         return output;
@@ -482,14 +476,15 @@ public class CustomServicesService extends ViPRService {
     private List<String> ifprimitivetheninvoke(final String[] bits, final int i, final Object className ) throws Exception {
 
         if (className == null) {
-            logger.error("class name is null, cannot parse output");
+            logger.warn("class name is null, cannot parse output");
 
             return null;
         }
         final Method method = findMethod(bits[i], className);
 
         if (method == null) {
-            logger.info("method is null. cannot parse output");
+            logger.warn("method is null. cannot parse output");
+
             return null;
         }
         logger.debug("bit:{}", bits[i]);
@@ -506,7 +501,7 @@ public class CustomServicesService extends ViPRService {
 
         final Type returnType = method.getGenericReturnType();
         if (returnType == null) {
-            logger.info("Cound not find return type of method:{}", method.getName());
+            logger.info("Could not find return type of method:{}", method.getName());
 
             return null;
         }
@@ -514,14 +509,13 @@ public class CustomServicesService extends ViPRService {
         //2) Class single object
         if (returnType instanceof Class<?>) {
             logger.info("return type class single obj");
-            ifprimitivetheninvoke(bits, i + 1, method.invoke(className, null));
 
+            return ifprimitivetheninvoke(bits, i + 1, method.invoke(className, null));
         }
 
         //3) Collection primitive
         if (Collection.class.isAssignableFrom(method.getReturnType())) {
             return getCollectionValue(method, bits, i, className);
-
         }
 
         return null;
@@ -530,7 +524,6 @@ public class CustomServicesService extends ViPRService {
     private List<String> getCollectionValue(final Method method, final String[] bits, final int i, final Object className) throws Exception {
         final Class returnClass = method.getReturnType();
         if (List.class.isAssignableFrom(returnClass)) {
-            logger.info("type is list");
             final Type returnType = method.getGenericReturnType();
             if (returnType instanceof ParameterizedType) {
                 final ParameterizedType paramType = (ParameterizedType) returnType;
@@ -547,7 +540,7 @@ public class CustomServicesService extends ViPRService {
                     final Type o = paramType.getActualTypeArguments()[0];
                     if (o instanceof Class<?>) {
                         for (final Object o1 : (List<?>) method.invoke(className, null)) {
-                            ifprimitivetheninvoke(bits, i + 1, o1);
+                            return ifprimitivetheninvoke(bits, i + 1, o1);
                         }
                     }
                 }
@@ -574,7 +567,7 @@ public class CustomServicesService extends ViPRService {
                     final Type o = paramType.getActualTypeArguments()[0];
                     if (o instanceof Class<?>) {
                         for (final Object o1 : (Set<?>) method.invoke(className, null)) {
-                            ifprimitivetheninvoke(bits, i + 1, o1);
+                            return ifprimitivetheninvoke(bits, i + 1, o1);
                         }
                     }
                 }
@@ -588,7 +581,6 @@ public class CustomServicesService extends ViPRService {
     private Method findMethod(final String str, final Object className) throws Exception {
         final Method[] methods = className.getClass().getMethods();
         for (Method method : methods) {
-            logger.info("method name:{}", method.getName());
             XmlElement elem = method.getAnnotation(XmlElement.class);
             if (elem != null) {
                 if (elem.name().equals(str) && isGetter(method)) {

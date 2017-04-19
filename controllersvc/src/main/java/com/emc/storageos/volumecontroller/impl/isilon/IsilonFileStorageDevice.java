@@ -449,28 +449,28 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
 
     }
 
-    private void isiUpdateQuotaDirs(IsilonApi isi, FileDeviceInputOutput args) throws IsilonException {
-        _log.info("isiUpdateQuotaDirs - update the quota directires of fileshare");
-        long capacity = args.getNewFSCapacity();
-        List<QuotaDirectory> quotaDirectories = args.getUpdateQuota();
-        if (quotaDirectories != null && !quotaDirectories.isEmpty()) {
-            IsilonSmartQuota expandedQuota = null;
-            for (QuotaDirectory qd : quotaDirectories) {
-                //get the quota directires that need to be updated.
-                if(qd.getSize().compareTo(capacity) > 0) {
-                    String quotaId = null;
-                    if (qd.getExtensions() != null) {
-                        quotaId = qd.getExtensions().get(QUOTA);
-                    }
-                    if (quotaId != null) {
-                        _log.info("IsilonFileStorageDevice doUpdateQuotaDirectory , Update Quota {} with Capacity {}", qd.getPath(), capacity);
-                        expandedQuota = getQuotaDirectoryExpandedSmartQuota(qd, capacity, args.getNewFSCapacity(), isi);
-                        isi.modifyQuota(quotaId, expandedQuota);
-                    }
-                }
-            }
-        }
-    }
+//    private void isiUpdateQuotaDirs(IsilonApi isi, FileDeviceInputOutput args) throws IsilonException {
+//        _log.info("isiUpdateQuotaDirs - update the quota directires of fileshare");
+//        long capacity = args.getNewFSCapacity();
+//        List<QuotaDirectory> quotaDirectories = args.getUpdateQuota();
+//        if (quotaDirectories != null && !quotaDirectories.isEmpty()) {
+//            IsilonSmartQuota expandedQuota = null;
+//            for (QuotaDirectory qd : quotaDirectories) {
+//                //get the quota directires that need to be updated.
+//                if(qd.getSize().compareTo(capacity) > 0) {
+//                    String quotaId = null;
+//                    if (qd.getExtensions() != null) {
+//                        quotaId = qd.getExtensions().get(QUOTA);
+//                    }
+//                    if (quotaId != null) {
+//                        _log.info("IsilonFileStorageDevice doUpdateQuotaDirectory , Update Quota {} with Capacity {}", qd.getPath(), capacity);
+//                        expandedQuota = getQuotaDirectoryExpandedSmartQuota(qd, capacity, args.getNewFSCapacity(), isi);
+//                        isi.modifyQuota(quotaId, expandedQuota);
+//                    }
+//                }
+//            }
+//        }
+//    }
 
     /**
      * Create/modify Isilon SMB share.
@@ -888,14 +888,14 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         isi.modifyQuota(quotaId, expandedQuota);
 
         //update the quota directories of fileshare
-        if (capacity.compareTo(hard) < 0) {
-            String msg = String
-                    .format(
-                            "In expanding Isilon FS requested capacity is less than current capacity of file system. Path: %s, current capacity: %d",
-                            quota.getPath(), quota.getThresholds().getHard());
-            _log.info(msg);
-            isiUpdateQuotaDirs(isi, args);
-        }
+//        if (capacity.compareTo(hard) < 0) {
+//            String msg = String
+//                    .format(
+//                            "In expanding Isilon FS requested capacity is less than current capacity of file system. Path: %s, current capacity: %d",
+//                            quota.getPath(), quota.getThresholds().getHard());
+//            _log.info(msg);
+//            isiUpdateQuotaDirs(isi, args);
+//        }
     }
 
     private IsilonSmartQuota getExpandedQuota(IsilonApi isi, FileDeviceInputOutput args, Long capacity) {

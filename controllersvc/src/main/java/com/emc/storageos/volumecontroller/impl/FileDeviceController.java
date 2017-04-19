@@ -966,14 +966,14 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
 
             //update quota with new size.
 
-            if(storageObj.deviceIsType(Type.isilon)) {
-                long expand = newFSsize - fs.getCapacity();
-                Long newcapcity  = expand;
-                _log.info("new capacity", newcapcity.toString());
-                if(expand < 0) {
-                    setQuotaDirectoriesExistsOnFS(args);
-                }
-            }
+//            if(storageObj.deviceIsType(Type.isilon)) {
+//                long expand = newFSsize - fs.getCapacity();
+//                Long newcapcity  = expand;
+//                _log.info("new capacity", newcapcity.toString());
+//                if(expand < 0) {
+//                    setQuotaDirectoriesExistsOnFS(args);
+//                }
+//            }
             // work flow and we need to add TaskCompleter(TBD for vnxfile)
             WorkflowStepCompleter.stepExecuting(opId);
             // Acquire lock for VNXFILE Storage System
@@ -3104,25 +3104,24 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
         return false;
     }
 
-    private void setQuotaDirectoriesExistsOnFS(FileDeviceInputOutput fsArgs) {
-        _log.info("setQuotaDirectoriesExistsOnFS- get the quota that need to downsize");
-
-        ContainmentConstraint containmentConstraint = ContainmentConstraint.Factory.getQuotaDirectoryConstraint(fsArgs.getFsId());
-        List<QuotaDirectory> fsQuotaDirs = CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient, QuotaDirectory.class,
-                containmentConstraint);
-        if(null != fsQuotaDirs) {
-            for (QuotaDirectory quotaDirectory : fsQuotaDirs) {
-                _log.info("getQuotaDirectories of : FS {}: {}",
-                        fsArgs.getFsId().toString(), quotaDirectory.getPath());
-                if (quotaDirectory != null && (!quotaDirectory.getInactive())) {
-                    if (quotaDirectory.getExtensions() != null && quotaDirectory.getExtensions().containsKey(QUOTA)) {
-                        quotaDirectory.setSize(fsArgs.getNewFSCapacity());
-                    }
-                }
-            }
-            fsArgs.setUpdateQuota(fsQuotaDirs);
-        }
-    }
+//    private void setQuotaDirectoriesExistsOnFS(FileDeviceInputOutput fsArgs) {
+//        _log.info("setQuotaDirectoriesExistsOnFS- get the quota that need to downsize");
+//
+//        ContainmentConstraint containmentConstraint = ContainmentConstraint.Factory.getQuotaDirectoryConstraint(fsArgs.getFsId());
+//        List<QuotaDirectory> fsQuotaDirs = CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient, QuotaDirectory.class,
+//                containmentConstraint);
+//        if(null != fsQuotaDirs) {
+//            for (QuotaDirectory quotaDirectory : fsQuotaDirs) {
+//
+//                if (quotaDirectory != null && (!quotaDirectory.getInactive())) {
+//                   _log.info("getQuotaDirectories of : FS {}: {}",
+//                                fsArgs.getFsId().toString(), quotaDirectory.getName());
+//                    quotaDirectory.setSize(fsArgs.getNewFSCapacity());
+//                }
+//            }
+//            fsArgs.setUpdateQuota(fsQuotaDirs);
+//        }
+//    }
 
     private boolean quotaDirectoriesExistsOnFS(FileShare fs) {
         _log.info(" Setting Snapshots to InActive with Force Delete ");

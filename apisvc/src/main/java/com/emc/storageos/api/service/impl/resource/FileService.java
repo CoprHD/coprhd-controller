@@ -1215,6 +1215,7 @@ public class FileService extends TaskResourceService {
         // check file System
         ArgValidator.checkFieldUriType(id, FileShare.class, "id");
         FileShare fs = queryResource(id);
+        StorageSystem device = _dbClient.queryObject(StorageSystem.class, fs.getStorageDevice());
 
         Long newFSsize = SizeUtil.translateSize(param.getNewSize());
         ArgValidator.checkEntity(fs, id, isIdEmbeddedInURL(id));
@@ -1224,16 +1225,26 @@ public class FileService extends TaskResourceService {
 
         // checkQuota
         long expand = newFSsize - fs.getCapacity();
-        StorageSystem device = _dbClient.queryObject(StorageSystem.class, fs.getStorageDevice());
         final long MIN_EXPAND_SIZE = SizeUtil.translateSize("1MB") + 1;
         if (!device.deviceIsType(DiscoveredDataObject.Type.isilon) && expand < MIN_EXPAND_SIZE) {
             throw APIException.badRequests.invalidParameterBelowMinimum("new_size", newFSsize, fs.getCapacity() + MIN_EXPAND_SIZE, "bytes");
         } else {
+            // new size is less current size
             if (device.deviceIsType(DiscoveredDataObject.Type.isilon) && expand < MIN_EXPAND_SIZE) {
-                if(null != fs.getUsedCapacity()) {
-                    long quotaExpand = newFSsize - fs.getUsedCapacity();
+                long quotasize = 0;
+                List<QuotaDirectory> quotaDirs = queryDBQuotaDirectories(fs);
+                // validate -1 check if any quota_size is greater than new_size_to_shrink
+                for(QuotaDirectory quotaDir : quotaDirs) {
+                    quotasize = newFSsize - quotaDir.getSize();
+                    if(quotasize < MIN_EXPAND_SIZE) {
+                        throw APIException.badRequests.invalidParameterBelowMinimum("new_size", newFSsize, quotaDir.getSize() + MIN_EXPAND_SIZE, "bytes");
+                    }
+                }
+                //validation -2  new_size_to_shrink should be greater usage capacity of filesystem.
+                if(null != fs.getUsedCapacity() && fs.getUsedCapacity().longValue() > 0) {
+                    quotasize = newFSsize - fs.getUsedCapacity();
                     //To shrink the new capacity of size should be greater than used capacity of fileshare.
-                    if (quotaExpand < MIN_EXPAND_SIZE) {
+                    if (quotasize < MIN_EXPAND_SIZE) {
                         throw APIException.badRequests.invalidParameterBelowMinimum("new_size", newFSsize, fs.getUsedCapacity() + MIN_EXPAND_SIZE, "bytes");
                     }
                 }
@@ -4427,4 +4438,7 @@ public class FileService extends TaskResourceService {
         }
         return fileShareTask;
     }
+
+
+
 }

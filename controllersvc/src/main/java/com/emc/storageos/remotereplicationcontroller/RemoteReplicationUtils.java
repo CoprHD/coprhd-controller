@@ -18,13 +18,13 @@ import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.emc.storageos.api.service.impl.resource.ArgValidator;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.QueryResultList;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
+import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.RemoteDirectorGroup;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringMap;
@@ -278,18 +278,18 @@ public class RemoteReplicationUtils {
         boolean isChangeValid = true;
         switch (rrElement.getType()) {
             case REPLICATION_PAIR:
-                RemoteReplicationPair rrPair = ArgValidator.checkDataObjectExists(RemoteReplicationPair.class,
+                RemoteReplicationPair rrPair = checkDataObjectExists(RemoteReplicationPair.class,
                         rrElement.getElementUri(), dbClient);
                 isChangeValid = supportModeChangeOnRrPair(rrPair, dbClient, newMode);
                 break;
             case CONSISTENCY_GROUP:
-                BlockConsistencyGroup cg = ArgValidator.checkDataObjectExists(BlockConsistencyGroup.class,
+                BlockConsistencyGroup cg = checkDataObjectExists(BlockConsistencyGroup.class,
                         rrElement.getElementUri(), dbClient);
                 List<RemoteReplicationPair> rrPairs = getRemoteReplicationPairsForCG(cg, dbClient);
                 isChangeValid = supportModeChangeOnAllRrPairs(rrPairs, dbClient, newMode);
                 break;
             case REPLICATION_GROUP:
-                RemoteReplicationGroup rrGroup = ArgValidator.checkDataObjectExists(RemoteReplicationGroup.class,
+                RemoteReplicationGroup rrGroup = checkDataObjectExists(RemoteReplicationGroup.class,
                         rrElement.getElementUri(), dbClient);
                 if (rrGroup.getReachable() != Boolean.TRUE) {
                     isChangeValid = false;
@@ -308,6 +308,14 @@ public class RemoteReplicationUtils {
             throw APIException.badRequests.remoteReplicationLinkOperationIsNotAllowed(rrElement.getType().toString(),
                     rrElement.getElementUri().toString(), newMode);
         }
+    }
+
+    private static <T extends DataObject> T checkDataObjectExists(Class<T> clazz, URI uri, DbClient dbClient) {
+        T result = dbClient.queryObject(clazz, uri);
+        if (result == null) {
+            throw APIException.badRequests.dataObjectNotExists(clazz.getSimpleName(), uri);
+        }
+        return result;
     }
 
     private static boolean supportModeChangeOnRrPair(RemoteReplicationPair rrPair, DbClient dbClient, String newMode) {

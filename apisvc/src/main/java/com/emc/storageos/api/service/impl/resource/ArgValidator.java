@@ -94,20 +94,6 @@ public class ArgValidator {
     }
 
     /**
-     * Validate that the data object for given uri exists.
-     * @param clazz
-     * @param uri
-     * @param dbClient
-     * @return data object for given URI if it exists, otherwise, throw exception
-     */
-    public static <T extends DataObject> T checkDataObjectExists(Class<T> clazz, URI uri, DbClient dbClient) {
-        T result = dbClient.queryObject(clazz, uri);
-        if (result == null) {
-            throw APIException.badRequests.dataObjectNotExists(clazz.getSimpleName(), uri);
-        }
-        return result;
-    }
-    /**
      * Validates that the value supplied is not an empty string.
      * 
      * @param value

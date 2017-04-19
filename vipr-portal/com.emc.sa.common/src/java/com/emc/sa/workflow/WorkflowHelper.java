@@ -82,7 +82,7 @@ public final class WorkflowHelper {
     private static final String OPERATIONS_FOLDER = "operations";
     private static final String RESOURCES_FOLDER = "resources";
     private static final String ROOT = "";
-    private static final String METADATA_FILE = "worflow.md";
+    private static final String METADATA_FILE = "workflow.md";
     private static final String CURRENT_VERSION = "1";
     private static final ImmutableList<String> SUPPORTED_VERSIONS = ImmutableList.<String>builder()
             .add(CURRENT_VERSION).build();
@@ -207,7 +207,7 @@ public final class WorkflowHelper {
                             if( path.getFileName().toString().equals(METADATA_FILE)) {
                                 final WorkflowMetadata workflowMetadata = MAPPER.readValue(bytes, WorkflowMetadata.class);
                                 if( !SUPPORTED_VERSIONS.contains(workflowMetadata.getVersion())) {
-                                    throw APIException.badRequests.workflowVersionNotSupported(CURRENT_VERSION, SUPPORTED_VERSIONS);
+                                    throw APIException.badRequests.workflowVersionNotSupported(workflowMetadata.getVersion(), SUPPORTED_VERSIONS);
                                 }
                                 builder.metadata(workflowMetadata);
                             }

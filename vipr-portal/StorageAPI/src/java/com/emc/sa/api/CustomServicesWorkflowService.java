@@ -284,8 +284,7 @@ public class CustomServicesWorkflowService extends CatalogTaggedResourceService 
                         id.toString() + ".tar.gz");
                 return Response.ok(bytes).build();
             default:
-                //TODO: Add better exception for non-published wf
-                throw APIException.methodNotAllowed.notSupported();
+                throw APIException.methodNotAllowed.notSupportedForUnpublishedWorkflow(customServicesWorkflow.getState());
         }
     }
     

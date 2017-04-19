@@ -105,7 +105,7 @@ public class IsilonApiTest {
             _log.error(e.getMessage(), e);
         }
 
-        // snaphot shrares are not supported,
+        // snapshot shares are not supported,
 
         // Test smb share for snapshots
         // String dir = "/ifs/testDir";
@@ -310,7 +310,8 @@ public class IsilonApiTest {
             quota = _client.getQuota(qid);
             Assert.assertTrue("deleted quota still gettable", false);
         } catch (IsilonException ex) {
-            Assert.assertTrue("deleted quota still gettable is failed", false);
+            // if exception mean quota already deleted.
+            Assert.assertTrue("exception in getting deleted quota  ", true);
         }
 
         _client.deleteQuota(qid_acc);
@@ -318,7 +319,8 @@ public class IsilonApiTest {
             quota = _client.getQuota(qid_acc);
             Assert.assertTrue("deleted quota still gettable", false);
         } catch (IsilonException ex) {
-            Assert.assertTrue("deleted quota still gettable failed", false);
+            // if exception mean quota already deleted.
+            Assert.assertTrue("exception in getting deleted quota  ", true);
         }
 
         _client.deleteDir(_test_path, true);
@@ -461,6 +463,24 @@ public class IsilonApiTest {
         _client.modifyExport(export2Id, exp_modified, force);
         Assert.assertTrue(_client.getExport(export2Id).getComment().equals("modified export"));
 
+        /* nfs exports tests - with fqdn bypass */
+        IsilonExport ie3 = new IsilonExport();
+        ie3.addPath(_test_path);
+        ie3.addClient("abcd" + suffix);
+        ArrayList<String> securityFlavors3 = new ArrayList<String>();
+        securityFlavors3.add("krb5i");
+        ie3.setSecurityFlavors(securityFlavors3);
+        ie3.setReadOnly();
+        ie3.setComment("New export: unix.rw.nobody");
+
+        String export3Id = _client.createExport(ie3, true);
+        Assert.assertTrue(Integer.parseInt(export3Id) > 0);
+        IsilonExport exp3 = _client.getExport(export3Id);
+        Assert.assertTrue(exp3.getId().toString().equals(export3Id));
+        Assert.assertTrue(exp3.getSecurityFlavors().get(0).equals("krb5i"));
+        Assert.assertTrue(exp3.getMap_root().getUser().equals("nobody"));
+        System.out.println("Export created: " + exp3);
+
         // list exports
         List<IsilonExport> exports = _client.listExports(null).getList();
         Assert.assertTrue("List exports failed.", exports.size() >= 2);
@@ -493,11 +513,24 @@ public class IsilonApiTest {
         Assert.assertFalse("Directory delete failed.", _client.existsDir(_test_path));
         /* nfs exports tests - done */
 
+
+
+        // delete export
+        _client.deleteExport(export3Id);
+        try {
+            _client.getExport(export3Id);
+            Assert.assertTrue("Deleted export still gettable", false);
+        } catch (IsilonException ex) {
+            // if we get exception means export is not available.
+            Assert.assertTrue("Getting Deleted export result in excpetion ", true);
+        }
+
     }
 
     @Test
     public void testEvents() throws Exception {
-        List<IsilonEvent> events = _client.listEvents1(null).getList();
+        // list
+        List<IsilonEvent> events = _client.listEvents(null).getList();
         for (IsilonEvent e : events) {
             _log.info(e.toString());
 

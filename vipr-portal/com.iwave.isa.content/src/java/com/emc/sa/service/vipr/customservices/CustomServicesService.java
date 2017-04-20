@@ -514,7 +514,10 @@ public class CustomServicesService extends ViPRService {
             if (o instanceof Class<?>) {
                 final List<String> list = new ArrayList<String>();
                 for (final Object o1 : (Collection<?>) method.invoke(className, null)) {
-                    list.addAll(ifprimitivetheninvoke(bits, i + 1, o1));
+                    final List<String> value = ifprimitivetheninvoke(bits, i + 1, o1);
+                    if (value != null) {
+                        list.addAll(value);
+                    }
                 }
 
                 if (!list.isEmpty()) {

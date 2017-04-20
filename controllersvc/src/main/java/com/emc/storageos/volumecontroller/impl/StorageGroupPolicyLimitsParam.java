@@ -33,11 +33,13 @@ public class StorageGroupPolicyLimitsParam extends HostIOLimitsParam {
 
     public StorageGroupPolicyLimitsParam(VolumeURIHLU volumeURIHlu, StorageSystem storage, SmisCommandHelper helper) {
         if (storage.checkIfVmax3()) {
-            setAutoTierPolicyName(helper.getVMAX3FastSettingForVolume(volumeURIHlu.getVolumeURI(), volumeURIHlu.getAutoTierPolicyName()));
+            String policyName = helper.getVMAX3FastSettingForVolume(volumeURIHlu.getVolumeURI(), volumeURIHlu.getAutoTierPolicyName());
+            setAutoTierPolicyName(policyName);
             setHostIOLimitBandwidth(volumeURIHlu.getHostIOLimitBandwidth());
             setHostIOLimitIOPs(volumeURIHlu.getHostIOLimitIOPs());
             setStorage(storage);
-            setCompression(helper.isVMAX3VolumeCompressionEnabled(volumeURIHlu.getVolumeURI()));
+            setCompression(Constants.NONE.equalsIgnoreCase(policyName) ? false :
+                    helper.isVMAX3VolumeCompressionEnabled(volumeURIHlu.getVolumeURI()));   // Compression cannot be enabled on non FAST SG
         }
     }
 

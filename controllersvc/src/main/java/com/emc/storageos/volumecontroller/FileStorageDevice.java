@@ -151,6 +151,17 @@ public interface FileStorageDevice {
             throws ControllerException;
 
     /**
+     *
+     * @param storage
+     * @param fd
+     *            FileDeviceInputOutput object holding the data objects
+     * @return command result object
+     * @throws ControllerException
+     */
+    public BiosCommandResult doReduceFS(StorageSystem storage, FileDeviceInputOutput fd)
+            throws ControllerException;
+
+    /**
      * 
      * @param storage
      * @param fd
@@ -160,6 +171,7 @@ public interface FileStorageDevice {
      */
     public BiosCommandResult doSnapshotFS(StorageSystem storage, FileDeviceInputOutput fd)
             throws ControllerException;
+
 
     /**
      * 

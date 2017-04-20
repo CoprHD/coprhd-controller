@@ -1282,6 +1282,76 @@ public class FileService extends TaskResourceService {
         return toTask(fs, task, op);
     }
 
+    @PUT
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/{id}/reduce")
+    @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.OWN, ACL.ALL })
+    public TaskResourceRep reduce(@PathParam("id") URI id, FileSystemExpandParam param)
+            throws InternalException {
+
+        _log.info(String.format(
+                "FileShareReduce --- FileShare id: %1$s, New Size: %2$s",
+                id, param.getNewSize()));
+        // check file System
+        ArgValidator.checkFieldUriType(id, FileShare.class, "id");
+        FileShare fs = queryResource(id);
+        StorageSystem device = _dbClient.queryObject(StorageSystem.class, fs.getStorageDevice());
+
+        Long newFSsize = SizeUtil.translateSize(param.getNewSize());
+        ArgValidator.checkEntity(fs, id, isIdEmbeddedInURL(id));
+        if (newFSsize <= 0) {
+            throw APIException.badRequests.parameterMustBeGreaterThan("new_size", 0);
+        }
+
+        // checkQuota
+        long expand = newFSsize - fs.getCapacity();
+        final long MIN_EXPAND_SIZE = SizeUtil.translateSize("1MB") + 1;
+        if(device.deviceIsType(DiscoveredDataObject.Type.isilon) && expand < MIN_EXPAND_SIZE) {
+            long quotasize = 0;
+            List<QuotaDirectory> quotaDirs = queryDBQuotaDirectories(fs);
+            if (null != quotaDirs && !quotaDirs.isEmpty()){
+                // validate -1 check if any quota_size is greater than new_size_to_shrink
+                for (QuotaDirectory quotaDir : quotaDirs) {
+                    quotasize = newFSsize - quotaDir.getSize();
+                    if (quotasize < MIN_EXPAND_SIZE) {
+                        throw APIException.badRequests.invalidParameterBelowMinimum("new_size", newFSsize, quotaDir.getSize() + MIN_EXPAND_SIZE, "bytes");
+                    }
+                }
+            }
+        } else {
+            // throw exception
+        }
+
+        Project project = _dbClient.queryObject(Project.class, fs.getProject().getURI());
+        TenantOrg tenant = _dbClient.queryObject(TenantOrg.class, fs.getTenant().getURI());
+        VirtualPool vpool = _dbClient.queryObject(VirtualPool.class, fs.getVirtualPool());
+        CapacityUtils.validateQuotasForProvisioning(_dbClient, vpool, project, tenant, expand, "filesystem");
+
+        String task = UUID.randomUUID().toString();
+        Operation op = _dbClient.createTaskOpStatus(FileShare.class, fs.getId(),
+                task, ResourceOperationTypeEnum.REDUCE_FILE_SYSTEM);
+        op.setDescription("Filesystem expand");
+
+        FileServiceApi fileServiceApi = getFileShareServiceImpl(fs, _dbClient);
+        try {
+            fileServiceApi.expandFileShare(fs, newFSsize, task);
+        } catch (InternalException e) {
+            if (_log.isErrorEnabled()) {
+                _log.error("Expand File Size error", e);
+            }
+
+            FileShare fileShare = _dbClient.queryObject(FileShare.class, fs.getId());
+            op = fs.getOpStatus().get(task);
+            op.error(e);
+            fileShare.getOpStatus().updateTaskStatus(task, op);
+            _dbClient.updateObject(fs);
+            throw e;
+        }
+
+        return toTask(fs, task, op);
+    }
+
     /**
      * Expand file system.
      * <p>

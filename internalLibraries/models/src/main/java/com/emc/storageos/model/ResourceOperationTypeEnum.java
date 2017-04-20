@@ -108,6 +108,7 @@ public enum ResourceOperationTypeEnum {
     FILE_PROTECTION_ACTION_REFRESH("FILE PROTECTION ACTION REFRESH", "refresh the replication link between source and target"),
     UPDATE_EXPORT_RULES_FILE_SYSTEM("UPDATE EXPORT RULES FILESYSTEM", "Update export rules filesystem operation"),
     EXPAND_FILE_SYSTEM("EXPAND FILESYSTEM", "expand filesystem operation"),
+    REDUCE_FILE_SYSTEM("REDUCE FILESYSTEM", "reduce filesystem operation"),
     CREATE_FILE_SYSTEM_SHARE("CREATE FILESHARE", "create fileshare operation"),
     CREATE_FILE_SYSTEM_SNAPSHOT("SNAPSHOT FILESYSTEM", "snapshot filesystem"),
     UPDATE_FILE_SYSTEM_SHARE_ACL("UPDATE CIFS SHARE ACL", "update filesystem share ACLs"),

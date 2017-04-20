@@ -1111,6 +1111,37 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
     }
 
     @Override
+    public BiosCommandResult doReduceFS(StorageSystem storage,
+                                        FileDeviceInputOutput args) throws ControllerException {
+        try {
+            _log.info("IsilonFileStorageDevice doReduceFS {} - start", args.getFsId());
+            IsilonApi isi = getIsilonDevice(storage);
+            String quotaId = null;
+            if (args.getFsExtensions() != null && args.getFsExtensions().get(QUOTA) != null) {
+                quotaId = args.getFsExtensions().get(QUOTA);
+            } else {
+                final ServiceError serviceError = DeviceControllerErrors.isilon.doExpandFSFailed(args.getFsId());
+                _log.error(serviceError.getMessage());
+                return BiosCommandResult.createErrorResult(serviceError);
+            }
+
+            isiExpandFS(isi, quotaId, args);
+            _log.info("IsilonFileStorageDevice doReduceFS {} - complete", args.getFsId());
+            return BiosCommandResult.createSuccessfulResult();
+        } catch (IsilonException e) {
+            _log.error("doReduceFS failed.", e);
+            return BiosCommandResult.createErrorResult(e);
+        } catch (Exception e) {
+            _log.error("doReduceFS failed.", e);
+            // convert this to a ServiceError and create/or reuse a service
+            // code
+            ServiceError serviceError = DeviceControllerErrors.isilon.unableToExpandFileSystem();
+            return BiosCommandResult.createErrorResult(serviceError);
+        }
+
+    }
+
+    @Override
     public BiosCommandResult doExport(StorageSystem storage, FileDeviceInputOutput args, List<FileExport> exportList)
             throws ControllerException {
 

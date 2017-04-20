@@ -359,7 +359,8 @@ public class RemoteReplicationUtils {
     }
     
     /**
-     * checks for the existence of the remote replication pair and updates or creates it as appropriate
+     * checks for the existence of the remote replication pair and updates or creates it as needed
+     * 
      * @param sourceVolumeId
      * @param targetVolumeId
      * @param dbClient
@@ -388,8 +389,7 @@ public class RemoteReplicationUtils {
     }
 
     /**
-     * updates properties of a RemoteReplicationPairobject for an SRDF source and target; will handle swapping source and target
-     * creates a new pair object if there isn't already one for the source and target pair
+     * updates properties of a RemoteReplicationPairobject for an SRDF source and target
      * 
      * @param sourceVolumeId
      * @param targetVolumeId
@@ -416,6 +416,7 @@ public class RemoteReplicationUtils {
     
     /**
      * determines if the source and target pair are in a swapped state based on the source volume virtual pool
+     * 
      * @param sourceVolume
      * @param targetVolume
      * @param dbClient

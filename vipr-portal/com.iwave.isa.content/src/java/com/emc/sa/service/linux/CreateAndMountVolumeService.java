@@ -38,6 +38,7 @@ public class CreateAndMountVolumeService extends LinuxService {
         BlockObjectRestRep volume = createVolume();
         acquireHostsLock();
         refreshStorage(volume);
+        artificialFailure("mountLinuxVolume");
         mountVolume(volume);
     }
 

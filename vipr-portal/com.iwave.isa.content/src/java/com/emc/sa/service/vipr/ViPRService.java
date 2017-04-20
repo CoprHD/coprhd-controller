@@ -4,6 +4,8 @@
  */
 package com.emc.sa.service.vipr;
 
+import static com.emc.sa.service.ServiceParams.ARTIFICIAL_FAILURE;
+
 import java.net.URI;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
@@ -16,6 +18,7 @@ import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.emc.sa.engine.ExecutionUtils;
+import com.emc.sa.engine.bind.Param;
 import com.emc.sa.engine.service.AbstractExecutionService;
 import com.emc.sa.model.dao.ModelClient;
 import com.emc.sa.service.vipr.block.BlockStorageUtils;
@@ -50,6 +53,9 @@ public abstract class ViPRService extends AbstractExecutionService {
     private ClientConfig clientConfig;
     @Autowired
     private EncryptionProvider encryptionProvider;
+
+    @Param(ARTIFICIAL_FAILURE)
+    protected String artificialFailure;
 
     private ViPRCoreClient client;
 
@@ -339,4 +345,9 @@ public abstract class ViPRService extends AbstractExecutionService {
         }
     }
 
+    public void artificialFailure(String failure) {
+        if (artificialFailure != null && artificialFailure.equals(failure)) {
+            ExecutionUtils.fail("failTask.ArtificialFailure", args(artificialFailure));
+        }
+    }
 }

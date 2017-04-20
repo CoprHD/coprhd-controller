@@ -424,7 +424,10 @@ public class OrderManagerImpl implements OrderManager {
                 return serviceField;
             }
         }
-        return null;
+        ServiceField field = new ServiceField();
+        field.setName(serviceFieldName);
+        field.setLabel(serviceFieldName);
+        return field;
     }
 
     private OrderParameter findOrderParameter(String serviceFieldName, List<OrderParameter> orderParameters) {

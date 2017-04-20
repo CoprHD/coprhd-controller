@@ -19,21 +19,24 @@ package com.emc.sa.service.vipr.customservices.tasks;
 
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import com.emc.storageos.model.TaskList;
+import com.emc.storageos.model.TaskResourceRep;
 import org.apache.commons.io.IOUtils;
+import org.codehaus.jackson.map.ObjectMapper;
+import org.codehaus.jackson.xc.JaxbAnnotationIntrospector;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.util.UriTemplate;
 
 import com.emc.sa.catalog.primitives.CustomServicesPrimitiveDAOs;
 import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.service.vipr.customservices.CustomServicesUtils;
-import com.emc.sa.service.vipr.customservices.gson.ViprOperation;
 import com.emc.sa.service.vipr.tasks.ViPRExecutionTask;
 import com.emc.storageos.model.customservices.CustomServicesWorkflowDocument;
 import com.emc.storageos.primitives.CustomServicesConstants;
@@ -99,18 +102,29 @@ public class CustomServicesViprExecution extends ViPRExecutionTask<CustomService
         return result;
     }
 
-    private Map<URI, String> waitForTask(final String result) throws InternalServerErrorException
+    private Map<URI, String> waitForTask(final String result) throws Exception
     {
-        final ViprOperation res = CustomServicesUtils.parseViprTasks(result);
-        if (res == null) {
-            throw InternalServerErrorException.internalServerErrors.customServiceNoTaskFound("no task found");
+        final List<URI> uris = new ArrayList<URI>();
+        //TODO get the class name from primitive
+        final String classname = "com.emc.storageos.model.block.VolumeRestRep";
+        if (classname.contains("TaskList")) {
+            final ObjectMapper MAPPER = new ObjectMapper();
+            MAPPER.setAnnotationIntrospector(new JaxbAnnotationIntrospector());
+            final Class<?> clazz = Class.forName(classname);
+
+            final Object taskList = MAPPER.readValue(result, clazz.newInstance().getClass());
+            List<TaskResourceRep> resources = ((TaskList)taskList).getTaskList();
+
+            for ( TaskResourceRep res : resources) {
+                uris.add(res.getId());
+            }
+
+        }
+        if (!uris.isEmpty()) {
+            return CustomServicesUtils.waitForTasks(uris, getClient());
         }
 
-        try {
-            return CustomServicesUtils.waitForTasks(res.getTaskIds(), getClient());
-        } catch (final URISyntaxException e) {
-            throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed("Failed to parse REST response" + e);
-        }
+        return null;
     }
 
     private CustomServicesTaskResult makeRestCall(final String path, final Object requestBody, final String method) throws InternalServerErrorException {

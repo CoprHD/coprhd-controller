@@ -450,6 +450,11 @@ public class CustomServicesService extends ViPRService {
             }
         }
 
+        for(Map.Entry<String, List<String>> e : output.entrySet()) {
+            logger.info("key***{}", e.getKey());
+            logger.info("value***{}", e.getValue());
+        }
+
         return output;
     }
 
@@ -483,13 +488,11 @@ public class CustomServicesService extends ViPRService {
         logger.debug("bit:{}", bits[i]);
 
         //1) primitive
-        if (isPrimitive(method.getReturnType())) {
-            if (i == bits.length - 1) {
-                final Object value = method.invoke(className, null);
-                logger.info("value:{}", value);
+        if (i == bits.length - 1) {
+            final Object value = method.invoke(className, null);
+            logger.debug("value:{}", value);
 
-                return Arrays.asList(value.toString());
-            }
+            return Arrays.asList(value.toString());
         }
 
         final Type returnType = method.getGenericReturnType();
@@ -501,8 +504,6 @@ public class CustomServicesService extends ViPRService {
 
         //2) Class single object
         if (returnType instanceof Class<?>) {
-            logger.info("return type class single obj");
-
             return ifprimitivetheninvoke(bits, i + 1, method.invoke(className, null));
         }
 
@@ -514,8 +515,40 @@ public class CustomServicesService extends ViPRService {
         return null;
     }
 
+
     private List<String> getCollectionValue(final Method method, final String[] bits, final int i, final Object className) throws Exception {
-        final Class returnClass = method.getReturnType();
+
+        final Type returnType = method.getGenericReturnType();
+        if (returnType instanceof ParameterizedType) {
+            final ParameterizedType paramType = (ParameterizedType) returnType;
+
+            if (i == bits.length - 1) {
+                final List<Object> value = (List<Object>) method.invoke(className, null);
+                logger.info("array value:{}", method.invoke(className, null));
+                final List<String> listStringOut = new ArrayList<String>();
+                for (final Object val : value) {
+                    listStringOut.add(val.toString());
+                }
+                return listStringOut;
+            }
+            final Type o = paramType.getActualTypeArguments()[0];
+            if (o instanceof Class<?>) {
+                final List<String> list = new ArrayList<String>();
+                for (final Object o1 : (Collection<?>) method.invoke(className, null)) {
+                    list.addAll(ifprimitivetheninvoke(bits, i + 1, o1));
+                }
+
+                if (list.isEmpty()) {
+                    return null;
+                } else {
+                    return list;
+                }
+            }
+        }
+        return null;
+    }
+
+     /*
         if (List.class.isAssignableFrom(returnClass)) {
             final Type returnType = method.getGenericReturnType();
             if (returnType instanceof ParameterizedType) {
@@ -532,9 +565,12 @@ public class CustomServicesService extends ViPRService {
                 } else {
                     final Type o = paramType.getActualTypeArguments()[0];
                     if (o instanceof Class<?>) {
+                        final List<String> list = new ArrayList<String>();
                         for (final Object o1 : (List<?>) method.invoke(className, null)) {
-                            return ifprimitivetheninvoke(bits, i + 1, o1);
+                            list.addAll(ifprimitivetheninvoke(bits, i + 1, o1));
                         }
+
+                        return list;
                     }
                 }
             }
@@ -559,9 +595,11 @@ public class CustomServicesService extends ViPRService {
                 } else {
                     final Type o = paramType.getActualTypeArguments()[0];
                     if (o instanceof Class<?>) {
+                        final List<String> list = new ArrayList<String>();
                         for (final Object o1 : (Set<?>) method.invoke(className, null)) {
-                            return ifprimitivetheninvoke(bits, i + 1, o1);
+                            list.addAll(ifprimitivetheninvoke(bits, i + 1, o1));
                         }
+                        return list;
                     }
                 }
             }
@@ -570,6 +608,7 @@ public class CustomServicesService extends ViPRService {
         //We do not support any other collection type
         return null;
     }
+    */
 
     private Method findMethod(final String str, final Object className) throws Exception {
         final Method[] methods = className.getClass().getMethods();

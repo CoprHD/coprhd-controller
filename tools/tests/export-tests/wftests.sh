@@ -138,6 +138,9 @@ fi
 CMD_OUTPUT=/tmp/output.txt
 rm -f ${CMD_OUTPUT}
 
+CENTER_DATACENTER=""
+VCENTER_CLUSTER=""
+
 prerun_setup() {		
     # Reset system properties
     reset_system_props
@@ -188,6 +191,11 @@ prerun_setup() {
 	   ZONE_CHECK=0
 	   SIM=1;
 	   echo "Shutting off zone check for simulator environment"
+	   VCENTER_DATACENTER=${VCENTER_SIMULATOR_DATACENTER}
+       VCENTER_CLUSTER=${VCENTER_SIMULATOR_CLUSTER}
+    else
+        VCENTER_DATACENTER=${VCENTER_HW_DATACENTER}
+        VCENTER_CLUSTER=${VCENTER_HW_CLUSTER} 
     fi
 
     if [ "${SS}" = "vnx" ]
@@ -952,12 +960,21 @@ host_setup() {
         run initiator create ${HOST2} FC $H2PI3 --node $H2NI3
         run initiator create ${HOST2} FC $H2PI4 --node $H2NI4
     fi
-}
+}   
 
 vcenter_setup() {
-    secho "Setup virtual center..."
-    runcmd vcenter create vcenter1 ${TENANT} ${VCENTER_SIMULATOR_IP} ${VCENTER_SIMULATOR_PORT} ${VCENTER_SIMULATOR_USERNAME} ${VCENTER_SIMULATOR_PASSWORD}
+    if [ "${SIM}" = "1" ]; then
+        vcenter_sim_setup
+    else    
+        secho "Setup virtual center real hardware..."
+        runcmd vcenter create vcenter1 ${TENANT} ${VCENTER_HW_IP} ${VCENTER_HW_PORT} ${VCENTER_HW_USERNAME} ${VCENTER_HW_PASSWORD}                
+    fi
+}
 
+vcenter_sim_setup() {
+    secho "Setup virtual center sim..."
+    runcmd vcenter create vcenter1 ${TENANT} ${VCENTER_SIMULATOR_IP} ${VCENTER_SIMULATOR_PORT} ${VCENTER_SIMULATOR_USERNAME} ${VCENTER_SIMULATOR_PASSWORD}
+    
     # TODO need discovery to run
     sleep 30
 

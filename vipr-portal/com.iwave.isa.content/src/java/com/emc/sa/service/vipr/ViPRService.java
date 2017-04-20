@@ -54,7 +54,7 @@ public abstract class ViPRService extends AbstractExecutionService {
     @Autowired
     private EncryptionProvider encryptionProvider;
 
-    @Param(ARTIFICIAL_FAILURE)
+    @Param(value=ARTIFICIAL_FAILURE, required=false)
     protected String artificialFailure;
 
     private ViPRCoreClient client;

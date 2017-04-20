@@ -255,18 +255,10 @@ public class CustomServicesService extends ViPRService {
 
         if (step.getType().equals(CustomServicesConstants.VIPR_PRIMITIVE_TYPE) ||  step.getType().equals(
                 CustomServicesConstants.REST_API_PRIMITIVE_TYPE)) {
-            if (result.getReturnCode() >= 200 && result.getReturnCode() < 300) {
-                return true;
-            } else {
-                return false;
-            }
+            return (result.getReturnCode() >= 200 && result.getReturnCode() < 300);
         }
 
-        if (result.getReturnCode() == 0) {
-            return true;
-        } else {
-            return false;
-        }
+        return (result.getReturnCode() == 0);
     }
 
     private String getNext(final boolean status, final CustomServicesTaskResult result, final Step step) {
@@ -425,11 +417,11 @@ public class CustomServicesService extends ViPRService {
         final String classname = "com.emc.storageos.model.block.VolumeRestRep";
 
         logger.debug("Result is:{}", res);
-        final ObjectMapper MAPPER = new ObjectMapper();
-        MAPPER.setAnnotationIntrospector(new JaxbAnnotationIntrospector());
+        final ObjectMapper mapper = new ObjectMapper();
+        mapper.setAnnotationIntrospector(new JaxbAnnotationIntrospector());
         final Class<?> clazz = Class.forName(classname);
 
-        final Object responseEntity = MAPPER.readValue(res, clazz.newInstance().getClass());
+        final Object responseEntity = mapper.readValue(res, clazz.newInstance().getClass());
 
         outputPerStep.put(step.getId(), parseViprOutput(responseEntity, step));
     }

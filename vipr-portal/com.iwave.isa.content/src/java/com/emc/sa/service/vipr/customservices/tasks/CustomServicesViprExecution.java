@@ -108,11 +108,11 @@ public class CustomServicesViprExecution extends ViPRExecutionTask<CustomService
         //TODO get the class name from primitive
         final String classname = "com.emc.storageos.model.block.VolumeRestRep";
         if (classname.contains("TaskList")) {
-            final ObjectMapper MAPPER = new ObjectMapper();
-            MAPPER.setAnnotationIntrospector(new JaxbAnnotationIntrospector());
+            final ObjectMapper mapper = new ObjectMapper();
+            mapper.setAnnotationIntrospector(new JaxbAnnotationIntrospector());
             final Class<?> clazz = Class.forName(classname);
 
-            final Object taskList = MAPPER.readValue(result, clazz.newInstance().getClass());
+            final Object taskList = mapper.readValue(result, clazz.newInstance().getClass());
             List<TaskResourceRep> resources = ((TaskList)taskList).getTaskList();
 
             for ( TaskResourceRep res : resources) {

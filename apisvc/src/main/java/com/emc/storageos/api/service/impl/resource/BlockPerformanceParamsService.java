@@ -24,8 +24,11 @@ import org.slf4j.LoggerFactory;
 import com.emc.storageos.api.mapper.BlockMapper;
 import com.emc.storageos.api.mapper.DbObjectMapper;
 import com.emc.storageos.db.client.URIUtil;
+import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.PerformanceParams;
+import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.model.block.BlockPerformanceParamsBulkRep;
@@ -37,6 +40,7 @@ import com.emc.storageos.security.authorization.ACL;
 import com.emc.storageos.security.authorization.CheckPermission;
 import com.emc.storageos.security.authorization.DefaultPermissions;
 import com.emc.storageos.security.authorization.Role;
+import com.emc.storageos.svcs.errorhandling.resources.BadRequestException;
 
 /**
  * API service for creating and managing PerformanceParams instances.
@@ -74,17 +78,62 @@ public class BlockPerformanceParamsService extends TaggedResource {
         URI performanceParamsURI = URIUtil.createId(PerformanceParams.class);
         logger.info("Creating PerformanceParams instance {} with id {}", performanceParamsName, performanceParamsURI);
 
+        // Verify performance params settings. If a value is not specified for
+        // a given parameter, then use the default value for that parameter.
+        String autoTieringPolicyName = param.getAutoTieringPolicyName();
+        if (NullColumnValueGetter.isNullValue(autoTieringPolicyName)) {
+            autoTieringPolicyName = PerformanceParams.PP_DFLT_AUTOTIERING_POLICY_NAME;
+        }
+        
+        // Set the compression setting.
+        Boolean compressionEnabled = param.getCompressionEnabled();
+        if (compressionEnabled == null) {
+            compressionEnabled = PerformanceParams.PP_DFLT_COMPRESSION_ENABLED;
+        }
+        
+        // Set the host IO bandwidth limit.
+        Integer hostIOLimitBandwidth = param.getHostIOLimitBandwidth();
+        if (hostIOLimitBandwidth == null) {
+            hostIOLimitBandwidth = PerformanceParams.PP_DFLT_HOST_IO_LIMIT_BANDWIDTH;
+        }
+        
+        // Set the host IO IOPs limit.
+        Integer hostIOLimitIOPs = param.getHostIOLimitIOPs();
+        if (hostIOLimitIOPs == null) {
+            hostIOLimitIOPs = PerformanceParams.PP_DFLT_HOST_IO_LIMIT_IOPS;
+        }
+        
+        // Set the thin volume pre-allocation percentage.
+        Integer thinVolumePreAllocPercentage = param.getThinVolumePreAllocationPercentage();
+        if (thinVolumePreAllocPercentage == null) {
+            thinVolumePreAllocPercentage = PerformanceParams.PP_DFLT_THIN_VOLUME_PRE_ALLOC_PERCENTAGE;
+        }
+
+        // Set the deduplication setting.
+        Boolean dedupCapable = param.getDedupCapable();
+        if (dedupCapable == null) {
+            dedupCapable = PerformanceParams.PP_DFLT_DEDUP_CAPABLE;
+        }
+
+        // set the fast expansion setting.
+        Boolean fastExpansion = param.getFastExpansion();
+        if (fastExpansion == null) {
+            fastExpansion = PerformanceParams.PP_DFLT_FAST_EXPANSION;
+        }
+
         PerformanceParams performanceParams = new PerformanceParams();
         performanceParams.setId(performanceParamsURI);
-        performanceParams.setLabel(param.getName());
-        performanceParams.setDescription(param.getDescription());
-        performanceParams.setAutoTierPolicyName(param.getAutoTieringPolicyName());
-        performanceParams.setCompressionEnabled(param.getCompressionEnabled());
-        performanceParams.setHostIOLimitBandwidth(param.getHostIOLimitBandwidth());
-        performanceParams.setHostIOLimitIOPs(param.getHostIOLimitIOPs());
-        performanceParams.setThinVolumePreAllocationPercentage(param.getThinVolumePreAllocationPercentage());
-        performanceParams.setDedupCapable(param.getDedupCapable());
-        performanceParams.setFastExpansion(param.getFastExpansion());
+        performanceParams.setLabel(performanceParamsName);
+        if (NullColumnValueGetter.isNotNullValue(param.getDescription())) {
+            performanceParams.setDescription(param.getDescription());
+        }
+        performanceParams.setAutoTierPolicyName(autoTieringPolicyName);
+        performanceParams.setCompressionEnabled(compressionEnabled);
+        performanceParams.setHostIOLimitBandwidth(hostIOLimitBandwidth);
+        performanceParams.setHostIOLimitIOPs(hostIOLimitIOPs);
+        performanceParams.setThinVolumePreAllocationPercentage(thinVolumePreAllocPercentage);
+        performanceParams.setDedupCapable(dedupCapable);
+        performanceParams.setFastExpansion(fastExpansion);
         _dbClient.createObject(performanceParams);
         
         return BlockMapper.map(performanceParams);
@@ -115,42 +164,112 @@ public class BlockPerformanceParamsService extends TaggedResource {
         ArgValidator.checkFieldUriType(id, PerformanceParams.class, "id");
         PerformanceParams performanceParams = _dbClient.queryObject(PerformanceParams.class, id);
         ArgValidator.checkEntity(performanceParams, id, isIdEmbeddedInURL(id));
+        
+        // If the performance parameters is currently in use by a volume, then the
+        // only parameters that can be updated are the name and description.
+        List<Volume> performanceParamsVolumes = CustomQueryUtility.queryActiveResourcesByConstraint(
+                _dbClient, Volume.class, ContainmentConstraint.Factory.getVolumePerformanceParamsConstraint(id));
+        boolean performanceParamsInUse = !performanceParamsVolumes.isEmpty();
 
         // Verify the name and update.
+        boolean isUpdated = false;
+        String currentName = performanceParams.getLabel();
         String performanceParamsName = param.getName();
         if ((NullColumnValueGetter.isNotNullValue(performanceParamsName)) &&
                 (!performanceParamsName.equals(performanceParams.getLabel()))) {
             checkForDuplicateName(performanceParamsName, PerformanceParams.class);
             performanceParams.setLabel(performanceParamsName);
+            isUpdated = true;
         }
 
-        // Update the description
-        performanceParams.setDescription(param.getDescription());
-        
+        // Update performance params settings. If a value is not specified, then
+        // do not modify that value.
+        String description = param.getDescription();
+        if ((NullColumnValueGetter.isNotNullValue(description)) &&
+                (!description.equals(performanceParams.getDescription()))) {
+            performanceParams.setDescription(description);
+            isUpdated = true;
+        }
         
         // Update the autotiering policy name.
-        performanceParams.setAutoTierPolicyName(param.getAutoTieringPolicyName());
+        String autoTieringPolicyName = param.getAutoTieringPolicyName();
+        if ((NullColumnValueGetter.isNotNullValue(autoTieringPolicyName)) &&
+                (!autoTieringPolicyName.equals(performanceParams.getAutoTierPolicyName()))) {
+            if (!performanceParamsInUse) {
+                performanceParams.setAutoTierPolicyName(autoTieringPolicyName);
+                isUpdated = true;
+            } else {
+                throw BadRequestException.badRequests.cantUpdatePerformanceParamsInUse(currentName);
+            }
+        }
         
         // Update the compression setting.
-        performanceParams.setCompressionEnabled(param.getCompressionEnabled());
+        Boolean compressionEnabled = param.getCompressionEnabled();
+        if ((compressionEnabled != null) && (compressionEnabled != performanceParams.getCompressionEnabled())) {
+            performanceParams.setCompressionEnabled(compressionEnabled);
+            isUpdated = true;
+        }
         
         // Update the host I/O bandwidth limit.
-        performanceParams.setHostIOLimitBandwidth(param.getHostIOLimitBandwidth());
+        Integer hostIOLimitBandwidth = param.getHostIOLimitBandwidth();
+        if ((hostIOLimitBandwidth != null) && (hostIOLimitBandwidth != performanceParams.getHostIOLimitBandwidth())) {
+            if (!performanceParamsInUse) {
+                performanceParams.setHostIOLimitBandwidth(hostIOLimitBandwidth);
+                isUpdated = true;
+            } else {
+                throw BadRequestException.badRequests.cantUpdatePerformanceParamsInUse(currentName);                
+            }
+        }
         
         // Update the host I/o IOPS limit.
-        performanceParams.setHostIOLimitIOPs(param.getHostIOLimitIOPs());
+        Integer hostIOLimitIOPs = param.getHostIOLimitIOPs();
+        if ((hostIOLimitIOPs != null) && (hostIOLimitIOPs != performanceParams.getHostIOLimitIOPs())) {
+            if (!performanceParamsInUse) {
+                performanceParams.setHostIOLimitIOPs(hostIOLimitIOPs);
+                isUpdated = true;
+            } else {
+                throw BadRequestException.badRequests.cantUpdatePerformanceParamsInUse(currentName);                
+            }
+        }
         
         // Update the thin volume pre-allocation percentage.
-        performanceParams.setThinVolumePreAllocationPercentage(param.getThinVolumePreAllocationPercentage());
+        Integer thinVolumePreAllocPercentage = param.getThinVolumePreAllocationPercentage();
+        if ((thinVolumePreAllocPercentage != null) && 
+                (thinVolumePreAllocPercentage != performanceParams.getThinVolumePreAllocationPercentage())) {
+            if (!performanceParamsInUse) {
+                performanceParams.setThinVolumePreAllocationPercentage(thinVolumePreAllocPercentage);
+                isUpdated = true;
+            } else {
+                throw BadRequestException.badRequests.cantUpdatePerformanceParamsInUse(currentName);
+            }
+        }
         
         // Update the deduplication setting.
-        performanceParams.setDedupCapable(param.getDedupCapable());
+        Boolean dedupCapable = param.getDedupCapable();
+        if ((dedupCapable != null) && (dedupCapable != performanceParams.getDedupCapable())) {
+            if (!performanceParamsInUse) {
+                performanceParams.setDedupCapable(dedupCapable);
+                isUpdated = true;
+            } else {
+                throw BadRequestException.badRequests.cantUpdatePerformanceParamsInUse(currentName);
+            }
+        }
         
         // Update the fast expansion setting.
-        performanceParams.setFastExpansion(param.getFastExpansion());
+        Boolean fastExpansion = param.getFastExpansion();
+        if ((fastExpansion != null) && (fastExpansion != performanceParams.getFastExpansion())) {
+            if (!performanceParamsInUse) {
+                performanceParams.setFastExpansion(fastExpansion);
+                isUpdated = true;
+            } else {
+                throw BadRequestException.badRequests.cantUpdatePerformanceParamsInUse(currentName);
+            }
+        }
         
         //Update the database and return the updated instance.
-        _dbClient.updateObject(performanceParams);
+        if (isUpdated) {
+            _dbClient.updateObject(performanceParams);
+        }
         return BlockMapper.map(performanceParams);
     }
 

@@ -13,6 +13,15 @@ package com.emc.storageos.db.client.model;
 @Cf("PerformanceParams")
 @SuppressWarnings("serial")
 public class PerformanceParams extends DataObjectWithACLs implements GeoVisibleResource {
+    
+    // Default values
+    public static final String PP_DFLT_AUTOTIERING_POLICY_NAME = "NONE";
+    public static final Boolean PP_DFLT_COMPRESSION_ENABLED = Boolean.TRUE;
+    public static final Integer PP_DFLT_HOST_IO_LIMIT_BANDWIDTH = 0;
+    public static final Integer PP_DFLT_HOST_IO_LIMIT_IOPS = 0;
+    public static final Integer PP_DFLT_THIN_VOLUME_PRE_ALLOC_PERCENTAGE = 10;
+    public static final Boolean PP_DFLT_DEDUP_CAPABLE = Boolean.TRUE;
+    public static final Boolean PP_DFLT_FAST_EXPANSION = Boolean.TRUE;
 
     // A user supplied description.
     private String description;

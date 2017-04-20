@@ -413,12 +413,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
                 Iterator<URI> ssIt = storageSystems.iterator();
                 StoragePortGroupRestRepList portGroups = client.varrays().getStoragePortGroups(id,
                         export != null ? export.getId() : null, ssIt.next());
-                for (StoragePortGroupRestRep group : portGroups.getStoragePortGroups()) {
-                    String portMetric = (group.getPortMetric() != null) ? String.valueOf(Math.round(group.getPortMetric() * 100 / 100)) + "%" : "N/A";
-                    String volumeCount = (group.getVolumeCount() != null) ? String.valueOf(group.getVolumeCount()) : "N/A";
-                    String label = getMessage("exportPortGroup.portGroups", group.getName(), portMetric, volumeCount);
-                    options.add(new AssetOption(group.getId(), label));
-                }
+                return createPortGroupOptions(portGroups.getStoragePortGroups());
             }
         }
         return options;
@@ -442,13 +437,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
 
             StoragePortGroupRestRepList portGroups = client.varrays().getStoragePortGroups(vArrayId,
                     export != null ? export.getId() : null, null);
-
-            for (StoragePortGroupRestRep group : portGroups.getStoragePortGroups()) {
-                String portMetric = (group.getPortMetric() != null) ? String.valueOf(Math.round(group.getPortMetric() * 100 / 100)) + "%" : "N/A";
-                String volumeCount = (group.getVolumeCount() != null) ? String.valueOf(group.getVolumeCount()) : "N/A";
-                String label = getMessage("exportPortGroup.portGroups", group.getName(), portMetric, volumeCount);
-                options.add(new AssetOption(group.getId(), label));
-            }
+            return createPortGroupOptions(portGroups.getStoragePortGroups());
         }
 
         return options;
@@ -524,13 +513,21 @@ public class BlockProvider extends BaseAssetOptionsProvider {
                 Iterator<URI> ssIt = storageSystems.iterator();
                 StoragePortGroupRestRepList portGroups = client.varrays().getStoragePortGroups(id,
                         export != null ? export.getId() : null, ssIt.next());
-                for (StoragePortGroupRestRep group : portGroups.getStoragePortGroups()) {
-                    String portMetric = (group.getPortMetric() != null) ? String.valueOf(Math.round(group.getPortMetric() * 100 / 100)) + "%" : "N/A";
-                    String volumeCount = (group.getVolumeCount() != null) ? String.valueOf(group.getVolumeCount()) : "N/A";
-                    String label = getMessage("exportPortGroup.portGroups", group.getName(), portMetric, volumeCount);
-                    options.add(new AssetOption(group.getId(), label));
-                }
+                return createPortGroupOptions(portGroups.getStoragePortGroups());
             }
+        }
+        return options;
+    }
+
+    private List<AssetOption> createPortGroupOptions(List<StoragePortGroupRestRep> portGroups) {
+        List<AssetOption> options = Lists.newArrayList();
+        for (StoragePortGroupRestRep group : portGroups) {
+            String portMetric = (group.getPortMetric() != null) ? String.valueOf(Math.round(group.getPortMetric() * 100 / 100)) + "%" : "N/A";
+            String volumeCount = (group.getVolumeCount() != null) ? String.valueOf(group.getVolumeCount()) : "N/A";
+            String nGuid = group.getNativeGuid();
+            String nativeGuid = nGuid.substring(0, 3) + nGuid.substring(nGuid.length()-4, nGuid.length());
+            String label = getMessage("exportPortGroup.portGroups", group.getName(), nGuid, portMetric, volumeCount);
+            options.add(new AssetOption(group.getId(), label));
         }
         return options;
     }

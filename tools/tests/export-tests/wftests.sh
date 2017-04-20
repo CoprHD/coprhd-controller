@@ -28,6 +28,7 @@
 #set -x
 
 source $(dirname $0)/wftests_host_cluster.sh
+source $(dirname $0)/wftests_host_expand_mount.sh
 source $(dirname $0)/common_subs.sh
 
 Usage()
@@ -954,6 +955,38 @@ host_setup() {
     fi
 }
 
+linux_setup() {
+    if [ "${SIM}" != "1" ]; then
+        secho "Setting up Linux hardware host"
+        run hosts create linuxhost1 $TENANT Linux ${LINUX_HOST_IP} --port ${LINUX_HOST_PORT} --username ${LINUX_HOST_USERNAME} --password ${LINUX_HOST_PASSWORD} --discoverable true
+    else
+        secho "Linux simulator does not exist!"
+    fi
+}
+
+windows_setup() {
+    if [ "${SIM}" != "1" ]; then
+        secho "Setting up Windows hardware host"
+        run hosts create winhost1 $TENANT Windows ${WINDOWS_HOST_IP} --port ${WINDOWS_HOST_PORT} --username ${WINDOWS_HOST_USERNAME} --password ${WINDOWS_HOST_PASSWORD} --discoverable true 
+    else
+        secho "Setting up Windows simulator host"
+        run hosts create winhost1 $TENANT Windows winhost1 --port ${WINDOWS_SIMULATOR_PORT} --username ${WINDOWS_SIMULATOR_USERNAME} --password ${WINDOWS_SIMULATOR_PASSWORD} --discoverable true
+        run transportzone add $NH/${FC_ZONE_A} "00:00:00:00:00:00:00:11"
+        run transportzone add $NH/${FC_ZONE_A} "00:00:00:00:00:00:00:12"
+        run transportzone add $NH/${FC_ZONE_A} "00:00:00:00:00:00:00:13"
+        run transportzone add $NH/${FC_ZONE_A} "00:00:00:00:00:00:00:14"
+    fi 
+}
+
+hpux_setup() {
+    if [ "${SIM}" != "1" ]; then
+        secho "Setting up HP-UX hardware host"
+        run hosts create hpuxhost1 $TENANT HPUX ${HPUX_HOST_IP} --port ${HPUX_HOST_PORT} --username ${HPUX_HOST_USERNAME} --password ${HPUX_HOST_PASSWORD} --discoverable true 
+    else
+        secho "HP-UX simulator does not exist!"
+    fi 
+}
+
 vcenter_setup() {
     secho "Setup virtual center..."
     runcmd vcenter create vcenter1 ${TENANT} ${VCENTER_SIMULATOR_IP} ${VCENTER_SIMULATOR_PORT} ${VCENTER_SIMULATOR_USERNAME} ${VCENTER_SIMULATOR_PASSWORD}
@@ -978,6 +1011,9 @@ vcenter_setup() {
 common_setup() {
     host_setup;
     vcenter_setup;
+    windows_setup;
+    hpux_setup;
+    linux_setup;
 }
 
 setup_varray() {

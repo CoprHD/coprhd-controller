@@ -959,6 +959,8 @@ linux_setup() {
     if [ "${SIM}" != "1" ]; then
         secho "Setting up Linux hardware host"
         run hosts create linuxhost1 $TENANT Linux ${LINUX_HOST_IP} --port ${LINUX_HOST_PORT} --username ${LINUX_HOST_USERNAME} --password ${LINUX_HOST_PASSWORD} --discoverable true
+    else
+        secho "Linux simulator does not exist!"
     fi
 }
 
@@ -981,8 +983,7 @@ hpux_setup() {
         secho "Setting up HP-UX hardware host"
         run hosts create hpuxhost1 $TENANT HPUX ${HPUX_HOST_IP} --port ${HPUX_HOST_PORT} --username ${HPUX_HOST_USERNAME} --password ${HPUX_HOST_PASSWORD} --discoverable true 
     else
-        secho "HP-UX simulator does not exist!  Failing."
-	exit 1;
+        secho "HP-UX simulator does not exist!"
     fi 
 }
 

@@ -30,8 +30,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.Date;
-import java.util.Calendar;
 import java.util.Collection;
 
 import org.apache.commons.lang.StringUtils;
@@ -440,11 +438,6 @@ public class CustomServicesService extends ViPRService {
             if (list != null) {
                 output.put(out.getName(), list);
             }
-        }
-
-        for(Map.Entry<String, List<String>> e : output.entrySet()) {
-            logger.info("key***{}", e.getKey());
-            logger.info("value***{}", e.getValue());
         }
 
         return output;

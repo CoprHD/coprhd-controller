@@ -24,10 +24,9 @@ import com.emc.storageos.services.util.EnvConfig;
  */
 public class IsilonApiTest {
     private static final Logger _log = LoggerFactory.getLogger(IsilonApiTest.class);
-    private static String suffix = new SimpleDateFormat("yyyyMMddHHmm").format(new Date());
-    private String _test_path = "/ifs/testDir_" + suffix;
-    private String _test_snapshot_path = "/ifs/.snapshot/testDir_" + suffix;
-    private String _test_path10 = "/ifs/testDir10" + suffix;
+    private static String dateSuffix = new SimpleDateFormat("yyyyMMddHHmm").format(new Date());
+    private String _test_path = "/ifs/testDir_" + dateSuffix;
+    private String _test_path10 = "/ifs/testDir10" + dateSuffix;
     private static String uri = EnvConfig.get("sanity", "isilon.uri");
     private static String userName = EnvConfig.get("sanity", "isilon.username");
     private static String password = EnvConfig.get("sanity", "isilon.password");
@@ -82,9 +81,9 @@ public class IsilonApiTest {
         // SMB share tests
         String mapableShareName = (clusterName != null) ? "\\\\" + clusterName + "\\" + "smbShareTestER10" : "smbShareTestER10";
         System.out.println("SMB Share name: " + mapableShareName
-                + "_" + suffix);
+                + "_" + dateSuffix);
         String shareId = _client
-                .createShare(new IsilonSMBShare("smbShareTestER10_" + suffix, testSMBDir, "smb test share", "allow", "full"));
+                .createShare(new IsilonSMBShare("smbShareTestER10_" + dateSuffix, testSMBDir, "smb test share", "allow", "full"));
         Assert.assertTrue("SMB share create failed.", (shareId != null && !shareId.isEmpty()));
         System.out.println("SMB Share created: id: " + shareId);
 
@@ -92,7 +91,7 @@ public class IsilonApiTest {
         Assert.assertTrue("SMB share create failed.", share != null);
 
         // modify share
-        _client.modifyShare(shareId, new IsilonSMBShare("smbShareTestER10_" + suffix, testSMBDir, "smb test share modify", "allow", "read"));
+        _client.modifyShare(shareId, new IsilonSMBShare("smbShareTestER10_" + dateSuffix, testSMBDir, "smb test share modify", "allow", "read"));
 
         List<IsilonSMBShare> lShares = _client.listShares(null).getList();
         System.out.println("listShares: count: " + lShares.size() + " : " + lShares.toString());
@@ -179,23 +178,23 @@ public class IsilonApiTest {
         /* snapshot tests - start */
         // - create
         // we can not have same name for two snapshot event there path are different
-        String snap_id = _client.createSnapshot("test_snap_" + suffix, _test_path);
+        String snap_id = _client.createSnapshot("test_snap_" + dateSuffix, _test_path);
         // - list/get
         List<IsilonSnapshot> snaps = _client.listSnapshots(null).getList();
         System.out.println("listSnaps: count: " + snaps.size() + " : " + snaps.toString());
         IsilonSnapshot snap = _client.getSnapshot(snap_id);
         Assert.assertTrue(snap.getId().compareTo(snap_id) == 0
                 && snap.getPath().compareTo(_test_path) == 0
-                && snap.getName().compareTo("test_snap_" + suffix) == 0);
+                && snap.getName().compareTo("test_snap_" + dateSuffix) == 0);
 
         // - modify
         IsilonSnapshot renamed = new IsilonSnapshot();
-        renamed.setName("test_snap_renamed_" + suffix);
+        renamed.setName("test_snap_renamed_" + dateSuffix);
         _client.modifySnapshot(snap_id, renamed);
         IsilonSnapshot snap2 = _client.getSnapshot(snap_id);
         Assert.assertTrue(snap2.getId().compareTo(snap_id) == 0
                 && snap2.getPath().compareTo(_test_path) == 0
-                && snap2.getName().compareTo("test_snap_renamed_" + suffix) == 0);
+                && snap2.getName().compareTo("test_snap_renamed_" + dateSuffix) == 0);
 
         // - delete
         _client.deleteSnapshot(snap_id);
@@ -371,7 +370,7 @@ public class IsilonApiTest {
         System.out.println("Created directory: " + _test_path);
 
         // create snapshot
-        String snapName = "test_snap_" + suffix;
+        String snapName = "test_snap_" + dateSuffix;
         String snap_id = _client.createSnapshot(snapName, _test_path);
         // - list/get
         List<IsilonSnapshot> snaps = _client.listSnapshots(null).getList();
@@ -465,7 +464,7 @@ public class IsilonApiTest {
         /* nfs exports tests - with fqdn bypass */
         IsilonExport ie3 = new IsilonExport();
         ie3.addPath(_test_path);
-        ie3.addClient("abcd" + suffix);
+        ie3.addClient("abcd" + dateSuffix);
         ArrayList<String> securityFlavors3 = new ArrayList<String>();
         securityFlavors3.add("krb5i");
         ie3.setSecurityFlavors(securityFlavors3);

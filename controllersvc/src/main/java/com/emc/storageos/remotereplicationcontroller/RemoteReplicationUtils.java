@@ -251,7 +251,7 @@ public class RemoteReplicationUtils {
             _log.info(String.format("Processing srdf pair: %s/%s -> %s/%s", sourceLabel, sourceUri, targetLabel, targetUri));
 
             RemoteReplicationDataClient remoteReplicationDataClient = new RemoteReplicationDataClientImpl(dbClient);
-            remoteReplicationDataClient.deleteRemoteReplicationPair(sourceUri, sourceUri);
+            remoteReplicationDataClient.deleteRemoteReplicationPair(sourceUri, targetUri);
         } catch (Exception ex) {
             String msg = String.format("Failed to delete remote replication pair for srdf pair: %s/%s -> %s/%s",
                     sourceLabel, argSourceUri, targetLabel, argTargetUri);

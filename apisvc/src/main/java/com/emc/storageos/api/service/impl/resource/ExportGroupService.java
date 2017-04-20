@@ -1885,9 +1885,9 @@ public class ExportGroupService extends TaskResourceService {
         String type = param.getType();
         exportGroup.setType((type == null || type.equals(OLD_INITIATOR_TYPE_NAME)) ? ExportGroupType.Initiator.name() : type);
         exportGroup.setId(URIUtil.createId(ExportGroup.class));
-        exportGroup.setProject(new NamedURI(project.getId(), project.getLabel()));
+        exportGroup.setProject(new NamedURI(project.getId(), exportGroup.getLabel()));
         exportGroup.setVirtualArray(param.getVarray());
-        exportGroup.setTenant(new NamedURI(project.getTenantOrg().getURI(), tenantOrg.getLabel()));
+        exportGroup.setTenant(new NamedURI(project.getTenantOrg().getURI(), exportGroup.getLabel()));
 
         String generatedName = _nameGenerator.generate(tenantOrg.getLabel(),
                 exportGroup.getLabel(), exportGroup.getId().toString(), '_', 56);
@@ -2062,7 +2062,7 @@ public class ExportGroupService extends TaskResourceService {
                 Map<URI, Set<URI>> varrayToVolumes = VPlexUtil.mapBlockObjectsToVarrays(_dbClient,
                         volumes, storageSystemURI, exportGroup);
                 varrays.addAll(varrayToVolumes.keySet());
-                Map<URI, List<URI>> varrayToInitiatorsMap = VPlexUtil.partitionInitiatorsByVarray(_dbClient, _blockStorageScheduler,
+                Map<URI, List<URI>> varrayToInitiatorsMap = VPlexUtil.partitionInitiatorsByVarray(_dbClient,
                         initiatorURIs, varrays, storageSystem);
                 int nValidations = 0;
                 for (URI varrayKey : varrays) {

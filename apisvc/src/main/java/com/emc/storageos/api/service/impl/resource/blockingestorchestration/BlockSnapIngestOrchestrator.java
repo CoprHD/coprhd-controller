@@ -138,7 +138,7 @@ public class BlockSnapIngestOrchestrator extends BlockIngestOrchestrator {
                 DiscoveredDataObject.Type.vmax3.name() : requestContext.getStorageSystem().getSystemType();
         snapShot.setSystemType(systemType);
         snapShot.setVirtualArray(requestContext.getVarray(unManagedVolume).getId());
-        snapShot.setProject(new NamedURI(requestContext.getProject().getId(), requestContext.getProject().getLabel()));
+        snapShot.setProject(new NamedURI(requestContext.getProject().getId(), snapShot.getLabel()));
         snapShot.setWWN(unManagedVolume.getWwn());
 
         String allocatedCapacity = PropertySetterUtil.extractValueFromStringSet(

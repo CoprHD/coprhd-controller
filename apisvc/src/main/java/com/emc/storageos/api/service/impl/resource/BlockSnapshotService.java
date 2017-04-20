@@ -62,6 +62,7 @@ import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.db.client.model.BlockSnapshot.TechnologyType;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.model.BulkIdParam;
@@ -404,7 +405,7 @@ public class BlockSnapshotService extends TaskResourceService {
         // Get the storage system for the volume
         StorageSystem storage = _permissionsHelper.getObjectById(parentVolume.getStorageController(), StorageSystem.class);
         if (storage.checkIfVmax3()) {
-            if (snapshot.getSettingsInstance() == null) {
+            if (snapshot.getSettingsInstance() == null && !TechnologyType.RP.name().equals(snapshot.getTechnologyType())) {
                 throw APIException.badRequests.snapshotNullSettingsInstance(snapshot.getLabel());
             }
         }

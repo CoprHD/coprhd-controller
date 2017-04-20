@@ -963,9 +963,9 @@ public class VplexVolumeIngestionContext extends VplexBackendIngestionContext im
                         // as the virtual volume (i.e., the front-end project)
                         // but the mirror backend will have the backend project
                         vplexMirror.setProject(new NamedURI(
-                                getFrontendProject().getId(), getFrontendProject().getLabel()));
+                                getFrontendProject().getId(), mirrorVolume.getLabel()));
                         mirrorVolume.setProject(new NamedURI(
-                                getBackendProject().getId(), getBackendProject().getLabel()));
+                                getBackendProject().getId(), mirrorVolume.getLabel()));
 
                         // update flags on mirror volume
                         Set<DataObject> updatedObjects = getDataObjectsToBeUpdatedMap().get(mirrorVolume.getNativeGuid());

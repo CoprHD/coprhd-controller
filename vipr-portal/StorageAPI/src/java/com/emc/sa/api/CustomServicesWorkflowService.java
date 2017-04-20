@@ -19,9 +19,7 @@ package com.emc.sa.api;
 import static com.emc.sa.workflow.CustomServicesWorkflowMapper.map;
 import static com.emc.sa.workflow.CustomServicesWorkflowMapper.mapList;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.net.URI;
 import java.util.Iterator;
 import java.util.List;
@@ -45,6 +43,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.emc.sa.api.mapper.CustomServicesWorkflowFilter;
+import com.emc.sa.api.utils.UploadHelper;
 import com.emc.sa.catalog.CustomServicesWorkflowManager;
 import com.emc.sa.catalog.WorkflowDirectoryManager;
 import com.emc.sa.catalog.primitives.CustomServicesPrimitiveDAOs;
@@ -73,7 +72,6 @@ import com.emc.storageos.security.authorization.ACL;
 import com.emc.storageos.security.authorization.DefaultPermissions;
 import com.emc.storageos.security.authorization.Role;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
-import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorException;
 
 @DefaultPermissions(readRoles = { Role.TENANT_ADMIN, Role.SYSTEM_MONITOR, Role.SYSTEM_ADMIN }, writeRoles = {
         Role.TENANT_ADMIN }, readAcls = { ACL.ANY })
@@ -265,7 +263,7 @@ public class CustomServicesWorkflowService extends CatalogTaggedResourceService 
         } else {
             wfDirectory = NO_DIR;
         }
-        final byte[] stream = read(request);
+        final byte[] stream = UploadHelper.read(request);
         return map(WorkflowHelper.importWorkflow(stream, wfDirectory, client, daos, resourceDAOs));
     }
     
@@ -280,7 +278,7 @@ public class CustomServicesWorkflowService extends CatalogTaggedResourceService 
     @Path("{id}/export")
     public Response download(@PathParam("id") final URI id,
             @Context final HttpServletResponse response) {
-        CustomServicesWorkflow customServicesWorkflow = getCustomServicesWorkflow(id);
+        final CustomServicesWorkflow customServicesWorkflow = getCustomServicesWorkflow(id);
         switch (CustomServicesWorkflowStatus.valueOf(customServicesWorkflow.getState())) {
             case PUBLISHED:
                 final byte[] bytes = WorkflowHelper.exportWorkflow(id, client, daos, resourceDAOs);
@@ -336,19 +334,4 @@ public class CustomServicesWorkflowService extends CatalogTaggedResourceService 
 
         return workflow;
     }
-    
-    private byte[] read(final HttpServletRequest request) {
-        try(final ByteArrayOutputStream file = new ByteArrayOutputStream()) {
-            final byte buffer[] = new byte[2048];
-            final InputStream in = request.getInputStream();
-            int nRead = 0;
-            while ((nRead = in.read(buffer)) > 0) {
-                file.write(buffer, 0, nRead);
-            }
-            return file.toByteArray();
-        } catch (final IOException e) {
-            throw InternalServerErrorException.internalServerErrors.genericApisvcError("failed to read octet stream", e);
-        }
-    }
-
 }

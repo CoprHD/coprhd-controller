@@ -180,8 +180,13 @@ public final class WorkflowHelper {
     }
 
     /**
-     * @param archive
-     * @param wfDirectory 
+     * Import an archive given the tar.gz contents
+     * 
+     * @param archive the tar.gz contents of the workflow package
+     * @param wfDirectory The directory to import the workflow to
+     * @param client database client
+     * @param daos DAO beans to access operations
+     * @param resourceDAOs DAO beans to access resources
      * @return
      */
     public static CustomServicesWorkflow importWorkflow(final byte[] archive, 
@@ -192,60 +197,14 @@ public final class WorkflowHelper {
         try (final TarArchiveInputStream tarIn = new TarArchiveInputStream(
                 new GZIPInputStream(new ByteArrayInputStream(
                         archive)))) {
-            CustomServicesWorkflowPackage.Builder builder = new CustomServicesWorkflowPackage.Builder();
+            final CustomServicesWorkflowPackage.Builder builder = new CustomServicesWorkflowPackage.Builder();
             TarArchiveEntry entry = tarIn.getNextTarEntry();
             final Map<URI, ResourceBuilder> resourceMap = new HashMap<URI, ResourceBuilder>();
             while (entry != null) {
                 if( !entry.isDirectory()) {
-                    final Path path = FileSystems.getDefault().getPath(entry.getName()).normalize();
-                    final ByteArrayOutputStream out = new ByteArrayOutputStream();
-                    IOUtils.copy(tarIn, out);
-                    byte[] bytes = out.toByteArray();
-                    final String parent = path.getParent() == null ? ROOT : path.getParent().getFileName().toString(); 
-                    switch(parent) {
-                        case ROOT:
-                            if( path.getFileName().toString().equals(METADATA_FILE)) {
-                                final WorkflowMetadata workflowMetadata = MAPPER.readValue(bytes, WorkflowMetadata.class);
-                                if( !SUPPORTED_VERSIONS.contains(workflowMetadata.getVersion())) {
-                                    throw APIException.badRequests.workflowVersionNotSupported(workflowMetadata.getVersion(), SUPPORTED_VERSIONS);
-                                }
-                                builder.metadata(workflowMetadata);
-                            }
-                            break;
-                        case WORKFLOWS_FOLDER:
-                            builder.addWorkflow(MAPPER.readValue(bytes, CustomServicesWorkflowRestRep.class));
-                            break;
-                        case OPERATIONS_FOLDER:
-                            builder.addOperation(MAPPER.readValue(bytes, CustomServicesPrimitiveRestRep.class));
-                            break;
-                        case RESOURCES_FOLDER:
-                            final boolean isMetadata;
-                            final URI id;
-                            final String filename = path.getFileName().toString();
-                            if(filename.endsWith(".md")) {
-                                id = URI.create(filename.substring(0, filename.indexOf('.')));
-                                isMetadata = true;
-                            } else {
-                                id = URI.create(filename);
-                                isMetadata = false;
-                            }
-                            final ResourceBuilder resourceBuilder;
-                            if(!resourceMap.containsKey(id)) {
-                                resourceBuilder = new ResourceBuilder();
-                                resourceMap.put(id, resourceBuilder);
-                            } else {
-                                resourceBuilder = resourceMap.get(id);
-                            }
-                            
-                            if( isMetadata ) {
-                                resourceBuilder.metadata(MAPPER.readValue(bytes, CustomServicesPrimitiveResourceRestRep.class));
-                            } else {
-                                resourceBuilder.bytes(bytes);
-                            }
-                            break;
-                        default:
-                            throw APIException.badRequests.workflowArchiveContentsInvalid(parent);
-                    } 
+                    final Path path = getPath(entry);
+                    final byte[] bytes = read(tarIn);
+                    addEntry(builder, resourceMap, path, bytes); 
                     
                 }
                 entry = tarIn.getNextTarEntry();
@@ -256,7 +215,7 @@ public final class WorkflowHelper {
             }
             
 
-            return importWorkfow(builder.build(), wfDirectory, client, daos, resourceDAOs);
+            return importWorkflow(builder.build(), wfDirectory, client, daos, resourceDAOs);
             
         } catch (final IOException e) {
             log.error("Failed to import the archive: ", e);
@@ -264,8 +223,7 @@ public final class WorkflowHelper {
         }
     }
 
-
-    private static CustomServicesWorkflow importWorkfow(final CustomServicesWorkflowPackage workflowPackage,
+    private static CustomServicesWorkflow importWorkflow(final CustomServicesWorkflowPackage workflowPackage,
             final WFDirectory wfDirectory,
             final ModelClient client,
             final CustomServicesPrimitiveDAOs daos,
@@ -478,5 +436,87 @@ public final class WorkflowHelper {
         return entry;
     }
     
+    private static void addEntry(final CustomServicesWorkflowPackage.Builder builder, final Map<URI, ResourceBuilder> resourceMap,
+            final Path path, final byte[] bytes) throws IOException, JsonParseException, JsonMappingException {
+        final String parent = path.getParent() == null ? ROOT : path.getParent().getFileName().toString(); 
+        switch(parent) {
+            case ROOT:
+                if( path.getFileName().toString().equals(METADATA_FILE)) {
+                    addMetadata(builder, bytes);
+                }
+                return;
+            case WORKFLOWS_FOLDER:
+                addWorkflow(builder, bytes);
+                return;
+            case OPERATIONS_FOLDER:
+                addOperation(builder, bytes);
+                return;
+            case RESOURCES_FOLDER:
+                addResource(resourceMap, path, bytes);
+                return;
+            default:
+                throw APIException.badRequests.workflowArchiveContentsInvalid(parent);
+        }
+    }
+
+    private static void addResource(final Map<URI, ResourceBuilder> resourceMap, final Path path, final byte[] bytes) throws IOException,
+            JsonParseException, JsonMappingException {
+        final boolean isMetadata;
+        final URI id;
+        final String filename = path.getFileName().toString();
+        if(filename.endsWith(".md")) {
+            id = URI.create(filename.substring(0, filename.indexOf('.')));
+            isMetadata = true;
+        } else {
+            id = URI.create(filename);
+            isMetadata = false;
+        }
+        final ResourceBuilder resourceBuilder;
+        if(!resourceMap.containsKey(id)) {
+            resourceBuilder = new ResourceBuilder();
+            resourceMap.put(id, resourceBuilder);
+        } else {
+            resourceBuilder = resourceMap.get(id);
+        }
+        
+        if( isMetadata ) {
+            resourceBuilder.metadata(MAPPER.readValue(bytes, CustomServicesPrimitiveResourceRestRep.class));
+        } else {
+            resourceBuilder.bytes(bytes);
+        }
+    }
+
+    private static void addOperation(final CustomServicesWorkflowPackage.Builder builder, final byte[] bytes) throws IOException,
+            JsonParseException, JsonMappingException {
+        builder.addOperation(MAPPER.readValue(bytes, CustomServicesPrimitiveRestRep.class));
+    }
+
+    private static void addWorkflow(final CustomServicesWorkflowPackage.Builder builder, final byte[] bytes) throws IOException,
+            JsonParseException, JsonMappingException {
+        builder.addWorkflow(MAPPER.readValue(bytes, CustomServicesWorkflowRestRep.class));
+    }
+
+    private static void addMetadata(final CustomServicesWorkflowPackage.Builder builder, final byte[] bytes) throws IOException,
+            JsonParseException, JsonMappingException {
+        final WorkflowMetadata workflowMetadata = MAPPER.readValue(bytes, WorkflowMetadata.class);
+        if( !SUPPORTED_VERSIONS.contains(workflowMetadata.getVersion())) {
+            throw APIException.badRequests.workflowVersionNotSupported(workflowMetadata.getVersion(), SUPPORTED_VERSIONS);
+        }
+        builder.metadata(workflowMetadata);
+    }
     
+    private static byte[] read(final TarArchiveInputStream tarIn) throws IOException {
+        try(final ByteArrayOutputStream out = new ByteArrayOutputStream() ) {
+            IOUtils.copy(tarIn, out);
+            return out.toByteArray();
+        }
+    }
+
+    private static Path getPath(final TarArchiveEntry entry) {
+        final Path path = FileSystems.getDefault().getPath(entry.getName());
+        if(null == path) {
+            throw APIException.badRequests.workflowArchiveCannotBeImported("Uknown file: " + entry.getName());
+        }
+        return path.normalize();
+    }
 }

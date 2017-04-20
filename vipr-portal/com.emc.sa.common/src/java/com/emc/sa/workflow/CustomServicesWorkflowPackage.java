@@ -27,7 +27,7 @@ import com.emc.storageos.model.customservices.CustomServicesWorkflowRestRep;
 import com.google.common.collect.ImmutableMap;
 
 
-public class CustomServicesWorkflowPackage {
+public final class CustomServicesWorkflowPackage {
 
     private final WorkflowMetadata metadata;
     private final ImmutableMap<URI, CustomServicesWorkflowRestRep> workflows;

@@ -115,6 +115,13 @@ public class FileControllerImpl extends AbstractDiscoveredSystemController imple
             throws InternalException {
         execFS("expandFS", storage, fs, size, opId);
     }
+    
+        
+    @Override
+    public void reduceFS(URI storage, URI fs, long size, String opId)
+            throws InternalException {
+        execFS("reduceFS", storage, fs, size, opId);
+    }
 
     @Override
     public void snapshotFS(URI storage, URI snapshot, URI fs, String opId)
@@ -300,4 +307,5 @@ public class FileControllerImpl extends AbstractDiscoveredSystemController imple
 
     }
 
+	
 }

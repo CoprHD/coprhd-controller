@@ -105,6 +105,16 @@ public interface FileServiceApi {
             throws InternalException;
 
     /**
+     * reduce the capacity of size of given size
+     *
+     * @param fileshare
+     * @param newSize
+     * @param taskId
+     * @throws InternalException
+     */
+    public void reduceFileShare(FileShare fileshare, Long newSize, String taskId)
+            throws InternalException;
+    /**
      * Create Continuous Copies for existing source file system
      * 
      * @param fs

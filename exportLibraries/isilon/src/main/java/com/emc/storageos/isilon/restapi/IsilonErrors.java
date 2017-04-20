@@ -33,6 +33,9 @@ public interface IsilonErrors {
 
     @DeclareServiceCode(ServiceCode.ISILON_ERROR)
     public ServiceError unableToExpandFileSystem();
+    
+    @DeclareServiceCode(ServiceCode.ISILON_ERROR)
+    public ServiceError unableToReduceFileSystem();
 
     @DeclareServiceCode(ServiceCode.ISILON_ERROR)
     public ServiceError unableToCreateFileShare();

@@ -995,6 +995,60 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             }
         }
     }
+    
+    @Override
+    public void reduceFS(URI storage, URI uri, long newFSsize, String opId) throws ControllerException {
+        ControllerUtils.setThreadLocalLogData(uri, opId);
+        FileShare fs = null;
+        try {
+            StorageSystem storageObj = _dbClient.queryObject(StorageSystem.class, storage);
+            FileDeviceInputOutput args = new FileDeviceInputOutput();
+            fs = _dbClient.queryObject(FileShare.class, uri);
+            args.addFSFileObject(fs);
+            StoragePool pool = _dbClient.queryObject(StoragePool.class, fs.getPool());
+            args.addStoragePool(pool);
+            args.setFileOperation(true);
+            args.setNewFSCapacity(newFSsize);
+            args.setOpId(opId);
+            // work flow and we need to add TaskCompleter(TBD for vnxfile)
+            WorkflowStepCompleter.stepExecuting(opId);
+            // Acquire lock for VNXFILE Storage System
+            acquireStepLock(storageObj, opId);
+            BiosCommandResult result = getDevice(storageObj.getSystemType()).doExpandFS(storageObj, args);
+            if (result.getCommandPending()) {
+                // async operation
+                return;
+            }
+            if (result.isCommandSuccess()) {
+                _log.info("FileSystem old capacity :" + args.getFsCapacity() + ":Reduced Size:" + args.getNewFSCapacity());
+                args.setFsCapacity(args.getNewFSCapacity());
+                _log.info("FileSystem new capacity :" + args.getFsCapacity());
+                WorkflowStepCompleter.stepSucceded(opId);
+            } else if (!result.getCommandPending()) {
+                WorkflowStepCompleter.stepFailed(opId, result.getServiceCoded());
+            }
+            if (!result.isCommandSuccess() && !result.getCommandPending()) {
+                WorkflowStepCompleter.stepFailed(opId, result.getServiceCoded());
+            }
+            // Set status
+            fs.getOpStatus().updateTaskStatus(opId, result.toOperation());
+            _dbClient.updateObject(fs);
+
+            String eventMsg = result.isCommandSuccess() ? "" : result.getMessage();
+            recordFileDeviceOperation(_dbClient, OperationTypeEnum.REDUCE_FILE_SYSTEM,
+                    result.isCommandSuccess(), eventMsg, "", fs, String.valueOf(newFSsize));
+        } catch (Exception e) {
+            String[] params = { storage.toString(), uri.toString(), String.valueOf(newFSsize), e.getMessage() };
+            _log.error("Unable to reduce file system: storage {}, FS URI {}, size {}: {}", params);
+            ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
+            WorkflowStepCompleter.stepFailed(opId, serviceError);
+            updateTaskStatus(opId, fs, e);
+            if (fs != null) {
+                recordFileDeviceOperation(_dbClient, OperationTypeEnum.REDUCE_FILE_SYSTEM, false, e.getMessage(), "", fs,
+                        String.valueOf(newFSsize));
+            }
+        }
+    }
 
     @Override
     public void share(URI storage, URI uri, FileSMBShare smbShare, String opId) throws ControllerException {
@@ -3696,6 +3750,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
     static final String DELETE_FILESYSTEMS_STEP = "FileDeviceDeleteFileShares";
     static final String CREATE_FS_MIRRORS_STEP = "FileDeviceCreateMirrors";
     static final String EXPAND_FILESYSTEMS_STEP = "FileDeviceExpandFileShares";
+    static final String REDUCE_FILESYSTEMS_STEP = "FileDeviceReduceFileShares";
 
     private static final String ROLLBACK_METHOD_NULL = "rollbackMethodNull";
 
@@ -3835,6 +3890,30 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
         }
         return waitFor;
     }
+    
+    /*
+     * Expand filesystem
+     * (non-Javadoc)
+     * 
+     * @see
+     * com.emc.storageos.fileorchestrationcontroller.FileOrchestrationInterface#addStepsForExpandFileSystems(com.emc.
+     * storageos.workflow.
+     * Workflow, java.lang.String, java.util.List, java.lang.String)
+     */
+    @Override
+    public String addStepsForReduceFileSystems(Workflow workflow, String waitFor,
+            List<FileDescriptor> fileDescriptors, String taskId)
+            throws InternalException {
+        List<FileDescriptor> sourceDescriptors = FileDescriptor.filterByType(fileDescriptors, FileDescriptor.Type.FILE_MIRROR_SOURCE,
+                FileDescriptor.Type.FILE_EXISTING_SOURCE, FileDescriptor.Type.FILE_DATA,
+                FileDescriptor.Type.FILE_MIRROR_TARGET);
+        if (sourceDescriptors == null || sourceDescriptors.isEmpty()) {
+            return waitFor;
+        } else {
+            createReduceFileshareStep(workflow, waitFor, sourceDescriptors, taskId);
+        }
+        return waitFor;
+    }
 
     /**
      * Return a Workflow.Method for createFileShares.
@@ -3915,8 +3994,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             // Only expand the fileshare if it's an existing fileshare (provisoned capacity is not null and not 0) and
             // new size > existing fileshare's provisioned capacity, otherwise we can ignore.
             if (fileShare.getCapacity() != null
-                    && fileShare.getCapacity().longValue() != 0
-                    && descriptor.getFileSize() > fileShare.getCapacity().longValue()) {
+                    && fileShare.getCapacity().longValue() != 0) {
                 filesharesToExpand.put(fileShare.getId(), descriptor.getFileSize());
             }
         }
@@ -3937,6 +4015,52 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
         }
         return waitFor;
     }
+    
+    /**
+     * Expand File System Step
+     *
+     * @param workflow
+     * @param waitFor
+     * @param fileDescriptors
+     * @param taskId
+     * @return
+     */
+    private String createReduceFileshareStep(Workflow workflow,
+            String waitFor, List<FileDescriptor> fileDescriptors, String taskId) {
+        _log.info("START Reduce file system");
+        Map<URI, Long> filesharesToExpand = new HashMap<URI, Long>();
+        for (FileDescriptor descriptor : fileDescriptors) {
+            // Grab the fileshare, let's see if an expand is really needed
+            FileShare fileShare = _dbClient.queryObject(FileShare.class, descriptor.getFsURI());
+
+            // Only expand the fileshare if it's an existing fileshare (provisoned capacity is not null and not 0) and
+            if (fileShare.getCapacity() != null
+                    && fileShare.getCapacity().longValue() != 0
+                    && descriptor.getFileSize() > fileShare.getCapacity().longValue()) {
+                filesharesToExpand.put(fileShare.getId(), descriptor.getFileSize());
+            }
+        }
+
+        Workflow.Method reduceMethod = null;
+        for (Map.Entry<URI, Long> entry : filesharesToExpand.entrySet()) {
+            _log.info("Creating WF step for Reduce FileShare for  {}", entry.getKey().toString());
+            FileShare fileShareToReduce = _dbClient.queryObject(FileShare.class, entry.getKey());
+            StorageSystem storage = _dbClient.queryObject(StorageSystem.class, fileShareToReduce.getStorageDevice());
+            Long fileSize = entry.getValue();
+            reduceMethod = reduceFileSharesMethod(storage.getId(), fileShareToReduce.getId(), fileSize);
+            waitFor = workflow.createStep(
+                    REDUCE_FILESYSTEMS_STEP,
+                    String.format("Reduce FileShare %s", fileShareToReduce),
+                    waitFor, storage.getId(), storage.getSystemType(), getClass(), reduceMethod,
+                    null, null);
+            _log.info("Creating workflow step {}", REDUCE_FILESYSTEMS_STEP);
+        }
+        return waitFor;
+    }
+    
+    
+    
+    
 
     /**
      * Return a WorkFlow.Method for expandFileShares
@@ -3948,6 +4072,18 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
      */
     Workflow.Method expandFileSharesMethod(URI uriStorage, URI fileURI, long size) {
         return new Workflow.Method("expandFS", uriStorage, fileURI, size);
+    }
+    
+    /**
+     * Return a WorkFlow.Method for reduceFileShares
+     *
+     * @param uriStorage
+     * @param fileURI
+     * @param size
+     * @return
+     */
+    Workflow.Method reduceFileSharesMethod(URI uriStorage, URI fileURI, long size) {
+        return new Workflow.Method("reduceFS", uriStorage, fileURI, size);
     }
 
     @Override

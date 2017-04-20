@@ -88,9 +88,9 @@ public class SRDFLinkProcessor extends StorageProcessor {
                 }
                 expectedSourceVolume.setLinkStatus(newStatus);
                 expectedTargetVolume.setLinkStatus(newStatus);
-                dbClient.persistObject(expectedSourceVolume);
-                dbClient.persistObject(expectedTargetVolume);
-                RemoteReplicationUtils.updateRemoteReplicationPairForSrdfPair(expectedSourceVolume.getId(), expectedTargetVolume.getId(), dbClient);
+                dbClient.updateObject(expectedSourceVolume);
+                dbClient.updateObject(expectedTargetVolume);
+                RemoteReplicationUtils.updateOrCreateReplicationPairForSrdfPair(expectedSourceVolume.getId(), expectedTargetVolume.getId(), dbClient);
             }
         } //
         catch (Exception e) {

@@ -5,6 +5,7 @@ import static com.emc.storageos.db.client.util.CustomQueryUtility.queryActiveRes
 
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -17,7 +18,9 @@ import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.NamedURI;
+import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.StorageSystem;
+import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.remotereplicationcontroller.RemoteReplicationUtils;
@@ -219,10 +222,15 @@ public class RemoteReplicationDataClientImpl implements RemoteReplicationDataCli
             rrPair.setReplicationState(driverReplicationPair.getReplicationState());
             rrPair.setReplicationMode(driverReplicationPair.getReplicationMode());
             rrPair.setReplicationDirection(driverReplicationPair.getReplicationDirection());
-            rrPair.setSourceElement(new NamedURI(sourceVolumeURI, com.emc.storageos.db.client.model.remotereplication.RemoteReplicationPair.ElementType.VOLUME.toString()));
-            rrPair.setTargetElement(new NamedURI(targetVolumeURI, com.emc.storageos.db.client.model.remotereplication.RemoteReplicationPair.ElementType.VOLUME.toString()));
-            rrPair.setTenant(sourceVolume.getTenant());
-            rrPair.setProject(sourceVolume.getProject());
+            rrPair.setSourceElement(new NamedURI(sourceVolumeURI, sourceVolume.getLabel()));
+            rrPair.setTargetElement(new NamedURI(targetVolumeURI, targetVolume.getLabel()));
+            
+            // tenant and project NamedURIs are set wrong on the volume; they have tenant or project uri plus the volume label; they should have project or tenant label
+            // not volume label; fixing it there is a big change. This code puts the right tenant and project NamedURI on the remote replication pair object
+            TenantOrg tenant = _dbClient.queryObjectField(TenantOrg.class, "label", Arrays.asList(sourceVolume.getTenant().getURI())).get(0);
+            Project project = _dbClient.queryObjectField(Project.class, "label", Arrays.asList(sourceVolume.getProject().getURI())).get(0);
+            rrPair.setTenant(new NamedURI(tenant.getId(), tenant.getLabel()));
+            rrPair.setProject(new NamedURI(project.getId(), project.getLabel()));
 
             _log.info("Remote Replication Pair {} ", rrPair);
             _dbClient.createObject(rrPair);
@@ -248,26 +256,21 @@ public class RemoteReplicationDataClientImpl implements RemoteReplicationDataCli
                 String message = String.format("Cannot find volume %s for replication pair %s",
                             sourceVolumeURI, driverReplicationPair.getNativeId());
                     _log.error(message);
-                return;
+                    throw new RuntimeException(message);
             }
 
             if (targetVolume == null) {
                 String message = String.format("Cannot find volume %s for replication pair %s",
                         targetVolumeURI, driverReplicationPair.getNativeId());
                 _log.error(message);
-                return;
+                throw new RuntimeException(message);
             }
             
-            com.emc.storageos.db.client.model.remotereplication.RemoteReplicationPair rrPair = getMatchingRRPair(sourceVolumeURI, targetVolumeURI);
+            com.emc.storageos.db.client.model.remotereplication.RemoteReplicationPair rrPair = checkRemoteReplicationPairExistsInDB(sourceVolumeURI, targetVolumeURI);
             if (rrPair == null) {
-                rrPair = getMatchingRRPair(targetVolumeURI, sourceVolumeURI);
-                if (rrPair == null) {
-                    String message = String.format("Cannot find RemoteReplicationPair for source volume %s and target volume %s", sourceVolume.getNativeGuid(), targetVolume.getNativeGuid());
-                    _log.warn(message);
-                    // call create pair
-                    createRemoteReplicationPair(driverReplicationPair, sourceVolumeURI, targetVolumeURI);
-                    return;
-                }
+                String message = String.format("Cannot find RemoteReplicationPair for source volume %s and target volume %s", sourceVolume.getNativeGuid(), targetVolume.getNativeGuid());
+                _log.error(message);
+                throw new RuntimeException(message);
             }
             
             // update the pair properties
@@ -276,25 +279,17 @@ public class RemoteReplicationDataClientImpl implements RemoteReplicationDataCli
                 String message = String.format("Cannot find storage system %s for volume %s",
                         sourceVolume.getStorageController(), sourceVolume.getId());
                 _log.error(message);
-                return;
+                throw new RuntimeException(message);
             }
-            com.emc.storageos.db.client.model.remotereplication.RemoteReplicationSet systemSet =
-                    getReplicationSetForDriverPair(driverReplicationPair, sourceStorageSystem.getSystemType());
-            if (systemSet != null) {
-                rrPair.setReplicationSet(systemSet.getId());
-            }
+
             com.emc.storageos.db.client.model.remotereplication.RemoteReplicationGroup systemGroup =
                     getReplicationGroupForDriverPair(driverReplicationPair, sourceStorageSystem);
             if (systemGroup != null) {
                 rrPair.setReplicationGroup(systemGroup.getId());
             }
-            rrPair.setNativeId(driverReplicationPair.getNativeId());
             rrPair.setReplicationState(driverReplicationPair.getReplicationState());
             rrPair.setReplicationMode(driverReplicationPair.getReplicationMode());
             rrPair.setReplicationDirection(driverReplicationPair.getReplicationDirection());
-            rrPair.setSourceElement(new NamedURI(sourceVolumeURI, com.emc.storageos.db.client.model.remotereplication.RemoteReplicationPair.ElementType.VOLUME.toString()));
-            rrPair.setTargetElement(new NamedURI(targetVolumeURI, com.emc.storageos.db.client.model.remotereplication.RemoteReplicationPair.ElementType.VOLUME.toString()));
-            rrPair.setTenant(sourceVolume.getTenant());
             rrPair.setProject(sourceVolume.getProject());
             _dbClient.updateObject(rrPair);
             
@@ -302,25 +297,9 @@ public class RemoteReplicationDataClientImpl implements RemoteReplicationDataCli
             String message = String.format("Failed to update replication pair %s ",
                     driverReplicationPair.getNativeId());
             _log.error(message, ex);
+            throw new RuntimeException(message, ex);
         }
 
-    }
-    
-    private com.emc.storageos.db.client.model.remotereplication.RemoteReplicationPair getMatchingRRPair(URI sourceVolumeURI, URI targetVolumeURI) {
-        List<com.emc.storageos.db.client.model.remotereplication.RemoteReplicationPair> rrPairs =
-                queryActiveResourcesByRelation(_dbClient, sourceVolumeURI, com.emc.storageos.db.client.model.remotereplication.RemoteReplicationPair.class,
-                        "sourceElement");
-        if (rrPairs != null) {
-            Iterator<com.emc.storageos.db.client.model.remotereplication.RemoteReplicationPair> rrPairItr = rrPairs.iterator();
-            while (rrPairItr.hasNext()) {
-                com.emc.storageos.db.client.model.remotereplication.RemoteReplicationPair rrPair = rrPairs.iterator().next();
-                if (rrPair.getTargetElement().getURI().equals(targetVolumeURI)) {
-                    // found source and target pair
-                    return rrPair;
-                }
-            }
-        }
-        return null;
     }
 
     @Override
@@ -412,4 +391,26 @@ public class RemoteReplicationDataClientImpl implements RemoteReplicationDataCli
         }
         return systemSet;
     }
+
+    /* (non-Javadoc)
+     * @see com.emc.storageos.volumecontroller.impl.externaldevice.RemoteReplicationDataClient#checkRemoteReplicationPairExistsInDB(java.net.URI, java.net.URI)
+     */
+    @Override
+    public com.emc.storageos.db.client.model.remotereplication.RemoteReplicationPair checkRemoteReplicationPairExistsInDB(URI sourceVolumeURI, URI targetVolumeURI) {
+        List<com.emc.storageos.db.client.model.remotereplication.RemoteReplicationPair> rrPairs =
+                queryActiveResourcesByRelation(_dbClient, sourceVolumeURI, com.emc.storageos.db.client.model.remotereplication.RemoteReplicationPair.class,
+                        "sourceElement");
+        if (rrPairs != null) {
+            Iterator<com.emc.storageos.db.client.model.remotereplication.RemoteReplicationPair> rrPairItr = rrPairs.iterator();
+            while (rrPairItr.hasNext()) {
+                com.emc.storageos.db.client.model.remotereplication.RemoteReplicationPair rrPair = rrPairs.iterator().next();
+                if (rrPair.getTargetElement().getURI().equals(targetVolumeURI)) {
+                    // found source and target pair
+                    return rrPair;
+                }
+            }
+        }
+        return null;
+    }
+
 }

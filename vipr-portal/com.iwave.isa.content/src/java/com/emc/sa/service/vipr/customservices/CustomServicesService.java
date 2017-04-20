@@ -429,12 +429,12 @@ public class CustomServicesService extends ViPRService {
         MAPPER.setAnnotationIntrospector(new JaxbAnnotationIntrospector());
         final Class<?> clazz = Class.forName(classname);
 
-        final Object taskList = MAPPER.readValue(res, clazz.newInstance().getClass());
+        final Object responseEntity = MAPPER.readValue(res, clazz.newInstance().getClass());
 
-        outputPerStep.put(step.getId(), parseViprOutput(taskList, step));
+        outputPerStep.put(step.getId(), parseViprOutput(responseEntity, step));
     }
 
-    private Map<String, List<String>> parseViprOutput(final Object taskList, final Step step) throws Exception {
+    private Map<String, List<String>> parseViprOutput(final Object responseEntity, final Step step) throws Exception {
         final List<CustomServicesWorkflowDocument.Output> stepOut = step.getOutput();
 
         final Map<String, List<String>> output = new HashMap<String, List<String>>();
@@ -444,7 +444,7 @@ public class CustomServicesService extends ViPRService {
 
             final String[] bits = outName.split("\\.");
 
-            final List<String> list = ifprimitivetheninvoke(bits, 0, taskList);
+            final List<String> list = ifprimitivetheninvoke(bits, 0, responseEntity);
             if (list != null) {
                 output.put(out.getName(), list);
             }
@@ -456,19 +456,6 @@ public class CustomServicesService extends ViPRService {
         }
 
         return output;
-    }
-
-    private boolean isPrimitive(final Class<?> primitiveclass){
-
-        if (primitiveclass.isPrimitive()
-                || primitiveclass.equals(String.class)
-                || primitiveclass.equals(URI.class)
-                || primitiveclass.equals(Calendar.class)
-                || primitiveclass.equals(Date.class)) {
-            return true;
-        }
-
-        return false;
     }
 
     private List<String> ifprimitivetheninvoke(final String[] bits, final int i, final Object className ) throws Exception {
@@ -524,7 +511,7 @@ public class CustomServicesService extends ViPRService {
 
             if (i == bits.length - 1) {
                 final List<Object> value = (List<Object>) method.invoke(className, null);
-                logger.info("array value:{}", method.invoke(className, null));
+                logger.debug("array value:{}", method.invoke(className, null));
                 final List<String> listStringOut = new ArrayList<String>();
                 for (final Object val : value) {
                     listStringOut.add(val.toString());
@@ -538,9 +525,7 @@ public class CustomServicesService extends ViPRService {
                     list.addAll(ifprimitivetheninvoke(bits, i + 1, o1));
                 }
 
-                if (list.isEmpty()) {
-                    return null;
-                } else {
+                if (!list.isEmpty()) {
                     return list;
                 }
             }
@@ -548,75 +533,13 @@ public class CustomServicesService extends ViPRService {
         return null;
     }
 
-     /*
-        if (List.class.isAssignableFrom(returnClass)) {
-            final Type returnType = method.getGenericReturnType();
-            if (returnType instanceof ParameterizedType) {
-                final ParameterizedType paramType = (ParameterizedType) returnType;
-                final Class<?> stringListClass = (Class<?>) paramType.getActualTypeArguments()[0];
-                if (isPrimitive(stringListClass)) {
-                    final List<Object> value = (List<Object>)method.invoke(className, null);
-                    logger.info("array value:{}", method.invoke(className, null));
-                    final List<String> listStringOut = new ArrayList<String>();
-                    for (final Object val : value) {
-                        listStringOut.add(val.toString());
-                    }
-                    return listStringOut;
-                } else {
-                    final Type o = paramType.getActualTypeArguments()[0];
-                    if (o instanceof Class<?>) {
-                        final List<String> list = new ArrayList<String>();
-                        for (final Object o1 : (List<?>) method.invoke(className, null)) {
-                            list.addAll(ifprimitivetheninvoke(bits, i + 1, o1));
-                        }
-
-                        return list;
-                    }
-                }
-            }
-        }
-        else if (Set.class.isAssignableFrom(returnClass)) {
-            logger.info("type is set");
-            final Type returnType = method.getGenericReturnType();
-            if (returnType instanceof ParameterizedType) {
-                final ParameterizedType paramType = (ParameterizedType) returnType;
-                final Class<?> stringListClass = (Class<?>) paramType.getActualTypeArguments()[0];
-                if (isPrimitive(stringListClass)) {
-
-                    logger.info("array value:{}", method.invoke(className, null));
-                    final Set<Object> value = (Set<Object>)method.invoke(className, null);
-
-                    final List<String> listStringOut = new ArrayList<String>();
-                    for (final Object val : value) {
-                        listStringOut.add(val.toString());
-                    }
-                    return listStringOut;
-
-                } else {
-                    final Type o = paramType.getActualTypeArguments()[0];
-                    if (o instanceof Class<?>) {
-                        final List<String> list = new ArrayList<String>();
-                        for (final Object o1 : (Set<?>) method.invoke(className, null)) {
-                            list.addAll(ifprimitivetheninvoke(bits, i + 1, o1));
-                        }
-                        return list;
-                    }
-                }
-            }
-        }
-
-        //We do not support any other collection type
-        return null;
-    }
-    */
-
     private Method findMethod(final String str, final Object className) throws Exception {
         final Method[] methods = className.getClass().getMethods();
         for (Method method : methods) {
             XmlElement elem = method.getAnnotation(XmlElement.class);
             if (elem != null) {
                 if (elem.name().equals(str) && isGetter(method)) {
-                    logger.info("name matched elem:{} str:{}", elem.name(), str);
+                    logger.debug("name matched elem:{} str:{}", elem.name(), str);
                     return method;
                 }
             }

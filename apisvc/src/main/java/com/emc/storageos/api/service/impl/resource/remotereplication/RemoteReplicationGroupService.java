@@ -621,14 +621,16 @@ public class RemoteReplicationGroupService extends TaskResourceService {
                 throw APIException.badRequests.invalidReplicationMode(param.getReplicationMode());
             }
             // verify that isGroupConsistencyEnforced settings for this group comply with parent set settings
-            StringSet rrModesNoGroupConsistency = rrSet.getReplicationModesNoGroupConsistency();
-            StringSet rrModeGroupConsistencyEnforced = rrSet.getReplicationModesGroupConsistencyEnforced();
-            if (param.getIsGroupConsistencyEnforced() != null && rrModeGroupConsistencyEnforced.contains(rrGroupReplicationMode) &&
-                    !param.getIsGroupConsistencyEnforced()) {
-                throw APIException.badRequests.invalidIsGroupConsistencyEnforced(param.getIsGroupConsistencyEnforced().toString());
-            } else if (param.getIsGroupConsistencyEnforced() != null && rrModesNoGroupConsistency.contains(rrGroupReplicationMode) &&
-                    param.getIsGroupConsistencyEnforced()) {
-                throw APIException.badRequests.invalidIsGroupConsistencyEnforced(param.getIsGroupConsistencyEnforced().toString());
+            if (param.getIsGroupConsistencyEnforced() != null) {
+                StringSet rrModesNoGroupConsistency = rrSet.getReplicationModesNoGroupConsistency();
+                StringSet rrModeGroupConsistencyEnforced = rrSet.getReplicationModesGroupConsistencyEnforced();
+                if (!param.getIsGroupConsistencyEnforced() && (rrModeGroupConsistencyEnforced != null) &&
+                        rrModeGroupConsistencyEnforced.contains(rrGroupReplicationMode)) {
+                    throw APIException.badRequests.invalidIsGroupConsistencyEnforced(param.getIsGroupConsistencyEnforced().toString());
+                } else if (param.getIsGroupConsistencyEnforced() && (rrModesNoGroupConsistency != null) &&
+                        rrModesNoGroupConsistency.contains(rrGroupReplicationMode)) {
+                    throw APIException.badRequests.invalidIsGroupConsistencyEnforced(param.getIsGroupConsistencyEnforced().toString());
+                }
             }
         }
 

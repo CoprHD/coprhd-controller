@@ -163,13 +163,13 @@
                             <select-one options="ftpOptions"></select-one>
                         </control-group>
                         <control-group v-field="diagnostic.url" width="9">
-                            <input-text onkeydown="updateFilter(event.keyCode)"></input-text>
+                            <input-text onkeydown="updateFilter(event.keyCode)" ng-disabled="diagnostic.ftp == 0"></input-text>
                         </control-group>
-                        <control-group v-field="diagnostic.user" width="9">
-                            <input-text onkeydown="updateFilter(event.keyCode)"></input-text>
+                        <control-group v-field="diagnostic.user" width="9" >
+                            <input-text onkeydown="updateFilter(event.keyCode)" ng-disabled="diagnostic.ftp == 0"></input-text>
                         </control-group>
                         <control-group v-field="diagnostic.pw" width="9">
-                            <input-password onkeydown="updateFilter(event.keyCode)"></input-password>
+                            <input-password onkeydown="updateFilter(event.keyCode)" ng-disabled="diagnostic.ftp == 0"></input-password>
                         </control-group>
                     </form>
                     <form class="form form-horizontal" ng-show="filterDialog.type == 'download' && diagnostic.type == 1">

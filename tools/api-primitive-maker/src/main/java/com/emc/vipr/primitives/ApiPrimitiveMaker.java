@@ -455,10 +455,8 @@ public final class ApiPrimitiveMaker {
             final ApiField field) {
         final ImmutableList.Builder<FieldSpec> builder = ImmutableList
                 .<FieldSpec> builder();
-        System.out.println("Make Response prefix: " + prefix + " field: " + field.name + " collection: " + field.collection);
-        
+
         final String parameterName = makeOutputParameterName(prefix, field);
-        System.out.println("Make Response prefix: " + prefix + " field: " + field.name + " collection: " + field.collection);
         
         if (field.isPrimitive()) {
             builder.add(makeOutputParameter(fieldName, parameterName, field));
@@ -638,7 +636,6 @@ public final class ApiPrimitiveMaker {
     
     private static String makeOutputParameterName(final String prefix,
             final ApiField field) {
-        System.out.println("prefix: " + prefix + " field: " + field.name + " collection: " + field.collection);
         final StringBuilder name = new StringBuilder();
 
         if (!prefix.isEmpty()) {

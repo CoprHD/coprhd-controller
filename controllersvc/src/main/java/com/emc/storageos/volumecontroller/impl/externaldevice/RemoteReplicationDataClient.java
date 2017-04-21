@@ -5,6 +5,7 @@ import java.net.URI;
 import java.util.List;
 
 import com.emc.storageos.db.client.model.StorageSystem;
+import com.emc.storageos.db.client.model.remotereplication.RemoteReplicationPair;
 import com.emc.storageos.db.exceptions.DatabaseException;
 
 
@@ -83,5 +84,13 @@ public interface RemoteReplicationDataClient {
      * @throws DatabaseException {@inheritDoc}
      */
     public void deleteRemoteReplicationPair(URI sourceVolume, URI targetVolume) throws DatabaseException;
+
+    /**
+     * returns the RemoteReplicationPair object matching source and target or null if it does not exist
+     * @param sourceVolumeURI
+     * @param targetVolumeURI
+     * @return
+     */
+    public RemoteReplicationPair checkRemoteReplicationPairExistsInDB(URI sourceVolumeURI, URI targetVolumeURI);
 
 }

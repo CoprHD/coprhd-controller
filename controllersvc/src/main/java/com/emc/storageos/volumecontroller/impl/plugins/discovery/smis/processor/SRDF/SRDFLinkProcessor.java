@@ -24,6 +24,7 @@ import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.plugins.BaseCollectionException;
 import com.emc.storageos.plugins.common.Constants;
 import com.emc.storageos.plugins.common.domainmodel.Operation;
+import com.emc.storageos.remotereplicationcontroller.RemoteReplicationUtils;
 import com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.processor.StorageProcessor;
 
 public class SRDFLinkProcessor extends StorageProcessor {
@@ -87,8 +88,9 @@ public class SRDFLinkProcessor extends StorageProcessor {
                 }
                 expectedSourceVolume.setLinkStatus(newStatus);
                 expectedTargetVolume.setLinkStatus(newStatus);
-                dbClient.persistObject(expectedSourceVolume);
-                dbClient.persistObject(expectedTargetVolume);
+                dbClient.updateObject(expectedSourceVolume);
+                dbClient.updateObject(expectedTargetVolume);
+                RemoteReplicationUtils.updateOrCreateReplicationPairForSrdfPair(expectedSourceVolume.getId(), expectedTargetVolume.getId(), dbClient);
             }
         } //
         catch (Exception e) {

@@ -3334,6 +3334,15 @@ public class SmisCommandHelper implements SmisConstants {
         return policyName;
     }
 
+    /**
+     * Gets the VMAX3 fast setting associated with volume group (storage group).
+     * If there is no fast setting, it returns NONE string.
+     *
+     * @param storage the storage system
+     * @param volumechildGroupPath the volume storage group path
+     * @return the VMAX3 fast setting associated with volume group
+     * @throws WBEMException the WBEM exception
+     */
     public String getVMAX3FastSettingAssociatedWithVolumeGroup(StorageSystem storage,
             CIMObjectPath volumechildGroupPath) throws WBEMException {
         String fastSetting = Constants.NONE;
@@ -6434,10 +6443,10 @@ public class SmisCommandHelper implements SmisConstants {
      * @param storage
      * @param deviceIds
      * @return filtered list
-     * @throws Exception
+     * @throws WBEMException
      */
     public Set<String> filterVolumesPartOfAnyStorageGroup(StorageSystem storage,
-            Set<String> deviceIds) throws Exception {
+            Set<String> deviceIds) throws WBEMException {
         Set<String> volumesInSG = new HashSet<String>();
         for (String deviceId : deviceIds) {
             if (checkVolumeAssociatedWithAnySG(deviceId, storage)) {
@@ -6688,11 +6697,12 @@ public class SmisCommandHelper implements SmisConstants {
      * @param volNativeId the vol native id
      * @param storage the storage
      * @return true, if successful
+     * @throws WBEMException
      */
-    public boolean checkVolumeAssociatedWithAnySG(String volNativeId, StorageSystem storage) {
+    public boolean checkVolumeAssociatedWithAnySG(String volNativeId, StorageSystem storage) throws WBEMException {
         CloseableIterator<CIMInstance> sgInstanceIr = null;
         try {
-            _log.debug("Trying to find if volume {} is associated with any SG", volNativeId);
+            _log.info("Trying to find if volume {} is associated with any SG", volNativeId);
             CIMObjectPath volumePath = _cimPath.getVolumePath(storage, volNativeId);
             sgInstanceIr = getAssociatorInstances(storage, volumePath, null,
                     SmisCommandHelper.MASKING_GROUP_TYPE.SE_DeviceMaskingGroup.name(), null, null, SmisConstants.PS_ELEMENT_NAME);
@@ -6702,14 +6712,15 @@ public class SmisCommandHelper implements SmisConstants {
                 _log.info("Volume {} available in other SG {}", volNativeId, gpNameFound);
                 return true;
             }
-        } catch (Exception e) {
-            _log.warn("Find volume associated with any SG failed", e);
+        } catch (WBEMException we) {
+            _log.error("Find volume associated with any SG failed", we);
+            throw we;
         } finally {
             if (null != sgInstanceIr) {
                 sgInstanceIr.close();
             }
         }
-        _log.debug("No SG found associated for volume {}", volNativeId);
+        _log.info("No SG found associated for volume {}", volNativeId);
         return false;
     }
 

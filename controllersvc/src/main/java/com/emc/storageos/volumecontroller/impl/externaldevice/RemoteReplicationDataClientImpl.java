@@ -227,10 +227,11 @@ public class RemoteReplicationDataClientImpl implements RemoteReplicationDataCli
             
             // tenant and project NamedURIs are set wrong on the volume; they have tenant or project uri plus the volume label; they should have project or tenant label
             // not volume label; fixing it there is a big change. This code puts the right tenant and project NamedURI on the remote replication pair object
-            TenantOrg tenant = _dbClient.queryObjectField(TenantOrg.class, "label", Arrays.asList(sourceVolume.getTenant().getURI())).get(0);
-            Project project = _dbClient.queryObjectField(Project.class, "label", Arrays.asList(sourceVolume.getProject().getURI())).get(0);
-            rrPair.setTenant(new NamedURI(tenant.getId(), tenant.getLabel()));
-            rrPair.setProject(new NamedURI(project.getId(), project.getLabel()));
+            // using queryByField reduces the number of database reads by reading out only the required field, in this case label. 
+            String tenant = _dbClient.queryObjectField(TenantOrg.class, "label", Arrays.asList(sourceVolume.getTenant().getURI())).get(0).getLabel();
+            String project = _dbClient.queryObjectField(Project.class, "label", Arrays.asList(sourceVolume.getProject().getURI())).get(0).getLabel();
+            rrPair.setTenant(new NamedURI(sourceVolume.getTenant().getURI(), tenant));
+            rrPair.setProject(new NamedURI(sourceVolume.getProject().getURI(), project));
 
             _log.info("Remote Replication Pair {} ", rrPair);
             _dbClient.createObject(rrPair);
@@ -290,7 +291,8 @@ public class RemoteReplicationDataClientImpl implements RemoteReplicationDataCli
             rrPair.setReplicationState(driverReplicationPair.getReplicationState());
             rrPair.setReplicationMode(driverReplicationPair.getReplicationMode());
             rrPair.setReplicationDirection(driverReplicationPair.getReplicationDirection());
-            rrPair.setProject(sourceVolume.getProject());
+            String project = _dbClient.queryObjectField(Project.class, "label", Arrays.asList(sourceVolume.getProject().getURI())).get(0).getLabel();
+            rrPair.setProject(new NamedURI(sourceVolume.getProject().getURI(), project));
             _dbClient.updateObject(rrPair);
             
         } catch (Exception ex) {
@@ -403,7 +405,7 @@ public class RemoteReplicationDataClientImpl implements RemoteReplicationDataCli
         if (rrPairs != null) {
             Iterator<com.emc.storageos.db.client.model.remotereplication.RemoteReplicationPair> rrPairItr = rrPairs.iterator();
             while (rrPairItr.hasNext()) {
-                com.emc.storageos.db.client.model.remotereplication.RemoteReplicationPair rrPair = rrPairs.iterator().next();
+                com.emc.storageos.db.client.model.remotereplication.RemoteReplicationPair rrPair = rrPairItr.next();
                 if (rrPair.getTargetElement().getURI().equals(targetVolumeURI)) {
                     // found source and target pair
                     return rrPair;

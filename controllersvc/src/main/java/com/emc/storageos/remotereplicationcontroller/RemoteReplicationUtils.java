@@ -431,8 +431,7 @@ public class RemoteReplicationUtils {
         }
         
         List<VirtualPool> vpools = dbClient.queryObjectField(VirtualPool.class, "remoteProtectionSettings", Arrays.asList(sourceVolume.iterator().next().getVirtualPool()));
-        VirtualPool vpool = (vpools == null || vpools.isEmpty() ? null : vpools.iterator().next());
-        return (vpool == null || !VirtualPool.vPoolSpecifiesSRDF(vpool));
+        return (vpools == null || vpools.isEmpty());
     }
 
 }

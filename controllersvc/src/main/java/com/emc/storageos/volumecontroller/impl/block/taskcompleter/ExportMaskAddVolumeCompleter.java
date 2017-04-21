@@ -91,7 +91,6 @@ public class ExportMaskAddVolumeCompleter extends ExportTaskCompleter {
                 if (_forgetStepId != null) {
                     @SuppressWarnings("unchecked")
                     Set<URI> maskedVolumeURIs = (Set<URI>) WorkflowService.getInstance().loadWorkflowData(_forgetStepId, "forget");
-                    // some workflows call port allocation more than one time, rather than overriding, add to these zones to already stored zones.
                     if (maskedVolumeURIs == null) {
                         maskedVolumeURIs = new HashSet<>();
                         maskedVolumeURIs.addAll(_volumes);

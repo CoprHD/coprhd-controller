@@ -12,6 +12,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import com.emc.storageos.remotereplicationcontroller.RemoteReplicationUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -280,4 +281,32 @@ public class SRDFTaskCompleter extends TaskCompleter {
             dbClient.updateObject(targetVolumes);
         }
     }
+
+    /**
+     * Update remote replication pair for SRDF volumes.
+     */
+    protected void updateRemoteReplicationPairs() {
+        try {
+            for (Volume v : getVolumes()) {
+                if (v.isVPlexVolume(dbClient)) {
+                    // skip VPLEX volumes, as they delegate SRDF characteristics to their native volumes.
+                    return;
+                }
+                if (v.getSrdfTargets() != null) {
+                    List<URI> targetVolumeURIs = new ArrayList<>();
+                    for (String targetId : v.getSrdfTargets()) {
+                        targetVolumeURIs.add(URI.create(targetId));
+                    }
+                    List<Volume> targetVolumes = dbClient.queryObject(Volume.class, targetVolumeURIs);
+                    for (Volume targetVolume : targetVolumes) {
+                        // call updateOrCreate... to cover case when srdf operation was executed prior to post upgrade discovery
+                        RemoteReplicationUtils.updateOrCreateReplicationPairForSrdfPair(v.getId(), targetVolume.getId(), dbClient);
+                    }
+                }
+            }
+        }  catch (Exception ex) {
+            _logger.info("Failed to update remote replication pairs for srdf volumes {}", getIds(), ex);
+        }
+    }
+
 }

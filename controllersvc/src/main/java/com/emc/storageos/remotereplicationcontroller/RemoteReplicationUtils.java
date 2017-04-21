@@ -361,14 +361,18 @@ public class RemoteReplicationUtils {
     /**
      * checks for the existence of the remote replication pair and updates or creates it as needed
      * 
-     * @param sourceVolumeId
-     * @param targetVolumeId
+     * @param argSourceUri
+     * @param argTargetUri
      * @param dbClient
      */
     public static void updateOrCreateReplicationPairForSrdfPair(URI argSourceUri, URI argTargetUri, DbClient dbClient) {
         try {
             URI sourceUri = argSourceUri;
             URI targetUri = argTargetUri;
+            // NOTE: SRDF volume roles may not correspond to volume roles in remote replication pair.
+            // This is due to the fact that SRDF swap operation changes source and target volumes, but
+            // remote replication pair roles are immutable and swap operation changes replication direction
+            // property.
             boolean swapped = isSwapped(argSourceUri, dbClient);
             if (swapped) {
                 sourceUri = argTargetUri;
@@ -391,14 +395,18 @@ public class RemoteReplicationUtils {
     /**
      * updates properties of a RemoteReplicationPairobject for an SRDF source and target
      * 
-     * @param sourceVolumeId
-     * @param targetVolumeId
+     * @param argSourceUri
+     * @param argTargetUri
      * @param dbClient
      */
     public static void updateRemoteReplicationPairForSrdfPair(URI argSourceUri, URI argTargetUri, DbClient dbClient) {
         try {
             URI sourceUri = argSourceUri;
             URI targetUri = argTargetUri;
+            // NOTE: SRDF volume roles may not correspond to volume roles in remote replication pair.
+            // This is due to the fact that SRDF swap operation changes source and target volumes, but
+            // remote replication pair roles are immutable and swap operation changes replication direction
+            // property.
             boolean swapped = isSwapped(argSourceUri, dbClient);
             if (swapped) {
                 sourceUri = argTargetUri;
@@ -417,8 +425,7 @@ public class RemoteReplicationUtils {
     /**
      * determines if the source and target pair are in a swapped state based on the source volume virtual pool
      * 
-     * @param sourceVolume
-     * @param targetVolume
+     * @param sourceVolumeId
      * @param dbClient
      * @return
      */

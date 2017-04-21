@@ -65,7 +65,7 @@ public class VNXeStorageProcessor extends VNXeBase {
         return slotNumber;
     }
 
-    public void setSlotNumber(int slotNumber) {
+    public void setSlotNumber(Integer slotNumber) {
         this.slotNumber = slotNumber;
     }
 

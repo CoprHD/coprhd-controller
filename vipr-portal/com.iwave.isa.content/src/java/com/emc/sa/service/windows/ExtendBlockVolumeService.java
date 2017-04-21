@@ -12,6 +12,7 @@ import java.util.List;
 import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.engine.bind.Param;
 import com.emc.sa.engine.service.Service;
+import com.emc.sa.service.ArtificialFailures;
 import com.emc.sa.service.vipr.block.BlockStorageUtils;
 import com.emc.storageos.model.block.BlockObjectRestRep;
 
@@ -54,6 +55,7 @@ public class ExtendBlockVolumeService extends WindowsService {
         BlockStorageUtils.expandVolumes(uris(volumeIds), sizeInGb);
         acquireHostAndClusterLock();
         for (ExtendDriveHelper extendDriveHelper : extendDriveHelpers) {
+            artificialFailure(ArtificialFailures.ARTIFICIAL_FAILURE_WINDOWS_EXTEND_DRIVE);
             extendDriveHelper.extendDrives();
         }
 

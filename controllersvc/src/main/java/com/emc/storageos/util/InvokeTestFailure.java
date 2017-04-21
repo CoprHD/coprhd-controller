@@ -107,6 +107,8 @@ public final class InvokeTestFailure {
     public static final String ARTIFICIAL_FAILURE_071 = "failure_071_ComputeDeviceControllerImpl.addStepsPreOsInstall_prepareOsInstallNetworkStep";
     public static final String ARTIFICIAL_FAILURE_072 = "failure_072_ComputeDeviceControllerImpl.addStepsPostOsInstall_setSanBootTargetStep";
     public static final String ARTIFICIAL_FAILURE_073 = "failure_073_UcsComputeDevice.createLsServer_createServiceProfileFromTemplate";
+    public static final String ARTIFICIAL_FAILURE_080 = "failure_080_BlockDeviceController.expandVolume_before_device_expand";
+    public static final String ARTIFICIAL_FAILURE_081 = "failure_081_BlockDeviceController.expandVolume_after_device_expand";
 
     private static final int FAILURE_SUBSTRING_LENGTH = 11;
 

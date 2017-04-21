@@ -109,6 +109,7 @@ public class CustomServicesClient extends AbstractCatalogBulkResources<CustomSer
 
     public CustomServicesWorkflowList getWorkflows(String primitiveId) {
         final UriBuilder builder = client.uriBuilder(PathConstants.CUSTOM_SERVICES_WORKFLOWS);
+        builder.queryParam(primitiveId);
         return client.getURI(CustomServicesWorkflowList.class, builder.build());
     }
 

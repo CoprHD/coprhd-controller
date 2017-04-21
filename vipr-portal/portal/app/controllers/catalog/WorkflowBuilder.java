@@ -786,7 +786,15 @@ public class WorkflowBuilder extends Controller {
     private static void editLocalAnsiblePrimitive(final LocalAnsiblePrimitiveForm localAnsible) {
         try {
             final URI localAnsiblePrimitiveID = new URI(localAnsible.getId());
-
+            // Check primitive is already used in workflow/s
+            final CustomServicesWorkflowList customServicesWorkflowList = getCatalogClient().customServicesPrimitives().getWorkflows(
+                    localAnsible.getId());
+            if (customServicesWorkflowList != null && customServicesWorkflowList.getWorkflows() != null) {
+                if (!customServicesWorkflowList.getWorkflows().isEmpty()) {
+                    flash.error("Primitive %s is being used in Workflow", localAnsible.getName());
+                    return;
+                }
+            }
             final CustomServicesPrimitiveRestRep primitiveRestRep = getCatalogClient().customServicesPrimitives().getPrimitive(localAnsiblePrimitiveID);
             if (null != primitiveRestRep) {
                  // Update name, description

@@ -1,23 +1,27 @@
 package com.emc.storageos.volumecontroller.impl.plugins;
 
 
+import static com.emc.storageos.db.client.util.CustomQueryUtility.queryActiveResourcesByAltId;
+
+import java.net.URI;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.DataObject;
+import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationGroup;
 import com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationMode;
 import com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationSet;
 import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
-import static com.emc.storageos.db.client.util.CustomQueryUtility.queryActiveResourcesByAltId;
 
 public class ExternalDeviceDiscoveryUtils {
 
@@ -59,7 +63,36 @@ public class ExternalDeviceDiscoveryUtils {
             prepareSystemRemoteReplicationSet(driverSet, storageSystemType, systemSet, dbClient);
             objectsToUpdate.add(systemSet);
         }
+        setStorageSystemConnectedTo(systemSet, objectsToUpdate, dbClient);
         return systemSet;
+    }
+    
+    /**
+     * set the field connectedTo on the db storage system object corresponding to the system set source systems
+     * 
+     * @param systemSet
+     * @param objectsToUpdate
+     * @param dbClient
+     */
+    private static void setStorageSystemConnectedTo(com.emc.storageos.db.client.model.remotereplication.RemoteReplicationSet systemSet, List<DataObject> objectsToUpdate, DbClient dbClient) {
+        Map<URI, StorageSystem> updatedStorageSystems = new HashMap<URI, StorageSystem>();
+        if (systemSet.getSourceSystems() != null && !systemSet.getSourceSystems().isEmpty()) {
+            for (String srcSystemId : systemSet.getSourceSystems()) {
+                if (systemSet.getTargetSystems() != null && !systemSet.getTargetSystems().isEmpty()) {
+                    StorageSystem srcStorageSystem = dbClient.queryObject(StorageSystem.class, URI.create(srcSystemId));
+                    for (String tgtSystemId : systemSet.getTargetSystems()) {
+                        if (!tgtSystemId.equalsIgnoreCase(srcSystemId)) {
+                            if (srcStorageSystem.getRemotelyConnectedTo() == null) {
+                                srcStorageSystem.setRemotelyConnectedTo(new StringSet());
+                            }
+                            srcStorageSystem.getRemotelyConnectedTo().add(tgtSystemId.toString());
+                            updatedStorageSystems.put(srcStorageSystem.getId(), srcStorageSystem);
+                        }
+                    }
+                }
+            }
+        }
+        objectsToUpdate.addAll(updatedStorageSystems.values());
     }
 
     /**

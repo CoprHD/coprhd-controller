@@ -1317,6 +1317,7 @@ angular.module("portalApp").controller("SystemLogsCtrl", function($scope, $http,
                 $scope.filterDialog.endTime_time = getTime($scope.filterDialog.endTime);
                 $scope.filterDialog.severity = DEFAULT_DOWNLOAD_SEVERITY;
                 $scope.filterDialog.orderTypes = DEFAULT_DOWNLOAD_ORDER_TYPES;
+                $scope.diagnostic.type = 1;
             }
             $scope.filterDialog.startTime_date = getDate($scope.filterDialog.startTime);
             $scope.filterDialog.startTime_time = getTime($scope.filterDialog.startTime);

@@ -1198,7 +1198,6 @@ system.logs.refresh=Auto Refresh
 system.logs.refreshOff=Off
 system.logs.update=Update
 system.logs.filter=System Logs Filter
-system.logs.downloadTitle=Download System Logs
 system.logs.from=From
 system.logs.to=To
 system.logs.messageFilter=Message Filter
@@ -1249,8 +1248,11 @@ systemLogs.loadMore=Load More
 systemLogs.loading=Loading...
 systemLogs.filter.service=Showing logs from <span class="services">%s</span> service(s), with <span class="severity">%s</span> level and above, starting <span class="date">%s</span>
 systemLogs.filter.title=Filter System Logs
-systemLogs.download.title=Download System Logs
+systemLogs.download.title=Download Diagnostic Data
 
+filterDialog.type=Type
+filterDialog.type.full=Full Data
+filterDialog.type.only=Log Only
 filterDialog.nodeId=Node
 filterDialog.service=Services
 filterDialog.severity=Log Level
@@ -1265,6 +1267,17 @@ filterDialog.currentTime=Current Time
 systemLogs.orderType.NONE=None
 systemLogs.orderType.ERROR=Failed Orders
 systemLogs.orderType.ALL=All Orders
+
+diagnostic.title=Diagnostic Options
+diagnostic.options=Options
+diagnostic.ftp=FTP Type
+diagnostic.url=FTP URL
+diagnostic.user=User Name
+diagnostic.pw=Password
+diagnostic.status.title=Collecting Process
+diagnostic.status=Status
+diagnostic.ftp.test=Test FTP
+
 
 # Support Request
 supportRequest.title=Submit Support Request

@@ -2843,4 +2843,10 @@ implements FileStorageDevice, BlockStorageDevice {
                 DeviceControllerErrors.vnxe.operationNotSupported("resync the mirror link", "VNXe"));
     }
 
+	@Override
+	public BiosCommandResult doReduceFS(StorageSystem storage, FileDeviceInputOutput fd) throws ControllerException {
+		return BiosCommandResult.createErrorResult(
+                DeviceControllerErrors.vnxe.operationNotSupported("resync the mirror link", "VNXe"));
+	}
+
 }

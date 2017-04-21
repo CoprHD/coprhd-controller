@@ -45,14 +45,33 @@
         padding-top: 7px;
         padding-bottom: 7px;
     }
+
+
+
 </style>
 <div id="row-main" class="row">
-    <div ng-controller="treeController" ng-init="initializeTreeConfig(true)">
+    <div ng-controller="treeController">
         <div id="libSidebar" class="col-md-4" style="padding-right:0px; padding-left:5px;">
             <div id="theSidebar" class="home-sidebar" >
                 <div class="input-group">
-                    <input style="float:left;width:200px;margin-right:10px;"  class="search-input form-control" placeholder="Search..."></input>
-                    <input style="width:175px;" class="form-control" placeholder="Filter By"></input>
+                    <input style="float:left;width:300px;"  class="search-input form-control" placeholder="Search..."></input>
+                    <span class="input-group-btn">
+                        <div class="btn-group" style="padding-right:5px;">
+                            <button id="addWorkflow" type="button" class="btn btn-xs btn-success dropdown-toggle" title="Add" data-toggle="dropdown">
+                                <span class="glyphicon glyphicon-plus"></span> <span class="caret"></span>
+                            </button>
+                            <ul class="dropdown-menu" role="menu">
+                                <li class="dropdown-header">&{'wfBuilder.menu.operations'}</li>
+                                <li><a href="#" ng-click="openShellScriptModal();">&{'wfBuilder.menu.addShellScript'}</a></li>
+                                <li><a href="#" ng-click="openLocalAnsibleModal();">&{'wfBuilder.menu.addLocalAnsible'}</a></li>
+                                <li><a href="#" ng-click="openRestAPIModal();">&{'wfBuilder.menu.addRestAPI'}</a></li>
+                                <li role="separator" class="divider"></li>
+                                <li><a href="#" ng-click="addWorkflow();">&{'wfBuilder.menu.addWorkflow'}</a></li>
+                                <li role="separator" class="divider"></li>
+                                <li><a href="#" ng-click="addFolder();">&{'wfBuilder.menu.addFolder'}</a></li>
+                            </ul>
+                        </div>
+                    </span>
                 </div>
                 <div style="overflow: auto; height:100%; overflow-x: hidden;">
                     <div id="jstree_demo" style="padding-top:10px;">

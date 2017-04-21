@@ -5096,3 +5096,13 @@ input.value=Value
 input.decription=Field Help
 output.name=Name
 
+# Workflow Library Menus
+wfBuilder.menu.addFolder=Add Folder
+wfBuilder.menu.addWorkflow=Add Workflow
+wfBuilder.menu.operations=Operations
+wfBuilder.menu.addShellScript=Add Shell Script
+wfBuilder.menu.addLocalAnsible=Add Local Ansible
+wfBuilder.menu.addRestAPI=Add REST API
+wfBuilder.menu.edit=Edit
+wfBuilder.menu.rename=Rename
+wfBuilder.menu.delete=Delete

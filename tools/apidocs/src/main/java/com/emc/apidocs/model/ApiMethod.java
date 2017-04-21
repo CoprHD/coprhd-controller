@@ -4,14 +4,15 @@
  */
 package com.emc.apidocs.model;
 
-import com.emc.apidocs.Utils;
-import com.google.common.collect.Lists;
+import java.security.MessageDigest;
+import java.util.List;
+
 import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.lang.StringUtils;
 
-import java.security.MessageDigest;
-import java.util.List;
+import com.emc.apidocs.Utils;
+import com.google.common.collect.Lists;
 
 /**
  * Describes an API method
@@ -35,6 +36,7 @@ public class ApiMethod {
     public List<String> prerequisites = Lists.newArrayList();
     public ApiClass input;
     public ApiClass output;
+    public String fqReturnType;
     public String responseDescription;
     public ApiService apiService;
     public String urlFormat;

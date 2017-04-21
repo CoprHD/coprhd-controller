@@ -104,12 +104,17 @@ public final class ApiPrimitiveMaker {
             .methodBuilder("body").addAnnotation(Override.class)
             .addModifiers(Modifier.PUBLIC).addStatement("return BODY")
             .returns(String.class).build();
+    
+    private static final MethodSpec RESPONSE_METHOD = MethodSpec
+            .methodBuilder("response").addAnnotation(Override.class)
+            .addModifiers(Modifier.PUBLIC).addStatement("return RESPONSE")
+            .returns(String.class).build();
 
     private static final ImmutableList<MethodSpec> METHODS = ImmutableList
             .<MethodSpec> builder()
             .add(FRIENDLY_NAME_METHOD, DESCRIPTION_METHOD, SUCCESS_CRITERIA_METHOD,
                     INPUT_METHOD, OUTPUT_METHOD, ATTRIBUTES_METHOD,
-                    PATH_METHOD, METHOD_METHOD, BODY_METHOD).build();
+                    PATH_METHOD, METHOD_METHOD, BODY_METHOD, RESPONSE_METHOD).build();
 
     private static ImmutableList<String> METHOD_BLACK_LIST = ImmutableList
             .<String> builder().add("assignTags").add("getTags").add("search")
@@ -165,6 +170,7 @@ public final class ApiPrimitiveMaker {
      */
     private static JavaFile makePrimitive(final ApiMethod method) {
         final String name = makePrimitiveName(method);
+
         final String friendlyName = makeFriendlyName(name, method);
 
         TypeSpec primitive = TypeSpec.classBuilder(name)
@@ -367,8 +373,9 @@ public final class ApiPrimitiveMaker {
         final ImmutableList.Builder<String> parameters = new ImmutableList.Builder<String>();
 
         final ParameterFieldName.Output fieldName = new ParameterFieldName.Output();
-
+        
         if (null != method.output && null != method.output.fields) {
+            builder.add(makeStringConstant("RESPONSE", method.fqReturnType));
             for (final ApiField field : method.output.fields) {
                 final ImmutableList<FieldSpec> responseParameters = makeResponseParameters(
                         fieldName, method.output.name, field);
@@ -377,6 +384,8 @@ public final class ApiPrimitiveMaker {
                 }
                 builder.addAll(responseParameters);
             }
+        } else {
+            builder.add(makeStringConstant("RESPONSE", ""));
         }
 
         return builder.add(
@@ -411,7 +420,7 @@ public final class ApiPrimitiveMaker {
             final ApiField field) {
         final ImmutableList.Builder<FieldSpec> builder = ImmutableList
                 .<FieldSpec> builder();
-        final String parameterName = makeParameterName(prefix, field);
+        final String parameterName = makeInputParameterName(prefix, field);
         if (field.isPrimitive()) {
             builder.add(makeInputParameter(fieldName, parameterName, field,
                     field.required));
@@ -419,7 +428,7 @@ public final class ApiPrimitiveMaker {
             for (ApiField subField : field.type.fields) {
                 final String subPrefix;
                 if (subField.hasChildElements()) {
-                    subPrefix = makeParameterName(parameterName, subField);
+                    subPrefix = makeInputParameterName(parameterName, subField);
                 } else {
                     subPrefix = parameterName;
                 }
@@ -446,14 +455,18 @@ public final class ApiPrimitiveMaker {
             final ApiField field) {
         final ImmutableList.Builder<FieldSpec> builder = ImmutableList
                 .<FieldSpec> builder();
-        final String parameterName = makeParameterName(prefix, field);
+        System.out.println("Make Response prefix: " + prefix + " field: " + field.name + " collection: " + field.collection);
+        
+        final String parameterName = makeOutputParameterName(prefix, field);
+        System.out.println("Make Response prefix: " + prefix + " field: " + field.name + " collection: " + field.collection);
+        
         if (field.isPrimitive()) {
             builder.add(makeOutputParameter(fieldName, parameterName, field));
         } else {
             for (ApiField subField : field.type.fields) {
                 final String subPrefix;
-                if (subField.hasChildElements()) {
-                    subPrefix = makeParameterName(parameterName, subField);
+                if (!field.collection && subField.hasChildElements()) {
+                    subPrefix = makeOutputParameterName(parameterName, subField);
                 } else {
                     subPrefix = parameterName;
                 }
@@ -601,7 +614,7 @@ public final class ApiPrimitiveMaker {
         }
     }
 
-    private static String makeParameterName(final String prefix,
+    private static String makeInputParameterName(final String prefix,
             final ApiField field) {
         final StringBuilder name = new StringBuilder();
 
@@ -618,6 +631,20 @@ public final class ApiPrimitiveMaker {
             name.append('@');
         }
 
+        name.append(field.name);
+
+        return name.toString();
+    }
+    
+    private static String makeOutputParameterName(final String prefix,
+            final ApiField field) {
+        System.out.println("prefix: " + prefix + " field: " + field.name + " collection: " + field.collection);
+        final StringBuilder name = new StringBuilder();
+
+        if (!prefix.isEmpty()) {
+            name.append(prefix + ".");
+        }
+        
         name.append(field.name);
 
         return name.toString();

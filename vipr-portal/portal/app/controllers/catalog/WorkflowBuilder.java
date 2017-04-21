@@ -39,6 +39,7 @@ import play.data.validation.Valid;
 import play.mvc.Controller;
 import play.mvc.With;
 import util.StringOption;
+import org.apache.commons.io.FilenameUtils;
 
 import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.customservices.CustomServicesPrimitiveCreateParam;
@@ -520,7 +521,18 @@ public class WorkflowBuilder extends Controller {
     private static void editShellScriptPrimitive(final ShellScriptPrimitiveForm shellPrimitive) {
         try {
             final URI shellPrimitiveID = new URI(shellPrimitive.getId());
-            final CustomServicesPrimitiveRestRep primitiveRestRep = getCatalogClient().customServicesPrimitives().getPrimitive(shellPrimitiveID);
+            // Check primitive is already used in workflow/s
+            final CustomServicesWorkflowList customServicesWorkflowList = getCatalogClient().customServicesPrimitives().getWorkflows(
+                    shellPrimitive.getId());
+            if (customServicesWorkflowList != null && customServicesWorkflowList.getWorkflows() != null) {
+                if (!customServicesWorkflowList.getWorkflows().isEmpty()) {
+                    flash.error("Primitive %s is being used in Workflow", shellPrimitive.getName());
+                    return;
+                }
+            }
+
+            final CustomServicesPrimitiveRestRep primitiveRestRep = getCatalogClient().customServicesPrimitives().getPrimitive(
+                    shellPrimitiveID);
             if (null != primitiveRestRep) {
                 // Update name, description
                 final CustomServicesPrimitiveUpdateParam primitiveUpdateParam = new CustomServicesPrimitiveUpdateParam();
@@ -545,16 +557,15 @@ public class WorkflowBuilder extends Controller {
                 primitiveUpdateParam.setOutput(outputUpdateParam);
 
                 if (shellPrimitive.newScript) {
-                    // TODO: delete old resource
-
                     // create new resource
+                    String filename = FilenameUtils.getBaseName(shellPrimitive.getScript().getName());
                     final CustomServicesPrimitiveResourceRestRep primitiveResourceRestRep = getCatalogClient().customServicesPrimitives()
-                            .createPrimitiveResource("SCRIPT", shellPrimitive.script, shellPrimitive.scriptName);
+                            .createPrimitiveResource("SCRIPT", shellPrimitive.script, filename);
                     if (null != primitiveResourceRestRep) {
-                        // TODO: update resource link
+                        // Update resource link
+                        primitiveUpdateParam.setResource(primitiveResourceRestRep.getId());
                     }
                 }
-                // TODO: update script name ( if it is different from existing name)
 
                 getCatalogClient().customServicesPrimitives().updatePrimitive(shellPrimitiveID, primitiveUpdateParam);
             }
@@ -568,7 +579,7 @@ public class WorkflowBuilder extends Controller {
             final List<String> left, final List<String> right) {
         final InputUpdateList update = new InputUpdateList();
         update.setInput((List<String>) CollectionUtils.subtract(left, right));
-        return ImmutableMap.<String, InputUpdateList>builder()
+        return ImmutableMap.<String, InputUpdateList> builder()
                 .put(CustomServicesConstants.INPUT_PARAMS, update)
                 .build();
     }
@@ -580,8 +591,10 @@ public class WorkflowBuilder extends Controller {
     private static void createShellScriptPrimitive(final ShellScriptPrimitiveForm shellPrimitive) {
         try {
 
+            String filename = FilenameUtils.getBaseName(shellPrimitive.getScript().getName());
+
             final CustomServicesPrimitiveResourceRestRep primitiveResourceRestRep = getCatalogClient().customServicesPrimitives()
-                    .createPrimitiveResource("SCRIPT", shellPrimitive.script, shellPrimitive.scriptName);
+                    .createPrimitiveResource("SCRIPT", shellPrimitive.script, filename);
             if (null != primitiveResourceRestRep) {
                 final CustomServicesPrimitiveCreateParam primitiveCreateParam = new CustomServicesPrimitiveCreateParam();
                 // TODO - remove this hardcoded string once the enum is available
@@ -758,15 +771,23 @@ public class WorkflowBuilder extends Controller {
             createLocalAnsiblePrimitive(localAnsible);
         }
         view();
-
     }
 
     private static void editLocalAnsiblePrimitive(final LocalAnsiblePrimitiveForm localAnsible) {
         try {
             final URI localAnsiblePrimitiveID = new URI(localAnsible.getId());
+            // Check primitive is already used in workflow/s
+            final CustomServicesWorkflowList customServicesWorkflowList = getCatalogClient().customServicesPrimitives().getWorkflows(
+                    localAnsible.getId());
+            if (customServicesWorkflowList != null && customServicesWorkflowList.getWorkflows() != null) {
+                if (!customServicesWorkflowList.getWorkflows().isEmpty()) {
+                    flash.error("Primitive %s is being used in Workflow", localAnsible.getName());
+                    return;
+                }
+            }
             final CustomServicesPrimitiveRestRep primitiveRestRep = getCatalogClient().customServicesPrimitives().getPrimitive(localAnsiblePrimitiveID);
             if (null != primitiveRestRep) {
-                // Update name, description
+                 // Update name, description
                 final CustomServicesPrimitiveUpdateParam primitiveUpdateParam = new CustomServicesPrimitiveUpdateParam();
                 primitiveUpdateParam.setName(localAnsible.getName());
                 primitiveUpdateParam.setDescription(localAnsible.getDescription());
@@ -792,24 +813,25 @@ public class WorkflowBuilder extends Controller {
                 primitiveUpdateParam.getAttributes().put("playbook", localAnsible.getAnsiblePlaybook());
 
                 if (!localAnsible.isExisting()) {
-                    // TODO: delete old resource
-
                     // create new resource
                     final CustomServicesPrimitiveResourceRestRep primitiveResourceRestRep = getCatalogClient().customServicesPrimitives()
                             .createPrimitiveResource("ANSIBLE", localAnsible.ansiblePackage, localAnsible.ansiblePackageName);
                     if (null != primitiveResourceRestRep) {
-                        // TODO: update resource link
+                        // Update resource link
+                        primitiveUpdateParam.setResource(primitiveResourceRestRep.getId());
                     }
                 }
-                // TODO: update script name ( if it is different from existing name)
-
+                else {
+                    if(!primitiveRestRep.getResource().getId().toString().equalsIgnoreCase(localAnsible.existingResource)) {
+                        primitiveUpdateParam.setResource(new URI(localAnsible.existingResource));
+                    }
+                }
                 getCatalogClient().customServicesPrimitives().updatePrimitive(localAnsiblePrimitiveID, primitiveUpdateParam);
             }
         } catch (final Exception e) {
             Logger.error(e.getMessage());
             flash.error(e.getMessage());
         }
-
     }
 
     private static void createLocalAnsiblePrimitive(@Valid final LocalAnsiblePrimitiveForm localAnsible) {

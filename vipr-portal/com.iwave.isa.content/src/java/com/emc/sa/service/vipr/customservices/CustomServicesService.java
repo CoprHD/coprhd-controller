@@ -464,7 +464,7 @@ public class CustomServicesService extends ViPRService {
             final Object value = method.invoke(className, null);
             logger.debug("value:{}", value);
 
-            if (value == null) {
+            if (value != null) {
                 return Arrays.asList(value.toString());
             } else {
                 return null;

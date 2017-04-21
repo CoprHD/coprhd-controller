@@ -1782,7 +1782,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
         // We only need to forget volumes that were successfully masked to the VPLEX.
         @SuppressWarnings("unchecked")
         Set<URI> maskedVolumeURIs = (Set<URI>) WorkflowService.getInstance().loadWorkflowData(forgetVolumeDataStepId, "forget");
-        if (maskedVolumeURIs != null && !maskedVolumeURIs.isEmpty()) {
+        if (!CollectionUtils.isEmpty(maskedVolumeURIs)) {
             forgetVolumes(vplexSystemURI, getNativeVolumeInfo(maskedVolumeURIs), stepId);            
         } else {
             // If none are exported, then there is nothing to forget.

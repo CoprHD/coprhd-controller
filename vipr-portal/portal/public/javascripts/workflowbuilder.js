@@ -131,7 +131,12 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
         var itemData = jstreeContainer.jstree(true).get_json(treeId).data;
         // Data is not populated for workflows. So setting required fields here.
         if($.isEmptyObject(itemData)) {
-            itemData = {"friendlyName":stepName,"type":workflowNodeType};
+            itemData = {"friendlyName":stepName,"type":workflowNodeType,"id":treeId};
+            $item = '<div style="z-index:999;"class="item-stacked">' +
+            '<div style="z-index:999;"class="item-stacked">' +
+            '<div class="item">' +
+            '<div class="itemText">' + stepName + '</div>' +
+            '</div></div></div>';
         }
         $rootScope.primitiveData = itemData;
 
@@ -376,7 +381,7 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
 
     function activateTab(tab){
         $('.nav-tabs a[href="#' + tab + '"]').tab('show');
-        loadJSON();
+        loadJSON($scope.workflowData.document);
         $scope.modified = false;
     };
 
@@ -502,14 +507,77 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
         filter:":not(a)"
     };
 
+    function copyWorkflow(e,workflow) {
+        var newSteps = [];
+        var idMap = {};
+        //create id map
+        workflow.steps.forEach(function(step) {
+            if (step.id !== "Start" && step.id !== "End"){
+                var newId = createNewId();
+                idMap[step.id] = newId;
+            }
+        });
+
+        //get position offset
+
+        var x = e.clientX + document.body.scrollLeft + document.documentElement.scrollLeft;
+        var y = e.clientY + document.body.scrollTop + document.documentElement.scrollTop;
+        var scaleMultiplier = 1 / jspInstance.getZoom();;
+        var positionY = (y - diagramContainer.offset().top) * scaleMultiplier;
+        var positionX = (x - diagramContainer.offset().left) * scaleMultiplier;
+        var offsetY = positionY - 2000;
+        var offsetX = positionX - 1500;
+
+
+        workflow.steps.forEach(function(step) {
+            if (step.id !== "Start" && step.id !== "End"){
+                if (step.next.defaultStep === "End"){
+                    delete step.next.defaultStep;
+                }
+                else if (idMap[step.next.defaultStep]){
+                    step.next.defaultStep = idMap[step.next.defaultStep];
+                }
+                if (step.next.failedStep === "End"){
+                    delete step.next.failedStep;
+                }
+                else if (idMap[step.next.failedStep]){
+                    step.next.failedStep = idMap[step.next.failedStep];
+                }
+                step.id = idMap[step.id];
+
+                step.positionX = step.positionX + offsetX;
+                step.positionY = step.positionY + offsetY;
+
+                newSteps.push(step);
+            }
+        });
+
+        workflow.steps = newSteps;
+        loadJSON(workflow);
+    }
+
 
     /*
     Functions for managing step data on jsplumb instance
     */
-    function dragEndFunc(e) {
+    function dragEndFunc(e,ui) {
+        var stepData = $rootScope.primitiveData;
+
+        if (stepData.type === "Workflow"){
+            $http.get(routes.Workflow_get({workflowId: stepData.id})).then(function (resp) {
+                if (resp.status == 200) {
+                    console.log(resp.data.document);
+                    copyWorkflow(e,resp.data.document);
+                } else {
+                    //TODO: show error for workflow failed to load
+                }
+            });
+            return
+        }
+
         //set ID and text within the step element
         //TODO: retrieve stepname from step data when API is available
-        var randomIdHash = Math.random().toString(36).substring(7);
+        var randomIdHash = createNewId();
 
         //compensate x,y for zoom
         var x = e.clientX + document.body.scrollLeft + document.documentElement.scrollLeft;
@@ -520,7 +588,7 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
 
 
         //add data
-        var stepData = $rootScope.primitiveData;
+        //var stepData = $rootScope.primitiveData;
         stepData.operation = stepData.id;
         stepData.id = randomIdHash;
         stepData.positionY = positionY;
@@ -531,6 +599,11 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
         loadStep(stepData);
 
     }
+
+    function createNewId() {
+        return Math.random().toString(36).substring(7);
+    }
+
     function setBindings() {
         jspInstance.bind("connection", function(connection) {
             var source=$(connection.source);
@@ -808,15 +881,15 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
         }
     }
 
-    function loadJSON() {
+    function loadJSON(workflowDocument) {
 
         //load steps with position data
-        $scope.workflowData.document.steps.forEach(function(step) {
+        workflowDocument.steps.forEach(function(step) {
             loadStep(step);
         });
 
         //load connections
-        $scope.workflowData.document.steps.forEach(function(step) {
+        workflowDocument.steps.forEach(function(step) {
             loadConnections(step);
         });
 

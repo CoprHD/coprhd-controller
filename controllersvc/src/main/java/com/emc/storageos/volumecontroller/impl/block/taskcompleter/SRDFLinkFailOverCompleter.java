@@ -5,6 +5,7 @@
 package com.emc.storageos.volumecontroller.impl.block.taskcompleter;
 
 import java.net.URI;
+import java.util.ArrayList;
 import java.util.List;
 
 import org.slf4j.Logger;
@@ -40,6 +41,41 @@ public class SRDFLinkFailOverCompleter extends SRDFTaskCompleter {
             _log.error("Failed updating status. SRDFLinkFailOver {}, for task " + getOpId(), getId(), e);
         } finally {
             super.complete(dbClient, status, coded);
+
+            // update remote replication pairs
+            try {
+                for (Volume v : getVolumes()) {
+                    if (v.isVPlexVolume(dbClient)) {
+                        // skip VPLEX volumes, as they delegate SRDF characteristics to their native volumes.
+                        return;
+                    }
+
+                    if (v.getSrdfTargets() != null) {
+                        List<URI> targetVolumeURIs = new ArrayList<>();
+                        for (String targetId : v.getSrdfTargets()) {
+                            targetVolumeURIs.add(URI.create(targetId));
+                        }
+
+                        List<Volume> targetVolumes = dbClient.queryObject(Volume.class, targetVolumeURIs);
+                        for (Volume targetVolume : targetVolumes) {
+                            // get RemoteReplicationPair object for this source and target volumes
+                            // NOTE: SRDF volume roles may not correspond to volume rolls in remote replication pair
+                            // due to the fact that SRDF swap operation changes source and target volumes, but
+                            // in remote replication pair roles are immutable and swap changes replication direction
+                            // property.
+                            // call rr data client to check existence of rr pair for this pair of volumes.
+                            // if not found log an error message and throw runtime exception
+                            // if found, update replication state of the pair
+
+                            targetVolume.setLinkStatus(getVolumeSRDFLinkStatusForSuccess().name());
+                            //targetVolume.setAccessState(getVolumeAccessStateForSuccess(targetVolume).name());
+                        }
+                        dbClient.updateObject(targetVolumes);
+                    }
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
         }
     }
 

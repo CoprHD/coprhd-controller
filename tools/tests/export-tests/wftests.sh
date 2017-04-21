@@ -139,8 +139,12 @@ fi
 CMD_OUTPUT=/tmp/output.txt
 rm -f ${CMD_OUTPUT}
 
-CENTER_DATACENTER=""
-VCENTER_CLUSTER=""
+#VCENTER_IP=""
+#VCENTER_PORT=""
+#VCENTER_USERNAME=""
+#VCENTER_PASSWORD=""
+#CENTER_DATACENTER=""
+#VCENTER_CLUSTER=""
 
 prerun_setup() {		
     # Reset system properties
@@ -189,12 +193,20 @@ prerun_setup() {
     storageprovider list | grep SIM > /dev/null
     if [ $? -eq 0 ];
     then
-	   ZONE_CHECK=0
-	   SIM=1;
-	   echo "Shutting off zone check for simulator environment"
-	   VCENTER_DATACENTER=${VCENTER_SIMULATOR_DATACENTER}
-       VCENTER_CLUSTER=${VCENTER_SIMULATOR_CLUSTER}
+	    ZONE_CHECK=0
+	    SIM=1;
+	    echo "Shutting off zone check for simulator environment"
+	    VCENTER_IP=${VCENTER_SIMULATOR_IP}
+        VCENTER_PORT=${VCENTER_SIMULATOR_PORT}
+        VCENTER_USERNAME=${VCENTER_SIMULATOR_USERNAME}
+        VCENTER_PASSWORD=${VCENTER_SIMULATOR_PASSWORD}
+	    VCENTER_DATACENTER=${VCENTER_SIMULATOR_DATACENTER}
+        VCENTER_CLUSTER=${VCENTER_SIMULATOR_CLUSTER}
     else
+        VCENTER_IP=${VCENTER_HW_IP}
+        VCENTER_PORT=${VCENTER_HW_PORT}
+        VCENTER_USERNAME=${VCENTER_HW_USERNAME}
+        VCENTER_PASSWORD=${VCENTER_HW_PASSWORD}
         VCENTER_DATACENTER=${VCENTER_HW_DATACENTER}
         VCENTER_CLUSTER=${VCENTER_HW_CLUSTER} 
     fi
@@ -3143,9 +3155,7 @@ prerun_setup;
 if [ ${setup} -eq 1 ]
 then
     setup
-    if [ "$SS" = "xio" -o "$SS" = "vplex" ]; then
-	   setup_yaml;
-    fi
+    setup_yaml;
     if [ "$SS" = "vmax2" -o "$SS" = "vmax3" -o "$SS" = "vnx" ]; then
 	   setup_provider;
     fi

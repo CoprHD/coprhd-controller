@@ -2476,6 +2476,9 @@ test_expand_volume_and_datastore() {
     
     create_volume_and_datastore ${TENANT} ${volume1} ${datastore1} ${NH} ${VPOOL_BASE} ${PROJECT} ${vcenter} ${VCENTER_DATACENTER} ${VCENTER_CLUSTER}
 
+    # verify the datastore has been created
+    verify_datastore ${VCENTER_DATACENTER} ${datastore1}
+
     failure_injections="${HAPPY_PATH_TEST_INJECTION}"  
 
     for failure in ${failure_injections}

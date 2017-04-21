@@ -269,7 +269,7 @@ public abstract class AbstractFileServiceApiImpl<T> implements FileServiceApi {
         }
 
         // place the expand filesystem call in queue
-        controller.expandFileSystem(fileDescriptors, taskId);
+        controller.reduceFileSystem(fileDescriptors, taskId);
     }
 
     @Override

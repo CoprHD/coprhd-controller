@@ -1301,7 +1301,7 @@ public class FileService extends TaskResourceService {
         StorageSystem device = _dbClient.queryObject(StorageSystem.class, fs.getStorageDevice());
         
         if(device.deviceIsType(DiscoveredDataObject.Type.isilon)) {
-        	//throw error
+        	throw APIException.badRequests.reduceFileSystemNotSupported(id, "Shrink Filesystem");
         }
 
         Long newFSsize = SizeUtil.translateSize(param.getNewSize());
@@ -1326,7 +1326,7 @@ public class FileService extends TaskResourceService {
                     }
                 }
         	} else {
-        		//add new exception for less than
+        		throw APIException.badRequests.parameterMustBeLessThan("new_size", fs.getCapacity());
         	}
         }
         
@@ -1344,7 +1344,7 @@ public class FileService extends TaskResourceService {
 
         FileServiceApi fileServiceApi = getFileShareServiceImpl(fs, _dbClient);
         try {
-            fileServiceApi.expandFileShare(fs, newFSsize, task);
+            fileServiceApi.reduceFileShare(fs, newFSsize, task);
         } catch (InternalException e) {
             if (_log.isErrorEnabled()) {
                 _log.error("Reduce File Size error", e);

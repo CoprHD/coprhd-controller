@@ -3024,6 +3024,13 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException unableToCreateMirrorCopies(final URI fsUri, String reason);
+    
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException reduceFileSystemNotSupported(final URI fsUri, String reason);
+    
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID_RANGE)
+    public BadRequestException parameterMustBeLessThan(final String parameter,
+            final Number lessThan);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException unableToDeleteMirrorCopies(final URI fsUri, String reason);

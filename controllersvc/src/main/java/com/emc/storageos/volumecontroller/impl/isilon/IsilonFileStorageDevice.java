@@ -870,17 +870,19 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
     private void isiReduceFS(IsilonApi isi, String quotaId, FileDeviceInputOutput args) throws ControllerException, IsilonException {
         Long capacity = args.getNewFSCapacity();
         IsilonSmartQuota quota = isi.getQuota(quotaId);
-
-        // Modify quoties for fileshare
-        IsilonSmartQuota expandedQuota = getExpandedQuota(isi, args, capacity);
-        isi.modifyQuota(quotaId, expandedQuota);
-
-        if(capacity.compareTo(expandedQuota.getUsagePhysical()) < 0) {
+        //check the 
+        if(capacity.compareTo(quota.getUsagePhysical()) < 0) {
             String msg = String
                     .format(
                             "In Reduceing Isilon FS requested capacity is less than current capacity of file system. Path: %s, current capacity: %d",
                             quota.getPath(), quota.getThresholds().getHard());
             _log.error(msg);
+            throw IsilonException.exceptions.reduceFsFailedinvalidParameters(quota.getPath(),
+                    quota.getThresholds().getHard());
+        } else {
+        	 // Modify quoties for fileshare
+            IsilonSmartQuota quotaUpdate = getExpandedQuota(isi, args, capacity);
+            isi.modifyQuota(quotaId, quotaUpdate);
         }
     }
 
@@ -1093,20 +1095,20 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
     @Override
     public BiosCommandResult doReduceFS(StorageSystem storage, FileDeviceInputOutput args) throws ControllerException {
     	try {
-            _log.info("IsilonFileStorageDevice doReduceFS {} - start", args.getFsId());
-            IsilonApi isi = getIsilonDevice(storage);
-            String quotaId = null;
-            if (args.getFsExtensions() != null && args.getFsExtensions().get(QUOTA) != null) {
-                quotaId = args.getFsExtensions().get(QUOTA);
-            } else {
-                final ServiceError serviceError = DeviceControllerErrors.isilon.doExpandFSFailed(args.getFsId());
-                _log.error(serviceError.getMessage());
-                return BiosCommandResult.createErrorResult(serviceError);
-            }
+    		 _log.info("IsilonFileStorageDevice doReduceFS {} - start", args.getFsId());
+             IsilonApi isi = getIsilonDevice(storage);
+             String quotaId = null;
+             if (args.getFsExtensions() != null && args.getFsExtensions().get(QUOTA) != null) {
+                 quotaId = args.getFsExtensions().get(QUOTA);
+             } else {
+                 final ServiceError serviceError = DeviceControllerErrors.isilon.doReduceFSFailed(args.getFsId());
+                 _log.error(serviceError.getMessage());
+                 return BiosCommandResult.createErrorResult(serviceError);
+             }
 
-            isiExpandFS(isi, quotaId, args);
-            _log.info("IsilonFileStorageDevice doReduceFS {} - complete", args.getFsId());
-            return BiosCommandResult.createSuccessfulResult();
+             isiReduceFS(isi, quotaId, args);
+             _log.info("IsilonFileStorageDevice doReduceFS {} - complete", args.getFsId());
+             return BiosCommandResult.createSuccessfulResult();
         } catch (IsilonException e) {
             _log.error("doReduceFS failed.", e);
             return BiosCommandResult.createErrorResult(e);

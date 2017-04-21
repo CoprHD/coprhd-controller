@@ -1774,7 +1774,28 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
      *            The id of the workflow step that invoked this method.
      */
     public void rollbackForgetVolumes(URI vplexSystemURI, List<URI> volumeURIs, String stepId) {
-        forgetVolumes(vplexSystemURI, getNativeVolumeInfo(volumeURIs), stepId);
+        // On rollback, only forget volumes that were exported to the VPLEX.
+        // It could be the case that rollback occurs prior to successfully
+        // exporting the volume to the VPLEX, for example, if zoning occurred 
+        // first, zoning may have failed causing rollback. Also, the export
+        // itself may have failed. If the volume is not exported, then the VPLEX
+        // does not see and it does not need to be forgotten on the VPLEX.
+        List<URI> exportedVolumeURIs = new ArrayList<>();
+        for (URI volumeURI : volumeURIs) {
+            Volume volume = getDataObject(Volume.class, volumeURI, _dbClient);
+            if (volume.isVolumeExported(_dbClient)) {
+                exportedVolumeURIs.add(volumeURI);
+            }
+        }
+        
+        if (exportedVolumeURIs.isEmpty()) {
+            // If none are exported, then there is nothing to forget.
+            String successMsg = String.format("Volumes %s are not exported to the VPLEX and don't need to be forgotten", volumeURIs);
+            _log.info(successMsg);
+            WorkflowStepCompleter.stepSucceeded(stepId, successMsg);
+        } else {
+            forgetVolumes(vplexSystemURI, getNativeVolumeInfo(exportedVolumeURIs), stepId);
+        }
     }
 
     private Workflow.Method deleteVirtualVolumesMethod(URI vplexURI, List<URI> volumeURIs, List<URI> doNotFullyDeleteVolumeList) {

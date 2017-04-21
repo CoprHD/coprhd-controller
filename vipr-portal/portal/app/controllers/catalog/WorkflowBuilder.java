@@ -571,12 +571,7 @@ public class WorkflowBuilder extends Controller {
                         primitiveUpdateParam.setResource(primitiveResourceRestRep.getId());
                     }
                 }
-                else {
-                    if (isNameChanged) { // Update the existing resource id with new name
-                        getCatalogClient().customServicesPrimitives().updatePrimitiveResource(primitiveRestRep.getResource().getId(),
-                                shellPrimitive.getName());
-                    }
-                }
+
                 getCatalogClient().customServicesPrimitives().updatePrimitive(shellPrimitiveID, primitiveUpdateParam);
             }
         } catch (final Exception e) {

@@ -1244,12 +1244,18 @@ angular.module("portalApp").controller("SystemLogsCtrl", function($scope, $http,
     var DOWNLOAD_LOGS = routes.SystemHealth_download();
     var DEFAULT_DOWNLOAD_SEVERITY = '8';
     var DEFAULT_DOWNLOAD_ORDER_TYPES = 'ALL';
+    var DEFAULT_DOWNLOAD_FTPS = '1';
     var SEVERITIES = {
         '4': 'ERROR',
         '5': 'WARN',
         '7': 'INFO',
         '8': 'DEBUG'
     };
+    var FTPS = {
+    	'0': 'None',
+        '1': 'FTP',
+        '2': 'SFTP'
+    }
     
     $scope.orderTypeOptions = [{id:'', name:translate("systemLogs.orderType.NONE")}];
     angular.forEach($scope.orderTypes, function(value) {
@@ -1270,6 +1276,16 @@ angular.module("portalApp").controller("SystemLogsCtrl", function($scope, $http,
     angular.forEach(SEVERITIES, function(value, key) {
         this.push({id:key, name:value});
     }, $scope.severityOptions);
+    
+    $scope.diagnosticOptions = [];
+    angular.forEach($scope.allDiagnosticOptions, function(value) {
+        this.push({id:value, name:value});
+    }, $scope.diagnosticOptions);
+    
+    $scope.ftpOptions = [];
+    angular.forEach(FTPS, function(value, key) {
+        this.push({id:key, name:value});
+    }, $scope.ftpOptions);
 
     $scope.descending = $cookies.sort === 'desc';
     $scope.toggleSort = function() {
@@ -1318,6 +1334,7 @@ angular.module("portalApp").controller("SystemLogsCtrl", function($scope, $http,
                 $scope.filterDialog.severity = DEFAULT_DOWNLOAD_SEVERITY;
                 $scope.filterDialog.orderTypes = DEFAULT_DOWNLOAD_ORDER_TYPES;
                 $scope.diagnostic.type = 1;
+                $scope.diagnostic.ftp = DEFAULT_DOWNLOAD_FTPS;
             }
             $scope.filterDialog.startTime_date = getDate($scope.filterDialog.startTime);
             $scope.filterDialog.startTime_time = getTime($scope.filterDialog.startTime);

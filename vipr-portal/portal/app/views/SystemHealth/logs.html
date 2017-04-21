@@ -157,10 +157,10 @@
                     <form class="form form-horizontal" ng-show="filterDialog.type == 'download' && diagnostic.type == 1">
                     <legend><small>&{'diagnostic.title'}</small></legend>
                         <control-group v-field="diagnostic.options" width="9" type="array">
-                            <select-many class="max-height-5" options="serviceOptions"></select-many>
+                            <select-many class="max-height-5" options="diagnosticOptions"></select-many>
                         </control-group>
                         <control-group v-field="diagnostic.ftp" width="9">
-                            <select-one options="severityOptions"></select-one>
+                            <select-one options="ftpOptions"></select-one>
                         </control-group>
                         <control-group v-field="diagnostic.url" width="9">
                             <input-text onkeydown="updateFilter(event.keyCode)"></input-text>

@@ -262,6 +262,8 @@ public class SystemHealth extends Controller {
         defaultServiceNames.remove(SystemLogUtils.MESSAGES_LOG);
         defaultServiceNames.remove(SystemLogUtils.NGINX_ACCESS_LOG);
         defaultServiceNames.remove(SystemLogUtils.NGINX_ERROR_LOG);
+        
+        renderArgs.put("allDiagnosticOptions", getDiagnosticOptions().keySet());
 
         loadSystemLogArgument(PARAM_NODE_ID, null);
         loadSystemLogArgument(PARAM_SERVICE, defaultServiceNames, String[].class);
@@ -502,6 +504,23 @@ public class SystemHealth extends Controller {
             return clusterInfo.getExtraNodes().keySet().contains(nodeId);
         }
         return false;
+    }
+    
+    /**
+     * Keep the same with script/diagutils
+     * -min_cfs|-all_cfs|-zk|-backup|-logs|-properties|-health
+     * @return
+     */
+    private static Map getDiagnosticOptions() {
+        Map<String, String> options = Maps.newLinkedHashMap();
+        options.put("including minimum CFs(-min_cfs)", "-min_cfs");
+        options.put("including all CFs(-all_cfs)", "-all_cfs");
+        options.put("including zookeeper data(-zk)", "-zk");
+        options.put("including backup data(-backup)", "-backup");
+        options.put("including properties(-properties)", "-properties");
+        options.put("including health data(-health)", "-health");
+        //options.put("including all CFs(-logs)", "-logs"); including -logs by default
+        return options;
     }
 
     private static void loadSystemLogArgument(String name, Object defaultValue) {

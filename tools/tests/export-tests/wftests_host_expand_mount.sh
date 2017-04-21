@@ -9,8 +9,12 @@ HAPPY_PATH_TEST_INJECTION="happy_path_test_injection"
 test_expand_host_filesystem() {
     test_name="test_expand_host_filesystem"
     echot "Test ${test_name} Begins"
+    common_failure_injections="failure_004_final_step_in_workflow_complete \
+                               failure_080_BlockDeviceController.expandVolume_before_device_expand \
+                               failure_081_BlockDeviceController.expandVolume_after_device_expand"
 
-    failure_injections="${HAPPY_PATH_TEST_INJECTION}"
+    os_failure_injections=""
+
     supported_os="windows linux hpux" 
 
     for os in ${supported_os[@]}
@@ -29,7 +33,10 @@ test_expand_host_filesystem() {
 	elif [ "${os}" = "windows" ]
 	then
 	    hostname=winhost1
+            os_failure_injections="extendDrivesWindows"
 	fi
+
+        failure_injections="${HAPPY_PATH_TEST_INJECTION} ${common_failure_injections} ${os_failure_injections}"
 
         if [ "${os}" = "windows" ]
         then
@@ -38,6 +45,10 @@ test_expand_host_filesystem() {
             unix_create_volume_and_mount $TENANT ${hostname} "${volume}" "/${volume}" ${NH} ${VPOOL_BASE} ${PROJECT} ${os}
         fi
 
+        size=2
+
+        # Placeholder when a specific failure case is being worked...
+         failure_injections="extendDrivesWindows"
 	for failure in ${failure_injections}
 	do
             secho "Running ${test_name} with failure scenario: ${failure}..."
@@ -53,7 +64,7 @@ test_expand_host_filesystem() {
             set_artificial_failure ${failure}
 
 	    # Run expand filesystem
-            expand_volume $TENANT ${hostname} ${volume} ${PROJECT} "5" ${os}
+            expand_volume $TENANT ${hostname} ${volume} ${PROJECT} ${size} ${os} ${failure}
 
             # Verify injected failures were hit
             # verify_failures ${failure}
@@ -65,7 +76,7 @@ test_expand_host_filesystem() {
             validate_db 1 2 "${column_family[@]}"
             # Report results
             report_results ${test_name} ${failure}
-
+            size=`expr $size + 1`
             # Add a break in the output
             echo " "
 	done
@@ -130,6 +141,7 @@ expand_volume() {
     volume_id=`volume list ${4} | grep "${3}" | awk '{print $7}'`
     size=$5
     os=$6
+    failure=$7
 
     service_category=NoneSet
     service_catalog=NoneSet
@@ -152,7 +164,7 @@ expand_volume() {
 
     # expand_volume $TENANT ${hostname} ${volume} ${PROJECT} "5" ${os}
 
-    runcmd catalog order ${service_catalog} ${tenant_arg} host=${host_id},size=${size},${volume_parameter_name}=${volume_id} ${service_category}
+    runcmd catalog order ${service_catalog} ${tenant_arg} host=${host_id},size=${size},${volume_parameter_name}=${volume_id},artificialFailure=${failure} ${service_category}
 }
 
 unmount_and_delete_volume() {

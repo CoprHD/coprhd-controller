@@ -434,7 +434,7 @@ public class CustomServicesService extends ViPRService {
 
             final String[] bits = outName.split("\\.");
 
-            final List<String> list = ifprimitivetheninvoke(bits, 0, responseEntity);
+            final List<String> list = parserOutput(bits, 0, responseEntity);
             if (list != null) {
                 output.put(out.getName(), list);
             }
@@ -443,7 +443,7 @@ public class CustomServicesService extends ViPRService {
         return output;
     }
 
-    private List<String> ifprimitivetheninvoke(final String[] bits, final int i, final Object className ) throws Exception {
+    private List<String> parserOutput(final String[] bits, final int i, final Object className ) throws Exception {
 
         if (className == null) {
             logger.warn("class name is null, cannot parse output");
@@ -464,7 +464,11 @@ public class CustomServicesService extends ViPRService {
             final Object value = method.invoke(className, null);
             logger.debug("value:{}", value);
 
-            return Arrays.asList(value.toString());
+            if (value == null) {
+                return Arrays.asList(value.toString());
+            } else {
+                return null;
+            }
         }
 
         final Type returnType = method.getGenericReturnType();
@@ -476,7 +480,7 @@ public class CustomServicesService extends ViPRService {
 
         //2) Class single object
         if (returnType instanceof Class<?>) {
-            return ifprimitivetheninvoke(bits, i + 1, method.invoke(className, null));
+            return parserOutput(bits, i + 1, method.invoke(className, null));
         }
 
         //3) Collection primitive
@@ -507,7 +511,7 @@ public class CustomServicesService extends ViPRService {
             if (o instanceof Class<?>) {
                 final List<String> list = new ArrayList<String>();
                 for (final Object o1 : (Collection<?>) method.invoke(className, null)) {
-                    final List<String> value = ifprimitivetheninvoke(bits, i + 1, o1);
+                    final List<String> value = parserOutput(bits, i + 1, o1);
                     if (value != null) {
                         list.addAll(value);
                     }

@@ -51,6 +51,7 @@ import com.sun.jersey.api.client.ClientResponse;
  */
 public class CustomServicesViprExecution extends ViPRExecutionTask<CustomServicesTaskResult> {
     private static final org.slf4j.Logger logger = LoggerFactory.getLogger(CustomServicesViprExecution.class);
+    private static final String TASKLIST = "TaskList";
     private final Map<String, List<String>> input;
     private final RestClient client;
     private final CustomServicesViPRPrimitive primitive;
@@ -106,7 +107,7 @@ public class CustomServicesViprExecution extends ViPRExecutionTask<CustomService
         final List<URI> uris = new ArrayList<URI>();
         //TODO get the class name from primitive
         final String classname = "com.emc.storageos.model.block.VolumeRestRep";
-        if (classname.contains("TaskList")) {
+        if (classname.contains(TASKLIST)) {
             final ObjectMapper mapper = new ObjectMapper();
             mapper.setAnnotationIntrospector(new JaxbAnnotationIntrospector());
             final Class<?> clazz = Class.forName(classname);

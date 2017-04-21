@@ -86,7 +86,7 @@ public class ExportMaskAddVolumeCompleter extends ExportTaskCompleter {
                 dbClient.updateObject(exportGroup);
                 
                 // In the case of VPLEX backend volumes being successfully masked to the VPLEX,
-                // we store these volume sin the step data to know which volumes need to be forgotten
+                // we store these volumes in the step data to know which volumes need to be forgotten
                 // on rollback if subsequent steps in the workflow fail.
                 if (_forgetStepId != null) {
                     @SuppressWarnings("unchecked")

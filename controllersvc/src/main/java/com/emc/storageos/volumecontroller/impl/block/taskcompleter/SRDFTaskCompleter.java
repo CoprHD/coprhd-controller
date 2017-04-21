@@ -286,27 +286,23 @@ public class SRDFTaskCompleter extends TaskCompleter {
      * Update remote replication pair for SRDF volumes.
      */
     protected void updateRemoteReplicationPairs() {
-        try {
-            for (Volume v : getVolumes()) {
+
+        for (Volume v : getVolumes()) {
+            try {
                 if (v.isVPlexVolume(dbClient)) {
                     // skip VPLEX volumes, as they delegate SRDF characteristics to their native volumes.
-                    return;
+                    _logger.info("Volume: {}/{} is VPLEX virtual volume, we skip this volume.", v.getId(), v.getLabel());
+                    continue;
                 }
                 if (v.getSrdfTargets() != null) {
-                    List<URI> targetVolumeURIs = new ArrayList<>();
                     for (String targetId : v.getSrdfTargets()) {
-                        targetVolumeURIs.add(URI.create(targetId));
-                    }
-                    List<Volume> targetVolumes = dbClient.queryObject(Volume.class, targetVolumeURIs);
-                    for (Volume targetVolume : targetVolumes) {
-                        // call updateOrCreate... to cover case when srdf operation was executed prior to post upgrade discovery
-                        RemoteReplicationUtils.updateOrCreateReplicationPairForSrdfPair(v.getId(), targetVolume.getId(), dbClient);
+                        // call updateOrCreate... to cover case when SRDF operation was executed prior to post upgrade discovery
+                        RemoteReplicationUtils.updateOrCreateReplicationPairForSrdfPair(v.getId(), URI.create(targetId), dbClient);
                     }
                 }
+            } catch (Exception ex) {
+                _logger.error("Failed to update remote replication pair for srdf volume {}/{}", v.getId(), v.getLabel(), ex);
             }
-        }  catch (Exception ex) {
-            _logger.info("Failed to update remote replication pairs for srdf volumes {}", getIds(), ex);
         }
     }
-
 }

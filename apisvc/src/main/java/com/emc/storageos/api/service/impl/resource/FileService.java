@@ -1301,7 +1301,7 @@ public class FileService extends TaskResourceService {
         StorageSystem device = _dbClient.queryObject(StorageSystem.class, fs.getStorageDevice());
         
         if(device.deviceIsType(DiscoveredDataObject.Type.isilon)) {
-        	throw APIException.badRequests.reduceFileSystemNotSupported(id, "Shrink Filesystem");
+        	throw APIException.badRequests.reduceFileSystemNotSupported(id, "re");
         }
 
         Long newFSsize = SizeUtil.translateSize(param.getNewSize());
@@ -1321,7 +1321,7 @@ public class FileService extends TaskResourceService {
                     for (QuotaDirectory quotaDir : quotaDirs) {
                         quotasize = newFSsize - quotaDir.getSize();
                         if (quotasize < MIN_EXPAND_SIZE) {
-                            throw APIException.badRequests.invalidParameterBelowMinimum("new_size", newFSsize, quotaDir.getSize() + MIN_EXPAND_SIZE, "bytes");
+                            throw APIException.badRequests.invalidParameterAboveMinimum("new_size", newFSsize, quotaDir.getSize() + MIN_EXPAND_SIZE, "bytes");
                         }
                     }
                 }

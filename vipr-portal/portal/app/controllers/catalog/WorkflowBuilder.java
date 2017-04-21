@@ -534,11 +534,6 @@ public class WorkflowBuilder extends Controller {
             final CustomServicesPrimitiveRestRep primitiveRestRep = getCatalogClient().customServicesPrimitives().getPrimitive(
                     shellPrimitiveID);
             if (null != primitiveRestRep) {
-                // Check if it is name change
-                boolean isNameChanged = false;
-                if (!primitiveRestRep.getName().equalsIgnoreCase(shellPrimitive.getName())) {
-                    isNameChanged = true;
-                }
                 // Update name, description
                 final CustomServicesPrimitiveUpdateParam primitiveUpdateParam = new CustomServicesPrimitiveUpdateParam();
                 primitiveUpdateParam.setName(shellPrimitive.getName());

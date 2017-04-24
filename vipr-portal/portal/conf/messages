@@ -5095,4 +5095,15 @@ input.defaultValue=Default Value
 input.value=Value
 input.decription=Field Help
 output.name=Name
+input.type.AssetOption=List Select
+input.type.InputFromUser=Text
+input.type.FromOtherStepInput=Other Step Input
+input.type.FromOtherStepOutput=Other Step Output
+input.assetType.vipr.blockVirtualPool=Block Virtual Pool
+input.assetType.vipr.virtualArray=Virtual Array
+input.assetType.vipr.project=Project
+input.fieldType.Integer=Integer
+input.fieldType.Table=Table
+input.fieldType.Boolean=Boolean
+input.fieldType.String=String
 

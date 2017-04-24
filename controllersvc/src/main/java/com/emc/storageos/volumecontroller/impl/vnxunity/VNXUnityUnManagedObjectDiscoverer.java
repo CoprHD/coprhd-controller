@@ -1453,7 +1453,7 @@ public class VNXUnityUnManagedObjectDiscoverer {
             if (iScsiInits != null && !iScsiInits.isEmpty()) {
                 for (VNXeBase init : iScsiInits) {
                     VNXeHostInitiator initiator = apiClient.getHostInitiator(init.getId());
-                    String portwwn = initiator.getPortWWN();
+                    String portwwn = initiator.getInitiatorId();
                     if (portwwn == null || portwwn.isEmpty()) {
                         continue;
                     }

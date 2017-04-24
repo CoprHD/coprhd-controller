@@ -375,7 +375,7 @@ public final class ApiPrimitiveMaker {
         final ParameterFieldName.Output fieldName = new ParameterFieldName.Output();
         
         if (null != method.output && null != method.output.fields) {
-            builder.add(makeStringConstant("RESPONSE", method.fqReturnType));
+            builder.add(makeStringConstant("RESPONSE", method.getFqReturnType()));
             for (final ApiField field : method.output.fields) {
                 final ImmutableList<FieldSpec> responseParameters = makeResponseParameters(
                         fieldName, method.output.name, field);

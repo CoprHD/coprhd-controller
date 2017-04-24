@@ -20,7 +20,8 @@ import com.google.common.collect.Lists;
 public class ApiMethod {
     private static String XML_EXTENSION = "_xml_example.txt";
     private static String JSON_EXTENSION = "_json_example.txt";
-
+    private String fqReturnType;
+    
     public String javaMethodName;
     public boolean isDataService = false;
     public String httpMethod;
@@ -36,7 +37,6 @@ public class ApiMethod {
     public List<String> prerequisites = Lists.newArrayList();
     public ApiClass input;
     public ApiClass output;
-    public String fqReturnType;
     public String responseDescription;
     public ApiService apiService;
     public String urlFormat;
@@ -136,5 +136,13 @@ public class ApiMethod {
         }
 
         return Hex.encodeHexString(digest.digest());
+    }
+
+    public String getFqReturnType() {
+        return fqReturnType;
+    }
+
+    public void setFqReturnType(final String fqReturnType) {
+        this.fqReturnType = fqReturnType;
     }
 }

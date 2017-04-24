@@ -226,7 +226,7 @@ public class MethodProcessor {
                 !TypeUtils.isPrimitiveType(method.returnType())) {
 
             if (AnnotationUtils.hasAnnotation(method.returnType().asClassDoc(), KnownAnnotations.XMLRoot_Annotation)) {
-                apiMethod.fqReturnType = method.returnType().qualifiedTypeName();
+                apiMethod.setFqReturnType(method.returnType().qualifiedTypeName());
                 apiMethod.output = JaxbClassProcessor.convertToApiClass(method.returnType().asClassDoc());
                 apiMethod.isTaskResponse = method.returnType().asClassDoc().name().equals("TaskResourceRep") ||
                         method.returnType().asClassDoc().name().equals("TaskList");

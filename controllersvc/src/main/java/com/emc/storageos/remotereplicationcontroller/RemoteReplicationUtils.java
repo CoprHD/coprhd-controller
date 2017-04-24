@@ -196,8 +196,8 @@ public class RemoteReplicationUtils {
     /**
      * Create remote replication pair for srdf volume pair.
      *
-     * @param sourceUri srdf source volume
-     * @param targetUri srdf target volume
+     * @param argSourceUri srdf source volume
+     * @param argTargetUri srdf target volume
      */
     public static void createRemoteReplicationPairForSrdfPair(URI argSourceUri, URI argTargetUri, DbClient dbClient) {
 
@@ -223,8 +223,8 @@ public class RemoteReplicationUtils {
     /**
      * Delete remote replication pair for srdf volume pair.
      *
-     * @param sourceUri srdf source volume
-     * @param targetUri srdf target volume
+     * @param argSourceUri srdf source volume
+     * @param argTargetUri srdf target volume
      */
     public static void deleteRemoteReplicationPairForSrdfPair(URI argSourceUri, URI argTargetUri, DbClient dbClient) {
         String sourceLabel = null;
@@ -263,8 +263,8 @@ public class RemoteReplicationUtils {
     /**
      * Builds sb sdk remote replication pair for srdf source and target volumes.
      *
-     * @param sourceUri
-     * @param targetUri
+     * @param inSourceUri
+     * @param inTargetUri
      * @param dbClient
      * @return sb sdk remote replication pair
      */

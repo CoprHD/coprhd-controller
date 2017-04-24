@@ -92,6 +92,7 @@ public class CustomServicesWorkflowService extends CatalogTaggedResourceService 
     private CustomServicesResourceDAOs resourceDAOs;
 
     private static final WFDirectory NO_DIR = new WFDirectory();
+    private static final String EXPORT_EXTENSION = ".wf"; 
     
     @GET
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
@@ -285,7 +286,7 @@ public class CustomServicesWorkflowService extends CatalogTaggedResourceService 
                 response.setContentLength(bytes.length);
 
                 response.setHeader("Content-Disposition", "attachment; filename="+
-                        id.toString() + ".tar.gz");
+                        id.toString() + EXPORT_EXTENSION);
                 return Response.ok(bytes).build();
             default:
                 throw APIException.methodNotAllowed.notSupportedForUnpublishedWorkflow(customServicesWorkflow.getState());

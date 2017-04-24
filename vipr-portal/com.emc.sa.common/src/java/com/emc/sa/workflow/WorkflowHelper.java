@@ -228,6 +228,9 @@ public final class WorkflowHelper {
             final ModelClient client,
             final CustomServicesPrimitiveDAOs daos,
             final CustomServicesResourceDAOs resourceDAOs) throws JsonGenerationException, JsonMappingException, IOException {
+       
+        // TODO: This will only import new items.  If hte user wants to update an existing item they'll need to delete the 
+        //       item and import it again.  We should support update of an item as will as import of new items.
         
         for( final Entry<URI, ResourcePackage> resource : workflowPackage.resources().entrySet()) {
             if( null == client.findById(URIUtil.getModelClass(resource.getKey()), resource.getKey())) {

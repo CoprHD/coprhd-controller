@@ -909,8 +909,10 @@ public class NetworkDeviceController implements NetworkController {
     private void completeWorkflowState(String token, String operation, BiosCommandResult result, 
     		String warningMessage) {
         // Update the workflow state.
+        WorkflowService.getInstance().postTaskWarningMessage(token, "Zoning test warning message");
         if (Operation.Status.valueOf(result.getCommandStatus()).equals(Operation.Status.ready)) {
         	if (warningMessage != null && !warningMessage.isEmpty()) {
+        	    WorkflowService.getInstance().postTaskWarningMessage(token, warningMessage);
         		WorkflowStepCompleter.stepSucceeded(token, warningMessage);
         	} else {
                 WorkflowStepCompleter.stepSucceded(token);
@@ -1304,7 +1306,6 @@ public class NetworkDeviceController implements NetworkController {
         TaskCompleter taskCompleter = null;
         boolean status = false;
         try {
-        	StringBuilder warningMessage = new StringBuilder();
             if (zoningParams.isEmpty()) {
                 _log.info("zoningParams is empty, returning");
                 WorkflowStepCompleter.stepSucceded(stepId);
@@ -1330,6 +1331,9 @@ public class NetworkDeviceController implements NetworkController {
                 WorkflowStepCompleter.stepSucceded(stepId);
                 return true;
             }
+            
+            // Generate warning message if required.
+            String warningMessage = generateExistingZoneWarningMessages(context.getZoneInfos());
 
             // Determine what needs to be rolled back.
             List<NetworkFCZoneInfo> lastReferenceZoneInfo = new ArrayList<NetworkFCZoneInfo>();
@@ -1342,13 +1346,6 @@ public class NetworkDeviceController implements NetworkController {
                         lastReferenceZoneInfo.add(info);
                     }
                     rollbackList.add(info);
-                }
-                // Issue warning for zones that are lastRef but existing, as they won't be removed.
-                if (info.isLastReference() && info.isExistingZone()) {
-                	if (warningMessage.length() == 0) {
-                		warningMessage.append("Zones which will not be deleted because they may be used externally:\n");
-                	}
-                	warningMessage.append(info.getZoneName() + "\n");
                 }
             }
 
@@ -2903,5 +2900,21 @@ public class NetworkDeviceController implements NetworkController {
             taskCompleter.error(_dbClient, svcError);
         }
         return completedSuccessfully;
+    }
+    
+    private String generateExistingZoneWarningMessages(List<NetworkFCZoneInfo> zoneInfos) {
+        StringBuilder buf = new StringBuilder();
+        StringSet zoneNames = new StringSet();;
+        // Issue warning for zones that are lastRef but existing, as they won't be removed.
+        for (NetworkFCZoneInfo zoneInfo : zoneInfos) {
+            if (zoneInfo.isLastReference() && zoneInfo.isExistingZone()) {
+                zoneNames.add(zoneInfo.getZoneName());
+            }
+        }
+        if (!zoneNames.isEmpty()) {
+            buf.append("Zones which will not be deleted because they may be used externally: ");
+            buf.append(com.google.common.base.Joiner.on(',').join(zoneNames));
+        }
+        return buf.toString();
     }
 }

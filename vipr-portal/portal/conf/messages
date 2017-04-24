@@ -5102,8 +5102,9 @@ input.type.FromOtherStepOutput=Other Step Output
 input.assetType.vipr.blockVirtualPool=Block Virtual Pool
 input.assetType.vipr.virtualArray=Virtual Array
 input.assetType.vipr.project=Project
-input.fieldType.Integer=Integer
-input.fieldType.Table=Table
-input.fieldType.Boolean=Boolean
-input.fieldType.String=String
+input.fieldType.number=Number
+input.fieldType.table=Table
+input.fieldType.boolean=Boolean
+input.fieldType.text=Text
+input.fieldType.password=Password
 

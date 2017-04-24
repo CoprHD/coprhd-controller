@@ -49,7 +49,6 @@ public class WorkflowServiceDescriptor {
     private static final Logger log = LoggerFactory.getLogger(WorkflowServiceDescriptor.class);
     private static final String INPUT_FROM_USER_INPUT_TYPE = "InputFromUser";
     private static final String ASSET_INPUT_TYPE = "AssetOption";
-    private static final String INPUT_FROM_USER_FIELD_TYPE = "text";
     private static final String CUSTOM_SERVICE_CATEGORY = "Custom Services";
 
     @PostConstruct
@@ -107,7 +106,7 @@ public class WorkflowServiceDescriptor {
                             String wfInputType = null;
                             // Creating service fields for only inputs of type "inputfromuser" and "assetoption"
                             if (INPUT_FROM_USER_INPUT_TYPE.equals(wfInput.getType())) {
-                                wfInputType = INPUT_FROM_USER_FIELD_TYPE;
+                                wfInputType = wfInput.getInputFieldType();
                             } else if (ASSET_INPUT_TYPE.equals(wfInput.getType())) {
                                 wfInputType = wfInput.getValue();
                             }

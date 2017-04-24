@@ -3287,5 +3287,14 @@ public interface BadRequestExceptions {
     public BadRequestException cannotCreateReadOnlySnapshotForNonXIOVolumes();
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
-    public BadRequestException cantUpdatePerformanceParamsInUse(final String label);     
+    public BadRequestException cantUpdatePerformanceParamsInUse(final String label);
+    
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException negativeHostIOLimitBadwidth();
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException negativeHostIOLimitIOPs();
+    
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException negativeThinVolumePreAllocationPercentage();    
 }

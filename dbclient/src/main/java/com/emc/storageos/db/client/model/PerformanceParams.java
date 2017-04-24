@@ -4,6 +4,8 @@
  */
 package com.emc.storageos.db.client.model;
 
+import com.emc.storageos.db.client.util.NullColumnValueGetter;
+
 /**
  * This column family captures array performance parameters that are deprecated from
  * the VirtualPool column family as part of the virtual pool simplification project.
@@ -67,7 +69,11 @@ public class PerformanceParams extends DataObjectWithACLs implements GeoVisibleR
     }
 
     public void setAutoTierPolicyName(final String autoTierPolicyName) {
-        this.autoTierPolicyName = autoTierPolicyName;
+        if (NullColumnValueGetter.isNullValue(autoTierPolicyName)) {
+            this.autoTierPolicyName = PerformanceParams.PP_DFLT_AUTOTIERING_POLICY_NAME;
+        } else {
+            this.autoTierPolicyName = autoTierPolicyName;
+        }
         setChanged("autoTierPolicyName");
     }
 
@@ -77,7 +83,11 @@ public class PerformanceParams extends DataObjectWithACLs implements GeoVisibleR
     }
 
     public void setCompressionEnabled(final Boolean compressionEnabled) {
-        this.compressionEnabled = compressionEnabled;
+        if (compressionEnabled == null) {
+            this.compressionEnabled = PerformanceParams.PP_DFLT_COMPRESSION_ENABLED;
+        } else {
+            this.compressionEnabled = compressionEnabled;
+        }
         setChanged("compressionEnabled");
     }
 
@@ -86,8 +96,12 @@ public class PerformanceParams extends DataObjectWithACLs implements GeoVisibleR
         return hostIOLimitBandwidth;
     }
 
-    public void setHostIOLimitBandwidth(final Integer limitHostBandwidth) {
-        this.hostIOLimitBandwidth = limitHostBandwidth == null ? null : Math.max(0, limitHostBandwidth);
+    public void setHostIOLimitBandwidth(final Integer hostIOLimitBandwidth) {
+        if (hostIOLimitBandwidth == null) {
+            this.hostIOLimitBandwidth = PerformanceParams.PP_DFLT_HOST_IO_LIMIT_BANDWIDTH;
+        } else {
+            this.hostIOLimitBandwidth = hostIOLimitBandwidth;
+        }
         setChanged("hostIOLimitBandwidth");
     }
 
@@ -96,8 +110,12 @@ public class PerformanceParams extends DataObjectWithACLs implements GeoVisibleR
         return hostIOLimitIOPs;
     }
 
-    public void setHostIOLimitIOPs(final Integer limitHostIOPs) {
-        this.hostIOLimitIOPs = limitHostIOPs == null ? null : Math.max(0, limitHostIOPs);
+    public void setHostIOLimitIOPs(final Integer hostIOLimitIOPs) {
+        if (hostIOLimitIOPs == null) {
+            this.hostIOLimitIOPs = PerformanceParams.PP_DFLT_HOST_IO_LIMIT_IOPS;
+        } else {
+            this.hostIOLimitIOPs = hostIOLimitIOPs;
+        }
         setChanged("hostIOLimitIOPs");
     }
 
@@ -107,21 +125,22 @@ public class PerformanceParams extends DataObjectWithACLs implements GeoVisibleR
     }
 
     public void setThinVolumePreAllocationPercentage(final Integer thinVolumePreAllocationPercentage) {
-        this.thinVolumePreAllocationPercentage = thinVolumePreAllocationPercentage;
+        if (thinVolumePreAllocationPercentage == null) {
+            this.thinVolumePreAllocationPercentage = PerformanceParams.PP_DFLT_THIN_VOLUME_PRE_ALLOC_PERCENTAGE;
+        } else {
+            this.thinVolumePreAllocationPercentage = thinVolumePreAllocationPercentage;
+        }
         setChanged("thinVolumePreAllocationPercentage");
     }
 
     @Name("dedupCapable")
     public Boolean getDedupCapable() {
-        if (null == dedupCapable) {
-            return false;
-        }
         return dedupCapable;
     }
 
     public void setDedupCapable(final Boolean dedupCapable) {
-        if (null == dedupCapable) {
-            this.dedupCapable = false;
+        if (dedupCapable == null) {
+            this.dedupCapable = PerformanceParams.PP_DFLT_DEDUP_CAPABLE;
         } else {
             this.dedupCapable = dedupCapable;
         }
@@ -134,7 +153,11 @@ public class PerformanceParams extends DataObjectWithACLs implements GeoVisibleR
     }
 
     public void setFastExpansion(final Boolean fastExpansion) {
-        this.fastExpansion = fastExpansion;
+        if (fastExpansion == null) {
+            this.fastExpansion = PerformanceParams.PP_DFLT_FAST_EXPANSION;
+        } else {
+            this.fastExpansion = fastExpansion;
+        }
         setChanged("fastExpansion");
     }
 

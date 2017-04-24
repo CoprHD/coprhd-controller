@@ -77,49 +77,24 @@ public class BlockPerformanceParamsService extends TaggedResource {
         
         URI performanceParamsURI = URIUtil.createId(PerformanceParams.class);
         logger.info("Creating PerformanceParams instance {} with id {}", performanceParamsName, performanceParamsURI);
-
-        // Verify performance params settings. If a value is not specified for
-        // a given parameter, then use the default value for that parameter.
-        String autoTieringPolicyName = param.getAutoTieringPolicyName();
-        if (NullColumnValueGetter.isNullValue(autoTieringPolicyName)) {
-            autoTieringPolicyName = PerformanceParams.PP_DFLT_AUTOTIERING_POLICY_NAME;
-        }
         
-        // Set the compression setting.
-        Boolean compressionEnabled = param.getCompressionEnabled();
-        if (compressionEnabled == null) {
-            compressionEnabled = PerformanceParams.PP_DFLT_COMPRESSION_ENABLED;
-        }
-        
-        // Set the host IO bandwidth limit.
+        // Verify host I/O bandwidth limit is non-negative.
         Integer hostIOLimitBandwidth = param.getHostIOLimitBandwidth();
-        if (hostIOLimitBandwidth == null) {
-            hostIOLimitBandwidth = PerformanceParams.PP_DFLT_HOST_IO_LIMIT_BANDWIDTH;
+        if ((hostIOLimitBandwidth != null) && (hostIOLimitBandwidth < 0)) {
+            throw BadRequestException.badRequests.negativeHostIOLimitBadwidth();
         }
-        
-        // Set the host IO IOPs limit.
+
+        // Verify host I/O bandwidth limit is non-negative.
         Integer hostIOLimitIOPs = param.getHostIOLimitIOPs();
-        if (hostIOLimitIOPs == null) {
-            hostIOLimitIOPs = PerformanceParams.PP_DFLT_HOST_IO_LIMIT_IOPS;
+        if ((hostIOLimitIOPs != null) && (hostIOLimitIOPs < 0)) {
+            throw BadRequestException.badRequests.negativeHostIOLimitIOPs();
         }
         
-        // Set the thin volume pre-allocation percentage.
-        Integer thinVolumePreAllocPercentage = param.getThinVolumePreAllocationPercentage();
-        if (thinVolumePreAllocPercentage == null) {
-            thinVolumePreAllocPercentage = PerformanceParams.PP_DFLT_THIN_VOLUME_PRE_ALLOC_PERCENTAGE;
-        }
-
-        // Set the deduplication setting.
-        Boolean dedupCapable = param.getDedupCapable();
-        if (dedupCapable == null) {
-            dedupCapable = PerformanceParams.PP_DFLT_DEDUP_CAPABLE;
-        }
-
-        // set the fast expansion setting.
-        Boolean fastExpansion = param.getFastExpansion();
-        if (fastExpansion == null) {
-            fastExpansion = PerformanceParams.PP_DFLT_FAST_EXPANSION;
-        }
+        // Verify host I/O bandwidth limit is non-negative.
+        Integer thinVolumePreAllocationPercentage = param.getThinVolumePreAllocationPercentage();
+        if ((thinVolumePreAllocationPercentage != null) && (thinVolumePreAllocationPercentage < 0)) {
+            throw BadRequestException.badRequests.negativeThinVolumePreAllocationPercentage();
+        }        
 
         PerformanceParams performanceParams = new PerformanceParams();
         performanceParams.setId(performanceParamsURI);
@@ -127,13 +102,13 @@ public class BlockPerformanceParamsService extends TaggedResource {
         if (NullColumnValueGetter.isNotNullValue(param.getDescription())) {
             performanceParams.setDescription(param.getDescription());
         }
-        performanceParams.setAutoTierPolicyName(autoTieringPolicyName);
-        performanceParams.setCompressionEnabled(compressionEnabled);
+        performanceParams.setAutoTierPolicyName(param.getAutoTieringPolicyName());
+        performanceParams.setCompressionEnabled(param.getCompressionEnabled());
         performanceParams.setHostIOLimitBandwidth(hostIOLimitBandwidth);
         performanceParams.setHostIOLimitIOPs(hostIOLimitIOPs);
-        performanceParams.setThinVolumePreAllocationPercentage(thinVolumePreAllocPercentage);
-        performanceParams.setDedupCapable(dedupCapable);
-        performanceParams.setFastExpansion(fastExpansion);
+        performanceParams.setThinVolumePreAllocationPercentage(param.getThinVolumePreAllocationPercentage());
+        performanceParams.setDedupCapable(param.getDedupCapable());
+        performanceParams.setFastExpansion(param.getFastExpansion());
         _dbClient.createObject(performanceParams);
         
         return BlockMapper.map(performanceParams);

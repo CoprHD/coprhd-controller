@@ -101,7 +101,7 @@ public class Volume extends BlockObject implements ProjectResource {
     private String _backingReplicationGroupInstance;
     
     // The URI of the performance parameters for the volume
-    private URI _performanceParams;
+    private URI performanceParams;
 
     // The value alignments 0-4 correspond to SMIS values. Other storage types must map to these values.
     public static enum VolumeAccessState {
@@ -1169,11 +1169,11 @@ public class Volume extends BlockObject implements ProjectResource {
 
     @Name("performanceParams")
     public URI getPerformanceParams() {
-        return _performanceParams;
+        return performanceParams;
     }
 
     public void setPerformanceParams(URI performanceParams) {
-        _performanceParams = performanceParams;
+        this.performanceParams = performanceParams;
         setChanged("performanceParams");
     }    
 }

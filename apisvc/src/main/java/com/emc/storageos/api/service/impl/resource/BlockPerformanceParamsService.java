@@ -181,8 +181,12 @@ public class BlockPerformanceParamsService extends TaggedResource {
         // Update the compression setting.
         Boolean compressionEnabled = param.getCompressionEnabled();
         if ((compressionEnabled != null) && (compressionEnabled != performanceParams.getCompressionEnabled())) {
-            performanceParams.setCompressionEnabled(compressionEnabled);
-            isUpdated = true;
+            if (!performanceParamsInUse) {
+                performanceParams.setCompressionEnabled(compressionEnabled);
+                isUpdated = true;
+            } else {
+                throw BadRequestException.badRequests.cantUpdatePerformanceParamsInUse(currentName);                
+            }
         }
         
         // Update the host I/O bandwidth limit.
@@ -241,7 +245,7 @@ public class BlockPerformanceParamsService extends TaggedResource {
             }
         }
         
-        //Update the database and return the updated instance.
+        // Update the database and return the updated instance.
         if (isUpdated) {
             _dbClient.updateObject(performanceParams);
         }

@@ -64,7 +64,6 @@ public class ObjectBuckets extends ProjectResources<BucketRestRep> implements Ta
      *            the ID of the file system to deactivate.
      * @param input
      *            the delete configuration.
-     * @brief Deactivate an Bucket
      * @return a task for monitoring the progress of the operation.
      */
     public Task<BucketRestRep> deactivate(URI id, BucketDeleteParam input) {
@@ -78,7 +77,6 @@ public class ObjectBuckets extends ProjectResources<BucketRestRep> implements Ta
      * 
      * @param input
      *            the create configuration.
-     * @brief Create an Bucket
      * @return a task for monitoring the progress of the operation.
      */
     public Task<BucketRestRep> create(BucketParam input, URI project) {
@@ -94,7 +92,6 @@ public class ObjectBuckets extends ProjectResources<BucketRestRep> implements Ta
      * 
      * @param input
      *            the create configuration.
-     * @brief Change bucket properties
      * @return a task for monitoring the progress of the operation.
      */
     public Task<BucketRestRep> update(URI id, BucketUpdateParam input) {
@@ -107,7 +104,6 @@ public class ObjectBuckets extends ProjectResources<BucketRestRep> implements Ta
      * API Call: <tt>GET /object/buckets/{id}/acl/</tt>
      * 
      * @param id is the ID of the file system.
-     * @brief Get ACLs for a bucket
      * @return the list of ACE for the given bucket.
      */
     public List<BucketACE> getBucketACL(URI id) {
@@ -123,7 +119,6 @@ public class ObjectBuckets extends ProjectResources<BucketRestRep> implements Ta
      * @param id is the ID of the Bucket.
      * @param param
      *            the update/create configuration
-     * @brief Change an Bucket ACL   
      * @return a task for monitoring the progress of the operation.
      */
 
@@ -139,7 +134,6 @@ public class ObjectBuckets extends ProjectResources<BucketRestRep> implements Ta
      * API Call: <tt>DELETE /object/buckets/{id}/acl/</tt>
      * 
      * @param id is the ID of the Bucket.
-     * @brief Delete an Bucket ACL
      * @return a task for monitoring the progress of the operation.
      */
     public Task<BucketRestRep> deleteBucketACL(URI id) {
@@ -149,7 +143,6 @@ public class ObjectBuckets extends ProjectResources<BucketRestRep> implements Ta
     /**
      * Gets the base URL for bucket: <tt>/object/buckets/{id}/acl/</tt>
      * 
-     * @brief Get an Bucket ACL URL
      * @return the Bucket ACL URL.
      */
     protected String getBucketACLUrl() {

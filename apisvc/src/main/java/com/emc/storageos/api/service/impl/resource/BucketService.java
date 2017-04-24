@@ -412,6 +412,7 @@ public class BucketService extends TaskResourceService {
      * 
      * @param id Bucket ID
      * @param param Bucket update parameter
+     * @brief Change bucket properties
      * @return Task resource representation
      * @throws InternalException if update fails
      */
@@ -478,7 +479,8 @@ public class BucketService extends TaskResourceService {
      * 
      * @param id
      * @param param
-     * @return
+     * @brief Change an Bucket ACL
+     * @return TaskResponse
      * @throws InternalException
      */
     @PUT
@@ -531,7 +533,8 @@ public class BucketService extends TaskResourceService {
      * Gets the ACL settings for bucket
      * 
      * @param id
-     * @return
+     * @brief Get ACLs for a bucket
+     * @return BucketACL
      * @throws InternalException
      */
     @GET
@@ -561,6 +564,13 @@ public class BucketService extends TaskResourceService {
         return bucketAcl;
     }
     
+    /**
+     * Delete Bucket ACL
+     * 
+     * @param id
+     * @brief Delete an ACL
+     * @return TaskResponse
+     */
     @DELETE
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/acl")

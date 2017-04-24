@@ -110,7 +110,7 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
             jstreeContainer.find( ".draggable-card" ).draggable({handle: "a",scroll: false,helper: getDraggableStepHTML,appendTo: 'body',cursorAt: { top: 8, left: -16 }});
         }).bind("rename_node.jstree clear_search.jstree search.jstree open_node.jstree", function() {
             jstreeContainer.find( ".draggable-card" ).draggable({handle: "a",scroll: false,helper: getDraggableStepHTML,appendTo: 'body',cursorAt: { top: 0, left: 0 }});
-        }).on('search.jstree', function (nodes, str, res) {
+        }).on('search.jstree', function (nodes, str) {
               if (str.nodes.length === 0) {
                   $('#jstree_demo').css("visibility", "hidden");
               }
@@ -188,7 +188,7 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
             else if($.inArray(data.node.type, primitiveNodeTypes) > -1) {
                 $http.get(routes.Primitive_edit_name({"primitiveID": data.node.id, "newName": data.text}));
             }
-            else if (workflowNodeType == data.node.type){
+            else if (workflowNodeType === data.node.type){
                 $http.get(routes.Workflow_edit_name({"id": data.node.id, "newName": data.text}));
             }
 
@@ -275,6 +275,7 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
     $scope.hoverOptionsClick = function(nodeId){
         jstreeContainer.jstree("deselect_node", $scope.selNodeId);
         jstreeContainer.jstree("select_node", nodeId);
+        event.stopPropagation();
         $("#optionsBtn").click();
     }
 
@@ -283,7 +284,7 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
         $scope.hoverNodeId = nodeId;
 
         // Do not show again for selected node
-        if (showOptions(nodeId, data.node.parent) && $scope.selNodeId != nodeId) {
+        if (showOptions(nodeId, data.node.parent) && $scope.selNodeId !== nodeId) {
             var optionsHoverHTML = `
                 <div id="treeMoreOptionsHover" class="btn-group treeMoreOptions">
                    <button id="optionsHoverBtn" type="button" class="btn btn-xs btn-default" title="Options" ng-click="hoverOptionsClick('${nodeId}');">

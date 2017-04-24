@@ -167,6 +167,7 @@ public class CustomServicesViprExecution extends ViPRExecutionTask<CustomService
 
         } catch (final InternalServerErrorException e) {
 
+            logger.warn("Exception received:{}", e);
             if (e.getServiceCode().getCode() == ServiceCode.CUSTOM_SERVICE_NOTASK.getCode()) {
                 return new CustomServicesTaskResult(responseString, responseString, response.getStatus(), null);
             }
@@ -174,7 +175,7 @@ public class CustomServicesViprExecution extends ViPRExecutionTask<CustomService
             throw InternalServerErrorException.internalServerErrors.
                     customServiceExecutionFailed("Failed to Execute REST request" + e.getMessage());
         } catch (final Exception e) {
-
+            logger.warn("Exception received:{}", e);
             throw InternalServerErrorException.internalServerErrors.
                     customServiceExecutionFailed("REST Execution Failed" + e.getMessage());
         }

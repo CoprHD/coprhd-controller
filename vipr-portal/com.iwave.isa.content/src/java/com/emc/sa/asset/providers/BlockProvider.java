@@ -269,6 +269,74 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         return options;
     }
 
+    @Asset("storageSystemType")
+    public List<AssetOption> getStorageSystemType(AssetOptionsContext ctx) {
+        ViPRCoreClient client = api(ctx);
+        Map<String,AssetOption> options = new HashMap<>();
+        List<StorageSystemRestRep> storageSystems = client.storageSystems().getAll();
+        for (StorageSystemRestRep storageSystem : storageSystems) {
+            options.putIfAbsent(storageSystem.getSystemType(),
+                    new AssetOption(storageSystem.getSystemType(),storageSystem.getSystemType().toUpperCase()));
+        }
+        return new ArrayList<AssetOption>(options.values());
+    }
+
+    @Asset("sourceStorageSystem")
+    @AssetDependencies("storageSystemType")
+    public List<AssetOption> getSourceStorageSystem(AssetOptionsContext ctx, String storageSystemType) {
+        ViPRCoreClient client = api(ctx);
+        List<AssetOption> options = Lists.newArrayList();
+        List<StorageSystemRestRep> storageSystems = client.storageSystems().getAll();
+        for (StorageSystemRestRep storageSystem : storageSystems) {
+            if(storageSystem.getSystemType() != null &&
+                    storageSystem.getSystemType().equals(storageSystemType)) {
+                options.add(new AssetOption(storageSystem.getId(), storageSystem.getName()));
+            }
+        }
+        return options;
+    }
+
+    @Asset("targetStorageSystem")
+    @AssetDependencies({"storageSystemType","sourceStorageSystem"})
+    public List<AssetOption> getTargetStorageSystem(AssetOptionsContext ctx,
+            String storageSystemType, URI sourceStorageSystemId) {
+        ViPRCoreClient client = api(ctx);
+        List<AssetOption> options = Lists.newArrayList();
+        List<StorageSystemRestRep> storageSystems = client.storageSystems().getAll();
+        for (StorageSystemRestRep storageSystem : storageSystems) {
+            if( !storageSystem.getId().equals(sourceStorageSystemId) &&
+                    (storageSystem.getSystemType() != null) &&
+                    storageSystem.getSystemType().equals(storageSystemType)) {
+                options.add(new AssetOption(storageSystem.getId(), storageSystem.getName()));
+            }
+        }
+        return options;
+    }
+
+    @Asset("sourceStoragePorts")
+    @AssetDependencies("sourceStorageSystem")
+    public List<AssetOption> getSourceStoragePorts(AssetOptionsContext ctx, URI sourceStorageSystemId) {
+        ViPRCoreClient client = api(ctx);
+        List<AssetOption> options = Lists.newArrayList();
+        List<StoragePortRestRep> storagePorts = client.storagePorts().getByStorageSystem(sourceStorageSystemId);
+        for (StoragePortRestRep storagePort : storagePorts) {
+            options.add(new AssetOption(storagePort.getId(), storagePort.getName()));
+        }
+        return options;
+    }
+
+    @Asset("targetStoragePorts")
+    @AssetDependencies("targetStorageSystem")
+    public List<AssetOption> getTargetStoragePorts(AssetOptionsContext ctx, URI targetStorageSystemId) {
+        ViPRCoreClient client = api(ctx);
+        List<AssetOption> options = Lists.newArrayList();
+        List<StoragePortRestRep> storagePorts = client.storagePorts().getByStorageSystem(targetStorageSystemId);
+        for (StoragePortRestRep storagePort : storagePorts) {
+            options.add(new AssetOption(storagePort.getId(), storagePort.getName()));
+        }
+        return options;
+    }
+    
     @Asset("blockStorageType")
     public List<AssetOption> getStorageTypes(AssetOptionsContext ctx) {
         return Lists.newArrayList(EXCLUSIVE_STORAGE_OPTION, SHARED_STORAGE_OPTION);

@@ -1,0 +1,56 @@
+{
+  baseKey:"CreateRemoteReplicationGroup.RemoteReplication",
+  serviceId:"CreateRemoteReplicationGroup",
+  fields:{
+    project:{
+      type:"assetType.vipr.project",
+      lockable: true
+    },
+    name:{
+      type:"text",
+      validation:{
+        min:2,
+        max:128
+      }
+    },
+    storageType: {
+      type:"assetType.vipr.storageSystemType",
+      lockable:true,
+      required: true
+    },
+    sourceSystem: {
+      type:"assetType.vipr.sourceStorageSystem",
+      lockable:true,
+      required: true
+    },
+    targetSystem: {
+      type:"assetType.vipr.targetStorageSystem",
+      lockable:true,
+      required: true
+    },
+    sourcePorts: {
+      type:"assetType.vipr.sourceStoragePorts",
+      lockable: false,
+      required: true,
+      select:"many"
+    },
+    targetPorts: {
+      type:"assetType.vipr.targetStoragePorts",
+      lockable: false,
+      required: true,
+      select:"many"
+    },
+    enforceGroupConsistency: {
+      type: "boolean",
+      initialValue: "false",
+      lockable: true
+    },   
+    remoteReplicationMode: {
+      type:"text",
+      initialValue: "asynchronous"
+    },
+    remoteReplicationState: {
+      type:"text"
+    }
+  }
+}

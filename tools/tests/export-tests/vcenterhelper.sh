@@ -1,19 +1,15 @@
 #!/bin/sh
 #
-# Copyright (c) 2016 EMC Corporation
+# Copyright (c) 2017 EMC Corporation
 # All Rights Reserved
 #
 
 # 
-# Script to help manage storage system outside of ViPR.
+# Script to help manage vcenter outside of ViPR.
 # Used to perform various operations.
 #
-# Usage: ./vplexhelper.sh verify_export <NAME_PATTERN> <NUMBER_OF_INITIATORS_EXPECTED> <NUMBER_OF_LUNS_EXPECTED>
-#        ./vplexhelper.sh add_volume_to_mask <DEVICE_ID> <NAME_PATTERN>
-#        ./vplexhelper.sh remove_volume_from_mask <DEVICE_ID> <NAME_PATTERN>
-#        ./vplexhelper.sh delete_volume <DEVICE_ID>
-#        ./vplexhelper.sh add_initiator_to_mask <PWWN> <NAME_PATTERN>
-#        ./vplexhelper.sh remove_initiator_from_mask <PWWN> <NAME_PATTERN>
+# Usage: ./vcenterhelper.sh verify_datastore <DATACENTER> <DATASTORE> [verify the datastore exists]
+#        ./vcenterhelper.sh verify_datastore <DATACENTER> <DATASTORE> gone [verify the datastore does not exist]
 #
 #set -x
 

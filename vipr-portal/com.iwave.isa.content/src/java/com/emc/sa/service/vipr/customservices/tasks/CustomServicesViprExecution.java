@@ -224,88 +224,85 @@ public class CustomServicesViprExecution extends ViPRExecutionTask<CustomService
      */
     private String makePostBody(final String body, final int pos) {
 
-        logger.info("make body for" + body);
-        String[] strs = body.split(":");
-        for (int i = 0; i < strs.length; i++) {
-            //System.out.println("val:"+strs[i]);
-        }
+        logger.debug("make body for" + body);
+        final String[] strs = body.split(":");
 
         for (int j = 0; j < strs.length; j++) {
-            if (!strs[j].contains("[") && !strs[j].contains("{")) {
-                logger.info("doesn't contain" + strs[j]);
-                Matcher m = Pattern.compile("\\$(\\w+)").matcher(strs[j]);
-                while (m.find()) {
-                    String pat = m.group(0);
-                    String vals = input.get(m.group(1)).get(pos);
-                    logger.info("new pat" + pat);
-                    strs[j] = strs[j].replace(pat, vals);
+            //Single, Array type parameter
+            if ((!strs[j].contains("[") && !strs[j].contains("{")) ||
+                    (strs[j].contains("[") && !strs[j].contains("{")) ) {
+                strs[j] = findReplace(strs[j], pos);
 
-                    logger.info("replaced new pat" + strs[j]);
-                }
                 continue;
             }
 
-            if (strs[j].contains("[") && !strs[j].contains("{")) {
-                logger.info("Array type" + strs[j]);
-                Matcher m = Pattern.compile("\\$(\\w+)").matcher(strs[j]);
-                while (m.find()) {
-                    //System.out.println("pat" + m.group(1) + m.group(0));
-                    String pat = m.group(0);
-                    logger.info("new pat" + pat);
-                    String p = m.group(1);
-                    logger.info("group1:" + p + "val" + input.get(p));
-
-                    String vals = input.get(m.group(1)).get(pos);
-                    strs[j] = strs[j].replace(pat, vals);
-                    logger.info("replaced new pat" + strs[j]);
-                }
-                continue;
-            }
-
+            //Complex Object type
             if (strs[j].contains("[{")) {
                 int start = j;
-                String t1 = strs[j].split("\\[")[1];
-                String first = strs[j].split("\\[")[0];
+                String secondPart = strs[j].split("\\[")[1];
+                final String firstPart = strs[j].split("\\[")[0];
                 j++;
-                boolean doOnce = false;
-                List<String> vals = new ArrayList<String>();
+                List<String> vals = null;
                 while (!strs[j].contains("}]")) {
-                    if (!doOnce) {
+                    //Get the number of Objects in array type
+                    if (vals == null) {
                         Matcher m = Pattern.compile("\\$(\\w+)").matcher(strs[j]);
                         while (m.find()) {
-
                             vals = input.get(m.group(1));
-                            doOnce = true;
                         }
                     }
-                    t1 = t1 + ":" + strs[j];
+                    secondPart = secondPart + ":" + strs[j];
                     j++;
                 }
-                t1 = t1 + ":" + strs[j].split("\\]")[0];
+                secondPart = secondPart + ":" + strs[j].split("\\]")[0];
                 String end = strs[j].split("\\]")[1];
                 int last = j;
-                logger.info("recur:" + t1);
+
                 String get = "";
+                if (vals == null) {
+                    logger.error("Cannot Build ViPR Request body");
+                    throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed("Cannot Build ViPR Request body");
+                }
                 for (int k = 0; k < vals.size(); k++) {
-                    get = get + makePostBody(t1, k) + ",";
+                    // Recur for number of Objects
+                    get = get + makePostBody(secondPart, k) + ",";
                 }
                 get = get.replaceAll(",$", "");
-                strs[start] = first + "[" + get + "]" + end;
+                strs[start] = firstPart + "[" + get + "]" + end;
+
+                //Combine all the Objects
                 while (start + 1 <= last) {
                     strs[++start] = "";
                 }
             }
-
         }
-        String joinedstr = strs[0];
+        String joinedStr = strs[0];
         for (int i = 1; i < strs.length; i++) {
             if (!strs[i].isEmpty()) {
-                joinedstr = joinedstr + ":" + strs[i];
+                joinedStr = joinedStr + ":" + strs[i];
             }
         }
 
-        logger.info("New String" + joinedstr);
-        return joinedstr;
+        logger.info("ViPR Request body" + joinedStr);
+        return joinedStr;
+    }
+
+    private String findReplace(final String str, final int pos) {
+        final Matcher m = Pattern.compile("\\$(\\w+)").matcher(str);
+        while (m.find()) {
+            final String pat = m.group(0);
+            final String pat1 = m.group(1);
+
+            final List<String> val = input.get(pat1);
+            String vals = "\" \"";
+            if (val != null) {
+                vals = val.get(pos);
+            }
+
+            return str.replace(pat, vals);
+        }
+
+        return "";
     }
 }
 

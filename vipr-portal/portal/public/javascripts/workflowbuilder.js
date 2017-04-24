@@ -831,12 +831,10 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
         $scope.workflowData = {};
     }
 
-    $scope.activePage = 0;
     $scope.menuOpen = false;
 
     $scope.openPage = function(pageId){
         $scope.menuOpen = true;
-        $scope.activePage = pageId;
     }
 
     $scope.toggleMenu = function(){

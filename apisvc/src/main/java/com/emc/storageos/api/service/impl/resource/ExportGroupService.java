@@ -3162,6 +3162,13 @@ public class ExportGroupService extends TaskResourceService {
         
         // Get the initiators and validate the ExportMasks are usable.
         ExportPathsAdjustmentPreviewRestRep response = new ExportPathsAdjustmentPreviewRestRep();
+        String storageSystem = system.getNativeGuid();
+        if (Type.vplex.equals(Type.valueOf(system.getSystemType()))) {
+            String vplexCluster = ConnectivityUtil.getVplexClusterForVarray(varray, system.getId(), _dbClient);
+            storageSystem = storageSystem + "-Cluster-" + vplexCluster;
+        }
+        response.setStorageSystem(storageSystem);
+        
         List<Initiator> initiators = getInitiators(exportGroup);
         StringSetMap existingPathMap = new StringSetMap();
         validatePathAdjustment(exportGroup, initiators, system, varray, param.getHosts(), response, existingPathMap,

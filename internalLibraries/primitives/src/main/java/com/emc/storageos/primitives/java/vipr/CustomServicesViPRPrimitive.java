@@ -73,5 +73,7 @@ public abstract class CustomServicesViPRPrimitive extends CustomServicesPrimitiv
     public abstract String method();
 
     public abstract String body();
+    
+    public abstract String response();
 
 }

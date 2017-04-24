@@ -263,6 +263,7 @@ public class BucketService extends TaskResourceService {
      * Get info for Bucket
      * 
      * @param id the URN of a ViPR Bucket
+     * @brief Show details for a specified bucket  
      * @return Bucket details
      */
     @GET

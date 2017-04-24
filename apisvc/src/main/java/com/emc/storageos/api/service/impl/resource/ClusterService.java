@@ -490,6 +490,7 @@ public class ClusterService extends TaskResourceService {
      * Gets the UnManagedVolumes exposed to a Cluster.
      *
      * @param id the URI of a ViPR Cluster
+     * @brief List unmanaged volumes exposed to a cluster
      * @return a list of UnManagedVolumes exposed to this host
      * @throws DatabaseException when a database error occurs
      */
@@ -518,6 +519,7 @@ public class ClusterService extends TaskResourceService {
      * Gets the UnManagedExportMasks found for a Cluster.
      *
      * @param id the URI of a ViPR Cluster
+     * @brief List unmanaged export masks for a cluster
      * @return a list of UnManagedExportMasks found for the Cluster
      * @throws DatabaseException when a database error occurs
      */
@@ -590,6 +592,7 @@ public class ClusterService extends TaskResourceService {
      *            field because, objects for which this field is null will not be returned by
      *            this function.
      *
+     * @brief List Vblock hosts for a cluster
      * @return a list of children of tenant for the given class
      */
     private <T extends DataObject> List<NamedElementQueryResultList.NamedElement> getVblockHostsFromCluster(URI id) {

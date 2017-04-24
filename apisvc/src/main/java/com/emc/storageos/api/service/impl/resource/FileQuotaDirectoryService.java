@@ -329,11 +329,10 @@ public class FileQuotaDirectoryService extends TaskResourceService {
      *            the URN of the QuotaDirectory
      * @param param
      *            QuotaDirectory delete param for optional force delete
-     * @brief Delete file system Quota Dir
+     * @brief Delete file system Quota directory
      * @return Task resource representation
      * @throws com.emc.storageos.svcs.errorhandling.resources.InternalException
      */
-
     @POST
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })

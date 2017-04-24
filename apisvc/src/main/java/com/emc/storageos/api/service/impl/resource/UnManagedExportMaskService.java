@@ -69,6 +69,7 @@ public class UnManagedExportMaskService extends TaggedResource {
      * Show the details of an UnManagedExportMask.
      * 
      * @param id the URN of a ViPR UnManagedExportMask
+     * @brief Show details for an unmanaged export mask
      * @return UnManagedExportMaskRestRep
      */
     @GET

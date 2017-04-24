@@ -362,7 +362,7 @@ public class HostService extends TaskResourceService {
      *
      * @param id the URN of host
      * @param hostUpdateParam
-     *
+     * @brief Updates the hosts boot volume
      * @return the task.
      */
     @PUT
@@ -456,6 +456,7 @@ public class HostService extends TaskResourceService {
      *
      * @param param
      *            ArrayAffinityHostParam
+     * @brief Show array affinity information for specified hosts
      * @return the task list
      */
     @POST
@@ -1333,6 +1334,7 @@ public class HostService extends TaskResourceService {
      *
      * @param id
      *            the URI of a ViPR Host
+     * @brief List unmanaged volumes exposed to a host
      * @return a list of UnManagedVolumes exposed to this host
      * @throws DatabaseException
      *             when a database error occurs
@@ -1363,6 +1365,7 @@ public class HostService extends TaskResourceService {
      *
      * @param id
      *            the URI of a ViPR Host
+     * @brief List unmanaged export masks for a host
      * @return a list of UnManagedExportMasks found for the Host
      * @throws DatabaseException
      *             when a database error occurs

@@ -585,6 +585,8 @@ public class BlockSnapshotService extends TaskResourceService {
     }
 
     /**
+     * Start Snapshot
+     * 
      * Generates a group synchronized between volume Replication group
      * and snapshot Replication group.
      * 
@@ -593,6 +595,7 @@ public class BlockSnapshotService extends TaskResourceService {
      * 
      * @param id [required] - the URN of a ViPR block snapshot
      * 
+     * @brief Start a previously defined snapshot session 
      * @return TaskList
      */
     @POST
@@ -707,7 +710,7 @@ public class BlockSnapshotService extends TaskResourceService {
      * 
      * @prereq none
      * @param param POST data containing the id list.
-     * @brief List data of block snapshot resources
+     * @brief Get details for requested block snapshot
      * @return list of representations.
      */
     @POST

@@ -391,6 +391,18 @@ public class FileSnapshotService extends TaskResourceService {
         return fileExportListResponse;
     }
 
+    /**
+     * Get Snapshot Export Rules
+     * 
+     * @param id
+     *            the URN of a file system
+     * @param allDirs
+     *            All Dirs within a file system
+     * @param subDir
+     *            sub-directory within a file system
+     * @brief List the export rules for a snapshot
+     * @return ExportRules
+     */
     @GET
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/export")
@@ -528,6 +540,14 @@ public class FileSnapshotService extends TaskResourceService {
         return toTask(snap, task, op);
     }
 
+    /**
+     * Delete Snapshot Export Rules
+     * 
+     * @param id
+     *            the URN of a ViPR file system
+     * @brief Delete an export rule
+     * @return TaskResponse
+     */
     @DELETE
     @Path("/{id}/export")
     @CheckPermission(roles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, acls = { ACL.ANY })
@@ -811,6 +831,7 @@ public class FileSnapshotService extends TaskResourceService {
      *            name of the share
      * @param param
      *            request payload object of type <code>com.emc.storageos.model.file.CifsShareACLUpdateParams</code>
+     * @brief Change a snapshot share ACL  
      * @return TaskResponse
      * @throws InternalException
      */
@@ -872,6 +893,16 @@ public class FileSnapshotService extends TaskResourceService {
         return toTask(snapshot, task, op);
     }
 
+    /**
+     * Get Snapshot Share ACLs
+     * 
+     * @param id
+     *            the file system URI
+     * @param shareName
+     *            name of the share
+     * @brief List snapshot share ACLs 
+     * @return
+     */
     @GET
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/shares/{shareName}/acl")
@@ -906,6 +937,16 @@ public class FileSnapshotService extends TaskResourceService {
 
     }
 
+    /**
+     * Delete Snapshot Share ACL
+     * 
+     * @param id
+     *            the file system URI
+     * @param shareName
+     *            name of the share
+     * @brief Delete a snapshot ACL  
+     * @return TaskResponse
+     */
     @DELETE
     @Path("/{id}/shares/{shareName}/acl")
     @CheckPermission(roles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, acls = { ACL.ANY })

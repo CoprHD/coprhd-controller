@@ -2103,7 +2103,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
      * @param id the URI of a BlockConsistencyGroup
      * @param param Copy to swap
      *
-     * @brief reversing roles of source and target
+     * @brief Reverse roles of source and target
      * @return TaskList
      *
      * @throws ControllerException
@@ -2280,7 +2280,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
      * @param id the URI of the BlockConsistencyGroup.
      * @param param Copy to fail back
      *
-     * @brief fail back to source again
+     * @brief Cancel a failover and return to source
      * @return TaskList
      *
      * @throws ControllerException

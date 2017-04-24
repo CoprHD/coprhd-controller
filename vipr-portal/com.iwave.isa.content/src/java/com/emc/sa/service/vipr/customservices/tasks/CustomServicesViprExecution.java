@@ -85,7 +85,7 @@ public class CustomServicesViprExecution extends ViPRExecutionTask<CustomService
         final String method = primitive.method();
 
         if (CustomServicesConstants.BODY_REST_METHOD.contains(method) && !body.isEmpty()) {
-            requestBody = makePostBody(body);
+            requestBody = makePostBody(body, 0);
         } else {
             requestBody = "";
         }
@@ -222,22 +222,90 @@ public class CustomServicesViprExecution extends ViPRExecutionTask<CustomService
      * @param body
      * @return
      */
-    private String makePostBody(String body) {
+    private String makePostBody(final String body, final int pos) {
 
-        Matcher m = Pattern.compile("\\$(\\w+)").matcher(body);
-
-        while (m.find()) {
-            String pat = m.group(1);
-            String newpat = "$" + pat;
-		if (input.get(pat) == null || input.get(pat).get(0) == null) {
-			logger.info("input.get(pat) is null for pat:{}", pat);
-			body = body.replace(newpat, "\"" +" "+"\"");
-		} else {
-            		body = body.replace(newpat, "\"" +input.get(pat).get(0).replace("\"","")+"\"");
-		}
+        logger.info("make body for" + body);
+        String[] strs = body.split(":");
+        for (int i = 0; i < strs.length; i++) {
+            //System.out.println("val:"+strs[i]);
         }
 
-        return body;
+        for (int j = 0; j < strs.length; j++) {
+            if (!strs[j].contains("[") && !strs[j].contains("{")) {
+                logger.info("doesn't contain" + strs[j]);
+                Matcher m = Pattern.compile("\\$(\\w+)").matcher(strs[j]);
+                while (m.find()) {
+                    String pat = m.group(0);
+                    String vals = input.get(m.group(1)).get(pos);
+                    logger.info("new pat" + pat);
+                    strs[j] = strs[j].replace(pat, vals);
+
+                    logger.info("replaced new pat" + strs[j]);
+                }
+                continue;
+            }
+
+            if (strs[j].contains("[") && !strs[j].contains("{")) {
+                logger.info("Array type" + strs[j]);
+                Matcher m = Pattern.compile("\\$(\\w+)").matcher(strs[j]);
+                while (m.find()) {
+                    //System.out.println("pat" + m.group(1) + m.group(0));
+                    String pat = m.group(0);
+                    logger.info("new pat" + pat);
+                    String p = m.group(1);
+                    logger.info("group1:" + p + "val" + input.get(p));
+
+                    String vals = input.get(m.group(1)).get(pos);
+                    strs[j] = strs[j].replace(pat, vals);
+                    logger.info("replaced new pat" + strs[j]);
+                }
+                continue;
+            }
+
+            if (strs[j].contains("[{")) {
+                int start = j;
+                String t1 = strs[j].split("\\[")[1];
+                String first = strs[j].split("\\[")[0];
+                j++;
+                boolean doOnce = false;
+                List<String> vals = new ArrayList<String>();
+                while (!strs[j].contains("}]")) {
+                    if (!doOnce) {
+                        Matcher m = Pattern.compile("\\$(\\w+)").matcher(strs[j]);
+                        while (m.find()) {
+
+                            vals = input.get(m.group(1));
+                            doOnce = true;
+                        }
+                    }
+                    t1 = t1 + ":" + strs[j];
+                    j++;
+                }
+                t1 = t1 + ":" + strs[j].split("\\]")[0];
+                String end = strs[j].split("\\]")[1];
+                int last = j;
+                logger.info("recur:" + t1);
+                String get = "";
+                for (int k = 0; k < vals.size(); k++) {
+                    get = get + makePostBody(t1, k) + ",";
+                }
+                get = get.replaceAll(",$", "");
+                strs[start] = first + "[" + get + "]" + end;
+                while (start + 1 <= last) {
+                    strs[++start] = "";
+                }
+            }
+
+        }
+        String joinedstr = strs[0];
+        for (int i = 1; i < strs.length; i++) {
+            if (!strs[i].isEmpty()) {
+                joinedstr = joinedstr + ":" + strs[i];
+            }
+        }
+
+        logger.info("New String" + joinedstr);
+        return joinedstr;
     }
 }
 

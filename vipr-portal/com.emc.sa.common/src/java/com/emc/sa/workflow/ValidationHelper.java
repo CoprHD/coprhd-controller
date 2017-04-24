@@ -218,9 +218,8 @@ public class ValidationHelper {
         final Set<String> uniqueInputNames = new HashSet<>();
         for (final Input input : stepInputList) {
             final CustomServicesValidationResponse.ErrorInput errorInput = new CustomServicesValidationResponse.ErrorInput();
-            if (!(input.getType().equals(CustomServicesConstants.InputType.FROM_STEP_INPUT.toString())
-                    || input.getType().equals(CustomServicesConstants.InputType.FROM_STEP_OUTPUT.toString())
-                    || input.getType().equals(CustomServicesConstants.InputType.HARDCODEDVALUE.toString()))) {
+            if (StringUtils.isNotBlank(input.getType()) && !(input.getType().equals(CustomServicesConstants.InputType.FROM_STEP_INPUT.toString())
+                    || input.getType().equals(CustomServicesConstants.InputType.FROM_STEP_OUTPUT.toString()))) {
                 // Enforce uniqueness only for those input that will be displayed in the order page and need user input/ selection.
                 if (StringUtils.isBlank(input.getFriendlyName())) {
                     errorInput.setName(input.getName());

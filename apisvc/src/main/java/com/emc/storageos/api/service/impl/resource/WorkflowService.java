@@ -94,8 +94,8 @@ public class WorkflowService extends TaskResourceService {
             // A user that has one of the system roles can see any workflow.
             // Otherwise, the workflow must have the same tenant as the user.
             Workflow workflow = workflowIter.next();
-            if (!userHasRoles(Role.SYSTEM_ADMIN.name(), Role.RESTRICTED_SYSTEM_ADMIN.name(), Role.SYSTEM_MONITOR.name())) {
-                // User must be tenant admin so only return workflows for that tenant.
+            if (userIsOnlyTenantAdmin()) {
+                // User is only tenant admin so only return workflows for that tenant.
                 if (!isTopLevelWorkflowForUserTenant(getTopLevelWorkflow(workflow))) {
                     continue;
                 }
@@ -124,8 +124,8 @@ public class WorkflowService extends TaskResourceService {
             // A user that has one of the system roles can see any workflow.
             // Otherwise, the workflow must have the same tenant as the user.
             Workflow workflow = workflowIter.next();
-            if (!userHasRoles(Role.SYSTEM_ADMIN.name(), Role.RESTRICTED_SYSTEM_ADMIN.name(), Role.SYSTEM_MONITOR.name())) {
-                // User must be tenant admin so only return workflows for that tenant.
+            if (userIsOnlyTenantAdmin()) {
+                // User is only tenant admin so only return workflows for that tenant.
                 if (!isTopLevelWorkflowForUserTenant(getTopLevelWorkflow(workflow))) {
                     continue;
                 }
@@ -156,8 +156,8 @@ public class WorkflowService extends TaskResourceService {
             // A user that has one of the system roles can see any workflow.
             // Otherwise, the workflow must have the same tenant as the user.
             Workflow workflow = workflowIter.next();
-            if (!userHasRoles(Role.SYSTEM_ADMIN.name(), Role.RESTRICTED_SYSTEM_ADMIN.name(), Role.SYSTEM_MONITOR.name())) {
-                // User must be tenant admin so only return workflows for that tenant.
+            if (userIsOnlyTenantAdmin()) {
+                // User is only tenant admin so only return workflows for that tenant.
                 if (!isTopLevelWorkflowForUserTenant(getTopLevelWorkflow(workflow))) {
                     continue;
                 }
@@ -194,8 +194,8 @@ public class WorkflowService extends TaskResourceService {
             // A user that has one of the system roles can see any workflow.
             // Otherwise, the workflow must have the same tenant as the user.
             Workflow workflow = workflowIter.next();
-            if (!userHasRoles(Role.SYSTEM_ADMIN.name(), Role.RESTRICTED_SYSTEM_ADMIN.name(), Role.SYSTEM_MONITOR.name())) {
-                // User must be tenant admin so only return workflows for that tenant.
+            if (userIsOnlyTenantAdmin()) {
+                // User is only tenant admin so only return workflows for that tenant.
                 if (!isTopLevelWorkflowForUserTenant(getTopLevelWorkflow(workflow))) {
                     continue;
                 }
@@ -223,8 +223,8 @@ public class WorkflowService extends TaskResourceService {
     public WorkflowRestRep getWorkflow(@PathParam("id") URI id) {
         ArgValidator.checkFieldUriType(id, Workflow.class, "id");
         Workflow workflow = queryResource(id);
-        if (!userHasRoles(Role.SYSTEM_ADMIN.name(), Role.RESTRICTED_SYSTEM_ADMIN.name(), Role.SYSTEM_MONITOR.name())) {
-            // User must be tenant admin so only return workflows for that tenant.
+        if (userIsOnlyTenantAdmin()) {
+            // User is only tenant admin so only return workflows for that tenant.
             if (!isTopLevelWorkflowForUserTenant(getTopLevelWorkflow(workflow))) {
                 throw APIException.badRequests.userNotAuthorizedForWorkflow();
             }
@@ -247,8 +247,8 @@ public class WorkflowService extends TaskResourceService {
     public StepList getStepList(@PathParam("id") URI id) {
         ArgValidator.checkFieldUriType(id, Workflow.class, "id");
         Workflow workflow = queryResource(id);
-        if (!userHasRoles(Role.SYSTEM_ADMIN.name(), Role.RESTRICTED_SYSTEM_ADMIN.name(), Role.SYSTEM_MONITOR.name())) {
-            // User must be tenant admin so only return steps for workflows for that tenant.
+        if (userIsOnlyTenantAdmin()) {
+            // User is only tenant admin so only return steps for workflows for that tenant.
             if (!isTopLevelWorkflowForUserTenant(getTopLevelWorkflow(workflow))) {
                 throw APIException.badRequests.userNotAuthorizedForWorkflow();
             }
@@ -283,8 +283,8 @@ public class WorkflowService extends TaskResourceService {
         WorkflowStep step = _dbClient.queryObject(WorkflowStep.class, stepId);
         ArgValidator.checkEntityNotNull(step, stepId, isIdEmbeddedInURL(stepId));
         Workflow workflow = queryResource(step.getWorkflowId());
-        if (!userHasRoles(Role.SYSTEM_ADMIN.name(), Role.RESTRICTED_SYSTEM_ADMIN.name(), Role.SYSTEM_MONITOR.name())) {
-            // User must be tenant admin so only return workflow steps for that tenant.
+        if (userIsOnlyTenantAdmin()) {
+            // User is only tenant admin so only return workflow steps for that tenant.
             if (!isTopLevelWorkflowForUserTenant(getTopLevelWorkflow(workflow))) {
                 throw APIException.badRequests.userNotAuthorizedForWorkflowStep();
             }
@@ -307,8 +307,8 @@ public class WorkflowService extends TaskResourceService {
             Role.SYSTEM_MONITOR, Role.TENANT_ADMIN })
     public TaskResourceRep rollbackWorkflow(@PathParam("id") URI uri) {
     	Workflow workflow = queryResource(uri);
-        if (!userHasRoles(Role.SYSTEM_ADMIN.name(), Role.RESTRICTED_SYSTEM_ADMIN.name(), Role.SYSTEM_MONITOR.name())) {
-            // User must be tenant admin so only allow rollback on workflows for that tenant.
+        if (userIsOnlyTenantAdmin()) {
+            // User is only tenant admin so only allow rollback on workflows for that tenant.
             if (!isTopLevelWorkflowForUserTenant(getTopLevelWorkflow(workflow))) {
                 throw APIException.badRequests.userNotAuthorizedForWorkflow();
             }
@@ -335,8 +335,8 @@ public class WorkflowService extends TaskResourceService {
             Role.SYSTEM_MONITOR, Role.TENANT_ADMIN })
     public TaskResourceRep resumeWorkflow(@PathParam("id") URI uri) {
     	Workflow workflow = queryResource(uri);
-        if (!userHasRoles(Role.SYSTEM_ADMIN.name(), Role.RESTRICTED_SYSTEM_ADMIN.name(), Role.SYSTEM_MONITOR.name())) {
-            // User must be tenant admin so only allow rollback on workflows for that tenant.
+        if (userIsOnlyTenantAdmin()) {
+            // User is only tenant admin so only allow resume on workflows for that tenant.
             if (!isTopLevelWorkflowForUserTenant(getTopLevelWorkflow(workflow))) {
                 throw APIException.badRequests.userNotAuthorizedForWorkflow();
             }
@@ -389,8 +389,8 @@ public class WorkflowService extends TaskResourceService {
             Role.SYSTEM_MONITOR, Role.TENANT_ADMIN })
     public Response suspendWorkflowStep(@PathParam("id") URI uri, @PathParam("stepId") URI stepURI) {
         Workflow workflow = queryResource(uri);
-        if (!userHasRoles(Role.SYSTEM_ADMIN.name(), Role.RESTRICTED_SYSTEM_ADMIN.name(), Role.SYSTEM_MONITOR.name())) {
-            // User must be tenant admin so only allow rollback on workflows for that tenant.
+        if (userIsOnlyTenantAdmin()) {
+            // User is only tenant admin so only allow rollback on workflows for that tenant.
             if (!isTopLevelWorkflowForUserTenant(getTopLevelWorkflow(workflow))) {
                 throw APIException.badRequests.userNotAuthorizedForWorkflow();
             }
@@ -432,7 +432,7 @@ public class WorkflowService extends TaskResourceService {
     /**
      * Convenience method for initializing a task object with a status
      * 
-     * @paramworkflow export group 
+     * @param workflow export group 
      * @param task task ID
      * @param status status to initialize with
      * @param opType operation type
@@ -459,6 +459,16 @@ public class WorkflowService extends TaskResourceService {
 	@Override
 	protected ResourceTypeEnum getResourceType() {
 		return ResourceTypeEnum.WORKFLOW;
+	}
+	
+	/**
+	 * Determines if the user only has tenant admin roles, which is the case
+	 * if it does not have any of the system level roles allowed by the service.
+	 * 
+	 * @return true if user had tenant admin role, but none of the supported system roles, otherwise false.
+	 */
+	private boolean userIsOnlyTenantAdmin() {
+	    return !userHasRoles(Role.SYSTEM_ADMIN.name(), Role.RESTRICTED_SYSTEM_ADMIN.name(), Role.SYSTEM_MONITOR.name());
 	}
 
 	/**
@@ -501,14 +511,16 @@ public class WorkflowService extends TaskResourceService {
      */
     private Workflow getParentWorkflow(Workflow workflow) {
         Workflow parentWorkflow = null;
-        List<WorkflowStep> wfSteps = CustomQueryUtility.queryActiveResourcesByConstraint(
-                _dbClient, WorkflowStep.class, AlternateIdConstraint.Factory.getWorkflowStepByStepId(workflow.getOrchTaskId()));
-        if (!wfSteps.isEmpty()) {
-            // There should only be a single workflow step that has a step id that is equal
-            // to the orchestration task id for a workflow. The workflow for that step is
-            // the parent workflow for the passed workflow.
-            URI parentWorkflowURI = wfSteps.get(0).getWorkflowId();
-            parentWorkflow = queryResource(parentWorkflowURI);
+        if (workflow != null) {
+            List<WorkflowStep> wfSteps = CustomQueryUtility.queryActiveResourcesByConstraint(
+                    _dbClient, WorkflowStep.class, AlternateIdConstraint.Factory.getWorkflowStepByStepId(workflow.getOrchTaskId()));
+            if (!wfSteps.isEmpty()) {
+                // There should only be a single workflow step that has a step id that is equal
+                // to the orchestration task id for a workflow. The workflow for that step is
+                // the parent workflow for the passed workflow.
+                URI parentWorkflowURI = wfSteps.get(0).getWorkflowId();
+                parentWorkflow = queryResource(parentWorkflowURI);
+            }
         }
         
         return parentWorkflow;
@@ -548,7 +560,7 @@ public class WorkflowService extends TaskResourceService {
                 }
             }
         } else {
-            throw APIException.internalServerErrors.canFindTaskForWorkflow(
+            throw APIException.internalServerErrors.cannotFindTaskForWorkflow(
                     topLevelWorkflow.getLabel(), topLevelWorkflow.getId().toString(), wfOrchTaskId);
         }
         

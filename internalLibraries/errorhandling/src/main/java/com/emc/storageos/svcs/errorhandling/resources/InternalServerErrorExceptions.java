@@ -395,5 +395,5 @@ public interface InternalServerErrorExceptions {
     public InternalServerErrorException upgradeDriverFailed(String errMsg);
     
     @DeclareServiceCode(ServiceCode.UNFORSEEN_ERROR)
-    public InternalServerErrorException canFindTaskForWorkflow(String wfLabel, String wfId, String orchTaskId);
+    public InternalServerErrorException cannotFindTaskForWorkflow(String wfLabel, String wfId, String orchTaskId);
 }

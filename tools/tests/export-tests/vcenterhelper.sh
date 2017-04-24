@@ -31,14 +31,14 @@ verify_datastore() {
     foundIt=$?
     if [ -s $TMPFILE1 ]; then
         if [ $foundIt -ne 0 ]; then
-            if [ "$2" = "gone" ]; then
+            if [ "$3" = "gone" ]; then
                 echo "PASSED: Verified Datastore with pattern ${DATASTORE} doesn't exists."
                 exit 0;
             fi
             echo -e "\e[91mERROR\e[0m: Expected Datastore ${DATASTORE}, but could not find it"
             exit 1;
         else
-            if [ "$2" = "gone" ]; then
+            if [ "$3" = "gone" ]; then
                 echo -e "\e[91mERROR\e[0m: Expected Datastore ${DATASTORE} to be gone, but it was found"
                 exit 1;
             fi
@@ -59,7 +59,7 @@ tools_jar="${DIR}/ArrayTools.jar"
 
 if [ "$1" = "verify_datastore" ]; then
     shift
-    verify_datastore $1 $2 $*
+    verify_datastore $1 $2 $3
 else
     echo "Usage: $0 [verify_datastore] {params}"
 fi

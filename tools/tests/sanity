@@ -6859,6 +6859,7 @@ sbsdk_setup()
                      --expandable false 
     run cos allow $SBSDK_DRIVER_SYS_VPOOL_NAME block $TENANT
     run cos update block $SBSDK_DRIVER_SYS_VPOOL_NAME --storage $SBSDK_DRIVER_SYS_NATIVEGUID
+    run cos update block $SBSDK_DRIVER_SYS_VPOOL_NAME --use_matched false
 
     echo "***** Completed setup for SB SDK sanity tests *****"
 }
@@ -7502,12 +7503,18 @@ vmaxblock_setup_once()
     # do this only once
     smisprovider show $VMAX_SMIS_DEV &> /dev/null && return $?
 
-    # If this is using the simulator, the vnxblock already took care of the SMIS provider 
     if [ $QUICK -eq 0 ]; then
        run smisprovider create $VMAX_SMIS_DEV $VMAX_SMIS_IP $VMAX_SMIS_PORT $SMIS_USER "$SMIS_PASSWD" $VMAX_SMIS_SSL
        if [ $VMAX3_COMPRESSION -eq 1 ]; then
        	  run smisprovider create $VMAX3_SMIS_AFA_DEV $VMAX3_SMIS_AFA_IP $VMAX_SMIS_PORT $SMIS_USER "$SMIS_PASSWD" $VMAX_SMIS_SSL 
        fi
+    else
+	if [ "$SIMULATOR_VMAX_SMIS_PORT" = "" ]; then
+	    # This can be removed in the skywalker release
+	    echo "Update your sanity.conf to the latest version and rerun, please."
+	    exit -1
+	fi
+       run smisprovider create $VMAX_SMIS_DEV $SIMULATOR_SMIS_IP $SIMULATOR_VMAX_SMIS_PORT $SMIS_USER "$SMIS_PASSWD" false
     fi
 
     run storagedevice discover_all --ignore_error

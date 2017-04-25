@@ -365,6 +365,7 @@ public class NetworkScheduler {
                 networkFabricInfo.getEndPoints().addAll(endPoints);
                 networkFabricInfo.setAltNetworkDeviceId(URI.create(altNetworkSystem.getId().toString()));
                 networkFabricInfo.setExportGroup(exportGroupUri);
+                networkFabricInfo.setCanBeRolledBack(true);
                 nameZone(networkFabricInfo, networkSystem.getSystemType(), hostName, initiatorPort, storagePort, !portNet.equals(iniNet));
             } 
             return networkFabricInfo;

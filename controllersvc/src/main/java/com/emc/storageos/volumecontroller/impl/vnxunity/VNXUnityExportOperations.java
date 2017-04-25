@@ -54,14 +54,14 @@ public class VNXUnityExportOperations extends VNXeExportOperations {
                     String initiatorId = initiator.getInitiatorPort();
                     if (Protocol.FC.name().equals(initiator.getProtocol())) {
                         initiatorId = initiator.getInitiatorNode() + ":" + initiatorId;
+                    }
 
-                        // query VNX Unity initiator
-                        VNXeHostInitiator vnxeInitiator = apiClient.getInitiatorByWWN(initiatorId);
-                        if (vnxeInitiator != null) {
-                            VNXeBase parentHost = vnxeInitiator.getParentHost();
-                            if (parentHost != null) {
-                                vnxeHostIds.add(parentHost.getId());
-                            }
+                    // query VNX Unity initiator
+                    VNXeHostInitiator vnxeInitiator = apiClient.getInitiatorByWWN(initiatorId);
+                    if (vnxeInitiator != null) {
+                        VNXeBase parentHost = vnxeInitiator.getParentHost();
+                        if (parentHost != null) {
+                            vnxeHostIds.add(parentHost.getId());
                         }
                     }
                 }

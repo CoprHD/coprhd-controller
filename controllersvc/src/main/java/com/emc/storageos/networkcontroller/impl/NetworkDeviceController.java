@@ -7,7 +7,6 @@ package com.emc.storageos.networkcontroller.impl;
 import java.net.URI;
 import java.text.MessageFormat;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
@@ -55,6 +54,7 @@ import com.emc.storageos.db.client.model.ZoneInfo;
 import com.emc.storageos.db.client.model.ZoneInfoMap;
 import com.emc.storageos.db.client.util.CommonTransformerFunctions;
 import com.emc.storageos.db.client.util.DataObjectUtils;
+import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.client.util.StringMapUtil;
 import com.emc.storageos.db.client.util.StringSetUtil;
 import com.emc.storageos.db.client.util.WWNUtility;
@@ -412,7 +412,13 @@ public class NetworkDeviceController implements NetworkController {
                     String refKey = null;
                     try {
                         for (NetworkFCZoneInfo fabricInfo : fabricInfos) {
-                            FCZoneReference ref = _dbClient.queryObject(FCZoneReference.class, fabricInfo.getFcZoneReferenceId());
+                            URI fcZoneReferenceId = fabricInfo.getFcZoneReferenceId();
+                            if (NullColumnValueGetter.isNullURI(fcZoneReferenceId)) {
+                                _log.info("fcZoneReferenceId corresponding to zone info {} is null. Nothing to remove.",
+                                        fabricInfo.toString());
+                                continue;
+                            }
+                            FCZoneReference ref = _dbClient.queryObject(FCZoneReference.class, fcZoneReferenceId);
                             if (ref != null) {
                                 refKey = ref.getPwwnKey();
                                 _dbClient.markForDeletion(ref);
@@ -1624,6 +1630,7 @@ public class NetworkDeviceController implements NetworkController {
 
             WorkflowStepCompleter.stepExecuting(taskId);
             _log.info("Beginning zone rollback");
+            _log.info("context.isAddingZones -{}", context.isAddingZones());
             // Determine what needs to be rolled back.
             List<NetworkFCZoneInfo> lastReferenceZoneInfo = new ArrayList<NetworkFCZoneInfo>();
             List<NetworkFCZoneInfo> rollbackList = new ArrayList<NetworkFCZoneInfo>();
@@ -1804,9 +1811,9 @@ public class NetworkDeviceController implements NetworkController {
             return;
         }
         for (NetworkFCZoneInfo zone : zones) {
-            _log.info(String.format("zone %s endpoints %s vol %s last %s ref %s existing %s",
+            _log.info(String.format("zone %s endpoints %s vol %s last %s ref %s existing %s canBeRolledBack %s",
                     zone.getZoneName(), zone.getEndPoints(), zone.getVolumeId(),
-                    zone.isLastReference(), zone.getFcZoneReferenceId(), zone.isExistingZone()));
+                    zone.isLastReference(), zone.getFcZoneReferenceId(), zone.isExistingZone(), zone.canBeRolledBack()));
         }
     }
 

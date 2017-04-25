@@ -212,6 +212,7 @@ public abstract class BlockIngestExportOrchestrator extends ResourceService {
                 exportMask.addToExistingInitiatorsIfAbsent(new ArrayList(unManagedExportMask.getUnmanagedInitiatorNetworkIds()));
                 // Always set this flag to true for ingested masks.
                 exportMask.setCreatedBySystem(true);
+                ExportMaskUtils.setExportMaskResource(_dbClient, exportGroup, exportMask);
 
                 List<Initiator> userAddedInis = VolumeIngestionUtil.findUserAddedInisFromExistingIniListInMask(initiators,
                         unManagedExportMask.getId(), _dbClient);

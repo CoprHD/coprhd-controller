@@ -722,22 +722,24 @@ public class StoragePortService extends TaggedResource {
                             if (vNasSp.getConnectedVirtualArrays() != null && !vNasSp.getConnectedVirtualArrays().isEmpty()) {
                                 vNasVarrys.addAll(vNasSp.getConnectedVirtualArrays());
                             }
-                        } else {
-                            if (vNasSp.getConnectedVirtualArrays() != null && !vNasSp.getConnectedVirtualArrays().isEmpty()) {
-                                vNasVarryOther.addAll(vNasSp.getConnectedVirtualArrays());
-                            }
                         }
                     }
-                    // Remove storage varray from vnas virtual arrays,
-                    // if other ports on vnas not belongs to same varray.
-                    if(!vNasVarrys.isEmpty() && !vNasVarryOther.isEmpty()) {
-                        _log.info("Virtual NAS of deleted storageport {} and other storageports {} ", vNasVarrys.toString(), vNasVarryOther.toString());
+                    if(!vNasVarrys.isEmpty()) {
+                        _log.info("varrays of vNas other ports {} and varrays of a network {}",
+                                vNasVarrys.toString(), vArrays.toString());
                     }
-                    if (!vNasVarrys.contains(vArrays) && false == vArrays.contains(vNasVarryOther)){
-                        if (vNas.getAssignedVirtualArrays() != null && !vNas.getAssignedVirtualArrays().isEmpty()) {
-                            vNas.getAssignedVirtualArrays().removeAll(vArrays);
-                            varraysForvNasUpdated = true;
-                        }
+
+                    /*
+                        If the varray of the port to be deleted is common with another port then we should not update vnas.
+                        because the other ports of vnas may exist with same network of deleting port
+                    */
+                    if ((vNasVarrys.isEmpty()) ||
+                            (!vNasVarrys.isEmpty() && !vNasVarrys.containsAll(vArrays) ) ) {
+                        _log.info("Remove the varray from vNAS {} ", vNasVarrys.toString());
+                        vNas.getAssignedVirtualArrays().removeAll(vArrays);
+                        //remaining vNASvarray of other ports
+                        vNas.getAssignedVirtualArrays().addAll(vNasVarrys);
+                        varraysForvNasUpdated = true;
                     }
                 }
             }

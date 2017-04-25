@@ -52,6 +52,6 @@ deleteAllVolumes() {
     vols=$(volume list $project | awk ' { print $1; }' | grep -v "name" | grep -v '^----')
     for vol in $vols
     do
-        run volume delete $project/$vol
+        run volume delete $project/$vol --wait
     done
 }

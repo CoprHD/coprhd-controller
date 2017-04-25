@@ -599,7 +599,7 @@ public class ClusterService extends TaskResourceService {
             List<NamedElementQueryResultList.NamedElement> elements = new ArrayList<NamedElementQueryResultList.NamedElement>(
                     hosts.size());
             for (Host host : hosts) {
-                if (!NullColumnValueGetter.isNullURI(host.getComputeElement())) {
+                if (!NullColumnValueGetter.isNullURI(host.getComputeElement()) || !NullColumnValueGetter.isNullURI(host.getServiceProfile())) {
                     elements.add(NamedElementQueryResultList.NamedElement.createElement(
                             host.getId(), host.getLabel() == null ? "" : host.getLabel()));
                 }

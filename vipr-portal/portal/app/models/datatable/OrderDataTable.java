@@ -13,13 +13,13 @@ import java.util.Date;
 import java.util.List;
 
 import org.apache.commons.lang.StringUtils;
-import org.apache.commons.lang.time.DateUtils;
 
 import com.emc.vipr.model.catalog.OrderCount;
 
 import play.Logger;
 import models.security.UserInfo;
 import util.OrderUtils;
+import util.TimeUtils;
 import util.datatable.DataTable;
 
 import com.emc.vipr.model.catalog.OrderRestRep;
@@ -29,9 +29,9 @@ import controllers.catalog.Orders;
 
 public class OrderDataTable extends DataTable {
     public static final int ORDER_MAX_COUNT = 6000;
-    public static final int ORDER_MAX_DELETE_PER_GC = 300000;
+    public static final int ORDER_MAX_DELETE_PER_GC = 20000;
     protected static final String ORDER_MAX_COUNT_STR = String.valueOf(ORDER_MAX_COUNT);
-    protected static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd");
+    protected SimpleDateFormat localDateFormat = new SimpleDateFormat("yyyy-MM-dd");
     protected UserInfo userInfo;
     protected String tenantId;
 
@@ -61,13 +61,18 @@ public class OrderDataTable extends DataTable {
         sortAll();
     }
 
+    public OrderDataTable(String tenantId, int offsetInMinutes) {
+        this(tenantId);
+        localDateFormat.setTimeZone(TimeUtils.getTimeZoneForOffset(offsetInMinutes));
+    }
+
     public void setUserInfo(UserInfo userInfo) {
         this.userInfo = userInfo;
     }
 
     public void setStartDate(String startDate) {
         try {
-            setStartDate(DATE_FORMAT.parse(startDate));
+            setStartDate(localDateFormat.parse(startDate));
         } catch (ParseException e) {
             Logger.error("Date parse error for: %s, e=%s", startDate, e);
         }
@@ -75,7 +80,7 @@ public class OrderDataTable extends DataTable {
 
     public void setEndDate(String endDate) {
         try {
-            setEndDate(DATE_FORMAT.parse(endDate));
+            setEndDate(localDateFormat.parse(endDate));
         } catch (ParseException e) {
             Logger.error("Date parse error for: %s, e=%s", endDate, e);
         }
@@ -164,16 +169,20 @@ public class OrderDataTable extends DataTable {
     }
 
     protected Date getStartTimeOfADay(Date origin) {
-        Date result = DateUtils.setHours(origin, 0);
-        result = DateUtils.setMinutes(result, 0);
-        result = DateUtils.setSeconds(result, 0);
-        return result;
+        Calendar cal = Calendar.getInstance(localDateFormat.getTimeZone());
+        cal.setTime(origin);
+        cal.set(Calendar.HOUR_OF_DAY, 0);
+        cal.set(Calendar.MINUTE, 0);
+        cal.set(Calendar.SECOND, 0);
+        return cal.getTime();
     }
 
     protected Date getEndTimeOfADay(Date origin) {
-        Date result = DateUtils.setHours(origin, 23);
-        result = DateUtils.setMinutes(result, 59);
-        result = DateUtils.setSeconds(result, 59);
-        return result;
+        Calendar cal = Calendar.getInstance(localDateFormat.getTimeZone());
+        cal.setTime(origin);
+        cal.set(Calendar.HOUR_OF_DAY, 23);
+        cal.set(Calendar.MINUTE, 59);
+        cal.set(Calendar.SECOND, 59);
+        return cal.getTime();
     }
 }

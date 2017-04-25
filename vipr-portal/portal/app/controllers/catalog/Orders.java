@@ -19,6 +19,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang.math.NumberUtils;
 import org.joda.time.DateTime;
 
 import com.emc.sa.util.TextUtils;
@@ -36,7 +37,6 @@ import com.emc.vipr.model.catalog.OrderCreateParam;
 import com.emc.vipr.model.catalog.OrderLogRestRep;
 import com.emc.vipr.model.catalog.OrderRestRep;
 import com.emc.vipr.model.catalog.Parameter;
-import com.emc.vipr.model.catalog.ScheduleInfo;
 import com.emc.vipr.model.catalog.ScheduledEventCreateParam;
 import com.emc.vipr.model.catalog.ScheduledEventRestRep;
 import com.emc.vipr.model.catalog.ServiceDescriptorRestRep;
@@ -112,6 +112,7 @@ public class Orders extends OrderExecution {
             options.add(new StringOption(String.valueOf(day), MessagesUtils.get("orders." + day + "days")));
         }
 
+        renderArgs.put("offsetInMinutes", params.get("offsetInMinutes"));
         renderArgs.put("maxDays", maxDays);
         renderArgs.put("dateDaysAgo", OrderDataTable.getDateDaysAgo(maxDays));
         renderArgs.put("maxDaysOptions", options);
@@ -119,6 +120,7 @@ public class Orders extends OrderExecution {
 
     @Restrictions({ @Restrict("TENANT_ADMIN") })
     public static void allOrders() {
+        //TODO should get client time zone from request, currently we get it from javascript method
         RecentUserOrdersDataTable dataTable = new RecentUserOrdersDataTable();
         TenantSelector.addRenderArgs();
 
@@ -156,7 +158,7 @@ public class Orders extends OrderExecution {
     }
 
     public static void list() {
-        OrderDataTable dataTable = new OrderDataTable(Models.currentTenant());
+        OrderDataTable dataTable = new OrderDataTable(Models.currentTenant(), NumberUtils.toInt(params.get("offsetInMinutes"), 0));
         dataTable.setUserInfo(Security.getUserInfo());
         dataTable.setByStartEndDateOrMaxDays(params.get("startDate"), params.get("endDate"),
                 params.get("maxDays", Integer.class));
@@ -170,7 +172,7 @@ public class Orders extends OrderExecution {
     }
 
     public static void listJson() {
-        OrderDataTable dataTable = new OrderDataTable(Models.currentTenant());
+        OrderDataTable dataTable = new OrderDataTable(Models.currentTenant(), NumberUtils.toInt(params.get("offsetInMinutes"), 0));
         dataTable.setUserInfo(Security.getUserInfo());
         dataTable.setByStartEndDateOrMaxDays(params.get("startDate"), params.get("endDate"),
                 params.get("maxDays", Integer.class));
@@ -209,7 +211,7 @@ public class Orders extends OrderExecution {
             dataTable.deleteOrders();
         }
         flash.success(MessagesUtils.get("orders.delete.submitted"));
-        allOrders();
+        redirect(Common.toSafeRedirectURL("/catalog.orders/allorders?"+request.querystring));
     }
 
     @FlashException(value = "allOrders")
@@ -687,7 +689,7 @@ public class Orders extends OrderExecution {
 
     protected static class RecentUserOrdersDataTable extends RecentOrdersDataTable {
         public RecentUserOrdersDataTable() {
-            super(Models.currentAdminTenant());
+            super(Models.currentAdminTenant(), NumberUtils.toInt(params.get("offsetInMinutes"), 0));
             alterColumn("submittedBy").setVisible(true);
         }
     }

@@ -48,7 +48,6 @@ import com.sun.jersey.api.client.ClientResponse;
  */
 public class CustomServicesClient extends AbstractCatalogBulkResources<CustomServicesPrimitiveRestRep> {
 
-
     public CustomServicesClient(final ViPRCatalogClient2 parent, final RestClient client) {
         super(parent, client, CustomServicesPrimitiveRestRep.class, PathConstants.CUSTOM_SERVICES_PRIMITIVES);
     }
@@ -60,13 +59,13 @@ public class CustomServicesClient extends AbstractCatalogBulkResources<CustomSer
     public RestClient getClient() {
         return client;
     }
-    
+
     @Override
     protected List<CustomServicesPrimitiveRestRep> getBulkResources(BulkIdParam input) {
         CustomServicesPrimitiveBulkRestRep response = client.post(CustomServicesPrimitiveBulkRestRep.class, input, getBulkUrl());
         return defaultList(response.getPrimitives());
     }
-    
+
     public CustomServicesPrimitiveList getPrimitives() {
         final UriBuilder builder = client.uriBuilder(PathConstants.CUSTOM_SERVICES_PRIMITIVES);
         return client.getURI(CustomServicesPrimitiveList.class, builder.build());
@@ -77,6 +76,7 @@ public class CustomServicesClient extends AbstractCatalogBulkResources<CustomSer
         builder.queryParam("type", type);
         return client.getURI(CustomServicesPrimitiveList.class, builder.build());
     }
+
 
     public CustomServicesPrimitiveResourceRestRep createPrimitiveResource(final String resourceType, final File resource, 
     		final String resourceName, final URI ansiblePackageId) throws IOException {
@@ -89,6 +89,7 @@ public class CustomServicesClient extends AbstractCatalogBulkResources<CustomSer
         return client.postURIOctet(CustomServicesPrimitiveResourceRestRep.class, new FileInputStream(resource), builder.build());
     }
 
+
     public CustomServicesPrimitiveResourceRestRep deletePrimitiveResource(final String resourceType, final File resource, 
     		final String resourceName, final URI ansiblePackageId) throws IOException {
         final UriBuilder builder = client.uriBuilder(PathConstants.CUSTOM_SERVICES_PRIMITIVE_RESOURCE);
@@ -100,21 +101,33 @@ public class CustomServicesClient extends AbstractCatalogBulkResources<CustomSer
         return client.postURIOctet(CustomServicesPrimitiveResourceRestRep.class, new FileInputStream(resource), builder.build());
     }
     
+
+    public CustomServicesPrimitiveResourceRestRep updatePrimitiveResource(final URI id, final String name) throws IOException {
+        return client.put(CustomServicesPrimitiveResourceRestRep.class, PathConstants.CUSTOM_SERVICES_PRIMITIVE_RESOURCE, id, name);
+    }
+
+
     public CustomServicesPrimitiveRestRep createPrimitive(final CustomServicesPrimitiveCreateParam param) {
         final UriBuilder builder = client.uriBuilder(PathConstants.CUSTOM_SERVICES_PRIMITIVES);
         return client.postURI(CustomServicesPrimitiveRestRep.class, param, builder.build());
     }
-    
+
     public CustomServicesPrimitiveRestRep getPrimitive(final URI id) {
         return client.get(CustomServicesPrimitiveRestRep.class, PathConstants.CUSTOM_SERVICES_PRIMITIVE, id);
     }
 
     public CustomServicesPrimitiveRestRep updatePrimitive(final URI id, CustomServicesPrimitiveUpdateParam param) {
-        return client.put(CustomServicesPrimitiveRestRep.class,param,PathConstants.CUSTOM_SERVICES_PRIMITIVE,id);
+        return client.put(CustomServicesPrimitiveRestRep.class, param, PathConstants.CUSTOM_SERVICES_PRIMITIVE, id);
     }
 
     public CustomServicesWorkflowList getWorkflows() {
-        UriBuilder builder = client.uriBuilder(PathConstants.CUSTOM_SERVICES_WORKFLOWS);
+        final UriBuilder builder = client.uriBuilder(PathConstants.CUSTOM_SERVICES_WORKFLOWS);
+        return client.getURI(CustomServicesWorkflowList.class, builder.build());
+    }
+
+    public CustomServicesWorkflowList getWorkflows(String primitiveId) {
+        final UriBuilder builder = client.uriBuilder(PathConstants.CUSTOM_SERVICES_WORKFLOWS);
+        builder.queryParam("primitiveId", primitiveId);
         return client.getURI(CustomServicesWorkflowList.class, builder.build());
     }
 
@@ -123,32 +136,36 @@ public class CustomServicesClient extends AbstractCatalogBulkResources<CustomSer
     }
 
     public CustomServicesValidationResponse validateWorkflow(final URI id) {
-        return client.post(CustomServicesValidationResponse.class,PathConstants.CUSTOM_SERVICES_WORKFLOW_VALIDATE,id);
+        return client.post(CustomServicesValidationResponse.class, PathConstants.CUSTOM_SERVICES_WORKFLOW_VALIDATE, id);
     }
 
     public CustomServicesWorkflowRestRep publishWorkflow(final URI id) {
-        return client.post(CustomServicesWorkflowRestRep.class,PathConstants.CUSTOM_SERVICES_WORKFLOW_PUBLISH,id);
+        return client.post(CustomServicesWorkflowRestRep.class, PathConstants.CUSTOM_SERVICES_WORKFLOW_PUBLISH, id);
     }
 
     public CustomServicesWorkflowRestRep unpublishWorkflow(final URI id) {
-        return client.post(CustomServicesWorkflowRestRep.class,PathConstants.CUSTOM_SERVICES_WORKFLOW_UNPUBLISH,id);
+        return client.post(CustomServicesWorkflowRestRep.class, PathConstants.CUSTOM_SERVICES_WORKFLOW_UNPUBLISH, id);
     }
 
     public CustomServicesWorkflowRestRep createWorkflow(final CustomServicesWorkflowCreateParam param) {
         final UriBuilder builder = client.uriBuilder(PathConstants.CUSTOM_SERVICES_WORKFLOWS);
-        return client.postURI(CustomServicesWorkflowRestRep.class,param, builder.build());
+        return client.postURI(CustomServicesWorkflowRestRep.class, param, builder.build());
     }
 
     public CustomServicesWorkflowRestRep editWorkflow(final URI id, final CustomServicesWorkflowUpdateParam param) {
-        return client.put(CustomServicesWorkflowRestRep.class,param,PathConstants.CUSTOM_SERVICES_WORKFLOW,id);
+        return client.put(CustomServicesWorkflowRestRep.class, param, PathConstants.CUSTOM_SERVICES_WORKFLOW, id);
     }
 
     public void deleteWorkflow(final URI id) {
-        client.post(String.class,PathConstants.CUSTOM_SERVICES_WORKFLOW_DELETE,id);
+        client.post(String.class, PathConstants.CUSTOM_SERVICES_WORKFLOW_DELETE, id);
     }
 
     public ClientResponse deletePrimitive(final URI id) {
-    	ClientResponse response = client.post(ClientResponse.class,PathConstants.CUSTOM_SERVICES_PRIMITIVE_DELETE,id);
-    	return response;
+        final ClientResponse response = client.post(ClientResponse.class, PathConstants.CUSTOM_SERVICES_PRIMITIVE_DELETE, id);
+        return response;
+    }
+
+    public CustomServicesPrimitiveResourceRestRep getPrimitiveResource(final URI id) {
+        return client.get(CustomServicesPrimitiveResourceRestRep.class, PathConstants.CUSTOM_SERVICES_PRIMITIVE_RESOURCE, id);
     }
 }

@@ -91,6 +91,11 @@ public class CustomServicesViprPrimitiveDAO implements
     }
 
     @Override
+    public void importPrimitive(CustomServicesPrimitiveRestRep operation) {
+        throw APIException.methodNotAllowed.notSupported();
+    }
+    
+    @Override
     public List<URI> list() {
         return PRIMITIVES_MAP.keySet().asList();
     }
@@ -117,5 +122,4 @@ public class CustomServicesViprPrimitiveDAO implements
     public boolean hasResource() {
         return false;
     }
-
 }

@@ -126,6 +126,12 @@ public class CustomServicesScriptPrimitiveDAO implements CustomServicesPrimitive
     }
 
     @Override
+    public void importPrimitive(final CustomServicesPrimitiveRestRep operation) {
+        final CustomServicesDBScriptPrimitive primitive = CustomServicesDBHelper.makeDBPrimitive(CustomServicesDBScriptPrimitive.class, operation);
+        client.save(primitive);
+    }
+    
+    @Override
     public boolean hasResource() {
         return true;
     }

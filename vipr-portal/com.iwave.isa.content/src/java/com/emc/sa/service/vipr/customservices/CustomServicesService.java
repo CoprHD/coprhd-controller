@@ -17,49 +17,52 @@
 
 package com.emc.sa.service.vipr.customservices;
 
+import java.beans.PropertyDescriptor;
 import java.io.File;
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
+import java.lang.reflect.ParameterizedType;
+import java.lang.reflect.Type;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import javax.xml.bind.annotation.XmlElement;
+
 import org.apache.commons.lang.StringUtils;
 import org.codehaus.jackson.JsonNode;
 import org.codehaus.jackson.map.ObjectMapper;
+import org.codehaus.jackson.xc.JaxbAnnotationIntrospector;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.expression.EvaluationContext;
-import org.springframework.expression.Expression;
-import org.springframework.expression.ExpressionParser;
-import org.springframework.expression.spel.standard.SpelExpressionParser;
-import org.springframework.expression.spel.support.StandardEvaluationContext;
 
+import com.emc.sa.catalog.primitives.CustomServicesViprPrimitiveDAO;
 import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.engine.service.Service;
 import com.emc.sa.service.vipr.ViPRExecutionUtils;
 import com.emc.sa.service.vipr.ViPRService;
-import com.emc.sa.service.vipr.customservices.gson.ViprOperation;
-import com.emc.sa.service.vipr.customservices.gson.ViprTask;
 import com.emc.sa.service.vipr.customservices.tasks.CustomServicesExecutors;
 import com.emc.sa.service.vipr.customservices.tasks.CustomServicesRestTaskResult;
 import com.emc.sa.service.vipr.customservices.tasks.CustomServicesTaskResult;
 import com.emc.sa.service.vipr.customservices.tasks.MakeCustomServicesExecutor;
 import com.emc.sa.workflow.WorkflowHelper;
-import com.emc.storageos.db.client.model.uimodels.CustomServicesWorkflow;
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.model.uimodels.CustomServicesWorkflow;
 import com.emc.storageos.model.customservices.CustomServicesWorkflowDocument;
 import com.emc.storageos.model.customservices.CustomServicesWorkflowDocument.Input;
 import com.emc.storageos.model.customservices.CustomServicesWorkflowDocument.Step;
 import com.emc.storageos.primitives.CustomServicesConstants;
 import com.emc.storageos.primitives.CustomServicesConstants.InputType;
 import com.emc.storageos.primitives.CustomServicesPrimitive.StepType;
+import com.emc.storageos.primitives.java.vipr.CustomServicesViPRPrimitive;
 import com.emc.storageos.services.util.Exec;
 import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorException;
 import com.google.common.collect.ImmutableMap;
-import com.google.gson.Gson;
 
 @Service("CustomServicesService")
 public class CustomServicesService extends ViPRService {
@@ -75,6 +78,8 @@ public class CustomServicesService extends ViPRService {
     private DbClient dbClient;
     @Autowired
     private CustomServicesExecutors executor;
+    @Autowired
+    private CustomServicesViprPrimitiveDAO customServicesViprDao;
 
     private int code;
 
@@ -246,18 +251,16 @@ public class CustomServicesService extends ViPRService {
         }
     }
 
-    private boolean isSuccess(Step step, CustomServicesTaskResult result) {
+    private boolean isSuccess(final Step step, final CustomServicesTaskResult result) {
         if (result == null)
             return false;
-        // TODO commented this till I fix evaluation from the primitive
-        return true;
-        /*
-         * if (step.getSuccessCriteria() == null) {
-         * return evaluateDefaultValue(step, result.getReturnCode());
-         * } else {
-         * return findStatus(step.getSuccessCriteria(), result);
-         * }
-         */
+
+        if (step.getType().equals(CustomServicesConstants.VIPR_PRIMITIVE_TYPE) ||  step.getType().equals(
+                CustomServicesConstants.REST_API_PRIMITIVE_TYPE)) {
+            return (result.getReturnCode() >= 200 && result.getReturnCode() < 300);
+        }
+
+        return (result.getReturnCode() == 0);
     }
 
     private String getNext(final boolean status, final CustomServicesTaskResult result, final Step step) {
@@ -382,23 +385,25 @@ public class CustomServicesService extends ViPRService {
         final String result = res.getOut();
         final Map<String, List<String>> out = new HashMap<String, List<String>>();
 
-        for (final CustomServicesWorkflowDocument.Output o : output) {
-            if (isAnsible(step)) {
-                out.put(o.getName(), evaluateAnsibleOut(result, o.getName()));
-            } else if (step.getType().equals(StepType.REST.toString())) {
-                final CustomServicesRestTaskResult restResult = (CustomServicesRestTaskResult) res;
-                final Set<Map.Entry<String, List<String>>> headers = restResult.getHeaders();
-                for (final Map.Entry<String, List<String>> entry : headers) {
-                    if (entry.getKey().equals(o.getName())) {
-                        out.put(o.getName(), entry.getValue());
+        if (step.getType().equals(CustomServicesConstants.VIPR_PRIMITIVE_TYPE) ) {
+            try {
+                updateViproutput(step, res.getOut());
+            } catch (Exception e) {
+                logger.warn("Could not parse ViPR REST Output properly:{}", e);
+            }
+        } else {
+            for (final CustomServicesWorkflowDocument.Output o : output) {
+                if (isAnsible(step)) {
+                    out.put(o.getName(), evaluateAnsibleOut(result, o.getName()));
+                } else if (step.getType().equals(StepType.REST.toString())) {
+                    final CustomServicesRestTaskResult restResult = (CustomServicesRestTaskResult) res;
+                    final Set<Map.Entry<String, List<String>>> headers = restResult.getHeaders();
+                    for (final Map.Entry<String, List<String>> entry : headers) {
+                        if (entry.getKey().equals(o.getName())) {
+                            out.put(o.getName(), entry.getValue());
+                        }
                     }
                 }
-
-            } else {
-
-                // TODO: Remove this after parsing output is fully implemented
-                // out.put(o.getName(), evaluateValue(result, o.getName()));
-                return;
             }
         }
         //set the default result.
@@ -408,176 +413,198 @@ public class CustomServicesService extends ViPRService {
         outputPerStep.put(step.getId(), out);
     }
 
+    private void updateViproutput(final Step step, final String res) throws Exception {
+
+        final CustomServicesViPRPrimitive primitive = customServicesViprDao.get(step.getOperation());
+        if( null == primitive ) {
+            throw new RuntimeException("Primitive " + step.getOperation() +" not found ");
+        }
+        
+        if( StringUtils.isEmpty(primitive.response()) ) {
+            logger.debug("Vipr primitive" + primitive.name() + " has no repsonse defined.");
+            return;
+        }
+        
+        final String classname = primitive.response();
+        
+        logger.debug("Result is:{}", res);
+        final ObjectMapper mapper = new ObjectMapper();
+        mapper.setAnnotationIntrospector(new JaxbAnnotationIntrospector());
+        final Class<?> clazz = Class.forName(classname);
+
+        final Object responseEntity = mapper.readValue(res, clazz.newInstance().getClass());
+        final Map<String, List<String>> output = parseViprOutput(responseEntity, step);
+        logger.info("ViPR output for step ID " + step.getId() + " is " + output);
+        outputPerStep.put(step.getId(), output);
+    }
+
+    private Map<String, List<String>> parseViprOutput(final Object responseEntity, final Step step) throws Exception {
+        final List<CustomServicesWorkflowDocument.Output> stepOut = step.getOutput();
+
+        final Map<String, List<String>> output = new HashMap<String, List<String>>();
+        for (final CustomServicesWorkflowDocument.Output out : stepOut) {
+            final String outName = out.getName();
+            logger.info("output to parse:{}", outName);
+
+            final String[] bits = outName.split("\\.");
+            
+            // Start parsing at i=1 because the name of the root
+            // element is not included in the JSON
+            final List<String> list = parserOutput(bits, 1, responseEntity);
+            if (list != null) {
+                output.put(out.getName(), list);
+            }
+        }
+        
+        return output;
+    }
+
+    private List<String> parserOutput(final String[] bits, final int i, final Object className ) throws Exception {
+
+        if (className == null) {
+            logger.warn("class name is null, cannot parse output");
+
+            return null;
+        }
+        final Method method = findMethod(bits[i], className);
+
+        if (method == null) {
+            logger.warn("method is null. cannot parse output");
+
+            return null;
+        }
+        logger.debug("bit:{}", bits[i]);
+
+        //1) primitive
+        if (i == bits.length - 1) {
+            final Object value = method.invoke(className, null);
+            logger.debug("value:{}", value);
+
+            if (value != null) {
+                return Arrays.asList(value.toString());
+            } else {
+                return null;
+            }
+        }
+
+        final Type returnType = method.getGenericReturnType();
+        if (returnType == null) {
+            logger.info("Could not find return type of method:{}", method.getName());
+
+            return null;
+        }
+
+        //2) Class single object
+        if (returnType instanceof Class<?>) {
+            return parserOutput(bits, i + 1, method.invoke(className, null));
+        }
+
+        //3) Collection primitive
+        if (Collection.class.isAssignableFrom(method.getReturnType())) {
+            return getCollectionValue(method, bits, i, className);
+        }
+
+        return null;
+    }
+
+
+    private List<String> getCollectionValue(final Method method, final String[] bits, final int i, final Object className) throws Exception {
+
+        final Type returnType = method.getGenericReturnType();
+        if (returnType instanceof ParameterizedType) {
+            final ParameterizedType paramType = (ParameterizedType) returnType;
+
+            if (i == bits.length - 1) {
+                final List<Object> value = (List<Object>) method.invoke(className, null);
+                logger.debug("array value:{}", method.invoke(className, null));
+                final List<String> listStringOut = new ArrayList<String>();
+                for (final Object val : value) {
+                    listStringOut.add(val.toString());
+                }
+                return listStringOut;
+            }
+            final Type o = paramType.getActualTypeArguments()[0];
+            if (o instanceof Class<?>) {
+                final List<String> list = new ArrayList<String>();
+                for (final Object o1 : (Collection<?>) method.invoke(className, null)) {
+                    final List<String> value = parserOutput(bits, i + 1, o1);
+                    if (value != null) {
+                        list.addAll(value);
+                    }
+                }
+
+                if (!list.isEmpty()) {
+                    return list;
+                }
+            }
+        }
+        return null;
+    }
+
+    private Method findMethod(final String str, final Object className) throws Exception {
+        final Method[] methods = className.getClass().getMethods();
+        for (Method method : methods) {
+            XmlElement elem = method.getAnnotation(XmlElement.class);
+            if (elem != null) {
+                if (elem.name().equals(str) && isGetter(method)) {
+                    logger.debug("name matched elem:{} str:{}", elem.name(), str);
+                    return method;
+                }
+            }
+        }
+        logger.info("didn't match in xml. str:{} check for getter", str);
+
+        final Field field = getField(className.getClass(), str);
+        if (field != null) {
+            final PropertyDescriptor pd = new PropertyDescriptor(str, className.getClass());
+            if (pd == null) {
+                return null;
+            }
+            final Method getter = pd.getReadMethod();
+            if (getter != null) {
+                if (getter.getAnnotation(XmlElement.class) == null) {
+                    return null;
+                }
+                if (getter.getAnnotation(XmlElement.class).name().equals("##default")) {
+                    return getter;
+                }
+            }
+        }
+
+        logger.info("could not find getter");
+
+        return null;
+    }
+
+    private static Field getField(Class<?> clazz, final String name) {
+        Field field = null;
+        while (clazz != null && field == null) {
+            try {
+                field = clazz.getDeclaredField(name);
+            } catch (Exception e) {
+            }
+            clazz = clazz.getSuperclass();
+        }
+
+        return field;
+    }
+
+    public static boolean isGetter(Method method){
+        if(!method.getName().startsWith("get")
+                || method.getParameterTypes().length != 0
+                || void.class.equals(method.getReturnType())) {
+            return false;
+        }
+
+        return true;
+    }
+
     private boolean isAnsible(final Step step) {
         if (step.getType().equals(StepType.LOCAL_ANSIBLE.toString()) || step.getType().equals(StepType.REMOTE_ANSIBLE.toString())
                 || step.getType().equals(StepType.SHELL_SCRIPT.toString()))
             return true;
 
         return false;
-    }
-
-    /**
-     * Evaluate
-     *
-     * @param step
-     * @param returnCode
-     * @return
-     */
-    private boolean evaluateDefaultValue(final Step step, final int returnCode) {
-        if (isAnsible(step)) {
-            if (returnCode == 0)
-                return true;
-
-            return false;
-        }
-
-        // TODO get returncode for REST API from DB. Now it is hard coded.
-        int code = 200;
-        if (returnCode == code)
-            return true;
-
-        return false;
-    }
-
-    /**
-     * This evaluates the expression from ViPR GSON structure.
-     * e.g: It evaluates "task.resource.id" from ViPR REST Response
-     *
-     * @param result
-     * @param value
-     * @return
-     */
-    private List<String> evaluateValue(final String result, String value) throws Exception {
-
-        final Gson gson = new Gson();
-        final ViprOperation res = gson.fromJson(result, ViprOperation.class);
-        final ExpressionParser parser = new SpelExpressionParser();
-
-        logger.debug("Find value of:{}", value);
-        List<String> valueList = new ArrayList<String>();
-
-        if (!value.contains(CustomServicesConstants.TASK)) {
-            Expression expr = parser.parseExpression(value);
-            EvaluationContext context = new StandardEvaluationContext(res);
-            String val = (String) expr.getValue(context);
-
-            valueList.add(val);
-
-        } else {
-
-            String[] values = value.split("task.", 2);
-            if (values.length != 2) {
-                throw InternalServerErrorException.internalServerErrors
-                        .customServiceExecutionFailed("Cannot evaluate values with statement:" + value);
-            }
-            value = values[1];
-            Expression expr = parser.parseExpression(value);
-
-            ViprTask[] tasks = res.getTask();
-            for (ViprTask task : tasks) {
-                EvaluationContext context = new StandardEvaluationContext(task);
-                String v = (String) expr.getValue(context);
-                valueList.add(v);
-            }
-
-            logger.info("valueList is:{}", valueList);
-        }
-
-        return valueList;
-    }
-
-    /**
-     * This evaluates the status of a step from the SuccessCriteria mentioned in workflow definition JSON
-     * e.g: Supported Expression Language for SuccessCriteria
-     * Supported condition type code == x [x can be any number]
-     * "returnCode == 404"
-     * "returnCode == 0"
-     * "task_state == 'pending' and description == 'create export1' and returnCode == 400"
-     * "state == 'ready'";
-     * Note: and, or cannot be part of lvalue or rvalue
-     *
-     * @param successCriteria
-     * @param res
-     * @return
-     */
-    private boolean findStatus(String successCriteria, final CustomServicesTaskResult res) {
-        try {
-
-            if (successCriteria == null)
-                return true;
-
-            if (successCriteria != null && res == null)
-                return false;
-
-            String result = res.getOut();
-
-            SuccessCriteria sc = new SuccessCriteria();
-            ExpressionParser parser = new SpelExpressionParser();
-            EvaluationContext con2 = new StandardEvaluationContext(sc);
-            String[] statements = successCriteria.split("\\bor\\b|\\band\\b");
-
-            if (statements.length == 0)
-                return false;
-
-            int p = 0;
-            for (String statement : statements) {
-                if (statement.trim().startsWith(CustomServicesConstants.RETURN_CODE)) {
-                    Expression e2 = parser.parseExpression(statement);
-
-                    sc.setCode(res.getReturnCode());
-                    boolean val = e2.getValue(con2, Boolean.class);
-                    logger.info("Evaluated value for errorCode or returnCode is:{}", val);
-
-                    successCriteria = successCriteria.replace(statement, " " + val + " ");
-
-                    continue;
-                }
-
-                String arr[] = StringUtils.split(statement);
-                String lvalue = arr[0];
-
-                if (!lvalue.contains(CustomServicesConstants.TASK)) {
-
-                    List<String> evaluatedValues = evaluateValue(result, lvalue);
-                    sc.setEvaluateVal(evaluatedValues.get(0), p);
-                    successCriteria = successCriteria.replace(lvalue, " evaluateVal[" + p + "]");
-                    p++;
-
-                    continue;
-                }
-
-                // TODO accepted format is task_state but spel expects task.state. Could not find a regex for that
-                String lvalue1 = lvalue.replace("_", ".");
-
-                List<String> evaluatedValues = evaluateValue(result, lvalue1);
-
-                boolean val2 = true;
-
-                if (evaluatedValues.isEmpty())
-                    return false;
-
-                String exp1 = statement.replace(lvalue, "eval");
-                for (String evaluatedValue : evaluatedValues) {
-                    sc.setEval(evaluatedValue);
-                    Expression e = parser.parseExpression(exp1);
-                    val2 = val2 && e.getValue(con2, Boolean.class);
-                }
-
-                successCriteria = successCriteria.replace(statement, " " + val2 + " ");
-            }
-
-            logger.info("Success Criteria to evaluate:{}", successCriteria);
-            Expression e1 = parser.parseExpression(successCriteria);
-            boolean val1 = e1.getValue(con2, Boolean.class);
-
-            logger.info("Evaluated Value is:{}" + val1);
-
-            return val1;
-        } catch (final Exception e) {
-            logger.error("Cannot evaluate success Criteria:{} Exception:{}", successCriteria, e);
-
-            return false;
-        }
     }
 }
 

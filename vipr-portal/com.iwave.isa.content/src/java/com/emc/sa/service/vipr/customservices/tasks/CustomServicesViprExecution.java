@@ -229,11 +229,15 @@ public class CustomServicesViprExecution extends ViPRExecutionTask<CustomService
         final String[] strs = body.split(":");
 
         for (int j = 0; j < strs.length; j++) {
-            //Single, Array type parameter
-            if ((!strs[j].contains("[") && !strs[j].contains("{")) ||
-                    (strs[j].contains("[") && !strs[j].contains("{")) ) {
-                strs[j] = findReplace(strs[j], pos);
+            //Single type parameter
+            if ((!strs[j].contains("[") && !strs[j].contains("{"))) {
+                strs[j] = findReplace(strs[j], pos, false);
+                continue;
+            }
 
+            //Array type parameter
+            if (strs[j].contains("[") && !strs[j].contains("{")) {
+                strs[j] = findReplace(strs[j], pos, true);
                 continue;
             }
 
@@ -288,7 +292,7 @@ public class CustomServicesViprExecution extends ViPRExecutionTask<CustomService
         return joinedStr;
     }
 
-    private String findReplace(final String str, final int pos) {
+    private String findReplace(final String str, final int pos, final boolean isArraytype) {
         final Matcher m = Pattern.compile("\\$(\\w+)").matcher(str);
         while (m.find()) {
             final String pat = m.group(0);
@@ -297,7 +301,13 @@ public class CustomServicesViprExecution extends ViPRExecutionTask<CustomService
             final List<String> val = input.get(pat1);
             String vals = "\" \"";
             if (val != null) {
-                vals = val.get(pos);
+                if (!isArraytype) {
+                    vals = "\"" + val.get(pos) + "\"";
+                } else {
+                    for (final String value :  val) {
+                        vals = vals + "\"" + value + "\"";
+                    }
+                }
             }
 
             return str.replace(pat, vals);

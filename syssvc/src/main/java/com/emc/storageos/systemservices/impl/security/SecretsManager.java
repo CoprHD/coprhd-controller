@@ -14,6 +14,7 @@ import java.util.Map;
 
 import com.emc.storageos.security.ssh.PEMUtil;
 
+import com.emc.storageos.systemservices.impl.upgrade.LocalRepository;
 import org.apache.commons.codec.binary.Base64;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -50,6 +51,7 @@ public class SecretsManager extends AbstractManager {
     private String localKey;
     private String keyHash;
     private String localKeyHash;
+    boolean dhInitDone = false;
 
     @Autowired
     private SshConfigurator sshConfig;
@@ -91,10 +93,32 @@ public class SecretsManager extends AbstractManager {
                 continue;
             }
 
-            // Step2: sleep
-            log.info("Step2: sleep");
+            log.info("Step2: Generate DH Params if not yet");
+            if (!dhInitDone) {
+                dhInitDone = genDHParam();
+            }
+
+            // Step3: sleep
+            log.info("Step3: sleep");
             longSleep();
         }
+    }
+
+    private boolean genDHParam() {
+        LocalRepository localRepository = LocalRepository.getInstance();
+        try {
+            localRepository.genDHParam();
+
+            log.info("Reconfiguring SSL related config files");
+            localRepository.reconfigProperties(SSL_PROP_TAG);
+
+            log.info("Invoking SSL notifier");
+            Notifier.getInstance(SSL_PROP_TAG).doNotify();
+        } catch (Exception e) {
+            log.warn("Failed to generate dhparam.", e);
+            return false;
+        }
+        return true;
     }
 
     private void syncSslKeyAndCert() throws Exception {

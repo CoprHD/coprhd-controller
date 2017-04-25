@@ -3247,6 +3247,7 @@ public interface BadRequestExceptions {
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException providePolicyStorageResource(final String errorMsg);
 
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException invalidFileSnapshotPolicyParam(final String policyName, final String errorMsg);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
@@ -3275,4 +3276,19 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException numberNotAllowed();
+    
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException pathAdjustmentOnNonDiscoverableHostsWithoutSuspend(final String hosts);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException externallyAddedVolumes(final String exportMask, final String volumes);
+    
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException cannotCreateReadOnlySnapshotForNonXIOVolumes(); 
+    
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException userNotAuthorizedForWorkflow();
+    
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException userNotAuthorizedForWorkflowStep();    
 }

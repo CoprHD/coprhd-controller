@@ -88,14 +88,19 @@ public class AddBareMetalHostToClusterService extends ViPRService {
             }
         }
 
-        // Commenting for COP-26104, this pre-check will not allow order to be resubmitted if
-        // only the shared export group fails and all other steps succeeded.
-        /*if (hostNamesInCluster != null && !hostNamesInCluster.isEmpty() && !existingHostNames.isEmpty()
+        if (hostNamesInCluster != null && !hostNamesInCluster.isEmpty() && !existingHostNames.isEmpty()
                 && hostNamesInCluster.containsAll(existingHostNames)) {
             preCheckErrors.append(
                     ExecutionUtils.getMessage("compute.cluster.host.already.in.cluster") + "  ");
-        }*/
-
+        }
+        
+        if (hostNamesInCluster != null && !hostNamesInCluster.isEmpty() && !existingHostNames.isEmpty()) {
+             for (String hostName : hostNamesInCluster) {
+                if (existingHostNames.contains(hostName)){
+                    preCheckErrors.append(ExecutionUtils.getMessage("compute.cluster.hostname.already.in.cluster", hostName) + "  ");
+                }
+             }
+        }
         if (!ComputeUtils.isCapacityAvailable(getClient(), virtualPool,
                 virtualArray, size, (hostNames.size() - existingHostNames.size()))) {
             preCheckErrors.append(
@@ -121,9 +126,12 @@ public class AddBareMetalHostToClusterService extends ViPRService {
             preCheckErrors.append(
                     ExecutionUtils.getMessage("compute.cluster.service.profile.templates.null", cvp.getName()) + "  ");
         }
+        //TODO COP-28922 Can we add a check to see if the blades and the templates match?
+        // e.g. the blades can be from multiple UCS clusters
 
         if (preCheckErrors.length() > 0) {
-            throw new IllegalStateException(preCheckErrors.toString());
+            throw new IllegalStateException(preCheckErrors.toString() + 
+                    ComputeUtils.getContextErrors(getModelClient()));
         }
     }
 
@@ -152,10 +160,11 @@ public class AddBareMetalHostToClusterService extends ViPRService {
         // Deactivate any hosts where the export failed, return list of hosts remaining
         hostToBootVolumeIdMap = ComputeUtils.deactivateHostsWithNoExport(hostToBootVolumeIdMap, hostToEgIdMap, cluster);
         
-        // Set host boot volume ids, but do not set san boot targets. They will get set post os install.
+        // Set host boot volume ids and set san boot targets. 
         hosts = ComputeUtils.setHostBootVolumes(hostToBootVolumeIdMap, true);
 
         ComputeUtils.addHostsToCluster(hosts, cluster);
+        hosts = ComputeUtils.deactivateHostsNotAddedToCluster(hosts, cluster);
 
         String orderErrors = ComputeUtils.getOrderErrors(cluster, copyOfHostNames, null, null);
         if (orderErrors.length() > 0) { // fail order so user can resubmit

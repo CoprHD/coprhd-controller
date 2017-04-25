@@ -1452,6 +1452,8 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
         // Segregate by device and loop over each VPLEX system.
         // Sort the volumes by its system, and consistency group
         Map<URI, Set<URI>> cgVolsMap = new HashMap<URI, Set<URI>>();
+        // Keep a separate map for determining if we should delete the VPLEX CG as part of the delete operation.
+        Map<URI, Set<URI>> cgVolsWithBackingVolsMap = new HashMap<URI, Set<URI>>();
         Map<URI, List<VolumeDescriptor>> vplexMap = VolumeDescriptor.getDeviceMap(vplexVolumes);
         for (URI vplexURI : vplexMap.keySet()) {
             List<URI> vplexVolumeURIs = VolumeDescriptor.getVolumeURIs(vplexMap.get(vplexURI));
@@ -1473,12 +1475,14 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
                 if (inCG) {
                     Set<URI> cgVols = cgVolsMap.get(vplexVolume.getConsistencyGroup());
                     if (cgVols == null) {
-                        cgVols = new HashSet<URI>();
-                        cgVolsMap.put(vplexVolume.getConsistencyGroup(), cgVols);
+                        cgVolsMap.put(vplexVolume.getConsistencyGroup(), new HashSet<>());
+                        cgVolsWithBackingVolsMap.put(vplexVolume.getConsistencyGroup(), new HashSet<>());
                     }
-                    cgVols.add(vplexVolumeURI);
-                    cgVols.addAll(forgetVolumeURIs);
+                    cgVolsMap.get(vplexVolume.getConsistencyGroup()).add(vplexVolumeURI);
+                    cgVolsWithBackingVolsMap.get(vplexVolume.getConsistencyGroup()).add(vplexVolumeURI);
+                    cgVolsWithBackingVolsMap.get(vplexVolume.getConsistencyGroup()).addAll(forgetVolumeURIs);
                 }
+                
                 // Adding the VPLEX mirror backend volume to forgetVolumeURIs
                 if (vplexVolume.getMirrors() != null && !(vplexVolume.getMirrors().isEmpty())) {
                     for (String mirrorId : vplexVolume.getMirrors()) {
@@ -1529,6 +1533,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
             }
 
             // find member volumes in the group
+            volURIs = new ArrayList<URI>(cgVolsWithBackingVolsMap.get(cgURI));
             List<Volume> volumeList = new ArrayList<Volume>();
             Iterator<Volume> volumeIterator = _dbClient.queryIterativeObjects(Volume.class, volURIs, true);
             while (volumeIterator.hasNext()) {
@@ -1536,7 +1541,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
             }
             Volume firstVol = volumeList.get(0);
             URI storage = firstVol.getStorageController();
-            // delete replication group from array
+            // delete CG from array
             if (ControllerUtils.cgHasNoOtherVolume(_dbClient, cgURI, volumeList)) {
                 _log.info(String.format("Adding step to delete the consistency group %s", cgURI));
                 returnWaitFor = consistencyGroupManager.addStepsForDeleteConsistencyGroup(workflow, returnWaitFor,

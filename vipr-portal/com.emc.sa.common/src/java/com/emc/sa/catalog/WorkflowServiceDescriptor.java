@@ -101,8 +101,8 @@ public class WorkflowServiceDescriptor {
             for (final Step step : wfDocument.getSteps()) {
                 if (null != step.getInputGroups()) {
                     // Looping through all input groups
-                    final MultiValueMap tableMap = new MultiValueMap();
                     for (final InputGroup inputGroup : step.getInputGroups().values()) {
+                        final MultiValueMap tableMap = new MultiValueMap();
                         for (final Input wfInput : inputGroup.getInputGroup()) {
                             final ServiceField serviceField = new ServiceField();
                             // Creating service fields for only inputs of type "inputfromuser" and "assetoption"
@@ -138,17 +138,16 @@ public class WorkflowServiceDescriptor {
                                 to.getItems().put(friendlyName, serviceField);
                             }
                         }
-
-                    }
-                    for (final String table: (Set<String>) tableMap.keySet()){
-                        final ServiceFieldTable serviceFieldTable = new ServiceFieldTable();
-                        serviceFieldTable.setType(ServiceItem.TYPE_TABLE);
-                        serviceFieldTable.setLabel(table);
-                        serviceFieldTable.setName(table);
-                        for (final ServiceField serviceField : (List<ServiceField>)tableMap.getCollection(table)){
-                            serviceFieldTable.addItem(serviceField);
+                        for (final String table: (Set<String>) tableMap.keySet()){
+                            final ServiceFieldTable serviceFieldTable = new ServiceFieldTable();
+                            serviceFieldTable.setType(ServiceItem.TYPE_TABLE);
+                            serviceFieldTable.setLabel(table);
+                            serviceFieldTable.setName(table);
+                            for (final ServiceField serviceField : (List<ServiceField>)tableMap.getCollection(table)){
+                                serviceFieldTable.addItem(serviceField);
+                            }
+                            to.getItems().put(table,serviceFieldTable);
                         }
-                        to.getItems().put(table,serviceFieldTable);
                     }
                 }
             }

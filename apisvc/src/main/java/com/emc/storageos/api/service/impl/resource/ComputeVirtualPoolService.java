@@ -287,7 +287,7 @@ public class ComputeVirtualPoolService extends TaggedResource {
                     toUriList(cvp.getMatchedComputeElements()));
             Collection<URI> hostIds = _dbClient.queryByType(Host.class, true);
             Collection<Host> hosts = _dbClient.queryObjectFields(Host.class,
-                Arrays.asList("label", "computeElement"), getFullyImplementedCollection(hostIds));
+                Arrays.asList("label", "computeElement", "cluster"), getFullyImplementedCollection(hostIds));
             for (ComputeElement computeElement : computeElements) {
                 if (computeElement!=null) {
                     Host associatedHost = null;
@@ -299,8 +299,15 @@ public class ComputeVirtualPoolService extends TaggedResource {
                         }
                     }
                     _log.info("blade:"+computeElement.getId().toString());
-                    ComputeElementRestRep rest = map(computeElement, associatedHost);
-                    _log.info("asscoaited host:"+rest.getHostName());
+                    Cluster cluster = null;
+                    if (associatedHost!=null && !NullColumnValueGetter.isNullURI(associatedHost.getCluster())){
+                        cluster = _dbClient.queryObject(Cluster.class, associatedHost.getCluster());
+                    }
+                    if (cluster!=null){
+                       _log.info("cluster:"+cluster.getLabel());
+                    }
+
+                    ComputeElementRestRep rest = map(computeElement, associatedHost, cluster);
                     result.getList().add(rest);
                 }
             }

@@ -857,9 +857,8 @@ public class ComputeUtils {
         return objectListToReturn;
     }
 
-    // VBDU DONE: COP-28437, These methods need to be rewritten to use maps. Assuming stable indexing of
-    // hostNames->return List is poor programming practice.
-    // Verified that there is no dependence on the indexing of the return list. It is just a list of names that do not already exist in the cluster
+    // VBDU DONE: COP-28437- Verified that there is no dependence on the indexing of the return list.
+    // It is just a list of names that do not already exist in the cluster
    /**
     * From the list of hostNames give, removes the host names that already exist in the specified cluster
     * @param list of hostNames

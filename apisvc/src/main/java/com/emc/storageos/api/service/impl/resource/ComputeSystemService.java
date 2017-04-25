@@ -44,6 +44,7 @@ import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
+import com.emc.storageos.db.client.model.Cluster;
 import com.emc.storageos.db.client.model.ComputeBootDef;
 import com.emc.storageos.db.client.model.ComputeBootPolicy;
 import com.emc.storageos.db.client.model.ComputeElement;
@@ -996,7 +997,7 @@ public class ComputeSystemService extends TaskResourceService {
         Iterator<URI> iterator = ceUriList.iterator();
         Collection<URI> hostIds = _dbClient.queryByType(Host.class, true);
         Collection<Host> hosts = _dbClient.queryObjectFields(Host.class,
-             Arrays.asList("label", "computeElement"), getFullyImplementedCollection(hostIds));
+             Arrays.asList("label", "computeElement","cluster"), getFullyImplementedCollection(hostIds));
         while (iterator.hasNext()) {
             ComputeElement ce = _dbClient.queryObject(ComputeElement.class, iterator.next());
             if (ce!=null){
@@ -1008,8 +1009,12 @@ public class ComputeSystemService extends TaskResourceService {
                         break;
                     }
                 }
+                Cluster cluster = null;
+                if (associatedHost!=null && !NullColumnValueGetter.isNullURI(associatedHost.getCluster())){
+                   cluster = _dbClient.queryObject(Cluster.class, associatedHost.getCluster());
+                }
 
-                ComputeElementRestRep rest = map(ce,associatedHost);
+                ComputeElementRestRep rest = map(ce, associatedHost, cluster);
                 if (rest != null) {
                    result.getList().add(rest);
                 }

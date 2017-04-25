@@ -20,6 +20,7 @@ import org.slf4j.LoggerFactory;
 import com.emc.storageos.api.service.impl.response.RestLinkFactory;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
+import com.emc.storageos.db.client.model.Cluster;
 import com.emc.storageos.db.client.model.ComputeElement;
 import com.emc.storageos.db.client.model.ComputeImage;
 import com.emc.storageos.db.client.model.ComputeImageServer;
@@ -83,7 +84,7 @@ public class ComputeMapper {
         return to;
     }
 
-    public static ComputeElementRestRep map(ComputeElement from, Host host) {
+    public static ComputeElementRestRep map(ComputeElement from, Host host, Cluster cluster) {
         if (from == null) {
             return null;
         }
@@ -102,7 +103,12 @@ public class ComputeMapper {
                 from.getComputeSystem()));
         to.setRegistrationStatus(from.getRegistrationStatus());
         if (host!=null) {
-           to.setHostName(host.getLabel());
+           StringBuffer hostName = new StringBuffer();
+           if (cluster!=null){
+              hostName.append(cluster.getLabel()+": ");
+           }
+           hostName.append(host.getLabel());
+           to.setHostName(hostName.toString());
         }
         return to;
     }

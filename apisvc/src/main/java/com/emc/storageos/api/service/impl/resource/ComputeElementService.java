@@ -34,6 +34,7 @@ import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.ComputeElement;
 import com.emc.storageos.db.client.model.ComputeVirtualPool;
+import com.emc.storageos.db.client.model.Cluster;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus;
@@ -127,9 +128,6 @@ public class ComputeElementService extends TaskResourceService {
     public ComputeElementList getComputeElements() {
         ComputeElementList computeElements = new ComputeElementList();
         List<URI> ids = _dbClient.queryByType(ComputeElement.class, true);
-        Collection<URI> hostIds = _dbClient.queryByType(Host.class, true);
-        Collection<Host> hosts = _dbClient.queryObjectFields(Host.class,
-             Arrays.asList("label", "computeElement"), getFullyImplementedCollection(hostIds));
 
         for (URI id : ids) {
             ComputeElement computeElement = _dbClient.queryObject(ComputeElement.class, id);
@@ -160,19 +158,12 @@ public class ComputeElementService extends TaskResourceService {
         ComputeElement ce = queryResource(id);
         ArgValidator.checkEntity(ce, id, isIdEmbeddedInURL(id));
 
-        Collection<URI> hostIds = _dbClient.queryByType(Host.class, true);
-        Collection<Host> hosts = _dbClient.queryObjectFields(Host.class,
-             Arrays.asList("label", "computeElement"), getFullyImplementedCollection(hostIds));
-        Host associatedHost = null;
-        for (Host host : hosts) {
-            if (!NullColumnValueGetter.isNullURI(host.getComputeElement()) && host.getComputeElement().equals(ce.getId())) {
-                 associatedHost = host;
-                 _log.info("host:"+ host.getId());
-                 break;
-            }
+        Host associatedHost = getAssociatedHost(ce, _dbClient);
+        Cluster cluster = null;
+        if (associatedHost!=null && !NullColumnValueGetter.isNullURI(associatedHost.getCluster())){
+            cluster = _dbClient.queryObject(Cluster.class, associatedHost.getCluster());
         }
-
-        return ComputeMapper.map(ce, associatedHost);
+        return ComputeMapper.map(ce, associatedHost, cluster);
     }
 
     /**
@@ -229,7 +220,7 @@ public class ComputeElementService extends TaskResourceService {
             recordAndAudit(ce, OperationTypeEnum.DEREGISTER_COMPUTE_ELEMENT, true, null);
         }
 
-        return ComputeMapper.map(ce,null);
+        return ComputeMapper.map(ce,null, null);
     }
 
     /**
@@ -279,7 +270,7 @@ public class ComputeElementService extends TaskResourceService {
 
         }
 
-        return map(ce,null);
+        return map(ce,null,null);
     }
 
     private void registerComputeElement(ComputeElement ce) {
@@ -316,7 +307,14 @@ public class ComputeElementService extends TaskResourceService {
             @Override
             public ComputeElementRestRep apply(ComputeElement ce) {
                 Host associatedHost = getAssociatedHost(ce, _dbClient);
-                ComputeElementRestRep restRep = ComputeMapper.map(ce, associatedHost);
+                Cluster cluster = null;
+                if (associatedHost!=null && !NullColumnValueGetter.isNullURI(associatedHost.getCluster())){
+                   cluster = _dbClient.queryObject(Cluster.class, associatedHost.getCluster());
+                }
+                if (cluster!=null){
+                  _log.info("cluster:"+ cluster.getLabel());
+                }
+                ComputeElementRestRep restRep = ComputeMapper.map(ce, associatedHost, cluster);
                 return restRep;
             }
         }));
@@ -326,7 +324,7 @@ public class ComputeElementService extends TaskResourceService {
         Host associatedHost = null;
         Collection<URI> hostIds = _dbClient.queryByType(Host.class, true);
         Collection<Host> hosts = _dbClient.queryObjectFields(Host.class,
-             Arrays.asList("label", "computeElement"), getFullyImplementedCollection(hostIds));
+             Arrays.asList("label", "computeElement","cluster"), getFullyImplementedCollection(hostIds));
 
         for (Host host : hosts){
            if (!NullColumnValueGetter.isNullURI(host.getComputeElement()) && host.getComputeElement().equals(ce.getId())) {

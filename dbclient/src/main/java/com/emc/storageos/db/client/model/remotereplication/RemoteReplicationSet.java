@@ -5,6 +5,7 @@
 package com.emc.storageos.db.client.model.remotereplication;
 
 
+import java.beans.Transient;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -194,6 +195,7 @@ public class RemoteReplicationSet extends DiscoveredDataObject {
      * Convenience method to get source storage systems
      * @return set of source storage systems ids
      */
+    @Transient
     public Set<String> getSourceSystems() {
         Set<String> sourceSystems = new HashSet<>();
         if (getSystemToRolesMap() == null) {
@@ -214,6 +216,7 @@ public class RemoteReplicationSet extends DiscoveredDataObject {
      * Convenience method to get target storage systems
      * @return set of target storage systems ids
      */
+    @Transient
     public Set<String> getTargetSystems() {
         Set<String> targetSystems = new HashSet<>();
         if (getSystemToRolesMap() == null) {

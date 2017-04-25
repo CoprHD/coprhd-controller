@@ -15,6 +15,7 @@ public class ConnectivityTypes {
     public static final String SRDF = "srdf";
     public static final String VPLEX = "vplex";
     public static final String RP_VPLEX = "rpvplex";
+    public static final String REMOTE_REPLICATION = "remotereplication";
     public static final String UNSUPPORTED = "unsupported";
 
     public static StringOption option(String type) {

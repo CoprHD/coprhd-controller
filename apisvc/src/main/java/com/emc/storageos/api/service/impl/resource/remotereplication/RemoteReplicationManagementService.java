@@ -412,14 +412,17 @@ public class RemoteReplicationManagementService extends TaskResourceService {
 
     /**
      * Validation criteria:
-     *   1. All rr pairs are directly contained in rr set (not necessarily the same one);
-     *   2. All source volumes are contained in the same cg;
-     *   3. All target volumes are contained in the same cg.
+     *   1. All rr pairs are directly contained in the same rr set;
+     *   2. All source volumes are contained in the same source cg
+     *      and have to contain all volumes from the cg (We do not
+     *      allow operations on subset of volumes in cg).
+     *   3. Target volumes can be in one or more cg(s).
      * @param rrPairs
      */
     private void checkRRSetCGContainment(List<RemoteReplicationPair> rrPairs) {
+        URI uniqueSet = null;
         URI uniqueSourceCG = null;
-        URI uniqueTargetCG = null;
+        Set<URI> sourceVolIds = new HashSet<URI>();
         for (RemoteReplicationPair rrPair : rrPairs) {
             if (rrPair.isGroupPair()) {
                 throw APIException.badRequests.remoteReplicationOperationPrecheckFailed(String.format(
@@ -427,7 +430,22 @@ public class RemoteReplicationManagementService extends TaskResourceService {
                         rrPair.getNativeId()));
             }
 
-            URI currentSourceCG = _dbClient.queryObject(Volume.class, rrPair.getSourceElement()).getConsistencyGroup();
+            URI currentSet = rrPair.getReplicationSet();
+            if (currentSet == null) {
+                throw APIException.badRequests.remoteReplicationOperationPrecheckFailed(String.format(
+                        "remote replication set of remote repliaction pair %s is null, which is not allowed",
+                        rrPair.getNativeId()));
+            } else if (uniqueSet == null) {
+                uniqueSet = currentSet;
+            } else if (!uniqueSet.equals(currentSet)) {
+                throw APIException.badRequests.remoteReplicationOperationPrecheckFailed(String.format(
+                        "remote replication set of remote replication pair %s is not the same as the others",
+                        rrPair.getNativeId()));
+            }
+
+            Volume source = _dbClient.queryObject(Volume.class, rrPair.getSourceElement());
+            sourceVolIds.add(source.getId());
+            URI currentSourceCG = source.getConsistencyGroup();
             if (currentSourceCG == null) {
                 throw APIException.badRequests.remoteReplicationOperationPrecheckFailed(String.format(
                         "remote replication pair %'s source volume has no consistency group", rrPair.getNativeId()));
@@ -443,23 +461,21 @@ public class RemoteReplicationManagementService extends TaskResourceService {
             if (currentTargetCG == null) {
                 throw APIException.badRequests.remoteReplicationOperationPrecheckFailed(String.format(
                         "remote replication pair %'s target volume has no consistency group", rrPair.getNativeId()));
-            } else if (uniqueTargetCG == null) {
-                uniqueTargetCG = currentTargetCG;
-            } else if (!uniqueTargetCG.equals(currentTargetCG)) {
-                throw APIException.badRequests.remoteReplicationOperationPrecheckFailed(String.format(
-                        "remote repliation pair %s's target volume's consistency group is not the same as others",
-                        rrPair.getNativeId()));
             }
+        }
 
+        if (!containAllCgVolumes(sourceVolIds, uniqueSourceCG)) {
+            throw APIException.badRequests.remoteReplicationOperationPrecheckFailed(String.format(
+                    "source volumes of given remote replication pairs don't contain all volumes in consistency group %s",
+                    uniqueSourceCG));
         }
     }
 
     /**
      * Validation criteria:
      *   1. All rr pairs are contained in rr group (not necessarily the same one);
-     *   2. All source volumes are contained in the same cg;
+     *   2. All source volumes are contained in the same cg and it contains all volumes in the source cg
      *   3. All target volumes are contained in the same cg;
-     *   4. Source volumes collection contains all volumes in the source cg.
      * @param rrPairs
      */
     private void checkRRGroupCGContainment(List<RemoteReplicationPair> rrPairs) {
@@ -499,16 +515,28 @@ public class RemoteReplicationManagementService extends TaskResourceService {
                         rrPair.getNativeId()));
             }
         }
-        BlockConsistencyGroup sourceCg = _dbClient.queryObject(BlockConsistencyGroup.class, uniqueSourceCG);
-        Set<URI> cgVolIds = new HashSet<URI>();
-        for (Volume vol : BlockConsistencyGroupUtils.getActiveVolumesInCG(sourceCg, _dbClient, null)) {
-            cgVolIds.add(vol.getId());
-        }
-        if (!sourceVolIds.containsAll(cgVolIds)) {
+
+        if (!containAllCgVolumes(sourceVolIds, uniqueSourceCG)) {
             throw APIException.badRequests.remoteReplicationOperationPrecheckFailed(String.format(
                     "source volumes of given remote replication pairs don't contain all volumes in consistency group %s",
-                    sourceCg.getNativeId()));
+                    uniqueSourceCG));
         }
+    }
+
+    /**
+     * @param vols volume URI collection
+     * @param cgId consistency group URI
+     * @return true if given volume collection contains all volumes in the
+     *         given consistency group, otherwise return false
+     */
+    private boolean containAllCgVolumes(Set<URI> vols, URI cgId) {
+        BlockConsistencyGroup cg = _dbClient.queryObject(BlockConsistencyGroup.class, cgId);
+        for (Volume vol : BlockConsistencyGroupUtils.getActiveVolumesInCG(cg, _dbClient, null)) {
+            if (!vols.contains(vol.getId())) {
+                return false;
+            }
+        }
+        return true;
     }
 
     TaskList processSrdfLinkRequest(RemoteReplicationOperationParam.OperationContext operationContext, List<URI> pairURIs) {

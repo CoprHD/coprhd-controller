@@ -15,7 +15,8 @@ test_expand_host_filesystem() {
 
     os_failure_injections=""
 
-    supported_os="windows linux hpux" 
+    #supported_os="windows linux hpux" 
+    supported_os="windows" 
 
     for os in ${supported_os[@]}
     do
@@ -27,13 +28,24 @@ test_expand_host_filesystem() {
 	if [ "${os}" = "hpux" ]
 	then
 	    hostname=hpuxhost1
+            os_failure_injections="hpux_expandVolume_after_unmount \
+                                   hpux_expandVolume_after_remove_tag \
+                                   hpux_expandVolume_after_volume_resize \
+                                   hpux_expandVolume_after_mount"
 	elif [ "${os}" = "linux" ]
+            os_failure_injections="linux_expandVolume_after_unmount \
+                                   linux_expandVolume_after_remove_tag \
+                                   linux_expandVolume_after_volume_resize \
+                                   linux_expandVolume_after_resize_partition \
+                                   linux_expandVolume_after_resize_filesystem \
+                                   linux_expandVolume_after_mount"
 	then
 	    hostname=linuxhost1
 	elif [ "${os}" = "windows" ]
 	then
 	    hostname=winhost1
-            os_failure_injections="extendDrivesWindows"
+            os_failure_injections="windows_before_extendDrives \
+                                   windows_after_extendDrives"
 	fi
 
         failure_injections="${HAPPY_PATH_TEST_INJECTION} ${common_failure_injections} ${os_failure_injections}"
@@ -44,11 +56,13 @@ test_expand_host_filesystem() {
         else
             unix_create_volume_and_mount $TENANT ${hostname} "${volume}" "/${volume}" ${NH} ${VPOOL_BASE} ${PROJECT} ${os}
         fi
-
+        # Initial size to be expanded to
         size=2
+        wwn=`get_volume_wwn ${PROJECT}/${volume}`
+        mountLetter="F"
 
         # Placeholder when a specific failure case is being worked...
-         failure_injections="extendDrivesWindows"
+         failure_injections="failure_080_BlockDeviceController.expandVolume_before_device_expand"
 	for failure in ${failure_injections}
 	do
             secho "Running ${test_name} with failure scenario: ${failure}..."
@@ -66,23 +80,37 @@ test_expand_host_filesystem() {
 	    # Run expand filesystem
             expand_volume $TENANT ${hostname} ${volume} ${PROJECT} ${size} ${os} ${failure}
 
-            # Verify injected failures were hit
-            # verify_failures ${failure}
+            if [ ${failure} != ${HAPPY_PATH_TEST_INJECTION} ]; then
+                # Verify injected failures were hit
+                # verify_failures ${failure}
 
-            # Snap DB
-            snap_db 2 "${column_family[@]}"
+                # Snap DB
+                snap_db 2 "${column_family[@]}"
 
-            # Validate DB
-            validate_db 1 2 "${column_family[@]}"
-            # Report results
-            report_results ${test_name} ${failure}
+                # Validate DB
+                validate_db 1 2 "${column_family[@]}"
+
+                # host tooling to verify that volume is remounted
+                verify_mount_point ${os} /${volume} ${size} ${wwn} ${mountLetter}
+
+		# Rerun the expand operation
+		set_artificial_failure none
+                expand_volume $TENANT ${hostname} ${volume} ${PROJECT} ${size} ${os}
+
+                #Verify that order is successful 
+
+		# Verify that expand is successful on host side
+ 		verify_mount_point ${os} /${volume} ${size} ${wwn} ${mountLetter}
+
+                # Report results
+                report_results ${test_name} ${failure}
+	    fi
+
             size=`expr $size + 1`
+
             # Add a break in the output
             echo " "
 	done
-
-	# Turn off failure
-	set_artificial_failure none
 
 	unmount_and_delete_volume $TENANT ${hostname} "${volume}" ${PROJECT} ${os}
     done 
@@ -196,4 +224,9 @@ unmount_and_delete_volume() {
     volume_id=`volume list ${PROJECT} | grep "${volname_arg}" | awk '{print $7}'`
 
     runcmd catalog order ${service_catalog} ${tenant_arg} volumes=${volume_id},host=${host_id} ${service_category}
+}
+
+get_volume_wwn() {
+    label=$1
+    volume show ${label} | grep wwn | awk '{print $2}' | cut -c2-6
 }

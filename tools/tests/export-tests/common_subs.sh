@@ -971,9 +971,8 @@ verify_mount_point() {
     mountpoint=$2
     size=$3
     wwn=$4
-    mountLetter=$5
     
-    runcmd hosthelper.sh verify_mount_point $ostype $mountpoint $size $wwn $mountLetter $*
+    runcmd hosthelper.sh verify_mount_point $ostype $mountpoint $size $wwn $*
     return_status=$?
     return $return_status
 }

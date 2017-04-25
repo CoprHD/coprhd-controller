@@ -15,8 +15,7 @@ test_expand_host_filesystem() {
 
     os_failure_injections=""
 
-    #supported_os="windows linux hpux" 
-    supported_os="windows" 
+    supported_os="windows linux hpux" 
 
     for os in ${supported_os[@]}
     do
@@ -59,10 +58,10 @@ test_expand_host_filesystem() {
         # Initial size to be expanded to
         size=2
         wwn=`get_volume_wwn ${PROJECT}/${volume}`
-        mountLetter="F"
+        mountpoint=`get_volume_mount_point ${PROJECT}/${volume}`
 
         # Placeholder when a specific failure case is being worked...
-         failure_injections="failure_080_BlockDeviceController.expandVolume_before_device_expand"
+        # failure_injections="failure_080_BlockDeviceController.expandVolume_before_device_expand"
 	for failure in ${failure_injections}
 	do
             secho "Running ${test_name} with failure scenario: ${failure}..."
@@ -91,7 +90,7 @@ test_expand_host_filesystem() {
                 validate_db 1 2 "${column_family[@]}"
 
                 # host tooling to verify that volume is remounted
-                verify_mount_point ${os} /${volume} ${size} ${wwn} ${mountLetter}
+                verify_mount_point ${os} ${mountpoint} ${size} ${wwn}
 
 		# Rerun the expand operation
 		set_artificial_failure none
@@ -100,7 +99,7 @@ test_expand_host_filesystem() {
                 #Verify that order is successful 
 
 		# Verify that expand is successful on host side
- 		verify_mount_point ${os} /${volume} ${size} ${wwn} ${mountLetter}
+ 		verify_mount_point ${os} ${mountpoint} ${size} ${wwn}
 
                 # Report results
                 report_results ${test_name} ${failure}
@@ -229,4 +228,9 @@ unmount_and_delete_volume() {
 get_volume_wwn() {
     label=$1
     volume show ${label} | grep wwn | awk '{print $2}' | cut -d '"' -f2
+}
+
+get_volume_mount_point() {
+    label=$1
+    volume show ${label} | grep mountPoint | cut -d '"' -f2 | cut -d '=' -f2
 }

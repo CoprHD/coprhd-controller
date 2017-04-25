@@ -21,12 +21,11 @@ verify_mount_point() {
     MOUNT_POINT=$2
     MOUNT_POINT_SIZE=$3
     VOLUME_WWN=$4
-    MOUNT_LETTER=$5
 
     TMPFILE1=/tmp/verify-${RANDOM}
     TMPFILE2=/dev/null
     
-    java -Dproperty.file=${tools_file} -jar ${tools_jar} -host ${OS_TYPE} -method get_mount_point -params ${MOUNT_POINT},${VOLUME_WWN},${MOUNT_LETTER} > ${TMPFILE1} 2> ${TMPFILE2}
+    java -Dproperty.file=${tools_file} -jar ${tools_jar} -host ${OS_TYPE} -method get_mount_point -params ${MOUNT_POINT},${VOLUME_WWN} > ${TMPFILE1} 2> ${TMPFILE2}
     if [ $? -ne 0 ]
     then
     	if [ "$2" = "gone" ]

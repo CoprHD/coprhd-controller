@@ -3286,6 +3286,12 @@ public interface BadRequestExceptions {
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException cannotCreateReadOnlySnapshotForNonXIOVolumes();
 
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException userNotAuthorizedForWorkflow();
+    
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException userNotAuthorizedForWorkflowStep();
+    
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException cantUpdatePerformanceParamsInUse(final String label);
     

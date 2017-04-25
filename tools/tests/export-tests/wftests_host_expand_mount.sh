@@ -228,5 +228,5 @@ unmount_and_delete_volume() {
 
 get_volume_wwn() {
     label=$1
-    volume show ${label} | grep wwn | awk '{print $2}' | cut -c2-6
+    volume show ${label} | grep wwn | awk '{print $2}' | cut -d '"' -f2
 }

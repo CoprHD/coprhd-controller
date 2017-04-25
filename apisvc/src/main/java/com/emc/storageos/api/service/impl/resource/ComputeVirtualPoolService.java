@@ -294,17 +294,12 @@ public class ComputeVirtualPoolService extends TaggedResource {
                     for (Host host : hosts){
                         if (!NullColumnValueGetter.isNullURI(host.getComputeElement()) && host.getComputeElement().equals(computeElement.getId())) {
                             associatedHost = host;
-                            _log.info("host:"+ host.getId());
                             break;
                         }
                     }
-                    _log.info("blade:"+computeElement.getId().toString());
                     Cluster cluster = null;
                     if (associatedHost!=null && !NullColumnValueGetter.isNullURI(associatedHost.getCluster())){
                         cluster = _dbClient.queryObject(Cluster.class, associatedHost.getCluster());
-                    }
-                    if (cluster!=null){
-                       _log.info("cluster:"+cluster.getLabel());
                     }
 
                     ComputeElementRestRep rest = map(computeElement, associatedHost, cluster);

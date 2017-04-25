@@ -1005,7 +1005,6 @@ public class ComputeSystemService extends TaskResourceService {
                 for (Host host : hosts){
                     if (!NullColumnValueGetter.isNullURI(host.getComputeElement()) && host.getComputeElement().equals(ce.getId())) {
                         associatedHost = host;
-                        _log.info("host:"+ host.getId());
                         break;
                     }
                 }

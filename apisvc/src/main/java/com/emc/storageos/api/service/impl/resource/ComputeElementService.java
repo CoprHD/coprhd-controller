@@ -311,9 +311,6 @@ public class ComputeElementService extends TaskResourceService {
                 if (associatedHost!=null && !NullColumnValueGetter.isNullURI(associatedHost.getCluster())){
                    cluster = _dbClient.queryObject(Cluster.class, associatedHost.getCluster());
                 }
-                if (cluster!=null){
-                  _log.info("cluster:"+ cluster.getLabel());
-                }
                 ComputeElementRestRep restRep = ComputeMapper.map(ce, associatedHost, cluster);
                 return restRep;
             }
@@ -329,7 +326,6 @@ public class ComputeElementService extends TaskResourceService {
         for (Host host : hosts){
            if (!NullColumnValueGetter.isNullURI(host.getComputeElement()) && host.getComputeElement().equals(ce.getId())) {
                associatedHost = host;
-               _log.info("host:"+ host.getId());
                break;
            }
         }

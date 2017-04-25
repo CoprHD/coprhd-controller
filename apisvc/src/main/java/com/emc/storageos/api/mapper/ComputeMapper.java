@@ -113,7 +113,6 @@ public class ComputeMapper {
         return to;
     }
 
-
     public static ComputeImageRestRep map(ComputeImage from) {
         if (from == null) {
             return null;

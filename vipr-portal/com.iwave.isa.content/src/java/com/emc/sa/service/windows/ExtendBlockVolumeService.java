@@ -55,7 +55,6 @@ public class ExtendBlockVolumeService extends WindowsService {
         BlockStorageUtils.expandVolumes(uris(volumeIds), sizeInGb);
         acquireHostAndClusterLock();
         for (ExtendDriveHelper extendDriveHelper : extendDriveHelpers) {
-            artificialFailure(ArtificialFailures.ARTIFICIAL_FAILURE_WINDOWS_EXTEND_DRIVE);
             extendDriveHelper.extendDrives();
         }
 

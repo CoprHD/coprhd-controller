@@ -28,6 +28,7 @@ import com.emc.storageos.model.customservices.CustomServicesWorkflowDocument;
 import com.emc.storageos.model.customservices.CustomServicesWorkflowDocument.Input;
 import com.emc.storageos.model.customservices.CustomServicesWorkflowDocument.InputGroup;
 import com.emc.storageos.model.customservices.CustomServicesWorkflowDocument.Step;
+import com.emc.storageos.primitives.CustomServicesConstants;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -48,9 +49,6 @@ import org.springframework.stereotype.Component;
 public class WorkflowServiceDescriptor {
 
     private static final Logger log = LoggerFactory.getLogger(WorkflowServiceDescriptor.class);
-    private static final String INPUT_FROM_USER_INPUT_TYPE = "InputFromUser";
-    private static final String ASSET_INPUT_SINGLE_TYPE = "AssetOptionSingle";
-    private static final String ASSET_INPUT_MULTI_TYPE = "AssetOptionMulti";
     private static final String CUSTOM_SERVICE_CATEGORY = "Custom Services";
 
     @PostConstruct
@@ -103,22 +101,22 @@ public class WorkflowServiceDescriptor {
             for (final Step step : wfDocument.getSteps()) {
                 if (null != step.getInputGroups()) {
                     // Looping through all input groups
-                    MultiValueMap tableMap = new MultiValueMap();
+                    final MultiValueMap tableMap = new MultiValueMap();
                     for (final InputGroup inputGroup : step.getInputGroups().values()) {
                         for (final Input wfInput : inputGroup.getInputGroup()) {
-                            ServiceField serviceField = new ServiceField();
+                            final ServiceField serviceField = new ServiceField();
                             // Creating service fields for only inputs of type "inputfromuser" and "assetoption"
-                            if (INPUT_FROM_USER_INPUT_TYPE.equals(wfInput.getType())) {
+                            if (CustomServicesConstants.InputType.FROM_USER.toString().equals(wfInput.getType())) {
                                 serviceField.setType(wfInput.getInputFieldType());
-                            } else if (ASSET_INPUT_SINGLE_TYPE.equals(wfInput.getType())){
+                            } else if (CustomServicesConstants.InputType.ASSET_OPTION_SINGLE.toString().equals(wfInput.getType())){
                                 serviceField.setType(wfInput.getValue());
-                            } else if (ASSET_INPUT_MULTI_TYPE.equals(wfInput.getType())) {
+                            } else if (CustomServicesConstants.InputType.ASSET_OPTION_MULTI.toString().equals(wfInput.getType())) {
                                 serviceField.setType(wfInput.getValue());
                                 serviceField.setSelect(ServiceField.SELECT_MANY);
                             }else {
                                 continue;
                             }
-                            String inputName = wfInput.getName();
+                            final String inputName = wfInput.getName();
                             // TODO: change this to get description
                             serviceField.setDescription(wfInput.getFriendlyName());
                             final String friendlyName = StringUtils.isBlank(wfInput.getFriendlyName()) ?
@@ -142,12 +140,12 @@ public class WorkflowServiceDescriptor {
                         }
 
                     }
-                    for (String table: (Set<String>) tableMap.keySet()){
-                        ServiceFieldTable serviceFieldTable = new ServiceFieldTable();
+                    for (final String table: (Set<String>) tableMap.keySet()){
+                        final ServiceFieldTable serviceFieldTable = new ServiceFieldTable();
                         serviceFieldTable.setType(ServiceItem.TYPE_TABLE);
                         serviceFieldTable.setLabel(table);
                         serviceFieldTable.setName(table);
-                        for (ServiceField serviceField : (List<ServiceField>)tableMap.getCollection(table)){
+                        for (final ServiceField serviceField : (List<ServiceField>)tableMap.getCollection(table)){
                             serviceFieldTable.addItem(serviceField);
                         }
                         to.getItems().put(table,serviceFieldTable);

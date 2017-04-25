@@ -1,8 +1,8 @@
 %{
 nameDescTabID = 'nameDescLAContent';
 packageTabID = 'packageTabContent';
-hostFileTabID = 'hostFileContent';
-inputOutputTabID = 'inputOutputLAContent';
+inventoryFileTabID = 'inventoryFileContent';
+extraVarOutputTabID = 'extraVarOutputLAContent';
 ansibleResourceNames = _arg;
 }%
 
@@ -18,17 +18,16 @@ ansibleResourceNames = _arg;
                 <li role="presentation" class="active"><a href="${'#'+nameDescTabID}" data-toggle="tab"><span class="badge">1</span>
                     &{'primitive.menu.nameDescription'}</a></li>
                 <li class=""><a href="${'#'+packageTabID}" data-toggle="tab"><span class="badge">2</span>
-                    &{'primitive.menu.packagePlaybook'}</a>
-                </li>
-                <li class=""><a href="${'#'+hostFileTabID}" data-toggle="tab"><span class="badge">3</span>
-                    &{'primitive.menu.hostFile'}</a>
-                </li>
-                <li class=""><a href="${'#'+inputOutputTabID}" data-toggle="tab"><span class="badge">4</span>
-                    &{'primitive.menu.inputsOutputs'}</a></li>
+                    &{'primitive.menu.packagePlaybook'}</a></li>
+                <li class=""><a href="${'#'+inventoryFileTabID}" data-toggle="tab"><span class="badge">3</span>
+                    &{'primitive.menu.inventoryFile'}</a></li>
+                <li class=""><a href="${'#'+extraVarOutputTabID}" data-toggle="tab"><span class="badge">4</span>
+                    &{'primitive.menu.extraVarsOutputs'}</a></li>
             </ul>
         </div>
         <div class="col-md-9">
             <div class="tab-content">
+            
                 <div class="tab-pane active" id="${nameDescTabID}">
                     #{Modal.body}
                         <control-group v-field='localAnsible.name' labelWidth="1" required >
@@ -38,11 +37,10 @@ ansibleResourceNames = _arg;
                             <input-text></input-text>
                         </control-group>
                     #{/Modal.body}
-
                 </div>
+
                 <div class="tab-pane" id="${packageTabID}">
                     #{Modal.body}
-
                         <control-group v-field="localAnsible.existing">
                             <boolean-checkbox></boolean-checkbox>
                         </control-group>
@@ -74,73 +72,76 @@ ansibleResourceNames = _arg;
                             <input-text></input-text>
                         </control-group>
                     #{/Modal.body}
-
                 </div>
-                <div class="tab-pane" id="${hostFileTabID}">
-                    #{Modal.body}
-                        <control-group v-field='localAnsible.hostFilePath' labelWidth="1" required >
-                            <input-text></input-text>
-                        </control-group>
+
+                <div class="tab-pane" id="${inventoryFileTabID}">
+					#{Modal.body}
+					    #{field 'localAnsible.inventoryFiles'}
+						%{
+                    		field.required = true
+						}%
+					    #{Form.multiFileUpload field:field/}
+					    #{/field}
                     #{/Modal.body}
-
                 </div>
-                <div class="tab-pane" id="${inputOutputTabID}">
+
+                <div class="tab-pane" id="${extraVarOutputTabID}">
                     #{Modal.body}
-                    <div>
-                        <ul id="" class="nav nav-tabs" role="tablist">
-                            <li class="active"><a href="#inputLAContent" role="tab" data-toggle="tab">&nbsp;&{'primitive.tabs.input'}</a>
-                            </li>
-                            <li><a href="#outputLAContent" role="tab" data-toggle="tab">&nbsp;&{'primitive.tabs.output'}</a>
-                            </li>
-                        </ul>
-                        <div class="tab-content">
-                            <div class="tab-pane active" id="inputLAContent" style="width: 300px;">
-                                <!-- Input Tab -->
-                                <div class="row" style="margin-bottom:5px;"><div class="pull-left col-sm-11">
-                                    <input type="text" class="form-control span6" value="Command Line Args" disabled/>
-                                </div></div>
-                                <div class="row" ng-repeat="info in scriptIOs.inputs" style="margin-bottom:5px;">
-                                    <div class="pull-left col-sm-11" v-field="info.input">
-                                        <input-text></input-text>
-                                    </div>
-                                    <div class="pull-left col-sm-1" style="padding-left:0px; margin-top:5px;">
-                                        <button type="button" ng-click="deleteInput($index)" class="close">&times;</button>
-                                    </div>
-                                </div>
-                                <div class="row">
-                                    <div class="pull-left col-sm-11">
-                                        <button type="button" ng-click="addInput()" class="btn btn-sm btn-success"><i
-                                                v-icon=plus></i> &{'button.add'}
-                                        </button>
-                                    </div>
-                                </div>
-
-                            </div>
-                            <div class="tab-pane" id="outputLAContent" style="width: 300px;">
-                                <!-- Output Tab -->
-                                <div class="row" ng-repeat="info in scriptIOs.outputs" style="margin-bottom:5px;">
-                                    <div class="pull-left col-sm-11" v-field="info.output">
-                                        <input-text></input-text>
-                                    </div>
-                                    <div class="pull-left col-sm-1" style="padding-left:0px; margin-top:5px;">
-                                        <button type="button" ng-click="deleteOutput($index)" class="close">&times;</button>
-                                    </div>
-                                </div>
-                                <div class="row">
-                                    <div class="pull-left col-sm-11">
-                                        <button type="button" ng-click="addOutput()" class="btn btn-sm btn-success"><i
-                                                v-icon=plus></i> &{'button.add'}
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                            <input type="hidden" name="localAnsible.inputs" ng-value="inputs"/>
-                            <input type="hidden" name="localAnsible.outputs" ng-value="outputs"/>
-                        </div>
-                    </div>
+	                    <div>
+	                        <ul id="" class="nav nav-tabs" role="tablist">
+	                            <li class="active"><a href="#extravarsLAContent" role="tab" data-toggle="tab">&nbsp;&{'primitive.tabs.extravars'}</a>
+	                            </li>
+	                            <li><a href="#outputLAContent" role="tab" data-toggle="tab">&nbsp;&{'primitive.tabs.output'}</a>
+	                            </li>
+	                        </ul>
+	                        
+	                        <div class="tab-content">
+	                            <div class="tab-pane active" id="#extravarsLAContent" style="width: 300px;">
+	                                <!-- Input Tab -->
+	                                <div class="row" ng-repeat="info in scriptIOs.inputs" style="margin-bottom:5px;">
+	                                    <div class="pull-left col-sm-11" v-field="info.input">
+	                                        <input-text></input-text>
+	                                    </div>
+	                                    <div class="pull-left col-sm-1" style="padding-left:0px; margin-top:5px;">
+	                                        <button type="button" ng-click="deleteInput($index)" class="close">&times;</button>
+	                                    </div>
+	                                </div>
+	                                <div class="row">
+	                                    <div class="pull-left col-sm-11">
+	                                        <button type="button" ng-click="addInput()" class="btn btn-sm btn-success"><i
+	                                                v-icon=plus></i> &{'button.add'}
+	                                        </button>
+	                                    </div>
+	                                </div>
+	
+	                            </div>
+	                            
+	                            <div class="tab-pane" id="outputLAContent" style="width: 300px;">
+	                                <!-- Output Tab -->
+	                                <div class="row" ng-repeat="info in scriptIOs.outputs" style="margin-bottom:5px;">
+	                                    <div class="pull-left col-sm-11" v-field="info.output">
+	                                        <input-text></input-text>
+	                                    </div>
+	                                    <div class="pull-left col-sm-1" style="padding-left:0px; margin-top:5px;">
+	                                        <button type="button" ng-click="deleteOutput($index)" class="close">&times;</button>
+	                                    </div>
+	                                </div>
+	                                <div class="row">
+	                                    <div class="pull-left col-sm-11">
+	                                        <button type="button" ng-click="addOutput()" class="btn btn-sm btn-success"><i
+	                                                v-icon=plus></i> &{'button.add'}
+	                                        </button>
+	                                    </div>
+	                                </div>
+	                            </div>
+	                            <input type="hidden" name="localAnsible.inputs" ng-value="inputs"/>
+	                            <input type="hidden" name="localAnsible.outputs" ng-value="outputs"/>
+	                        </div>
+	                    </div>
+                    
                     #{/Modal.body}
-
                 </div>
+
             </div>
 
             #{Modal.footer}
@@ -151,17 +152,19 @@ ansibleResourceNames = _arg;
                 #{Form.button name:'button.cancel', icon:'remove', data:['dismiss':'modal']/}
             #{/Modal.footer}
         </div>
+        
         #{/form}
     </div>
+    
     #{/Modal.dialog}
 </div>
 
 <script>
-    function checkLAFinish() {
+	function checkLAFinish() {
         var complete = true;
         var chooseExisting = $('[name="localAnsible.existing"]').val();
-        if (isBlank($('#localAnsible_name').val()) ||  isBlank($('#localAnsible_hostFilePath').val()) ||
-        isBlank($('#localAnsible_ansiblePlaybook').val())) {
+        
+        if (isBlank($('#localAnsible_name').val()) || isBlank($('#localAnsible_ansiblePlaybook').val())) {
             complete = false;
         }
         else if ( chooseExisting && isBlank($('#localAnsible_existingResource').val()) ) {
@@ -170,8 +173,11 @@ ansibleResourceNames = _arg;
         else if ( !chooseExisting &&  ( isBlank($('#localAnsible_ansiblePackageName').val()) || isBlank($('#localAnsible_ansiblePackage').val())) ){
             complete = false;
         }
-
-
+        //else if (isBlank($('#localAnsible_inventoryFiles').val())) {
+        //	complete = false;
+        //}
+        //alert(complete)
+        
         console.log("chooseExisting: "+chooseExisting);
         console.log(complete);
         // If form is complete, enable FINISH button
@@ -183,7 +189,7 @@ ansibleResourceNames = _arg;
         }
     }
 
-    $(function(){
+    $(function() {
         //on start hiding finish and back buttons
         $('#finishButtonLA').hide();
         $('#backButtonLA').hide();
@@ -200,12 +206,12 @@ ansibleResourceNames = _arg;
                 $('#nextButtonLA').show();
                 $('#finishButtonLA').hide();
             }
-            else if (activeTabID.indexOf("${hostFileTabID}") >=0 ) {
+            else if (activeTabID.indexOf("${inventoryFileTabID}") >=0 ) {
                 $('#backButtonLA').show();
                 $('#nextButtonLA').show();
                 $('#finishButtonLA').hide();
             }
-            else if (activeTabID.indexOf("${inputOutputTabID}") >=0 ) {
+            else if (activeTabID.indexOf("${extraVarOutputTabID}") >=0 ) {
                 $('#backButtonLA').show();
                 $('#nextButtonLA').hide();
                 $('#finishButtonLA').show();
@@ -234,11 +240,11 @@ ansibleResourceNames = _arg;
 
     angular.module("portalApp").controller('localAnsiblePrimitiveController', function($element, $scope, $compile, $http, translate) {
 
-        var resetVars = function(){
-            $scope.localAnsible = {};
+		var resetVars = function(){
             $scope.scriptIOs = {};
             $scope.scriptIOs.inputs = [];
             $scope.scriptIOs.outputs = [];
+        	$scope.localAnsible = {};
         }
 
         resetVars();
@@ -268,13 +274,13 @@ ansibleResourceNames = _arg;
                 if (obj.output !== '') outputs.push(obj.output);
             });
 
-            $scope.inputs = inputs.toString();
-            $scope.outputs = outputs.toString();
-       }, true);
-
-       // for edit functionality
-       $scope.populateModal = function(edit, id, type) {
-            resetVars();
+        	$scope.inputs = inputs.toString();
+			$scope.outputs = outputs.toString();
+		}, true);
+        
+		// for edit functionality
+       	$scope.populateModal = function(edit, id, type) {
+        	resetVars();
             if (edit) {
                 $scope.modalTitle=translate('localAnsible.primitive.edit.title');
 
@@ -296,16 +302,15 @@ ansibleResourceNames = _arg;
                         }
                     }
                 });
-
             }
             else {
                 $scope.modalTitle=translate('localAnsible.primitive.add.title');
                 // Setting selected workflow directory ID
                 $scope.localAnsible.wfDirID = $('#jstree_demo').jstree(true).get_selected()[0]
             }
-       }
+		}
 
     });
-
+    
 </script>
 

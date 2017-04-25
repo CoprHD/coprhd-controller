@@ -5043,13 +5043,13 @@ gettingStarted.vpool.unity.desc=Virtual Pool for Dell EMC UNITY Storage created 
 exportPathAdjustment.modal.title=Export Path Adjustment Preview
 
 # Workflow Builder Primitives
-primitive.menu.inputsOutputs=Inputs and Outputs
+primitive.menu.extraVarsOutputs=Extra-vars and Outputs
 primitive.menu.nameDescription=Name and Description
 primitive.menu.uploadFile=Upload File
 primitive.menu.packagePlaybook=Package and Playbook
-primitive.menu.hostFile=Host File
+primitive.menu.inventoryFile=Inventory File
 primitive.menu.restCallDetails=Rest Call Details
-primitive.tabs.input=Input
+primitive.tabs.extravars=Extra-vars
 primitive.tabs.output=Output
 shell.primitive.add.title=Create Shell Script
 shell.primitive.edit.title=Edit Shell Script
@@ -5060,7 +5060,7 @@ shellPrimitive.scriptName=Script Name
 shellPrimitive.newScript=Provide New Script?
 localAnsible.primitive.add.title=Create Local Ansible
 localAnsible.primitive.edit.title=Edit Local Ansible
-localAnsible.hostFilePath=Location Of Host File
+localAnsible.inventoryFiles=Select Inventory Files
 localAnsible.existingResource=Select Package
 localAnsible.ansiblePackage=Package
 localAnsible.ansiblePackageName=Package Name

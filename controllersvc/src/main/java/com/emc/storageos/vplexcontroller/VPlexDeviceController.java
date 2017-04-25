@@ -1477,6 +1477,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
                         cgVolsMap.put(vplexVolume.getConsistencyGroup(), cgVols);
                     }
                     cgVols.add(vplexVolumeURI);
+                    cgVols.addAll(forgetVolumeURIs);
                 }
                 // Adding the VPLEX mirror backend volume to forgetVolumeURIs
                 if (vplexVolume.getMirrors() != null && !(vplexVolume.getMirrors().isEmpty())) {

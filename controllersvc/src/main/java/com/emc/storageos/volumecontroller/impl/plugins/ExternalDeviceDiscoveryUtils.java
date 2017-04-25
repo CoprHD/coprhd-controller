@@ -80,7 +80,7 @@ public class ExternalDeviceDiscoveryUtils {
         
         Map<URI, StorageSystem> updatedStorageSystems = new HashMap<URI, StorageSystem>();
         
-        // map of db source storage system URI to storage system object for all storage systems of type storageSystemType
+        // list of storage system of type storageSystemType
         List<StorageSystem> dbStorageSystemsSystemType = new ArrayList<StorageSystem>();
         Iterator<StorageSystem> systemsItr = dbClient.queryIterativeObjectFields(StorageSystem.class, Arrays.asList("connectedTo", "systemType"), dbClient.queryByType(StorageSystem.class, true));
         while(systemsItr.hasNext()) {

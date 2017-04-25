@@ -413,8 +413,7 @@ public class WorkflowBuilder extends Controller {
             final Node node;
 
             if (StepType.VIPR_REST.toString().equals(type)) {
-                final String[] folders = primitive.getFriendlyName().split("/");
-                final String name;
+                final String[] folders = primitive.getName().split("/");
                 final String service;
                 if(folders.length == 3) {
                     if(!categories.contains(folders[0])) {
@@ -427,14 +426,12 @@ public class WorkflowBuilder extends Controller {
                                 folders[1], folders[0], WFBuilderNodeTypes.FOLDER.toString()));
                         services.add(folders[1]);
                     }
-                    name = folders[2];
                     service = folders[1];
                 } else {
-                    name = folders[folders.length-1];
                     service = parent;
                 }
                 node = new Node(primitive.getId().toString(),
-                        name, service, type);
+                        primitive.getFriendlyName(), service, type);
             } else {
                 node = new Node(primitive.getId().toString(),
                         primitive.getName(), parent, type);

@@ -176,14 +176,14 @@ public final class ApiPrimitiveMaker {
      * Make the primitive class for this method
      */
     private static JavaFile makePrimitive(final String group, final ApiMethod method) {
-        final String name = makePrimitiveName(method);
-
-        final String friendlyName = makeFriendlyName(group, method);
+        final String name = makePrimitiveName(group, method);
+        final String id = makePrimitiveID(method);
+        final String friendlyName = makeFriendlyName(method);
         
-        final TypeSpec primitive = TypeSpec.classBuilder(name)
+        final TypeSpec primitive = TypeSpec.classBuilder(id)
                 .addModifiers(Modifier.PUBLIC, Modifier.FINAL)
                 .superclass(CustomServicesViPRPrimitive.class).addMethods(METHODS)
-                .addMethod(makeConstructor(name))
+                .addMethod(makeConstructor(id, name))
                 .addFields(makeFields(method, friendlyName)).build();
 
         return JavaFile.builder(PACKAGE, primitive).build();
@@ -290,16 +290,16 @@ public final class ApiPrimitiveMaker {
         return method.isTaskResponse ? TASK_SUCCESS : HTTP_SUCCESS;
     }
 
-    private static MethodSpec makeConstructor(final String name) {
-        final String id = URI.create(
+    private static MethodSpec makeConstructor(final String id, final String name) {
+        final String urn = URI.create(
                 String.format("urn:storageos:%1$s:%2$s:",
-                        CustomServicesViPRPrimitive.class.getSimpleName(), name)).toString();
+                        CustomServicesViPRPrimitive.class.getSimpleName(), id)).toString();
         return MethodSpec
                 .constructorBuilder()
                 .addModifiers(Modifier.PUBLIC)
                 .addStatement(
-                        "super($T.create($S), $L.class.getName())",
-                        URI.class, id, name).build();
+                        "super($T.create($S), $S)",
+                        URI.class, urn, name).build();
     }
 
     private static FieldSpec makeStringConstant(final String name,
@@ -603,16 +603,19 @@ public final class ApiPrimitiveMaker {
         }
     }
 
-    private static String makePrimitiveName(ApiMethod method) {
+    private static String makePrimitiveID(final ApiMethod method) {
         return method.apiService.javaClassName
                 + StringUtils
                         .toUpperCase(method.javaMethodName.substring(0, 1))
                 + method.javaMethodName.substring(1);
     }
+    
+    private static String makePrimitiveName(final String group, final ApiMethod method) {
+        return group + "/" + method.apiService.getTitle() +"/" + method.javaMethodName;
+    }
 
-    private static String makeFriendlyName(final String group,
-            final ApiMethod method) {
-        return group +"/" + method.apiService.getTitle() + "/" + method.getTitle();
+    private static String makeFriendlyName(final ApiMethod method) {
+        return method.getTitle();
     }
 
     private static String makeInputParameterName(final String prefix,

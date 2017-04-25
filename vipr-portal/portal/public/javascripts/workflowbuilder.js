@@ -397,11 +397,16 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
     }
 })
 
-.controller('tabController', function($element, $scope, $compile, $http, $rootScope) { //NOSONAR ("Suppressing Sonar violations of max 100 lines in a function and function complexity")
+.controller('tabController', function($element, $scope, $compile, $http, $rootScope, translate) { //NOSONAR ("Suppressing Sonar violations of max 100 lines in a function and function complexity")
 
     var diagramContainer = $element.find('#diagramContainer');
     var sbSite = $element.find('#sb-site');
     var jspInstance;
+
+    var INPUT_FIELD_OPTIONS = ['number','boolean','text','password'];
+    var INPUT_TYPE_OPTIONS = ['AssetOptionMulti','AssetOptionSingle','InputFromUser','FromOtherStepOutput','FromOtherStepInput'];
+    var ASSET_TYPE_OPTIONS = ['assetType.vipr.blockVirtualPool','assetType.vipr.virtualArray','assetType.vipr.project'];
+
     $scope.workflowData = {};
     $scope.stepInputOptions = [];
     $scope.stepOutputOptions = [];
@@ -727,14 +732,24 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
     }
 
     $scope.select = function(stepId) {
-        $scope.selectedId = stepId;
-        $scope.InputFieldOption=[{id:'Integer', name:'Integer'}, {id:'Table', name:'Table'}, {id:'Boolean', name:'Boolean'}, {id:'String', name:'String'}];
-        $scope.UserInputTypeOption=[{id:'AssetOption', name:'Asset Option'}, {id:'InputFromUser', name:'Input FromUser'}, {id:'FromOtherStepOutput', name:'From OtherStep Output'}, {id:'FromOtherStepInput', name:'From OtherStep Input'}];
-        $scope.AssetOptionTypes=[{id:'assetType.vipr.blockVirtualPool', name:'Block Virtual Pool'}, {id:'assetType.vipr.virtualArray', name:'VirtualArray'}, {id:'assetType.vipr.project', name:'Project'}];
+        $scope.selectedId = stepId;$scope.InputFieldOption=translateList(INPUT_FIELD_OPTIONS,'input.fieldType');
+        $scope.UserInputTypeOption=translateList(INPUT_TYPE_OPTIONS,'input.type');
+        $scope.AssetOptionTypes=translateList(ASSET_TYPE_OPTIONS,'input');
         var data = diagramContainer.find('#'+stepId).data("oeData");
         $scope.stepData = data;
         $scope.menuOpen = true;
         $scope.openPage(0);
+    }
+
+    /* creates list of objects for select one drop downs
+     * translates key.id from messages file for the name
+     */
+    function translateList(idList,key) {
+        var translateList = [];
+        idList.forEach(function(id) {
+            translateList.push({id:id, name:translate(key+'.'+id)});
+        });
+        return translateList;
     }
 
 	var draggableNodeTypes = {"shellNodeType":shellNodeType, "localAnsibleNodeType":localAnsibleNodeType, "restAPINodeType":restAPINodeType, "viprRestAPINodeType":viprRestAPINodeType, "workflowNodeType":workflowNodeType}
@@ -868,12 +883,10 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
         $scope.workflowData = {};
     }
 
-    $scope.activePage = 0;
     $scope.menuOpen = false;
 
     $scope.openPage = function(pageId){
         $scope.menuOpen = true;
-        $scope.activePage = pageId;
     }
 
     $scope.toggleMenu = function(){

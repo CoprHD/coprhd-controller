@@ -5095,6 +5095,19 @@ input.defaultValue=Default Value
 input.value=Value
 input.decription=Field Help
 output.name=Name
+input.type.AssetOptionSingle=Single Selection
+input.type.AssetOptionMulti=Multiple Selection
+input.type.InputFromUser=Text
+input.type.FromOtherStepInput=Other Step Input
+input.type.FromOtherStepOutput=Other Step Output
+input.assetType.vipr.blockVirtualPool=Block Virtual Pool
+input.assetType.vipr.virtualArray=Virtual Array
+input.assetType.vipr.project=Project
+input.fieldType.number=Number
+input.fieldType.table=Table
+input.fieldType.boolean=Boolean
+input.fieldType.text=String
+input.fieldType.password=Password
 
 # Workflow Library Menus
 wfBuilder.menu.addFolder=Add Folder

@@ -5106,6 +5106,6 @@ input.assetType.vipr.project=Project
 input.fieldType.number=Number
 input.fieldType.table=Table
 input.fieldType.boolean=Boolean
-input.fieldType.text=Text
+input.fieldType.text=String
 input.fieldType.password=Password
 

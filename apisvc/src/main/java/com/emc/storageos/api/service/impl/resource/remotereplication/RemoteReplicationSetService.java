@@ -171,14 +171,18 @@ public class RemoteReplicationSetService extends TaskResourceService {
         while (it.hasNext()) {
             RemoteReplicationSet rrSet = it.next();
             Set<String> sourcesOfrrSet = rrSet.getSourceSystems();
-            if (sourcesOfrrSet.size() > sourceDevices.size() || !sourceDevices.containsAll(sourcesOfrrSet)) {
-                continue; // filter out rr sets that contains source storage systems other than ones in sourceDevices
+
+            // Temporarily relax the filtering condition, check comment under COP-28147 for details
+            // if (sourcesOfrrSet.size() > sourceDevices.size() ||!sourceDevices.containsAll(sourcesOfrrSet)) {
+            if (!CollectionUtils.containsAny(sourcesOfrrSet, sourceDevices)) {
+                continue;
             }
 
             Set<String> targetsOfrrSet = rrSet.getTargetSystems();
-            if (targetsOfrrSet.size() > allTargetSystems.size() || !allTargetSystems.containsAll(targetsOfrrSet)) {
-                continue; // filter out rr sets that have target systems outside of target devices
-            }
+            // Temporarily commented out, check comment under COP-28147 for details
+            // if (targetsOfrrSet.size() > allTargetSystems.size() || !allTargetSystems.containsAll(targetsOfrrSet)) {
+            //     continue; // filter out rr sets that have target systems outside of target devices
+            //}
 
             for (Set<String> targetDevices : targetSystemsForAllPairs) {
                 if (!CollectionUtils.containsAny(targetsOfrrSet, targetDevices)) {

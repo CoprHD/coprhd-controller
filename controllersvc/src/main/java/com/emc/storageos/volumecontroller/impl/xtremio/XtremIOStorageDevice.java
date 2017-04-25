@@ -259,13 +259,13 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
             Long sizeInGB = new Long(sizeInBytes / (1024 * 1024 * 1024));
             // XtremIO Rest API supports only expansion in GBs.
             String capacityInGBStr = String.valueOf(sizeInGB).concat("g");
-            client.expandVolume(volume.getLabel(), capacityInGBStr, clusterName);
-            XtremIOVolume createdVolume = client.getVolumeDetails(volume.getLabel(), clusterName);
+            client.expandVolume(volume.getDeviceLabel(), capacityInGBStr, clusterName);
+            XtremIOVolume createdVolume = client.getVolumeDetails(volume.getDeviceLabel(), clusterName);
             volume.setProvisionedCapacity(Long.parseLong(createdVolume
                     .getAllocatedCapacity()) * 1024);
             volume.setAllocatedCapacity(Long.parseLong(createdVolume.getAllocatedCapacity()) * 1024);
             volume.setCapacity(Long.parseLong(createdVolume.getAllocatedCapacity()) * 1024);
-            dbClient.persistObject(volume);
+            dbClient.updateObject(volume);
             // update StoragePool capacity
             try {
                 XtremIOProvUtils.updateStoragePoolCapacity(client, dbClient, pool);
@@ -313,14 +313,14 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
                                 boolean isVolRemovedFromCG = false;
                                 // Verify if the volumes is part of the CG or not. If Exists always remove from CG
                                 if (checkIfVolumeExistsInCG(xioCG.getVolList(), volume)) {
-                                    _log.info("Removing volume {} from consistency group {}", volume.getLabel(),
+                                    _log.info("Removing volume {} from consistency group {}", volume.getDeviceLabel(),
                                             cgName);
                                     InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_038);
-                                    client.removeVolumeFromConsistencyGroup(volume.getLabel(), cgName, clusterName);
+                                    client.removeVolumeFromConsistencyGroup(volume.getDeviceLabel(), cgName, clusterName);
                                     InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_039);
                                     isVolRemovedFromCG = true;
                                 } else {
-                                    _log.info("Volume {} doesn't exist on CG {}", volume.getLabel(), cgName);
+                                    _log.info("Volume {} doesn't exist on CG {}", volume.getDeviceLabel(), cgName);
                                 }
                                 // Perform remove CG only when we removed the volume from CG.
                                 if (isVolRemovedFromCG) {
@@ -351,10 +351,11 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
                             int attempt = 0;
                             while (attempt++ <= MAX_RP_RETRIES) {
                                 try {
-                                    _log.info(String.format("Deleting RecoverPoint volume %s (attempt %s/%s)", volume.getLabel(), attempt,
+                                    _log.info(String.format("Deleting RecoverPoint volume %s (attempt %s/%s)", volume.getDeviceLabel(),
+                                            attempt,
                                             MAX_RP_RETRIES));
                                     InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_040);
-                                    client.deleteVolume(volume.getLabel(), clusterName);
+                                    client.deleteVolume(volume.getDeviceLabel(), clusterName);
                                     InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_041);
                                     break;
                                 } catch (XtremIOApiException e) {
@@ -381,15 +382,15 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
                                 }
                             }
                         } else {
-                            _log.info("Deleting the volume {}", volume.getLabel());
+                            _log.info("Deleting the volume {}", volume.getDeviceLabel());
                             InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_040);
-                            client.deleteVolume(volume.getLabel(), clusterName);
+                            client.deleteVolume(volume.getDeviceLabel(), clusterName);
                             InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_041);
                         }
                     }
                 } catch (Exception e) {
-                    _log.error("Error during volume {} delete.", volume.getLabel(), e);
-                    failedVolumes.put(volume.getLabel(), ControllerUtils.getMessage(e));
+                    _log.error("Error during volume {} delete.", volume.getDeviceLabel(), e);
+                    failedVolumes.put(volume.getDeviceLabel(), ControllerUtils.getMessage(e));
                 }
             }
 
@@ -437,7 +438,7 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
                 // vols contains 3 volume related elements. The second element is the device
                 // name, which we will use to match against the provided volume's label.
                 String cgVolLabel = vols.get(1).toString();
-                if (cgVolLabel.equalsIgnoreCase(volume.getLabel())) {
+                if (cgVolLabel.equalsIgnoreCase(volume.getDeviceLabel())) {
                     return true;
                 }
             }

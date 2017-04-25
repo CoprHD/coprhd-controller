@@ -10,9 +10,12 @@ import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.Operation;
+import com.emc.storageos.db.client.model.StoragePortGroup;
+import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.util.ExportUtils;
+import com.emc.storageos.volumecontroller.impl.plugins.metering.smis.processor.PortMetricsProcessor;
 import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
 import com.emc.storageos.volumecontroller.impl.utils.ExportOperationContext;
 import com.emc.storageos.workflow.WorkflowService;
@@ -70,6 +73,7 @@ public class ExportMaskAddVolumeCompleter extends ExportTaskCompleter {
 
                 dbClient.updateObject(exportMask);
                 dbClient.updateObject(exportGroup);
+                updatePortGroupVolumeCount(exportMask.getPortGroup(), dbClient);
             }
 
         } catch (Exception e) {

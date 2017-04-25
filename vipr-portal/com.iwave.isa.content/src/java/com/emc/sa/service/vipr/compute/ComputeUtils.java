@@ -1070,7 +1070,7 @@ public class ComputeUtils {
      * Any hosts for which boot volume association could not be set are deactivated.
      *
      * @param Map of Host to bootVolume URI
-     * @param booleanset to true to update the UCS service profile's san boot targets
+     * @param boolean set to true to update the UCS service profile's san boot targets
      * @return list of hosts for which boot volume association was successfully set.
      */
     public static List<Host> setHostBootVolumes(Map<Host, URI> hostToVolumeIdMap, boolean updateSanBootTargets) {

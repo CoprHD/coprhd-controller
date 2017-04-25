@@ -319,12 +319,15 @@ public class ComputeElementService extends TaskResourceService {
 
     private Host getAssociatedHost(ComputeElement ce, DbClient dbClient) {
         Host associatedHost = null;
-        Collection<URI> hostIds = _dbClient.queryByType(Host.class, true);
-        Collection<Host> hosts = _dbClient.queryObjectFields(Host.class,
-             Arrays.asList("label", "computeElement","cluster"), getFullyImplementedCollection(hostIds));
+        URIQueryResultList uris = new URIQueryResultList();
 
-        for (Host host : hosts){
-           if (!NullColumnValueGetter.isNullURI(host.getComputeElement()) && host.getComputeElement().equals(ce.getId())) {
+        _dbClient.queryByConstraint(ContainmentConstraint.Factory
+                .getHostComputeElementConstraint(ce.getId()), uris);
+        List<Host> hosts = _dbClient.queryObject(Host.class, uris, true);
+
+        // we expect to find just one host that uses this CE
+        if (hosts!=null && !hosts.isEmpty()){
+           for (Host host : hosts){
                associatedHost = host;
                break;
            }

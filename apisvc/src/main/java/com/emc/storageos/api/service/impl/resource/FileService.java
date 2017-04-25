@@ -2606,7 +2606,7 @@ public class FileService extends TaskResourceService {
      *          the URN of a ViPR fileSystem
      * @param param
      * 			File System Virtual Pool Change parameter
-     * @brief Change a file system’s virtual pool
+     * @brief Change a file systems virtual pool
      * @desc Add the file system to a different virtual pool.
      * @return TaskResponse
      */

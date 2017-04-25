@@ -1357,6 +1357,12 @@ angular.module("portalApp").controller("SystemLogsCtrl", function($scope, $http,
     
     // Downloads the logs from the server
     $scope.downloadLogs = function() {
+    	if (confirm(translate('diagnostic.msg.collect.done'))) {
+            console.info("yes");
+        } else{
+        	console.info("no");
+        	return;
+        }
         angular.element('#filter-dialog').modal('hide');
         var args = {
             startTime: getDateTime($scope.filterDialog.startTime_date, $scope.filterDialog.startTime_time),

@@ -1015,4 +1015,23 @@ public class WorkflowBuilder extends Controller {
         view();
 
     }
+
+    public static void editPrimitiveName(final URI primitiveID, final String newName) {
+        try {
+            final CustomServicesPrimitiveRestRep primitiveRestRep = getCatalogClient().customServicesPrimitives().getPrimitive(primitiveID);
+            if (null != primitiveRestRep) {
+                // Update name
+                if(StringUtils.isBlank(newName) || newName.equals(primitiveRestRep.getName())){
+                    //empty or no change ignore.
+                    return;
+                }
+                final CustomServicesPrimitiveUpdateParam primitiveUpdateParam = new CustomServicesPrimitiveUpdateParam();
+                primitiveUpdateParam.setName(newName);
+                getCatalogClient().customServicesPrimitives().updatePrimitive(primitiveID, primitiveUpdateParam);
+            }
+        } catch (final Exception e) {
+            Logger.error(e.getMessage());
+            flash.error(e.getMessage());
+        }
+    }
 }

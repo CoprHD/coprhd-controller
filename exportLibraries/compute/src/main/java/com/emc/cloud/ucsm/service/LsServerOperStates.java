@@ -9,6 +9,8 @@ import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.apache.commons.lang.StringUtils;
+
 public enum LsServerOperStates {
 
     INDETERMINATE("indeterminate"),
@@ -66,8 +68,12 @@ public enum LsServerOperStates {
     }
 
     public static boolean isTerminal(String fromString) {
-        if (terminalStates.contains(fromString(fromString))) {
-            return true;
+        if (StringUtils.isNotEmpty(fromString)) {
+            if (terminalStates.contains(fromString(fromString))) {
+                return true;
+            } else {
+                return false;
+            }
         } else {
             return false;
         }

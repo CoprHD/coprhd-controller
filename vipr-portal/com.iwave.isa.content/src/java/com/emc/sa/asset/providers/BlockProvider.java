@@ -419,6 +419,18 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         return options;
     }
 
+    @Asset("exportDatastorePortGroups")
+    @AssetDependencies( {"esxHost", "project"} )
+    public List<AssetOption> getExportDatastorePortGroups(AssetOptionsContext ctx, URI hostOrClusterId, URI projectId) {
+        return getExportVolumePortGroups(ctx, new String(""), hostOrClusterId, projectId);
+    }
+
+    @Asset("exportDatastorePortGroups")
+    @AssetDependencies( {"unassignedBlockDatastore", "esxHost", "project"} )
+    public List<AssetOption> getExportDatastorePortGroups(AssetOptionsContext ctx, String selectedDatastore, URI hostOrClusterId, URI projectId) {
+        return getExportVolumePortGroups(ctx, selectedDatastore, hostOrClusterId, projectId);
+    }
+
     @Asset("exportVolumeForHostPortGroups")
     @AssetDependencies( {"virtualArray", "host", "project"} )
     public List<AssetOption> getExportVolumeForHostPortGroups(AssetOptionsContext ctx, URI vArrayId, URI hostOrClusterId, URI projectId) {
@@ -464,6 +476,12 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     @Asset("exportVolumeForHostPortGroups")
     @AssetDependencies( {"virtualArray", "hpuxHost", "project"} )
     public List<AssetOption> getExportVolumeForHpuxHostPortGroups(AssetOptionsContext ctx, URI vArrayId, URI hostOrClusterId, URI projectId) {
+        return getExportVolumeForHostPortGroups(ctx, vArrayId, hostOrClusterId, projectId);
+    }
+
+    @Asset("exportVolumeForHostPortGroups")
+    @AssetDependencies( {"virtualArray", "esxHost", "project"} )
+    public List<AssetOption> getExportVolumeForEsxHostPortGroups(AssetOptionsContext ctx, URI vArrayId, URI hostOrClusterId, URI projectId) {
         return getExportVolumeForHostPortGroups(ctx, vArrayId, hostOrClusterId, projectId);
     }
 

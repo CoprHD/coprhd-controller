@@ -18,6 +18,7 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 
 import com.emc.storageos.api.service.impl.resource.ArgValidator;
+import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.FileShare;
@@ -31,6 +32,7 @@ import com.emc.storageos.api.service.impl.resource.TaskResourceService;
 import com.emc.storageos.db.client.model.remotereplication.RemoteReplicationGroup;
 import com.emc.storageos.db.client.model.remotereplication.RemoteReplicationPair;
 import com.emc.storageos.db.client.model.remotereplication.RemoteReplicationSet;
+import com.emc.storageos.db.client.model.util.BlockConsistencyGroupUtils;
 import com.emc.storageos.db.client.model.remotereplication.RemoteReplicationPair.ElementType;
 import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.model.TaskList;
@@ -456,12 +458,14 @@ public class RemoteReplicationManagementService extends TaskResourceService {
      * Validation criteria:
      *   1. All rr pairs are contained in rr group (not necessarily the same one);
      *   2. All source volumes are contained in the same cg;
-     *   3. All target volumes are contained in the same cg.
+     *   3. All target volumes are contained in the same cg;
+     *   4. Source volumes collection contains all volumes in the source cg.
      * @param rrPairs
      */
     private void checkRRGroupCGContainment(List<RemoteReplicationPair> rrPairs) {
         URI uniqueSourceCG = null;
         URI uniqueTargetCG = null;
+        Set<URI> sourceVolIds = new HashSet<>();
         for (RemoteReplicationPair rrPair : rrPairs) {
             if (!rrPair.isGroupPair()) {
                 throw APIException.badRequests.remoteReplicationOperationPrecheckFailed(String.format(
@@ -469,7 +473,9 @@ public class RemoteReplicationManagementService extends TaskResourceService {
                         rrPair.getNativeId()));
             }
 
-            URI currentSourceCG = _dbClient.queryObject(Volume.class, rrPair.getSourceElement()).getConsistencyGroup();
+            Volume source = _dbClient.queryObject(Volume.class, rrPair.getSourceElement());
+            sourceVolIds.add(source.getId());
+            URI currentSourceCG = source.getConsistencyGroup();
             if (currentSourceCG == null) {
                 throw APIException.badRequests.remoteReplicationOperationPrecheckFailed(String.format(
                         "remote replication pair %'s source volume has no consistency group", rrPair.getNativeId()));
@@ -492,6 +498,16 @@ public class RemoteReplicationManagementService extends TaskResourceService {
                         "remote repliation pair %s's target volume's consistency group is not the same as others",
                         rrPair.getNativeId()));
             }
+        }
+        BlockConsistencyGroup sourceCg = _dbClient.queryObject(BlockConsistencyGroup.class, uniqueSourceCG);
+        Set<URI> cgVolIds = new HashSet<URI>();
+        for (Volume vol : BlockConsistencyGroupUtils.getActiveVolumesInCG(sourceCg, _dbClient, null)) {
+            cgVolIds.add(vol.getId());
+        }
+        if (!sourceVolIds.containsAll(cgVolIds)) {
+            throw APIException.badRequests.remoteReplicationOperationPrecheckFailed(String.format(
+                    "source volumes of given remote replication pairs don't contain all volumes in consistency group %s",
+                    sourceCg.getNativeId()));
         }
     }
 

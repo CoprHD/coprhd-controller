@@ -24,6 +24,7 @@ import com.emc.storageos.db.client.model.ComputeElement;
 import com.emc.storageos.db.client.model.ComputeImage;
 import com.emc.storageos.db.client.model.ComputeImageServer;
 import com.emc.storageos.db.client.model.ComputeSystem;
+import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.imageservercontroller.impl.ImageServerControllerImpl;
 import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.ResourceTypeEnum;
@@ -82,7 +83,7 @@ public class ComputeMapper {
         return to;
     }
 
-    public static ComputeElementRestRep map(ComputeElement from) {
+    public static ComputeElementRestRep map(ComputeElement from, Host host) {
         if (from == null) {
             return null;
         }
@@ -100,8 +101,12 @@ public class ComputeMapper {
         to.setComputeSystem(toRelatedResource(ResourceTypeEnum.COMPUTE_SYSTEM,
                 from.getComputeSystem()));
         to.setRegistrationStatus(from.getRegistrationStatus());
+        if (host!=null) {
+           to.setHostName(host.getLabel());
+        }
         return to;
     }
+
 
     public static ComputeImageRestRep map(ComputeImage from) {
         if (from == null) {

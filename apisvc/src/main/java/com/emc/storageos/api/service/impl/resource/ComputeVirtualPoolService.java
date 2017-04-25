@@ -289,13 +289,18 @@ public class ComputeVirtualPoolService extends TaggedResource {
             Collection<Host> hosts = _dbClient.queryObjectFields(Host.class,
                 Arrays.asList("label", "computeElement"), getFullyImplementedCollection(hostIds));
             for (ComputeElement computeElement : computeElements) {
-                ComputeElementRestRep rest = map(computeElement);
-                if (rest != null) {
+                if (computeElement!=null) {
+                    Host associatedHost = null;
                     for (Host host : hosts){
                         if (!NullColumnValueGetter.isNullURI(host.getComputeElement()) && host.getComputeElement().equals(computeElement.getId())) {
-                            rest.setHostName(host.getLabel());
+                            associatedHost = host;
+                            _log.info("host:"+ host.getId());
+                            break;
                         }
                     }
+                    _log.info("blade:"+computeElement.getId().toString());
+                    ComputeElementRestRep rest = map(computeElement, associatedHost);
+                    _log.info("asscoaited host:"+rest.getHostName());
                     result.getList().add(rest);
                 }
             }

@@ -31,7 +31,7 @@ public class ComputeElementRestRep extends DiscoveredSystemObjectRestRep {
     public ComputeElementRestRep() {
     }
 
-    @XmlElement(name = "hostName")
+    @XmlElement(name = "host_name")
     public String getHostName() {
         return hostName;
     }

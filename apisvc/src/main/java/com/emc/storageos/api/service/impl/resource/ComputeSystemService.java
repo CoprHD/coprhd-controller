@@ -11,6 +11,7 @@ import static com.emc.storageos.api.mapper.TaskMapper.toTask;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -993,15 +994,41 @@ public class ComputeSystemService extends TaskResourceService {
         _dbClient.queryByConstraint(ContainmentConstraint.Factory
                 .getComputeSystemComputeElemetsConstraint(cs.getId()), ceUriList);
         Iterator<URI> iterator = ceUriList.iterator();
+        Collection<URI> hostIds = _dbClient.queryByType(Host.class, true);
+        Collection<Host> hosts = _dbClient.queryObjectFields(Host.class,
+             Arrays.asList("label", "computeElement"), getFullyImplementedCollection(hostIds));
         while (iterator.hasNext()) {
             ComputeElement ce = _dbClient.queryObject(ComputeElement.class, iterator.next());
-            ComputeElementRestRep rest = map(ce);
-            if (rest != null) {
-                result.getList().add(rest);
+            if (ce!=null){
+                Host associatedHost = null;
+                for (Host host : hosts){
+                    if (!NullColumnValueGetter.isNullURI(host.getComputeElement()) && host.getComputeElement().equals(ce.getId())) {
+                        associatedHost = host;
+                        _log.info("host:"+ host.getId());
+                        break;
+                    }
+                }
+
+                ComputeElementRestRep rest = map(ce,associatedHost);
+                if (rest != null) {
+                   result.getList().add(rest);
+                }
             }
         }
         return result;
     }
+
+    private static <T> Collection<T> getFullyImplementedCollection(Collection<T> collectionIn) {
+        // Convert objects (like URIQueryResultList) that only implement iterator to
+        // fully implemented Collection
+        Collection<T> collectionOut = new ArrayList<>();
+        Iterator<T> iter = collectionIn.iterator();
+        while (iter.hasNext()) {
+            collectionOut.add(iter.next());
+        }
+        return collectionOut;
+    }
+
 
     private List<String> getProvisionedBlades(ComputeSystem cs) {
         List<String> provHostList = new ArrayList<String>();

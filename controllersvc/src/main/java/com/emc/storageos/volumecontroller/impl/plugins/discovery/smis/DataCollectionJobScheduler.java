@@ -226,7 +226,7 @@ public class DataCollectionJobScheduler {
         }
         
         LeaderSelectorListenerForPeriodicTask schedulingProcessor = new LeaderSelectorListenerForPeriodicTask(
-                _dataCollectionExecutorService);
+                _dataCollectionExecutorService, true);
 
         if (enableAutoScan) {
             JobIntervals intervals = JobIntervals.get(ControllerServiceImpl.SCANNER);

@@ -24,6 +24,7 @@ import com.emc.storageos.services.util.NamedScheduledThreadPoolExecutor;
  */
 public class LeaderSelectorListenerForPeriodicTask extends LeaderSelectorListenerImpl {
     private static final Log _log = LogFactory.getLog(LeaderSelectorListenerForPeriodicTask.class);
+    private boolean ignoreSuspend = false;
 
     List<ScheduledTask> tasks;
     volatile boolean started;
@@ -41,6 +42,11 @@ public class LeaderSelectorListenerForPeriodicTask extends LeaderSelectorListene
         this.scheduler = scheduler;
         tasks = new ArrayList<>();
         started = false;
+    }
+
+    public LeaderSelectorListenerForPeriodicTask(ScheduledExecutorService scheduler, boolean ignoreSuspend) {
+        this(scheduler);
+        this.ignoreSuspend = ignoreSuspend;
     }
 
     public boolean addScheduledTask(Runnable worker, long initialDelay, long interval) {
@@ -79,6 +85,10 @@ public class LeaderSelectorListenerForPeriodicTask extends LeaderSelectorListene
     }
 
     protected void stopLeadership() {
+        if (ignoreSuspend) {
+            _log.info("### Got stopLeader but ingore it");
+            return;
+        }
         List<ScheduledTask> locTasks;
         synchronized (this) {
             locTasks = new ArrayList(tasks);

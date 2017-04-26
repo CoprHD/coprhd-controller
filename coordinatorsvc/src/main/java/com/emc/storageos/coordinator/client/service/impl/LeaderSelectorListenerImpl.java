@@ -64,6 +64,9 @@ public abstract class LeaderSelectorListenerImpl implements LeaderSelectorListen
         _log.info("Connection state changes to " + newState.toString());
         if ((newState == ConnectionState.SUSPENDED)
                 || (newState == ConnectionState.LOST)) {
+            _log.info("### Got SUSPENDED but ignored");
+            return;
+            /*
             synchronized (this) {
                 if (!_isRunning) {
                     return;
@@ -76,6 +79,7 @@ public abstract class LeaderSelectorListenerImpl implements LeaderSelectorListen
 
                 notify();
             }
+            */
         }
     }
 }

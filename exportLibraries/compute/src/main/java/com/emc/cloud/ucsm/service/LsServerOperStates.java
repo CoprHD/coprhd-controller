@@ -68,15 +68,11 @@ public enum LsServerOperStates {
     }
 
     public static boolean isTerminal(String fromString) {
-        if (StringUtils.isNotEmpty(fromString)) {
-            if (terminalStates.contains(fromString(fromString))) {
-                return true;
-            } else {
-                return false;
-            }
-        } else {
-            return false;
+        boolean isTerminal = false;
+        if (StringUtils.isNotEmpty(fromString) && terminalStates.contains(fromString(fromString))) {
+            isTerminal = true;
         }
+        return isTerminal;
     }
 
     private static final Map<String, LsServerOperStates> allEnumsHash = Collections

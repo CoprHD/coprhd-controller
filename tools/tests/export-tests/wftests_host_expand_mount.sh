@@ -32,14 +32,14 @@ test_expand_host_filesystem() {
                                    hpux_expandVolume_after_volume_resize \
                                    hpux_expandVolume_after_mount"
 	elif [ "${os}" = "linux" ]
+	then
+	    hostname=linuxhost1
             os_failure_injections="linux_expandVolume_after_unmount \
                                    linux_expandVolume_after_remove_tag \
                                    linux_expandVolume_after_volume_resize \
                                    linux_expandVolume_after_resize_partition \
                                    linux_expandVolume_after_resize_filesystem \
                                    linux_expandVolume_after_mount"
-	then
-	    hostname=linuxhost1
 	elif [ "${os}" = "windows" ]
 	then
 	    hostname=winhost1
@@ -61,7 +61,7 @@ test_expand_host_filesystem() {
         mountpoint=`get_volume_mount_point ${PROJECT}/${volume}`
 
         # Placeholder when a specific failure case is being worked...
-        # failure_injections="failure_080_BlockDeviceController.expandVolume_before_device_expand"
+        # failure_injections="windows_before_extendDrives"
 	for failure in ${failure_injections}
 	do
             secho "Running ${test_name} with failure scenario: ${failure}..."

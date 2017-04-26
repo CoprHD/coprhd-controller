@@ -894,6 +894,7 @@ xio_setup() {
         --provisionType 'Thin'			        \
         --max_snapshots 10                      \
         --multiVolumeConsistency        \
+	--expandable true                       \
         --neighborhoods $NH                    
 
     run cos create block ${VPOOL_CHANGE}	\
@@ -903,6 +904,7 @@ xio_setup() {
 	--provisionType 'Thin'			        \
 	--max_snapshots 10                      \
         --multiVolumeConsistency        \
+	--expandable true                       \
 	--neighborhoods $NH                    
 
     run cos update block $VPOOL_BASE --storage ${XTREMIO_NATIVEGUID}
@@ -963,12 +965,17 @@ linux_setup() {
 }
 
 windows_setup() {
-    if [ "${SIM}" != "1" ]; then
-        secho "Setting up Windows hardware host"
-        run hosts create winhost1 $TENANT Windows ${WINDOWS_HOST_IP} --port ${WINDOWS_HOST_PORT} --username ${WINDOWS_HOST_USERNAME} --password ${WINDOWS_HOST_PASSWORD} --discoverable true 
-    else
+    if [ "${SIM}" == "1" ]; then
         secho "Setting up Windows simulator host"
-        run hosts create winhost1 $TENANT Windows winhost1 --port ${WINDOWS_SIMULATOR_PORT} --username ${WINDOWS_SIMULATOR_USERNAME} --password ${WINDOWS_SIMULATOR_PASSWORD} --discoverable true
+        WINDOWS_HOST_IP=winhost1
+        WINDOWS_HOST_PORT=$WINDOWS_SIMULATOR_PORT
+        WINDOWS_HOST_USERNAME=$WINDOWS_SIMULATOR_USERNAME
+        WINDOWS_HOST_PASSWORD=$WINDOWS_SIMULATOR_PASSWORD 
+    fi
+
+    run hosts create winhost1 $TENANT Windows ${WINDOWS_HOST_IP} --port ${WINDOWS_HOST_PORT} --username ${WINDOWS_HOST_USERNAME} --password ${WINDOWS_HOST_PASSWORD} --discoverable true 
+
+    if [ "${SIM}" == "1" ]; then
         run transportzone add $NH/${FC_ZONE_A} "00:00:00:00:00:00:00:11"
         run transportzone add $NH/${FC_ZONE_A} "00:00:00:00:00:00:00:12"
         run transportzone add $NH/${FC_ZONE_A} "00:00:00:00:00:00:00:13"

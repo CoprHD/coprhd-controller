@@ -813,7 +813,7 @@ setup_yaml() {
     touch $tools_file
 
     # Append Windows host attributes
-    printf 'hosts:\n  windows:\n  - ip: %s:%s\n    username: %s\n    password: %s\n' "${WINDOWS_HOST_IP}" "${WINDOWS_HOST_PORT}" "${WINDOWS_HOST_USERNAME}" "${WINDOWS_HOST_PASSWORD}" >> $tools_file
+    printf 'hosts:\n  windows:\n  - ip: %s:%s:false\n    username: %s\n    password: %s\n' "${WINDOWS_HOST_IP}" "${WINDOWS_HOST_PORT}" "${WINDOWS_HOST_USERNAME}" "${WINDOWS_HOST_PASSWORD}" >> $tools_file
 
     # Append HP-UX host attributes
     printf '  hpux:\n  - ip: %s:%s\n    username: %s\n    password: %s\n' "${HPUX_HOST_IP}" "${HPUX_HOST_PORT}" "${HPUX_HOST_USERNAME}" "${HPUX_HOST_PASSWORD}" >> $tools_file

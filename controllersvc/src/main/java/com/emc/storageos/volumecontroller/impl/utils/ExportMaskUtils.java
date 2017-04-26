@@ -866,7 +866,7 @@ public class ExportMaskUtils {
                     		info.getFabricId(), lsanZone);
                     _log.info(String.format("Zone name %s generated zone name %s", info.getZoneName(), generatedZoneName));
                     boolean usedInUnmanagedMasks = checkZoneUseInUnManagedExportMasks(
-                            exportMask.getNativeId(), info, dbClient);
+                            exportMask.getMaskName(), info, dbClient);
                     boolean externalZone = hasExistingVolumes  
                     						|| ( !bypassNameCheck && !generatedZoneName.equals(info.getZoneName()) ) 
                                             || usedInUnmanagedMasks || smartZone;
@@ -900,7 +900,7 @@ public class ExportMaskUtils {
     /**
      * Check for zone in UnManagedExportMasks.
      */
-    static boolean checkZoneUseInUnManagedExportMasks(String exportMaskNativeId, ZoneInfo info, DbClient dbClient) {
+    static boolean checkZoneUseInUnManagedExportMasks(String exportMaskName, ZoneInfo info, DbClient dbClient) {
         String initiatorWwn = info.getInitiatorWwn();
         boolean inUse = false;
         List<UnManagedExportMask> unmanagedMasks = 
@@ -909,7 +909,7 @@ public class ExportMaskUtils {
         for (UnManagedExportMask umask : unmanagedMasks) {
             if (umask.getKnownInitiatorNetworkIds().contains(initiatorWwn) && !umask.getUnmanagedVolumeUris().isEmpty()) {
                 for (ZoneInfo umZoneInfo : umask.getZoningMap().values()) {
-                    if (exportMaskNativeId.equals(umask.getNativeId())) {
+                    if (exportMaskName.equals(umask.getMaskName())) {
                         continue;
                     }
                     if (info.getInitiatorWwn().equals(umZoneInfo.getInitiatorWwn()) 

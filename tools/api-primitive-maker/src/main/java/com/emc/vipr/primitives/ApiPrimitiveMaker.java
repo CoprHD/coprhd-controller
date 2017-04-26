@@ -19,12 +19,15 @@ package com.emc.vipr.primitives;
 import java.net.URI;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 
 import javax.lang.model.element.Modifier;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.emc.apidocs.KnownPaths;
+import com.emc.apidocs.generating.ApiReferenceTocOrganizer;
 import com.emc.apidocs.model.ApiClass;
 import com.emc.apidocs.model.ApiField;
 import com.emc.apidocs.model.ApiMethod;
@@ -139,23 +142,27 @@ public final class ApiPrimitiveMaker {
             final List<ApiService> services) {
 
         final Builder<JavaFile> builder = ImmutableList.<JavaFile> builder();
-
-        for (ApiService service : services) {
-            for (ApiMethod method : service.methods) {
-                if (blackListed(method)) {
-                    _log.info("Method "
-                            + method.apiService.getFqJavaClassName() + "::"
-                            + method.javaMethodName + " is black listed");
-                } else if (method.isDeprecated) {
-                    _log.info("Method "
-                            + method.apiService.getFqJavaClassName() + "::"
-                            + method.javaMethodName + " is deprecated");
-                } else {
-                    builder.add(makePrimitive(method));
+        final ApiReferenceTocOrganizer grouping = new ApiReferenceTocOrganizer(KnownPaths.getReferenceFile("ApiReferenceGrouping.txt"));
+        final Map<String, List<ApiService>> groups = grouping.organizeServices(services);
+        
+        for( final Entry<String, List<ApiService>> groupEntry : groups.entrySet() ) {
+            for (final ApiService service : groupEntry.getValue()) {
+                for (final ApiMethod method : service.methods) {
+                    if (blackListed(method)) {
+                        _log.info("Method "
+                                + method.apiService.getFqJavaClassName() + "::"
+                                + method.javaMethodName + " is black listed");
+                    } else if (method.isDeprecated) {
+                        _log.info("Method "
+                                + method.apiService.getFqJavaClassName() + "::"
+                                + method.javaMethodName + " is deprecated");
+                    } else {
+                        builder.add(makePrimitive(groupEntry.getKey(), method));
+                    }
                 }
             }
         }
-
+        
         return builder.build();
     }
 
@@ -168,15 +175,15 @@ public final class ApiPrimitiveMaker {
     /**
      * Make the primitive class for this method
      */
-    private static JavaFile makePrimitive(final ApiMethod method) {
-        final String name = makePrimitiveName(method);
-
-        final String friendlyName = makeFriendlyName(name, method);
-
-        TypeSpec primitive = TypeSpec.classBuilder(name)
+    private static JavaFile makePrimitive(final String group, final ApiMethod method) {
+        final String name = makePrimitiveName(group, method);
+        final String id = makePrimitiveID(method);
+        final String friendlyName = makeFriendlyName(method);
+        
+        final TypeSpec primitive = TypeSpec.classBuilder(id)
                 .addModifiers(Modifier.PUBLIC, Modifier.FINAL)
                 .superclass(CustomServicesViPRPrimitive.class).addMethods(METHODS)
-                .addMethod(makeConstructor(name))
+                .addMethod(makeConstructor(id, name))
                 .addFields(makeFields(method, friendlyName)).build();
 
         return JavaFile.builder(PACKAGE, primitive).build();
@@ -197,7 +204,7 @@ public final class ApiPrimitiveMaker {
         return ImmutableList
                 .<FieldSpec> builder()
                 .add(makeStringConstant("FRIENDLY_NAME", friendlyName))
-                .add(makeStringConstant("DESCRIPTION", method.description))
+                .add(makeStringConstant("DESCRIPTION", method.brief == null ? "" : method.brief))
                 .add(makeStringConstant("SUCCESS_CRITERIA",
                         makeSuccessCriteria(method)))
                 .add(makeStringConstant("PATH", method.path))
@@ -283,16 +290,16 @@ public final class ApiPrimitiveMaker {
         return method.isTaskResponse ? TASK_SUCCESS : HTTP_SUCCESS;
     }
 
-    private static MethodSpec makeConstructor(final String name) {
-        final String id = URI.create(
+    private static MethodSpec makeConstructor(final String id, final String name) {
+        final String urn = URI.create(
                 String.format("urn:storageos:%1$s:%2$s:",
-                        CustomServicesViPRPrimitive.class.getSimpleName(), name)).toString();
+                        CustomServicesViPRPrimitive.class.getSimpleName(), id)).toString();
         return MethodSpec
                 .constructorBuilder()
                 .addModifiers(Modifier.PUBLIC)
                 .addStatement(
-                        "super($T.create($S), $L.class.getName())",
-                        URI.class, id, name).build();
+                        "super($T.create($S), $S)",
+                        URI.class, urn, name).build();
     }
 
     private static FieldSpec makeStringConstant(final String name,
@@ -596,20 +603,19 @@ public final class ApiPrimitiveMaker {
         }
     }
 
-    private static String makePrimitiveName(ApiMethod method) {
+    private static String makePrimitiveID(final ApiMethod method) {
         return method.apiService.javaClassName
                 + StringUtils
                         .toUpperCase(method.javaMethodName.substring(0, 1))
                 + method.javaMethodName.substring(1);
     }
+    
+    private static String makePrimitiveName(final String group, final ApiMethod method) {
+        return group + "/" + method.apiService.getTitle() +"/" + method.javaMethodName;
+    }
 
-    private static String makeFriendlyName(final String name,
-            final ApiMethod method) {
-        if (null == method.brief || method.brief.isEmpty()) {
-            return name;
-        } else {
-            return method.brief;
-        }
+    private static String makeFriendlyName(final ApiMethod method) {
+        return method.getTitle();
     }
 
     private static String makeInputParameterName(final String prefix,

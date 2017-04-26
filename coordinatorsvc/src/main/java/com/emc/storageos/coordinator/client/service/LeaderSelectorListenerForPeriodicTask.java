@@ -27,7 +27,7 @@ public class LeaderSelectorListenerForPeriodicTask extends LeaderSelectorListene
 
     List<ScheduledTask> tasks;
     volatile boolean started;
-    private final ScheduledExecutorService scheduler;
+    protected ScheduledExecutorService scheduler;
 
     public LeaderSelectorListenerForPeriodicTask(Runnable worker, long initialDelay, long interval) {
         tasks = new ArrayList<>();

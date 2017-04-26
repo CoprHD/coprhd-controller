@@ -41,6 +41,7 @@ import com.emc.storageos.vnxe.models.VNXeBase;
 import com.emc.storageos.vnxe.models.VNXeHost;
 import com.emc.storageos.vnxe.models.VNXeHostInitiator;
 import com.emc.storageos.vnxe.models.VNXeLun;
+import com.emc.storageos.vnxe.models.VNXeHostInitiator.HostInitiatorTypeEnum;
 import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
 import com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.processor.export.ArrayAffinityDiscoveryUtils;
 import com.emc.storageos.volumecontroller.impl.utils.DiscoveryUtils;
@@ -403,6 +404,10 @@ public class VNXUnityArrayAffinityDiscoverer {
             for (VNXeBase init : initiators) {
                 VNXeHostInitiator vnxeInitiator = apiClient.getHostInitiator(init.getId());
                 String portwwn = vnxeInitiator.getPortWWN();
+                if (HostInitiatorTypeEnum.INITIATOR_TYPE_ISCSI.equals(vnxeInitiator.getType())) {
+                    portwwn = vnxeInitiator.getInitiatorId();
+                }
+
                 if (portwwn == null || portwwn.isEmpty()) {
                     continue;
                 }

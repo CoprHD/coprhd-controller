@@ -87,9 +87,9 @@ public class BlockConsistencyGroup extends DataObject implements ProjectResource
      */
     private Boolean arrayConsistency =  true;
     
-    // Flag to indicate that journal provisioning is actively occurring
+    // Lock to indicate that journal provisioning is actively occurring
     // on this CG. Currently used for concurrent RP provisioning requests. 
-    private Long journalProvisioningFlag = 0L;
+    private Long journalProvisioningLock = 0L;
 
     public static enum Types {
         /* RecoverPoint consistency group type. */
@@ -495,13 +495,13 @@ public class BlockConsistencyGroup extends DataObject implements ProjectResource
 		setChanged("arrayConsistency");
 	}
 
-	@Name("journalProvisioningFlag")
-    public Long getJournalProvisioningFlag() {
-        return journalProvisioningFlag;
+	@Name("journalProvisioningLock")
+    public Long getJournalProvisioningLock() {
+        return journalProvisioningLock;
     }
 
-    public void setJournalProvisioningFlag(Long journalProvisioningFlag) {
-        this.journalProvisioningFlag = journalProvisioningFlag;
+    public void setJournalProvisioningLock(Long journalProvisioningLock) {
+        this.journalProvisioningLock = journalProvisioningLock;
         setChanged("journalProvisioningFlag");
     }
 }

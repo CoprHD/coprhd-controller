@@ -4475,7 +4475,7 @@ public class RecoverPointScheduler implements Scheduler {
      * to allow for proper RP journal provisioning. 
      * 
      * Since concurrent requests do not have any context to which request should create the journals,
-     * poor decisions can be made by the RP scheduler. Using a flag on the CG to indicate journal 
+     * poor decisions can be made by the RP scheduler. Using a soft lock on the CG to indicate journal 
      * provisioning is occurring allows time between concurrent requests to ensure correct journal 
      * decisions will be made.
      * 
@@ -4512,16 +4512,16 @@ public class RecoverPointScheduler implements Scheduler {
                         vpool.getLabel()));
             }
             
-            // Check to see if the journal provisioning flag has been set on the CG. 
+            // Check to see if the journal provisioning lock has been set on the CG. 
             //
-            // When the flag is not "0" it indicates that RP journal scheduling/provisioning 
-            // is currently underway for this CG for another request.
+            // When the lock is not "0" it indicates that RP journal scheduling/provisioning 
+            // is currently underway for this CG in another request.
             //
             // Any new requests coming in for the same CG may need to wait briefly.
-            Long journalProvisioningFlag = ((cg.getJournalProvisioningFlag() != null) ? cg.getJournalProvisioningFlag() : 0L);
+            Long lock = ((cg.getJournalProvisioningLock() != null) ? cg.getJournalProvisioningLock() : 0L);
             
             // If the value is > 0 then there must be another provisioning request occurring for this CG
-            if (journalProvisioningFlag != 0L) {
+            if (lock != 0L) {
                 try {
                     // If the journal policy is a multiplier we need to force ALL requests to go 
                     // sequentially so that the journal provisioning can be calculated dynamically.
@@ -4538,21 +4538,21 @@ public class RecoverPointScheduler implements Scheduler {
                             Thread.sleep(WAIT_BETWEEN_CONCURRENT_SCHEDULER_REQUESTS * 1000);
                             waitAttempt++;
                             
-                            // Reload the CG to see if the flag has been updated
+                            // Reload the CG to see if the lock has been updated
                             cg = dbClient.queryObject(BlockConsistencyGroup.class, cgURI);
                           
-                            // Check to see if the flag has changed since last we checked
-                            if (Long.compare(journalProvisioningFlag, cg.getJournalProvisioningFlag()) == 0) {
-                                // Flag has not changed, let this request pass through and update
+                            // Check to see if the lock has changed since last we checked
+                            if (Long.compare(lock, cg.getJournalProvisioningLock()) == 0) {
+                                // Lock has not changed, let this request pass through and update
                                 // the flag to indicate this request is provisioning.
-                                cg.setJournalProvisioningFlag(Thread.currentThread().getId());
+                                cg.setJournalProvisioningLock(Thread.currentThread().getId());
                                 dbClient.updateObject(cg);
                                 break;
                             } else {
                                 // Flag has changed, another request is underway, sleep again.                         
                                 _log.info("Another request is underway, sleep again.");
                                 // Update the flag with the latest value
-                                journalProvisioningFlag = cg.getJournalProvisioningFlag();
+                                lock = cg.getJournalProvisioningLock();
                                 // Reset the wait attempts
                                 waitAttempt = 0;
                             }
@@ -4563,18 +4563,18 @@ public class RecoverPointScheduler implements Scheduler {
                                 cg.getLabel(), WAIT_BETWEEN_CONCURRENT_SCHEDULER_REQUESTS));
                         Thread.sleep(WAIT_BETWEEN_CONCURRENT_SCHEDULER_REQUESTS * 1000);
                         
-                        // In this case, the flag can be safely cleared
-                        cg.setJournalProvisioningFlag(0L);
+                        // In this case, the lock can be safely cleared
+                        cg.setJournalProvisioningLock(0L);
                         dbClient.updateObject(cg);
                     }
                 } catch (InterruptedException e) {
                     _log.error(e.getMessage());
                 }
             } else {
-                // Set the journal provisioning flag on the CG to indicate a 
+                // Set the journal provisioning lock on the CG to indicate a 
                 // provisioning request is underway. This will force other
                 // concurrent requests to wait.
-                cg.setJournalProvisioningFlag(System.currentTimeMillis());
+                cg.setJournalProvisioningLock(System.currentTimeMillis());
                 dbClient.updateObject(cg);
             }
             

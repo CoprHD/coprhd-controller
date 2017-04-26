@@ -1757,9 +1757,9 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                 cg.addConsistencyGroupTypes(Types.RP.name());
             }
 
-            // At this point, always clear the journal provisioning flag on the
+            // At this point, always clear the journal provisioning lock on the
             // CG for any concurrent orders that may come in.
-            cg.setJournalProvisioningFlag(0L);
+            cg.setJournalProvisioningLock(0L);
             _dbClient.updateObject(cg);
 
             setVolumeConsistencyGroup(volumeDescriptors, cgParams.getCgUri());

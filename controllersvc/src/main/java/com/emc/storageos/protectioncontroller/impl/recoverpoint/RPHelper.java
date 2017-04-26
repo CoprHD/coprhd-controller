@@ -1219,19 +1219,19 @@ public class RPHelper {
     public static Map<Integer, Long> additionalJournalRequiredForRPCopy(String journalPolicy, URI cgURI,
             long size, Integer volumeCount, String copyName, DbClient dbClient) {
         Map<Integer, Long> additionalJournalInfo = null;                       
-        BlockConsistencyGroup cg = dbClient.queryObject(BlockConsistencyGroup.class, cgURI);
+        
         _log.info("Running check for additionalJournalRequiredForRPCopy()...");
         
         StringBuffer logMsg = new StringBuffer();
         logMsg.append(String.format("\nChecking if additional journal(s) required for RP Copy [%s] in RP CG [%s]\n",
-                copyName, cg.getLabel()));
+                copyName, cgURI.toString()));
         logMsg.append("--------------------------------------\n");
         
         if (journalPolicy != null && (journalPolicy.endsWith("x") || journalPolicy.endsWith("X"))) {
             // Find all the journals for this RP Copy, calculate their total size in bytes, 
             // and while we're at it keep track of the minimum sized journal.
             // We use the minimum size as RecoverPoint prefers striping across all journals. 
-            List<Volume> journalVolumesForCopy = RPHelper.findExistingJournalsForCopy(dbClient, cg.getId(), copyName);
+            List<Volume> journalVolumesForCopy = RPHelper.findExistingJournalsForCopy(dbClient, cgURI, copyName);
             Long minJournalSizeForCopy = 0L;
             Long totalJournalSizeForCopy = 0L;         
             for (Volume journalVolume : journalVolumesForCopy) {
@@ -1264,7 +1264,7 @@ public class RPHelper {
             Long totalJournalSizeInBytesForCopy = SizeUtil.translateSize(String.valueOf(totalJournalSizeForCopy));
           
             // Find all the volumes for this RP Copy (excluding journals) and calculate their cumulative size in bytes
-            List<Volume> cgVolumes = RPHelper.getAllCgVolumes(cg.getId(), dbClient);
+            List<Volume> cgVolumes = RPHelper.getAllCgVolumes(cgURI, dbClient);
             Long totalVolumeSizeForCopy = 0L;
             for (Volume cgVolume : cgVolumes) {
                 if (!cgVolume.checkPersonality(Volume.PersonalityTypes.METADATA.name())

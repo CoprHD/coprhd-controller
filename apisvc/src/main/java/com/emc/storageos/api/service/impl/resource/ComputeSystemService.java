@@ -96,6 +96,7 @@ import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.volumecontroller.AsyncTask;
 import com.emc.storageos.volumecontroller.ControllerException;
+import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
 import com.emc.storageos.volumecontroller.impl.monitoring.RecordableBourneEvent;
 import com.emc.storageos.volumecontroller.impl.monitoring.RecordableEventManager;
@@ -997,7 +998,7 @@ public class ComputeSystemService extends TaskResourceService {
         Iterator<URI> iterator = ceUriList.iterator();
         Collection<URI> hostIds = _dbClient.queryByType(Host.class, true);
         Collection<Host> hosts = _dbClient.queryObjectFields(Host.class,
-             Arrays.asList("label", "computeElement","cluster"), getFullyImplementedCollection(hostIds));
+             Arrays.asList("label", "computeElement","cluster"), ControllerUtils.getFullyImplementedCollection(hostIds));
         while (iterator.hasNext()) {
             ComputeElement ce = _dbClient.queryObject(ComputeElement.class, iterator.next());
             if (ce!=null){
@@ -1021,18 +1022,6 @@ public class ComputeSystemService extends TaskResourceService {
         }
         return result;
     }
-
-    private static <T> Collection<T> getFullyImplementedCollection(Collection<T> collectionIn) {
-        // Convert objects (like URIQueryResultList) that only implement iterator to
-        // fully implemented Collection
-        Collection<T> collectionOut = new ArrayList<>();
-        Iterator<T> iter = collectionIn.iterator();
-        while (iter.hasNext()) {
-            collectionOut.add(iter.next());
-        }
-        return collectionOut;
-    }
-
 
     private List<String> getProvisionedBlades(ComputeSystem cs) {
         List<String> provHostList = new ArrayList<String>();

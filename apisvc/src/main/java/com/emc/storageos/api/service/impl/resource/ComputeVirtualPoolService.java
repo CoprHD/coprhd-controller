@@ -68,6 +68,7 @@ import com.emc.storageos.security.authorization.DefaultPermissions;
 import com.emc.storageos.security.authorization.Role;
 import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
+import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.emc.storageos.volumecontroller.impl.monitoring.RecordableBourneEvent;
 import com.emc.storageos.volumecontroller.impl.monitoring.RecordableEventManager;
 import com.emc.storageos.volumecontroller.impl.monitoring.cim.enums.RecordType;
@@ -287,7 +288,7 @@ public class ComputeVirtualPoolService extends TaggedResource {
                     toUriList(cvp.getMatchedComputeElements()));
             Collection<URI> hostIds = _dbClient.queryByType(Host.class, true);
             Collection<Host> hosts = _dbClient.queryObjectFields(Host.class,
-                Arrays.asList("label", "computeElement", "cluster"), getFullyImplementedCollection(hostIds));
+                Arrays.asList("label", "computeElement", "cluster"), ControllerUtils.getFullyImplementedCollection(hostIds));
             for (ComputeElement computeElement : computeElements) {
                 if (computeElement!=null) {
                     Host associatedHost = null;
@@ -308,17 +309,6 @@ public class ComputeVirtualPoolService extends TaggedResource {
             }
         }
         return result;
-    }
-
-    private static <T> Collection<T> getFullyImplementedCollection(Collection<T> collectionIn) {
-        // Convert objects (like URIQueryResultList) that only implement iterator to
-        // fully implemented Collection
-        Collection<T> collectionOut = new ArrayList<>();
-        Iterator<T> iter = collectionIn.iterator();
-        while (iter.hasNext()) {
-            collectionOut.add(iter.next());
-        }
-        return collectionOut;
     }
 
     /**

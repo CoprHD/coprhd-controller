@@ -327,27 +327,12 @@ public class ComputeElementService extends TaskResourceService {
 
         // we expect to find just one host that uses this CE
         if (hosts!=null && !hosts.isEmpty()){
-           for (Host host : hosts){
-               associatedHost = host;
-               break;
-           }
+            associatedHost = hosts.get(0);
         }
 
         return associatedHost;
 
     }
-
-    private static <T> Collection<T> getFullyImplementedCollection(Collection<T> collectionIn) {
-        // Convert objects (like URIQueryResultList) that only implement iterator to
-        // fully implemented Collection
-        Collection<T> collectionOut = new ArrayList<>();
-        Iterator<T> iter = collectionIn.iterator();
-        while (iter.hasNext()) {
-            collectionOut.add(iter.next());
-        }
-        return collectionOut;
-    }
-
 
     @SuppressWarnings("unchecked")
     @Override

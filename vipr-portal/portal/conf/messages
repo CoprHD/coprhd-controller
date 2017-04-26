@@ -1277,6 +1277,7 @@ diagnostic.pw=Password
 diagnostic.status.title=Collecting Process
 diagnostic.status=Status
 diagnostic.ftp.test=Test FTP
+diagnostic.ftp.upload=Upload
 
 diagnostic.msg.collect.done=The collecting process is done, please confirm to start the process to
 diagnostic.msg.download.start=download the collected file.

@@ -1235,9 +1235,11 @@ public class RecoverPointClient {
      * Configure the valid links between each production and each local and/or remote copy in a new CG
      * configured links are added to fullConsistencyGroupPolicy
      *
-     * @param fullConsistencyGroupPolicy cg policy with copies populated
-     * @param copyType prod, local or remote
-     * @param request create cg request used for copy mode and rpo
+     * @param fullConsistencyGroupPolicy CG policy with copies populated
+     * @param request request create cg request used for copy mode and rpo
+     * @param productionCopiesUID the map of production copies
+     * @param nonProductionCopiesUID the map of non-production copies
+     * @param cgCopyNames the map of CG copy UIDs to their actual names
      * @throws FunctionalAPIInternalError_Exception
      * @throws FunctionalAPIActionFailedException_Exception
      */
@@ -1291,6 +1293,8 @@ public class RecoverPointClient {
                         snapPolicy.setIntervaInMinutes(1L);
                         snapPolicy.setMode(SnapshotShippingMode.PERIODICALLY);
                         linkPolicy.setSnapshotShippingPolicy(snapPolicy);
+                    } else {
+                    	logger.warn("Not setting the snapshot policy on link because there is no existing copy snapshot policy to base this off of.");
                     }
 
                     FullConsistencyGroupLinkPolicy fullLinkPolicy = new FullConsistencyGroupLinkPolicy();

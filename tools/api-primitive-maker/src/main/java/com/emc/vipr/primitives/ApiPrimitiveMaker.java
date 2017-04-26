@@ -200,7 +200,9 @@ public final class ApiPrimitiveMaker {
      */
     private static Iterable<FieldSpec> makeFields(final ApiMethod method,
             final String friendlyName) {
-
+        final ImmutableMap.Builder<String, FieldSpec> requestFields = ImmutableMap.<String, FieldSpec>builder();
+        final String body = makeBody(method.input, requestFields);
+        
         return ImmutableList
                 .<FieldSpec> builder()
                 .add(makeStringConstant("FRIENDLY_NAME", friendlyName))
@@ -209,8 +211,9 @@ public final class ApiPrimitiveMaker {
                         makeSuccessCriteria(method)))
                 .add(makeStringConstant("PATH", method.path))
                 .add(makeStringConstant("METHOD", method.httpMethod))
-                .add(makeStringConstant("BODY", makeBody(method.input)))
-                .addAll(makeInput(method)).addAll(makeOutput(method))
+                .add(makeStringConstant("BODY", body))
+                .addAll(makeInput(method, requestFields.build()))
+                .addAll(makeOutput(method))
                 .add(makeAttributes()).build();
     }
 
@@ -222,18 +225,23 @@ public final class ApiPrimitiveMaker {
      * 
      * @return JSON template for the request entity
      */
-    private static String makeBody(final ApiClass input) {
-        // If there is no request body just return an empty string;
+    private static String makeBody(final ApiClass input, final ImmutableMap.Builder<String, FieldSpec> requestFields) {
+     // If there is no request body just return an empty string;
         if (null == input) {
             return "";
         }
 
+        return makeBody(new ParameterFieldName.Request(), input.name, input, requestFields );
+    }
+    private static String makeBody(final ParameterFieldName.Request fieldName,
+            final String parameterNamePrefix, 
+            final ApiClass input, 
+            final ImmutableMap.Builder<String, FieldSpec> requestFields ) {
         // If the input was not empty but there are no fields
         // throw an exception
         if (null == input.fields) {
             throw new RuntimeException("input with no fields!!");
         }
-
         final StringBuilder body = new StringBuilder();
         String separator = "{\n";
         if (null != input.fields) {
@@ -258,10 +266,14 @@ public final class ApiPrimitiveMaker {
                 }
 
                 body.append(separator + "\"" + name + "\": " + prefix);
+                final String parameterName = makeInputParameterName(parameterNamePrefix, field);
                 if (field.isPrimitive()) {
-                    body.append("$" + field.name);
+                    final FieldSpec param = makeInputParameter(fieldName, parameterName, field,
+                            field.required);
+                    requestFields.put(param.name, param);
+                    body.append("$"+parameterName);
                 } else {
-                    body.append(makeBody(field.type));
+                    body.append(makeBody(fieldName, parameterName, field.type, requestFields));
                 }
                 body.append(suffix);
                 separator = ",\n";
@@ -316,15 +328,20 @@ public final class ApiPrimitiveMaker {
      * 
      * @param method
      *            ApiMethod that is used to generate the primitive
+     * @param requestFields 
+     *            The fields built from the request
      * 
      * @return the List of input fields
      */
-    private static Iterable<FieldSpec> makeInput(final ApiMethod method) {
+    private static Iterable<FieldSpec> makeInput(final ApiMethod method, ImmutableMap<String, FieldSpec> requestFields) {
         final ImmutableList.Builder<FieldSpec> builder = ImmutableList
                 .<FieldSpec> builder();
         final ImmutableList.Builder<String> parameters = new ImmutableList.Builder<String>();
         final ParameterFieldName.Input name = new ParameterFieldName.Input();
 
+        parameters.addAll(requestFields.keySet());
+        builder.addAll(requestFields.values());
+        
         for (ApiField pathParameter : method.pathParameters) {
             FieldSpec param = makeInputParameter(name, pathParameter, true);
             parameters.add(param.name);
@@ -336,17 +353,6 @@ public final class ApiPrimitiveMaker {
                     queryParameter.required);
             parameters.add(param.name);
             builder.add(param);
-        }
-
-        if (null != method.input && null != method.input.fields) {
-            for (final ApiField field : method.input.fields) {
-                final ImmutableList<FieldSpec> requestParameters = makeRequestParameters(
-                        name, "", field);
-                for (final FieldSpec requestParameter : requestParameters) {
-                    parameters.add(requestParameter.name);
-                }
-                builder.addAll(requestParameters);
-            }
         }
 
         builder.add(FieldSpec.builder(
@@ -411,40 +417,6 @@ public final class ApiPrimitiveMaker {
                 ParameterizedTypeName.get(Map.class, String.class, String.class), "ATTRIBUTES")
                 .initializer("$T.of()", ImmutableMap.class).build();
     }
-    /**
-     * Make a list of request parameters in this request
-     * 
-     * @param fieldName
-     *            field name generator
-     * @param prefix
-     *            prefix for the parameter name
-     * @param field
-     *            The ApiField in the request
-     * @return The list of fields in this request
-     */
-    private static ImmutableList<FieldSpec> makeRequestParameters(
-            final ParameterFieldName.Input fieldName, final String prefix,
-            final ApiField field) {
-        final ImmutableList.Builder<FieldSpec> builder = ImmutableList
-                .<FieldSpec> builder();
-        final String parameterName = makeInputParameterName(prefix, field);
-        if (field.isPrimitive()) {
-            builder.add(makeInputParameter(fieldName, parameterName, field,
-                    field.required));
-        } else {
-            for (ApiField subField : field.type.fields) {
-                final String subPrefix;
-                if (subField.hasChildElements()) {
-                    subPrefix = makeInputParameterName(parameterName, subField);
-                } else {
-                    subPrefix = parameterName;
-                }
-                builder.addAll(makeRequestParameters(fieldName, subPrefix,
-                        subField));
-            }
-        }
-        return builder.build();
-    }
 
     /**
      * Make the parameters in this response entity
@@ -489,7 +461,7 @@ public final class ApiPrimitiveMaker {
     }
 
     private static FieldSpec makeInputParameter(
-            final ParameterFieldName.Input fieldName,
+            final ParameterFieldName fieldName,
             final String parameterName, final ApiField field,
             final boolean required) {
         return FieldSpec
@@ -673,7 +645,12 @@ public final class ApiPrimitiveMaker {
                 super("INPUT_");
             }
         }
+        private static class Request extends ParameterFieldName {
 
+            Request() {
+                super("REQUEST_");
+            }
+        }
         private static class Output extends ParameterFieldName {
 
             Output() {
@@ -681,5 +658,4 @@ public final class ApiPrimitiveMaker {
             }
         }
     }
-
 }

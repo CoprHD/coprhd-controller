@@ -598,6 +598,8 @@ public class VmaxExportOperations implements ExportMaskOperations {
     /**
      * This method is used for VMAX3 to add volumes to parking storage group
      * once volumes are unexported.
+     * For volumes which are still part of another export and if they already
+     * belong to FAST managed storage group, they won't be added to parking storage group.
      *
      * @param storage
      * @param policyName
@@ -605,8 +607,8 @@ public class VmaxExportOperations implements ExportMaskOperations {
      * @throws Exception
      */
     private void addVolumesToParkingStorageGroup(StorageSystem storage, String policyName, Set<String> volumeDeviceIds) throws Exception {
-        // Don't add volumes to parking SLO which are already part of a storage group
-        volumeDeviceIds = _helper.filterVolumesPartOfAnyStorageGroup(storage, volumeDeviceIds);
+        // Don't add volumes to parking SLO which are already part of a FAST managed storage group
+        volumeDeviceIds = _helper.filterVolumesPartOfAnyFASTStorageGroup(storage, volumeDeviceIds);
         if (!volumeDeviceIds.isEmpty() && !Constants.NONE.equalsIgnoreCase(policyName)) {
             String[] tokens = policyName.split(Constants.SMIS_PLUS_REGEX);
             CIMObjectPath groupPath = _helper.getVolumeGroupBasedOnSLO(storage, storage, tokens[0], tokens[1], tokens[2]);

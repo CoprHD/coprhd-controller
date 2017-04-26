@@ -6450,22 +6450,22 @@ public class SmisCommandHelper implements SmisConstants {
     }
 
     /**
-     * Filter volumes that are already part of any Storage Group.
+     * Filter volumes that are already part of any FAST managed Storage Group.
      *
      * @param storage
      * @param deviceIds
      * @return filtered list
      * @throws WBEMException
      */
-    public Set<String> filterVolumesPartOfAnyStorageGroup(StorageSystem storage,
+    public Set<String> filterVolumesPartOfAnyFASTStorageGroup(StorageSystem storage,
             Set<String> deviceIds) throws WBEMException {
-        Set<String> volumesInSG = new HashSet<String>();
+        Set<String> volumesInFASTSG = new HashSet<String>();
         for (String deviceId : deviceIds) {
-            if (checkVolumeAssociatedWithAnySG(deviceId, storage)) {
-                volumesInSG.add(deviceId);
+            if (checkVolumeAssociatedWithAnyFASTSG(deviceId, storage)) {
+                volumesInFASTSG.add(deviceId);
             }
         }
-        deviceIds.removeAll(volumesInSG);
+        deviceIds.removeAll(volumesInFASTSG);
         return deviceIds;
     }
 
@@ -6704,35 +6704,41 @@ public class SmisCommandHelper implements SmisConstants {
     }
 
     /**
-     * Check if volume is associated with any SG, irrespective of MVs.
+     * Check if volume is associated with any FAST SG, irrespective of MVs.
      *
-     * @param volNativeId the vol native id
-     * @param storage the storage
+     * @param volNativeId the volume native id
+     * @param storage the storage system
      * @return true, if successful
      * @throws WBEMException
      */
-    public boolean checkVolumeAssociatedWithAnySG(String volNativeId, StorageSystem storage) throws WBEMException {
+    public boolean checkVolumeAssociatedWithAnyFASTSG(String volNativeId, StorageSystem storage) throws WBEMException {
         CloseableIterator<CIMInstance> sgInstanceIr = null;
         try {
-            _log.info("Trying to find if volume {} is associated with any SG", volNativeId);
+            _log.info("Trying to find if volume {} is associated with any FAST managed SG", volNativeId);
             CIMObjectPath volumePath = _cimPath.getVolumePath(storage, volNativeId);
             sgInstanceIr = getAssociatorInstances(storage, volumePath, null,
-                    SmisCommandHelper.MASKING_GROUP_TYPE.SE_DeviceMaskingGroup.name(), null, null, SmisConstants.PS_ELEMENT_NAME);
+                    SmisCommandHelper.MASKING_GROUP_TYPE.SE_DeviceMaskingGroup.name(), null, null,
+                    SmisConstants.PS_V3_STORAGE_GROUP_PROPERTIES);
             while (sgInstanceIr.hasNext()) {
                 CIMInstance sgInstance = sgInstanceIr.next();
                 String gpNameFound = (String) sgInstance.getPropertyValue(SmisConstants.CP_ELEMENT_NAME);
-                _log.info("Volume {} available in other SG {}", volNativeId, gpNameFound);
-                return true;
+                _log.info("Volume {} available in SG {}", volNativeId, gpNameFound);
+                String fastSetting = getVMAX3FastSettingAssociatedWithVolumeGroup(sgInstance);
+                if (!Constants.NONE.equalsIgnoreCase(fastSetting)) {
+                    _log.info("Volume {} available in other FAST SG {}. EMCFastSetting {}",
+                            volNativeId, gpNameFound, fastSetting);
+                    return true;
+                }
             }
         } catch (WBEMException we) {
-            _log.error("Find volume associated with any SG failed", we);
+            _log.error("Find volume associated with any FAST SG failed", we);
             throw we;
         } finally {
             if (null != sgInstanceIr) {
                 sgInstanceIr.close();
             }
         }
-        _log.info("No SG found associated for volume {}", volNativeId);
+        _log.info("No FAST SG found associated for volume {}", volNativeId);
         return false;
     }
 

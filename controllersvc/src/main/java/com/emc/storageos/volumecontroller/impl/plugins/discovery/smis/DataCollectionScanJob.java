@@ -123,5 +123,13 @@ public class DataCollectionScanJob extends DataCollectionJob implements Serializ
         }
         return false;
     }
+    
+    @Override
+    public boolean matches(DataCollectionJob job) {
+        // note that this has an implementation in 3.6 that is not added here
+        // the result of this is that scan jobs will never match
+        // and therefore duplicates can be queued as always
+        return false;
+    }
 
 }

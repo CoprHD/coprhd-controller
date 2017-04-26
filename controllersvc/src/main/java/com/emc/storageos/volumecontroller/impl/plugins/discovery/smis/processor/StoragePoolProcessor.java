@@ -4,6 +4,26 @@
  */
 package com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.processor;
 
+import java.io.IOException;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+import javax.cim.CIMInstance;
+import javax.cim.CIMObjectPath;
+import javax.cim.UnsignedInteger16;
+import javax.wbem.CloseableIterator;
+import javax.wbem.WBEMException;
+import javax.wbem.client.WBEMClient;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
@@ -30,26 +50,6 @@ import com.emc.storageos.volumecontroller.impl.smis.SmisUtils;
 import com.emc.storageos.volumecontroller.impl.utils.DiscoveryUtils;
 import com.emc.storageos.volumecontroller.impl.utils.ImplicitPoolMatcher;
 import com.emc.storageos.volumecontroller.impl.utils.attrmatchers.CapacityMatcher;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import javax.cim.CIMInstance;
-import javax.cim.CIMObjectPath;
-import javax.cim.UnsignedInteger16;
-import javax.wbem.CloseableIterator;
-import javax.wbem.WBEMException;
-import javax.wbem.client.WBEMClient;
-
-import java.io.IOException;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
 
 /**
  * Processor responsible for handling Provider response data and creates StoragePools.
@@ -83,6 +83,10 @@ public class StoragePoolProcessor extends PoolProcessor {
         final Iterator<CIMInstance> it = (Iterator<CIMInstance>) resultObj;
         profile = (AccessProfile) keyMap.get(Constants.ACCESSPROFILE);
         try {
+            
+            _logger.info("Sleeping for 3 minutes to slow down discovery");
+            Thread.sleep(60*3*1000); // sleep for 3 minutes to slow discovery down
+            
             _newPoolList = new ArrayList<StoragePool>();
             _updatePoolList = new ArrayList<StoragePool>();
             _dbClient = (DbClient) keyMap.get(Constants.dbClient);

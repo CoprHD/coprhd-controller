@@ -108,4 +108,12 @@ public class DataCollectionArrayAffinityJob extends DataCollectionJob implements
     public List<URI> getSystemIds() {
         return _systemIds;
     }
+    
+    @Override
+    public boolean matches(DataCollectionJob job) {
+        // note that this has an implementation in 3.6 that is not added here
+        // the result of this is that array affinity jobs will never match
+        // and therefore duplicates can be queued as always
+        return false;
+    }
 }

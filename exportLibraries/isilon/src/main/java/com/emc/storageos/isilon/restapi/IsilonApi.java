@@ -1646,7 +1646,7 @@ public class IsilonApi {
     private IsilonList<IsilonEvent> getEvents(URI url, String firmwareVersion) throws IsilonException {
 
         // Get list of ISILON events using eventlists if ISILON version is OneFS8.0 or more else using events.
-        if (firmwareVersion.startsWith("8")) {
+        if (firmwareVersion != null && firmwareVersion.startsWith("8")) {
             List<IsilonOneFS8Event> eventLists = list(url, "eventlists", IsilonOneFS8Event.class, null).getList();
             IsilonList<IsilonEvent> isilonEventList = new IsilonList<IsilonEvent>();
 
@@ -1706,7 +1706,7 @@ public class IsilonApi {
                 .format("?begin=%1$d", begin);
 
         // If ISILON version is OneFS8.0 then get events URI will be /platform/3/event/eventlists/.
-        if (firmwareVersion.startsWith("8")) {
+        if (firmwareVersion != null && firmwareVersion.startsWith("8")) {
             return getEvents(_baseUrl.resolve(URI_ONEFS8_EVENTS.resolve(query)), firmwareVersion);
         }
         return getEvents(_baseUrl.resolve(URI_EVENTS.resolve(query)), firmwareVersion);
@@ -2018,7 +2018,7 @@ public class IsilonApi {
     public IsilonSyncPolicy getReplicationPolicy(String id) throws IsilonException {
         return get(_baseUrl.resolve(URI_REPLICATION_POLICIES), id, "policies", IsilonSyncPolicy.class);
     }
-    
+
     /**
      * Get Replication Policy information from the Isilon array using oneFS v8 above
      * 
@@ -2038,7 +2038,7 @@ public class IsilonApi {
     public IsilonList<IsilonSyncPolicy> getReplicationPolicies() throws IsilonException {
         return list(_baseUrl.resolve(URI_REPLICATION_POLICIES), "policies", IsilonSyncPolicy.class, "");
     }
-    
+
     /**
      * Get All Replication Policies information from the Isilon array
      * 
@@ -2070,7 +2070,7 @@ public class IsilonApi {
     public String createReplicationPolicy(IsilonSyncPolicy replicationPolicy) throws IsilonException {
         return create(_baseUrl.resolve(URI_REPLICATION_POLICIES), "policies", replicationPolicy);
     }
-    
+
     /**
      * Create Replication Policy for isilon array using oneFSv8 and above
      * 
@@ -2095,7 +2095,7 @@ public class IsilonApi {
     public void modifyReplicationPolicy(String id, IsilonSyncPolicy syncPolicy) throws IsilonException {
         modify(_baseUrl.resolve(URI_REPLICATION_POLICIES), id, "policies", syncPolicy);
     }
-    
+
     /**
      * Modify Replication Policyfor isilon array using oneFSv8 and above
      * 

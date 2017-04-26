@@ -4,7 +4,6 @@
  */
 package com.emc.storageos.systemservices.impl.resource;
 
-
 import com.emc.storageos.coordinator.client.model.Constants;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.common.Configuration;
@@ -21,28 +20,25 @@ import javax.ws.rs.core.Response;
 import java.io.OutputStream;
 import java.util.List;
 
-
-
 /**
  * Defines the API for making request to diagnostics data collection service.
- * */
+ */
 @Path("/diagutil/")
 public class DataCollectionService {
     @Autowired
     private CoordinatorClient coordinatorClient;
     private static final String key = "diagutilStatus";
 
-
     @POST
-    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN})
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
     public Response collectDiagnosticData(@QueryParam("options") List<String> options, DiagutilParam diagutilParam) {
 
         return Response.status(Response.Status.ACCEPTED).build();
     }
 
     @GET
-    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN})
-    @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON, MediaType.TEXT_PLAIN})
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON, MediaType.TEXT_PLAIN })
     public Response getDiagutilData() {
         OutputStream os = null;
 
@@ -50,8 +46,9 @@ public class DataCollectionService {
     }
 
     @GET
-    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN, Role.SYSTEM_MONITOR})
-    @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
+    @Path("/status")
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN, Role.SYSTEM_MONITOR })
+    @Produces({ MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML })
     public DiagutilInfo getDiagutilStatus() {
         DiagutilInfo diagutilInfo = new DiagutilInfo();
         Configuration config = coordinatorClient.queryConfiguration(key, Constants.GLOBAL_ID);
@@ -61,16 +58,16 @@ public class DataCollectionService {
         return diagutilInfo;
     }
 
-
     @POST
-    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN})
+    @Path("/upload")
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
     public Response uploadDiagutilData(UploadParam uploadParam) {
-
         return Response.status(Response.Status.ACCEPTED).build();
     }
+
     @DELETE
-    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN})
-    public Response deleteDiagutilJob(){
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
+    public Response deleteDiagutilJob() {
 
         return Response.ok().build();
     }

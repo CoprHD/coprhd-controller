@@ -15,6 +15,9 @@ public class PathConstants {
     public static final String CLUSTER_STATE_URL = UPGRADE_URL + "/cluster-state";
     public static final String LOGS_URL = "/logs";
     public static final String LOG_LEVELS_URL = LOGS_URL + "/log-levels";
+
+    public static final String DIAGUTIL_URL = "/diagutil";
+    public static final String DIAGUTIL_STATUS_URL = DIAGUTIL_URL + "/status";
     
     public static final String BACKUP_URL = "/backupset/";
     public static final String BACKUP_EXTERNAL_URL = BACKUP_URL + "external/";

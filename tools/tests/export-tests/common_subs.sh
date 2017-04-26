@@ -959,10 +959,17 @@ cleanup_previous_run_artifacts() {
 }
 
 verify_datastore() {
+    runcmd vcenterhelper.sh verify_datastore $*
+    return_status=$?
+    return $return_status
+}
+
+verify_datastore_size() {
     datacenter=$1
     datastore=$2
+    capacity=$3
     
-    runcmd vcenterhelper.sh verify_datastore $datacenter $datastore $*
+    runcmd vcenterhelper.sh verify_datastore_size $datacenter $datastore $capacity
     return_status=$?
     return $return_status
 }

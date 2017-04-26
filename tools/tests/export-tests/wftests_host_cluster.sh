@@ -48,8 +48,26 @@ create_volume_and_datastore() {
     datacenter_id=`datacenter list ${7} | grep "${8} " | awk '{print $4}'`
     cluster_id=`cluster list ${tenant_arg} | grep "${9} " | awk '{print $4}'`
     
-    echo "=== catalog order CreateVolumeandDatastore ${tenant_arg} project=${project_id},name=${volname_arg},virtualPool=${virtualpool_id},virtualArray=${virtualarray_id},host=${cluster_id},datastoreName=${datastorename_arg},size=1,vcenter=${vcenter_id},datacenter=${datacenter_id}"
-    echo `catalog order CreateVolumeandDatastore ${tenant_arg} project=${project_id},name=${volname_arg},virtualPool=${virtualpool_id},virtualArray=${virtualarray_id},host=${cluster_id},datastoreName=${datastorename_arg},size=1,vcenter=${vcenter_id},datacenter=${datacenter_id}`
+    echo "=== catalog order CreateVolumeandDatastore ${tenant_arg} project=${project_id},name=${volname_arg},virtualPool=${virtualpool_id},virtualArray=${virtualarray_id},host=${cluster_id},datastoreName=${datastorename_arg},size=1,vcenter=${vcenter_id},datacenter=${datacenter_id} BlockServicesforVMwarevCenter"
+    echo `catalog order CreateVolumeandDatastore ${tenant_arg} project=${project_id},name=${volname_arg},virtualPool=${virtualpool_id},virtualArray=${virtualarray_id},host=${cluster_id},datastoreName=${datastorename_arg},size=1,vcenter=${vcenter_id},datacenter=${datacenter_id} BlockServicesforVMwarevCenter`
+}
+
+create_volume_and_datastore_for_host() {
+    # tenant volname datastorename varray vpool project vcenter datacenter host
+    tenant_arg=$1
+    volname_arg=$2
+    datastorename_arg=$3   
+
+    virtualarray_id=`neighborhood list | grep "${4} " | awk '{print $3}'`
+    virtualpool_id=`cos list block | grep "${5} " | awk '{print $3}'`
+    project_id=`project list --tenant ${tenant_arg} | grep "${6} " | awk '{print $4}'`
+ 
+    vcenter_id=`vcenter list ${tenant_arg} | grep "${7} " | awk '{print $5}'`
+    datacenter_id=`datacenter list ${7} | grep "${8} " | awk '{print $4}'`
+    host_id=`hosts list ${tenant_arg} | grep "${9} " | awk '{print $4}'`
+    
+    echo "=== catalog order CreateVolumeandDatastore ${tenant_arg} project=${project_id},name=${volname_arg},virtualPool=${virtualpool_id},virtualArray=${virtualarray_id},host=${host_id},datastoreName=${datastorename_arg},size=1,vcenter=${vcenter_id},datacenter=${datacenter_id} BlockServicesforVMwarevCenter"
+    echo `catalog order CreateVolumeandDatastore ${tenant_arg} project=${project_id},name=${volname_arg},virtualPool=${virtualpool_id},virtualArray=${virtualarray_id},host=${host_id},datastoreName=${datastorename_arg},size=1,vcenter=${vcenter_id},datacenter=${datacenter_id} BlockServicesforVMwarevCenter`
 }
 
 delete_datastore_and_volume() {
@@ -61,8 +79,8 @@ delete_datastore_and_volume() {
     datacenter_id=`datacenter list ${3} | grep "${4} " | awk '{print $4}'`
     cluster_id=`cluster list ${tenant_arg} | grep "${5} " | awk '{print $4}'`
     
-    echo "=== catalog order DeleteDatastoreandVolume ${tenant_arg} host=${cluster_id},datastoreName=${datastorename_arg},vcenter=${vcenter_id},datacenter=${datacenter_id}"
-    echo `catalog order DeleteDatastoreandVolume ${tenant_arg} host=${cluster_id},datastoreName=${datastorename_arg},vcenter=${vcenter_id},datacenter=${datacenter_id}`
+    echo "=== catalog order DeleteDatastoreandVolume ${tenant_arg} host=${cluster_id},datastoreName=${datastorename_arg},vcenter=${vcenter_id},datacenter=${datacenter_id} BlockServicesforVMwarevCenter"
+    echo `catalog order DeleteDatastoreandVolume ${tenant_arg} host=${cluster_id},datastoreName=${datastorename_arg},vcenter=${vcenter_id},datacenter=${datacenter_id} BlockServicesforVMwarevCenter`
 }
 
 create_datastore() {
@@ -117,8 +135,8 @@ expand_volume_and_datastore() {
     datacenter_id=`datacenter list ${5} | grep "${6} " | awk '{print $4}'`
     cluster_id=`cluster list ${tenant_arg} | grep "${7} " | awk '{print $4}'`
     
-    echo "=== catalog order ExpandVolumeandDatastore ${tenant_arg} volumes=${volume_id},host=${cluster_id},datastoreName=${datastorename_arg},vcenter=${vcenter_id},datacenter=${datacenter_id},size=${size_arg}"
-    echo `catalog order ExpandVolumeandDatastore ${tenant_arg} volumes=${volume_id},host=${cluster_id},datastoreName=${datastorename_arg},vcenter=${vcenter_id},datacenter=${datacenter_id},size=${size_arg}`
+    echo "=== catalog order ExpandVolumeandDatastore ${tenant_arg} volumes=${volume_id},host=${cluster_id},datastoreName=${datastorename_arg},vcenter=${vcenter_id},datacenter=${datacenter_id},size=${size_arg} BlockServicesforVMwarevCenter"
+    echo `catalog order ExpandVolumeandDatastore ${tenant_arg} volumes=${volume_id},host=${cluster_id},datastoreName=${datastorename_arg},vcenter=${vcenter_id},datacenter=${datacenter_id},size=${size_arg} BlockServicesforVMwarevCenter`
 }
 
 extend_datastore() {
@@ -2464,7 +2482,6 @@ test_expand_volume_and_datastore() {
     set_controller_cs_discovery_refresh_interval 1
     cfs=("ExportGroup ExportMask Network Host Initiator")
 
-    #syssvc $SANITY_CONFIG_FILE localhost set_prop validation_check false
     run syssvc $SANITY_CONFIG_FILE localhost set_prop system_proxyuser_encpassword $SYSADMIN_PASSWORD
 
     #host_cluster_failure_injections="failure_XXX"
@@ -2474,40 +2491,85 @@ test_expand_volume_and_datastore() {
     item=${RANDOM}
     mkdir -p results/${item}  
     
-    create_volume_and_datastore ${TENANT} ${volume1} ${datastore1} ${NH} ${VPOOL_BASE} ${PROJECT} ${vcenter} ${VCENTER_DATACENTER} ${VCENTER_CLUSTER}
+    create_volume_and_datastore_for_host ${TENANT} ${volume1} ${datastore1} ${NH} ${VPOOL_BASE} ${PROJECT} ${vcenter} ${VCENTER_DATACENTER} ${VCENTER_HOST}
 
     # verify the datastore has been created
-    verify_datastore ${VCENTER_DATACENTER} ${datastore1}
-
-    failure_injections="${HAPPY_PATH_TEST_INJECTION}"  
-
-    for failure in ${failure_injections}
-    do       
-        if [ ${failure} == ${HAPPY_PATH_TEST_INJECTION} ]; then
-            secho "Running happy path test for ${test_name}..."
-        else    
-            secho "Running ${test_name} with failure scenario: ${failure}..."
-        fi    
-        
-        TEST_OUTPUT_FILE=test_output_${RANDOM}.log
-        reset_counts
-
-        if [ ${failure} == ${HAPPY_PATH_TEST_INJECTION} ]; then
-            # Run expand operation - expand to 2GB
-            expand_volume_and_datastore ${TENANT} ${volume1} ${datastore1} ${PROJECT} ${vcenter} ${VCENTER_DATACENTER} ${VCENTER_CLUSTER} "2"
-        fi        
-
-        # Verify expand operation  
-
-        # Report results
-        report_results ${test_name} ${failure}
-        
-        # Add a break in the output
-        echo " "
-    done    
+    verify_datastore ${VCENTER_DATACENTER} ${datastore1} ${VCENTER_HOST}
     
-    # Cleanup volume and datastore
-    delete_datastore_and_volume ${TENANT} ${datastore1} ${vcenter} ${VCENTER_DATACENTER} ${VCENTER_CLUSTER} 
+    # Only perform the tests if the datastore exists
+    if [ $? -eq 0 ];
+    then
+        failure_injections="${HAPPY_PATH_TEST_INJECTION}"  
+        size=1
+    
+        for failure in ${failure_injections}
+        do       
+            size=$((size + 1))
+            
+            if [ ${failure} == ${HAPPY_PATH_TEST_INJECTION} ]; then
+                secho "Running happy path test for ${test_name}..."
+            else    
+                secho "Running ${test_name} with failure scenario: ${failure}..."
+            fi    
+            
+            TEST_OUTPUT_FILE=test_output_${RANDOM}.log
+            reset_counts
+    
+            if [ ${failure} == ${HAPPY_PATH_TEST_INJECTION} ]; then
+                # Run expand operation - expand to 1GB
+                expand_volume_and_datastore ${TENANT} ${volume1} ${datastore1} ${PROJECT} ${vcenter} ${VCENTER_DATACENTER} ${VCENTER_CLUSTER} "${size}"
+                
+                # Verify expand operation
+                #if [ $? -ne 0 ];
+                #then
+                #    echo "Failed to expand datastore ${datastore1}"  
+                #    incr_fail_count
+                #    report_results ${test_name} ${failure}
+                #    continue;
+                #fi
+            else
+                # Turn failure injection on
+                set_artificial_failure ${failure}
+
+                # Move the host to the cluster
+                fail expand_volume_and_datastore ${TENANT} ${volume1} ${datastore1} ${PROJECT} ${vcenter} ${VCENTER_DATACENTER} ${VCENTER_CLUSTER} "${size}"
+    
+                # Verify injected failures were hit
+                verify_failures ${failure}
+                # Let the async jobs calm down
+                sleep 5 
+                
+                # Rerun the command
+                set_artificial_failure none       
+                expand_volume_and_datastore ${TENANT} ${volume1} ${datastore1} ${PROJECT} ${vcenter} ${VCENTER_DATACENTER} ${VCENTER_CLUSTER} "${size}"
+                
+                # Verify expand operation
+                #if [ $? -ne 0 ];
+                #then
+                #    echo "Failed to expand datastore ${datastore1}"  
+                #    incr_fail_count
+                #    report_results ${test_name} ${failure}
+                #    continue;
+                #fi          
+            fi          
+            
+            # Report results
+            report_results ${test_name} ${failure}
+            
+            # Add a break in the output
+            echo " "
+        done    
+        
+        # Cleanup volume and datastore
+        delete_datastore_and_volume ${TENANT} ${datastore1} ${vcenter} ${VCENTER_DATACENTER} ${VCENTER_CLUSTER}
+    else 
+        # Try to unexport the volume if it was exported
+        runcmd export_group update ${PROJECT}/${VCENTER_HOST} --remVols ${PROJECT}/${volume1}
+        runcmd export_group delete ${PROJECT}/${VCENTER_HOST}
+        
+        # Try to delete the volume if it was created
+        runcmd volume delete ${PROJECT}/${volume1} --wait
+    fi
 }
 
 # Test - extend datastore

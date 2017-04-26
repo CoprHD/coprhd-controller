@@ -67,12 +67,10 @@ public class PrimitiveDoclet {
 
     /** Required by Doclet to check command line options */
     public static int optionLength(String option) {
-        if (option.equals(OUTPUT_OPTION)) {
+        if (option.equals(OUTPUT_OPTION) || option.equals(CONTENT_OPTION)) {
             return 2;
         }
-        else if (option.equals(CONTENT_OPTION)) {
-            return 2;
-        }
+        
         return 1;
     }
 

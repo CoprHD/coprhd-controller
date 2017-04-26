@@ -3345,11 +3345,23 @@ public class SmisCommandHelper implements SmisConstants {
      */
     public String getVMAX3FastSettingAssociatedWithVolumeGroup(StorageSystem storage,
             CIMObjectPath volumechildGroupPath) throws WBEMException {
-        String fastSetting = Constants.NONE;
         _log.debug("Finding out Fast Policy Associated with Storage Group {}", volumechildGroupPath);
         CIMInstance groupInstance = getInstance(storage, volumechildGroupPath, false, false, PS_V3_FAST_SETTING_PROPERTIES);
+        String fastSetting = getVMAX3FastSettingAssociatedWithVolumeGroup(groupInstance);
+        _log.debug("Found Fast setting {} associated with Storage Group {}", fastSetting, volumechildGroupPath);
+        return fastSetting;
+    }
+
+    /**
+     * Gets the VMAX3 fast setting associated with volume group (storage group).
+     * If there is no fast setting, it returns NONE string.
+     *
+     * @param groupInstance the group instance
+     * @return the VMAX3 fast setting associated with volume group
+     */
+    public String getVMAX3FastSettingAssociatedWithVolumeGroup(CIMInstance groupInstance) {
+        String fastSetting = Constants.NONE;
         String fastSettingOnSG = CIMPropertyFactory.getPropertyValue(groupInstance, CP_FAST_SETTING);
-        _log.debug("Found Fast setting {} associated with Storage Group {}", fastSettingOnSG, volumechildGroupPath);
         if (!fastSettingOnSG.isEmpty()) {
             fastSetting = fastSettingOnSG;
         }
@@ -6652,7 +6664,7 @@ public class SmisCommandHelper implements SmisConstants {
 
         if (storage.checkIfVmax3()) {
             storageGroupPolicyLimitsParam = new StorageGroupPolicyLimitsParam(
-                    getVMAX3FastSettingAssociatedWithVolumeGroup(storage, groupInstance.getObjectPath()),
+                    getVMAX3FastSettingAssociatedWithVolumeGroup(groupInstance),
                     hostIOLimitBandwidth,
                     hostIOLimitIOPs, storage);
             storageGroupPolicyLimitsParam

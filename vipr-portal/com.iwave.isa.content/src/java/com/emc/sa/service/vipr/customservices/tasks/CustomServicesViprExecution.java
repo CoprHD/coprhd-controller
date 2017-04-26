@@ -35,9 +35,9 @@ import com.emc.sa.catalog.primitives.CustomServicesPrimitiveDAOs;
 import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.service.vipr.customservices.CustomServicesUtils;
 import com.emc.sa.service.vipr.tasks.ViPRExecutionTask;
-import com.emc.storageos.model.customservices.CustomServicesWorkflowDocument;
 import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.TaskResourceRep;
+import com.emc.storageos.model.customservices.CustomServicesWorkflowDocument;
 import com.emc.storageos.primitives.CustomServicesConstants;
 import com.emc.storageos.primitives.CustomServicesPrimitiveType;
 import com.emc.storageos.primitives.java.vipr.CustomServicesViPRPrimitive;
@@ -224,7 +224,7 @@ public class CustomServicesViprExecution extends ViPRExecutionTask<CustomService
      */
     private String makePostBody(String body) {
 
-        Matcher m = Pattern.compile("\\$(\\w+)").matcher(body);
+        Matcher m = Pattern.compile("\\$([\\w\\.\\@]+)").matcher(body);
 
         while (m.find()) {
             String pat = m.group(1);

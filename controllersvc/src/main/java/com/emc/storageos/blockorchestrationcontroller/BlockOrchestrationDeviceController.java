@@ -133,6 +133,7 @@ public class BlockOrchestrationDeviceController implements BlockOrchestrationCon
              */
             s_logger.info(String.format("Lock retry exception key: %s remaining time %d", ex.getLockIdentifier(),
                     ex.getRemainingWaitTimeSeconds()));
+            releaseWorkflowLocks(workflow);
             if (workflow != null && !NullColumnValueGetter.isNullURI(workflow.getWorkflowURI())
                     && workflow.getWorkflowState() == WorkflowState.CREATED) {
                 com.emc.storageos.db.client.model.Workflow wf = s_dbClient.queryObject(com.emc.storageos.db.client.model.Workflow.class,

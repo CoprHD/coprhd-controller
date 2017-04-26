@@ -70,12 +70,13 @@ public class RemoveComputeClusterService extends ViPRService {
         if (!ComputeUtils.verifyHostInVcenterCluster(cluster, hostURIs)) {
             logError("computeutils.deactivatecluster.deactivate.hostmovedcluster", cluster.getLabel(), Joiner.on(',').join(hostURIs));
             preCheckErrors.append("Cluster ").append(cluster.getLabel())
-            .append(" no longer contains one or more of the hosts requesting decommission.  Cannot decomission in current state.  Recommended " +
-            "to run vCenter discovery and address actionable events before attempting decomission of hosts in this cluster.");
+            .append(" no longer contains one or more of the hosts requesting decommission.  Cannot decommission in current state.  Recommended " +
+            "to run vCenter discovery and address actionable events before attempting decommission of hosts in this cluster.");
         }
         
         if (preCheckErrors.length() > 0) {
-            throw new IllegalStateException(preCheckErrors.toString());
+            throw new IllegalStateException(preCheckErrors.toString() + 
+                    ComputeUtils.getContextErrors(getModelClient()));
         }
     }
 

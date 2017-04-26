@@ -48,7 +48,8 @@ public class UpdateVcenterClusterService extends ViPRService {
         }
 
         if (preCheckErrors.length() > 0) {
-            throw new IllegalStateException(preCheckErrors.toString());
+            throw new IllegalStateException(preCheckErrors.toString() + 
+                    ComputeUtils.getContextErrors(getModelClient()));
         }
     }
 

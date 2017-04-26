@@ -299,9 +299,6 @@ public class VPlexBackendManager {
             // place volumes in appropriate ExportMasks based on the volume's AutoTieringPolicy relationship.
             vplexBackendOrchestrator.suggestExportMasksForPlacement(array, storageDevice, _initiators, placementDescriptor);
 
-            // Check if any export mask got renamed, if they did, change the name in the ViPR DB
-            checkForRenamedExportMasks(placementDescriptor.getMasks());
-
             // Apply the filters that will remove any ExportMasks that do not fit the expected VPlex masking paradigm
             Set<URI> invalidMasks = filterExportMasksByVPlexRequirements(vplex, array, varrayURI, placementDescriptor);
 
@@ -861,14 +858,15 @@ public class VPlexBackendManager {
      * @param varrayURI
      * @param vplex
      * @param array
+     * @param forgetRollbackStepId
      * @return String stepId of last added step
      */
     public String addWorkflowStepsToAddBackendVolumes(
             Workflow workflow, String dependantStepId,
             ExportGroup exportGroup, ExportMask exportMask,
-            Map<URI, Volume> volumeMap,
-            URI varrayURI,
-            StorageSystem vplex, StorageSystem array) {
+            Map<URI, Volume> volumeMap, URI varrayURI,
+            StorageSystem vplex, StorageSystem array,
+            String forgetRollbackStepId) {
 
         // Determine if VNX or OpenStack so can order VNX zoning after masking
         boolean isMaskingFirst = isMaskingFirst(array);
@@ -881,7 +879,7 @@ public class VPlexBackendManager {
         String reValidateExportMaskStep = workflow.createStepId();
 
         ExportMaskAddVolumeCompleter createCompleter = new ExportMaskAddVolumeCompleter(
-                exportGroup.getId(), exportMask.getId(), volumeLunIdMap, maskStepId);
+                exportGroup.getId(), exportMask.getId(), volumeLunIdMap, maskStepId, forgetRollbackStepId);
         List<URI> volumeList = new ArrayList<>();
         volumeList.addAll(volumeLunIdMap.keySet());
 
@@ -1270,65 +1268,6 @@ public class VPlexBackendManager {
     }
 
     /**
-     * Search through the set of existing ExportMasks looking for those that may have been renamed.
-     * Renamed export masks are determined by matching a StoragePort between the two masks and at least
-     * one of the existingVolumes from the new mask being in the existingVolumes or userAddedVolumes of
-     * the old mask.
-     * 
-     * @param maskSet
-     *            -- A map of ExportMask URI to ExportMask
-     * @return Map<URI, ExportMask> -- Returns an updated MaskSet that may contain renamed Masks instead of those
-     *         read off the array
-     */
-    private Map<URI, ExportMask> checkForRenamedExportMasks(Map<URI, ExportMask> maskSet) {
-        Map<URI, ExportMask> result = new HashMap<URI, ExportMask>();
-        for (ExportMask mask : maskSet.values()) {
-            // We match on either existingVolumes keyset or userAddedVolumes
-            StringSet existingVolumes = StringSetUtil.getStringSetFromStringMapKeySet(
-                    mask.getExistingVolumes());
-            // Get the list of ExportMasks that match on a port with this mask
-            ExportMask match = null;
-            outer: for (String portId : mask.getStoragePorts()) {
-                URIQueryResultList queryResult = new URIQueryResultList();
-                _dbClient.queryByConstraint(AlternateIdConstraint.Factory.getExportMasksByPort(portId), queryResult);
-                for (URI uri : queryResult) {
-                    if (uri.equals(mask.getId())) {
-                        continue; // Don't match on same mask
-                    }
-                    ExportMask dbMask = _dbClient.queryObject(ExportMask.class, uri);
-                    if (dbMask == null || dbMask.getInactive()) {
-                        continue;
-                    }
-                    // Look for a match between existing volumes on the hardware mask
-                    // vs. existingVolumes or userAddedVolumes on the db mask.
-                    StringSet extVols = StringSetUtil.getStringSetFromStringMapKeySet(
-                            dbMask.getExistingVolumes());
-                    StringSet userVols = StringSetUtil.getStringSetFromStringMapKeySet(
-                            dbMask.getUserAddedVolumes());
-                    if (StringSetUtil.hasIntersection(existingVolumes, extVols)
-                            || StringSetUtil.hasIntersection(existingVolumes, userVols)) {
-                        _log.info(String.format("ExportMask %s (%s) has been renamed to %s (%s)",
-                                dbMask.getMaskName(), dbMask.getId().toString(), mask.getMaskName(), mask.getId().toString()));
-                        dbMask.setMaskName(mask.getMaskName());
-                        _dbClient.updateAndReindexObject(dbMask);
-                        ;
-                        _dbClient.markForDeletion(mask);
-                        ;
-                        result.put(dbMask.getId(), dbMask);
-                        match = dbMask;
-                        break outer;
-                    }
-                }
-            }
-            if (match == null) {
-                // Add in the original mask if no match.
-                result.put(mask.getId(), mask);
-            }
-        }
-        return result;
-    }
-
-    /**
      * Verify that an ExportMask that is going to be used is on the StorageSystem.
      * 
      * @param mask
@@ -1351,16 +1290,6 @@ public class VPlexBackendManager {
             _log.info(String.format("Verified ExportMask %s present on %s", mask.getMaskName(), array.getNativeGuid()));
             return;
         }
-
-        // We need to check and see if the ExportMask has been renamed. The admin may have renamed it to add "NO_VIPR"
-        // so we
-        // will not create any more volumes on it. However, we still want to be able to delete volumes that we created
-        // on the mask.
-        // The call to checkForRenamedExportMasks will look to see if we had any ExportMasks that were renamed, and if
-        // so,
-        // update the names of the corresponding ExportMasks in our database.
-        _log.info(String.format("ExportMask %s not present on %s; checking if renamed...", mask.getMaskName(), array.getNativeGuid()));
-        checkForRenamedExportMasks(maskSet);
     }
 
     /**

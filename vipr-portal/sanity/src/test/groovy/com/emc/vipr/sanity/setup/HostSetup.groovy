@@ -1,10 +1,15 @@
+/*
+ * Copyright (c) 2017 Dell EMC Corporation
+ * All Rights Reserved
+ */
 package com.emc.vipr.sanity.setup
 
-import static LocalSystem.*
-import static Sanity.*
-import com.emc.storageos.model.host.cluster.ClusterCreateParam
+import static com.emc.vipr.sanity.Sanity.*
+import static com.emc.vipr.sanity.setup.LocalSystem.*
+
 import com.emc.storageos.model.host.HostCreateParam
 import com.emc.storageos.model.host.InitiatorCreateParam
+import com.emc.storageos.model.host.cluster.ClusterCreateParam
 
 class HostSetup {
     static final String cluster1Name = "sanityCluster1"
@@ -30,29 +35,29 @@ class HostSetup {
             2.times {
                 String hostName = "host${ProjectSetup.tenantName}$hostCounter"
                 def host = client.hosts().create(new HostCreateParam(
-                    tenant: client.userTenantId,
-                    name: hostName,
-                    type: "Windows",
-                    hostName: "${hostName}.lss.emc.com",
-                    portNumber: 8111,
-                    userName: "user",
-                    password: "password",
-                    cluster: clusterId,
-                    discoverable: false
-                )).get()
+                        tenant: client.userTenantId,
+                        name: hostName,
+                        type: "Windows",
+                        hostName: "${hostName}.lss.emc.com",
+                        portNumber: 8111,
+                        userName: "user",
+                        password: "password",
+                        cluster: clusterId,
+                        discoverable: false
+                        )).get()
                 ['A', 'B', 'C', 'D'].each {letter->
                     client.initiators().create(host.id, new InitiatorCreateParam(
-                        protocol: "FC",
-                        node: nwwn("$letter$hostCounter"),
-                        port: pwwn("$letter$hostCounter")
-                    ))
+                            protocol: "FC",
+                            node: nwwn("$letter$hostCounter"),
+                            port: pwwn("$letter$hostCounter")
+                            ))
                 }
 
                 client.initiators().create(host.id, new InitiatorCreateParam(
-                    protocol: "FC",
-                    port: "51:00:50:56:9F:01:3B:A$hostCounter",
-                    node: "50:00:50:56:9F:01:3B:A$hostCounter"
-                ))
+                        protocol: "FC",
+                        port: "51:00:50:56:9F:01:3B:A$hostCounter",
+                        node: "50:00:50:56:9F:01:3B:A$hostCounter"
+                        ))
 
                 hosts << host
                 hostCounter++

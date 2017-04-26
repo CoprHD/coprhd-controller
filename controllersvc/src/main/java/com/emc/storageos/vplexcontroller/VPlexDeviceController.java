@@ -1641,7 +1641,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
      * @return A list of the native volume information for the passed backend volumes.
      *         If any volumes are missing or inactive, they are ignored and not returned.
      */
-    private List<VolumeInfo> getNativeVolumeInfo(List<URI> volumeURIs) {
+    private List<VolumeInfo> getNativeVolumeInfo(Collection<URI> volumeURIs) {
         List<VolumeInfo> nativeVolumeInfoList = new ArrayList<>();
         for (URI volumeURI : volumeURIs) {
             Volume volume = _dbClient.queryObject(Volume.class, volumeURI);
@@ -1738,12 +1738,13 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
             List<URI> volumeURIs, String waitFor) {
         // Add a workflow step to tell the passed VPLEX to forget about
         // the volumes with the passed URIs.
-        String stepId = workflow.createStep(
+        String stepId = workflow.createStepId();
+        workflow.createStep(
                 VOLUME_FORGET_STEP, String.format("Null provisioning step; forget Volumes on rollback:%n%s",
                         BlockDeviceController.getVolumesMsg(_dbClient, volumeURIs)),
                 waitFor, vplexSystemURI,
                 DiscoveredDataObject.Type.vplex.name(), this.getClass(), rollbackMethodNullMethod(),
-                createRollbackForgetVolumesMethod(vplexSystemURI, volumeURIs), null);
+                createRollbackForgetVolumesMethod(vplexSystemURI, volumeURIs, stepId), stepId);
         return stepId;
     }
 
@@ -1754,12 +1755,14 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
      *            The URI of the VPLEX storage system.
      * @param volumeURIs
      *            The URIs of the volumes to be forgotten.
+     * @param forgetVolumeDataStepId
+     *            The step id where data is stored identifying volumes that were successfully masked.
      *
      * @return A reference to the created workflow method.
      */
     private Workflow.Method createRollbackForgetVolumesMethod(URI vplexSystemURI,
-            List<URI> volumeURIs) {
-        return new Workflow.Method(RB_FORGET_VOLUMES_METHOD_NAME, vplexSystemURI, volumeURIs);
+            List<URI> volumeURIs, String forgetVolumeDataStepId) {
+        return new Workflow.Method(RB_FORGET_VOLUMES_METHOD_NAME, vplexSystemURI, volumeURIs, forgetVolumeDataStepId);
     }
 
     /**
@@ -1770,11 +1773,23 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
      *            The URI of the VPLEX storage system.
      * @param volumeURIs
      *            The URIs of the volumes to be forgotten.
+     * @param forgetVolumeDataStepId
+     *            The step id where data is stored identifying volumes that were successfully masked.
      * @param stepId
      *            The id of the workflow step that invoked this method.
      */
-    public void rollbackForgetVolumes(URI vplexSystemURI, List<URI> volumeURIs, String stepId) {
-        forgetVolumes(vplexSystemURI, getNativeVolumeInfo(volumeURIs), stepId);
+    public void rollbackForgetVolumes(URI vplexSystemURI, List<URI> volumeURIs, String forgetVolumeDataStepId, String stepId) {
+        // We only need to forget volumes that were successfully masked to the VPLEX.
+        @SuppressWarnings("unchecked")
+        Set<URI> maskedVolumeURIs = (Set<URI>) WorkflowService.getInstance().loadWorkflowData(forgetVolumeDataStepId, "forget");
+        if (!CollectionUtils.isEmpty(maskedVolumeURIs)) {
+            forgetVolumes(vplexSystemURI, getNativeVolumeInfo(maskedVolumeURIs), stepId);            
+        } else {
+            // If none are exported, then there is nothing to forget.
+            String successMsg = String.format("Volumes %s are not exported to the VPLEX and don't need to be forgotten", volumeURIs);
+            _log.info(successMsg);
+            WorkflowStepCompleter.stepSucceeded(stepId, successMsg);
+        }
     }
 
     private Workflow.Method deleteVirtualVolumesMethod(URI vplexURI, List<URI> volumeURIs, List<URI> doNotFullyDeleteVolumeList) {
@@ -1978,7 +1993,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
                 varrayURIs.add(haVarray);
             }
             Map<URI, List<URI>> varrayToInitiators = VPlexUtil.partitionInitiatorsByVarray(
-                    _dbClient, _blockScheduler, initiators, varrayURIs, vplexSystem);
+                    _dbClient, initiators, varrayURIs, vplexSystem);
 
             if (varrayToInitiators.isEmpty()) {
                 throw VPlexApiException.exceptions
@@ -3554,7 +3569,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
             }
             List<URI> exportGroupInitiatorList = StringSetUtil.stringSetToUriList(exportGroup.getInitiators());
             Map<URI, List<URI>> varrayToInitiators = VPlexUtil.partitionInitiatorsByVarray(
-                    _dbClient, _blockScheduler,
+                    _dbClient, 
                     exportGroupInitiatorList,
                     varrayURIs, vplexSystem);
 
@@ -3723,7 +3738,11 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
 
                 exportMask.addToUserCreatedVolumes(volume);
             }
-
+            // We also need to update the volume/lun id map in the export mask
+            // to those assigned by the VPLEX.
+            _log.info("Updating volume/lun map in export mask {}", exportMask.getId());
+            exportMask.addVolumes(updatedVolumeMap);
+            _dbClient.updateObject(exportMask);
             InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_002);
 
             completer.ready(_dbClient);
@@ -4204,7 +4223,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
                 // Partition the Initiators by Varray. We may need to do two different ExportMasks,
                 // one for each of the varrays.
                 Map<URI, List<URI>> varraysToInitiators = VPlexUtil.partitionInitiatorsByVarray(
-                        _dbClient, _blockScheduler, initURIs, varrayList, vplex);
+                        _dbClient, initURIs, varrayList, vplex);
 
                 if (varraysToInitiators.isEmpty()) {
                     throw VPlexApiException.exceptions
@@ -5772,6 +5791,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
         // goes wrong. This is a nop on provisioning.
         lastStep = addRollbackStepToForgetVolumes(workflow, vplexSystem.getId(),
                 new ArrayList<URI>(volumeMap.keySet()), lastStep);
+        String forgetRBStep = lastStep;
 
         URI vplexURI = vplexSystem.getId();
         // Main processing containers. ExportGroup --> StorageSystem --> Volumes
@@ -5826,7 +5846,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
 
                 // Add the workflow steps.
                 lastStep = backendMgr.addWorkflowStepsToAddBackendVolumes(workflow, lastStep, exportGroup, exportMask, placedVolumes,
-                        varray, vplexSystem, storageSystem);
+                        varray, vplexSystem, storageSystem, forgetRBStep);
             }
         }
 

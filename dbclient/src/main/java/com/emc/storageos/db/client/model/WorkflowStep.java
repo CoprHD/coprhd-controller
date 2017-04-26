@@ -65,6 +65,7 @@ public class WorkflowStep extends DataObject {
     }
 
     @Name("stepId")
+    @AlternateId("WorkflowStepIndex")
     public String getStepId() {
         return stepId;
     }

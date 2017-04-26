@@ -815,7 +815,13 @@ public class FileProtectionPolicies extends ViprResourceController {
                 this.scheduleTime = restRep.getSchedule().getTime();
                 String[] hoursMin = this.scheduleTime.split(":");
                 if (hoursMin.length > 1) {
-                    this.scheduleHour = hoursMin[0];
+                    if (restRep.getSchedule().getTime().contains("PM")) {
+                        int hour = Integer.valueOf(hoursMin[0]);
+                        hour += 12;
+                        this.scheduleHour = Integer.toString(hour);
+                    } else {
+                        this.scheduleHour = hoursMin[0];
+                    }
                     String[] minWithStrings = hoursMin[1].split(" ");
                     if (minWithStrings.length > 0) {
                         this.scheduleMin = minWithStrings[0];

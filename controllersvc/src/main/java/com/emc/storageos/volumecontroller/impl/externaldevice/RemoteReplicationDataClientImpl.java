@@ -219,6 +219,7 @@ public class RemoteReplicationDataClientImpl implements RemoteReplicationDataCli
                 rrPair.setReplicationGroup(systemGroup.getId());
             }
             rrPair.setNativeId(driverReplicationPair.getNativeId());
+            rrPair.setLabel(driverReplicationPair.getNativeId());
             rrPair.setReplicationState(driverReplicationPair.getReplicationState());
             rrPair.setReplicationMode(driverReplicationPair.getReplicationMode());
             rrPair.setReplicationDirection(driverReplicationPair.getReplicationDirection());

@@ -23,9 +23,6 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 
-import com.emc.storageos.remotereplicationcontroller.RemoteReplicationController;
-import com.emc.storageos.remotereplicationcontroller.RemoteReplicationUtils;
-import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -45,6 +42,8 @@ import com.emc.storageos.model.remotereplication.RemoteReplicationGroupParam;
 import com.emc.storageos.model.remotereplication.RemoteReplicationModeChangeParam;
 import com.emc.storageos.model.remotereplication.RemoteReplicationPairList;
 import com.emc.storageos.model.remotereplication.RemoteReplicationPairRestRep;
+import com.emc.storageos.remotereplicationcontroller.RemoteReplicationController;
+import com.emc.storageos.remotereplicationcontroller.RemoteReplicationUtils;
 import com.emc.storageos.security.audit.AuditLogManager;
 import com.emc.storageos.security.authorization.ACL;
 import com.emc.storageos.security.authorization.CheckPermission;
@@ -829,6 +828,10 @@ public class RemoteReplicationPairService extends TaskResourceService {
         return null;
     }
 
+    @Override
+    public Class<RemoteReplicationPair> getResourceClass() {
+        return RemoteReplicationPair.class;
+    }
 }
 
 

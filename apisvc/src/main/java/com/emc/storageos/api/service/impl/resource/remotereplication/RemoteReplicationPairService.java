@@ -23,17 +23,16 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 
-import com.emc.storageos.remotereplicationcontroller.RemoteReplicationController;
-import com.emc.storageos.remotereplicationcontroller.RemoteReplicationUtils;
-import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.api.service.impl.resource.ArgValidator;
+import com.emc.storageos.api.service.impl.resource.BlockService;
 import com.emc.storageos.api.service.impl.resource.TaskResourceService;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.DataObject;
+import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.remotereplication.RemoteReplicationPair;
@@ -45,6 +44,8 @@ import com.emc.storageos.model.remotereplication.RemoteReplicationGroupParam;
 import com.emc.storageos.model.remotereplication.RemoteReplicationModeChangeParam;
 import com.emc.storageos.model.remotereplication.RemoteReplicationPairList;
 import com.emc.storageos.model.remotereplication.RemoteReplicationPairRestRep;
+import com.emc.storageos.remotereplicationcontroller.RemoteReplicationController;
+import com.emc.storageos.remotereplicationcontroller.RemoteReplicationUtils;
 import com.emc.storageos.security.audit.AuditLogManager;
 import com.emc.storageos.security.authorization.ACL;
 import com.emc.storageos.security.authorization.CheckPermission;
@@ -68,12 +69,22 @@ public class RemoteReplicationPairService extends TaskResourceService {
     // remote replication service api implementations
     private RemoteReplicationBlockServiceApiImpl remoteReplicationServiceApi;
 
+    private BlockService blockService;
+
     public RemoteReplicationBlockServiceApiImpl getRemoteReplicationServiceApi() {
         return remoteReplicationServiceApi;
     }
 
     public void setRemoteReplicationServiceApi(RemoteReplicationBlockServiceApiImpl remoteReplicationServiceApi) {
         this.remoteReplicationServiceApi = remoteReplicationServiceApi;
+    }
+
+    public BlockService getBlockService() {
+        return blockService;
+    }
+
+    public void setBlockService(BlockService blockService) {
+        this.blockService = blockService;
     }
 
     @Override
@@ -196,10 +207,7 @@ public class RemoteReplicationPairService extends TaskResourceService {
                 op = cg.getOpStatus().get(taskId);
                 op.error(e);
                 cg.getOpStatus().updateTaskStatus(taskId, op);
-                cg.setInactive(true);
                 _dbClient.updateObject(cg);
-
-            throw e;
         }
 
         auditOp(OperationTypeEnum.FAILOVER_REMOTE_REPLICATION_CG_LINK, true, AuditLogManager.AUDITOP_BEGIN,
@@ -241,10 +249,7 @@ public class RemoteReplicationPairService extends TaskResourceService {
             op = rrPair.getOpStatus().get(taskId);
             op.error(e);
             rrPair.getOpStatus().updateTaskStatus(taskId, op);
-            rrPair.setInactive(true);
             _dbClient.updateObject(rrPair);
-
-            throw e;
         }
 
         auditOp(OperationTypeEnum.FAILOVER_REMOTE_REPLICATION_PAIR_LINK, true, AuditLogManager.AUDITOP_BEGIN,
@@ -287,11 +292,8 @@ public class RemoteReplicationPairService extends TaskResourceService {
             _log.error("Controller Error", e);
             op = cg.getOpStatus().get(taskId);
             op.error(e);
-            cg.getOpStatus().updateTaskStatus(taskId, op);
-            cg.setInactive(true);
+            cg.getOpStatus().updateTaskStatus(taskId, op);;
             _dbClient.updateObject(cg);
-
-            throw e;
         }
 
         auditOp(OperationTypeEnum.FAILBACK_REMOTE_REPLICATION_CG_LINK, true, AuditLogManager.AUDITOP_BEGIN,
@@ -334,10 +336,7 @@ public class RemoteReplicationPairService extends TaskResourceService {
             op = rrPair.getOpStatus().get(taskId);
             op.error(e);
             rrPair.getOpStatus().updateTaskStatus(taskId, op);
-            rrPair.setInactive(true);
             _dbClient.updateObject(rrPair);
-
-            throw e;
         }
 
         auditOp(OperationTypeEnum.FAILBACK_REMOTE_REPLICATION_PAIR_LINK, true, AuditLogManager.AUDITOP_BEGIN,
@@ -381,10 +380,7 @@ public class RemoteReplicationPairService extends TaskResourceService {
             op = cg.getOpStatus().get(taskId);
             op.error(e);
             cg.getOpStatus().updateTaskStatus(taskId, op);
-            cg.setInactive(true);
             _dbClient.updateObject(cg);
-
-            throw e;
         }
 
         auditOp(OperationTypeEnum.ESTABLISH_REMOTE_REPLICATION_CG_LINK, true, AuditLogManager.AUDITOP_BEGIN,
@@ -426,10 +422,7 @@ public class RemoteReplicationPairService extends TaskResourceService {
             op = rrPair.getOpStatus().get(taskId);
             op.error(e);
             rrPair.getOpStatus().updateTaskStatus(taskId, op);
-            rrPair.setInactive(true);
             _dbClient.updateObject(rrPair);
-
-            throw e;
         }
 
         auditOp(OperationTypeEnum.ESTABLISH_REMOTE_REPLICATION_PAIR_LINK, true, AuditLogManager.AUDITOP_BEGIN,
@@ -473,10 +466,7 @@ public class RemoteReplicationPairService extends TaskResourceService {
             op = cg.getOpStatus().get(taskId);
             op.error(e);
             cg.getOpStatus().updateTaskStatus(taskId, op);
-            cg.setInactive(true);
             _dbClient.updateObject(cg);
-
-            throw e;
         }
 
         auditOp(OperationTypeEnum.SPLIT_REMOTE_REPLICATION_CG_LINK, true, AuditLogManager.AUDITOP_BEGIN,
@@ -519,10 +509,7 @@ public class RemoteReplicationPairService extends TaskResourceService {
             op = rrPair.getOpStatus().get(taskId);
             op.error(e);
             rrPair.getOpStatus().updateTaskStatus(taskId, op);
-            rrPair.setInactive(true);
             _dbClient.updateObject(rrPair);
-
-            throw e;
         }
 
         auditOp(OperationTypeEnum.SPLIT_REMOTE_REPLICATION_PAIR_LINK, true, AuditLogManager.AUDITOP_BEGIN,
@@ -575,10 +562,7 @@ public class RemoteReplicationPairService extends TaskResourceService {
             op = rrPair.getOpStatus().get(taskId);
             op.error(e);
             rrPair.getOpStatus().updateTaskStatus(taskId, op);
-            rrPair.setInactive(true);
             _dbClient.updateObject(rrPair);
-
-            throw e;
         }
 
         auditOp(OperationTypeEnum.SUSPEND_REMOTE_REPLICATION_PAIR_LINK, true, AuditLogManager.AUDITOP_BEGIN,
@@ -631,10 +615,7 @@ public class RemoteReplicationPairService extends TaskResourceService {
             op = rrPair.getOpStatus().get(taskId);
             op.error(e);
             rrPair.getOpStatus().updateTaskStatus(taskId, op);
-            rrPair.setInactive(true);
             _dbClient.updateObject(rrPair);
-
-            throw e;
         }
 
         auditOp(OperationTypeEnum.RESUME_REMOTE_REPLICATION_PAIR_LINK, true, AuditLogManager.AUDITOP_BEGIN,
@@ -688,10 +669,7 @@ public class RemoteReplicationPairService extends TaskResourceService {
             op = rrPair.getOpStatus().get(taskId);
             op.error(e);
             rrPair.getOpStatus().updateTaskStatus(taskId, op);
-            rrPair.setInactive(true);
             _dbClient.updateObject(rrPair);
-
-            throw e;
         }
 
         auditOp(OperationTypeEnum.SWAP_REMOTE_REPLICATION_PAIR_LINK, true, AuditLogManager.AUDITOP_BEGIN,
@@ -740,10 +718,7 @@ public class RemoteReplicationPairService extends TaskResourceService {
             op = rrPair.getOpStatus().get(taskId);
             op.error(e);
             rrPair.getOpStatus().updateTaskStatus(taskId, op);
-            rrPair.setInactive(true);
             _dbClient.updateObject(rrPair);
-
-            throw e;
         }
 
         auditOp(OperationTypeEnum.CHANGE_REMOTE_REPLICATION_MODE, true, AuditLogManager.AUDITOP_BEGIN,
@@ -786,10 +761,7 @@ public class RemoteReplicationPairService extends TaskResourceService {
             op = rrPair.getOpStatus().get(taskId);
             op.error(e);
             rrPair.getOpStatus().updateTaskStatus(taskId, op);
-            rrPair.setInactive(true);
             _dbClient.updateObject(rrPair);
-
-            throw e;
         }
 
         auditOp(OperationTypeEnum.CHANGE_REMOTE_REPLICATION_MODE, true, AuditLogManager.AUDITOP_BEGIN,

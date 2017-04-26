@@ -443,10 +443,7 @@ public class RemoteReplicationSetService extends TaskResourceService {
             op = rrSet.getOpStatus().get(taskId);
             op.error(e);
             rrSet.getOpStatus().updateTaskStatus(taskId, op);
-            rrSet.setInactive(true);
             _dbClient.updateObject(rrSet);
-
-            throw e;
         }
 
         auditOp(OperationTypeEnum.FAILOVER_REMOTE_REPLICATION_SET_LINK, true, AuditLogManager.AUDITOP_BEGIN,
@@ -481,10 +478,7 @@ public class RemoteReplicationSetService extends TaskResourceService {
             op = rrSet.getOpStatus().get(taskId);
             op.error(e);
             rrSet.getOpStatus().updateTaskStatus(taskId, op);
-            rrSet.setInactive(true);
             _dbClient.updateObject(rrSet);
-
-            throw e;
         }
 
         auditOp(OperationTypeEnum.FAILBACK_REMOTE_REPLICATION_SET_LINK, true, AuditLogManager.AUDITOP_BEGIN,
@@ -519,10 +513,7 @@ public class RemoteReplicationSetService extends TaskResourceService {
             op = rrSet.getOpStatus().get(taskId);
             op.error(e);
             rrSet.getOpStatus().updateTaskStatus(taskId, op);
-            rrSet.setInactive(true);
             _dbClient.updateObject(rrSet);
-
-            throw e;
         }
 
         auditOp(OperationTypeEnum.ESTABLISH_REMOTE_REPLICATION_SET_LINK, true, AuditLogManager.AUDITOP_BEGIN,
@@ -557,10 +548,7 @@ public class RemoteReplicationSetService extends TaskResourceService {
             op = rrSet.getOpStatus().get(taskId);
             op.error(e);
             rrSet.getOpStatus().updateTaskStatus(taskId, op);
-            rrSet.setInactive(true);
             _dbClient.updateObject(rrSet);
-
-            throw e;
         }
 
         auditOp(OperationTypeEnum.SPLIT_REMOTE_REPLICATION_SET_LINK, true, AuditLogManager.AUDITOP_BEGIN,
@@ -595,10 +583,7 @@ public class RemoteReplicationSetService extends TaskResourceService {
             op = rrSet.getOpStatus().get(taskId);
             op.error(e);
             rrSet.getOpStatus().updateTaskStatus(taskId, op);
-            rrSet.setInactive(true);
             _dbClient.updateObject(rrSet);
-
-            throw e;
         }
 
         auditOp(OperationTypeEnum.SUSPEND_REMOTE_REPLICATION_SET_LINK, true, AuditLogManager.AUDITOP_BEGIN,
@@ -634,10 +619,7 @@ public class RemoteReplicationSetService extends TaskResourceService {
             op = rrSet.getOpStatus().get(taskId);
             op.error(e);
             rrSet.getOpStatus().updateTaskStatus(taskId, op);
-            rrSet.setInactive(true);
             _dbClient.updateObject(rrSet);
-
-            throw e;
         }
 
         auditOp(OperationTypeEnum.RESUME_REMOTE_REPLICATION_SET_LINK, true, AuditLogManager.AUDITOP_BEGIN,
@@ -672,10 +654,7 @@ public class RemoteReplicationSetService extends TaskResourceService {
             op = rrSet.getOpStatus().get(taskId);
             op.error(e);
             rrSet.getOpStatus().updateTaskStatus(taskId, op);
-            rrSet.setInactive(true);
             _dbClient.updateObject(rrSet);
-
-            throw e;
         }
 
         auditOp(OperationTypeEnum.SWAP_REMOTE_REPLICATION_SET_LINK, true, AuditLogManager.AUDITOP_BEGIN,
@@ -712,10 +691,7 @@ public class RemoteReplicationSetService extends TaskResourceService {
             op = rrSet.getOpStatus().get(taskId);
             op.error(e);
             rrSet.getOpStatus().updateTaskStatus(taskId, op);
-            rrSet.setInactive(true);
             _dbClient.updateObject(rrSet);
-
-            throw e;
         }
 
         auditOp(OperationTypeEnum.CHANGE_REMOTE_REPLICATION_MODE, true, AuditLogManager.AUDITOP_BEGIN,

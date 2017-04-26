@@ -15,14 +15,11 @@ import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 
-import com.emc.storageos.api.service.impl.resource.ArgValidator;
-import com.emc.storageos.db.client.model.DiscoveredDataObject;
-import com.emc.storageos.db.client.model.Volume;
-import com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationOperationContext;
-import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.emc.storageos.api.service.impl.resource.ArgValidator;
+import com.emc.storageos.api.service.impl.resource.BlockService;
 import com.emc.storageos.api.service.impl.resource.TaskResourceService;
 import com.emc.storageos.db.client.model.remotereplication.RemoteReplicationGroup;
 import com.emc.storageos.db.client.model.remotereplication.RemoteReplicationPair;
@@ -34,6 +31,7 @@ import com.emc.storageos.model.remotereplication.RemoteReplicationOperationParam
 import com.emc.storageos.security.authorization.ACL;
 import com.emc.storageos.security.authorization.DefaultPermissions;
 import com.emc.storageos.security.authorization.Role;
+import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 
 @Path("/vdc/block/remotereplicationmanagement")
@@ -223,13 +221,6 @@ public class RemoteReplicationManagementService extends TaskResourceService {
         TaskList taskList = new TaskList();
         RemoteReplicationPair rrPair = _dbClient.queryObject(RemoteReplicationPair.class, operationParam.getIds().get(0));
 
-        Volume volume = _dbClient.queryObject(Volume.class, rrPair.getSourceElement());
-        if (volume.getSystemType().equalsIgnoreCase(DiscoveredDataObject.Type.vmax.toString()) ||
-            volume.getSystemType().equalsIgnoreCase(DiscoveredDataObject.Type.vmax3.toString())) {
-            // delegate to SRDF support
-            return processSrdfLinkRequest(operationContext, operationParam.getIds());
-        }
-
         switch (operationContext) {
             case RR_PAIR:
                 // for individual pairs send one request for each pair
@@ -298,12 +289,6 @@ public class RemoteReplicationManagementService extends TaskResourceService {
 
     }
 
-    TaskList processSrdfLinkRequest(RemoteReplicationOperationParam.OperationContext operationContext, List<URI> pairURIs) {
-        // verify if this is supported for SRDF
-        // delegate to BlockService method
-        return null;
-    }
-
-
-
 }
+
+

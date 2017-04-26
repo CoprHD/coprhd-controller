@@ -1,11 +1,13 @@
+/*
+ * Copyright (c) 2017 Dell EMC Corporation
+ * All Rights Reserved
+ */
 package com.emc.vipr.sanity.setup
 
-import static com.emc.vipr.sanity.setup.Sanity.*
+import static com.emc.vipr.sanity.Sanity.*
 import static com.emc.vipr.sanity.setup.LocalSystem.*
-import com.emc.storageos.model.tenant.TenantCreateParam
+
 import com.emc.storageos.model.project.ProjectParam
-import com.emc.storageos.model.tenant.UserMappingParam
-import com.emc.storageos.model.tenant.UserMappingAttributeParam
 
 class ProjectSetup {
     static String tenantName = hostName

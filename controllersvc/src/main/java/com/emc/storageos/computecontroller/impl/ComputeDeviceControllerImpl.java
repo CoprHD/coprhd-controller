@@ -540,14 +540,14 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
 
             WorkflowStepCompleter.stepSucceded(stepId);
         } catch (InternalException e) {
-            WorkflowStepCompleter.stepFailed(stepId, e);
-            log.error("Exception unbindHostStep: " + e.getMessage(), e);
+            String opName = ResourceOperationTypeEnum.INSTALL_OPERATING_SYSTEM.getName();
+            ServiceCoded sce = ImageServerControllerException.exceptions.unexpectedException(opName, e);
             if (computeSystem != null) {
-                throw ComputeSystemControllerException.exceptions.unableToPrepareHostForOSInstall(hostId.toString(), e);
-            } else {
-                String opName = ResourceOperationTypeEnum.INSTALL_OPERATING_SYSTEM.getName();
-                throw ImageServerControllerException.exceptions.unexpectedException(opName, e);
+                sce = ComputeSystemControllerException.exceptions.unableToUpdateHostAfterOSInstall(hostId.toString(),
+                        e);
             }
+            log.error("Exception unbindHostFromTemplateStep: " + e.getMessage(), e);
+            WorkflowStepCompleter.stepFailed(stepId, sce);
         } catch (Exception e) {
             String opName = ResourceOperationTypeEnum.INSTALL_OPERATING_SYSTEM.getName();
             ImageServerControllerException controllerException = ImageServerControllerException.exceptions
@@ -612,15 +612,14 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
 
             WorkflowStepCompleter.stepSucceded(stepId);
         } catch (InternalException e) {
-            WorkflowStepCompleter.stepFailed(stepId, e);
-            log.error("Exception rebindHostToTemplateStep: " + e.getMessage(), e);
+            String opName = ResourceOperationTypeEnum.INSTALL_OPERATING_SYSTEM.getName();
+            ServiceCoded sce = ImageServerControllerException.exceptions.unexpectedException(opName, e);
             if (computeSystem != null) {
-                throw ComputeSystemControllerException.exceptions.unableToUpdateHostAfterOSInstall(hostId.toString(),
+                sce = ComputeSystemControllerException.exceptions.unableToUpdateHostAfterOSInstall(hostId.toString(),
                         e);
-            } else {
-                String opName = ResourceOperationTypeEnum.INSTALL_OPERATING_SYSTEM.getName();
-                throw ImageServerControllerException.exceptions.unexpectedException(opName, e);
             }
+            log.error("Exception rebindHostToTemplateStep: " + e.getMessage(), e);
+            WorkflowStepCompleter.stepFailed(stepId, sce);
         } catch (Exception e) {
             String opName = ResourceOperationTypeEnum.INSTALL_OPERATING_SYSTEM.getName();
             ImageServerControllerException controllerException = ImageServerControllerException.exceptions
@@ -658,15 +657,14 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
 
             WorkflowStepCompleter.stepSucceded(stepId);
         } catch (InternalException e) {
-            WorkflowStepCompleter.stepFailed(stepId, e);
-            log.error("Exception prepareOsInstallNetworkStep: " + e.getMessage(), e);
+            String opName = ResourceOperationTypeEnum.INSTALL_OPERATING_SYSTEM.getName();
+            ServiceCoded sce = ImageServerControllerException.exceptions.unexpectedException(opName, e); 
             if (computeSystem != null) {
-                throw ComputeSystemControllerException.exceptions.unableToSetOsInstallNetwork(
+                sce = ComputeSystemControllerException.exceptions.unableToSetOsInstallNetwork(
                         computeSystem.getOsInstallNetwork(), computeElementId.toString(), e);
-            } else {
-                String opName = ResourceOperationTypeEnum.INSTALL_OPERATING_SYSTEM.getName();
-                throw ImageServerControllerException.exceptions.unexpectedException(opName, e);
             }
+            log.error("Exception prepareOsInstallNetworkStep: " + e.getMessage(), e);
+            WorkflowStepCompleter.stepFailed(stepId, sce);
         } catch (Exception e) {
             String opName = ResourceOperationTypeEnum.INSTALL_OPERATING_SYSTEM.getName();
             ImageServerControllerException controllerException = ImageServerControllerException.exceptions
@@ -1512,7 +1510,7 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
                 }
 
                 getDevice(cs.getSystemType()).deactivateHost(cs, host);
-            }else {
+            } else {
                 throw new RuntimeException("Host null for uri "+ hostId);
             }
 

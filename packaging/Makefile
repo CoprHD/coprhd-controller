@@ -1,6 +1,6 @@
 #-%emc-cr-s-shell-v2%-
 #
-# Copyright (c) 2012-2015, EMC Corporation. All Rights Reserved.
+# Copyright (c) 2012-2017, EMC Corporation. All Rights Reserved.
 #
 # This software contains the intellectual property of EMC Corporation
 # or is licensed to EMC Corporation from third parties.
@@ -170,7 +170,7 @@ OVFBUILD_VSPHERE_BASH_LICENSE_FILE = $(OVFBUILD_VSPHERE_DIR)/storageos-license-s
 
               OVFBUILD_UI_FILES  = $(OVFBUILD_HYPERV_UI_FILE) $(OVFBUILD_VSPHERE_UI_FILE)
 
-          OVFBUILD_BASE_RELEASE := 4
+          OVFBUILD_BASE_RELEASE := 6
           OVFBUILD_BASE_URL      = http://lglaf020.lss.emc.com/images/vipr/ViPRBase/3.6.0.0/$(OVFBUILD_BASE_RELEASE)/
             OVFBUILD_BASE_NAME  = base-3.6.0.0.$(OVFBUILD_BASE_RELEASE)
               OVFBUILD_BASE_DIR  = $(OBJDIR)/$(OVFBUILD_BASE_NAME)

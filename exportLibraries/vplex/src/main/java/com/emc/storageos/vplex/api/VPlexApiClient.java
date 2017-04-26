@@ -1368,7 +1368,7 @@ public class VPlexApiClient {
                 _vplexClusterInitiatorWwnToNameCache.get(clusterName).isEmpty()) {
             long start = System.currentTimeMillis();
             s_logger.info("refreshing initiator wwn-to-name cache for cluster " + clusterName);
-            Map<String, String> clusterInitiatorToNameMap = _discoveryMgr.getInitiatorWwnToNameMap(clusterName);
+            Map<String, String> clusterInitiatorToNameMap = _discoveryMgr.getInitiatorWwnToNameMap(clusterName, false);
             s_logger.info("TIMER: refreshing initiator wwn-to-name cache took {}ms", System.currentTimeMillis() - start);
             _vplexClusterInitiatorWwnToNameCache.put(clusterName, clusterInitiatorToNameMap);
         }
@@ -2142,7 +2142,7 @@ public class VPlexApiClient {
     public synchronized void primeCaches() {
         // prime the cluster id to name map, then use the values to prime the initiator to wwn map
         for (String clusterName : getClusterIdToNameMap().values()) {
-            getInitiatorWwnToNameMap(clusterName);
+            _discoveryMgr.getInitiatorWwnToNameMap(clusterName, true);
         }
     }
 

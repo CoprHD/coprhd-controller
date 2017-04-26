@@ -484,24 +484,23 @@ public class DbClientImpl implements DbClient {
             // nothing to do, just an empty list
             return new ArrayList<T>().iterator();
         }
-        BulkDataObjQueryResultIterator<T> bulkQueryIterator = new
-                BulkDataObjQueryResultIterator<T>(ids.iterator()) {
+        BulkDataObjQueryResultIterator<T> bulkQueryIterator = new BulkDataObjQueryResultIterator<T>(ids.iterator()) {
 
-                    @Override
-                    protected void run() {
-                        currentIt = null;
-                        getNextBatch();
-                        while (!nextBatch.isEmpty()) {
-                            List<T> currBatchResults = queryObject(clazz, nextBatch, activeOnly);
-                            if (!currBatchResults.isEmpty()) {
-                                currentIt = currBatchResults.iterator();
-                                break;
-                            }
-
-                            getNextBatch();
-                        }
+            @Override
+            protected void run() {
+                currentIt = null;
+                getNextBatch();
+                while (!nextBatch.isEmpty()) {
+                    List<T> currBatchResults = queryObject(clazz, nextBatch, activeOnly);
+                    if (!currBatchResults.isEmpty()) {
+                        currentIt = currBatchResults.iterator();
+                        break;
                     }
-                };
+
+                    getNextBatch();
+                }
+            }
+        };
 
         return bulkQueryIterator;
     }
@@ -519,23 +518,22 @@ public class DbClientImpl implements DbClient {
             return new ArrayList<T>().iterator();
         }
 
-        BulkDataObjQueryResultIterator<T> bulkQueryIterator = new
-                BulkDataObjQueryResultIterator<T>(ids.iterator()) {
-                    @Override
-                    protected void run() {
-                        currentIt = null;
-                        getNextBatch();
-                        while (!nextBatch.isEmpty()) {
-                            List<T> currBatchResults = queryObjectField(clazz, fieldName, nextBatch);
-                            if (!currBatchResults.isEmpty()) {
-                                currentIt = currBatchResults.iterator();
-                                break;
-                            }
-
-                            getNextBatch();
-                        }
+        BulkDataObjQueryResultIterator<T> bulkQueryIterator = new BulkDataObjQueryResultIterator<T>(ids.iterator()) {
+            @Override
+            protected void run() {
+                currentIt = null;
+                getNextBatch();
+                while (!nextBatch.isEmpty()) {
+                    List<T> currBatchResults = queryObjectField(clazz, fieldName, nextBatch);
+                    if (!currBatchResults.isEmpty()) {
+                        currentIt = currBatchResults.iterator();
+                        break;
                     }
-                };
+
+                    getNextBatch();
+                }
+            }
+        };
 
         return bulkQueryIterator;
     }
@@ -560,24 +558,23 @@ public class DbClientImpl implements DbClient {
     public <T extends DataObject> Iterator<T> queryIterativeObjectFields(final Class<T> clazz,
             final Collection<String> fieldNames, Collection<URI> ids) {
 
-        BulkDataObjQueryResultIterator<T> bulkQueryIterator = new
-                BulkDataObjQueryResultIterator<T>(ids.iterator()) {
+        BulkDataObjQueryResultIterator<T> bulkQueryIterator = new BulkDataObjQueryResultIterator<T>(ids.iterator()) {
 
-                    @Override
-                    protected void run() {
-                        currentIt = null;
-                        getNextBatch();
-                        while (!nextBatch.isEmpty()) {
-                            currentIt = queryObjectFields(clazz, fieldNames, nextBatch).iterator();
+            @Override
+            protected void run() {
+                currentIt = null;
+                getNextBatch();
+                while (!nextBatch.isEmpty()) {
+                    currentIt = queryObjectFields(clazz, fieldNames, nextBatch).iterator();
 
-                            if (currentIt.hasNext()) {
-                                break;
-                            }
-
-                            getNextBatch();
-                        }
+                    if (currentIt.hasNext()) {
+                        break;
                     }
-                };
+
+                    getNextBatch();
+                }
+            }
+        };
 
         return bulkQueryIterator;
     }
@@ -674,8 +671,7 @@ public class DbClientImpl implements DbClient {
                 if (columnField.getIndex() != null || columnField.getType() != ColumnField.ColumnType.Primitive) {
                     throw DatabaseException.fatals.queryFailed(new Exception("... "));
                 }
-            }
-            else if (columnField.getIndex() != null) {
+            } else if (columnField.getIndex() != null) {
                 buildRange = true;
             }
             columns[ii] = new CompositeColumnName(columnField.getName());
@@ -707,8 +703,7 @@ public class DbClientImpl implements DbClient {
                                 .greaterThanEquals(columns[0].getOne())
                                 .lessThanEquals(columns[0].getOne()))
                         .execute();
-            }
-            else {
+            } else {
                 // valid for non-indexed columns
                 result = ks.prepareQuery(doType.getCF())
                         .getKeySlice(strIds)
@@ -876,7 +871,8 @@ public class DbClientImpl implements DbClient {
         } else {
             queryByConstraint(
                     DecommissionedConstraint.Factory.getDecommissionedObjectsConstraint(
-                            clazz, timeBefore), result);
+                            clazz, timeBefore),
+                    result);
         }
     }
 
@@ -935,8 +931,7 @@ public class DbClientImpl implements DbClient {
 
             if (activeOnly) {
                 constraint = (ConstraintImpl) DecommissionedConstraint.Factory.getAllObjectsConstraint(clazz, !activeOnly);
-            }
-            else {
+            } else {
                 constraint = (ConstraintImpl) DecommissionedConstraint.Factory.getAllObjectsConstraint(clazz, null);
             }
 
@@ -973,10 +968,10 @@ public class DbClientImpl implements DbClient {
 
     @Override
     public <T> void queryByConstraint(Constraint constraint, QueryResultList<T> result) {
-    	ConstraintImpl constraintImpl = (ConstraintImpl) constraint;
-    	if (!constraintImpl.isValid()) {
-    		throw new IllegalArgumentException("invalid constraint: the key can't be null or empty");
-    	}
+        ConstraintImpl constraintImpl = (ConstraintImpl) constraint;
+        if (!constraintImpl.isValid()) {
+            throw new IllegalArgumentException("invalid constraint: the key can't be null or empty");
+        }
         constraint.setKeyspace(getKeyspace(constraint.getDataObjectType()));
         constraint.execute(result);
     }
@@ -1104,7 +1099,7 @@ public class DbClientImpl implements DbClient {
         final String filterClasses[] = { "Workflow", "WorkflowStep", "WorkflowStepData", "Task" };
         ArrayList<String> filterList = new ArrayList<>(Arrays.asList(filterClasses));
         if (obj instanceof DataObject && !filterList.contains(obj.getClass().getSimpleName())) {
-            DataObject dobj = (DataObject)obj;
+            DataObject dobj = (DataObject) obj;
 
             StackTraceElement[] elements = Thread.currentThread().getStackTrace();
             StringBuffer sb = new StringBuffer("Persisting obj: " + dobj.getId() + "\n");
@@ -1256,14 +1251,13 @@ public class DbClientImpl implements DbClient {
             return;
         }
 
-        BulkDataObjPersistIterator<T> bulkPersistIterator = new
-                BulkDataObjPersistIterator<T>(dataobjects.iterator()) {
+        BulkDataObjPersistIterator<T> bulkPersistIterator = new BulkDataObjPersistIterator<T>(dataobjects.iterator()) {
 
-                    @Override
-                    protected void run() {
-                        internalPersistObject(nextBatch, updateIndex);
-                    }
-                };
+            @Override
+            protected void run() {
+                internalPersistObject(nextBatch, updateIndex);
+            }
+        };
 
         while (bulkPersistIterator.hasNext()) {
             List<T> ids = bulkPersistIterator.next();
@@ -1359,13 +1353,13 @@ public class DbClientImpl implements DbClient {
             objTypeList.add(obj);
         }
         for (Entry<Class<? extends DataObject>, List<DataObject>> entry : typeObjMap.entrySet()) {
-        	if (entry.getKey().getAnnotation(NoInactiveIndex.class) == null) {
-        		_log.debug("Model class {} has no NoInactiveIndex. Call markForDeletion() to delete", entry.getKey());
-        		markForDeletion(entry.getValue());
-        	} else {
-        		List<DataObject> dbObjList = entry.getValue();
-        		removeObject(entry.getKey(), dbObjList.toArray(new DataObject[dbObjList.size()]));
-        	}
+            if (entry.getKey().getAnnotation(NoInactiveIndex.class) == null) {
+                _log.debug("Model class {} has no NoInactiveIndex. Call markForDeletion() to delete", entry.getKey());
+                markForDeletion(entry.getValue());
+            } else {
+                List<DataObject> dbObjList = entry.getValue();
+                removeObject(entry.getKey(), dbObjList.toArray(new DataObject[dbObjList.size()]));
+            }
         }
     }
 
@@ -1377,7 +1371,7 @@ public class DbClientImpl implements DbClient {
         DataObjectType doType = null;
         RemovedColumnsList removedList = new RemovedColumnsList();
         for (DataObject dataObject : allObjects) {
-            _log.info("Try to remove data object {}", dataObject.getId());
+            _log.debug("Try to remove data object {}", dataObject.getId());
             checkGeoVersionForMutation(dataObject);
             doType = TypeMap.getDoType(dataObject.getClass());
             // delete all the index columns for this object first
@@ -1543,10 +1537,9 @@ public class DbClientImpl implements DbClient {
     protected Rows<String, CompositeColumnName> queryRowsWithAllColumns(Keyspace keyspace,
             Collection<URI> ids, ColumnFamily<String, CompositeColumnName> cf) {
         try {
-            OperationResult<Rows<String, CompositeColumnName>> result =
-                    keyspace.prepareQuery(cf)
-                            .getKeySlice(convertUriCollection(ids))
-                            .execute();
+            OperationResult<Rows<String, CompositeColumnName>> result = keyspace.prepareQuery(cf)
+                    .getKeySlice(convertUriCollection(ids))
+                    .execute();
             return result.getResult();
         } catch (ConnectionException e) {
             throw DatabaseException.retryables.connectionFailed(e);
@@ -1593,11 +1586,12 @@ public class DbClientImpl implements DbClient {
         Iterator<URI> it = uriList.iterator();
         while (it.hasNext()) {
             idList.add(it.next().toString());
-            if (idList.size() > DEFAULT_PAGE_SIZE) {
-                _log.warn("Unbounded database query, request size is over allowed limit({}), " +
-                        "please use corresponding iterative API.", DEFAULT_PAGE_SIZE);
-            }
         }
+        if (idList.size() > DEFAULT_PAGE_SIZE) {
+            _log.warn("Unbounded database query, request size is over allowed limit({}), " +
+                    "please use corresponding iterative API.", DEFAULT_PAGE_SIZE);
+        }
+
         return idList;
     }
 
@@ -1649,8 +1643,7 @@ public class DbClientImpl implements DbClient {
             if (name != null) {
                 op.setName(name);
             }
-            List<String> associatedResources =
-                    newOperation.getAssociatedResourcesField();
+            List<String> associatedResources = newOperation.getAssociatedResourcesField();
             if (associatedResources != null) {
                 String associatedResourcesStr = Joiner.on(',').join(associatedResources);
                 op.setAssociatedResourcesField(associatedResourcesStr);
@@ -1696,8 +1689,7 @@ public class DbClientImpl implements DbClient {
         DataObject doobj = objs.get(0);
         _log.info(String.format("Updating operation %s for object %s with status %s", opId, doobj.getId(), updateOperation.getStatus()));
         Operation op = doobj.getOpStatus().updateTaskStatus(opId, updateOperation, resetStartTime);
-        if (op == null)
-        {
+        if (op == null) {
             // OpStatusMap does not have entry for a given opId. The entry already expired based on ttl.
             // Recreate the entry for this opId from the task object and proceed with update
             _log.info("Operation map for object {} does not have entry for operation id {}", doobj.getId(), opId);
@@ -1766,7 +1758,9 @@ public class DbClientImpl implements DbClient {
         return pending(clazz, id, opId, message, false);
     }
 
-    /* (non-Javadoc)
+    /*
+     * (non-Javadoc)
+     * 
      * @see com.emc.storageos.db.client.DbClient#pending(java.lang.Class, java.net.URI, java.lang.String, java.lang.String, boolean)
      */
     @Override
@@ -1859,6 +1853,7 @@ public class DbClientImpl implements DbClient {
         return false;
     }
 
+    @Override
     public boolean checkGeoCompatible(String expectVersion) {
         _geoVersion = VdcUtil.getMinimalVdcVersion();
         return VdcUtil.VdcVersionComparator.compare(_geoVersion, expectVersion) >= 0;
@@ -1918,14 +1913,12 @@ public class DbClientImpl implements DbClient {
                     URI tenantId = getTenantURI(loadedObject);
                     if (tenantId == null) {
                         task.setTenant(TenantOrg.SYSTEM_TENANT);
-                    }
-                    else {
+                    } else {
                         task.setTenant(tenantId);
                     }
 
                     _log.info("Created task {}, {}", task.getId() + " (" + task.getRequestId() + ")", task.getLabel());
-                }
-                else {
+                } else {
                     // Task exists so update it
                     task.setServiceCode(operation.getServiceCode());
                     task.setStatus(operation.getStatus());
@@ -1959,7 +1952,7 @@ public class DbClientImpl implements DbClient {
     /**
      * Even if we have NTP, there could probably be time difference among nodes in cluster,
      * make sure endTime is not earlier than startTime.
-     * */
+     */
     private static Calendar getEndTime(Operation operation) {
         if (operation.getStartTime() == null || operation.getEndTime() == null) {
             return operation.getEndTime();
@@ -1971,16 +1964,13 @@ public class DbClientImpl implements DbClient {
     private URI getTenantURI(DataObject dataObject) {
         if (dataObject instanceof ProjectResource) {
             return ((ProjectResource) dataObject).getTenant().getURI();
-        }
-        else if (dataObject instanceof ProjectResourceSnapshot) {
+        } else if (dataObject instanceof ProjectResourceSnapshot) {
             NamedURI projectURI = ((ProjectResourceSnapshot) dataObject).getProject();
             Project project = queryObject(Project.class, projectURI);
             return project.getTenantOrg().getURI();
-        }
-        else if (dataObject instanceof TenantResource) {
+        } else if (dataObject instanceof TenantResource) {
             return ((TenantResource) dataObject).getTenant();
-        }
-        else if (dataObject instanceof HostInterface) {
+        } else if (dataObject instanceof HostInterface) {
             URI hostURI = ((HostInterface) dataObject).getHost();
             Host host = queryObject(Host.class, hostURI);
             return host == null ? null : host.getTenant();
@@ -1996,7 +1986,8 @@ public class DbClientImpl implements DbClient {
             return;
         }
         for (ColumnField columnField : doType.getColumnFields()) {
-            if (object.isChanged(columnField.getName()) && !isChangeAllowedOnField(object.getClass(), columnField.getPropertyDescriptor())) {
+            if (object.isChanged(columnField.getName())
+                    && !isChangeAllowedOnField(object.getClass(), columnField.getPropertyDescriptor())) {
                 String clazzName = object.getClass().getName();
                 String fieldName = columnField.getPropertyDescriptor().getName();
                 String geoVersion = this.getGeoVersion();
@@ -2036,7 +2027,7 @@ public class DbClientImpl implements DbClient {
     }
 
     public void internalRemoveObjects(DataObject... object) {
-    	Map<Class<? extends DataObject>, List<DataObject>> typeObjMap = new HashMap<Class<? extends DataObject>, List<DataObject>>();
+        Map<Class<? extends DataObject>, List<DataObject>> typeObjMap = new HashMap<Class<? extends DataObject>, List<DataObject>>();
         for (DataObject obj : object) {
             List<DataObject> objTypeList = typeObjMap.get(obj.getClass());
             if (objTypeList == null) {
@@ -2046,8 +2037,8 @@ public class DbClientImpl implements DbClient {
             objTypeList.add(obj);
         }
         for (Entry<Class<? extends DataObject>, List<DataObject>> entry : typeObjMap.entrySet()) {
-        	List<DataObject> dbObjList = entry.getValue();
-        	removeObject(entry.getKey(), dbObjList.toArray(new DataObject[dbObjList.size()]));
+            List<DataObject> dbObjList = entry.getValue();
+            removeObject(entry.getKey(), dbObjList.toArray(new DataObject[dbObjList.size()]));
         }
     }
 }

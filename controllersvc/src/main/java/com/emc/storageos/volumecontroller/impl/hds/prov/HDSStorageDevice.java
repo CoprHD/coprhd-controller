@@ -809,8 +809,8 @@ public class HDSStorageDevice extends DefaultBlockStorageDevice {
                     }
                 }
                 if (volumeIds.isEmpty()) {
-                    cleanupCompleter.setSuccess(true);
                     log.info("doCleanupMetaMembers: No meta members to cleanup in array.");
+                    cleanupCompleter.ready(dbClient);
                 } else {
                     log.info(String
                             .format("doCleanupMetaMembers: Members to cleanup in array: %n   %s",
@@ -843,14 +843,13 @@ public class HDSStorageDevice extends DefaultBlockStorageDevice {
                 }
             } else {
                 log.info("doCleanupMetaMembers: No meta members stored for meta volume. Nothing to cleanup in array.");
-                cleanupCompleter.setSuccess(true);
+                cleanupCompleter.ready(dbClient);
             }
         } catch (Exception e) {
             log.error("Problem in doCleanupMetaMembers: ", e);
             ServiceError error = DeviceControllerErrors.smis.methodFailed("doCleanupMetaMembers",
                     e.getMessage());
-            cleanupCompleter.setError(error);
-            cleanupCompleter.setSuccess(false);
+            cleanupCompleter.error(dbClient, error);
         }
         log.info(String.format("doCleanupMetaMembers End - Array: %s,  Volume: %s",
                 storageSystem.getSerialNumber(), volume.getLabel()));

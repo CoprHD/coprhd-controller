@@ -28,6 +28,7 @@ import com.emc.sa.engine.ExecutionException;
 import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.engine.bind.Param;
 import com.emc.sa.machinetags.KnownMachineTags;
+import com.emc.sa.model.dao.ModelClient;
 import com.emc.sa.service.vipr.ViPRExecutionUtils;
 import com.emc.sa.service.vipr.block.BlockStorageUtils;
 import com.emc.sa.service.vipr.block.tasks.GetBlockResource;
@@ -57,8 +58,11 @@ import com.emc.storageos.computesystemcontroller.impl.adapter.VcenterDiscoveryAd
 import com.emc.storageos.db.client.model.Cluster;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Host.HostType;
+import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.Vcenter;
 import com.emc.storageos.db.client.model.VcenterDataCenter;
+import com.emc.storageos.db.client.model.uimodels.ExecutionLog;
+import com.emc.storageos.db.client.model.uimodels.ExecutionLog.LogLevel;
 import com.emc.storageos.db.client.util.EndpointUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.model.block.BlockObjectRestRep;
@@ -79,6 +83,8 @@ import com.emc.vipr.client.exceptions.ViPRException;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.iwave.ext.vmware.VCenterAPI;
+import com.iwave.ext.vmware.VMwareUtils;
+import com.vmware.vim25.HostSystemConnectionState;
 import com.vmware.vim25.mo.ClusterComputeResource;
 import com.vmware.vim25.mo.HostSystem;
 
@@ -214,8 +220,14 @@ public class ComputeUtils {
         if ((hosts != null) && (cluster != null)) {
             for (Host host : hosts) {
                 if (host != null) {
-                    ExecutionUtils.currentContext().logInfo("computeutils.clusterexport.addhost", host.getLabel(), cluster.getLabel());
-                    execute(new AddHostToCluster(host.getId(), cluster.getId()));
+                    try {
+                        ExecutionUtils.currentContext().logInfo("computeutils.clusterexport.addhost", host.getLabel(),
+                                cluster.getLabel());
+                        execute(new AddHostToCluster(host.getId(), cluster.getId()));
+                    } catch (Exception ex) {
+                        ExecutionUtils.currentContext().logError(ex, "computeutils.clusterexport.addhost.failure",
+                                host.getLabel(), cluster.getLabel());
+                    }
                 }
             }
         }else {
@@ -960,7 +972,8 @@ public class ComputeUtils {
         for (HostRestRep host : hosts) {
             if ((!NullColumnValueGetter.isNullURI(vcenterId)
                     || !NullColumnValueGetter.isNullURI(cluster.getVcenterDataCenter()))
-                    && (host.getvCenterDataCenter() == null)) {
+                    && (host.getvCenterDataCenter() == null) && host.getType() != null
+                            && host.getType().equalsIgnoreCase(HostType.Esx.name())) {
                 orderErrors.append(
                         ExecutionUtils.getMessage("compute.cluster.vcenter.push.failed", host.getHostName()) + "  ");
             }
@@ -1402,7 +1415,7 @@ public class ComputeUtils {
                 }
 
                 // If host has a vcenter associated and OS type is NO_OS then skip validation of checking on vcenter, because
-                // NO_OS host types cannot be pushed to vcenter, the host has got it's vcenterdatacenter association, because
+                // NO_OS host types cannot be pushed to vcenter, the host has got its vcenterdatacenter association, because
                 // any update to the host using the hostService automatically adds this association.
                 if (!NullColumnValueGetter.isNullURI(host.getVcenterDataCenter()) && host.getType() != null
                         && host.getType().equalsIgnoreCase((Host.HostType.No_OS).name())) {
@@ -1438,6 +1451,17 @@ public class ComputeUtils {
                         ExecutionUtils.currentContext().logInfo("computeutils.removebootvolumes.validation.skipped.hostnotinvcenter",
                                 host.getHostName());
                         continue;
+                    }
+                    HostSystemConnectionState connectionState = VMwareUtils.getConnectionState(hostSystem);
+                    if (connectionState == null || connectionState == HostSystemConnectionState.notResponding
+                            || connectionState == HostSystemConnectionState.disconnected) {
+                        String exMsg = "Validation of boot volume usage on host %s failed. "
+                                + "Validation failed because host is in a disconnected state or not responding state, and therefore cannot be validated. "
+                                + "Cannot decommission in current state.  Recommended to either re-connect the host or remove the host from vCenter, "
+                                + "run vCenter discovery and address actionable events before attempting decommission of hosts in this cluster.";
+                        // Failing by throwing an exception, because returning a false
+                        // will print a boot volume re-purposed error message which is kind of misleading or incorrect reason for the failure.
+                        throw new IllegalStateException(String.format(exMsg, host.getHostName()));
                     }
                 } catch (ExecutionException e) {
                     if (e.getCause() instanceof IllegalStateException) {
@@ -1570,5 +1594,17 @@ public class ComputeUtils {
             deactivateHostURIs(hostDeactivateMap);
         }
         return hostsWithOS;
+    }
+
+    public static String getContextErrors(ModelClient client) {
+        String sep = System.lineSeparator();
+        StringBuffer errBuff = new StringBuffer();
+        StringSet logIds = ExecutionUtils.currentContext().getExecutionState().getLogIds();
+        for(ExecutionLog l : client.executionLogs().findByIds(logIds)) {
+            if(l.getLevel().equals(LogLevel.ERROR.name())) {
+                errBuff.append(sep + sep + l.getMessage());
+            }
+        }
+        return errBuff.toString();
     }
 }

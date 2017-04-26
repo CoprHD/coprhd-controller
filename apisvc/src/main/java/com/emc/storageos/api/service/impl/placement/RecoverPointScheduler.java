@@ -3905,18 +3905,14 @@ public class RecoverPointScheduler implements Scheduler {
      * Given the recommendation, return all the protection virtual arrays
      *
      * @param rpProtectionRec - RP protection Recommendation
-     * @return
+     * @return a collection of protection virtual arrays
      */
     Collection<URI> getProtectionVarrays(RPProtectionRecommendation rpProtectionRec) {
-        Set<URI> protectionVarrays = new HashSet<URI>();
+        Collection<URI> protectionVarrays = new HashSet<URI>();
         if (rpProtectionRec.getSourceRecommendations() != null && !rpProtectionRec.getSourceRecommendations().isEmpty()) {
             // Targets will be the same if there are multiple source recommendations so just use the first one.
             RPRecommendation rpRec = rpProtectionRec.getSourceRecommendations().get(0);
-            for (RPRecommendation targetRpRec : rpRec.getTargetRecommendations()) {
-                if (!protectionVarrays.contains(targetRpRec.getVirtualArray())) {
-                    protectionVarrays.add(targetRpRec.getVirtualArray());
-                }
-            }
+            protectionVarrays = getProtectionVarrays(rpRec);
         }
 
         return protectionVarrays;
@@ -3926,7 +3922,7 @@ public class RecoverPointScheduler implements Scheduler {
      * Given the recommendation, return all the protection virtual arrays
      *
      * @param rpProtectionRec - RP protection Recommendation
-     * @return
+     * @return a collection of protection virtual arrays
      */
     Collection<URI> getProtectionVarrays(RPRecommendation rpRec) {
         Set<URI> protectionVarrays = new HashSet<URI>();

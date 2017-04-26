@@ -127,7 +127,7 @@ windows_create_and_mount_volume() {
     virtualpool_id=`cos list block | grep "${5} " | awk '{print $3}'`
     project_id=`project list --tenant ${tenant_arg} | grep "${6} " | awk '{print $4}'`
     
-    runcmd catalog order CreateandMountVolume ${tenant_arg} project=${project_id},name=${volname_arg},virtualPool=${virtualpool_id},virtualArray=${virtualarray_id},host=${host_id},size=1,fileSystemType=ntfs,partitionType=GPT,blockSize=DEFAULT,mountPoint=,label= BlockServicesforWindows
+    runcmd catalog order CreateandMountVolume ${tenant_arg} project=${project_id},name=${volname_arg},virtualPool=${virtualpool_id},virtualArray=${virtualarray_id},host=${host_id},size=1,fileSystemType=ntfs,partitionType=GPT,blockSize=DEFAULT,mountPoint=,label= BlockServicesforWindows --failOnError true
 }
 
 unix_create_volume_and_mount() {
@@ -158,7 +158,7 @@ unix_create_volume_and_mount() {
 
     host_id=`hosts list ${tenant_arg} | grep ${hostname_arg} | awk '{print $4}'`
 
-    runcmd catalog order ${service_catalog} ${tenant_arg} project=${project_id},name=${volname_arg},virtualPool=${virtualpool_id},virtualArray=${virtualarray_id},host=${host_id},size=1,mountPoint=${mountpoint_arg}${file_system_type} ${service_category}
+    runcmd catalog order ${service_catalog} ${tenant_arg} project=${project_id},name=${volname_arg},virtualPool=${virtualpool_id},virtualArray=${virtualarray_id},host=${host_id},size=1,mountPoint=${mountpoint_arg}${file_system_type} ${service_category} --failOnError true
 }
 
 expand_volume() {
@@ -191,7 +191,7 @@ expand_volume() {
 
     # expand_volume $TENANT ${hostname} ${volume} ${PROJECT} "5" ${os}
 
-    runcmd catalog order ${service_catalog} ${tenant_arg} host=${host_id},size=${size},${volume_parameter_name}=${volume_id},artificialFailure=${failure} ${service_category}
+    runcmd catalog order ${service_catalog} ${tenant_arg} host=${host_id},size=${size},${volume_parameter_name}=${volume_id},artificialFailure=${failure} ${service_category} --failOnError true
 }
 
 unmount_and_delete_volume() {
@@ -222,7 +222,7 @@ unmount_and_delete_volume() {
     host_id=`hosts list ${tenant_arg} | grep ${hostname_arg} | awk '{print $4}'`
     volume_id=`volume list ${PROJECT} | grep "${volname_arg}" | awk '{print $7}'`
 
-    runcmd catalog order ${service_catalog} ${tenant_arg} volumes=${volume_id},host=${host_id} ${service_category}
+    runcmd catalog order ${service_catalog} ${tenant_arg} volumes=${volume_id},host=${host_id} ${service_category} --failOnError true
 }
 
 get_volume_wwn() {

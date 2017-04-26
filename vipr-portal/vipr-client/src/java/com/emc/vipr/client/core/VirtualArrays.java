@@ -442,13 +442,16 @@ public class VirtualArrays extends AbstractCoreBulkResources<VirtualArrayRestRep
      *            the ID of the export group.
      * @return the list of storage port groups.
      */
-    public StoragePortGroupRestRepList getStoragePortGroups(URI vArrayId, URI exportId, URI storageSystemId) {
+    public StoragePortGroupRestRepList getStoragePortGroups(URI vArrayId, URI exportId, URI storageSystemId, URI virtualPoolId) {
         UriBuilder builder = client.uriBuilder(baseUrl + "/{id}/storage-port-groups");
         if (exportId != null && !exportId.equals("")) {
             builder = builder.queryParam("export_group", exportId);
         }
         if (storageSystemId != null && !storageSystemId.equals("")) {
             builder = builder.queryParam("storage_system", storageSystemId);
+        }
+        if (virtualPoolId != null && !virtualPoolId.equals("")) {
+            builder = builder.queryParam("vpool", virtualPoolId);
         }
         return client.getURI(StoragePortGroupRestRepList.class, builder.build(vArrayId));
     }

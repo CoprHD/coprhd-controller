@@ -64,6 +64,7 @@ public class RemoteReplicationConfiguration {
         Set<RemoteReplicationSet.ElementType> replicationLinkGranularity = new HashSet<>();
         replicationLinkGranularity.add(RemoteReplicationSet.ElementType.REPLICATION_GROUP);
         replicationLinkGranularity.add(RemoteReplicationSet.ElementType.REPLICATION_PAIR);
+        replicationLinkGranularity.add(RemoteReplicationSet.ElementType.REPLICATION_SET);
 
         Set<RemoteReplicationSet.ElementType> setSupportedElements = new HashSet<>();
         setSupportedElements.add(RemoteReplicationSet.ElementType.REPLICATION_GROUP);

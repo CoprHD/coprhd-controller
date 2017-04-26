@@ -1,12 +1,14 @@
 package com.emc.storageos.remotereplicationcontroller;
 
 
+import static com.emc.storageos.db.client.util.CustomQueryUtility.queryActiveResourcesByAltId;
 import static com.emc.storageos.db.client.util.CustomQueryUtility.queryActiveResourcesByRelation;
 import static com.emc.storageos.db.client.util.CustomQueryUtility.queryActiveResourcesUriByAltId;
 
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
@@ -18,7 +20,11 @@ import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
+import com.emc.storageos.db.client.constraint.ContainmentConstraint;
+import com.emc.storageos.db.client.constraint.QueryResultList;
+import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
+import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.RemoteDirectorGroup;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringMap;
@@ -29,6 +35,7 @@ import com.emc.storageos.db.client.model.remotereplication.RemoteReplicationGrou
 import com.emc.storageos.db.client.model.remotereplication.RemoteReplicationPair;
 import com.emc.storageos.db.client.model.remotereplication.RemoteReplicationSet;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
+import com.emc.storageos.remotereplicationcontroller.RemoteReplicationController.RemoteReplicationOperations;
 import com.emc.storageos.plugins.common.Constants;
 import com.emc.storageos.storagedriver.model.StorageVolume;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
@@ -110,8 +117,20 @@ public class RemoteReplicationUtils {
         _log.info("Called: getRemoteReplicationPairsForSourceElement() for storage element {}", sourceElementURI);
 
         List<com.emc.storageos.db.client.model.remotereplication.RemoteReplicationPair> rrPairs =
-                queryActiveResourcesByRelation(dbClient, sourceElementURI, com.emc.storageos.db.client.model.remotereplication.RemoteReplicationPair.class,
+                queryActiveResourcesByRelation(dbClient, sourceElementURI, RemoteReplicationPair.class,
                         "sourceElement");
+
+        _log.info("Found pairs: {}", rrPairs);
+
+        return rrPairs;
+    }
+
+    public static List<RemoteReplicationPair> getRemoteReplicationPairsForTargetElement(URI targetElementURI, DbClient dbClient) {
+        _log.info("Called: getRemoteReplicationPairsForTargetElement() for storage element {}", targetElementURI);
+
+        List<com.emc.storageos.db.client.model.remotereplication.RemoteReplicationPair> rrPairs =
+                queryActiveResourcesByRelation(dbClient, targetElementURI, RemoteReplicationPair.class,
+                        "targetElement");
 
         _log.info("Found pairs: {}", rrPairs);
 
@@ -120,6 +139,20 @@ public class RemoteReplicationUtils {
 
     public static List<RemoteReplicationPair> getRemoteReplicationPairsForCG(BlockConsistencyGroup cg, DbClient dbClient) {
         _log.info("Called: getRemoteReplicationPairsForCG() for consistency group {}", cg.getId());
+        List<RemoteReplicationPair> rrPairs = new ArrayList<>();
+        List<Volume> cgVolumes = CustomQueryUtility.queryActiveResourcesByRelation(dbClient, cg.getId(),
+                Volume.class, "consistencyGroup");
+
+        // get all remote replication pairs where these volumes are source volumes
+        for (Volume volume : cgVolumes) {
+           rrPairs.addAll(getRemoteReplicationPairsForSourceElement(volume.getId(), dbClient));
+           rrPairs.addAll(getRemoteReplicationPairsForTargetElement(volume.getId(), dbClient));
+        }
+        return rrPairs;
+    }
+
+    public static List<RemoteReplicationPair> getRemoteReplicationPairsForSourceCG(BlockConsistencyGroup cg, DbClient dbClient) {
+        _log.info("Called: getRemoteReplicationPairsForSourceCG() for consistency group {}", cg.getId());
         List<RemoteReplicationPair> rrPairs = new ArrayList<>();
         List<Volume> cgVolumes = CustomQueryUtility.queryActiveResourcesByRelation(dbClient, cg.getId(),
                 Volume.class, "consistencyGroup");
@@ -139,7 +172,8 @@ public class RemoteReplicationUtils {
      * @param operation operation
      * @return true/false
      */
-    public static  void validateRemoteReplicationOperation(RemoteReplicationElement rrElement, RemoteReplicationController.RemoteReplicationOperations operation) {
+    public static void validateRemoteReplicationOperation(DbClient dbClient, RemoteReplicationElement rrElement,
+            RemoteReplicationOperations operation) {
         boolean isOperationValid = true;
         // todo: validate that this operation is valid (operational validity):
         //   For rr pairs:
@@ -152,15 +186,79 @@ public class RemoteReplicationUtils {
         //     parent set supports operations on groups;
         //   For sets:
         //     set supports operations on sets;
-        //
-        if (!isOperationValid) {
-            // bad request
-            throw APIException.badRequests.remoteReplicationLinkOperationIsNotAllowed(rrElement.getType().toString(), rrElement.getElementUri().toString(),
-                    operation.toString());
+        switch (rrElement.getType()) {
+            case REPLICATION_PAIR:
+                RemoteReplicationPair rrPair = dbClient.queryObject(RemoteReplicationPair.class, rrElement.getElementUri());
+                isOperationValid = supportOperationOnRrPair(rrPair, dbClient);
+                break;
+            case CONSISTENCY_GROUP:
+                BlockConsistencyGroup cg = dbClient.queryObject(BlockConsistencyGroup.class, rrElement.getElementUri());
+                List<RemoteReplicationPair> rrPairs = getRemoteReplicationPairsForCG(cg, dbClient);
+                for (RemoteReplicationPair pair : rrPairs) {
+                    if (!supportOperationOnRrPair(pair, dbClient)) {
+                        isOperationValid = false;
+                        break;
+                    }
+                }
+                break;
+            case REPLICATION_GROUP:
+                RemoteReplicationGroup rrGroup = dbClient.queryObject(RemoteReplicationGroup.class, rrElement.getElementUri());
+                RemoteReplicationSet rrSet = getRemoteReplicationSetForRrGroup(dbClient, rrGroup);
+                isOperationValid = (rrSet != null && rrSet.supportRemoteReplicationGroupOperation());
+                break;
+            case REPLICATION_SET:
+                rrSet = dbClient.queryObject(RemoteReplicationSet.class, rrElement.getElementUri());
+                isOperationValid = rrSet.supportRemoteReplicationSetOperation();
+                break;
+        }
+
+        if (!isOperationValid) { // bad request
+            throw APIException.badRequests.remoteReplicationLinkOperationIsNotAllowed(rrElement.getType().toString(),
+                    rrElement.getElementUri().toString(), operation.toString());
         }
     }
 
-    public static void validateRemoteReplicationModeChange(RemoteReplicationElement rrElement, String newMode) {
+    /**
+     * Find a remote replication set that meets below constraints:
+     *  1. has the same storage system type with the given remote replication group;
+     *  2. contains both the source and target systems of the remote replication group.
+     */
+    private static RemoteReplicationSet getRemoteReplicationSetForRrGroup(DbClient dbClient, RemoteReplicationGroup rrGroup) {
+        List<RemoteReplicationSet> rrSets =
+                queryActiveResourcesByAltId(dbClient, RemoteReplicationSet.class, "storageSystemType", rrGroup.getStorageSystemType());
+        for (RemoteReplicationSet rrSet : rrSets) {
+            if (rrSet.getSystemToRolesMap().containsKey(rrGroup.getSourceSystem().toString())
+                    && rrSet.getSystemToRolesMap().containsKey(rrGroup.getTargetSystem().toString())) {
+                return rrSet;
+            }
+        }
+        // should not run here because there's must be a rr set for a rr group
+        return null;
+    }
+
+    /**
+     * @return true if rr set of given rr pair support rr pair granularity
+     *         operation, and if this rr pair is in a rr group, the rr group
+     *         should not enforce group consistency, which means it allows
+     *         operations on subset of pairs
+     */
+    private static boolean supportOperationOnRrPair(RemoteReplicationPair rrPair, DbClient dbClient) {
+        RemoteReplicationSet rrSet = dbClient.queryObject(RemoteReplicationSet.class, rrPair.getReplicationSet());
+        if (!rrSet.supportRemoteReplicationPairOperation()) {
+            return false;
+        }
+        if (!rrPair.isGroupPair()) {
+            return true;
+        }
+        RemoteReplicationGroup rrGroup = dbClient.queryObject(RemoteReplicationGroup.class, rrPair.getReplicationGroup());
+        if (rrGroup.getIsGroupConsistencyEnforced() == Boolean.TRUE) {
+            // No pair operation is allowed if consistency is to be enforced on group level
+            return false;
+        }
+        return true;
+    }
+
+    public static void validateRemoteReplicationModeChange(DbClient dbClient, RemoteReplicationElement rrElement, String newMode) {
 
         // todo: validate that this operation is valid:
         //   For rr pair and cgs:
@@ -177,8 +275,64 @@ public class RemoteReplicationUtils {
         //       validate that set supports operations on sets;
         //       validate that set supports new replication mode;
         //
+        boolean isChangeValid = true;
+        switch (rrElement.getType()) {
+            case REPLICATION_PAIR:
+                RemoteReplicationPair rrPair = checkDataObjectExists(RemoteReplicationPair.class,
+                        rrElement.getElementUri(), dbClient);
+                isChangeValid = supportModeChangeOnRrPair(rrPair, dbClient, newMode);
+                break;
+            case CONSISTENCY_GROUP:
+                BlockConsistencyGroup cg = checkDataObjectExists(BlockConsistencyGroup.class,
+                        rrElement.getElementUri(), dbClient);
+                List<RemoteReplicationPair> rrPairs = getRemoteReplicationPairsForCG(cg, dbClient);
+                isChangeValid = supportModeChangeOnAllRrPairs(rrPairs, dbClient, newMode);
+                break;
+            case REPLICATION_GROUP:
+                RemoteReplicationGroup rrGroup = checkDataObjectExists(RemoteReplicationGroup.class,
+                        rrElement.getElementUri(), dbClient);
+                if (rrGroup.getReachable() != Boolean.TRUE) {
+                    isChangeValid = false;
+                    break;
+                }
+                RemoteReplicationSet rrSet = getRemoteReplicationSetForRrGroup(dbClient, rrGroup);
+                isChangeValid = rrSet.supportRemoteReplicationGroupOperation() && rrSet.supportMode(newMode);
+                break;
+            case REPLICATION_SET:
+                rrSet = dbClient.queryObject(RemoteReplicationSet.class, rrElement.getElementUri());
+                isChangeValid = rrSet.getReachable() == Boolean.TRUE && rrSet.supportRemoteReplicationSetOperation()
+                        && rrSet.supportMode(newMode);
+                break;
+        }
+        if (!isChangeValid) {
+            throw APIException.badRequests.remoteReplicationModeChangeIsNotAllowed(rrElement.getType().toString().toLowerCase(),
+                    rrElement.getElementUri().toString(), newMode);
+        }
+    }
 
+    private static <T extends DataObject> T checkDataObjectExists(Class<T> clazz, URI uri, DbClient dbClient) {
+        T result = dbClient.queryObject(clazz, uri);
+        if (result == null) {
+            throw APIException.badRequests.dataObjectNotExists(clazz.getSimpleName(), uri);
+        }
+        return result;
+    }
 
+    private static boolean supportModeChangeOnRrPair(RemoteReplicationPair rrPair, DbClient dbClient, String newMode) {
+        RemoteReplicationSet rrSet = dbClient.queryObject(RemoteReplicationSet.class, rrPair.getReplicationSet());
+        return rrSet.getReachable() == Boolean.TRUE && rrSet.supportRemoteReplicationPairOperation()
+                && !rrPair.isGroupPair() && rrSet.supportMode(newMode);
+    }
+
+    private static boolean supportModeChangeOnAllRrPairs(Collection<RemoteReplicationPair> rrPairs, DbClient dbClient, String newMode) {
+        for (RemoteReplicationPair rrPair : rrPairs) {
+            RemoteReplicationSet rrSet = dbClient.queryObject(RemoteReplicationSet.class, rrPair.getReplicationSet());
+            if (rrSet.getReachable() != Boolean.TRUE || !rrSet.supportRemoteReplicationPairOperation()
+                    || rrPair.isGroupPair() || !rrSet.supportMode(newMode)) {
+                return false;
+            }
+        }
+        return true;
     }
 
     public static Iterator<RemoteReplicationSet> findAllRemoteRepliationSetsIteratively(DbClient dbClient) {
@@ -191,6 +345,26 @@ public class RemoteReplicationUtils {
         List<URI> ids = dbClient.queryByType(RemoteReplicationGroup.class, true);
         _log.info("Found groups: {}", ids);
         return dbClient.queryIterativeObjects(RemoteReplicationGroup.class, ids);
+    }
+
+    public static List<RemoteReplicationPair> findAllRemoteRepliationPairsByRrSet(URI rrSetUri, DbClient dbClient) {
+        List<RemoteReplicationPair> result = new ArrayList<RemoteReplicationPair>();
+        QueryResultList<URI> uriList = new URIQueryResultList();
+        dbClient.queryByConstraint(ContainmentConstraint.Factory.getRemoteReplicationPairSetConstraint(rrSetUri), uriList);
+        for (URI uri : uriList) {
+            result.add(dbClient.queryObject(RemoteReplicationPair.class, uri));
+        }
+        return result;
+    }
+
+    public static List<RemoteReplicationPair> findAllRemoteRepliationPairsByRrGroup(URI rrGroupUri, DbClient dbClient) {
+        List<RemoteReplicationPair> result = new ArrayList<RemoteReplicationPair>();
+        QueryResultList<URI> uriList = new URIQueryResultList();
+        dbClient.queryByConstraint(ContainmentConstraint.Factory.getRemoteReplicationPairGroupConstraint(rrGroupUri), uriList);
+        for (URI uri : uriList) {
+            result.add(dbClient.queryObject(RemoteReplicationPair.class, uri));
+        }
+        return result;
     }
 
     /**
@@ -356,6 +530,7 @@ public class RemoteReplicationUtils {
 
     public static String getRemoteReplicationPairNativeIdForSrdfPair(Volume source, Volume target) {
         return source.getNativeId()+ Constants.PLUS + target.getNativeId();
+
     }
     
     /**

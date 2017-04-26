@@ -168,14 +168,18 @@ public class RemoteReplicationSetService extends TaskResourceService {
         while (it.hasNext()) {
             RemoteReplicationSet rrSet = it.next();
             Set<String> sourcesOfrrSet = rrSet.getSourceSystems();
-            if (sourcesOfrrSet.size() > sourceDevices.size() || !sourceDevices.containsAll(sourcesOfrrSet)) {
-                continue; // filter out rr sets that contains source storage systems other than ones in sourceDevices
+
+            // Temporarily relax the filtering condition, check comment under COP-28147 for details
+            // if (sourcesOfrrSet.size() > sourceDevices.size() ||!sourceDevices.containsAll(sourcesOfrrSet)) {
+            if (!CollectionUtils.containsAny(sourcesOfrrSet, sourceDevices)) {
+                continue;
             }
 
             Set<String> targetsOfrrSet = rrSet.getTargetSystems();
-            if (targetsOfrrSet.size() > allTargetSystems.size() || !allTargetSystems.containsAll(targetsOfrrSet)) {
-                continue; // filter out rr sets that have target systems outside of target devices
-            }
+            // Temporarily commented out, check comment under COP-28147 for details
+            // if (targetsOfrrSet.size() > allTargetSystems.size() || !allTargetSystems.containsAll(targetsOfrrSet)) {
+            //     continue; // filter out rr sets that have target systems outside of target devices
+            //}
 
             for (Set<String> targetDevices : targetSystemsForAllPairs) {
                 if (!CollectionUtils.containsAny(targetsOfrrSet, targetDevices)) {
@@ -427,7 +431,7 @@ public class RemoteReplicationSetService extends TaskResourceService {
         RemoteReplicationSet rrSet = queryResource(id);
 
         RemoteReplicationElement rrElement = new RemoteReplicationElement(com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationSet.ElementType.REPLICATION_SET, id);
-        RemoteReplicationUtils.validateRemoteReplicationOperation(rrElement, RemoteReplicationController.RemoteReplicationOperations.FAIL_OVER);
+        RemoteReplicationUtils.validateRemoteReplicationOperation(_dbClient, rrElement, RemoteReplicationController.RemoteReplicationOperations.FAIL_OVER);
 
         // Create a task for the failover remote replication Set operation
         String taskId = UUID.randomUUID().toString();
@@ -465,7 +469,7 @@ public class RemoteReplicationSetService extends TaskResourceService {
         RemoteReplicationSet rrSet = queryResource(id);
 
         RemoteReplicationElement rrElement = new RemoteReplicationElement(com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationSet.ElementType.REPLICATION_SET, id);
-        RemoteReplicationUtils.validateRemoteReplicationOperation(rrElement, RemoteReplicationController.RemoteReplicationOperations.FAIL_BACK);
+        RemoteReplicationUtils.validateRemoteReplicationOperation(_dbClient, rrElement, RemoteReplicationController.RemoteReplicationOperations.FAIL_BACK);
 
         // Create a task for the failback remote replication set operation
         String taskId = UUID.randomUUID().toString();
@@ -503,7 +507,7 @@ public class RemoteReplicationSetService extends TaskResourceService {
         RemoteReplicationSet rrSet = queryResource(id);
 
         RemoteReplicationElement rrElement = new RemoteReplicationElement(com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationSet.ElementType.REPLICATION_SET, id);
-        RemoteReplicationUtils.validateRemoteReplicationOperation(rrElement, RemoteReplicationController.RemoteReplicationOperations.ESTABLISH);
+        RemoteReplicationUtils.validateRemoteReplicationOperation(_dbClient, rrElement, RemoteReplicationController.RemoteReplicationOperations.ESTABLISH);
 
         // Create a task for the establish remote replication set operation
         String taskId = UUID.randomUUID().toString();
@@ -541,7 +545,7 @@ public class RemoteReplicationSetService extends TaskResourceService {
         RemoteReplicationSet rrSet = queryResource(id);
 
         RemoteReplicationElement rrElement = new RemoteReplicationElement(com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationSet.ElementType.REPLICATION_SET, id);
-        RemoteReplicationUtils.validateRemoteReplicationOperation(rrElement, RemoteReplicationController.RemoteReplicationOperations.SPLIT);
+        RemoteReplicationUtils.validateRemoteReplicationOperation(_dbClient, rrElement, RemoteReplicationController.RemoteReplicationOperations.SPLIT);
 
         // Create a task for the split remote replication set operation
         String taskId = UUID.randomUUID().toString();
@@ -579,7 +583,7 @@ public class RemoteReplicationSetService extends TaskResourceService {
         RemoteReplicationSet rrSet = queryResource(id);
 
         RemoteReplicationElement rrElement = new RemoteReplicationElement(com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationSet.ElementType.REPLICATION_SET, id);
-        RemoteReplicationUtils.validateRemoteReplicationOperation(rrElement, RemoteReplicationController.RemoteReplicationOperations.SUSPEND);
+        RemoteReplicationUtils.validateRemoteReplicationOperation(_dbClient, rrElement, RemoteReplicationController.RemoteReplicationOperations.SUSPEND);
 
         // Create a task for the suspend remote replication set operation
         String taskId = UUID.randomUUID().toString();
@@ -618,7 +622,7 @@ public class RemoteReplicationSetService extends TaskResourceService {
         RemoteReplicationSet rrSet = queryResource(id);
 
         RemoteReplicationElement rrElement = new RemoteReplicationElement(com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationSet.ElementType.REPLICATION_SET, id);
-        RemoteReplicationUtils.validateRemoteReplicationOperation(rrElement, RemoteReplicationController.RemoteReplicationOperations.RESUME);
+        RemoteReplicationUtils.validateRemoteReplicationOperation(_dbClient, rrElement, RemoteReplicationController.RemoteReplicationOperations.RESUME);
 
         // Create a task for the resume remote replication set operation
         String taskId = UUID.randomUUID().toString();
@@ -656,7 +660,7 @@ public class RemoteReplicationSetService extends TaskResourceService {
         RemoteReplicationSet rrSet = queryResource(id);
 
         RemoteReplicationElement rrElement = new RemoteReplicationElement(com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationSet.ElementType.REPLICATION_SET, id);
-        RemoteReplicationUtils.validateRemoteReplicationOperation(rrElement, RemoteReplicationController.RemoteReplicationOperations.SWAP);
+        RemoteReplicationUtils.validateRemoteReplicationOperation(_dbClient, rrElement, RemoteReplicationController.RemoteReplicationOperations.SWAP);
 
         // Create a task for the swap remote replication set operation
         String taskId = UUID.randomUUID().toString();
@@ -697,7 +701,7 @@ public class RemoteReplicationSetService extends TaskResourceService {
         String newMode = param.getNewMode();
 
         RemoteReplicationElement rrElement = new RemoteReplicationElement(com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationSet.ElementType.REPLICATION_SET, id);
-        RemoteReplicationUtils.validateRemoteReplicationModeChange(rrElement, newMode);
+        RemoteReplicationUtils.validateRemoteReplicationModeChange(_dbClient, rrElement, newMode);
 
         String taskId = UUID.randomUUID().toString();
         Operation op = _dbClient.createTaskOpStatus(RemoteReplicationSet.class, rrSet.getId(),

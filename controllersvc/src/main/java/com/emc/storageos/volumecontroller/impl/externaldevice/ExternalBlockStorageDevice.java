@@ -2010,7 +2010,7 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice implem
                     BlockConsistencyGroup cg = dbClient.queryObject(BlockConsistencyGroup.class, elementURI);
                     sourceSystem = dbClient.queryObject(StorageSystem.class, cg.getStorageController());
                     driver = (RemoteReplicationDriver)getDriver(sourceSystem.getSystemType());
-                    systemRRPairs = RemoteReplicationUtils.getRemoteReplicationPairsForCG(cg, dbClient);
+                    systemRRPairs = RemoteReplicationUtils.getRemoteReplicationPairsForSourceCG(cg, dbClient);
                     context = initializeContext(systemRRPairs.get(0),com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationSet.ElementType.REPLICATION_PAIR);
 
                     break;
@@ -2094,7 +2094,7 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice implem
                     BlockConsistencyGroup cg = dbClient.queryObject(BlockConsistencyGroup.class, elementURI);
                     sourceSystem = dbClient.queryObject(StorageSystem.class, cg.getStorageController());
                     driver = (RemoteReplicationDriver)getDriver(sourceSystem.getSystemType());
-                    systemRRPairs = RemoteReplicationUtils.getRemoteReplicationPairsForCG(cg, dbClient);
+                    systemRRPairs = RemoteReplicationUtils.getRemoteReplicationPairsForSourceCG(cg, dbClient);
                     context = initializeContext(systemRRPairs.get(0),com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationSet.ElementType.REPLICATION_PAIR);
 
                     break;

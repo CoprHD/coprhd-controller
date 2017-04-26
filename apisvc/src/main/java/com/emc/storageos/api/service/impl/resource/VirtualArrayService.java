@@ -1633,11 +1633,14 @@ public class VirtualArrayService extends TaggedResource {
      * This method gets storage port groups for a given virtual array. The storage ports in the port group
      * should all be assigned or connected to the virtual array. If export group is specified, then it will return
      * the port group used in the export masks belonging to the export group. If storage system is specified, then
-     * It will return the port groups belonging to the storage system.
+     * It will only return the port groups belonging to the storage system. If vpool is specified, then it would get
+     * its matching storage pools, only port groups from the same storage system that those storage pools reside will
+     * return
      * 
      * @param id - Virtual array URI
      * @param storageURI - Storage system URI
      * @param exportGroupURI - Export group URI
+     * @param vpoolURI - virtual pool URI
      * @return - Storage port group list
      */
     @GET
@@ -1646,7 +1649,8 @@ public class VirtualArrayService extends TaggedResource {
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR }, acls = { ACL.USE })
     public StoragePortGroupRestRepList getVirtualArrayStoragePortGroups(@PathParam("id") URI id,
             @QueryParam("storage_system") URI storageURI,
-            @QueryParam("export_group") URI exportGroupURI) {
+            @QueryParam("export_group") URI exportGroupURI,
+            @QueryParam("vpool") URI vpoolURI) {
 
         // Get and validate the varray with the passed id.
         ArgValidator.checkFieldUriType(id, VirtualArray.class, "id");
@@ -1695,11 +1699,31 @@ public class VirtualArrayService extends TaggedResource {
             }
         }
 
+        Set<URI> includedSystems = new HashSet<URI>();
+        if (vpoolURI != null) {
+            ArgValidator.checkFieldUriType(vpoolURI, VirtualPool.class, "vpool");
+            VirtualPool vpool = _dbClient.queryObject(VirtualPool.class, vpoolURI);
+            StringSet pools= vpool.getMatchedStoragePools();
+            if (null != pools && !pools.isEmpty()) {
+                Iterator<String> poolItr = pools.iterator();
+                while (poolItr.hasNext()) {
+                    URI poolURI = URI.create(poolItr.next());
+                    StoragePool pool = _dbClient.queryObject(StoragePool.class, poolURI);
+                    if (pool == null) {
+                        continue;
+                    }
+                    includedSystems.add(pool.getStorageDevice());
+                }
+            }
+        }
         for (URI portURI : portURIs) {
             // Get port groups for each port
             StoragePort port = _dbClient.queryObject(StoragePort.class, portURI);
             if (port == null || (storageURI != null && !storageURI.equals(port.getStorageDevice()))
                     || excludeSystem.contains(port.getStorageDevice())) {
+                continue;
+            }
+            if (!includedSystems.isEmpty() && !includedSystems.contains(port.getStorageDevice())) {
                 continue;
             }
             if ((port != null)

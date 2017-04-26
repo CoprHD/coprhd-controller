@@ -8468,7 +8468,7 @@ class Bourne:
         tenant = self.__tenant_id_from_label(tenant)
         return self.api('POST', URI_CATALOG_CATEGORY_UPGRADE.format(tenant))
  
-    def catalog_order(self, servicename, tenant, parameters, category=None):
+    def catalog_order(self, servicename, tenant, parameters, category=None, failOnError=None):
         tenant = self.__tenant_id_from_label(tenant)
         self.catalog_upgrade(tenant)
         service = self.catalog_search(servicename, tenant, category)
@@ -8486,7 +8486,10 @@ class Bourne:
 
         parms['parameters'] = ordervalues
         order = self.api('POST', URI_CATALOG_ORDERS, parms)
-        return self.__catalog_poll(order['id'])
+        completedOrder = self.__catalog_poll(order['id'])
+        if (failOnError == "true" and completedOrder['order_status'] == 'ERROR'):
+            raise Exception('error during catalog order: ' + completedOrder['id'] + " " + completedOrder['message'])
+        return completedOrder
 
     #
     # Compute Resources - Host

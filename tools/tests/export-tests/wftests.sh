@@ -191,7 +191,7 @@ prerun_setup() {
     fi
 
     storageprovider list | grep SIM > /dev/null
-    if [ $? -eq 0 ];
+    if [ $? -eq 0 -o "${SIM}" = "1" ];
     then
 	    ZONE_CHECK=0
 	    SIM=1;

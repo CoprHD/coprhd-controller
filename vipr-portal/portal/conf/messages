@@ -1278,6 +1278,10 @@ diagnostic.status.title=Collecting Process
 diagnostic.status=Status
 diagnostic.ftp.test=Test FTP
 
+diagnostic.msg.collect.done=The collecting process is done, please confirm to start the process to
+diagnostic.msg.download.start=download the collected file.
+diagnostic.msg.upload.start=upload the collected file to FTP.
+
 
 # Support Request
 supportRequest.title=Submit Support Request

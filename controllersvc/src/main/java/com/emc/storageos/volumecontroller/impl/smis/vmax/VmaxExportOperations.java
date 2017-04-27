@@ -1245,8 +1245,9 @@ public class VmaxExportOperations implements ExportMaskOperations {
                     return;
                 }
 
+                // Validate all user added volumes are in the mask, throw exception if there are mismatch between ViPR DB and array
                 StringMap maskVolumes = exportMask.getUserAddedVolumes();
-                if (maskVolumes != null && !maskVolumes.isEmpty() && maskVolumes.size() > volumeURIList.size()) {
+                if (maskVolumes != null && !maskVolumes.isEmpty()) {
                     List<URI> remainingVolumeURIList = new ArrayList<URI>();
                     for (String volId : maskVolumes.values()) {
                         URI uri = URI.create(volId);

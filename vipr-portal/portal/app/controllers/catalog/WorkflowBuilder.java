@@ -659,7 +659,7 @@ public class WorkflowBuilder extends Controller {
         @Required
         private String ansiblePlaybook;
         @Required
-        private List<File> inventoryFiles;
+        private File[] inventoryFiles;
         private String inputs; // comma separated list of inputs
         private String outputs; // comma separated list of outputs
         private String wfDirID;
@@ -717,11 +717,11 @@ public class WorkflowBuilder extends Controller {
             this.ansiblePackageName = ansiblePackageName;
         }
 
-		public List<File> getInventoryFiles() {
+		public File[] getInventoryFiles() {
 			return inventoryFiles;
 		}
 
-		public void setInventoryFiles(List<File> inventoryFiles) {
+		public void setInventoryFiles(File[] inventoryFiles) {
 			this.inventoryFiles = inventoryFiles;
 		}
 
@@ -821,6 +821,8 @@ public class WorkflowBuilder extends Controller {
                     // TODO: delete old inventory files resource
                     /*String ansiblePackageId = primitiveRestRep.getResource().getId().toString();
 
+					CustomServicesPrimitiveResourceRestRep inventoryFilesResourceResp = getCatalogClient().customServicesPrimitives().getPrimitiveResource("ANSIBLE_inventory", ansiblePackageId)
+					
                 	CustomServicesPrimitiveResourceRestRep deleteInventoryFilesResourseResp = null;
                 	
                 	deleteInventoryFilesResourseResp = getCatalogClient().customServicesPrimitives().deletePrimitiveResource(CustomServicesConstants.ANSIBLE_INVENTORY_TYPE, 
@@ -832,7 +834,7 @@ public class WorkflowBuilder extends Controller {
                             .createPrimitiveResource("ANSIBLE", localAnsible.ansiblePackage, localAnsible.ansiblePackageName, null);
                     
                     // Upload new ansible inventory files
-                    if (null != primitiveResourceRestRep && null != localAnsible.inventoryFiles && !localAnsible.inventoryFiles.isEmpty()) {
+                    if (null != primitiveResourceRestRep && null != localAnsible.inventoryFiles && localAnsible.inventoryFiles.length > 0) {
                     	
                     	CustomServicesPrimitiveResourceRestRep createInventoryFilesResourceResp = null;
                     	
@@ -871,17 +873,18 @@ public class WorkflowBuilder extends Controller {
             CustomServicesPrimitiveResourceRestRep ansiblePackageResourceRestRep = null;
             CustomServicesPrimitiveResourceRestRep inventoryFilesResourceRestRep = null;
             
+            
             if (localAnsible.isExisting()) {
                 // TODO: waiting for resources GET
-            } else if (null != localAnsible.ansiblePackage && null != localAnsible.inventoryFiles && !localAnsible.inventoryFiles.isEmpty()) {
+            } else if (null != localAnsible.ansiblePackage && null != localAnsible.inventoryFiles && localAnsible.inventoryFiles.length > 0) {
                 // Upload ansible package
                 ansiblePackageResourceRestRep = getCatalogClient().customServicesPrimitives().createPrimitiveResource("ANSIBLE",
                         localAnsible.ansiblePackage, localAnsible.ansiblePackageName, null);
                 
                 // Upload ansible inventory files
-                if (null != ansiblePackageResourceRestRep && null != localAnsible.inventoryFiles && !localAnsible.inventoryFiles.isEmpty()) {
+                if (null != ansiblePackageResourceRestRep && null != localAnsible.inventoryFiles && localAnsible.inventoryFiles.length > 0) {
                 	
-                	for (File inventoryFile : localAnsible.inventoryFiles) {                	
+                	for (File inventoryFile : localAnsible.inventoryFiles) {
                 		inventoryFilesResourceRestRep = getCatalogClient().customServicesPrimitives().createPrimitiveResource(CustomServicesConstants.ANSIBLE_INVENTORY_TYPE, 
                 				inventoryFile, inventoryFile.getName(), ansiblePackageResourceRestRep.getId());
                 		if (null == inventoryFilesResourceRestRep) {
@@ -997,6 +1000,7 @@ public class WorkflowBuilder extends Controller {
             localAnsiblePrimitiveForm.setId(primitiveRestRep.getId().toString());
             localAnsiblePrimitiveForm.setName(primitiveRestRep.getName());
             localAnsiblePrimitiveForm.setDescription(primitiveRestRep.getDescription());
+            //localAnsiblePrimitiveForm.setInventoryFiles(primitiveRestRep.g);
             localAnsiblePrimitiveForm.setInputs(convertListToString(convertInputGroupsToList(primitiveRestRep.getInputGroups())));
             localAnsiblePrimitiveForm.setOutputs(convertListToString(convertOutputGroupsToList(primitiveRestRep.getOutput())));
             // TODO: get script name from API

@@ -89,6 +89,13 @@ public class CustomServicesClient extends AbstractCatalogBulkResources<CustomSer
         return client.postURIOctet(CustomServicesPrimitiveResourceRestRep.class, new FileInputStream(resource), builder.build());
     }
 
+    public CustomServicesPrimitiveResourceRestRep getPrimitiveResource(final String resourceType, final URI ansiblePackageId) throws IOException {
+        final UriBuilder builder = client.uriBuilder(PathConstants.CUSTOM_SERVICES_PRIMITIVE_RESOURCE);
+        builder.queryParam("type", resourceType);
+        builder.queryParam("parentId", ansiblePackageId);
+        
+        return client.postURI(CustomServicesPrimitiveResourceRestRep.class, builder.build());
+    }
 
     public CustomServicesPrimitiveResourceRestRep deletePrimitiveResource(final String resourceType, final File resource, 
     		final String resourceName, final URI ansiblePackageId) throws IOException {

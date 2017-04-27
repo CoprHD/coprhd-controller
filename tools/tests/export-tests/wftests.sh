@@ -1888,7 +1888,7 @@ test_6() {
       runcmd export_group create $PROJECT ${expname}1 $NH --type Host --volspec ${PROJECT}/${VOLNAME}-1 --hosts "${HOST1}"
 
       # Snap the DB state with the export group created
-      snap_db 2 "${cfs[@]}"
+      snap_db 2 "${cfs[@]}" "| grep -v existingVolumes"
 
       # Turn on failure at a specific point
       set_artificial_failure ${failure}

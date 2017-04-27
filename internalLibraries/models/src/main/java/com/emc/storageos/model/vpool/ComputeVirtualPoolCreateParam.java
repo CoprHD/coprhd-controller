@@ -37,6 +37,7 @@ public class ComputeVirtualPoolCreateParam {
     private Integer maxHbas;
     private Boolean useMatchedElements = true;
     private Set<String> serviceProfileTemplates;
+    private String id;
 
     public ComputeVirtualPoolCreateParam() {
     }
@@ -267,5 +268,14 @@ public class ComputeVirtualPoolCreateParam {
 
     public void setServiceProfileTemplates(Set<String> serviceProfileTemplates) {
         this.serviceProfileTemplates = serviceProfileTemplates;
+    }
+
+    @XmlElement(name = "id")
+    public String getId() {
+        return id;
+    }
+
+    public void setId(String id) {
+        this.id = id;
     }
 }

@@ -3909,7 +3909,7 @@ public class RecoverPointScheduler implements Scheduler {
      */
     Collection<URI> getProtectionVarrays(RPProtectionRecommendation rpProtectionRec) {
         Collection<URI> protectionVarrays = new HashSet<URI>();
-        if (CollectionUtils.isEmpty(rpProtectionRec.getSourceRecommendations())) {
+        if (!CollectionUtils.isEmpty(rpProtectionRec.getSourceRecommendations())) {
             // Targets will be the same if there are multiple source recommendations so just use the first one.
             RPRecommendation rpRec = rpProtectionRec.getSourceRecommendations().get(0);
             protectionVarrays = getProtectionVarrays(rpRec);

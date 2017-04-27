@@ -237,8 +237,7 @@ public abstract class AbstractFileServiceApiImpl<T> implements FileServiceApi {
             throws InternalException {
 
         FileOrchestrationController controller = getController(
-                FileOrchestrationController.class,
-                FileOrchestrationController.FILE_ORCHESTRATION_DEVICE);
+                FileOrchestrationController.class, FileOrchestrationController.FILE_ORCHESTRATION_DEVICE);
         final List<FileDescriptor> fileDescriptors = new ArrayList<FileDescriptor>();
 
         if (fileshare.getParentFileShare() != null && fileshare.getPersonality().equals(FileShare.PersonalityTypes.TARGET.name())) {

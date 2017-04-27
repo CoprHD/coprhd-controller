@@ -2559,14 +2559,13 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
 
 	@Override
 	public void reduceFileSystem(List<FileDescriptor> fileDescriptors, String taskId) throws ControllerException {
-		String waitFor = null; // the wait for key returned by previous call
-        List<URI> fileShareUris = FileDescriptor.getFileSystemURIs(fileDescriptors);
+	    List<URI> fileShareUris = FileDescriptor.getFileSystemURIs(fileDescriptors);
         FileWorkflowCompleter completer = new FileWorkflowCompleter(fileShareUris, taskId);
         Workflow workflow = null;
+        String waitFor = null; // the wait for key returned by previous call
         try {
             // Generate the Workflow.
-            workflow = _workflowService.getNewWorkflow(this,
-                    REDUCE_FILESYSTEMS_WF_NAME, false, taskId);
+            workflow = _workflowService.getNewWorkflow(this, REDUCE_FILESYSTEMS_WF_NAME, false, taskId);
             // Next, call the FileDeviceController
             waitFor = _fileDeviceController.addStepsForReduceFileSystems(workflow, waitFor, fileDescriptors, taskId);
 
@@ -2579,7 +2578,8 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
             s_logger.error("Could not Reduce FileShares: " + fileShareUris, ex);
             releaseWorkflowLocks(workflow);
             String opName = ResourceOperationTypeEnum.REDUCE_FILE_SYSTEM.getName();
-            ServiceError serviceError = DeviceControllerException.errors.reduceFileShareFailed(fileShareUris.toString(), opName, ex);
+            ServiceError serviceError = DeviceControllerException.errors.reduceFileShareFailed(
+            							fileShareUris.toString(), opName, ex);
             completer.error(s_dbClient, _locker, serviceError);
         }
 		

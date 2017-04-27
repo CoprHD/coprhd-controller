@@ -1300,8 +1300,8 @@ public class FileService extends TaskResourceService {
         FileShare fs = queryResource(id);
         StorageSystem device = _dbClient.queryObject(StorageSystem.class, fs.getStorageDevice());
         
-        if(device.deviceIsType(DiscoveredDataObject.Type.isilon)) {
-        	throw APIException.badRequests.reduceFileSystemNotSupported(id, "re");
+        if(!device.deviceIsType(DiscoveredDataObject.Type.isilon)) {
+        	throw APIException.badRequests.reduceFileSystemNotSupported(id, "reduce");
         }
 
         Long newFSsize = SizeUtil.translateSize(param.getNewSize());
@@ -1330,8 +1330,6 @@ public class FileService extends TaskResourceService {
         	}
         }
         
-        
-
         Project project = _dbClient.queryObject(Project.class, fs.getProject().getURI());
         TenantOrg tenant = _dbClient.queryObject(TenantOrg.class, fs.getTenant().getURI());
         VirtualPool vpool = _dbClient.queryObject(VirtualPool.class, fs.getVirtualPool());

@@ -36,9 +36,6 @@ public class VolumeToSynchronizedRefProcessor extends StorageProcessor {
     public void processResult(Operation operation, Object resultObj,
             Map<String, Object> keyMap) throws BaseCollectionException {
         try {
-            
-            Thread.sleep(10000); // sleep for 10 seconds to slow discovery down
-            
             @SuppressWarnings("unchecked")
             final Iterator<CIMInstance> it = (Iterator<CIMInstance>) resultObj;
             CIMObjectPath volumePath = getObjectPathfromCIMArgument(args);

@@ -106,8 +106,9 @@ public class CustomServicesViprExecution extends ViPRExecutionTask<CustomService
     private Map<URI, String> waitForTask(final String result) throws Exception
     {
         final List<URI> uris = new ArrayList<URI>();
-        //TODO get the class name from primitive
-        final String classname = "com.emc.storageos.model.block.VolumeRestRep";
+
+        final String classname = primitive.response();
+
         if (classname.contains(TASKLIST)) {
             final ObjectMapper mapper = new ObjectMapper();
             mapper.setAnnotationIntrospector(new JaxbAnnotationIntrospector());

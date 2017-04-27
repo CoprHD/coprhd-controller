@@ -26,6 +26,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang.StringUtils;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.codehaus.jackson.xc.JaxbAnnotationIntrospector;
 import org.slf4j.LoggerFactory;
@@ -229,87 +230,125 @@ public class CustomServicesViprExecution extends ViPRExecutionTask<CustomService
         final String[] strs = body.split(":");
 
         for (int j = 0; j < strs.length; j++) {
-            //Single type parameter
-            if ((!strs[j].contains("[") && !strs[j].contains("{"))) {
-                strs[j] = findReplace(strs[j], pos, false);
+            if (StringUtils.isEmpty(strs[j])) {
                 continue;
             }
 
-            //Array type parameter
-            if (strs[j].contains("[") && !strs[j].contains("{")) {
-                strs[j] = findReplace(strs[j], pos, true);
-                continue;
+            if (!strs[j].contains("{")) {
+
+                if ((!strs[j].contains("["))) {
+                    //Single type parameter
+                    strs[j] = findReplace(strs[j], pos, false);
+                    continue;
+                } else {
+                    //Array type parameter
+                    strs[j] = findReplace(strs[j], pos, true);
+                    continue;
+                }
             }
 
-            //Complex Object type
+            //Complex Array of Objects type
             if (strs[j].contains("[{")) {
                 int start = j;
-                String secondPart = strs[j].split("\\[")[1];
+                final StringBuilder secondPart = new StringBuilder(strs[j].split("\\[")[1]);
+
                 final String firstPart = strs[j].split("\\[")[0];
                 j++;
                 List<String> vals = null;
                 while (!strs[j].contains("}]")) {
-                    //Get the number of Objects in array type
+                    //Get the number of Objects in array of object type
                     if (vals == null) {
-                        Matcher m = Pattern.compile("\\$(\\w+)").matcher(strs[j]);
-                        while (m.find()) {
-                            vals = input.get(m.group(1));
-                        }
+                        vals = getListofObjects(strs[j]);
                     }
-                    secondPart = secondPart + ":" + strs[j];
+                    secondPart.append(":").append(strs[j]);
+
                     j++;
                 }
-                secondPart = secondPart + ":" + strs[j].split("\\]")[0];
-                String end = strs[j].split("\\]")[1];
+                final String[] splits = strs[j].split("\\}]");
+                final String firstOfLastLine = splits[0];
+                final String end = splits[1];
+                secondPart.append(":").append(firstOfLastLine).append("}");
+
                 int last = j;
 
-                String get = "";
-                if (vals == null) {
-                    logger.error("Cannot Build ViPR Request body");
-                    throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed("Cannot Build ViPR Request body");
-                }
-                for (int k = 0; k < vals.size(); k++) {
-                    // Recur for number of Objects
-                    get = get + makePostBody(secondPart, k) + ",";
-                }
-                get = get.replaceAll(",$", "");
-                strs[start] = firstPart + "[" + get + "]" + end;
+                //join all the objects in an array
+                strs[start] = firstPart + "[" + makeComplexBody(vals,secondPart.toString()) + "]" + end;
 
-                //Combine all the Objects
                 while (start + 1 <= last) {
                     strs[++start] = "";
                 }
             }
         }
-        String joinedStr = strs[0];
+
+        logger.info("ViPR Request body" + joinStrs(strs));
+
+        return joinStrs(strs);
+    }
+
+    private List<String> getListofObjects(final String strs) {
+        final Matcher m = Pattern.compile("\\$([\\w\\.\\@]+)").matcher(strs);
+        while (m.find()) {
+            final String p = m.group(1);
+            return input.get(p);
+        }
+
+        return null;
+    }
+
+    private String joinStrs(final String[] strs) {
+        final StringBuilder sb = new StringBuilder(strs[0]);
         for (int i = 1; i < strs.length; i++) {
             if (!strs[i].isEmpty()) {
-                joinedStr = joinedStr + ":" + strs[i];
+                sb.append(":").append(strs[i]);
             }
         }
 
-        logger.info("ViPR Request body" + joinedStr);
-        return joinedStr;
+        return sb.toString();
+    }
+
+    private String makeComplexBody(final List<String> vals, final String secondPart) {
+        String get = "";
+        if (vals == null) {
+            logger.error("Cannot Build ViPR Request body");
+            throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed("Cannot Build ViPR Request body");
+        }
+        for (int k = 0; k < vals.size(); k++) {
+            // Recur for number of Objects
+            get = get + makePostBody(secondPart, k) + ",";
+        }
+
+        //remove the trailing "," of json body and return
+        return get.replaceAll(",$", "");
     }
 
     private String findReplace(final String str, final int pos, final boolean isArraytype) {
-        final Matcher m = Pattern.compile("\\$(\\w+)").matcher(str);
+        final Matcher m = Pattern.compile("\\$([\\w\\.\\@]+)").matcher(str);
         while (m.find()) {
             final String pat = m.group(0);
             final String pat1 = m.group(1);
 
             final List<String> val = input.get(pat1);
-            String vals = "\" \"";
-            if (val != null) {
+            final StringBuilder sb = new StringBuilder();
+            String vals = "";
+            if (val != null && !StringUtils.isEmpty(val.get(pos))) {
                 if (!isArraytype) {
-                    vals = "\"" + val.get(pos) + "\"";
-                } else {
-                    for (final String value :  val) {
-                        vals = vals + "\"" + value + "\"";
-                    }
-                }
-            }
+                    sb.append("\"").append(val.get(pos)).append("\"");
+                    vals = sb.toString();
 
+                } else {
+
+                    final String temp = val.get(pos);
+                    final String[] strs = temp.split(",");
+                    for (int i = 0; i < strs.length; i++) {
+                        sb.append("\"").append(strs[i]).append("\"").append(",");
+                    }
+                    final String value = sb.toString();
+
+                    vals = value.replaceAll(",$", "");
+                }
+            } else {
+                vals = "\"\"";
+            }
             return str.replace(pat, vals);
         }
 

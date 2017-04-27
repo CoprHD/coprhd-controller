@@ -120,7 +120,28 @@
     padding: 15px;
 }
 
+/* The starting CSS styles for the enter animation */
+.message-bar-failure.ng-enter {
+  transition:padding-top 0.5s linear;
+  transition:max-height 0.5s linear;
+  max-height: 0;
+}
+
+/* The finishing CSS styles for the enter animation */
+.message-bar-failure.ng-enter.ng-enter-active {
+  max-height: 100px;
+}
+
+.message-bar-failure.ng-leave {
+  transition:0.5s linear all;
+  opacity:1;
+}
+.message-bar-failure.ng-leave.ng-leave-active {
+  opacity:0;
+}
+
 .message-bar-failure {
+  overflow: hidden;
     color: #a94442;
     background-color: #f2dede;
     border-color: #ebccd1;
@@ -128,7 +149,10 @@
     top: 0;
     right: 0;
     left: 0;
-    padding: 15px;
+    padding-top: 15px;
+    padding-left: 15px;
+    padding-right: 15px;
+    padding-top: 15px;
 }
 
 .message-bar-closebtn {

@@ -283,7 +283,7 @@ public class SRDFTaskCompleter extends TaskCompleter {
     }
 
     /**
-     * Update remote replication pair for SRDF volumes.
+     * Update/create remote replication pairs for SRDF volumes.
      */
     protected void updateRemoteReplicationPairs() {
 
@@ -296,7 +296,7 @@ public class SRDFTaskCompleter extends TaskCompleter {
                 }
                 if (v.getSrdfTargets() != null) {
                     for (String targetId : v.getSrdfTargets()) {
-                        // call updateOrCreate... to cover case when SRDF operation was executed prior to post upgrade discovery
+                        // call updateOrCreate... to cover link create case
                         RemoteReplicationUtils.updateOrCreateReplicationPairForSrdfPair(v.getId(), URI.create(targetId), dbClient);
                     }
                 }

@@ -29,8 +29,13 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
 
     $scope.libOpen = true;
     $scope.toggleLib = function() {
-        $("#libSidebar").toggleClass("collapsedLib");
-        $("#builderController").toggleClass("col-md-12 col-md-8");
+        $("#theSidebar").addClass("collapsed-home-sidebar");
+        $("#builderController").toggleClass("collapsedBuilder");
+        $("#libSidebar").toggleClass("collapsedSideBar");
+        $("#libSidebar").one("webkitTransitionEnd otransitionend oTransitionEnd msTransitionEnd transitionend",
+            function(event) {
+            $("#theSidebar").removeClass("collapsed-home-sidebar");
+        });
 
         $scope.libOpen = !$scope.libOpen;
     }
@@ -689,7 +694,9 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
     $scope.saveWorkflow = function() {
         buildJSON();
         $http.post(routes.Workflow_save({workflowId : $scope.workflowData.id}),{workflowDoc : $scope.workflowData.document}).then(function (resp) {
-            checkStateResponse(resp,function(){$scope.modified = false;});
+            checkStateResponse(resp,function(){
+                $scope.modified = false;
+            });
         });
     }
 
@@ -705,9 +712,13 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
 
     $scope.validateWorkflow = function() {
         $http.post(routes.Workflow_validate({workflowId : $scope.workflowData.id})).then(function (resp) {
-            checkStateResponse(resp);
-            var url = routes.ServiceCatalog_showService({serviceId: $scope.workflowData.id});
-            window.location.href = url;
+            checkStateResponse(resp,function(){
+                    console.log(resp.data);
+                    $scope.alert = resp.data;
+            },
+            function(){
+                $scope.alert = {message:"Failed to get response from server"};
+            });
         });
     }
 
@@ -895,6 +906,10 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
 
     $scope.closeMenu = function() {
         $scope.menuOpen = false;
+    }
+
+    $scope.closeAlert = function() {
+        delete $scope.alert;
     }
 });
 

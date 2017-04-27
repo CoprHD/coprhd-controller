@@ -50,8 +50,8 @@
 
 </style>
 <div id="row-main" class="row">
-    <div ng-controller="treeController">
-        <div id="libSidebar" class="col-md-4" style="padding-right:0px; padding-left:5px;">
+    <div ng-controller="treeController" class="tree-controller">
+        <div id="libSidebar" style="padding-right:0px; padding-left:5px;">
             <div id="theSidebar" class="home-sidebar" >
                 <div class="input-group">
                     <input style="float:left;width:300px;"  class="search-input form-control" placeholder="Search..."></input>
@@ -73,22 +73,22 @@
                         </div>
                     </span>
                 </div>
-                <div style="overflow: auto; height:100%; overflow-x: hidden;">
+                <div class="jstree-container">
                     <div id="jstree_demo" style="padding-top:10px;">
                     </div>
                 </div>
             </div>
-        </div>
 
-        <div>
-            <button class="lib-slider-button"  ng-click="toggleLib();">
-                <span ng-class="{'glyphicon-chevron-left':libOpen,'glyphicon-chevron-right':!libOpen}" class="glyphicon" style="width:8px;font-size:10px;"></span>
-            </button>
+            <div>
+                <button class="lib-slider-button"  ng-click="toggleLib();">
+                    <span ng-class="{'glyphicon-chevron-left':libOpen,'glyphicon-chevron-right':!libOpen}" class="glyphicon" style="width:8px;font-size:10px;"></span>
+                </button>
+            </div>
         </div>
     </div>
 
     <!-- Workflow Tabs -->
-    <div id="builderController" ng-controller="builderController" class="col-md-8" style="-webkit-transition-duration: 0.8s;">
+    <div id="builderController" ng-controller="builderController">
         <div class="builder-column">
             <div ng-show="isWorkflowTabsEmpty()">
                 <div class="homeTab">
@@ -106,7 +106,7 @@
                 </li>
             </ul>
 
-            <div class="tab-content">
+            <div class="tab-content" style="padding: 0px;">
                 #{workflowDesigner/}
             </div>
         </div>

@@ -1,6 +1,6 @@
 .exampleEditor {
     background-color: #eee !important;
-    //height: calc(100vh-50px);
+    //height: calc(80vh-50px);
     position: absolute;
     bottom: 8px;
     right: 8px;
@@ -12,17 +12,13 @@
 
 .homeTab{
     background-color: #fcfcfc;
-    height:100vh;
+    height:80vh;
     text-align: center;
     padding-top: 300px;
     font-size: 30px;
     color: #efeded;
 }
 
-.newEditor {
-    height:80vh;
-
-}
 .success-icon {
     color:#5cb85c;
 }
@@ -81,16 +77,67 @@
 }
 
 .home-sidebar {
+    margin-top: 10px;
     background-color: white !important;
     z-index:999 !important;
     width: 100%;
-    height: 90vh;
+    background-color: white !important;
+    z-index: 999 !important;
+    position: absolute;
+    bottom: 0;
+    top: 0;
+    width: 408px;
 }
 
-.buttonbar {
+.collapsed-home-sidebar {
+  display: none;
+    //overflow: hidden;
+    //transform: translate3d(0,0,0);
+}
+
+.button-bar {
+    overflow: hidden;
+}
+
+.button-bar-container {
     margin: 10px;
     float: right;
 }
+
+.message-bar {
+    position: relative;
+    z-index: 1;
+}
+
+.message-bar-success {
+    background-color: #dff0d8;
+    border-color: #d6e9c6;
+    color: #3c763d;
+    position: absolute;
+    top: 0;
+    right: 0;
+    left: 0;
+    padding: 15px;
+}
+
+.message-bar-failure {
+    color: #a94442;
+    background-color: #f2dede;
+    border-color: #ebccd1;
+    position: absolute;
+    top: 0;
+    right: 0;
+    left: 0;
+    padding: 15px;
+}
+
+.message-bar-closebtn {
+    text-decoration: none;
+     cursor: pointer;
+     cursor: hand;
+     padding-right: 10px;
+     float:right;
+ }
 
 .passEndpoint svg circle {
      fill: #5cb85c;
@@ -168,6 +215,9 @@ table, th , td {
 
 .sidenav-panel {
     overflow:scroll;
+    /* hack to improve chrome performance by forcing GPU rendering */
+    -webkit-transform: translate3d(0,0,0);
+    transform: translate3d(0,0,0);
 }
 
 .sidenav {
@@ -175,7 +225,7 @@ table, th , td {
     width: 0; /* 0 width - change this with JavaScript */
     position: absolute; /* Stay in place */
     z-index: 2; /* Stay on top */
-    right: 6px;
+    right: 0px;
     background-color: #eee; /* Black*/
     overflow-x: hidden; /* Disable horizontal scroll */
     padding-top: 20px; /* Place content 60px from the top */
@@ -206,11 +256,10 @@ table, th , td {
 
 .lib-slider-button {
     padding: 1px;
-    height: 100vh;
+    height: 100%;
     position: absolute;
-    z-index: 1; /* Stay on top */
-    transition: margin-right .5s;
-    margin-right: 0px;
+    z-index: 1;
+    margin-left: 408px;
 }
 
 .slider-open {
@@ -230,43 +279,76 @@ table, th , td {
 .side-container {
     float: right;
     position: absolute;
-    right: 8px;
-    bottom: 8px;
-    top: 105px;
+    right: 0px;
+    bottom: 0px;
+    top: 0px;
 
     z-index: 1;
 }
 
 .builder-container {
     clear: both;
+    position: relative;
 }
 
 #libSidebar {
+  position: absolute;
+  bottom: 0;
+  left:0px;
+  top: 0;
+  padding-right: 0px;
+  padding-left: 5px;
   /* for the animation */
-  transition: margin 0.8s ease;
+  transition:all 0.2s linear;
+  -webkit-transition: all 0.2s linear;
 }
 
-.collapsedLib {
-  /* hide it for small displays*/
-  display: none;
-}
-
-@media (min-width: 992px) {
-  .collapsedLib {
-    display: block;
-    /* same width as sidebar */
-    margin-left: -33.334%;
-  }
+#libSidebar.collapsedSideBar {
+  left: -413px;
 }
 
 #row-main {
   /* necessary to hide collapsed sidebar */
-  overflow-x: hidden;
+  overflow: hidden;
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: 0;
+  bottom: 0;
+  margin-left: 0px;
+  margin-right: 0px;
+  z-index: 0;
+}
+
+.tree-controller {
+    position: absolute;
+    bottom: 0;
+    top: 0;
+}
+
+.jstree-container {
+    overflow: auto;
+    /* hack to improve chrome performance by forcing GPU rendering */
+    -webkit-transform: translate3d(0,0,0);
+    transform: translate3d(0,0,0);
+    position: absolute;
+    bottom: 0;
+    top: 0;
+    width: 408px;
+    margin-top: 36px;
+    overflow-x: hidden;
 }
 
 #builderController {
   /* for the animation */
-  transition: width 0.8s ease;
+  transition:all 0.2s linear;
+  -webkit-transition: all 0.2s linear;
+  margin-left: 427px;
+  margin-top: 10px;
+}
+
+#builderController.collapsedBuilder {
+  margin-left: 14px;
 }
 
 #inputDiv .col-sm-3,

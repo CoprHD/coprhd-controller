@@ -36,6 +36,7 @@ import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
 import com.emc.storageos.db.client.model.Operation;
+import com.emc.storageos.db.client.model.PerformanceParams;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
@@ -43,6 +44,7 @@ import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.VolumeGroup;
+import com.emc.storageos.db.client.model.VolumeTopology;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.client.util.SizeUtil;
@@ -50,7 +52,9 @@ import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.TaskResourceRep;
 import com.emc.storageos.model.application.VolumeGroupUpdateParam.VolumeGroupVolumeList;
+import com.emc.storageos.model.block.BlockPerformanceParamsMap;
 import com.emc.storageos.model.block.VolumeCreate;
+import com.emc.storageos.model.block.VolumeCreatePerformanceParams;
 import com.emc.storageos.model.systems.StorageSystemConnectivityList;
 import com.emc.storageos.model.vpool.VirtualPoolChangeList;
 import com.emc.storageos.model.vpool.VirtualPoolChangeOperationEnum;
@@ -727,5 +731,42 @@ public class DefaultBlockServiceApiImpl extends AbstractBlockServiceApiImpl<Stor
         }
         return groupNames;
     }
-
+    
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void validatePerformanceParameters(VolumeCreatePerformanceParams requestParams, VirtualPoolCapabilityValuesWrapper capabilities) {
+        // Just return if the passed performance params are null.
+        if (requestParams == null) {
+            return;
+        }
+        
+        // We need to verify that the passed performance parameters are appropriate for
+        // a simple block volume. Note that for now, any performance parameters passed
+        // that are associated with RP, SRDF, VPLEX, or Mirrors are just ignored and
+        // an exception will not be thrown. We will also simply return if no parameters
+        // are passed for the source, which is the only one that applies for a simple
+        // block volume with no mirrors.
+        BlockPerformanceParamsMap sourceParams = requestParams.getSourceParams();
+        if (sourceParams == null) {
+            // No performance parameters for the source.
+            return;
+        }
+      
+        // Get the performance parameters for the volume playing the source role in the
+        // source volume topology.
+        String volumeTopologyRole = VolumeTopology.VolumeTopologyRole.SOURCE.name();
+        URI performanceParamsURI = sourceParams.findPerformanceParamsForRole(volumeTopologyRole);
+        
+        // Validate the performance params exist and are active.
+        ArgValidator.checkUri(performanceParamsURI);
+        PerformanceParams performanceParams = getPermissionsHelper().getObjectById(performanceParamsURI, PerformanceParams.class);
+        ArgValidator.checkEntity(performanceParams, performanceParamsURI, false);
+        
+        // Store the performance parameters in the passed virtual pool capabilities.
+        Map<String, URI> sourceParamsMap = new HashMap<>();
+        sourceParamsMap.put(volumeTopologyRole, performanceParamsURI);
+        capabilities.put(VirtualPoolCapabilityValuesWrapper.SOURCE_PERFORMANCE_PARAMS, sourceParamsMap);
+    }
 }

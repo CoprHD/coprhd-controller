@@ -100,6 +100,7 @@ import com.emc.storageos.model.application.VolumeGroupUpdateParam.VolumeGroupVol
 import com.emc.storageos.model.block.NativeContinuousCopyCreate;
 import com.emc.storageos.model.block.VirtualPoolChangeParam;
 import com.emc.storageos.model.block.VolumeCreate;
+import com.emc.storageos.model.block.VolumeCreatePerformanceParams;
 import com.emc.storageos.model.block.VolumeDeleteTypeEnum;
 import com.emc.storageos.model.project.ProjectElement;
 import com.emc.storageos.model.project.ProjectParam;
@@ -4426,4 +4427,11 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
         
         s_logger.info(migrationInfo.toString());        
     }
+    
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void validatePerformanceParameters(VolumeCreatePerformanceParams requestParams, VirtualPoolCapabilityValuesWrapper capabilities) {
+    }    
 }

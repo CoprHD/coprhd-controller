@@ -44,6 +44,7 @@ import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
 import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.Operation;
+import com.emc.storageos.db.client.model.PerformanceParams;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.SynchronizationState;
@@ -51,13 +52,16 @@ import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.VolumeGroup;
+import com.emc.storageos.db.client.model.VolumeTopology;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.TaskResourceRep;
+import com.emc.storageos.model.block.BlockPerformanceParamsMap;
 import com.emc.storageos.model.block.NativeContinuousCopyCreate;
 import com.emc.storageos.model.block.VirtualPoolChangeParam;
 import com.emc.storageos.model.block.VolumeCreate;
+import com.emc.storageos.model.block.VolumeCreatePerformanceParams;
 import com.emc.storageos.model.block.VolumeDeleteTypeEnum;
 import com.emc.storageos.model.vpool.VirtualPoolChangeOperationEnum;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
@@ -921,5 +925,11 @@ public class BlockMirrorServiceApiImpl extends AbstractBlockServiceApiImpl<Stora
         // mirror volumes won't be physically in applications so nothing to return here
         return new ArrayList<String>();
     }
-
+    
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void validatePerformanceParameters(VolumeCreatePerformanceParams requestParams, VirtualPoolCapabilityValuesWrapper capabilities) {
+    }
 }

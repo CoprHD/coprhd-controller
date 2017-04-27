@@ -28,6 +28,7 @@ import com.emc.storageos.model.application.VolumeGroupUpdateParam.VolumeGroupVol
 import com.emc.storageos.model.block.NativeContinuousCopyCreate;
 import com.emc.storageos.model.block.VirtualPoolChangeParam;
 import com.emc.storageos.model.block.VolumeCreate;
+import com.emc.storageos.model.block.VolumeCreatePerformanceParams;
 import com.emc.storageos.model.systems.StorageSystemConnectivityList;
 import com.emc.storageos.model.vpool.VirtualPoolChangeList;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
@@ -662,5 +663,14 @@ public interface BlockServiceApi {
      */
     public List<VolumeDescriptor> getDescriptorsForVolumesToBeDeleted(URI systemURI,
             List<URI> volumeURIs, String deletionType);
-
+    
+    /**
+     * For a volume create request validates that the performance parameters passed are valid 
+     * and are appropriate. If valid, the performance parameters are saved in the passed virtual
+     * pool capabilities wrapper for use by the storage scheduler.
+     * 
+     * @param requestParams A reference to the performance parameters passed in the request.
+     * @param capabilities A reference to a virtual pool capabilities wrapper.
+     */
+    public void validatePerformanceParameters(VolumeCreatePerformanceParams requestParams, VirtualPoolCapabilityValuesWrapper capabilities);
 }

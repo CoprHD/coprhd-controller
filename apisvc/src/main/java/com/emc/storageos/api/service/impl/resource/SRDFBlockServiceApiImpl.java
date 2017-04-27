@@ -70,6 +70,7 @@ import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.TaskResourceRep;
 import com.emc.storageos.model.block.VirtualPoolChangeParam;
 import com.emc.storageos.model.block.VolumeCreate;
+import com.emc.storageos.model.block.VolumeCreatePerformanceParams;
 import com.emc.storageos.model.systems.StorageSystemConnectivityList;
 import com.emc.storageos.model.systems.StorageSystemConnectivityRestRep;
 import com.emc.storageos.model.vpool.VirtualPoolChangeOperationEnum;
@@ -1461,5 +1462,12 @@ public class SRDFBlockServiceApiImpl extends AbstractBlockServiceApiImpl<SRDFSch
         // TODO : add target volume volume groups if necessary
         return groupNames;
     }
+    
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void validatePerformanceParameters(VolumeCreatePerformanceParams requestParams, VirtualPoolCapabilityValuesWrapper capabilities) {
+    }    
 
 }

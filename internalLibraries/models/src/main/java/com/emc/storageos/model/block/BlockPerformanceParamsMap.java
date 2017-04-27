@@ -4,6 +4,7 @@
  */
 package com.emc.storageos.model.block;
 
+import java.net.URI;
 import java.util.List;
 
 import javax.xml.bind.annotation.XmlElement;
@@ -39,4 +40,29 @@ public class BlockPerformanceParamsMap {
     public void setParams(List<BlockPerformanceParamsMapEntry> performanceParams) {
         this.performanceParams = performanceParams;
     }
+
+    /*
+     * Utility methods
+     */
+
+    /**
+     * Finds the performance parameters for the passed volume topology role.
+     * 
+     * @param role A string specifying the volume topology role.
+     * 
+     * @return The URI of the performance parameters instance or null.
+     */
+    public URI findPerformanceParamsForRole(String role) {
+        URI performanceParamsURI = null;
+        if (role != null) {
+            for (BlockPerformanceParamsMapEntry paramsEntry : performanceParams) {
+                if (role.equals(paramsEntry.getRole())) {
+                    performanceParamsURI = paramsEntry.getId(); 
+                }
+            }
+        }
+
+        return performanceParamsURI;
+    }
+    
 }

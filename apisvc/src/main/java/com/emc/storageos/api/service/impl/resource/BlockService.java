@@ -137,6 +137,7 @@ import com.emc.storageos.model.block.VirtualArrayChangeParam;
 import com.emc.storageos.model.block.VirtualPoolChangeParam;
 import com.emc.storageos.model.block.VolumeBulkRep;
 import com.emc.storageos.model.block.VolumeCreate;
+import com.emc.storageos.model.block.VolumeCreatePerformanceParams;
 import com.emc.storageos.model.block.VolumeDeleteTypeEnum;
 import com.emc.storageos.model.block.VolumeExpandParam;
 import com.emc.storageos.model.block.VolumeFullCopyCreateParam;
@@ -748,8 +749,23 @@ public class BlockService extends TaskResourceService {
 
         // Get and validate the VirtualPool.
         VirtualPool vpool = getVirtualPoolForVolumeCreateRequest(project, param);
+        
+        // Find the implementation that services this vpool and volume request
+        BlockServiceApi blockServiceImpl = getBlockServiceImpl(vpool, _dbClient);
 
+        // Create the virtual pool capabilities wrapper.
         VirtualPoolCapabilityValuesWrapper capabilities = new VirtualPoolCapabilityValuesWrapper();
+
+        // Validate the performance parameters supplied in the request if any and store
+        // this information in the capabilities wrapper. Any performance parameters
+        // specified would override the corresponding properties in the virtual pool.
+        // Aside from general validation, we need to ensure that the passed performance
+        // parameters are appropriate for the volume topology defined by the virtual pool.
+        VolumeCreatePerformanceParams performanceParams = param.getPerformanceParams();
+        if (performanceParams != null) {
+            blockServiceImpl.validatePerformanceParameters(performanceParams, capabilities);
+        }
+
         // Get the count indicating the number of volumes to create. If not
         // passed
         // assume 1. Then get the volume placement recommendations.
@@ -790,9 +806,6 @@ public class BlockService extends TaskResourceService {
         if (null != vpool.getDedupCapable() && vpool.getDedupCapable()) {
             capabilities.put(VirtualPoolCapabilityValuesWrapper.DEDUP, Boolean.TRUE);
         }
-
-        // Find the implementation that services this vpool and volume request
-        BlockServiceApi blockServiceImpl = getBlockServiceImpl(vpool, _dbClient);
 
         BlockConsistencyGroup consistencyGroup = null;
         final Boolean isMultiVolumeConsistencyOn = vpool.getMultivolumeConsistency() == null ? FALSE

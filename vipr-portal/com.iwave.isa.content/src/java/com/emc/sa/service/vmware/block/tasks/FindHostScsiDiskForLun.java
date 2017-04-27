@@ -108,11 +108,17 @@ public class FindHostScsiDiskForLun extends ExecutionTask<HostScsiDisk> {
 
     private HostScsiDisk getLunDisk() {
 
-        List<HostScsiDisk> scsiDisks = null;
+        List<HostScsiDisk> scsiDisks = storageAPI.listScsiDisks();
+
+        // List all disks and attach the disk if it is found
+        for (HostScsiDisk entry : scsiDisks) {
+            if (VolumeWWNUtils.wwnMatches(VMwareUtils.getDiskWwn(entry), volume.getWwn()) && VMwareUtils.isDiskOff(entry)) {
+                attachDisk(entry);
+            }
+        }
+
         if (availableDiskOnly) {
             scsiDisks = storageAPI.queryAvailableDisksForVmfs(null);
-        } else {
-            scsiDisks = storageAPI.listScsiDisks();
         }
 
         for (HostScsiDisk entry : scsiDisks) {

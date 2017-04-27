@@ -101,9 +101,10 @@ test_expand_host_filesystem() {
 		# Verify that expand is successful on host side
  		verify_mount_point ${os} ${mountpoint} ${size} ${wwn}
 
-                # Report results
-                report_results ${test_name} ${failure}
 	    fi
+
+            # Report results
+            report_results "${test_name}_${os}" ${failure}
 
             size=`expr $size + 1`
 

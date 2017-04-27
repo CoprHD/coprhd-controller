@@ -858,14 +858,15 @@ public class VPlexBackendManager {
      * @param varrayURI
      * @param vplex
      * @param array
+     * @param forgetRollbackStepId
      * @return String stepId of last added step
      */
     public String addWorkflowStepsToAddBackendVolumes(
             Workflow workflow, String dependantStepId,
             ExportGroup exportGroup, ExportMask exportMask,
-            Map<URI, Volume> volumeMap,
-            URI varrayURI,
-            StorageSystem vplex, StorageSystem array) {
+            Map<URI, Volume> volumeMap, URI varrayURI,
+            StorageSystem vplex, StorageSystem array,
+            String forgetRollbackStepId) {
 
         // Determine if VNX or OpenStack so can order VNX zoning after masking
         boolean isMaskingFirst = isMaskingFirst(array);
@@ -878,7 +879,7 @@ public class VPlexBackendManager {
         String reValidateExportMaskStep = workflow.createStepId();
 
         ExportMaskAddVolumeCompleter createCompleter = new ExportMaskAddVolumeCompleter(
-                exportGroup.getId(), exportMask.getId(), volumeLunIdMap, maskStepId);
+                exportGroup.getId(), exportMask.getId(), volumeLunIdMap, maskStepId, forgetRollbackStepId);
         List<URI> volumeList = new ArrayList<>();
         volumeList.addAll(volumeLunIdMap.keySet());
 

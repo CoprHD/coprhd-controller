@@ -1168,6 +1168,7 @@ public class Volume extends BlockObject implements ProjectResource {
     }
 
     @Name("performanceParams")
+    @RelationIndex(cf = "performanceParamsVolumeIndex", type = Volume.class)
     public URI getPerformanceParams() {
         return performanceParams;
     }

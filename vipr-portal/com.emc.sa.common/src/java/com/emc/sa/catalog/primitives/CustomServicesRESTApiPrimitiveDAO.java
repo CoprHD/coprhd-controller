@@ -34,6 +34,7 @@ import com.emc.sa.model.dao.ModelClient;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.StringSetMap;
+import com.emc.storageos.db.client.model.uimodels.CustomServicesDBAnsiblePrimitive;
 import com.emc.storageos.db.client.model.uimodels.CustomServicesDBRESTApiPrimitive;
 import com.emc.storageos.model.customservices.CustomServicesPrimitiveCreateParam;
 import com.emc.storageos.model.customservices.CustomServicesPrimitiveRestRep;
@@ -168,6 +169,12 @@ public class CustomServicesRESTApiPrimitiveDAO implements CustomServicesPrimitiv
     public Iterator<CustomServicesPrimitiveRestRep> bulk(final Collection<URI> ids) {
         return CustomServicesDBHelper.bulk(ids, CustomServicesRESTApiPrimitive.class, 
                 CustomServicesDBRESTApiPrimitive.class, dbClient, MAPPER);
+    }
+    
+    @Override
+    public void importPrimitive(final CustomServicesPrimitiveRestRep operation) {
+        final CustomServicesDBAnsiblePrimitive primitive = CustomServicesDBHelper.makeDBPrimitive(CustomServicesDBAnsiblePrimitive.class, operation);
+        client.save(primitive);
     }
     
     @Override

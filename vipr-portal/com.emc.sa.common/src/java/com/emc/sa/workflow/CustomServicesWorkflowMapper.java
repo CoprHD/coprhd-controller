@@ -14,7 +14,7 @@
  * limitations under the License.
  *
  */
-package com.emc.sa.api.mapper;
+package com.emc.sa.workflow;
 
 import static com.emc.storageos.api.mapper.DbObjectMapper.mapDataObjectFields;
 import static com.emc.storageos.api.mapper.DbObjectMapper.toNamedRelatedResource;
@@ -23,7 +23,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.emc.sa.workflow.WorkflowHelper;
 import com.emc.storageos.db.client.constraint.NamedElementQueryResultList.NamedElement;
 import com.emc.storageos.db.client.model.uimodels.CustomServicesWorkflow;
 import com.emc.storageos.model.NamedRelatedResourceRep;

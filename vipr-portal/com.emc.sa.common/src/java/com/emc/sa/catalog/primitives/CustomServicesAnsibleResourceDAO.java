@@ -37,6 +37,7 @@ import com.emc.storageos.db.client.model.StringSetMap;
 import com.emc.storageos.db.client.model.uimodels.CustomServicesDBAnsibleInventoryResource;
 import com.emc.storageos.db.client.model.uimodels.CustomServicesDBAnsiblePrimitive;
 import com.emc.storageos.db.client.model.uimodels.CustomServicesDBAnsibleResource;
+import com.emc.storageos.model.customservices.CustomServicesPrimitiveResourceRestRep;
 import com.emc.storageos.primitives.db.ansible.CustomServicesAnsiblePrimitive;
 import com.emc.storageos.primitives.db.ansible.CustomServicesAnsibleResource;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
@@ -115,6 +116,14 @@ public class CustomServicesAnsibleResourceDAO implements CustomServicesResourceD
         return CustomServicesDBHelper.listResources(CustomServicesDBAnsibleResource.class, client,
                 CustomServicesDBAnsibleResource.PARENTID, parentId);
     }
+    
+    @Override
+    public List<NamedElement> listRelatedResources(final URI parentId ) {
+        return CustomServicesDBHelper.listResources(CustomServicesDBAnsibleInventoryResource.class, 
+                client, 
+                CustomServicesDBAnsibleInventoryResource.PARENTID, 
+                parentId.toString());
+    }
 
     @Override
     public Class<CustomServicesAnsibleResource> getResourceType() {
@@ -142,6 +151,12 @@ public class CustomServicesAnsibleResourceDAO implements CustomServicesResourceD
         } catch (final IOException e) {
             throw InternalServerErrorException.internalServerErrors.genericApisvcError("Invalid ansible archive", e);
         }
+    }
+
+    @Override
+    public void importResource(final CustomServicesPrimitiveResourceRestRep resource, final byte[] bytes) {
+        final CustomServicesDBAnsibleResource model = CustomServicesDBHelper.makeDBResource(CustomServicesDBAnsibleResource.class, resource, bytes);
+        client.save(model);
     }
 
 }

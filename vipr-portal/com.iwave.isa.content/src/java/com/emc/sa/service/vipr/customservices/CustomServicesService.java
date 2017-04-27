@@ -26,11 +26,13 @@ import java.lang.reflect.Type;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.Collection;
+
+import javax.xml.bind.annotation.XmlElement;
 
 import org.apache.commons.lang.StringUtils;
 import org.codehaus.jackson.JsonNode;
@@ -39,6 +41,7 @@ import org.codehaus.jackson.xc.JaxbAnnotationIntrospector;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 
+import com.emc.sa.catalog.primitives.CustomServicesViprPrimitiveDAO;
 import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.engine.service.Service;
 import com.emc.sa.service.vipr.ViPRExecutionUtils;
@@ -48,19 +51,18 @@ import com.emc.sa.service.vipr.customservices.tasks.CustomServicesRestTaskResult
 import com.emc.sa.service.vipr.customservices.tasks.CustomServicesTaskResult;
 import com.emc.sa.service.vipr.customservices.tasks.MakeCustomServicesExecutor;
 import com.emc.sa.workflow.WorkflowHelper;
-import com.emc.storageos.db.client.model.uimodels.CustomServicesWorkflow;
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.model.uimodels.CustomServicesWorkflow;
 import com.emc.storageos.model.customservices.CustomServicesWorkflowDocument;
 import com.emc.storageos.model.customservices.CustomServicesWorkflowDocument.Input;
 import com.emc.storageos.model.customservices.CustomServicesWorkflowDocument.Step;
 import com.emc.storageos.primitives.CustomServicesConstants;
 import com.emc.storageos.primitives.CustomServicesConstants.InputType;
 import com.emc.storageos.primitives.CustomServicesPrimitive.StepType;
+import com.emc.storageos.primitives.java.vipr.CustomServicesViPRPrimitive;
 import com.emc.storageos.services.util.Exec;
 import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorException;
 import com.google.common.collect.ImmutableMap;
-
-import javax.xml.bind.annotation.XmlElement;
 
 @Service("CustomServicesService")
 public class CustomServicesService extends ViPRService {
@@ -76,6 +78,8 @@ public class CustomServicesService extends ViPRService {
     private DbClient dbClient;
     @Autowired
     private CustomServicesExecutors executor;
+    @Autowired
+    private CustomServicesViprPrimitiveDAO customServicesViprDao;
 
     private int code;
 
@@ -410,18 +414,28 @@ public class CustomServicesService extends ViPRService {
     }
 
     private void updateViproutput(final Step step, final String res) throws Exception {
-        //TODO get the classname from primitive
-        //final String classname = "com.emc.storageos.model.TaskList";
-        final String classname = "com.emc.storageos.model.block.VolumeRestRep";
 
+        final CustomServicesViPRPrimitive primitive = customServicesViprDao.get(step.getOperation());
+        if( null == primitive ) {
+            throw new RuntimeException("Primitive " + step.getOperation() +" not found ");
+        }
+        
+        if( StringUtils.isEmpty(primitive.response()) ) {
+            logger.debug("Vipr primitive" + primitive.name() + " has no repsonse defined.");
+            return;
+        }
+        
+        final String classname = primitive.response();
+        
         logger.debug("Result is:{}", res);
         final ObjectMapper mapper = new ObjectMapper();
         mapper.setAnnotationIntrospector(new JaxbAnnotationIntrospector());
         final Class<?> clazz = Class.forName(classname);
 
         final Object responseEntity = mapper.readValue(res, clazz.newInstance().getClass());
-
-        outputPerStep.put(step.getId(), parseViprOutput(responseEntity, step));
+        final Map<String, List<String>> output = parseViprOutput(responseEntity, step);
+        logger.info("ViPR output for step ID " + step.getId() + " is " + output);
+        outputPerStep.put(step.getId(), output);
     }
 
     private Map<String, List<String>> parseViprOutput(final Object responseEntity, final Step step) throws Exception {
@@ -433,13 +447,15 @@ public class CustomServicesService extends ViPRService {
             logger.info("output to parse:{}", outName);
 
             final String[] bits = outName.split("\\.");
-
-            final List<String> list = parserOutput(bits, 0, responseEntity);
+            
+            // Start parsing at i=1 because the name of the root
+            // element is not included in the JSON
+            final List<String> list = parserOutput(bits, 1, responseEntity);
             if (list != null) {
                 output.put(out.getName(), list);
             }
         }
-
+        
         return output;
     }
 

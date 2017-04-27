@@ -16,9 +16,6 @@
  */
 package com.emc.sa.api;
 
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -46,6 +43,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 
+import com.emc.sa.api.utils.UploadHelper;
 import com.emc.sa.catalog.CustomServicesPrimitiveManager;
 import com.emc.sa.catalog.primitives.CustomServicesPrimitiveDAO;
 import com.emc.sa.catalog.primitives.CustomServicesPrimitiveDAOs;
@@ -74,7 +72,6 @@ import com.emc.storageos.security.authorization.DefaultPermissions;
 import com.emc.storageos.security.authorization.Role;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.BadRequestException;
-import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorException;
 import com.emc.storageos.svcs.errorhandling.resources.NotFoundException;
 import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
@@ -241,7 +238,7 @@ public class CustomServicesPrimitiveService extends CatalogTaggedResourceService
         ArgValidator.checkFieldNotNull(type, "type");
         ArgValidator.checkFieldNotNull(name, "name");
         final CustomServicesResourceDAO<?> dao = getResourceDAO(type, true);
-        final byte[] stream = read(request);
+        final byte[] stream = UploadHelper.read(request);
         final CustomServicesPrimitiveResourceType resource = dao.createResource(name, stream, parentId);
         return CustomServicesPrimitiveMapper.map(resource);
     }
@@ -274,7 +271,7 @@ public class CustomServicesPrimitiveService extends CatalogTaggedResourceService
         if (null == dao) {
             throw APIException.notFound.unableToFindEntityInURL(id);
         }
-        final byte[] stream = read(request);
+        final byte[] stream = UploadHelper.read(request);
         final CustomServicesPrimitiveResourceType resource = dao.updateResource(id, name,
                 (stream == null || stream.length == 0) ? null : stream, parentId);
         return CustomServicesPrimitiveMapper.map(resource);
@@ -321,21 +318,6 @@ public class CustomServicesPrimitiveService extends CatalogTaggedResourceService
         response.setHeader("Content-Disposition", "attachment; filename="
                 + resource.name() + resource.suffix());
         return Response.ok(bytes).build();
-    }
-
-    private byte[] read(final HttpServletRequest request) {
-        try {
-            final ByteArrayOutputStream file = new ByteArrayOutputStream();
-            final byte buffer[] = new byte[2048];
-            final InputStream in = request.getInputStream();
-            int nRead = 0;
-            while ((nRead = in.read(buffer)) > 0) {
-                file.write(buffer, 0, nRead);
-            }
-            return file.toByteArray();
-        } catch (IOException e) {
-            throw InternalServerErrorException.internalServerErrors.genericApisvcError("failed to read octet stream", e);
-        }
     }
 
     @Override

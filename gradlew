@@ -10,7 +10,6 @@
 DEFAULT_JVM_OPTS=""
 # Default gradle JVM options if none are set
 GRADLE_OPTS=${GRADLE_OPTS:-"-Xmx512m -XX:MaxPermSize=128m"}
-
 APP_NAME="Gradle"
 APP_BASE_NAME=`basename "$0"`
 

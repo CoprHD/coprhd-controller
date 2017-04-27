@@ -2,9 +2,8 @@
 	<div id="mySidenav" ng-class="{'sidenav-open':menuOpen}"
 		class="sidenav">
 		<a class="closebtn" ng-click="closeMenu()">&times;</a>
-		<div id="stepInputPage" ng-if="activePage==0">
-			<h3>Edit Inputs/Outputs</h3>
-			<h4>{{stepData.id}}</h4>
+		<div id="stepInputPage">
+			<h3>{{stepData.friendlyName}}</h3>
 			<p>{{stepData.description}}</p>
 			<div class="panel with-nav-tabs panel-default">
 				<div class="panel-heading">
@@ -19,25 +18,25 @@
 							<div id="inputDiv" ng-repeat="inputParam in stepData.inputGroups.input_params">
 								<div ng-repeat="input in inputParam">
 									<collapse title-key={{input.name}}>
-										<control-group class="col-sm-12" v-field='input.friendlyName' width="9" >
+										 <control-group class="col-sm-12" v-field="input.type" width="9" >
+	                        				<select-one options="UserInputTypeOption" auto-default v-disabled='locked'></select-one>
+	                        			</control-group>
+										<control-group class="col-sm-12" v-field='input.friendlyName' ng-if="input.type=='InputFromUser' || input.type=='AssetOptionSingle'|| input.type=='AssetOptionMulti'" width="9">
 											<input-text></input-text>
 										</control-group>
-										<control-group class="col-sm-12" v-field='input.decription' width="9" >
+										<control-group class="col-sm-12" v-field='input.decription' ng-if="input.type=='InputFromUser' || input.type=='AssetOptionSingle'|| input.type=='AssetOptionMulti'" width="9">
                         					<input-text></input-text>
           								</control-group>
 	   									<control-group class="col-sm-12" v-field="input.required" width="9" >
 											<boolean-checkbox v-default-value="false"></boolean-checkbox>
 	  									</control-group>
-	 									<control-group class="col-sm-12" v-field="input.type" width="9" >
-	                        				<select-one options="UserInputTypeOption" auto-default v-disabled='locked'></select-one>
-	                        			</control-group>
 	                        			<control-group class="col-sm-12" label-key ="input.stepInput" v-field="input.value" ng-if="input.type=='FromOtherStepInput'" width="9"  >
 	                        				<select-one options="stepInputOptions" auto-default v-disabled='locked'></select-one>
 	                        			</control-group>
 	                        			<control-group class="col-sm-12" label-key="input.stepOutput" v-field="input.value" ng-if="input.type=='FromOtherStepOutput'" width="9" >
 	                        				<select-one options="stepOutputOptions" auto-default v-disabled='locked'></select-one>
 	                        			</control-group>
-	                        			<control-group class="col-sm-12" label-key="input.assetOption" v-field="input.value" ng-if="input.type=='AssetOption'" width="9" >
+	                        			<control-group class="col-sm-12" label-key="input.assetOption" v-field="input.value" ng-if="input.type=='AssetOptionSingle'|| input.type=='AssetOptionMulti'" width="9" >
 	                        				<select-one options="AssetOptionTypes" auto-default v-disabled='locked'></select-one>
 	                        			</control-group>
 	  									<control-group class="col-sm-12" v-field="input.defaultValue" ng-if="input.type=='InputFromUser'" width="9">
@@ -46,7 +45,7 @@
 	                        			<control-group class="col-sm-12" v-field='input.inputFieldType' ng-if="input.type=='InputFromUser'" width="9">
 	                        				<select-one options="InputFieldOption" auto-default v-disabled='locked'></select-one>
 	                        			</control-group>
-	                        			<control-group class="col-sm-12" v-field='input.tableName' ng-if="input.inputFieldType=='Table'" width="9">
+	                        			<control-group class="col-sm-12" v-field='input.tableName' ng-if="input.type=='InputFromUser' || input.type=='AssetOptionSingle'" width="9">
 	                        				<input-text></input-text>
 	          							</control-group>
           							</collapse>
@@ -62,17 +61,6 @@
 						</div>
 					</div>
 			 	</div>
-			</div>
-		</div>
-		<div id="stepListPage" ng-show="activePage==1">
-			<h3>Add Steps to Workflow</h3>
-			<div ng-controller="treeController" id="theSidebar" class="sidebar"
-				ng-init="initializeTreeConfig(false)">
-				<input type="hidden">
-				<div>
-					<input class="search-input form-control" placeholder="search..."></input>
-				</div>
-				<div id="jstree_demo"></div>
 			</div>
 		</div>
 	</div>

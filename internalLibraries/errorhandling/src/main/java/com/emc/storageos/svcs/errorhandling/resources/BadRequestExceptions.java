@@ -3297,4 +3297,13 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException externallyAddedVolumes(final String exportMask, final String volumes);
+    
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException workflowVersionNotSupported(final String version, final List<String> versions);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException workflowArchiveContentsInvalid(final String folder);
+    
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException workflowArchiveCannotBeImported(final String error);
 }

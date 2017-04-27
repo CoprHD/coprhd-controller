@@ -234,7 +234,8 @@ public class OrderExecution extends Controller {
                 for (int i = values.size(); i <= index; i++) {
                     values.add(null);
                 }
-                values.set(index, params.get(name));
+                // changing params.get() to params.getAll() to support list of values in table column
+                values.set(index, String.join(",", params.getAll(name)));
             }
         }
         return values.toArray(new String[values.size()]);

@@ -54,7 +54,8 @@ public abstract class CustomServicesDBPrimitiveType extends CustomServicesPrimit
         return primitive.getId();
     }
     
-    @Override public String name() {
+    @Override 
+    public String name() {
         return primitive.getLabel();
     }
     

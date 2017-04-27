@@ -16,21 +16,10 @@
  */
 package com.emc.sa.catalog;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-
-import javax.annotation.PostConstruct;
-
-import org.apache.commons.lang.StringUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
-
 import com.emc.sa.descriptor.ServiceDescriptor;
 import com.emc.sa.descriptor.ServiceField;
+import com.emc.sa.descriptor.ServiceFieldTable;
+import com.emc.sa.descriptor.ServiceItem;
 import com.emc.sa.workflow.WorkflowHelper;
 import com.emc.storageos.db.client.constraint.NamedElementQueryResultList.NamedElement;
 import com.emc.storageos.db.client.model.uimodels.CustomServicesWorkflow;
@@ -39,6 +28,19 @@ import com.emc.storageos.model.customservices.CustomServicesWorkflowDocument;
 import com.emc.storageos.model.customservices.CustomServicesWorkflowDocument.Input;
 import com.emc.storageos.model.customservices.CustomServicesWorkflowDocument.InputGroup;
 import com.emc.storageos.model.customservices.CustomServicesWorkflowDocument.Step;
+import com.emc.storageos.primitives.CustomServicesConstants;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.Set;
+import javax.annotation.PostConstruct;
+import org.apache.commons.collections.map.MultiValueMap;
+import org.apache.commons.lang.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
 
 /**
  * Service Descriptor for Workflow services
@@ -47,9 +49,6 @@ import com.emc.storageos.model.customservices.CustomServicesWorkflowDocument.Ste
 public class WorkflowServiceDescriptor {
 
     private static final Logger log = LoggerFactory.getLogger(WorkflowServiceDescriptor.class);
-    private static final String INPUT_FROM_USER_INPUT_TYPE = "InputFromUser";
-    private static final String ASSET_INPUT_TYPE = "AssetOption";
-    private static final String INPUT_FROM_USER_FIELD_TYPE = "text";
     private static final String CUSTOM_SERVICE_CATEGORY = "Custom Services";
 
     @PostConstruct
@@ -103,38 +102,53 @@ public class WorkflowServiceDescriptor {
                 if (null != step.getInputGroups()) {
                     // Looping through all input groups
                     for (final InputGroup inputGroup : step.getInputGroups().values()) {
+                        final MultiValueMap tableMap = new MultiValueMap();
                         for (final Input wfInput : inputGroup.getInputGroup()) {
-                            String wfInputType = null;
+                            final ServiceField serviceField = new ServiceField();
                             // Creating service fields for only inputs of type "inputfromuser" and "assetoption"
-                            if (INPUT_FROM_USER_INPUT_TYPE.equals(wfInput.getType())) {
-                                wfInputType = INPUT_FROM_USER_FIELD_TYPE;
-                            } else if (ASSET_INPUT_TYPE.equals(wfInput.getType())) {
-                                wfInputType = wfInput.getValue();
+                            if (CustomServicesConstants.InputType.FROM_USER.toString().equals(wfInput.getType())) {
+                                serviceField.setType(wfInput.getInputFieldType());
+                            } else if (CustomServicesConstants.InputType.ASSET_OPTION_SINGLE.toString().equals(wfInput.getType())){
+                                serviceField.setType(wfInput.getValue());
+                            } else if (CustomServicesConstants.InputType.ASSET_OPTION_MULTI.toString().equals(wfInput.getType())) {
+                                serviceField.setType(wfInput.getValue());
+                                serviceField.setSelect(ServiceField.SELECT_MANY);
+                            }else {
+                                continue;
                             }
-                            if (null != wfInputType) {
-                                ServiceField serviceField = new ServiceField();
-                                String inputName = wfInput.getName();
-                                // TODO: change this to get description
-                                serviceField.setDescription(wfInput.getFriendlyName());
-                                final String friendlyName = StringUtils.isBlank(wfInput.getFriendlyName()) ?
-                                        inputName :
-                                        wfInput.getFriendlyName();
-                                serviceField
-                                        .setLabel(friendlyName);
-                                serviceField.setName(friendlyName);
-                                serviceField.setRequired(wfInput.getRequired());
-                                serviceField.setInitialValue(wfInput.getDefaultValue());
-                                // Setting all unlocked fields as lockable
-                                if (!wfInput.getLocked()) {
-                                    serviceField.setLockable(true);
-                                }
-                                serviceField.setType(wfInputType);
+                            final String inputName = wfInput.getName();
+                            // TODO: change this to get description
+                            serviceField.setDescription(wfInput.getFriendlyName());
+                            final String friendlyName = StringUtils.isBlank(wfInput.getFriendlyName()) ?
+                                    inputName :
+                                    wfInput.getFriendlyName();
+                            serviceField
+                                    .setLabel(friendlyName);
+                            serviceField.setName(friendlyName);
+                            serviceField.setRequired(wfInput.getRequired());
+                            serviceField.setInitialValue(wfInput.getDefaultValue());
+                            // Setting all unlocked fields as lockable
+                            if (!wfInput.getLocked()) {
+                                serviceField.setLockable(true);
+                            }
+                            //if there is a table name we will build ServiceFieldTable later
+                            if (null != wfInput.getTableName()){
+                                tableMap.put(wfInput.getTableName(),serviceField);
+                            } else {
                                 to.getItems().put(friendlyName, serviceField);
                             }
                         }
-
+                        for (final String table: (Set<String>) tableMap.keySet()){
+                            final ServiceFieldTable serviceFieldTable = new ServiceFieldTable();
+                            serviceFieldTable.setType(ServiceItem.TYPE_TABLE);
+                            serviceFieldTable.setLabel(table);
+                            serviceFieldTable.setName(table);
+                            for (final ServiceField serviceField : (List<ServiceField>)tableMap.getCollection(table)){
+                                serviceFieldTable.addItem(serviceField);
+                            }
+                            to.getItems().put(table,serviceFieldTable);
+                        }
                     }
-
                 }
             }
 

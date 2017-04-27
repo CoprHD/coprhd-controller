@@ -29,6 +29,7 @@ import com.emc.storageos.db.client.constraint.NamedElementQueryResultList.NamedE
 import com.emc.storageos.db.client.model.StringSetMap;
 import com.emc.storageos.db.client.model.uimodels.CustomServicesDBScriptPrimitive;
 import com.emc.storageos.db.client.model.uimodels.CustomServicesDBScriptResource;
+import com.emc.storageos.model.customservices.CustomServicesPrimitiveResourceRestRep;
 import com.emc.storageos.primitives.db.script.CustomServicesScriptPrimitive;
 import com.emc.storageos.primitives.db.script.CustomServicesScriptResource;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
@@ -45,7 +46,7 @@ public class CustomServicesScriptResourceDAO implements CustomServicesResourceDA
     private ModelClient client;
     @Autowired
     private DbClient dbClient;
-
+    
     @Override
     public String getType() {
         return CustomServicesScriptPrimitive.TYPE;
@@ -94,9 +95,20 @@ public class CustomServicesScriptResourceDAO implements CustomServicesResourceDA
         return CustomServicesDBHelper.listResources(CustomServicesDBScriptResource.class, client,
                 CustomServicesDBScriptResource.PARENTID, parentId);
     }
+    
+    @Override
+    public List<NamedElement> listRelatedResources(final URI parentId ) {
+        return CustomServicesDBHelper.EMPTY_ELEMENT_LIST;
+    }
 
     @Override
     public Class<CustomServicesScriptResource> getResourceType() {
         return CustomServicesScriptResource.class;
+    }
+    
+    @Override
+    public void importResource(final CustomServicesPrimitiveResourceRestRep resource, final byte[] bytes) {
+        final CustomServicesDBScriptResource model = CustomServicesDBHelper.makeDBResource(CustomServicesDBScriptResource.class, resource, bytes);
+        client.save(model);
     }
 }

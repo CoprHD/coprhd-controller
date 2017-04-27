@@ -55,16 +55,12 @@ verify_datastore_capacity() {
     DATASTORE=$2
     HOST=$3
     CAPACITY=$4
-    echo "CAPACITY: ${CAPACITY}"
+
     ((CAPACITY=CAPACITY*1000000000))
     
     ((UPPER_BOUND=CAPACITY + 500000000))
     ((LOWER_BOUND=CAPACITY - 500000000))
     
-    echo "CAPACITY: ${CAPACITY}"
-    echo "UPPER_BOUND: ${UPPER_BOUND}"
-    echo "LOWER_BOUND: ${LOWER_BOUND}"
-
     java -Dproperty.file=${tools_file} -jar ${tools_jar} -vcenter -method get_datastore -params "${DATACENTER},${DATASTORE},${HOST}" > ${TMPFILE1} 2> ${TMPFILE2}
     grep -n ${DATASTORE} ${TMPFILE1} > /dev/null
     # 0 if line selected, 1 if no line selected

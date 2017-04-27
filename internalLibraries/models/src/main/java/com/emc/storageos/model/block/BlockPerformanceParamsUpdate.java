@@ -57,7 +57,7 @@ public class BlockPerformanceParamsUpdate {
     /**
      * The unique name for the performance parameters instance.
      */
-    @XmlElement(required = true)
+    @XmlElement
     @Length(min = 2, max = 30)
     public String getName() {
         return name;

@@ -7,19 +7,17 @@ import java.util.List;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 
-import com.emc.storageos.model.NamedRelatedResourceRep;
-
 /**
  * Used for remote replication set listing
  */
 @XmlRootElement(name = "remote_replication_sets")
 public class RemoteReplicationSetList {
-    private List<NamedRelatedResourceRep> remoteReplicationSets;
+    private List<RemoteReplicationSetRestRep> remoteReplicationSets;
 
     public RemoteReplicationSetList() {
     }
 
-    public RemoteReplicationSetList(List<NamedRelatedResourceRep> remoteReplicationSets) {
+    public RemoteReplicationSetList(List<RemoteReplicationSetRestRep> remoteReplicationSets) {
         this.remoteReplicationSets = remoteReplicationSets;
     }
 
@@ -28,14 +26,14 @@ public class RemoteReplicationSetList {
      * @return remoteReplicationSets.
      */
     @XmlElement(name = "remote_replication_set")
-    public List<NamedRelatedResourceRep> getRemoteReplicationSets() {
+    public List<RemoteReplicationSetRestRep> getRemoteReplicationSets() {
         if (remoteReplicationSets == null) {
-            remoteReplicationSets = new ArrayList<NamedRelatedResourceRep>();
+            remoteReplicationSets = new ArrayList<RemoteReplicationSetRestRep>();
         }
         return remoteReplicationSets;
     }
 
-    public void setRemoteReplicationSets(List<NamedRelatedResourceRep> remoteReplicationSets) {
+    public void setRemoteReplicationSets(List<RemoteReplicationSetRestRep> remoteReplicationSets) {
         this.remoteReplicationSets = remoteReplicationSets;
     }
 }

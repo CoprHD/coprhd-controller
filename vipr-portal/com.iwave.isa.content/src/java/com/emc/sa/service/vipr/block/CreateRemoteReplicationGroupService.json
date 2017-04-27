@@ -2,10 +2,6 @@
   baseKey:"CreateRemoteReplicationGroup.RemoteReplication",
   serviceId:"CreateRemoteReplicationGroup",
   fields:{
-    project:{
-      type:"assetType.vipr.project",
-      lockable: true
-    },
     name:{
       type:"text",
       validation:{
@@ -46,8 +42,9 @@
       lockable: true
     },   
     remoteReplicationMode: {
-      type:"text",
-      initialValue: "asynchronous"
+     type:"assetType.vipr.remoteReplicationModeForArrayType",
+      lockable:true,
+      required: true
     },
     remoteReplicationState: {
       type:"text"

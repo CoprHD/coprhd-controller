@@ -5,9 +5,6 @@
 package com.emc.sa.service.vipr.block;
 
 import com.emc.sa.service.ServiceParams;
-import java.net.URI;
-
-import org.eclipse.jetty.util.log.Log;
 
 import com.emc.sa.engine.bind.Param;
 import com.emc.sa.engine.service.Service;
@@ -33,8 +30,6 @@ public class CreateRemoteReplicationGroupService extends ViPRService {
        <is_group_consistency_enforced>true</is_group_consistency_enforced>
      </remote_replication_group_create>
 */
-    @Param(ServiceParams.PROJECT)
-    protected URI project;
 
     @Param(ServiceParams.NAME)
     protected String name;
@@ -66,7 +61,6 @@ public class CreateRemoteReplicationGroupService extends ViPRService {
     @Override
     public void precheck() {
  
-        logInfo("DEBUG: project = '" + project + "'");
         logInfo("DEBUG: name = '" + name + "'");
         logInfo("DEBUG: sourceSystem = '" + sourceSystem + "'");
         logInfo("DEBUG: targetSystem = '" + targetSystem + "'");
@@ -81,7 +75,14 @@ public class CreateRemoteReplicationGroupService extends ViPRService {
 
     @Override
     public void execute() {
-  
-    }
+        /**
+        CreateRemoteReplicationGroupParams params = new CreateRemoteReplicationGroupParams();
 
+        Tasks<HostRestRep> tasks = null;
+        try {
+            tasks = execute(new CreateRemoteReplicationGroup(params));
+        } catch (Exception e) {
+            ExecutionUtils.currentContext().logError("remotereplication.creategroup.failure",name,e.getMessage());
+        }**/
+    }
 }

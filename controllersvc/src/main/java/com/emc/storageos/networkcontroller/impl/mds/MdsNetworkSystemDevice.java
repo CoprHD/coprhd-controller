@@ -8,6 +8,7 @@ import java.net.URI;
 import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -17,6 +18,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 
 import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang.math.IntRange;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -1082,6 +1084,7 @@ public class MdsNetworkSystemDevice extends NetworkSystemDeviceImpl implements N
     }
 
     /**
+     * TODO: BHARATH - Remove this unused method.
      * Check the given vsan is contained in ivr topology
      * 
      * @param dialog
@@ -1099,6 +1102,42 @@ public class MdsNetworkSystemDevice extends NetworkSystemDeviceImpl implements N
         }
 
         return isIvrVsan;
+    }
+    
+    
+    //TODO : Bharath
+    private Set<String> getTransitVSANs(MDSDialog dialog, URI NetworkSystem) {
+    	Set<Integer> transitVsans = new HashSet<Integer>();
+    	Set<String> common = new HashSet<String>();
+    	Map<String, Set<Integer>> switchToVsans = new HashMap<String, Set<Integer>>();
+    	 List<IvrVsanConfiguration> ivrVsansList = dialog.showIvrVsanTopology();
+         for (IvrVsanConfiguration ivrVsan : ivrVsansList) {
+        	 Set<Integer> vsans = new HashSet<Integer>();
+        	 vsans.addAll(ivrVsan.getVsans());
+        	 for (IntRange ivrVsanRange : ivrVsan.getVsansRanges()) {
+        		vsans.add(ivrVsanRange.getMinimumInteger());
+        	 }        	 
+        	 switchToVsans.put(ivrVsan.getSwitchWwn(), vsans);
+         }
+         
+         for (Entry<String, Set<Integer>> switchVsanMap : switchToVsans.entrySet()) {
+        	 _log.info ("Switch WWN : " + switchVsanMap.getKey() + " VSANs: " + switchVsanMap.getValue().toString());
+         }
+                
+         for (Entry<String, Set<Integer>> switchVsanMap : switchToVsans.entrySet()) {
+        	 Set<Integer> vsans = switchVsanMap.getValue();
+        	 if (transitVsans.isEmpty()) {
+        		 transitVsans.addAll(vsans);
+        	 }
+        	 transitVsans.retainAll(vsans);    	 
+         }
+         
+         
+         for(Integer transitVsan : transitVsans) {
+        	 common.add(Integer.toString(transitVsan));
+         }
+         
+    	return common;
     }
 
     /**
@@ -1967,5 +2006,11 @@ public class MdsNetworkSystemDevice extends NetworkSystemDeviceImpl implements N
     @Override
 	public boolean isCapableOfRouting(NetworkSystem networkSystem) {
 		return this.isIvrEnabled(networkSystem);
+	}
+
+	@Override
+	public Set<String> getTransitNetworks(NetworkSystem networkSystem) {
+		MDSDialog dialog = setUpDialog(networkSystem);
+		return getTransitVSANs(dialog, networkSystem.getId());		
 	}
 }

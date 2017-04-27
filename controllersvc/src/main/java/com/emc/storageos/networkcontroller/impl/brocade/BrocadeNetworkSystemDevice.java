@@ -1366,4 +1366,10 @@ public class BrocadeNetworkSystemDevice extends NetworkSystemDeviceImpl
 	public boolean isCapableOfRouting(NetworkSystem networkSystem) {
 		return true;
 	}
+
+	@Override
+	public Set<String> getTransitNetworks(NetworkSystem networkSystem) {
+		// TODO Auto-generated method stub
+		return new HashSet<String>();
+	}
 }

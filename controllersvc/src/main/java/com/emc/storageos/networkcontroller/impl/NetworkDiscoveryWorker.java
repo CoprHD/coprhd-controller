@@ -20,7 +20,6 @@ import java.util.Map.Entry;
 import java.util.ResourceBundle;
 import java.util.Set;
 
-import com.emc.storageos.db.client.model.StringMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -38,7 +37,6 @@ import com.emc.storageos.db.client.model.NetworkSystem;
 import com.emc.storageos.db.client.model.StorageProtocol.Transport;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.util.DataObjectUtils;
-import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.networkcontroller.exceptions.NetworkDeviceControllerException;
 import com.emc.storageos.services.OperationTypeEnum;
@@ -132,7 +130,7 @@ public class NetworkDiscoveryWorker {
         } finally {
             if (networkDev != null) {
                 try {
-                    dbClient.persistObject(networkDev);
+                    dbClient.updateObject(networkDev);                    
                 } catch (DatabaseException ex) {
                     _log.error("Error while persisting object to DB", ex);
                 }
@@ -212,7 +210,7 @@ public class NetworkDiscoveryWorker {
                 try {
                     // set detailed message
                     networkDev.setLastDiscoveryStatusMessage(msg);
-                    dbClient.persistObject(networkDev);
+                    dbClient.updateObject(networkDev);
                     _log.info("Discovery took {}", (System.currentTimeMillis() - start));
                 } catch (DatabaseException ex) {
                     _log.error("Error while persisting object to DB", ex);
@@ -297,7 +295,7 @@ public class NetworkDiscoveryWorker {
         }
         // Persist created, modified.
         dbClient.createObject(created);
-        dbClient.updateAndReindexObject(updated);
+        dbClient.updateObject(updated);
         _log.info(MessageFormat.format("{0} new connections persisted", created.size()).toString());
         _log.info(MessageFormat.format("{0} updated connections persisted", updated.size()).toString());
         _log.info(MessageFormat.format("{0} missing connections", existingEndpoints.values().size()).toString());
@@ -533,7 +531,7 @@ public class NetworkDiscoveryWorker {
                 }
                 network.setRoutedNetworks(routedNetworks);
             }
-            dbClient.updateAndReindexObject(network);
+            dbClient.updateObject(network);
             _log.info("Updated routed networks for {} to {}", network.getNativeGuid(), routedNetworks);
         }
         // clean up transit networks from any one-way associations.
@@ -564,7 +562,7 @@ public class NetworkDiscoveryWorker {
                 if (updated) {
                     _log.info("Reconciled routed networks for {} to {}", net.getNativeGuid(), routedNetworks);
                     net.setRoutedNetworks(routedNetworks);
-                    dbClient.updateAndReindexObject(net);
+                    dbClient.updateObject(net);
                 }
             }
         }
@@ -617,8 +615,7 @@ public class NetworkDiscoveryWorker {
         _log.info("getTransitNetworks.networkWwnIdMap = {}", networkWwnIdMap);
         Set<String> transitNetworks = new HashSet<String>();
         for (Entry<String, String> entry : networkWwnIdMap.entrySet()) {
-            String currentNetworkId = entry.getValue();
-            String currentNetworkWwn = entry.getKey();
+            String currentNetworkId = entry.getValue();            
             Network currentNetwork = getNetworkByNativeId(allNetworks, currentNetworkId);
             // How to determine it's a transit network: 1. More than one network system have the same network.
             if (currentNetwork != null && currentNetwork.getNetworkSystems() != null && currentNetwork.getNetworkSystems().size() > 1) {
@@ -628,6 +625,10 @@ public class NetworkDiscoveryWorker {
                 _log.info("Network id={} is NOT a transit VSAN", currentNetworkId);
             }
         }
+        
+        //BHARATH
+        transitNetworks.clear();
+        transitNetworks.addAll(getDevice().getTransitNetworks(networkSystem));
         return transitNetworks;
     }
 
@@ -643,7 +644,10 @@ public class NetworkDiscoveryWorker {
         for (Network network : allNetworks) {
             if (network.getNetworkSystems() != null && transitNetwork.equals(network.getNativeId())) {
                 for (String networkSystem : network.getNetworkSystems()) {
-                    connectedNetworkSystems.add(networkSystem);
+                	//BHARATH: Add connected system only if it is capable of routing
+                	if (this.getDevice().isCapableOfRouting(dbClient.queryObject(NetworkSystem.class, URI.create(networkSystem)))) {
+                    	connectedNetworkSystems.add(networkSystem);
+                	}
                 }
             }
         }
@@ -664,17 +668,17 @@ public class NetworkDiscoveryWorker {
         // networks and the remote routed networks are routed.
         List<Network> localNetworks = getLocalNetworks(networkSystem, allNetworks);
         for (Network network : localNetworks) {
-            dumpRoutedNetworks("localNetwork = ", network);
+            dumpRoutedNetworks("Local Network ", network);
         }
         List<Network> remoteRoutedNetworks = this.getRemoteRoutedNetworks(networkSystem.getId().toString(),
             connectedNetworkSystems, allNetworks);
         for (Network network : remoteRoutedNetworks) {
-            dumpRoutedNetworks("remoteRoutedNetworks = ", network);
+            dumpRoutedNetworks("Remote Routed Network ", network);
         }
         List<Network> routedNetworks = new ArrayList<Network>(localNetworks);
         routedNetworks.addAll(remoteRoutedNetworks);
         for (Network network : routedNetworks) {
-            dumpRoutedNetworks("routedNetworks = ", network);
+            dumpRoutedNetworks("Routed Networks ", network);
         }
         // 2. Update each local network by setting the routed networks.
         for (Network currentNetwork : localNetworks) {
@@ -694,7 +698,7 @@ public class NetworkDiscoveryWorker {
             _log.info("NetworkDiscoveryWorker handling routed network, updated: {}", networkSet);
             if (modified) {
                 currentNetwork.setRoutedNetworks(networkSet);
-                dumpRoutedNetworks("update network=", currentNetwork);
+                dumpRoutedNetworks("Update Network ", currentNetwork);
                 dbClient.updateObject(currentNetwork);
             }
         }
@@ -709,13 +713,13 @@ public class NetworkDiscoveryWorker {
     private void dumpRoutedNetworks(String prefix, Network network) {
         StringBuffer sb = new StringBuffer();
         sb.append(prefix + ":");
-        sb.append("label = " + network.getLabel() + ", ");
+        sb.append("Label = " + network.getLabel() + ", ");
         if (network.getRoutedNetworks() != null) {
             for (String str : network.getRoutedNetworks()) {
-                sb.append(", routed = " + str);
+                sb.append(", Routed = " + str);
             }
         } else {
-            sb.append(", routed = null");
+            sb.append(", Routed = null");
         }
         _log.info(sb.toString());
     }
@@ -753,7 +757,9 @@ public class NetworkDiscoveryWorker {
                                           Set<String> connectedNetworkSystems) {
         if (network.getNetworkSystems() != null) {
             for (String networkSystem : network.getNetworkSystems()) {
-                if (networkSystem != currentNetworkSystemId && connectedNetworkSystems.contains(networkSystem)) {
+                if (networkSystem.equals(currentNetworkSystemId) && 
+                		this.getDevice().isCapableOfRouting(dbClient.queryObject(NetworkSystem.class, URI.create(networkSystem))) &&
+                		connectedNetworkSystems.contains(networkSystem)) {
                     return true;
                 }
             }
@@ -897,14 +903,14 @@ public class NetworkDiscoveryWorker {
                 tzone.removeEndpoints(toRemove);
                 NetworkAssociationHelper.handleEndpointsRemoved(tzone, toRemove, dbClient, _coordinator);
                 _log.info("Discovered endpoints removed {}", toRemove.toArray());
-                dbClient.persistObject(tzone);
+                dbClient.updateObject(tzone);
                 recordTransportZoneEvent(tzone, OperationTypeEnum.UPDATE_NETWORK.getEvType(true),
                         OperationTypeEnum.UPDATE_NETWORK.getDescription());
             }
         } else {
             _log.info("Removing network {} from network system {}",
                     tzone.getLabel(), uri);
-            dbClient.persistObject(tzone);
+            dbClient.updateObject(tzone);
             recordTransportZoneEvent(tzone, OperationTypeEnum.UPDATE_NETWORK.getEvType(true),
                     OperationTypeEnum.UPDATE_NETWORK.getDescription());
         }
@@ -918,7 +924,7 @@ public class NetworkDiscoveryWorker {
             recordTransportZoneEvent(network, OperationTypeEnum.CREATE_NETWORK.getEvType(true),
                     OperationTypeEnum.CREATE_NETWORK.getDescription());
         } else {
-            dbClient.updateAndReindexObject(network);
+            dbClient.updateObject(network);
             _log.info("Updated transport zone {}", network.getLabel());
             recordTransportZoneEvent(network, OperationTypeEnum.UPDATE_NETWORK.getEvType(true),
                     OperationTypeEnum.UPDATE_NETWORK.getDescription());

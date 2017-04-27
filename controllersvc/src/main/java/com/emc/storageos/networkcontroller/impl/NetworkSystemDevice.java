@@ -253,4 +253,6 @@ public interface NetworkSystemDevice {
      * @return  - Always true for Brocade switches, True for Cisco MDS if IVR feature is enabled, false otherwise
      */
     public boolean isCapableOfRouting(NetworkSystem networkSystem);
+    
+    public Set<String> getTransitNetworks(NetworkSystem networkSystem);
 }

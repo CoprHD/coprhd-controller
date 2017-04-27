@@ -805,9 +805,6 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
         </div>
         `;
 
-        //                    <span class="glyphicon"><img src="${getStepIcon(step.type)}" height="100%" width="100%"></span>
-
-
         if (stepId === "Start" || stepId === "End"){
             var stepSEHTML = `
             <div id="${stepDivID}" class="example-item-card-wrapper">

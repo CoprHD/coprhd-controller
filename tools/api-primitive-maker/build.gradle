@@ -25,6 +25,7 @@ task generatePrimitives(type: Javadoc, dependsOn: [jar]) {
     options.doclet "com.emc.vipr.primitives.PrimitiveDoclet"
     options.docletpath sourceSets.main.runtimeClasspath as File[]
     options.addStringOption("subpackages", "com.emc.storageos")
+    options.addStringOption("c", "${rootProject.projectDir}/tools/apidocs/src/content")
     options.addStringOption("d", "${rootProject.projectDir}/internalLibraries/vipr-primitives/")
     options.quiet()
 }

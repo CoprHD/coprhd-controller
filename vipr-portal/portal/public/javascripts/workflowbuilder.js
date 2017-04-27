@@ -25,7 +25,7 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
         $(".workflow-nav-tabs li").children('a').first().click();
     };
 })
-.controller('treeController', function($element, $scope, $compile, $http, $rootScope) { //NOSONAR ("Suppressing Sonar violations of max 100 lines in a function and function complexity")
+.controller('treeController', function($element, $scope, $compile, $http, $rootScope, translate) { //NOSONAR ("Suppressing Sonar violations of max 100 lines in a function and function complexity")
 
     $scope.libOpen = true;
     $scope.toggleLib = function() {
@@ -35,16 +35,10 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
         $scope.libOpen = !$scope.libOpen;
     }
 
-    // if True, will enable menus on jstree
-    $scope.libraryMenu = true;
-
-    $scope.initializeTreeConfig = function(library) {
-        $scope.libraryMenu = library;
-    }
-
     var jstreeContainer = $element.find('#jstree_demo');
 
     var fileNodeTypes = [shellNodeType, localAnsibleNodeType, restAPINodeType, workflowNodeType]
+    var primitiveNodeTypes = [shellNodeType, localAnsibleNodeType, restAPINodeType]
     var viprLibIDs = ["viprrest", "viprLib"]
 
     initializeJsTree();
@@ -116,6 +110,13 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
             jstreeContainer.find( ".draggable-card" ).draggable({handle: "a",scroll: false,helper: getDraggableStepHTML,appendTo: 'body',cursorAt: { top: 8, left: -16 }});
         }).bind("rename_node.jstree clear_search.jstree search.jstree open_node.jstree", function() {
             jstreeContainer.find( ".draggable-card" ).draggable({handle: "a",scroll: false,helper: getDraggableStepHTML,appendTo: 'body',cursorAt: { top: 0, left: 0 }});
+        }).on('search.jstree', function (nodes, str) {
+              if (str.nodes.length === 0) {
+                  $('#jstree_demo').css("visibility", "hidden");
+              }
+              else {
+                $('#jstree_demo').css("visibility", "visible");
+              }
         });
     }
 
@@ -143,6 +144,8 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
     jstreeContainer.on("rename_node.jstree", renameDir);
     jstreeContainer.on("delete_node.jstree", deleteDir);
     jstreeContainer.on("select_node.jstree", selectDir);
+    jstreeContainer.on("hover_node.jstree", hoverDir);
+    jstreeContainer.on("dehover_node.jstree", dehoverDir);
 
     function createDir(event, data) {
         if (folderNodeType === data.node.type) {
@@ -182,7 +185,10 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
             if (folderNodeType === data.node.type) {
                 $http.get(routes.WF_directory_edit_name({"id": data.node.id, "newName": data.text}));
             }
-            else {
+            else if($.inArray(data.node.type, primitiveNodeTypes) > -1) {
+                $http.get(routes.Primitive_edit_name({"primitiveID": data.node.id, "newName": data.text}));
+            }
+            else if (workflowNodeType === data.node.type){
                 $http.get(routes.Workflow_edit_name({"id": data.node.id, "newName": data.text}));
             }
 
@@ -190,56 +196,45 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
         }
     };
 
-    // default preview
-    $scope.shellPreview = false;
-    $scope.noPreview = true;
-
     var optionsHTML = `
-    <div id="treeMoreOptions" class="btn-group" style="float:right;padding-right:5px;">
-       <button type="button" class="btn btn-xs btn-default dropdown-toggle" title="Options" data-toggle="dropdown" style="background-color:#b3cadb; border-color:#b3cadb;">
+    <div id="treeMoreOptionsSel" class="btn-group treeMoreOptions">
+       <button id="optionsBtn" type="button" class="btn btn-xs btn-default dropdown-toggle" title="Options" data-toggle="dropdown">
            <span class="glyphicon"><img src="/public/img/customServices/Options.png" height="20" width="24"></span>
        </button>
        <ul class="dropdown-menu dropdown-menu-right" role="menu">
-            <li id="addWorkflowMenu" style="display:none;"><a  href="#" ng-click="addWorkflow();">Create Workflow</a></li>
-            <li id="addShellMenu" style="display:none;"><a  href="#" ng-click="openShellScriptModal();">Create Shell Script</a></li>
-            <li id="addLAMenu" style="display:none;"><a  href="#" ng-click="openLocalAnsibleModal();">Create Local Ansible</a></li>
-            <li id="addRestMenu" style="display:none;"><a  href="#" ng-click="openRestAPIModal();">Create Rest API</a></li>
-            <li id="addFolderDivider" role="separator" class="divider" style="display:none;"></li>
-            <li id="addFolderMenu" style="display:none;"><a  href="#" ng-click="addFolder();">Create Folder</a></li>
-            <li id="editDivider" role="separator" class="divider" style="display:none;"></li>
-            <li id="renameMenu" style="display:none;"><a  href="#" ng-click="editNode();">Rename</a></li>
-            <li id="editMenu" style="display:none;"><a  href="#" ng-click="editNode();">Edit</a></li>
-            <li id="deleteMenu" style="display:none;"><a  href="#" ng-click="deleteNode();">Delete</a></li>
-            <li id="editWFMenu" style="display:none;"><a  href="#" ng-click="openWorkflow();">Edit</a></li>
+            <li id="editMenu" style="display:none;"><a  href="#" ng-click="editNode();">${translate('wfBuilder.menu.edit')}</a></li>
+            <li id="editWFMenu" style="display:none;"><a  href="#" ng-click="openWorkflow();">${translate('wfBuilder.menu.edit')}</a></li>
+            <li id="renameMenu" style="display:none;"><a  href="#" ng-click="renameNode();">${translate('wfBuilder.menu.rename')}</a></li>
+            <li role="separator" class="divider"></li>
+            <li id="deleteMenu" style="display:none;"><a  href="#" ng-click="deleteNode();">${translate('wfBuilder.menu.delete')}</a></li>
        </ul>
     </div>
     `;
 
     var validActionsOnMyLib = ["addWorkflowMenu", "addShellMenu", "addLAMenu", "addRestMenu", "addFolderDivider", "addFolderMenu"]
-    var validActionsOnFolder = ["addWorkflowMenu", "addShellMenu", "addLAMenu", "addRestMenu", "addFolderDivider", "addFolderMenu", "editDivider", "renameMenu", "deleteMenu"]
+    var validActionsOnFolder = ["editDivider", "renameMenu", "deleteMenu"]
     var validActionsOnWorkflow = ["renameMenu", "editWFMenu", "deleteMenu"]
-    var validActionsOnMyPrimitives = ["deleteMenu", "editMenu"]
+    var validActionsOnMyPrimitives = ["renameMenu", "deleteMenu", "editMenu"]
+
+    function showOptions(nodeId, parentId) {
+        // Do not show 'More options' on ViPR Library nodes & My Library
+        if($.inArray(nodeId, viprLibIDs) > -1 || $.inArray(parentId, viprLibIDs) > -1 || "myLib" === nodeId) {
+            return false;
+        }
+        return true;
+    }
 
     function addMoreOptions(nodeId, nodeType, parentId) {
-        if(!$scope.libraryMenu) return;
-
         //remove any previous element
-        $("#treeMoreOptions").remove();
+        $(".treeMoreOptions").remove();
 
-        // Do not show 'More options' on ViPR Library nodes
-        if($.inArray(nodeId, viprLibIDs) > -1 || $.inArray(parentId, viprLibIDs) > -1) {
-            return;
-        }
+        if(!showOptions(nodeId, parentId)) return;
 
         //find anchor with this id and append "more options"
         $('[id="'+nodeId+'"]').children('a').after(optionsHTML);
 
         // If current node is vipr library or its parent is vipr library, disable all
-        if("myLib" === nodeId) {
-            // My Library root
-            validActions = validActionsOnMyLib;
-        }
-        else if(workflowNodeType === nodeType){
+        if(workflowNodeType === nodeType){
             // For workflows
             validActions = validActionsOnWorkflow
         }
@@ -264,17 +259,51 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
 
 
     function selectDir(event, data) {
+        $scope.selNodeId = data.node.id;
         addMoreOptions(data.node.id, data.node.type, data.node.parent);
 
-        // Enable/Disable Preview Option
-        $scope.shellPreview = false;
-        $scope.noPreview = true;
-        if (shellNodeType === data.node.type) {
-            //preview Shell script
-            $scope.shellPreview = true;
-            $scope.noPreview = false;
+        // If current node is vipr library or its parent is vipr library, disable all
+        if($.inArray(data.node.id, viprLibIDs) > -1 || $.inArray(data.node.parent, viprLibIDs) > -1 || $.inArray(data.node.type, fileNodeTypes) > -1) {
+            // ViPR Library nodes - disable all buttons
+            $('#addWorkflow').prop("disabled",true);
+        }
+        else {
+            $('#addWorkflow').prop("disabled",false);
         }
     };
+
+    $scope.hoverOptionsClick = function(nodeId){
+        jstreeContainer.jstree("deselect_node", $scope.selNodeId);
+        jstreeContainer.jstree("select_node", nodeId);
+        event.stopPropagation();
+        $("#optionsBtn").click();
+    }
+
+    function hoverDir(event, data) {
+        var nodeId = data.node.id;
+        $scope.hoverNodeId = nodeId;
+
+        // Do not show again for selected node
+        if (showOptions(nodeId, data.node.parent) && $scope.selNodeId !== nodeId) {
+            var optionsHoverHTML = `
+                <div id="treeMoreOptionsHover" class="btn-group treeMoreOptions">
+                   <button id="optionsHoverBtn" type="button" class="btn btn-xs btn-default" title="Options" ng-click="hoverOptionsClick('${nodeId}');">
+                       <span class="glyphicon"><img src="/public/img/customServices/Options.png" height="20" width="24"></span>
+                   </button>
+                </div>
+            `;
+
+            $('[id="'+nodeId+'"]').children('a').after(optionsHoverHTML);
+            var generated = jstreeContainer.jstree(true).get_node(nodeId, true);
+            $compile(generated.contents())($scope);
+        }
+
+    }
+
+    function dehoverDir(event, data) {
+        //remove hover options
+        $("#treeMoreOptionsHover").remove();
+    }
 
     // Methods for JSTree actions
     $scope.addFolder = function() {
@@ -315,7 +344,15 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
             var scope = angular.element($('#restAPIModal')).scope();
             scope.populateModal(false);
             $('#restAPIPrimitiveDialog').modal('show');
-        }
+    }
+
+    // Rename node
+    $scope.renameNode = function(){
+        var ref = jstreeContainer.jstree(true),
+                sel = ref.get_selected('full',true);
+        sel = sel[0];
+        ref.edit(sel.id);
+    }
 
     // if folder edit name, if primitive - open modal
     $scope.editNode = function() {
@@ -360,11 +397,16 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
     }
 })
 
-.controller('tabController', function($element, $scope, $compile, $http, $rootScope) { //NOSONAR ("Suppressing Sonar violations of max 100 lines in a function and function complexity")
+.controller('tabController', function($element, $scope, $compile, $http, $rootScope, translate) { //NOSONAR ("Suppressing Sonar violations of max 100 lines in a function and function complexity")
 
     var diagramContainer = $element.find('#diagramContainer');
     var sbSite = $element.find('#sb-site');
     var jspInstance;
+
+    var INPUT_FIELD_OPTIONS = ['number','boolean','text','password'];
+    var INPUT_TYPE_OPTIONS = ['AssetOptionMulti','AssetOptionSingle','InputFromUser','FromOtherStepOutput','FromOtherStepInput'];
+    var ASSET_TYPE_OPTIONS = ['assetType.vipr.blockVirtualPool','assetType.vipr.virtualArray','assetType.vipr.project'];
+
     $scope.workflowData = {};
     $scope.stepInputOptions = [];
     $scope.stepOutputOptions = [];
@@ -690,14 +732,24 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
     }
 
     $scope.select = function(stepId) {
-        $scope.selectedId = stepId;
-        $scope.InputFieldOption=[{id:'Integer', name:'Integer'}, {id:'Table', name:'Table'}, {id:'Boolean', name:'Boolean'}, {id:'String', name:'String'}];
-        $scope.UserInputTypeOption=[{id:'AssetOption', name:'Asset Option'}, {id:'InputFromUser', name:'Input FromUser'}, {id:'FromOtherStepOutput', name:'From OtherStep Output'}, {id:'FromOtherStepInput', name:'From OtherStep Input'}];
-        $scope.AssetOptionTypes=[{id:'assetType.vipr.blockVirtualPool', name:'Block Virtual Pool'}, {id:'assetType.vipr.virtualArray', name:'VirtualArray'}, {id:'assetType.vipr.project', name:'Project'}];
+        $scope.selectedId = stepId;$scope.InputFieldOption=translateList(INPUT_FIELD_OPTIONS,'input.fieldType');
+        $scope.UserInputTypeOption=translateList(INPUT_TYPE_OPTIONS,'input.type');
+        $scope.AssetOptionTypes=translateList(ASSET_TYPE_OPTIONS,'input');
         var data = diagramContainer.find('#'+stepId).data("oeData");
         $scope.stepData = data;
         $scope.menuOpen = true;
         $scope.openPage(0);
+    }
+
+    /* creates list of objects for select one drop downs
+     * translates key.id from messages file for the name
+     */
+    function translateList(idList,key) {
+        var translateList = [];
+        idList.forEach(function(id) {
+            translateList.push({id:id, name:translate(key+'.'+id)});
+        });
+        return translateList;
     }
 
 	var draggableNodeTypes = {"shellNodeType":shellNodeType, "localAnsibleNodeType":localAnsibleNodeType, "restAPINodeType":restAPINodeType, "viprRestAPINodeType":viprRestAPINodeType, "workflowNodeType":workflowNodeType}
@@ -831,12 +883,10 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
         $scope.workflowData = {};
     }
 
-    $scope.activePage = 0;
     $scope.menuOpen = false;
 
     $scope.openPage = function(pageId){
         $scope.menuOpen = true;
-        $scope.activePage = pageId;
     }
 
     $scope.toggleMenu = function(){

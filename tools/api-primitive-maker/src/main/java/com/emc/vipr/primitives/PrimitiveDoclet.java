@@ -22,6 +22,7 @@ import java.util.List;
 
 import com.emc.apidocs.ApiDoclet;
 import com.emc.apidocs.DocReporter;
+import com.emc.apidocs.KnownPaths;
 import com.emc.apidocs.model.ApiService;
 import com.squareup.javapoet.JavaFile;
 import com.sun.javadoc.DocErrorReporter;
@@ -34,12 +35,15 @@ import com.sun.javadoc.RootDoc;
  */
 public class PrimitiveDoclet {
 
+    private static final String CONTENT_OPTION = "-c";
     private static final String OUTPUT_OPTION = "-d";
     private static final String SOURCE_DIR = "src/main/generated";
 
     private static String outputDirectory;
+    private static String contentDirectory;
 
     public static boolean start(RootDoc root) {
+        KnownPaths.init(contentDirectory, outputDirectory);
         List<ApiService> services = ApiDoclet.findApiServices(root.classes());
 
         Iterable<JavaFile> files = ApiPrimitiveMaker.makePrimitives(services);
@@ -63,9 +67,10 @@ public class PrimitiveDoclet {
 
     /** Required by Doclet to check command line options */
     public static int optionLength(String option) {
-        if (option.equals(OUTPUT_OPTION)) {
+        if (option.equals(OUTPUT_OPTION) || option.equals(CONTENT_OPTION)) {
             return 2;
         }
+        
         return 1;
     }
 
@@ -76,6 +81,7 @@ public class PrimitiveDoclet {
         DocReporter.printWarning("Processing Options");
         boolean valid = true;
         boolean outputOptionFound = false;
+        boolean contentOptionFound = false;
 
         // Make sure we have an OUTPUT option
         for (int i = 0; i < options.length; i++) {
@@ -83,18 +89,47 @@ public class PrimitiveDoclet {
                 outputOptionFound = true;
                 valid = checkOutputOption(options[i][1], reporter);
             }
+            else if (options[i][0].equals(CONTENT_OPTION)) {
+                contentOptionFound = true;
+                valid = checkContentOption(options[i][1], reporter);
+
+            }
         }
 
         if (!outputOptionFound) {
             reporter.printError("Output dir option " + OUTPUT_OPTION
                     + " not specified");
         }
+        if (!contentOptionFound) {
+            reporter.printError("Content dir option " + CONTENT_OPTION
+                    + " not specified");
+        }
 
         DocReporter.printWarning("Finished Processing Options");
 
-        return valid && outputOptionFound;
+        return valid && outputOptionFound && contentOptionFound;
     }
 
+    private static synchronized boolean checkContentOption(String contentDir, DocErrorReporter reporter) {
+        File contentDirFile = new File(contentDir);
+        if (!contentDirFile.exists()) {
+            reporter.printError("Content directory (" + CONTENT_OPTION + ") not found :" + contentDirFile.getAbsolutePath());
+            return false;
+        }
+
+        if (!contentDirFile.isDirectory()) {
+            reporter.printError("Content directory (" + CONTENT_OPTION + ") is not a directory :" + contentDirFile.getAbsolutePath());
+            return false;
+        }
+        contentDirectory = contentDir;
+        if (!contentDirectory.endsWith("/")) {
+            contentDirectory = contentDirectory + "/";
+        }
+        reporter.printWarning("Content Directory " + contentDirectory);
+
+        return true;
+    }
+    
     private static synchronized boolean checkOutputOption(String value,
             DocErrorReporter reporter) {
         File file = new File(value);

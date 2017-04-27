@@ -964,12 +964,8 @@ verify_datastore() {
     return $return_status
 }
 
-verify_datastore_size() {
-    datacenter=$1
-    datastore=$2
-    capacity=$3
-    
-    runcmd vcenterhelper.sh verify_datastore_size $datacenter $datastore $capacity
+verify_datastore_capacity() {
+    runcmd vcenterhelper.sh verify_datastore_capacity $*
     return_status=$?
     return $return_status
 }

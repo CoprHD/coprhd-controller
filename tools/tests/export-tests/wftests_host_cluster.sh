@@ -2551,13 +2551,14 @@ test_expand_volume_and_datastore() {
                 expand_volume_and_datastore_for_host ${TENANT} ${volume1} ${datastore1} ${PROJECT} ${vcenter} ${VCENTER_DATACENTER} ${VCENTER_HOST} "${size}"
                 
                 # Verify expand operation
-                #if [ $? -ne 0 ];
-                #then
-                #    echo "Failed to expand datastore ${datastore1}"  
-                #    incr_fail_count
-                #    report_results ${test_name} ${failure}
-                #    continue;
-                #fi
+                verify_datastore_capacity ${VCENTER_DATACENTER} ${datastore1} ${VCENTER_HOST} "${size}"
+                if [ $? -ne 0 ];
+                then
+                    echo "Failed to expand datastore ${datastore1}"  
+                    incr_fail_count
+                    report_results ${test_name} ${failure}
+                    continue;
+                fi
             else
                 # Turn failure injection on
                 set_artificial_failure ${failure}
@@ -2575,13 +2576,14 @@ test_expand_volume_and_datastore() {
                 expand_volume_and_datastore_for_host ${TENANT} ${volume1} ${datastore1} ${PROJECT} ${vcenter} ${VCENTER_DATACENTER} ${VCENTER_HOST} "${size}"
                 
                 # Verify expand operation
-                #if [ $? -ne 0 ];
-                #then
-                #    echo "Failed to expand datastore ${datastore1}"  
-                #    incr_fail_count
-                #    report_results ${test_name} ${failure}
-                #    continue;
-                #fi          
+                verify_datastore_capacity ${VCENTER_DATACENTER} ${datastore1} ${VCENTER_HOST} "${size}"
+                if [ $? -ne 0 ];
+                then
+                    echo "Failed to expand datastore ${datastore1}"  
+                    incr_fail_count
+                    report_results ${test_name} ${failure}
+                    continue;
+                fi         
             fi          
             
             # Report results

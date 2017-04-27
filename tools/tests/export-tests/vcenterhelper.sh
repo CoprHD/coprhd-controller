@@ -50,12 +50,21 @@ verify_datastore() {
 }
 
 verify_datastore_capacity() {
-    # Parameters: Datacenter, Datastore, VCenter Host, Size (desirned capacity in bytes)
+    # Parameters: Datacenter, Datastore, VCenter Host, Capacity (desired capacity in bytes)
     DATACENTER=$1
     DATASTORE=$2
     HOST=$3
     CAPACITY=$4
+    echo "CAPACITY: ${CAPACITY}"
+    ((CAPACITY=CAPACITY*1000000000))
     
+    ((UPPER_BOUND=CAPACITY + 500000000))
+    ((LOWER_BOUND=CAPACITY - 500000000))
+    
+    echo "CAPACITY: ${CAPACITY}"
+    echo "UPPER_BOUND: ${UPPER_BOUND}"
+    echo "LOWER_BOUND: ${LOWER_BOUND}"
+
     java -Dproperty.file=${tools_file} -jar ${tools_jar} -vcenter -method get_datastore -params "${DATACENTER},${DATASTORE},${HOST}" > ${TMPFILE1} 2> ${TMPFILE2}
     grep -n ${DATASTORE} ${TMPFILE1} > /dev/null
     # 0 if line selected, 1 if no line selected
@@ -67,8 +76,9 @@ verify_datastore_capacity() {
         else
             grep -n datastoreCapacity ${TMPFILE1} > /dev/null
             if [ $? -eq 0 ]; then
-                 result=$(grep datastoreCapacity ${$TMPFILE1} | cut -d '=' -f 2)
-                 if [ "$result" -eq "$CAPACITY" ]; then
+                result=$(grep datastoreCapacity ${TMPFILE1} | cut -d ':' -f 2)
+                secho "RESULT: ${result}"
+                if [ $result -le $UPPER_BOUND -a $result -ge $LOWER_BOUND ]; then
                     echo "PASSED: Verified Datastore ${DATASTORE} has the desired capacity ${CAPACITY}."
                     exit 0;
                 else
@@ -99,7 +109,7 @@ if [ "$1" = "verify_datastore" ]; then
     verify_datastore $1 $2 $3
 elif [ "$1" = "verify_datastore_capacity" ]; then
     shift
-    verify_datastore_capacity $1 $2 $3
+    verify_datastore_capacity $1 $2 $3 $4
 else
     echo "Usage: $0 [verify_datastore | verify_datastore_capacity] {params}"
 fi

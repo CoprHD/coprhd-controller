@@ -702,9 +702,15 @@ class VirtualPool(object):
                 if(autoCrossConnectExport is not None):
                     parms['high_availability']['autoCrossConnectExport'] = autoCrossConnectExport
                 if(metropoint is not None):
-                    parms['high_availability']['metroPoint'] = metropoint
+                    if(metropoint.upper() == 'TRUE'):
+                        parms['high_availability']['metroPoint'] = True
+                    else:
+                        parms['high_availability']['metroPoint'] = False
                 if(activeProtectionAtHASite is not None):
-                    parms['high_availability']['ha_varray_vpool']['activeProtectionAtHASite'] = activeProtectionAtHASite
+                    if(activeProtectionAtHASite.upper() == 'TRUE'):
+                        parms['high_availability']['ha_varray_vpool']['activeProtectionAtHASite'] = True
+                    else:
+                        parms['high_availability']['ha_varray_vpool']['activeProtectionAtHASite'] = False                 
                          
             # protection
             if(max_mirrors or rp or
@@ -988,9 +994,15 @@ class VirtualPool(object):
             if(autoCrossConnectExport is not None):
                 parms['high_availability']['autoCrossConnectExport'] = autoCrossConnectExport
             if(metropoint is not None):
-                parms['high_availability']['metroPoint'] = metropoint
+                if(metropoint.upper() == 'TRUE'):
+                    parms['high_availability']['metroPoint'] = True
+                else:
+                    parms['high_availability']['metroPoint'] = False
             if(activeProtectionAtHASite is not None):
-                parms['high_availability']['ha_varray_vpool']['activeProtectionAtHASite'] = activeProtectionAtHASite    
+                if(activeProtectionAtHASite.upper() == 'TRUE'):
+                    parms['high_availability']['ha_varray_vpool']['activeProtectionAtHASite'] = True
+                else:
+                    parms['high_availability']['ha_varray_vpool']['activeProtectionAtHASite'] = False
 
         if(fastpolicy):
             if(fastpolicy.lower() == "none"):
@@ -1159,12 +1171,12 @@ def create_parser(subcommand_parsers, common_parser):
                                dest='rp_policy',
                                metavar='<rp_source_policy>')
     create_parser.add_argument('-metropoint',
-                                help='enables metropoint, must specify ha',
+                                help='enables metropoint, must also specify -ha',
                                 metavar='<metropoint>',
                                 dest='metropoint',
                                 choices=VirtualPool.BOOL_TYPE_LIST) 
     create_parser.add_argument('-activeProtectionAtHASite',
-                                help='for rp+vplex or metropoint, decide if the ha site is the active site, must specify ha',
+                                help='for rp+vplex or metropoint, decide if the ha site is the active site, must also specify -ha',
                                 metavar='<activeProtectionAtHASite>',
                                 dest='activeProtectionAtHASite',
                                 choices=VirtualPool.BOOL_TYPE_LIST)                                
@@ -1566,16 +1578,16 @@ def update_parser(subcommand_parsers, common_parser):
                                nargs='+')
     update_parser.add_argument('-rp_source_policy', '-rp_policy',
                                help='RP protection source policy, ' +
-                               'eg:copymode:rpovalue:rpotype:journalsize',
+                               'eg:copymode:rpovalue:rpotype:journalsize:journalvarray:journalvpool:standbyvarray:standbyvpool',
                                dest='rp_policy',
                                metavar='<rp_source_policy>')
     update_parser.add_argument('-metropoint',
-                                help='enables metropoint, must specify ha',
+                                help='enables metropoint, must also specify -ha',
                                 metavar='<metropoint>',
                                 dest='metropoint',
                                 choices=VirtualPool.BOOL_TYPE_LIST)
     update_parser.add_argument('-activeProtectionAtHASite',
-                                help='for rp+vplex or metropoint, decide if the ha site is the active site, must specify ha',
+                                help='for rp+vplex or metropoint, decide if the ha site is the active site, must also specify -ha',
                                 metavar='<activeProtectionAtHASite>',
                                 dest='activeProtectionAtHASite',
                                 choices=VirtualPool.BOOL_TYPE_LIST)                             

@@ -387,7 +387,7 @@ public class CustomServicesService extends ViPRService {
 
         if (step.getType().equals(CustomServicesConstants.VIPR_PRIMITIVE_TYPE) ) {
             try {
-                updateViproutput(step, res.getOut());
+                out.putAll(updateViproutput(step, res.getOut()));
             } catch (Exception e) {
                 logger.warn("Could not parse ViPR REST Output properly:{}", e);
             }
@@ -413,7 +413,7 @@ public class CustomServicesService extends ViPRService {
         outputPerStep.put(step.getId(), out);
     }
 
-    private void updateViproutput(final Step step, final String res) throws Exception {
+    private Map<String, List<String>> updateViproutput(final Step step, final String res) throws Exception {
 
         final CustomServicesViPRPrimitive primitive = customServicesViprDao.get(step.getOperation());
         if( null == primitive ) {
@@ -422,7 +422,7 @@ public class CustomServicesService extends ViPRService {
         
         if( StringUtils.isEmpty(primitive.response()) ) {
             logger.debug("Vipr primitive" + primitive.name() + " has no repsonse defined.");
-            return;
+            return null;
         }
         
         final String classname = primitive.response();
@@ -435,7 +435,7 @@ public class CustomServicesService extends ViPRService {
         final Object responseEntity = mapper.readValue(res, clazz.newInstance().getClass());
         final Map<String, List<String>> output = parseViprOutput(responseEntity, step);
         logger.info("ViPR output for step ID " + step.getId() + " is " + output);
-        outputPerStep.put(step.getId(), output);
+        return output;
     }
 
     private Map<String, List<String>> parseViprOutput(final Object responseEntity, final Step step) throws Exception {

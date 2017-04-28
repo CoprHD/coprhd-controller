@@ -298,7 +298,7 @@ public class CustomServicesViprExecution extends ViPRExecutionTask<CustomService
             }
         }
 
-        System.out.println("ViPR Request body" + joinStrs(strs));
+        logger.info("ViPR Request body" + joinStrs(strs));
 
         return joinStrs(strs);
     }

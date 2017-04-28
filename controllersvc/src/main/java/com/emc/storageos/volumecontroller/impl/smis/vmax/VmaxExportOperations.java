@@ -801,7 +801,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
             String maskingViewName = _helper.getExportMaskName(exportMaskURI);
             // Always get the Storage Group from masking View, rather than depending on the name to find out SG.
             String parentGroupName = _helper.getStorageGroupForGivenMaskingView(maskingViewName, storage);
-            // Neither masking view nor Storage Group exists. remove the volumes from the mask.
+            // Storage Group does not exist, remove the volumes from the mask.
             if (null == parentGroupName) {
                 List<URI> volumeURIList = new ArrayList<URI>();
                 for (VolumeURIHLU vuh : volumeURIHLUs) {
@@ -1224,7 +1224,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
                 String maskingViewName = _helper.getExportMaskName(exportMaskURI);
                 // Always get the Storage Group from masking View, rather than depending on the name to find out SG.
                 String parentGroupName = _helper.getStorageGroupForGivenMaskingView(maskingViewName, storage);
-                // Neither masking view nor Storage Group exists. no operation on array side
+                // Storage Group does not exist, no operation on array side
                 if (null == parentGroupName) {
                     taskCompleter.ready(_dbClient);
                     return;

@@ -250,8 +250,12 @@ public class CustomServicesViprExecution extends ViPRExecutionTask<CustomService
                         strs[j] = strs[j].replace(ar1[0], "");
                         String[] pre = StringUtils.substringsBetween(strs[j - 1], "\"", "\"");
                         strs[j-1] = strs[j-1].replace("\""+pre[pre.length-1]+"\""+":", "");
-                        strs[j -1] = strs[j-1].trim().replaceAll(",$", "");
-
+                        for (int k=1; k<=j; k++) {
+                            if (!strs[j-k].trim().isEmpty()) {
+                                strs[j - k] = strs[j-k].trim().replaceAll(",$", "");
+                                break;
+                            }
+                        }
                     }
                 } else {
                     strs[j] = value;
@@ -266,25 +270,26 @@ public class CustomServicesViprExecution extends ViPRExecutionTask<CustomService
 
                 final String firstPart = strs[j].split("\\[")[0];
                 j++;
-                List<String> vals = null;
+                int count = -1;
                 while (!strs[j].contains("}]")) {
                     //Get the number of Objects in array of object type
-                    if (vals == null) {
-                        vals = getListofObjects(strs[j]);
+                    final int cnt = getCountofObjects(strs[j]);
+                    if (count<cnt) {
+                        count = cnt;
                     }
-                    secondPart.append(strs[j]);//sonali
+                    secondPart.append(strs[j]);
 
                     j++;
                 }
                 final String[] splits = strs[j].split("\\}]");
                 final String firstOfLastLine = splits[0];
                 final String end = splits[1];
-                secondPart.append(firstOfLastLine).append("}");//sonali sp.append(":")
+                secondPart.append(firstOfLastLine).append("}");
 
                 int last = j;
 
                 //join all the objects in an array
-                strs[start] = firstPart + "[" + makeComplexBody(vals,secondPart.toString()) + "]" + end;
+                strs[start] = firstPart + "[" + makeComplexBody(count,secondPart.toString()) + "]" + end;
 
                 while (start + 1 <= last) {
                     strs[++start] = "";
@@ -306,14 +311,14 @@ public class CustomServicesViprExecution extends ViPRExecutionTask<CustomService
             return findReplace(strs, pos, true);
         }
     }
-    private List<String> getListofObjects(final String strs) {
+    private int getCountofObjects(final String strs) {
         final Matcher m = Pattern.compile("\\$([\\w\\.\\@]+)").matcher(strs);
         while (m.find()) {
             final String p = m.group(1);
-            return input.get(p);
+            return input.get(p).size();
         }
 
-        return null;
+        return -1;
     }
 
     private String joinStrs(final String[] strs) {
@@ -324,13 +329,13 @@ public class CustomServicesViprExecution extends ViPRExecutionTask<CustomService
         return sb.toString();
     }
 
-    private String makeComplexBody(final List<String> vals, final String secondPart) {
+    private String makeComplexBody(final int vals, final String secondPart) {
         String get = "";
-        if (vals == null) {
+        if (vals == -1) {
             logger.error("Cannot Build ViPR Request body");
             throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed("Cannot Build ViPR Request body");
         }
-        for (int k = 0; k < vals.size(); k++) {
+        for (int k = 0; k < vals; k++) {
             // Recur for number of Objects
             get = get + makePostBody(secondPart, k) + ",";
         }
@@ -348,7 +353,7 @@ public class CustomServicesViprExecution extends ViPRExecutionTask<CustomService
             final List<String> val = input.get(pat1);
             final StringBuilder sb = new StringBuilder();
             String vals = "";
-            if (val != null && !StringUtils.isEmpty(val.get(pos))) {
+            if (val != null && pos < val.size() && !StringUtils.isEmpty(val.get(pos))) {
                 if (!isArraytype) {
                     sb.append("\"").append(val.get(pos)).append("\"");
                     vals = sb.toString();

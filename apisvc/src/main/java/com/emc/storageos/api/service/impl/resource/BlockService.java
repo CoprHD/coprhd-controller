@@ -57,6 +57,7 @@ import com.emc.storageos.api.service.impl.resource.utils.AsyncTaskExecutorIntf;
 import com.emc.storageos.api.service.impl.resource.utils.BlockServiceUtils;
 import com.emc.storageos.api.service.impl.resource.utils.CapacityUtils;
 import com.emc.storageos.api.service.impl.resource.utils.ExportUtils;
+import com.emc.storageos.api.service.impl.resource.utils.PerformanceParamsUtils;
 import com.emc.storageos.api.service.impl.resource.utils.VirtualPoolChangeAnalyzer;
 import com.emc.storageos.api.service.impl.resource.utils.VolumeIngestionUtil;
 import com.emc.storageos.api.service.impl.response.BulkList;
@@ -104,6 +105,7 @@ import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.VirtualPool.RPCopyMode;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.Volume.PersonalityTypes;
+import com.emc.storageos.db.client.model.VolumeTopology.VolumeTopologyRole;
 import com.emc.storageos.db.client.model.VolumeGroup;
 import com.emc.storageos.db.client.model.VplexMirror;
 import com.emc.storageos.db.client.model.VpoolRemoteCopyProtectionSettings;
@@ -123,6 +125,7 @@ import com.emc.storageos.model.SnapshotList;
 import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.TaskResourceRep;
 import com.emc.storageos.model.block.BlockMirrorRestRep;
+import com.emc.storageos.model.block.BlockPerformanceParamsMap;
 import com.emc.storageos.model.block.BlockSnapshotSessionList;
 import com.emc.storageos.model.block.BulkDeleteParam;
 import com.emc.storageos.model.block.CopiesParam;
@@ -791,10 +794,15 @@ public class BlockService extends TaskResourceService {
             capabilities.put(VirtualPoolCapabilityValuesWrapper.SIZE, volumeSize);
         }
 
-        if (null != vpool.getThinVolumePreAllocationPercentage()
-                && 0 < vpool.getThinVolumePreAllocationPercentage()) {
+        // Get the thin volume pre-allocation percentage. The value in the 
+        // source performance parameters, if any, overrides the value from the
+        // virtual pool.
+        BlockPerformanceParamsMap sourceParams = performanceParams.getSourceParams();
+        Integer thinVolumePreAllocPercentage = PerformanceParamsUtils.getThinVolumePreAllocPercentage(
+                sourceParams, VolumeTopologyRole.SOURCE, vpool, _dbClient);
+        if (null != thinVolumePreAllocPercentage && 0 < thinVolumePreAllocPercentage) {
             capabilities.put(VirtualPoolCapabilityValuesWrapper.THIN_VOLUME_PRE_ALLOCATE_SIZE, VirtualPoolUtil
-                    .getThinVolumePreAllocationSize(vpool.getThinVolumePreAllocationPercentage(), volumeSize));
+                    .getThinVolumePreAllocationSize(thinVolumePreAllocPercentage, volumeSize));
         }
 
         if (VirtualPool.ProvisioningType.Thin.toString().equalsIgnoreCase(

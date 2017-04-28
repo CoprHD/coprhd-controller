@@ -297,7 +297,7 @@ public class CustomServicesService extends ViPRService {
             for (final Input value : inputGroup.getInputGroup()) {
                 final String name = value.getName();
                 final String friendlyName = value.getFriendlyName();
-                if(value.getType() == null || !StringUtils.isEmpty(params.get(friendlyName).toString())){
+                if(StringUtils.isEmpty(value.getType())){
                     continue;
                 }
 

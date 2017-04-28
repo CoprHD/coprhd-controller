@@ -95,6 +95,47 @@ verify_datastore_capacity() {
     fi    
 }
 
+verify_datastore_lun_count() {
+    # Parameters: Datacenter, Datastore, VCenter Host, Count (desired LUN count)
+    DATACENTER=$1
+    DATASTORE=$2
+    HOST=$3
+    COUNT=$4
+
+    java -Dproperty.file=${tools_file} -jar ${tools_jar} -vcenter -method get_datastore -params "${DATACENTER},${DATASTORE},${HOST}" > ${TMPFILE1} 2> ${TMPFILE2}
+    grep -n ${DATASTORE} ${TMPFILE1} > /dev/null
+    # 0 if line selected, 1 if no line selected
+    foundIt=$?
+    if [ -s $TMPFILE1 ]; then
+        if [ $foundIt -ne 0 ]; then
+            echo -e "\e[91mERROR\e[0m: Expected Datastore ${DATASTORE}, but could not find it"
+            exit 1;
+        else
+            grep -n datastoreLuns ${TMPFILE1} > /dev/null
+            if [ $? -eq 0 ]; then
+                 result=$(grep datastoreLuns ${TMPFILE1} | tr -cd , | wc -c)
+                 result=`expr $result + 1`
+                 if [ "$result" -eq "$COUNT" ]; then
+                    echo "PASSED: Verified Datastore ${DATASTORE} has the desired numbered of LUNs ${COUNT}."
+                    exit 0;
+                else
+                    echo -e "\e[91mERROR\e[0m: Found Datastore ${DATASTORE} with LUN count ${result}, which does not match desired count ${COUNT}"
+                    exit -1;
+                fi
+            else
+                echo -e "\e[91mERROR\e[0m: Found Datastore ${DATASTORE}, but could not determine its LUN count"
+                exit 1;
+            fi
+        fi
+    else
+        echo -e "\e[91mERROR\e[0m: empty or invalid response from vcenter"
+        if [ -s $TMPFILE2 ]; then
+            cat $TMPFILE2
+        fi
+        exit 1;
+    fi
+}
+
 # Check to see if this is an operational request or a verification of export request
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 tools_file="${DIR}/tools.yml"
@@ -106,6 +147,9 @@ if [ "$1" = "verify_datastore" ]; then
 elif [ "$1" = "verify_datastore_capacity" ]; then
     shift
     verify_datastore_capacity $1 $2 $3 $4
+elif [ "$1" = "verify_datastore_lun_count" ]; then
+    shift
+    verify_datastore_lun_count $1 $2 $3 $4
 else
-    echo "Usage: $0 [verify_datastore | verify_datastore_capacity] {params}"
+    echo "Usage: $0 [verify_datastore | verify_datastore_capacity | verify_datastore_lun_count] {params}"
 fi

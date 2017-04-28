@@ -58,6 +58,7 @@ public class ExtendVmfsDatastoreService extends VMwareHostService {
     public void execute() throws Exception {
         connectAndInitializeHost();
         datastore = vmware.getDatastore(datacenter.getLabel(), datastoreName);
+        artificialFailure("extend_vmfs_datastore");
         vmware.extendVmfsDatastore(host, cluster, hostId, volume, datastore);
         if (hostId != null) {
             ExecutionUtils.addAffectedResource(hostId.toString());

@@ -1638,7 +1638,6 @@ test_4() {
     common_failure_injections="failure_047_NetworkDeviceController.zoneExportMaskCreate_before_zone \
                                failure_048_NetworkDeviceController.zoneExportMaskCreate_after_zone \
                                failure_004_final_step_in_workflow_complete \
-                               failure_004:failure_018_Export_doRollbackExportCreate_before_delete \
                                failure_004:failure_020_Export_zoneRollback_before_delete \
                                failure_004:failure_021_Export_zoneRollback_after_delete"
 
@@ -1652,27 +1651,29 @@ test_4() {
     storage_failure_injections=""
     if [ "${SS}" = "vplex" ]
     then
-	storage_failure_injections=""
+	storage_failure_injections="failure_004:failure_074_VPlexDeviceController.deleteStorageView_before_delete"
     fi 
 
     if [ "${SS}" = "vnx" ]
     then
-        storage_failure_injections="failure_015_SmisCommandHelper.invokeMethod_CreateStorageHardwareID"
+        storage_failure_injections="failure_015_SmisCommandHelper.invokeMethod_CreateStorageHardwareID \
+                                    failure_004:failure_018_Export_doRollbackExportCreate_before_delete"
     fi
 
     if [ "${SS}" = "vmax2" -o "${SS}" = "vmax3" ]
     then
-	storage_failure_injections="failure_015_SmisCommandHelper.invokeMethod_CreateGroup"
+	storage_failure_injections="failure_015_SmisCommandHelper.invokeMethod_CreateGroup \
+                                    failure_004:failure_018_Export_doRollbackExportCreate_before_delete"
     fi
 
     if [ "${SS}" = "unity" ]; then
-      storage_failure_injections=""
+      storage_failure_injections="failure_004:failure_018_Export_doRollbackExportCreate_before_delete"
     fi
 
     failure_injections="${common_failure_injections} ${storage_failure_injections} ${network_failure_injections}"
 
     # Placeholder when a specific failure case is being worked...
-    # failure_injections="failure_004:failure_018_Export_doRollbackExportCreate_before_delete"
+    #failure_injections="failure_004:failure_074_VPlexDeviceController.deleteStorageView_before_delete"
 
     for failure in ${failure_injections}
     do
@@ -1749,29 +1750,32 @@ test_5() {
     echot "Test 5 Begins"
     expname=${EXPORT_GROUP_NAME}t5
 
-    common_failure_injections="failure_018_Export_doRollbackExportCreate_before_delete"
+    common_failure_injections=""
 
     storage_failure_injections=""
     if [ "${SS}" = "vplex" ]
     then
-	storage_failure_injections=""
+	storage_failure_injections="failure_074_VPlexDeviceController.deleteStorageView_before_delete"
     fi
 
     if [ "${SS}" = "vmax2" ]
     then
-	storage_failure_injections="failure_015_SmisCommandHelper.invokeMethod_DeleteGroup"
+	storage_failure_injections="failure_015_SmisCommandHelper.invokeMethod_DeleteGroup \
+                                    failure_018_Export_doRollbackExportCreate_before_delete"
     fi
 
     if [ "${SS}" = "vmax3" ]
     then
 	storage_failure_injections="failure_015_SmisCommandHelper.invokeMethod_DeleteGroup \
-                                    failure_015_SmisCommandHelper.invokeMethod_AddMembers"
+                                    failure_015_SmisCommandHelper.invokeMethod_AddMembers \
+                                    failure_018_Export_doRollbackExportCreate_before_delete"
     fi
 
     if [ "${SS}" = "vnx" ]
     then
 	storage_failure_injections="failure_015_SmisCommandHelper.invokeMethod_DeleteProtocolController \
-                                    failure_015_SmisCommandHelper.invokeMethod_DeleteStorageHardwareID"
+                                    failure_015_SmisCommandHelper.invokeMethod_DeleteStorageHardwareID \
+	                            failure_018_Export_doRollbackExportCreate_before_delete"
     fi
 
     failure_injections="${common_failure_injections} ${storage_failure_injections} ${network_failure_injections}"

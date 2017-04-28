@@ -4830,9 +4830,12 @@ recoverpoint_simulator_setup()
     fi
 
     run storagedevice discover_all
-    run transportzone assign VSAN_11 ${RECOVERPOINT_VARRAY1}
-    run transportzone assign VSAN_12 ${RECOVERPOINT_VARRAY2}
-    run transportzone assign VSAN_13 ${RECOVERPOINT_VARRAY3}
+    
+    # For the time being, use implicit network assignments for the varrays instead of
+    # explicit assignments.
+    #run transportzone assign VSAN_11 ${RECOVERPOINT_VARRAY1}
+    #run transportzone assign VSAN_12 ${RECOVERPOINT_VARRAY2}
+    #run transportzone assign VSAN_13 ${RECOVERPOINT_VARRAY3}
 
     RECOVERPOINT_IP=$RP_SIMULATOR_IP
     rp_protection_system_setup

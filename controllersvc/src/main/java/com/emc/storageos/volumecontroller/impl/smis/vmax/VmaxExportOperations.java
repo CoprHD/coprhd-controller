@@ -1262,9 +1262,9 @@ public class VmaxExportOperations implements ExportMaskOperations {
                         remainingVolumeURISet.removeAll(volumes);
                     }
 
-                    if (remainingVolumeURISet.size() != 0) {
-                        String errMsg = String.format("Volumes %s are not found in export mask %s. Attempt to remove volumes from the mask would lead to an empty storage group. This is not allowed on the array. Please remove the dangling volumes from the export first.",
-                                Joiner.on(',').join(remainingVolumeURISet), exportMask.getMaskName());
+                    if (!remainingVolumeURISet.isEmpty()) {
+                        String errMsg = String.format("Volumes %s are not found in the masking view %s. Attempt to remove volumes from the mask would lead to an empty storage group. This is not allowed on the array. Please remove the dangling volumes from the export first.",
+                                Joiner.on(',').join(remainingVolumeURISet), maskingViewName);
                         _log.error(errMsg);
                         ServiceError serviceError = DeviceControllerException.errors.jobFailedMsg(errMsg, null);
                         taskCompleter.error(_dbClient, serviceError);

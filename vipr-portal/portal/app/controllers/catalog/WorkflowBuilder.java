@@ -37,6 +37,7 @@ import org.owasp.esapi.ESAPI;
 import play.Logger;
 import play.data.validation.Required;
 import play.data.validation.Valid;
+import play.i18n.Messages;
 import play.mvc.Controller;
 import play.mvc.With;
 import util.StringOption;
@@ -60,6 +61,7 @@ import com.emc.storageos.model.customservices.InputUpdateParam.InputUpdateList;
 import com.emc.storageos.model.customservices.OutputParameterRestRep;
 import com.emc.storageos.model.customservices.OutputUpdateParam;
 import com.emc.storageos.primitives.CustomServicesConstants;
+import com.emc.storageos.primitives.CustomServicesConstants.AuthType;
 import com.emc.storageos.primitives.CustomServicesPrimitive.StepType;
 import com.emc.vipr.model.catalog.WFBulkRep;
 import com.emc.vipr.model.catalog.WFDirectoryParam;
@@ -67,6 +69,7 @@ import com.emc.vipr.model.catalog.WFDirectoryRestRep;
 import com.emc.vipr.model.catalog.WFDirectoryUpdateParam;
 import com.emc.vipr.model.catalog.WFDirectoryWorkflowsUpdateParam;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Maps;
 import com.google.gson.annotations.SerializedName;
 import com.sun.jersey.api.client.ClientResponse;
 
@@ -96,10 +99,10 @@ public class WorkflowBuilder extends Controller {
                 new StringOption("PUT", "PUT"),};
         renderArgs.put("restCallMethodOptions", Arrays.asList(restCallMethodOptions));
 
-        StringOption[] restCallAuthTypes = {
-                new StringOption("NoAuth", "No Auth"),
-                new StringOption("BasicAuth", "Basic Auth")};
-        renderArgs.put("restCallAuthTypes", Arrays.asList(restCallAuthTypes));
+        Map<String, String> restCallAuthTypes = Maps.newHashMap();
+        restCallAuthTypes.put(AuthType.NONE.toString(), Messages.get("rest.authType.noAuth"));
+        restCallAuthTypes.put(AuthType.BASIC.toString(), Messages.get("rest.authType.basicAuth"));
+        renderArgs.put("restCallAuthTypes", restCallAuthTypes);
 
         render();
     }
@@ -172,6 +175,7 @@ public class WorkflowBuilder extends Controller {
         // Add primitives
         addPrimitivesByType(topLevelNodes, StepType.LOCAL_ANSIBLE.toString(), MY_LIBRARY_ROOT, fileParents);
         addPrimitivesByType(topLevelNodes, StepType.SHELL_SCRIPT.toString(), MY_LIBRARY_ROOT, fileParents);
+        addPrimitivesByType(topLevelNodes, StepType.REST.toString(), MY_LIBRARY_ROOT, fileParents);
         addPrimitivesByType(topLevelNodes, StepType.VIPR_REST.toString(), VIPR_PRIMITIVE_ROOT, null);
 
         // Add workflows
@@ -559,11 +563,11 @@ public class WorkflowBuilder extends Controller {
 
                 // Get and update differences between existing and new inputs
                 final List<String> newInputs = getListFromInputOutputString(shellPrimitive.getInputs());
-                final List<String> existingInputs = convertInputGroupsToList(primitiveRestRep.getInputGroups());
+                final List<String> existingInputs = convertInputParamsGroupsToList(primitiveRestRep.getInputGroups());
                 final InputUpdateParam inputUpdateParam = new InputUpdateParam();
 
-                inputUpdateParam.setRemove(getInputDiff(existingInputs, newInputs));
-                inputUpdateParam.setAdd(getInputDiff(newInputs, existingInputs));
+                inputUpdateParam.setRemove(getInputParamsDiff(existingInputs, newInputs));
+                inputUpdateParam.setAdd(getInputParamsDiff(newInputs, existingInputs));
                 primitiveUpdateParam.setInput(inputUpdateParam);
 
                 // Get and update differences between existing and new outputs
@@ -593,12 +597,17 @@ public class WorkflowBuilder extends Controller {
         }
     }
 
-    private static Map<String, InputUpdateList> getInputDiff(
+    private static Map<String, InputUpdateList> getInputParamsDiff(
             final List<String> left, final List<String> right) {
+                return getInputDiff(left, right, CustomServicesConstants.INPUT_PARAMS);
+    }
+
+    private static Map<String, InputUpdateList> getInputDiff(
+            final List<String> left, final List<String> right, final String inputGroupType) {
         final InputUpdateList update = new InputUpdateList();
         update.setInput((List<String>) CollectionUtils.subtract(left, right));
         return ImmutableMap.<String, InputUpdateList> builder()
-                .put(CustomServicesConstants.INPUT_PARAMS, update)
+                .put(inputGroupType, update)
                 .build();
     }
 
@@ -658,7 +667,6 @@ public class WorkflowBuilder extends Controller {
             createShellScriptPrimitive(shellPrimitive);
         }
         view();
-
     }
 
     public static class LocalAnsiblePrimitiveForm {
@@ -812,10 +820,10 @@ public class WorkflowBuilder extends Controller {
 
                 // Get and update differences between existing and new inputs
                 final List<String> newInputs = getListFromInputOutputString(localAnsible.getInputs());
-                final List<String> existingInputs = convertInputGroupsToList(primitiveRestRep.getInputGroups());
+                final List<String> existingInputs = convertInputParamsGroupsToList(primitiveRestRep.getInputGroups());
                 final InputUpdateParam inputUpdateParam = new InputUpdateParam();
-                inputUpdateParam.setRemove(getInputDiff(existingInputs, newInputs));
-                inputUpdateParam.setAdd(getInputDiff(newInputs, existingInputs));
+                inputUpdateParam.setRemove(getInputParamsDiff(existingInputs, newInputs));
+                inputUpdateParam.setAdd(getInputParamsDiff(newInputs, existingInputs));
                 primitiveUpdateParam.setInput(inputUpdateParam);
 
                 // Get and update differences between existing and new outputs
@@ -917,10 +925,14 @@ public class WorkflowBuilder extends Controller {
 
     }
 
-    private static List<String> convertInputGroupsToList(final Map<String, CustomServicesPrimitiveRestRep.InputGroup> inputGroups) {
+    private static List<String> convertInputParamsGroupsToList(final Map<String, CustomServicesPrimitiveRestRep.InputGroup> inputGroups) {
+        return convertInputGroupsToList(inputGroups, CustomServicesConstants.INPUT_PARAMS);
+    }
+
+    private static List<String> convertInputGroupsToList(final Map<String, CustomServicesPrimitiveRestRep.InputGroup> inputGroups, final String inputGroupType) {
         final List<String> inputNameList = new ArrayList<String>();
-        if (null != inputGroups && !inputGroups.isEmpty() && inputGroups.containsKey(CustomServicesConstants.INPUT_PARAMS)) {
-            final List<InputParameterRestRep> inputParameterRestRepList = inputGroups.get(CustomServicesConstants.INPUT_PARAMS).getInputGroup();
+        if (null != inputGroups && !inputGroups.isEmpty() && inputGroups.containsKey(inputGroupType)) {
+            final List<InputParameterRestRep> inputParameterRestRepList = inputGroups.get(inputGroupType).getInputGroup();
             for (InputParameterRestRep inputParameterRestRep : inputParameterRestRepList) {
                 inputNameList.add(inputParameterRestRep.getName());
             }
@@ -948,7 +960,7 @@ public class WorkflowBuilder extends Controller {
             shellPrimitive.setId(primitiveRestRep.getId().toString());
             shellPrimitive.setName(primitiveRestRep.getName());
             shellPrimitive.setDescription(primitiveRestRep.getDescription());
-            shellPrimitive.setInputs(convertListToString(convertInputGroupsToList(primitiveRestRep.getInputGroups())));
+            shellPrimitive.setInputs(convertListToString(convertInputParamsGroupsToList(primitiveRestRep.getInputGroups())));
             shellPrimitive.setOutputs(convertListToString(convertOutputGroupsToList(primitiveRestRep.getOutput())));
             // TODO: get script name from API
             shellPrimitive.setScriptName("SAMPLE NAME");
@@ -962,7 +974,7 @@ public class WorkflowBuilder extends Controller {
             localAnsiblePrimitiveForm.setId(primitiveRestRep.getId().toString());
             localAnsiblePrimitiveForm.setName(primitiveRestRep.getName());
             localAnsiblePrimitiveForm.setDescription(primitiveRestRep.getDescription());
-            localAnsiblePrimitiveForm.setInputs(convertListToString(convertInputGroupsToList(primitiveRestRep.getInputGroups())));
+            localAnsiblePrimitiveForm.setInputs(convertListToString(convertInputParamsGroupsToList(primitiveRestRep.getInputGroups())));
             localAnsiblePrimitiveForm.setOutputs(convertListToString(convertOutputGroupsToList(primitiveRestRep.getOutput())));
             // TODO: get script name from API
             localAnsiblePrimitiveForm.setAnsiblePackageName("SAMPLE NAME");
@@ -970,6 +982,25 @@ public class WorkflowBuilder extends Controller {
             localAnsiblePrimitiveForm.setExisting(true);
         }
         return localAnsiblePrimitiveForm;
+    }
+
+    private static RestAPIPrimitiveForm mapPrimitiveRestAPIToForm(final CustomServicesPrimitiveRestRep primitiveRestRep) {
+        final RestAPIPrimitiveForm restAPIPrimitiveForm = new RestAPIPrimitiveForm();
+        if (null != primitiveRestRep) {
+            restAPIPrimitiveForm.setId(primitiveRestRep.getId().toString());
+            restAPIPrimitiveForm.setName(primitiveRestRep.getName());
+            restAPIPrimitiveForm.setDescription(primitiveRestRep.getDescription());
+            Map<String, String> attributes = primitiveRestRep.getAttributes();
+            restAPIPrimitiveForm.setAuthType(attributes.get(CustomServicesConstants.AUTH_TYPE.toString()));
+            restAPIPrimitiveForm.setRequestURL(attributes.get(CustomServicesConstants.PATH.toString()));
+            restAPIPrimitiveForm.setRawBody(attributes.get(CustomServicesConstants.BODY.toString()));
+            restAPIPrimitiveForm.setMethod(attributes.get(CustomServicesConstants.METHOD.toString()));
+            restAPIPrimitiveForm.setQueryParams(convertListToString(convertInputGroupsToList(primitiveRestRep.getInputGroups(), CustomServicesConstants.QUERY_PARAMS.toString())));
+            restAPIPrimitiveForm.setHeaders(convertListToString(convertInputGroupsToList(primitiveRestRep.getInputGroups(), CustomServicesConstants.HEADERS.toString())));
+            restAPIPrimitiveForm.setInputs(convertListToString(convertInputParamsGroupsToList(primitiveRestRep.getInputGroups())));
+            restAPIPrimitiveForm.setOutputs(convertListToString(convertOutputGroupsToList(primitiveRestRep.getOutput())));
+        }
+        return restAPIPrimitiveForm;
     }
 
     public static void getPrimitive(final URI primitiveId, final String primitiveType) {
@@ -982,6 +1013,8 @@ public class WorkflowBuilder extends Controller {
                     renderJSON(mapPrimitiveScriptRestToForm(primitiveRestRep));
                 case LOCAL_ANSIBLE:
                     renderJSON(mapPrimitiveLARestToForm(primitiveRestRep));
+                case REST:
+                    renderJSON(mapPrimitiveRestAPIToForm(primitiveRestRep));
                 default:
                     Logger.error("Invalid primitive type: %s", primitiveType);
             }
@@ -1004,16 +1037,11 @@ public class WorkflowBuilder extends Controller {
         @Required
         private String method; // get, post,..
         private String requestURL;
-        private String authType = "BasicAuth"; // only auth supported now
-        private String username;
-        private String password;
-        // TODO: Assume accept/content is always json?
-        //private String acceptType;
-
-        private Map<String, String> headers;
+        private String authType;
+        private String restOptions = "target,port";
+        private String headers;
         private String rawBody;
-
-        private Map<String, String> queryParams;
+        private String queryParams;
 
         // Input and Outputs
         private String inputs; // comma separated list of inputs
@@ -1024,14 +1052,237 @@ public class WorkflowBuilder extends Controller {
         public void validate() {
 
         }
+
+        public String getId() {
+            return id;
+        }
+
+        public void setId(String id) {
+            this.id = id;
+        }
+
+        public String getWfDirID() {
+            return wfDirID;
+        }
+
+        public void setWfDirID(String wfDirID) {
+            this.wfDirID = wfDirID;
+        }
+
+        public String getName() {
+            return name;
+        }
+
+        public void setName(String name) {
+            this.name = name;
+        }
+
+        public String getDescription() {
+            return description;
+        }
+
+        public void setDescription(String description) {
+            this.description = description;
+        }
+
+        public String getMethod() {
+            return method;
+        }
+
+        public void setMethod(String method) {
+            this.method = method;
+        }
+
+        public String getRequestURL() {
+            return requestURL;
+        }
+
+        public void setRequestURL(String requestURL) {
+            this.requestURL = requestURL;
+        }
+
+        public String getAuthType() {
+            return authType;
+        }
+
+        public void setAuthType(String authType) {
+            this.authType = authType;
+        }
+
+        public String getHeaders() {
+            return headers;
+        }
+
+        public void setHeaders(String headers) {
+            this.headers = headers;
+        }
+
+        public String getRawBody() {
+            return rawBody;
+        }
+
+        public void setRawBody(String rawBody) {
+            this.rawBody = rawBody;
+        }
+
+        public String getQueryParams() {
+            return queryParams;
+        }
+
+        public String getRestOptions() {
+            return restOptions;
+        }
+
+        public void setRestOptions(String restOptions) {
+            this.restOptions = restOptions;
+        }
+
+        public void setQueryParams(String queryParams) {
+            this.queryParams = queryParams;
+        }
+
+        public String getInputs() {
+            return inputs;
+        }
+
+        public void setInputs(String inputs) {
+            this.inputs = inputs;
+        }
+
+        public String getOutputs() {
+            return outputs;
+        }
+
+        public void setOutputs(String outputs) {
+            this.outputs = outputs;
+        }
     }
 
-    public static void saveRestAPIPrimitive(@Valid final RestAPIPrimitiveForm restAPIPrimitiveForm) {
-        restAPIPrimitiveForm.validate();
-        // TODO - call API to save primitive
-
+    public static void saveRestAPIPrimitive(@Valid final RestAPIPrimitiveForm restAPIPrimitive) {
+        restAPIPrimitive.validate();
+        if (StringUtils.isNotEmpty(restAPIPrimitive.getId())) {
+            editRestAPIPrimitive(restAPIPrimitive);
+        } else {
+            createRestAPIPrimitive(restAPIPrimitive);
+        }
         view();
+    }
 
+    private static void addInputs(String inputs, final ImmutableMap.Builder<String, InputCreateList> builder, String inputGroupType) {
+        if (StringUtils.isNotEmpty(inputs)) {
+            final List<String> list = getListFromInputOutputString(inputs);
+            final InputCreateList input = new InputCreateList();
+            input.setInput(list);
+            builder.put(inputGroupType, input);
+        }
+    }
+
+    private static void createRestAPIPrimitive(final RestAPIPrimitiveForm restAPIPrimitive) {
+        try {
+            final CustomServicesPrimitiveCreateParam primitiveCreateParam = new CustomServicesPrimitiveCreateParam();
+            primitiveCreateParam.setType(StepType.REST.toString());
+            primitiveCreateParam.setName(restAPIPrimitive.getName());
+            primitiveCreateParam.setDescription(restAPIPrimitive.getDescription());
+            primitiveCreateParam.setFriendlyName(restAPIPrimitive.getName());
+            primitiveCreateParam.setAttributes(new HashMap<String, String>());
+            primitiveCreateParam.getAttributes().put(CustomServicesConstants.PATH.toString(), restAPIPrimitive.getRequestURL());
+            if(restAPIPrimitive.getRawBody() == null) {
+                primitiveCreateParam.getAttributes().put(CustomServicesConstants.BODY.toString(), "");
+            }
+            else {
+                primitiveCreateParam.getAttributes().put(CustomServicesConstants.BODY.toString(), restAPIPrimitive.getRawBody());
+            }
+            // Only supported protocol is "https". Once other protocols are supported this value should come from UI form
+            primitiveCreateParam.getAttributes().put(CustomServicesConstants.PROTOCOL.toString(), "https");
+            primitiveCreateParam.getAttributes().put(CustomServicesConstants.METHOD.toString(), restAPIPrimitive.getMethod());
+            primitiveCreateParam.getAttributes().put(CustomServicesConstants.AUTH_TYPE.toString(), restAPIPrimitive.getAuthType());
+            if(AuthType.BASIC.toString().equals(restAPIPrimitive.getAuthType())) {
+                // Adding user, password to inputs if its "BASIC" auth type
+                restAPIPrimitive.setRestOptions(restAPIPrimitive.getRestOptions()+"user,password");
+            }
+
+            final ImmutableMap.Builder<String, InputCreateList> builder = ImmutableMap.<String, InputCreateList>builder();
+            // Add Input Groups
+            addInputs(restAPIPrimitive.getInputs(), builder, CustomServicesConstants.INPUT_PARAMS);
+            addInputs(restAPIPrimitive.getHeaders(), builder, CustomServicesConstants.HEADERS);
+            addInputs(restAPIPrimitive.getQueryParams(), builder, CustomServicesConstants.QUERY_PARAMS);
+            addInputs(restAPIPrimitive.getRestOptions(), builder, CustomServicesConstants.REST_OPTIONS);
+            primitiveCreateParam.setInput(builder.build());
+
+            if (StringUtils.isNotEmpty(restAPIPrimitive.getOutputs())) {
+                primitiveCreateParam.setOutput(getListFromInputOutputString(restAPIPrimitive.getOutputs()));
+            }
+
+            final CustomServicesPrimitiveRestRep primitiveRestRep = getCatalogClient().customServicesPrimitives()
+                    .createPrimitive(primitiveCreateParam);
+            if (primitiveRestRep != null) {
+                // add this to wf directory
+                addResourceToWFDirectory(primitiveRestRep.getId(), restAPIPrimitive.getWfDirID());
+            } else {
+                flash.error("Error while creating primitive");
+            }
+        } catch (final Exception e) {
+            Logger.error(e.getMessage());
+            flash.error(e.getMessage());
+        }
+    }
+
+    private static void prepareInputUpdates(final String inputGroupType, final String inputs,final CustomServicesPrimitiveRestRep primitiveRestRep, final InputUpdateParam inputUpdateParam) {
+        final List<String> newInputs = getListFromInputOutputString(inputs);
+        final List<String> existingInputs = convertInputGroupsToList(primitiveRestRep.getInputGroups(), inputGroupType);
+
+        inputUpdateParam.getRemove().putAll(getInputDiff(existingInputs, newInputs, inputGroupType));
+        inputUpdateParam.getAdd().putAll(getInputDiff(newInputs, existingInputs, inputGroupType));
+
+    }
+
+    private static void editRestAPIPrimitive(final RestAPIPrimitiveForm restAPIPrimitive) {
+        try {
+            final URI restPrimitiveID = new URI(restAPIPrimitive.getId());
+            final CustomServicesPrimitiveRestRep primitiveRestRep = getCatalogClient().customServicesPrimitives().getPrimitive(restPrimitiveID);
+            if (null != primitiveRestRep) {
+                // Update name, description
+                final CustomServicesPrimitiveUpdateParam primitiveUpdateParam = new CustomServicesPrimitiveUpdateParam();
+                primitiveUpdateParam.setName(restAPIPrimitive.getName());
+                primitiveUpdateParam.setDescription(restAPIPrimitive.getDescription());
+
+                // Get and update differences between existing and new inputs
+                final InputUpdateParam inputUpdateParam = new InputUpdateParam();
+                inputUpdateParam.setRemove(new HashMap<String, InputUpdateList>());
+                inputUpdateParam.setAdd(new HashMap<String, InputUpdateList>());
+                prepareInputUpdates(CustomServicesConstants.INPUT_PARAMS, restAPIPrimitive.getInputs(), primitiveRestRep, inputUpdateParam);
+                prepareInputUpdates(CustomServicesConstants.HEADERS, restAPIPrimitive.getHeaders(), primitiveRestRep, inputUpdateParam);
+                prepareInputUpdates(CustomServicesConstants.QUERY_PARAMS, restAPIPrimitive.getQueryParams(), primitiveRestRep, inputUpdateParam);
+                primitiveUpdateParam.setInput(inputUpdateParam);
+
+                // Get and update differences between existing and new outputs
+                final List<String> newOutputs = getListFromInputOutputString(restAPIPrimitive.getOutputs());
+                final List<String> existingOutputs = convertOutputGroupsToList(primitiveRestRep.getOutput());
+                final OutputUpdateParam outputUpdateParam = new OutputUpdateParam();
+                outputUpdateParam.setRemove((List<String>) CollectionUtils.subtract(existingOutputs, newOutputs));
+                outputUpdateParam.setAdd((List<String>) CollectionUtils.subtract(newOutputs, existingOutputs));
+                primitiveUpdateParam.setOutput(outputUpdateParam);
+
+                // Set attributes
+                primitiveUpdateParam.setAttributes(new HashMap<String, String>());
+                primitiveUpdateParam.getAttributes().put(CustomServicesConstants.PATH.toString(), restAPIPrimitive.getRequestURL());
+                if(restAPIPrimitive.getRawBody() == null) {
+                    primitiveUpdateParam.getAttributes().put(CustomServicesConstants.BODY.toString(), "");
+                }
+                else {
+                    primitiveUpdateParam.getAttributes().put(CustomServicesConstants.BODY.toString(), restAPIPrimitive.getRawBody());
+                }
+
+                // Only supported protocol is "https". Once other protocols are supported this value should come from UI form
+                primitiveUpdateParam.getAttributes().put(CustomServicesConstants.METHOD.toString(), restAPIPrimitive.getMethod());
+                primitiveUpdateParam.getAttributes().put(CustomServicesConstants.AUTH_TYPE.toString(), restAPIPrimitive.getAuthType());
+
+                getCatalogClient().customServicesPrimitives().updatePrimitive(restPrimitiveID, primitiveUpdateParam);
+            }
+        } catch (final Exception e) {
+            Logger.error(e.getMessage());
+            flash.error(e.getMessage());
+        }
     }
 
     public static void editPrimitiveName(final URI primitiveID, final String newName) {

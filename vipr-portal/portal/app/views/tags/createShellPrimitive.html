@@ -13,7 +13,7 @@ inputOutputTabID = 'inputOutputContent';
         <input type="hidden" name="shellPrimitive.id" id="shellPrimitive_id" ng-value="shellPrimitive.id"/>
 
         <div class="col-md-3 tabbable scriptTabbable">
-            <ul class="nav nav-pills nav-stacked">
+            <ul class="nav nav-pills nav-stacked primitivesNav">
                 <li role="presentation" class="active"><a href="${'#'+nameDescTabID}" data-toggle="tab"><span class="badge">1</span>
                     &{'primitive.menu.nameDescription'}</a></li>
                 <li class=""><a href="${'#'+uploadFileTabID}" data-toggle="tab"><span class="badge">2</span>
@@ -30,9 +30,9 @@ inputOutputTabID = 'inputOutputContent';
                         <control-group v-field='shellPrimitive.name' labelWidth="1" required >
                             <input-text class="initialFocus"></input-text>
                         </control-group>
-                        <control-group v-field='shellPrimitive.description' labelWidth="1" >
-                            <input-text></input-text>
-                        </control-group>
+                        #{field 'shellPrimitive.description'}
+                            #{Form.textAreaControlGroup field:field, rows:4 /}
+                        #{/field}
                     #{/Modal.body}
                 </div>
                 <div class="tab-pane" id="${uploadFileTabID}">

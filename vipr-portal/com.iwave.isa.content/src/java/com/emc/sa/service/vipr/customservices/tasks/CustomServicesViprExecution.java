@@ -236,14 +236,8 @@ public class CustomServicesViprExecution extends ViPRExecutionTask<CustomService
             }
 
             if (!strs[j].contains("{")) {
-                final String value;
-                if ((!strs[j].contains("["))) {
-                    //Single type parameter
-                    value = findReplace(strs[j], pos, false);
-                } else {
-                    //Array type parameter
-                    value = findReplace(strs[j], pos, true);
-                }
+                final String value = createBody(strs[j], pos);
+
                 if (value.isEmpty()) {
                     final String[] ar = strs[j].split(",");
                     if (ar.length>1) {
@@ -303,6 +297,15 @@ public class CustomServicesViprExecution extends ViPRExecutionTask<CustomService
         return joinStrs(strs);
     }
 
+    private String createBody(final String strs, final int pos) {
+        if ((!strs.contains("["))) {
+            //Single type parameter
+            return findReplace(strs, pos, false);
+        } else {
+            //Array type parameter
+            return findReplace(strs, pos, true);
+        }
+    }
     private List<String> getListofObjects(final String strs) {
         final Matcher m = Pattern.compile("\\$([\\w\\.\\@]+)").matcher(strs);
         while (m.find()) {

@@ -4106,15 +4106,15 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
             // and updates the export mask.
             removeVolumesFromStorageViewAndMask(client, exportMask, volumeIdsToProcess, parentStepId);
 
-            WorkflowStepCompleter.stepSucceded(stepId);
+            taskCompleter.ready(_dbClient);
         } catch (VPlexApiException vae) {
             _log.error("Exception removing volumes from Storage View: " + vae.getMessage(), vae);
-            WorkflowStepCompleter.stepFailed(stepId, vae);
+            failStep(taskCompleter, stepId, vae);
         } catch (Exception ex) {
             _log.error("Exception removing volumes from Storage View: " + ex.getMessage(), ex);
             String opName = ResourceOperationTypeEnum.REMOVE_STORAGE_VIEW_VOLUME.getName();
             ServiceError serviceError = VPlexApiException.errors.storageViewRemoveVolumeFailed(exportMask.getMaskName(), opName, ex);
-            WorkflowStepCompleter.stepFailed(stepId, serviceError);
+            failStep(taskCompleter, stepId, serviceError);
         }
     }
 

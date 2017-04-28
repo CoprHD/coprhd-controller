@@ -140,6 +140,14 @@ systemctl disable wickedd-dhcp6
 # Removed the floppy 
 echo "blacklist floppy" > /etc/modprobe.d/blacklist-floppy.conf
 
+# Installed the simulator
+#LQ echo "Starting install simulator"
+#LQ chmod 777 /aio-simulators/AIO_scripts/simulatorInstall.sh  || exit 1
+#LQ /aio-simulators/AIO_scripts/simulatorInstall.sh /aio-simulators  || exit 1
+#LQ echo "Ending install simulator"
+chmod u+x /etc/init.d/boot.InstallSimulator
+insserv -d boot.InstallSimulator
+
 #======================================
 # Umount kernel filesystems
 #--------------------------------------

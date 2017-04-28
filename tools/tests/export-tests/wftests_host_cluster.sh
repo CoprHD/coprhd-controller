@@ -34,6 +34,23 @@ get_host_datacenter() {
     echo `datacenter list ${vcenter_arg} | grep ${datacenter_id} | awk '{print $1}'`
 }
 
+create_volume_for_vmware() {
+    # tenant volname varray vpool project vcenter datacenter cluster
+    tenant_arg=$1
+    volname_arg=$2
+
+    virtualarray_id=`neighborhood list | grep "${3} " | awk '{print $3}'`
+    virtualpool_id=`cos list block | grep "${4} " | awk '{print $3}'`
+    project_id=`project list --tenant ${tenant_arg} | grep "${5} " | awk '{print $4}'`
+
+    vcenter_id=`vcenter list ${tenant_arg} | grep "${6} " | awk '{print $5}'`
+    datacenter_id=`datacenter list ${6} | grep "${7} " | awk '{print $4}'`
+    cluster_id=`cluster list ${tenant_arg} | grep "${8} " | awk '{print $4}'`
+
+    echo "=== catalog order CreateVolumeforVMware ${tenant_arg} project=${project_id},name=${volname_arg},virtualPool=${virtualpool_id},virtualArray=${virtualarray_id},host=${cluster_id},size=1,vcenter=${vcenter_id},datacenter=${datacenter_id} BlockServicesforVMwarevCenter"
+    echo `catalog order CreateVolumeforVMware ${tenant_arg} project=${project_id},name=${volname_arg},virtualPool=${virtualpool_id},virtualArray=${virtualarray_id},host=${cluster_id},size=1,vcenter=${vcenter_id},datacenter=${datacenter_id} BlockServicesforVMwarevCenter`
+}
+
 create_volume_and_datastore() {
     # tenant volname datastorename varray vpool project vcenter datacenter cluster
     tenant_arg=$1
@@ -118,8 +135,8 @@ delete_datastore() {
     datacenter_id=`datacenter list ${3} | grep "${4} " | awk '{print $4}'`
     cluster_id=`cluster list ${tenant_arg} | grep "${5} " | awk '{print $4}'`    
     
-    echo "=== catalog order DeleteVMwareDatastore ${tenant_arg} host=${cluster_id},datastoreName=${datastorename_arg},vcenter=${vcenter_id},datacenter=${datacenter_id}"
-    echo `catalog order DeleteVMwareDatastore ${tenant_arg} host=${cluster_id},datastoreName=${datastorename_arg},vcenter=${vcenter_id},datacenter=${datacenter_id}`
+    echo "=== catalog order DeleteVMwareDatastore ${tenant_arg} host=${cluster_id},datastoreName=${datastorename_arg},vcenter=${vcenter_id},datacenter=${datacenter_id} BlockServicesforVMwarevCenter"
+    echo `catalog order DeleteVMwareDatastore ${tenant_arg} host=${cluster_id},datastoreName=${datastorename_arg},vcenter=${vcenter_id},datacenter=${datacenter_id} BlockServicesforVMwarevCenter`
 }
 
 export_volume_vmware() {
@@ -158,6 +175,7 @@ extend_datastore() {
     volname_arg=$2
     datastorename_arg=$3   
     multipathpolicy_arg=$8
+    failure=$9
 
     volume_id=`volume list ${4} | grep "${2} " | awk '{print $7}'`
  
@@ -165,8 +183,8 @@ extend_datastore() {
     datacenter_id=`datacenter list ${5} | grep "${6} " | awk '{print $4}'`
     cluster_id=`cluster list ${tenant_arg} | grep "${7} " | awk '{print $4}'`
     
-    echo "=== catalog order ExtendDatastorewithExistingVolume ${tenant_arg} volumes=${volume_id},host=${cluster_id},datastoreName=${datastorename_arg},vcenter=${vcenter_id},datacenter=${datacenter_id},multipathPolicy=${multipathpolicy_arg}"
-    echo `catalog order ExtendDatastorewithExistingVolume ${tenant_arg} volumes=${volume_id},host=${cluster_id},datastoreName=${datastorename_arg},vcenter=${vcenter_id},datacenter=${datacenter_id},multipathPolicy=${multipathpolicy_arg}`
+    echo "=== catalog order ExtendDatastorewithExistingVolume ${tenant_arg} volume=${volume_id},host=${cluster_id},datastoreName=${datastorename_arg},vcenter=${vcenter_id},datacenter=${datacenter_id},multipathPolicy=${multipathpolicy_arg},artificialFailure=${failure} BlockServicesforVMwarevCenter"
+    echo `catalog order ExtendDatastorewithExistingVolume ${tenant_arg} volume=${volume_id},host=${cluster_id},datastoreName=${datastorename_arg},vcenter=${vcenter_id},datacenter=${datacenter_id},multipathPolicy=${multipathpolicy_arg},artificialFailure=${failure} BlockServicesforVMwarevCenter`
 }
 
 extend_datastore_for_host() {
@@ -2615,57 +2633,97 @@ test_expand_volume_and_datastore() {
 #
 test_extend_datastore() {
     test_name="test_extend_volume_and_datastore"
-    echot "Test ${test_name}"
+    echot "Test ${test_name} Begins"
     vcenter="vcenter1"
     random_num=${RANDOM}
     volume1=testvolume1-${random_num}
-    volume2=testvolume2-${random_num}
     datastore1=testds1-${random_num}    
     set_controller_cs_discovery_refresh_interval 1
-    cfs=("ExportGroup ExportMask Network Host Initiator")
+    cfs=("ExportGroup ExportMask Network Host Initiator Volume")
 
-    #syssvc $SANITY_CONFIG_FILE localhost set_prop validation_check false
+    # syssvc $SANITY_CONFIG_FILE localhost set_prop validation_check false
     run syssvc $SANITY_CONFIG_FILE localhost set_prop system_proxyuser_encpassword $SYSADMIN_PASSWORD
 
-    #host_cluster_failure_injections="failure_XXX"
-    #common_failure_injections="failure_XXX"
-    #rollback_failures="failure_XXX"
+    catalog_failure_injections="extend_vmfs_datastore"
+    common_failure_injections="failure_082_set_resource_tag"
             
     item=${RANDOM}
-    mkdir -p results/${item}  
+    mkdir -p results/${item}
 
-    # Create volume for extend operation
-    runcmd volume create ${volume1} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB
-    # Create volume and datastore
-    create_volume_and_datastore ${TENANT} ${volume2} ${datastore1} ${NH} ${VPOOL_BASE} ${PROJECT} ${vcenter} ${VCENTER_DATACENTER} ${VCENTER_CLUSTER}
+    # Create initial volume and datastore
+    create_volume_and_datastore ${TENANT} ${volume1} ${datastore1} ${NH} ${VPOOL_BASE} ${PROJECT} ${vcenter} ${VCENTER_DATACENTER} ${VCENTER_CLUSTER}
+
+    # Verify the datastore has been created
+    verify_datastore ${VCENTER_DATACENTER} ${datastore1} ${VCENTER_HOST}
+    if [ $? -ne 0 ]; then
+        echo "Datastore verification failed.  Skipping tests."
+        return 1
+    fi
     
-    failure_injections="${HAPPY_PATH_TEST_INJECTION}"  
+    failure_injections="${catalog_failure_injections} ${common_failure_injections}"
+    expected_lun_count=1
 
     for failure in ${failure_injections}
-    do       
-        if [ ${failure} == ${HAPPY_PATH_TEST_INJECTION} ]; then
-            secho "Running happy path test for ${test_name}..."
-        else    
-            secho "Running ${test_name} with failure scenario: ${failure}..."
-        fi    
-        
+    do
+        secho "Running ${test_name} with failure scenario: ${failure}..."
+        # Snap DB
+        snap_db 1 "${column_family[@]}"
+
         TEST_OUTPUT_FILE=test_output_${RANDOM}.log
         reset_counts
 
-        if [ ${failure} == ${HAPPY_PATH_TEST_INJECTION} ]; then
-            # Run expand operation - expand to 2GB
-            extend_datastore ${TENANT} ${volume1} ${datastore1} ${PROJECT} ${vcenter} ${VCENTER_DATACENTER} ${VCENTER_CLUSTER} "Default"
-        fi        
+        new_extent="extent-${RANDOM}"
+        create_volume_for_vmware ${TENANT} ${new_extent} ${NH} ${VPOOL_BASE} ${PROJECT} ${vcenter} ${VCENTER_DATACENTER} ${VCENTER_CLUSTER}
 
-        # Verify expand operation  
+        # Turn on failure at a specific point
+        set_artificial_failure none
+        set_artificial_failure ${failure}
+
+        # Request an extend order.
+        run extend_datastore ${TENANT} ${new_extent} ${datastore1} ${PROJECT} ${vcenter} ${VCENTER_DATACENTER} ${VCENTER_CLUSTER} "Default" ${failure}
+
+        # Wait for Vcenter to update.
+        sleep 10
+        # Verify the datastore LUN count remains the same
+        verify_datastore_lun_count ${VCENTER_DATACENTER} ${datastore1} ${VCENTER_HOST} ${expected_lun_count}
+        if [ $? -ne 0 ]; then
+            echo "Datastore LUN count verification failed (1)"
+            expected_lun_count=`expr $expected_lun_count + 1`
+            continue
+        fi
+
+        # Verify controller injected failures were hit
+        if [ "$failure" = "failure_082_set_resource_tag" ]; then
+            verify_failures ${failure}
+        fi
+
+        # Snap DB
+        snap_db 2 "${column_family[@]}"
+
+        # Validate DB
+        validate_db 1 2 "${column_family[@]}"
+
+        # Rerun the expand operation
+        set_artificial_failure none
+        run extend_datastore ${TENANT} ${new_extent} ${datastore1} ${PROJECT} ${vcenter} ${VCENTER_DATACENTER} ${VCENTER_CLUSTER} "Default"
+
+        # Increase expected LUN count
+        expected_lun_count=`expr $expected_lun_count + 1`
+        # Verify the datastore LUN count has increased by 1
+        verify_datastore_lun_count ${VCENTER_DATACENTER} ${datastore1} ${VCENTER_HOST} ${expected_lun_count}
+        if [ $? -ne 0 ]; then
+            echo "Datastore LUN count verification failed (2)"
+            expected_lun_count=`expr $expected_lun_count - 1`
+            continue
+        fi
 
         # Report results
         report_results ${test_name} ${failure}
-        
+
         # Add a break in the output
         echo " "
-    done    
-    
+    done
+
     # Cleanup volume and datastore
     delete_datastore_and_volume ${TENANT} ${datastore1} ${vcenter} ${VCENTER_DATACENTER} ${VCENTER_CLUSTER}
 }

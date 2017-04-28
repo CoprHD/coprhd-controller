@@ -991,3 +991,14 @@ verify_datastore_capacity() {
     return_status=$?
     return $return_status
 }
+
+verify_datastore_lun_count() {
+    datacenter=$1
+    datastore=$2
+    host=$3
+    count=$4
+
+    runcmd vcenterhelper.sh verify_datastore_lun_count $datacenter $datastore $host $count
+    return_status=$?
+    return $return_status
+}

@@ -569,7 +569,6 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
         stepData.id = randomIdHash;
         stepData.positionY = positionY;
         stepData.positionX = positionX;
-        console.log(stepData);
 
         // Add default params
         if (!stepData.output) {
@@ -580,8 +579,6 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
                 stepData.output.push({type:"String", name:DEFAULT_OUTPUT_PARAMS[outputparam]});
             }
         }
-
-        console.log(stepData);
 
         $scope.modified = true;
         loadStep(stepData);

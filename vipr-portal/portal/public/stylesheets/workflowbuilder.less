@@ -287,6 +287,10 @@ table, th , td {
     padding-right:5px;
 }
 
+#treeMoreOptionsSel.treeMoreOptions {
+    z-index: 1;
+}
+
 #optionsHoverBtn {
     background-color:#efefef;
     border-color:#efefef;
@@ -332,4 +336,10 @@ table, th , td {
     background-size: contain;
     background-image: url(/public/img/customServices/LocalAnsible.svg);
     background-repeat: no-repeat
+}
+
+.required .panel-title:after {
+  content: '*';
+  color: #a94442;
+  font-size: 18px;
 }

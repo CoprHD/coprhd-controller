@@ -813,7 +813,7 @@ setup_yaml() {
     touch $tools_file
 
     # Append the vcenter attributes 
-    printf 'vcenter:\n  - ip: %s:%s\n    username: %s\n    password: %s' "${VCENTER_IP}" "${VCENTER_PORT}" "${VCENTER_USERNAME}" "${VCENTER_PASSWORD}" >> $tools_file
+    printf 'vcenter:\n  - ip: %s:%s\n    username: %s\n    password: %s\n' "${VCENTER_IP}" "${VCENTER_PORT}" "${VCENTER_USERNAME}" "${VCENTER_PASSWORD}" >> $tools_file
 
     # Append Windows host attributes
     printf 'hosts:\n  windows:\n  - ip: %s:%s:false\n    username: %s\n    password: %s\n' "${WINDOWS_HOST_IP}" "${WINDOWS_HOST_PORT}" "${WINDOWS_HOST_USERNAME}" "${WINDOWS_HOST_PASSWORD}" >> $tools_file

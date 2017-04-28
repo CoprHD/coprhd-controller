@@ -37,8 +37,10 @@
     width:4000px;
     height:4000px;
     position:relative;
-    background-image: url("/public/img/grid.png");
+    background-image: url("/public/img/customServices/CanvasPattern.svg");
 	background-color: #f7f7f7;
+    background-position: -130px -130px;
+    background-size: 501px;
 }
 .example-item-card-wrapper {
     position:absolute;
@@ -92,11 +94,6 @@
     float: right;
 }
 
-.passEndpoint svg circle {
-     fill: #5cb85c;
-     border-color: #4cae4c;
- }
-
 .failEndpoint svg circle {
     fill: #d9534f;
     border-color: #d43f3a;
@@ -111,8 +108,9 @@
 }
 
 .jsplumb-endpoint {
+    background-size: contain !important;
     z-index: 5;
-    //opacity: 0.2;
+    opacity: 0.2;
     stroke: none;
 }
 
@@ -120,7 +118,6 @@
     color: black;
     font-size: 13px;
     pointer-events:none;
-    float: left;
     width: inherit;
     padding: 5px;
 }
@@ -298,4 +295,41 @@ table, th , td {
 #optionsBtn {
     background-color:#dcecf7;
     border-color:#dcecf7;
+    background-size: contain !important;
+}
+
+.builder-jstree-icon {
+    background-position: center center !important;
+    background-size: contain !important;
+}
+
+.builder-vipr-icon {
+    background-image: url(/public/img/customServices/ViPRest.svg) !important;
+}
+
+.builder-ansible-icon {
+    background-image: url(/public/img/customServices/LocalAnsible.svg) !important;
+}
+
+.builder-script-icon {
+    background-image: url(/public/img/customServices/Script.svg) !important;
+}
+
+.builder-workflow-icon {
+    background-image: url(/public/img/customServices/TreeNodeWF.svg) !important;
+}
+
+.builder-folder-icon {
+    background-image: url(/public/img/customServices/TreeFolder.svg) !important;
+}
+
+.step-type-image {
+    height: 80%;
+    width: 20%;
+    float: left;
+    text-align: center;
+    margin: 5px;
+    background-size: contain;
+    background-image: url(/public/img/customServices/LocalAnsible.svg);
+    background-repeat: no-repeat
 }

@@ -158,15 +158,16 @@ expand_volume_and_datastore_for_host() {
     volname_arg=$2
     datastorename_arg=$3   
     size_arg=$8
-
+    failure=$9
+    
     volume_id=`volume list ${4} | grep "${2} " | awk '{print $7}'`
  
     vcenter_id=`vcenter list ${tenant_arg} | grep "${5} " | awk '{print $5}'`
     datacenter_id=`datacenter list ${5} | grep "${6} " | awk '{print $4}'`
     host_id=`hosts list ${tenant_arg} | grep "${7} " | awk '{print $4}'`
     
-    echo "=== catalog order ExpandVolumeandDatastore ${tenant_arg} volumes=${volume_id},host=${host_id},datastoreName=${datastorename_arg},vcenter=${vcenter_id},datacenter=${datacenter_id},size=${size_arg} BlockServicesforVMwarevCenter"
-    echo `catalog order ExpandVolumeandDatastore ${tenant_arg} volumes=${volume_id},host=${host_id},datastoreName=${datastorename_arg},vcenter=${vcenter_id},datacenter=${datacenter_id},size=${size_arg} BlockServicesforVMwarevCenter`
+    echo "=== catalog order ExpandVolumeandDatastore ${tenant_arg} volumes=${volume_id},host=${host_id},datastoreName=${datastorename_arg},vcenter=${vcenter_id},datacenter=${datacenter_id},size=${size_arg},artificialFailure=${failure} BlockServicesforVMwarevCenter"
+    echo `catalog order ExpandVolumeandDatastore ${tenant_arg} volumes=${volume_id},host=${host_id},datastoreName=${datastorename_arg},vcenter=${vcenter_id},datacenter=${datacenter_id},size=${size_arg},artificialFailure=${failure} BlockServicesforVMwarevCenter`
 }
 
 extend_datastore() {
@@ -193,6 +194,7 @@ extend_datastore_for_host() {
     volname_arg=$2
     datastorename_arg=$3   
     multipathpolicy_arg=$8
+    failure=$9
 
     volume_id=`volume list ${4} | grep "${2} " | awk '{print $7}'`
  
@@ -200,8 +202,8 @@ extend_datastore_for_host() {
     datacenter_id=`datacenter list ${5} | grep "${6} " | awk '{print $4}'`
     host_id=`hosts list ${tenant_arg} | grep "${7} " | awk '{print $4}'`
     
-    echo "=== catalog order ExtendDatastorewithExistingVolume ${tenant_arg} volumes=${volume_id},host=${host_id},datastoreName=${datastorename_arg},vcenter=${vcenter_id},datacenter=${datacenter_id},multipathPolicy=${multipathpolicy_arg}"
-    echo `catalog order ExtendDatastorewithExistingVolume ${tenant_arg} volumes=${volume_id},host=${host_id},datastoreName=${datastorename_arg},vcenter=${vcenter_id},datacenter=${datacenter_id},multipathPolicy=${multipathpolicy_arg}`
+    echo "=== catalog order ExtendDatastorewithExistingVolume ${tenant_arg} volumes=${volume_id},host=${host_id},datastoreName=${datastorename_arg},vcenter=${vcenter_id},datacenter=${datacenter_id},multipathPolicy=${multipathpolicy_arg},artificialFailure=${failure} BlockServicesforVMwarevCenter"
+    echo `catalog order ExtendDatastorewithExistingVolume ${tenant_arg} volumes=${volume_id},host=${host_id},datastoreName=${datastorename_arg},vcenter=${vcenter_id},datacenter=${datacenter_id},multipathPolicy=${multipathpolicy_arg},artificialFailure=${failure} BlockServicesforVMwarevCenter`
 }
 
 # Test - Host Add Initiator
@@ -2530,10 +2532,11 @@ test_expand_volume_and_datastore() {
 
     run syssvc $SANITY_CONFIG_FILE localhost set_prop system_proxyuser_encpassword $SYSADMIN_PASSWORD
 
-    #host_cluster_failure_injections="failure_XXX"
-    #common_failure_injections="failure_XXX"
-    #rollback_failures="failure_XXX"
-            
+    common_failure_injections="failure_004_final_step_in_workflow_complete \
+                         failure_080_BlockDeviceController.expandVolume_before_device_expand \
+                         failure_081_BlockDeviceController.expandVolume_after_device_expand"    
+    catalog_failures_injections="extend_vmfs_datastore"                
+                
     item=${RANDOM}
     mkdir -p results/${item}  
     
@@ -2548,7 +2551,7 @@ test_expand_volume_and_datastore() {
     # Only perform the tests if the datastore exists
     if [ $? -eq 0 ];
     then
-        failure_injections="${HAPPY_PATH_TEST_INJECTION}"  
+        failure_injections="${HAPPY_PATH_TEST_INJECTION} ${common_failure_injections} ${catalog_failures_injections}"  
         size=1
     
         for failure in ${failure_injections}
@@ -2582,7 +2585,7 @@ test_expand_volume_and_datastore() {
                 set_artificial_failure ${failure}
 
                 # Move the host to the cluster
-                fail expand_volume_and_datastore_for_host ${TENANT} ${volume1} ${datastore1} ${PROJECT} ${vcenter} ${VCENTER_DATACENTER} ${VCENTER_HOST} "${size}"
+                fail expand_volume_and_datastore_for_host ${TENANT} ${volume1} ${datastore1} ${PROJECT} ${vcenter} ${VCENTER_DATACENTER} ${VCENTER_HOST} "${size}" ${failure}
     
                 # Verify injected failures were hit
                 verify_failures ${failure}

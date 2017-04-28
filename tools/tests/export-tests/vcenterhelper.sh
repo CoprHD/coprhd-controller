@@ -73,7 +73,6 @@ verify_datastore_capacity() {
             grep -n datastoreCapacity ${TMPFILE1} > /dev/null
             if [ $? -eq 0 ]; then
                 result=$(grep datastoreCapacity ${TMPFILE1} | cut -d ':' -f 2)
-                secho "RESULT: ${result}"
                 if [ $result -le $UPPER_BOUND -a $result -ge $LOWER_BOUND ]; then
                     echo "PASSED: Verified Datastore ${DATASTORE} has the desired capacity ${CAPACITY}."
                     exit 0;

@@ -70,6 +70,7 @@ import com.emc.storageos.recoverpoint.utils.WwnUtils;
 import com.emc.storageos.util.ConnectivityUtil;
 import com.emc.storageos.util.NetworkUtil;
 import com.emc.storageos.util.VersionChecker;
+import com.emc.storageos.varraygenerators.VarrayGenerator;
 import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
 import com.emc.storageos.volumecontroller.impl.StoragePoolAssociationHelper;
@@ -2025,6 +2026,8 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
             }
 
             StoragePortAssociationHelper.runUpdatePortAssociationsProcess(allPorts, null, _dbClient, _coordinator, null);
+            
+            VarrayGenerator.generateVarrays(vplexStorageSystem);
 
             // discovery succeeds
             detailedStatusMessage = String.format("Discovery completed successfully for Storage System: %s",

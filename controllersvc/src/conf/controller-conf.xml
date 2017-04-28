@@ -1814,5 +1814,10 @@
     <bean id="hostRescanDeviceController" class="com.emc.storageos.computecontroller.impl.HostRescanDeviceController">
         <property name="dbClient" ref="dbclient"/>
     </bean>
+
+    <bean id="vplexVarrayGenerator" class="com.emc.storageos.varraygenerators.VplexVarrayGenerator">
+        <property name="coordinator" ref="coordinator"/>
+        <property name="dbClient" ref="dbclient"/>
+    </bean>
 </beans>
 

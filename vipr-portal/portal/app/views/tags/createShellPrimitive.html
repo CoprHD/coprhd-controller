@@ -30,9 +30,9 @@ inputOutputTabID = 'inputOutputContent';
                         <control-group v-field='shellPrimitive.name' labelWidth="1" required >
                             <input-text class="initialFocus"></input-text>
                         </control-group>
-                        #{field 'shellPrimitive.description'}
-                            #{Form.textAreaControlGroup field:field, rows:4 /}
-                        #{/field}
+                        <control-group v-field='shellPrimitive.description' labelWidth="1" >
+                            <input-text></input-text>
+                        </control-group>
                     #{/Modal.body}
                 </div>
                 <div class="tab-pane" id="${uploadFileTabID}">

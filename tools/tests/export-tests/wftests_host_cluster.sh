@@ -2645,7 +2645,7 @@ test_extend_datastore() {
     run syssvc $SANITY_CONFIG_FILE localhost set_prop system_proxyuser_encpassword $SYSADMIN_PASSWORD
 
     catalog_failure_injections="extend_vmfs_datastore"
-    common_failure_injections="failure_099_set_resource_tag"
+    common_failure_injections="failure_082_set_resource_tag"
             
     item=${RANDOM}
     mkdir -p results/${item}

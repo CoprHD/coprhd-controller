@@ -27,7 +27,7 @@ def remotereplicationset_failover(args):
     replicationset_uri = bourne.replicationset_query(args.replicationset_name)
     print 'Replication set uri: ' + replicationset_uri
 
-    s = bourne.replicationset_failover(replicationgroup_uri)
+    s = bourne.replicationset_failover(replicationset_uri)
     if (s['state'] == 'ready'):
         print 'Failed over remote replication set with id ' + s['resource']['id']
     else:

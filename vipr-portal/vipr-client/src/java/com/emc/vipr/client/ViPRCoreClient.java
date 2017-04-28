@@ -44,6 +44,7 @@ import com.emc.vipr.client.core.ObjectBuckets;
 import com.emc.vipr.client.core.ObjectNamespaces;
 import com.emc.vipr.client.core.ObjectVirtualPools;
 import com.emc.vipr.client.core.OpenStackTenants;
+import com.emc.vipr.client.core.PrimitiveResources;
 import com.emc.vipr.client.core.Projects;
 import com.emc.vipr.client.core.ProtectionSystems;
 import com.emc.vipr.client.core.QuotaDirectories;
@@ -364,6 +365,10 @@ public class ViPRCoreClient {
     public Workflows workflows() {
         return new Workflows(this, client);
     }
+    
+    public PrimitiveResources primitiveResources() {
+        return new PrimitiveResources(this, client);
+    }    
 
     public VirtualDataCenter vdc() {
         return new VirtualDataCenter(client);

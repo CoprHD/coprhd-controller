@@ -212,4 +212,7 @@ public class PathConstants {
     public static final String STORAGE_DRIVER_INSTALL_URL = "/storagedriver";
     public static final String STORAGE_DRIVER_UNINSTALL_URL = "/storagedriver/{driverName}";
     public static final String STORAGE_DRIVER_UPGRADE_URL = "/storagedriver/{driverName}";
+    
+    public static final String PRIMITIVE_RESOURCE_GET_URL = "/primitives/resource";
+
 }

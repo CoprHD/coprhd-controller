@@ -34,17 +34,11 @@ import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang.StringUtils;
 import org.owasp.esapi.ESAPI;
 
-import play.Logger;
-import play.data.validation.Required;
-import play.data.validation.Valid;
-import play.mvc.Controller;
-import play.mvc.With;
-import util.StringOption;
-
 import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.customservices.CustomServicesPrimitiveCreateParam;
 import com.emc.storageos.model.customservices.CustomServicesPrimitiveCreateParam.InputCreateList;
 import com.emc.storageos.model.customservices.CustomServicesPrimitiveList;
+import com.emc.storageos.model.customservices.CustomServicesPrimitiveResourceList;
 import com.emc.storageos.model.customservices.CustomServicesPrimitiveResourceRestRep;
 import com.emc.storageos.model.customservices.CustomServicesPrimitiveRestRep;
 import com.emc.storageos.model.customservices.CustomServicesPrimitiveUpdateParam;
@@ -61,7 +55,6 @@ import com.emc.storageos.model.customservices.OutputParameterRestRep;
 import com.emc.storageos.model.customservices.OutputUpdateParam;
 import com.emc.storageos.primitives.CustomServicesConstants;
 import com.emc.storageos.primitives.CustomServicesPrimitive.StepType;
-import com.emc.vipr.model.catalog.CatalogCategoryRestRep;
 import com.emc.vipr.model.catalog.WFBulkRep;
 import com.emc.vipr.model.catalog.WFDirectoryParam;
 import com.emc.vipr.model.catalog.WFDirectoryRestRep;
@@ -72,6 +65,12 @@ import com.google.gson.annotations.SerializedName;
 import com.sun.jersey.api.client.ClientResponse;
 
 import controllers.Common;
+import play.Logger;
+import play.data.validation.Required;
+import play.data.validation.Valid;
+import play.mvc.Controller;
+import play.mvc.With;
+import util.StringOption;
 
 /**
  * @author Nick Aquino
@@ -837,16 +836,22 @@ public class WorkflowBuilder extends Controller {
                 if (!localAnsible.isExisting()) {
 
                     // TODO: delete old inventory files resource
-                    /*String ansiblePackageId = primitiveRestRep.getResource().getId().toString();
+    	            // Retrieve the Ansible Package ID and its related Inventory Files
+    	            URI ansiblePackageResourceId = primitiveRestRep.getResource().getId();
+    	            CustomServicesPrimitiveResourceList primitiveResourceList = getCatalogClient().customServicesPrimitives().getPrimitiveResource("ANSIBLE_inventory", ansiblePackageResourceId);
+    				
+    		        if (null != primitiveResourceList && null != primitiveResourceList.getResources()) {
+    		            for (NamedRelatedResourceRep resource : primitiveResourceList.getResources()) {
+    						URI inventoryFileResourceId = resource.getId();
+    						String inventoryFileResourceName = resource.getName();
 
-					CustomServicesPrimitiveResourceRestRep inventoryFilesResourceResp = getCatalogClient().customServicesPrimitives().getPrimitiveResource("ANSIBLE_inventory", ansiblePackageId)
-					
-                	CustomServicesPrimitiveResourceRestRep deleteInventoryFilesResourseResp = null;
+    	                	CustomServicesPrimitiveResourceRestRep deletePrimitiveResourseResp = getCatalogClient().customServicesPrimitives().deletePrimitiveResource(CustomServicesConstants.ANSIBLE_INVENTORY_TYPE, 
+    	            				localAnsible.ansiblePackage, localAnsible.ansiblePackageName, ansiblePackageResourceId);
+    						
+    		            }
+
+    		        }
                 	
-                	deleteInventoryFilesResourseResp = getCatalogClient().customServicesPrimitives().deletePrimitiveResource(CustomServicesConstants.ANSIBLE_INVENTORY_TYPE, 
-            				localAnsible.ansiblePackage, localAnsible.ansiblePackageName, ansiblePackageId);
-                	*/
-
                     // create new resource
                     final CustomServicesPrimitiveResourceRestRep primitiveResourceRestRep = getCatalogClient().customServicesPrimitives()
                             .createPrimitiveResource("ANSIBLE", localAnsible.ansiblePackage, localAnsible.ansiblePackageName, null);
@@ -1013,19 +1018,42 @@ public class WorkflowBuilder extends Controller {
     }
 
     private static LocalAnsiblePrimitiveForm mapPrimitiveLARestToForm(final CustomServicesPrimitiveRestRep primitiveRestRep) {
+    	
         final LocalAnsiblePrimitiveForm localAnsiblePrimitiveForm = new LocalAnsiblePrimitiveForm();
-        if (null != primitiveRestRep) {
-            localAnsiblePrimitiveForm.setId(primitiveRestRep.getId().toString());
-            localAnsiblePrimitiveForm.setName(primitiveRestRep.getName());
-            localAnsiblePrimitiveForm.setDescription(primitiveRestRep.getDescription());
-            //localAnsiblePrimitiveForm.setInventoryFiles(primitiveRestRep.g);
-            localAnsiblePrimitiveForm.setInputs(convertListToString(convertInputGroupsToList(primitiveRestRep.getInputGroups())));
-            localAnsiblePrimitiveForm.setOutputs(convertListToString(convertOutputGroupsToList(primitiveRestRep.getOutput())));
-            // TODO: get script name from API
-            localAnsiblePrimitiveForm.setAnsiblePackageName("SAMPLE NAME");
-            localAnsiblePrimitiveForm.setAnsiblePlaybook(primitiveRestRep.getAttributes().get("playbook"));
-            localAnsiblePrimitiveForm.setExisting(true);
-        }
+        
+        try {
+	        if (null != primitiveRestRep) {
+	            localAnsiblePrimitiveForm.setId(primitiveRestRep.getId().toString());
+	            localAnsiblePrimitiveForm.setName(primitiveRestRep.getName());
+	            localAnsiblePrimitiveForm.setDescription(primitiveRestRep.getDescription());
+	            
+	            // Retrieve the Ansible Package ID and its related Inventory Files
+	            URI ansiblePackageId = primitiveRestRep.getResource().getId();
+	            CustomServicesPrimitiveResourceList primitiveResourceList = getCatalogClient().customServicesPrimitives().getPrimitiveResource("ANSIBLE_inventory", ansiblePackageId);
+				
+				List<File> inventoryFiles = new ArrayList<File>();
+		        if (null != primitiveResourceList && null != primitiveResourceList.getResources()) {
+		            for (NamedRelatedResourceRep resource : primitiveResourceList.getResources()) {
+						File inventoryFile = new File(resource.getName());
+						inventoryFiles.add(inventoryFile);
+		            }
+					File[] finalinventoryFiles = inventoryFiles.toArray(new File[inventoryFiles.size()]);
+					localAnsiblePrimitiveForm.setInventoryFiles(finalinventoryFiles);
+		        }
+	            
+	            localAnsiblePrimitiveForm.setInputs(convertListToString(convertInputGroupsToList(primitiveRestRep.getInputGroups())));
+	            localAnsiblePrimitiveForm.setOutputs(convertListToString(convertOutputGroupsToList(primitiveRestRep.getOutput())));
+	            // TODO: get script name from API
+	            localAnsiblePrimitiveForm.setAnsiblePackageName("SAMPLE NAME");
+	            localAnsiblePrimitiveForm.setAnsiblePlaybook(primitiveRestRep.getAttributes().get("playbook"));
+	            localAnsiblePrimitiveForm.setExisting(true);
+	        }
+	        
+	    } catch (final Exception e) {
+	        Logger.error(e.getMessage());
+	        flash.error(e.getMessage());
+	    }
+    	
         return localAnsiblePrimitiveForm;
     }
 

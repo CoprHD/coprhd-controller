@@ -23,6 +23,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.net.URI;
 import java.util.List;
+import java.util.Properties;
 
 import javax.ws.rs.core.UriBuilder;
 
@@ -30,6 +31,7 @@ import com.emc.storageos.model.BulkIdParam;
 import com.emc.storageos.model.customservices.CustomServicesPrimitiveBulkRestRep;
 import com.emc.storageos.model.customservices.CustomServicesPrimitiveCreateParam;
 import com.emc.storageos.model.customservices.CustomServicesPrimitiveList;
+import com.emc.storageos.model.customservices.CustomServicesPrimitiveResourceList;
 import com.emc.storageos.model.customservices.CustomServicesPrimitiveResourceRestRep;
 import com.emc.storageos.model.customservices.CustomServicesPrimitiveRestRep;
 import com.emc.storageos.model.customservices.CustomServicesPrimitiveUpdateParam;
@@ -89,14 +91,6 @@ public class CustomServicesClient extends AbstractCatalogBulkResources<CustomSer
         return client.postURIOctet(CustomServicesPrimitiveResourceRestRep.class, new FileInputStream(resource), builder.build());
     }
 
-    public CustomServicesPrimitiveResourceRestRep getPrimitiveResource(final String resourceType, final URI ansiblePackageId) throws IOException {
-        final UriBuilder builder = client.uriBuilder(PathConstants.CUSTOM_SERVICES_PRIMITIVE_RESOURCE);
-        builder.queryParam("type", resourceType);
-        builder.queryParam("parentId", ansiblePackageId);
-        
-        return client.postURI(CustomServicesPrimitiveResourceRestRep.class, builder.build());
-    }
-
     public CustomServicesPrimitiveResourceRestRep deletePrimitiveResource(final String resourceType, final File resource, 
     		final String resourceName, final URI ansiblePackageId) throws IOException {
         final UriBuilder builder = client.uriBuilder(PathConstants.CUSTOM_SERVICES_PRIMITIVE_RESOURCE);
@@ -107,12 +101,10 @@ public class CustomServicesClient extends AbstractCatalogBulkResources<CustomSer
         
         return client.postURIOctet(CustomServicesPrimitiveResourceRestRep.class, new FileInputStream(resource), builder.build());
     }
-    
 
     public CustomServicesPrimitiveResourceRestRep updatePrimitiveResource(final URI id, final String name) throws IOException {
         return client.put(CustomServicesPrimitiveResourceRestRep.class, PathConstants.CUSTOM_SERVICES_PRIMITIVE_RESOURCE, id, name);
     }
-
 
     public CustomServicesPrimitiveRestRep createPrimitive(final CustomServicesPrimitiveCreateParam param) {
         final UriBuilder builder = client.uriBuilder(PathConstants.CUSTOM_SERVICES_PRIMITIVES);
@@ -175,4 +167,12 @@ public class CustomServicesClient extends AbstractCatalogBulkResources<CustomSer
     public CustomServicesPrimitiveResourceRestRep getPrimitiveResource(final URI id) {
         return client.get(CustomServicesPrimitiveResourceRestRep.class, PathConstants.CUSTOM_SERVICES_PRIMITIVE_RESOURCE, id);
     }
+
+    public CustomServicesPrimitiveResourceList getPrimitiveResource(final String resourceType, final URI ansiblePackageId) throws IOException {
+    	Properties prop = new Properties();
+    	prop.setProperty("type", resourceType);
+    	prop.setProperty("parentId", ansiblePackageId.toString());
+        return client.get(CustomServicesPrimitiveResourceList.class, PathConstants.CUSTOM_SERVICES_PRIMITIVE_RESOURCE, prop);
+    }
+   
 }

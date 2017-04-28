@@ -4,27 +4,28 @@
  */
 package com.emc.vipr.client.impl;
 
-import com.emc.vipr.client.ClientConfig;
-import com.emc.vipr.client.impl.jersey.*;
-import com.sun.jersey.api.client.*;
-import com.sun.jersey.api.client.config.DefaultClientConfig;
-import com.sun.jersey.core.impl.provider.entity.MimeMultipartProvider;
-import com.sun.jersey.multipart.FormDataMultiPart;
-import com.sun.jersey.multipart.impl.MultiPartReaderClientSide;
-import com.sun.jersey.multipart.impl.MultiPartReaderServerSide;
-import com.sun.jersey.multipart.impl.MultiPartWriter;
+import java.net.URI;
+import java.util.Properties;
 
-import com.sun.jersey.core.impl.provider.entity.InputStreamProvider; 
-import com.sun.jersey.core.impl.provider.entity.StringProvider;
-
-import org.codehaus.jackson.jaxrs.JacksonJaxbJsonProvider;
-import org.slf4j.LoggerFactory;
 import javax.net.ssl.HttpsURLConnection;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.UriBuilder;
 
-import java.net.URI;
-import java.util.Properties;
+import org.codehaus.jackson.jaxrs.JacksonJaxbJsonProvider;
+import org.slf4j.LoggerFactory;
+
+import com.emc.vipr.client.ClientConfig;
+import com.emc.vipr.client.impl.jersey.AuthTokenFilter;
+import com.emc.vipr.client.impl.jersey.ExceptionOnErrorFilter;
+import com.emc.vipr.client.impl.jersey.LoggingFilter;
+import com.emc.vipr.client.impl.jersey.ProxyTokenFilter;
+import com.emc.vipr.client.impl.jersey.RetryFilter;
+import com.emc.vipr.client.impl.jersey.TokenAccess;
+import com.emc.vipr.client.impl.jersey.ValidationErrorFilter;
+import com.sun.jersey.api.client.Client;
+import com.sun.jersey.api.client.GenericType;
+import com.sun.jersey.api.client.WebResource;
+import com.sun.jersey.api.client.config.DefaultClientConfig;
 
 public class RestClient {
     private ClientConfig config;
@@ -190,7 +191,7 @@ public class RestClient {
         return resource(uri);
     }
 
-    public WebResource.Builder resource(URI uri) {
+    public WebResource.Builder resource(URI uri) { 
         return getClient().resource(uri).accept(config.getMediaType())
                 .type(config.getMediaType());
     }

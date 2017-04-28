@@ -173,7 +173,7 @@ expand_volume_and_datastore_for_host() {
     host_id=`hosts list ${tenant_arg} | grep "${7} " | awk '{print $4}'`
     
     echo "=== catalog order ExpandVolumeandDatastore ${tenant_arg} volumes=${volume_id},host=${host_id},datastoreName=${datastorename_arg},vcenter=${vcenter_id},datacenter=${datacenter_id},size=${size_arg},artificialFailure=${failure} BlockServicesforVMwarevCenter"
-    runcmd catalog order ExpandVolumeandDatastore ${tenant_arg} volumes=${volume_id},host=${host_id},datastoreName=${datastorename_arg},vcenter=${vcenter_id},datacenter=${datacenter_id},size=${size_arg},artificialFailure=${failure} BlockServicesforVMwarevCenter
+    runcmd catalog order ExpandVolumeandDatastore ${tenant_arg} volumes=${volume_id},host=${host_id},datastoreName=${datastorename_arg},vcenter=${vcenter_id},datacenter=${datacenter_id},size=${size_arg},artificialFailure=${failure} BlockServicesforVMwarevCenter —failOnError true
     return $?
 }
 

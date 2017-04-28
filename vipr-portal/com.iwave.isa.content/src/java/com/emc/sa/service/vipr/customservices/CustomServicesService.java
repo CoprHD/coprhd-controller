@@ -297,7 +297,7 @@ public class CustomServicesService extends ViPRService {
             for (final Input value : inputGroup.getInputGroup()) {
                 final String name = value.getName();
                 final String friendlyName = value.getFriendlyName();
-                if(value.getType() == null || !StringUtils.isEmpty(params.get(friendlyName).toString())){
+                if (StringUtils.isEmpty(value.getType())) {
                     continue;
                 }
 
@@ -318,7 +318,12 @@ public class CustomServicesService extends ViPRService {
                              * input[value][1]=vol2
                              * input[value][2]=vol3
                              */
-                            inputs.put(name, Arrays.asList(params.get(friendlyName).toString().replace("\"", "").split(",")));
+                            if (StringUtils.isEmpty(value.getTableName())) {
+                                inputs.put(name, Arrays.asList(params.get(friendlyName).toString().replace("\"", "")));
+                            } else {
+                                inputs.put(name, Arrays.asList(params.get(friendlyName).toString().replace("\"", "").split(",")));
+                            }
+
                         } else {
                             if (value.getDefaultValue() != null) {
                                 // The default value is copied only for the first index
@@ -400,12 +405,13 @@ public class CustomServicesService extends ViPRService {
                         }
                         //check for required and throw error
                         if (stepInput != null && stepInput.get(attribute) != null) {
-                            if (!fromStepOutput){
-                                inputs.put(name, stepInput.get(attribute));
+                            if (fromStepOutput && StringUtils.isEmpty(value.getTableName())) {
+                                // only support array. We will not support array inside table
+                                inputs.put(name, Arrays.asList(String.join(", ", stepInput.get(attribute)).replace("\"", "")));
                                 break;
+
                             } else {
-                                //only support array. We will not support array inside table
-                                inputs.put(name, Arrays.asList(String.join(", ", stepInput.get(attribute)).replace("\"","")));
+                                inputs.put(name, stepInput.get(attribute));
                                 break;
                             }
                         } else {

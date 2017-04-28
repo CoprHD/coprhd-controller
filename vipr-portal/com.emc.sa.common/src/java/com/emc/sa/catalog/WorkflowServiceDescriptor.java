@@ -111,7 +111,6 @@ public class WorkflowServiceDescriptor {
                         final MultiValueMap tableMap = new MultiValueMap();
                         for (final Input wfInput : inputGroup.getInputGroup()) {
                             final ServiceField serviceField = new ServiceField();
-                            // Creating service fields for only inputs of type "inputfromuser" and "assetoption"
                             if (CustomServicesConstants.InputType.FROM_USER.toString().equals(wfInput.getType())) {
                                 serviceField.setType(wfInput.getInputFieldType());
                             } else if (CustomServicesConstants.InputType.ASSET_OPTION_SINGLE.toString().equals(wfInput.getType())){
@@ -123,7 +122,7 @@ public class WorkflowServiceDescriptor {
                                     && StringUtils.isNotBlank(wfInput.getDefaultValue())) {
                                 serviceField.setType(ServiceField.TYPE_CHOICE);
                                 final Map<String, String> options = new HashMap<>();
-                                List<String> defaultList = Arrays.asList(wfInput.getDefaultValue().split(","));
+                                final List<String> defaultList = Arrays.asList(wfInput.getDefaultValue().split(","));
                                 for (final String value : defaultList) {
                                     //making the key and value the same
                                     options.put(value, value);

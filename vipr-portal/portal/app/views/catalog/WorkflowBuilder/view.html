@@ -90,7 +90,7 @@
     <!-- Workflow Tabs -->
     <div id="builderController" ng-controller="builderController">
         <div class="builder-column">
-            <div ng-show="isWorkflowTabsEmpty()">
+            <div ng-show="isWorkflowTabsEmpty()" style="height:100%;">
                 <div class="homeTab">
                         <div>
                             Create new workflow in custom library and/or edit
@@ -106,7 +106,7 @@
                 </li>
             </ul>
 
-            <div class="tab-content" style="padding: 0px;">
+            <div class="tab-content builder-tab-content" style="padding: 0px;">
                 #{workflowDesigner/}
             </div>
         </div>

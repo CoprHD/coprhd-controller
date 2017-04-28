@@ -12,7 +12,7 @@
 
 .homeTab{
     background-color: #fcfcfc;
-    height:80vh;
+    height:100%;
     text-align: center;
     padding-top: 300px;
     font-size: 30px;
@@ -217,8 +217,20 @@
 
 .builder-column {
     width: auto;
+    height: 100%;
     overflow: hidden;
 }
+
+.builder-tab-content {
+    position: absolute;
+    margin-top: 52px;
+    top: 0;
+    bottom: 0;
+    right: 0;
+    left: 0;
+}
+
+
 
 .button-step-close {
     margin: 5px;
@@ -254,6 +266,7 @@ table, th , td {
     right: 0px;
     background-color: #eee; /* Black*/
     overflow-x: hidden; /* Disable horizontal scroll */
+    overflow-y: scroll;
     padding-top: 20px; /* Place content 60px from the top */
     transition: 0.5s; /* 0.5 second transition effect to slide in the sidenav */
     border: 1px solid rgb(192, 192, 192);
@@ -313,8 +326,14 @@ table, th , td {
 }
 
 .builder-container {
+    border: 1px solid rgb(192, 192, 192);
     clear: both;
-    position: relative;
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    right: 0;
+    left: 0;
+    margin-top: 54px;
 }
 
 #libSidebar {
@@ -366,11 +385,16 @@ table, th , td {
 }
 
 #builderController {
-  /* for the animation */
-  transition:all 0.2s linear;
-  -webkit-transition: all 0.2s linear;
-  margin-left: 427px;
-  margin-top: 10px;
+    /* for the animation */
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    transition:all 0.2s linear;
+    -webkit-transition: all 0.2s linear;
+    margin-left: 427px;
+    margin-top: 10px;
 }
 
 #builderController.collapsedBuilder {

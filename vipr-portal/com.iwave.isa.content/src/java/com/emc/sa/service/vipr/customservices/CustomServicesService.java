@@ -83,6 +83,29 @@ public class CustomServicesService extends ViPRService {
 
     private int code;
 
+    private static Field getField(Class<?> clazz, final String name) {
+        Field field = null;
+        while (clazz != null && field == null) {
+            try {
+                field = clazz.getDeclaredField(name);
+            } catch (Exception e) {
+            }
+            clazz = clazz.getSuperclass();
+        }
+
+        return field;
+    }
+
+    public static boolean isGetter(Method method) {
+        if (!method.getName().startsWith("get")
+                || method.getParameterTypes().length != 0
+                || void.class.equals(method.getReturnType())) {
+            return false;
+        }
+
+        return true;
+    }
+
     @Override
     public void precheck() throws Exception {
         // get input params from order form
@@ -105,6 +128,7 @@ public class CustomServicesService extends ViPRService {
             orderDirCleanup(orderDir);
         }
     }
+
     /**
      * Method to parse Workflow Definition JSON
      *
@@ -115,7 +139,6 @@ public class CustomServicesService extends ViPRService {
         logger.info("Parsing Workflow Definition");
 
         final ImmutableMap<String, Step> stepsHash = getStepHash(uri);
-
 
         Step step = stepsHash.get(StepType.START.toString());
         String next = step.getNext().getDefaultStep();
@@ -177,7 +200,7 @@ public class CustomServicesService extends ViPRService {
         if (uri == null) {
             raw = ExecutionUtils.currentContext().getOrder().getWorkflowDocument();
         } else {
-            //Get it from DB
+            // Get it from DB
             final CustomServicesWorkflow wf = dbClient.queryObject(CustomServicesWorkflow.class, uri);
             raw = WorkflowHelper.toWorkflowDocumentJson(wf);
         }
@@ -208,7 +231,7 @@ public class CustomServicesService extends ViPRService {
     }
 
     private Step updatesubWfInput(final Step step, final Map<String, CustomServicesWorkflowDocument.InputGroup> stepInput) {
-        if(!needUpdate(step, stepInput)) {
+        if (!needUpdate(step, stepInput)) {
             return step;
         }
 
@@ -255,7 +278,7 @@ public class CustomServicesService extends ViPRService {
         if (result == null)
             return false;
 
-        if (step.getType().equals(CustomServicesConstants.VIPR_PRIMITIVE_TYPE) ||  step.getType().equals(
+        if (step.getType().equals(CustomServicesConstants.VIPR_PRIMITIVE_TYPE) || step.getType().equals(
                 CustomServicesConstants.REST_API_PRIMITIVE_TYPE)) {
             return (result.getReturnCode() >= 200 && result.getReturnCode() < 300);
         }
@@ -282,8 +305,43 @@ public class CustomServicesService extends ViPRService {
 
         return true;
     }
+
     /**
      * Method to collect all required inputs per step for execution
+     * Case :
+     * SingleUserInput , InputFromUserMulti and AssetOptionSingle
+     * The order form sends the value as String with double quotes for each value, we remove the quotes
+     * the reason for splitting by ',' is, for table type cases, where the input name is part of a table and hence
+     * we should store it as a list of values
+     * Eg., of single input inside a table: say the name is "volume"
+     * from order context value for name (which is part of table will be) = ""vol1","vol2","vol3""
+     * These will be stored in the inputs Map as follows:
+     * input[key] = "volumes"
+     * input[value][0]=vol1
+     * input[value][1]=vol2
+     * input[value][2]=vol3
+     *
+     * Case 2: AssetOptionMulti
+     * The array can be passed by itself or as part of a table
+     * Since the order form sends the value as String with double quotes for each value, we remove the quotes
+     * the reason for splitting by "," is for table type cases, where the input name is part of a table and hence we
+     * should store it as a list of values
+     * Eg., of array input without table:
+     * arrayInputWithouttable = ""vol1","vol2","vol3""
+     * These will be stored in the inputs Map as follows:
+     * input[key] = "volumes"
+     * input[value][0]=vol1,vol2,vol3
+     *
+     * Eg., of array input with table:
+     * arrayInputWithtable = ""1,2,3","4","14,15","24,25,26"" ie., in a table (complex structure), the array input
+     * is clubbed by row and separated by commans
+     *
+     * These will be stored in the inputs Map as follows:
+     * input[key] = "volumes"
+     * input[value][0]=1,2,3
+     * input[value][1]=4
+     * input[value][2]=14,15
+     * input[value][3]=24,25,26
      *
      * @param step It is the JSON Object of Step
      */
@@ -306,18 +364,6 @@ public class CustomServicesService extends ViPRService {
                     case FROM_USER_MULTI:
                     case ASSET_OPTION_SINGLE:
                         if (params.get(friendlyName) != null && !StringUtils.isEmpty(params.get(friendlyName).toString())) {
-                            /*
-                             * Since the order form sends the value as String with double quotes for each value, we remove the quotes
-                             * the reason for splitting by ',' is, for table type cases, where the input name is part of a table and hence
-                             * we should store it as a list of values
-                             * Eg., of single input inside a table: say the name is "volume"
-                             * from order context value for name (which is part of table will be) = ""vol1","vol2","vol3""
-                             * //These will be stored in the inputs Map as follows:
-                             * input[key] = "volumes"
-                             * input[value][0]=vol1
-                             * input[value][1]=vol2
-                             * input[value][2]=vol3
-                             */
                             if (StringUtils.isEmpty(value.getTableName())) {
                                 inputs.put(name, Arrays.asList(params.get(friendlyName).toString().replace("\"", "")));
                             } else {
@@ -326,49 +372,20 @@ public class CustomServicesService extends ViPRService {
 
                         } else {
                             if (value.getDefaultValue() != null) {
-                                // The default value is copied only for the first index
-                                // in case of table type, it is not evident how many times the default value need to be copied.
                                 inputs.put(name, Arrays.asList(value.getDefaultValue()));
                             } else {
-                                //Pass an empty string if the value is null ( for optional input. for required the error is thrown already) and default value is not set
                                 inputs.put(name, Arrays.asList(""));
                             }
                         }
                         break;
-                    // the multi cases are array types
-
                     case ASSET_OPTION_MULTI:
                         if (params.get(friendlyName) != null && !StringUtils.isEmpty(params.get(friendlyName).toString())) {
-                            /*
-                             * Case for array type is little different. The array can be passed by itself or as part of a table
-                             * Since the order form sends the value as String with double quotes for each value, we remove the quotes
-                             * the reason for splitting by "," is for table type cases, where the input name is part of a table and hence we
-                             * should store it as a list of values
-                             * Eg., of array input without table:
-                             * arrayInputWithouttable = ""vol1","vol2","vol3""
-                             * //These will be stored in the inputs Map as follows:
-                             * input[key] = "volumes"
-                             * input[value][0]=vol1,vol2,vol3
-                             * 
-                             * Eg., of array input with table:
-                             * arrayInputWithtable = ""1,2,3","4","14,15","24,25,26"" ie., in a table (complex structure), the array input
-                             * is clubbed by row and separated by commans
-                             * 
-                             * //These will be stored in the inputs Map as follows:
-                             * input[key] = "volumes"
-                             * input[value][0]=1,2,3
-                             * input[value][1]=4
-                             * input[value][2]=14,15
-                             * input[value][3]=24,25,26
-                             * 
-                             */
+
                             final List<String> arrayInput;
 
                             if (!StringUtils.isEmpty(value.getTableName())) {
-                                // the array is inside a table. Split the string by '","'
                                 arrayInput = Arrays.asList(params.get(friendlyName).toString().split("\",\""));
                             } else {
-                                // No table name set for the array type input.
                                 arrayInput = Arrays.asList(params.get(friendlyName).toString());
                             }
 
@@ -383,7 +400,6 @@ public class CustomServicesService extends ViPRService {
                                 // in case of table type, it is not evident how many times the default value need to be copied.
                                 inputs.put(name, Arrays.asList(value.getDefaultValue()));
                             } else {
-                                //Pass an empty string if the value is null (optional) and default value is not set
                                 inputs.put(name, Arrays.asList(""));
                             }
                         }
@@ -391,7 +407,7 @@ public class CustomServicesService extends ViPRService {
 
                     case FROM_STEP_INPUT:
                     case FROM_STEP_OUTPUT: {
-                        final String[] paramVal = value.getValue().split("\\.",2);
+                        final String[] paramVal = value.getValue().split("\\.", 2);
                         final String stepId = paramVal[CustomServicesConstants.STEP_ID];
                         final String attribute = paramVal[CustomServicesConstants.INPUT_FIELD];
 
@@ -403,27 +419,23 @@ public class CustomServicesService extends ViPRService {
                         } else {
                             stepInput = outputPerStep.get(stepId);
                         }
-                        //check for required and throw error
                         if (stepInput != null && stepInput.get(attribute) != null) {
                             if (fromStepOutput && StringUtils.isEmpty(value.getTableName())) {
-                                // only support array. We will not support array inside table
                                 inputs.put(name, Arrays.asList(String.join(", ", stepInput.get(attribute)).replace("\"", "")));
                                 break;
-
                             } else {
                                 inputs.put(name, stepInput.get(attribute));
                                 break;
                             }
                         } else {
                             if (value.getRequired()) {
-                                throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed("Value mapped is null : " + value.getValue());
+                                throw InternalServerErrorException.internalServerErrors
+                                        .customServiceExecutionFailed("Value mapped is null : " + value.getValue());
                             }
-
                         }
                         if (value.getDefaultValue() != null) {
                             inputs.put(name, Arrays.asList(value.getDefaultValue()));
                         } else {
-                            //Pass an empty string if the value is null (optional) and default value is not set
                             inputs.put(name, Arrays.asList(""));
                         }
 
@@ -476,7 +488,7 @@ public class CustomServicesService extends ViPRService {
         final String result = res.getOut();
         final Map<String, List<String>> out = new HashMap<String, List<String>>();
 
-        if (step.getType().equals(CustomServicesConstants.VIPR_PRIMITIVE_TYPE) ) {
+        if (step.getType().equals(CustomServicesConstants.VIPR_PRIMITIVE_TYPE)) {
             try {
                 out.putAll(updateViproutput(step, res.getOut()));
             } catch (Exception e) {
@@ -497,7 +509,7 @@ public class CustomServicesService extends ViPRService {
                 }
             }
         }
-        //set the default result.
+        // set the default result.
         out.put(CustomServicesConstants.OPERATION_OUTPUT, Arrays.asList(res.getOut()));
         out.put(CustomServicesConstants.OPERATION_ERROR, Arrays.asList(res.getErr()));
         out.put(CustomServicesConstants.OPERATION_RETURNCODE, Arrays.asList(String.valueOf(res.getReturnCode())));
@@ -507,17 +519,17 @@ public class CustomServicesService extends ViPRService {
     private Map<String, List<String>> updateViproutput(final Step step, final String res) throws Exception {
 
         final CustomServicesViPRPrimitive primitive = customServicesViprDao.get(step.getOperation());
-        if( null == primitive ) {
-            throw new RuntimeException("Primitive " + step.getOperation() +" not found ");
+        if (null == primitive) {
+            throw new RuntimeException("Primitive " + step.getOperation() + " not found ");
         }
-        
-        if( StringUtils.isEmpty(primitive.response()) ) {
+
+        if (StringUtils.isEmpty(primitive.response())) {
             logger.debug("Vipr primitive" + primitive.name() + " has no repsonse defined.");
             return null;
         }
-        
+
         final String classname = primitive.response();
-        
+
         logger.debug("Result is:{}", res);
         final ObjectMapper mapper = new ObjectMapper();
         mapper.setAnnotationIntrospector(new JaxbAnnotationIntrospector());
@@ -538,7 +550,7 @@ public class CustomServicesService extends ViPRService {
             logger.info("output to parse:{}", outName);
 
             final String[] bits = outName.split("\\.");
-            
+
             // Start parsing at i=1 because the name of the root
             // element is not included in the JSON
             final List<String> list = parserOutput(bits, 1, responseEntity);
@@ -546,11 +558,11 @@ public class CustomServicesService extends ViPRService {
                 output.put(out.getName(), list);
             }
         }
-        
+
         return output;
     }
 
-    private List<String> parserOutput(final String[] bits, final int i, final Object className ) throws Exception {
+    private List<String> parserOutput(final String[] bits, final int i, final Object className) throws Exception {
 
         if (className == null) {
             logger.warn("class name is null, cannot parse output");
@@ -566,7 +578,7 @@ public class CustomServicesService extends ViPRService {
         }
         logger.debug("bit:{}", bits[i]);
 
-        //1) primitive
+        // 1) primitive
         if (i == bits.length - 1) {
             final Object value = method.invoke(className, null);
             logger.debug("value:{}", value);
@@ -585,12 +597,12 @@ public class CustomServicesService extends ViPRService {
             return null;
         }
 
-        //2) Class single object
+        // 2) Class single object
         if (returnType instanceof Class<?>) {
             return parserOutput(bits, i + 1, method.invoke(className, null));
         }
 
-        //3) Collection primitive
+        // 3) Collection primitive
         if (Collection.class.isAssignableFrom(method.getReturnType())) {
             return getCollectionValue(method, bits, i, className);
         }
@@ -598,8 +610,8 @@ public class CustomServicesService extends ViPRService {
         return null;
     }
 
-
-    private List<String> getCollectionValue(final Method method, final String[] bits, final int i, final Object className) throws Exception {
+    private List<String> getCollectionValue(final Method method, final String[] bits, final int i, final Object className)
+            throws Exception {
 
         final Type returnType = method.getGenericReturnType();
         if (returnType instanceof ParameterizedType) {
@@ -667,29 +679,6 @@ public class CustomServicesService extends ViPRService {
         return null;
     }
 
-    private static Field getField(Class<?> clazz, final String name) {
-        Field field = null;
-        while (clazz != null && field == null) {
-            try {
-                field = clazz.getDeclaredField(name);
-            } catch (Exception e) {
-            }
-            clazz = clazz.getSuperclass();
-        }
-
-        return field;
-    }
-
-    public static boolean isGetter(Method method){
-        if(!method.getName().startsWith("get")
-                || method.getParameterTypes().length != 0
-                || void.class.equals(method.getReturnType())) {
-            return false;
-        }
-
-        return true;
-    }
-
     private boolean isAnsible(final Step step) {
         if (step.getType().equals(StepType.LOCAL_ANSIBLE.toString()) || step.getType().equals(StepType.REMOTE_ANSIBLE.toString())
                 || step.getType().equals(StepType.SHELL_SCRIPT.toString()))
@@ -698,4 +687,3 @@ public class CustomServicesService extends ViPRService {
         return false;
     }
 }
-

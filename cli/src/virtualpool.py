@@ -355,7 +355,7 @@ class VirtualPool(object):
         except Exception as e:
             raise SOSError(SOSError.CMD_LINE_ERR,
                                " Please provide valid format " +
-                               "remotecopymode:rpovalue:rpotype:journalsize")
+                               "remotecopymode:rpovalue:rpotype:journalsize:journal_varray:journal_vpool:standby_journal_varray:standby_journal_vpool")
         copy = dict()
         if(not len(copyParam)):
             raise SOSError(SOSError.CMD_LINE_ERR,
@@ -366,9 +366,9 @@ class VirtualPool(object):
         st_VpoolUri = None
         
         copy['remote_copy_mode'] = copyParam[0]
-        if(len(copyParam) > 1):
+        if((len(copyParam) > 1) and (copyParam[1] != 'None')):
             copy['rpo_value'] = copyParam[1]
-        if(len(copyParam) > 2):
+        if((len(copyParam) > 2) and (copyParam[2] != 'None')):
             if (copyParam[2].upper() not in VirtualPool.RPO_UNITS):
                 raise SOSError(SOSError.CMD_LINE_ERR,
                     " Please provide valid RPO type from " +
@@ -1167,7 +1167,8 @@ def create_parser(subcommand_parsers, common_parser):
                                nargs='+')
     create_parser.add_argument('-rp_source_policy', '-rp_policy',
                                help='RP protection source policy, ' +
-                               'eg:copymode:rpovalue:rpotype:journalsize:journalvarray:journalvpool:standbyvarray:standbyvpool',
+                               'eg:copymode:rpovalue:rpotype:journalsize:journalvarray:journalvpool:standbyvarray:standbyvpool, ' +
+                               'if using copymode SYNCHRONOUS use SYNCHRONOUS:None:None',
                                dest='rp_policy',
                                metavar='<rp_source_policy>')
     create_parser.add_argument('-metropoint',
@@ -1578,7 +1579,8 @@ def update_parser(subcommand_parsers, common_parser):
                                nargs='+')
     update_parser.add_argument('-rp_source_policy', '-rp_policy',
                                help='RP protection source policy, ' +
-                               'eg:copymode:rpovalue:rpotype:journalsize:journalvarray:journalvpool:standbyvarray:standbyvpool',
+                               'eg:copymode:rpovalue:rpotype:journalsize:journalvarray:journalvpool:standbyvarray:standbyvpool,' +
+                               'if using copymode SYNCHRONOUS use SYNCHRONOUS:None:None',
                                dest='rp_policy',
                                metavar='<rp_source_policy>')
     update_parser.add_argument('-metropoint',

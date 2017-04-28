@@ -5251,8 +5251,11 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
                             + " for volumes " + CommonTransformerFunctions.collectionToString(volumeURIList));
 
                     completer.addExportMaskToRemovedVolumeMapping(exportMask.getId(), volumeURIList);
+
+                    TaskCompleter taskCompleter = new ExportMaskRemoveVolumeCompleter(
+                            exportGroup.getId(), exportMask.getId(), volumeURIList, lastStep); 
                     Workflow.Method storageViewRemoveVolume = storageViewRemoveVolumesMethod(vplex.getId(),
-                            exportMask, volumeURIList, lastStep, null, null);
+                            exportMask, volumeURIList, lastStep, taskCompleter, null);
                     lastStep = workflow.createStep("removeVolumes",
                             String.format("Removing volumes from export on storage array %s (%s) for export mask %s (%s)",
                                     vplex.getNativeGuid(), vplex.getId().toString(), exportMask.getMaskName(), exportMask.getId()),

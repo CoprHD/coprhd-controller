@@ -55,7 +55,7 @@ public abstract class ViPRService extends AbstractExecutionService {
     private EncryptionProvider encryptionProvider;
 
     @Param(value=ARTIFICIAL_FAILURE, required=false)
-    protected String artificialFailure;
+    protected static String artificialFailure;
 
     private ViPRCoreClient client;
 
@@ -345,9 +345,9 @@ public abstract class ViPRService extends AbstractExecutionService {
         }
     }
 
-    public void artificialFailure(String failure) {
+    public static void artificialFailure(String failure) {
         if (artificialFailure != null && artificialFailure.equals(failure)) {
-            ExecutionUtils.fail("failTask.ArtificialFailure", args(artificialFailure));
+            ExecutionUtils.fail("failTask.ArtificialFailure", artificialFailure);
         }
     }
 }

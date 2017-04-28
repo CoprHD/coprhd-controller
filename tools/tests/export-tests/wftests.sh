@@ -909,6 +909,7 @@ xio_setup() {
         --provisionType 'Thin'			        \
         --max_snapshots 10                      \
         --multiVolumeConsistency        \
+	--expandable true                       \
         --neighborhoods $NH                    
 
     run cos create block ${VPOOL_CHANGE}	\
@@ -918,6 +919,7 @@ xio_setup() {
 	--provisionType 'Thin'			        \
 	--max_snapshots 10                      \
         --multiVolumeConsistency        \
+	--expandable true                       \
 	--neighborhoods $NH                    
 
     run cos update block $VPOOL_BASE --storage ${XTREMIO_NATIVEGUID}
@@ -968,24 +970,27 @@ host_setup() {
         run initiator create ${HOST2} FC $H2PI3 --node $H2NI3
         run initiator create ${HOST2} FC $H2PI4 --node $H2NI4
     fi
-}   
+}
 
 linux_setup() {
     if [ "${SIM}" != "1" ]; then
         secho "Setting up Linux hardware host"
         run hosts create linuxhost1 $TENANT Linux ${LINUX_HOST_IP} --port ${LINUX_HOST_PORT} --username ${LINUX_HOST_USERNAME} --password ${LINUX_HOST_PASSWORD} --discoverable true
-    else
-        secho "Linux simulator does not exist!"
     fi
 }
 
 windows_setup() {
-    if [ "${SIM}" != "1" ]; then
-        secho "Setting up Windows hardware host"
-        run hosts create winhost1 $TENANT Windows ${WINDOWS_HOST_IP} --port ${WINDOWS_HOST_PORT} --username ${WINDOWS_HOST_USERNAME} --password ${WINDOWS_HOST_PASSWORD} --discoverable true 
-    else
+    if [ "${SIM}" == "1" ]; then
         secho "Setting up Windows simulator host"
-        run hosts create winhost1 $TENANT Windows winhost1 --port ${WINDOWS_SIMULATOR_PORT} --username ${WINDOWS_SIMULATOR_USERNAME} --password ${WINDOWS_SIMULATOR_PASSWORD} --discoverable true
+        WINDOWS_HOST_IP=winhost1
+        WINDOWS_HOST_PORT=$WINDOWS_SIMULATOR_PORT
+        WINDOWS_HOST_USERNAME=$WINDOWS_SIMULATOR_USERNAME
+        WINDOWS_HOST_PASSWORD=$WINDOWS_SIMULATOR_PASSWORD 
+    fi
+
+    run hosts create winhost1 $TENANT Windows ${WINDOWS_HOST_IP} --port ${WINDOWS_HOST_PORT} --username ${WINDOWS_HOST_USERNAME} --password ${WINDOWS_HOST_PASSWORD} --discoverable true 
+
+    if [ "${SIM}" == "1" ]; then
         run transportzone add $NH/${FC_ZONE_A} "00:00:00:00:00:00:00:11"
         run transportzone add $NH/${FC_ZONE_A} "00:00:00:00:00:00:00:12"
         run transportzone add $NH/${FC_ZONE_A} "00:00:00:00:00:00:00:13"
@@ -998,23 +1003,15 @@ hpux_setup() {
         secho "Setting up HP-UX hardware host"
         run hosts create hpuxhost1 $TENANT HPUX ${HPUX_HOST_IP} --port ${HPUX_HOST_PORT} --username ${HPUX_HOST_USERNAME} --password ${HPUX_HOST_PASSWORD} --discoverable true 
     else
-        secho "HP-UX simulator does not exist!"
+        secho "HP-UX simulator does not exist!  Failing."
+	exit 1;
     fi 
 }
 
 vcenter_setup() {
-    if [ "${SIM}" = "1" ]; then
-        vcenter_sim_setup
-    else    
-        secho "Setup virtual center real hardware..."
-        runcmd vcenter create vcenter1 ${TENANT} ${VCENTER_HW_IP} ${VCENTER_HW_PORT} ${VCENTER_HW_USERNAME} ${VCENTER_HW_PASSWORD}                
-    fi
-}
-
-vcenter_sim_setup() {
-    secho "Setup virtual center sim..."
+    secho "Setup virtual center..."
     runcmd vcenter create vcenter1 ${TENANT} ${VCENTER_SIMULATOR_IP} ${VCENTER_SIMULATOR_PORT} ${VCENTER_SIMULATOR_USERNAME} ${VCENTER_SIMULATOR_PASSWORD}
-    
+
     # TODO need discovery to run
     sleep 30
 
@@ -1189,7 +1186,7 @@ snap_db() {
     column_families=$2
     escape_seq=$3
 
-    base_filter="| sed -r '/6[0]{29}[A-Z0-9]{2}=/s/\=-?[0-9][0-9]?[0-9]?/=XX/g' | sed -r 's/vdc1=-?[0-9][0-9]?[0-9]?/vdc1=XX/g' | grep -v \"status = OpStatusMap\" | grep -v \"lastDiscoveryRunTime = \" | grep -v \"successDiscoveryTime = \" | grep -v \"storageDevice = URI: null\" | grep -v \"StringSet \[\]\" | grep -v \"varray = URI: null\" | grep -v \"Description:\" | grep -v \"Additional\" | grep -v -e '^$' | grep -v \"Rollback encountered problems\" | grep -v \"clustername = null\" | grep -v \"cluster = URI: null\" | grep -v \"vcenterDataCenter = \" $escape_seq"
+    base_filter="| sed -r '/6[0]{29}[A-Z0-9]{2}=/s/\=-?[0-9][0-9]?[0-9]?/=XX/g' | sed -r 's/vdc1=-?[0-9][0-9]?[0-9]?/vdc1=XX/g' | grep -v \"status = OpStatusMap\" | grep -v \"lastDiscoveryRunTime = \" | grep -v \"allocatedCapacity = \" | grep -v \"capacity = \" | grep -v \"provisionedCapacity = \" | grep -v \"successDiscoveryTime = \" | grep -v \"storageDevice = URI: null\" | grep -v \"StringSet \[\]\" | grep -v \"varray = URI: null\" | grep -v \"Description:\" | grep -v \"Additional\" | grep -v -e '^$' | grep -v \"Rollback encountered problems\" | grep -v \"clustername = null\" | grep -v \"cluster = URI: null\" | grep -v \"vcenterDataCenter = \" $escape_seq"
     
     secho "snapping column families [set $slot]: ${column_families}"
 

@@ -15,7 +15,7 @@ from bourne import *
 
 def catalog_order(args):
     bourne.connect(args.ip)
-    order = bourne.catalog_order(args.service, args.tenant, args.parameters, args.category) 
+    order = bourne.catalog_order(args.service, args.tenant, args.parameters, args.category, args.failOnError) 
     print order
 
 #----------------------------------------------------------------------
@@ -38,6 +38,7 @@ order.add_argument('service',    help = 'label for the catalog service')
 order.add_argument('tenant',     help = 'tenant for the catalog service')
 order.add_argument('parameters', help = 'parameters for executing the catalog service')
 order.add_argument('category',   help = 'category of the catalog service')
+order.add_argument('--failOnError', metavar = 'failOnError',     help = 'if true, fail the command on order failure', default=None)
 
 #----------------------------------------------------------------------
 # Main script

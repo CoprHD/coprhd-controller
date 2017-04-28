@@ -66,7 +66,8 @@ create_volume_and_datastore() {
     cluster_id=`cluster list ${tenant_arg} | grep "${9} " | awk '{print $4}'`
     
     echo "=== catalog order CreateVolumeandDatastore ${tenant_arg} project=${project_id},name=${volname_arg},virtualPool=${virtualpool_id},virtualArray=${virtualarray_id},host=${cluster_id},datastoreName=${datastorename_arg},size=1,vcenter=${vcenter_id},datacenter=${datacenter_id} BlockServicesforVMwarevCenter"
-    echo `catalog order CreateVolumeandDatastore ${tenant_arg} project=${project_id},name=${volname_arg},virtualPool=${virtualpool_id},virtualArray=${virtualarray_id},host=${cluster_id},datastoreName=${datastorename_arg},size=1,vcenter=${vcenter_id},datacenter=${datacenter_id} BlockServicesforVMwarevCenter`
+    runcmd catalog order CreateVolumeandDatastore ${tenant_arg} project=${project_id},name=${volname_arg},virtualPool=${virtualpool_id},virtualArray=${virtualarray_id},host=${cluster_id},datastoreName=${datastorename_arg},size=1,vcenter=${vcenter_id},datacenter=${datacenter_id} BlockServicesforVMwarevCenter
+    return $?
 }
 
 create_volume_and_datastore_for_host() {
@@ -84,7 +85,8 @@ create_volume_and_datastore_for_host() {
     host_id=`hosts list ${tenant_arg} | grep "${9} " | awk '{print $4}'`
     
     echo "=== catalog order CreateVolumeandDatastore ${tenant_arg} project=${project_id},name=${volname_arg},virtualPool=${virtualpool_id},virtualArray=${virtualarray_id},host=${host_id},datastoreName=${datastorename_arg},size=1,vcenter=${vcenter_id},datacenter=${datacenter_id} BlockServicesforVMwarevCenter"
-    echo `catalog order CreateVolumeandDatastore ${tenant_arg} project=${project_id},name=${volname_arg},virtualPool=${virtualpool_id},virtualArray=${virtualarray_id},host=${host_id},datastoreName=${datastorename_arg},size=1,vcenter=${vcenter_id},datacenter=${datacenter_id} BlockServicesforVMwarevCenter`
+    runcmd catalog order CreateVolumeandDatastore ${tenant_arg} project=${project_id},name=${volname_arg},virtualPool=${virtualpool_id},virtualArray=${virtualarray_id},host=${host_id},datastoreName=${datastorename_arg},size=1,vcenter=${vcenter_id},datacenter=${datacenter_id} BlockServicesforVMwarevCenter
+    return $?
 }
 
 delete_datastore_and_volume() {
@@ -97,7 +99,8 @@ delete_datastore_and_volume() {
     cluster_id=`cluster list ${tenant_arg} | grep "${5} " | awk '{print $4}'`
     
     echo "=== catalog order DeleteDatastoreandVolume ${tenant_arg} host=${cluster_id},datastoreName=${datastorename_arg},vcenter=${vcenter_id},datacenter=${datacenter_id} BlockServicesforVMwarevCenter"
-    echo `catalog order DeleteDatastoreandVolume ${tenant_arg} host=${cluster_id},datastoreName=${datastorename_arg},vcenter=${vcenter_id},datacenter=${datacenter_id} BlockServicesforVMwarevCenter`
+    runcmd catalog order DeleteDatastoreandVolume ${tenant_arg} host=${cluster_id},datastoreName=${datastorename_arg},vcenter=${vcenter_id},datacenter=${datacenter_id} BlockServicesforVMwarevCenter
+    return $?
 }
 
 delete_datastore_and_volume_for_host() {
@@ -110,7 +113,8 @@ delete_datastore_and_volume_for_host() {
     host_id=`hosts list ${tenant_arg} | grep "${5} " | awk '{print $4}'`
     
     echo "=== catalog order DeleteDatastoreandVolume ${tenant_arg} host=${host_id},datastoreName=${datastorename_arg},vcenter=${vcenter_id},datacenter=${datacenter_id} BlockServicesforVMwarevCenter"
-    echo `catalog order DeleteDatastoreandVolume ${tenant_arg} host=${host_id},datastoreName=${datastorename_arg},vcenter=${vcenter_id},datacenter=${datacenter_id} BlockServicesforVMwarevCenter`
+    runcmd catalog order DeleteDatastoreandVolume ${tenant_arg} host=${host_id},datastoreName=${datastorename_arg},vcenter=${vcenter_id},datacenter=${datacenter_id} BlockServicesforVMwarevCenter
+    return $?
 }
 
 create_datastore() {
@@ -136,7 +140,8 @@ delete_datastore() {
     cluster_id=`cluster list ${tenant_arg} | grep "${5} " | awk '{print $4}'`    
     
     echo "=== catalog order DeleteVMwareDatastore ${tenant_arg} host=${cluster_id},datastoreName=${datastorename_arg},vcenter=${vcenter_id},datacenter=${datacenter_id} BlockServicesforVMwarevCenter"
-    echo `catalog order DeleteVMwareDatastore ${tenant_arg} host=${cluster_id},datastoreName=${datastorename_arg},vcenter=${vcenter_id},datacenter=${datacenter_id} BlockServicesforVMwarevCenter`
+    runcmd catalog order DeleteVMwareDatastore ${tenant_arg} host=${cluster_id},datastoreName=${datastorename_arg},vcenter=${vcenter_id},datacenter=${datacenter_id} BlockServicesforVMwarevCenter
+    return $?
 }
 
 export_volume_vmware() {
@@ -149,7 +154,8 @@ export_volume_vmware() {
     project_id=`project list --tenant ${tenant_arg} | grep "${6} " | awk '{print $4}'`
         
     echo "=== catalog order ExportVolumeforVMware ${tenant_arg} project=${project_id},volumes=${volume_id},host=${cluster_id},vcenter=${vcenter_id},datacenter=${datacenter_id}"
-    echo `catalog order ExportVolumeforVMware ${tenant_arg} project=${project_id},volumes=${volume_id},host=${cluster_id},vcenter=${vcenter_id},datacenter=${datacenter_id}`
+    runcmd catalog order ExportVolumeforVMware ${tenant_arg} project=${project_id},volumes=${volume_id},host=${cluster_id},vcenter=${vcenter_id},datacenter=${datacenter_id}
+    return $?
 }
 
 expand_volume_and_datastore_for_host() {
@@ -167,7 +173,8 @@ expand_volume_and_datastore_for_host() {
     host_id=`hosts list ${tenant_arg} | grep "${7} " | awk '{print $4}'`
     
     echo "=== catalog order ExpandVolumeandDatastore ${tenant_arg} volumes=${volume_id},host=${host_id},datastoreName=${datastorename_arg},vcenter=${vcenter_id},datacenter=${datacenter_id},size=${size_arg},artificialFailure=${failure} BlockServicesforVMwarevCenter"
-    echo `catalog order ExpandVolumeandDatastore ${tenant_arg} volumes=${volume_id},host=${host_id},datastoreName=${datastorename_arg},vcenter=${vcenter_id},datacenter=${datacenter_id},size=${size_arg},artificialFailure=${failure} BlockServicesforVMwarevCenter`
+    runcmd catalog order ExpandVolumeandDatastore ${tenant_arg} volumes=${volume_id},host=${host_id},datastoreName=${datastorename_arg},vcenter=${vcenter_id},datacenter=${datacenter_id},size=${size_arg},artificialFailure=${failure} BlockServicesforVMwarevCenter
+    return $?
 }
 
 extend_datastore() {
@@ -185,7 +192,8 @@ extend_datastore() {
     cluster_id=`cluster list ${tenant_arg} | grep "${7} " | awk '{print $4}'`
     
     echo "=== catalog order ExtendDatastorewithExistingVolume ${tenant_arg} volume=${volume_id},host=${cluster_id},datastoreName=${datastorename_arg},vcenter=${vcenter_id},datacenter=${datacenter_id},multipathPolicy=${multipathpolicy_arg},artificialFailure=${failure} BlockServicesforVMwarevCenter"
-    echo `catalog order ExtendDatastorewithExistingVolume ${tenant_arg} volume=${volume_id},host=${cluster_id},datastoreName=${datastorename_arg},vcenter=${vcenter_id},datacenter=${datacenter_id},multipathPolicy=${multipathpolicy_arg},artificialFailure=${failure} BlockServicesforVMwarevCenter`
+    runcmd catalog order ExtendDatastorewithExistingVolume ${tenant_arg} volume=${volume_id},host=${cluster_id},datastoreName=${datastorename_arg},vcenter=${vcenter_id},datacenter=${datacenter_id},multipathPolicy=${multipathpolicy_arg},artificialFailure=${failure} BlockServicesforVMwarevCenter
+    return $?
 }
 
 extend_datastore_for_host() {
@@ -203,7 +211,8 @@ extend_datastore_for_host() {
     host_id=`hosts list ${tenant_arg} | grep "${7} " | awk '{print $4}'`
     
     echo "=== catalog order ExtendDatastorewithExistingVolume ${tenant_arg} volumes=${volume_id},host=${host_id},datastoreName=${datastorename_arg},vcenter=${vcenter_id},datacenter=${datacenter_id},multipathPolicy=${multipathpolicy_arg},artificialFailure=${failure} BlockServicesforVMwarevCenter"
-    echo `catalog order ExtendDatastorewithExistingVolume ${tenant_arg} volumes=${volume_id},host=${host_id},datastoreName=${datastorename_arg},vcenter=${vcenter_id},datacenter=${datacenter_id},multipathPolicy=${multipathpolicy_arg},artificialFailure=${failure} BlockServicesforVMwarevCenter`
+    runcmd catalog order ExtendDatastorewithExistingVolume ${tenant_arg} volumes=${volume_id},host=${host_id},datastoreName=${datastorename_arg},vcenter=${vcenter_id},datacenter=${datacenter_id},multipathPolicy=${multipathpolicy_arg},artificialFailure=${failure} BlockServicesforVMwarevCenter
+    return $?
 }
 
 # Test - Host Add Initiator

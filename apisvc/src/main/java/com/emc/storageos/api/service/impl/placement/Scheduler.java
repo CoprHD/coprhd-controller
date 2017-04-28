@@ -12,11 +12,10 @@ import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValues
 
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 public interface Scheduler {
     List getRecommendationsForResources(VirtualArray vArray, Project project, VirtualPool vPool,
-            VirtualPoolCapabilityValuesWrapper capabilities);
+            VpoolUse vPoolUse, VirtualPoolCapabilityValuesWrapper capabilities);
     
     /**
      * Returns the String Name of a scheduler.

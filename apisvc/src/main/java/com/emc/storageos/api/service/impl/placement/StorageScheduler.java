@@ -24,6 +24,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.util.CollectionUtils;
 
 import com.emc.storageos.api.service.impl.resource.AbstractBlockServiceApiImpl;
+import com.emc.storageos.api.service.impl.resource.utils.PerformanceParamsUtils;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.customconfigcontroller.CustomConfigConstants;
 import com.emc.storageos.customconfigcontroller.impl.CustomConfigHandler;
@@ -47,6 +48,7 @@ import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.OpStatusMap;
 import com.emc.storageos.db.client.model.Operation;
+import com.emc.storageos.db.client.model.PerformanceParams;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StorageSystem;
@@ -59,6 +61,7 @@ import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.VirtualPool.FileReplicationType;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.VolumeGroup;
+import com.emc.storageos.db.client.model.VolumeTopology;
 import com.emc.storageos.db.client.model.VpoolRemoteCopyProtectionSettings;
 import com.emc.storageos.db.client.util.CommonTransformerFunctions;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
@@ -151,13 +154,15 @@ public class StorageScheduler implements Scheduler {
      * accommodate the size and number of resource requested.
      *
      * @param neighborhood
+     * @param project The project
      * @param cos
+     * @param vPoolUse The usage for the virtual pool.
      * @param capabilities
      * @return list of VolumeRecommendation instances
      */
     @Override
     public List<Recommendation> getRecommendationsForResources(VirtualArray neighborhood, Project project, VirtualPool cos,
-            VirtualPoolCapabilityValuesWrapper capabilities) {
+            VpoolUse vPoolUse, VirtualPoolCapabilityValuesWrapper capabilities) {
 
         _log.debug("Schedule storage for {} resource(s) of size {}.", capabilities.getResourceCount(), capabilities.getSize());
 
@@ -170,7 +175,7 @@ public class StorageScheduler implements Scheduler {
         // Get all storage pools that match the passed CoS params and
         // protocols. In addition, the pool must have enough capacity
         // to hold at least one resource of the requested size.
-        List<StoragePool> candidatePools = getMatchingPools(neighborhood, cos, capabilities, attributeMap);
+        List<StoragePool> candidatePools = getMatchingPools(neighborhood, cos, vPoolUse, capabilities, attributeMap);
 
         if (CollectionUtils.isEmpty(candidatePools)) {
             StringBuffer errorMessage = new StringBuffer();
@@ -237,7 +242,7 @@ public class StorageScheduler implements Scheduler {
             attributeMap.put(AttributeMatcher.Attributes.varrays.name(), virtualArraySet);
 
             _log.info("Matching pools for storage system {} ", storageSystem);
-            List<StoragePool> matchedPools = getMatchingPools(vArray, vPool, capabilities, attributeMap);
+            List<StoragePool> matchedPools = getMatchingPools(vArray, vPool, VpoolUse.ROOT, capabilities, attributeMap);
             if (matchedPools == null || matchedPools.isEmpty()) {
                 // TODO fix message and throw service code exception
                 _log.warn("VArray {} does not have storage pools which match VPool {}.", vArray.getId(), vPool.getId());
@@ -311,7 +316,7 @@ public class StorageScheduler implements Scheduler {
         // to hold at least one resource of the requested size.
         // In addition, we need to only select pools from the
         // StorageSystem that the source volume was created against.
-        List<StoragePool> matchedPools = getMatchingPools(vArray, vPool, capabilities, attributeMap);
+        List<StoragePool> matchedPools = getMatchingPools(vArray, vPool, VpoolUse.ROOT, capabilities, attributeMap);
         if (matchedPools == null || matchedPools.isEmpty()) {
             StringBuffer errMes = new StringBuffer();
             if (attributeMap.get(AttributeMatcher.ERROR_MESSAGE) != null) {
@@ -388,8 +393,8 @@ public class StorageScheduler implements Scheduler {
      * @return A list of matching storage pools.
      */
     protected List<StoragePool> getMatchingPools(VirtualArray varray, VirtualPool vpool,
-            VirtualPoolCapabilityValuesWrapper capabilities) {
-        return getMatchingPools(varray, vpool, capabilities, null);
+            VpoolUse vPoolUse, VirtualPoolCapabilityValuesWrapper capabilities) {
+        return getMatchingPools(varray, vpool, vPoolUse, capabilities, null);
     }
 
     /**
@@ -397,18 +402,32 @@ public class StorageScheduler implements Scheduler {
      *
      * @param varray The VirtualArray for matching storage pools.
      * @param vpool The virtualPool that must be satisfied by the storage pool.
+     * @param vPoolUse The usage for the virtual pool.
      * @param capabilities The VirtualPool params that must be satisfied.
      * @param optionalAttributes Optional addition attributes to consider for placement
      *
      * @return A list of matching storage pools.
      */
     protected List<StoragePool> getMatchingPools(VirtualArray varray, VirtualPool vpool,
-            VirtualPoolCapabilityValuesWrapper capabilities, Map<String, Object> optionalAttributes) {
+            VpoolUse vPoolUse, VirtualPoolCapabilityValuesWrapper capabilities, Map<String, Object> optionalAttributes) {
 
         capabilities.put(VirtualPoolCapabilityValuesWrapper.VARRAYS, varray.getId().toString());
-        if (null != vpool.getAutoTierPolicyName()) {
-            capabilities.put(VirtualPoolCapabilityValuesWrapper.AUTO_TIER__POLICY_NAME,
-                    vpool.getAutoTierPolicyName());
+        
+        // For now the use of ROOT is equivalent to VolumeTopology.VolumeTopologyRole.SOURCE.
+        // This will work for basic block volumes. However, for supporting more complex 
+        // configurations, VpoolUse will not be sufficient and we will likely have to replace
+        // will something like VolumeTopologyRole, so that the correct performance params can be
+        // examined.
+        String autoTierPolicyName = null;
+        if (vPoolUse == VpoolUse.ROOT) {
+            autoTierPolicyName = PerformanceParamsUtils.getAutoTierinigPolicyName(
+                    capabilities.getSourcePerformanceParams(),
+                    VolumeTopology.VolumeTopologyRole.SOURCE,
+                    vpool, _dbClient);
+        }
+        
+        if (NullColumnValueGetter.isNotNullValue(autoTierPolicyName)) {
+            capabilities.put(VirtualPoolCapabilityValuesWrapper.AUTO_TIER__POLICY_NAME, autoTierPolicyName);
         }
 
         List<StoragePool> storagePools = new ArrayList<StoragePool>();
@@ -525,7 +544,7 @@ public class StorageScheduler implements Scheduler {
         }
 
         // populate DriveType,and Raid level and Policy Name for FAST Initial Placement Selection
-        provMapBuilder.putAttributeInMap(Attributes.auto_tiering_policy_name.toString(), vpool.getAutoTierPolicyName());
+        provMapBuilder.putAttributeInMap(Attributes.auto_tiering_policy_name.toString(), autoTierPolicyName);
         provMapBuilder.putAttributeInMap(Attributes.unique_policy_names.toString(), vpool.getUniquePolicyNames());
         provMapBuilder.putAttributeInMap(AttributeMatcher.PLACEMENT_MATCHERS, true);
         provMapBuilder.putAttributeInMap(AttributeMatcher.Attributes.drive_type.name(), vpool.getDriveType());
@@ -1878,7 +1897,7 @@ public class StorageScheduler implements Scheduler {
             VirtualPool vPool, VpoolUse vPoolUse,
             VirtualPoolCapabilityValuesWrapper capabilities, Map<VpoolUse, List<Recommendation>> currentRecommendations) {
         // Initially we're only going to return one recommendation set.
-        List<Recommendation> recommendations = getRecommendationsForResources(vArray, project, vPool, capabilities);
+        List<Recommendation> recommendations = getRecommendationsForResources(vArray, project, vPool, vPoolUse, capabilities);
         return recommendations;
     }
 
@@ -1892,5 +1911,4 @@ public class StorageScheduler implements Scheduler {
         // This is a bottom level scheduler, it handles everything.
         return true;
     }
-
 }

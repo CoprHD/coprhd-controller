@@ -41,7 +41,7 @@ public class FilePlacementManager {
 
         // Get the file placement based on passed parameters.
         Scheduler scheduler = getFileServiceImpl(capabilities);
-        return scheduler.getRecommendationsForResources(virtualArray, project, vPool, capabilities);
+        return scheduler.getRecommendationsForResources(virtualArray, project, vPool, VpoolUse.ROOT, capabilities);
     }
 
     /**

@@ -136,7 +136,7 @@ public class FileStorageScheduler implements Scheduler {
         // protocols. In addition, the pool must have enough capacity
         // to hold at least one resource of the requested size.
         List<StoragePool> candidatePools = _scheduler.getMatchingPools(vArray,
-                vPool, capabilities, optionalAttributes);
+                vPool, VpoolUse.ROOT, capabilities, optionalAttributes);
 
         if (CollectionUtils.isEmpty(candidatePools)) {
             StringBuffer errorMessage = new StringBuffer();
@@ -1082,7 +1082,7 @@ public class FileStorageScheduler implements Scheduler {
 
     @Override
     public List getRecommendationsForResources(VirtualArray vArray, Project project, VirtualPool vPool,
-            VirtualPoolCapabilityValuesWrapper capabilities) {
+            VpoolUse vPoolUse, VirtualPoolCapabilityValuesWrapper capabilities) {
         return placeFileShare(vArray, vPool, capabilities, project, null);
     }
 

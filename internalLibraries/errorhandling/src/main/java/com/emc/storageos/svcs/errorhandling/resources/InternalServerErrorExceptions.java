@@ -393,4 +393,7 @@ public interface InternalServerErrorExceptions {
 
     @DeclareServiceCode(ServiceCode.SYS_UPGRADE_DRIVER_FAILED)
     public InternalServerErrorException upgradeDriverFailed(String errMsg);
+    
+    @DeclareServiceCode(ServiceCode.UNFORSEEN_ERROR)
+    public InternalServerErrorException cannotFindTaskForWorkflow(String wfLabel, String wfId, String orchTaskId);
 }

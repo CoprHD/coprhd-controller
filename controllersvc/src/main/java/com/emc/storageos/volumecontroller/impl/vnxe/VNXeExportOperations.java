@@ -763,7 +763,7 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
                     } else {
                         String msg = String.format(
                                 "Initiator %s belongs to %s, but other initiator belongs to %s. Please move initiator to the correct host",
-                                init.getPortWWN(), host.getId(), hostId);
+                                init.getInitiatorId(), host.getId(), hostId);
                         _logger.error(msg);
 
                         if (!createdInitiators.isEmpty()) {
@@ -1086,6 +1086,10 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
         if (initiatorList != null) {
             for (VNXeHostInitiator initiator : initiatorList) {
                 String portWWN = initiator.getPortWWN();
+                if (HostInitiatorTypeEnum.INITIATOR_TYPE_ISCSI.equals(initiator.getType())) {
+                    portWWN = initiator.getInitiatorId();
+                }
+
                 Initiator viprInitiator = NetworkUtil.findInitiatorInDB(portWWN, dbClient);
                 if (viprInitiator != null) {
                     if (!hostUri.equals(viprInitiator.getHost())) {

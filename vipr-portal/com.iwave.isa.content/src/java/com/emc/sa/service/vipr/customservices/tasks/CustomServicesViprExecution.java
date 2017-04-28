@@ -227,8 +227,8 @@ public class CustomServicesViprExecution extends ViPRExecutionTask<CustomService
      */
     private String makePostBody(final String body, final int pos) {
 
-        logger.debug("make body for" + body);
-        final String[] strs = body.split(":");
+        logger.info("make body for" + body);
+        final String[] strs = body.split("(?<=:)");
 
         for (int j = 0; j < strs.length; j++) {
             if (StringUtils.isEmpty(strs[j])) {
@@ -236,16 +236,33 @@ public class CustomServicesViprExecution extends ViPRExecutionTask<CustomService
             }
 
             if (!strs[j].contains("{")) {
-
+                final String value;
                 if ((!strs[j].contains("["))) {
                     //Single type parameter
-                    strs[j] = findReplace(strs[j], pos, false);
-                    continue;
+                    value = findReplace(strs[j], pos, false);
                 } else {
                     //Array type parameter
-                    strs[j] = findReplace(strs[j], pos, true);
-                    continue;
+                    value = findReplace(strs[j], pos, true);
                 }
+                if (value.isEmpty()) {
+                    final String[] ar = strs[j].split(",");
+                    if (ar.length>1) {
+                        strs[j] = strs[j].replace(ar[0] + ",", "");
+                        String[] pre = StringUtils.substringsBetween(strs[j - 1], "\"", "\"");
+                        strs[j-1] = strs[j-1].replace("\""+pre[pre.length-1]+"\""+":", "");
+
+                    } else {
+                        String[] ar1 = strs[j].split("}");
+                        strs[j] = strs[j].replace(ar1[0], "");
+                        String[] pre = StringUtils.substringsBetween(strs[j - 1], "\"", "\"");
+                        strs[j-1] = strs[j-1].replace("\""+pre[pre.length-1]+"\""+":", "");
+                        strs[j -1] = strs[j-1].trim().replaceAll(",$", "");
+
+                    }
+                } else {
+                    strs[j] = value;
+                }
+                continue;
             }
 
             //Complex Array of Objects type
@@ -261,14 +278,14 @@ public class CustomServicesViprExecution extends ViPRExecutionTask<CustomService
                     if (vals == null) {
                         vals = getListofObjects(strs[j]);
                     }
-                    secondPart.append(":").append(strs[j]);
+                    secondPart.append(strs[j]);//sonali
 
                     j++;
                 }
                 final String[] splits = strs[j].split("\\}]");
                 final String firstOfLastLine = splits[0];
                 final String end = splits[1];
-                secondPart.append(":").append(firstOfLastLine).append("}");
+                secondPart.append(firstOfLastLine).append("}");//sonali sp.append(":")
 
                 int last = j;
 
@@ -281,7 +298,7 @@ public class CustomServicesViprExecution extends ViPRExecutionTask<CustomService
             }
         }
 
-        logger.info("ViPR Request body" + joinStrs(strs));
+        System.out.println("ViPR Request body" + joinStrs(strs));
 
         return joinStrs(strs);
     }
@@ -298,12 +315,9 @@ public class CustomServicesViprExecution extends ViPRExecutionTask<CustomService
 
     private String joinStrs(final String[] strs) {
         final StringBuilder sb = new StringBuilder(strs[0]);
-        for (int i = 1; i < strs.length; i++) {
-            if (!strs[i].isEmpty()) {
-                sb.append(":").append(strs[i]);
-            }
+        for (int j=1; j<strs.length; j++) {
+            sb.append(strs[j]);
         }
-
         return sb.toString();
     }
 
@@ -346,11 +360,13 @@ public class CustomServicesViprExecution extends ViPRExecutionTask<CustomService
                     final String value = sb.toString();
 
                     vals = value.replaceAll(",$", "");
+
                 }
+                return str.replace(pat, vals);
             } else {
-                vals = "\"\"";
+                return "";
             }
-            return str.replace(pat, vals);
+
         }
 
         return "";

@@ -149,7 +149,8 @@ public class CustomServicesAnsibleResourceDAO implements CustomServicesResourceD
             }
             return playbooks;
         } catch (final IOException e) {
-            throw InternalServerErrorException.internalServerErrors.genericApisvcError("Invalid ansible archive", e);
+            throw InternalServerErrorException.internalServerErrors.genericApisvcError("Invalid ansible archive. The archive needs to be in 'tar.gz' format. " +
+                    "Create the tar using the command 'tar -zcvf tar_name directory_path_to_tar' and then upload", e);
         }
     }
 

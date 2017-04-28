@@ -16,6 +16,24 @@
  */
 package com.emc.sa.catalog;
 
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+import javax.annotation.PostConstruct;
+
+import org.apache.commons.collections.map.MultiValueMap;
+import org.apache.commons.lang.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
+
 import com.emc.sa.descriptor.ServiceDescriptor;
 import com.emc.sa.descriptor.ServiceField;
 import com.emc.sa.descriptor.ServiceFieldTable;
@@ -29,18 +47,6 @@ import com.emc.storageos.model.customservices.CustomServicesWorkflowDocument.Inp
 import com.emc.storageos.model.customservices.CustomServicesWorkflowDocument.InputGroup;
 import com.emc.storageos.model.customservices.CustomServicesWorkflowDocument.Step;
 import com.emc.storageos.primitives.CustomServicesConstants;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.Set;
-import javax.annotation.PostConstruct;
-import org.apache.commons.collections.map.MultiValueMap;
-import org.apache.commons.lang.StringUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
 
 /**
  * Service Descriptor for Workflow services
@@ -113,7 +119,19 @@ public class WorkflowServiceDescriptor {
                             } else if (CustomServicesConstants.InputType.ASSET_OPTION_MULTI.toString().equals(wfInput.getType())) {
                                 serviceField.setType(wfInput.getValue());
                                 serviceField.setSelect(ServiceField.SELECT_MANY);
-                            }else {
+                            } else if (CustomServicesConstants.InputType.FROM_USER_MULTI.toString().equals(wfInput.getType())
+                                    && StringUtils.isNotBlank(wfInput.getDefaultValue())) {
+                                serviceField.setType(ServiceField.TYPE_CHOICE);
+                                final Map<String, String> options = new HashMap<>();
+                                List<String> defaultList = Arrays.asList(wfInput.getDefaultValue().split(","));
+                                for (final String value : defaultList) {
+                                    //making the key and value the same
+                                    options.put(value, value);
+
+                                }
+                                serviceField.setOptions(options);
+                                serviceField.setInitialValue(options.get(defaultList.get(0)));
+                            } else {
                                 continue;
                             }
                             final String inputName = wfInput.getName();
@@ -126,7 +144,11 @@ public class WorkflowServiceDescriptor {
                                     .setLabel(friendlyName);
                             serviceField.setName(friendlyName);
                             serviceField.setRequired(wfInput.getRequired());
+                            if (!(CustomServicesConstants.InputType.FROM_USER_MULTI.toString().equals(wfInput.getType()))) {
+                                // Initial value already set for FROM_USER_MULTI
                             serviceField.setInitialValue(wfInput.getDefaultValue());
+                            }
+
                             // Setting all unlocked fields as lockable
                             if (!wfInput.getLocked()) {
                                 serviceField.setLockable(true);

@@ -80,26 +80,26 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
                     "valid_children": ["default"]
                 },
                 "FOLDER": {
-                    "icon": "/public/img/customServices/Folder.png",
+                    "icon": "builder-jstree-icon builder-folder-icon",
                     "valid_children": ["Workflow","FOLDER", "script", "ansible"]
                 },
                 "Workflow": {
-                    "icon": "/public/img/customServices/UserDefinedWF.png",
+                    "icon": "builder-jstree-icon builder-workflow-icon",
                     "valid_children": [],
                     "li_attr": {"class": "draggable-card"}
                 },
                 "script": {
-                    "icon": "/public/img/customServices/UserDefinedOperation.png",
+                    "icon": "builder-jstree-icon builder-script-icon",
                     "valid_children": [],
                     "li_attr": {"class": "draggable-card"}
                 },
                 "ansible": {
-                    "icon": "/public/img/customServices/UserDefinedOperation.png",
+                    "icon": "builder-jstree-icon builder-ansible-icon",
                     "valid_children": [],
                     "li_attr": {"class": "draggable-card"}
                 },
                 "vipr": {
-                    "icon": "/public/img/customServices/ViPROperation.png",
+                    "icon": "builder-jstree-icon builder-vipr-icon",
                     "valid_children": [],
                     "li_attr": {"class": "draggable-card"}
                 }
@@ -204,7 +204,7 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
     var optionsHTML = `
     <div id="treeMoreOptionsSel" class="btn-group treeMoreOptions">
        <button id="optionsBtn" type="button" class="btn btn-xs btn-default dropdown-toggle" title="Options" data-toggle="dropdown">
-           <span class="glyphicon"><img src="/public/img/customServices/Options.png" height="20" width="24"></span>
+           <span class="glyphicon"><img src="/public/img/customServices/ThreeDotsMenu.svg" height="20" width="24"></span>
        </button>
        <ul class="dropdown-menu dropdown-menu-right" role="menu">
             <li id="editMenu" style="display:none;"><a  href="#" ng-click="editNode();">${translate('wfBuilder.menu.edit')}</a></li>
@@ -293,7 +293,7 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
             var optionsHoverHTML = `
                 <div id="treeMoreOptionsHover" class="btn-group treeMoreOptions">
                    <button id="optionsHoverBtn" type="button" class="btn btn-xs btn-default" title="Options" ng-click="hoverOptionsClick('${nodeId}');">
-                       <span class="glyphicon"><img src="/public/img/customServices/Options.png" height="20" width="24"></span>
+                       <span class="glyphicon"><img src="/public/img/customServices/ThreeDotsMenu.svg" height="20" width="24"></span>
                    </button>
                 </div>
             `;
@@ -519,26 +519,26 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
     */
     var passEndpoint = {
         endpoint: ["Image", {
-            src:"/public/img/customServices/PassEndpoint.png"
-        }],
-        isSource: true,
-        connector: ["Flowchart", {
-            cornerRadius: 5
-        }],
-        anchors: [0.5, 1, 0, 1,0,10],
-		connectorStyle:{ strokeStyle:"#3fac49", lineWidth:1 },
-        cssClass: "passEndpoint"
-    };
-
-    var failEndpoint = {
-        endpoint: ["Image", {
-            src:"/public/img/customServices/FailEndpoint.png"
+            src:"/public/img/customServices/YesDark.svg"
         }],
         isSource: true,
         connector: ["Flowchart", {
             cornerRadius: 5
         }],
         anchors: [1, 0.5, 1, 0,10,0],
+		connectorStyle:{ strokeStyle:"#3fac49", lineWidth:1 },
+        cssClass: "passEndpoint"
+    };
+
+    var failEndpoint = {
+        endpoint: ["Image", {
+            src:"/public/img/customServices/NoDark.svg"
+        }],
+        isSource: true,
+        connector: ["Flowchart", {
+            cornerRadius: 5
+        }],
+        anchors: [0.5, 1, 0, 1,0,10],
         connectorStyle:{ strokeStyle:"#ee3825", lineWidth:1 },
         cssClass: "failEndpoint"
     };
@@ -766,23 +766,23 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
 	var draggableNodeTypes = {"shellNodeType":shellNodeType, "localAnsibleNodeType":localAnsibleNodeType, "restAPINodeType":restAPINodeType, "viprRestAPINodeType":viprRestAPINodeType, "workflowNodeType":workflowNodeType}
     function getStepIcon(stepType){
         console.log(stepType);
-        var stepIcon = "UserDefinedOperation.png";
+        var stepIcon = "TreeNodeStep.svg";
         if(stepType != null) {
             switch(stepType.toLowerCase()){
                 case draggableNodeTypes.shellNodeType:
-                    stepIcon = "Script.png";
+                    stepIcon = "Script.svg";
                     break;
                 case draggableNodeTypes.localAnsibleNodeType:
-                    stepIcon = "LocalAnsible.png";
+                    stepIcon = "LocalAnsible.svg";
                     break;
                 case draggableNodeTypes.workflowNodeType:
-                    stepIcon = "UserDefinedWF.png";
+                    stepIcon = "TreeNodeWF.svg";
                     break;
                 case draggableNodeTypes.restAPINodeType:
-                    stepIcon = "REST.png";
+                    stepIcon = "RestApi.svg";
                     break;
                 case draggableNodeTypes.viprRestAPINodeType:
-                    stepIcon = "ViPRREST.png";
+                    stepIcon = "ViPRest.svg";
                     break;
             }
         }
@@ -808,10 +808,9 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
                 <a class="glyphicon glyphicon-pencil button-step-close" ng-click="select('${stepId}')"></a>
                 <a class="glyphicon glyphicon-remove button-step-close" ng-click="removeStep('${stepId}')"></a>
             </div>
-            <div style="width:25%; float:left; padding-left:3px; padding-top:2px;">
-                <span class="glyphicon"><img src="${getStepIcon(step.type)}" height="15" width="18"></span>
-            </div>
             <div id="${stepId}"  class="item" ng-class="{\'highlighted\':(selectedId == '${stepId}' && menuOpen)}">
+                <div class="step-type-image" style="background-image: url(${getStepIcon(step.type)});">
+                </div>
                 <div class="itemText">${trimmedStepName}</div>
             </div>
         </div>

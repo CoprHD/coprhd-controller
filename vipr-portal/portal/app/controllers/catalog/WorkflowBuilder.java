@@ -30,6 +30,7 @@ import java.util.Map;
 import java.util.Set;
 
 import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang.StringUtils;
 import org.owasp.esapi.ESAPI;
 
@@ -39,7 +40,6 @@ import play.data.validation.Valid;
 import play.mvc.Controller;
 import play.mvc.With;
 import util.StringOption;
-import org.apache.commons.io.FilenameUtils;
 
 import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.customservices.CustomServicesPrimitiveCreateParam;
@@ -134,7 +134,6 @@ public class WorkflowBuilder extends Controller {
             this.text = text;
             this.parentID = parentID;
             this.type = type;
-            anchorAttr.put(JSTREE_A_ATTR_TITLE, text);
         }
 
         public void addBoldAnchorAttr() {
@@ -404,7 +403,9 @@ public class WorkflowBuilder extends Controller {
         if (null == primitiveList || null == primitiveList.getPrimitives()) {
             return;
         }
-
+        final List<String> categories = new ArrayList<String>();
+        final List<String> services = new ArrayList<String>();
+        
         List<CustomServicesPrimitiveRestRep> primitives = getCatalogClient().customServicesPrimitives().getByIds(primitiveList.getPrimitives());
         for (final CustomServicesPrimitiveRestRep primitive : primitives) {
             final String parent = (fileParents != null && fileParents.containsKey(primitive.getId()))
@@ -412,8 +413,25 @@ public class WorkflowBuilder extends Controller {
             final Node node;
 
             if (StepType.VIPR_REST.toString().equals(type)) {
+                final String[] folders = primitive.getName().split("/");
+                final String service;
+                if(folders.length == 3) {
+                    if(!categories.contains(folders[0])) {
+                        topLevelNodes.add(new Node(folders[0],
+                               folders[0], parent, WFBuilderNodeTypes.FOLDER.toString()));
+                        categories.add(folders[0]);
+                    }
+                    if(!services.contains(folders[1])) {
+                        topLevelNodes.add(new Node(folders[1],
+                                folders[1], folders[0], WFBuilderNodeTypes.FOLDER.toString()));
+                        services.add(folders[1]);
+                    }
+                    service = folders[1];
+                } else {
+                    service = parent;
+                }
                 node = new Node(primitive.getId().toString(),
-                        primitive.getFriendlyName(), parent, type);
+                        primitive.getFriendlyName(), service, type);
             } else {
                 node = new Node(primitive.getId().toString(),
                         primitive.getName(), parent, type);

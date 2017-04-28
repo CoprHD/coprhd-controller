@@ -502,6 +502,6 @@ public class BlockConsistencyGroup extends DataObject implements ProjectResource
 
     public void setJournalProvisioningLock(Long journalProvisioningLock) {
         this.journalProvisioningLock = journalProvisioningLock;
-        setChanged("journalProvisioningFlag");
+        setChanged("journalProvisioningLock");
     }
 }

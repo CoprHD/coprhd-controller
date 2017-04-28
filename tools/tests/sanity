@@ -4808,6 +4808,11 @@ recoverpoint_simulator_varsetup() {
 recoverpoint_simulator_setup()
 {
     secho 'RecoverPoint Simulator running'
+    RECOVERPOINT_STORAGE_ARRAY_A_GUID=$VMAX1_SIMULATOR_NATIVEGUID
+    RECOVERPOINT_STORAGE_ARRAY_B_GUID=$VMAX2_SIMULATOR_NATIVEGUID
+    RECOVERPOINT_STORAGE_ARRAY_C_GUID=$VMAX3_SIMULATOR_NATIVEGUID
+    RECOVERPOINT_STORAGE_ARRAY_D_GUID=$VMAX4_SIMULATOR_NATIVEGUID
+    
     project_setup
     rp_varray_setup
 
@@ -4840,9 +4845,6 @@ recoverpoint_simulator_setup()
 
     RECOVERPOINT_IP=$RP_SIMULATOR_IP
     rp_protection_system_setup
-
-    # Make sure all of the pools are updated and matched
-    run storagedevice discover_all
 
     # RPA Isolation
     run protectionsystem update --ip ${remote_ip} --name $RECOVERPOINT --cluster site_1rp1 --addvarrays $RECOVERPOINT_VARRAY1

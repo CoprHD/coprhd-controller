@@ -296,44 +296,129 @@ public class CustomServicesService extends ViPRService {
         for (final CustomServicesWorkflowDocument.InputGroup inputGroup : step.getInputGroups().values()) {
             for (final Input value : inputGroup.getInputGroup()) {
                 final String name = value.getName();
+                final String friendlyName = value.getFriendlyName();
+                if(StringUtils.isEmpty(value.getType())){
+                    continue;
+                }
 
                 switch (InputType.fromString(value.getType())) {
                     case FROM_USER:
-                    case ASSET_OPTION:
-                        final String friendlyName = value.getFriendlyName();
+                    case FROM_USER_MULTI:
+                    case ASSET_OPTION_SINGLE:
                         if (params.get(friendlyName) != null && !StringUtils.isEmpty(params.get(friendlyName).toString())) {
-                            inputs.put(name, Arrays.asList(params.get(friendlyName).toString().split(",")));
+                            /*
+                             * Since the order form sends the value as String with double quotes for each value, we remove the quotes
+                             * the reason for splitting by ',' is, for table type cases, where the input name is part of a table and hence
+                             * we should store it as a list of values
+                             * Eg., of single input inside a table: say the name is "volume"
+                             * from order context value for name (which is part of table will be) = ""vol1","vol2","vol3""
+                             * //These will be stored in the inputs Map as follows:
+                             * input[key] = "volumes"
+                             * input[value][0]=vol1
+                             * input[value][1]=vol2
+                             * input[value][2]=vol3
+                             */
+                            inputs.put(name, Arrays.asList(params.get(friendlyName).toString().replace("\"", "").split(",")));
                         } else {
                             if (value.getDefaultValue() != null) {
-                                inputs.put(name, Arrays.asList(value.getDefaultValue().split(",")));
+                                // The default value is copied only for the first index
+                                // in case of table type, it is not evident how many times the default value need to be copied.
+                                inputs.put(name, Arrays.asList(value.getDefaultValue()));
+                            } else {
+                                //Pass an empty string if the value is null ( for optional input. for required the error is thrown already) and default value is not set
+                                inputs.put(name, Arrays.asList(""));
                             }
                         }
                         break;
+                    // the multi cases are array types
+
                     case ASSET_OPTION_MULTI:
-                    case ASSET_OPTION_SINGLE:
-                    // TODO: Handle multi value
+                        if (params.get(friendlyName) != null && !StringUtils.isEmpty(params.get(friendlyName).toString())) {
+                            /*
+                             * Case for array type is little different. The array can be passed by itself or as part of a table
+                             * Since the order form sends the value as String with double quotes for each value, we remove the quotes
+                             * the reason for splitting by "," is for table type cases, where the input name is part of a table and hence we
+                             * should store it as a list of values
+                             * Eg., of array input without table:
+                             * arrayInputWithouttable = ""vol1","vol2","vol3""
+                             * //These will be stored in the inputs Map as follows:
+                             * input[key] = "volumes"
+                             * input[value][0]=vol1,vol2,vol3
+                             * 
+                             * Eg., of array input with table:
+                             * arrayInputWithtable = ""1,2,3","4","14,15","24,25,26"" ie., in a table (complex structure), the array input
+                             * is clubbed by row and separated by commans
+                             * 
+                             * //These will be stored in the inputs Map as follows:
+                             * input[key] = "volumes"
+                             * input[value][0]=1,2,3
+                             * input[value][1]=4
+                             * input[value][2]=14,15
+                             * input[value][3]=24,25,26
+                             * 
+                             */
+                            final List<String> arrayInput;
+
+                            if (!StringUtils.isEmpty(value.getTableName())) {
+                                // the array is inside a table. Split the string by '","'
+                                arrayInput = Arrays.asList(params.get(friendlyName).toString().split("\",\""));
+                            } else {
+                                // No table name set for the array type input.
+                                arrayInput = Arrays.asList(params.get(friendlyName).toString());
+                            }
+
+                            int i = 0;
+                            for (String eachVal : arrayInput) {
+                                arrayInput.set(i++, eachVal.replace("\"", ""));
+                            }
+                            inputs.put(name, arrayInput);
+                        } else {
+                            if (value.getDefaultValue() != null) {
+                                // The default value is copied only for the first index
+                                // in case of table type, it is not evident how many times the default value need to be copied.
+                                inputs.put(name, Arrays.asList(value.getDefaultValue()));
+                            } else {
+                                //Pass an empty string if the value is null (optional) and default value is not set
+                                inputs.put(name, Arrays.asList(""));
+                            }
+                        }
+                        break;
 
                     case FROM_STEP_INPUT:
                     case FROM_STEP_OUTPUT: {
-                        final String[] paramVal = value.getValue().split("\\.");
+                        final String[] paramVal = value.getValue().split("\\.",2);
                         final String stepId = paramVal[CustomServicesConstants.STEP_ID];
                         final String attribute = paramVal[CustomServicesConstants.INPUT_FIELD];
 
                         Map<String, List<String>> stepInput;
+                        boolean fromStepOutput = true;
                         if (value.getType().equals(InputType.FROM_STEP_INPUT.toString())) {
                             stepInput = inputPerStep.get(stepId);
+                            fromStepOutput = false;
                         } else {
                             stepInput = outputPerStep.get(stepId);
                         }
-                        if (stepInput != null) {
-                            if (stepInput.get(attribute) != null) {
+                        //check for required and throw error
+                        if (stepInput != null && stepInput.get(attribute) != null) {
+                            if (!fromStepOutput){
                                 inputs.put(name, stepInput.get(attribute));
                                 break;
+                            } else {
+                                //only support array. We will not support array inside table
+                                inputs.put(name, Arrays.asList(String.join(", ", stepInput.get(attribute)).replace("\"","")));
+                                break;
                             }
+                        } else {
+                            if (value.getRequired()) {
+                                throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed("Value mapped is null : " + value.getValue());
+                            }
+
                         }
                         if (value.getDefaultValue() != null) {
                             inputs.put(name, Arrays.asList(value.getDefaultValue()));
-                            break;
+                        } else {
+                            //Pass an empty string if the value is null (optional) and default value is not set
+                            inputs.put(name, Arrays.asList(""));
                         }
 
                         break;

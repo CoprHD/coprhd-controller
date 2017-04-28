@@ -6,9 +6,12 @@ package com.emc.sa.service.vipr.block;
 
 import com.emc.sa.service.ServiceParams;
 
+import java.util.List;
+
 import com.emc.sa.engine.bind.Param;
 import com.emc.sa.engine.service.Service;
 import com.emc.sa.service.vipr.ViPRService;
+
 
 @Service("CreateRemoteReplicationGroup")
 public class CreateRemoteReplicationGroupService extends ViPRService {
@@ -41,10 +44,10 @@ public class CreateRemoteReplicationGroupService extends ViPRService {
     protected String targetSystem;
     
     @Param(ServiceParams.SOURCE_STORAGE_PORTS)
-    protected String sourcePorts;
+    protected List<String> sourcePorts;
     
     @Param(ServiceParams.TARGET_STORAGE_PORTS)
-    protected String targetPorts;
+    protected List<String> targetPorts;
     
     @Param(ServiceParams.STORAGE_TYPE)
     protected String storageType;
@@ -56,7 +59,7 @@ public class CreateRemoteReplicationGroupService extends ViPRService {
     protected String remoteReplicationState;
 
     @Param(ServiceParams.CONSISTENCY_GROUP_ENFORCED)
-    protected Boolean consistencyGroupEnforced;
+    protected Boolean groupConsistencyEnforced;
 
     @Override
     public void precheck() {
@@ -69,7 +72,7 @@ public class CreateRemoteReplicationGroupService extends ViPRService {
         logInfo("DEBUG: storageType = '" + storageType + "'");
         logInfo("DEBUG: remoteReplicationMode = '" + remoteReplicationMode + "'");
         logInfo("DEBUG: remoteReplicationState = '" + remoteReplicationState + "'");
-        logInfo("DEBUG: consistencyGroupEnforced = '" + consistencyGroupEnforced + "'");
+        logInfo("DEBUG: groupConsistencyEnforced = '" + groupConsistencyEnforced + "'");
 
     }
 

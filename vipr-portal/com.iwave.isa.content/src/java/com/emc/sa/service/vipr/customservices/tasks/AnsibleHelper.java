@@ -35,7 +35,9 @@ public final class AnsibleHelper {
 
     public static String getOptions(final String key, final Map<String, List<String>> input) {
 
-        if (input != null && input.get(key) != null && StringUtils.isEmpty(input.get(key).get(0))) {
+        logger.info(input.keySet().toString());
+
+        if (input != null && input.get(key) != null && !StringUtils.isEmpty(input.get(key).get(0))) {
             return StringUtils.strip(input.get(key).get(0).toString(), "\"");
         }
 

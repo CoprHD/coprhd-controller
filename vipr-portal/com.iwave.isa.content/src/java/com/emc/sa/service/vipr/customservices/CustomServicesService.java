@@ -338,6 +338,8 @@ public class CustomServicesService extends ViPRService {
 
                         break;
                     }
+                    case DISABLED:
+                        break;
                     default:
                         throw InternalServerErrorException.internalServerErrors
                                 .customServiceExecutionFailed("Invalid input type:" + value.getType());

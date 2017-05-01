@@ -713,7 +713,6 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
     $scope.validateWorkflow = function() {
         $http.post(routes.Workflow_validate({workflowId : $scope.workflowData.id})).then(function (resp) {
             checkStateResponse(resp,function(){
-                    console.log(resp.data);
                     $scope.alert = resp.data;
             },
             function(){

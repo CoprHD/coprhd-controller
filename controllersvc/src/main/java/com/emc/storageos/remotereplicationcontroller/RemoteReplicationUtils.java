@@ -429,6 +429,35 @@ public class RemoteReplicationUtils {
     }
 
     /**
+     * Delete remote replication pairs for all volumes in the same CG as source volume.
+     *
+     * @param argSourceUri srdf source volume  URI
+     * @param argTargetUri srdf target volume URI
+     * @param dbClient
+     */
+    public static void deleteRemoteReplicationPairsForSrdfCG(URI argSourceUri, URI argTargetUri, DbClient dbClient) {
+        Volume sourceVolume = dbClient.queryObject(Volume.class, argSourceUri);
+        if (sourceVolume == null) {
+            String msg = String.format("Source volume could not be found in the ViPR database: %s", argSourceUri);
+            _log.error(msg);
+            throw new RuntimeException(msg);
+        }
+        BlockConsistencyGroup cg = dbClient.queryObject(BlockConsistencyGroup.class, sourceVolume.getConsistencyGroup());
+        if (cg == null) {
+            String msg = String.format("Source volume %s is not in CG .", argSourceUri);
+            _log.warn(msg);
+            deleteRemoteReplicationPairForSrdfPair(argSourceUri, argTargetUri, dbClient);
+        } else {
+            List<Volume> cgVolumes = CustomQueryUtility.queryActiveResourcesByRelation(dbClient, cg.getId(),
+                    Volume.class, "consistencyGroup");
+            for (Volume cgVolume : cgVolumes) {
+                Volume target = SRDFUtils.getFirstTarget(cgVolume, dbClient);
+                deleteRemoteReplicationPairForSrdfPair(cgVolume.getId(), target.getId(), dbClient);
+            }
+        }
+    }
+
+    /**
      * Delete remote replication pair for srdf volume pair.
      *
      * @param argSourceUri srdf source volume

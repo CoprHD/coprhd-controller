@@ -879,4 +879,20 @@ public class SRDFUtils implements SmisConstants {
         return null;
     }
 
+    /**
+     * Get first target for srdf volume.
+     *
+     * @param sourceVolume srdf source volume
+     * @param dbClient
+     * @return first srdf target
+     */
+    public static Volume getFirstTarget(Volume sourceVolume, DbClient dbClient) {
+        StringSet targets = sourceVolume.getSrdfTargets();
+
+        if (targets == null || targets.isEmpty()) {
+            throw new IllegalStateException("Source has no targets");
+        }
+
+        return dbClient.queryObject(Volume.class, URI.create(targets.iterator().next()));
+    }
 }

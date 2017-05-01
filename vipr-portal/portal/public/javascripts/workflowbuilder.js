@@ -44,7 +44,8 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
 
     var fileNodeTypes = [shellNodeType, localAnsibleNodeType, restAPINodeType, workflowNodeType]
     var primitiveNodeTypes = [shellNodeType, localAnsibleNodeType, restAPINodeType]
-    var viprLibIDs = ["viprrest", "viprLib"]
+    var viprLib = "viprLib";
+    var myLib = "myLib";
 
     initializeJsTree();
 
@@ -81,7 +82,7 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
                 },
                 "FOLDER": {
                     "icon": "builder-jstree-icon builder-folder-icon",
-                    "valid_children": ["Workflow","FOLDER", "script", "ansible"]
+                    "valid_children": ["Workflow","FOLDER", "script", "ansible", "rest"]
                 },
                 "Workflow": {
                     "icon": "builder-jstree-icon builder-workflow-icon",
@@ -100,6 +101,11 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
                 },
                 "vipr": {
                     "icon": "builder-jstree-icon builder-vipr-icon",
+                    "valid_children": [],
+                    "li_attr": {"class": "draggable-card"}
+                },
+                "rest": {
+                    "icon": "builder-jstree-icon builder-rest-icon",
                     "valid_children": [],
                     "li_attr": {"class": "draggable-card"}
                 }
@@ -169,7 +175,7 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
         if (folderNodeType === data.node.type) {
             $http.get(routes.WF_directory_delete({"id": data.node.id}));
         }
-        else if (shellNodeType === data.node.type || localAnsibleNodeType === data.node.type) {
+        else if($.inArray(data.node.type, primitiveNodeTypes) > -1) {
         	$http.get(routes.Primitive_delete({"primitiveId": data.node.id, "dirID": data.parent}));
         }
         else {
@@ -177,7 +183,7 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
         }
 
         // By default select "My Library"
-        jstreeContainer.jstree("select_node", "myLib");
+        jstreeContainer.jstree("select_node", myLib);
     };
 
     function renameDir(event, data) {
@@ -221,19 +227,19 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
     var validActionsOnWorkflow = ["renameMenu", "editWFMenu", "deleteMenu"]
     var validActionsOnMyPrimitives = ["renameMenu", "deleteMenu", "editMenu"]
 
-    function showOptions(nodeId, parentId) {
+    function showOptions(nodeId, parents) {
         // Do not show 'More options' on ViPR Library nodes & My Library
-        if($.inArray(nodeId, viprLibIDs) > -1 || $.inArray(parentId, viprLibIDs) > -1 || "myLib" === nodeId) {
+        if($.inArray(viprLib, parents) > -1 || viprLib === nodeId || myLib === nodeId ) {
             return false;
         }
         return true;
     }
 
-    function addMoreOptions(nodeId, nodeType, parentId) {
+    function addMoreOptions(nodeId, nodeType, parents) {
         //remove any previous element
         $(".treeMoreOptions").remove();
 
-        if(!showOptions(nodeId, parentId)) return;
+        if(!showOptions(nodeId, parents)) return;
 
         //find anchor with this id and append "more options"
         $('[id="'+nodeId+'"]').children('a').after(optionsHTML);
@@ -265,10 +271,10 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
 
     function selectDir(event, data) {
         $scope.selNodeId = data.node.id;
-        addMoreOptions(data.node.id, data.node.type, data.node.parent);
+        addMoreOptions(data.node.id, data.node.type, data.node.parents);
 
         // If current node is vipr library or its parent is vipr library, disable all
-        if($.inArray(data.node.id, viprLibIDs) > -1 || $.inArray(data.node.parent, viprLibIDs) > -1 || $.inArray(data.node.type, fileNodeTypes) > -1) {
+        if(viprLib === data.node.id || $.inArray(viprLib, data.node.parents) > -1 || $.inArray(data.node.type, fileNodeTypes) > -1) {
             // ViPR Library nodes - disable all buttons
             $('#addWorkflow').prop("disabled",true);
         }
@@ -289,7 +295,7 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
         $scope.hoverNodeId = nodeId;
 
         // Do not show again for selected node
-        if (showOptions(nodeId, data.node.parent) && $scope.selNodeId !== nodeId) {
+        if (showOptions(nodeId, data.node.parents) && $scope.selNodeId !== nodeId) {
             var optionsHoverHTML = `
                 <div id="treeMoreOptionsHover" class="btn-group treeMoreOptions">
                    <button id="optionsHoverBtn" type="button" class="btn btn-xs btn-default" title="Options" ng-click="hoverOptionsClick('${nodeId}');">

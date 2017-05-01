@@ -131,15 +131,6 @@ public class TaskMapper {
             taskResourceRep.setMessage(task.getMessage());
             if (!task.getWarningMessages().isEmpty()) {
             	taskResourceRep.setWarningMessages(new ArrayList<String>(task.getWarningMessages()));
-            	// Below temporary code to append warning messages to message
-            	StringBuilder buf = new StringBuilder();
-            	buf.append(task.getMessage());
-            	buf.append("\nThere were warning messages associated with the task:\n");
-            	int n = 1;
-            	for (String warning : task.getWarningMessages()) {
-            		buf.append(String.format("%d. %s", n++, warning));
-            	}
-            	taskResourceRep.setMessage(buf.toString());
             }
         }
         taskResourceRep.setDescription(task.getDescription());

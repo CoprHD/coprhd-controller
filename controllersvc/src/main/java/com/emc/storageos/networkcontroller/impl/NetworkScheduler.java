@@ -179,8 +179,6 @@ public class NetworkScheduler {
         if (array == null || initiator == null || hostName == null) {
             return null;
         }
-        
-        
         DataSource dataSource = dataSourceFactory.createZoneNameDataSource(hostName,
                 initiator, port, fabricId, array);
         if (array.getSystemType().equals(DiscoveredDataObject.Type.vplex.name())) {

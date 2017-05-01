@@ -824,7 +824,16 @@ public class ExportMaskUtils {
     }
 
     /**
-     * Create FCZoneReference objects to the list of zoneInfoMap.
+     * Create FCZoneReference objects according to the list of zoneInfoMap.
+     * This is used for ingestion.
+     * 
+     * The zones will be ingested as existingZone = false (allowing deletion of the zone when the last reference is removed)
+     * if all the following criteria are met:
+     * 1. The export mask being ingested must have no existing (non-vipr-created) volumes.
+     * 2. If the zone must not have more than two members (smartZone), as Vipr cannot yet manage smart zones.
+     * 3. The zone name that would be generated for the zone must be the same as the ingested zone's name, unless the 
+     * controllersvc config variable controller_ingest_zones_with_non_vipr_name is set to true, bypassing the zone name check.
+     * 4. The zone must not be used in any other UnManagedExportMask (export mask which has not yet been ingested).
      *
      * @param volume the FCZoneReference volume
      * @param exportGroup the FCZoneReference export group

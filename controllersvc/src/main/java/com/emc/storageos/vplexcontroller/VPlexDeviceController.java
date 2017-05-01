@@ -2944,7 +2944,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
 
             Workflow.Method initiatorRollback = storageViewAddInitiatorsRollbackMethod(vplexSystem.getId(), 
                     exportGroupUri, exportMask.getId(),
-                    new ArrayList<>(blockObjectMap.keySet()), initiatorURIs, addInitStep);
+                    initiatorURIs, null, addInitStep);
 
             storageViewStepId = workflow.createStep("storageView",
                     String.format("Updating VPLEX Storage View Initiators for ExportGroup %s Mask %s", exportGroupUri, exportMask.getMaskName()),
@@ -4444,7 +4444,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
                     newTargetURIs, shared, addInitCompleter);
 
             Workflow.Method addToViewRollbackMethod = storageViewAddInitiatorsRollbackMethod(vplexURI,
-                    exportURI, exportMask.getId(), StringSetUtil.stringSetToUriList(exportMask.getVolumes().keySet()), hostInitiatorURIs,
+                    exportURI, exportMask.getId(), hostInitiatorURIs, newTargetURIs,
                     addInitStep);
 
             lastStepId = workflow.createStep("storageView", "Add " + message,
@@ -4714,18 +4714,18 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
      *            [in] - ExportGroup URI
      * @param exportMaskURI
      *            [in] - ExportMask URI
-     * @param volumeURIs
-     *            [in] - Impacted volume URIs
      * @param initiatorURIs
      *            [in] - List of Initiator URIs
+     * @param targetURIs
+     *            [in] - List of storage port URIs
      * @param rollbackContextKey
      *            [in] - context token
      * @return Workflow.Method for addition to workflow.
      */
     public Workflow.Method storageViewAddInitiatorsRollbackMethod(URI vplexURI, URI exportGroupURI, URI exportMaskURI,
-            List<URI> volumeURIs, List<URI> initiatorURIs, String rollbackContextKey) {
+            List<URI> initiatorURIs, List<URI> targetURIs, String rollbackContextKey) {
         return new Workflow.Method(STORAGE_VIEW_ADD_INITS_ROLLBACK_METHOD, vplexURI, 
-                exportGroupURI, exportMaskURI, volumeURIs, initiatorURIs, rollbackContextKey);
+                exportGroupURI, exportMaskURI, initiatorURIs, targetURIs, rollbackContextKey);
     }
 
     /**
@@ -4739,10 +4739,10 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
      *            [in] - ExportGroup URI
      * @param exportMaskURI
      *            [in] - ExportMask URI
-     * @param volumeURIs
-     *            [in] - Impacted volume URIs
      * @param initiatorURIs
      *            [in] - List of Initiator URIs
+     * @param targetURIs
+     *            [in] - List of storage port URIs
      * @param rollbackContextKey
      *            [in] - context token
      * @param token
@@ -4750,7 +4750,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
      * @throws ControllerException
      */
     public void storageViewAddInitiatorsRollback(URI vplexURI, URI exportGroupURI,
-            URI exportMaskURI, List<URI> volumeURIs, List<URI> initiatorURIs,
+            URI exportMaskURI, List<URI> initiatorURIs, List<URI> targetURIs,
             String rollbackContextKey, String token) throws ControllerException {
         ExportTaskCompleter taskCompleter = new ExportMaskRemoveInitiatorCompleter(exportGroupURI, exportMaskURI,
                 initiatorURIs, token);
@@ -4764,7 +4764,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
         }
 
         storageViewRemoveInitiators(vplexURI, exportGroupURI, exportMaskURI,
-                volumeURIs, initiatorURIs, taskCompleter, rollbackContextKey, token);
+                initiatorURIs, targetURIs, taskCompleter, rollbackContextKey, token);
     }
 
     /**
@@ -5487,11 +5487,6 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
                     if (!targetPortInfos.isEmpty()) {
                         // Remove the targets from the VPLEX
                         client.removeTargetsFromStorageView(exportMask.getMaskName(), targetPortInfos);
-                        // Remove the targets to the database.
-                        for (URI target : targetsAddedToStorageView) {
-                            exportMask.removeTarget(target);
-                        }
-                        _dbClient.updateObject(exportMask);
                     }
                 }
             }

@@ -1009,7 +1009,16 @@ hpux_setup() {
 }
 
 vcenter_setup() {
-    secho "Setup virtual center..."
+    if [ "${SIM}" = "1" ]; then
+        vcenter_sim_setup
+    else    
+        secho "Setup virtual center real hardware..."
+        runcmd vcenter create vcenter1 ${TENANT} ${VCENTER_HW_IP} ${VCENTER_HW_PORT} ${VCENTER_HW_USERNAME} ${VCENTER_HW_PASSWORD}                
+    fi
+}
+
+vcenter_sim_setup() {
+    secho "Setup virtual center sim..."
     runcmd vcenter create vcenter1 ${TENANT} ${VCENTER_SIMULATOR_IP} ${VCENTER_SIMULATOR_PORT} ${VCENTER_SIMULATOR_USERNAME} ${VCENTER_SIMULATOR_PASSWORD}
 
     # TODO need discovery to run

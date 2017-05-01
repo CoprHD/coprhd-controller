@@ -47,6 +47,7 @@ import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.customservices.CustomServicesPrimitiveCreateParam;
 import com.emc.storageos.model.customservices.CustomServicesPrimitiveCreateParam.InputCreateList;
 import com.emc.storageos.model.customservices.CustomServicesPrimitiveList;
+import com.emc.storageos.model.customservices.CustomServicesPrimitiveResourceList;
 import com.emc.storageos.model.customservices.CustomServicesPrimitiveResourceRestRep;
 import com.emc.storageos.model.customservices.CustomServicesPrimitiveRestRep;
 import com.emc.storageos.model.customservices.CustomServicesPrimitiveUpdateParam;
@@ -310,7 +311,26 @@ public class WorkflowBuilder extends Controller {
             for (final CustomServicesWorkflowDocument.Step step : workflowDoc.getSteps()) {
                 final String success_criteria = ESAPI.encoder().decodeForHTML(step.getSuccessCriteria());
                 step.setSuccessCriteria(success_criteria);
+
+                //WORKAROUND
+                if(StringUtils.isNotEmpty(step.getType()) && StepType.LOCAL_ANSIBLE.toString().equals(step.getType())) {
+                    CustomServicesWorkflowDocument.InputGroup inputGroup = new CustomServicesWorkflowDocument.InputGroup();
+                    inputGroup.setInputGroup(new ArrayList<CustomServicesWorkflowDocument.Input>());
+                    CustomServicesWorkflowDocument.Input input = new CustomServicesWorkflowDocument.Input();
+                    input.setName("host_file");
+                    input.setFriendlyName("Inventory File");
+                    input.setType(CustomServicesConstants.InputType.FROM_USER_MULTI.toString());
+                    final CustomServicesPrimitiveRestRep primitiveRestRep = getCatalogClient().customServicesPrimitives().getPrimitive(step.getOperation());
+                    final CustomServicesPrimitiveResourceList customServicesPrimitiveResourceList = getCatalogClient().customServicesPrimitives().getHostInventory(CustomServicesConstants.ANSIBLE_INVENTORY_TYPE, primitiveRestRep.getResource().getId());
+                    input.setDefaultValue(customServicesPrimitiveResourceList.getResources().get(0).getId().toString());
+                    inputGroup.getInputGroup().add(input);
+                    if(step.getInputGroups() == null) {
+                        step.setInputGroups(new HashMap<String, CustomServicesWorkflowDocument.InputGroup>());
+                    }
+                    step.getInputGroups().put(CustomServicesConstants.ANSIBLE_OPTIONS, inputGroup);
+                }
             }
+
             param.setDocument(workflowDoc);
             final CustomServicesWorkflowRestRep customServicesWorkflowRestRep = getCatalogClient()
                     .customServicesPrimitives().editWorkflow(workflowId, param);
@@ -691,6 +711,7 @@ public class WorkflowBuilder extends Controller {
         private String inputs; // comma separated list of inputs
         private String outputs; // comma separated list of ouputs
         private String wfDirID;
+        public File[] inventoryFiles;
 
         // TODO
         public void validate() {
@@ -876,9 +897,23 @@ public class WorkflowBuilder extends Controller {
                         localAnsible.ansiblePackage, localAnsible.ansiblePackageName);
             }
 
-            // Create Primitive
             if (null != primitiveResourceRestRep) {
+                // Upload ansible inventory files
+                if (null != localAnsible.inventoryFiles && localAnsible.inventoryFiles.length > 0) {
+                    for (File inventoryFile : localAnsible.inventoryFiles) {
+                        CustomServicesPrimitiveResourceRestRep inventoryFilesResourceRestRep = getCatalogClient().customServicesPrimitives().createPrimitiveResource(CustomServicesConstants.ANSIBLE_INVENTORY_TYPE,
+                                inventoryFile, inventoryFile.getName(), primitiveResourceRestRep.getId());
+                        if (null == inventoryFilesResourceRestRep) {
+                            Logger.error("Error while uploading primitive resource - inventory file %s for ansible package %s",
+                                    inventoryFile.getName(), primitiveResourceRestRep.getId());
+                            flash.error("Error while uploading primitive resource - inventory file %s for ansible package %s",
+                                    inventoryFile.getName(), primitiveResourceRestRep.getId());
 
+                        }
+                    }
+                }
+
+                // Create Primitive
                 final CustomServicesPrimitiveCreateParam primitiveCreateParam = new CustomServicesPrimitiveCreateParam();
                 // TODO - remove this hardcoded string once the enum is available
                 primitiveCreateParam.setType(StepType.LOCAL_ANSIBLE.toString());
@@ -888,14 +923,12 @@ public class WorkflowBuilder extends Controller {
                 primitiveCreateParam.setResource(primitiveResourceRestRep.getId());
                 primitiveCreateParam.setAttributes(new HashMap<String, String>());
                 primitiveCreateParam.getAttributes().put("playbook", localAnsible.getAnsiblePlaybook());
-                if (StringUtils.isNotEmpty(localAnsible.getInputs())) {
-                    final List<String> list = getListFromInputOutputString(localAnsible.getInputs());
-                    final InputCreateList input = new InputCreateList();
-                    input.setInput(list);
-                    final ImmutableMap.Builder<String, InputCreateList> builder = ImmutableMap.<String, InputCreateList>builder()
-                            .put(CustomServicesConstants.INPUT_PARAMS, input);
-                    primitiveCreateParam.setInput(builder.build());
-                }
+                final ImmutableMap.Builder<String, InputCreateList> builder = ImmutableMap.<String, InputCreateList>builder();
+                // Add Input Groups
+                addInputs(localAnsible.getInputs(), builder, CustomServicesConstants.INPUT_PARAMS);
+                //addInputs("host_file", builder, CustomServicesConstants.ANSIBLE_OPTIONS);
+                primitiveCreateParam.setInput(builder.build());
+
                 if (StringUtils.isNotEmpty(localAnsible.getOutputs())) {
                     primitiveCreateParam.setOutput(getListFromInputOutputString(localAnsible.getOutputs()));
                 }

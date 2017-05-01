@@ -78,9 +78,13 @@ ansibleResourceNames = _arg;
                 </div>
                 <div class="tab-pane" id="${hostFileTabID}">
                     #{Modal.body}
-                        <control-group v-field='localAnsible.hostFilePath' labelWidth="1" required >
-                            <input-text></input-text>
-                        </control-group>
+                        #{field 'localAnsible.inventoryFiles'}
+                            %{
+                            field.required = true
+                            }%
+                            #{Form.multiFileUpload field:field/}
+                        #{/field}
+
                     #{/Modal.body}
 
                 </div>
@@ -160,8 +164,7 @@ ansibleResourceNames = _arg;
     function checkLAFinish() {
         var complete = true;
         var chooseExisting = $('[name="localAnsible.existing"]').val();
-        if (isBlank($('#localAnsible_name').val()) ||  isBlank($('#localAnsible_hostFilePath').val()) ||
-        isBlank($('#localAnsible_ansiblePlaybook').val())) {
+        if (isBlank($('#localAnsible_name').val()) || isBlank($('#localAnsible_ansiblePlaybook').val())) {
             complete = false;
         }
         else if ( chooseExisting && isBlank($('#localAnsible_existingResource').val()) ) {

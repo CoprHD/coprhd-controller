@@ -1110,7 +1110,7 @@ public class VolumeService extends TaskResourceService {
                 volname, volumeCount, varray.getId().toString(), project.getId().toString());
 
         _log.debug("Block Service API call for : Create New Volume ");
-        TaskList passedTaskist = createTaskList(requestedSize, project, varray, vpool, name, task, volumeCount);
+        TaskList passedTaskist = createTaskList(requestedSize, project, varray, vpool, capabilities, name, task, volumeCount);
         return api.createVolumes(volumeCreate, project, varray, vpool, recommendationsMap, passedTaskist, task,
                 capabilities);
     }
@@ -1148,14 +1148,15 @@ public class VolumeService extends TaskResourceService {
 
     }
 
-    private TaskList createTaskList(long size, Project project, VirtualArray varray, VirtualPool vpool, String label, String task,
+    private TaskList createTaskList(long size, Project project, VirtualArray varray, VirtualPool vpool, 
+            VirtualPoolCapabilityValuesWrapper capabilities, String label, String task,
             Integer volumeCount) {
         TaskList taskList = new TaskList();
 
         // For each volume requested, pre-create a volume object/task object
         // long lsize = SizeUtil.translateSize(size);
         for (int i = 0; i < volumeCount; i++) {
-            Volume volume = StorageScheduler.prepareEmptyVolume(_dbClient, size, project, varray, vpool, label, i, volumeCount);
+            Volume volume = StorageScheduler.prepareEmptyVolume(_dbClient, size, project, varray, vpool, capabilities, label, i, volumeCount);
             Operation op = _dbClient.createTaskOpStatus(Volume.class, volume.getId(),
                     task, ResourceOperationTypeEnum.CREATE_BLOCK_VOLUME);
             volume.getOpStatus().put(task, op);

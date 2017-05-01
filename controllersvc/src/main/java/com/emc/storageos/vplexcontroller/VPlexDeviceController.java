@@ -5486,9 +5486,6 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
                     }
                     if (!targetPortInfos.isEmpty()) {
                         // Remove the targets from the VPLEX
-                        // Test mechanism to invoke a failure. No-op on production systems.
-                        InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_016);
-
                         client.removeTargetsFromStorageView(exportMask.getMaskName(), targetPortInfos);
                     }
                 }
@@ -5523,6 +5520,10 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
                     if (!lockAcquired) {
                         throw VPlexApiException.exceptions.couldNotObtainConcurrencyLock(vplex.getLabel());
                     }
+                    // Remove the targets from the VPLEX
+                    // Test mechanism to invoke a failure. No-op on production systems.
+                    InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_016);
+
                     client.removeInitiatorsFromStorageView(exportMask.getMaskName(), vplexClusterName, initiatorPortInfo);
                 } finally {
                     if (lockAcquired) {

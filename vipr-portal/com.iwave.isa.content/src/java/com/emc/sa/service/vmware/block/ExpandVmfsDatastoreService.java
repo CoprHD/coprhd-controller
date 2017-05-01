@@ -15,7 +15,9 @@ import com.emc.sa.engine.bind.Param;
 import com.emc.sa.engine.service.Service;
 import com.emc.sa.service.vipr.block.BlockStorageUtils;
 import com.emc.sa.service.vmware.VMwareHostService;
+import com.emc.storageos.db.client.util.SizeUtil;
 import com.emc.storageos.model.block.BlockObjectRestRep;
+import com.emc.storageos.model.block.VolumeRestRep;
 import com.vmware.vim25.mo.Datastore;
 
 @Service("VMware-ExpandVmfsDatastore")
@@ -57,7 +59,15 @@ public class ExpandVmfsDatastoreService extends VMwareHostService {
 
     @Override
     public void execute() throws Exception {
-        BlockStorageUtils.expandVolume(volumeId, sizeInGb);
+    	VolumeRestRep volume = (VolumeRestRep) BlockStorageUtils.getVolume(volumeId);
+    	Double currentSize = SizeUtil.translateSize(Long.parseLong(volume.getCapacity()), SizeUtil.SIZE_GB);
+    	// If the volume has already been expanded, skip the expand step
+    	if (Math.round(currentSize) != sizeInGb) {
+    		BlockStorageUtils.expandVolume(volumeId, sizeInGb);
+    	} else {
+    		logInfo("expand.vmfs.datastore.skip", volumeId, sizeInGb);
+    	}
+
         connectAndInitializeHost();
         datastore = vmware.getDatastore(datacenter.getLabel(), datastoreName);
         vmware.refreshStorage(host, cluster);

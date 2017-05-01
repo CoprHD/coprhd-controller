@@ -32,8 +32,10 @@ import com.emc.storageos.api.service.impl.resource.BlockService;
 import com.emc.storageos.api.service.impl.resource.TaskResourceService;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
+import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
+import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.remotereplication.RemoteReplicationGroup;
@@ -42,6 +44,8 @@ import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.TaskResourceRep;
+import com.emc.storageos.model.block.CopiesParam;
+import com.emc.storageos.model.block.Copy;
 import com.emc.storageos.model.remotereplication.RemoteReplicationGroupParam;
 import com.emc.storageos.model.remotereplication.RemoteReplicationModeChangeParam;
 import com.emc.storageos.model.remotereplication.RemoteReplicationPairList;
@@ -55,6 +59,9 @@ import com.emc.storageos.security.authorization.DefaultPermissions;
 import com.emc.storageos.security.authorization.Role;
 import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationSet;
+import com.emc.storageos.svcs.errorhandling.model.StatusCoded;
+import com.emc.storageos.svcs.errorhandling.resources.APIException;
+import com.emc.storageos.svcs.errorhandling.resources.BadRequestException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.impl.externaldevice.RemoteReplicationElement;
@@ -238,6 +245,16 @@ public class RemoteReplicationPairService extends TaskResourceService {
 
         RemoteReplicationUtils.validateRemoteReplicationOperation(_dbClient, rrElement, RemoteReplicationController.RemoteReplicationOperations.FAIL_OVER);
 
+        // If we here, pair is not in CG.
+        // SRDF integration logic
+        Volume sourceVolume = _dbClient.queryObject(Volume.class, rrPair.getSourceElement());
+        if (sourceVolume.getSystemType().equalsIgnoreCase(DiscoveredDataObject.Type.vmax.toString()) ||
+                sourceVolume.getSystemType().equalsIgnoreCase(DiscoveredDataObject.Type.vmax3.toString())) {
+            // delegate to SRDF support
+            TaskList taskList = processSrdfLinkRequest(rrPair, ResourceOperationTypeEnum.FAILOVER_REMOTE_REPLICATION_PAIR_LINK);
+            return taskList.getTaskList().get(0);
+        }
+
         // Create a task for the failover remote replication Pair operation
         Operation op = _dbClient.createTaskOpStatus(RemoteReplicationPair.class, rrPair.getId(),
                 taskId, ResourceOperationTypeEnum.FAILOVER_REMOTE_REPLICATION_PAIR_LINK);
@@ -324,6 +341,16 @@ public class RemoteReplicationPairService extends TaskResourceService {
         RemoteReplicationElement rrElement =
                 new RemoteReplicationElement(com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationSet.ElementType.REPLICATION_PAIR, id);
         RemoteReplicationUtils.validateRemoteReplicationOperation(_dbClient, rrElement, RemoteReplicationController.RemoteReplicationOperations.FAIL_BACK);
+
+
+        // SRDF integration logic
+        Volume sourceVolume = _dbClient.queryObject(Volume.class, rrPair.getSourceElement());
+        if (sourceVolume.getSystemType().equalsIgnoreCase(DiscoveredDataObject.Type.vmax.toString()) ||
+                sourceVolume.getSystemType().equalsIgnoreCase(DiscoveredDataObject.Type.vmax3.toString())) {
+            // delegate to SRDF support
+            TaskList taskList = processSrdfLinkRequest(rrPair, ResourceOperationTypeEnum.FAILBACK_REMOTE_REPLICATION_PAIR_LINK);
+            return taskList.getTaskList().get(0);
+        }
 
         // Create a task for the failback remote replication Pair operation
         Operation op = _dbClient.createTaskOpStatus(RemoteReplicationPair.class, rrPair.getId(),
@@ -820,6 +847,75 @@ public class RemoteReplicationPairService extends TaskResourceService {
     @Override
     protected URI getTenantOwner(URI id) {
         return null;
+    }
+
+    /**
+     * Process srdf link operation request for source volume in replication pair.
+     *
+     * @param systemPair replication pair
+     * @param operationType link operation type
+     * @return
+     */
+    private TaskList processSrdfLinkRequest(RemoteReplicationPair systemPair, ResourceOperationTypeEnum operationType) {
+        TaskList taskList = null;
+        String taskId = UUID.randomUUID().toString();
+        // We follow loose integration with SRDF link operations.
+        // We delegate to BlockService method for srdf volume link operation
+        Volume sourceVolume = _dbClient.queryObject(Volume.class, systemPair.getSourceElement());
+        if (!sourceVolume.checkForSRDF()) {
+            // not srdf volume --- not supported
+            BadRequestException ex = APIException.badRequests.volumeMustBeSRDFProtected(sourceVolume.getId());
+            _log.error("Bad request --- VMAX volume is not SRDF source", ex);
+            taskList = new TaskList();
+            taskList.addTask(processSrdfAPIError(sourceVolume, taskId, operationType, ex));
+            return taskList;
+        }
+
+        String type = BlockSnapshot.TechnologyType.SRDF.toString();
+        Copy copy = new Copy();
+        copy.setType(type);
+        boolean isSwapped = RemoteReplicationUtils.isSwapped(systemPair, _dbClient);
+        NamedURI sourceElement;
+        NamedURI targetElement;
+        if (isSwapped){
+            sourceElement = systemPair.getTargetElement();
+            targetElement = systemPair.getSourceElement();
+        } else {
+            sourceElement = systemPair.getSourceElement();
+            targetElement = systemPair.getTargetElement();
+        }
+        copy.setCopyID(targetElement.getURI());
+        CopiesParam param = new CopiesParam();
+        param.getCopies().add(copy);
+        URI sourceVolumeURI = sourceElement.getURI();
+        try {
+            switch (operationType) {
+                case FAILOVER_REMOTE_REPLICATION_PAIR_LINK:
+                    taskList = blockService.failoverProtection(sourceVolumeURI, param);
+                    break;
+
+                case FAILBACK_REMOTE_REPLICATION_PAIR_LINK:
+                    taskList = blockService.failoverCancel(sourceVolumeURI, param);
+                    break;
+                default:
+                    taskList = new TaskList();
+                    break;
+            }
+            return taskList;
+        } catch (APIException ex) {
+            taskList = new TaskList();
+            taskList.addTask(processSrdfAPIError(sourceVolume, taskId, operationType, ex));
+            return taskList;
+        }
+    }
+
+
+    private TaskResourceRep processSrdfAPIError(Volume sourceVolume, String taskId, ResourceOperationTypeEnum operationType, StatusCoded ex) {
+        Operation op = _dbClient.createTaskOpStatus(Volume.class, sourceVolume.getId(), taskId, operationType);
+        op.error(ex);
+        sourceVolume.getOpStatus().updateTaskStatus(taskId, op);
+        _dbClient.updateObject(sourceVolume);
+        return toTask(sourceVolume, taskId, op);
     }
 
 }

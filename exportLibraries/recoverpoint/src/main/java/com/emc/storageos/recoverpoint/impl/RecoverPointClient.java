@@ -1238,13 +1238,13 @@ public class RecoverPointClient {
      * @param fullConsistencyGroupPolicy CG policy with copies populated
      * @param request request create cg request used for copy mode and rpo
      * @param productionCopiesUID the map of production copies
-     * @param nonProductionCopiesUID the map of non-production copies
+     * @param targetCopiesUID the map of non-production copies
      * @param cgCopyNames the map of CG copy UIDs to their actual names
      * @throws FunctionalAPIInternalError_Exception
      * @throws FunctionalAPIActionFailedException_Exception
      */
     private void configureLinkPolicies(FullConsistencyGroupPolicy fullConsistencyGroupPolicy, CGRequestParams request,
-            Map<Long, ConsistencyGroupCopyUID> productionCopiesUID, Map<Long, ConsistencyGroupCopyUID> nonProductionCopiesUID,
+            Map<Long, ConsistencyGroupCopyUID> productionCopiesUID, Map<Long, ConsistencyGroupCopyUID> targetCopiesUID,
             Map<ConsistencyGroupCopyUID, String> cgCopyNames)
             throws FunctionalAPIActionFailedException_Exception, FunctionalAPIInternalError_Exception {
 
@@ -1253,7 +1253,7 @@ public class RecoverPointClient {
             ConsistencyGroupCopyUID productionCopyUID = productionCopyEntry.getValue();
             String prodCopyName = cgCopyNames.get(productionCopyUID);
 
-            for (Map.Entry<Long, ConsistencyGroupCopyUID> nonProductionCopyEntry : nonProductionCopiesUID.entrySet()) {
+            for (Map.Entry<Long, ConsistencyGroupCopyUID> nonProductionCopyEntry : targetCopiesUID.entrySet()) {
                 // Determine what links need to be configured based on known production and non-production copies.
                 // The production/non-production copy maps are keyed on ClusterUID. If a ClusterUID from the non-production
                 // copy map matches one from the production copy map, that is considered a local copy - so a single link will be configured

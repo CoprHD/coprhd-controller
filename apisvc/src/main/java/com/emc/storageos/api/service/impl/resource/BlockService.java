@@ -810,9 +810,12 @@ public class BlockService extends TaskResourceService {
             capabilities.put(VirtualPoolCapabilityValuesWrapper.THIN_PROVISIONING, Boolean.TRUE);
         }
 
-        // Does vpool supports dedup
-        if (null != vpool.getDedupCapable() && vpool.getDedupCapable()) {
-            capabilities.put(VirtualPoolCapabilityValuesWrapper.DEDUP, Boolean.TRUE);
+        // Get the deduplication setting. The value in the source performance parameters,
+        // if any, overrides the value from the virtual pool.
+        Boolean dedupCapable = PerformanceParamsUtils.getIsDedupCapable(
+                sourceParams, VolumeTopologyRole.SOURCE, vpool, _dbClient);
+        if (dedupCapable) {
+            capabilities.put(VirtualPoolCapabilityValuesWrapper.DEDUP, dedupCapable);
         }
 
         BlockConsistencyGroup consistencyGroup = null;
@@ -1046,7 +1049,8 @@ public class BlockService extends TaskResourceService {
         // task/volume objects during their source volume creations.
         // 3. Return to the caller the new Task objects that is in the pending state.
         String task = UUID.randomUUID().toString();
-        TaskList taskList = createVolumeTaskList(param.getSize(), project, varray, vpool, param.getName(), task, volumeCount);
+        TaskList taskList = createVolumeTaskList(param.getSize(), project, varray, vpool,
+                capabilities, param.getName(), task, volumeCount);
 
         // This is causing exceptions when run in the thread.
         auditOp(OperationTypeEnum.CREATE_BLOCK_VOLUME, true, AuditLogManager.AUDITOP_BEGIN,
@@ -1109,6 +1113,8 @@ public class BlockService extends TaskResourceService {
      *            virtual array of the volume
      * @param vpool
      *            virtual pool of the volume
+     * @param capabilities
+     *            Virtual pool capabilities
      * @param label
      *            label
      * @param task
@@ -1117,15 +1123,16 @@ public class BlockService extends TaskResourceService {
      *            number of volumes requested
      * @return a list of tasks associated with this request
      */
-    private TaskList createVolumeTaskList(String size, Project project, VirtualArray varray, VirtualPool vpool, String label, String task,
-            Integer volumeCount) {
+    private TaskList createVolumeTaskList(String size, Project project, VirtualArray varray, VirtualPool vpool,
+            VirtualPoolCapabilityValuesWrapper capabilities, String label, String task, Integer volumeCount) {
         TaskList taskList = new TaskList();
 
         try {
             // For each volume requested, pre-create a volume object/task object
             long lsize = SizeUtil.translateSize(size);
             for (int i = 0; i < volumeCount; i++) {
-                Volume volume = StorageScheduler.prepareEmptyVolume(_dbClient, lsize, project, varray, vpool, label, i, volumeCount);
+                Volume volume = StorageScheduler.prepareEmptyVolume(_dbClient, lsize, project, varray,
+                        vpool, capabilities, label, i, volumeCount);
                 Operation op = _dbClient.createTaskOpStatus(Volume.class, volume.getId(),
                         task, ResourceOperationTypeEnum.CREATE_BLOCK_VOLUME);
                 volume.getOpStatus().put(task, op);

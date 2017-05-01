@@ -48,7 +48,6 @@ import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.OpStatusMap;
 import com.emc.storageos.db.client.model.Operation;
-import com.emc.storageos.db.client.model.PerformanceParams;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StorageSystem;
@@ -1611,13 +1610,14 @@ public class StorageScheduler implements Scheduler {
      * @param project project
      * @param varray virtual array
      * @param vpool virtual pool
+     * @param capabilities virtual pool capabilities
      * @param label base volume label
      * @param volNumber a temporary label for this volume to mark which one it is
      * @param volumesRequested how many volumes were requested overall
      * @return a Volume object
      */
     public static Volume prepareEmptyVolume(DbClient dbClient, long size, Project project, VirtualArray varray, VirtualPool vpool,
-            String label, int volNumber, int volumesRequested) {
+            VirtualPoolCapabilityValuesWrapper capabilities, String label, int volNumber, int volumesRequested) {
 
         Volume volume = new Volume();
         volume.setId(URIUtil.createId(Volume.class));
@@ -1632,14 +1632,15 @@ public class StorageScheduler implements Scheduler {
 
         volume.setLabel(volumeLabel);
         volume.setCapacity(size);
-        volume.setThinlyProvisioned(VirtualPool.ProvisioningType.Thin.toString().equalsIgnoreCase(vpool.getSupportedProvisioningType()));
+        
+        volume.setThinlyProvisioned(capabilities.getThinProvisioning());
         volume.setVirtualPool(vpool.getId());
         volume.setProject(new NamedURI(project.getId(), volume.getLabel()));
         volume.setTenant(new NamedURI(project.getTenantOrg().getURI(), volume.getLabel()));
         volume.setVirtualArray(varray.getId());
         volume.setOpStatus(new OpStatusMap());
-        if (vpool.getDedupCapable() != null) {
-            volume.setIsDeduplicated(vpool.getDedupCapable());
+        if (capabilities.getDedupCapable()) {
+            volume.setIsDeduplicated(capabilities.getDedupCapable());
         }
 
         dbClient.createObject(volume);

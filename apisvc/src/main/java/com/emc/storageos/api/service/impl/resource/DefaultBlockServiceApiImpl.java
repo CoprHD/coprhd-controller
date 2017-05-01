@@ -26,6 +26,7 @@ import com.emc.storageos.api.mapper.TaskMapper;
 import com.emc.storageos.api.service.impl.placement.StorageScheduler;
 import com.emc.storageos.api.service.impl.placement.VpoolUse;
 import com.emc.storageos.api.service.impl.resource.fullcopy.BlockFullCopyManager;
+import com.emc.storageos.api.service.impl.resource.utils.PerformanceParamsUtils;
 import com.emc.storageos.api.service.impl.resource.utils.VirtualPoolChangeAnalyzer;
 import com.emc.storageos.blockorchestrationcontroller.BlockOrchestrationController;
 import com.emc.storageos.blockorchestrationcontroller.VolumeDescriptor;
@@ -45,6 +46,7 @@ import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.VolumeGroup;
 import com.emc.storageos.db.client.model.VolumeTopology;
+import com.emc.storageos.db.client.model.VolumeTopology.VolumeTopologyRole;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.client.util.SizeUtil;
@@ -100,9 +102,12 @@ public class DefaultBlockServiceApiImpl extends AbstractBlockServiceApiImpl<Stor
         
         Long size = SizeUtil.translateSize(param.getSize());
         List<VolumeDescriptor> existingDescriptors = new ArrayList<VolumeDescriptor>();
+        URI performancePramsURI = PerformanceParamsUtils.getPerformanceParamsIdForSourceRole(
+                param.getPerformanceParams(), VolumeTopologyRole.SOURCE, _dbClient);
         List<VolumeDescriptor> volumeDescriptors = createVolumesAndDescriptors(
-                existingDescriptors, param.getName(), size, 
-                project, neighborhood, cos, recommendationMap.get(VpoolUse.ROOT), taskList, task, cosCapabilities);
+                existingDescriptors, param.getName(), size, project, neighborhood, cos, 
+                performancePramsURI, recommendationMap.get(VpoolUse.ROOT), taskList, task,
+                cosCapabilities);
         List<Volume> preparedVolumes = getPreparedVolumes(volumeDescriptors);
         
         //Check for special characters in volume names
@@ -151,9 +156,9 @@ public class DefaultBlockServiceApiImpl extends AbstractBlockServiceApiImpl<Stor
 	}
 
     @Override
-    public List<VolumeDescriptor> createVolumesAndDescriptors(List<VolumeDescriptor> descriptors, String volumeLabel, Long size,
-            Project project,
-            VirtualArray varray, VirtualPool vpool, List<Recommendation> recommendations, TaskList taskList, String task,
+    public List<VolumeDescriptor> createVolumesAndDescriptors(List<VolumeDescriptor> descriptors, String volumeLabel,
+            Long size, Project project, VirtualArray varray, VirtualPool vpool, URI performanceParamsURI, 
+            List<Recommendation> recommendations, TaskList taskList, String task,
             VirtualPoolCapabilityValuesWrapper vpoolCapabilities) {
         // Prepare the Bourne Volumes to be created and associated
         // with the actual storage system volumes created. Also create
@@ -167,7 +172,7 @@ public class DefaultBlockServiceApiImpl extends AbstractBlockServiceApiImpl<Stor
 
         // Prepare the volumes
         _scheduler.prepareRecommendedVolumes(size, task, taskList, project,
-                varray, vpool, vpoolCapabilities.getResourceCount(), recommendations,
+                varray, vpool, performanceParamsURI, vpoolCapabilities.getResourceCount(), recommendations,
                 consistencyGroup, volumeCounter, volumeLabel, preparedVolumes, vpoolCapabilities, false);
 
         // Prepare the volume descriptors based on the recommendations
@@ -736,7 +741,7 @@ public class DefaultBlockServiceApiImpl extends AbstractBlockServiceApiImpl<Stor
      * {@inheritDoc}
      */
     @Override
-    public void validatePerformanceParameters(VolumeCreatePerformanceParams requestParams, VirtualPoolCapabilityValuesWrapper capabilities) {
+    public void validatePerformanceParameters(VolumeCreatePerformanceParams requestParams) {
         // Just return if the passed performance params are null.
         if (requestParams == null) {
             return;
@@ -762,11 +767,6 @@ public class DefaultBlockServiceApiImpl extends AbstractBlockServiceApiImpl<Stor
         // Validate the performance params exist and are active.
         ArgValidator.checkUri(performanceParamsURI);
         PerformanceParams performanceParams = getPermissionsHelper().getObjectById(performanceParamsURI, PerformanceParams.class);
-        ArgValidator.checkEntity(performanceParams, performanceParamsURI, false);
-        
-        // Store the performance parameters in the passed virtual pool capabilities.
-        Map<String, URI> sourceParamsMap = new HashMap<>();
-        sourceParamsMap.put(volumeTopologyRole, performanceParamsURI);
-        capabilities.put(VirtualPoolCapabilityValuesWrapper.SOURCE_PERFORMANCE_PARAMS, sourceParamsMap);
+        ArgValidator.checkEntity(performanceParams, performanceParamsURI, false);        
     }
 }

@@ -3899,9 +3899,9 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
     }
 
     @Override
-    public List<VolumeDescriptor> createVolumesAndDescriptors(List<VolumeDescriptor> descriptors, String name, Long size, Project project,
-            VirtualArray varray, VirtualPool vpool, List<Recommendation> recommendations, TaskList taskList, String task,
-            VirtualPoolCapabilityValuesWrapper vpoolCapabilities) {
+    public List<VolumeDescriptor> createVolumesAndDescriptors(List<VolumeDescriptor> descriptors, String name, Long size,
+            Project project, VirtualArray varray, VirtualPool vpool, URI performanceParamsURI, List<Recommendation> recommendations,
+            TaskList taskList, String task, VirtualPoolCapabilityValuesWrapper vpoolCapabilities) {
         // This method is not used for RP
         return null;
     }
@@ -4400,6 +4400,6 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
      * {@inheritDoc}
      */
     @Override
-    public void validatePerformanceParameters(VolumeCreatePerformanceParams requestParams, VirtualPoolCapabilityValuesWrapper capabilities) {
+    public void validatePerformanceParameters(VolumeCreatePerformanceParams requestParams) {
     }    
 }

@@ -35,9 +35,7 @@ import com.emc.storageos.blockorchestrationcontroller.VolumeDescriptor;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
-import com.emc.storageos.db.client.constraint.Constraint;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
-import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.BlockSnapshotSession;
@@ -74,7 +72,6 @@ import com.emc.storageos.model.block.VolumeCreatePerformanceParams;
 import com.emc.storageos.model.systems.StorageSystemConnectivityList;
 import com.emc.storageos.model.systems.StorageSystemConnectivityRestRep;
 import com.emc.storageos.model.vpool.VirtualPoolChangeOperationEnum;
-import com.emc.storageos.protectioncontroller.impl.recoverpoint.RPHelper;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
@@ -662,7 +659,7 @@ public class SRDFBlockServiceApiImpl extends AbstractBlockServiceApiImpl<SRDFSch
         for (Recommendation volRecommendation : volRecommendations) {
             List<VolumeDescriptor> existingDescriptors = new ArrayList<VolumeDescriptor>();
             List<VolumeDescriptor> volumeDescriptors = createVolumesAndDescriptors(existingDescriptors,
-                    param.getName(), size, project, varray, vpool, volRecommendations, taskList, task, capabilities);
+                    param.getName(), size, project, varray, vpool, null, volRecommendations, taskList, task, capabilities);
             List<URI> volumeURIs = VolumeDescriptor.getVolumeURIs(volumeDescriptors);
 
             try {
@@ -700,9 +697,8 @@ public class SRDFBlockServiceApiImpl extends AbstractBlockServiceApiImpl<SRDFSch
     @Override
     public List<VolumeDescriptor> createVolumesAndDescriptors(
             List<VolumeDescriptor> descriptors, String volumeLabel, Long size, Project project,
-            VirtualArray varray, VirtualPool vpool, List<Recommendation> recommendations, 
-            TaskList taskList, String task,
-            VirtualPoolCapabilityValuesWrapper capabilities) {
+            VirtualArray varray, VirtualPool vpool, URI performanceParamsURI, List<Recommendation> recommendations, 
+            TaskList taskList, String task, VirtualPoolCapabilityValuesWrapper capabilities) {
         List<VolumeDescriptor> volumeDescriptors = new ArrayList<VolumeDescriptor>();
         
         // If processing SRDFCopyRecommendations, then just return the SRDFTargets.
@@ -1467,7 +1463,7 @@ public class SRDFBlockServiceApiImpl extends AbstractBlockServiceApiImpl<SRDFSch
      * {@inheritDoc}
      */
     @Override
-    public void validatePerformanceParameters(VolumeCreatePerformanceParams requestParams, VirtualPoolCapabilityValuesWrapper capabilities) {
+    public void validatePerformanceParameters(VolumeCreatePerformanceParams requestParams) {
     }    
 
 }

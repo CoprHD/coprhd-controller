@@ -5,39 +5,18 @@
 package com.emc.storageos.api.service.impl.resource.utils;
 
 import java.net.URI;
-import java.util.Map;
 
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.PerformanceParams;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.VolumeTopology.VolumeTopologyRole;
 import com.emc.storageos.model.block.BlockPerformanceParamsMap;
+import com.emc.storageos.model.block.VolumeCreatePerformanceParams;
 
 /**
  * PerformanceParams utility class.
  */
 public class PerformanceParamsUtils {
-
-    /**
-     * Get the performance parameters for the passed role.
-     * 
-     * @param performanceParamsMap A map of performance parameter URIs keyed VolumeTopologyRole.
-     * @param role A VolumeTopologyRole.
-     * @param dbClient A reference to a DbClient.
-     * 
-     * @return A reference to a PerformanceParams instance or null.
-     */
-    public static PerformanceParams getPerformanceParamsForRole(Map<String, URI> performanceParamsMap,
-            VolumeTopologyRole role, DbClient dbClient) {
-        PerformanceParams performanceParams = null;
-        if (performanceParamsMap != null) {
-            URI performanceParamsURI = performanceParamsMap.get(role.name());
-            if (performanceParamsURI != null) {
-                performanceParams = dbClient.queryObject(PerformanceParams.class, performanceParamsURI);
-            }
-        }
-        return performanceParams;
-    }    
 
     /**
      * Get the performance parameters for the passed role.
@@ -59,19 +38,40 @@ public class PerformanceParamsUtils {
         }
         return performanceParams;
     }
+    
+    /**
+     * Get the performance parameters for the passed role.
+     * 
+     * @param performanceParamsMap A map of performance parameter URIs by VolumeTopologyRole
+     * @param role A VolumeTopologyRole.
+     * @param dbClient A reference to a DbClient.
+     * 
+     * @return A reference to a PerformanceParams instance or null.
+     */
+    public static URI getPerformanceParamsIdForSourceRole(VolumeCreatePerformanceParams performanceParams,
+            VolumeTopologyRole role, DbClient dbClient) {
+        URI performanceParamsURI = null;
+        if (performanceParams != null) {
+            BlockPerformanceParamsMap sourceParams = performanceParams.getSourceParams();
+            if (sourceParams != null) {
+                performanceParamsURI = sourceParams.findPerformanceParamsForRole(role.name());
+            }
+        }
+        return performanceParamsURI;
+    }
 
     /**
      * Get the auto tiering policy name. If set in the passed performance parameters,
      * return this value, otherwise the value comes from the passed virtual pool.
      * 
-     * @param performanceParamsMap A map of performance parameter URIs keyed VolumeTopologyRole.
+     * @param performanceParamsMap A map of performance parameter URIs by VolumeTopologyRole.
      * @param role A VolumeTopologyRole.
      * @param vpool A reference to a VirtualPool.
      * @param dbClient A reference to a DbClient.
      * 
      * @return The auto tiering policy name or null if not set.
      */
-    public static String getAutoTierinigPolicyName(Map<String, URI> performanceParamsMap, VolumeTopologyRole role, 
+    public static String getAutoTierinigPolicyName(BlockPerformanceParamsMap performanceParamsMap, VolumeTopologyRole role, 
             VirtualPool vpool, DbClient dbClient) {
         String autoTieringPolicyName = null;
         PerformanceParams performanceParams = getPerformanceParamsForRole(performanceParamsMap, role, dbClient);

@@ -7,7 +7,6 @@ package com.emc.storageos.volumecontroller.impl.utils;
 import java.io.Serializable;
 import java.net.URI;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -84,10 +83,6 @@ public class VirtualPoolCapabilityValuesWrapper implements Serializable {
 
     public static final String VPOOL_PROJECT_POLICY_ASSIGN = "vpoolProjectPolicyAssign";
     public static final String GET_ALL_SOURCE_RECOMMENDATIONS = "getallsourcerecommendations";
-    
-    // Performance parameter capabilities
-    public static final String SOURCE_PERFORMANCE_PARAMS = "sourcePerformanceParams";
-    public static final String COPY_PERFORMANCE_PARAMS = "copyPerformanceParams";
 
     private final Map<String, Object> _vpoolCapabilities = new HashMap<String, Object>();
 
@@ -251,14 +246,6 @@ public class VirtualPoolCapabilityValuesWrapper implements Serializable {
 
         if (capabilities.contains(CHANGE_VPOOL_VOLUME)) {
             _vpoolCapabilities.put(CHANGE_VPOOL_VOLUME, capabilities.getChangeVpoolVolume());
-        }
-        
-        if (capabilities.contains(SOURCE_PERFORMANCE_PARAMS)) {
-            _vpoolCapabilities.put(SOURCE_PERFORMANCE_PARAMS, capabilities.getSourcePerformanceParams());
-        }
-
-        if (capabilities.contains(COPY_PERFORMANCE_PARAMS)) {
-            _vpoolCapabilities.put(COPY_PERFORMANCE_PARAMS, capabilities.getCopyPerformanceParams());
         }
     }
 
@@ -524,17 +511,5 @@ public class VirtualPoolCapabilityValuesWrapper implements Serializable {
     public boolean getAllSourceRecommnedations() {
         Object value = _vpoolCapabilities.get(GET_ALL_SOURCE_RECOMMENDATIONS);
         return value != null ? (Boolean) value : false;
-    }
-    
-    @SuppressWarnings("unchecked")
-    public Map<String, URI> getSourcePerformanceParams() {
-        Object value = _vpoolCapabilities.get(SOURCE_PERFORMANCE_PARAMS);
-        return value != null ? (Map<String, URI>) value : null;
-    }
-    
-    @SuppressWarnings("unchecked")
-    public List<Map<String, URI>> getCopyPerformanceParams() {
-        Object value = _vpoolCapabilities.get(SOURCE_PERFORMANCE_PARAMS);
-        return value != null ? (List<Map<String, URI>>) value : null;
     }
 }

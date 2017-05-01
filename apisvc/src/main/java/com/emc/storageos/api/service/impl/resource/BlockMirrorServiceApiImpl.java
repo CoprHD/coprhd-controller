@@ -32,6 +32,7 @@ import com.emc.storageos.api.service.impl.placement.StorageScheduler;
 import com.emc.storageos.api.service.impl.placement.VolumeRecommendation;
 import com.emc.storageos.api.service.impl.placement.VpoolUse;
 import com.emc.storageos.api.service.impl.resource.fullcopy.BlockFullCopyManager;
+import com.emc.storageos.api.service.impl.resource.utils.PerformanceParamsUtils;
 import com.emc.storageos.blockorchestrationcontroller.VolumeDescriptor;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
@@ -44,7 +45,6 @@ import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
 import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.Operation;
-import com.emc.storageos.db.client.model.PerformanceParams;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.SynchronizationState;
@@ -52,12 +52,10 @@ import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.VolumeGroup;
-import com.emc.storageos.db.client.model.VolumeTopology;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.TaskResourceRep;
-import com.emc.storageos.model.block.BlockPerformanceParamsMap;
 import com.emc.storageos.model.block.NativeContinuousCopyCreate;
 import com.emc.storageos.model.block.VirtualPoolChangeParam;
 import com.emc.storageos.model.block.VolumeCreate;
@@ -838,7 +836,7 @@ public class BlockMirrorServiceApiImpl extends AbstractBlockServiceApiImpl<Stora
                 currentRecommendation);
         // only mirror will be prepared (the source already exist)
         _scheduler.prepareRecommendedVolumes(null, taskId, taskList, null, null, sourceVolumeVPool,
-                volumeCount, currentRecommendation, null, volumeCounter, volumeLabel, preparedVolumes,
+                null, volumeCount, currentRecommendation, null, volumeCounter, volumeLabel, preparedVolumes,
                 capabilities, false);
         volumeRecommendations.addAll(currentRecommendation);
     }
@@ -910,8 +908,9 @@ public class BlockMirrorServiceApiImpl extends AbstractBlockServiceApiImpl<Stora
     }
 
     @Override
-    public List<VolumeDescriptor> createVolumesAndDescriptors(List<VolumeDescriptor> descriptors, String name, Long size, Project project,
-            VirtualArray varray, VirtualPool vpool, List<Recommendation> recommendations, TaskList taskList, String task,
+    public List<VolumeDescriptor> createVolumesAndDescriptors(List<VolumeDescriptor> descriptors, String name, Long size,
+            Project project, VirtualArray varray, VirtualPool vpool, URI performanceParamsURI,
+            List<Recommendation> recommendations, TaskList taskList, String task, 
             VirtualPoolCapabilityValuesWrapper vpoolCapabilities) {
         // Not currently called from AbstractBlockServiceApiImpl.createVolumesAndDescriptors
         throw DeviceControllerException.exceptions.operationNotSupported();
@@ -930,6 +929,6 @@ public class BlockMirrorServiceApiImpl extends AbstractBlockServiceApiImpl<Stora
      * {@inheritDoc}
      */
     @Override
-    public void validatePerformanceParameters(VolumeCreatePerformanceParams requestParams, VirtualPoolCapabilityValuesWrapper capabilities) {
+    public void validatePerformanceParameters(VolumeCreatePerformanceParams requestParams) {
     }
 }

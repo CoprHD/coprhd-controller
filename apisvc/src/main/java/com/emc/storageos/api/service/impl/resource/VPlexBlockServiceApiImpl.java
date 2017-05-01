@@ -312,7 +312,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                 } else {
                     srdfCopyDescriptors = super.createVolumesAndDescriptors(srdfCopyDescriptors,
                             param.getName() + "_srdf_copy", vPoolCapabilities.getSize(), project,
-                            vArray, vPool, copyRecommendations,
+                            vArray, vPool, null, copyRecommendations,
                             taskList, task, vPoolCapabilities);
                 }
                 for (VolumeDescriptor desc : srdfCopyDescriptors) {
@@ -350,8 +350,8 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
 
     @Override
     public List<VolumeDescriptor> createVolumesAndDescriptors(List<VolumeDescriptor> descriptors, String name, Long size, Project project,
-            VirtualArray varray, VirtualPool vpool, List<Recommendation> recommendations, TaskList taskList, String task,
-            VirtualPoolCapabilityValuesWrapper vpoolCapabilities) {
+            VirtualArray varray, VirtualPool vpool, URI performanceParamsURI, List<Recommendation> recommendations, TaskList taskList, 
+            String task, VirtualPoolCapabilityValuesWrapper vpoolCapabilities) {
         // Not currently called from AbstractBlockServiceApiImpl.createVolumesAndDescriptors
         throw DeviceControllerException.exceptions.operationNotSupported();
     }
@@ -3955,7 +3955,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
             TaskList taskList = new TaskList();
             descriptors =
                     super.createVolumesAndDescriptors(descriptors, newVolumeLabel, size, project,
-                            varray, vpool, childRecommendations, taskList, task, vPoolCapabilities);
+                            varray, vpool, null, childRecommendations, taskList, task, vPoolCapabilities);
             VolumeDescriptor.Type[] types;
             if (srdfTarget) {
                 types = new VolumeDescriptor.Type[] {
@@ -4432,6 +4432,6 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
      * {@inheritDoc}
      */
     @Override
-    public void validatePerformanceParameters(VolumeCreatePerformanceParams requestParams, VirtualPoolCapabilityValuesWrapper capabilities) {
+    public void validatePerformanceParameters(VolumeCreatePerformanceParams requestParams) {
     }    
 }

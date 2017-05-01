@@ -87,16 +87,17 @@ public interface BlockServiceApi {
      * @param project -- Project object
      * @param varray -- VirtualArray object
      * @param vpool -- VirtualPool object
+     * @param performanceParamsURI The URI of a PerformanceParams to associate with the volume, or null.
      * @param recommendations -- List of Recommendations describing StoragePools to be used
      * @param taskList -- A TaskList to which tasks can be added
      * @param task-- The String task identifier for the overall operation
      * @param vpoolCapabilities -- A virtualPoolCapabilityValuesWrapper containing volume creation parameters
      * @return List of VolumeDescriptors including the Volumes that were generated
      */
-    public List<VolumeDescriptor> createVolumesAndDescriptors(List<VolumeDescriptor> descriptors,
-            String name, Long size, Project project,
-            VirtualArray varray, VirtualPool vpool, List<Recommendation> recommendations,
-            TaskList taskList, String task, VirtualPoolCapabilityValuesWrapper vpoolCapabilities);
+    public List<VolumeDescriptor> createVolumesAndDescriptors(List<VolumeDescriptor> descriptors, String name, Long size,
+            Project project, VirtualArray varray, VirtualPool vpool, URI performanceParamsURI, 
+            List<Recommendation> recommendations, TaskList taskList, String task, 
+            VirtualPoolCapabilityValuesWrapper vpoolCapabilities);
 
     /**
      * Delete the passed volumes for the passed system.
@@ -666,11 +667,9 @@ public interface BlockServiceApi {
     
     /**
      * For a volume create request validates that the performance parameters passed are valid 
-     * and are appropriate. If valid, the performance parameters are saved in the passed virtual
-     * pool capabilities wrapper for use by the storage scheduler.
+     * and are appropriate.
      * 
      * @param requestParams A reference to the performance parameters passed in the request.
-     * @param capabilities A reference to a virtual pool capabilities wrapper.
      */
-    public void validatePerformanceParameters(VolumeCreatePerformanceParams requestParams, VirtualPoolCapabilityValuesWrapper capabilities);
+    public void validatePerformanceParameters(VolumeCreatePerformanceParams requestParams);
 }

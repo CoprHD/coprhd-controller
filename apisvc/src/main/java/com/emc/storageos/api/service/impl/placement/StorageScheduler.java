@@ -24,7 +24,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.util.CollectionUtils;
 
 import com.emc.storageos.api.service.impl.resource.AbstractBlockServiceApiImpl;
-import com.emc.storageos.api.service.impl.resource.utils.PerformanceParamsUtils;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.customconfigcontroller.CustomConfigConstants;
 import com.emc.storageos.customconfigcontroller.impl.CustomConfigHandler;
@@ -60,7 +59,6 @@ import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.VirtualPool.FileReplicationType;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.VolumeGroup;
-import com.emc.storageos.db.client.model.VolumeTopology;
 import com.emc.storageos.db.client.model.VpoolRemoteCopyProtectionSettings;
 import com.emc.storageos.db.client.util.CommonTransformerFunctions;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
@@ -412,23 +410,6 @@ public class StorageScheduler implements Scheduler {
 
         capabilities.put(VirtualPoolCapabilityValuesWrapper.VARRAYS, varray.getId().toString());
         
-        // For now the use of ROOT is equivalent to VolumeTopology.VolumeTopologyRole.SOURCE.
-        // This will work for basic block volumes. However, for supporting more complex 
-        // configurations, VpoolUse will not be sufficient and we will likely have to replace
-        // will something like VolumeTopologyRole, so that the correct performance params can be
-        // examined.
-        String autoTierPolicyName = null;
-        if (vPoolUse == VpoolUse.ROOT) {
-            autoTierPolicyName = PerformanceParamsUtils.getAutoTierinigPolicyName(
-                    capabilities.getSourcePerformanceParams(),
-                    VolumeTopology.VolumeTopologyRole.SOURCE,
-                    vpool, _dbClient);
-        }
-        
-        if (NullColumnValueGetter.isNotNullValue(autoTierPolicyName)) {
-            capabilities.put(VirtualPoolCapabilityValuesWrapper.AUTO_TIER__POLICY_NAME, autoTierPolicyName);
-        }
-
         List<StoragePool> storagePools = new ArrayList<StoragePool>();
         String varrayId = varray.getId().toString();
 
@@ -543,7 +524,7 @@ public class StorageScheduler implements Scheduler {
         }
 
         // populate DriveType,and Raid level and Policy Name for FAST Initial Placement Selection
-        provMapBuilder.putAttributeInMap(Attributes.auto_tiering_policy_name.toString(), autoTierPolicyName);
+        provMapBuilder.putAttributeInMap(Attributes.auto_tiering_policy_name.toString(), capabilities.getAutoTierPolicyName());
         provMapBuilder.putAttributeInMap(Attributes.unique_policy_names.toString(), vpool.getUniquePolicyNames());
         provMapBuilder.putAttributeInMap(AttributeMatcher.PLACEMENT_MATCHERS, true);
         provMapBuilder.putAttributeInMap(AttributeMatcher.Attributes.drive_type.name(), vpool.getDriveType());
@@ -1385,6 +1366,7 @@ public class StorageScheduler implements Scheduler {
      * @param project -- Project object
      * @param neighborhood -- Virtual array
      * @param vPool -- Virtual pool
+     * @param performanceParamsURI - The URI of a performance params instance or null.
      * @param volumeCount -- number of like volumes to be created
      * @param recommendations -- List of Recommendation objects describing pools to use for volumes
      * @param consistencyGroup -- The BlockConsistencyGroup object to be used for the volumes
@@ -1395,7 +1377,7 @@ public class StorageScheduler implements Scheduler {
      * @param createInactive-- used to set the Volume syncActive flag (to the inverted sense of createInactive)
      */
     public void prepareRecommendedVolumes(Long size, String task, TaskList taskList,
-            Project project, VirtualArray neighborhood, VirtualPool vPool, Integer volumeCount,
+            Project project, VirtualArray neighborhood, VirtualPool vPool, URI performanceParamsURI, Integer volumeCount,
             List<Recommendation> recommendations, BlockConsistencyGroup consistencyGroup, int volumeCounter,
             String volumeLabel, List<Volume> preparedVolumes, VirtualPoolCapabilityValuesWrapper cosCapabilities,
             Boolean createInactive) {
@@ -1416,15 +1398,8 @@ public class StorageScheduler implements Scheduler {
                 if (volume != null) {
                     volumePrecreated = true;
                 }
-
-                long thinVolumePreAllocationSize = 0;
-                if (null != vPool.getThinVolumePreAllocationPercentage()) {
-                    thinVolumePreAllocationSize = VirtualPoolUtil.getThinVolumePreAllocationSize(
-                            vPool.getThinVolumePreAllocationPercentage(), size);
-                }
-
-                volume = prepareVolume(_dbClient, volume, size, thinVolumePreAllocationSize, project,
-                        neighborhood, vPool, recommendation, newVolumeLabel, consistencyGroup, cosCapabilities, createInactive);
+                volume = prepareVolume(_dbClient, volume, size, project, neighborhood, vPool, performanceParamsURI,
+                        recommendation, newVolumeLabel, consistencyGroup, cosCapabilities, createInactive);
                 // set volume id in recommendation
                 recommendation.setId(volume.getId());
                 // add volume to reserved capacity map of storage pool
@@ -1526,6 +1501,7 @@ public class StorageScheduler implements Scheduler {
         long preAllocateSize = 0;
         if (null != sourceVolume.getThinVolumePreAllocationSize()) {
             preAllocateSize = sourceVolume.getThinVolumePreAllocationSize();
+            capabilities.put(VirtualPoolCapabilityValuesWrapper.THIN_VOLUME_PRE_ALLOCATE_SIZE, preAllocateSize);
         }
         NamedURI projectUri = sourceVolume.getProject();
         Project project = dbClient.queryObject(Project.class, projectUri);
@@ -1537,8 +1513,8 @@ public class StorageScheduler implements Scheduler {
         VirtualPool vPool = dbClient.queryObject(VirtualPool.class, vPoolUri);
 
         String label = name + (volumeCounter > 0 ? ("-" + volumeCounter) : "");
-        Volume volume = prepareVolume(dbClient, null, size, preAllocateSize,
-                project, vArray, vPool, recommendation, label, null, capabilities, createInactive);
+        Volume volume = prepareVolume(dbClient, null, size, project, vArray, vPool,
+                null, recommendation, label, null, capabilities, createInactive);
 
         // Since this is a full copy, update it with URI of the source volume
         volume.setAssociatedSourceVolume(sourceVolume.getId());
@@ -1570,6 +1546,7 @@ public class StorageScheduler implements Scheduler {
         URI projectUri = sourceSnapshot.getProject().getURI();
         long size = sourceSnapshot.getProvisionedCapacity();
         long preAllocateSize = sourceSnapshot.getAllocatedCapacity();
+        capabilities.put(VirtualPoolCapabilityValuesWrapper.THIN_VOLUME_PRE_ALLOCATE_SIZE, preAllocateSize);
 
         Project project = dbClient.queryObject(Project.class, projectUri);
 
@@ -1579,8 +1556,8 @@ public class StorageScheduler implements Scheduler {
         VirtualPool vPool = dbClient.queryObject(VirtualPool.class, vPoolUri);
 
         String label = name + (volumeCounter > 0 ? ("-" + volumeCounter) : "");
-        Volume volume = prepareVolume(dbClient, null, size, preAllocateSize,
-                project, vArray, vPool, recommendation, label, null, capabilities, createInactive);
+        Volume volume = prepareVolume(dbClient, null, size, project, vArray, vPool,
+                null, recommendation, label, null, capabilities, createInactive);
 
         // Since this is a full copy, update it with URI of the source snapshot
         volume.setAssociatedSourceVolume(sourceSnapshot.getId());
@@ -1597,7 +1574,8 @@ public class StorageScheduler implements Scheduler {
             Project project, VirtualArray neighborhood, VirtualPool vpool,
             VolumeRecommendation placement, String label,
             BlockConsistencyGroup consistencyGroup, VirtualPoolCapabilityValuesWrapper capabilities) {
-        return prepareVolume(dbClient, volume, size, thinVolumePreAllocationSize, project, neighborhood, vpool,
+        capabilities.put(VirtualPoolCapabilityValuesWrapper.THIN_VOLUME_PRE_ALLOCATE_SIZE, thinVolumePreAllocationSize);
+        return prepareVolume(dbClient, volume, size, project, neighborhood, vpool, null,
                 placement, label, consistencyGroup, capabilities, false);
     }
 
@@ -1650,6 +1628,7 @@ public class StorageScheduler implements Scheduler {
     /**
      * Prepare Volume for an unprotected traditional block volume.
      *
+     *@param dbClient A reference to a database client.
      * @param volume pre-created volume (optional)
      * @param size volume size
      * @param project project requested
@@ -1658,15 +1637,16 @@ public class StorageScheduler implements Scheduler {
      * @param placement recommendation for placement
      * @param label volume label
      * @param consistencyGroup cg ID
-     * @param createInactive
+     * @param cosCapabilities The capabilities wrapper.
+     * @param createInactive true to create inactive, false otherwise.
      *
      *
      * @return a persisted volume
      */
-    public static Volume prepareVolume(DbClient dbClient, Volume volume, long size, long thinVolumePreAllocationSize,
-            Project project, VirtualArray neighborhood, VirtualPool vpool,
-            VolumeRecommendation placement, String label,
-            BlockConsistencyGroup consistencyGroup, VirtualPoolCapabilityValuesWrapper cosCapabilities, Boolean createInactive) {
+    public static Volume prepareVolume(DbClient dbClient, Volume volume, long size, Project project,
+            VirtualArray neighborhood, VirtualPool vpool, URI performanceParamsURI,
+            VolumeRecommendation placement, String label, BlockConsistencyGroup consistencyGroup,
+            VirtualPoolCapabilityValuesWrapper cosCapabilities, Boolean createInactive) {
 
         // In the case of a new volume that wasn't pre-created, make sure that volume doesn't already exist
         if (volume == null) {
@@ -1693,11 +1673,12 @@ public class StorageScheduler implements Scheduler {
         volume.setSyncActive(!Boolean.valueOf(createInactive));
         volume.setLabel(label);
         volume.setCapacity(size);
-        if (0 != thinVolumePreAllocationSize) {
-            volume.setThinVolumePreAllocationSize(thinVolumePreAllocationSize);
+        if (0 != cosCapabilities.getThinVolumePreAllocateSize()) {
+            volume.setThinVolumePreAllocationSize(cosCapabilities.getThinVolumePreAllocateSize());
         }
         volume.setThinlyProvisioned(VirtualPool.ProvisioningType.Thin.toString().equalsIgnoreCase(vpool.getSupportedProvisioningType()));
         volume.setVirtualPool(vpool.getId());
+        volume.setPerformanceParams(performanceParamsURI);
         volume.setProject(new NamedURI(project.getId(), volume.getLabel()));
         volume.setTenant(new NamedURI(project.getTenantOrg().getURI(), volume.getLabel()));
         volume.setVirtualArray(neighborhood.getId());
@@ -1734,7 +1715,7 @@ public class StorageScheduler implements Scheduler {
             }
         }
 
-        if (null != cosCapabilities.getAutoTierPolicyName()) {
+        if (NullColumnValueGetter.isNotNullValue(cosCapabilities.getAutoTierPolicyName())) {
             URI autoTierPolicyUri = getAutoTierPolicy(poolId,
                     cosCapabilities.getAutoTierPolicyName(), dbClient);
             if (null != autoTierPolicyUri) {
@@ -1742,14 +1723,12 @@ public class StorageScheduler implements Scheduler {
             }
         }
 
-        if (vpool.getDedupCapable() != null) {
-            volume.setIsDeduplicated(vpool.getDedupCapable());
-        }
+        volume.setIsDeduplicated(cosCapabilities.getDedupCapable());
 
         if (newVolume) {
             dbClient.createObject(volume);
         } else {
-            dbClient.updateAndReindexObject(volume);
+            dbClient.updateObject(volume);
         }
 
         return volume;

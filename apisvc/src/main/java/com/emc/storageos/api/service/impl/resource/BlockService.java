@@ -766,7 +766,7 @@ public class BlockService extends TaskResourceService {
         // parameters are appropriate for the volume topology defined by the virtual pool.
         VolumeCreatePerformanceParams performanceParams = param.getPerformanceParams();
         if (performanceParams != null) {
-            blockServiceImpl.validatePerformanceParameters(performanceParams, capabilities);
+            blockServiceImpl.validatePerformanceParameters(performanceParams);
         }
 
         // Get the count indicating the number of volumes to create. If not
@@ -816,6 +816,14 @@ public class BlockService extends TaskResourceService {
                 sourceParams, VolumeTopologyRole.SOURCE, vpool, _dbClient);
         if (dedupCapable) {
             capabilities.put(VirtualPoolCapabilityValuesWrapper.DEDUP, dedupCapable);
+        }
+        
+        // Get the autotiering policy name. The value in the source performance parameters,
+        // if any, overrides the value from the virtual pool.
+        String autoTierPolicyName = PerformanceParamsUtils.getAutoTierinigPolicyName(
+                sourceParams, VolumeTopologyRole.SOURCE, vpool, _dbClient);
+        if (NullColumnValueGetter.isNotNullValue(autoTierPolicyName)) {
+            capabilities.put(VirtualPoolCapabilityValuesWrapper.AUTO_TIER__POLICY_NAME, autoTierPolicyName);
         }
 
         BlockConsistencyGroup consistencyGroup = null;

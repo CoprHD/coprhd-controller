@@ -1910,7 +1910,7 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
 
     @Override
     public List<VolumeDescriptor> createVolumesAndDescriptors(List<VolumeDescriptor> descriptors, String name, Long size, Project project,
-            VirtualArray varray, VirtualPool vpool, List<Recommendation> recommendations, TaskList taskList, String task,
+            VirtualArray varray, VirtualPool vpool, URI performanceParamsURI, List<Recommendation> recommendations, TaskList taskList, String task,
             VirtualPoolCapabilityValuesWrapper vpoolCapabilities) {
         BlockServiceApi api = null;
         List<VolumeDescriptor> volumeDescriptors = new ArrayList<VolumeDescriptor>();
@@ -1927,7 +1927,7 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
                 throw WorkflowException.exceptions.workflowConstructionError(message);
             }
             volumeDescriptors.addAll(api.createVolumesAndDescriptors(descriptors, name, size, project,
-                    varray, vpool, recommendations, taskList, task, vpoolCapabilities));
+                    varray, vpool, performanceParamsURI, recommendations, taskList, task, vpoolCapabilities));
         }
         return volumeDescriptors;
     }

@@ -69,11 +69,10 @@ public class MetaVolumeUtils {
         boolean createAsMetaVolume = false;
         // Check if volumes have to be created as meta volumes
         Volume volume = dbClient.queryObject(Volume.class, volumeURI);
-        VirtualPool vPool = dbClient.queryObject(VirtualPool.class, volume.getVirtualPool());
         StorageSystem storageSystem = dbClient.queryObject(StorageSystem.class, volume.getStorageController());
         StoragePool storagePool = dbClient.queryObject(StoragePool.class, volume.getPool());
         MetaVolumeRecommendation recommendation = MetaVolumeUtils.getCreateRecommendation(storageSystem, storagePool,
-                volume.getCapacity(), volume.getThinlyProvisioned(), vPool.getFastExpansion(), capabilities);
+                volume.getCapacity(), volume.getThinlyProvisioned(), Volume.determineFastExpansionForVolume(volume, dbClient), capabilities);
         if (recommendation.isCreateMetaVolumes()) {
             createAsMetaVolume = true;
         }

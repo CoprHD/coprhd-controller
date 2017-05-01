@@ -43,7 +43,7 @@ public class VmaxCapacityCalculator implements CapacityCalculator {
                 StoragePool storagePool = dbClient.queryObject(StoragePool.class, volume.getPool());
                 // Determine if we are provisioning meta volumes. Meta volume provisioning only applies to non-VMAX3.
                 MetaVolumeRecommendation metaRecommendation = MetaVolumeUtils.getCreateRecommendation(storageSystem, storagePool,
-                        requestedCapacity, volume.getThinlyProvisioned(), vPool.getFastExpansion(), null);
+                        requestedCapacity, volume.getThinlyProvisioned(), Volume.determineFastExpansionForVolume(volume, dbClient), null);
 
                 if (metaRecommendation.isCreateMetaVolumes()) {
                     long metaCount = metaRecommendation.getMetaMemberCount();

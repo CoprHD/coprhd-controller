@@ -1176,5 +1176,33 @@ public class Volume extends BlockObject implements ProjectResource {
     public void setPerformanceParams(URI performanceParams) {
         this.performanceParams = performanceParams;
         setChanged("performanceParams");
-    }    
+    }
+    
+    /**
+     * Helper method determine if the fast expansion setting for a volume. If
+     * the volume references an active PerformanceParams instance then use the
+     * the value specified in the instance. Otherwise, take the value for the 
+     * volumes virtual pool.
+     * 
+     * @param volume A reference to a volume.
+     * @param dbClient A reference to a DB client.
+     * 
+     * @return true for fast expansion enabled, false otherwise.
+     */
+    public static boolean determineFastExpansionForVolume(Volume volume, DbClient dbClient) {
+        URI performanceParamsURI = volume.getPerformanceParams();
+        if (!NullColumnValueGetter.isNullURI(performanceParamsURI)) {
+            PerformanceParams performanceParams = dbClient.queryObject(PerformanceParams.class, performanceParamsURI);
+            if (performanceParams != null && !performanceParams.getInactive()) {
+                return performanceParams.getFastExpansion().booleanValue();
+            }
+        }
+
+        VirtualPool vpool = dbClient.queryObject(VirtualPool.class, volume.getVirtualPool());
+        if (vpool != null) {
+            return vpool.getFastExpansion().booleanValue();
+        }
+
+        return false;
+    }
 }

@@ -1412,8 +1412,9 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             VirtualPool vpool = _dbClient.queryObject(VirtualPool.class, volume.getVirtualPool());
 
             // All volumes are in the same storage pool with the same capacity. Get recommendation for the first volume.
-            MetaVolumeRecommendation recommendation = MetaVolumeUtils.getCreateRecommendation(storageSystem, storagePool,
-                    volume.getCapacity(), volume.getThinlyProvisioned(), vpool.getFastExpansion(), capabilities);
+            MetaVolumeRecommendation recommendation = MetaVolumeUtils.getCreateRecommendation(
+                    storageSystem, storagePool, volume.getCapacity(), volume.getThinlyProvisioned(),
+                    Volume.determineFastExpansionForVolume(volume, _dbClient), capabilities);
 
             for (Volume metaVolume : volumes) {
                 MetaVolumeUtils.prepareMetaVolume(metaVolume, recommendation.getMetaMemberSize(), recommendation.getMetaMemberCount(),
@@ -1474,8 +1475,9 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             StoragePool storagePool = _dbClient.queryObject(StoragePool.class, poolURI);
             VirtualPool vpool = _dbClient.queryObject(VirtualPool.class, volume.getVirtualPool());
 
-            MetaVolumeRecommendation recommendation = MetaVolumeUtils.getCreateRecommendation(storageSystem, storagePool,
-                    volume.getCapacity(), volume.getThinlyProvisioned(), vpool.getFastExpansion(), capabilities);
+            MetaVolumeRecommendation recommendation = MetaVolumeUtils.getCreateRecommendation(
+                    storageSystem, storagePool, volume.getCapacity(), volume.getThinlyProvisioned(), 
+                    Volume.determineFastExpansionForVolume(volume, _dbClient), capabilities);
             MetaVolumeUtils.prepareMetaVolume(volume, recommendation.getMetaMemberSize(), recommendation.getMetaMemberCount(),
                     recommendation.getMetaVolumeType().toString(), _dbClient);
 
@@ -1686,8 +1688,9 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
 
             VirtualPool vpool = _dbClient.queryObject(VirtualPool.class, volumeObj.getVirtualPool());
             boolean isThinlyProvisioned = volumeObj.getThinlyProvisioned();
-            MetaVolumeRecommendation recommendation = MetaVolumeUtils.getExpandRecommendation(storageObj, poolObj,
-                    metaCapacity, size, metaMemberSize, isThinlyProvisioned, vpool.getFastExpansion());
+            MetaVolumeRecommendation recommendation = MetaVolumeUtils.getExpandRecommendation(
+                    storageObj, poolObj, metaCapacity, size, metaMemberSize, isThinlyProvisioned, 
+                    Volume.determineFastExpansionForVolume(volumeObj, _dbClient));
             if (recommendation.isCreateMetaVolumes()) {
                 // check if we are required to create any members.
                 // When expansion size fits into total meta member size, no new members should be created.

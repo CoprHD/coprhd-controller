@@ -584,10 +584,10 @@ public class SRDFBlockServiceApiImpl extends AbstractBlockServiceApiImpl<SRDFSch
                 // Meta Versus Non Meta
                 MetaVolumeRecommendation sourceVolumeRecommendation = MetaVolumeUtils.getCreateRecommendation(sourceSystem, sourcePool,
                         sourceVolume.getCapacity(), sourceVolume.getThinlyProvisioned(),
-                        vpool.getFastExpansion(), null);
+                        Volume.determineFastExpansionForVolume(sourceVolume, _dbClient), null);
                 MetaVolumeRecommendation targetVolumeRecommendation = MetaVolumeUtils.getCreateRecommendation(targetSystem, targetPool,
                         targetVolume.getCapacity(), targetVolume.getThinlyProvisioned(),
-                        vpool.getFastExpansion(), null);
+                        Volume.determineFastExpansionForVolume(targetVolume, _dbClient), null); // TBD Heg: Was using passed source vpool?? Will now use target vpool
                 isCapacityReset = computeCapacityforSRDFV3ToV2Meta(sourcePool, targetPool, sourceVolume, targetVolume,
                         sourceVolumeRecommendation, targetVolumeRecommendation);
             }

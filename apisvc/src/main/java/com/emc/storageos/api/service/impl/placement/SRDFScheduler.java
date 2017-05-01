@@ -722,7 +722,7 @@ public class SRDFScheduler implements Scheduler {
         boolean isThinlyProvisioned = vpool.getSupportedProvisioningType().equalsIgnoreCase(VirtualPool.ProvisioningType.Thin.toString());
         MetaVolumeRecommendation sourceVolumeRecommendation =
                 MetaVolumeUtils.getCreateRecommendation(storageSystem, sourcePool, size, isThinlyProvisioned,
-                        vpool.getFastExpansion(), null);
+                        (vpoolChangeVolume != null ? Volume.determineFastExpansionForVolume(vpoolChangeVolume, _dbClient) : vpool.getFastExpansion()), null);
 
         long sourceMaxVolumeSizeLimitKb = isThinlyProvisioned ? sourcePool.getMaximumThinVolumeSize() : sourcePool
                 .getMaximumThickVolumeSize();

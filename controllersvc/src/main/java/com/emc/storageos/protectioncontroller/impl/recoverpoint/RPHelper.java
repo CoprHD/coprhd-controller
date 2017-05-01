@@ -924,7 +924,7 @@ public class RPHelper {
         long metaCapacity = volume.getIsComposite() ? volume.getTotalMetaMemberCapacity() : volume.getCapacity();
         MetaVolumeRecommendation metaRecommendation = MetaVolumeUtils.getExpandRecommendation(storageSystem, expandVolumePool,
                 metaCapacity, requestedSize, metaMemberSize, volume.getThinlyProvisioned(),
-                dbClient.queryObject(VirtualPool.class, volume.getVirtualPool()).getFastExpansion());
+                Volume.determineFastExpansionForVolume(volume, dbClient));
 
         if (metaRecommendation.isCreateMetaVolumes()) {
             long metaMemberCount = volume.getIsComposite() ? metaRecommendation.getMetaMemberCount() + volume.getMetaMemberCount()

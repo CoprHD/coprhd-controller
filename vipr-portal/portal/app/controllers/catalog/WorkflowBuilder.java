@@ -30,6 +30,7 @@ import java.util.Map;
 import java.util.Set;
 
 import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.collections.MapUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang.StringUtils;
 import org.owasp.esapi.ESAPI;
@@ -604,8 +605,12 @@ public class WorkflowBuilder extends Controller {
 
     private static Map<String, InputUpdateList> getInputDiff(
             final List<String> left, final List<String> right, final String inputGroupType) {
+        final List<String> updateList = (List<String>) CollectionUtils.subtract(left, right);
+        if (CollectionUtils.isEmpty(updateList)) {
+            return ImmutableMap.<String, InputUpdateList> builder().build();
+        }
         final InputUpdateList update = new InputUpdateList();
-        update.setInput((List<String>) CollectionUtils.subtract(left, right));
+        update.setInput(updateList);
         return ImmutableMap.<String, InputUpdateList> builder()
                 .put(inputGroupType, update)
                 .build();
@@ -931,9 +936,9 @@ public class WorkflowBuilder extends Controller {
 
     private static List<String> convertInputGroupsToList(final Map<String, CustomServicesPrimitiveRestRep.InputGroup> inputGroups, final String inputGroupType) {
         final List<String> inputNameList = new ArrayList<String>();
-        if (null != inputGroups && !inputGroups.isEmpty() && inputGroups.containsKey(inputGroupType)) {
+        if (MapUtils.isNotEmpty(inputGroups) && inputGroups.containsKey(inputGroupType)) {
             final List<InputParameterRestRep> inputParameterRestRepList = inputGroups.get(inputGroupType).getInputGroup();
-            for (InputParameterRestRep inputParameterRestRep : inputParameterRestRepList) {
+            for (final InputParameterRestRep inputParameterRestRep : inputParameterRestRepList) {
                 inputNameList.add(inputParameterRestRep.getName());
             }
         }
@@ -990,7 +995,7 @@ public class WorkflowBuilder extends Controller {
             restAPIPrimitiveForm.setId(primitiveRestRep.getId().toString());
             restAPIPrimitiveForm.setName(primitiveRestRep.getName());
             restAPIPrimitiveForm.setDescription(primitiveRestRep.getDescription());
-            Map<String, String> attributes = primitiveRestRep.getAttributes();
+            final Map<String, String> attributes = primitiveRestRep.getAttributes();
             restAPIPrimitiveForm.setAuthType(attributes.get(CustomServicesConstants.AUTH_TYPE.toString()));
             restAPIPrimitiveForm.setRequestURL(attributes.get(CustomServicesConstants.PATH.toString()));
             restAPIPrimitiveForm.setRawBody(attributes.get(CustomServicesConstants.BODY.toString()));
@@ -1168,7 +1173,7 @@ public class WorkflowBuilder extends Controller {
         view();
     }
 
-    private static void addInputs(String inputs, final ImmutableMap.Builder<String, InputCreateList> builder, String inputGroupType) {
+    private static void addInputs(final String inputs, final ImmutableMap.Builder<String, InputCreateList> builder, final String inputGroupType) {
         if (StringUtils.isNotEmpty(inputs)) {
             final List<String> list = getListFromInputOutputString(inputs);
             final InputCreateList input = new InputCreateList();
@@ -1206,7 +1211,8 @@ public class WorkflowBuilder extends Controller {
             addInputs(restAPIPrimitive.getInputs(), builder, CustomServicesConstants.INPUT_PARAMS);
             addInputs(restAPIPrimitive.getHeaders(), builder, CustomServicesConstants.HEADERS);
             addInputs(restAPIPrimitive.getQueryParams(), builder, CustomServicesConstants.QUERY_PARAMS);
-            addInputs(restAPIPrimitive.getRestOptions(), builder, CustomServicesConstants.REST_OPTIONS);
+            //TODO: REST_OPTIONS is currently not allowed in API. After fix, uncomment this line
+            //addInputs(restAPIPrimitive.getRestOptions(), builder, CustomServicesConstants.REST_OPTIONS);
             primitiveCreateParam.setInput(builder.build());
 
             if (StringUtils.isNotEmpty(restAPIPrimitive.getOutputs())) {

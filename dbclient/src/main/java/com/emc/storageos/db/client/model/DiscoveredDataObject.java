@@ -172,7 +172,7 @@ public class DiscoveredDataObject extends DataObject {
 
         static public boolean isThinPoolSubscribedCheckNeeded(String storageType) {
             Type type = Type.valueOf(storageType);
-            return ((storageType.contains(vmax.name()) || type.equals(vnxblock) || type.equals(vnxfile)));
+            return (!(storageType.contains(xtremio.name()) || type.equals(vnxe) || type.equals(unity)));
         }
 
         static public boolean isBlockStorageSystem(String storageType) {

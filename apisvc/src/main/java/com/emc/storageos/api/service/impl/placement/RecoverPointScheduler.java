@@ -256,13 +256,12 @@ public class RecoverPointScheduler implements Scheduler {
      * @param varray varray requested for source
      * @param project for the storage
      * @param vpool vpool requested
-     * @param vPoolUse The usage for the virtual pool.
      * @param capabilities CoS capabilities parameters
      * @return list of Recommendation objects to satisfy the request
      */
     @Override
     public List<Recommendation> getRecommendationsForResources(VirtualArray varray, Project project, VirtualPool vpool,
-            VpoolUse vPoolUse, VirtualPoolCapabilityValuesWrapper capabilities) {
+            VirtualPoolCapabilityValuesWrapper capabilities) {
 
         Volume changeVpoolVolume = null;
         if (capabilities.getChangeVpoolVolume() != null) {            
@@ -668,7 +667,7 @@ public class RecoverPointScheduler implements Scheduler {
                     this.getMatchingPools(varray, vpool, haVarray, haVpool,
                             capabilities, attributeMap);
         } else {
-            candidateStoragePools = blockScheduler.getMatchingPools(varray, vpool, VpoolUse.ROOT, capabilities, attributeMap);
+            candidateStoragePools = blockScheduler.getMatchingPools(varray, vpool, capabilities, attributeMap);
         }
         
         StringBuffer errorMessage = new StringBuffer();
@@ -4453,7 +4452,7 @@ public class RecoverPointScheduler implements Scheduler {
     public List<Recommendation> getRecommendationsForVpool(VirtualArray vArray, Project project, VirtualPool vPool, VpoolUse vPoolUse,
             VirtualPoolCapabilityValuesWrapper capabilities, Map<VpoolUse, List<Recommendation>> currentRecommendations) {
         // No special implementation based on Vpool - using original implementation
-        return getRecommendationsForResources(vArray, project, vPool, vPoolUse, capabilities);
+        return getRecommendationsForResources(vArray, project, vPool, capabilities);
     }
 
     @Override

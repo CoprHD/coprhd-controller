@@ -175,8 +175,6 @@ public class SRDFScheduler implements Scheduler {
      *            for the storage
      * @param vpool
      *            vpool requested
-     * @param vPoolUse
-     *            The usage for the virtual pool.
      * @param capabilities
      *            vpool capabilities parameters
      * @return list of Recommendation objects to satisfy the request
@@ -184,7 +182,6 @@ public class SRDFScheduler implements Scheduler {
     @Override
     public List<Recommendation> getRecommendationsForResources(final VirtualArray varray,
             final Project project, final VirtualPool vpool,
-            VpoolUse vPoolUse,
             final VirtualPoolCapabilityValuesWrapper capabilities) {
 
         _log.debug("Schedule storage for {} resource(s) of size {}.",
@@ -194,7 +191,7 @@ public class SRDFScheduler implements Scheduler {
         // Get all storage pools that match the passed vpool params and
         // protocols. In addition, the pool must have enough capacity
         // to hold at least one resource of the requested size.
-        List<StoragePool> pools = _blockScheduler.getMatchingPools(varray, vpool, vPoolUse, capabilities, attributeMap);
+        List<StoragePool> pools = _blockScheduler.getMatchingPools(varray, vpool, capabilities, attributeMap);
 
         if (pools == null || pools.isEmpty()) {
             _log.error(
@@ -1250,7 +1247,7 @@ public class SRDFScheduler implements Scheduler {
             capabilities.put(VirtualPoolCapabilityValuesWrapper.PERSONALITY, VirtualPoolCapabilityValuesWrapper.SRDF_TARGET);
             // Find a matching pool for the target vpool
             varrayStoragePoolMap.put(varray,
-                    _blockScheduler.getMatchingPools(varray, targetVpool, VpoolUse.SRDF_COPY, capabilities, attributeMap));
+                    _blockScheduler.getMatchingPools(varray, targetVpool, capabilities, attributeMap));
         }
 
         return varrayStoragePoolMap;
@@ -1264,7 +1261,7 @@ public class SRDFScheduler implements Scheduler {
        if (vPoolUse == VpoolUse.SRDF_COPY) {
            recommendations = getRecommendationsForCopy(vArray, project, vPool, capabilities, currentRecommendations.get(VpoolUse.ROOT));
        } else {
-           recommendations = getRecommendationsForResources(vArray, project, vPool, vPoolUse, capabilities);
+           recommendations = getRecommendationsForResources(vArray, project, vPool, capabilities);
        } 
        return recommendations;
     }

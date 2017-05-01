@@ -60,7 +60,7 @@ public class BucketScheduler {
         // Get all storage pools that match the passed vpool params and
         // protocols. In addition, the pool must have enough capacity
         // to hold at least one resource of the requested size.
-        List<StoragePool> candidatePools = _scheduler.getMatchingPools(vArray, vPool, VpoolUse.ROOT, capabilities, attributeMap);
+        List<StoragePool> candidatePools = _scheduler.getMatchingPools(vArray, vPool, capabilities, attributeMap);
 
         // Get the recommendations for the candidate pools.
         List<Recommendation> poolRecommendations =

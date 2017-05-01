@@ -86,7 +86,7 @@ public class FileMirrorScheduler implements Scheduler {
     @Override
     public List getRecommendationsForResources(VirtualArray varray,
             Project project, VirtualPool vpool,
-            VpoolUse vPoolUse, VirtualPoolCapabilityValuesWrapper capabilities) {
+            VirtualPoolCapabilityValuesWrapper capabilities) {
 
         List<FileRecommendation> recommendations = null;
         if (capabilities.getFileReplicationType().equalsIgnoreCase(VirtualPool.FileReplicationType.REMOTE.name())) {
@@ -177,7 +177,7 @@ public class FileMirrorScheduler implements Scheduler {
             capabilities.removeCapabilityEntry(VirtualPoolCapabilityValuesWrapper.SOURCE_STORAGE_SYSTEM);
         } else {
             // Get the recommendation for source from vpool!!!
-            sourceFileRecommendations = _fileScheduler.getRecommendationsForResources(vArray, project, vPool, VpoolUse.ROOT, capabilities);
+            sourceFileRecommendations = _fileScheduler.getRecommendationsForResources(vArray, project, vPool, capabilities);
             // Remove the source storage system from capabilities list
             // otherwise, try to find the remote pools from the same source system!!!
             if (capabilities.getFileProtectionSourceStorageDevice() != null) {
@@ -281,7 +281,7 @@ public class FileMirrorScheduler implements Scheduler {
             sourceFileRecommendations = getFileRecommendationsForSourceFS(vArray, vPool, capabilities);
         } else {
             // Get the recommendation for source from vpool!!!
-            sourceFileRecommendations = _fileScheduler.getRecommendationsForResources(vArray, project, vPool, VpoolUse.ROOT, capabilities);
+            sourceFileRecommendations = _fileScheduler.getRecommendationsForResources(vArray, project, vPool, capabilities);
         }
 
         // process the each recommendations for targets
@@ -407,7 +407,7 @@ public class FileMirrorScheduler implements Scheduler {
         // Get the Matched pools from target virtual pool
         // Verify that at least a matched pools from source storage system!!!
         List<StoragePool> candidatePools = _storageScheduler.getMatchingPools(vArray,
-                vPool, VpoolUse.ROOT, capabilities, null);
+                vPool, capabilities, null);
         boolean gotMatchedPoolForSource = false;
         for (StoragePool pool : candidatePools) {
             if (pool.getStorageDevice().toString().equalsIgnoreCase(sourceFs.getStorageDevice().toString())) {

@@ -82,7 +82,7 @@ public class VPlexScheduler implements Scheduler {
      */
     @Override
     public List<Recommendation> getRecommendationsForResources(VirtualArray vArray, Project project, VirtualPool vPool,
-            VpoolUse vPoolUse, VirtualPoolCapabilityValuesWrapper capabilities) {
+            VirtualPoolCapabilityValuesWrapper capabilities) {
         return getRecommendationsForResources(vArray, project, vPool, capabilities, new HashMap<VpoolUse, List <Recommendation>>());
     }
     public List<Recommendation> getRecommendationsForResources(VirtualArray vArray, Project project, VirtualPool vPool,
@@ -921,7 +921,7 @@ public class VPlexScheduler implements Scheduler {
         }
         
         // Now call the block scheduler to get the matching storage pools.
-        List<StoragePool> storagePools = _blockScheduler.getMatchingPools(varray, vpool, VpoolUse.ROOT, capabilities, attributeMap);
+        List<StoragePool> storagePools = _blockScheduler.getMatchingPools(varray, vpool, capabilities, attributeMap);
         return storagePools;
     }
 

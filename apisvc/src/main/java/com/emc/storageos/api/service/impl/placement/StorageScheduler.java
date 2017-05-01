@@ -153,13 +153,12 @@ public class StorageScheduler implements Scheduler {
      * @param neighborhood
      * @param project The project
      * @param cos
-     * @param vPoolUse The usage for the virtual pool.
      * @param capabilities
      * @return list of VolumeRecommendation instances
      */
     @Override
     public List<Recommendation> getRecommendationsForResources(VirtualArray neighborhood, Project project, VirtualPool cos,
-            VpoolUse vPoolUse, VirtualPoolCapabilityValuesWrapper capabilities) {
+            VirtualPoolCapabilityValuesWrapper capabilities) {
 
         _log.debug("Schedule storage for {} resource(s) of size {}.", capabilities.getResourceCount(), capabilities.getSize());
 
@@ -172,7 +171,7 @@ public class StorageScheduler implements Scheduler {
         // Get all storage pools that match the passed CoS params and
         // protocols. In addition, the pool must have enough capacity
         // to hold at least one resource of the requested size.
-        List<StoragePool> candidatePools = getMatchingPools(neighborhood, cos, vPoolUse, capabilities, attributeMap);
+        List<StoragePool> candidatePools = getMatchingPools(neighborhood, cos, capabilities, attributeMap);
 
         if (CollectionUtils.isEmpty(candidatePools)) {
             StringBuffer errorMessage = new StringBuffer();
@@ -239,7 +238,7 @@ public class StorageScheduler implements Scheduler {
             attributeMap.put(AttributeMatcher.Attributes.varrays.name(), virtualArraySet);
 
             _log.info("Matching pools for storage system {} ", storageSystem);
-            List<StoragePool> matchedPools = getMatchingPools(vArray, vPool, VpoolUse.ROOT, capabilities, attributeMap);
+            List<StoragePool> matchedPools = getMatchingPools(vArray, vPool, capabilities, attributeMap);
             if (matchedPools == null || matchedPools.isEmpty()) {
                 // TODO fix message and throw service code exception
                 _log.warn("VArray {} does not have storage pools which match VPool {}.", vArray.getId(), vPool.getId());
@@ -313,7 +312,7 @@ public class StorageScheduler implements Scheduler {
         // to hold at least one resource of the requested size.
         // In addition, we need to only select pools from the
         // StorageSystem that the source volume was created against.
-        List<StoragePool> matchedPools = getMatchingPools(vArray, vPool, VpoolUse.ROOT, capabilities, attributeMap);
+        List<StoragePool> matchedPools = getMatchingPools(vArray, vPool, capabilities, attributeMap);
         if (matchedPools == null || matchedPools.isEmpty()) {
             StringBuffer errMes = new StringBuffer();
             if (attributeMap.get(AttributeMatcher.ERROR_MESSAGE) != null) {
@@ -390,8 +389,8 @@ public class StorageScheduler implements Scheduler {
      * @return A list of matching storage pools.
      */
     protected List<StoragePool> getMatchingPools(VirtualArray varray, VirtualPool vpool,
-            VpoolUse vPoolUse, VirtualPoolCapabilityValuesWrapper capabilities) {
-        return getMatchingPools(varray, vpool, vPoolUse, capabilities, null);
+            VirtualPoolCapabilityValuesWrapper capabilities) {
+        return getMatchingPools(varray, vpool, capabilities, null);
     }
 
     /**
@@ -406,7 +405,7 @@ public class StorageScheduler implements Scheduler {
      * @return A list of matching storage pools.
      */
     protected List<StoragePool> getMatchingPools(VirtualArray varray, VirtualPool vpool,
-            VpoolUse vPoolUse, VirtualPoolCapabilityValuesWrapper capabilities, Map<String, Object> optionalAttributes) {
+            VirtualPoolCapabilityValuesWrapper capabilities, Map<String, Object> optionalAttributes) {
 
         capabilities.put(VirtualPoolCapabilityValuesWrapper.VARRAYS, varray.getId().toString());
         
@@ -1877,7 +1876,7 @@ public class StorageScheduler implements Scheduler {
             VirtualPool vPool, VpoolUse vPoolUse,
             VirtualPoolCapabilityValuesWrapper capabilities, Map<VpoolUse, List<Recommendation>> currentRecommendations) {
         // Initially we're only going to return one recommendation set.
-        List<Recommendation> recommendations = getRecommendationsForResources(vArray, project, vPool, vPoolUse, capabilities);
+        List<Recommendation> recommendations = getRecommendationsForResources(vArray, project, vPool, capabilities);
         return recommendations;
     }
 

@@ -315,6 +315,9 @@ public class CustomServicesViprExecution extends ViPRExecutionTask<CustomService
         final Matcher m = Pattern.compile("\\$([\\w\\.\\@]+)").matcher(strs);
         while (m.find()) {
             final String p = m.group(1);
+            if (input.get(p) == null) {
+                return -1;
+            }
             return input.get(p).size();
         }
 

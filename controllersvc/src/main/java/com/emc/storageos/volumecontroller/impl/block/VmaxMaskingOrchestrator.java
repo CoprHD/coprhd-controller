@@ -1566,8 +1566,9 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                             }
 
                             VirtualPool virtualPool = null;
+                            Volume volume = null;
                             if (bo instanceof Volume) {
-                                Volume volume = (Volume) bo;
+                                volume = (Volume) bo;
                                 virtualPool = uriVirtualPoolMap.get(volume.getVirtualPool());
                                 if (virtualPool == null) {
                                     virtualPool = _dbClient.queryObject(VirtualPool.class, volume.getVirtualPool());
@@ -1629,9 +1630,9 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                                     // verify host io limits match if policy name is a match
                                     if (virtualPool != null) {
                                         match &= HostIOLimitsParam.isEqualsLimit(policy.getHostIOLimitBandwidth(),
-                                                virtualPool.getHostIOLimitBandwidth())
+                                                (volume != null ? Volume.determineHostIOLimitBandwidthForVolume(volume, _dbClient) : virtualPool.getHostIOLimitBandwidth()))
                                                 && HostIOLimitsParam.isEqualsLimit(policy.getHostIOLimitIOPs(),
-                                                        virtualPool.getHostIOLimitIOPs());
+                                                        (volume != null ? Volume.determineHostIOLimitIOPsForVolume(volume, _dbClient) : virtualPool.getHostIOLimitIOPs()));
                                     }
                                 } else {
                                     _log.info("Pre-existing Mask did not match rule 1A: volume is FAST, mask comprises only part of the compute resource, and the storage groups in each mask are not the same.  "

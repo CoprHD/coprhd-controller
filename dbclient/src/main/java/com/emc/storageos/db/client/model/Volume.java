@@ -1179,30 +1179,74 @@ public class Volume extends BlockObject implements ProjectResource {
     }
     
     /**
-     * Helper method determine if the fast expansion setting for a volume. If
+     * Helper method determine the fast expansion setting for a volume. If
      * the volume references an active PerformanceParams instance then use the
      * the value specified in the instance. Otherwise, take the value for the 
-     * volumes virtual pool.
+     * volume's virtual pool.
      * 
      * @param volume A reference to a volume.
      * @param dbClient A reference to a DB client.
      * 
      * @return true for fast expansion enabled, false otherwise.
      */
-    public static boolean determineFastExpansionForVolume(Volume volume, DbClient dbClient) {
+    public static Boolean determineFastExpansionForVolume(Volume volume, DbClient dbClient) {
         URI performanceParamsURI = volume.getPerformanceParams();
         if (!NullColumnValueGetter.isNullURI(performanceParamsURI)) {
             PerformanceParams performanceParams = dbClient.queryObject(PerformanceParams.class, performanceParamsURI);
             if (performanceParams != null && !performanceParams.getInactive()) {
-                return performanceParams.getFastExpansion().booleanValue();
+                return performanceParams.getFastExpansion();
             }
         }
 
         VirtualPool vpool = dbClient.queryObject(VirtualPool.class, volume.getVirtualPool());
-        if (vpool != null) {
-            return vpool.getFastExpansion().booleanValue();
+        return vpool.getFastExpansion();
+    }
+    
+    /**
+     * Helper method determine the host IO bandwidth limit for a volume. If
+     * the volume references an active PerformanceParams instance then use the
+     * the value specified in the instance. Otherwise, take the value for the 
+     * volume's virtual pool.
+     * 
+     * @param volume A reference to a volume.
+     * @param dbClient A reference to a DB client.
+     * 
+     * @return The host IO bandwidth limit.
+     */
+    public static Integer determineHostIOLimitBandwidthForVolume(Volume volume, DbClient dbClient) {
+        URI performanceParamsURI = volume.getPerformanceParams();
+        if (!NullColumnValueGetter.isNullURI(performanceParamsURI)) {
+            PerformanceParams performanceParams = dbClient.queryObject(PerformanceParams.class, performanceParamsURI);
+            if (performanceParams != null && !performanceParams.getInactive()) {
+                return performanceParams.getHostIOLimitBandwidth();
+            }
         }
 
-        return false;
+        VirtualPool vpool = dbClient.queryObject(VirtualPool.class, volume.getVirtualPool());
+        return vpool.getHostIOLimitBandwidth();
     }
+    
+    /**
+     * Helper method determine the host IO IOPs limit for a volume. If
+     * the volume references an active PerformanceParams instance then use the
+     * the value specified in the instance. Otherwise, take the value for the 
+     * volume's virtual pool.
+     * 
+     * @param volume A reference to a volume.
+     * @param dbClient A reference to a DB client.
+     * 
+     * @return The host IO IOPs limit.
+     */
+    public static Integer determineHostIOLimitIOPsForVolume(Volume volume, DbClient dbClient) {
+        URI performanceParamsURI = volume.getPerformanceParams();
+        if (!NullColumnValueGetter.isNullURI(performanceParamsURI)) {
+            PerformanceParams performanceParams = dbClient.queryObject(PerformanceParams.class, performanceParamsURI);
+            if (performanceParams != null && !performanceParams.getInactive()) {
+                return performanceParams.getHostIOLimitIOPs();
+            }
+        }
+
+        VirtualPool vpool = dbClient.queryObject(VirtualPool.class, volume.getVirtualPool());
+        return vpool.getHostIOLimitIOPs();
+    }    
 }

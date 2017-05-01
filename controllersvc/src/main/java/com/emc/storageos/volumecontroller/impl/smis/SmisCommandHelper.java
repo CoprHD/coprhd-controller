@@ -3763,7 +3763,7 @@ public class SmisCommandHelper implements SmisConstants {
                 if (volumePolicyName != null) {
                     policyName = volumePolicyName;
                 }
-                hostIOLimitBandwidth = virtualPool.getHostIOLimitBandwidth();
+                hostIOLimitBandwidth = Volume.determineHostIOLimitBandwidthForVolume(volume, _dbClient);
                 hostIOLimitIOPs = virtualPool.getHostIOLimitIOPs();
             }
 

@@ -615,8 +615,8 @@ public class ControllerUtils {
                             Volume volume = (Volume) blockObject;
                             VirtualPool virtualPool = dbClient.queryObject(VirtualPool.class, volume.getVirtualPool());
                             volumeURLHLU = new VolumeURIHLU(uri, hluString, policyName, volLabel,
-                                    virtualPool.getHostIOLimitBandwidth(),
-                                    virtualPool.getHostIOLimitIOPs());
+                                    Volume.determineHostIOLimitBandwidthForVolume(volume, dbClient),
+                                    Volume.determineHostIOLimitIOPsForVolume(volume, dbClient));
                         }
                     }
                     volURIsHlus[index++] = volumeURLHLU;

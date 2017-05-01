@@ -5097,6 +5097,7 @@ input.decription=Field Help
 output.name=Name
 input.type.AssetOptionSingle=Single Selection
 input.type.AssetOptionMulti=Multiple Selection
+input.type.Disabled=Disabled
 input.type.InputFromUser=Text
 input.type.FromOtherStepInput=Other Step Input
 input.type.FromOtherStepOutput=Other Step Output

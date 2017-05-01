@@ -360,6 +360,9 @@ public class CustomServicesService extends ViPRService {
                 }
 
                 switch (InputType.fromString(value.getType())) {
+                    case DISABLED:
+                        inputs.put(name, Arrays.asList(""));
+                        break;
                     case FROM_USER:
                     case FROM_USER_MULTI:
                     case ASSET_OPTION_SINGLE:

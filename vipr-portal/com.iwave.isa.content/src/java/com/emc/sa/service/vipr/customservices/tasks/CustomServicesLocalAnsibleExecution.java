@@ -17,17 +17,26 @@
 
 package com.emc.sa.service.vipr.customservices.tasks;
 
+import com.emc.sa.engine.ExecutionUtils;
+import com.emc.sa.service.vipr.tasks.ViPRExecutionTask;
+import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.URIUtil;
+import com.emc.storageos.db.client.model.uimodels.CustomServicesDBAnsibleInventoryResource;
+import com.emc.storageos.db.client.model.uimodels.CustomServicesDBAnsiblePrimitive;
+import com.emc.storageos.db.client.model.uimodels.CustomServicesDBAnsibleResource;
+import com.emc.storageos.model.customservices.CustomServicesWorkflowDocument.Step;
+import com.emc.storageos.primitives.CustomServicesConstants;
+import com.emc.storageos.services.util.Exec;
+import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorException;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.URI;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
-import com.emc.storageos.db.client.URIUtil;
-import com.emc.storageos.db.client.model.uimodels.CustomServicesDBAnsibleInventoryResource;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
 import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
@@ -35,16 +44,6 @@ import org.apache.commons.compress.compressors.gzip.GzipCompressorInputStream;
 import org.apache.commons.compress.utils.IOUtils;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.LoggerFactory;
-
-import com.emc.sa.engine.ExecutionUtils;
-import com.emc.sa.service.vipr.tasks.ViPRExecutionTask;
-import com.emc.storageos.db.client.DbClient;
-import com.emc.storageos.db.client.model.uimodels.CustomServicesDBAnsiblePrimitive;
-import com.emc.storageos.db.client.model.uimodels.CustomServicesDBAnsibleResource;
-import com.emc.storageos.model.customservices.CustomServicesWorkflowDocument.Step;
-import com.emc.storageos.primitives.CustomServicesConstants;
-import com.emc.storageos.services.util.Exec;
-import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorException;
 
 /**
  * Runs CustomServices Operation: Ansible Playbook.
@@ -185,7 +184,9 @@ public class CustomServicesLocalAnsibleExecution extends ViPRExecutionTask<Custo
                 .setExtraVars(extraVars)
                 .setCommandLine(AnsibleHelper.getOptions(CustomServicesConstants.ANSIBLE_COMMAND_LINE, input))
                 .build();
-
-        return Exec.exec(timeout, cmds);
+        //default to no host key checking
+        final Map<String,String> environment = new HashMap<>();
+        environment.put("ANSIBLE_HOST_KEY_CHECKING", "false");
+        return Exec.exec(timeout, null, environment, cmds);
     }
 }

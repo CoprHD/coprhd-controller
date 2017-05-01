@@ -415,12 +415,14 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
     var jspInstance;
 
     var INPUT_FIELD_OPTIONS = ['number','boolean','text','password'];
-    var INPUT_TYPE_OPTIONS = ['AssetOptionMulti','AssetOptionSingle','InputFromUser','FromOtherStepOutput','FromOtherStepInput'];
-    var ASSET_TYPE_OPTIONS = ['assetType.vipr.blockVirtualPool','assetType.vipr.virtualArray','assetType.vipr.project'];
+    var INPUT_TYPE_OPTIONS = ['Disabled','AssetOptionMulti','AssetOptionSingle','InputFromUser','FromOtherStepOutput','FromOtherStepInput'];
+    var ASSET_TYPE_OPTIONS = ['assetType.vipr.blockVirtualPool','assetType.vipr.virtualArray','assetType.vipr.project','assetType.vipr.host'];
 
     $scope.workflowData = {};
     $scope.stepInputOptions = [];
     $scope.stepOutputOptions = [];
+    var DEFAULT_OUTPUT_PARAMS = ["operation_output","operation_error","operation_returncode"];
+
     $scope.modified = false;
     $scope.selectedId = '';
 
@@ -579,8 +581,17 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
         stepData.positionY = positionY;
         stepData.positionX = positionX;
 
-        $scope.modified = true;
+        // Add default params
+        if (!stepData.output) {
+            stepData.output = [];
+        }
+        for(var outputparam in DEFAULT_OUTPUT_PARAMS) {
+            if(DEFAULT_OUTPUT_PARAMS.hasOwnProperty(outputparam)) {
+                stepData.output.push({type:"String", name:DEFAULT_OUTPUT_PARAMS[outputparam]});
+            }
+        }
 
+        $scope.modified = true;
         loadStep(stepData);
 
     }

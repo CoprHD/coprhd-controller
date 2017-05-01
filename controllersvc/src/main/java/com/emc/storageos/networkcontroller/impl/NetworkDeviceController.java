@@ -909,7 +909,6 @@ public class NetworkDeviceController implements NetworkController {
     private void completeWorkflowState(String token, String operation, BiosCommandResult result, 
     		String warningMessage) {
         // Update the workflow state.
-        WorkflowService.getInstance().postTaskWarningMessage(token, "Zoning test warning message");
         if (Operation.Status.valueOf(result.getCommandStatus()).equals(Operation.Status.ready)) {
         	if (warningMessage != null && !warningMessage.isEmpty()) {
         	    WorkflowService.getInstance().postTaskWarningMessage(token, warningMessage);
@@ -2913,7 +2912,7 @@ public class NetworkDeviceController implements NetworkController {
         }
         if (!zoneNames.isEmpty()) {
             buf.append("Zones which will not be deleted because they may be used externally: ");
-            buf.append(com.google.common.base.Joiner.on(',').join(zoneNames));
+            buf.append(com.google.common.base.Joiner.on(' ').join(zoneNames));
         }
         return buf.toString();
     }

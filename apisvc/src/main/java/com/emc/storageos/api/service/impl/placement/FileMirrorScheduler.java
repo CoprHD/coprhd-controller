@@ -77,8 +77,6 @@ public class FileMirrorScheduler implements Scheduler {
      *            for the storage
      * @param vpool
      *            vpool requested
-     * @param vPoolUse
-     *            The usage for the virtual pool.
      * @param capabilities
      *            vpool capabilities parameters
      * @return list of Recommendation objects to satisfy the request

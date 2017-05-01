@@ -398,7 +398,6 @@ public class StorageScheduler implements Scheduler {
      *
      * @param varray The VirtualArray for matching storage pools.
      * @param vpool The virtualPool that must be satisfied by the storage pool.
-     * @param vPoolUse The usage for the virtual pool.
      * @param capabilities The VirtualPool params that must be satisfied.
      * @param optionalAttributes Optional addition attributes to consider for placement
      *
@@ -1627,7 +1626,7 @@ public class StorageScheduler implements Scheduler {
     /**
      * Prepare Volume for an unprotected traditional block volume.
      *
-     *@param dbClient A reference to a database client.
+     * @param dbClient A reference to a database client.
      * @param volume pre-created volume (optional)
      * @param size volume size
      * @param project project requested

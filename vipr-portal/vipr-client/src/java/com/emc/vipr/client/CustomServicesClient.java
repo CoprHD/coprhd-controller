@@ -31,6 +31,7 @@ import com.emc.storageos.model.customservices.CustomServicesPrimitiveBulkRestRep
 import com.emc.storageos.model.customservices.CustomServicesPrimitiveCreateParam;
 import com.emc.storageos.model.customservices.CustomServicesPrimitiveList;
 import com.emc.storageos.model.customservices.CustomServicesPrimitiveResourceRestRep;
+import com.emc.storageos.model.customservices.CustomServicesPrimitiveResourceList;
 import com.emc.storageos.model.customservices.CustomServicesPrimitiveRestRep;
 import com.emc.storageos.model.customservices.CustomServicesPrimitiveUpdateParam;
 import com.emc.storageos.model.customservices.CustomServicesValidationResponse;
@@ -77,11 +78,26 @@ public class CustomServicesClient extends AbstractCatalogBulkResources<CustomSer
         return client.getURI(CustomServicesPrimitiveList.class, builder.build());
     }
 
+    public CustomServicesPrimitiveResourceList getHostInventory(final String type, final URI parentId) {
+        final UriBuilder builder = client.uriBuilder(PathConstants.CUSTOM_SERVICES_PRIMITIVE_RESOURCE);
+        builder.queryParam("type", type);
+        builder.queryParam("parentId", parentId);
+        return client.getURI(CustomServicesPrimitiveResourceList.class, builder.build());
+    }
+
     public CustomServicesPrimitiveResourceRestRep createPrimitiveResource(final String resourceType, final File resource,
-            final String resourceName) throws IOException {
+                                                                          final String resourceName) throws IOException {
+        return createPrimitiveResource(resourceType, resource, resourceName, null);
+    }
+
+    public CustomServicesPrimitiveResourceRestRep createPrimitiveResource(final String resourceType, final File resource,
+            final String resourceName, final URI ansiblePackageId) throws IOException {
         final UriBuilder builder = client.uriBuilder(PathConstants.CUSTOM_SERVICES_PRIMITIVE_RESOURCE);
         builder.queryParam("name", resourceName);
         builder.queryParam("type", resourceType);
+        if (null != ansiblePackageId) {
+            builder.queryParam("parentId", ansiblePackageId);
+        }
         return client.postURIOctet(CustomServicesPrimitiveResourceRestRep.class, new FileInputStream(resource), builder.build());
     }
 

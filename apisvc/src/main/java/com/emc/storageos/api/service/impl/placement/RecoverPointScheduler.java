@@ -78,8 +78,7 @@ import com.google.common.collect.Lists;
 public class RecoverPointScheduler implements Scheduler {
 
     public static final Logger _log = LoggerFactory.getLogger(RecoverPointScheduler.class);
-    private static final String SCHEDULER_NAME = "rp";
-    private static final int MAX_THROTTLE_ATTEMPTS = 10;
+    private static final String SCHEDULER_NAME = "rp";    
     private static final int WAIT_BETWEEN_CONCURRENT_SCHEDULER_REQUESTS = 5;
 
     @Autowired
@@ -107,9 +106,17 @@ public class RecoverPointScheduler implements Scheduler {
     private PlacementStatus secondaryPlacementStatus;
 
     // List of storage systems that require vplex to provide protection
-
     private static List<String> systemsRequiringVplex = new ArrayList<String>
             (Arrays.asList(DiscoveredDataObject.Type.hds.toString()));
+    
+    // Spring injected via api-conf.xml; allows the user to adjust
+    // throttle attempts for concurrent provisioning orders for new CGs
+    // and/or when the vpool specifies journal multiplier.
+    private int maxThrottleAttempts;
+    
+    public void setMaxThrottleAttempts(int maxThrottleAttempts) {
+        this.maxThrottleAttempts = maxThrottleAttempts;
+    }
 
     public void setBlockScheduler(StorageScheduler blockScheduler) {
         this.blockScheduler = blockScheduler;
@@ -4497,8 +4504,7 @@ public class RecoverPointScheduler implements Scheduler {
         BlockConsistencyGroup cg = dbClient.queryObject(BlockConsistencyGroup.class, cgURI);
                    
         // Check to see if the vpool is using a journal multiplier policy
-        boolean vpoolUsesJournalMultiplier = (vpool.getJournalSize() != null 
-                && (vpool.getJournalSize().endsWith("x") || vpool.getJournalSize().endsWith("X")));
+        boolean vpoolUsesJournalMultiplier = RPHelper.vpoolHasJournalMultiplier(vpool);
         
         // Only throttle requests on new RP CGs or if using a journal multiplier policy
         if (!cg.created() || vpoolUsesJournalMultiplier) { 
@@ -4531,7 +4537,7 @@ public class RecoverPointScheduler implements Scheduler {
                     // all proceed in parallel.
                     if (vpoolUsesJournalMultiplier) {                    
                         int waitAttempt = 0;
-                        while (waitAttempt < MAX_THROTTLE_ATTEMPTS) {                      
+                        while (waitAttempt < maxThrottleAttempts) {                      
                             _log.info(String.format("Concurrent RP requests detected for CG [%s], sleeping for %s seconds. "
                                     + "Each request will be handled sequentially.", 
                                     cg.getLabel(), WAIT_BETWEEN_CONCURRENT_SCHEDULER_REQUESTS));

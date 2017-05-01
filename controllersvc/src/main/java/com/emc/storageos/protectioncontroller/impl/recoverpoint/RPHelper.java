@@ -2597,4 +2597,19 @@ public class RPHelper {
     public static boolean hasRpBookmark(BlockSnapshot snapshot) {
         return NullColumnValueGetter.isNotNullValue(snapshot.getEmName());
     }
+
+    /**
+     * Checks to see if the journal multiplier policy is on the vpool passed in. 
+     * 
+     * @param vpool Vpool to check for journal multiplier policy
+     * @return true is journal multiplier policy is on vpool, false otherwise.
+     */
+    public static boolean vpoolHasJournalMultiplier(VirtualPool vpool) {
+        if (vpool == null) {
+            return false;
+        } else {
+            return (vpool.getJournalSize() != null 
+                    && (vpool.getJournalSize().endsWith("x") || vpool.getJournalSize().endsWith("X")));
+        }
+    }
 }

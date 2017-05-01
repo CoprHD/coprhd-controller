@@ -240,7 +240,7 @@ public class CustomServicesService extends ViPRService {
                 final String name = value.getFriendlyName();
                 switch (CustomServicesConstants.InputType.fromString(value.getType())) {
                     case FROM_USER:
-                    case ASSET_OPTION:
+                    case ASSET_OPTION_SINGLE:
                         for (final CustomServicesWorkflowDocument.InputGroup inputGroup1 : stepInput.values()) {
                             for (final Input value1 : inputGroup1.getInputGroup()) {
                                 final String name1 = value1.getFriendlyName();
@@ -389,9 +389,9 @@ public class CustomServicesService extends ViPRService {
                                 arrayInput = Arrays.asList(params.get(friendlyName).toString());
                             }
 
-                            int i = 0;
+                            int index = 0;
                             for (String eachVal : arrayInput) {
-                                arrayInput.set(i++, eachVal.replace("\"", ""));
+                                arrayInput.set(index++, eachVal.replace("\"", ""));
                             }
                             inputs.put(name, arrayInput);
                         } else {

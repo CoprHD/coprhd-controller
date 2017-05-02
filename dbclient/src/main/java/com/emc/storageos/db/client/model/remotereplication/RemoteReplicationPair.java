@@ -6,6 +6,7 @@ package com.emc.storageos.db.client.model.remotereplication;
 
 import java.net.URI;
 
+import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.Cf;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.FileShare;
@@ -67,6 +68,21 @@ public class RemoteReplicationPair extends DataObject implements ProjectResource
     // Project of this pair
     private NamedURI project;
 
+    /**
+     * @return true if this rr pair is contained by a rr group (not directly contained in a rr set)
+     */
+    public boolean isGroupPair() {
+        return replicationGroup != null;
+    }
+
+    /**
+     * @return true if this rr pair has source/target elements in CG
+     */
+    public boolean isInCG(DbClient dbClient) {
+        Volume sourceVolume = dbClient.queryObject(Volume.class, getSourceElement());
+        Volume targetVolume = dbClient.queryObject(Volume.class, getTargetElement());
+        return (sourceVolume.isInCG() || targetVolume.isInCG());
+    }
 
     @Override
     @Name("tenant")

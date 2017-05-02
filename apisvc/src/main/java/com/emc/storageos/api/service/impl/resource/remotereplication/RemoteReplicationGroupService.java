@@ -26,6 +26,7 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 
+import com.emc.storageos.api.service.impl.resource.BlockService;
 import com.emc.storageos.remotereplicationcontroller.RemoteReplicationController;
 import com.emc.storageos.remotereplicationcontroller.RemoteReplicationUtils;
 import com.emc.storageos.security.authorization.ACL;
@@ -82,12 +83,23 @@ public class RemoteReplicationGroupService extends TaskResourceService {
 
     // remote replication service api implementations
     private RemoteReplicationBlockServiceApiImpl remoteReplicationServiceApi;
+
+    private BlockService blockService;
+
     public RemoteReplicationBlockServiceApiImpl getRemoteReplicationServiceApi() {
         return remoteReplicationServiceApi;
     }
 
     public void setRemoteReplicationServiceApi(RemoteReplicationBlockServiceApiImpl remoteReplicationServiceApi) {
         this.remoteReplicationServiceApi = remoteReplicationServiceApi;
+    }
+
+    public BlockService getBlockService() {
+        return blockService;
+    }
+
+    public void setBlockService(BlockService blockService) {
+        this.blockService = blockService;
     }
 
     @Override
@@ -277,8 +289,6 @@ public class RemoteReplicationGroupService extends TaskResourceService {
             rrGroup.getOpStatus().updateTaskStatus(taskId, op);
             rrGroup.setInactive(true);
             _dbClient.updateObject(rrGroup);
-
-            throw e;
         }
 
         auditOp(OperationTypeEnum.CREATE_REMOTE_REPLICATION_GROUP, true, AuditLogManager.AUDITOP_BEGIN,
@@ -298,7 +308,7 @@ public class RemoteReplicationGroupService extends TaskResourceService {
         RemoteReplicationGroup rrGroup = queryResource(id);
 
         RemoteReplicationElement rrElement = new RemoteReplicationElement(RemoteReplicationSet.ElementType.REPLICATION_GROUP, id);
-        RemoteReplicationUtils.validateRemoteReplicationOperation(rrElement, RemoteReplicationController.RemoteReplicationOperations.FAIL_OVER);
+        RemoteReplicationUtils.validateRemoteReplicationOperation(_dbClient, rrElement, RemoteReplicationController.RemoteReplicationOperations.FAIL_OVER);
 
         // Create a task for the create remote replication group operation
         String taskId = UUID.randomUUID().toString();
@@ -314,10 +324,7 @@ public class RemoteReplicationGroupService extends TaskResourceService {
             op = rrGroup.getOpStatus().get(taskId);
             op.error(e);
             rrGroup.getOpStatus().updateTaskStatus(taskId, op);
-            rrGroup.setInactive(true);
             _dbClient.updateObject(rrGroup);
-
-            throw e;
         }
 
         auditOp(OperationTypeEnum.FAILOVER_REMOTE_REPLICATION_GROUP_LINK, true, AuditLogManager.AUDITOP_BEGIN,
@@ -336,7 +343,7 @@ public class RemoteReplicationGroupService extends TaskResourceService {
         RemoteReplicationGroup rrGroup = queryResource(id);
 
         RemoteReplicationElement rrElement = new RemoteReplicationElement(RemoteReplicationSet.ElementType.REPLICATION_GROUP, id);
-        RemoteReplicationUtils.validateRemoteReplicationOperation(rrElement, RemoteReplicationController.RemoteReplicationOperations.FAIL_BACK);
+        RemoteReplicationUtils.validateRemoteReplicationOperation(_dbClient, rrElement, RemoteReplicationController.RemoteReplicationOperations.FAIL_BACK);
 
         // Create a task for the create remote replication group operation
         String taskId = UUID.randomUUID().toString();
@@ -352,10 +359,7 @@ public class RemoteReplicationGroupService extends TaskResourceService {
             op = rrGroup.getOpStatus().get(taskId);
             op.error(e);
             rrGroup.getOpStatus().updateTaskStatus(taskId, op);
-            rrGroup.setInactive(true);
             _dbClient.updateObject(rrGroup);
-
-            throw e;
         }
 
         auditOp(OperationTypeEnum.FAILBACK_REMOTE_REPLICATION_GROUP_LINK, true, AuditLogManager.AUDITOP_BEGIN,
@@ -374,7 +378,7 @@ public class RemoteReplicationGroupService extends TaskResourceService {
         RemoteReplicationGroup rrGroup = queryResource(id);
 
         RemoteReplicationElement rrElement = new RemoteReplicationElement(RemoteReplicationSet.ElementType.REPLICATION_GROUP, id);
-        RemoteReplicationUtils.validateRemoteReplicationOperation(rrElement, RemoteReplicationController.RemoteReplicationOperations.ESTABLISH);
+        RemoteReplicationUtils.validateRemoteReplicationOperation(_dbClient, rrElement, RemoteReplicationController.RemoteReplicationOperations.ESTABLISH);
 
         String taskId = UUID.randomUUID().toString();
         Operation op = _dbClient.createTaskOpStatus(RemoteReplicationGroup.class, rrGroup.getId(),
@@ -389,10 +393,7 @@ public class RemoteReplicationGroupService extends TaskResourceService {
             op = rrGroup.getOpStatus().get(taskId);
             op.error(e);
             rrGroup.getOpStatus().updateTaskStatus(taskId, op);
-            rrGroup.setInactive(true);
             _dbClient.updateObject(rrGroup);
-
-            throw e;
         }
 
         auditOp(OperationTypeEnum.ESTABLISH_REMOTE_REPLICATION_GROUP_LINK, true, AuditLogManager.AUDITOP_BEGIN,
@@ -411,7 +412,7 @@ public class RemoteReplicationGroupService extends TaskResourceService {
         RemoteReplicationGroup rrGroup = queryResource(id);
 
         RemoteReplicationElement rrElement = new RemoteReplicationElement(RemoteReplicationSet.ElementType.REPLICATION_GROUP, id);
-        RemoteReplicationUtils.validateRemoteReplicationOperation(rrElement, RemoteReplicationController.RemoteReplicationOperations.SPLIT);
+        RemoteReplicationUtils.validateRemoteReplicationOperation(_dbClient, rrElement, RemoteReplicationController.RemoteReplicationOperations.SPLIT);
 
         // Create a task for split remote replication group operation
         String taskId = UUID.randomUUID().toString();
@@ -427,10 +428,7 @@ public class RemoteReplicationGroupService extends TaskResourceService {
             op = rrGroup.getOpStatus().get(taskId);
             op.error(e);
             rrGroup.getOpStatus().updateTaskStatus(taskId, op);
-            rrGroup.setInactive(true);
             _dbClient.updateObject(rrGroup);
-
-            throw e;
         }
 
         auditOp(OperationTypeEnum.SPLIT_REMOTE_REPLICATION_GROUP_LINK, true, AuditLogManager.AUDITOP_BEGIN,
@@ -449,7 +447,7 @@ public class RemoteReplicationGroupService extends TaskResourceService {
         RemoteReplicationGroup rrGroup = queryResource(id);
 
         RemoteReplicationElement rrElement = new RemoteReplicationElement(RemoteReplicationSet.ElementType.REPLICATION_GROUP, id);
-        RemoteReplicationUtils.validateRemoteReplicationOperation(rrElement, RemoteReplicationController.RemoteReplicationOperations.SUSPEND);
+        RemoteReplicationUtils.validateRemoteReplicationOperation(_dbClient, rrElement, RemoteReplicationController.RemoteReplicationOperations.SUSPEND);
 
         String taskId = UUID.randomUUID().toString();
         Operation op = _dbClient.createTaskOpStatus(RemoteReplicationGroup.class, rrGroup.getId(),
@@ -464,10 +462,7 @@ public class RemoteReplicationGroupService extends TaskResourceService {
             op = rrGroup.getOpStatus().get(taskId);
             op.error(e);
             rrGroup.getOpStatus().updateTaskStatus(taskId, op);
-            rrGroup.setInactive(true);
             _dbClient.updateObject(rrGroup);
-
-            throw e;
         }
 
         auditOp(OperationTypeEnum.SUSPEND_REMOTE_REPLICATION_GROUP_LINK, true, AuditLogManager.AUDITOP_BEGIN,
@@ -487,7 +482,7 @@ public class RemoteReplicationGroupService extends TaskResourceService {
         RemoteReplicationGroup rrGroup = queryResource(id);
 
         RemoteReplicationElement rrElement = new RemoteReplicationElement(RemoteReplicationSet.ElementType.REPLICATION_GROUP, id);
-        RemoteReplicationUtils.validateRemoteReplicationOperation(rrElement, RemoteReplicationController.RemoteReplicationOperations.RESUME);
+        RemoteReplicationUtils.validateRemoteReplicationOperation(_dbClient, rrElement, RemoteReplicationController.RemoteReplicationOperations.RESUME);
 
         String taskId = UUID.randomUUID().toString();
         Operation op = _dbClient.createTaskOpStatus(RemoteReplicationGroup.class, rrGroup.getId(),
@@ -502,10 +497,7 @@ public class RemoteReplicationGroupService extends TaskResourceService {
             op = rrGroup.getOpStatus().get(taskId);
             op.error(e);
             rrGroup.getOpStatus().updateTaskStatus(taskId, op);
-            rrGroup.setInactive(true);
             _dbClient.updateObject(rrGroup);
-
-            throw e;
         }
 
         auditOp(OperationTypeEnum.RESUME_REMOTE_REPLICATION_GROUP_LINK, true, AuditLogManager.AUDITOP_BEGIN,
@@ -525,7 +517,7 @@ public class RemoteReplicationGroupService extends TaskResourceService {
 
 
         RemoteReplicationElement rrElement = new RemoteReplicationElement(RemoteReplicationSet.ElementType.REPLICATION_GROUP, id);
-        RemoteReplicationUtils.validateRemoteReplicationOperation(rrElement, RemoteReplicationController.RemoteReplicationOperations.SWAP);
+        RemoteReplicationUtils.validateRemoteReplicationOperation(_dbClient, rrElement, RemoteReplicationController.RemoteReplicationOperations.SWAP);
 
         String taskId = UUID.randomUUID().toString();
         Operation op = _dbClient.createTaskOpStatus(RemoteReplicationGroup.class, rrGroup.getId(),
@@ -540,10 +532,7 @@ public class RemoteReplicationGroupService extends TaskResourceService {
             op = rrGroup.getOpStatus().get(taskId);
             op.error(e);
             rrGroup.getOpStatus().updateTaskStatus(taskId, op);
-            rrGroup.setInactive(true);
             _dbClient.updateObject(rrGroup);
-
-            throw e;
         }
 
         auditOp(OperationTypeEnum.SWAP_REMOTE_REPLICATION_GROUP_LINK, true, AuditLogManager.AUDITOP_BEGIN,
@@ -565,7 +554,7 @@ public class RemoteReplicationGroupService extends TaskResourceService {
         String newMode = param.getNewMode();
 
         RemoteReplicationElement rrElement = new RemoteReplicationElement(RemoteReplicationSet.ElementType.REPLICATION_GROUP, id);
-        RemoteReplicationUtils.validateRemoteReplicationModeChange(rrElement, newMode);
+        RemoteReplicationUtils.validateRemoteReplicationModeChange(_dbClient, rrElement, newMode);
 
         String taskId = UUID.randomUUID().toString();
         Operation op = _dbClient.createTaskOpStatus(RemoteReplicationGroup.class, rrGroup.getId(),
@@ -577,13 +566,11 @@ public class RemoteReplicationGroupService extends TaskResourceService {
             rrServiceApi.changeRemoteReplicationMode(rrElement, newMode, taskId);
         } catch (final ControllerException e) {
             _log.error("Controller Error", e);
+            _log.error("Controller Error", e);
             op = rrGroup.getOpStatus().get(taskId);
             op.error(e);
             rrGroup.getOpStatus().updateTaskStatus(taskId, op);
-            rrGroup.setInactive(true);
             _dbClient.updateObject(rrGroup);
-
-            throw e;
         }
 
         auditOp(OperationTypeEnum.CHANGE_REMOTE_REPLICATION_MODE, true, AuditLogManager.AUDITOP_BEGIN,

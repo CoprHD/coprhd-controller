@@ -1085,7 +1085,7 @@ public class BlockService extends TaskResourceService {
         // Consistency group can only hold RR volumes and only of single type (in RR group or in RR set)
         boolean shouldInGroup = (params.getRemoteReplicationGroup() != null);
         URI rrSet = params.getRemoteReplicationSet();
-        List<RemoteReplicationPair> pairs = RemoteReplicationUtils.getRemoteReplicationPairsForCG(cGroup, _dbClient);
+        List<RemoteReplicationPair> pairs = RemoteReplicationUtils.getRemoteReplicationPairsForSourceCG(cGroup, _dbClient);
         if (pairs.isEmpty()) {
             throw APIException.badRequests.consistencyGroupMustOnlyBeRRProtected(cGroup.getId());
         }

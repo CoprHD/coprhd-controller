@@ -1272,7 +1272,7 @@ public class ExternalDeviceCommunicationInterface extends
     }
 
     /**
-     * Process driver remote replication sets and build corresponding persistent objects..
+     * Process driver remote replication sets and build corres>ponding persistent objects..
      *
      * @param driverRRSets driver model remote replication sets
      * @param storageSystemType storage system type
@@ -1285,6 +1285,7 @@ public class ExternalDeviceCommunicationInterface extends
         List<DataObject> notReachableObjects = new ArrayList<>();
 
         try {
+            List<com.emc.storageos.db.client.model.remotereplication.RemoteReplicationSet> systemSets = new ArrayList<com.emc.storageos.db.client.model.remotereplication.RemoteReplicationSet>();
             for (RemoteReplicationSet driverSet : driverRRSets) {
                 com.emc.storageos.db.client.model.remotereplication.RemoteReplicationSet systemRRSet = null;
                 try {
@@ -1299,8 +1300,12 @@ public class ExternalDeviceCommunicationInterface extends
                     String message = String.format("Remote replication set %s of type %s was set to not reachable.",
                             driverSet.getNativeId(), storageSystemType);
                     _log.error(message);
+                } else {
+                    systemSets.add(systemRRSet);
                 }
             }
+            
+            ExternalDeviceDiscoveryUtils.setStorageSystemConnectedTo(systemSets, objectsToUpdate, _dbClient, storageSystemType);
 
             // check which existing system sets we did not discover --- set them as not reachable
             List<URI> updatedObjectUrisList = URIUtil.toUris(objectsToUpdate);

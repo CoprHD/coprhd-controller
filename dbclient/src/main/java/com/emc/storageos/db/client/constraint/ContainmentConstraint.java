@@ -85,6 +85,7 @@ import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFil
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedNFSShareACL;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedProtectionSet;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
+import com.emc.storageos.db.client.model.remotereplication.RemoteReplicationPair;
 import com.emc.storageos.db.client.model.uimodels.Order;
 
 /**
@@ -109,6 +110,18 @@ public interface ContainmentConstraint extends Constraint {
             DataObjectType doType = TypeMap.getDoType(Project.class);
             ColumnField field = doType.getColumnField("tenantOrg");
             return new ContainmentConstraintImpl(tenantOrg, Project.class, field);
+        }
+
+        public static ContainmentConstraint getRemoteReplicationPairSetConstraint(URI rrSet) {
+            DataObjectType doType = TypeMap.getDoType(RemoteReplicationPair.class);
+            ColumnField field = doType.getColumnField("replicationSet");
+            return new ContainmentConstraintImpl(rrSet, RemoteReplicationPair.class, field);
+        }
+
+        public static ContainmentConstraint getRemoteReplicationPairGroupConstraint(URI rrGroup) {
+            DataObjectType doType = TypeMap.getDoType(RemoteReplicationPair.class);
+            ColumnField field = doType.getColumnField("replicationGroup");
+            return new ContainmentConstraintImpl(rrGroup, RemoteReplicationPair.class, field);
         }
 
         public static ContainmentConstraint getTenantOrgSubTenantConstraint(URI tenantOrg) {

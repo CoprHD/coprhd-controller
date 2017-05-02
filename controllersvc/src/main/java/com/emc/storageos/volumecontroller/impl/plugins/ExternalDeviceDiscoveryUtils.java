@@ -1,23 +1,29 @@
 package com.emc.storageos.volumecontroller.impl.plugins;
 
 
+import static com.emc.storageos.db.client.util.CustomQueryUtility.queryActiveResourcesByAltId;
+
+import java.net.URI;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.DataObject;
+import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationGroup;
 import com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationMode;
 import com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationSet;
 import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
-import static com.emc.storageos.db.client.util.CustomQueryUtility.queryActiveResourcesByAltId;
 
 public class ExternalDeviceDiscoveryUtils {
 
@@ -60,6 +66,94 @@ public class ExternalDeviceDiscoveryUtils {
             objectsToUpdate.add(systemSet);
         }
         return systemSet;
+    }
+    
+    /**
+     * set the field connectedTo on the db storage system object corresponding to the system set source systems
+     * 
+     * @param systemSet
+     * @param objectsToUpdate
+     * @param dbClient
+     */
+    public static void setStorageSystemConnectedTo(List<com.emc.storageos.db.client.model.remotereplication.RemoteReplicationSet> systemSets, 
+            List<DataObject> objectsToUpdate, DbClient dbClient, String storageSystemType) {
+        
+        Map<URI, StorageSystem> updatedStorageSystems = new HashMap<URI, StorageSystem>();
+        
+        // list of storage system of type storageSystemType
+        List<StorageSystem> dbStorageSystemsSystemType = new ArrayList<StorageSystem>();
+        Iterator<StorageSystem> systemsItr = dbClient.queryIterativeObjectFields(StorageSystem.class, Arrays.asList("connectedTo", "systemType"), dbClient.queryByType(StorageSystem.class, true));
+        while(systemsItr.hasNext()) {
+            StorageSystem system = systemsItr.next();
+            if (system.getSystemType().equals(storageSystemType)) {
+                dbStorageSystemsSystemType.add(system);
+            }
+        }
+        
+        // map of source storage system URI to list of targets from the environment
+        Map<URI, StringSet> envStorageSystemConnectedToMap = new HashMap<URI, StringSet>();
+        for (com.emc.storageos.db.client.model.remotereplication.RemoteReplicationSet systemSet : systemSets) {
+            if (systemSet.getSourceSystems() != null && !systemSet.getSourceSystems().isEmpty()) {
+                for (String srcSystemId : systemSet.getSourceSystems()) {
+                    if (systemSet.getTargetSystems() != null && !systemSet.getTargetSystems().isEmpty()) {
+                        for (String tgtSystemId : systemSet.getTargetSystems()) {
+                            if (!tgtSystemId.equalsIgnoreCase(srcSystemId)) {
+                                URI srcSystemUri = URI.create(srcSystemId);
+                                if (envStorageSystemConnectedToMap.get(srcSystemUri) == null) {
+                                    envStorageSystemConnectedToMap.put(srcSystemUri, new StringSet());
+                                }
+                                envStorageSystemConnectedToMap.get(srcSystemUri).addAll(systemSet.getTargetSystems());
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        
+        // process each existing storage system (storage systems with existing remote connections in the DB)
+        for (StorageSystem srcStorageSystem : dbStorageSystemsSystemType) {
+            if (envStorageSystemConnectedToMap.get(srcStorageSystem.getId()) == null) {
+                if (srcStorageSystem.getRemotelyConnectedTo() != null && !srcStorageSystem.getRemotelyConnectedTo().isEmpty()) {
+                    // the discovered source has no targets but the db source does
+                    srcStorageSystem.getRemotelyConnectedTo().clear();
+                    updatedStorageSystems.put(srcStorageSystem.getId(), srcStorageSystem);
+                }
+            } else {
+                // source system has connections; check each target
+                List<String> targetsToRemove = new ArrayList<String>();
+                StringSet envTargets = envStorageSystemConnectedToMap.get(srcStorageSystem.getId());
+                StringSet dbTargets = srcStorageSystem.getRemotelyConnectedTo() == null ? new StringSet() : srcStorageSystem.getRemotelyConnectedTo();
+                boolean storageSystemUpdated = false;
+                
+                // remove targets that exist in the DB but don't exist in the environment
+                for (String targetId : dbTargets) {
+                    if (!envTargets.contains(targetId)) {
+                        targetsToRemove.add(targetId);
+                    }
+                }
+                if (!targetsToRemove.isEmpty()) {
+                    srcStorageSystem.getRemotelyConnectedTo().removeAll(targetsToRemove);
+                    storageSystemUpdated = true;
+                }
+                
+                // add targets that exist in the environment but don't exist in the DB
+                for (String envTarget : envTargets) {
+                    if (!dbTargets.contains(envTarget)) {
+                        if (srcStorageSystem.getRemotelyConnectedTo() == null) {
+                            srcStorageSystem.setRemotelyConnectedTo(new StringSet());
+                        }
+                        srcStorageSystem.getRemotelyConnectedTo().add(envTarget);
+                        storageSystemUpdated = true;
+                    }
+                }
+                
+                if (storageSystemUpdated) {
+                    updatedStorageSystems.put(srcStorageSystem.getId(), srcStorageSystem);
+                }
+            }
+        }
+        
+        objectsToUpdate.addAll(updatedStorageSystems.values());
     }
 
     /**

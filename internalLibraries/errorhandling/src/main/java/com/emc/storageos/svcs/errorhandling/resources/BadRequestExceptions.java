@@ -1261,6 +1261,9 @@ public interface BadRequestExceptions {
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException providedVirtualPoolNotCorrectType();
 
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException dataObjectNotExists(final String doName, final URI uri);
+
     @DeclareServiceCode(ServiceCode.API_NO_PLACEMENT_FOUND)
     public BadRequestException recoverPointProtectionSystemError();
 
@@ -3299,7 +3302,16 @@ public interface BadRequestExceptions {
     public BadRequestException invalidRemoteReplicationContext(final String context);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException remoteReplicationOperationPrecheckFailed(final String details);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException remoteReplicationLinkOperationIsNotAllowed(final String elementType, final String elementId, final String operation);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException remoteReplicationModeChangeIsNotAllowed(final String elementType, final String elementId, final String newMode);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException remoteReplicationPairMoveOperationIsNotAllowed(final String rrPair, final String rrGroup, final String cause);
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException notSupportedForBootVolumes();
@@ -3321,4 +3333,10 @@ public interface BadRequestExceptions {
     
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException cannotCreateReadOnlySnapshotForNonXIOVolumes(); 
+    
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException userNotAuthorizedForWorkflow();
+    
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException userNotAuthorizedForWorkflowStep();    
 }

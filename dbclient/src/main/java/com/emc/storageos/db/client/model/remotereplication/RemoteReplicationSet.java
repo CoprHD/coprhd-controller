@@ -5,6 +5,7 @@
 package com.emc.storageos.db.client.model.remotereplication;
 
 
+import java.beans.Transient;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -19,6 +20,12 @@ import com.emc.storageos.db.client.model.StringSetMap;
 
 @Cf("RemoteReplicationSet")
 public class RemoteReplicationSet extends DiscoveredDataObject {
+
+    enum OperationGranularity {
+        REPLICATION_SET,
+        REPLICATION_GROUP,
+        REPLICATION_PAIR
+    }
 
     // native id of replication set.
     private String nativeId;
@@ -133,6 +140,21 @@ public class RemoteReplicationSet extends DiscoveredDataObject {
         return supportedReplicationLinkGranularity;
     }
 
+    public boolean supportRemoteReplicationPairOperation() {
+        return supportedReplicationLinkGranularity != null
+                && supportedReplicationLinkGranularity.contains(OperationGranularity.REPLICATION_PAIR.toString());
+    }
+
+    public boolean supportRemoteReplicationGroupOperation() {
+        return supportedReplicationLinkGranularity != null
+                && supportedReplicationLinkGranularity.contains(OperationGranularity.REPLICATION_GROUP.toString());
+    }
+
+    public boolean supportRemoteReplicationSetOperation() {
+        return supportedReplicationLinkGranularity != null
+                && supportedReplicationLinkGranularity.contains(OperationGranularity.REPLICATION_SET.toString());
+    }
+
     public void setSupportedReplicationLinkGranularity(StringSet supportedReplicationLinkGranularity) {
         this.supportedReplicationLinkGranularity = supportedReplicationLinkGranularity;
         setChanged("supportedReplicationLinkGranularity");
@@ -141,6 +163,11 @@ public class RemoteReplicationSet extends DiscoveredDataObject {
     @Name("supportedReplicationModes")
     public StringSet getSupportedReplicationModes() {
         return supportedReplicationModes;
+    }
+
+    public boolean supportMode(String mode) {
+        return supportedReplicationModes != null &&
+                supportedReplicationModes.contains(mode);
     }
 
     public void setSupportedReplicationModes(StringSet supportedReplicationModes) {
@@ -194,6 +221,7 @@ public class RemoteReplicationSet extends DiscoveredDataObject {
      * Convenience method to get source storage systems
      * @return set of source storage systems ids
      */
+    @Transient
     public Set<String> getSourceSystems() {
         Set<String> sourceSystems = new HashSet<>();
         if (getSystemToRolesMap() == null) {
@@ -214,6 +242,7 @@ public class RemoteReplicationSet extends DiscoveredDataObject {
      * Convenience method to get target storage systems
      * @return set of target storage systems ids
      */
+    @Transient
     public Set<String> getTargetSystems() {
         Set<String> targetSystems = new HashSet<>();
         if (getSystemToRolesMap() == null) {

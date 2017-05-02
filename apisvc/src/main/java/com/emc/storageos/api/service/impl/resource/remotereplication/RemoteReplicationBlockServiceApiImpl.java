@@ -11,8 +11,11 @@ import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -24,11 +27,15 @@ import com.emc.storageos.api.service.impl.resource.BlockService;
 import com.emc.storageos.api.service.impl.resource.BlockServiceApi;
 import com.emc.storageos.blockorchestrationcontroller.BlockOrchestrationController;
 import com.emc.storageos.blockorchestrationcontroller.VolumeDescriptor;
+import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
+import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.BlockSnapshotSession;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.Project;
+import com.emc.storageos.db.client.model.StoragePool;
+import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.Task;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
@@ -50,12 +57,98 @@ import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
 import com.emc.storageos.volumecontroller.Recommendation;
 import com.emc.storageos.volumecontroller.impl.externaldevice.RemoteReplicationElement;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
+import com.google.common.base.Function;
+import com.google.common.base.Joiner;
+import com.google.common.collect.Collections2;
 
 public class RemoteReplicationBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RemoteReplicationScheduler> {
     private static final Logger _log = LoggerFactory.getLogger(RemoteReplicationBlockServiceApiImpl.class);
 
     public RemoteReplicationBlockServiceApiImpl() {
         super(Constants.REMOTE_REPLICATION);
+    }
+
+    @Override
+    protected Set<URI> getConnectedVarrays(final URI varrayUID) {
+        Set<URI> vArrays = new HashSet<URI>();
+        
+        URIQueryResultList poolUris = new URIQueryResultList();
+        _dbClient.queryByConstraint(AlternateIdConstraint.Factory.getVirtualArrayStoragePoolsConstraint(varrayUID.toString()), poolUris);
+        Iterator<StoragePool> poolItr = _dbClient.queryIterativeObjects(StoragePool.class, poolUris);
+        
+        Set<URI> sourceSystemUris = new HashSet<URI>();
+
+        while (poolItr.hasNext()) {
+            StoragePool pool = poolItr.next();
+            if (null == pool || pool.getStorageDevice() == null) {
+                _log.info("Pool 1 null");
+                continue;
+            }
+            sourceSystemUris.add(pool.getStorageDevice());
+        }
+
+        _log.info("Source System Uris : {}", Joiner.on("\t").join(sourceSystemUris));
+        Iterator<StorageSystem> systemItr = _dbClient.queryIterativeObjectField(
+                StorageSystem.class, "connectedTo", new ArrayList<URI>(sourceSystemUris));
+
+        Set<URI> remoteSystemUris = new HashSet<URI>();
+        while (systemItr.hasNext()) {
+            StorageSystem system = systemItr.next();
+
+            if (null == system || system.getRemotelyConnectedTo() == null
+                    || system.getRemotelyConnectedTo().isEmpty()) {
+                continue;
+            }
+
+            remoteSystemUris.addAll(Collections2.transform(system.getRemotelyConnectedTo(),
+                    new Function<String, URI>() {
+
+                        @Override
+                        public URI apply(final String arg0) {
+                            // TODO Auto-generated method stub
+                            return URI.create(arg0);
+                        }
+                    }));
+        }
+
+        _log.info("Remote System Uris : {}", Joiner.on("\t").join(remoteSystemUris));
+        
+        Set<URI> remotePoolUriSet = new HashSet<URI>();
+        for (URI remoteUri : remoteSystemUris) {
+            URIQueryResultList remotePoolUris = new URIQueryResultList();
+            _dbClient.queryByConstraint(ContainmentConstraint.Factory.getStorageDeviceStoragePoolConstraint(remoteUri), remotePoolUris);
+            remotePoolUriSet.addAll(remotePoolUris);
+        }
+        
+        _log.info("Remote Pool Uris : {}", Joiner.on("\t").join(remotePoolUriSet));
+        
+        Set<String> names = new HashSet<String>();
+        names.add("storageDevice");
+        names.add("taggedVirtualArrays");
+        Collection<StoragePool> remotePools = _dbClient.queryObjectFields(StoragePool.class, names,
+                new ArrayList<URI>(remotePoolUriSet));
+
+        for (StoragePool pool : remotePools) {
+
+            if (null == pool || pool.getStorageDevice() == null
+                    || pool.getTaggedVirtualArrays() == null) {
+                continue;
+            }
+            vArrays.addAll(Collections2.transform(pool.getTaggedVirtualArrays(),
+                    new Function<String, URI>() {
+
+                        @Override
+                        public URI apply(final String arg0) {
+                            // TODO Auto-generated method stub
+                            return URI.create(arg0);
+                        }
+                    }));
+
+        }
+
+        _log.info("Remote Varray Uris : {}", Joiner.on("\t").join(vArrays));
+
+        return vArrays;
     }
 
     @Override

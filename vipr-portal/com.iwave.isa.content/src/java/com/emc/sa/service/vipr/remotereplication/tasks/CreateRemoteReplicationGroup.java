@@ -15,6 +15,7 @@ public class CreateRemoteReplicationGroup extends ViPRExecutionTask<TaskResource
     
     public CreateRemoteReplicationGroup(RemoteReplicationGroupCreateParams params) {
        this.params = params;
+       this.provideDetailArgs(params.getDisplayName());
     }
 
     @Override

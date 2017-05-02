@@ -6,33 +6,20 @@ package com.emc.sa.service.vipr.block;
 
 import com.emc.sa.service.ServiceParams;
 
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.List;
 
 import com.emc.sa.engine.bind.Param;
 import com.emc.sa.engine.service.Service;
 import com.emc.sa.service.vipr.ViPRService;
+import com.emc.sa.service.vipr.remotereplication.tasks.CreateRemoteReplicationGroup;
+import com.emc.storageos.model.TaskResourceRep;
+import com.emc.storageos.model.remotereplication.RemoteReplicationGroupCreateParams;
 
 
 @Service("CreateRemoteReplicationGroup")
 public class CreateRemoteReplicationGroupService extends ViPRService {
-
-/**
-     <remote_replication_group_create>
-       <source_system>urn:storageos:StorageSystem:bf0d90de-5f09-4012-a125-707838d0724a:vdc1</source_system>
-       <target_system>urn:storageos:StorageSystem:93b1c291-2b68-4542-a6ac-4391b8c7daae:vdc1</target_system>
-       <source_ports>
-         <source_port>61:FE:FE:FE:FE:FE:FE:10</source_port>
-       </source_ports>
-       <target_ports>
-         <target_port>62:FE:FE:FE:FE:FE:FE:10</target_port>
-       </target_ports>
-       <storage_system_type>driversystem</storage_system_type>
-       <name>mendes-test</name>
-       <replication_mode>synchronous</replication_mode>
-       <replication_state>myRepState</replication_state>
-       <is_group_consistency_enforced>true</is_group_consistency_enforced>
-     </remote_replication_group_create>
-*/
 
     @Param(ServiceParams.NAME)
     protected String name;
@@ -61,31 +48,52 @@ public class CreateRemoteReplicationGroupService extends ViPRService {
     @Param(ServiceParams.CONSISTENCY_GROUP_ENFORCED)
     protected Boolean groupConsistencyEnforced;
 
+    URI sourceSystemUri;
+    URI targetSystemUri;
+
     @Override
     public void precheck() {
- 
-        logInfo("DEBUG: name = '" + name + "'");
-        logInfo("DEBUG: sourceSystem = '" + sourceSystem + "'");
-        logInfo("DEBUG: targetSystem = '" + targetSystem + "'");
-        logInfo("DEBUG: sourcePorts = '" + sourcePorts + "'");
-        logInfo("DEBUG: targetPorts = '" + targetPorts + "'");
-        logInfo("DEBUG: storageType = '" + storageType + "'");
-        logInfo("DEBUG: remoteReplicationMode = '" + remoteReplicationMode + "'");
-        logInfo("DEBUG: remoteReplicationState = '" + remoteReplicationState + "'");
-        logInfo("DEBUG: groupConsistencyEnforced = '" + groupConsistencyEnforced + "'");
 
+        StringBuffer preCheckErrors = new StringBuffer();
+
+        try {
+            sourceSystemUri = new URI(sourceSystem);
+        }
+        catch (URISyntaxException e) {
+            preCheckErrors.append("Source storage system ID (" + sourceSystem +
+                    ") is not a valid URI. " + e.getMessage() + ".  ");
+        }
+
+        try {
+            targetSystemUri = new URI(targetSystem);
+        }
+        catch (URISyntaxException e) {
+            preCheckErrors.append("Target storage system ID (" + targetSystem +
+                    ") is not a valid URI. " + e.getMessage() + ".  ");
+        }
+
+        if (preCheckErrors.length() > 0) {
+            throw new IllegalStateException(preCheckErrors.toString());
+        }
     }
 
     @Override
     public void execute() {
-        /**
-        CreateRemoteReplicationGroupParams params = new CreateRemoteReplicationGroupParams();
 
-        Tasks<HostRestRep> tasks = null;
-        try {
-            tasks = execute(new CreateRemoteReplicationGroup(params));
-        } catch (Exception e) {
-            ExecutionUtils.currentContext().logError("remotereplication.creategroup.failure",name,e.getMessage());
-        }**/
+        RemoteReplicationGroupCreateParams params = new RemoteReplicationGroupCreateParams();
+
+        params.setDisplayName(name);
+        params.setSourceSystem(sourceSystemUri);
+        params.setTargetSystem(targetSystemUri);
+        params.setSourcePorts(sourcePorts);
+        params.setTargetPorts(targetPorts);
+        params.setStorageSystemType(storageType);
+        params.setReplicationMode(remoteReplicationMode);
+        params.setReplicationState(remoteReplicationState);
+        params.setIsGroupConsistencyEnforced(groupConsistencyEnforced);
+
+        TaskResourceRep task = execute(new CreateRemoteReplicationGroup(params));
+
+        logInfo("Created RemoteReplicationGroup '" + name + "'");
     }
 }

@@ -52,7 +52,7 @@ import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.model.TaskResourceRep;
-import com.emc.storageos.model.remotereplication.RemoteReplicationGroupCreate;
+import com.emc.storageos.model.remotereplication.RemoteReplicationGroupCreateParams;
 import com.emc.storageos.model.remotereplication.RemoteReplicationGroupList;
 import com.emc.storageos.model.remotereplication.RemoteReplicationGroupRestRep;
 import com.emc.storageos.model.remotereplication.RemoteReplicationModeChangeParam;
@@ -235,7 +235,7 @@ public class RemoteReplicationGroupService extends TaskResourceService {
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/create-group")
-    public TaskResourceRep createRemoteReplicationGroup(final RemoteReplicationGroupCreate param) throws InternalException {
+    public TaskResourceRep createRemoteReplicationGroup(final RemoteReplicationGroupCreateParams param) throws InternalException {
 
         _log.info("Called: createRemoteReplicationGroup()");
         URI sourceSystem = param.getSourceSystem();
@@ -592,7 +592,7 @@ public class RemoteReplicationGroupService extends TaskResourceService {
         return toTask(rrGroup, taskId, op);
     }
 
-    private RemoteReplicationGroup prepareRRGroup(RemoteReplicationGroupCreate param) {
+    private RemoteReplicationGroup prepareRRGroup(RemoteReplicationGroupCreateParams param) {
 
         RemoteReplicationGroup remoteReplicationGroup = new RemoteReplicationGroup();
         remoteReplicationGroup.setId(URIUtil.createId(RemoteReplicationGroup.class));

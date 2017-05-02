@@ -5,9 +5,7 @@
 package com.emc.sa.asset.providers;
 
 import java.net.URI;
-import java.net.URISyntaxException;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -173,7 +171,7 @@ public class RemoteReplicationProvider extends BaseAssetOptionsProvider {
         List<AssetOption> options = Lists.newArrayList();
         List<StoragePortRestRep> storagePorts = client.storagePorts().getByStorageSystem(sourceStorageSystemId);
         for (StoragePortRestRep storagePort : storagePorts) {
-            options.add(new AssetOption(storagePort.getId(), getPortDisplayName(storagePort)));
+            options.add(new AssetOption(storagePort.getPortNetworkId(), getPortDisplayName(storagePort)));
         }
         return options;
     }
@@ -191,7 +189,7 @@ public class RemoteReplicationProvider extends BaseAssetOptionsProvider {
         List<AssetOption> options = Lists.newArrayList();
         List<StoragePortRestRep> storagePorts = client.storagePorts().getByStorageSystem(targetStorageSystemId);
         for (StoragePortRestRep storagePort : storagePorts) {
-            options.add(new AssetOption(storagePort.getId(), getPortDisplayName(storagePort)));
+            options.add(new AssetOption(storagePort.getPortNetworkId(), getPortDisplayName(storagePort)));
         }
         return options;
     }

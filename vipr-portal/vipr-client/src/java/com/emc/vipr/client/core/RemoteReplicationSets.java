@@ -5,8 +5,6 @@
 package com.emc.vipr.client.core;
 
 import java.net.URI;
-import java.util.Set;
-
 import javax.ws.rs.core.UriBuilder;
 
 import com.emc.storageos.model.remotereplication.RemoteReplicationGroupList;

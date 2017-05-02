@@ -6,14 +6,10 @@ package com.emc.vipr.client.core;
 
 import javax.ws.rs.core.UriBuilder;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.emc.storageos.model.TaskResourceRep;
 import com.emc.storageos.model.remotereplication.RemoteReplicationGroupCreateParams;
 import com.emc.storageos.model.remotereplication.RemoteReplicationGroupList;
 import com.emc.storageos.model.remotereplication.RemoteReplicationGroupRestRep;
-import com.emc.vipr.client.Tasks;
 import com.emc.vipr.client.core.impl.PathConstants;
 import com.emc.vipr.client.core.impl.TaskUtil;
 import com.emc.vipr.client.impl.RestClient;

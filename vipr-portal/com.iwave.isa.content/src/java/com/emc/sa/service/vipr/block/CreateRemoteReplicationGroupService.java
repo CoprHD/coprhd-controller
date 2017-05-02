@@ -14,7 +14,6 @@ import com.emc.sa.engine.bind.Param;
 import com.emc.sa.engine.service.Service;
 import com.emc.sa.service.vipr.ViPRService;
 import com.emc.sa.service.vipr.remotereplication.tasks.CreateRemoteReplicationGroup;
-import com.emc.storageos.model.TaskResourceRep;
 import com.emc.storageos.model.remotereplication.RemoteReplicationGroupCreateParams;
 
 
@@ -92,7 +91,7 @@ public class CreateRemoteReplicationGroupService extends ViPRService {
         params.setReplicationState(remoteReplicationState);
         params.setIsGroupConsistencyEnforced(groupConsistencyEnforced);
 
-        TaskResourceRep task = execute(new CreateRemoteReplicationGroup(params));
+        execute(new CreateRemoteReplicationGroup(params));
 
         logInfo("Created RemoteReplicationGroup '" + name + "'");
     }

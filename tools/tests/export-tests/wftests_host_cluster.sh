@@ -2760,11 +2760,8 @@ test_extend_datastore_with_existing_volume() {
                 expected_lun_count=`expr $expected_lun_count + 1`
                 continue
             fi
-
-            # Verify controller injected failures were hit
-            if [ "$failure" = "failure_082_set_resource_tag" ]; then
-                verify_failures ${failure}
-            fi
+            
+            verify_failures ${failure}
 
             # Snap DB
             snap_db 2 "${column_family[@]}"
@@ -2868,11 +2865,8 @@ test_extend_datastore_with_new_volume() {
                 continue
             fi
 
-            # Verify controller injected failures were hit
-            if [ "$failure" = "failure_082_set_resource_tag" ]; then
-                verify_failures ${failure}
-            fi
-
+            verify_failures ${failure}
+            
             # Snap DB
             snap_db 2 "${column_family[@]}"
 

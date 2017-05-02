@@ -44,6 +44,7 @@ public class VolumeRestRep extends BlockObjectRestRep {
     private String systemType;
     // Compression ratio of the volume if it is compressed
     private String compressionRatio;
+    private RelatedResourceRep performanceParams;
 
     // Fields in a Volume that are specific to RecoverPoint
     public static class RecoverPointRestRep {
@@ -655,4 +656,15 @@ public class VolumeRestRep extends BlockObjectRestRep {
 		this.compressionRatio = compressionRatio;
 	}
 
+    /**
+     * The volume's performance parameters.
+     */
+    @XmlElement(name = "performance_params")
+    public RelatedResourceRep getPerformanceParams() {
+        return performanceParams;
+    }
+
+    public void setPerformanceParams(RelatedResourceRep performanceParams) {
+        this.performanceParams = performanceParams;
+    }
 }

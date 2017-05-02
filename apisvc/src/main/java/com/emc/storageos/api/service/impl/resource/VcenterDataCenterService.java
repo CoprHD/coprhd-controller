@@ -488,7 +488,7 @@ public class VcenterDataCenterService extends TaskResourceService {
      * 
      * @param id the URN of a discovered vCenter datacenter
      * @param vcenterClusterParam the URN of the ViPR cluster
-     * @brief Updates an existing vCenter cluster with new hosts and datastores
+     * @brief Update an existing vCenter cluster with new hosts and datastores
      * @return task representation
      */
     @POST

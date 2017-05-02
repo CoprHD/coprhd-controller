@@ -153,7 +153,7 @@ public class BucketService extends TaskResourceService {
      * 
      * @param param Bucket parameters
      * @param id the URN of a ViPR Project
-     * @brief Create Bucket
+     * @brief Create bucket
      * @return Task resource representation
      * @throws InternalException
      */
@@ -298,7 +298,7 @@ public class BucketService extends TaskResourceService {
      * 
      * @param id the URN of a ViPR Bucket
      * @param param Bucket delete param for optional force delete
-     * @brief Delete Bucket
+     * @brief Delete bucket
      * @return Task resource representation
      * @throws InternalException
      */
@@ -334,7 +334,7 @@ public class BucketService extends TaskResourceService {
      * Retrieve resource representations based on input ids.
      * 
      * @param param POST data containing the id list.
-     * @brief List data of Bucket resources
+     * @brief List data of bucket resources
      * @return list of representations.
      * 
      * @throws DatabaseException When an error occurs querying the database.
@@ -479,7 +479,7 @@ public class BucketService extends TaskResourceService {
      * 
      * @param id
      * @param param
-     * @brief Change an Bucket ACL
+     * @brief Change a bucket ACL
      * @return TaskResponse
      * @throws InternalException
      */

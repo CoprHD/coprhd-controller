@@ -212,7 +212,7 @@ public class HostService extends TaskResourceService {
      *
      * @param id
      *            the URN of a ViPR Host
-     * @brief Show Host
+     * @brief Show host
      * @return All the non-null attributes of the host.
      * @throws DatabaseException
      *             when a DB error occurs.

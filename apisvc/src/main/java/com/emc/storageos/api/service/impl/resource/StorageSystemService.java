@@ -266,7 +266,7 @@ public class StorageSystemService extends TaskResourceService {
      * 
      * @param param The storage system details.
      * @prereq none
-     * @brief Create storage system type (temporary)
+     * @brief Create storage system
      * @return An asynchronous task corresponding to the discovery job scheduled for the new Storage System.
      * 
      * @throws BadRequestException When the system type is not valid or a
@@ -417,7 +417,7 @@ public class StorageSystemService extends TaskResourceService {
      * 
      * @param id the URN of a ViPR storage system
      * @prereq none
-     * @brief Delete Storage System Type (temporary)
+     * @brief Delete storage system
      * @return An asynchronous task.
      * 
      * @throws DatabaseException When an error occurs querying the database.

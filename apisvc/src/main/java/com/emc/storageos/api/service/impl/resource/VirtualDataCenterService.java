@@ -353,7 +353,7 @@ public class VirtualDataCenterService extends TaskResourceService {
      * Disconnect Virtual Data Center
      * 
      * @param id
-     * @brief Disconnects the Virtual Data Center
+     * @brief Disconnect a VDC
      * @return TaskResourceRep
      */
     @POST
@@ -379,7 +379,7 @@ public class VirtualDataCenterService extends TaskResourceService {
      * Reconnect Virtual Data Center
      * 
      * @param id
-     * @brief Reconnects the Virtual Data Center
+     * @brief Reconnect a VDC
      * @return TaskResourceRep
      */
     @POST
@@ -421,8 +421,8 @@ public class VirtualDataCenterService extends TaskResourceService {
      * Retrieves the vdc's secret key. If it doesn't exist,
      * it gets generated
      * 
+     * @brief Retrieve or generate a VDC secret key
      * @return VDC secret key
-     * @brief Retrieves the vdc's secret key
      */
     @Path("/secret-key")
     @GET

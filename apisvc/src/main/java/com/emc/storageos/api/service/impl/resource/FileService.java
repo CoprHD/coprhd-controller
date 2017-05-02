@@ -1164,7 +1164,7 @@ public class FileService extends TaskResourceService {
      *            the URN of a ViPR File system
      * @param shareName
      *            file system share name
-     * @brief List file system SMB shares
+     * @brief Show specified share
      * @return List of file system shares.
      */
     @GET
@@ -1292,7 +1292,7 @@ public class FileService extends TaskResourceService {
      *            File system expansion parameters
      * @param id
      *            the URN of a ViPR File system
-     * @brief Expand file system
+     * @brief Update file system properties
      * @return Task resource representation
      * @throws InternalException
      */

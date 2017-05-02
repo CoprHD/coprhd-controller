@@ -588,7 +588,7 @@ public class StorageProviderService extends TaskResourceService {
      * @param id id the URN of a ViPR Storage provider
      * @param param The storage system details.
      * 
-     * @brief Adds a new storage system and rescans the provider.
+     * @brief Add a new storage system and rescan the provider.
      * @return An asynchronous task corresponding to the scan job scheduled for the provider.
      * 
      * @throws BadRequestException When the system type is not valid or a

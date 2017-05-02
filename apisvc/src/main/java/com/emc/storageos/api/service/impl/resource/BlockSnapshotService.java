@@ -137,15 +137,11 @@ public class BlockSnapshotService extends TaskResourceService {
     }
 
     /**
-     * 
-     * 
-     * @brief
-     * 
-     * @prereq
+     * Create Snapshot Session
      * 
      * @param id
      * @param param
-     * 
+     * @brief Create snapshot session
      * @return
      */
     @POST

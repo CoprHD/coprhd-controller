@@ -1878,7 +1878,7 @@ public class BlockService extends TaskResourceService {
      * @param param
      *            Copy to change access mode on
      *
-     * @brief Changes the access mode for a copy.
+     * @brief Change the access mode for a copy.
      * @return TaskList
      *
      * @throws ControllerException
@@ -4954,7 +4954,7 @@ public class BlockService extends TaskResourceService {
      * @param param
      *            POST data containing the journal volume(s) creation information.
      *
-     * @brief Add journal volume(s) to the exiting recoverpoint CG copy
+     * @brief Add journal volume(s) to the existing recoverpoint CG copy
      * @return A reference to a BlockTaskList containing a list of
      *         TaskResourceRep references specifying the task data for the
      *         journal volume creation tasks.

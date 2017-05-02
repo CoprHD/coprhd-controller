@@ -204,7 +204,7 @@ public class ClusterService extends TaskResourceService {
      * reference and initiators belonging to hosts in this cluster. Volumes are left intact.
      *
      * @param id the URN of a ViPR Cluster
-     * @brief Detach storage from Cluster
+     * @brief Detach storage from cluster
      * @return OK if detaching completed successfully
      * @throws DatabaseException when a DB error occurs
      */
@@ -332,7 +332,7 @@ public class ClusterService extends TaskResourceService {
      * Updates the shared export groups of the give cluster [Deprecated]
      *
      * @param id the URN of a ViPR cluster
-     *
+     * @brief Update shared export export groups
      * @return the representation of the updated cluster.
      */
     @POST
@@ -566,7 +566,7 @@ public class ClusterService extends TaskResourceService {
      * List the vblock hosts of a cluster.
      *
      * @param id the URN of a ViPR cluster
-     *
+     * @brief List vblock hosts for a cluster
      * @return The list of vblock hosts in the cluster.
      * @throws DatabaseException when a DB error occurs.
      */

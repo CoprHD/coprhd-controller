@@ -893,7 +893,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
      * @param snapshotId
      *            - Consistency group snapshot URI
      *
-     * @brief Deactivate consistency group snapshot
+     * @brief Deactivate consistency group snapshot session
      * @return TaskResourceRep
      */
     @POST
@@ -2228,7 +2228,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
      * @param id the URN of a ViPR Source volume
      * @param param Copy to change access mode on
      *
-     * @brief Changes the access mode for a copy.
+     * @brief Change the access mode for a copy.
      * @return TaskList
      *
      * @throws ControllerException

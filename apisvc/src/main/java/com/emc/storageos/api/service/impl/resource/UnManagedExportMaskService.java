@@ -82,6 +82,11 @@ public class UnManagedExportMaskService extends TaggedResource {
         return map(uem);
     }
 
+    /**
+     * Get Bulk Resources
+     * 
+     * @brief List specified unmanaged export masks
+     */
     @POST
     @Path("/bulk")
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })

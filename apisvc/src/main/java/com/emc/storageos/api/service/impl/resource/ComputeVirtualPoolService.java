@@ -1633,8 +1633,8 @@ public class ComputeVirtualPoolService extends TaggedResource {
     /**
      * Assign Compute Elements to the Compute Virtual Pool
      * 
-     * @brief Assign Compute Elements to the compute virtual pool
      * @param param The Compute Virtual Pool Compute Elements to be added and removed
+     * @brief Assign compute elements to the compute virtual pool
      * @return ComputeVirtualPoolRestRep The updated Compute Virtual Pool
      */
     @PUT

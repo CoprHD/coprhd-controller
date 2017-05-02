@@ -2629,7 +2629,7 @@ public class VolumeGroupService extends TaskResourceService {
      *
      * @param volumeGroupId The URI of the volume group
      *
-     * @brief List snapsetLabels for a volume group
+     * @brief List snapset labels for a volume group
      * 
      * @return VolumeGroupCopySetList
      */

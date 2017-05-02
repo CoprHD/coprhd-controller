@@ -11,13 +11,13 @@ import javax.xml.bind.annotation.XmlRootElement;
 public class FileSystemReduceParam {
 	
 	private String newSize;
-
-	public String getNewSize() {
-		return newSize;
+	
+	public FileSystemReduceParam(String newSize) {
+		this.newSize = newSize;
 	}
 
-	public void setNewSize(String newSize) {
-		this.newSize = newSize;
+	public FileSystemReduceParam() {
+		
 	}
 	
 	/**
@@ -26,13 +26,12 @@ public class FileSystemReduceParam {
      * Examples: 100GB, 614400000, 614400000B
      * 
      */
-	public FileSystemReduceParam(String newSize) {
-		super();
+	@XmlElement(required = true, name = "new_size")
+	public String getNewSize() {
+		return newSize;
+	}
+
+	public void setNewSize(String newSize) {
 		this.newSize = newSize;
 	}
-
-	public FileSystemReduceParam() {
-		
-	}
-
 }

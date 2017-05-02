@@ -214,9 +214,9 @@ public class FileSystems extends ProjectResources<FileShareRestRep> implements T
      * API Call: <tt>POST /file/filesystems/{id}/reduce</tt>
      * 
      * @param id
-     *            the ID of the file system to expand.
+     *            the ID of the file system to reduce.
      * @param input
-     *            the expand configuration.
+     *            the reduce configuration.
      * @return a task for monitoring the progress of the operation.
      */
     public Task<FileShareRestRep> reduce(URI id, FileSystemReduceParam input) {

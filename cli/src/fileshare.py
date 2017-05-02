@@ -439,10 +439,8 @@ class Fileshare(object):
 
                 body = json.dumps(request)
 
-                (s, h) = common.service_json_request(
-                    self.__ipAddr, self.__port, "POST",
-                    Fileshare.URI_FILESHARE_SMB_EXPORTS.format(fileshare_uri),
-                    body)
+                (s, h) = common.service_json_request(self.__ipAddr, self.__port, "POST",
+                    Fileshare.URI_FILESHARE_SMB_EXPORTS.format(fileshare_uri), body)
 
             else:
                 request = {
@@ -904,26 +902,22 @@ class Fileshare(object):
         return o
 		
 	def reduce(self, name, new_size, sync=False,synctimeout=0):
-
         fileshare_detail = self.show(name)
         current_size = float(fileshare_detail["capacity_gb"])
 
-        if(new_size >= current_size):
+        if(new_size <= current_size):
             raise SOSError(
                 SOSError.VALUE_ERR,
                 "error: Incorrect value of new size: " + str(new_size) +
                 " bytes\nNew size must be less than current size: " +
                 str(current_size) + " bytes")
 
-        body = json.dumps({
-            "new_size": new_size
-        })
+        body = json.dumps({"new_size": new_size})
 
         (s, h) = common.service_json_request(
-            self.__ipAddr, self.__port,
-            "POST",
-            Fileshare.URI_REDUCE.format(fileshare_detail["id"]),
-            body)
+            self.__ipAddr, self.__port, "POST",
+            Fileshare.URI_REDUCE.format(fileshare_detail["id"]), body)
+
         if(not s):
             return None
         o = common.json_decode(s)

@@ -184,12 +184,27 @@ prerun_setup() {
     fi
 
     storageprovider list | grep SIM > /dev/null
-    if [ $? -eq 0 ];
+    if [ $? -eq 0 -o "${SIM}" = "1" ];
     then
-	   ZONE_CHECK=0
-	   SIM=1;
-	   echo "Shutting off zone check for simulator environment"
-    fi
+        ZONE_CHECK=0
+        SIM=1;
+        echo "Shutting off zone check for simulator environment"
+        VCENTER_IP=${VCENTER_SIMULATOR_IP}
+        VCENTER_PORT=${VCENTER_SIMULATOR_PORT}
+        VCENTER_USERNAME=${VCENTER_SIMULATOR_USERNAME}
+        VCENTER_PASSWORD=${VCENTER_SIMULATOR_PASSWORD}
+        VCENTER_DATACENTER=${VCENTER_SIMULATOR_DATACENTER}
+        VCENTER_CLUSTER=${VCENTER_SIMULATOR_CLUSTER}
+        VCENTER_HOST=${VCENTER_SIMULATOR_HOST}
+    else
+        VCENTER_IP=${VCENTER_HW_IP}
+        VCENTER_PORT=${VCENTER_HW_PORT}
+        VCENTER_USERNAME=${VCENTER_HW_USERNAME}
+        VCENTER_PASSWORD=${VCENTER_HW_PASSWORD}
+        VCENTER_DATACENTER=${VCENTER_HW_DATACENTER}
+        VCENTER_CLUSTER=${VCENTER_HW_CLUSTER} 
+        VCENTER_HOST=${VCENTER_HW_HOST}
+    fi  
 
     if [ "${SS}" = "vnx" ]
     then
@@ -994,7 +1009,16 @@ hpux_setup() {
 }
 
 vcenter_setup() {
-    secho "Setup virtual center..."
+    if [ "${SIM}" = "1" ]; then
+        vcenter_sim_setup
+    else    
+        secho "Setup virtual center real hardware..."
+        runcmd vcenter create vcenter1 ${TENANT} ${VCENTER_HW_IP} ${VCENTER_HW_PORT} ${VCENTER_HW_USERNAME} ${VCENTER_HW_PASSWORD}                
+    fi
+}
+
+vcenter_sim_setup() {
+    secho "Setup virtual center sim..."
     runcmd vcenter create vcenter1 ${TENANT} ${VCENTER_SIMULATOR_IP} ${VCENTER_SIMULATOR_PORT} ${VCENTER_SIMULATOR_USERNAME} ${VCENTER_SIMULATOR_PASSWORD}
 
     # TODO need discovery to run
@@ -3104,7 +3128,7 @@ do
     elif [ "${1}" = "setupsim" -o "${1}" = "-setupsim" ]; then
     	if [ "$SS" = "xio" -o "$SS" = "vmax3" -o "$SS" = "vmax2" -o "$SS" = "vnx" -o "$SS" = "vplex" ]; then
     	    echo "Setting up testing based on simulators"
-    	    SIM=1;
+    	    SIM=1;	    
     	    ZONE_CHECK=0;
     	    setup=1;
     	    shift 1;

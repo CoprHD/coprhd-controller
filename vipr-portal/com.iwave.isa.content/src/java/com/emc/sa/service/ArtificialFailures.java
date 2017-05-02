@@ -19,4 +19,7 @@ public class ArtificialFailures {
 	public static final String ARTIFICIAL_FAILURE_LINUX_EXPAND_VOLUME_AFTER_MOUNT = "linux_expandVolume_after_mount";
 	public static final String ARTIFICIAL_FAILURE_LINUX_EXPAND_VOLUME_AFTER_RESIZE_PARTITION = "linux_expandVolume_after_resize_partition";
 	public static final String ARTIFICIAL_FAILURE_LINUX_EXPAND_VOLUME_AFTER_RESIZE_FILESYSTEM = "linux_expandVolume_after_resize_filesystem";
+	public static final String ARTIFICIAL_FAILURE_WINDOWS_EXTEND_DRIVE = "extendDrivesWindows";
+	public static final String ARTIFICIAL_FAILURE_VMWARE_EXTEND_DATASTORE = "extend_vmfs_datastore";
+	public static final String ARTIFICIAL_FAILURE_VMWARE_EXPAND_DATASTORE = "expand_vmfs_datastore";
 }

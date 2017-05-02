@@ -812,6 +812,9 @@ setup_yaml() {
     # create the yml file to be used for tooling
     touch $tools_file
 
+    # Append the vcenter attributes 
+    printf 'vcenter:\n  - ip: %s:%s\n    username: %s\n    password: %s\n' "${VCENTER_IP}" "${VCENTER_PORT}" "${VCENTER_USERNAME}" "${VCENTER_PASSWORD}" >> $tools_file
+
     # Append Windows host attributes
     printf 'hosts:\n  windows:\n  - ip: %s:%s:false\n    username: %s\n    password: %s\n' "${WINDOWS_HOST_IP}" "${WINDOWS_HOST_PORT}" "${WINDOWS_HOST_USERNAME}" "${WINDOWS_HOST_PASSWORD}" >> $tools_file
 
@@ -977,3 +980,25 @@ verify_mount_point() {
     return $return_status
 }
 
+verify_datastore() {
+    runcmd vcenterhelper.sh verify_datastore $*
+    return_status=$?
+    return $return_status
+}
+
+verify_datastore_capacity() {
+    runcmd vcenterhelper.sh verify_datastore_capacity $*
+    return_status=$?
+    return $return_status
+}
+
+verify_datastore_lun_count() {
+    datacenter=$1
+    datastore=$2
+    host=$3
+    count=$4
+
+    runcmd vcenterhelper.sh verify_datastore_lun_count $datacenter $datastore $host $count
+    return_status=$?
+    return $return_status
+}

@@ -4726,7 +4726,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
      * @param initiatorURIs
      *            [in] - List of Initiator URIs
      * @param targetURIs
-     *            -- list of targets URIs
+     *            [in] - List of storage port URIs
      * @param rollbackContextKey
      *            [in] - context token
      * @return Workflow.Method for addition to workflow.
@@ -4751,7 +4751,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
      * @param initiatorURIs
      *            [in] - List of Initiator URIs
      * @param targetURIs
-     *            -- list of targets URIs
+     *            [in] - List of storage port URIs
      * @param rollbackContextKey
      *            [in] - context token
      * @param token
@@ -5496,14 +5496,9 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
                     if (!targetPortInfos.isEmpty()) {
                         // Remove the targets from the VPLEX
                         client.removeTargetsFromStorageView(exportMask.getMaskName(), targetPortInfos);
-                        // Remove the targets to the database.
-                        for (URI target : targetsAddedToStorageView) {
-                            exportMask.removeTarget(target);
                         }
-                        _dbClient.updateObject(exportMask);
                     }
                 }
-            }
 
             // Update the initiators in the ExportMask.
             List<PortInfo> initiatorPortInfo = new ArrayList<PortInfo>();
@@ -5534,6 +5529,10 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
                     if (!lockAcquired) {
                         throw VPlexApiException.exceptions.couldNotObtainConcurrencyLock(vplex.getLabel());
                     }
+                    // Remove the targets from the VPLEX
+                    // Test mechanism to invoke a failure. No-op on production systems.
+                    InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_016);
+
                     client.removeInitiatorsFromStorageView(exportMask.getMaskName(), vplexClusterName, initiatorPortInfo);
                 } finally {
                     if (lockAcquired) {

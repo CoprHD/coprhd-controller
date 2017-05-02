@@ -41,14 +41,13 @@ public class ExportAddVolumeCompleter extends ExportTaskCompleter {
     @Override
     protected void complete(DbClient dbClient, Operation.Status status, ServiceCoded coded) throws DeviceControllerException {
         try {
-            super.complete(dbClient, status, coded);
+            _log.info("ExportAddVolumeCompleter START");
+            _log.info(String.format("Done ExportMaskAddVolume - Id: %s, OpId: %s, status: %s",
+                    getId().toString(), getOpId(), status.name()));
+
             ExportGroup exportGroup = dbClient.queryObject(ExportGroup.class, getId());
             for (URI volumeURI : _volumes) {
                 BlockObject volume = BlockObject.fetch(dbClient, volumeURI);
-
-                _log.info("export_volume_add: completed");
-                _log.info(String.format("Done ExportMaskAddVolume - Id: %s, OpId: %s, status: %s",
-                        getId().toString(), getOpId(), status.name()));
 
                 recordBlockExportOperation(dbClient, OperationTypeEnum.ADD_EXPORT_VOLUME, status,
                         eventMessage(status, volume, exportGroup), exportGroup, volume);
@@ -80,7 +79,11 @@ public class ExportAddVolumeCompleter extends ExportTaskCompleter {
         } catch (Exception e) {
             _log.error(String.format("Failed updating status for ExportMaskAddVolume - Id: %s, OpId: %s",
                     getId().toString(), getOpId()), e);
+        } finally {
+            super.complete(dbClient, status, coded);
         }
+        _log.info("ExportAddVolumeCompleter END");
+
     }
 
     private String eventMessage(Operation.Status status, BlockObject volume, ExportGroup exportGroup) {

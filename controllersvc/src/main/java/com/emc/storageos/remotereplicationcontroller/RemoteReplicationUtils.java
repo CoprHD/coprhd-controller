@@ -179,6 +179,7 @@ public class RemoteReplicationUtils {
         //   For rr pairs:
         //     parent set supports operations on pairs;
         //     if pair is in a group, check that group consistency is not enforced (operations are allowed on subset of pairs);
+        //     if pair has volumes in consistency groups, this is invalid --- no operations on individual pairs in consistency groups
         //   For rr cgs:
         //     parent set supports operations on pairs;
         //     if pairs are in groups, check that group consistency is not enforced (operations are allowed on subset of pairs);
@@ -195,7 +196,7 @@ public class RemoteReplicationUtils {
                 BlockConsistencyGroup cg = dbClient.queryObject(BlockConsistencyGroup.class, rrElement.getElementUri());
                 List<RemoteReplicationPair> rrPairs = getRemoteReplicationPairsForCG(cg, dbClient);
                 for (RemoteReplicationPair pair : rrPairs) {
-                    if (!supportOperationOnRrPair(pair, dbClient)) {
+                    if (!supportOperationOnRrCGPair(pair, dbClient)) {
                         isOperationValid = false;
                         break;
                     }
@@ -237,14 +238,46 @@ public class RemoteReplicationUtils {
     }
 
     /**
-     * @return true if rr set of given rr pair support rr pair granularity
+     * @return true if rr pair is in cg and if rr set of given rr pair support rr pair granularity
      *         operation, and if this rr pair is in a rr group, the rr group
+     *         should not enforce group consistency, which means it allows
+     *         operations on subset of pairs
+     */
+    private static boolean supportOperationOnRrCGPair(RemoteReplicationPair rrPair, DbClient dbClient) {
+        if (!rrPair.isInCG(dbClient)) {
+            _log.info("RR pair {} has source/target elements outside of consistency group.", rrPair.getNativeId());
+            return false;
+        }
+
+        RemoteReplicationSet rrSet = dbClient.queryObject(RemoteReplicationSet.class, rrPair.getReplicationSet());
+        if (!rrSet.supportRemoteReplicationPairOperation()) {
+            return false;
+        }
+
+        if (!rrPair.isGroupPair()) {
+            return true;
+        }
+        RemoteReplicationGroup rrGroup = dbClient.queryObject(RemoteReplicationGroup.class, rrPair.getReplicationGroup());
+        if (rrGroup.getIsGroupConsistencyEnforced() == Boolean.TRUE) {
+            // No pair operation is allowed if consistency is to be enforced on group level
+            return false;
+        }
+        return true;
+    }
+
+    /**
+     * @return true if rr set of given rr pair support rr pair granularity
+     *         operation, and if pair is not in CG, and if this rr pair is in a rr group, the rr group
      *         should not enforce group consistency, which means it allows
      *         operations on subset of pairs
      */
     private static boolean supportOperationOnRrPair(RemoteReplicationPair rrPair, DbClient dbClient) {
         RemoteReplicationSet rrSet = dbClient.queryObject(RemoteReplicationSet.class, rrPair.getReplicationSet());
         if (!rrSet.supportRemoteReplicationPairOperation()) {
+            return false;
+        }
+        if (rrPair.isInCG(dbClient)) {
+            _log.info("RR pair {} has source/target elements in CG.", rrPair.getNativeId());
             return false;
         }
         if (!rrPair.isGroupPair()) {
@@ -257,6 +290,7 @@ public class RemoteReplicationUtils {
         }
         return true;
     }
+
 
     public static void validateRemoteReplicationModeChange(DbClient dbClient, RemoteReplicationElement rrElement, String newMode) {
 
@@ -357,6 +391,16 @@ public class RemoteReplicationUtils {
         return result;
     }
 
+    public static List<RemoteReplicationPair> findAllSetPairsByRrSet(URI rrSetUri, DbClient dbClient) {
+        List<RemoteReplicationPair> result = new ArrayList<RemoteReplicationPair>();
+        for (RemoteReplicationPair pair : findAllRemoteRepliationPairsByRrSet(rrSetUri, dbClient)) {
+            if (!pair.isGroupPair()) {
+                result.add(pair);
+            }
+        }
+        return result;
+    }
+
     public static List<RemoteReplicationPair> findAllRemoteRepliationPairsByRrGroup(URI rrGroupUri, DbClient dbClient) {
         List<RemoteReplicationPair> result = new ArrayList<RemoteReplicationPair>();
         QueryResultList<URI> uriList = new URIQueryResultList();
@@ -391,6 +435,35 @@ public class RemoteReplicationUtils {
             String msg = String.format("Failed to create remote replication pair for srdf pair: %s -> %s", argSourceUri, argTargetUri);
             _log.error(msg, ex);
             throw new RuntimeException(msg, ex);
+        }
+    }
+
+    /**
+     * Delete remote replication pairs for all volumes in the same CG as source volume.
+     *
+     * @param argSourceUri srdf source volume  URI
+     * @param argTargetUri srdf target volume URI
+     * @param dbClient
+     */
+    public static void deleteRemoteReplicationPairsForSrdfCG(URI argSourceUri, URI argTargetUri, DbClient dbClient) {
+        Volume sourceVolume = dbClient.queryObject(Volume.class, argSourceUri);
+        if (sourceVolume == null) {
+            String msg = String.format("Source volume could not be found in the ViPR database: %s", argSourceUri);
+            _log.error(msg);
+            throw new RuntimeException(msg);
+        }
+        BlockConsistencyGroup cg = dbClient.queryObject(BlockConsistencyGroup.class, sourceVolume.getConsistencyGroup());
+        if (cg == null) {
+            String msg = String.format("Source volume %s is not in CG .", argSourceUri);
+            _log.warn(msg);
+            deleteRemoteReplicationPairForSrdfPair(argSourceUri, argTargetUri, dbClient);
+        } else {
+            List<Volume> cgVolumes = CustomQueryUtility.queryActiveResourcesByRelation(dbClient, cg.getId(),
+                    Volume.class, "consistencyGroup");
+            for (Volume cgVolume : cgVolumes) {
+                Volume target = SRDFUtils.getFirstTarget(cgVolume, dbClient);
+                deleteRemoteReplicationPairForSrdfPair(cgVolume.getId(), target.getId(), dbClient);
+            }
         }
     }
 
@@ -598,7 +671,7 @@ public class RemoteReplicationUtils {
     }
     
     /**
-     * determines if the source and target pair are in a swapped state based on the source volume virtual pool
+     * determines if the source and target srdf pair are in a swapped state based on the source volume virtual pool
      * 
      * @param sourceVolumeId
      * @param dbClient
@@ -614,6 +687,23 @@ public class RemoteReplicationUtils {
         
         List<VirtualPool> vpools = dbClient.queryObjectField(VirtualPool.class, "remoteProtectionSettings", Arrays.asList(sourceVolume.iterator().next().getVirtualPool()));
         return (vpools == null || vpools.isEmpty());
+    }
+
+
+    static public boolean isSwapped(RemoteReplicationPair systemPair, DbClient dbClient) {
+
+        boolean isSwapped = false;
+        URI sourceVolumeId = systemPair.getSourceElement().getURI();
+        List<Volume> sourceVolume = dbClient.queryObjectField(Volume.class, "personality", Arrays.asList(sourceVolumeId));
+        if (sourceVolume == null || sourceVolume.isEmpty()) {
+            String msg = String.format("Source volume could not be found in the ViPR database: %s", sourceVolumeId);
+            _log.error(msg);
+            throw new RuntimeException(msg);
+        }
+        if (Volume.PersonalityTypes.TARGET.name().equalsIgnoreCase(sourceVolume.get(0).getPersonality())) {
+            isSwapped = true;
+        }
+        return isSwapped;
     }
 
 }

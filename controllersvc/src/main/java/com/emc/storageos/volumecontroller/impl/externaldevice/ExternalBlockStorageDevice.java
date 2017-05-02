@@ -2018,7 +2018,7 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice implem
                 case REPLICATION_SET:
                     remoteReplicationSet = dbClient.queryObject(RemoteReplicationSet.class, elementURI);
                     driver = (RemoteReplicationDriver) getDriver(remoteReplicationSet.getStorageSystemType());
-                    systemRRPairs = RemoteReplicationUtils.findAllRemoteRepliationPairsByRrSet(elementURI, dbClient);
+                    systemRRPairs = RemoteReplicationUtils.findAllSetPairsByRrSet(elementURI, dbClient);
                     context = initializeContext(systemRRPairs.get(0), com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationSet.ElementType.REPLICATION_SET);
 
                     break;

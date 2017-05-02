@@ -113,20 +113,16 @@ public class SRDFMirrorCreateCompleter extends SRDFTaskCompleter {
         } finally {
             super.complete(dbClient, status, coded);
             if (status.equals(Operation.Status.ready)) {
-                if (source != null && target != null) {
-                    // at that point we call remote replication data client to create remote replication pair
-                    // we can only create remote replication pair for srdf volumes if they are not null here
-                    log.info("Process remote replication pair for srdf link create. Status: {}", status);
-                    try {
-                        RemoteReplicationUtils.createRemoteReplicationPairForSrdfPair(source.getId(), target.getId(), dbClient);
-                    } catch (Exception ex) {
-                        ServiceError error = SmisException.errors.jobFailed(ex.getMessage());
-                        this.error(dbClient, error);
-                    }
+                log.info("Process remote replication pairs for srdf link create. Status: {}", status);
+                try {
+                    // at this point we are done with all db updates for SRDF volumes, now update remote replication pairs
+                    super.updateRemoteReplicationPairs();
+                } catch (Exception ex) {
+                    ServiceError error = SmisException.errors.jobFailed(ex.getMessage());
+                    this.error(dbClient, error);
                 }
             }
         }
-
     }
 
     @Override

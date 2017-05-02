@@ -312,7 +312,7 @@ public class WorkflowBuilder extends Controller {
                 final String success_criteria = ESAPI.encoder().decodeForHTML(step.getSuccessCriteria());
                 step.setSuccessCriteria(success_criteria);
 
-                //WORKAROUND
+                //-- TODO: WORKAROUND for selecting host inventory files. Remove when asset type is available
                 if(StringUtils.isNotEmpty(step.getType()) && StepType.LOCAL_ANSIBLE.toString().equals(step.getType())) {
                     CustomServicesWorkflowDocument.InputGroup inputGroup = new CustomServicesWorkflowDocument.InputGroup();
                     inputGroup.setInputGroup(new ArrayList<CustomServicesWorkflowDocument.Input>());
@@ -322,13 +322,22 @@ public class WorkflowBuilder extends Controller {
                     input.setType(CustomServicesConstants.InputType.FROM_USER_MULTI.toString());
                     final CustomServicesPrimitiveRestRep primitiveRestRep = getCatalogClient().customServicesPrimitives().getPrimitive(step.getOperation());
                     final CustomServicesPrimitiveResourceList customServicesPrimitiveResourceList = getCatalogClient().customServicesPrimitives().getHostInventory(CustomServicesConstants.ANSIBLE_INVENTORY_TYPE, primitiveRestRep.getResource().getId());
-                    input.setDefaultValue(customServicesPrimitiveResourceList.getResources().get(0).getId().toString());
-                    inputGroup.getInputGroup().add(input);
-                    if(step.getInputGroups() == null) {
-                        step.setInputGroups(new HashMap<String, CustomServicesWorkflowDocument.InputGroup>());
+                    if(customServicesPrimitiveResourceList!=null && customServicesPrimitiveResourceList.getResources()!=null &&
+                            customServicesPrimitiveResourceList.getResources().size() > 0) {
+                        final StringBuffer sb = new StringBuffer();
+                        for(NamedRelatedResourceRep n: customServicesPrimitiveResourceList.getResources()){
+                            sb.append(n.getId()+",");
+                        }
+                        input.setDefaultValue(sb.toString());
+                        inputGroup.getInputGroup().add(input);
+                        if(step.getInputGroups() == null) {
+                            step.setInputGroups(new HashMap<String, CustomServicesWorkflowDocument.InputGroup>());
+                        }
+                        step.getInputGroups().put(CustomServicesConstants.ANSIBLE_OPTIONS, inputGroup);
                     }
-                    step.getInputGroups().put(CustomServicesConstants.ANSIBLE_OPTIONS, inputGroup);
+
                 }
+                // --
             }
 
             param.setDocument(workflowDoc);

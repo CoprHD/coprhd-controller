@@ -24,7 +24,7 @@ ansibleResourceNames = _arg;
                     &{'primitive.menu.hostFile'}</a>
                 </li>
                 <li class=""><a href="${'#'+inputOutputTabID}" data-toggle="tab"><span class="badge">4</span>
-                    &{'primitive.menu.inputsOutputs'}</a></li>
+                    &{'primitiveLA.menu.inputsOutputs'}</a></li>
             </ul>
         </div>
         <div class="col-md-9">
@@ -92,7 +92,7 @@ ansibleResourceNames = _arg;
                     #{Modal.body}
                     <div>
                         <ul id="" class="nav nav-tabs" role="tablist">
-                            <li class="active"><a href="#inputLAContent" role="tab" data-toggle="tab">&nbsp;&{'primitive.tabs.input'}</a>
+                            <li class="active"><a href="#inputLAContent" role="tab" data-toggle="tab">&nbsp;&{'primitiveLA.tabs.input'}</a>
                             </li>
                             <li><a href="#outputLAContent" role="tab" data-toggle="tab">&nbsp;&{'primitive.tabs.output'}</a>
                             </li>
@@ -100,9 +100,6 @@ ansibleResourceNames = _arg;
                         <div class="tab-content">
                             <div class="tab-pane active" id="inputLAContent" style="width: 300px;">
                                 <!-- Input Tab -->
-                                <div class="row" style="margin-bottom:5px;"><div class="pull-left col-sm-11">
-                                    <input type="text" class="form-control span6" value="Command Line Args" disabled/>
-                                </div></div>
                                 <div class="row" ng-repeat="info in scriptIOs.inputs" style="margin-bottom:5px;">
                                     <div class="pull-left col-sm-11" v-field="info.input">
                                         <input-text></input-text>

@@ -86,6 +86,7 @@ unzip cisco-sim.zip
 chmod -R 777 cisco-sim
 mkdir -p /data/simulators/cisco-sim/
 cp -r cisco-sim/* /data/simulators/cisco-sim/
+cp /data/simulators/cisco-sim/bashrc ~/.bashrc
 cp $DB_FILE_LOCATION /data/simulators/cisco-sim/db/
 ln -s /data/simulators/cisco-sim/ /cisco-sim 
 rm -rf cisco-sim

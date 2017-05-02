@@ -1968,6 +1968,7 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
             allRPSourceVolumesInCG.remove(volume.getId());
 
             if (VirtualPool.vPoolSpecifiesRPVPlex(currentVpool)
+                    && !VirtualPool.vPoolSpecifiesMetroPoint(currentVpool)
                     && VirtualPool.vPoolSpecifiesMetroPoint(vpool)) {
                 // For an upgrade to MetroPoint (moving from RP+VPLEX vpool to MetroPoint vpool), even though the user
                 // would have chosen 1 volume to update but we need to update ALL the RSets/volumes in the CG.

@@ -1248,5 +1248,29 @@ public class Volume extends BlockObject implements ProjectResource {
 
         VirtualPool vpool = dbClient.queryObject(VirtualPool.class, volume.getVirtualPool());
         return vpool.getHostIOLimitIOPs();
-    }    
+    }
+    
+    /**
+     * Helper method determine the host IO IOPs limit for a volume. If
+     * the volume references an active PerformanceParams instance then use the
+     * the value specified in the instance. Otherwise, take the value for the 
+     * volume's virtual pool.
+     * 
+     * @param volume A reference to a volume.
+     * @param dbClient A reference to a DB client.
+     * 
+     * @return The host IO IOPs limit.
+     */
+    public static Boolean determineCompressionEnabledForVolume(Volume volume, DbClient dbClient) {
+        URI performanceParamsURI = volume.getPerformanceParams();
+        if (!NullColumnValueGetter.isNullURI(performanceParamsURI)) {
+            PerformanceParams performanceParams = dbClient.queryObject(PerformanceParams.class, performanceParamsURI);
+            if (performanceParams != null && !performanceParams.getInactive()) {
+                return performanceParams.getCompressionEnabled();
+            }
+        }
+
+        VirtualPool vpool = dbClient.queryObject(VirtualPool.class, volume.getVirtualPool());
+        return vpool.getCompressionEnabled();
+    }
 }

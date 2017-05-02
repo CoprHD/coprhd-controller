@@ -5680,6 +5680,28 @@ public class SmisCommandHelper implements SmisConstants {
     }
 
     /**
+     * Creates a new storage group policy limits. Uses the performance parameters values when
+     * assigned for the volume, else the values are taken form the virtual pool.
+     *  
+     * @param policyName The policy name.
+     * @param storageSystem A reference to the storage system.
+     * @param volumeURI The URI of the volume.
+     * @param vpool The virtual pool.
+     * 
+     * @return The new storage group policy limits.
+     */
+    public StorageGroupPolicyLimitsParam getStorageGroupPolicyLimitsParam(String policyName,
+            StorageSystem storageSystem, URI volumeURI, VirtualPool vpool) {
+        Volume volume = _dbClient.queryObject(Volume.class, volumeURI);
+        Integer hostIOLimitBandwidth = volume != null ? Volume.determineHostIOLimitBandwidthForVolume(volume, _dbClient) : vpool.getHostIOLimitBandwidth();
+        Integer hostIOLimitIOPs = volume != null ? Volume.determineHostIOLimitIOPsForVolume(volume, _dbClient) : vpool.getHostIOLimitIOPs();
+        Boolean compressionEnabled = volume != null ? Volume.determineCompressionEnabledForVolume(volume, _dbClient) : vpool.getCompressionEnabled();
+        StorageGroupPolicyLimitsParam newVirtualPoolPolicyLimits = new StorageGroupPolicyLimitsParam(
+                policyName, hostIOLimitBandwidth, hostIOLimitIOPs, compressionEnabled, storageSystem);
+        return newVirtualPoolPolicyLimits;
+    }    
+
+    /**
      * This method is will check if the Storage Pool associated with the Volume supports compression.
      * If it does support compression, it will check if the associated virtual Pool has compression enabled.
      * It will recommend the user to disable compression if the virtual pool has compression disabled and
@@ -5726,8 +5748,9 @@ public class SmisCommandHelper implements SmisConstants {
             virtualPool = _dbClient.queryObject(VirtualPool.class, volume.getVirtualPool());
             storagePool = _dbClient.queryObject(StoragePool.class, volume.getPool());
         }
+        Boolean compressionEnabledForVolume = volume != null ? Volume.determineCompressionEnabledForVolume(volume, _dbClient) : virtualPool.getCompressionEnabled();
         return (checkIfProviderSupportsCompressionOperations(storageSystem) &&
-                !virtualPool.getCompressionEnabled() && storagePool.getCompressionEnabled());
+                !(compressionEnabledForVolume) && storagePool.getCompressionEnabled());
     }
 
     /**
@@ -5751,7 +5774,10 @@ public class SmisCommandHelper implements SmisConstants {
         if (volume != null) {
             virtualPool = _dbClient.queryObject(VirtualPool.class, volume.getVirtualPool());
         }
-        return ((virtualPool != null) && virtualPool.getCompressionEnabled());
+        Boolean compressionEnabledForVolume = volume != null ? 
+                Volume.determineCompressionEnabledForVolume(volume, _dbClient) :
+                    ((virtualPool != null) && virtualPool.getCompressionEnabled());
+        return (compressionEnabledForVolume);
     }
 
     /**

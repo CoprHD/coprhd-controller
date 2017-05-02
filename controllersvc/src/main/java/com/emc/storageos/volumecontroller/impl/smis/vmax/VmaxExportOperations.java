@@ -4587,11 +4587,11 @@ public class VmaxExportOperations implements ExportMaskOperations {
         if (isVmax3) {
             newPolicyName = _helper.getVMAX3FastSettingForVolume(volumeURIs.get(0), newPolicyName);
         }
-        StorageGroupPolicyLimitsParam newVirtualPoolPolicyLimits =
-                new StorageGroupPolicyLimitsParam(newPolicyName,
-                        newVirtualPool.getHostIOLimitBandwidth(),
-                        newVirtualPool.getHostIOLimitIOPs(),
-                        newVirtualPool.getCompressionEnabled(), storage);
+        
+        // TBD HEG : This will actually no longer be done through vpool change, so this
+        // will be affected, but still updated to look in Volume first. 
+        StorageGroupPolicyLimitsParam newVirtualPoolPolicyLimits = _helper.getStorageGroupPolicyLimitsParam(
+                newPolicyName, storage, volumeURIs.get(0), newVirtualPool);
 
         CIMObjectPath childGroupPath = _cimPath.getMaskingGroupPath(storage,
                 childGroupName,

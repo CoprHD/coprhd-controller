@@ -3155,6 +3155,7 @@ computeVirtualPool.min.nics=Minimum Nics
 computeVirtualPool.max.nics=Maximum Nics
 computeVirtualPool.min.hbas=Minimum HBAs
 computeVirtualPool.max.hbas=Maximum HBAs
+computeVirtualPool.selected.SPTs=Selected Service Profile Templates
 computeVirtualPool.group.type=System Type
 computeVirtualPool.systemType=System Type
 computeVirtualPool.group.spts=Service Profile Templates

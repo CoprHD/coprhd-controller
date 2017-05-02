@@ -745,7 +745,7 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
                 XtremIOVolume xtremIOVolume = null;
                 if (URIUtil.isType(volumeUri, Volume.class)) {
                     xtremIOVolume = XtremIOProvUtils.isVolumeAvailableInArray(client,
-                            blockObj.getLabel(), xioClusterName);
+                            blockObj.getDeviceLabel(), xioClusterName);
 
                     // It could be that the block object is actually a snapshot on the array
                     // because a VPLEX volume was created on top of a snapshot, and when this is
@@ -805,7 +805,7 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
                         String lunMapId = volId.concat(XtremIOConstants.UNDERSCORE).concat(igId)
                                 .concat(XtremIOConstants.UNDERSCORE).concat(tgtid);
                         _log.info("LunMap Id {} Found associated with Volume {}", lunMapId,
-                                blockObj.getLabel());
+                                blockObj.getDeviceLabel());
                         lunMaps.add(lunMapId);
 
                     }
@@ -904,7 +904,7 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
 
                 if (URIUtil.isType(volumeUri, Volume.class)) {
                     xtremIOVolume = XtremIOProvUtils.isVolumeAvailableInArray(client,
-                            blockObj.getLabel(), xioClusterName);
+                            blockObj.getDeviceLabel(), xioClusterName);
                 } else {
                     if (URIUtil.isType(volumeUri, BlockSnapshot.class) && BlockObject.checkForRP(dbClient, volumeUri)) {
                         // If the BlockObject is a BlockSnapshot of type RP (bookmark), there will be no exported
@@ -983,7 +983,7 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
                             String lunMapId = volId.concat(XtremIOConstants.UNDERSCORE).concat(igId)
                                     .concat(XtremIOConstants.UNDERSCORE).concat(tgtid);
                             _log.info("LunMap Id {} Found associated with Volume {}", lunMapId,
-                                    blockObj.getLabel());
+                                    blockObj.getDeviceLabel());
                             lunMaps.add(lunMapId);
                         }
                     }
@@ -1286,7 +1286,7 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
                     List<String> igVols = volumesToIGMap.get(igName);
                     if (igVols != null && !igVols.contains(blockObj.getDeviceLabel())) {
                         // Create lun map
-                        _log.info("Creating Lun Map for  Volume {} using IG {}", blockObj.getLabel(), igName);
+                        _log.info("Creating Lun Map for  Volume {} using IG {}", blockObj.getDeviceLabel(), igName);
                         client.createLunMap(blockObj.getDeviceLabel(), igName, hluValue, xioClusterName);
                         mappedVolumes.add(blockObj.getId());
                     }
@@ -1334,7 +1334,7 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
                             }
 
                             Double hluNumber = (Double) lunMapEntries.get(2);
-                            _log.info("Found HLU {} for volume {}", hluNumber, blockObj.getLabel());
+                            _log.info("Found HLU {} for volume {}", hluNumber, blockObj.getDeviceLabel());
                             // for each IG involved, the same volume is visible thro different HLUs.
                             // TODO we might need a list of HLU for each Volume URI
                             hluNumberFound = hluNumber.intValue();

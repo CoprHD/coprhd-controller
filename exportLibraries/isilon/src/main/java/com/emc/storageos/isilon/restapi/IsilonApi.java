@@ -1664,7 +1664,7 @@ public class IsilonApi {
     private IsilonList<IsilonEvent> getEvents(URI url, String firmwareVersion) throws IsilonException {
 
         // Get list of ISILON events using eventlists if ISILON version is OneFS8.0 or more else using events.
-        if (firmwareVersion.startsWith("8")) {
+        if (firmwareVersion != null && firmwareVersion.startsWith("8")) {
             List<IsilonOneFS8Event> eventLists = list(url, "eventlists", IsilonOneFS8Event.class, null).getList();
             IsilonList<IsilonEvent> isilonEventList = new IsilonList<IsilonEvent>();
 
@@ -1724,7 +1724,7 @@ public class IsilonApi {
                 .format("?begin=%1$d", begin);
 
         // If ISILON version is OneFS8.0 then get events URI will be /platform/3/event/eventlists/.
-        if (firmwareVersion.startsWith("8")) {
+        if (firmwareVersion != null && firmwareVersion.startsWith("8")) {
             return getEvents(_baseUrl.resolve(URI_ONEFS8_EVENTS.resolve(query)), firmwareVersion);
         }
         return getEvents(_baseUrl.resolve(URI_EVENTS.resolve(query)), firmwareVersion);

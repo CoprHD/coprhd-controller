@@ -15,7 +15,7 @@ import com.emc.sa.service.vipr.ViPRService;
 import com.emc.sa.service.vipr.file.tasks.CheckFileSystemReductionSize;
 import com.emc.storageos.model.file.FileShareRestRep;
 
-@Service("NasReduceFileSystem")
+@Service("NasExpandFileSystem")
 public class ExpandFileSystemService extends ViPRService {
     @Param(ServiceParams.SIZE_IN_GB)
     protected Double sizeInGb;

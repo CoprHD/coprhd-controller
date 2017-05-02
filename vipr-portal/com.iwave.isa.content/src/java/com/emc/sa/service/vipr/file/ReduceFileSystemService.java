@@ -9,12 +9,13 @@ import static com.emc.sa.service.ServiceParams.FILESYSTEMS;
 import java.util.List;
 
 import com.emc.sa.engine.bind.Param;
+import com.emc.sa.engine.service.Service;
 import com.emc.sa.service.ServiceParams;
 import com.emc.sa.service.vipr.ViPRService;
 import com.emc.sa.service.vipr.file.tasks.CheckFileSystemReductionSize;
 import com.emc.storageos.model.file.FileShareRestRep;
 
-
+@Service("NasReduceFileSystem")
 public class ReduceFileSystemService extends ViPRService {
 	@Param(ServiceParams.SIZE_IN_GB)
     protected Double sizeInGb;

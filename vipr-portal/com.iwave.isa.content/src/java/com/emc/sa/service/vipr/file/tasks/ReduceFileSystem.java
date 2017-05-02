@@ -30,9 +30,9 @@ public class ReduceFileSystem extends WaitForTask<FileShareRestRep> {
     
 	@Override
 	protected Task<FileShareRestRep> doExecute() throws Exception {
-		FileSystemReduceParam expand = new FileSystemReduceParam();
-        expand.setNewSize(newSize);
-        return getClient().fileSystems().reduce(fileSystemId, expand);
+		FileSystemReduceParam reduce = new FileSystemReduceParam();
+		reduce.setNewSize(newSize);
+        return getClient().fileSystems().reduce(fileSystemId, reduce);
 	}
 
 }

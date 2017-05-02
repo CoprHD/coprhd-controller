@@ -4088,7 +4088,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
 
                         if (addedVolumes == null || addedVolumes.isEmpty()) {
                             _log.info("There was no context found for add volumes. So there is nothing to rollback.");
-                            WorkflowStepCompleter.stepSucceded(stepId);
+                            WorkflowStepCompleter.stepSucceeded(stepId, "There was no context found for add volumes.  So there is nothing to rollback.");
                             return;
                         }
                     }
@@ -4106,15 +4106,15 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
             // and updates the export mask.
             removeVolumesFromStorageViewAndMask(client, exportMask, volumeIdsToProcess, parentStepId);
 
-            taskCompleter.ready(_dbClient);
+            WorkflowStepCompleter.stepSucceded(stepId);
         } catch (VPlexApiException vae) {
             _log.error("Exception removing volumes from Storage View: " + vae.getMessage(), vae);
-            failStep(taskCompleter, stepId, vae);
+            failStep(null, stepId, vae);
         } catch (Exception ex) {
             _log.error("Exception removing volumes from Storage View: " + ex.getMessage(), ex);
             String opName = ResourceOperationTypeEnum.REMOVE_STORAGE_VIEW_VOLUME.getName();
             ServiceError serviceError = VPlexApiException.errors.storageViewRemoveVolumeFailed(exportMask.getMaskName(), opName, ex);
-            failStep(taskCompleter, stepId, serviceError);
+            failStep(null, stepId, serviceError);
         }
     }
 

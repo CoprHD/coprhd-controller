@@ -797,7 +797,10 @@ public class BlockService extends TaskResourceService {
         // Get the thin volume pre-allocation percentage. The value in the 
         // source performance parameters, if any, overrides the value from the
         // virtual pool.
-        BlockPerformanceParamsMap sourceParams = performanceParams.getSourceParams();
+        BlockPerformanceParamsMap sourceParams = null;
+        if (performanceParams != null) {
+            sourceParams = performanceParams.getSourceParams();
+        }
         Integer thinVolumePreAllocPercentage = PerformanceParamsUtils.getThinVolumePreAllocPercentage(
                 sourceParams, VolumeTopologyRole.SOURCE, vpool, _dbClient);
         if (null != thinVolumePreAllocPercentage && 0 < thinVolumePreAllocPercentage) {

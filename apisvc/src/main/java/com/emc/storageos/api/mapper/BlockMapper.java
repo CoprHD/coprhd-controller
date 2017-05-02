@@ -134,7 +134,9 @@ public class BlockMapper {
             to.setPreAllocationSize(CapacityUtils.convertBytesToGBInStr(from.getThinVolumePreAllocationSize()));
         }
         to.setVirtualPool(toRelatedResource(ResourceTypeEnum.BLOCK_VPOOL, from.getVirtualPool()));
-        to.setPerformanceParams(toRelatedResource(ResourceTypeEnum.BLOCK_PERFORMANCE_PARAMS, from.getPerformanceParams()));
+        if (from.getPerformanceParams() != null) {
+            to.setPerformanceParams(toRelatedResource(ResourceTypeEnum.BLOCK_PERFORMANCE_PARAMS, from.getPerformanceParams()));
+        }
         to.setIsComposite(from.getIsComposite());
         to.setAutoTierPolicyUri(toRelatedResource(ResourceTypeEnum.AUTO_TIERING_POLICY, from.getAutoTieringPolicyUri(), from.getId()));
         to.setThinlyProvisioned(from.getThinlyProvisioned());

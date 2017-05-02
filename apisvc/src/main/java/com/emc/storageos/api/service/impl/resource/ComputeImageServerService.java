@@ -193,7 +193,7 @@ public class ComputeImageServerService extends TaskResourceService {
         String imageServerName = createParams.getName();
         String imageServerAddress = createParams.getImageServerIp();
         ArgValidator.checkFieldNotEmpty(imageServerName, "imageServerName");
-        ArgValidator.checkFieldNotEmpty(imageServerAddress, IMAGESERVER_IP);
+        ArgValidator.checkIpIsNotNumeric(imageServerAddress, IMAGESERVER_IP);
         checkDuplicateImageServer(null, imageServerAddress, imageServerName);
 
         String bootDir = createParams.getTftpBootDir();
@@ -205,7 +205,7 @@ public class ComputeImageServerService extends TaskResourceService {
         Integer imageImportTimeout = createParams.getImageImportTimeout();
 
         ArgValidator.checkFieldNotEmpty(bootDir, TFTPBOOTDIR);
-        ArgValidator.checkFieldNotEmpty(osInstallAddress,
+        ArgValidator.checkIpIsNotNumeric(osInstallAddress,
                 IMAGESERVER_SECONDARY_IP);
         ArgValidator.checkFieldNotEmpty(username, IMAGESERVER_USER);
         ArgValidator.checkFieldNotEmpty(password, IMAGESERVER_PASSWORD);

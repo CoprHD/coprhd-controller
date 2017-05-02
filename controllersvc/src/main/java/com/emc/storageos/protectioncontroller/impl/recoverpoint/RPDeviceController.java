@@ -163,6 +163,7 @@ import com.emc.storageos.vplexcontroller.completers.VolumeGroupUpdateTaskComplet
 import com.emc.storageos.workflow.Workflow;
 import com.emc.storageos.workflow.WorkflowException;
 import com.emc.storageos.workflow.WorkflowService;
+import com.emc.storageos.workflow.WorkflowState;
 import com.emc.storageos.workflow.WorkflowStepCompleter;
 import com.google.common.base.Joiner;
 
@@ -295,7 +296,6 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
     private Map<String, BlockStorageDevice> _devices;
     private NameGenerator _nameGenerator;
     private WorkflowService _workflowService;
-    private RPHelper _rpHelper;
     private ExportWorkflowUtils _exportWfUtils;
     private RPStatisticsHelper _rpStatsHelper;
     private RecordableEventManager _eventManager;
@@ -405,10 +405,6 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
     public void setEventManager(RecordableEventManager eventManager) {
         _eventManager = eventManager;
-    }
-
-    public void setRpHelper(RPHelper rpHelper) {
-        _rpHelper = rpHelper;
     }
 
     public void setCoordinator(CoordinatorClient locator) {
@@ -819,8 +815,8 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
             }
 
             boolean isMetroPoint = RPHelper.isMetroPointVolume(_dbClient, volume);
-            boolean isRPSource = _rpHelper.isRPSource(volumeDescriptor);
-            boolean isRPTarget = _rpHelper.isRPTarget(volumeDescriptor);
+            boolean isRPSource = RPHelper.isRPSource(volumeDescriptor);
+            boolean isRPTarget = RPHelper.isRPTarget(volumeDescriptor);
             boolean extraParamsGathered = false;
 
             if (volumeDescriptor.getCapabilitiesValues() != null) {
@@ -893,7 +889,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                     }
                 }
                 CreateVolumeParams volumeParams = populateVolumeParams(volume.getId(), volume.getStorageController(),
-                        volume.getVirtualArray(), volume.getInternalSiteName(), _rpHelper.isProductionJournal(productionCopies, volume),
+                        volume.getVirtualArray(), volume.getInternalSiteName(), RPHelper.isProductionJournal(productionCopies, volume),
                         volume.getRpCopyName(), RPHelper.getRPWWn(volume.getId(), _dbClient), maxNumberOfSnapShots);
                 String key = volume.getRpCopyName();
                 _log.info(String.format("Creating Copy Param for RP JOURNAL: VOLUME - [%s] Name: [%s]", volume.getLabel(), key));
@@ -1364,6 +1360,24 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                 // Mark this workflow as created/executed so we don't do it again on retry/resume
                 WorkflowService.getInstance().markWorkflowBeenCreated(taskId, workflowKey);
             }
+        } catch (LockRetryException ex) {
+            /**
+             * Added this catch block to mark the current workflow as completed so that lock retry will not get exception while creating new
+             * workflow using the same taskid.
+             */
+            _log.warn(String.format("Lock retry exception key: %s remaining time %d", ex.getLockIdentifier(),
+                    ex.getRemainingWaitTimeSeconds()));
+            if (workflow != null && !NullColumnValueGetter.isNullURI(workflow.getWorkflowURI())
+                    && workflow.getWorkflowState() == WorkflowState.CREATED) {
+                com.emc.storageos.db.client.model.Workflow wf = _dbClient.queryObject(com.emc.storageos.db.client.model.Workflow.class,
+                        workflow.getWorkflowURI());
+                if (!wf.getCompleted()) {
+                    _log.error("Marking the status to completed for the newly created workflow {}", wf.getId());
+                    wf.setCompleted(true);
+                    _dbClient.updateObject(wf);
+                }
+            }
+            throw ex;
         } catch (Exception ex) {
             _log.error("Could not create volumes: " + volUris, ex);
 
@@ -1872,36 +1886,34 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
      */
     private void validateCGVolumes(List<VolumeDescriptor> volumeDescriptors) {
         // Validate that the source and target volumes are the same size. If they are not
-        // CG creation or failover will fail.
-        VolumeDescriptor sourceVolumeDescriptor = null;
-        List<VolumeDescriptor> targets = new ArrayList<VolumeDescriptor>();
+        // then CG creation or fail-over will fail.
         for (VolumeDescriptor volumeDescriptor : volumeDescriptors) {
             if (volumeDescriptor.getType().equals(VolumeDescriptor.Type.RP_SOURCE)
                     || volumeDescriptor.getType().equals(VolumeDescriptor.Type.RP_EXISTING_SOURCE)
                     || volumeDescriptor.getType().equals(VolumeDescriptor.Type.RP_VPLEX_VIRT_SOURCE)) {
-                sourceVolumeDescriptor = volumeDescriptor;
-            } else if (volumeDescriptor.getType().equals(VolumeDescriptor.Type.RP_TARGET)
-                    || volumeDescriptor.getType().equals(VolumeDescriptor.Type.RP_VPLEX_VIRT_TARGET)) {
-                targets.add(volumeDescriptor);
-            }
-        }
-
-        Volume sourceVolume = _dbClient.queryObject(Volume.class, sourceVolumeDescriptor.getVolumeURI());
-        Volume targetVolume = null;
+                // Find the Source volume from the descriptor
+                Volume sourceVolume = _dbClient.queryObject(Volume.class, volumeDescriptor.getVolumeURI());
         StorageSystem sourceStorageSystem = _dbClient.queryObject(StorageSystem.class, sourceVolume.getStorageController());
-        StorageSystem targetStorageSystem = null;
 
-        for (VolumeDescriptor targetVolumeDescriptor : targets) {
-
-            targetVolume = _dbClient.queryObject(Volume.class, targetVolumeDescriptor.getVolumeURI());
-            targetStorageSystem = _dbClient.queryObject(StorageSystem.class, targetVolume.getStorageController());
+                // Check all Target volumes of the Source to ensure that Source capacity < Target capacity.
+                for (String targetId : sourceVolume.getRpTargets()) {
+                    Volume targetVolume = _dbClient.queryObject(Volume.class, URI.create(targetId));
+                    StorageSystem targetStorageSystem = _dbClient.queryObject(StorageSystem.class, targetVolume.getStorageController());
 
             // target must be equal to or larger than the source
             if (Long.compare(targetVolume.getProvisionedCapacity(), sourceVolume.getProvisionedCapacity()) < 0) {
-                throw DeviceControllerExceptions.recoverpoint.cgCannotBeCreatedInvalidVolumeSizes(sourceStorageSystem.getSystemType(),
+                        _log.error(String.format(
+                                "Source volume [%s - %s] has provisioned capacity of [%s] and Target volume [%s - %s] has provisioned capacity of [%s]. "
+                                        + "Source capacity cannot be > Target capacity.",
+                                sourceVolume.getLabel(), sourceVolume.getId(), sourceVolume.getProvisionedCapacity(),
+                                targetVolume.getLabel(), targetVolume.getId(), targetVolume.getProvisionedCapacity()));
+                        throw DeviceControllerExceptions.recoverpoint.cgCannotBeCreatedInvalidVolumeSizes(
+                                sourceStorageSystem.getSystemType(),
                         String.valueOf(sourceVolume.getProvisionedCapacity()), targetStorageSystem.getSystemType(),
                         String.valueOf(targetVolume.getProvisionedCapacity()));
             }
+        }
+    }
         }
     }
 
@@ -2224,7 +2236,8 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
             // lock around create and delete operations on the same CG
             List<String> lockKeys = new ArrayList<String>();
             lockKeys.add(ControllerLockingUtil.getConsistencyGroupStorageKey(_dbClient, cg.getId(), system.getId()));
-            boolean lockAcquired = _workflowService.acquireWorkflowLocks(_workflowService.getWorkflowFromStepId(token), lockKeys, LockTimeoutValue.get(LockType.RP_CG));
+            boolean lockAcquired = _workflowService.acquireWorkflowLocks(_workflowService.getWorkflowFromStepId(token), lockKeys,
+                    LockTimeoutValue.get(LockType.RP_CG));
             if (!lockAcquired) {
                 lockException = true;
                 throw DeviceControllerException.exceptions.failedToAcquireLock(lockKeys.toString(),
@@ -2323,7 +2336,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                         removeVolumeIDs.add(volume.getId().toString());
                     }
                     // All Target volumes to be removed from Protection Set
-                    List<Volume> targetVolumes = _rpHelper.getTargetVolumes(volume);
+                    List<Volume> targetVolumes = RPHelper.getTargetVolumes(volume, _dbClient);
                     for (Volume targetVol : targetVolumes) {
                         removeVolumeIDs.add(targetVol.getId().toString());
                     }
@@ -2537,7 +2550,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
             throws InternalException {
         _log.info("Adding steps to remove volumes from export groups.");
         String returnStep = waitFor;
-        Set<URI> volumeURIs = _rpHelper.getVolumesToDelete(VolumeDescriptor.getVolumeURIs(filteredSourceVolumeDescriptors));
+        Set<URI> volumeURIs = RPHelper.getVolumesToDelete(VolumeDescriptor.getVolumeURIs(filteredSourceVolumeDescriptors), _dbClient);
 
         _log.info(String.format("Following volume(s) will be unexported from their RP export groups :  [%s]",
                 Joiner.on("--").join(volumeURIs)));
@@ -2818,7 +2831,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
         String stepId = workflow.createStepId();
         Workflow.Method enableImageAccessExecuteMethod = new Workflow.Method(METHOD_ENABLE_IMAGE_ACCESS_STEP, rpSystem.getId(), snapshots);
         Workflow.Method enableImageAccessExecutionRollbackMethod = new Workflow.Method(METHOD_ENABLE_IMAGE_ACCESS_ROLLBACK_STEP,
-                rpSystem.getId(), snapshots, false);
+                rpSystem.getId(), snapshots);
 
         workflow.createStep(STEP_ENABLE_IMAGE_ACCESS, "Enable image access subtask for export group: " + snapshots.keySet(), waitFor,
                 rpSystem.getId(), rpSystem.getSystemType(), this.getClass(), enableImageAccessExecuteMethod,
@@ -2874,13 +2887,11 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
      *            RP System
      * @param snapshots
      *            list of snapshots to rollback
-     * @param setSnapshotsInactive
-     *            true if this is a rollback operation. Should be true for any method calling this.
      * @param stepId
      * @return
      * @throws ControllerException
      */
-    public boolean enableImageAccessRollbackStep(URI rpSystemId, Map<URI, Integer> snapshots, boolean setSnapshotsInactive, String stepId)
+    public boolean enableImageAccessRollbackStep(URI rpSystemId, Map<URI, Integer> snapshots, String stepId)
             throws ControllerException {
         try {
             WorkflowStepCompleter.stepExecuting(stepId);
@@ -2890,7 +2901,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
             // The sync active field is irrelevant but we will set it to false anyway. This rollback call to
             // disableImageForSnapshots will mark the snapshots inactive.
             boolean setSnapshotSyncActive = false;
-            disableImageForSnapshots(rpSystemId, new ArrayList<URI>(snapshots.keySet()), setSnapshotsInactive, setSnapshotSyncActive,
+            disableImageForSnapshots(rpSystemId, new ArrayList<URI>(snapshots.keySet()), setSnapshotSyncActive,
                     stepId);
 
             // Update the workflow state.
@@ -3044,7 +3055,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
         String stepId = workflow.createStepId();
 
         Workflow.Method disableImageAccessExecuteMethod = new Workflow.Method(METHOD_SNAPSHOT_DISABLE_IMAGE_ACCESS_SINGLE_STEP,
-                rpSystem.getId(), snapshots, false);
+                rpSystem.getId(), snapshots);
 
         workflow.createStep(STEP_DISABLE_IMAGE_ACCESS, "Disable image access subtask for snapshots ", waitFor, rpSystem.getId(),
                 rpSystem.getSystemType(), this.getClass(), disableImageAccessExecuteMethod, null, stepId);
@@ -3061,14 +3072,12 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
      *            RP system
      * @param snapshots
      *            List of snapshot URIs
-     * @param isRollback
-     *            true if this method is invoked as part of rollback, false otherwise
      * @param token
      *            step Id
      * @return
      * @throws ControllerException
      */
-    public boolean snapshotDisableImageAccessSingleStep(URI rpSystemId, List<URI> snapshots, boolean isRollback, String token)
+    public boolean snapshotDisableImageAccessSingleStep(URI rpSystemId, List<URI> snapshots, String token)
             throws ControllerException {
         try {
             WorkflowStepCompleter.stepExecuting(token);
@@ -3076,7 +3085,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
             // access call for a snapshot create request that is part local array snap and part
             // RP bookmark.
             boolean setSnapshotSyncActive = true;
-            disableImageForSnapshots(rpSystemId, snapshots, isRollback, setSnapshotSyncActive, token);
+            disableImageForSnapshots(rpSystemId, snapshots, setSnapshotSyncActive, token);
             // Update the workflow state.
             WorkflowStepCompleter.stepSucceded(token);
         } catch (Exception e) {
@@ -3144,7 +3153,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                 }
             }
 
-            disableImageForSnapshots(rpSystemId, new ArrayList<URI>(snapshots), false, false, token);
+            disableImageForSnapshots(rpSystemId, new ArrayList<URI>(snapshots), false, token);
 
             // Update the workflow state.
             WorkflowStepCompleter.stepSucceded(token);
@@ -3174,7 +3183,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
         String stepId = workflow.createStepId();
 
         Workflow.Method disableImageAccessExecuteMethod = new Workflow.Method(METHOD_DISABLE_IMAGE_ACCESS_SINGLE_STEP, rpSystem.getId(),
-                exportGroupID, snapshotIDs, false);
+                exportGroupID, snapshotIDs);
 
         workflow.createStep(STEP_EXPORT_GROUP_DISABLE, "Disable image access subtask for export group: " + exportGroupID, null,
                 rpSystem.getId(), rpSystem.getSystemType(), this.getClass(), disableImageAccessExecuteMethod, null, stepId);
@@ -3192,18 +3201,16 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
      *            ExportGroup URI
      * @param snapshots
      *            list of snapshots to disable
-     * @param isRollback
-     *            True if this is invoked as part of a rollback operation.
      * @param token
      * @return boolean
      * @throws ControllerException
      */
-    public boolean disableImageAccessSingleStep(URI rpSystemId, URI exportGroupURI, List<URI> snapshots, boolean isRollback, String token)
+    public boolean disableImageAccessSingleStep(URI rpSystemId, URI exportGroupURI, List<URI> snapshots, String token)
             throws ControllerException {
         try {
             WorkflowStepCompleter.stepExecuting(token);
 
-            disableImageForSnapshots(rpSystemId, snapshots, isRollback, false, token);
+            disableImageForSnapshots(rpSystemId, snapshots, false, token);
 
             // Update the workflow state.
             WorkflowStepCompleter.stepSucceded(token);
@@ -4227,9 +4234,11 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
             
             // add step to perform protection operation
             String stepId = workflow.createStepId();
-            Workflow.Method performProtOpExecuteMethod = new Workflow.Method(METHOD_PERFORM_PROTECTION_OPERATION, protectionSystem, protectionVolume.getConsistencyGroup(), id, copyID, pointInTime, imageAccessMode, op);
+            Workflow.Method performProtOpExecuteMethod = new Workflow.Method(METHOD_PERFORM_PROTECTION_OPERATION, protectionSystem,
+                    protectionVolume.getConsistencyGroup(), id, copyID, pointInTime, imageAccessMode, op);
 
-            workflow.createStep(STEP_PERFORM_PROTECTION_OPERATION, String.format("Performing protection operation %s on RP volume: %s", op, id.toString()), 
+            workflow.createStep(STEP_PERFORM_PROTECTION_OPERATION,
+                    String.format("Performing protection operation %s on RP volume: %s", op, id.toString()),
                     null, rpSystem.getId(), rpSystem.getSystemType(), this.getClass(), performProtOpExecuteMethod, null,
                     stepId);
             
@@ -4259,7 +4268,8 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
      * @return
      * @throws ControllerException
      */
-    public boolean performProtectionOperationStep(URI protectionSystem, URI cgId, URI volId, URI copyID, String pointInTime, String imageAccessMode, String op,
+    public boolean performProtectionOperationStep(URI protectionSystem, URI cgId, URI volId, URI copyID, String pointInTime,
+            String imageAccessMode, String op,
             String stepId) throws ControllerException {
         WorkflowStepCompleter.stepExecuting(stepId);
         try {
@@ -4397,7 +4407,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                                         "Adding back standby production copy after swap back to original VPlex Metro for Metropoint volume %s (%s)",
                                         protectionVolume.getLabel(), protectionVolume.getId().toString()));
 
-                        List<Volume> standbyLocalCopyVols = _rpHelper.getMetropointStandbyCopies(protectionVolume);
+                        List<Volume> standbyLocalCopyVols = RPHelper.getMetropointStandbyCopies(protectionVolume, _dbClient);
                         CreateCopyParams standbyLocalCopyParams = null;
                         List<CreateRSetParams> rSets = new ArrayList<CreateRSetParams>();
                         Set<URI> journalVolumes = new HashSet<URI>();
@@ -4584,11 +4594,17 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
         //
         for (URI protectionVolumeID : volumeIDs) {
             Volume protectionVolume = _dbClient.queryObject(Volume.class, protectionVolumeID);
+            if (protectionVolume == null || protectionVolume.getInactive()) {
+                continue;
+            }
             if ((protectionVolume.checkPersonality(Volume.PersonalityTypes.TARGET.toString()))
                     && (protectionVolume.getRpCopyName().equals(volume.getRpCopyName()))) {
                 // This is a TARGET we failed over to. We need to build up all of its targets
                 for (URI potentialTargetVolumeID : volumeIDs) {
                     Volume potentialTargetVolume = _dbClient.queryObject(Volume.class, potentialTargetVolumeID);
+                    if (potentialTargetVolume == null || potentialTargetVolume.getInactive()) {
+                        continue;
+                    }
                     if (!potentialTargetVolume.checkPersonality(Volume.PersonalityTypes.METADATA.toString())
                             && NullColumnValueGetter.isNotNullValue(potentialTargetVolume.getRSetName())
                             && potentialTargetVolume.getRSetName().equals(protectionVolume.getRSetName())
@@ -4644,6 +4660,9 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
         for (URI protectionVolumeID : volumeIDs) {
             Volume protectionVolume = _dbClient.queryObject(Volume.class, protectionVolumeID);
+            if (protectionVolume == null || protectionVolume.getInactive()) {
+                continue;
+            }
             if ((protectionVolume.checkPersonality(Volume.PersonalityTypes.TARGET.toString()))
                     && (protectionVolume.getRpCopyName().equals(volume.getRpCopyName()))) {
                 _log.info("Change flags of failover target " + RPHelper.getRPWWn(protectionVolume.getId(), _dbClient));
@@ -4681,6 +4700,9 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
         for (URI protectionVolumeID : volumeIDs) {
             Volume protectionVolume = _dbClient.queryObject(Volume.class, protectionVolumeID);
+            if (protectionVolume == null || protectionVolume.getInactive()) {
+                continue;
+            }
             if ((protectionVolume.checkPersonality(Volume.PersonalityTypes.TARGET.toString()))
                     && (protectionVolume.getRpCopyName().equals(volume.getRpCopyName()))) {
                 _log.info("Change flags of failover target " + RPHelper.getRPWWn(protectionVolume.getId(), _dbClient));
@@ -4948,7 +4970,8 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                 // tries to enable image
                 // access
                 List<String> locks = new ArrayList<String>();
-                String lockName = ControllerLockingUtil.getConsistencyGroupStorageKey(_dbClient, aSrcVolume.getConsistencyGroup(), protectionSystem.getId());
+                String lockName = ControllerLockingUtil.getConsistencyGroupStorageKey(_dbClient, aSrcVolume.getConsistencyGroup(),
+                        protectionSystem.getId());
                 if (null != lockName) {
                     locks.add(lockName);
                     acquireWorkflowLockOrThrow(workflow, locks);
@@ -5597,7 +5620,8 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
             boolean lockAcquired = _workflowService.acquireWorkflowStepLocks(stepId, lockKeys, LockTimeoutValue.get(LockType.RP_CG));
             if (!lockAcquired) {
                 throw DeviceControllerException.exceptions.failedToAcquireLock(lockKeys.toString(),
-                        String.format("failed to get lock while restoring volumes in RP consistency group: %s", volume.getConsistencyGroup().toString()));
+                        String.format("failed to get lock while restoring volumes in RP consistency group: %s", volume
+                                .getConsistencyGroup().toString()));
             }
 
             // Now determine the target volume that corresponds to the site of the snapshot
@@ -5681,7 +5705,8 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                 if (vplexVolumes != null && !vplexVolumes.isEmpty()) {
                     parent = vplexVolumes.get(0);
                 }
-                String lockName = ControllerLockingUtil.getConsistencyGroupStorageKey(_dbClient, parent.getConsistencyGroup(), system.getId());
+                String lockName = ControllerLockingUtil.getConsistencyGroupStorageKey(_dbClient, parent.getConsistencyGroup(),
+                        system.getId());
                 if (null != lockName) {
                     List<String> locks = new ArrayList<String>();
                     locks.add(lockName);
@@ -5689,14 +5714,30 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                 }
             }
 
-            Set<String> volumeWWNs = new HashSet<String>();
-            String emName = null;
+            // Keep a mapping of the emNames(bookmark names) to target copy volume WWNs
+            Map<String, Set<String>> emNamesToVolumeWWNs = new HashMap<String, Set<String>>();
+            // Keep a mapping of the emNames(bookmark names) to BlockSnapshot objects
+            Map<String, Set<URI>> emNamesToSnapshots = new HashMap<String, Set<URI>>();
+
             for (URI snapshotID : snapshotList) {
-                // Get the volume associated with this snapshot
                 BlockSnapshot snapshot = _dbClient.queryObject(BlockSnapshot.class, snapshotID);
-                if (snapshot.getEmName() != null) {
-                    emName = snapshot.getEmName();
+
+                String emName = snapshot.getEmName();
+                if (NullColumnValueGetter.isNotNullValue(emName)) {
+                    if (!emNamesToVolumeWWNs.containsKey(emName)) {
+                        emNamesToVolumeWWNs.put(emName, new HashSet<String>());
                 }
+
+                    if (!emNamesToSnapshots.containsKey(emName)) {
+                        emNamesToSnapshots.put(emName, new HashSet<URI>());
+                    }
+
+                    emNamesToSnapshots.get(emName).add(snapshotID);
+                } else {
+                    throw DeviceControllerExceptions.recoverpoint.failedToActivateSnapshotEmNameMissing(snapshotID);
+                }
+
+                // Get the volume associated with this snapshot
                 Volume volume = _dbClient.queryObject(Volume.class, snapshot.getParent().getURI());
                 // For RP+VPLEX volumes, we need to fetch the VPLEX volume.
                 // The snapshot objects references the block/back-end volume as its parent.
@@ -5705,40 +5746,39 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                     volume = Volume.fetchVplexVolume(_dbClient, volume);
                 }
 
+                String wwn = null;
                 // If the volume type is TARGET, then the enable image access request is part of snapshot create, just
                 // add the volumeWWN to
                 // the list.
                 // If the personality is SOURCE, then the enable image access request is part of export operation.
                 if (volume.checkPersonality(Volume.PersonalityTypes.TARGET.toString())) {
-                    volumeWWNs.add(RPHelper.getRPWWn(volume.getId(), _dbClient));
+                    wwn = RPHelper.getRPWWn(volume.getId(), _dbClient);
                 } else {
                     // Now determine the target volume that corresponds to the site of the snapshot
                     ProtectionSet protectionSet = _dbClient.queryObject(ProtectionSet.class, volume.getProtectionSet());
                     Volume targetVolume = ProtectionSet.getTargetVolumeFromSourceAndInternalSiteName(_dbClient, protectionSet, volume,
                             snapshot.getEmInternalSiteName());
-                    volumeWWNs.add(RPHelper.getRPWWn(targetVolume.getId(), _dbClient));
+                    wwn = RPHelper.getRPWWn(targetVolume.getId(), _dbClient);
                 }
+
+                // Add the volume WWN
+                emNamesToVolumeWWNs.get(emName).add(wwn);
             }
 
             // Now enable image access to that bookmark
             RecoverPointClient rp = RPHelper.getRecoverPointClient(system);
+
+            // Iterate over the the emNames and call RP to enableImageCopies for the WWNs
+            // correponding to each emName.
+            for (Map.Entry<String, Set<String>> emNameEntry : emNamesToVolumeWWNs.entrySet()) {
             MultiCopyEnableImageRequestParams request = new MultiCopyEnableImageRequestParams();
-            request.setVolumeWWNSet(volumeWWNs);
-            request.setBookmark(emName);
+                request.setVolumeWWNSet(emNameEntry.getValue());
+                request.setBookmark(emNameEntry.getKey());
             MultiCopyEnableImageResponse response = rp.enableImageCopies(request);
 
             if (response == null) {
                 throw DeviceControllerExceptions.recoverpoint.failedEnableAccessOnRP();
             }
-
-            // Mark the snapshots
-            StringSet snapshots = new StringSet();
-            for (URI snapshotID : snapshotList) {
-                BlockSnapshot snapshot = _dbClient.queryObject(BlockSnapshot.class, snapshotID);
-                snapshot.setInactive(false);
-                snapshot.setIsSyncActive(true);
-                snapshots.add(snapshot.getNativeId());
-                _dbClient.updateObject(snapshot);
             }
 
             completer.ready(_dbClient);
@@ -5955,20 +5995,18 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
      *            protection system
      * @param snapshotList
      *            list of snapshots to enable
-     * @param setSnapshotsInactive
-     *            true if this is called during rollback and BlockSnapshots should be marked inactive, false otherwise.
      * @param setSnapshotSyncActive
      *            true if the isSyncActive field on BlockSnapshot should be true, false otherwise.
      * @param opId
      * @throws ControllerException
      */
-    private void disableImageForSnapshots(URI protectionDevice, List<URI> snapshotList, boolean setSnapshotsInactive,
+    private void disableImageForSnapshots(URI protectionDevice, List<URI> snapshotList,
             boolean setSnapshotSyncActive, String opId) throws ControllerException {
-        TaskCompleter completer = null;
+        BlockSnapshotDeactivateCompleter completer = null;
         try {
             _log.info("Deactivating a bookmark on the RP CG(s)");
 
-            completer = new BlockSnapshotDeactivateCompleter(snapshotList, opId);
+            completer = new BlockSnapshotDeactivateCompleter(snapshotList, setSnapshotSyncActive, opId);
 
             ProtectionSystem system = null;
             try {
@@ -5981,14 +6019,40 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                 throw DeviceControllerExceptions.recoverpoint.databaseExceptionDeactivateSnapshot(protectionDevice);
             }
 
-            Set<String> volumeWWNs = new HashSet<String>();
-            String emName = "";
+            // Keep a mapping of the emNames(bookmark names) to target copy volume WWNs
+            Map<String, Set<String>> emNamesToVolumeWWNs = new HashMap<String, Set<String>>();
+            // Keep a mapping of the emNames(bookmark names) to BlockSnapshot objects
+            Map<String, Set<URI>> emNamesToSnapshots = new HashMap<String, Set<URI>>();
+
             for (URI snapshotID : snapshotList) {
-                // Get the volume associated with this snapshot
                 BlockSnapshot snapshot = _dbClient.queryObject(BlockSnapshot.class, snapshotID);
-                if (snapshot.getEmName() != null) {
-                    emName = snapshot.getEmName();
+
+                // Determine if we can actually disable image access to the copy associated with the snapshot first
+                if (!doDisableImageCopies(snapshot)) {
+                    // Skip this snapshot because we cannot disable image access. Likely due to the snapshot
+                    // being exported to multiple hosts.
+                    _log.warn(String
+                            .format("Cannot disable image access for snapshot %s so it will be skipped.  Likely due to the snapshot being exported to multiple hosts",
+                                    snapshot.getId()));
+                    continue;
                 }
+
+                String emName = snapshot.getEmName();
+                if (NullColumnValueGetter.isNotNullValue(emName)) {
+                    if (!emNamesToVolumeWWNs.containsKey(emName)) {
+                        emNamesToVolumeWWNs.put(emName, new HashSet<String>());
+                    }
+
+                    if (!emNamesToSnapshots.containsKey(emName)) {
+                        emNamesToSnapshots.put(emName, new HashSet<URI>());
+                    }
+
+                    emNamesToSnapshots.get(emName).add(snapshotID);
+                } else {
+                    throw DeviceControllerExceptions.recoverpoint.failedToDeactivateSnapshotEmNameMissing(snapshotID);
+                }
+
+                // Get the volume associated with this snapshot
                 Volume volume = _dbClient.queryObject(Volume.class, snapshot.getParent().getURI());
 
                 // For RP+VPLEX volumes, we need to fetch the VPLEX volume.
@@ -5998,45 +6062,45 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                     volume = Volume.fetchVplexVolume(_dbClient, volume);
                 }
 
+                String wwn = null;
                 // If the volume type is TARGET, then the enable image access request is part of snapshot create, just
                 // add the volumeWWN to the list.
                 // If the personality is SOURCE, then the enable image access request is part of export operation.
                 if (volume.checkPersonality(Volume.PersonalityTypes.TARGET.toString())) {
-                    volumeWWNs.add(RPHelper.getRPWWn(volume.getId(), _dbClient));
+                    wwn = RPHelper.getRPWWn(volume.getId(), _dbClient);
                 } else {
                     // Now determine the target volume that corresponds to the site of the snapshot
                     ProtectionSet protectionSet = _dbClient.queryObject(ProtectionSet.class, volume.getProtectionSet());
                     Volume targetVolume = ProtectionSet.getTargetVolumeFromSourceAndInternalSiteName(_dbClient, protectionSet, volume,
                             snapshot.getEmInternalSiteName());
-
-                    volumeWWNs.add(RPHelper.getRPWWn(targetVolume.getId(), _dbClient));
+                    wwn = RPHelper.getRPWWn(targetVolume.getId(), _dbClient);
                 }
 
-                // Now disable image access to that bookmark
+                // Add the volume WWN
+                emNamesToVolumeWWNs.get(emName).add(wwn);
+                }
+
+            // Now disable image access on the bookmark copies
                 RecoverPointClient rp = RPHelper.getRecoverPointClient(system);
+
+            // Iterate over the the emNames and call RP to disableImageCopies for the WWNs
+            // correponding to each emName.
+            for (Map.Entry<String, Set<String>> emNameEntry : emNamesToVolumeWWNs.entrySet()) {
                 MultiCopyDisableImageRequestParams request = new MultiCopyDisableImageRequestParams();
-                request.setVolumeWWNSet(volumeWWNs);
-                request.setEmName(emName);
-                if (doDisableImageCopies(snapshot)) {
+                request.setVolumeWWNSet(emNameEntry.getValue());
+                request.setEmName(emNameEntry.getKey());
                     MultiCopyDisableImageResponse response = rp.disableImageCopies(request);
 
                     if (response == null) {
                         throw DeviceControllerExceptions.recoverpoint.failedDisableAccessOnRP();
                     }
-                }
-            }
 
-            // Mark the snapshots
-            StringSet snapshots = new StringSet();
-            for (URI snapshotID : snapshotList) {
-                BlockSnapshot snapshot = _dbClient.queryObject(BlockSnapshot.class, snapshotID);
-                snapshot.setInactive(setSnapshotsInactive);
-                // If we are performing the disable as part of a snapshot create for an array snapshot + RP bookmark,
-                // we want to set the syncActive field to true. This will enable us to perform snapshot exports and
-                // remove snapshots from exports.
-                snapshot.setIsSyncActive(setSnapshotSyncActive);
-                snapshots.add(snapshot.getNativeId());
-                _dbClient.updateObject(snapshot);
+                // Let the completer know about the deactivated snapshots (ones who's associated copies
+                // had image access disabled). This will be used to update the BlockSnapshot fields accordingly.
+                // This is done because not all snapshots used when creating the completer will be deactivated.
+                // We need to maintain a collection of snapshots so that those exported to multiple hosts to not
+                // get deactivated.
+                completer.addDeactivatedSnapshots(emNamesToSnapshots.get(emNameEntry.getKey()));
             }
 
             completer.ready(_dbClient);
@@ -6074,7 +6138,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
         _dbClient.queryByConstraint(constraint, exportGroupIdsForSnapshot);
 
         Iterator<URI> exportGroupIdsForSnapshotIter = exportGroupIdsForSnapshot.iterator();
-        List<URI> exportGroupURIs = new ArrayList<URI>();
+        Set<URI> exportGroupURIs = new HashSet<URI>();
         while (exportGroupIdsForSnapshotIter.hasNext()) {
             exportGroupURIs.add(exportGroupIdsForSnapshotIter.next());
         }
@@ -6340,7 +6404,14 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
     }
 
     @Override
-    public void exportGroupChangePathParams(URI storageURI, URI exportGroupURI, URI volumeURI, String token) throws Exception {
+    public void findAndUpdateFreeHLUsForClusterExport(StorageSystem storageSystem, ExportGroup exportGroup,
+            List<URI> initiatorURIs, Map<URI, Integer> volumeMap) {
+        // TODO
+    }
+
+    @Override
+    public void exportGroupChangePathParams(URI storageURI, URI exportGroupURI,
+            URI volumeURI, String token) throws Exception {
         // Not supported, will not be called because API code not present
     }
 
@@ -6959,7 +7030,8 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                 // tries to enable image
                 // access
                 List<String> locks = new ArrayList<String>();
-                String lockName = ControllerLockingUtil.getConsistencyGroupStorageKey(_dbClient, aSrcVolume.getConsistencyGroup(), protectionSystem.getId());
+                String lockName = ControllerLockingUtil.getConsistencyGroupStorageKey(_dbClient, aSrcVolume.getConsistencyGroup(),
+                        protectionSystem.getId());
                 if (null != lockName) {
                     locks.add(lockName);
                     acquireWorkflowLockOrThrow(workflow, locks);
@@ -7068,7 +7140,8 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                 }
                 // Lock CG
                 List<String> locks = new ArrayList<String>();
-                String lockName = ControllerLockingUtil.getConsistencyGroupStorageKey(_dbClient, sourceVolumes.get(0).getConsistencyGroup(), rpSystem.getId());
+                String lockName = ControllerLockingUtil.getConsistencyGroupStorageKey(_dbClient,
+                        sourceVolumes.get(0).getConsistencyGroup(), rpSystem.getId());
                 if (null != lockName) {
                     locks.add(lockName);
                     acquireWorkflowLockOrThrow(workflow, locks);
@@ -7258,4 +7331,11 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
         return copyAccessStates;
     }
+
+    @Override
+    public void portRebalance(URI storageSystem, URI exportGroup, URI varray, URI exportMask, Map<URI, List<URI>> adjustedpaths,
+            Map<URI, List<URI>> removedPaths, boolean isAdd, String token) throws Exception
+    {
+        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+}
 }

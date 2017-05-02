@@ -469,7 +469,6 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
                 taskCompleter.ready(_dbClient);
                 return;
             }
-
             // Check if we can expand volume using recommended meta volume type:
             // On VMAX striped meta can be formed only when meta head is in unbound from pool.
             // This is our assumption for now --- some ucode versions support case when meta head is bound to pool when
@@ -477,6 +476,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
             // is formed.
             expansionType = _metaVolumeOperations.defineExpansionType(storageSystem, volume,
                     recommendedMetaVolumeType, metaVolumeTaskCompleter);
+
             _log.info(String
                     .format("Meta volume type used for expansion: %s, recommended meta volume type: %s", expansionType,
                             recommendedMetaVolumeType));
@@ -517,6 +517,9 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
                     "Problem in doExpandMetaVolumes: failed to expand meta volume "
                             + volume.getLabel() + " .",
                     e);
+            ServiceError error = DeviceControllerErrors.smis.methodFailed("doExpandAsMetaVolume",
+                    e.getMessage());
+            volumeCompleter.error(_dbClient, error);
         } finally {
             _log.info(String.format(
                     "End of steps to expand volume as meta volume: %s, \n   volume ID: %s"
@@ -617,10 +620,11 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
                     if (storageSystem.deviceIsType(Type.vnxblock)) {
                         cleanupAnyGroupBackupSnapshots(storageSystem, volume);
                     }
-                    // Clean up any volume backup snapshots, if there are none this step will be skipped.
-                    cleanupAnyBackupSnapshots(storageSystem, volume);
                     // Remove the volume from the backend CG, if it's not actually in a backend CG this step will be skipped.
                     removeVolumeFromConsistencyGroup(storageSystem, volume);
+                    // Clean up any volume backup snapshots, if there are none this step will be skipped.
+                    cleanupAnyBackupSnapshots(storageSystem, volume);
+
                 } else {
                     // for VMAX3, clean up unlinked snapshot session, which is possible for ingested volume
                     if (storageSystem.deviceIsType(Type.vnxblock) || storageSystem.checkIfVmax3()) {
@@ -745,9 +749,12 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
             taskCompleter.error(_dbClient, error);
         } catch (Exception e) {
             _log.error("Problem in doDeleteVolume: ", e);
-            ServiceError error = DeviceControllerErrors.smis.methodFailed("doDeleteVolume",
-                    e.getMessage());
-            taskCompleter.error(_dbClient, error);
+            // Check to see if an Asynchronous job will now handle the task status.
+            if (!taskCompleter.isAsynchronous()) {
+                ServiceError error = DeviceControllerErrors.smis.methodFailed("doDeleteVolume",
+                        e.getMessage());
+                taskCompleter.error(_dbClient, error);
+            }
         }
         StringBuilder logMsgBuilder = new StringBuilder(String.format(
                 "Delete Volume End - Array: %s", storageSystem.getSerialNumber()));
@@ -779,9 +786,14 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
         if (initiatorURIs != null) {
             initiators.addAll(_dbClient.queryObject(Initiator.class, initiatorURIs));
         }
+        
+        List<URI> volURIs = Lists.newArrayList();
+        if (volumeURIs != null) {
+        	volURIs.addAll(volumeURIs);
+        }
 
         _exportMaskOperationsHelper.deleteExportMask(storage, exportMask.getId(),
-                volumeURIs, new ArrayList<URI>(), initiators, taskCompleter);
+        		volURIs, new ArrayList<URI>(), initiators, taskCompleter);
         _log.info("{} doExportDelete END ...", storage.getSerialNumber());
     }
 
@@ -1059,6 +1071,11 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
             final List<String> initiatorNames, final boolean mustHaveAllPorts) throws DeviceControllerException {
         return _exportMaskOperationsHelper.findExportMasks(storage, initiatorNames,
                 mustHaveAllPorts);
+    }
+
+    @Override
+    public Set<Integer> findHLUsForInitiators(StorageSystem storage, List<String> initiatorNames, boolean mustHaveAllPorts) {
+        return _exportMaskOperationsHelper.findHLUsForInitiators(storage, initiatorNames, mustHaveAllPorts);
     }
 
     @Override
@@ -1764,20 +1781,19 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
                 // cg id will be null when deleting replication groups created for CG full copy volumes
                 consistencyGroup = _dbClient.queryObject(BlockConsistencyGroup.class, consistencyGroupId);
             }
-            if (replicationGroupName == null && (consistencyGroup == null || consistencyGroup.getInactive())) {
+            if (replicationGroupName == null || (consistencyGroup == null || consistencyGroup.getInactive())) {
                 _log.info(String.format("%s is inactive or deleted", consistencyGroupId));
                 return;
             }
 
-            String groupName = replicationGroupName;
-            if (groupName == null) {
-                groupName = _helper.getConsistencyGroupName(consistencyGroup, storage);
-            }
+            String groupName = _helper.getConsistencyGroupName(consistencyGroup, storage);
 
             // This will be null, if consistencyGroup references no system CG's for storage.
             if (groupName == null) {
                 _log.info(String.format("%s contains no system CG for %s.  Assuming it has already been deleted.",
                         consistencyGroupId, systemURI));
+                // Clean up the system consistency group references
+                BlockConsistencyGroupUtils.cleanUpCGAndUpdate(consistencyGroup, storage.getId(), groupName, markInactive, _dbClient);
                 return;
             }
 
@@ -1797,12 +1813,6 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
                     if (storage.deviceIsType(Type.vmax) && storage.checkIfVmax3()) {
                         // if deleting snap session replication group, we need to remove the EMCSFSEntries first
                         _helper.removeSFSEntryForReplicaReplicationGroup(storage, replicationSvc, replicationGroupName);
-                    }
-
-                    if (storage.checkIfVmax3() && replicationGroupName != null) {
-                        // if deleting snap session replication group, we need to remove the EMCSFSEntries first
-                        _helper.removeSFSEntryForReplicaReplicationGroup(storage, replicationSvc, replicationGroupName);
-
                         markSnapSessionsInactiveForReplicationGroup(systemURI, consistencyGroupId, replicationGroupName);
                     }
 
@@ -1821,40 +1831,8 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
                 return;
             }
 
-            // Remove the replication group name from the SystemConsistencyGroup field
-            consistencyGroup.removeSystemConsistencyGroup(systemURI.toString(), groupName);
-
-            /*
-             * Verify if the BlockConsistencyGroup references any LOCAL arrays.
-             * If we no longer have any references we can remove the 'LOCAL' type from the BlockConsistencyGroup.
-             */
-            List<URI> referencedArrays = BlockConsistencyGroupUtils.getLocalSystems(consistencyGroup, _dbClient);
-            boolean cgReferenced = false;
-            for (URI storageSystemUri : referencedArrays) {
-                StringSet cgs = consistencyGroup.getSystemConsistencyGroups().get(storageSystemUri.toString());
-                if (cgs != null && !cgs.isEmpty()) {
-                    cgReferenced = true;
-                    break;
-                }
-            }
-
-            if (!cgReferenced) {
-                // Remove the LOCAL type
-                StringSet cgTypes = consistencyGroup.getTypes();
-                cgTypes.remove(BlockConsistencyGroup.Types.LOCAL.name());
-                consistencyGroup.setTypes(cgTypes);
-
-                // Remove the referenced storage system as well, but only if there are no other types
-                // of storage systems associated with the CG.
-                if (!BlockConsistencyGroupUtils.referencesNonLocalCgs(consistencyGroup, _dbClient)) {
-                    consistencyGroup.setStorageController(NullColumnValueGetter.getNullURI());
-
-                    // Update the consistency group model
-                    consistencyGroup.setInactive(markInactive);
-                }
-            }
-
-            _dbClient.updateObject(consistencyGroup);
+            // Clean up the system consistency group references
+            BlockConsistencyGroupUtils.cleanUpCGAndUpdate(consistencyGroup, storage.getId(), groupName, markInactive, _dbClient);
         } catch (Exception e) {
             _log.error("Failed to delete consistency group: ", e);
             serviceError = DeviceControllerErrors.smis.methodFailed("doDeleteConsistencyGroup", e.getMessage());
@@ -1955,8 +1933,8 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
                     }
                 }
                 if (volumeIds.isEmpty()) {
-                    cleanupCompleter.setSuccess(true);
                     _log.info("doCleanupMetaMembers: No meta members to cleanup in array.");
+                    cleanupCompleter.ready(_dbClient);
                 } else {
                     _log.info(String
                             .format("doCleanupMetaMembers: Members to cleanup in array: %n   %s",
@@ -2000,20 +1978,18 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
                 }
             } else {
                 _log.info("doCleanupMetaMembers: No meta members stored for meta volume. Nothing to cleanup in array.");
-                cleanupCompleter.setSuccess(true);
+                cleanupCompleter.ready(_dbClient);
             }
         } catch (WBEMException e) {
             _log.error("Problem making SMI-S call: ", e);
             ServiceError error = DeviceControllerErrors.smis.unableToCallStorageProvider(e
                     .getMessage());
-            cleanupCompleter.setError(error);
-            cleanupCompleter.setSuccess(false);
+            cleanupCompleter.error(_dbClient, error);
         } catch (Exception e) {
             _log.error("Problem in doCleanupMetaMembers: ", e);
             ServiceError error = DeviceControllerErrors.smis.methodFailed("doCleanupMetaMembers",
                     e.getMessage());
-            cleanupCompleter.setError(error);
-            cleanupCompleter.setSuccess(false);
+            cleanupCompleter.error(_dbClient, error);
         }
         _log.info(String.format("doCleanupMetaMembers End - Array: %s,  Volume: %s",
                 storageSystem.getSerialNumber(), volume.getLabel()));
@@ -2029,7 +2005,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
             ControllerServiceImpl.enqueueJob(new QueueJob(new SmisWaitForSynchronizedJob(clazz,
                     path, storageObj.getId(), completer)));
         } catch (Exception e) {
-            _log.info("Problem making SMI-S call: " + e);
+            _log.error("Problem making SMI-S call: ", e);
             ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
             completer.error(_dbClient, serviceError);
         }
@@ -3324,5 +3300,23 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
             _log.error(errMsg);
             throw DeviceControllerException.exceptions.couldNotPerformAliasOperation(errMsg);
         }
+    }
+    
+    @Override
+    public void doExportAddPaths(final StorageSystem storage, final URI exportMask,
+            final Map<URI, List<URI>> newPaths, final TaskCompleter taskCompleter)
+                    throws DeviceControllerException {
+        _log.info("{} doExportAddPaths START ...", storage.getSerialNumber());
+        _exportMaskOperationsHelper.addPaths(storage, exportMask, newPaths, taskCompleter);
+        _log.info("{} doExportAddPaths END ...", storage.getSerialNumber());
+    }
+    
+    @Override
+    public void doExportRemovePaths(final StorageSystem storage, final URI exportMask, final Map<URI, List<URI>> adjustedPaths,
+            final Map<URI, List<URI>> removePaths, final TaskCompleter taskCompleter)
+                    throws DeviceControllerException {
+        _log.info("{} doExportRemovePaths START ...", storage.getSerialNumber());
+        _exportMaskOperationsHelper.removePaths(storage, exportMask, adjustedPaths, removePaths, taskCompleter);
+        _log.info("{} doExportRemovePaths END ...", storage.getSerialNumber());
     }
 }

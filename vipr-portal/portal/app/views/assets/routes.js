@@ -83,11 +83,15 @@ var routes = {
 
   AuditLog_list: #{jsAction @infra.AuditLog.list() /},
   AuditLog_download: #{jsAction @infra.AuditLog.download() /},
+  
+  Order_list: #{jsAction @catalog.Orders.list() /},
+  Order_allOrders: #{jsAction @catalog.Orders.allOrders() /},
 
   FileSystems_fileSystemExportsJson: #{jsAction @resources.FileSystems.fileSystemExportsJson() /},
   FileSystems_save: #{jsAction @resources.FileSystems.save() /},
   FileSystems_fileSystemQuotaJson: #{jsAction @resources.FileSystems.fileSystemQuotaJson() /},
   FileSystems_getScheculePolicies: #{jsAction @resources.FileSystems.getScheculePolicies() /},
+  FileSystems_getTargetVArrys: #{jsAction @resources.FileSystems.getTargetVArrys() /},
 
   FileSnapshots_fileSnapshotExportsJson: #{jsAction @resources.FileSnapshots.fileSnapshotExportsJson() /},
   FileSnapshots_save: #{jsAction @resources.FileSnapshots.save() /},
@@ -106,6 +110,8 @@ var routes = {
   VirtualArrays_pools: #{jsAction @VirtualArrays.storagePoolsJson(':id') /},
   Networks_getDisconnectedStorage: #{jsAction @arrays.Networks.getDisconnectedStorage(':ids') /},
   VirtualArrays_getDisconnectedStorage: #{jsAction @VirtualArrays.getDisconnectedStorage(':ids') /},
-  VirtualPools_checkDisconnectedStoragePools: #{jsAction @arrays.BlockVirtualPools.checkDisconnectedStoragePools(':ids') /}
-
+  VirtualPools_checkDisconnectedStoragePools: #{jsAction @arrays.BlockVirtualPools.checkDisconnectedStoragePools(':ids') /},
+  FileProtectionPolicy_details: #{jsAction @arrays.FileProtectionPolicies.details(':id') /},
+  FileProtectionPolicy_getVpoolForProtectionPolicy: #{jsAction @arrays.FileProtectionPolicies.getVpoolForProtectionPolicy(':id') /},
+  FileProtectionPolicy_getVarraysAssociatedWithPools: #{jsAction @arrays.FileProtectionPolicies.getVarraysAssociatedWithPools(':id') /}
 };

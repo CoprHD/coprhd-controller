@@ -20,6 +20,7 @@ import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.BlockSnapshot.TechnologyType;
+import com.emc.storageos.db.client.model.util.TagUtils;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 
 /**
@@ -95,6 +96,9 @@ public class Volume extends BlockObject implements ProjectResource {
     private StringSet volumeGroupIds;
     // Compression ratio of the volume if it is compressed
     private String _compressedRatio = null;
+    // VPLEX virtual volumes only: Name reference of replication group 
+    // that this Volume's backing Volumes belong to.
+    private String _backingReplicationGroupInstance;
 
     // The value alignments 0-4 correspond to SMIS values. Other storage types must map to these values.
     public static enum VolumeAccessState {
@@ -937,25 +941,38 @@ public class Volume extends BlockObject implements ProjectResource {
      * @return
      */
     public static Volume fetchVplexVolume(DbClient dbClient, Volume volume) {
-        Volume vplexVolume = null;
+        URI vplexVolumeURI = fetchVplexVolume(dbClient, volume.getId());
+        if (vplexVolumeURI != null) {
+            return dbClient.queryObject(Volume.class, vplexVolumeURI);
+        }
+        return null;
+    }
+
+    /**
+     * Given a volume, this is an utility method that returns the VPLEX virtual volume ID that this volume is associated
+     * with. It is a more efficient implementation comparing with the other fetchVplexVOlume. Sometimes we need volume URI only
+     * 
+     * @param dbClient
+     * @param volumeUri 
+     * @return
+     */
+    public static URI fetchVplexVolume(DbClient dbClient, URI volumeUri) {
         URIQueryResultList queryResults = new URIQueryResultList();
         dbClient.queryByConstraint(AlternateIdConstraint.Factory
-                .getVolumeByAssociatedVolumesConstraint(volume.getId().toString()),
+                .getVolumeByAssociatedVolumesConstraint(volumeUri.toString()),
                 queryResults);
 
         if (queryResults.iterator().hasNext()) {
             while (queryResults.iterator().hasNext()) {
                 URI vplexVolumeURI = queryResults.iterator().next();
                 if (vplexVolumeURI != null) {
-                    vplexVolume = dbClient.queryObject(Volume.class, vplexVolumeURI);
-                    break;
+                    return vplexVolumeURI;
                 }
             }
         }
-
-        return vplexVolume;
+        return null;
     }
-
+    
     /**
      * Check if the volume is a VPLEX volume.
      *
@@ -1127,4 +1144,24 @@ public class Volume extends BlockObject implements ProjectResource {
         this._compressedRatio = compressionRatio;
         setChanged("compressionRatio");
     }
+
+    @Name("backingReplicationGroupInstance")
+    public String getBackingReplicationGroupInstance() {
+        return _backingReplicationGroupInstance;
+    }
+
+    public void setBackingReplicationGroupInstance(String backingReplicationGroupInstance) {
+        _backingReplicationGroupInstance = backingReplicationGroupInstance;
+        setChanged("backingReplicationGroupInstance");
+    }
+
+    /**
+     * Return the volume's boot volume tag, if available.
+     * 
+     * @return usually the Host URI of the volume, but it's really a string.  Let the caller cast it.
+     */
+    public String bootVolumeTagValue() {
+        return TagUtils.getBlockVolumeBootVolume(this);
+    }
+    
 }

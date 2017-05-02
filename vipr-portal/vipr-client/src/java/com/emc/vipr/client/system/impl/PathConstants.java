@@ -25,6 +25,7 @@ public class PathConstants {
     public static final String BACKUP_PULL_CANCEL_URL = BACKUP_URL + "pull/cancel";
     public static final String RESTORE_URL = BACKUP_URL + "restore/";
     public static final String RESTORE_STATUS_URL = BACKUP_URL + "restore/status";
+    public static final String BACKUP_STATUS_URL = BACKUP_URL + "backup-status";
 
     public static final String CHECKDB_URL="/control/db";
     public static final String CHECKDB_GET_URL = CHECKDB_URL + "/consistency";
@@ -49,6 +50,7 @@ public class PathConstants {
     public static final String CONTROL_REBOOT_NODE_URL = CONTROL_URL + "/node/reboot";
     public static final String CONTROL_POWER_OFF_CLUSTER_URL = CONTROL_URL + "/cluster/poweroff";
     public static final String CLUSTER_NODE_RECOVERY_URL = CONTROL_URL + "/cluster/recovery";
+    public static final String CLUSTER_RECOVERY_PRECHECK_URL = CONTROL_URL + "/cluster/recovery/precheck-status";
     public static final String CLUSER_IP_INFO_URL = CONTROL_URL + "/cluster/ipinfo";
     public static final String CLUSER_IP_RECONFIG_URL = CONTROL_URL + "/cluster/ipreconfig";
     public static final String CLUSER_IP_RECONFIG_STATUS_URL = CONTROL_URL + "/cluster/ipreconfig_status";

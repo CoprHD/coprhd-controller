@@ -59,36 +59,39 @@ add_initiator_to_mask() {
 }
 
 verify_export() {
-    # Parameters: Initiator group Name, Number of Initiators, Number of Luns
+    # Parameters: Initiator group Name, Number of Initiators, Number of Luns, HLU
     # If checking if the Initiator group does not exist, then parameter $2 should be "gone"
     IG_PATTERN=$1
     NUM_INITIATORS=$2
     NUM_LUNS=$3
+    HLUS=$4
     TMPFILE1=/tmp/verify-${RANDOM}
     TMPFILE2=/dev/null
-
+    
     java -Dproperty.file=${tools_file} -jar ${tools_jar} -arrays xtremio -method get_initiator_group -params ${IG_PATTERN} > ${TMPFILE1} 2> ${TMPFILE2}
-    grep -n ${IG_PATTERN} ${TMPFILE1} > /dev/null
+    grep -n ${IG_PATTERN} ${TMPFILE1} 2> /dev/null
     if [ $? -ne 0 ]
+    then
+    if [ "$2" = "gone" ]
 	then
-	if [ "$2" = "gone" ]
-	    then
-	    echo "PASSED: Verified MaskingView with pattern ${IG_PATTERN} doesn't exist."
-	    exit 0;
-	fi
-	echo -e "\e[91mERROR\e[0m: Expected MaskingView ${IG_PATTERN}, but could not find it";
-	exit 1;
-    else
-	if [ "$2" = "gone" ]
-	    then
-	    echo -e "\e[91mERROR\e[0m: Expected MaskingView ${IG_PATTERN} to be gone, but it was found"
-	    exit 1;
-	fi
+	echo "PASSED: Verified MaskingView with pattern ${IG_PATTERN} doesn't exist."
+	exit 0;
     fi
-
+    echo -e "\e[91mERROR\e[0m::expected  MaskingView with pattern ${IG_PATTERN} doesn't exist.";
+    exit 1;
+    
+    else 
+    if [ "$2" = "gone" ]
+	then
+	echo -e "\e[91mERROR\e[0m: Expected MaskingView ${IG_PATTERN} to be gone, but it was found";
+	exit 1;
+    fi
+    fi
     num_inits=`grep -Po '(?<="numberOfInitiators":")[^"]*' ${TMPFILE1}`
     num_luns=`grep -Po '(?<="numberOfVolumes":")[^"]*' ${TMPFILE1}`
+	hlus=`grep -Po '(?<="usedHLUs:)[^"]*' ${TMPFILE1}`
     failed=false
+    echo $num_inits $num_luns $hlus
 
     if [ ${num_inits} -ne ${NUM_INITIATORS} ]
 	then
@@ -102,12 +105,24 @@ verify_export() {
 	failed=true
     fi
 
+	if [ -n "${HLUS}" ]
+	then	
+		hlu_arr=(${HLUS//,/, })
+		hlus=${hlus:1:-1}	
+		if [  "${hlus[*]}" != "${hlu_arr[*]}" ]
+		then
+			echo -e "\e[91mERROR\e[0m: Export group hlus: Expected: ${hlu_arr[*]} Retrieved: ${hlus[*]}";
+			failed=true
+		fi
+	fi
+	
+
     if [ "${failed}" = "true" ]
 	then
 	exit 1;
     fi
 
-    echo "PASSED: Initiator group '$1' contained $2 initiators and $3 luns"
+    echo "PASSED: Initiator group '$1' contained $2 initiators and $3 luns with $4 hlus";
     exit 0;
 }
 

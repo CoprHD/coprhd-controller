@@ -8,6 +8,7 @@ import static com.emc.sa.service.ServiceParams.LINKED_SNAPSHOT_COPYMODE;
 import static com.emc.sa.service.ServiceParams.LINKED_SNAPSHOT_COUNT;
 import static com.emc.sa.service.ServiceParams.LINKED_SNAPSHOT_NAME;
 import static com.emc.sa.service.ServiceParams.NAME;
+import static com.emc.sa.service.ServiceParams.PROJECT;
 import static com.emc.sa.service.ServiceParams.READ_ONLY;
 import static com.emc.sa.service.ServiceParams.STORAGE_TYPE;
 import static com.emc.sa.service.ServiceParams.TYPE;
@@ -18,6 +19,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import com.emc.sa.asset.providers.BlockProvider;
+import com.emc.sa.engine.ExecutionContext;
 import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.engine.bind.Param;
 import com.emc.sa.engine.service.Service;
@@ -26,6 +28,7 @@ import com.emc.sa.service.vipr.block.tasks.CreateBlockSnapshot;
 import com.emc.sa.service.vipr.block.tasks.CreateBlockSnapshotSession;
 import com.emc.sa.service.vipr.block.tasks.DeactivateBlockSnapshot;
 import com.emc.sa.service.vipr.block.tasks.DeactivateBlockSnapshotSession;
+import com.emc.storageos.coordinator.client.model.Constants;
 import com.emc.storageos.db.client.model.uimodels.RetainedReplica;
 import com.emc.storageos.model.DataObjectRestRep;
 import com.emc.storageos.model.block.BlockConsistencyGroupRestRep;
@@ -38,6 +41,9 @@ import com.emc.vipr.client.Tasks;
 @Service("CreateBlockSnapshot")
 public class CreateBlockSnapshotService extends ViPRService {
 
+    @Param(PROJECT)
+    protected URI project;
+    
     @Param(value = STORAGE_TYPE, required = false)
     protected String storageType;
 
@@ -109,6 +115,19 @@ public class CreateBlockSnapshotService extends ViPRService {
                 }
             }
         }
+
+        // Show alert in case of approaching 90% of the limit
+        ExecutionContext context = ExecutionUtils.currentContext();
+        long limit = context.getResourceLimit(Constants.RESOURCE_LIMIT_PROJECT_SNAPSHOTS);
+        int numOfSnapshots = 0;
+        if(BlockProvider.SNAPSHOT_SESSION_TYPE_VALUE.equals(type) || BlockProvider.CG_SNAPSHOT_SESSION_TYPE_VALUE.equals(type)) {
+            numOfSnapshots = getClient().blockSnapshotSessions().countByProject(project);
+        }  else {
+            numOfSnapshots = getClient().blockSnapshots().countByProject(project);
+        }
+        if (numOfSnapshots  >= limit * Constants.RESOURCE_LIMIT_ALERT_RATE) {
+            context.logWarn("alert.createSnapshot.exceedingResourceLimit", numOfSnapshots, limit);
+        }
     }
 
     @Override
@@ -155,6 +174,8 @@ public class CreateBlockSnapshotService extends ViPRService {
         }
         List<RetainedReplica> replicas = findObsoleteReplica(volumeOrCgId);
         for (RetainedReplica replica : replicas) {
+            if(replica.getAssociatedReplicaIds() == null || replica.getAssociatedReplicaIds().isEmpty())
+                continue;
             for (String obsoleteSnapshotId : replica.getAssociatedReplicaIds()) {
                 info("Deactivating snapshot %s since it exceeds max number of snapshots allowed", obsoleteSnapshotId);
                 

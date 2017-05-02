@@ -42,6 +42,7 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
+import org.springframework.util.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -335,6 +336,7 @@ public class BlockVirtualPoolService extends VirtualPoolService {
     @CheckPermission(roles = { Role.SECURITY_ADMIN, Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN }, blockProxies = true)
     public ACLAssignments updateAcls(@PathParam("id") URI id,
             ACLAssignmentChanges changes) {
+        
         return updateAclsOnVirtualPool(VirtualPool.Type.block, id, changes);
     }
 

@@ -46,6 +46,7 @@ import controllers.util.Models;
 @Restrictions({ @Restrict("TENANT_ADMIN"), @Restrict("PROJECT_ADMIN") })
 public class ConsistencyGroups extends Controller {
 	private static final String ACTIVE_PROJECT_ID = "activeProjectId";
+	private static final String PATTERN = "^[a-zA-Z0-9_-]*$";
 
 	public static void list() {
 		BlockConsistencyGroupDataTable dataTable = new BlockConsistencyGroupDataTable();
@@ -170,6 +171,9 @@ public class ConsistencyGroups extends Controller {
 
 		public void validate(String formName) {
 			Validation.valid(formName, this);
+			if(!this.name.matches(PATTERN)) {
+			    Validation.addError(formName + ".name","Use only aphanumeric characters");
+			}
 		}
 
 	}

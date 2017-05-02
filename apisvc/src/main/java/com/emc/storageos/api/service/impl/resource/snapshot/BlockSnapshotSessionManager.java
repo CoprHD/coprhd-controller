@@ -361,11 +361,11 @@ public class BlockSnapshotSessionManager {
                 taskId, getCreateResourceOperationTypeEnum(snapSession));
         snapSession.getOpStatus().put(taskId, snapSessionOp);
 
+        response.getTaskList().add(toTask(snapSession, taskId, snapSessionOp));
         if (snapSession.hasConsistencyGroup()) {
             addConsistencyGroupTasks(snapSessionSourceObjList, response, taskId,
                     getCreateResourceOperationTypeEnum(snapSession));
         } else {
-            response.getTaskList().add(toTask(snapSession, taskId, snapSessionOp));
             for (BlockObject sourceForTask : snapSessionSourceObjList) {
                 @SuppressWarnings("unchecked")
                 Operation op = _dbClient.createTaskOpStatus(URIUtil.getModelClass(sourceForTask.getId()),
@@ -858,11 +858,10 @@ public class BlockSnapshotSessionManager {
         snapSessionOp.setResourceType(getDeleteResourceOperationTypeEnum(snapSession));
         _dbClient.createTaskOpStatus(BlockSnapshotSession.class, snapSession.getId(), taskId, snapSessionOp);
         snapSession.getOpStatus().put(taskId, snapSessionOp);
+        taskList.addTask(toTask(snapSession, taskId, snapSessionOp));
 
         if (snapSession.hasConsistencyGroup() && NullColumnValueGetter.isNotNullValue(snapSession.getReplicationGroupInstance())) {
             addConsistencyGroupTasks(snapSessionSourceObjs, taskList, taskId, getDeleteResourceOperationTypeEnum(snapSession));
-        } else {
-            taskList.addTask(toTask(snapSession, taskId, snapSessionOp));
         }
 
         // Delete the snapshot session.

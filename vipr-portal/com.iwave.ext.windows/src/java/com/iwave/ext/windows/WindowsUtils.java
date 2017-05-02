@@ -50,6 +50,7 @@ public class WindowsUtils {
     public static List<String> getMountVolumeCommands(int volumeNumber, String mountpoint) {
         List<String> commands = Lists.newArrayList();
         commands.add("SELECT VOLUME " + volumeNumber);
+        commands.add("ONLINE VOLUME");
         commands.add(getAssignCommand(mountpoint));
         return commands;
     }
@@ -83,7 +84,7 @@ public class WindowsUtils {
     }
 
     private static List<String> getFormatCommands(String fsType, String allocationUnitSize, String label, String partitionType) {
-        return Lists.newArrayList("CLEAN", getPartitionType(partitionType), "CREATE PARTITION PRIMARY",
+        return Lists.newArrayList("CLEAN", getPartitionType(partitionType), "CREATE PARTITION PRIMARY", "ONLINE VOLUME",
                 getFormatCommand(fsType, allocationUnitSize, label));
     }
 

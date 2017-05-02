@@ -19,6 +19,7 @@ import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Vcenter;
 import com.emc.storageos.db.client.model.VcenterDataCenter;
 import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
@@ -78,10 +79,10 @@ public class VcenterControllerImpl implements VcenterController {
                     + cluster.getLabel() + "/" + host.getHostName());
 
             vcenterApiClient = new VcenterApiClient(_coordinator.getPropertyInfo());
-            vcenterApiClient.setup(vcenter.getIpAddress(), vcenter.getUsername(), vcenter.getPassword());
+            vcenterApiClient.setup(vcenter.getIpAddress(), vcenter.getUsername(), vcenter.getPassword(), vcenter.getPortNumber());
             return runningOnly ? vcenterApiClient.getRunningVirtualMachines(vcenterDataCenter.getLabel(), cluster.getExternalId(),
                     host.getHostName()) : vcenterApiClient.getVirtualMachines(vcenterDataCenter.getLabel(), cluster.getExternalId(),
-                    host.getHostName());
+                            host.getHostName());
         } catch (VcenterObjectConnectionException e) {
             throw VcenterControllerException.exceptions.objectConnectionException(e.getLocalizedMessage(), e);
         } catch (VcenterObjectNotFoundException e) {
@@ -118,7 +119,7 @@ public class VcenterControllerImpl implements VcenterController {
                     + cluster.getLabel());
 
             vcenterApiClient = new VcenterApiClient(_coordinator.getPropertyInfo());
-            vcenterApiClient.setup(vcenter.getIpAddress(), vcenter.getUsername(), vcenter.getPassword());
+            vcenterApiClient.setup(vcenter.getIpAddress(), vcenter.getUsername(), vcenter.getPassword(), vcenter.getPortNumber());
             return runningOnly ? vcenterApiClient.getRunningVirtualMachines(vcenterDataCenter.getLabel(), cluster.getExternalId())
                     : vcenterApiClient.getVirtualMachines(vcenterDataCenter.getLabel(), cluster.getExternalId());
         } catch (VcenterObjectNotFoundException e) {
@@ -157,7 +158,7 @@ public class VcenterControllerImpl implements VcenterController {
                     + cluster.getLabel() + "/" + host.getHostName());
 
             vcenterApiClient = new VcenterApiClient(_coordinator.getPropertyInfo());
-            vcenterApiClient.setup(vcenter.getIpAddress(), vcenter.getUsername(), vcenter.getPassword());
+            vcenterApiClient.setup(vcenter.getIpAddress(), vcenter.getUsername(), vcenter.getPassword(), vcenter.getPortNumber());
             vcenterApiClient.enterMaintenanceMode(vcenterDataCenter.getLabel(), cluster.getExternalId(), host.getHostName());
         } catch (VcenterObjectConnectionException e) {
             throw VcenterControllerException.exceptions.objectConnectionException(e.getLocalizedMessage(), e);
@@ -187,7 +188,7 @@ public class VcenterControllerImpl implements VcenterController {
                     + cluster.getLabel() + "/" + host.getHostName());
 
             vcenterApiClient = new VcenterApiClient(_coordinator.getPropertyInfo());
-            vcenterApiClient.setup(vcenter.getIpAddress(), vcenter.getUsername(), vcenter.getPassword());
+            vcenterApiClient.setup(vcenter.getIpAddress(), vcenter.getUsername(), vcenter.getPassword(), vcenter.getPortNumber());
             vcenterApiClient.exitMaintenanceMode(vcenterDataCenter.getLabel(), cluster.getExternalId(), host.getHostName());
         } catch (VcenterObjectConnectionException e) {
             throw VcenterControllerException.exceptions.objectConnectionException(e.getLocalizedMessage(), e);
@@ -325,7 +326,7 @@ public class VcenterControllerImpl implements VcenterController {
             Vcenter vcenter = _dbClient.queryObject(Vcenter.class, vcenterId);
 
             vcenterApiClient = new VcenterApiClient(_coordinator.getPropertyInfo());
-            vcenterApiClient.setup(vcenter.getIpAddress(), vcenter.getUsername(), vcenter.getPassword());
+            vcenterApiClient.setup(vcenter.getIpAddress(), vcenter.getUsername(), vcenter.getPassword(), vcenter.getPortNumber());
             String vcenterClusterId = null;
             if (createCluster) {
                 _log.info("Create cluster with name " + cluster.getLabel());
@@ -375,16 +376,16 @@ public class VcenterControllerImpl implements VcenterController {
             Host host = _dbClient.queryObject(Host.class, hostId);
 
             vcenterApiClient = new VcenterApiClient(_coordinator.getPropertyInfo());
-            vcenterApiClient.setup(vcenter.getIpAddress(), vcenter.getUsername(), vcenter.getPassword());
+            vcenterApiClient.setup(vcenter.getIpAddress(), vcenter.getUsername(), vcenter.getPassword(), vcenter.getPortNumber());
             vcenterApiClient.removeHost(vcenterDataCenter.getLabel(), cluster.getExternalId(), host.getHostName());
             _log.info("Successfully removed host " + host.getHostName());
 
-            host.setVcenterDataCenter(null); // Probably doesnt work
-            _dbClient.updateAndReindexObject(host);
+            host.setVcenterDataCenter(NullColumnValueGetter.getNullURI());
+            _dbClient.updateObject(host);
 
             WorkflowStepCompleter.stepSucceded(stepId);
         } catch (Exception e) {
-            _log.error("vcenterClusterAddHostOperation exception " + e);
+            _log.error("vcenterClusterRemoveHostOperation exception ", e);
             WorkflowStepCompleter.stepFailed(stepId, VcenterControllerException.exceptions.hostException(e.getLocalizedMessage(), e));
         } finally {
             if (vcenterApiClient != null) {
@@ -404,7 +405,7 @@ public class VcenterControllerImpl implements VcenterController {
             Host host = _dbClient.queryObject(Host.class, hostId);
 
             vcenterApiClient = new VcenterApiClient(_coordinator.getPropertyInfo());
-            vcenterApiClient.setup(vcenter.getIpAddress(), vcenter.getUsername(), vcenter.getPassword());
+            vcenterApiClient.setup(vcenter.getIpAddress(), vcenter.getUsername(), vcenter.getPassword(), vcenter.getPortNumber());
             String key = vcenterApiClient.addHost(vcenterDataCenter.getLabel(), cluster.getExternalId(), host.getHostName(),
                     host.getUsername(), host.getPassword());
             _log.info("Successfully added or located host " + host.getHostName() + " " + key);
@@ -435,7 +436,7 @@ public class VcenterControllerImpl implements VcenterController {
             Collection<Host> hosts = _dbClient.queryObject(Host.class, hostUris);
 
             vcenterApiClient = new VcenterApiClient(_coordinator.getPropertyInfo());
-            vcenterApiClient.setup(vcenter.getIpAddress(), vcenter.getUsername(), vcenter.getPassword());
+            vcenterApiClient.setup(vcenter.getIpAddress(), vcenter.getUsername(), vcenter.getPassword(), vcenter.getPortNumber());
 
             Host hostForStorageOperations = null;
             for (Host host : hosts) {
@@ -489,7 +490,7 @@ public class VcenterControllerImpl implements VcenterController {
             Volume volume = _dbClient.queryObject(Volume.class, volumeId);
 
             vcenterApiClient = new VcenterApiClient(_coordinator.getPropertyInfo());
-            vcenterApiClient.setup(vcenter.getIpAddress(), vcenter.getUsername(), vcenter.getPassword());
+            vcenterApiClient.setup(vcenter.getIpAddress(), vcenter.getUsername(), vcenter.getPassword(), vcenter.getPortNumber());
             String key = vcenterApiClient.createDatastore(vcenterDataCenter.getLabel(), cluster.getExternalId(), host.getHostName(),
                     volume.getWWN(), volume.getLabel());
             _log.info("Successfully created or located datastore " + volume.getLabel() + " " + key);
@@ -518,7 +519,7 @@ public class VcenterControllerImpl implements VcenterController {
             _log.info("Request to remove cluster " + vcenter.getLabel() + "/" + vcenterDataCenter.getLabel() + "/" + cluster.getLabel());
 
             vcenterApiClient = new VcenterApiClient(_coordinator.getPropertyInfo());
-            vcenterApiClient.setup(vcenter.getIpAddress(), vcenter.getUsername(), vcenter.getPassword());
+            vcenterApiClient.setup(vcenter.getIpAddress(), vcenter.getUsername(), vcenter.getPassword(), vcenter.getPortNumber());
             vcenterApiClient.removeCluster(vcenterDataCenter.getLabel(), cluster.getExternalId());
         } catch (VcenterObjectConnectionException e) {
             throw VcenterControllerException.exceptions.objectConnectionException(e.getLocalizedMessage(), e);
@@ -534,5 +535,38 @@ public class VcenterControllerImpl implements VcenterController {
                 vcenterApiClient.destroy();
             }
         }
+    }
+
+    @Override
+    public boolean checkVMsOnHostBootVolume(URI datacenterUri, URI clusterUri, URI hostId, URI bootVolumeId) {
+        VcenterApiClient vcenterApiClient = null;
+        boolean isVMsPresent = false;
+        try {
+            VcenterDataCenter vcenterDataCenter = _dbClient.queryObject(VcenterDataCenter.class, datacenterUri);
+            Cluster cluster = _dbClient.queryObject(Cluster.class, clusterUri);
+            Vcenter vcenter = _dbClient.queryObject(Vcenter.class, vcenterDataCenter.getVcenter());
+            Host host = _dbClient.queryObject(Host.class, hostId);
+            Volume volume = _dbClient.queryObject(Volume.class, bootVolumeId);
+            _log.info("Request to check VMs on boot volume {} of host {}", volume.getLabel() +" - " +bootVolumeId, host.getLabel());
+
+            vcenterApiClient = new VcenterApiClient(_coordinator.getPropertyInfo());
+            vcenterApiClient.setup(vcenter.getIpAddress(), vcenter.getUsername(), vcenter.getPassword(), vcenter.getPortNumber());
+            isVMsPresent = vcenterApiClient.checkVMsOnHostVolume(vcenterDataCenter.getLabel(), cluster.getExternalId(),
+                    host.getHostName(), volume.getWWN());
+        } catch (VcenterObjectConnectionException e) {
+            throw VcenterControllerException.exceptions.objectConnectionException(e.getLocalizedMessage(), e);
+        } catch (VcenterObjectNotFoundException e) {
+            throw VcenterControllerException.exceptions.objectNotFoundException(e.getLocalizedMessage(), e);
+        } catch (VcenterServerConnectionException e) {
+            throw VcenterControllerException.exceptions.serverConnectionException(e.getLocalizedMessage(), e);
+        } catch (Exception e) {
+            _log.error("checkVMsOnHostBootVolume exception ", e);
+            throw VcenterControllerException.exceptions.unexpectedException(e.getLocalizedMessage(), e);
+        } finally {
+            if (vcenterApiClient != null) {
+                vcenterApiClient.destroy();
+            }
+        }
+        return isVMsPresent;
     }
 }

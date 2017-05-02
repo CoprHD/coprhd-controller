@@ -89,13 +89,16 @@ public class Cluster extends AbstractTenantResource {
     /**
      * If discovery will automatically export to this cluster.
      * 
+     * @deprecated Clusters no longer use this value to determine auto export behavior.
      * @return
      */
     @Name("autoExportEnabled")
+    @Deprecated
     public Boolean getAutoExportEnabled() {
         return autoExportEnabled == null || autoExportEnabled;
     }
 
+    @Deprecated
     public void setAutoExportEnabled(Boolean autoExportEnabled) {
         this.autoExportEnabled = autoExportEnabled;
         setChanged("autoExportEnabled");

@@ -84,10 +84,12 @@ fi
 /* Due to a bug in Cassandra 2.1.11, we can't add sstable2json
  * script.
  * TODO: try this script if upgrading Cassandra
+*/
+/*
     sstable2json {
         mainClass = "org.apache.cassandra.tools.SSTableExport"
         extraDefines = """
-if [[ \$1 == "StorageOS" ]]; then
+if [[ \$1 =~ "^/data/db" ]]; then
         extraJvmArgs=" -Dcassandra.storagedir=/data/db/1/data"
         extraJvmArgs+=" -Dcassandra.config=db-tool-conf.yaml"
 else 
@@ -98,7 +100,7 @@ fi
         jvmArgs += " \\\n     \${extraJvmArgs}"
         service = false
     }
-*/
+ */
 }
 
 dependencies {

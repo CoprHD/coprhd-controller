@@ -20,6 +20,7 @@ public class VNXeConstants {
     public static final String IPADDRESS_FILTER = "address eq ";
     public static final String AND = " and ";
     public static final String INITIATORID_FILTER = "initiatorId eq ";
+    public static final String PARENT_HOST_FILTER = "parentHost eq ";
     public static final String LUN_FILTER = "lun.id eq ";
     public static final String LUN_SNAP_FILTER = "lunSnap.id eq ";
     public static final String PORTWWN_FILTER = "portWWN eq ";

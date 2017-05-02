@@ -20,6 +20,7 @@ import javax.ws.rs.core.UriInfo;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.util.StringUtils;
 
 import com.emc.storageos.Controller;
 import com.emc.storageos.api.service.authorization.PermissionsHelper;
@@ -123,6 +124,10 @@ public class DefaultBlockSnapshotSessionApiImpl implements BlockSnapshotSessionA
 
         // Verify a name length does not exceed the maximum snapshot name length
         ArgValidator.checkFieldLengthMaximum(name, SmisConstants.MAX_SMI80_SNAPSHOT_NAME_LENGTH, "name");
+        if (StringUtils.hasText(newTargetsName)) {
+            // Verify a name length does not exceed the maximum snapshot name length
+            ArgValidator.checkFieldLengthMaximum(newTargetsName, SmisConstants.MAX_SMI80_SNAPSHOT_NAME_LENGTH, "Target Name");
+        }
 
         // Verify the source objects.
         List<Volume> sourceVolumeList = new ArrayList<Volume>();
@@ -167,6 +172,9 @@ public class DefaultBlockSnapshotSessionApiImpl implements BlockSnapshotSessionA
 
                 // Check for duplicate name.
                 checkForDuplicateSnapshotName(name, sourceVolume);
+                if (StringUtils.hasText(newTargetsName)) {
+                    checkForDuplicateSnapshotName(newTargetsName, sourceVolume);
+                }
 
                 // Verify the new target count. There can be restrictions on the
                 // number of targets that can be linked to the snapshot sessions
@@ -409,6 +417,7 @@ public class DefaultBlockSnapshotSessionApiImpl implements BlockSnapshotSessionA
                     label = String.format("%s-%s", snapsetLabel, ++count);
                 }
 
+                BlockServiceUtils.checkForDuplicateArraySnapshotName(snapsetLabel, sourceObj.getId(), _dbClient);
                 BlockSnapshot blockSnapshot = prepareSnapshotForSession(sourceObj, snapsetLabel, label);
                 targetMap.put(blockSnapshot.getId(), blockSnapshot);
             }

@@ -111,7 +111,7 @@ public interface VPlexApiExceptions {
             final Throwable cause);
 
     @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
-    public VPlexApiException failedToFindCluster(final String clusterName);
+    public VPlexApiException failedToFindCluster(final String clusterName, final String details);
 
     @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
     public VPlexApiException createConsistencyGroupFailureStatus(final String cgName,
@@ -595,7 +595,7 @@ public interface VPlexApiExceptions {
             final String cause);
 
     @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
-    public VPlexApiException setRebuildSetTransferSpeeFailureStatus(final String status,
+    public VPlexApiException setRebuildSetTransferSpeedFailureStatus(final String status,
             final String cause);
 
     @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
@@ -828,6 +828,9 @@ public interface VPlexApiExceptions {
     public VPlexApiException vplexFirmwareUpdateNeeded(final String why);
 
     @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
+    public VPlexApiException thinProvisioningVerificationFailed(final String storageSystemName);
+
+    @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
     public VPlexApiException vplexClusterConfigurationChangedFromMetroToLocal(final String systemNativeGuid, final String localAssemblyId);
 
     @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
@@ -844,4 +847,20 @@ public interface VPlexApiExceptions {
     
     @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
     public VPlexApiException failedGettingDistributedDevice(final String name);
+
+    @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
+    public VPlexApiException hluRetrievalFailed(final String message, final Throwable cause);
+
+    @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
+    public VPlexApiException cannotAddVolumesToExportGroupWithoutInitiators(final String exportGroupName);
+
+    @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
+    public VPlexApiException forgetVolumesFailed(final String volumeWWNs, final String vplexName, final String errMsg, final Throwable cause);
+
+    @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
+    public VPlexApiException existingMaskFoundDuringBootVolumeExport(final String maskNames, final String computeResource,
+            final String vplexClusterName);
+    
+    @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
+    public VPlexApiException logicalUnitsNotFoundForVolumes(final String volumeInfo);    
 }

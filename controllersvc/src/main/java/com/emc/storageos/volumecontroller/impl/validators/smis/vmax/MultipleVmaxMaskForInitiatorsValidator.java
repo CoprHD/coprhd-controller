@@ -4,30 +4,41 @@
  */
 package com.emc.storageos.volumecontroller.impl.validators.smis.vmax;
 
+import static com.emc.storageos.db.client.util.CommonTransformerFunctions.FCTN_VOLUME_URI_TO_STR;
+import static com.google.common.collect.Collections2.transform;
+import static com.google.common.collect.Lists.newArrayList;
+
+import java.net.URI;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+import javax.cim.CIMInstance;
+import javax.cim.CIMObjectPath;
+import javax.cim.CIMProperty;
+import javax.wbem.CloseableIterator;
+import javax.wbem.WBEMException;
+import javax.wbem.client.WBEMClient;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
-import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.QueryResultList;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringMap;
-import com.emc.storageos.db.client.util.StringSetUtil;
+import com.emc.storageos.volumecontroller.impl.smis.CIMPropertyFactory;
 import com.emc.storageos.volumecontroller.impl.smis.SmisConstants;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import javax.cim.CIMInstance;
-import javax.cim.CIMObjectPath;
-import java.net.URI;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Iterator;
-import java.util.List;
-
-import static com.emc.storageos.db.client.util.CommonTransformerFunctions.FCTN_VOLUME_URI_TO_STR;
-import static com.google.common.collect.Collections2.transform;
-import static com.google.common.collect.Lists.newArrayList;
+import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
+import com.google.common.base.Joiner;
+import com.google.common.collect.Sets;
 
 /**
  * Sub-class for {@link AbstractMultipleVmaxMaskValidator} in order to validate that a given
@@ -66,10 +77,11 @@ class MultipleVmaxMaskForInitiatorsValidator extends AbstractMultipleVmaxMaskVal
      * @param mask      The export mask in the ViPR request
      * @param assocMask An export mask found to be associated with {@code mask}
      * @return          true if validation passes, false otherwise.
+     * @throws WBEMException 
      * @throws IllegalArgumentException if {@code mask} and {@code assocMask} are equal
      */
     @Override
-    protected boolean validate(Initiator initiator, CIMInstance mask, CIMInstance assocMask) {
+    protected boolean validate(Initiator initiator, CIMInstance mask, CIMInstance assocMask) throws WBEMException {
         if (mask.equals(assocMask)) {
             throw new IllegalArgumentException("Mask instance parameters must not be equal");
         }
@@ -79,29 +91,59 @@ class MultipleVmaxMaskForInitiatorsValidator extends AbstractMultipleVmaxMaskVal
 
         log.info("MV {} is sharing an initiator with MV {}", name, assocName);
 
-        URI maskURI = getExportMaskURI(name);
-        URI assocMaskURI = getExportMaskURI(assocName);
+        ExportMask exportMask = ExportMaskUtils.getExportMaskByName(getDbClient(), storage.getId(), assocName);
 
         // Associated mask is under ViPR management
-        if (assocMaskURI == null) {
+        if (exportMask == null || hasExistingVolumes(getVolumesFromLunMaskingInstance(assocMask),exportMask)) {
             logFailure("associated mask is not under ViPR management");
             return false;
         }
 
-        List<ExportMask> masks = getMasks(maskURI, assocMaskURI);
-
-        URI groupURI = getExportGroupURI(maskURI);
-        URI assocGroupURI = getExportGroupURI(assocMaskURI);
-        // If the mask's export groups are different
-        if (groupURI == null || !groupURI.equals(assocGroupURI)) {
-            // ...and both masks reference the same set of Initiators
-            if (exportMasksHaveMatchingInitiators(masks)) {
-                logFailure("masks share the same initiators but exist in different export groups");
-                return false;
+        return true;
+    }
+    
+    private boolean hasExistingVolumes(Set<String> volumesFromLunMaskingInstance, ExportMask exportMask) {
+        // TODO Auto-generated method stub
+        for(String volumeWWN : volumesFromLunMaskingInstance) {
+            if(!exportMask.hasUserAddedVolume(volumeWWN)) {
+                log.info("Mask {} has existing volumes", exportMask.getMaskName());
+                return true;
             }
         }
+        return false;
+    }
 
-        return true;
+    /**
+     * Get Volumes from the Masking view.
+     * @param client
+     * @param instance
+     * @return
+     * @throws WBEMException
+     */
+    public Set<String> getVolumesFromLunMaskingInstance(CIMInstance instance) throws WBEMException {
+        Set<String> wwnList = new HashSet<String>();
+        CloseableIterator<CIMInstance> iterator = null;
+        
+        try {
+            log.info(String.format("getVolumesFromLunMaskingInstance(%s)", instance.getObjectPath().toString()));
+            iterator = getHelper().getAssociatorInstances(storage, instance.getObjectPath(), null, SmisConstants.CIM_STORAGE_VOLUME, null, null,
+                    SmisConstants.PS_EMCWWN);
+            while (iterator.hasNext()) {
+                CIMInstance cimInstance = iterator.next();
+                String wwn = CIMPropertyFactory.getPropertyValue(cimInstance, SmisConstants.CP_WWN_NAME);
+                wwnList.add(wwn);
+            }
+            log.info(String.format("getVolumesFromLunMaskingInstance(%s)", instance.getObjectPath().toString()));
+        } catch (WBEMException we) {
+            log.error("Caught an error will attempting to get volume list from " + "masking instance", we);
+            throw we;
+        } finally {
+            if (null != iterator) {
+                iterator.close();
+            }
+        }
+        return wwnList;
+        
     }
 
     @Override
@@ -147,11 +189,6 @@ class MultipleVmaxMaskForInitiatorsValidator extends AbstractMultipleVmaxMaskVal
         return dataObjects;
     }
 
-    private List<ExportMask> getMasks(URI... masks) {
-        Iterator<ExportMask> it = getDbClient().queryIterativeObjects(ExportMask.class, newArrayList(masks), true);
-        return newArrayList(it);
-    }
-
     private void checkRequestedInitiatorsBelongToMask() {
         StringMap userAddedInitiators = exportMask.getUserAddedInitiators();
 
@@ -164,37 +201,17 @@ class MultipleVmaxMaskForInitiatorsValidator extends AbstractMultipleVmaxMaskVal
 
         for (String reqInitiatorURI : reqInitiatorURIs) {
             if (!maskInitiatorURIs.contains(reqInitiatorURI)) {
-                String msg = String.format("Requested initiator %s does not belong in mask %s", reqInitiatorURI, exportMask);
-                throw new IllegalArgumentException(msg);
+                String msg = String.format("Requested initiator %s does not belong to mask %s", reqInitiatorURI, exportMask);
+                log.warn(msg);
+                // COP-27899: This check does not work well when initiator update operations fail to complete, or when
+                // external operations (outside of ViPR) remove initiators from a mask, and we're just trying to update
+                // our internal data structures.
+                //
+                // throw new IllegalArgumentException(msg);
             }
         }
     }
     
-    private URI getExportMaskURI(String maskName) {
-        QueryResultList<URI> result = new URIQueryResultList();
-        getDbClient().queryByConstraint(AlternateIdConstraint.Factory.getExportMaskByNameConstraint(maskName), result);
-        return result.iterator().next();
-    }
-    
-    private URI getExportGroupURI(URI maskURI) {
-        QueryResultList<URI> result = new URIQueryResultList();
-        getDbClient().queryByConstraint(ContainmentConstraint.Factory.getExportMaskExportGroupConstraint(maskURI),
-                result);
-
-        Iterator<URI> iterator = result.iterator();
-        if (iterator.hasNext()) {
-            return result.iterator().next();
-        }
-        return null;
-    }
-
-    private boolean exportMasksHaveMatchingInitiators(Collection<ExportMask> exportMasks) {
-        Iterator<ExportMask> iterator = exportMasks.iterator();
-        ExportMask first = iterator.next();
-        ExportMask second = iterator.next();
-        return StringSetUtil.areEqual(first.getInitiators(), second.getInitiators());
-    }
-
     private void logFailure(String reason) {
         log.warn(String.format(FAILING_MSG, reason));
     }

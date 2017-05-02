@@ -5,34 +5,27 @@
 
 package com.emc.storageos.dbcli;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.util.*;
-import java.util.Map.Entry;
-import java.net.URI;
 import java.beans.BeanInfo;
 import java.beans.IntrospectionException;
 import java.beans.Introspector;
 import java.beans.PropertyDescriptor;
-
-import com.emc.storageos.db.client.model.*;
-import com.emc.storageos.db.client.impl.*;
-import com.emc.storageos.db.exceptions.DatabaseException;
-import com.emc.storageos.db.common.DataObjectScanner;
-import com.emc.storageos.db.common.DependencyTracker;
-import com.emc.storageos.db.common.DependencyChecker;
-import com.emc.storageos.db.common.PackageScanner;
-import com.emc.storageos.db.client.URIUtil;
-
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.io.Writer;
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
-import java.io.InputStream;
-import java.io.FileInputStream;
+import java.net.URI;
+import java.util.Calendar;
+import java.util.Collection;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map.Entry;
+import java.util.Set;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
@@ -46,12 +39,42 @@ import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 
-import com.emc.storageos.dbcli.wrapper.*;
+import com.emc.storageos.db.client.URIUtil;
+import com.emc.storageos.db.client.impl.ColumnField;
+import com.emc.storageos.db.client.impl.DataObjectType;
+import com.emc.storageos.db.client.impl.DbClientImpl;
+import com.emc.storageos.db.client.impl.TypeMap;
+import com.emc.storageos.db.client.model.Cf;
+import com.emc.storageos.db.client.model.DataObject;
+import com.emc.storageos.db.client.model.Encrypt;
+import com.emc.storageos.db.client.model.FSExportMap;
+import com.emc.storageos.db.client.model.Name;
+import com.emc.storageos.db.client.model.NamedURI;
+import com.emc.storageos.db.client.model.OpStatusMap;
+import com.emc.storageos.db.client.model.SMBShareMap;
+import com.emc.storageos.db.client.model.ScopedLabelSet;
+import com.emc.storageos.db.client.model.StringMap;
+import com.emc.storageos.db.client.model.StringSet;
+import com.emc.storageos.db.client.model.StringSetMap;
+import com.emc.storageos.db.common.DataObjectScanner;
+import com.emc.storageos.db.common.DependencyChecker;
+import com.emc.storageos.db.common.DependencyTracker;
+import com.emc.storageos.db.common.PackageScanner;
+import com.emc.storageos.db.exceptions.DatabaseException;
+import com.emc.storageos.dbcli.wrapper.FSExportMapWrapper;
+import com.emc.storageos.dbcli.wrapper.OpStatusMapWrapper;
+import com.emc.storageos.dbcli.wrapper.SMBShareMapWrapper;
+import com.emc.storageos.dbcli.wrapper.ScopedLabelSetWrapper;
+import com.emc.storageos.dbcli.wrapper.StringMapWrapper;
+import com.emc.storageos.dbcli.wrapper.StringSetMapWrapper;
+import com.emc.storageos.dbcli.wrapper.StringSetWrapper;
 
 public class DbCli {
     private static final Logger log = LoggerFactory.getLogger(DbCli.class);
@@ -343,7 +366,7 @@ public class DbCli {
                             for (String key : keys) {
                                 sMap.put(key, newStringMap.get(key));
                             }
-
+                            pd.getWriteMethod().invoke(object, sMap);
                         } else if (type == StringSet.class) {
                             StringSet stringSet = FieldType.convertType(fieldNode, StringSetWrapper.class);
                             if (!verifyField(stringSet)) {
@@ -399,6 +422,15 @@ public class DbCli {
                             if (!verifyField(scopedLabelSet)) {
                                 throw new Exception("field format exception");
                             }
+                            
+                            ScopedLabelSet updateSet = (ScopedLabelSet) pd.getReadMethod().invoke(object);
+                            if (updateSet != null) {
+                                updateSet.clear();
+                                updateSet.addAll(scopedLabelSet);
+                            } else {
+                                pd.getWriteMethod().invoke(object, scopedLabelSet);
+                            }
+
                         } else if (type == String.class) {
                             pd.getWriteMethod().invoke(object, fieldClass.cast(fieldValue));
                         } else if (type.isEnum()) {
@@ -427,6 +459,12 @@ public class DbCli {
                                 throw new Exception("field format exception");
                             }
                             pd.getWriteMethod().invoke(object, longNum);
+                        } else if (type == Short.class) {
+                            Short shortNum = FieldType.toShort(fieldValue);
+                            if (!verifyField(shortNum)) {
+                                throw new Exception("field format exception");
+                            }
+                            pd.getWriteMethod().invoke(object, shortNum);
                         } else if (type == Double.class) {
                             Double doubleNum = FieldType.toDouble(fieldValue);
                             if (!verifyField(doubleNum)) {
@@ -839,7 +877,7 @@ public class DbCli {
                 log.info("Force to delete object {} that can't be deleted", id);
             }
 
-            _dbClient.removeObject(object);
+            _dbClient.internalRemoveObjects(object);
             return true;
         }
 

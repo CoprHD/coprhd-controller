@@ -1,0 +1,349 @@
+#!/bin/sh
+#
+# Copyright (c) 2016 EMC Corporation
+# All Rights Reserved
+#
+
+# Use: adjustPaths sanity.conf bourne_ip
+# where sanity.conf is the full pathname to your sanity.conf file
+# and bourne_ip is the IP address of the system running the test
+
+
+# Save the command arguments
+ARGC=$#
+[ $ARGC -eq 0 ] && {
+    echo "usage: adjustPaths config_file bourne_ip"
+    exit 2;
+}
+
+CONFIG_FILE=""
+# ============================================================
+# Check if there is a sanity configuration file specified
+# on the command line. In, which case, we should use that
+# ============================================================
+if [ "$1"x != "x" ]; then
+   if [ -f "$1" ]; then
+      CONFIG_FILE=$1
+      echo Using sanity configuration file $CONFIG_FILE
+      source $CONFIG_FILE
+      shift
+   fi
+fi
+export sconf=$(dirname $CONFIG_FILE)
+
+
+if [ "$1"x != "x" ]; then
+      BOURNE_IP=$1
+      echo Using BOURNE_IP $BOURNE_IP
+      shift
+else
+      BOURNE_IP=127.0.0.1
+fi
+
+ARGV=$*
+CWD=$(pwd)
+export PATH=$CWD:$PATH
+echo "PATH: " $PATH
+
+if [ "$password" = "" ]; then
+    source subs/loginconfigure
+    login_nd_configure_smtp_nd_add_licenses
+else
+    security login root $password
+fi
+
+# Set properties needed for the test run
+subs/setproperty validation_check false
+subs/setproperty controller_pathadjust_require_suspend false
+
+export project=ap
+source subs/tenantProject 
+export tenant=`tenant root`
+
+# Configuration file to be used  
+source $CONFIG_FILE 
+
+# Variables about volumes
+BLK_SIZE=${BLK_SIZE:-1073741824}
+
+source subs/run
+
+# Subroutines for comparing the paths
+pathadj() {
+    echoit "export_group pathadj $*"  
+    export_group pathadj $*  | tee .pathadj.out
+    grep '^+' .pathadj.out | awk ' { print $2, $3, $4; }' | sort >.pathadj.cmp1
+}
+
+egpaths() {
+    echoit "egpaths $*"
+    $CWD/egpaths $* | tee .egpath.out
+    grep '\.org' .egpath.out | awk ' { print $1, $2, $5; }' | sort >.pathadj.cmp2
+    diff .pathadj.cmp1 .pathadj.cmp2
+    rc=$?
+    if [ $rc -ne 0 ] ; then
+        diff .pathadj.cmp1 .pathadj.cmp2
+	fail "Unexpected path differences"
+    fi
+}
+
+verifyzones() {
+    zones=$(grep '\.org' .egpath.out } awk ' { print $6; }')
+    rm .zones.out
+    zone list ciscosim --fabricid 11 >>.zones.out
+    zone list ciscosim --fabricid 12 >>.zones.out
+    for zone in $zones; do
+       grep $zone .zones.out
+       notfound=$?
+       if [ $notfound -get 0 ]; then
+           fail "Missing zone: " $zone
+       fi
+    done
+}
+
+# $1=fabricid, $2...$* zone names
+deletezones() {
+    fabricid=$1
+    shift
+    for i in $*
+    do
+        echo zone delete ciscosim --fabricid $fabricid --zones $i
+        zone delete ciscosim --fabricid $fabricid --zones $i
+    done
+    zone activate ciscosim --fabricid $fabricid
+    zone list ciscosim --fabricid $fabricid
+}
+
+verifynozones() {
+    existingVols=$(grep "Existing volumes" .egpath.out | wc -l)
+    if [ $existingVols -ne 0 ] ; then
+        echo "Can't verify zone removal because of Existing volumes"
+        zone list ciscosim --fabric 11 | grep org >.11zones.out
+        deletezones 11 $(cat .11zones.out)
+        zone list ciscosim --fabric 12 | grep org >.12zones.out
+        deletezones 12 $(cat .12zones.out)
+        return 0;
+    fi
+    rm .zones.out
+    zone list ciscosim --fabricid 11 >>.zones.out
+    zone list ciscosim --fabricid 12 >>.zones.out
+    num=$(grep .org .zones.out | grep ${hostseed} | wc -l)
+    if [ $num -gt 0 ]; then
+        echo "left-over zones:"
+	cat .zones.out
+        fail "left-over zones"
+    fi
+    echo "Verified no remaining zones"
+}
+
+source subs/discovery
+source $sconf/simvplexvmax.conf
+
+# Deregister storage devices we don't wish to use
+storagedevice deregister $VPLEX_SIM_VMAX2_NATIVEGUID
+storagedevice deregister $VPLEX_SIM_VMAX3_NATIVEGUID
+storagedevice deregister $VPLEX_SIM_VMAX4_NATIVEGUID
+storagedevice deregister $VPLEX_SIM_VMAX6_NATIVEGUID
+storagedevice deregister $VPLEX_SIM_VMAX7_NATIVEGUID
+
+vplex=$(storagedevice list | grep VPLEX+FNM0013090030 |  awk ' {print $2; }')
+echo VPLEX $vplex
+source subs/mkvplexvarrays 
+SITE1=VPLEX+FNM00130900300_FNM00130900301_cluster1 
+SITE2=VPLEX+FNM00130900300_FNM00130900301_cluster2
+
+# Limit the array choices according to the following simulator configuration:
+# emcArrays1=SYMMETRIX+999316031302,SYMMETRIX+999595867618,SYMMETRIX+999000000003,SYMMETRIX+999000000004
+# emcArrays2=SYMMETRIX+999024668923,SYMMETRIX+999334388821,SYMMETRIX+999000414197
+# The simulator configuration must match these choices. This matches vplex sim sanity.conf.
+storageport update $VPLEX_SIM_VMAX1_NATIVEGUID FC --addvarrays $SITE1
+storageport update $VPLEX_SIM_VMAX5_NATIVEGUID FC --addvarrays $SITE2
+
+source subs/hosts
+aclusterName=aclus${hostseed}
+cluster_create $aclusterName
+aclusterId=$(cluster list $rootTenant | grep $aclusterName | awk ' { print $4; }')
+networkA=VSAN_11
+networkB=VSAN_12
+host_create_4i h1$hostseed $aclusterId 10 11 12 13 $networkA $networkB
+host_create_4i h2$hostseed $aclusterId 20 21 22 23 $networkA $networkB
+host_create_4i h3$hostseed $aclusterId 30 31 32 33 $networkA $networkB
+host_create_4i h4$hostseed $aclusterId 40 41 42 43 $networkA $networkB
+bclusterName=bclus${hostseed}
+cluster_create $bclusterName
+bclusterId=$(cluster list $rootTenant | grep $bclusterName | awk ' { print $4; }')
+host_create_8i j1$hostseed $bclusterId 50 51 52 53 54 55 56 57 $networkA $networkB
+host_create_8i j2$hostseed $bclusterId 60 61 62 63 64 65 66 67 $networkA $networkB
+host_create_8i j3$hostseed $bclusterId 70 71 72 73 74 75 76 77 $networkA $networkB
+host_create_8i j4$hostseed $bclusterId 80 81 82 83 84 85 86 87 $networkA $networkB
+
+
+# Control over running individual parts of the test (true/false)
+volnameA=${volnameA:-"adjPathsA$hostseed"}
+volnameB=${volnameB:-"adjPathsB$hostseed"}
+volnameC=${volnameC:-"adjPathsC$hostseed"}
+volnameD=${volnameD:-"adjPathsD$hostseed"}
+volnameE=${volnameE:-"adjPathsE$hostseed"}
+volnameF=${volnameF:-"adjPathsF$hostseed"}
+volnameG=${volnameG:-"adjPathsG$hostseed"}
+
+source subs/volume
+echo SITE1 $SITE1 
+
+
+volume_create $volnameA $SITE1 ${SITE1}_Local ""
+# Test single host using VPLEX local in SITE1; note only VSAN11 talks to cluster1
+vplexSingleHost() {
+    echoit "Testing VPLEX local single host"
+    run export_group create $project eg1 $SITE1 --type Host --hosts h1$hostseed --volspec $project/$volnameA
+    pathadj $project/eg1 $vplex --maxpath 4 --pathsperinit 2
+    pathadj $project/eg1 $vplex --maxpath 4 --pathsperinit 2 --go 1
+    egpaths eg1 
+    pathadj $project/eg1 $vplex --maxpath 1 --go 1
+    egpaths eg1 
+    run export_group delete $project/eg1
+    verifynozones
+}
+
+# Test single host using VMAX in SITE2; note only VSAN12 in SITE2.
+source subs/arrayVpools
+createArrayVpool vmax2 vmax $SITE2
+volume_create $volnameB $SITE2 vmax2 ""
+ssys=$(getVolumeSystem $volnameB)
+vmaxSingleHost() {
+    echoit "Testing VMAX local single host"
+    run export_group create $project eg2 $SITE2 --type Host --hosts h1$hostseed --volspec $project/$volnameB
+    pathadj $project/eg2 $ssys --maxpath 1 --useexisting 1
+    egpaths eg2 
+    pathadj $project/eg2 $ssys --maxpath 4 --pathsperinit 2 --go 1
+    egpaths eg2 
+    pathadj $project/eg2 $ssys --maxpath 1 --go 1
+    egpaths eg2 
+    run export_group delete $project/eg2
+    verifynozones
+}
+
+vplexClus1() {
+    echoit "Testing VPLEX cluster-1 export to cluster"
+    run export_group create $project eg3 $SITE1 --type Cluster --clusters ''/$aclusterName --volspec $project/$volnameA
+    pathadj $project/eg3 $vplex --maxpath 4 --pathsperinit 2 --go 1
+    egpaths eg3
+    pathadj $project/eg3 $vplex --maxpath 1 --go 1
+    egpaths eg3
+    run export_group delete $project/eg3
+    verifynozones
+}
+
+volume_create $volnameC $SITE1 ${SITE1}_Local ""
+volume_create $volnameD $SITE1 ${SITE1}_Local ""
+volume_create $volnameG $SITE1 ${SITE1}_Local ""
+vplexHostClust1() {
+   echoit "Testing VPLEX Cluster and Host export"
+   run export_group create $project eg4 $SITE1 --type Host --hosts h1$hostseed --volspec $project/$volnameD --maxpath 1 --pathsperinit 1
+   ./egpaths eg4
+   run export_group create $project eg5 $SITE1 --type Cluster --clusters ''/$aclusterName --volspec $project/$volnameC 
+   ./egpaths eg5
+   # adjust host to two paths
+   pathadj $project/eg4 $vplex --maxpath 2 --pathsperinit 1 --go 1
+   egpaths eg4
+   run export_group update $project/eg4 --addVolspec $project/$volnameG
+   #adjust cluster to four paths
+   pathadj $project/eg5 $vplex --maxpath 4 --pathsperinit 2 --go 1
+   egpaths eg5
+   #adjust cluster to one path
+   pathadj $project/eg5 $vplex --maxpath 1 --pathsperinit 1 --go 1
+   egpaths eg5
+   # adjust host to four paths
+   pathadj $project/eg4 $vplex --maxpath 4 --go 1
+   egpaths eg4
+   # adjust cluster to four paths, but two ppi, keeping existing paths; this will make paths uneven on hosts
+   pathadj $project/eg5 $vplex --maxpath 4 --pathsperinit 2 --useexisting 1 --go 1
+   egpaths eg5
+   run export_group delete $project/eg4
+   run export_group delete $project/eg5
+   verifynozones
+}
+
+createArrayVpool vmax2 vmax $SITE2
+volume_create $volnameB $SITE2 vmax2 ""
+ssysB=$(getVolumeSystem $volnameB)
+volume_create $volnameF $SITE2 vmax2 ""
+ssysF=$(getVolumeSystem $volnameF)
+vmaxHostClust1() {
+   echoit "Testing VMAX Cluster and Host export"
+   run export_group create $project eg4 $SITE2 --type Host --hosts h1$hostseed --volspec $project/$volnameB --maxpath 1 --pathsperinit 1
+   ./egpaths eg4
+   run export_group create $project eg5 $SITE2 --type Cluster --clusters ''/$aclusterName --volspec $project/$volnameF --maxpath 4
+   ./egpaths eg5
+   # adjust host to two paths
+   pathadj $project/eg4 $ssysB --maxpath 2 --pathsperinit 1 --go 1
+   egpaths eg4
+   #adjust cluster to four paths
+   pathadj $project/eg5 $ssysF --maxpath 4 --pathsperinit 2 --go 1
+   egpaths eg5
+   #adjust cluster to one path
+   pathadj $project/eg5 $ssysF --maxpath 1 --pathsperinit 1 --go 1
+   egpaths eg5
+   # adjust host to four paths
+   pathadj $project/eg4 $ssysB --maxpath 4 --go 1
+   egpaths eg4
+   # adjust cluster to four paths, but two ppi, keeping existing paths; this will make paths uneven on hosts
+   pathadj $project/eg5 $ssysF --maxpath 4 --pathsperinit 2 --useexisting 1 --go 1
+   egpaths eg5
+   run export_group delete $project/eg4
+   run export_group delete $project/eg5
+   verifynozones
+}
+
+volume_create $volnameE $SITE1 ${SITE1}_distributed ""
+vplexDistributedCrossConnect() {
+    echoit "Testing VPLEX cluster-1 distributed to cluster-2"
+    verifynozones
+    run export_group create $project eg5 $SITE1 --type Cluster --clusters ''/$aclusterName --volspec $project/$volnameE
+    pathadj $project/eg5 $vplex --varray $SITE2 --maxpath 4 --pathsperinit 2 --go 1
+    egpaths eg5 V2_
+    pathadj $project/eg5 $vplex --varray $SITE2 --maxpath 4 --pathsperinit 2 --go 1
+    egpaths eg5 V2_
+    run export_group delete $project/eg5
+    verifynozones
+}
+
+vplexDistributedIncreasingPaths() {
+    echoit "Testing VPLEX distributed increasing paths"
+    verifynozones
+    run export_group create $project eg6 $SITE1 --type Cluster --clusters ''/$bclusterName --volspec $project/$volnameE --maxpath 1 --pathsperinit 1
+    pathadj $project/eg6 $vplex --varray $SITE1 --maxpath 2 --pathsperinit 2 --go 1
+    egpaths eg6 V1_
+    pathadj $project/eg6 $vplex --varray $SITE1 --maxpath 4 --pathsperinit 2 --go 1
+    egpaths eg6 V1_
+    pathadj $project/eg6 $vplex --varray $SITE1 --maxpath 6 --pathsperinit 2 --go 1
+    egpaths eg6 V1_
+    pathadj $project/eg6 $vplex --varray $SITE1 --maxpath 8 --pathsperinit 2 --go 1
+    egpaths eg6 V1_
+    pathadj $project/eg6 $vplex --varray $SITE2 --maxpath 2 --pathsperinit 2 --go 1
+    egpaths eg6 V2_
+    pathadj $project/eg6 $vplex --varray $SITE2 --maxpath 4 --pathsperinit 2 --go 1
+    egpaths eg6 V2_
+    pathadj $project/eg6 $vplex --varray $SITE2 --maxpath 6 --pathsperinit 2 --go 1
+    egpaths eg6 V2_
+    pathadj $project/eg6 $vplex --varray $SITE2 --maxpath 8 --pathsperinit 2 --go 1
+    egpaths eg6 V2_
+    export_group delete ap/eg6
+    verifynozones
+}
+
+# Tests to be run are listed here
+vplexSingleHost
+vmaxSingleHost
+vplexClus1
+vplexHostClust1
+vmaxHostClust1
+vplexDistributedCrossConnect
+vplexDistributedIncreasingPaths
+deleteAllVolumes
+
+echoit "adjustPaths passed"
+date
+subs/setproperty validation_check true
+subs/setproperty controller_pathadjust_require_suspend true
+

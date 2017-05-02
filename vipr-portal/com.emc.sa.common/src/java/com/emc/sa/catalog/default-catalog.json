@@ -86,6 +86,10 @@
                    {
                       "image": "icon_application_unlink_snapshot.png",
                       "baseService": "UnlinkSnapshotOfApplication"
+                   },
+                   {
+                      "image": "icon_application_create_vplex_vol_from_snapshot.png",
+                      "baseService": "CreateVplexVolumeFromAppSnapshot"
                    }
 	           ]
 	        }
@@ -169,6 +173,10 @@
         {
           "image": "icon_consistency_group_add_volumes.png",
           "baseService": "AddVolumesToConsistencyGroup"
+        },
+        {
+          "image": "icon_export_path_adjustment.png",
+          "baseService": "ExportPathAdjustment"
         }
       ]
     },
@@ -366,15 +374,6 @@
         {
           "image": "icon_folder_NFS_remove.png",
           "baseService": "DeleteFileSnapshotExport"
-        },
-        {
-          "image": "Service_Create_File_Continuous_Copy.png",
-          "baseService": "CreateFileContinuousCopy"
-        }
-        ,
-        {
-          "image": "Service_Remove_File_Continuous_Copy.png",
-          "baseService": "RemoveFileContinuousCopy"
         },
         {
           "image": "Service_Failover_File_System.png",

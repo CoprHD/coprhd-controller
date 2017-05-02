@@ -46,11 +46,13 @@ public class BlockConsistencyGroupRemoveVolumeCompleter extends BlockConsistency
                 for (URI blockObjectURI : removedVolumeList) {
                     BlockObject blockObject = BlockObject.fetch(dbClient, blockObjectURI);
                     if (blockObject != null) {
+                        boolean isVplexBackendVolume = false;
                         if (blockObject instanceof Volume) {
                             VolumeGroup volumeGroup = ((Volume) blockObject).getApplication(dbClient);
                             if (volumeGroup != null) {
                                 ((Volume) blockObject).getVolumeGroupIds().remove(volumeGroup.getId().toString());
                             }
+                            isVplexBackendVolume = Volume.checkForVplexBackEndVolume(dbClient, (Volume) blockObject);
                         }
                         if (!NullColumnValueGetter.isNullURI(blockObject.getConsistencyGroup())) {
                             BlockConsistencyGroup cg = dbClient.queryObject(BlockConsistencyGroup.class, blockObject.getConsistencyGroup());
@@ -59,6 +61,16 @@ public class BlockConsistencyGroupRemoveVolumeCompleter extends BlockConsistency
                             }
                         }
                         blockObject.setReplicationGroupInstance(NullColumnValueGetter.getNullStr());
+
+                        // if this is a vplex backend volume, also clear the backing replication group 
+                        // instance on the parent virtual volume
+                        if (isVplexBackendVolume) {
+                            Volume virtualVolume = Volume.fetchVplexVolume(dbClient, (Volume) blockObject);
+                            if (null != virtualVolume) {
+                                virtualVolume.setBackingReplicationGroupInstance(NullColumnValueGetter.getNullStr());
+                                dbClient.updateObject(virtualVolume);
+                            }
+                        }
                     }
 
                     dbClient.updateObject(blockObject);

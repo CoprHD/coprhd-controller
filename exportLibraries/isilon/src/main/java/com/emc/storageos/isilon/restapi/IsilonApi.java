@@ -76,12 +76,14 @@ public class IsilonApi {
     private static final URI URI_SYNCIQ_SERVICE_STATUS = URI.create("/platform/1/sync/settings");
     private static final URI URI_REPLICATION_LICENSE_INFO = URI.create("/platform/1/sync/license");
     private static final URI URI_REPLICATION_POLICIES = URI.create("/platform/1/sync/policies/");
+    private static final URI URI_REPLICATION_POLICIES_8 = URI.create("/platform/3/sync/policies/");
     private static final URI URI_REPLICATION_JOBS = URI.create("/platform/1/sync/jobs");
+    private static final URI URI_REPLICATION_JOB = URI.create("/platform/1/sync/jobs/");
     private static final URI URI_TARGET_REPLICATION_POLICIES = URI.create("platform/1/sync/target/policies/");
     private static final URI URI_REPLICATION_POLICY_REPORTS = URI.create("/platform/1/sync/reports?policy_name=");
     private static final URI URI_TARGET_REPLICATION_POLICY_REPORTS = URI.create("/platform/1/sync/target/reports?policy_name=");
     private static final URI URI_SNAPSHOTIQ_LICENSE_INFO = URI.create("/platform/1/snapshot/license");
-    private static final URI URI_SNAPSHOT_SCHEDULES = URI.create("/platform/1/snapshot/schedules");
+    private static final URI URI_SNAPSHOT_SCHEDULES = URI.create("/platform/1/snapshot/schedules/");
 
     private static Logger sLogger = LoggerFactory.getLogger(IsilonApi.class);
 
@@ -645,9 +647,22 @@ public class IsilonApi {
      */
     public String createSnapshotSchedule(String name, String path, String schedule, String pattern, Integer duration)
             throws IsilonException {
-        return createSnapshotSchedule(_baseUrl.resolve(URI_SNAPSHOT_SCHEDULES), "schedule", new IsilonSnapshotSchedule(name, path,
-                schedule, pattern,
-                duration));
+        IsilonSnapshotSchedule isiSchedule = new IsilonSnapshotSchedule(name, path, schedule, pattern, duration);
+        sLogger.info("Isilon snapshot schedule: {} creation started", isiSchedule.toString());
+        return createSnapshotSchedule(isiSchedule);
+    }
+
+    /**
+     * Create snapshot schedule
+     * 
+     * @param isiSchedule
+     * @return String identifier for the snapshot schedule created
+     * @throws IsilonException
+     */
+    public String createSnapshotSchedule(IsilonSnapshotSchedule isiSchedule)
+            throws IsilonException {
+        sLogger.info("Isilon snapshot schedule: {} creation started", isiSchedule.toString());
+        return createSnapshotSchedule(_baseUrl.resolve(URI_SNAPSHOT_SCHEDULES), "schedule", isiSchedule);
     }
 
     /**
@@ -663,7 +678,7 @@ public class IsilonApi {
         try {
             id = URLEncoder.encode(id, "UTF-8");
         } catch (UnsupportedEncodingException e) {
-            e.printStackTrace();
+            sLogger.error("UnsupportedEncodingException occured", e);
         }
         modify(_baseUrl.resolve(URI_SNAPSHOT_SCHEDULES), id, "schedule", s);
     }
@@ -679,9 +694,18 @@ public class IsilonApi {
         try {
             id = URLEncoder.encode(id, "UTF-8");
         } catch (UnsupportedEncodingException e) {
-            e.printStackTrace();
+            sLogger.error("UnsupportedEncodingException occured", e);
         }
         deleteSnapshotSchedule(_baseUrl.resolve(URI_SNAPSHOT_SCHEDULES + "/" + id));
+    }
+
+    /**
+     * 
+     * @return
+     * @throws IsilonException
+     */
+    public IsilonList<IsilonSnapshotSchedule> getSnapshotSchedules() throws IsilonException {
+        return list(_baseUrl.resolve(URI_SNAPSHOT_SCHEDULES), "schedules", IsilonSnapshotSchedule.class, "");
     }
 
     /**
@@ -1011,9 +1035,9 @@ public class IsilonApi {
     }
 
     /* SmartQuotas */
-    
+
     /**
-     * List all smartquotas for given 
+     * List all smartquotas for given
      * 
      * @param resumeToken
      * @param pathBaseDir
@@ -1029,8 +1053,6 @@ public class IsilonApi {
         uri = _baseUrl.resolve(uri);
         return list(uri, "quotas", IsilonSmartQuota.class, resumeToken);
     }
-    
-    
 
     /**
      * List all smartquotas
@@ -1080,7 +1102,7 @@ public class IsilonApi {
         if (thresholds != null && thresholds.length > 0) {
             quota = constructIsilonSmartQuotaObjectWithThreshold(path, "directory", null, false, false, thresholds);
             quota.setContainer(true); // set to true, so user see hard limit not
-                                      // cluster size.
+            // cluster size.
         } else {
             quota = new IsilonSmartQuota(path);
         }
@@ -1468,7 +1490,7 @@ public class IsilonApi {
             fspath = fspath.concat("?acl");// add suffix ?acl
 
         } catch (UnsupportedEncodingException e) {
-            e.printStackTrace();
+            sLogger.error("UnsupportedEncodingException occured", e);
         }
 
         put(_baseUrl.resolve(URI_IFS), fspath, "ACL", acl);
@@ -1488,7 +1510,7 @@ public class IsilonApi {
             fspath = URLEncoder.encode(fspath, "UTF-8");
             fspath = fspath.concat("?acl");// add suffix ?acl
         } catch (UnsupportedEncodingException e) {
-            e.printStackTrace();
+            sLogger.error("UnsupportedEncodingException occured", e);
         }
         return getObj(_baseUrl.resolve(URI_IFS), fspath, IsilonNFSACL.class);
     }
@@ -1624,7 +1646,7 @@ public class IsilonApi {
     private IsilonList<IsilonEvent> getEvents(URI url, String firmwareVersion) throws IsilonException {
 
         // Get list of ISILON events using eventlists if ISILON version is OneFS8.0 or more else using events.
-        if (firmwareVersion.startsWith("8")) {
+        if (firmwareVersion != null && firmwareVersion.startsWith("8")) {
             List<IsilonOneFS8Event> eventLists = list(url, "eventlists", IsilonOneFS8Event.class, null).getList();
             IsilonList<IsilonEvent> isilonEventList = new IsilonList<IsilonEvent>();
 
@@ -1684,7 +1706,7 @@ public class IsilonApi {
                 .format("?begin=%1$d", begin);
 
         // If ISILON version is OneFS8.0 then get events URI will be /platform/3/event/eventlists/.
-        if (firmwareVersion.startsWith("8")) {
+        if (firmwareVersion != null && firmwareVersion.startsWith("8")) {
             return getEvents(_baseUrl.resolve(URI_ONEFS8_EVENTS.resolve(query)), firmwareVersion);
         }
         return getEvents(_baseUrl.resolve(URI_EVENTS.resolve(query)), firmwareVersion);
@@ -1998,6 +2020,36 @@ public class IsilonApi {
     }
 
     /**
+     * Get Replication Policy information from the Isilon array using oneFS v8 above
+     * 
+     * @return IsilonSyncPolicy object
+     * @throws IsilonException
+     */
+    public IsilonSyncPolicy8Above getReplicationPolicy8above(String id) throws IsilonException {
+        return get(_baseUrl.resolve(URI_REPLICATION_POLICIES_8), id, "policies", IsilonSyncPolicy8Above.class);
+    }
+
+    /**
+     * Get All Replication Policies information from the Isilon array
+     * 
+     * @return IsilonList<IsilonSyncPolicy>
+     * @throws IsilonException
+     */
+    public IsilonList<IsilonSyncPolicy> getReplicationPolicies() throws IsilonException {
+        return list(_baseUrl.resolve(URI_REPLICATION_POLICIES), "policies", IsilonSyncPolicy.class, "");
+    }
+
+    /**
+     * Get All Replication Policies information from the Isilon array
+     * 
+     * @return IsilonList<IsilonSyncPolicy>
+     * @throws IsilonException
+     */
+    public IsilonList<IsilonSyncPolicy8Above> getReplicationPolicies8above() throws IsilonException {
+        return list(_baseUrl.resolve(URI_REPLICATION_POLICIES_8), "policies", IsilonSyncPolicy8Above.class, "");
+    }
+
+    /**
      * Get Target Replication Policy information from the Isilon array
      * 
      * @return IsilonSyncPolicy object
@@ -2020,6 +2072,18 @@ public class IsilonApi {
     }
 
     /**
+     * Create Replication Policy for isilon array using oneFSv8 and above
+     * 
+     * @param replicationPolicy
+     *            IsilonSyncPolicy object
+     * @return String identifier for the policy created
+     * @throws IsilonException
+     */
+    public String createReplicationPolicy8above(IsilonSyncPolicy8Above replicationPolicy) throws IsilonException {
+        return create(_baseUrl.resolve(URI_REPLICATION_POLICIES_8), "policies", replicationPolicy);
+    }
+
+    /**
      * Modify Replication Policy
      * 
      * @param id
@@ -2030,6 +2094,19 @@ public class IsilonApi {
      */
     public void modifyReplicationPolicy(String id, IsilonSyncPolicy syncPolicy) throws IsilonException {
         modify(_baseUrl.resolve(URI_REPLICATION_POLICIES), id, "policies", syncPolicy);
+    }
+
+    /**
+     * Modify Replication Policyfor isilon array using oneFSv8 and above
+     * 
+     * @param id
+     *            identifier/name of the Replication Policy to modify
+     * @param syncPolicy
+     *            IsilonSyncPolicy object with the modified properties
+     * @throws IsilonException
+     */
+    public void modifyReplicationPolicy8above(String id, IsilonSyncPolicy8Above syncPolicy) throws IsilonException {
+        modify(_baseUrl.resolve(URI_REPLICATION_POLICIES_8), id, "policies", syncPolicy);
     }
 
     /**
@@ -2065,6 +2142,19 @@ public class IsilonApi {
      */
     public String modifyReplicationJob(IsilonSyncJob job) throws IsilonException {
         return create(_baseUrl.resolve(URI_REPLICATION_JOBS), "jobs", job);
+    }
+
+    /**
+     * Modify Replication Job
+     * 
+     * @param id
+     *            identifier/name of the Replication Policy to modify
+     * @param syncPolicy
+     *            IsilonSyncPolicy object with the modified properties
+     * @throws IsilonException
+     */
+    public void modifyReplicationJob(String id, IsilonSyncJob job) throws IsilonException {
+        modify(_baseUrl.resolve(URI_REPLICATION_JOB), id, "jobs", job);
     }
 
     /**

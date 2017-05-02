@@ -2,6 +2,7 @@
   Standard CRUD button bar that links to a create page and submits a delete form.
 }*
 #{DataTable.baseCrudButtonBar table:_table, createHref:(_create ?: @create()), deleteHref:(_delete ?: @delete()), 
-                              deleteData:_deleteData, deleteConfirm:_deleteConfirm ?: "Are you sure?" }
+                              deleteData:_deleteData, deleteConfirm:_deleteConfirm ?: "Are you sure?",
+                              disableDeletable: _disableDeletable}
   #{doBody/}
 #{/DataTable.baseCrudButtonBar}

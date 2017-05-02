@@ -44,7 +44,7 @@ delete_mask() {
 	# Put it back into the optimized SG?
 
 	# Delete storage group
-	/opt/emc/SYMCLI/bin/symaccess -sid 612 delete -force -name ${sg_long_id} -type storage -noprompt
+	/opt/emc/SYMCLI/bin/symaccess -sid ${serial_number} delete -force -name ${sg_long_id} -type storage -noprompt
     fi
 }
 
@@ -208,11 +208,12 @@ verify_export() {
     # First parameter is the Symm ID
     SID=$1
     shift
-    # Subsequent parameters: MaskingView Name, Number of Initiators, Number of Luns
+    # Subsequent parameters: MaskingView Name, Number of Initiators, Number of Luns, HLUs for Luns
     # If checking if the MaskingView does not exist, then parameter $2 should be "gone"
     SG_PATTERN=$1
     NUM_INITIATORS=$2
     NUM_LUNS=$3
+    HLUS=$4
     TMPFILE1=/tmp/verify-${RANDOM}
     TMPFILE2=/dev/null
 
@@ -239,6 +240,7 @@ verify_export() {
 
     num_inits=`grep "WWN.*:" ${TMPFILE1} | wc -l`
     num_luns=`perl -nle 'print $1 if(m#(\S+)\s+\S+\s+Not Visible\s+#);' ${TMPFILE1} | sort -u | wc -l`
+    hlus=( `perl -nle 'print $1 if(m#\S+\s+\S+\s+Not Visible\s+(\S+)+\s#);' ${TMPFILE1} | sort -u` )
     failed=false
 
     if [ "${num_inits}" != "${NUM_INITIATORS}" ]; then
@@ -261,11 +263,28 @@ verify_export() {
 	failed=true
     fi
 
+    if [ -n "${HLUS}" ]; then
+        hlu_arr=(${HLUS//,/ })
+        if [  "${hlus[*]}" != "${hlu_arr[*]}" ]; then
+            echo -e "\e[91mERROR\e[0m: Export group HLUs: Expected: ${hlu_arr[*]} Retrieved: ${hlus[*]}";
+            echo -e "\e[91mERROR\e[0m: Masking view dump:"
+            grep "Masking View Name" ${TMPFILE1}
+            grep "Group Name" ${TMPFILE1}
+            grep "WWN" ${TMPFILE1}
+            grep "Not Visible" ${TMPFILE1} | sort -u
+            failed=true
+        fi
+    fi
+
     if [ "${failed}" = "true" ]; then
 	exit 1;
     fi
 
-    echo "PASSED: MaskingView '$1' contained $2 initiators and $3 luns"
+    if [ -n "${HLUS}" ]; then
+        echo "PASSED: MaskingView '$1' contained $2 initiators and $3 luns with HLUs $4"
+    else
+        echo "PASSED: MaskingView '$1' contained $2 initiators and $3 luns"
+    fi
     exit 0;
 }
 

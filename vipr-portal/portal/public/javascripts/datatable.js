@@ -768,5 +768,13 @@ function DataTable(selector, columns) {
         $('.dataTables_selectedItems').text(Messages.get('dataTable.selectedItems', numItems));
     }
 
+    my.needResourceLimitAlert = function (limit) {
+        var numOfResources = dataTable.fnGetData().length;
+        if (numOfResources * 100 / limit >= 90){
+            return true;
+        }
+        return false;
+    }
+	
     return my;
 }

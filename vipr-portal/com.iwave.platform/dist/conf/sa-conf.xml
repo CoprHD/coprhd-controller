@@ -86,12 +86,19 @@
 	<bean id="executionWindowService" class="com.emc.sa.api.ExecutionWindowService">
         <property name="dbClient" ref="dbclient"/>
         <property name="coordinator" ref="coordinator"/>	
-	</bean>	
-	<bean id="orderService" class="com.emc.sa.api.OrderService" init-method="init">
+	</bean>
+
+    <bean id="orderManager" class="com.emc.sa.catalog.OrderManagerImpl" init-method="init">
+        <property name="noDeletePeriod" value="2592000000"/>
+    </bean>
+
+    <bean id="orderService" class="com.emc.sa.api.OrderService" init-method="init">
         <property name="dbClient" ref="dbclient"/>
         <property name="coordinator" ref="coordinator"/>
         <property name="scheduleInterval" value="60"/>
+        <property name="maxOrderDeletedPerGC" value="20000"/>
 	</bean>
+
     <bean id="scheduledEventService" class="com.emc.sa.api.ScheduledEventService">
         <property name="dbClient" ref="dbclient"/>
         <property name="coordinator" ref="coordinator"/>

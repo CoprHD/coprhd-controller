@@ -47,9 +47,9 @@ import com.emc.storageos.volumecontroller.impl.utils.ExportOperationContext;
 public class SmisCreateMaskingViewJob extends SmisJob
 {
     private static final Logger _log = LoggerFactory.getLogger(SmisCreateMaskingViewJob.class);
-    private URI _exportMaskURI;
+    private final URI _exportMaskURI;
     private VolumeURIHLU[] _volumeURIHLUs;
-    private CIMObjectPath _deviceGroupMaskingPath;
+    private final CIMObjectPath _deviceGroupMaskingPath;
 
     public SmisCreateMaskingViewJob(CIMObjectPath cimJob,
             URI storageSystem,
@@ -65,13 +65,14 @@ public class SmisCreateMaskingViewJob extends SmisJob
         _deviceGroupMaskingPath = deviceGroupMaskingPath;
     }
 
+    @Override
     public void updateStatus(JobContext jobContext) throws Exception {
         CloseableIterator<CIMObjectPath> iterator = null;
         DbClient dbClient = jobContext.getDbClient();
         JobStatus jobStatus = getJobStatus();
         _log.info("Updating status of SmisCreateMaskingViewJob");
         try {
-            if (jobStatus == JobStatus.SUCCESS && (ExportMaskOperationsHelper.volumeURIHLUsHasNullHLU(_volumeURIHLUs))) {
+            if (jobStatus == JobStatus.SUCCESS) {
                 StorageSystem storageSystem = dbClient.queryObject(StorageSystem.class, getStorageSystemURI());
                 CimConnection cimConnection = jobContext.getCimConnectionFactory().getConnection(storageSystem);
                 CIMConnectionFactory cimConnectionFactory = jobContext.getCimConnectionFactory();
@@ -124,7 +125,7 @@ public class SmisCreateMaskingViewJob extends SmisJob
 
     /**
      * Method will set the EMCRecoverPointEnabled flag on the device masking group for VMAX.
-     * 
+     *
      * @param dbClient [in] - Client instance for reading/writing from/to DB
      * @param client [in] - WBEMClient used for reading/writing from/to SMI-S
      * @param deviceGroupPath [in] - CIMObjectPath referencing the volume
@@ -174,7 +175,7 @@ public class SmisCreateMaskingViewJob extends SmisJob
     /**
      * Method will set the EMCRecoverPointEnabled flag on all the volumes within 8.0.3 Provider.
      * 8.0.3 Provider doesnt support setting RP tag on Storage Groups.
-     * 
+     *
      * @param dbClient [in] - Client instance for reading/writing from/to DB
      * @param client [in] - WBEMClient used for reading/writing from/to SMI-S
      * @param deviceGroupPath [in] - CIMObjectPath referencing the volume

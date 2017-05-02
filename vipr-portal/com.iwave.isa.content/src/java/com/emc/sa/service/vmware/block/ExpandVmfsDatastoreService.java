@@ -35,15 +35,31 @@ public class ExpandVmfsDatastoreService extends VMwareHostService {
 
     @Override
     public void precheck() throws Exception {
+        StringBuilder preCheckErrors = new StringBuilder();
+
         super.precheck();
         volume = BlockStorageUtils.getVolume(volumeId);
         acquireHostLock();
         datastore = vmware.getDatastore(datacenter.getLabel(), datastoreName);
+
+        // If no volumes were found (or not all the volumes were found in our DB), indicate an error
+        if (vmware.findVolumesBackingDatastore(host, hostId, datastore) == null) {
+            preCheckErrors.append(
+                    ExecutionUtils.getMessage("expand.vmfs.datastore.notsamewwn", datastoreName) + " ");
+        }
+
+        vmware.disconnect();
+
+        if (preCheckErrors.length() > 0) {
+            throw new IllegalStateException(preCheckErrors.toString());
+        }
     }
 
     @Override
     public void execute() throws Exception {
         BlockStorageUtils.expandVolume(volumeId, sizeInGb);
+        connectAndInitializeHost();
+        datastore = vmware.getDatastore(datacenter.getLabel(), datastoreName);
         vmware.refreshStorage(host, cluster);
         vmware.expandVmfsDatastore(host, cluster, hostId, volume, datastore);
         if (hostId != null) {

@@ -317,7 +317,7 @@ public class VNXFileArgsCreator extends ArgsCreator {
             selection.setFileSystems(true);
             fsQueryParam.setAspectSelection(selection);
             query.getQueryRequestChoice().add(fsQueryParam);
-            iStream = _vnxFileInputRequestBuilder.getQueryParamPacket(fsQueryParam, false);
+            iStream = _vnxFileInputRequestBuilder.getQueryParamPacket(fsQueryParam, true);
         } catch (JAXBException jaxbException) {
             throw new VNXFilePluginException(
                     "Exception occurred while generating input xml for fileSystem info",

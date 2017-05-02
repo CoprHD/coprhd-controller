@@ -97,6 +97,7 @@ public interface SmisConstants {
     static final long REPLICATION_DATA_SYNC_TYPE = 8;
     static final long DEVICES_SYNC_TYPE = 3;
     static final long MASKING_SYNC_TYPE = 7;
+    static final String FORMAT = "Format";
 
     static final String SE_REPLICATIONSETTING_DATA = "SE_ReplicationSettingData";
     static final String CP_REPLICATIONSETTING_DATA = "ReplicationSettingData";
@@ -124,6 +125,7 @@ public interface SmisConstants {
     static final String ISCSI_PROTOCOL_ENDPOINT = "_iSCSIProtocolEndpoint";
     static final String STORAGE_SYSTEM = "_StorageSystem";
     static final String STORAGE_PROCESSOR_SYSTEM = "_StorageProcessorSystem";
+    static final String EMC_STORAGE_PROCESSOR_SYSTEM = "EMC_StorageProcessorSystem";
     static final String LUN_MASKING_VIEW = "_LunMaskingView";
     static final String REPLICATION_SERVICE = "_ReplicationService";
     static final String PROTECTION_SERVICE = "_StorageProtectionService";
@@ -258,6 +260,7 @@ public interface SmisConstants {
     static final String EMC_LIST_SFSENTRIES = "EMCListSFSEntries";
     static final String SFSENTRIES = "SFSEntries";
     static final String EMC_REMOVE_SFSENTRIES = "EMCRemoveSFSEntries";
+    static final String ADD_SFS_ENTRIES = "AddSFSEntries";
 
     // Class and properties for SE_ReplicaPairView
     String SE_REPLICA_PAIR_VIEW = "SE_ReplicaPairView";

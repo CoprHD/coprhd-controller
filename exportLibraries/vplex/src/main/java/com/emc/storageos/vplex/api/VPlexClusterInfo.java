@@ -137,7 +137,7 @@ public class VPlexClusterInfo extends VPlexResourceInfo {
         for (VPlexStorageVolumeInfo clusterStorageVolumeInfo : storageVolumeInfoList) {
             String clusterVolumeWWN = clusterStorageVolumeInfo.getWwn();
             List<String> clusterVolumeItls = clusterStorageVolumeInfo.getItls();
-            s_logger.info(String.format("Cluster storage volume info [%s : %s : %s]", clusterStorageVolumeInfo.getName(), clusterVolumeWWN,
+            s_logger.debug(String.format("Cluster storage volume info [%s : %s : %s]", clusterStorageVolumeInfo.getName(), clusterVolumeWWN,
                     clusterVolumeItls));
             if ((null != volumeItlsList) && (!volumeItlsList.isEmpty())) {
                 if ((null != clusterVolumeItls) && (!clusterVolumeItls.isEmpty())) {

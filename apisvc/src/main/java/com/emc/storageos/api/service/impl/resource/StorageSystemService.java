@@ -386,7 +386,7 @@ public class StorageSystemService extends TaskResourceService {
          * Because while doing update client can try to update one among all existing mandatory fields.
          */
         if (param.getSmisProviderIP() != null) {
-            ArgValidator.checkFieldValidIP(param.getSmisProviderIP(), "smis_provider_ip");
+            ArgValidator.checkFieldValidInetAddress(param.getSmisProviderIP(), "smis_provider_ip");
         }
         if (param.getSmisUserName() != null) {
             ArgValidator.checkFieldNotEmpty(param.getSmisUserName(), "smis_user_name");

@@ -51,9 +51,9 @@ test_expand_host_filesystem() {
 
         if [ "${os}" = "windows" ]
         then
-            windows_create_and_mount_volume $TENANT ${hostname} "${volume}" ${NH} ${VPOOL_BASE} ${PROJECT}
+            run windows_create_and_mount_volume $TENANT ${hostname} "${volume}" ${NH} ${VPOOL_BASE} ${PROJECT}
         else
-            unix_create_volume_and_mount $TENANT ${hostname} "${volume}" "/${volume}" ${NH} ${VPOOL_BASE} ${PROJECT} ${os}
+            run unix_create_volume_and_mount $TENANT ${hostname} "${volume}" "/${volume}" ${NH} ${VPOOL_BASE} ${PROJECT} ${os}
         fi
         # Initial size to be expanded to
         size=2
@@ -76,10 +76,9 @@ test_expand_host_filesystem() {
             # Turn on failure at a specific point
             set_artificial_failure ${failure}
 
-	    # Run expand filesystem
-            expand_volume $TENANT ${hostname} ${volume} ${PROJECT} ${size} ${os} ${failure}
-
             if [ ${failure} != ${HAPPY_PATH_TEST_INJECTION} ]; then
+                fail expand_volume $TENANT ${hostname} ${volume} ${PROJECT} ${size} ${os} ${failure}
+
                 # Verify injected failures were hit
                 # verify_failures ${failure}
 
@@ -94,13 +93,12 @@ test_expand_host_filesystem() {
 
 		# Rerun the expand operation
 		set_artificial_failure none
-                expand_volume $TENANT ${hostname} ${volume} ${PROJECT} ${size} ${os}
-
-                #Verify that order is successful 
+                runcmd expand_volume $TENANT ${hostname} ${volume} ${PROJECT} ${size} ${os}
 
 		# Verify that expand is successful on host side
  		verify_mount_point ${os} ${mountpoint} ${size} ${wwn}
-
+	    else
+	        runcmd expand_volume $TENANT ${hostname} ${volume} ${PROJECT} ${size} ${os} ${failure}
 	    fi
 
             # Report results
@@ -112,7 +110,7 @@ test_expand_host_filesystem() {
             echo " "
 	done
 
-	unmount_and_delete_volume $TENANT ${hostname} "${volume}" ${PROJECT} ${os}
+	run unmount_and_delete_volume $TENANT ${hostname} "${volume}" ${PROJECT} ${os}
     done 
 }
 
@@ -160,6 +158,7 @@ unix_create_volume_and_mount() {
     host_id=`hosts list ${tenant_arg} | grep ${hostname_arg} | awk '{print $4}'`
 
     runcmd catalog order ${service_catalog} ${tenant_arg} project=${project_id},name=${volname_arg},virtualPool=${virtualpool_id},virtualArray=${virtualarray_id},host=${host_id},size=1,mountPoint=${mountpoint_arg}${file_system_type} ${service_category} --failOnError true
+    return $?
 }
 
 expand_volume() {
@@ -169,7 +168,7 @@ expand_volume() {
     volume_id=`volume list ${4} | grep "${3}" | awk '{print $7}'`
     size=$5
     os=$6
-    failure=$7
+    catalog_failure=$7
 
     service_category=NoneSet
     service_catalog=NoneSet
@@ -192,7 +191,8 @@ expand_volume() {
 
     # expand_volume $TENANT ${hostname} ${volume} ${PROJECT} "5" ${os}
 
-    runcmd catalog order ${service_catalog} ${tenant_arg} host=${host_id},size=${size},${volume_parameter_name}=${volume_id},artificialFailure=${failure} ${service_category} --failOnError true
+    runcmd catalog order ${service_catalog} ${tenant_arg} host=${host_id},size=${size},${volume_parameter_name}=${volume_id},artificialFailure=${catalog_failure} ${service_category} --failOnError true
+    return $?
 }
 
 unmount_and_delete_volume() {

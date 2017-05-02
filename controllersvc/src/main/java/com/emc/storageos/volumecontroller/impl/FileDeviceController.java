@@ -648,6 +648,9 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                 for (FileShareExport fileShareExport : exports) {
                     FileExport fExport = fileShareExport.getFileExport();
                     fExport.setMountPoint(fileShareExport.getMountPath());
+                    fExport.setMapLookupUid(fileShareExport.isMapLookupUid());
+                    fExport.setMountSubDirectory(fileShareExport.isMountSubDirectory());
+                    fExport.setReturn32bitFileIds(fileShareExport.isReturn32bitFileIds());
                     _log.info("FileExport:clients:" + fExport.getClients() + ":portName:" + fExport.getStoragePortName()
                             + ":port:" + fExport.getStoragePort() + ":rootMapping:" + fExport.getRootUserMapping()
                             + ":permissions:" + fExport.getPermissions() + ":protocol:" + fExport.getProtocol()

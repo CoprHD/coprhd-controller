@@ -47,6 +47,9 @@ public class FileShareExport implements Serializable {
     private String _mountPath;
     private String _comments;
     private String _isilonId;
+    private boolean mountSubDirectory;
+    private boolean mapLookupUid;
+    private boolean return32bitFileIds;
 
     private static final String SEC_SEPARATOR = ",";
 
@@ -255,6 +258,30 @@ public class FileShareExport implements Serializable {
 
     public void setIsilonId(String isilonId) {
         this._isilonId = isilonId;
+    }
+
+    public boolean isMountSubDirectory() {
+        return mountSubDirectory;
+    }
+
+    public void setMountSubDirectory(boolean mountSubDirectory) {
+        this.mountSubDirectory = mountSubDirectory;
+    }
+
+    public boolean isMapLookupUid() {
+        return mapLookupUid;
+    }
+
+    public void setMapLookupUid(boolean mapLookupUid) {
+        this.mapLookupUid = mapLookupUid;
+    }
+
+    public boolean isReturn32bitFileIds() {
+        return return32bitFileIds;
+    }
+
+    public void setReturn32bitFileIds(boolean return32bitFileIds) {
+        this.return32bitFileIds = return32bitFileIds;
     }
 
 }

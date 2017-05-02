@@ -404,7 +404,7 @@ class Fileshare(object):
     def export(
             self, name, security_type, permission, root_user,
             endpoints, protocol, share_name, share_description,
-            permission_type, sub_dir, sync,synctimeout):
+            permission_type, sub_dir, all_dirs, map_lookup_uid, return_32bit_file_ids, sync,synctimeout):
         '''
         Makes REST API call to export fileshare to a host
         Parameters:
@@ -453,6 +453,15 @@ class Fileshare(object):
                 }
                 if(sub_dir):
                     request["sub_directory"] = sub_dir
+                    
+                if(all_dirs):
+                    request["all_dirs"] = all_dirs
+                
+                if(map_lookup_uid):
+                    request["map_lookup_uid"] = map_lookup_uid
+                
+                if(return_32bit_file_ids):
+                    request["return_32bit_file_ids"] = return_32bit_file_ids
                 
 
                 body = json.dumps(request)
@@ -2010,6 +2019,21 @@ def export_parser(subcommand_parsers, common_parser):
                                dest='synctimeout',
                                default=0,
                                type=int)
+    export_parser.add_argument('-alldirs', '-ad',
+                               metavar='<all_dirs>',
+                               dest='all_dirs',
+                               choices=Fileshare.BOOL_TYPE_LIST,
+                               help='Mount subdirectories')
+    export_parser.add_argument('-maplookupuid', '-mluid',
+                               metavar='<map_lookup_uid>',
+                               dest='map_lookup_uid',
+                               choices=Fileshare.BOOL_TYPE_LIST,
+                               help='Map the uids in user db')
+    export_parser.add_argument('-return32bitfileids', '-ret32bId',
+                               metavar='<return_32bit_file_ids>',
+                               dest='return_32bit_file_ids',
+                               choices=Fileshare.BOOL_TYPE_LIST,
+                               help='limits the size of file id to 32 bit')
     export_parser.set_defaults(func=fileshare_export)
 
 
@@ -2056,7 +2080,7 @@ def fileshare_export(args):
             args.tenant + "/" + args.project + "/" + args.name,
             args.security, args.permission, args.root_user, args.endpoint,
             args.protocol, args.share, args.desc,
-            args.permission_type, args.subdir, args.sync,args.synctimeout)
+            args.permission_type, args.subdir, args.sync,args.synctimeout, args.all_dirs, args.map_lookup_uid, args.return_32bit_file_ids)
 
 #        if(args.sync == False):
 #            return common.format_json_object(res)

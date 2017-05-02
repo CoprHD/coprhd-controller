@@ -57,6 +57,8 @@ public class IsilonExport {
 
     private boolean all_dirs;
     private boolean read_only;
+    private boolean map_lookup_uid;
+    private boolean return_32bit_file_ids;
     private IsilonIdentity map_all;
     private IsilonIdentity map_root;
 
@@ -237,5 +239,21 @@ public class IsilonExport {
         str.append(", map_all: " + ((map_all != null) ? map_all.toString() : ""));
         str.append(")");
         return str.toString();
+    }
+
+    public boolean isMap_lookup_uid() {
+        return map_lookup_uid;
+    }
+
+    public void setMap_lookup_uid(boolean map_lookup_uid) {
+        this.map_lookup_uid = map_lookup_uid;
+    }
+
+    public boolean isReturn_32bit_file_ids() {
+        return return_32bit_file_ids;
+    }
+
+    public void setReturn_32bit_file_ids(boolean return_32bit_file_ids) {
+        this.return_32bit_file_ids = return_32bit_file_ids;
     }
 }

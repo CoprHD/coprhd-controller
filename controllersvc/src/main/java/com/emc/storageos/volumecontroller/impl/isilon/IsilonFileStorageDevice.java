@@ -624,6 +624,11 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             List<String> securityTypes = new ArrayList<String>(orderedSecTypes);
             IsilonExport newIsilonExport = setIsilonExport(fileExport, permissions, securityTypes, root_user, mountPath,
                     comments);
+            if (fileExport.isMountSubDirectory()) {
+                newIsilonExport.setAllDirs();
+            }
+            newIsilonExport.setMap_lookup_uid(fileExport.isMapLookupUid());
+            newIsilonExport.setReturn_32bit_file_ids(fileExport.isReturn32bitFileIds());
 
             _log.info("IsilonExport:" + fileExport.getClients() + ":" + fileExport.getStoragePortName() + ":"
                     + fileExport.getStoragePort() + ":" + fileExport.getRootUserMapping() + ":"

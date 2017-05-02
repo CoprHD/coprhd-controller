@@ -351,29 +351,32 @@ public class DataCollectionJobScheduler {
         }
 
         long lastScanTime = 0;
-        boolean inProgress = true;
 
         List<URI> provUris = scanJob.getProviders();
         if (provUris != null && !provUris.isEmpty()) {
             ControllerServiceImpl.Lock lock = ControllerServiceImpl.Lock.getLock(ControllerServiceImpl.SCANNER);
             if (lock.acquire(lock.getRecommendedTimeout())) {
                 try {
-                    _logger.info("Acquired a lock {} to schedule Jobs", lock.toString());
+                    _logger.info("Acquired a lock {} to schedule Scanner Jobs", lock.toString());
+
+                    boolean inProgress = ControllerServiceImpl.isDataCollectionJobInProgress(scanJob)
+                            || ControllerServiceImpl.isDataCollectionJobQueued(scanJob);
+
                     // Find the last scan time from the provider whose scan status is not in progress or scheduled
-                    for (StorageProvider provider : providers) {
-                        if (!isInProgress(provider)) {
-                            lastScanTime = provider.getLastScanTime();
-                            inProgress = false;
-                            break;
-                        }
+                    if (!inProgress) {
+                        lastScanTime = providers.iterator().next().getLastScanTime();
                     }
+
                     if (isDataCollectionScanJobSchedulingNeeded(lastScanTime, inProgress)) {
                         _logger.info("Added Scan job to the Distributed Queue");
                         ControllerServiceImpl.enqueueDataCollectionJob(scanJob);
                     }
+                } catch (Exception e) {
+                    _logger.error(e.getMessage(), e);
                 } finally {
                     try {
                         lock.release();
+                        _logger.info("Released schedule Jobs lock {}", lock.toString());
                     } catch (Exception e) {
                         _logger.error("Failed to release  Lock {} -->{}", lock.toString(), e.getMessage());
                     }

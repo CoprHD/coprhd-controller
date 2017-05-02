@@ -109,11 +109,25 @@ public class DataCollectionArrayAffinityJob extends DataCollectionJob implements
         return _systemIds;
     }
     
+    private boolean uriListsMatch(List<URI> list1, List<URI> list2) {
+        if (list1 == null && list2 == null) {
+            return true;
+        }
+        if ((list1 == null && list2 != null)
+                || (list1 != null && list2 == null)
+                || list1.size() != list2.size()) {
+            return false;
+        }
+
+        return list1.containsAll(list2);
+    }
+
     @Override
     public boolean matches(DataCollectionJob job) {
-        // note that this has an implementation in 3.6 that is not added here
-        // the result of this is that array affinity jobs will never match
-        // and therefore duplicates can be queued as always
-        return false;
+        return (this.getClass().equals(job.getClass())
+                && getCompleter().getJobType().equals(job.getCompleter().getJobType())
+                && getNamespace().equals(job.getNamespace())
+                && uriListsMatch(getHostIds(), ((DataCollectionArrayAffinityJob) job).getHostIds())
+                && uriListsMatch(getSystemIds(), ((DataCollectionArrayAffinityJob) job).getSystemIds()));
     }
 }

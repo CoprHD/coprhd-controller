@@ -1525,23 +1525,30 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
     public boolean createSRDFVolumePairStep(final URI systemURI, final URI sourceURI,
             final URI targetURI, final URI vpoolChangeUri, final String opId) {
         log.info("START Add srdf volume pair");
-        TaskCompleter completer = null;
+        TaskCompleter completer = new SRDFMirrorCreateCompleter(sourceURI, targetURI, vpoolChangeUri, opId);
         try {
             WorkflowStepCompleter.stepExecuting(opId);
             StorageSystem system = getStorageSystem(systemURI);
             InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_074);
-            completer = new SRDFMirrorCreateCompleter(sourceURI, targetURI, vpoolChangeUri, opId);
             getRemoteMirrorDevice().doCreateLink(system, sourceURI, targetURI, completer);
             InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_075);
+
+            completer.ready(dbClient);
+
             log.info("Source: {}", sourceURI);
             log.info("Target: {}", targetURI);
             log.info("OpId: {}", opId);
         } catch (Exception e) {
-            ServiceError error = DeviceControllerException.errors.jobFailed(e);
-            if (null != completer) {
-                completer.error(dbClient, error);
+            if (completer != null) {
+                if (!completer.isCompleted()) {
+                    ServiceError error = DeviceControllerException.errors.jobFailed(e);
+                    completer.error(dbClient, error);
+                    WorkflowStepCompleter.stepFailed(opId, error);
+                } else {
+                    log.debug("Task has been marked as completed.  Not performing any error handling.");
+                }
             }
-            WorkflowStepCompleter.stepFailed(opId, error);
+
             return false;
         }
         return true;

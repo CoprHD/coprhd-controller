@@ -181,7 +181,7 @@ expand_volume_and_datastore_for_host() {
     volname_arg=$2
     datastorename_arg=$3   
     size_arg=$8
-    failure=$9
+    catalog_failure=$9
     
     volume_id=`volume list ${4} | grep "${2} " | awk '{print $7}'`
  
@@ -189,8 +189,8 @@ expand_volume_and_datastore_for_host() {
     datacenter_id=`datacenter list ${5} | grep "${6} " | awk '{print $4}'`
     host_id=`hosts list ${tenant_arg} | grep "${7} " | awk '{print $4}'`
     
-    echo "=== catalog order ExpandVolumeandDatastore ${tenant_arg} volumes=${volume_id},host=${host_id},datastoreName=${datastorename_arg},vcenter=${vcenter_id},datacenter=${datacenter_id},size=${size_arg},artificialFailure=${failure} BlockServicesforVMwarevCenter"
-runcmd catalog order ExpandVolumeandDatastore ${tenant_arg} volumes=${volume_id},host=${host_id},datastoreName=${datastorename_arg},vcenter=${vcenter_id},datacenter=${datacenter_id},size=${size_arg},artificialFailure=${failure} BlockServicesforVMwarevCenter --failOnError true
+    echo "=== catalog order ExpandVolumeandDatastore ${tenant_arg} volumes=${volume_id},host=${host_id},datastoreName=${datastorename_arg},vcenter=${vcenter_id},datacenter=${datacenter_id},size=${size_arg},artificialFailure=${catalog_failure} BlockServicesforVMwarevCenter"
+runcmd catalog order ExpandVolumeandDatastore ${tenant_arg} volumes=${volume_id},host=${host_id},datastoreName=${datastorename_arg},vcenter=${vcenter_id},datacenter=${datacenter_id},size=${size_arg},artificialFailure=${catalog_failure} BlockServicesforVMwarevCenter --failOnError true
     return $?
 }
 
@@ -200,7 +200,7 @@ extend_datastore() {
     volname_arg=$2
     datastorename_arg=$3   
     multipathpolicy_arg=$8
-    failure=$9
+    catalog_failure=$9
 
     volume_id=`volume list ${4} | grep "${2} " | awk '{print $7}'`
  
@@ -208,8 +208,8 @@ extend_datastore() {
     datacenter_id=`datacenter list ${5} | grep "${6} " | awk '{print $4}'`
     cluster_id=`cluster list ${tenant_arg} | grep "${7} " | awk '{print $4}'`
     
-    echo "=== catalog order ExtendDatastorewithExistingVolume ${tenant_arg} volume=${volume_id},host=${cluster_id},datastoreName=${datastorename_arg},vcenter=${vcenter_id},datacenter=${datacenter_id},multipathPolicy=${multipathpolicy_arg},artificialFailure=${failure} BlockServicesforVMwarevCenter"
-    runcmd catalog order ExtendDatastorewithExistingVolume ${tenant_arg} volume=${volume_id},host=${cluster_id},datastoreName=${datastorename_arg},vcenter=${vcenter_id},datacenter=${datacenter_id},multipathPolicy=${multipathpolicy_arg},artificialFailure=${failure} BlockServicesforVMwarevCenter --failOnError true
+    echo "=== catalog order ExtendDatastorewithExistingVolume ${tenant_arg} volume=${volume_id},host=${cluster_id},datastoreName=${datastorename_arg},vcenter=${vcenter_id},datacenter=${datacenter_id},multipathPolicy=${multipathpolicy_arg},artificialFailure=${catalog_failure} BlockServicesforVMwarevCenter"
+    runcmd catalog order ExtendDatastorewithExistingVolume ${tenant_arg} volume=${volume_id},host=${cluster_id},datastoreName=${datastorename_arg},vcenter=${vcenter_id},datacenter=${datacenter_id},multipathPolicy=${multipathpolicy_arg},artificialFailure=${catalog_failure} BlockServicesforVMwarevCenter --failOnError true
     return $?
 }
 
@@ -219,7 +219,7 @@ extend_datastore_with_new_volume() {
     volname_arg=$2
     datastorename_arg=$3   
     multipathpolicy_arg=$8
-    failure=$9
+    catalog_failure=$9
 
     volume_id=`volume list ${4} | grep "${2} " | awk '{print $7}'`
  
@@ -227,8 +227,8 @@ extend_datastore_with_new_volume() {
     datacenter_id=`datacenter list ${5} | grep "${6} " | awk '{print $4}'`
     cluster_id=`cluster list ${tenant_arg} | grep "${7} " | awk '{print $4}'`
     
-    echo "=== catalog order ExtendDatastorewithNewVolume ${tenant_arg} volume=${volume_id},host=${cluster_id},datastoreName=${datastorename_arg},vcenter=${vcenter_id},datacenter=${datacenter_id},multipathPolicy=${multipathpolicy_arg},artificialFailure=${failure} BlockServicesforVMwarevCenter"
-    catalog order ExtendDatastorewithNewVolume ${tenant_arg} volume=${volume_id},host=${cluster_id},datastoreName=${datastorename_arg},vcenter=${vcenter_id},datacenter=${datacenter_id},multipathPolicy=${multipathpolicy_arg},artificialFailure=${failure} BlockServicesforVMwarevCenter
+    echo "=== catalog order ExtendDatastorewithNewVolume ${tenant_arg} volume=${volume_id},host=${cluster_id},datastoreName=${datastorename_arg},vcenter=${vcenter_id},datacenter=${datacenter_id},multipathPolicy=${multipathpolicy_arg},artificialFailure=${catalog_failure} BlockServicesforVMwarevCenter"
+    catalog order ExtendDatastorewithNewVolume ${tenant_arg} volume=${volume_id},host=${cluster_id},datastoreName=${datastorename_arg},vcenter=${vcenter_id},datacenter=${datacenter_id},multipathPolicy=${multipathpolicy_arg},artificialFailure=${catalog_failure} BlockServicesforVMwarevCenter
     return $?
 }
 
@@ -238,7 +238,7 @@ extend_datastore_for_host() {
     volname_arg=$2
     datastorename_arg=$3   
     multipathpolicy_arg=$8
-    failure=$9
+    catalog_failure=$9
 
     volume_id=`volume list ${4} | grep "${2} " | awk '{print $7}'`
  
@@ -246,8 +246,8 @@ extend_datastore_for_host() {
     datacenter_id=`datacenter list ${5} | grep "${6} " | awk '{print $4}'`
     host_id=`hosts list ${tenant_arg} | grep "${7} " | awk '{print $4}'`
     
-    echo "=== catalog order ExtendDatastorewithExistingVolume ${tenant_arg} volume=${volume_id},host=${host_id},datastoreName=${datastorename_arg},vcenter=${vcenter_id},datacenter=${datacenter_id},multipathPolicy=${multipathpolicy_arg},artificialFailure=${failure} BlockServicesforVMwarevCenter"
-    runcmd catalog order ExtendDatastorewithExistingVolume ${tenant_arg} volume=${volume_id},host=${host_id},datastoreName=${datastorename_arg},vcenter=${vcenter_id},datacenter=${datacenter_id},multipathPolicy=${multipathpolicy_arg},artificialFailure=${failure} BlockServicesforVMwarevCenter
+    echo "=== catalog order ExtendDatastorewithExistingVolume ${tenant_arg} volume=${volume_id},host=${host_id},datastoreName=${datastorename_arg},vcenter=${vcenter_id},datacenter=${datacenter_id},multipathPolicy=${multipathpolicy_arg},artificialFailure=${catalog_failure} BlockServicesforVMwarevCenter"
+    runcmd catalog order ExtendDatastorewithExistingVolume ${tenant_arg} volume=${volume_id},host=${host_id},datastoreName=${datastorename_arg},vcenter=${vcenter_id},datacenter=${datacenter_id},multipathPolicy=${multipathpolicy_arg},artificialFailure=${catalog_failure} BlockServicesforVMwarevCenter
     return $?
 }
 

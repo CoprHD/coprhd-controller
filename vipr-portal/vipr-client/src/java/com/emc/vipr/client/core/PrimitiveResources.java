@@ -67,7 +67,6 @@ public class PrimitiveResources extends AbstractCoreResources<CustomServicesPrim
      * Get all primitive resource ansible packages
      * 
      * @param filter
-     * @brief Get all primitive resource ansible packages
      * @return
      */
     public List<CustomServicesPrimitiveResourceRestRep> getAnsiblePackages(ResourceFilter<CustomServicesPrimitiveResourceRestRep> filter) {
@@ -86,7 +85,6 @@ public class PrimitiveResources extends AbstractCoreResources<CustomServicesPrim
      * Get all primitive resource inventory files
      * 
      * @param filter
-     * @brief Get all primitive resource inventory files
      * @return
      */
     public List<CustomServicesPrimitiveResourceRestRep> getInventoryFiles(ResourceFilter<CustomServicesPrimitiveResourceRestRep> filter) {
@@ -106,7 +104,6 @@ public class PrimitiveResources extends AbstractCoreResources<CustomServicesPrim
      * 
      * @param filter
      * @param ansiblePackageId
-     * @brief Get all primitive resource inventory files by ansible package
      * @return
      */
     public List<CustomServicesPrimitiveResourceRestRep> getInventoryFilesByAnsiblePackage(ResourceFilter<CustomServicesPrimitiveResourceRestRep> filter, URI ansiblePackageId) {

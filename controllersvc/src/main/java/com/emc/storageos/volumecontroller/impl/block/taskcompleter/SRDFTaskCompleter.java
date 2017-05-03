@@ -286,8 +286,8 @@ public class SRDFTaskCompleter extends TaskCompleter {
      * Update/create remote replication pairs for SRDF volumes.
      */
     protected void updateRemoteReplicationPairs() {
-
-        for (Volume v : getVolumes()) {
+        List<Volume> volumes = dbClient.queryObject(Volume.class, getIds());
+        for (Volume v : volumes) {
             try {
                 if (v.isVPlexVolume(dbClient)) {
                     // skip VPLEX volumes, as they delegate SRDF characteristics to their native volumes.

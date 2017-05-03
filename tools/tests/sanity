@@ -6136,9 +6136,6 @@ recoverpoint_direct_access_test()
 
         secho 'Failover Cancel - returning copy image acess to no_access for target copy '${direct_access_mode_varray}
         run blockconsistencygroup failover_cancel $consistency_group --copyType rp --targetVarray ${direct_access_mode_varray}
-        
-        secho 'Expand source volume when one of the RP target copies is in direct access mode'
-        run volume expand ${PROJECT}/${src_volume} ${RP_SIZE_EXPAND}
 
         secho 'Verify the current state of the source and target vols'
         run volume verify ${PROJECT}/${src_volume} personality SOURCE

@@ -349,6 +349,7 @@ vnx_setup() {
 	--multiVolumeConsistency \
 	--provisionType 'Thick'	${driveType}		        \
 	--max_snapshots 10                      \
+	--expandable true \
 	--neighborhoods $NH  
 
     run cos create block ${VPOOL_CHANGE}	\
@@ -358,6 +359,7 @@ vnx_setup() {
 	--multiVolumeConsistency \
 	--provisionType 'Thick'	${driveType}		        \
 	--max_snapshots 10                      \
+	--expandable true \
 	--neighborhoods $NH                    
 
     run cos update block $VPOOL_BASE --storage ${VNXB_NATIVEGUID}
@@ -386,6 +388,7 @@ unity_setup()
 	--multiVolumeConsistency \
 	--provisionType 'Thin'			        \
 	--max_snapshots 10                      \
+	--expandable true \
 	--neighborhoods $NH                    
 
     run cos create block ${VPOOL_CHANGE}	\
@@ -395,6 +398,7 @@ unity_setup()
 	--multiVolumeConsistency \
 	--provisionType 'Thin'			        \
 	--max_snapshots 10                      \
+	--expandable true \
 	--neighborhoods $NH 
 
     run cos update block $VPOOL_BASE --storage ${UNITY_NATIVEGUID}

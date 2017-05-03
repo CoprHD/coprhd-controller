@@ -4808,6 +4808,11 @@ recoverpoint_simulator_varsetup() {
 recoverpoint_simulator_setup()
 {
     secho 'RecoverPoint Simulator running'
+    RECOVERPOINT_STORAGE_ARRAY_A_GUID=$VMAX1_SIMULATOR_NATIVEGUID
+    RECOVERPOINT_STORAGE_ARRAY_B_GUID=$VMAX2_SIMULATOR_NATIVEGUID
+    RECOVERPOINT_STORAGE_ARRAY_C_GUID=$VMAX3_SIMULATOR_NATIVEGUID
+    RECOVERPOINT_STORAGE_ARRAY_D_GUID=$VMAX4_SIMULATOR_NATIVEGUID
+    
     project_setup
     rp_varray_setup
 
@@ -4822,24 +4827,26 @@ recoverpoint_simulator_setup()
         run storageprovider create ${RECOVERPOINT_VPLEX_A} $VPLEX_IP ${VPLEX1_SIMULATOR_PORT} $VPLEX_USER "$VPLEX_PASSWD" vplex
         if [ "${RP_CRR}" = "1" -o "${RP_CLR}" = "1" ]; then
             run storageprovider create ${RECOVERPOINT_VPLEX_B} $VPLEX_IP ${VPLEX2_SIMULATOR_PORT} $VPLEX_USER "$VPLEX_PASSWD" vplex
-        fi
-        rp_port_setup
+        fi        
     fi
     if [ "${RPXIO_TESTS}" = "1" ]; then
         run storageprovider create xtremeio1 $XIO_SIMULATOR_IP ${XIO_4X_SIMULATOR_PORT} root root xtremio
     fi
 
     run storagedevice discover_all
-    run transportzone assign VSAN_11 ${RECOVERPOINT_VARRAY1}
-    run transportzone assign VSAN_12 ${RECOVERPOINT_VARRAY2}
-    run transportzone assign VSAN_13 ${RECOVERPOINT_VARRAY3}
+    
+    rp_port_setup
+    
+    # For the time being, use implicit network assignments for the varrays instead of
+    # explicit assignments.
+    #run transportzone assign VSAN_11 ${RECOVERPOINT_VARRAY1}
+    #run transportzone assign VSAN_12 ${RECOVERPOINT_VARRAY2}
+    #run transportzone assign VSAN_13 ${RECOVERPOINT_VARRAY3}
 
     RECOVERPOINT_IP=$RP_SIMULATOR_IP
     rp_protection_system_setup
 
-    # Make sure all of the pools are updated and matched
-    run storagedevice discover_all
-
+    # RPA Isolation
     run protectionsystem update --ip ${remote_ip} --name $RECOVERPOINT --cluster site_1rp1 --addvarrays $RECOVERPOINT_VARRAY1
     run protectionsystem update --ip ${remote_ip} --name $RECOVERPOINT --cluster site_2rp1 --addvarrays $RECOVERPOINT_VARRAY2
     run protectionsystem update --ip ${remote_ip} --name $RECOVERPOINT --cluster site_3rp1 --addvarrays $RECOVERPOINT_VARRAY3
@@ -6129,9 +6136,6 @@ recoverpoint_direct_access_test()
 
         secho 'Failover Cancel - returning copy image acess to no_access for target copy '${direct_access_mode_varray}
         run blockconsistencygroup failover_cancel $consistency_group --copyType rp --targetVarray ${direct_access_mode_varray}
-        
-        secho 'Expand source volume when one of the RP target copies is in direct access mode'
-        run volume expand ${PROJECT}/${src_volume} ${RP_SIZE_EXPAND}
 
         secho 'Verify the current state of the source and target vols'
         run volume verify ${PROJECT}/${src_volume} personality SOURCE

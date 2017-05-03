@@ -44,7 +44,7 @@ class Fileshare(object):
     URI_FILESHARE_CONSISTENCYGROUP = URI_FILESHARE + '/consistency-group'
     URI_PROJECT_RESOURCES = '/projects/{0}/resources'
     URI_EXPAND = URI_FILESHARE + '/expand'
-	URI_REDUCE = URI_FILESHARE + '/reduce'
+    URI_REDUCE = URI_FILESHARE + '/reduce'
     URI_DEACTIVATE = URI_FILESHARE + '/deactivate'
     URI_TAG_FILESHARE = URI_FILESHARE + '/tags'
 
@@ -901,7 +901,7 @@ class Fileshare(object):
             return self.check_for_sync(o, sync,synctimeout)
         return o
 	# this operation reduce the filesystem size.	
-	def reduce(self, name, new_size, sync=False,synctimeout=0):
+    def reduce(self, name, new_size, sync=False,synctimeout=0):
         fileshare_detail = self.show(name)
         current_size = float(fileshare_detail["capacity_gb"])
 

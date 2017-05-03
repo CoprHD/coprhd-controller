@@ -1002,3 +1002,11 @@ verify_datastore_lun_count() {
     return_status=$?
     return $return_status
 }
+
+add_tag() {
+    resource_type=$1
+    resource_id=$2
+    tag=$3
+    runcmd tag --resource_type $resource_type --id $resource_id $tag
+    return $?
+}

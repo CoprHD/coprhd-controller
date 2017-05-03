@@ -266,7 +266,7 @@ extend_datastore_for_host() {
     host_id=`hosts list ${tenant_arg} | grep "${7} " | awk '{print $4}'`
     
     echo "=== catalog order ExtendDatastorewithExistingVolume ${tenant_arg} volume=${volume_id},host=${host_id},datastoreName=${datastorename_arg},vcenter=${vcenter_id},datacenter=${datacenter_id},multipathPolicy=${multipathpolicy_arg},artificialFailure=${catalog_failure} BlockServicesforVMwarevCenter"
-    catalog order ExtendDatastorewithExistingVolume ${tenant_arg} volume=${volume_id},host=${host_id},datastoreName=${datastorename_arg},vcenter=${vcenter_id},datacenter=${datacenter_id},multipathPolicy=${multipathpolicy_arg},artificialFailure=${catalog_failure} BlockServicesforVMwarevCenter
+    catalog order ExtendDatastorewithExistingVolume ${tenant_arg} volume=${volume_id},host=${host_id},datastoreName=${datastorename_arg},vcenter=${vcenter_id},datacenter=${datacenter_id},multipathPolicy=${multipathpolicy_arg},artificialFailure=${catalog_failure} BlockServicesforVMwarevCenter --failOnError true
     return $?
 }
 
@@ -2751,6 +2751,10 @@ test_extend_datastore_with_existing_volume() {
             fail extend_datastore_for_host ${TENANT} ${new_extent} ${datastore1} ${PROJECT} ${vcenter} ${VCENTER_DATACENTER} ${VCENTER_HOST} "Default" ${failure}
             # Do not increased expected LUN count because it should have failed!
 
+            # This failure is only on the datastore tag. The datastore will still have the extent created for it
+            if [ "$failure" = "failure_082_set_resource_tag" ]; then
+                expected_lun_count=`expr $expected_lun_count + 1`
+            fi
             # Wait for Vcenter to update.
             sleep 10
             # Verify the datastore LUN count remains the same
@@ -2758,7 +2762,6 @@ test_extend_datastore_with_existing_volume() {
             if [ $? -ne 0 ]; then
                 echo "Datastore LUN count verification failed (1)"
                 expected_lun_count=`expr $expected_lun_count + 1`
-                continue
             fi
             
             verify_failures ${failure}
@@ -2773,15 +2776,28 @@ test_extend_datastore_with_existing_volume() {
             set_artificial_failure none
         fi
  
-        run extend_datastore_for_host ${TENANT} ${new_extent} ${datastore1} ${PROJECT} ${vcenter} ${VCENTER_DATACENTER} ${VCENTER_HOST} "Default"
-        
-        # Increase expected LUN count
-        expected_lun_count=`expr $expected_lun_count + 1`
+
+        if [ ! "${failure}" = "failure_082_set_resource_tag" ]; then   
+            run extend_datastore_for_host ${TENANT} ${new_extent} ${datastore1} ${PROJECT} ${vcenter} ${VCENTER_DATACENTER} ${VCENTER_HOST} "Default"
+            # Increase expected LUN count
+            expected_lun_count=`expr $expected_lun_count + 1`
+        fi
+
         # Verify the datastore LUN count has increased by 1
         verify_datastore_lun_count ${VCENTER_DATACENTER} ${datastore1} ${VCENTER_HOST} ${expected_lun_count}
         if [ $? -ne 0 ]; then
             echo "Datastore LUN count verification failed (2)"
             expected_lun_count=`expr $expected_lun_count - 1`
+        fi
+
+        # If failing during add datastore tag, add the tag here so that delete datastore will be successful
+        # vipr:vmfsDatastore-urn:storageos:Host:dafe219c-b70a-4d60-a41f-00d10361d3fb:vdc1=testds1-20461
+        if [ "${failure}" = "failure_082_set_resource_tag" ]; then
+            echo "Setting tag"
+            volume_id=`volume list ${PROJECT} | grep "${new_extent} " | awk '{print $7}'`
+            host_id=`hosts list ${TENANT} | grep "${VCENTER_HOST} " | awk '{print $4}'`
+            tag="vipr:vmfsDatastore-${host_id}=${datastore1}"
+            add_tag "volume" ${volume_id} ${tag}
         fi
 
         # Report results

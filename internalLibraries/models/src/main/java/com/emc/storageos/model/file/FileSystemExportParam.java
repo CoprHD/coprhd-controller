@@ -26,8 +26,6 @@ public class FileSystemExportParam {
     private String mountPoint;
     private String comments;
     private boolean mountSubDirectory;
-    private boolean mapLookupUid;
-    private boolean return32bitFileIds;
 
     private List<String> endpoints;
 
@@ -188,24 +186,6 @@ public class FileSystemExportParam {
 
     public void setMountSubDirectory(boolean mountSubDirectory) {
         this.mountSubDirectory = mountSubDirectory;
-    }
-
-    @XmlElement(name = "map_lookup_uid", required = false)
-    public boolean isMapLookupUid() {
-        return mapLookupUid;
-    }
-
-    public void setMapLookupUid(boolean mapLookupUid) {
-        this.mapLookupUid = mapLookupUid;
-    }
-
-    @XmlElement(name = "return_32bit_file_ids", required = false)
-    public boolean isReturn32bitFileIds() {
-        return return32bitFileIds;
-    }
-
-    public void setReturn32bitFileIds(boolean return32bitFileIds) {
-        this.return32bitFileIds = return32bitFileIds;
     }
 
 }

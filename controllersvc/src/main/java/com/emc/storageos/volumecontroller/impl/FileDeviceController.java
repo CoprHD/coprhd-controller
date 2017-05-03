@@ -26,6 +26,8 @@ import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.computesystemcontroller.hostmountadapters.LinuxMountUtils;
 import com.emc.storageos.computesystemorchestrationcontroller.ComputeSystemOrchestrationDeviceController;
+import com.emc.storageos.customconfigcontroller.CustomConfigConstants;
+import com.emc.storageos.customconfigcontroller.impl.CustomConfigHandler;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
@@ -137,9 +139,14 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
 
     private RecordableEventManager _eventManager;
     private AuditLogManager _auditMgr;
+    private CustomConfigHandler customConfigHandler;
 
     private static ComputeSystemOrchestrationDeviceController computeSystemOrchestrationDeviceController;
 
+    public void setCustomConfigHandler(CustomConfigHandler customConfigHandler) {
+        this.customConfigHandler = customConfigHandler;
+    }
+    
     public void setDbClient(DbClient dbc) {
         _dbClient = dbc;
     }
@@ -648,9 +655,17 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                 for (FileShareExport fileShareExport : exports) {
                     FileExport fExport = fileShareExport.getFileExport();
                     fExport.setMountPoint(fileShareExport.getMountPath());
-                    fExport.setMapLookupUid(fileShareExport.isMapLookupUid());
+                    String isMapLookupUid = customConfigHandler.getComputedCustomConfigValue(
+                            CustomConfigConstants.ISILON_MAP_LOOKUP_UID, "isilon", null);
+                    if (Boolean.valueOf(isMapLookupUid)) {
+                        fExport.setMapLookupUid(Boolean.valueOf(isMapLookupUid));
+                    }
+                    String isReturn32bitFileIds = customConfigHandler.getComputedCustomConfigValue(
+                            CustomConfigConstants.ISILON_RETURN_32BIT_FIELDS, "isilon", null);
+                    if (Boolean.valueOf(isReturn32bitFileIds)) {
+                        fExport.setReturn32bitFileIds(Boolean.valueOf(isReturn32bitFileIds));
+                    }
                     fExport.setMountSubDirectory(fileShareExport.isMountSubDirectory());
-                    fExport.setReturn32bitFileIds(fileShareExport.isReturn32bitFileIds());
                     _log.info("FileExport:clients:" + fExport.getClients() + ":portName:" + fExport.getStoragePortName()
                             + ":port:" + fExport.getStoragePort() + ":rootMapping:" + fExport.getRootUserMapping()
                             + ":permissions:" + fExport.getPermissions() + ":protocol:" + fExport.getProtocol()

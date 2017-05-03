@@ -404,7 +404,7 @@ class Fileshare(object):
     def export(
             self, name, security_type, permission, root_user,
             endpoints, protocol, share_name, share_description,
-            permission_type, sub_dir, alldirs, maplookupuid, return32bitfileids, sync, synctimeout):
+            permission_type, sub_dir, alldirs, sync, synctimeout):
         '''
         Makes REST API call to export fileshare to a host
         Parameters:
@@ -457,13 +457,6 @@ class Fileshare(object):
                 if(alldirs):
                     request["all_dirs"] = alldirs
                 
-                if(maplookupuid):
-                    request["map_lookup_uid"] = maplookupuid
-                
-                if(return32bitfileids):
-                    request["return_32bit_file_ids"] = return32bitfileids
-                
-
                 body = json.dumps(request)
                 (s, h) = common.service_json_request(
                     self.__ipAddr, self.__port, "POST",
@@ -2024,16 +2017,6 @@ def export_parser(subcommand_parsers, common_parser):
                                dest='alldirs',
                                choices=Fileshare.BOOL_TYPE_LIST,
                                help='Mount subdirectories')
-    export_parser.add_argument('-maplookupuid', '-mluid',
-                               metavar='<maplookupuid>',
-                               dest='maplookupuid',
-                               choices=Fileshare.BOOL_TYPE_LIST,
-                               help='Map the uids in user db')
-    export_parser.add_argument('-return32bitfileids', '-ret32bId',
-                               metavar='<return32bitfileids>',
-                               dest='return32bitfileids',
-                               choices=Fileshare.BOOL_TYPE_LIST,
-                               help='limits the size of file id to 32 bit')
     export_parser.set_defaults(func=fileshare_export)
 
 
@@ -2080,7 +2063,7 @@ def fileshare_export(args):
             args.tenant + "/" + args.project + "/" + args.name,
             args.security, args.permission, args.root_user, args.endpoint,
             args.protocol, args.share, args.desc,
-            args.permission_type, args.subdir, args.alldirs, args.maplookupuid, args.return32bitfileids, args.sync, args.synctimeout)
+            args.permission_type, args.subdir, args.alldirs, args.sync, args.synctimeout)
 
 #        if(args.sync == False):
 #            return common.format_json_object(res)

@@ -1443,7 +1443,7 @@ public class RecoverPointScheduler implements Scheduler {
                                         standbySourcePool.getLabel()));
                                 continue;
                             } else {
-                                // List of concatenated Strings that contain the RP site + associated storage system.
+                                // List of concatenated strings that contain the RP site + associated storage system.
                                 List<String> secondaryAssociatedStorageSystems = getCandidateVisibleStorageSystems(standbySourcePool,
                                         selectedSecondaryProtectionSystem,
                                         haVarray, activeProtectionVarrays, true);
@@ -1458,15 +1458,12 @@ public class RecoverPointScheduler implements Scheduler {
                                     continue;
                                 }
 
-                                Set<String> sortedSecondaryAssociatedStorageSystems = new LinkedHashSet<String>();
-                                Set<String> sameAsPrimary = new HashSet<String>();
-
-                                // Perform a preliminary sorting operation. We want to only consider secondary associated storage systems
-                                // that reference the same storage system as the primary recommendation. Also, want to prefer RP sites
-                                // that are different
-                                String secondarySourceInternalSiteName = "";
+                                Set<String> validSecondaryAssociatedStorageSystems = new LinkedHashSet<String>();
+                                
+                                // Perform a preliminary filter operation as we want to only consider secondary associated storage systems
+                                // that reference the same storage system as the primary recommendation and has a different RP site.
                                 for (String secondaryAssociatedStorageSystem : secondaryAssociatedStorageSystems) {
-                                    secondarySourceInternalSiteName = ProtectionSystem.getAssociatedStorageSystemSiteName(
+                                    String secondarySourceInternalSiteName = ProtectionSystem.getAssociatedStorageSystemSiteName(
                                             secondaryAssociatedStorageSystem);
 
                                     URI secondarySourceStorageSystemURI = ConnectivityUtil.findStorageSystemBySerialNumber(
@@ -1474,17 +1471,13 @@ public class RecoverPointScheduler implements Scheduler {
                                                     secondaryAssociatedStorageSystem),
                                             dbClient, StorageSystemType.BLOCK);
 
-                                    if (secondaryAssociatedStorageSystem.equals(
-                                            sourceRec.getRpSiteAssociateStorageSystem())) {
-                                        sameAsPrimary.add(secondaryAssociatedStorageSystem);
-                                    } else if (secondarySourceStorageSystemURI.equals(primarySourceStorageSystemURI)
+                                    if (secondarySourceStorageSystemURI.equals(primarySourceStorageSystemURI)
                                             && !secondarySourceInternalSiteName.equals(sourceRec.getInternalSiteName())) {
-                                        sortedSecondaryAssociatedStorageSystems.add(secondaryAssociatedStorageSystem);
+                                        validSecondaryAssociatedStorageSystems.add(secondaryAssociatedStorageSystem);
                                     }
                                 }
 
-                                sortedSecondaryAssociatedStorageSystems.addAll(sameAsPrimary);
-                                for (String secondaryAssociatedStorageSystem : sortedSecondaryAssociatedStorageSystems) {
+                                for (String secondaryAssociatedStorageSystem : validSecondaryAssociatedStorageSystems) {
                                     _log.info(String.format("RP Placement : Build MetroPoint Standby Recommendation..."));
                                     RPRecommendation secondaryRpRecommendation = buildSourceRecommendation(
                                             secondaryAssociatedStorageSystem,
@@ -1503,7 +1496,7 @@ public class RecoverPointScheduler implements Scheduler {
                                         _log.info(String.format("RP Placement : Build MetroPoint Standby Journal Recommendation..."));
                                         RPRecommendation standbyJournalRecommendation = buildJournalRecommendation(
                                                 rpProtectionRecommendation,
-                                                secondarySourceInternalSiteName, vpool.getJournalSize(),
+                                                secondaryRpRecommendation.getInternalSiteName(), vpool.getJournalSize(),
                                                 standbyJournalVarray, standbyJournalVpool, primaryProtectionSystem,
                                                 capabilities, totalRequestedResourceCount, vpoolChangeVolume, true);
                                         if (standbyJournalRecommendation == null) {
@@ -1519,7 +1512,6 @@ public class RecoverPointScheduler implements Scheduler {
                                     if (findSolution(rpProtectionRecommendation, secondaryRpRecommendation, haVarray, vpool,
                                             standbyProtectionVarrays, capabilities, satisfiedSourceVolCount, true, sourceRec,
                                             project)) {
-
                                         _log.info("RP Placement : An RP target placement solution has been identified for the "
                                                 + "MetroPoint secondary (standby) cluster.");
                                         secondaryRecommendationSolution = true;

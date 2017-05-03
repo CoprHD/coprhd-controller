@@ -112,6 +112,7 @@ public class IsilonReplicationApiTest {
 
     public static void main(String args[]) throws Exception {
         IsilonReplicationApiTest.setup();
+        System.out.println(_client.getAccessZones(null));
 
         // IsilonReplicationApiTest.testlicenseInfo();
         // IsilonReplicationApiTest.testGetReplicationPolicy();

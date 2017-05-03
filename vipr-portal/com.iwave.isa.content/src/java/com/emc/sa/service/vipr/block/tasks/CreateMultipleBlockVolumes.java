@@ -4,15 +4,18 @@
  */
 package com.emc.sa.service.vipr.block.tasks;
 
+import java.net.URI;
 import java.util.List;
 import java.util.Set;
 
 import com.emc.sa.service.vipr.block.BlockStorageUtils;
 import com.emc.sa.service.vipr.block.CreateBlockVolumeHelper;
 import com.emc.sa.service.vipr.tasks.WaitForTasks;
+import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.block.VolumeCreate;
 import com.emc.storageos.model.block.VolumeRestRep;
 import com.emc.storageos.model.remotereplication.RemoteReplicationParameters;
+import com.emc.storageos.model.vpool.BlockVirtualPoolRestRep;
 import com.emc.vipr.client.Tasks;
 import com.emc.vipr.client.exceptions.ServiceErrorException;
 import com.google.common.base.Joiner;
@@ -53,9 +56,31 @@ public class CreateMultipleBlockVolumes extends WaitForTasks<VolumeRestRep> {
             }
             create.setCount(numberOfVolumes);
             create.setConsistencyGroup(param.getConsistencyGroup());
-            if (param.getRemoteReplicationSet() != null) {
+
+            URI remoteReplicationSetId = param.getRemoteReplicationSet();
+            if (remoteReplicationSetId == null) {
+                BlockVirtualPoolRestRep vpool = getClient().blockVpools().get(param.getVirtualPool());
+                if ((vpool != null) && (vpool.getProtection().getRemoteReplicationParam() != null)) {
+
+                    // get RRSet for Vpool & Varray (if not provided)
+                    List<NamedRelatedResourceRep> rrSets = getClient().remoteReplicationSets().
+                            listRemoteReplicationSets(param.getVirtualArray(),param.getVirtualPool()).getRemoteReplicationSets();
+
+                    if ((rrSets != null) && !rrSets.isEmpty()) {
+                        if (rrSets.size() > 1) {
+                            throw new IllegalStateException("More than one RemoteReplicationSet found " +
+                                    "for VirtualArray (" + param.getVirtualArray() + ") and VirtualPool (" +
+                                    param.getVirtualPool() + ").  " + rrSets.size() + " RemoteReplicationSets " +
+                                    "were found: " + rrSets);
+                        }
+                        remoteReplicationSetId = rrSets.get(0).getId();
+                    }
+                }
+            }
+
+            if (remoteReplicationSetId != null) {
                 RemoteReplicationParameters replicationParam = new RemoteReplicationParameters();
-                replicationParam.setRemoteReplicationSet(param.getRemoteReplicationSet());
+                replicationParam.setRemoteReplicationSet(remoteReplicationSetId);
                 replicationParam.setRemoteReplicationMode(param.getRemoteReplicationMode());
                 replicationParam.setRemoteReplicationGroup(param.getRemoteReplicationGroup());
                 create.setRemoteReplicationParameters(replicationParam);

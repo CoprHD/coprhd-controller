@@ -26,6 +26,7 @@ public class ShareACL implements Serializable {
     private String group;
     private String shareName;
     private String permission;
+    private Boolean runAsRoot;
 
     /*
      * Other attributes - not part of payload
@@ -83,6 +84,15 @@ public class ShareACL implements Serializable {
     @XmlElement(name = "domain")
     public String getDomain() {
         return domain;
+    }
+
+    @XmlElement(name = "run_as_root")
+    public Boolean getRunAsRoot() {
+        return runAsRoot;
+    }
+
+    public void setRunAsRoot(Boolean runAsRoot) {
+        this.runAsRoot = runAsRoot;
     }
 
     public void setDomain(String domain) {

@@ -1460,7 +1460,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         // set quota - save the quota id to extensions
         String qid = isi.createQuota(qDirPath, fsSize, bThresholdsIncludeOverhead,
                 bIncludeSnapshots, qDirSize, notificationLimitSize != null ? notificationLimitSize : 0L,
-                softLimitSize != null ? softLimitSize : 0L, softGracePeriod != null ? softGracePeriod : 0L);
+                        softLimitSize != null ? softLimitSize : 0L, softGracePeriod != null ? softGracePeriod : 0L);
         return qid;
     }
 
@@ -2342,10 +2342,13 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
 
         IsilonSMBShare isilonSMBShare = new IsilonSMBShare(args.getShareName());
         ArrayList<Permission> permissions = new ArrayList<Permission>();
+        ArrayList<IsilonSMBShare.Persona> runAsRootList = new ArrayList<IsilonSMBShare.Persona>();
         String permissionValue = null;
         String permissionTypeValue = null;
+
         if (aclsToProcess != null) {
             for (ShareACL acl : aclsToProcess) {
+
                 String domain = acl.getDomain();
                 if (domain == null) {
                     domain = "";
@@ -2364,12 +2367,17 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                 Permission permission = isilonSMBShare.new Permission(permissionTypeValue, permissionValue,
                         userOrGroup);
                 permissions.add(permission);
+                if (acl.getRunAsRoot() != null && acl.getRunAsRoot()) {
+                    IsilonSMBShare.Persona rootUser = isilonSMBShare.new Persona(null, null, userOrGroup);
+                    runAsRootList.add(rootUser);
+                }
             }
         }
         /*
          * If permissions array list is empty, it means to remove all ACEs on
          * the share.
          */
+        isilonSMBShare.setRunAsRoot(runAsRootList);
         isilonSMBShare.setPermissions(permissions);
         _log.info("Calling Isilon API: modifyShare. Share {}, permissions {}", isilonSMBShare, permissions);
         String zoneName = getZoneName(args.getvNAS());

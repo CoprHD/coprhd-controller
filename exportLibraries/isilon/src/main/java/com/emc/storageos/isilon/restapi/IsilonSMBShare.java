@@ -34,6 +34,7 @@ public class IsilonSMBShare {
             return name;
         }
 
+        @Override
         public String toString() {
             StringBuilder str = new StringBuilder();
             str.append("( account type: " + type);
@@ -80,6 +81,7 @@ public class IsilonSMBShare {
             return permission;
         }
 
+        @Override
         public String toString() {
             StringBuilder str = new StringBuilder();
             str.append("( permission type: " + permission_type);
@@ -180,6 +182,14 @@ public class IsilonSMBShare {
         name = shareName;
     }
 
+    public ArrayList<Persona> getRunAsRoot() {
+        return run_as_root;
+    }
+
+    public void setRunAsRoot(ArrayList<Persona> runAsRoot) {
+        this.run_as_root = runAsRoot;
+    }
+
     public ArrayList<Permission> getPermissions() {
         return permissions;
     }
@@ -208,10 +218,11 @@ public class IsilonSMBShare {
         return this.inheritable_path_acl;
     }
 
-    public void setInheritablePathAcl(Boolean inheritablePathAcl ) {
+    public void setInheritablePathAcl(Boolean inheritablePathAcl) {
         this.inheritable_path_acl = inheritablePathAcl;
     }
-    
+
+    @Override
     public String toString() {
         StringBuilder str = new StringBuilder();
         str.append("Share ( id: " + id);

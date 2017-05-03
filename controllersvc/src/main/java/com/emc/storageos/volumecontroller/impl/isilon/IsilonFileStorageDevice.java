@@ -1438,7 +1438,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             	IsilonSmartQuota isiCurrentSmartQuota = isi.getQuota(quotaId);
                 long quotaUsageSpace = isiCurrentSmartQuota.getUsagePhysical();
                 
-                if (qDirSize > 0 && qDirSize.compareTo(quotaUsageSpace) < 0) {
+                if (qDirSize > 0 && qDirSize.compareTo(quotaUsageSpace) > 0) {
                     _log.info("IsilonFileStorageDevice doUpdateQuotaDirectory , Update Quota {} with Capacity {}", quotaId, qDirSize);
                     IsilonSmartQuota expandedQuota = getQuotaDirectoryExpandedSmartQuota(quotaDir, qDirSize, args.getFsCapacity(), isi);
                     isi.modifyQuota(quotaId, expandedQuota);

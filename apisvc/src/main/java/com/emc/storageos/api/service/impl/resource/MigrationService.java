@@ -45,6 +45,8 @@ import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.db.client.model.VolumeTopology.VolumeTopologyRole;
+import com.emc.storageos.db.client.model.VolumeTopology.VolumeTopologySite;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.model.BulkIdParam;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
@@ -178,9 +180,9 @@ public class MigrationService extends TaskResourceService {
         cosWrapper.put(VirtualPoolCapabilityValuesWrapper.SIZE, migrationSrc.getCapacity());
         cosWrapper.put(VirtualPoolCapabilityValuesWrapper.RESOURCE_COUNT, new Integer(1));
         List<Recommendation> recommendations = vplexScheduler.scheduleStorage(
-                migrationTargetVarray, requestedVPlexSystems, migrateParam.getTgtStorageSystem(),
-                migrationTgtCos, false, null, null, cosWrapper, migrationTgtProject, 
-                VpoolUse.ROOT, new HashMap<VpoolUse, List<Recommendation>>());
+                migrationTargetVarray, requestedVPlexSystems, migrateParam.getTgtStorageSystem(), migrationTgtCos,
+                new HashMap<VolumeTopologySite, List<Map<VolumeTopologyRole, URI>>>(), false, null, null, cosWrapper,
+                migrationTgtProject, VpoolUse.ROOT, new HashMap<VpoolUse, List<Recommendation>>());
 
         if (recommendations.isEmpty()) {
             throw APIException.badRequests.noStorageFoundForVolumeMigration(migrationTgtCos.getLabel(), migrationTargetVarray.getLabel(),

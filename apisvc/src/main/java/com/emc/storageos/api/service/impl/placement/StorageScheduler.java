@@ -57,6 +57,8 @@ import com.emc.storageos.db.client.model.SynchronizationState;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.VirtualPool.FileReplicationType;
+import com.emc.storageos.db.client.model.VolumeTopology.VolumeTopologyRole;
+import com.emc.storageos.db.client.model.VolumeTopology.VolumeTopologySite;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.VolumeGroup;
 import com.emc.storageos.db.client.model.VpoolRemoteCopyProtectionSettings;
@@ -153,11 +155,13 @@ public class StorageScheduler implements Scheduler {
      * @param neighborhood
      * @param project The project
      * @param cos
+     * @param performanceParams The performance parameters map.
      * @param capabilities
      * @return list of VolumeRecommendation instances
      */
     @Override
-    public List<Recommendation> getRecommendationsForResources(VirtualArray neighborhood, Project project, VirtualPool cos,
+    public List<Recommendation> getRecommendationsForResources(VirtualArray neighborhood, Project project,
+            VirtualPool cos, Map<VolumeTopologySite, List<Map<VolumeTopologyRole, URI>>> performanceParams,
             VirtualPoolCapabilityValuesWrapper capabilities) {
 
         _log.debug("Schedule storage for {} resource(s) of size {}.", capabilities.getResourceCount(), capabilities.getSize());
@@ -1632,6 +1636,7 @@ public class StorageScheduler implements Scheduler {
      * @param project project requested
      * @param neighborhood varray requested
      * @param vpool vpool requested
+     * @param performanceParamsURI The URI of a PerformanceParams instance.
      * @param placement recommendation for placement
      * @param label volume label
      * @param consistencyGroup cg ID
@@ -1872,10 +1877,12 @@ public class StorageScheduler implements Scheduler {
 
     @Override
     public List<Recommendation> getRecommendationsForVpool(VirtualArray vArray, Project project,
-            VirtualPool vPool, VpoolUse vPoolUse,
-            VirtualPoolCapabilityValuesWrapper capabilities, Map<VpoolUse, List<Recommendation>> currentRecommendations) {
+            VirtualPool vPool, Map<VolumeTopologySite, List<Map<VolumeTopologyRole, URI>>> performanceParams,
+            VpoolUse vPoolUse, VirtualPoolCapabilityValuesWrapper capabilities,
+            Map<VpoolUse, List<Recommendation>> currentRecommendations) {
         // Initially we're only going to return one recommendation set.
-        List<Recommendation> recommendations = getRecommendationsForResources(vArray, project, vPool, capabilities);
+        List<Recommendation> recommendations = getRecommendationsForResources(
+                vArray, project, vPool, performanceParams, capabilities);
         return recommendations;
     }
 

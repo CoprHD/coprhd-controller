@@ -83,6 +83,7 @@ import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.Volume.PersonalityTypes;
 import com.emc.storageos.db.client.model.VolumeTopology.VolumeTopologyRole;
+import com.emc.storageos.db.client.model.VolumeTopology.VolumeTopologySite;
 import com.emc.storageos.db.client.model.VolumeGroup;
 import com.emc.storageos.db.client.model.VplexMirror;
 import com.emc.storageos.db.client.model.VpoolRemoteCopyProtectionSettings;
@@ -1803,8 +1804,9 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
         if (cgURI != null) {
             cosWrapper.put(VirtualPoolCapabilityValuesWrapper.BLOCK_CONSISTENCY_GROUP, cgURI);
         }
-        List<Recommendation> recommendations = getBlockScheduler().scheduleStorage(
-                varray, requestedVPlexSystems, null, vpool, false, null, null,
+        // TBD Heg
+        List<Recommendation> recommendations = getBlockScheduler().scheduleStorage(varray, requestedVPlexSystems,
+                null, vpool, new HashMap<VolumeTopologySite, List<Map<VolumeTopologyRole, URI>>>(), false, null, null,
                 cosWrapper, targetProject, VpoolUse.ROOT, new HashMap<VpoolUse, List<Recommendation>>());
         if (recommendations.isEmpty()) {
             throw APIException.badRequests.noStorageFoundForVolumeMigration(vpool.getLabel(), varray.getLabel(), sourceVolumeURI);
@@ -1939,10 +1941,11 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
 
         boolean premadeRecs = false;
 
+        // TBD Heg
         if (recommendations == null || recommendations.isEmpty()) {
-            recommendations = getBlockScheduler().scheduleStorage(
-                    varray, requestedVPlexSystems, null, vpool, false, null, null, capabilities,
-                    targetProject, VpoolUse.ROOT, new HashMap<VpoolUse, List<Recommendation>>());
+            recommendations = getBlockScheduler().scheduleStorage(varray, requestedVPlexSystems, null, vpool,
+                    new HashMap<VolumeTopologySite, List<Map<VolumeTopologyRole, URI>>>(), false, null, null,
+                    capabilities, targetProject, VpoolUse.ROOT, new HashMap<VpoolUse, List<Recommendation>>());
             if (recommendations.isEmpty()) {
                 throw APIException.badRequests.noStorageFoundForVolumeMigration(vpool.getLabel(), varray.getLabel(), sourceVolumeURI);
             }

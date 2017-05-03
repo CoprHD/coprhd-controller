@@ -30,6 +30,8 @@ import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.RemoteDirectorGroup;
 import com.emc.storageos.db.client.model.RemoteDirectorGroup.SupportedCopyModes;
+import com.emc.storageos.db.client.model.VolumeTopology.VolumeTopologyRole;
+import com.emc.storageos.db.client.model.VolumeTopology.VolumeTopologySite;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
@@ -175,13 +177,15 @@ public class SRDFScheduler implements Scheduler {
      *            for the storage
      * @param vpool
      *            vpool requested
+     * @param performanceParams
+     *            The performance parameters map.
      * @param capabilities
      *            vpool capabilities parameters
      * @return list of Recommendation objects to satisfy the request
      */
     @Override
-    public List<Recommendation> getRecommendationsForResources(final VirtualArray varray,
-            final Project project, final VirtualPool vpool,
+    public List<Recommendation> getRecommendationsForResources(final VirtualArray varray, final Project project,
+            final VirtualPool vpool, Map<VolumeTopologySite, List<Map<VolumeTopologyRole, URI>>> performanceParams,
             final VirtualPoolCapabilityValuesWrapper capabilities) {
 
         _log.debug("Schedule storage for {} resource(s) of size {}.",
@@ -1255,13 +1259,15 @@ public class SRDFScheduler implements Scheduler {
 
     @Override
     public List<Recommendation> getRecommendationsForVpool(VirtualArray vArray, Project project, 
-            VirtualPool vPool, VpoolUse vPoolUse,
-            VirtualPoolCapabilityValuesWrapper capabilities, Map<VpoolUse, List<Recommendation>> currentRecommendations) {
+            VirtualPool vPool, Map<VolumeTopologySite, List<Map<VolumeTopologyRole, URI>>> performanceParams,
+            VpoolUse vPoolUse, VirtualPoolCapabilityValuesWrapper capabilities,
+            Map<VpoolUse, List<Recommendation>> currentRecommendations) {
        List<Recommendation> recommendations;
        if (vPoolUse == VpoolUse.SRDF_COPY) {
            recommendations = getRecommendationsForCopy(vArray, project, vPool, capabilities, currentRecommendations.get(VpoolUse.ROOT));
        } else {
-           recommendations = getRecommendationsForResources(vArray, project, vPool, capabilities);
+           recommendations = getRecommendationsForResources(vArray, project, vPool,
+                   new HashMap<VolumeTopologySite, List<Map<VolumeTopologyRole, URI>>>(), capabilities);
        } 
        return recommendations;
     }

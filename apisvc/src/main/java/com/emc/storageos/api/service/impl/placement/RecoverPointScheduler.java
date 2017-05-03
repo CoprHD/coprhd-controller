@@ -48,6 +48,8 @@ import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.VpoolProtectionVarraySettings;
+import com.emc.storageos.db.client.model.VolumeTopology.VolumeTopologyRole;
+import com.emc.storageos.db.client.model.VolumeTopology.VolumeTopologySite;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.client.util.SizeUtil;
 import com.emc.storageos.protectioncontroller.impl.recoverpoint.RPHelper;
@@ -256,11 +258,13 @@ public class RecoverPointScheduler implements Scheduler {
      * @param varray varray requested for source
      * @param project for the storage
      * @param vpool vpool requested
+     * @param performanceParams The performance parameters map.
      * @param capabilities CoS capabilities parameters
      * @return list of Recommendation objects to satisfy the request
      */
     @Override
-    public List<Recommendation> getRecommendationsForResources(VirtualArray varray, Project project, VirtualPool vpool,
+    public List<Recommendation> getRecommendationsForResources(VirtualArray varray, Project project,
+            VirtualPool vpool, Map<VolumeTopologySite, List<Map<VolumeTopologyRole, URI>>> performanceParams,
             VirtualPoolCapabilityValuesWrapper capabilities) {
 
         Volume changeVpoolVolume = null;
@@ -4449,10 +4453,13 @@ public class RecoverPointScheduler implements Scheduler {
     } // end PlacementStatus class
 
     @Override
-    public List<Recommendation> getRecommendationsForVpool(VirtualArray vArray, Project project, VirtualPool vPool, VpoolUse vPoolUse,
-            VirtualPoolCapabilityValuesWrapper capabilities, Map<VpoolUse, List<Recommendation>> currentRecommendations) {
+    public List<Recommendation> getRecommendationsForVpool(VirtualArray vArray, Project project,
+            VirtualPool vPool, Map<VolumeTopologySite, List<Map<VolumeTopologyRole, URI>>> performanceParams,
+            VpoolUse vPoolUse, VirtualPoolCapabilityValuesWrapper capabilities,
+            Map<VpoolUse, List<Recommendation>> currentRecommendations) {
         // No special implementation based on Vpool - using original implementation
-        return getRecommendationsForResources(vArray, project, vPool, capabilities);
+        return getRecommendationsForResources(vArray, project, vPool,
+                new HashMap<VolumeTopologySite, List<Map<VolumeTopologyRole, URI>>>(), capabilities);
     }
 
     @Override

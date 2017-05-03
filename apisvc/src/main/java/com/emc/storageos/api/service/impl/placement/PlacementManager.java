@@ -22,6 +22,8 @@ import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.VpoolProtectionVarraySettings;
 import com.emc.storageos.db.client.model.VpoolRemoteCopyProtectionSettings;
+import com.emc.storageos.db.client.model.VolumeTopology.VolumeTopologyRole;
+import com.emc.storageos.db.client.model.VolumeTopology.VolumeTopologySite;
 import com.emc.storageos.volumecontroller.Recommendation;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
 
@@ -93,8 +95,9 @@ public class PlacementManager {
         // Get the volume placement based on passed parameters.
         Map<VpoolUse, List<Recommendation>> currentRecommendations = new HashMap<VpoolUse, List<Recommendation>>();
         Scheduler scheduler = getBlockServiceImpl(vPool);
-        List<Recommendation> recommendations = scheduler.getRecommendationsForVpool(
-                vArray, project, vPool, VpoolUse.ROOT, capabilities, currentRecommendations);
+        List<Recommendation> recommendations = scheduler.getRecommendationsForVpool(vArray, project, vPool,
+                new HashMap<VolumeTopologySite, List<Map<VolumeTopologyRole, URI>>>(), VpoolUse.ROOT,
+                capabilities, currentRecommendations);
         return recommendations;
     }
     
@@ -108,7 +111,7 @@ public class PlacementManager {
      * @return Map of VpoolUse to List of Recommendations for that use.
      */
     public Map<VpoolUse, List<Recommendation>> getRecommendationsForVirtualPool(VirtualArray virtualArray,
-            Project project, VirtualPool virtualPool, 
+            Project project, VirtualPool virtualPool, Map<VolumeTopologySite, List<Map<VolumeTopologyRole, URI>>> performanceParams,
             VirtualPoolCapabilityValuesWrapper capabilities) {
         Map<VpoolUse, List<Recommendation>> recommendationMap = new HashMap<VpoolUse, List<Recommendation>>();
         
@@ -118,7 +121,7 @@ public class PlacementManager {
         VpoolUse use = VpoolUse.ROOT;       // the apisvc vpool
         Scheduler scheduler = getNextScheduler(null, virtualPool, use);
         List<Recommendation> newRecommendations = scheduler.getRecommendationsForVpool(
-                virtualArray, project, virtualPool, use, capabilities, recommendationMap);
+                virtualArray, project, virtualPool, performanceParams, use, capabilities, recommendationMap);
         if (newRecommendations.isEmpty()) {
            return recommendationMap;
         }
@@ -140,7 +143,7 @@ public class PlacementManager {
                 VirtualPool vPool = dbClient.queryObject(VirtualPool.class, vPoolURI);
                 scheduler = getNextScheduler(null, vPool, use);
                 newRecommendations  = scheduler.getRecommendationsForVpool(
-                        vArray, project, vPool, use, capabilities, recommendationMap);
+                        vArray, project, vPool, performanceParams, use, capabilities, recommendationMap);
                 if (recommendationMap.containsKey(use)) {
                     recommendationMap.get(use).addAll(newRecommendations);
                 } else {

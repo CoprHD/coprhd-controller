@@ -105,7 +105,7 @@ public interface FileServiceApi {
             throws InternalException;
 
     /**
-     * reduce the capacity of size of given size
+     * Reduction of file share size
      *
      * @param fileshare
      * @param newSize

@@ -127,16 +127,12 @@ public interface FileController extends StorageController {
     public void expandFS(URI storage, URI fs, long size, String opId) throws InternalException;
     
     /**
-     * Expand filesystem .
+     * Reduce filesystem .
      * 
-     * @param storage
-     *            URI of storage controller.
-     * @param fs
-     *            URI of filesystem to be expanded.
-     * @param size
-     *            filesystem expansion size
-     * @throws InternalException
-     *             Storage controller exceptions.
+     * @param storage - URI of storage controller.
+     * @param fs - URI of filesystem to be expanded.
+     * @param size - filesystem expansion size
+     * @throws InternalException - Storage controller exceptions.
      */
     public void reduceFS(URI storage, URI fs, long size, String opId) throws InternalException;
 

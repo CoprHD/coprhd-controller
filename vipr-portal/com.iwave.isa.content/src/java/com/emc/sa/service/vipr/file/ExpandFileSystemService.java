@@ -12,7 +12,7 @@ import com.emc.sa.engine.bind.Param;
 import com.emc.sa.engine.service.Service;
 import com.emc.sa.service.ServiceParams;
 import com.emc.sa.service.vipr.ViPRService;
-import com.emc.sa.service.vipr.file.tasks.CheckFileSystemReductionSize;
+import com.emc.sa.service.vipr.file.tasks.CheckFileSystemExpansionSize;
 import com.emc.storageos.model.file.FileShareRestRep;
 
 @Service("NasExpandFileSystem")
@@ -28,13 +28,13 @@ public class ExpandFileSystemService extends ViPRService {
     @Override
     public void precheck() {
         fileSystems = FileStorageUtils.getFileSystems(uris(fileSystemIds));
-        execute(new CheckFileSystemReductionSize(fileSystems, sizeInGb));
+        execute(new CheckFileSystemExpansionSize(fileSystems, sizeInGb));
     }
 
     @Override
     public void execute() {
         for (FileShareRestRep fs : fileSystems) {
-            FileStorageUtils.reduceFileSystem(fs.getId(), sizeInGb);
+            FileStorageUtils.expandFileSystem(fs.getId(), sizeInGb);
         }
     }
 }

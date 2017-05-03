@@ -230,7 +230,7 @@ public abstract class AbstractFileServiceApiImpl<T> implements FileServiceApi {
     }
     
     /**
-     * Expand fileshare
+     * Reduce fileshare
      */
     @Override
     public void reduceFileShare(FileShare fileshare, Long newSize, String taskId)
@@ -242,19 +242,16 @@ public abstract class AbstractFileServiceApiImpl<T> implements FileServiceApi {
 
         if (fileshare.getParentFileShare() != null && fileshare.getPersonality().equals(FileShare.PersonalityTypes.TARGET.name())) {
             throw APIException.badRequests.expandMirrorFileSupportedOnlyOnSource(fileshare.getId());
-
         } else {
-
             List<String> targetfileUris = new ArrayList<String>();
-
             // if filesystem is target then throw exception
             if (fileshare.getMirrorfsTargets() != null && !fileshare.getMirrorfsTargets().isEmpty()) {
                 targetfileUris.addAll(fileshare.getMirrorfsTargets());
             }
 
             FileDescriptor descriptor = new FileDescriptor(
-                    FileDescriptor.Type.FILE_DATA,
-                    fileshare.getStorageDevice(), fileshare.getId(), fileshare.getPool(), "", false, newSize);
+                    FileDescriptor.Type.FILE_DATA, fileshare.getStorageDevice(), 
+                    fileshare.getId(), fileshare.getPool(), "", false, newSize);
             fileDescriptors.add(descriptor);
 
             // Prepare the descriptor for targets
@@ -266,8 +263,7 @@ public abstract class AbstractFileServiceApiImpl<T> implements FileServiceApi {
                 fileDescriptors.add(descriptor);
             }
         }
-
-        // place the expand filesystem call in queue
+        // place the reduce filesystem call in queue
         controller.reduceFileSystem(fileDescriptors, taskId);
     }
 

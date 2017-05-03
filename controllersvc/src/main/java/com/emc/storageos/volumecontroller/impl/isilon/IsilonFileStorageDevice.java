@@ -866,11 +866,18 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         isi.modifyQuota(quotaId, expandedQuota);
     }
     
-    
+    /**
+     * restapi request for reduction of fileshare size.
+     * @param isi
+     * @param quotaId
+     * @param args
+     * @throws ControllerException
+     * @throws IsilonException
+     */
     private void isiReduceFS(IsilonApi isi, String quotaId, FileDeviceInputOutput args) throws ControllerException, IsilonException {
         Long capacity = args.getNewFSCapacity();
         IsilonSmartQuota quota = isi.getQuota(quotaId);
-        //check the 
+        //new capacity should be less than usage capacity of a filehare
         if(capacity.compareTo(quota.getUsagePhysical()) < 0) {
             String msg = String
                     .format(
@@ -881,8 +888,8 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                     quota.getThresholds().getHard());
         } else {
         	 // Modify quoties for fileshare
-            IsilonSmartQuota quotaUpdate = getExpandedQuota(isi, args, capacity);
-            isi.modifyQuota(quotaId, quotaUpdate);
+        	quota = getExpandedQuota(isi, args, capacity);
+            isi.modifyQuota(quotaId, quota);
         }
     }
 

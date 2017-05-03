@@ -2557,6 +2557,14 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
         }
     }
 
+    /**
+     * This method is responsible for reduction of fileshare size
+     * a Workflow and invoking the FileOrchestrationInterface.addStepsForReduceFileSystems
+     * 
+     * @param fileDescriptors
+     * @param taskId
+     * @throws ControllerException
+     */
 	@Override
 	public void reduceFileSystem(List<FileDescriptor> fileDescriptors, String taskId) throws ControllerException {
 	    List<URI> fileShareUris = FileDescriptor.getFileSystemURIs(fileDescriptors);

@@ -41,7 +41,7 @@ public interface FileOrchestrationInterface {
             throws InternalException;
     
     /**
-     * Add the necessary steps for reduceing filesystems
+     * Add the necessary steps for reduceing size of filesystems
      *
      * @param workflow - Workflow being constructed
      * @param waitFor - The String key that should be used for waiting on previous steps in Workflow.createStep

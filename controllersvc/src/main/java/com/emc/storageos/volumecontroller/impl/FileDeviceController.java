@@ -1015,7 +1015,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             args.setFileOperation(true);
             args.setNewFSCapacity(newFSsize);
             args.setOpId(opId);
-            // work flow and we need to add TaskCompleter(TBD for vnxfile)
+            // work flow and we need to add TaskCompleter
             WorkflowStepCompleter.stepExecuting(opId);
             // Acquire lock for VNXFILE Storage System
             acquireStepLock(storageObj, opId);
@@ -3898,11 +3898,11 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
     }
     
     /*
-     * Expand filesystem
+     * Reduce filesystem
      * (non-Javadoc)
      * 
      * @see
-     * com.emc.storageos.fileorchestrationcontroller.FileOrchestrationInterface#addStepsForExpandFileSystems(com.emc.
+     * com.emc.storageos.fileorchestrationcontroller.FileOrchestrationInterface#addStepsForReduceFileSystems(com.emc.
      * storageos.workflow.
      * Workflow, java.lang.String, java.util.List, java.lang.String)
      */
@@ -4024,7 +4024,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
     }
     
     /**
-     * Expand File System Step
+     * Reduce File System Step
      *
      * @param workflow
      * @param waitFor

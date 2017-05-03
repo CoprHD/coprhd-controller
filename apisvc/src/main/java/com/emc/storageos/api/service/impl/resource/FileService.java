@@ -1285,6 +1285,14 @@ public class FileService extends TaskResourceService {
         return toTask(fs, task, op);
     }
     
+    /**
+     * Reduce file system.
+     * 
+     * @param id - the URN of a ViPR File system
+     * @param param - File system reduction parameters
+     * @return Task resource representation
+     * @throws InternalException
+     */
     @POST
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
@@ -1292,37 +1300,35 @@ public class FileService extends TaskResourceService {
     @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.OWN, ACL.ALL })
     public TaskResourceRep reduce(@PathParam("id") URI id, FileSystemReduceParam param)
             throws InternalException {
-
         _log.info(String.format(
                 "FileShareReduce --- FileShare id: %1$s, New Size: %2$s", id, param.getNewSize()));
-        // check file System
+        // check file system
         ArgValidator.checkFieldUriType(id, FileShare.class, "id");
-        
         FileShare fs = queryResource(id);
-        StorageSystem device = _dbClient.queryObject(StorageSystem.class, fs.getStorageDevice());
+        ArgValidator.checkEntity(fs, id, isIdEmbeddedInURL(id));
         
+        StorageSystem device = _dbClient.queryObject(StorageSystem.class, fs.getStorageDevice());
         if(!device.deviceIsType(DiscoveredDataObject.Type.isilon)) {
-        	throw APIException.badRequests.reduceFileSystemNotSupported(id, "reduce");
+        	throw APIException.badRequests.reduceFileSystemNotSupported(id, "Currently, Isilon only supports reduction of filesystem ");
         }
 
         Long newFSsize = SizeUtil.translateSize(param.getNewSize());
-        ArgValidator.checkEntity(fs, id, isIdEmbeddedInURL(id));
-        
-        long quotaSize = newFSsize - fs.getCapacity();
+        long quotaFsSize = newFSsize - fs.getCapacity();
         final long MIN_EXPAND_SIZE = SizeUtil.translateSize("1MB") + 1;
         
         if (newFSsize <= 0) {
             throw APIException.badRequests.parameterMustBeGreaterThan("new_size", 0);
         } else {
-        	if(quotaSize < MIN_EXPAND_SIZE) {
-        		long quotasize = 0;
+        	if(quotaFsSize < MIN_EXPAND_SIZE) {
                 List<QuotaDirectory> quotaDirs = queryDBQuotaDirectories(fs);
                 if (null != quotaDirs && !quotaDirs.isEmpty()){
-                    // validate -1 check if any quota_size is greater than new_size_to_shrink
+                	long qdsize = 0;
+                    // validate-1 : new quota size should not less any quotas of filesystem
                     for (QuotaDirectory quotaDir : quotaDirs) {
-                        quotasize = newFSsize - quotaDir.getSize();
-                        if (quotasize < MIN_EXPAND_SIZE) {
-                            throw APIException.badRequests.invalidParameterAboveMinimum("new_size", newFSsize, quotaDir.getSize() + MIN_EXPAND_SIZE, "bytes");
+                    	qdsize = newFSsize - quotaDir.getSize();
+                        if (qdsize < MIN_EXPAND_SIZE) {
+                            throw APIException.badRequests.invalidParameterAboveMinimum(
+                            		"new_size", newFSsize, quotaDir.getSize() + MIN_EXPAND_SIZE, "bytes");
                         }
                     }
                 }
@@ -1339,7 +1345,7 @@ public class FileService extends TaskResourceService {
         String task = UUID.randomUUID().toString();
         Operation op = _dbClient.createTaskOpStatus(FileShare.class, fs.getId(),
                 task, ResourceOperationTypeEnum.REDUCE_FILE_SYSTEM);
-        op.setDescription("Filesystem expand");
+        op.setDescription("Filesystem reduce");
 
         FileServiceApi fileServiceApi = getFileShareServiceImpl(fs, _dbClient);
         try {
@@ -1349,10 +1355,10 @@ public class FileService extends TaskResourceService {
                 _log.error("Reduce File Size error", e);
             }
 
-            FileShare fileShare = _dbClient.queryObject(FileShare.class, fs.getId());
+            fs = _dbClient.queryObject(FileShare.class, fs.getId());
             op = fs.getOpStatus().get(task);
             op.error(e);
-            fileShare.getOpStatus().updateTaskStatus(task, op);
+            fs.getOpStatus().updateTaskStatus(task, op);
             _dbClient.updateObject(fs);
             throw e;
         }
@@ -1620,11 +1626,12 @@ public class FileService extends TaskResourceService {
     @Path("/{id}/protection/snapshots")
     @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.ANY })
     public TaskResourceRep snapshot(@PathParam("id") URI id, FileSystemSnapshotParam param) throws InternalException {
-        String task = UUID.randomUUID().toString();
         ArgValidator.checkFieldUriType(id, FileShare.class, "id");
         FileShare fs = queryResource(id);
-        StorageSystem device = _dbClient.queryObject(StorageSystem.class, fs.getStorageDevice());
         ArgValidator.checkEntity(fs, id, isIdEmbeddedInURL(id));
+        
+        StorageSystem device = _dbClient.queryObject(StorageSystem.class, fs.getStorageDevice());
+        
 
         VirtualPool vpool = _dbClient.queryObject(VirtualPool.class, fs.getVirtualPool());
         if (vpool == null) {
@@ -1653,6 +1660,7 @@ public class FileService extends TaskResourceService {
         fs.setOpStatus(new OpStatusMap());
         Operation op = new Operation();
         op.setResourceType(ResourceOperationTypeEnum.CREATE_FILE_SYSTEM_SNAPSHOT);
+        String task = UUID.randomUUID().toString();
         snap.getOpStatus().createTaskStatus(task, op);
         fs.getOpStatus().createTaskStatus(task, op);
         _dbClient.createObject(snap);

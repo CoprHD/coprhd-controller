@@ -900,7 +900,7 @@ class Fileshare(object):
         if(sync):
             return self.check_for_sync(o, sync,synctimeout)
         return o
-		
+	# this operation reduce the filesystem size.	
 	def reduce(self, name, new_size, sync=False,synctimeout=0):
         fileshare_detail = self.show(name)
         current_size = float(fileshare_detail["capacity_gb"])

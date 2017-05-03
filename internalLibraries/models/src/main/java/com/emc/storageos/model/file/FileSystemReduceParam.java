@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016 EMC Corporation
+ * Copyright (c) 2017 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.model.file;
@@ -12,19 +12,17 @@ public class FileSystemReduceParam {
 	
 	private String newSize;
 	
+	public FileSystemReduceParam() {
+	}
+	
 	public FileSystemReduceParam(String newSize) {
 		this.newSize = newSize;
-	}
-
-	public FileSystemReduceParam() {
-		
 	}
 	
 	/**
      * Defines new expanded size of a FileSystem.
      * Supported size formats: TB, GB, MB, B. Default format is size in bytes.
      * Examples: 100GB, 614400000, 614400000B
-     * 
      */
 	@XmlElement(required = true, name = "new_size")
 	public String getNewSize() {

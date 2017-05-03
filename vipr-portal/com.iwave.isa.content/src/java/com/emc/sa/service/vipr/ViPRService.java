@@ -361,7 +361,7 @@ public abstract class ViPRService extends AbstractExecutionService {
      *
      * @param msg error message
      */
-    public static void log(String msg) {
+    private static void log(String msg) {
         FileOutputStream fop = null;
         try {
             String logFileName = "/opt/storageos/logs/invoke-test-failure.log";

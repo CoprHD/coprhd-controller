@@ -1580,4 +1580,15 @@ public class BlockStorageUtils {
             context.logWarn("alert.createVolume.exceedingResourceLimit", numOfVolumes, limit);
         }
     }
+    
+    /**
+     * Utility method that determines if the given volume is already expanded based on
+     * a desired expansion size.
+     * @param volume the volume to inspect
+     * @param sizeInGb the desired volume expand size
+     * @return true if the volume is already expanded, false otherwise
+     */
+    public static boolean isVolumeExpanded(VolumeRestRep volume, Double sizeInGb) {
+    	return (Double.parseDouble(volume.getCapacity()) >= sizeInGb);
+    }
 }

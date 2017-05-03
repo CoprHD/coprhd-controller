@@ -1286,7 +1286,7 @@ public class FileService extends TaskResourceService {
     }
     
     /**
-     * Reduce file system.
+     * Reduce file system provision capacity
      * 
      * @param id - the URN of a ViPR File system
      * @param param - File system reduction parameters

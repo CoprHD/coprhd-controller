@@ -230,7 +230,7 @@ public abstract class AbstractFileServiceApiImpl<T> implements FileServiceApi {
     }
     
     /**
-     * Reduce fileshare
+     * Reduce fileshare provision capacity
      */
     @Override
     public void reduceFileShare(FileShare fileshare, Long newSize, String taskId)

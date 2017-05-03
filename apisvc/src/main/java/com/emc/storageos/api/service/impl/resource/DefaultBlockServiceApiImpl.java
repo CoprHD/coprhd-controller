@@ -11,6 +11,7 @@ import static java.text.MessageFormat.format;
 
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -37,7 +38,6 @@ import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
 import com.emc.storageos.db.client.model.Operation;
-import com.emc.storageos.db.client.model.PerformanceParams;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
@@ -45,7 +45,6 @@ import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.VolumeGroup;
-import com.emc.storageos.db.client.model.VolumeTopology;
 import com.emc.storageos.db.client.model.VolumeTopology.VolumeTopologyRole;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
@@ -103,7 +102,7 @@ public class DefaultBlockServiceApiImpl extends AbstractBlockServiceApiImpl<Stor
         Long size = SizeUtil.translateSize(param.getSize());
         List<VolumeDescriptor> existingDescriptors = new ArrayList<VolumeDescriptor>();
         URI performanceParamsURI = PerformanceParamsUtils.getPerformanceParamsIdForSourceRole(
-                param.getPerformanceParams(), VolumeTopologyRole.SOURCE, _dbClient);
+                param.getPerformanceParams(), VolumeTopologyRole.PRIMARY, _dbClient);
         List<VolumeDescriptor> volumeDescriptors = createVolumesAndDescriptors(
                 existingDescriptors, param.getName(), size, project, neighborhood, cos, 
                 performanceParamsURI, recommendationMap.get(VpoolUse.ROOT), taskList, task,
@@ -754,19 +753,7 @@ public class DefaultBlockServiceApiImpl extends AbstractBlockServiceApiImpl<Stor
         // are passed for the source, which is the only one that applies for a simple
         // block volume with no mirrors.
         BlockPerformanceParamsMap sourceParams = requestParams.getSourceParams();
-        if (sourceParams == null) {
-            // No performance parameters for the source.
-            return;
-        }
-      
-        // Get the performance parameters for the volume playing the source role in the
-        // source volume topology.
-        String volumeTopologyRole = VolumeTopology.VolumeTopologyRole.SOURCE.name();
-        URI performanceParamsURI = sourceParams.findPerformanceParamsForRole(volumeTopologyRole);
-        
-        // Validate the performance params exist and are active.
-        ArgValidator.checkUri(performanceParamsURI);
-        PerformanceParams performanceParams = getPermissionsHelper().getObjectById(performanceParamsURI, PerformanceParams.class);
-        ArgValidator.checkEntity(performanceParams, performanceParamsURI, false);        
+        PerformanceParamsUtils.validatePerformanceParamsForRole(
+                sourceParams, Arrays.asList(VolumeTopologyRole.PRIMARY), _dbClient);
     }
 }

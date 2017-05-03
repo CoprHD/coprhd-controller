@@ -49,17 +49,12 @@ public class BlockPerformanceParamsMapEntry {
      * performance parameters are to be applied.
      * 
      * Valid values:
-     *  SOURCE = The source volume in the topology. The primary side for a VPLEX distributed source volume.
-     *  SOURCE_MIRROR = The volume that is the mirror for the source volume.
-     *  SOURCE_JOURNAL = The journal volume for the source volume.
-     *  SOURCE_STANDBY_JOURNAL = The standby journal volume for the source volume in a Metropoint topology.
-     *  SOURCE_HA = The HA side volume for a VPLEX distributed source volume. 
-     *  SOURCE_HA_MIRROR = The volume that is the mirror of the HA side volume for a VPLEX distributed source volume.
-     *  COPY = A copy volume in the volume topology. The primary side for a VPLEX distributed copy volume.
-     *  COPY_MIRROR = The volume that is the mirror for the copy volume.
-     *  COPY_JOURNAL = The journal volume for the copy volume.
-     *  COPY_HA = The HA side volume for a VPLEX distributed copy volume. 
-     *  COPY_HA_MIRROR = The volume that is the mirror of the HA side volume for a VPLEX distributed copy volume.
+     * PRIMARY = The primary volume at the topology site.
+     * PRIMARY_MIRROR = The volume that is the mirror for the primary volume at the topology site.
+     * JOURNAL = The journal volume for the primary volume at the topology site.
+     * STANDBY_JOURNAL = The standby journal volume for the primary volume at the site in a Metropoint topology.
+     * HA = The HA volume for a VPLEX distributed volume at the site. 
+     * HA_MIRROR = The volume that is the mirror of the HA side volume for a VPLEX distributed volume at the site.
      * 
      * @return The volume role in the volume topology.
      */

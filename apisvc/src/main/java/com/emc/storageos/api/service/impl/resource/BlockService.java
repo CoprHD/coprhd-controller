@@ -802,7 +802,7 @@ public class BlockService extends TaskResourceService {
             sourceParams = performanceParams.getSourceParams();
         }
         Integer thinVolumePreAllocPercentage = PerformanceParamsUtils.getThinVolumePreAllocPercentage(
-                sourceParams, VolumeTopologyRole.SOURCE, vpool, _dbClient);
+                sourceParams, VolumeTopologyRole.PRIMARY, vpool, _dbClient);
         if (null != thinVolumePreAllocPercentage && 0 < thinVolumePreAllocPercentage) {
             capabilities.put(VirtualPoolCapabilityValuesWrapper.THIN_VOLUME_PRE_ALLOCATE_SIZE, VirtualPoolUtil
                     .getThinVolumePreAllocationSize(thinVolumePreAllocPercentage, volumeSize));
@@ -816,7 +816,7 @@ public class BlockService extends TaskResourceService {
         // Get the deduplication setting. The value in the source performance parameters,
         // if any, overrides the value from the virtual pool.
         Boolean dedupCapable = PerformanceParamsUtils.getIsDedupCapable(
-                sourceParams, VolumeTopologyRole.SOURCE, vpool, _dbClient);
+                sourceParams, VolumeTopologyRole.PRIMARY, vpool, _dbClient);
         if (dedupCapable) {
             capabilities.put(VirtualPoolCapabilityValuesWrapper.DEDUP, dedupCapable);
         }
@@ -824,7 +824,7 @@ public class BlockService extends TaskResourceService {
         // Get the autotiering policy name. The value in the source performance parameters,
         // if any, overrides the value from the virtual pool.
         String autoTierPolicyName = PerformanceParamsUtils.getAutoTierinigPolicyName(
-                sourceParams, VolumeTopologyRole.SOURCE, vpool, _dbClient);
+                sourceParams, VolumeTopologyRole.PRIMARY, vpool, _dbClient);
         if (NullColumnValueGetter.isNotNullValue(autoTierPolicyName)) {
             capabilities.put(VirtualPoolCapabilityValuesWrapper.AUTO_TIER__POLICY_NAME, autoTierPolicyName);
         }

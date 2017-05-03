@@ -522,17 +522,17 @@ public class VPlexScheduler implements Scheduler {
         List<Recommendation> baseRecommendations =
               nextScheduler.getRecommendationsForVpool(
                       srcVarray, project, srcVpool, srcVpoolUse, capabilities, currentRecommendations);
-      _log.info(String.format("Received %d recommendations from %s", baseRecommendations.size(), 
+        _log.info(String.format("Received %d recommendations from %s", baseRecommendations.size(), 
               nextScheduler.getClass().getSimpleName()));
-      if (baseRecommendations.isEmpty()) {
-          throw BadRequestException.badRequests.noVplexLocalRecommendationFromSubScheduler(
-                  nextScheduler.getClass().getSimpleName(), srcVpool.getLabel(), srcVarray.getLabel());
-      }
-      _log.info(String.format("Received %d recommendations from %s", 
-              baseRecommendations.size(), nextScheduler.getClass().getSimpleName()));
-      List<StoragePool> allMatchingPoolsForSrcVarray = _placementManager
-              .getStoragePoolsFromRecommendations(baseRecommendations);
-      _log.info("Found {} matching pools for source varray", allMatchingPoolsForSrcVarray.size());
+        if (baseRecommendations.isEmpty()) {
+            throw BadRequestException.badRequests.noVplexLocalRecommendationFromSubScheduler(
+                    nextScheduler.getClass().getSimpleName(), srcVpool.getLabel(), srcVarray.getLabel());
+        }
+        _log.info(String.format("Received %d recommendations from %s", 
+                baseRecommendations.size(), nextScheduler.getClass().getSimpleName()));
+        List<StoragePool> allMatchingPoolsForSrcVarray = _placementManager
+                .getStoragePoolsFromRecommendations(baseRecommendations);
+        _log.info("Found {} matching pools for source varray", allMatchingPoolsForSrcVarray.size());
 
         URI cgURI = capabilities.getBlockConsistencyGroup();
         BlockConsistencyGroup cg = (cgURI == null ? null : _dbClient.queryObject(BlockConsistencyGroup.class, cgURI));
@@ -562,6 +562,7 @@ public class VPlexScheduler implements Scheduler {
         haCapabilities.put(VirtualPoolCapabilityValuesWrapper.PERSONALITY, null);
         // We don't require that the HA side have the same storage controller.
         haCapabilities.put(VirtualPoolCapabilityValuesWrapper.BLOCK_CONSISTENCY_GROUP, null);
+        
         Map<String, Object> attributeMap = new HashMap<String, Object>();
         List<StoragePool> allMatchingPoolsForHaVarray = getMatchingPools(
                 haVarray, haStorageSystem, haVpool, haCapabilities, attributeMap);

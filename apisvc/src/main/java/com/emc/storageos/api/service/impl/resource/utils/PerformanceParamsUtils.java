@@ -5,11 +5,19 @@
 package com.emc.storageos.api.service.impl.resource.utils;
 
 import java.net.URI;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
+import com.emc.storageos.api.service.impl.resource.ArgValidator;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.PerformanceParams;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.VolumeTopology.VolumeTopologyRole;
+import com.emc.storageos.db.client.model.VolumeTopology.VolumeTopologySite;
+import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.model.block.BlockPerformanceParamsMap;
 import com.emc.storageos.model.block.VolumeCreatePerformanceParams;
 
@@ -17,6 +25,95 @@ import com.emc.storageos.model.block.VolumeCreatePerformanceParams;
  * PerformanceParams utility class.
  */
 public class PerformanceParamsUtils {
+    
+    /**
+     * Get the performance parameters for the passed role.
+     * 
+     * @param performanceParams The performance parameter for a volume create request.
+     * @param role A VolumeTopologyRole.
+     * @param dbClient A reference to a DbClient.
+     * 
+     * @return The URI of a PerformanceParams instance or null.
+     */
+    public static URI getPerformanceParamsIdForSourceRole(VolumeCreatePerformanceParams performanceParams,
+            VolumeTopologyRole role, DbClient dbClient) {
+        URI performanceParamsURI = null;
+        if (performanceParams != null) {
+            BlockPerformanceParamsMap sourceParams = performanceParams.getSourceParams();
+            if (sourceParams != null) {
+                performanceParamsURI = sourceParams.findPerformanceParamsForRole(role.name());
+            }
+        }
+        return performanceParamsURI;
+    }
+
+    /**
+     * Transform the performance params for a volume create request to a Java map.
+     * 
+     * @param performanceParams The performance params for a volume create request or null.
+     * 
+     * @return A Map specifying the performance parameters.
+     */
+    public static Map<VolumeTopologySite, List<Map<VolumeTopologyRole, URI>>> transformPerformanceParams(VolumeCreatePerformanceParams performanceParams) {
+        Map<VolumeTopologySite, List<Map<VolumeTopologyRole, URI>>> performanceParamsMap = new HashMap<>();
+        if (performanceParams != null) {
+            // Translate the source site performance parameters.
+            List<Map<VolumeTopologyRole, URI>> sourceParamsList = new ArrayList<>();
+            sourceParamsList.add(transformPerformanceParams(performanceParams.getSourceParams()));
+            performanceParamsMap.put(VolumeTopologySite.SOURCE, sourceParamsList);
+
+            // Translate the copy site performance parameters.
+            List<Map<VolumeTopologyRole, URI>> copyParamsList = new ArrayList<>();
+            for (BlockPerformanceParamsMap copyParams : performanceParams.getCopyParams()) {
+                copyParamsList.add(transformPerformanceParams(copyParams));
+            }
+            performanceParamsMap.put(VolumeTopologySite.COPY, copyParamsList);
+
+        }
+        return performanceParamsMap;
+    }
+
+    /**
+     * Transform the performance params client model map to a java.util.map.
+     * 
+     * @param performanceParams The performance params map for a volume create request or null.
+     * 
+     * @return A Map specifying the performance parameters.
+     */
+    public static Map<VolumeTopologyRole, URI> transformPerformanceParams(BlockPerformanceParamsMap performanceParamsMap) {
+        Map<VolumeTopologyRole, URI> result = new HashMap<>();
+        if (performanceParamsMap != null) {
+            for (VolumeTopologyRole role : VolumeTopologyRole.values()) {
+                URI performanceParamsURI = performanceParamsMap.findPerformanceParamsForRole(role.toString());
+                if (!NullColumnValueGetter.isNullURI(performanceParamsURI)) {
+                    result.put(role,  performanceParamsURI);
+                }
+            }
+        }
+        return result;
+    }    
+
+    /**
+     * Validates the performance parameters for the passed role are valid and active.
+     * 
+     * @param performanceParamsMap A map of performance parameter URIs by VolumeTopologyRole
+     * @param roles A list of VolumeTopologyRoles to validate.
+     * @param dbClient A reference to a DbClient.
+     */
+    public static void validatePerformanceParamsForRole(BlockPerformanceParamsMap performanceParamsMap,
+            List<VolumeTopologyRole> roles, DbClient dbClient) {
+        if (performanceParamsMap != null) {
+            for (VolumeTopologyRole role : roles) {
+                URI performanceParamsURI = performanceParamsMap.findPerformanceParamsForRole(role.name());
+                if (!NullColumnValueGetter.isNullURI(performanceParamsURI)) {        
+                    // Validate the performance params exist and are active.
+                    ArgValidator.checkUri(performanceParamsURI);
+                    PerformanceParams performanceParams = dbClient.queryObject(PerformanceParams.class, performanceParamsURI);
+                    ArgValidator.checkEntity(performanceParams, performanceParamsURI, false);
+                }
+            }
+        }
+    }
 
     /**
      * Get the performance parameters for the passed role.
@@ -37,27 +134,6 @@ public class PerformanceParamsUtils {
             }
         }
         return performanceParams;
-    }
-    
-    /**
-     * Get the performance parameters for the passed role.
-     * 
-     * @param performanceParamsMap A map of performance parameter URIs by VolumeTopologyRole
-     * @param role A VolumeTopologyRole.
-     * @param dbClient A reference to a DbClient.
-     * 
-     * @return A reference to a PerformanceParams instance or null.
-     */
-    public static URI getPerformanceParamsIdForSourceRole(VolumeCreatePerformanceParams performanceParams,
-            VolumeTopologyRole role, DbClient dbClient) {
-        URI performanceParamsURI = null;
-        if (performanceParams != null) {
-            BlockPerformanceParamsMap sourceParams = performanceParams.getSourceParams();
-            if (sourceParams != null) {
-                performanceParamsURI = sourceParams.findPerformanceParamsForRole(role.name());
-            }
-        }
-        return performanceParamsURI;
     }
 
     /**

@@ -34,11 +34,13 @@ public class LocalAnsibleExecutor implements MakeCustomServicesExecutor {
     private DbClient dbClient;
 
     @Override public ViPRExecutionTask<CustomServicesTaskResult> makeCustomServicesExecutor(final Map<String, List<String>> input, final CustomServicesWorkflowDocument.Step step) {
-        final String orderDir = String.format("%s%s/", CustomServicesConstants.ORDER_DIR_PATH,
-                ExecutionUtils.currentContext().getOrder().getOrderNumber());
+        // TODO: change the following to URIUtil.parseUUIDFromURI(URI.create(step.getId())) when the step id is changed to URI
+        final String folder_unique_step = step.getId().replace("-", "");
+        final String orderDir = String.format("%s%s/%s/", CustomServicesConstants.ORDER_DIR_PATH,
+                ExecutionUtils.currentContext().getOrder().getOrderNumber(), folder_unique_step);
         MakeCustomServicesExecutor.createOrderDir(orderDir);
 
-        return new CustomServicesLocalAnsibleExecution(input, step, dbClient);
+        return new CustomServicesLocalAnsibleExecution(input, step, dbClient, orderDir);
     }
 
     @Override public String getType() {

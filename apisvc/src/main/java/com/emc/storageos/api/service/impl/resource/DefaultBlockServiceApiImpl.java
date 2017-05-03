@@ -102,11 +102,11 @@ public class DefaultBlockServiceApiImpl extends AbstractBlockServiceApiImpl<Stor
         
         Long size = SizeUtil.translateSize(param.getSize());
         List<VolumeDescriptor> existingDescriptors = new ArrayList<VolumeDescriptor>();
-        URI performancePramsURI = PerformanceParamsUtils.getPerformanceParamsIdForSourceRole(
+        URI performanceParamsURI = PerformanceParamsUtils.getPerformanceParamsIdForSourceRole(
                 param.getPerformanceParams(), VolumeTopologyRole.SOURCE, _dbClient);
         List<VolumeDescriptor> volumeDescriptors = createVolumesAndDescriptors(
                 existingDescriptors, param.getName(), size, project, neighborhood, cos, 
-                performancePramsURI, recommendationMap.get(VpoolUse.ROOT), taskList, task,
+                performanceParamsURI, recommendationMap.get(VpoolUse.ROOT), taskList, task,
                 cosCapabilities);
         List<Volume> preparedVolumes = getPreparedVolumes(volumeDescriptors);
         

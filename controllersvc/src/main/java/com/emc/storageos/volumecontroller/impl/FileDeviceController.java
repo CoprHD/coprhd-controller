@@ -2924,9 +2924,12 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
         if (acl.getDomain() != null) {
             dbShareAcl.setDomain(acl.getDomain());
         }
-
-        if (acl.getRunAsRoot() != null) {
-            dbShareAcl.setRunAsRoot(acl.getRunAsRoot());
+        Boolean runAsRoot = acl.getRunAsRoot();
+        if (runAsRoot != null) {
+            dbShareAcl.setRunAsRoot(runAsRoot);
+            if (runAsRoot) {
+                dbShareAcl.setPermission(FileControllerConstants.CIFS_SHARE_PERMISSION_FULLCONTROL);
+            }
         } else {
             dbShareAcl.setRunAsRoot(false);
         }

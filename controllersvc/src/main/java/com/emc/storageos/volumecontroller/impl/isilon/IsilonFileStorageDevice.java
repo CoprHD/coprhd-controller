@@ -1434,11 +1434,21 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             }
 
             if (quotaId != null) {
-                // Isilon does not allow to update quota directory to zero.
-                if (qDirSize > 0) {
+            	// Isilon does not allow to update quota directory to zero.
+            	IsilonSmartQuota isiCurrentSmartQuota = isi.getQuota(quotaId);
+                long quotaUsageSpace = isiCurrentSmartQuota.getUsagePhysical();
+                
+                if (qDirSize > 0 && qDirSize.compareTo(quotaUsageSpace) < 0) {
                     _log.info("IsilonFileStorageDevice doUpdateQuotaDirectory , Update Quota {} with Capacity {}", quotaId, qDirSize);
                     IsilonSmartQuota expandedQuota = getQuotaDirectoryExpandedSmartQuota(quotaDir, qDirSize, args.getFsCapacity(), isi);
                     isi.modifyQuota(quotaId, expandedQuota);
+                } else {
+                	String msg = String.format(
+                            "Shriking the Isilon FS failed, because the filesystem capacity is less than current usage capacity of file system. Path: %s, current usage capacity: %d",
+                            quotaDir.getPath(), quotaUsageSpace);
+                	_log.error("doUpdateQuotaDirectory : " + msg);
+                	ServiceError error = DeviceControllerErrors.isilon.jobFailed(msg);
+                	return BiosCommandResult.createErrorResult(error);
                 }
 
             } else {

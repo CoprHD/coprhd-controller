@@ -1460,7 +1460,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         // set quota - save the quota id to extensions
         String qid = isi.createQuota(qDirPath, fsSize, bThresholdsIncludeOverhead,
                 bIncludeSnapshots, qDirSize, notificationLimitSize != null ? notificationLimitSize : 0L,
-                softLimitSize != null ? softLimitSize : 0L, softGracePeriod != null ? softGracePeriod : 0L);
+                        softLimitSize != null ? softLimitSize : 0L, softGracePeriod != null ? softGracePeriod : 0L);
         return qid;
     }
 
@@ -2381,7 +2381,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
          */
         isilonSMBShare.setRunAsRoot(runAsRootList);
         isilonSMBShare.setPermissions(permissions);
-        _log.info("Calling Isilon API: modifyShare. Share {}, permissions {}", isilonSMBShare, permissions);
+        _log.info("Calling Isilon API: modifyShare. Share {}, permissions {}, runAsRootList {}", isilonSMBShare, permissions, runAsRootList);
         String zoneName = getZoneName(args.getvNAS());
         if (zoneName != null) {
             isi.modifyShare(args.getShareName(), zoneName, isilonSMBShare);

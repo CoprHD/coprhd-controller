@@ -157,10 +157,14 @@ public class ShareACL implements Serializable {
             builder.append(shareName);
             builder.append(", ");
         }
-
         if (permission != null) {
             builder.append("permission=");
             builder.append(permission);
+            builder.append(", ");
+        }
+        if (runAsRoot != null) {
+            builder.append("runAsRoot=");
+            builder.append(runAsRoot);
         }
         builder.append("]");
         return builder.toString();

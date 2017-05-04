@@ -1963,8 +1963,8 @@ test_7() {
     storage_failure_injections=""
     if [ "${SS}" = "vplex" ]
     then
-	storage_failure_injections="failure_004:failure_024_Export_zone_removeInitiator_before_delete \
-                                    failure_004:failure_025_Export_zone_removeInitiator_after_delete \
+	storage_failure_injections="failure_004:failure_020_Export_zoneRollback_before_delete \
+                                    failure_004:failure_021_Export_zoneRollback_after_delete \
                                     failure_060_VPlexDeviceController.storageViewAddInitiators_storageview_nonexisting"
     fi
 

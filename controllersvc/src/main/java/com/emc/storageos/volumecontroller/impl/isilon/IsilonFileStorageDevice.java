@@ -1460,7 +1460,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         // set quota - save the quota id to extensions
         String qid = isi.createQuota(qDirPath, fsSize, bThresholdsIncludeOverhead,
                 bIncludeSnapshots, qDirSize, notificationLimitSize != null ? notificationLimitSize : 0L,
-                        softLimitSize != null ? softLimitSize : 0L, softGracePeriod != null ? softGracePeriod : 0L);
+                softLimitSize != null ? softLimitSize : 0L, softGracePeriod != null ? softGracePeriod : 0L);
         return qid;
     }
 
@@ -2166,6 +2166,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                             .equalsIgnoreCase(domainOfmodifiedAce.concat(aclToModify.getUser()))) {
 
                         existingAcl.setPermission(aclToModify.getPermission());
+                        existingAcl.setRunAsRoot(aclToModify.getRunAsRoot());
                     }
                 }
 
@@ -2173,6 +2174,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                     if (domainOfExistingAce.concat(existingAcl.getGroup())
                             .equalsIgnoreCase(domainOfmodifiedAce.concat(aclToModify.getGroup()))) {
                         existingAcl.setPermission(aclToModify.getPermission());
+                        existingAcl.setRunAsRoot(aclToModify.getRunAsRoot());
                     }
                 }
             }

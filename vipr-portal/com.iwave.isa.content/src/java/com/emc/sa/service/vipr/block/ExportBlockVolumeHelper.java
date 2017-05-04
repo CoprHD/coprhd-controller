@@ -36,6 +36,7 @@ import com.emc.storageos.db.client.model.Cluster;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.model.block.BlockObjectRestRep;
 import com.emc.storageos.model.block.export.ExportGroupRestRep;
+import com.emc.vipr.client.core.util.ResourceUtils;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
@@ -91,11 +92,12 @@ public class ExportBlockVolumeHelper {
         }
 
         precheckExportPathParameters(minPaths, maxPaths, pathsPerInitiator);
-        precheckPortGroupParameter(portGroup);
 
         if (volumeIds == null || volumeIds.isEmpty() && volumeId != null) {
             volumeIds = Collections.singletonList(volumeId);
         }
+
+        precheckPortGroupParameter(ResourceUtils.uri(volumeIds.get(0)), portGroup);
 
         if (BlockStorageUtils.isHost(hostId)) {
             host = BlockStorageUtils.getHost(hostId);
@@ -315,8 +317,8 @@ public class ExportBlockVolumeHelper {
         }
     }
     
-    public static void precheckPortGroupParameter(URI portGroup) {
-        if (BlockStorageUtils.isVMAXUsePortGroupEnabled() && portGroup == null) {
+    public static void precheckPortGroupParameter(URI id, URI portGroup) {
+        if (BlockStorageUtils.isVMAXUsePortGroupEnabled(id) && portGroup == null) {
             ExecutionUtils.fail("failTask.exportPortGroupParameters.precheck", new Object[] {}, new Object[] {});
         }
     }

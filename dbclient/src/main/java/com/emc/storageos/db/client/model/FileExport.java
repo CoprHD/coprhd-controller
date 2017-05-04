@@ -30,9 +30,7 @@ public class FileExport extends AbstractSerializableNestedObject {
     private static final String COMMENTS = "comments";
     private static final String NATIVEID = "nativeId";
     private static final String SUBDIRECTORY = "subDirectory";
-    private boolean mountSubDirectory; 
-    private boolean mapLookupUid; 
-    private boolean return32bitFileIds; 
+    private boolean mountSubDirectory;
 
     /**
      * JAXB requirement
@@ -322,22 +320,6 @@ public class FileExport extends AbstractSerializableNestedObject {
 
     public void setMountSubDirectory(boolean mountSubDirectory) {
         this.mountSubDirectory = mountSubDirectory;
-    }
-
-    public boolean isMapLookupUid() {
-        return mapLookupUid;
-    }
-
-    public void setMapLookupUid(boolean mapLookupUid) {
-        this.mapLookupUid = mapLookupUid;
-    }
-
-    public boolean isReturn32bitFileIds() {
-        return return32bitFileIds;
-    }
-
-    public void setReturn32bitFileIds(boolean return32bitFileIds) {
-        this.return32bitFileIds = return32bitFileIds;
     }
 
 }

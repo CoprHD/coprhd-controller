@@ -29,14 +29,18 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import com.emc.sa.util.ArrayUtil;
+import models.customservices.LocalAnsiblePrimitiveForm;
+import models.customservices.RestAPIPrimitiveForm;
+import models.customservices.ShellScriptPrimitiveForm;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.collections.MapUtils;
 import org.apache.commons.io.FilenameUtils;
+import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.lang.StringUtils;
 import org.owasp.esapi.ESAPI;
 
 import play.Logger;
-import play.data.validation.Required;
 import play.data.validation.Valid;
 import play.i18n.Messages;
 import play.mvc.Controller;
@@ -318,17 +322,17 @@ public class WorkflowBuilder extends Controller {
                     inputGroup.setInputGroup(new ArrayList<CustomServicesWorkflowDocument.Input>());
                     CustomServicesWorkflowDocument.Input input = new CustomServicesWorkflowDocument.Input();
                     input.setName("host_file");
-                    input.setFriendlyName("Inventory File");
+                    input.setFriendlyName("Inventory File ("+step.getFriendlyName()+")");
                     input.setType(CustomServicesConstants.InputType.FROM_USER_MULTI.toString());
                     final CustomServicesPrimitiveRestRep primitiveRestRep = getCatalogClient().customServicesPrimitives().getPrimitive(step.getOperation());
-                    final CustomServicesPrimitiveResourceList customServicesPrimitiveResourceList = getCatalogClient().customServicesPrimitives().getHostInventory(CustomServicesConstants.ANSIBLE_INVENTORY_TYPE, primitiveRestRep.getResource().getId());
+                    final CustomServicesPrimitiveResourceList customServicesPrimitiveResourceList = getCatalogClient().customServicesPrimitives().getPrimitiveResourcesByType(CustomServicesConstants.ANSIBLE_INVENTORY_TYPE, primitiveRestRep.getResource().getId());
                     if(customServicesPrimitiveResourceList!=null && customServicesPrimitiveResourceList.getResources()!=null &&
                             customServicesPrimitiveResourceList.getResources().size() > 0) {
-                        final StringBuffer sb = new StringBuffer();
+                        final Map<String, String> options = new HashMap<String, String>();
                         for(NamedRelatedResourceRep n: customServicesPrimitiveResourceList.getResources()){
-                            sb.append(n.getId()+",");
+                            options.put(n.getId().toString(), n.getName());
                         }
-                        input.setDefaultValue(sb.toString());
+                        input.setOptions(options);
                         inputGroup.getInputGroup().add(input);
                         if(step.getInputGroups() == null) {
                             step.setInputGroups(new HashMap<String, CustomServicesWorkflowDocument.InputGroup>());
@@ -476,100 +480,6 @@ public class WorkflowBuilder extends Controller {
         }
     }
 
-    public static class ShellScriptPrimitiveForm {
-        private String id; // this is empty for CREATE
-        // Name and Description step
-        @Required
-        private String name;
-        @Required
-        private String description;
-        @Required
-        private File script;
-        @Required
-        private String scriptName;
-        private String inputs; // comma separated list of inputs
-        private String outputs; // comma separated list of ouputs
-        private boolean newScript; // if true create new resource(delete any existing)
-        private String wfDirID; // this is empty for EDIT
-
-        // TODO
-        public void validate() {
-            // check if script is not null
-        }
-
-        public String getId() {
-            return id;
-        }
-
-        public void setId(String id) {
-            this.id = id;
-        }
-
-        public boolean isNewScript() {
-            return newScript;
-        }
-
-        public void setNewScript(boolean newScript) {
-            this.newScript = newScript;
-        }
-
-        public String getName() {
-            return name;
-        }
-
-        public void setName(String name) {
-            this.name = name;
-        }
-
-        public String getDescription() {
-            return description;
-        }
-
-        public void setDescription(String description) {
-            this.description = description;
-        }
-
-        public File getScript() {
-            return script;
-        }
-
-        public void setScript(File script) {
-            this.script = script;
-        }
-
-        public String getScriptName() {
-            return scriptName;
-        }
-
-        public void setScriptName(String scriptName) {
-            this.scriptName = scriptName;
-        }
-
-        public String getInputs() {
-            return inputs;
-        }
-
-        public void setInputs(String inputs) {
-            this.inputs = inputs;
-        }
-
-        public String getOutputs() {
-            return outputs;
-        }
-
-        public void setOutputs(String outputs) {
-            this.outputs = outputs;
-        }
-
-        public String getWfDirID() {
-            return wfDirID;
-        }
-
-        public void setWfDirID(String wfDirID) {
-            this.wfDirID = wfDirID;
-        }
-    }
-
     private static void editShellScriptPrimitive(final ShellScriptPrimitiveForm shellPrimitive) {
         try {
             final URI shellPrimitiveID = new URI(shellPrimitive.getId());
@@ -608,11 +518,11 @@ public class WorkflowBuilder extends Controller {
                 outputUpdateParam.setAdd((List<String>) CollectionUtils.subtract(newOutputs, existingOutputs));
                 primitiveUpdateParam.setOutput(outputUpdateParam);
 
-                if (shellPrimitive.newScript) {
+                if (shellPrimitive.isNewScript()) {
                     // create new resource
                     String filename = FilenameUtils.getBaseName(shellPrimitive.getScript().getName());
                     final CustomServicesPrimitiveResourceRestRep primitiveResourceRestRep = getCatalogClient().customServicesPrimitives()
-                            .createPrimitiveResource("SCRIPT", shellPrimitive.script, filename);
+                            .createPrimitiveResource("SCRIPT", shellPrimitive.getScript(), filename);
                     if (null != primitiveResourceRestRep) {
                         // Update resource link
                         primitiveUpdateParam.setResource(primitiveResourceRestRep.getId());
@@ -652,10 +562,9 @@ public class WorkflowBuilder extends Controller {
     private static void createShellScriptPrimitive(final ShellScriptPrimitiveForm shellPrimitive) {
         try {
 
-            String filename = FilenameUtils.getBaseName(shellPrimitive.getScript().getName());
-
+            final String filename = FilenameUtils.getBaseName(shellPrimitive.getScript().getName());
             final CustomServicesPrimitiveResourceRestRep primitiveResourceRestRep = getCatalogClient().customServicesPrimitives()
-                    .createPrimitiveResource("SCRIPT", shellPrimitive.script, filename);
+                    .createPrimitiveResource("SCRIPT", shellPrimitive.getScript(), filename);
             if (null != primitiveResourceRestRep) {
                 final CustomServicesPrimitiveCreateParam primitiveCreateParam = new CustomServicesPrimitiveCreateParam();
                 // TODO - remove this hardcoded string once the enum is available
@@ -703,127 +612,6 @@ public class WorkflowBuilder extends Controller {
         view();
     }
 
-    public static class LocalAnsiblePrimitiveForm {
-        private String id;
-        @Required
-        private String name;
-        private String description;
-        private boolean existing;
-        private String existingResource;
-        private File ansiblePackage;
-        @Required
-        private String ansiblePackageName;
-        @Required
-        private String ansiblePlaybook;
-        @Required
-        private String hostFilePath;
-        private String inputs; // comma separated list of inputs
-        private String outputs; // comma separated list of ouputs
-        private String wfDirID;
-        public File[] inventoryFiles;
-
-        // TODO
-        public void validate() {
-
-        }
-
-        public String getId() {
-            return id;
-        }
-
-        public void setId(String id) {
-            this.id = id;
-        }
-
-        public String getName() {
-            return name;
-        }
-
-        public void setName(String name) {
-            this.name = name;
-        }
-
-        public String getDescription() {
-            return description;
-        }
-
-        public void setDescription(String description) {
-            this.description = description;
-        }
-
-        public String getExistingResource() {
-            return existingResource;
-        }
-
-        public void setExistingResource(String existingResource) {
-            this.existingResource = existingResource;
-        }
-
-        public File getAnsiblePackage() {
-            return ansiblePackage;
-        }
-
-        public void setAnsiblePackage(File ansiblePackage) {
-            this.ansiblePackage = ansiblePackage;
-        }
-
-        public String getAnsiblePackageName() {
-            return ansiblePackageName;
-        }
-
-        public void setAnsiblePackageName(String ansiblePackageName) {
-            this.ansiblePackageName = ansiblePackageName;
-        }
-
-        public String getHostFilePath() {
-            return hostFilePath;
-        }
-
-        public void setHostFilePath(String hostFilePath) {
-            this.hostFilePath = hostFilePath;
-        }
-
-        public String getInputs() {
-            return inputs;
-        }
-
-        public void setInputs(String inputs) {
-            this.inputs = inputs;
-        }
-
-        public String getOutputs() {
-            return outputs;
-        }
-
-        public void setOutputs(String outputs) {
-            this.outputs = outputs;
-        }
-
-        public String getAnsiblePlaybook() {
-            return ansiblePlaybook;
-        }
-
-        public void setAnsiblePlaybook(String ansiblePlaybook) {
-            this.ansiblePlaybook = ansiblePlaybook;
-        }
-
-        public boolean isExisting() {
-            return existing;
-        }
-
-        public void setExisting(boolean existing) {
-            this.existing = existing;
-        }
-
-        public String getWfDirID() {
-            return wfDirID;
-        }
-
-        public void setWfDirID(String wfDirID) {
-            this.wfDirID = wfDirID;
-        }
-    }
-
     public static void saveLocalAnsiblePrimitive(@Valid final LocalAnsiblePrimitiveForm localAnsible) {
         localAnsible.validate();
         if (StringUtils.isNotEmpty(localAnsible.getId())) {
@@ -832,6 +620,44 @@ public class WorkflowBuilder extends Controller {
             createLocalAnsiblePrimitive(localAnsible);
         }
         view();
+    }
+
+    private static void uploadInventoryFiles(final URI packageId, final File[] inventoryFiles) throws java.io.IOException{
+        if (null != packageId && null != inventoryFiles && inventoryFiles.length > 0) {
+            for (File inventoryFile : inventoryFiles) {
+                CustomServicesPrimitiveResourceRestRep inventoryFilesResourceRestRep = getCatalogClient().customServicesPrimitives().createPrimitiveResource(CustomServicesConstants.ANSIBLE_INVENTORY_TYPE,
+                        inventoryFile, inventoryFile.getName(), packageId);
+                if (null == inventoryFilesResourceRestRep) {
+                    Logger.error("Error while uploading primitive resource - inventory file %s for ansible package %s",
+                            inventoryFile.getName(), packageId);
+                    flash.error("Error while uploading primitive resource - inventory file %s for ansible package %s",
+                            inventoryFile.getName(), packageId);
+
+                }
+            }
+        }
+    }
+
+    // Keep only newInventoryFileNames - get existing and remove the ones that are not there in the newly sent list
+    private static void updateInventoryFiles(final URI packageId, final String newInventoryFileNames) {
+        if(null == packageId || StringUtils.isBlank(newInventoryFileNames)) {
+            return;
+        }
+
+        final Map<String, URI> inventoryFiles = new HashMap<String, URI>();
+        final CustomServicesPrimitiveResourceList customServicesPrimitiveResourceList = getCatalogClient().customServicesPrimitives().getPrimitiveResourcesByType(CustomServicesConstants.ANSIBLE_INVENTORY_TYPE, packageId);
+        if(null != customServicesPrimitiveResourceList.getResources()) {
+            for(NamedRelatedResourceRep inventoryResource : customServicesPrimitiveResourceList.getResources()) {
+                inventoryFiles.put(inventoryResource.getName(), inventoryResource.getId());
+            }
+        }
+        final String[] fileNames = newInventoryFileNames.split(",");
+        final List<String> newInventoryFileNamesList = Arrays.asList(fileNames);
+        inventoryFiles.keySet().removeAll(newInventoryFileNamesList);
+        for(final URI inventoryId : inventoryFiles.values()) {
+            getCatalogClient().customServicesPrimitives().deletePrimitiveResource(inventoryId);
+        }
+
     }
 
     private static void editLocalAnsiblePrimitive(final LocalAnsiblePrimitiveForm localAnsible) {
@@ -873,21 +699,29 @@ public class WorkflowBuilder extends Controller {
                 primitiveUpdateParam.setAttributes(new HashMap<String, String>());
                 primitiveUpdateParam.getAttributes().put("playbook", localAnsible.getAnsiblePlaybook());
 
+                URI packageId = null;
                 if (!localAnsible.isExisting()) {
                     // create new resource
                     final CustomServicesPrimitiveResourceRestRep primitiveResourceRestRep = getCatalogClient().customServicesPrimitives()
-                            .createPrimitiveResource("ANSIBLE", localAnsible.ansiblePackage, localAnsible.ansiblePackageName);
+                            .createPrimitiveResource("ANSIBLE", localAnsible.getAnsiblePackage(), localAnsible.getAnsiblePackageName());
                     if (null != primitiveResourceRestRep) {
                         // Update resource link
-                        primitiveUpdateParam.setResource(primitiveResourceRestRep.getId());
+                        packageId = primitiveResourceRestRep.getId();
+                        primitiveUpdateParam.setResource(packageId);
                     }
                 }
                 else {
-                    if(!primitiveRestRep.getResource().getId().toString().equalsIgnoreCase(localAnsible.existingResource)) {
-                        primitiveUpdateParam.setResource(new URI(localAnsible.existingResource));
-                    }
+                    packageId = new URI(localAnsible.getExistingResource());
+                    primitiveUpdateParam.setResource(packageId);
+
+                    // Changes to existing inventory files
+                    updateInventoryFiles(packageId, localAnsible.getUpdatedInventoryFiles());
                 }
+                // Upload new inventory files
+                uploadInventoryFiles(packageId, localAnsible.getInventoryFiles());
                 getCatalogClient().customServicesPrimitives().updatePrimitive(localAnsiblePrimitiveID, primitiveUpdateParam);
+
+
             }
         } catch (final Exception e) {
             Logger.error(e.getMessage());
@@ -899,28 +733,16 @@ public class WorkflowBuilder extends Controller {
         try {
             CustomServicesPrimitiveResourceRestRep primitiveResourceRestRep = null;
             if (localAnsible.isExisting()) {
-                // TODO: waiting for resources GET
-            } else if (null != localAnsible.ansiblePackage) {
+                primitiveResourceRestRep = getCatalogClient().customServicesPrimitives().getPrimitiveResource(new URI(localAnsible.getExistingResource()));
+            } else if (null != localAnsible.getAnsiblePackage()) {
                 // upload ansible package
                 primitiveResourceRestRep = getCatalogClient().customServicesPrimitives().createPrimitiveResource("ANSIBLE",
-                        localAnsible.ansiblePackage, localAnsible.ansiblePackageName);
+                        localAnsible.getAnsiblePackage(), localAnsible.getAnsiblePackageName());
             }
 
             if (null != primitiveResourceRestRep) {
                 // Upload ansible inventory files
-                if (null != localAnsible.inventoryFiles && localAnsible.inventoryFiles.length > 0) {
-                    for (File inventoryFile : localAnsible.inventoryFiles) {
-                        CustomServicesPrimitiveResourceRestRep inventoryFilesResourceRestRep = getCatalogClient().customServicesPrimitives().createPrimitiveResource(CustomServicesConstants.ANSIBLE_INVENTORY_TYPE,
-                                inventoryFile, inventoryFile.getName(), primitiveResourceRestRep.getId());
-                        if (null == inventoryFilesResourceRestRep) {
-                            Logger.error("Error while uploading primitive resource - inventory file %s for ansible package %s",
-                                    inventoryFile.getName(), primitiveResourceRestRep.getId());
-                            flash.error("Error while uploading primitive resource - inventory file %s for ansible package %s",
-                                    inventoryFile.getName(), primitiveResourceRestRep.getId());
-
-                        }
-                    }
-                }
+                uploadInventoryFiles(primitiveResourceRestRep.getId(), localAnsible.getInventoryFiles());
 
                 // Create Primitive
                 final CustomServicesPrimitiveCreateParam primitiveCreateParam = new CustomServicesPrimitiveCreateParam();
@@ -963,13 +785,15 @@ public class WorkflowBuilder extends Controller {
     }
 
     private static void setAnsibleResources() {
-        // TODO - Get these resources using API and remove this temporary data
+        final CustomServicesPrimitiveResourceList customServicesPrimitiveResourceList = getCatalogClient().customServicesPrimitives().getPrimitiveResourcesByType(StepType.LOCAL_ANSIBLE.toString(), null);
         final List<StringOption> ansibleResourceNames = new ArrayList<StringOption>();
-        ansibleResourceNames.add(new StringOption("1x", "CreateHostPackage"));
-        ansibleResourceNames
-                .add(new StringOption("urn:storageos:AnsiblePackage:32efea07-d2b7-4581-b577-60c7d95c7f53:vdc1", "Create Project Package"));
+        if (null != customServicesPrimitiveResourceList.getResources()) {
+            for(final NamedRelatedResourceRep resourceRep : customServicesPrimitiveResourceList.getResources()) {
+                ansibleResourceNames.add(new StringOption(resourceRep.getId().toString(), resourceRep.getName()));
+            }
+        }
         renderArgs.put("ansibleResourceNames", ansibleResourceNames);
-
+        Common.copyRenderArgsToAngular();
     }
 
     private static List<String> convertInputParamsGroupsToList(final Map<String, CustomServicesPrimitiveRestRep.InputGroup> inputGroups) {
@@ -1027,6 +851,7 @@ public class WorkflowBuilder extends Controller {
             localAnsiblePrimitiveForm.setAnsiblePackageName("SAMPLE NAME");
             localAnsiblePrimitiveForm.setAnsiblePlaybook(primitiveRestRep.getAttributes().get("playbook"));
             localAnsiblePrimitiveForm.setExisting(true);
+            localAnsiblePrimitiveForm.setExistingResource(primitiveRestRep.getResource().getId().toString());
         }
         return localAnsiblePrimitiveForm;
     }
@@ -1068,141 +893,6 @@ public class WorkflowBuilder extends Controller {
 
         }
 
-    }
-
-    public static class RestAPIPrimitiveForm {
-        private String id; // this is empty for CREATE
-        private String wfDirID; // this is empty for EDIT
-
-        // Name and Description step
-        @Required
-        private String name;
-        @Required
-        private String description;
-
-        // Details
-        @Required
-        private String method; // get, post,..
-        private String requestURL;
-        private String authType;
-        private String restOptions = "target,port";
-        private String headers;
-        private String rawBody;
-        private String queryParams;
-
-        // Input and Outputs
-        private String inputs; // comma separated list of inputs
-        private String outputs; // comma separated list of ouputs
-
-
-        // TODO
-        public void validate() {
-
-        }
-
-        public String getId() {
-            return id;
-        }
-
-        public void setId(String id) {
-            this.id = id;
-        }
-
-        public String getWfDirID() {
-            return wfDirID;
-        }
-
-        public void setWfDirID(String wfDirID) {
-            this.wfDirID = wfDirID;
-        }
-
-        public String getName() {
-            return name;
-        }
-
-        public void setName(String name) {
-            this.name = name;
-        }
-
-        public String getDescription() {
-            return description;
-        }
-
-        public void setDescription(String description) {
-            this.description = description;
-        }
-
-        public String getMethod() {
-            return method;
-        }
-
-        public void setMethod(String method) {
-            this.method = method;
-        }
-
-        public String getRequestURL() {
-            return requestURL;
-        }
-
-        public void setRequestURL(String requestURL) {
-            this.requestURL = requestURL;
-        }
-
-        public String getAuthType() {
-            return authType;
-        }
-
-        public void setAuthType(String authType) {
-            this.authType = authType;
-        }
-
-        public String getHeaders() {
-            return headers;
-        }
-
-        public void setHeaders(String headers) {
-            this.headers = headers;
-        }
-
-        public String getRawBody() {
-            return rawBody;
-        }
-
-        public void setRawBody(String rawBody) {
-            this.rawBody = rawBody;
-        }
-
-        public String getQueryParams() {
-            return queryParams;
-        }
-
-        public String getRestOptions() {
-            return restOptions;
-        }
-
-        public void setRestOptions(String restOptions) {
-            this.restOptions = restOptions;
-        }
-
-        public void setQueryParams(String queryParams) {
-            this.queryParams = queryParams;
-        }
-
-        public String getInputs() {
-            return inputs;
-        }
-
-        public void setInputs(String inputs) {
-            this.inputs = inputs;
-        }
-
-        public String getOutputs() {
-            return outputs;
-        }
-
-        public void setOutputs(String outputs) {
-            this.outputs = outputs;
-        }
     }
 
     public static void saveRestAPIPrimitive(@Valid final RestAPIPrimitiveForm restAPIPrimitive) {
@@ -1350,5 +1040,16 @@ public class WorkflowBuilder extends Controller {
             Logger.error(e.getMessage());
             flash.error(e.getMessage());
         }
+    }
+
+    public static void getInventoryFilesForPackage(final URI packageId) {
+        final List<String> inventoryFileNames = new ArrayList<String>();
+        final CustomServicesPrimitiveResourceList customServicesPrimitiveResourceList = getCatalogClient().customServicesPrimitives().getPrimitiveResourcesByType(CustomServicesConstants.ANSIBLE_INVENTORY_TYPE, packageId);
+        if(null != customServicesPrimitiveResourceList.getResources()) {
+            for(NamedRelatedResourceRep inventoryResource : customServicesPrimitiveResourceList.getResources()) {
+                inventoryFileNames.add(inventoryResource.getName());
+            }
+        }
+        renderJSON(inventoryFileNames);
     }
 }

@@ -78,10 +78,12 @@ public class CustomServicesClient extends AbstractCatalogBulkResources<CustomSer
         return client.getURI(CustomServicesPrimitiveList.class, builder.build());
     }
 
-    public CustomServicesPrimitiveResourceList getHostInventory(final String type, final URI parentId) {
-        final UriBuilder builder = client.uriBuilder(PathConstants.CUSTOM_SERVICES_PRIMITIVE_RESOURCE);
+    public CustomServicesPrimitiveResourceList getPrimitiveResourcesByType(final String type, final URI parentId) {
+        final UriBuilder builder = client.uriBuilder(PathConstants.CUSTOM_SERVICES_PRIMITIVE_RESOURCES);
         builder.queryParam("type", type);
-        builder.queryParam("parentId", parentId);
+        if (null != parentId) {
+            builder.queryParam("parentId", parentId);
+        }
         return client.getURI(CustomServicesPrimitiveResourceList.class, builder.build());
     }
 
@@ -92,17 +94,13 @@ public class CustomServicesClient extends AbstractCatalogBulkResources<CustomSer
 
     public CustomServicesPrimitiveResourceRestRep createPrimitiveResource(final String resourceType, final File resource,
             final String resourceName, final URI ansiblePackageId) throws IOException {
-        final UriBuilder builder = client.uriBuilder(PathConstants.CUSTOM_SERVICES_PRIMITIVE_RESOURCE);
+        final UriBuilder builder = client.uriBuilder(PathConstants.CUSTOM_SERVICES_PRIMITIVE_RESOURCES);
         builder.queryParam("name", resourceName);
         builder.queryParam("type", resourceType);
         if (null != ansiblePackageId) {
             builder.queryParam("parentId", ansiblePackageId);
         }
         return client.postURIOctet(CustomServicesPrimitiveResourceRestRep.class, new FileInputStream(resource), builder.build());
-    }
-
-    public CustomServicesPrimitiveResourceRestRep updatePrimitiveResource(final URI id, final String name) throws IOException {
-        return client.put(CustomServicesPrimitiveResourceRestRep.class, PathConstants.CUSTOM_SERVICES_PRIMITIVE_RESOURCE, id, name);
     }
 
     public CustomServicesPrimitiveRestRep createPrimitive(final CustomServicesPrimitiveCreateParam param) {
@@ -160,6 +158,11 @@ public class CustomServicesClient extends AbstractCatalogBulkResources<CustomSer
 
     public ClientResponse deletePrimitive(final URI id) {
         final ClientResponse response = client.post(ClientResponse.class, PathConstants.CUSTOM_SERVICES_PRIMITIVE_DELETE, id);
+        return response;
+    }
+
+    public ClientResponse deletePrimitiveResource(final URI id) {
+        final ClientResponse response = client.post(ClientResponse.class, PathConstants.CUSTOM_SERVICES_PRIMITIVE_RESOURCE_DELETE, id);
         return response;
     }
 

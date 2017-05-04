@@ -48,14 +48,9 @@ ansibleResourceNames = _arg;
                         </control-group>
 
                         <div ng-if="localAnsible.existing">
-                            #{field 'localAnsible.existingResource'}
-                                %{
-                                field.options = ansibleResourceNames
-                                field.required = true
-                                field.cssClass = 'span6 initialFocus'
-                                }%
-                                #{Form.selectOneControlGroup field:field /}
-                            #{/field}
+                            <control-group v-field='localAnsible.existingResource' required>
+                                <select-one options="ansibleResourceNames" auto-default v-disabled='locked'></select-one>
+                            </control-group>
                         </div>
 
                         <div ng-if="!localAnsible.existing">
@@ -78,13 +73,21 @@ ansibleResourceNames = _arg;
                 </div>
                 <div class="tab-pane" id="${hostFileTabID}">
                     #{Modal.body}
+                        <div class="row" ng-repeat="inventory in updatedInventoryFiles" style="margin-bottom:5px;">
+                            <div class="pull-left col-sm-11" v-field="inventory">
+                                <input-text disabled></input-text>
+                            </div>
+                            <div class="pull-left col-sm-1" style="padding-left:0px; margin-top:5px;">
+                                <button type="button" ng-click="deleteInventoryFile($index)" class="close">&times;</button>
+                            </div>
+                        </div>
                         #{field 'localAnsible.inventoryFiles'}
                             %{
                             field.required = true
                             }%
                             #{Form.multiFileUpload field:field/}
                         #{/field}
-
+                        <input type="hidden" name="localAnsible.updatedInventoryFiles" ng-value="updatedInventoryFileNamesStr"/>
                     #{/Modal.body}
 
                 </div>
@@ -161,19 +164,18 @@ ansibleResourceNames = _arg;
     function checkLAFinish() {
         var complete = true;
         var chooseExisting = $('[name="localAnsible.existing"]').val();
+        if (!chooseExisting || chooseExisting === "false") chooseExisting = false;
+        else chooseExisting = true;
         if (isBlank($('#localAnsible_name').val()) || isBlank($('#localAnsible_ansiblePlaybook').val())) {
             complete = false;
         }
         else if ( chooseExisting && isBlank($('#localAnsible_existingResource').val()) ) {
             complete = false;
         }
-        else if ( !chooseExisting &&  ( isBlank($('#localAnsible_ansiblePackageName').val()) || isBlank($('#localAnsible_ansiblePackage').val())) ){
+        else if ( !chooseExisting && ( isBlank($('#localAnsible_ansiblePackageName').val()) || isBlank($('#localAnsible_ansiblePackage').val())) ) {
             complete = false;
         }
 
-
-        console.log("chooseExisting: "+chooseExisting);
-        console.log(complete);
         // If form is complete, enable FINISH button
         if (complete) {
             $('#finishButtonLA').prop('disabled', false);
@@ -216,8 +218,6 @@ ansibleResourceNames = _arg;
         var $tabs = $('.tabbable li');
         $('#backButtonLA').on('click', function() {
             var prevTabAnchor = $tabs.filter('.active').prev('li').find('a[data-toggle="tab"]');
-            console.log(prevTabAnchor);
-
             if(prevTabAnchor.length == 0) {
                 //if there is no previous tab, disable back button
                 $('#backButtonLA').prop("disabled",true);
@@ -233,12 +233,12 @@ ansibleResourceNames = _arg;
     });
 
     angular.module("portalApp").controller('localAnsiblePrimitiveController', function($element, $scope, $compile, $http, translate) {
-
         var resetVars = function(){
             $scope.localAnsible = {};
             $scope.scriptIOs = {};
             $scope.scriptIOs.inputs = [];
             $scope.scriptIOs.outputs = [];
+            $scope.updatedInventoryFiles = [];
         }
 
         resetVars();
@@ -259,6 +259,11 @@ ansibleResourceNames = _arg;
             $scope.scriptIOs.outputs.push(angular.copy($scope.addO));
         }
 
+        $scope.deleteInventoryFile = function(idx) {
+            $scope.updatedInventoryFiles.splice(idx,1);
+            $scope.updatedInventoryFileNamesStr = $scope.updatedInventoryFiles + ""
+        }
+
         $scope.$watch('scriptIOs', function(newVal) {
             var inputs = [], outputs = [];
             angular.forEach($scope.scriptIOs.inputs, function(obj) {
@@ -270,6 +275,17 @@ ansibleResourceNames = _arg;
 
             $scope.inputs = inputs.toString();
             $scope.outputs = outputs.toString();
+       }, true);
+
+       // When Existing resource is changed - update inventory files
+       $scope.$watch('localAnsible.existingResource', function(newVal) {
+            // Get inventory files for selected package
+            $http.get(routes.InventoryFiles_For_Package_get({packageId: newVal})).then(function (resp) {
+                if (resp.status == 200) {
+                    $scope.updatedInventoryFiles = resp.data;
+                    $scope.updatedInventoryFileNamesStr = $scope.updatedInventoryFiles + ""
+                }
+            });
        }, true);
 
        // for edit functionality
@@ -296,7 +312,6 @@ ansibleResourceNames = _arg;
                         }
                     }
                 });
-
             }
             else {
                 $scope.modalTitle=translate('localAnsible.primitive.add.title');

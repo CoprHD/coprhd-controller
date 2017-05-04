@@ -91,6 +91,7 @@ public class ExportBlockVolumeHelper {
         }
 
         precheckExportPathParameters(minPaths, maxPaths, pathsPerInitiator);
+        precheckPortGroupParameter(portGroup);
 
         if (volumeIds == null || volumeIds.isEmpty() && volumeId != null) {
             volumeIds = Collections.singletonList(volumeId);
@@ -311,6 +312,12 @@ public class ExportBlockVolumeHelper {
             } else if (pathsPerInitiator > maxPaths) {
                 ExecutionUtils.fail("failTask.exportPathParameters.pathsPerInitiator", new Object[] {}, new Object[] {});
             }
+        }
+    }
+    
+    public static void precheckPortGroupParameter(URI portGroup) {
+        if (BlockStorageUtils.isVMAXUsePortGroupEnabled() && portGroup == null) {
+            ExecutionUtils.fail("failTask.exportPortGroupParameters.precheck", new Object[] {}, new Object[] {});
         }
     }
 }

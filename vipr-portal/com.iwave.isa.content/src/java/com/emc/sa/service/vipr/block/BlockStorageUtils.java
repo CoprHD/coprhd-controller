@@ -95,6 +95,7 @@ import com.emc.sa.service.vipr.block.tasks.GetBlockVolume;
 import com.emc.sa.service.vipr.block.tasks.GetBlockVolumeByWWN;
 import com.emc.sa.service.vipr.block.tasks.GetBlockVolumes;
 import com.emc.sa.service.vipr.block.tasks.GetExportsForBlockObject;
+import com.emc.sa.service.vipr.block.tasks.GetVMAXUsePortGroupEnabledConfig;
 import com.emc.sa.service.vipr.block.tasks.GetVolumeByName;
 import com.emc.sa.service.vipr.block.tasks.PauseContinuousCopy;
 import com.emc.sa.service.vipr.block.tasks.RemoveBlockResourcesFromExport;
@@ -140,6 +141,7 @@ import com.emc.storageos.model.block.export.ExportBlockParam;
 import com.emc.storageos.model.block.export.ExportGroupRestRep;
 import com.emc.storageos.model.block.export.ITLRestRep;
 import com.emc.storageos.model.block.export.InitiatorPathParam;
+import com.emc.storageos.model.customconfig.SimpleValueRep;
 import com.emc.storageos.model.systems.StorageSystemRestRep;
 import com.emc.storageos.model.varray.VirtualArrayRestRep;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
@@ -628,6 +630,14 @@ public class BlockStorageUtils {
                 }
             }
         } while (retryNeeded);
+    }
+
+    public static boolean isVMAXUsePortGroupEnabled() {
+        SimpleValueRep value = execute(new GetVMAXUsePortGroupEnabledConfig());
+        if (value.getValue().equalsIgnoreCase("true")) {
+            return true;
+        }
+        return false;
     }
 
     public static List<URI> getActiveSnapshots(URI volumeId) {

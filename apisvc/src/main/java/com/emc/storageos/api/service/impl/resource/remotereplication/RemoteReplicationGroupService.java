@@ -198,14 +198,19 @@ public class RemoteReplicationGroupService extends TaskResourceService {
         while (it.hasNext()) {
             RemoteReplicationGroup rrGroup = it.next();
 
+            // Bypass rr groups whose source/target device is not assigned
+            String groupSourceDevice = rrGroup.getSourceSystem() != null ? rrGroup.getSourceSystem().toString() : null;
+            String groupTargetDevice = rrGroup.getTargetSystem() != null ? rrGroup.getTargetSystem().toString() : null;
+            if (groupSourceDevice == null || groupTargetDevice == null) {
+                continue;
+            }
+
             // rr group's source device should be contained by source varray/vpool pair's devices
-            String groupSourceDevice = rrGroup.getSourceSystem().toString();
             if (!sourceDevices.contains(groupSourceDevice)) {
                 continue;
             }
 
             // rr group's target device should be contained by every target varray/vpool pair's devices
-            String groupTargetDevice = rrGroup.getTargetSystem().toString();
             for (Set<String> targetDevices : targetSystemsForAllPairs) {
                 if (!targetDevices.contains(groupTargetDevice)) {
                     continue outloop;

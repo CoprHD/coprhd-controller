@@ -112,8 +112,9 @@ public class IsilonReplicationApiTest {
 
     public static void main(String args[]) throws Exception {
         IsilonReplicationApiTest.setup();
-        System.out.println(_client.getAccessZones(null));
-
+        String disPath = "mudit/";
+        String disPathModified = disPath.substring(0, disPath.length() - 1);
+        System.out.println(disPathModified);
         // IsilonReplicationApiTest.testlicenseInfo();
         // IsilonReplicationApiTest.testGetReplicationPolicy();
         // IsilonReplicationApiTest.testCreateReplicationPolicy();

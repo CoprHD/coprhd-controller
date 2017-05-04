@@ -1460,7 +1460,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         // set quota - save the quota id to extensions
         String qid = isi.createQuota(qDirPath, fsSize, bThresholdsIncludeOverhead,
                 bIncludeSnapshots, qDirSize, notificationLimitSize != null ? notificationLimitSize : 0L,
-                softLimitSize != null ? softLimitSize : 0L, softGracePeriod != null ? softGracePeriod : 0L);
+                        softLimitSize != null ? softLimitSize : 0L, softGracePeriod != null ? softGracePeriod : 0L);
         return qid;
     }
 
@@ -2341,7 +2341,6 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
     private void processAclsForShare(IsilonApi isi, FileDeviceInputOutput args, List<ShareACL> aclsToProcess) {
 
         _log.info("Start processAclsForShare to set ACL for share {}: ACL: {}", args.getShareName(), aclsToProcess);
-
         IsilonSMBShare isilonSMBShare = new IsilonSMBShare(args.getShareName());
         ArrayList<Permission> permissions = new ArrayList<Permission>();
         ArrayList<IsilonSMBShare.Persona> runAsRootList = new ArrayList<IsilonSMBShare.Persona>();
@@ -2381,17 +2380,34 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
          * If permissions array list is empty, it means to remove all ACEs on
          * the share.
          */
+        /*
+         * This workaround is with reference to the bug reported on Isilon platform COP-18468.
+         * First clear all the ACL anf then set the ACL you want to set for that user.
+         */
+        modifyIsilonShareACL(isi, args, isilonSMBShare, new ArrayList<Permission>(), new ArrayList<IsilonSMBShare.Persona>());
+        if (!permissions.isEmpty() || !runAsRootList.isEmpty()) {
+            modifyIsilonShareACL(isi, args, isilonSMBShare, permissions, runAsRootList);
+        }
+
+        _log.info("End processAclsForShare");
+    }
+
+    private static void modifyIsilonShareACL(IsilonApi isi, FileDeviceInputOutput args, IsilonSMBShare isilonSMBShare,
+            ArrayList<Permission> permissions,
+            ArrayList<IsilonSMBShare.Persona> runAsRootList) {
+
+        _log.info("Calling Isilon API: modifyShare. Share {}, permissions {}, runAsRootList {}", isilonSMBShare,
+                permissions, runAsRootList);
+
         isilonSMBShare.setRunAsRoot(runAsRootList);
         isilonSMBShare.setPermissions(permissions);
-        _log.info("Calling Isilon API: modifyShare. Share {}, permissions {}, runAsRootList {}", isilonSMBShare, permissions, runAsRootList);
+
         String zoneName = getZoneName(args.getvNAS());
         if (zoneName != null) {
             isi.modifyShare(args.getShareName(), zoneName, isilonSMBShare);
         } else {
             isi.modifyShare(args.getShareName(), isilonSMBShare);
         }
-
-        _log.info("End processAclsForShare");
     }
 
     /**
@@ -2525,7 +2541,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         return result;
     }
 
-    private String getZoneName(VirtualNAS vNAS) {
+    private static String getZoneName(VirtualNAS vNAS) {
         String zoneName = null;
         if (vNAS != null) {
             zoneName = vNAS.getNasName();

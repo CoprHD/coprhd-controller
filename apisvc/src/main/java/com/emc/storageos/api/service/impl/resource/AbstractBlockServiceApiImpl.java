@@ -65,6 +65,8 @@ import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.VolumeGroup;
+import com.emc.storageos.db.client.model.VolumeTopology.VolumeTopologyRole;
+import com.emc.storageos.db.client.model.VolumeTopology.VolumeTopologySite;
 import com.emc.storageos.db.client.model.util.BlockConsistencyGroupUtils;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
@@ -443,8 +445,9 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
      * @throws InternalException
      */
     @Override
-    public TaskList createVolumes(VolumeCreate param, Project project, VirtualArray varray,
-            VirtualPool vpool, Map<VpoolUse, List<Recommendation>> recommendationMap, TaskList taskList,
+    public TaskList createVolumes(VolumeCreate param, Project project, VirtualArray varray, VirtualPool vpool,
+            Map<VolumeTopologySite, List<Map<VolumeTopologyRole, URI>>> performanceParams,
+            Map<VpoolUse, List<Recommendation>> recommendationMap, TaskList taskList,
             String task, VirtualPoolCapabilityValuesWrapper vpoolCapabilities) throws ControllerException,
             InternalException {
 

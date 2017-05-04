@@ -24,6 +24,7 @@ import org.springframework.util.CollectionUtils;
 import com.emc.storageos.api.service.authorization.PermissionsHelper;
 import com.emc.storageos.api.service.impl.resource.ArgValidator;
 import com.emc.storageos.api.service.impl.resource.BlockService;
+import com.emc.storageos.api.service.impl.resource.utils.PerformanceParamsUtils;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.Project;
@@ -566,11 +567,8 @@ public class VPlexScheduler implements Scheduler {
         _log.info("Getting all matching pools for HA varray {}", haVarray.getId());
         URI haStorageSystem = null;
         
-        VirtualPoolCapabilityValuesWrapper haCapabilities = new VirtualPoolCapabilityValuesWrapper(capabilities);
-        // Don't look for SRDF in the HA side.
-        haCapabilities.put(VirtualPoolCapabilityValuesWrapper.PERSONALITY, null);
-        // We don't require that the HA side have the same storage controller.
-        haCapabilities.put(VirtualPoolCapabilityValuesWrapper.BLOCK_CONSISTENCY_GROUP, null);
+        VirtualPoolCapabilityValuesWrapper haCapabilities = overideSourceCapabilitiesForHaPlacement
+                (haVpool, capabilities, performanceParams);
         
         Map<String, Object> attributeMap = new HashMap<String, Object>();
         List<StoragePool> allMatchingPoolsForHaVarray = getMatchingPools(
@@ -704,6 +702,41 @@ public class VPlexScheduler implements Scheduler {
         _placementManager.logRecommendations("VPLEX Distributed", recommendations);
 
         return recommendations;
+    }
+    
+    /**
+     * Override the passed source capabilities to take into account the values in
+     * the HA virtual pool and the performance parameters for the HA side of the
+     * volume.
+     *  
+     * @param haVpool The HA virtual pool.
+     * @param srcCapabilities The capabilities for the source side of the VPLEX volume.
+     * @param performanceParams The performance parameters.
+     * 
+     * @return The capabilities to use when matching pools for the HA side of the volume.
+     */
+    private VirtualPoolCapabilityValuesWrapper overideSourceCapabilitiesForHaPlacement(
+            VirtualPool haVpool, VirtualPoolCapabilityValuesWrapper srcCapabilities,
+            Map<VolumeTopologySite, List<Map<VolumeTopologyRole, URI>>> performanceParams) {
+        
+        // Get the performance parameters for the source volume.
+        Map<VolumeTopologyRole, URI> sourceParams = null;
+        List<Map<VolumeTopologyRole, URI>> sourceParamList = performanceParams.get(VolumeTopologySite.SOURCE);
+        if (CollectionUtils.isEmpty(sourceParamList)) {
+            // There is only one source volume in a volume topology.
+            sourceParams = sourceParamList.get(0);
+        }
+        
+        VirtualPoolCapabilityValuesWrapper haCapabilities = PerformanceParamsUtils.overridePrimaryCapabilitiesForVplexHA(
+                haVpool, sourceParams, srcCapabilities, _dbClient);
+        
+        // Don't look for SRDF in the HA side.
+        haCapabilities.put(VirtualPoolCapabilityValuesWrapper.PERSONALITY, null);
+        
+        // We don't require that the HA side have the same storage controller.
+        haCapabilities.put(VirtualPoolCapabilityValuesWrapper.BLOCK_CONSISTENCY_GROUP, null);
+        
+        return haCapabilities;
     }
 
     /**

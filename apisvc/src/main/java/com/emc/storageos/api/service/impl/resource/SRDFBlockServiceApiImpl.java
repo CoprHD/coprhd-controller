@@ -56,6 +56,8 @@ import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.Volume.PersonalityTypes;
 import com.emc.storageos.db.client.model.Volume.VolumeAccessState;
+import com.emc.storageos.db.client.model.VolumeTopology.VolumeTopologyRole;
+import com.emc.storageos.db.client.model.VolumeTopology.VolumeTopologySite;
 import com.emc.storageos.db.client.model.VolumeGroup;
 import com.emc.storageos.db.client.model.VpoolRemoteCopyProtectionSettings;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
@@ -646,10 +648,10 @@ public class SRDFBlockServiceApiImpl extends AbstractBlockServiceApiImpl<SRDFSch
     }
 
     @Override
-    public TaskList createVolumes(final VolumeCreate param, final Project project,
-            final VirtualArray varray, final VirtualPool vpool,
-            final Map<VpoolUse, List<Recommendation>> recommendationMap, TaskList taskList,
-            final String task, final VirtualPoolCapabilityValuesWrapper capabilities) throws InternalException {
+    public TaskList createVolumes(VolumeCreate param, Project project, VirtualArray varray, VirtualPool vpool,
+            Map<VolumeTopologySite, List<Map<VolumeTopologyRole, URI>>> performanceParams,
+            Map<VpoolUse, List<Recommendation>> recommendationMap, TaskList taskList,
+            String task, VirtualPoolCapabilityValuesWrapper capabilities) throws InternalException {
         List<Recommendation> volRecommendations = recommendationMap.get(VpoolUse.ROOT);
         Long size = SizeUtil.translateSize(param.getSize());
         BlockOrchestrationController controller = getController(
@@ -965,7 +967,9 @@ public class SRDFBlockServiceApiImpl extends AbstractBlockServiceApiImpl<SRDFSch
 
         Map<VpoolUse, List<Recommendation>> recommendationMap = new HashMap<VpoolUse, List<Recommendation>>();
         recommendationMap.put(VpoolUse.ROOT, recommendations);
-        createVolumes(param, project, varray, vpool, recommendationMap, null, taskId, capabilities);
+        // TBD Heg
+        createVolumes(param, project, varray, vpool, new HashMap<VolumeTopologySite, List<Map<VolumeTopologyRole, URI>>>(),
+                recommendationMap, null, taskId, capabilities);
 
     }
 

@@ -70,6 +70,8 @@ import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.BlockSnapshot.TechnologyType;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DataObject.Flag;
+import com.emc.storageos.db.client.model.VolumeTopology.VolumeTopologyRole;
+import com.emc.storageos.db.client.model.VolumeTopology.VolumeTopologySite;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.Operation;
@@ -1111,8 +1113,9 @@ public class VolumeService extends TaskResourceService {
 
         _log.debug("Block Service API call for : Create New Volume ");
         TaskList passedTaskist = createTaskList(requestedSize, project, varray, vpool, capabilities, name, task, volumeCount);
-        return api.createVolumes(volumeCreate, project, varray, vpool, recommendationsMap, passedTaskist, task,
-                capabilities);
+        // TBD Heg
+        return api.createVolumes(volumeCreate, project, varray, vpool, new HashMap<VolumeTopologySite, List<Map<VolumeTopologyRole, URI>>>(),
+                recommendationsMap, passedTaskist, task, capabilities);
     }
 
     /**

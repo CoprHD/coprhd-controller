@@ -46,6 +46,7 @@ import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.VolumeGroup;
 import com.emc.storageos.db.client.model.VolumeTopology.VolumeTopologyRole;
+import com.emc.storageos.db.client.model.VolumeTopology.VolumeTopologySite;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.client.util.SizeUtil;
@@ -95,8 +96,9 @@ public class DefaultBlockServiceApiImpl extends AbstractBlockServiceApiImpl<Stor
     }
 
     @Override
-    public TaskList createVolumes(VolumeCreate param, Project project, VirtualArray neighborhood,
-            VirtualPool cos, Map<VpoolUse, List<Recommendation>> recommendationMap, TaskList taskList,
+    public TaskList createVolumes(VolumeCreate param, Project project, VirtualArray neighborhood, VirtualPool cos,
+            Map<VolumeTopologySite, List<Map<VolumeTopologyRole, URI>>> performanceParam,
+            Map<VpoolUse, List<Recommendation>> recommendationMap, TaskList taskList,
             String task, VirtualPoolCapabilityValuesWrapper cosCapabilities) throws InternalException {
         
         Long size = SizeUtil.translateSize(param.getSize());

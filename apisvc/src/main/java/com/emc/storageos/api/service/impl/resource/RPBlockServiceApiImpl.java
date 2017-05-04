@@ -1013,10 +1013,12 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
             volumeCreateParam.setVpool(vpool.getId());
 
             boolean createTask = Volume.PersonalityTypes.SOURCE.equals(personality);
+            // TBD Heg
             List<VolumeDescriptor> vplexVolumeDescriptors = vplexBlockServiceApiImpl
-                    .createVPlexVolumeDescriptors(volumeCreateParam, project, varray, vpool,
-                            vplexRecommendations, task, capabilities, capabilities.getBlockConsistencyGroup(), taskList, volumes,
-                            createTask);
+                    .createVPlexVolumeDescriptors(volumeCreateParam, project, varray, vpool, 
+                            new HashMap<VolumeTopologySite, List<Map<VolumeTopologyRole, URI>>>(),
+                            vplexRecommendations, task, capabilities, capabilities.getBlockConsistencyGroup(),
+                            taskList, volumes, createTask);
             // Set the compute resource into the VPLEX volume descriptors for RP source
             // volumes so that the compute resource name can be reflected in the volume
             // name if the custom volume naming is configured as such.
@@ -1673,6 +1675,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
 
     @Override
     public TaskList createVolumes(VolumeCreate param, Project project, VirtualArray varray, VirtualPool vpool,
+            Map<VolumeTopologySite, List<Map<VolumeTopologyRole, URI>>> performanceParams, 
             Map<VpoolUse, List<Recommendation>> recommendationMap, TaskList taskList, String task,
             VirtualPoolCapabilityValuesWrapper capabilities) throws InternalException {
         List<Recommendation> recommendations = recommendationMap.get(VpoolUse.ROOT);
@@ -2081,7 +2084,9 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
         createTaskForVolume(changeVpoolVolume, ResourceOperationTypeEnum.CHANGE_BLOCK_VOLUME_VPOOL, taskList, taskId);
         Map<VpoolUse, List<Recommendation>> recommendationMap = new HashMap<VpoolUse, List<Recommendation>>();
         recommendationMap.put(VpoolUse.ROOT, recommendations);
-        createVolumes(param, project, varray, newVpool, recommendationMap, taskList, taskId, capabilities);
+        // TBD Heg
+        createVolumes(param, project, varray, newVpool, new HashMap<VolumeTopologySite, List<Map<VolumeTopologyRole, URI>>>(),
+                recommendationMap, taskList, taskId, capabilities);
     }
 
     /**
@@ -3365,7 +3370,9 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
         createTaskForVolume(volume, ResourceOperationTypeEnum.CHANGE_BLOCK_VOLUME_VPOOL, taskList, taskId);
         Map<VpoolUse, List<Recommendation>> recommendationMap = new HashMap<VpoolUse, List<Recommendation>>();
         recommendationMap.put(VpoolUse.ROOT, recommendations);
-        createVolumes(param, project, varray, newVpool, recommendationMap, taskList, taskId, capabilities);
+        // TBD Heg
+        createVolumes(param, project, varray, newVpool, new HashMap<VolumeTopologySite, List<Map<VolumeTopologyRole, URI>>>(),
+                recommendationMap, taskList, taskId, capabilities);
     }
 
     /**
@@ -3621,7 +3628,8 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
         TaskList taskList = new TaskList();
         Map<VpoolUse, List<Recommendation>> recommendationMap = new HashMap<VpoolUse, List<Recommendation>>();
         recommendationMap.put(VpoolUse.ROOT, recommendations);
-        return this.createVolumes(param, project, journalVarray, journalVpool, recommendationMap, taskList, task, capabilities);
+        return this.createVolumes(param, project, journalVarray, journalVpool, new HashMap<VolumeTopologySite, List<Map<VolumeTopologyRole, URI>>>(),
+                recommendationMap, taskList, task, capabilities);
     }
 
     /**

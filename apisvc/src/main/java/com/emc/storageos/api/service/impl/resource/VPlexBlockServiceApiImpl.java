@@ -278,8 +278,9 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
      * @throws InternalException
      */
     @Override
-    public TaskList createVolumes(VolumeCreate param, Project project,
-            VirtualArray vArray, VirtualPool vPool, Map<VpoolUse, List<Recommendation>> recommendationMap, TaskList taskList,
+    public TaskList createVolumes(VolumeCreate param, Project project, VirtualArray vArray, VirtualPool vPool,
+            Map<VolumeTopologySite, List<Map<VolumeTopologyRole, URI>>> performanceParams,
+            Map<VpoolUse, List<Recommendation>> recommendationMap, TaskList taskList,
             String task, VirtualPoolCapabilityValuesWrapper vPoolCapabilities) throws InternalException {
         List<Recommendation> volRecommendations = recommendationMap.get(VpoolUse.ROOT);
         List<Recommendation> srdfCopyRecommendations = recommendationMap.get(VpoolUse.SRDF_COPY);
@@ -289,9 +290,9 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
         }
 
         List<URI> allVolumes = new ArrayList<URI>();
-        List<VolumeDescriptor> descriptors = createVPlexVolumeDescriptors(param, project, vArray, vPool,
-                volRecommendations, task, vPoolCapabilities, vPoolCapabilities.getBlockConsistencyGroup(),
-                taskList, allVolumes, true);
+        List<VolumeDescriptor> descriptors = createVPlexVolumeDescriptors(param, project, vArray, vPool, 
+                performanceParams, volRecommendations, task, vPoolCapabilities,
+                vPoolCapabilities.getBlockConsistencyGroup(), taskList, allVolumes, true);
         for (VolumeDescriptor desc : descriptors) {
             s_logger.info("Vplex Root Descriptors: " + desc.toString());
         }
@@ -310,7 +311,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                     // Do not pass in the consistency group for vplex volumes fronting targets
                     // as we will eventually put them in the target CG.
                     srdfCopyDescriptors = createVPlexVolumeDescriptors(param, project, vArray, vPool,
-                            copyRecommendations, task, vPoolCapabilities, null,
+                            performanceParams, copyRecommendations, task, vPoolCapabilities, null,
                             taskList, allVolumes, true);
                     param.setName(name);
                 } else {
@@ -388,9 +389,9 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
      *            -- boolean flag indicating to create tasks
      * @return
      */
-    public List<VolumeDescriptor> createVPlexVolumeDescriptors(VolumeCreate param, Project project,
-            final VirtualArray vArray, final VirtualPool vPool, List<Recommendation> recommendations,
-            String task, VirtualPoolCapabilityValuesWrapper vPoolCapabilities,
+    public List<VolumeDescriptor> createVPlexVolumeDescriptors(VolumeCreate param, Project project, final VirtualArray vArray,
+            final VirtualPool vPool, Map<VolumeTopologySite, List<Map<VolumeTopologyRole, URI>>> performanceParams, 
+            List<Recommendation> recommendations, String task, VirtualPoolCapabilityValuesWrapper vPoolCapabilities,
             URI blockConsistencyGroupURI, TaskList taskList, List<URI> allVolumes, boolean createTask) {
         s_logger.info("Request to create {} VPlex virtual volume(s)",
                 vPoolCapabilities.getResourceCount());
@@ -447,6 +448,15 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                 !cgContainsVolumes || consistencyGroup.getTypes().contains(Types.LOCAL.toString()))) {
             backendCG = consistencyGroup;
         }
+        
+        // Get the performance parameters for these volumes.
+        // TBD Heg - Assume a source VPLEX volume rather than account for a VPLEX volume
+        // serving as a copy for now.
+        Map<VolumeTopologyRole, URI> sourceParams = null;
+        List<Map<VolumeTopologyRole, URI>> sourceParamsList = performanceParams.get(VolumeTopologySite.SOURCE);
+        if (!sourceParamsList.isEmpty()) {
+            sourceParams = sourceParamsList.get(0);
+        }
 
         // Prepare Bourne volumes to represent the backend volumes for the
         // recommendations in each VirtualArray.
@@ -458,11 +468,35 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
         Iterator<String> varrayIter = varrayRecommendationsMap.keySet().iterator();
         while (varrayIter.hasNext()) {
             String varrayId = varrayIter.next();
-            s_logger.info("Processing backend recommendations for Virtual Array {}", varrayId);
             List<VPlexRecommendation> vplexRecommendations = varrayRecommendationsMap.get(varrayId);
+            
+            // Determine the performance parameters for these backend volumes based on
+            // where these are the primary or HA recommendations.
+            VolumeTopologyRole role = VolumeTopologyRole.PRIMARY;
+            if (!varrayId.equals(vArray.getId().toString())) {
+                // This is the HA varray, so we need the performance parameters for that role.
+                role = VolumeTopologyRole.HA;
+            }
+            URI performanceParamsURI = PerformanceParamsUtils.getPerformanceParamsIdForRole(sourceParams, role, _dbClient);
+            
+            // For the HA recommendations we need to override the primary side 
+            // capabilities to make sure they take into account the HA vpool and
+            // the HA performance parameters. This was done when the volumes were
+            // placed and we want to make sure the prepared volumes and descriptors
+            // reflect this as well.
+            VirtualPoolCapabilityValuesWrapper backendCapabilities = vPoolCapabilities;
+            if (role == VolumeTopologyRole.HA) {
+                // TBD Heg For basic VPLEX volume creation. Revisit for RP/SRDF and other on top of VPLEX.
+                // There may not be child descriptors when called in these cases as seen in makeBackendVolumeDescriptors.
+                VirtualPool haVpool = vplexRecommendations.get(0).getRecommendation().getVirtualPool();
+                backendCapabilities = PerformanceParamsUtils.overridePrimaryCapabilitiesForVplexHA(
+                        haVpool, sourceParams, vPoolCapabilities, _dbClient);
+            }
+            
+            s_logger.info("Processing backend recommendations for Virtual Array {}", varrayId);
             List<VolumeDescriptor> varrayDescriptors = makeBackendVolumeDescriptors(
-                    vplexRecommendations, project, vplexProject, vPool, volumeLabel, varrayCount,
-                    size, backendCG, vPoolCapabilities, createTask, task);
+                    vplexRecommendations, project, vplexProject, vPool, performanceParamsURI,
+                    volumeLabel, varrayCount, size, backendCG, backendCapabilities, createTask, task);
             descriptors.addAll(varrayDescriptors);
             List<URI> varrayURIs = VolumeDescriptor.getVolumeURIs(varrayDescriptors);
             allVolumes.addAll(varrayURIs);
@@ -502,12 +536,13 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                 volumePrecreated = true;
             }
 
-            long thinVolumePreAllocationSize = 0;
-            if (null != vPool.getThinVolumePreAllocationPercentage()) {
-                thinVolumePreAllocationSize = VirtualPoolUtil
-                        .getThinVolumePreAllocationSize(
-                                vPool.getThinVolumePreAllocationPercentage(), size);
-            }
+            // TBD Heg Should not need this as it is in the capabilities.
+            long thinVolumePreAllocationSize = vPoolCapabilities.getThinVolumePreAllocateSize();
+            //if (null != vPool.getThinVolumePreAllocationPercentage()) {
+            //    thinVolumePreAllocationSize = VirtualPoolUtil
+            //            .getThinVolumePreAllocationSize(
+            //                    vPool.getThinVolumePreAllocationPercentage(), size);
+            //}
 
             volume = prepareVolume(VolumeType.VPLEX_VIRTUAL_VOLUME, volume,
                     size, thinVolumePreAllocationSize, project, vArray,
@@ -3908,6 +3943,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
      * @param project - Project containing the Vplex volumes
      * @param vplexProject -- private project of the Vplex
      * @param rootVpool -- top level Virtual Pool (VpoolUse.ROOT)
+     * @param performanceParamsURI The URI of a PerformanceParams instance.
      * @param varrayCount -- instance count of the varray being provisioned
      * @param size -- size of each volume
      * @param backendCG -- the CG to be used on the backend Storage Systems
@@ -3916,12 +3952,10 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
      * @param task -- Overall task id
      * @return -- list of VolumeDescriptors to be provisioned
      */
-    private List<VolumeDescriptor> makeBackendVolumeDescriptors(
-            List<VPlexRecommendation> recommendations,
-            Project project, Project vplexProject, VirtualPool rootVpool,
-            String volumeLabel, int varrayCount, long size,
-            BlockConsistencyGroup backendCG, VirtualPoolCapabilityValuesWrapper vPoolCapabilities,
-            boolean createTask, String task) {
+    private List<VolumeDescriptor> makeBackendVolumeDescriptors(List<VPlexRecommendation> recommendations,
+            Project project, Project vplexProject, VirtualPool rootVpool, URI performanceParamsURI, 
+            String volumeLabel, int varrayCount, long size, BlockConsistencyGroup backendCG,
+            VirtualPoolCapabilityValuesWrapper vPoolCapabilities, boolean createTask, String task) {
         VPlexRecommendation firstRecommendation = recommendations.get(0);
         List<VolumeDescriptor> descriptors = new ArrayList<VolumeDescriptor>();
         URI varrayId = firstRecommendation.getVirtualArray();
@@ -3930,8 +3964,11 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
         s_logger.info("Generated backend descriptors for {} recommendations varray {}",
                 recommendations.size(), varrayCount);
 
-        vPoolCapabilities.put(VirtualPoolCapabilityValuesWrapper.AUTO_TIER__POLICY_NAME,
-                vpool.getAutoTierPolicyName());
+        // TBD Heg - Should already have the tiering policy name overridden by performance params.
+        // No need to set it again here as it will blow away the performance params override.
+        //vPoolCapabilities.put(VirtualPoolCapabilityValuesWrapper.AUTO_TIER__POLICY_NAME,
+                //vpool.getAutoTierPolicyName());
+
 
         if (firstRecommendation.getRecommendation() != null) {
             // If these recommendations have lower level recommendation, process them.
@@ -3957,11 +3994,12 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                 // grom the project.
                 project = vplexProject;
             }
-
+            
             TaskList taskList = new TaskList();
             descriptors =
                     super.createVolumesAndDescriptors(descriptors, newVolumeLabel, size, project,
-                            varray, vpool, null, childRecommendations, taskList, task, vPoolCapabilities);
+                            varray, vpool, performanceParamsURI, childRecommendations, taskList,
+                            task, vPoolCapabilities);
             VolumeDescriptor.Type[] types;
             if (srdfTarget) {
                 types = new VolumeDescriptor.Type[] {
@@ -3983,6 +4021,8 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
             }
             return descriptors;
         }
+        
+        // TBD Heg for now ignore this path which is not taken for basic VLPEX volume creation.
 
         // Sum resourceCount across all recommendations
         int totalResourceCount = 0;
@@ -3993,7 +4033,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
         // The HA side does not currently call the lower level schedulers to get descriptors.
         s_logger.info("Processing recommendations for Virtual Array {}", varrayId);
         int volumeCounter = 0;
-
+        
         for (VPlexRecommendation recommendation : recommendations) {
             for (int i = 0; i < recommendation.getResourceCount(); i++) {
                 vpool = recommendation.getVirtualPool();
@@ -4006,7 +4046,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
 
                 s_logger.info("Volume label is {}", newVolumeLabel);
                 VirtualArray varray = _dbClient.queryObject(VirtualArray.class, varrayId);
-
+                
                 // This is also handled in StorageScheduler.prepareRecomendedVolumes
                 long thinVolumePreAllocationSize = 0;
                 if (null != vpool.getThinVolumePreAllocationPercentage()) {

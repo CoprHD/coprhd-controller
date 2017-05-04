@@ -22,6 +22,8 @@ import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.VolumeGroup;
+import com.emc.storageos.db.client.model.VolumeTopology.VolumeTopologyRole;
+import com.emc.storageos.db.client.model.VolumeTopology.VolumeTopologySite;
 import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.TaskResourceRep;
 import com.emc.storageos.model.application.VolumeGroupUpdateParam.VolumeGroupVolumeList;
@@ -63,6 +65,8 @@ public interface BlockServiceApi {
      *            source VirtualArray
      * @param vpool
      *            VirtualPool requested
+     * @param performanceParams
+     *            The performance parameters map.
      * @param recommendations
      *            Placement recommendation object
      * @param taskList
@@ -75,9 +79,10 @@ public interface BlockServiceApi {
      *
      * @throws InternalException
      */
-    public TaskList createVolumes(VolumeCreate param, Project project,
-            VirtualArray varray, VirtualPool vpool, Map<VpoolUse, List<Recommendation>> recommendationMap,
-            TaskList taskList, String task, VirtualPoolCapabilityValuesWrapper vpoolCapabilities)
+    public TaskList createVolumes(VolumeCreate param, Project project, VirtualArray varray, VirtualPool vpool,
+            Map<VolumeTopologySite, List<Map<VolumeTopologyRole, URI>>> performanceParams,
+            Map<VpoolUse, List<Recommendation>> recommendationMap, TaskList taskList, String task, 
+            VirtualPoolCapabilityValuesWrapper vpoolCapabilities)
             throws InternalException;
 
     /**

@@ -42,6 +42,8 @@ import com.emc.storageos.db.client.model.BlockMirror;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
+import com.emc.storageos.db.client.model.VolumeTopology.VolumeTopologyRole;
+import com.emc.storageos.db.client.model.VolumeTopology.VolumeTopologySite;
 import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.Project;
@@ -93,11 +95,12 @@ public class BlockMirrorServiceApiImpl extends AbstractBlockServiceApiImpl<Stora
      */
     @Override
     public TaskList createVolumes(VolumeCreate param, Project project, VirtualArray neighborhood, VirtualPool cos,
-            Map<VpoolUse, List<Recommendation>> volRecommendations, TaskList taskList, String task, VirtualPoolCapabilityValuesWrapper cosCapabilities)
-                    throws ControllerException {
+            Map<VolumeTopologySite, List<Map<VolumeTopologyRole, URI>>> performanceParams, 
+            Map<VpoolUse, List<Recommendation>> volRecommendations, TaskList taskList, String task, 
+            VirtualPoolCapabilityValuesWrapper cosCapabilities) throws ControllerException {
 
-        return _defaultBlockServiceApi.createVolumes(param, project, neighborhood, cos, volRecommendations, taskList,
-                task, cosCapabilities);
+        return _defaultBlockServiceApi.createVolumes(param, project, neighborhood, cos, 
+                performanceParams, volRecommendations, taskList, task, cosCapabilities);
     }
 
     /**

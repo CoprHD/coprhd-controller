@@ -134,6 +134,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
     private static final String NFSv4 = "NFSv4";
     private static final String UMFS_DETAILS = "FS_DETAILS";
     private static final String UMFSQD_DETAILS = "UMFSQD_DETAILS";
+    private static final String UMFS_QD_MAP = "UMFS_QD_MAP";
     private static final String INITIAL_PATH = "/ifs/accesszone/";
 
     private static final Long MAX_NFS_EXPORTS_V7_2 = 1500L;
@@ -1535,14 +1536,21 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
 
             for (String umfsDiscoverPath : _discPathsForUnManaged) {
 
-                // Need to write method to fetch access zone from path
                 IsilonAccessZone isilonAccessZone = getAccessZoneCorresDiscoveryPath(isilonAccessZones, umfsDiscoverPath);
+                String isilonAccessZoneName;
+                if (isilonAccessZone == null) {
+                    // System access zone
+                    isilonAccessZoneName = null;
+                } else {
+                    isilonAccessZoneName = isilonAccessZone.getName();
+                }
 
                 // Get All SMB for this path access zone
-                HashMap<String, HashSet<String>> allSMBShares = discoverAccessZoneSMBShares(storageSystem, isilonAccessZone);
+                HashMap<String, HashSet<String>> zoneSMBShares = discoverAccessZoneSMBShares(storageSystem, isilonAccessZoneName);
 
                 // Get all NFS Export for this path access zone
-                HashMap<String, HashSet<Integer>> expMap = discoverAccessZoneExports(storageSystem, isilonAccessZone);
+                HashMap<String, HashSet<Integer>> zoneNFSExports = discoverAccessZoneExports(storageSystem, isilonAccessZoneName);
+
                 do {
                     HashMap<String, Object> discoverdFileDetails = discoverAllFileSystem(storageSystem, resumeToken,
                             umfsDiscoverPath);
@@ -1552,6 +1560,9 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
 
                     ArrayList<UnManagedFileQuotaDirectory> discoveredUmfsQd = (ArrayList<UnManagedFileQuotaDirectory>) discoverdFileDetails
                             .get(UMFSQD_DETAILS);
+
+                    HashMap<String, HashSet<String>> umfsfileQuotaMap = (HashMap<String, HashSet<String>>) discoverdFileDetails
+                            .get(UMFS_QD_MAP);
 
                     resumeToken = discoveredIsilonFS.getToken();
                     discoveredFS = discoveredIsilonFS.getList();
@@ -1565,11 +1576,8 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                         if (!checkStorageFileSystemExistsInDB(fs.getNativeGuid())) {
 
                             // Create UnManaged FS
-                            String fsUnManagedFsNativeGuid = NativeGUIDGenerator.generateNativeGuidForPreExistingFileSystem(
-                                    storageSystem.getSystemType(),
-                                    storageSystem.getSerialNumber(), fs.getNativeId());
                             String fsPathName = fs.getPath();
-                            UnManagedFileSystem unManagedFs = checkUnManagedFileSystemExistsInDB(fsUnManagedFsNativeGuid);
+                            UnManagedFileSystem unManagedFs = checkUnManagedFileSystemExistsInDB(fs.getNativeGuid());
 
                             // get the matched vNAS Server
                             NASServer nasServer = getMatchedNASServer(nasServers, fsPathName);
@@ -1588,44 +1596,27 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
 
                             boolean alreadyExist = unManagedFs == null ? false : true;
                             unManagedFs = createUnManagedFileSystem(unManagedFs,
-                                    fsUnManagedFsNativeGuid, storageSystem, storagePool, nasServer, fs);
+                                    fs.getNativeGuid(), storageSystem, storagePool, nasServer, fs);
 
                             unManagedFs.setHasNFSAcl(false);
-
-                            HashMap<String, HashMap<String, HashSet<Integer>>> expMapTree = new HashMap<>();
-                            expMapTree.put(fs.getPath(), getExportsIncludingSubDir(fs.getPath(), expMap));
 
                             /**
                              * Set and create the NFS ACLs only if the system is enabled with NFSv4!!!
                              */
+                            HashMap<String, HashSet<Integer>> exportWithIdMap = getExportsIncludingSubDir(fs.getPath(), zoneNFSExports,
+                                    umfsfileQuotaMap);
+
                             if (isNfsV4Enabled) {
-                                HashSet<String> fsExportPaths = (HashSet<String>) expMapTree.get(fsPathName).keySet();
+                                Set<String> fsExportPaths = exportWithIdMap.keySet();
                                 setUnmanagedNfsShareACL(unManagedFs, storageSystem, isilonApi, fsExportPaths, newUnManagedNfsShareACLList,
                                         oldUnManagedNfsShareACLList);
                             }
 
                             /**
-                             * Create and set CIFS ACLS and SMB Share MAP
-                             */
-                            HashSet<String> smbShareHashSet = new HashSet<>();
-                            for (Entry<String, HashSet<String>> entry : allSMBShares.entrySet()) {
-                                if (entry.getKey().equalsIgnoreCase(fsPathName) || entry.getKey().startsWith(fsPathName + "/")) {
-                                    _log.info("filesystem path : {} and share path: {}", fs.getPath(), entry.getKey());
-                                    smbShareHashSet.addAll(entry.getValue());
-                                }
-                            }
-                            setUnmanagedCifsShareACL(unManagedFs, smbShareHashSet,
-                                    newUnManagedCifsShareACLList, storagePort, fs.getName(), nasServer.getNasName(),
-                                    storageSystem, isilonApi, oldUnManagedCifsShareACLList);
-                            _log.info("Number of shares ACLs discovered for file system {} is {}", unManagedFs.getId(),
-                                    newUnManagedCifsShareACLList.size());
-
-                            /**
                              * Set and Create Export Rules and export Map
                              */
-                            HashMap<String, HashSet<Integer>> expIdMap = expMapTree.get(fs.getPath());
-                            if (!expIdMap.keySet().isEmpty()) {
-                                setUnManagedFSExportMap(unManagedFs, expIdMap, storagePort,
+                            if (!exportWithIdMap.keySet().isEmpty()) {
+                                setUnManagedFSExportMap(unManagedFs, exportWithIdMap, storagePort,
                                         fs.getPath(), nasServer.getNasName(), isilonApi, storageSystem, newUnManagedExportRules,
                                         oldUnManagedExportRules);
                                 _log.info("Number of exports discovered for file system {} is {}", unManagedFs.getId(),
@@ -1636,6 +1627,18 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                                             newUnManagedExportRules.size());
                                 }
                             }
+
+                            /**
+                             * Create and set CIFS ACLS and SMB Share MAP
+                             */
+                            HashSet<String> shareIDs = getSharesIncludingSubDir(fs.getPath(), zoneSMBShares,
+                                    umfsfileQuotaMap);
+                            setUnmanagedCifsShareACL(unManagedFs, shareIDs,
+                                    newUnManagedCifsShareACLList, storagePort, fs.getName(), nasServer.getNasName(),
+                                    storageSystem, isilonApi, oldUnManagedCifsShareACLList);
+                            _log.info("Number of shares ACLs discovered for file system {} is {}", unManagedFs.getId(),
+                                    newUnManagedCifsShareACLList.size());
+                            ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
                             if (unManagedFs.getHasExports() || unManagedFs.getHasShares()) {
                                 _log.info("FS {} is having exports/shares", fs.getPath());
@@ -1824,7 +1827,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
      */
 
     private HashMap<String, HashSet<String>> discoverAccessZoneSMBShares(final StorageSystem storageSystem,
-            IsilonAccessZone isilonAccessZone) {
+            String isilonAccessZone) {
         // Discover All FileShares
         String resumeToken = null;
         HashMap<String, HashSet<String>> allShares = new HashMap<String, HashSet<String>>();
@@ -1834,7 +1837,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
         try {
             IsilonApi isilonApi = getIsilonDevice(storageSystem);
             do {
-                IsilonApi.IsilonList<IsilonSMBShare> isilonShares = isilonApi.listShares(resumeToken, isilonAccessZone.getName());
+                IsilonApi.IsilonList<IsilonSMBShare> isilonShares = isilonApi.listShares(resumeToken, isilonAccessZone);
                 List<IsilonSMBShare> isilonSMBShareList = isilonShares.getList();
                 HashSet<String> sharesHashSet = null;
                 for (IsilonSMBShare share : isilonSMBShareList) {
@@ -1857,7 +1860,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
 
                 resumeToken = isilonShares.getToken();
             } while (resumeToken != null);
-            _log.info("discoverd AllShares for access zone {} ", isilonAccessZone.getName());
+            _log.info("discoverd AllShares for access zone {} ", isilonAccessZone);
             return allShares;
         } catch (IsilonException ie) {
             _log.error("discoverAllShares failed. Storage system: {}", storageSystemId, ie);
@@ -2023,7 +2026,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
     }
 
     private HashMap<String, HashSet<Integer>> discoverAccessZoneExports(StorageSystem storageSystem,
-            IsilonAccessZone isilonAccessZone) throws IsilonCollectionException {
+            String isilonAccessZone) throws IsilonCollectionException {
 
         HashMap<String, HashSet<Integer>> allExports = new HashMap<>();
         URI storageSystemId = storageSystem.getId();
@@ -2033,7 +2036,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
             IsilonApi isilonApi = getIsilonDevice(storageSystem);
             do {
                 IsilonApi.IsilonList<IsilonExport> isilonExports = isilonApi.listExports(resumeToken,
-                        isilonAccessZone.getName());
+                        isilonAccessZone);
                 List<IsilonExport> exports = isilonExports.getList();
 
                 for (IsilonExport exp : exports) {
@@ -2051,7 +2054,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                 }
                 resumeToken = isilonExports.getToken();
             } while (resumeToken != null);
-            _log.info("discoverd All NFS Exports for access zone {} ", isilonAccessZone.getName());
+            _log.info("discoverd All NFS Exports for access zone {} ", isilonAccessZone);
             return allExports;
         } catch (IsilonException ie) {
             _log.error("discoverAllExports failed. Storage system: {}", storageSystemId, ie);
@@ -2197,7 +2200,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
      * @param isilonApi
      */
     private void setUnmanagedNfsShareACL(UnManagedFileSystem unManagedFileSystem, StorageSystem storageSystem,
-            IsilonApi isilonApi, HashSet<String> fsExportPaths, List<UnManagedNFSShareACL> unManagedNfsACLList,
+            IsilonApi isilonApi, Set<String> fsExportPaths, List<UnManagedNFSShareACL> unManagedNfsACLList,
             List<UnManagedNFSShareACL> oldunManagedNfsShareACLList) {
 
         UnManagedNFSShareACL existingNfsACL;
@@ -3130,29 +3133,50 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
         return expRules;
     }
 
-    private HashMap<String, HashSet<Integer>> getExportsIncludingSubDir(String fsPath, HashMap<String, HashSet<Integer>> expMap) {
+    private HashMap<String, HashSet<Integer>> getExportsIncludingSubDir(String fsPath, HashMap<String, HashSet<Integer>> expMap,
+            HashMap<String, HashSet<String>> umfsQuotaMap) {
         HashMap<String, HashSet<Integer>> expMapWithIds = new HashMap<>();
-        for (String expPath : expMap.keySet()) {
-            if (expPath.equalsIgnoreCase(fsPath) || expPath.contains(fsPath + "/")) {
-                HashSet<Integer> expIds = expMap.get(expPath);
-                if (expIds != null && !expIds.isEmpty()) {
-                    expMapWithIds.put(expPath, expIds);
-                } else {
-                    expMapWithIds.put(expPath, new HashSet<Integer>());
+
+        // Process exports at file system path
+        HashSet<Integer> expIds = expMap.get(fsPath);
+        if (expIds != null && !expIds.isEmpty()) {
+            expMapWithIds.put(fsPath, expIds);
+        }
+
+        // Process exports at file quota dir path,this will loop through quotas of file system only..
+        HashSet<String> quotasofFS = umfsQuotaMap.get(fsPath);
+        if (quotasofFS != null && !quotasofFS.isEmpty()) {
+            for (String quotaofFS : quotasofFS) {
+                HashSet<Integer> quotaExpIds = expMap.get(quotaofFS);
+                if (quotaExpIds != null && !quotaExpIds.isEmpty()) {
+                    expMapWithIds.put(quotaofFS, quotaExpIds);
                 }
             }
         }
         return expMapWithIds;
     }
 
-    private HashMap<String, HashMap<String, HashSet<Integer>>> getExportsWithSubDirForFS(List<FileShare> discoveredIsilonFS,
-            HashMap<String, HashSet<Integer>> expMap) {
-        HashMap<String, HashMap<String, HashSet<Integer>>> expMapTree = new HashMap<>();
-        for (FileShare fs : discoveredIsilonFS) {
-            expMapTree.put(fs.getPath(), getExportsIncludingSubDir(fs.getPath(), expMap));
+    private HashSet<String> getSharesIncludingSubDir(String fsPath, HashMap<String, HashSet<String>> expMap,
+            HashMap<String, HashSet<String>> umfsQuotaMap) {
+        HashSet<String> shareIDs = new HashSet<>();
 
+        // Process shares at file system path
+        HashSet<String> shareIds = expMap.get(fsPath);
+        if (shareIds != null && !shareIds.isEmpty()) {
+            shareIDs.addAll(shareIds);
         }
-        return expMapTree;
+
+        // Process shares at file quota dir path,this will loop through quotas of file system only..
+        HashSet<String> quotasofFS = umfsQuotaMap.get(fsPath);
+        if (quotasofFS != null && !quotasofFS.isEmpty()) {
+            for (String quotaofFS : quotasofFS) {
+                HashSet<String> quotaShareIds = expMap.get(quotaofFS);
+                if (quotaShareIds != null && !quotaShareIds.isEmpty()) {
+                    shareIDs.addAll(quotaShareIds);
+                }
+            }
+        }
+        return shareIDs;
     }
 
     /**
@@ -3660,6 +3684,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
             HashMap<String, Object> discoveredFileDetails = new HashMap<>();
             discoveredFileDetails.put(UMFS_DETAILS, isilonFSList);
             discoveredFileDetails.put(UMFSQD_DETAILS, discoverdQuotaDirectory);
+            discoveredFileDetails.put(UMFS_QD_MAP, fileQuotas);
 
             return discoveredFileDetails;
 

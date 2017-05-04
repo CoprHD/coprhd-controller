@@ -12,10 +12,12 @@ import static com.emc.storageos.db.client.util.CustomQueryUtility.queryActiveRes
 
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
+import java.util.Map.Entry;
 
 import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
@@ -46,6 +48,8 @@ import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
+import com.emc.storageos.db.client.model.VirtualArray;
+import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.remotereplication.RemoteReplicationGroup;
 import com.emc.storageos.db.client.model.remotereplication.RemoteReplicationPair;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
@@ -58,6 +62,7 @@ import com.emc.storageos.model.remotereplication.RemoteReplicationGroupList;
 import com.emc.storageos.model.remotereplication.RemoteReplicationGroupRestRep;
 import com.emc.storageos.model.remotereplication.RemoteReplicationModeChangeParam;
 import com.emc.storageos.model.remotereplication.RemoteReplicationPairList;
+import com.emc.storageos.model.remotereplication.RemoteReplicationSetList;
 import com.emc.storageos.security.audit.AuditLogManager;
 import com.emc.storageos.security.authorization.CheckPermission;
 import com.emc.storageos.security.authorization.DefaultPermissions;
@@ -155,6 +160,65 @@ public class RemoteReplicationGroupService extends TaskResourceService {
             }
         }
         return rrGroupList;
+    }
+
+    /**
+     * @return all remote replication groups with storage in specified varray and vpool
+     */
+    @GET
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/varray/{varray}/vpool/{vpool}")
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR })
+    public RemoteReplicationGroupList getRemoteReplicationGroupsForVarrayVpool(@PathParam("varray") URI varrayURI,
+            @PathParam("vpool") URI vpoolURI) {
+        _log.info("Called: getRemoteReplicationGroupsForVarrayVpool() with params: (varray: {}, vpool: {})", varrayURI, vpoolURI);
+        ArgValidator.checkFieldUriType(varrayURI, VirtualArray.class, "virtual array id");
+        ArgValidator.checkFieldUriType(vpoolURI, VirtualPool.class, "virtual pool id");
+        VirtualPool vpool = _dbClient.queryObject(VirtualPool.class, vpoolURI);
+        if (vpool == null || vpool.getRemoteReplicationProtectionSettings() == null) {
+            throw APIException.badRequests.invalidVirtualPoolUriOrNotSupportRemoteReplication(vpoolURI);
+        }
+        if (!vpool.getVirtualArrays().contains(varrayURI.toString())) {
+            throw APIException.badRequests.vpoolVarrayMismatch(vpoolURI, varrayURI);
+        }
+        RemoteReplicationGroupList result = new RemoteReplicationGroupList();
+        Set<String> sourceDevices = RemoteReplicationUtils.getStorageSystemsForVarrayVpool(varrayURI, vpoolURI, _dbClient, _coordinator);
+        Set<Set<String>> targetSystemsForAllPairs = new HashSet<>();
+        Set<String> allTargetSystems = new HashSet<String>();
+        for (Entry<String, String> pair : vpool.getRemoteReplicationProtectionSettings().entrySet()) {
+            URI targetvArrayURI = URI.create(pair.getKey());
+            URI targetvPoolURI = URI.create(pair.getValue());
+            Set<String> targetDevices = RemoteReplicationUtils.getStorageSystemsForVarrayVpool(targetvArrayURI,
+                    targetvPoolURI, _dbClient, _coordinator);
+            targetSystemsForAllPairs.add(targetDevices);
+            allTargetSystems.addAll(targetDevices);
+        }
+        Iterator<RemoteReplicationGroup> it = RemoteReplicationUtils.findAllRemoteRepliationGroupsIteratively(_dbClient);
+        outloop:
+        while (it.hasNext()) {
+            RemoteReplicationGroup rrGroup = it.next();
+
+            // rr group's source device should be contained by source varray/vpool pair's devices
+            String groupSourceDevice = rrGroup.getSourceSystem().toString();
+            if (!sourceDevices.contains(groupSourceDevice)) {
+                continue;
+            }
+
+            // rr group's target device should be contained by every target varray/vpool pair's devices
+            String groupTargetDevice = rrGroup.getTargetSystem().toString();
+            for (Set<String> targetDevices : targetSystemsForAllPairs) {
+                if (!targetDevices.contains(groupTargetDevice)) {
+                    continue outloop;
+                }
+            }
+
+            if (StringUtils.isEmpty(rrGroup.getStorageSystemType())) {
+                throw new RuntimeException("No StorageType defined for RemoteReplicationGroup '" +
+                        rrGroup.getLabel() + "' (" + rrGroup.getId() + ")");
+            }
+            result.getRemoteReplicationGroups().add(toNamedRelatedResource(rrGroup));
+        }
+        return result;
     }
 
     /**

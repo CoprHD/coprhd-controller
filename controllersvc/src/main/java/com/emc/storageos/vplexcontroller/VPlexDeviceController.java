@@ -5446,12 +5446,17 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
                                 _log.info("Removing initiators {} as part of rollback", Joiner.on(',').join(addedInitiators));
                             }
                         }
-
-                        if (addedInitiators == null || addedInitiators.isEmpty()) {
-                            _log.info("There was no context found for add initiator. So there is nothing to rollback.");
-                            WorkflowStepCompleter.stepSucceded(stepId);
-                            return;
+                    }
+                    // Update the initiators in the task completer such that we update the export mask/group correctly
+                    for (URI initiator : initiatorIdsToProcess) {
+                        if (addedInitiators == null || !addedInitiators.contains(initiator)) {
+                            completer.removeInitiator(initiator);
                         }
+                    }
+                    if (addedInitiators == null || addedInitiators.isEmpty()) {
+                        _log.info("There was no context found for add initiator. So there is nothing to rollback.");
+                        completer.ready(_dbClient);
+                        return;
                     }
                     // Change the list of initiators to process to the list 
                     // that successfully were added during addInitiators.
@@ -9863,18 +9868,6 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
             // able to register those initiators.
             List<URI> storageViewInitiators = newInitiators;
 
-            // Create a Step to add the SAN Zone
-            String zoningStepId = workflow.createStepId();
-            Workflow.Method zoningMethod = zoneAddInitiatorStepMethod(
-                    vplex.getId(), exportGroup.getId(), newInitiators, varrayURI);
-            Workflow.Method zoningRollbackMethod = zoneRollbackMethod(exportGroup.getId(),
-                    zoningStepId);
-            zoningStepId = workflow.createStep(ZONING_STEP,
-                    String.format("Zone initiator %s to ExportGroup %s(%s)",
-                            null, exportGroup.getLabel(), exportGroup.getId()),
-                    null, vplex.getId(), vplex.getSystemType(),
-                    this.getClass(), zoningMethod, zoningRollbackMethod, zoningStepId);
-
             // Create a Step to add the initiator to the Storage View
             String message = String.format("adding initiators %s to StorageView %s", storageViewInitiators.toString(),
                     exportGroup.getGeneratedName());
@@ -9891,10 +9884,44 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
 
             Workflow.Method addToViewMethod = storageViewAddInitiatorsMethod(vplex.getId(), exportGroup.getId(), exportMask.getId(),
                     storageViewInitiators, newTargets, shared, completer);
-            Workflow.Method addToViewRollbackMethod = new Workflow.Method(ROLLBACK_METHOD_NULL);
+            Workflow.Method addToViewRollbackMethod = storageViewAddInitiatorsRollbackMethod(vplex.getId(),
+                    exportGroup.getId(), exportMask.getId(), storageViewInitiators, newTargets, addInitStep);
             workflow.createStep("storageView", "Add " + message,
-                    ZONING_STEP, vplex.getId(), vplex.getSystemType(), this.getClass(),
+                    null, vplex.getId(), vplex.getSystemType(), this.getClass(),
                     addToViewMethod, addToViewRollbackMethod, addInitStep);
+
+            List<ExportMask> exportMasks = ExportMaskUtils.getExportMasks(_dbClient, exportGroup, vplex.getId());
+            Map<URI, List<URI>> maskToInitiatorsMap = new HashMap<URI, List<URI>>();
+            for (ExportMask mask : exportMasks) {
+                boolean sharedMask = false;
+                if (sharedExportMask != null) {
+                    if (sharedExportMask.getId().equals(mask.getId())) {
+                        sharedMask = true;
+                    }
+                }
+                maskToInitiatorsMap.put(mask.getId(), new ArrayList<URI>());
+                Set<URI> exportMaskHosts = VPlexUtil.getExportMaskHosts(_dbClient, mask, sharedMask);
+                // Only add initiators to this ExportMask that are on the host of the Export Mask
+                for (Initiator initiator : initiators) {
+                    if (exportMaskHosts.contains(VPlexUtil.getInitiatorHost(initiator))) {
+                        maskToInitiatorsMap.get(mask.getId()).add(initiator.getId());
+                    }
+                }
+            }
+
+            // Create a Step to add the SAN Zone
+            String zoningStepId = workflow.createStepId();
+            Workflow.Method zoningMethod = _networkDeviceController
+                    .zoneExportAddInitiatorsMethod(exportGroup.getId(), maskToInitiatorsMap);
+            List<NetworkZoningParam> zoningParams = NetworkZoningParam
+                    .convertExportMaskInitiatorMapsToNetworkZoningParam(exportGroup.getId(), maskToInitiatorsMap, _dbClient);
+            Workflow.Method zoningRollbackMethod = _networkDeviceController
+                    .zoneExportRemoveInitiatorsMethod(zoningParams);
+            zoningStepId = workflow.createStep(ZONING_STEP,
+                    String.format("Zone initiator %s to ExportGroup %s(%s)",
+                            null, exportGroup.getLabel(), exportGroup.getId()),
+                    addInitStep, vplex.getId(), vplex.getSystemType(),
+                    _networkDeviceController.getClass(), zoningMethod, zoningRollbackMethod, zoningStepId);
         }
     }
 

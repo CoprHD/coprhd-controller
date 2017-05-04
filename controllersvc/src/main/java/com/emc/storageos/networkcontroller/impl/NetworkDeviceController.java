@@ -905,14 +905,22 @@ public class NetworkDeviceController implements NetworkController {
      * @param token String Workflow stepId
      * @param result BiosCommandResult
      */
-    private void completeWorkflowState(String token, String operation, BiosCommandResult result) {
+    private void completeWorkflowState(TaskCompleter completer, String token, String operation, BiosCommandResult result) {
         // Update the workflow state.
         if (Operation.Status.valueOf(result.getCommandStatus()).equals(Operation.Status.ready)) {
-            WorkflowStepCompleter.stepSucceded(token);
+            if (completer != null) {
+                completer.ready(_dbClient);
+            } else {
+                WorkflowStepCompleter.stepSucceded(token);
+            }
         } else if (Operation.Status.valueOf(result.getCommandStatus()).equals(Operation.Status.error)) {
             ServiceError svcError = NetworkDeviceControllerException.errors.zoneOperationFailed(
                     operation, result.getMessage());
-            WorkflowStepCompleter.stepFailed(token, svcError);
+            if (completer != null) {
+                completer.error(_dbClient, svcError);
+            } else {
+                WorkflowStepCompleter.stepFailed(token, svcError);
+            }
         }
     }
 
@@ -1063,7 +1071,7 @@ public class NetworkDeviceController implements NetworkController {
             WorkflowService.getInstance().storeStepData(token, context);
 
             // Update the workflow state.
-            completeWorkflowState(token, "zoneExportMaskCreate", result);
+            completeWorkflowState(null, token, "zoneExportMaskCreate", result);
 
         } catch (Exception ex) {
             _log.error("Exception zoning Export Masks", ex);
@@ -1246,7 +1254,7 @@ public class NetworkDeviceController implements NetworkController {
             WorkflowService.getInstance().storeStepData(token, context);
 
             // Update the workflow state.
-            completeWorkflowState(token, "zoneExportAddInitiators", result);
+            completeWorkflowState(null, token, "zoneExportAddInitiators", result);
 
             return status;
         } catch (Exception ex) {
@@ -1339,7 +1347,7 @@ public class NetworkDeviceController implements NetworkController {
             }
 
             // Create a local completer to handle DB cleanup in the case of failure.
-            taskCompleter = new ZoneReferencesRemoveCompleter(context.getZoneInfos(), true, stepId);
+            taskCompleter = new ZoneReferencesRemoveCompleter(NetworkUtil.getFCZoneReferences(context.getZoneInfos()), true, stepId);
 
             InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_007);
             // Now call removeZones to remove all the required zones.
@@ -1361,7 +1369,7 @@ public class NetworkDeviceController implements NetworkController {
             }
 
             // Update the workflow state.
-            completeWorkflowState(stepId, "zoneExportMasksDelete", result);
+            completeWorkflowState(taskCompleter, stepId, "zoneExportMasksDelete", result);
 
             _log.info("Successfully removed zones for ExportGroup: {}", exportGroupId.toString());
         } catch (Exception ex) {
@@ -1369,8 +1377,11 @@ public class NetworkDeviceController implements NetworkController {
             WorkflowService.getInstance().storeStepData(stepId, context);
             ServiceError svcError = NetworkDeviceControllerException.errors
                     .zoneExportGroupDeleteFailed(ex.getMessage(), ex);
-            taskCompleter.error(_dbClient, svcError);
-            WorkflowStepCompleter.stepFailed(stepId, svcError);
+            if (taskCompleter != null) {
+                taskCompleter.error(_dbClient, svcError);
+            } else {
+                WorkflowStepCompleter.stepFailed(stepId, svcError);
+            }
         }
         return status;
     }
@@ -1548,7 +1559,7 @@ public class NetworkDeviceController implements NetworkController {
             }
 
             // Create a local completer to handle DB cleanup in the case of failure.
-            taskCompleter = new ZoneReferencesRemoveCompleter(context.getZoneInfos(), true, stepId);
+            taskCompleter = new ZoneReferencesRemoveCompleter(NetworkUtil.getFCZoneReferences(context.getZoneInfos()), true, stepId);
 
             InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_024);
             // Now call removeZones to remove all the required zones.
@@ -1557,7 +1568,7 @@ public class NetworkDeviceController implements NetworkController {
             InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_025);
 
             // Update the workflow state.
-            completeWorkflowState(stepId, "zoneExportRemoveInitiators", result);
+            completeWorkflowState(taskCompleter, stepId, "zoneExportRemoveInitiators", result);
 
             if (result.isCommandSuccess()) {
                 isOperationSuccessful = true;
@@ -1634,19 +1645,19 @@ public class NetworkDeviceController implements NetworkController {
                 }
             }
             
-            taskCompleter = new ZoneReferencesRemoveCompleter(rollbackList, context.isAddingZones(), taskId);
+            taskCompleter = new ZoneReferencesRemoveCompleter(NetworkUtil.getFCZoneReferences(rollbackList), context.isAddingZones(), taskId);
 
             InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_020);
             BiosCommandResult result = addRemoveZones(exportGroupURI, rollbackList,
                     context.isAddingZones());
             InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_021);
 
-            completeWorkflowState(taskId, "ZoneRollback", result);
-
             if (result.isCommandSuccess() && !lastReferenceZoneInfo.isEmpty()) {
                 _log.info("There seems to be last reference zones that were removed, clean those zones from the zoning map.");
                 updateZoningMap(lastReferenceZoneInfo, exportGroupURI, null);
             }
+
+            completeWorkflowState(taskCompleter, taskId, "ZoneRollback", result);
 
             return result.isCommandSuccess();
         } catch (Exception ex) {

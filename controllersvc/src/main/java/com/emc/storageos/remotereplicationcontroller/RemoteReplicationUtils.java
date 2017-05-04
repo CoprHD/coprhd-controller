@@ -391,16 +391,6 @@ public class RemoteReplicationUtils {
         return result;
     }
 
-    public static List<RemoteReplicationPair> findAllSetPairsByRrSet(URI rrSetUri, DbClient dbClient) {
-        List<RemoteReplicationPair> result = new ArrayList<RemoteReplicationPair>();
-        for (RemoteReplicationPair pair : findAllRemoteRepliationPairsByRrSet(rrSetUri, dbClient)) {
-            if (!pair.isGroupPair()) {
-                result.add(pair);
-            }
-        }
-        return result;
-    }
-
     public static List<RemoteReplicationPair> findAllRemoteRepliationPairsByRrGroup(URI rrGroupUri, DbClient dbClient) {
         List<RemoteReplicationPair> result = new ArrayList<RemoteReplicationPair>();
         QueryResultList<URI> uriList = new URIQueryResultList();

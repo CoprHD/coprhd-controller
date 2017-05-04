@@ -43,7 +43,7 @@
       }
     },
 
-	mountAllDirectories: {
+    mountAllDirectories: {
       type: "boolean",
       initialValue: "false",
       required: false

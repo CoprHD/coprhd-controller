@@ -76,17 +76,16 @@
       required: "false",
       lockable: true
     },
-    
-    exportHosts:{
-      type:"text",
-      required:false
-    }
-	
-	mountAllDirectories: {
+
+    mountAllDirectories: {
       type: "boolean",
       initialValue: "false",
       required: false
     },
     
+    exportHosts:{
+      type:"text",
+      required:false
+    }
   }
 }

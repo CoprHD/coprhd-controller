@@ -177,7 +177,8 @@ public class NetworkScheduler {
         StoragePort port = NetworkUtil.getStoragePort(portNetworkAddress, _dbClient);
         String hostName = initiator.getHostName();
         if (array == null || initiator == null || hostName == null) {
-            return null;
+            throw DeviceControllerException.exceptions
+            	.unexpectedCondition("Cannot generate zone name because array, initiator, or hostName were null");
         }
         DataSource dataSource = dataSourceFactory.createZoneNameDataSource(hostName,
                 initiator, port, fabricId, array);
@@ -234,8 +235,6 @@ public class NetworkScheduler {
      * configuring the zone name for a VPLEX port.
      * 
      * @param port A reference to a VPLEX port.
-     * @param dbClient DbClient reference
-     * 
      * @return The serial number for the port's cluster.
      */
     private String getVPlexClusterSerialNumber(StoragePort port) {

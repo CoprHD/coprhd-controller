@@ -2900,7 +2900,13 @@ public class NetworkDeviceController implements NetworkController {
         }
         return completedSuccessfully;
     }
-    
+
+    /**
+     * Generating warning messages if there are any zoneInfos that won't be deleted because
+     * their existingZone value is true (and we are removing the last reference.)
+     * @param zoneInfos -- list of NetworkFCZoneInfo representingzones to be delete.
+     * @return -- Warning message text (may include information about multiple zones)
+     */
     private String generateExistingZoneWarningMessages(List<NetworkFCZoneInfo> zoneInfos) {
         StringBuilder buf = new StringBuilder();
         StringSet zoneNames = new StringSet();;

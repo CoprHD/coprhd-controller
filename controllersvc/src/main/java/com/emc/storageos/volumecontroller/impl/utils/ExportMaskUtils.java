@@ -780,12 +780,12 @@ public class ExportMaskUtils {
 
     /**
      * Creates new zone references and updates any as necessary for exported volume ingestion.
-     * @param exportGroup
-     * @param exportMask
-     * @param volume
-     * @param zoneInfoMap
-     * @param initiators
-     * @param dbClient
+     * @param exportGroup -- an ExportGroup
+     * @param exportMask -- an ExportMask
+     * @param volume -- a BlockObject (determines the return type)
+     * @param zoneInfoMap -- -- a ZoneInfoMap
+     * @param initiators -- a List of Initiators
+     * @param dbClient -- database handle
      */
     public static <T extends BlockObject> void updateFCZoneReferences(ExportGroup exportGroup, ExportMask exportMask, 
             T volume, ZoneInfoMap zoneInfoMap, List<Initiator> initiators, DbClient dbClient) {
@@ -888,10 +888,10 @@ public class ExportMaskUtils {
                         	if (!exportGroup.hasBlockObject(zoneRef.getVolumeUri())) {
                         		BlockObject blockObject = BlockObject.fetch(dbClient, zoneRef.getVolumeUri());
                         		if (blockObject == null) {
-                        		_log.info(String.format("Deleting FCZoneReference %s which has invalid volume URI %s", 
-                        				zoneRef.getZoneName(), zoneRef.getVolumeUri()));
-                        		dbClient.markForDeletion(zoneRef);
-                        		continue;
+                        			_log.info(String.format("Deleting FCZoneReference %s which has invalid volume URI %s", 
+                        					zoneRef.getZoneName(), zoneRef.getVolumeUri()));
+                        			dbClient.markForDeletion(zoneRef);
+                        			continue;
                         		}
                         	}
                         	// Update this reference to fully managed (existingZone = false)
@@ -907,9 +907,14 @@ public class ExportMaskUtils {
     }
     
     /**
-     * Check for zone in UnManagedExportMasks.
+     * Check if a particular zone (as represented by a ZoneInfo) is in use by an UnManagedExportMask
+     * (excluding the UnManagedExportMask corresponding to the named exportMask.
+     * @param exportMaskName -- ExportMask name filed
+     * @param info -- ZoneInfo representing the Zone
+     * @param dbClient == databasehandle
+     * @return -- true IFF the same zone was found in other UnManagedExportMasks
      */
-    static boolean checkZoneUseInUnManagedExportMasks(String exportMaskName, ZoneInfo info, DbClient dbClient) {
+    static private boolean checkZoneUseInUnManagedExportMasks(String exportMaskName, ZoneInfo info, DbClient dbClient) {
         String initiatorWwn = info.getInitiatorWwn();
         boolean inUse = false;
         List<UnManagedExportMask> unmanagedMasks = 
@@ -926,6 +931,7 @@ public class ExportMaskUtils {
                         _log.info(String.format("UnManagedExportMask %s zone %s is using the same initiator %s and port %s",
                                 umask.getNativeId(), umZoneInfo.getZoneName(), umZoneInfo.getInitiatorWwn(), umZoneInfo.getPortWwn()));
                         inUse = true;
+                        break;
                     }
                 }
             }

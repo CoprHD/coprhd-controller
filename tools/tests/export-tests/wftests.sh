@@ -3178,7 +3178,7 @@ test_vpool_change_add_srdf() {
         failure_015_SmisCommandHelper.invokeMethod_CreateElementReplica"
 
     # Placeholder when a specific failure case is being worked...
-    #failure_injections="failure_015_SmisCommandHelper.invokeMethod_EMCCreateMultipleTypeElementsFromStoragePool"
+    #failure_injections="failure_004_final_step_in_workflow_complete"
 
     for failure in ${failure_injections}
     do
@@ -3196,7 +3196,7 @@ test_vpool_change_add_srdf() {
 	    verify_failures ${failure}
 
         # Validate the DB is back to the original state
-        snap_db 2 "${cfs[@]}"
+        snap_db 2 "${cfs[@]}" " | grep -Ev \"^Volume:|srdfLinkStatus|personality\""
         validate_db 1 2 "${cfs[@]}"
 
         # Turn off failures

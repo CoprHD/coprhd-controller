@@ -4,7 +4,6 @@
  */
 package com.emc.sa.service.vipr.block.tasks;
 
-import java.net.URI;
 import java.util.List;
 import java.util.Set;
 
@@ -57,35 +56,33 @@ public class CreateMultipleBlockVolumes extends WaitForTasks<VolumeRestRep> {
             create.setCount(numberOfVolumes);
             create.setConsistencyGroup(param.getConsistencyGroup());
 
-            URI remoteReplicationSetId = param.getRemoteReplicationSet();
-            if (remoteReplicationSetId == null) {
-                BlockVirtualPoolRestRep vpool = getClient().blockVpools().get(param.getVirtualPool());
-                if ((vpool != null) && (vpool.getProtection().getRemoteReplicationParam() != null)) {
+            BlockVirtualPoolRestRep vpool = getClient().blockVpools().get(param.getVirtualPool());
+            if ((vpool != null) && (vpool.getProtection().getRemoteReplicationParam() != null)) {
 
-                    // get RRSet for Vpool & Varray (if not provided)
-                    List<NamedRelatedResourceRep> rrSets = getClient().remoteReplicationSets().
-                            listRemoteReplicationSets(param.getVirtualArray(),param.getVirtualPool()).getRemoteReplicationSets();
+                List<NamedRelatedResourceRep> rrSets = getClient().remoteReplicationSets().
+                        listRemoteReplicationSets(param.getVirtualArray(),param.getVirtualPool()).
+                        getRemoteReplicationSets();
 
-                    if ((rrSets != null) && !rrSets.isEmpty()) {
-                        if (rrSets.size() > 1) {
-                            throw new IllegalStateException("More than one RemoteReplicationSet found " +
-                                    "for VirtualArray (" + param.getVirtualArray() + ") and VirtualPool (" +
-                                    param.getVirtualPool() + ").  " + rrSets.size() + " RemoteReplicationSets " +
-                                    "were found: " + rrSets);
-                        }
-                        remoteReplicationSetId = rrSets.get(0).getId();
-                    }
+                if (rrSets.isEmpty()) {
+                    throw new IllegalStateException("Unable to find a RemoteReplicationSet " +
+                            "' for VirtualArray (" + param.getVirtualArray() + ") and VirtualPool (" +
+                            param.getVirtualPool() + ").");
                 }
-            }
 
-            if (remoteReplicationSetId != null) {
+                if (rrSets.size() > 1) {
+                    throw new IllegalStateException("More than one RemoteReplicationSet found " +
+                           "' for VirtualArray (" + param.getVirtualArray() + ") and VirtualPool (" +
+                            param.getVirtualPool() + ").  " + rrSets.size() +
+                            " RemoteReplicationSets were found: " + rrSets);
+                }
+
                 RemoteReplicationParameters replicationParam = new RemoteReplicationParameters();
-                replicationParam.setRemoteReplicationSet(remoteReplicationSetId);
+                replicationParam.setRemoteReplicationSet(rrSets.get(0).getId());
                 replicationParam.setRemoteReplicationMode(param.getRemoteReplicationMode());
                 replicationParam.setRemoteReplicationGroup(param.getRemoteReplicationGroup());
                 create.setRemoteReplicationParameters(replicationParam);
             }
-            
+
             try {
                 if (tasks == null) {
                     tasks = getClient().blockVolumes().create(create);

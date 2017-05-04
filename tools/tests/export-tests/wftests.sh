@@ -1977,7 +1977,7 @@ test_7() {
     failure_injections="${common_failure_injections} ${storage_failure_injections} ${network_failure_injections}"
 
     # Placeholder when a specific failure case is being worked...
-    # failure_injections="failure_058_NetworkDeviceController.zoneExportAddInitiators_before_zone"
+    # failure_injections="failure_004:failure_016_Export_doRemoveInitiator"
 
     for failure in ${failure_injections}
     do
@@ -2029,12 +2029,15 @@ test_7() {
       set_artificial_failure none
       runcmd export_group update ${PROJECT}/${expname}1 --addInits ${HOST1}/${H1PI2}
 
+      # Perform any DB validation in here
+      snap_db 4 "${cfs[@]}"
+
       # Delete the export
       runcmd export_group delete ${PROJECT}/${expname}1
 
       # Verify the DB is back to the original state
-      snap_db 4 "${cfs[@]}"
-      validate_db 1 4 "${cfs[@]}"
+      snap_db 5 "${cfs[@]}"
+      validate_db 1 5 "${cfs[@]}"
 
       # Report results
       report_results test_7 ${failure}

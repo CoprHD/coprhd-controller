@@ -144,6 +144,7 @@ public interface ServiceParams {
     public String SUBDIRECTORY = "subDirectory";
     public String ALLDDIRECTORY = "allDirectory";
     public String COMMENT = "comment";
+    public String MOUNT_ALL_DIRECTORIES = "mountAllDirectories";
     public String OPLOCK = "oplock";
     public String SECURITY_STYLE = "securityStyle";
     public String QUOTA_DIRECTORIES = "quotaDirectories";

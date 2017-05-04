@@ -7,6 +7,7 @@ package com.emc.sa.service.vipr.file;
 import static com.emc.sa.service.ServiceParams.ADVISORY_LIMIT;
 import static com.emc.sa.service.ServiceParams.COMMENT;
 import static com.emc.sa.service.ServiceParams.GRACE_PERIOD;
+import static com.emc.sa.service.ServiceParams.MOUNT_ALL_DIRECTORIES;
 import static com.emc.sa.service.ServiceParams.PROJECT;
 import static com.emc.sa.service.ServiceParams.SIZE_IN_GB;
 import static com.emc.sa.service.ServiceParams.SOFT_LIMIT;
@@ -35,6 +36,8 @@ public class CreateNfsExportService extends ViPRService {
     protected String comment;
     @Param(SIZE_IN_GB)
     protected Double sizeInGb;
+    @Param(value = MOUNT_ALL_DIRECTORIES, required = false)
+    protected Boolean mountSubDirectory;
     @Param(VOLUME_NAME)
     protected String exportName;
     @Param(value = SOFT_LIMIT, required = false)
@@ -63,7 +66,7 @@ public class CreateNfsExportService extends ViPRService {
         URI fileSystemId = FileStorageUtils.createFileSystem(project, virtualArray, virtualPool, exportName, sizeInGb, tempAdvisoryLimit,
                 tempSoftLimit, tempGracePeriod);
         if (exportRules != null) {
-            FileStorageUtils.createFileSystemExport(fileSystemId, comment, exportRules[0], null);
+            FileStorageUtils.createFileSystemExport(fileSystemId, comment, exportRules[0], null, mountSubDirectory);
             if (exportRules.length > 1) {
                 FileStorageUtils.updateFileSystemExport(fileSystemId, null, exportRules);
             }

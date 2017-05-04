@@ -9,6 +9,7 @@ import java.util.List;
 
 import org.apache.commons.lang.StringUtils;
 
+import com.emc.sa.engine.bind.Param;
 import com.emc.sa.service.vipr.tasks.WaitForTask;
 import com.emc.storageos.model.file.FileShareRestRep;
 import com.emc.storageos.model.file.FileSystemExportParam;
@@ -23,16 +24,17 @@ public class CreateFileSystemExport extends WaitForTask<FileShareRestRep> {
     private final List<String> hosts;
     private final String subDirectory;
     private final String comment;
+    private final Boolean mountSubDirectory;
 
     // Security Types: sys, krb5, krb5i, krb5p
     // Permissions: ro, rw, root
     public CreateFileSystemExport(String fileSystemId, String comment, String protocol, String security, String permissions, String user,
-            List<String> hosts, String subDirectory) {
-        this(uri(fileSystemId), comment, protocol, security, permissions, user, hosts, subDirectory);
+            List<String> hosts, String subDirectory, Boolean mountSubDirectory) {
+        this(uri(fileSystemId), comment, protocol, security, permissions, user, hosts, subDirectory, mountSubDirectory);
     }
 
     public CreateFileSystemExport(URI fileSystemId, String comment, String protocol, String security, String permissions, String user,
-            List<String> hosts, String subDirectory) {
+            List<String> hosts, String subDirectory, Boolean mountSubDirectory) {
         this.fileSystemId = fileSystemId;
         this.protocol = protocol;
         this.security = security;
@@ -41,7 +43,8 @@ public class CreateFileSystemExport extends WaitForTask<FileShareRestRep> {
         this.hosts = hosts;
         this.subDirectory = subDirectory;
         this.comment = comment;
-        provideDetailArgs(fileSystemId, comment, protocol, security, permissions, user, hosts, subDirectory);
+        this.mountSubDirectory = mountSubDirectory;
+        provideDetailArgs(fileSystemId, comment, protocol, security, permissions, user, hosts, subDirectory, mountSubDirectory);
     }
 
     @Override
@@ -52,6 +55,7 @@ public class CreateFileSystemExport extends WaitForTask<FileShareRestRep> {
         export.setPermissions(permissions);
         export.setRootUserMapping(user);
         export.getEndpoints().addAll(hosts);
+        export.setMountSubDirectory(mountSubDirectory);
         if (StringUtils.isNotBlank(comment)) {
             export.setComments(comment);
         }

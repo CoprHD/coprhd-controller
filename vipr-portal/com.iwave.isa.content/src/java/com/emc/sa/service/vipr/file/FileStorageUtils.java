@@ -279,20 +279,20 @@ public class FileStorageUtils {
         return execute(new GetCifsSharesForFileSystem(fileSystemId));
     }
 
-    public static String createFileSystemExport(URI fileSystemId, String comment, FileExportRule exportRule, String subDirectory) {
+    public static String createFileSystemExport(URI fileSystemId, String comment, FileExportRule exportRule, String subDirectory, Boolean mountSubDirectory) {
         String rootUserMapping = exportRule.rootUserMapping.trim();
         String domain = exportRule.domain;
         if (StringUtils.isNotBlank(domain)) {
             rootUserMapping = domain.trim() + "\\" + rootUserMapping.trim();
         }
         return createFileSystemExport(fileSystemId, comment, exportRule.getSecurity(), exportRule.permission, rootUserMapping,
-                exportRule.exportHosts, subDirectory);
+                exportRule.exportHosts, subDirectory, mountSubDirectory);
     }
 
     public static String createFileSystemExport(URI fileSystemId, String comment, String security, String permissions, String rootUser,
-            List<String> exportHosts, String subDirectory) {
+            List<String> exportHosts, String subDirectory, Boolean mountSubDirectory) {
         Task<FileShareRestRep> task = createFileSystemExportWithoutRollBack(fileSystemId, comment, security, permissions, rootUser,
-                exportHosts, subDirectory);
+                exportHosts, subDirectory, mountSubDirectory);
         addRollback(new DeactivateFileSystemExportRule(fileSystemId, true, null, false));
         String exportId = task.getResourceId().toString();
         logInfo("file.storage.export.task", exportId, task.getOpId());
@@ -300,9 +300,9 @@ public class FileStorageUtils {
     }
 
     public static Task<FileShareRestRep> createFileSystemExportWithoutRollBack(URI fileSystemId, String comment, String security,
-            String permissions, String rootUser, List<String> exportHosts, String subDirectory) {
+            String permissions, String rootUser, List<String> exportHosts, String subDirectory, Boolean mountSubDirectory) {
         Task<FileShareRestRep> task = execute(new CreateFileSystemExport(fileSystemId, comment, NFS_PROTOCOL, security, permissions,
-                rootUser, exportHosts, subDirectory));
+                rootUser, exportHosts, subDirectory, mountSubDirectory));
         addAffectedResource(task);
         return task;
     }

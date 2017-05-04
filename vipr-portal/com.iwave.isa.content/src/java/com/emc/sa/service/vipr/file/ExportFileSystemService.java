@@ -7,6 +7,7 @@ package com.emc.sa.service.vipr.file;
 import static com.emc.sa.service.ServiceParams.COMMENT;
 import static com.emc.sa.service.ServiceParams.FILESYSTEMS;
 import static com.emc.sa.service.ServiceParams.SUBDIRECTORY;
+import static com.emc.sa.service.ServiceParams.MOUNT_ALL_DIRECTORIES;
 import java.net.URI;
 import org.apache.commons.lang.StringUtils;
 import com.emc.sa.engine.ExecutionUtils;
@@ -24,6 +25,8 @@ public class ExportFileSystemService extends ViPRService {
     protected String comment;
     @Param(value = SUBDIRECTORY, required = false)
     protected String subDirectory;
+    @Param(value = MOUNT_ALL_DIRECTORIES, required = false)
+    protected Boolean mountSubDirectory;
 
     @Bindable(itemType = FileStorageUtils.FileExportRule.class)
     protected FileStorageUtils.FileExportRule[] exportRules;
@@ -38,7 +41,7 @@ public class ExportFileSystemService extends ViPRService {
     @Override
     public void execute() throws Exception {
         if (exportRules != null) {
-            String exportId = FileStorageUtils.createFileSystemExport(fileSystems, comment, exportRules[0], subDirectory);
+            String exportId = FileStorageUtils.createFileSystemExport(fileSystems, comment, exportRules[0], subDirectory, mountSubDirectory);
             if (exportRules.length > 1 && StringUtils.isNotBlank(exportId)) {
                 FileStorageUtils.updateFileSystemExport(fileSystems, subDirectory, exportRules);
             }

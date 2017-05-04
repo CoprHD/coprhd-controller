@@ -42,6 +42,12 @@
         min:1
       }
     },
+
+	mountAllDirectories: {
+      type: "boolean",
+      initialValue: "false",
+      required: false
+    },
     
     exportRule:{
       type:"table",

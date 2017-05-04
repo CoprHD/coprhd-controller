@@ -634,15 +634,15 @@ public class BlockStorageUtils {
         } while (retryNeeded);
     }
 
-    public static boolean isVMAXUsePortGroupEnabled(String volumeIdString, URI vpoolId) {
+    public static boolean isVMAXUsePortGroupEnabled(URI id) {
         SimpleValueRep value = execute(new GetVMAXUsePortGroupEnabledConfig());
         if (value.getValue().equalsIgnoreCase("true")) {
-            if (volumeIdString != null) {
-                URI volumeId = ResourceUtils.uri(volumeIdString);
-                BlockObjectRestRep obj = getVolume(volumeId);
+            if (ResourceType.isType(ResourceType.VOLUME, id)) {
+                BlockObjectRestRep obj = getVolume(id);
                 if (obj instanceof VolumeRestRep) {
                     VolumeRestRep volume = (VolumeRestRep) obj;
-                    if (StringUtils.equalsIgnoreCase(volume.getSystemType(), DiscoveredDataObject.Type.vmax.name())) {
+                    if (StringUtils.equalsIgnoreCase(volume.getSystemType(), DiscoveredDataObject.Type.vmax.name()) ||
+                            StringUtils.equalsIgnoreCase(volume.getSystemType(), DiscoveredDataObject.Type.vmax3.name())) {
                         return true;
                     }
                 }
@@ -651,27 +651,31 @@ public class BlockStorageUtils {
                     BlockObjectRestRep parent = getVolume(snapshot.getParent().getId());
                     if (parent instanceof VolumeRestRep) {
                         VolumeRestRep volume = (VolumeRestRep) obj;
-                        if (StringUtils.equalsIgnoreCase(volume.getSystemType(), DiscoveredDataObject.Type.vmax.name())) {
+                        if (StringUtils.equalsIgnoreCase(volume.getSystemType(), DiscoveredDataObject.Type.vmax.name()) ||
+                                StringUtils.equalsIgnoreCase(volume.getSystemType(), DiscoveredDataObject.Type.vmax3.name())) {
                             return true;
                         }
                     }
                     if (parent instanceof BlockMirrorRestRep) {
                         BlockMirrorRestRep mirror = (BlockMirrorRestRep) obj;
-                        if (StringUtils.equalsIgnoreCase(mirror.getSystemType(), DiscoveredDataObject.Type.vmax.name())) {
+                        if (StringUtils.equalsIgnoreCase(mirror.getSystemType(), DiscoveredDataObject.Type.vmax.name()) ||
+                                StringUtils.equalsIgnoreCase(mirror.getSystemType(), DiscoveredDataObject.Type.vmax3.name())) {
                             return true;
                         }
                     }
                 }
                 if (obj instanceof BlockMirrorRestRep) {
                     BlockMirrorRestRep mirror = (BlockMirrorRestRep) obj;
-                    if (StringUtils.equalsIgnoreCase(mirror.getSystemType(), DiscoveredDataObject.Type.vmax.name())) {
+                    if (StringUtils.equalsIgnoreCase(mirror.getSystemType(), DiscoveredDataObject.Type.vmax.name()) ||
+                            StringUtils.equalsIgnoreCase(mirror.getSystemType(), DiscoveredDataObject.Type.vmax3.name())) {
                         return true;
                     }
                 }
             }
-            if (vpoolId != null) {
-                BlockVirtualPoolRestRep virtualPool = execute(new GetBlockVirtualPool(vpoolId));
-                if (StringUtils.equalsIgnoreCase(virtualPool.getSystemType(), DiscoveredDataObject.Type.vmax.name())) {
+            if (ResourceType.isType(ResourceType.VIRTUAL_POOL, id)) {
+                BlockVirtualPoolRestRep virtualPool = execute(new GetBlockVirtualPool(id));
+                if (StringUtils.equalsIgnoreCase(virtualPool.getSystemType(), DiscoveredDataObject.Type.vmax.name()) ||
+                        StringUtils.equalsIgnoreCase(virtualPool.getSystemType(), DiscoveredDataObject.Type.vmax3.name())) {
                     return true;
                 }
             }

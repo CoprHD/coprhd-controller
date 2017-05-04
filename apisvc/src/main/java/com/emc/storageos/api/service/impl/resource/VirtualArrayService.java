@@ -995,8 +995,8 @@ public class VirtualArrayService extends TaggedResource {
      * varray, if a system supports raid_levels such as RAID1, RAID2 then
      * this API call provides the supported information.
      * 
-     * @brief List available attributes for all VirutalArrays
-     * @return List available attributes for all VirutalArrays
+     * @brief List available attributes for all VirtualArrays
+     * @return List available attributes for all VirtualArrays
      */
     @POST
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })

@@ -198,7 +198,7 @@ public class FilePolicyService extends TaskResourceService {
     }
 
     /**
-     * @brief Create File Snapshot, Replication Policy
+     * @brief Create file policy for file snapshot, file replication or file quota
      * 
      * @param param
      *            FilePolicyCreateParam

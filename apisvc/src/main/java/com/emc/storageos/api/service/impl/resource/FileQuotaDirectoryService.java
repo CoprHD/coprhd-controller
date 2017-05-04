@@ -224,7 +224,7 @@ public class FileQuotaDirectoryService extends TaskResourceService {
      *            the URN of a ViPR Quota directory
      * @param param
      *            File system Quota directory update parameters
-     * @brief Update file system Quota directory
+     * @brief Update file system quota directory
      * @return Task resource representation
      * @throws com.emc.storageos.svcs.errorhandling.resources.InternalException
      */
@@ -329,7 +329,7 @@ public class FileQuotaDirectoryService extends TaskResourceService {
      *            the URN of the QuotaDirectory
      * @param param
      *            QuotaDirectory delete param for optional force delete
-     * @brief Delete file system Quota directory
+     * @brief Delete file system quota directory
      * @return Task resource representation
      * @throws com.emc.storageos.svcs.errorhandling.resources.InternalException
      */

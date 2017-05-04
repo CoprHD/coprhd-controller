@@ -142,7 +142,7 @@ public class FileSnapshotService extends TaskResourceService {
      * Get all Snapshots matching the path
      * 
      * @QueryParam mountpath
-     * @brief Show Snapshots
+     * @brief Show snapshots
      * @return Snapshot details
      */
     @GET

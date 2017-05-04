@@ -960,8 +960,8 @@ public class VirtualArrayService extends TaggedResource {
      * this API call provides the supported information.
      * 
      * @param id the URN of a ViPR VirtualArray.
-     * @brief List available attributes for VirutalArray
-     * @return List available attributes for VirutalArray
+     * @brief List available attributes for VirtualArray
+     * @return List available attributes for VirtualArray
      */
     @GET
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })

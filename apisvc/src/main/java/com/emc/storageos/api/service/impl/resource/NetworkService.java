@@ -937,7 +937,7 @@ public class NetworkService extends TaggedResource {
      * with the Network end points.
      * 
      * @param id the URN of a ViPR network
-     * @brief List IP i	nterfaces
+     * @brief List IP interfaces
      * @return IpInterfaceList
      */
     @GET

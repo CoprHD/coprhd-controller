@@ -403,10 +403,10 @@ public class VirtualDataCenterService extends TaskResourceService {
     }
 
     /**
-     * Get vdc role assignments
+     * Get VDC role assignments
      * 
      * @return Role assignment details
-     * @brief List vdc role assignments
+     * @brief List VDC role assignments
      */
     @Path("/role-assignments")
     @GET
@@ -493,12 +493,12 @@ public class VirtualDataCenterService extends TaskResourceService {
     }
 
     /**
-     * prepare the vdc to fulfill the requirement of being able to add other vdc in this one.
+     * Prepare the VDC to fulfill the requirement of being able to add other VDC in this one.
      * tasks are:
      * 1. remove root's roles from all tenants
      * 2. remove root's ownership from all projects
      * 
-     * @brief Prepare vdc by removing root's tenant roles and project ownerships
+     * @brief Prepare VDC by removing root's tenant roles and project ownerships
      * @return http response
      */
     @Path("/prepare-vdc")

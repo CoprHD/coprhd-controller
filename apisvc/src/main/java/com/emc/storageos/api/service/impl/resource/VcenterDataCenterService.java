@@ -187,10 +187,10 @@ public class VcenterDataCenterService extends TaskResourceService {
     }
 
     /**
-     * Detaches storage from the datacenter.
+     * Detaches storage from the data center.
      * 
-     * @param id the URN of a ViPR datacenter
-     * @brief Detach storage from datacenter
+     * @param id the URN of a ViPR data center
+     * @brief Detach storage from data center
      * @return the task used for tracking the detach-storage
      * @throws DatabaseException when a DB error occurs
      */

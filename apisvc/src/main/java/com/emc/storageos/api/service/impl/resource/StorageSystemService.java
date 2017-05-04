@@ -2192,9 +2192,10 @@ public class StorageSystemService extends TaskResourceService {
                 portGroup.getRegistrationStatus())) {
             // Setting status to UNREGISTERED.
             portGroup.setRegistrationStatus(RegistrationStatus.REGISTERED.toString());
+            portGroup.setMutable(false);
             _dbClient.updateObject(portGroup);
 
-            // Record the storage port deregister event.
+            // Record the storage port register event.
             recordStoragePoolPortEvent(OperationTypeEnum.REGISTER_STORAGE_PORT_GROUP,
                     OperationTypeEnum.REGISTER_STORAGE_PORT_GROUP.getDescription(), portGroup.getId(), "StoragePortGroup");
 

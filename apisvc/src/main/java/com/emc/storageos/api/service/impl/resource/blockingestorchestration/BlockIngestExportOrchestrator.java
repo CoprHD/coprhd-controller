@@ -20,6 +20,8 @@ import com.emc.storageos.api.service.impl.resource.ResourceService;
 import com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext;
 import com.emc.storageos.api.service.impl.resource.utils.VolumeIngestionUtil;
 import com.emc.storageos.computesystemcontroller.impl.ComputeSystemHelper;
+import com.emc.storageos.customconfigcontroller.CustomConfigConstants;
+import com.emc.storageos.customconfigcontroller.impl.CustomConfigHandler;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.NamedElementQueryResultList;
@@ -27,6 +29,7 @@ import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.Cluster;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DataObject.Flag;
+import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportGroup.ExportGroupType;
 import com.emc.storageos.db.client.model.ExportMask;
@@ -53,6 +56,12 @@ public abstract class BlockIngestExportOrchestrator extends ResourceService {
 
     private static final Logger _logger = LoggerFactory.getLogger(BlockIngestExportOrchestrator.class);
 
+    protected CustomConfigHandler _customConfigHandler;
+    
+    public void setCustomConfigHandler(CustomConfigHandler customConfigHandler) {
+        _customConfigHandler = customConfigHandler;
+    }
+    
     /**
      * Ingests UnManagedExportMasks associated with the current UnManagedVolume being processed.
      *
@@ -77,6 +86,13 @@ public abstract class BlockIngestExportOrchestrator extends ResourceService {
 
             ExportGroup exportGroup = requestContext.getExportGroup();
             StorageSystem system = requestContext.getStorageSystem();
+            boolean portGroupEnabled = false;
+            if (Type.vmax.name().equals(system.getSystemType())) {
+                portGroupEnabled = Boolean.valueOf(
+                        _customConfigHandler.getComputedCustomConfigValue(
+                                CustomConfigConstants.VMAX_USE_PORT_GROUP_ENABLED,
+                                system.getSystemType(), null));
+            }
             Host host = null;
             Cluster cluster = null;
             List<Host> hosts = new ArrayList<Host>();
@@ -323,7 +339,7 @@ public abstract class BlockIngestExportOrchestrator extends ResourceService {
                         _logger.info("Only 1 eligible mask found for cluster {}: ", cluster.forDisplay(), eligibleMasks.get(0).toString());
 
                         ExportMask exportMaskToCreate = VolumeIngestionUtil.createExportMask(eligibleMasks.get(0), unManagedVolume,
-                                exportGroup, blockObject, _dbClient, hosts, cluster, cluster.getLabel());
+                                exportGroup, blockObject, _dbClient, hosts, cluster, cluster.getLabel(), portGroupEnabled);
                         exportMasksToCreate.add(exportMaskToCreate);
                         uemsToPersist.add(eligibleMasks.get(0));
                         masksIngestedCount.increment();
@@ -334,7 +350,7 @@ public abstract class BlockIngestExportOrchestrator extends ResourceService {
                         for (UnManagedExportMask eligibleMask : eligibleMasks) {
                             _logger.info("Setting up eligible mask " + eligibleMask.forDisplay());
                             ExportMask exportMaskToCreate = VolumeIngestionUtil.createExportMask(eligibleMask, unManagedVolume, exportGroup,
-                                    blockObject, _dbClient, hosts, cluster, cluster.getLabel());
+                                    blockObject, _dbClient, hosts, cluster, cluster.getLabel(), portGroupEnabled);
                             exportMasksToCreate.add(exportMaskToCreate);
                             uemsToPersist.add(eligibleMask);
                             masksIngestedCount.increment();
@@ -360,7 +376,7 @@ public abstract class BlockIngestExportOrchestrator extends ResourceService {
                     for (UnManagedExportMask eligibleMask : eligibleMasks) {
                         _logger.info("Setting up eligible mask " + eligibleMask.forDisplay());
                         ExportMask exportMaskToCreate = VolumeIngestionUtil.createExportMask(eligibleMask, unManagedVolume, exportGroup,
-                                blockObject, _dbClient, hosts, cluster, host.getHostName());
+                                blockObject, _dbClient, hosts, cluster, host.getHostName(), portGroupEnabled);
                         exportMasksToCreate.add(exportMaskToCreate);
                         uemsToPersist.add(eligibleMask);
                         masksIngestedCount.increment();
@@ -393,7 +409,7 @@ public abstract class BlockIngestExportOrchestrator extends ResourceService {
                         _logger.info("Setting up eligible mask " + eligibleMask.forDisplay());
                         // this getHostName will be the name of the VPLEX device
                         ExportMask exportMaskToCreate = VolumeIngestionUtil.createExportMask(eligibleMask, unManagedVolume, exportGroup,
-                                blockObject, _dbClient, hosts, cluster, deviceInitiators.get(0).getHostName());
+                                blockObject, _dbClient, hosts, cluster, deviceInitiators.get(0).getHostName(), portGroupEnabled);
                         exportMasksToCreate.add(exportMaskToCreate);
                         uemsToPersist.add(eligibleMask);
                         masksIngestedCount.increment();

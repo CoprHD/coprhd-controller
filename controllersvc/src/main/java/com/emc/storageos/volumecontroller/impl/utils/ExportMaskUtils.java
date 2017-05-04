@@ -711,8 +711,8 @@ public class ExportMaskUtils {
             T volume, Set<String> unManagedInitiators, String nativeId,
             List<Initiator> userAddedInis, DbClient dbClient,
             Map<String, Integer> wwnToHluMap,
-            String portGroupName)
-                    throws Exception {
+            String portGroupName,
+            Boolean portGroupImmutable) throws Exception {
 
         ExportMask exportMask = new ExportMask();
         exportMask.setId(URIUtil.createId(ExportMask.class));
@@ -753,20 +753,31 @@ public class ExportMaskUtils {
             dbClient.queryByConstraint(AlternateIdConstraint.Factory
                     .getPortGroupNativeGUIdConstraint(guid), result);
             Iterator<URI> it = result.iterator();
-            if (it.hasNext()) {
-                exportMask.setPortGroup(it.next());
-            } else {
-                StoragePortGroup portGroup = new StoragePortGroup();
+            boolean foundPG = it.hasNext();
+            StoragePortGroup portGroup = null;
+            if (!foundPG) {
+                portGroup = new StoragePortGroup();
                 portGroup.setId(URIUtil.createId(StoragePortGroup.class));
                 portGroup.setLabel(portGroupName);
                 portGroup.setNativeGuid(guid);
                 portGroup.setStorageDevice(storage);
                 portGroup.setInactive(false);
-                portGroup.setRegistrationStatus(RegistrationStatus.REGISTERED.name());
+                
                 portGroup.setStoragePorts(StringSetUtil.uriListToStringSet(targets));
                 dbClient.createObject(portGroup);
-                exportMask.setPortGroup(portGroup.getId());
+            } else {
+                URI pgURI = it.next();
+                portGroup = dbClient.queryObject(StoragePortGroup.class, pgURI);
             }
+            if (portGroupImmutable) {
+                portGroup.setRegistrationStatus(RegistrationStatus.REGISTERED.name());
+                portGroup.setMutable(false);
+            } else {
+                portGroup.setRegistrationStatus(RegistrationStatus.UNREGISTERED.name());
+                portGroup.setMutable(true);
+            }
+            dbClient.updateObject(portGroup);
+            exportMask.setPortGroup(portGroup.getId());
             
         }
         // if the block object is marked as internal, then add to existing volumes of the mask

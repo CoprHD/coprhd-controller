@@ -521,7 +521,6 @@
     <bean id="exportProcessor"
         class="com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.processor.export.ExportProcessor">
         <property name="partitionManager" ref="partitionManager"/>
-        <property name="customConfigHandler" ref="customConfigHandler" />
     </bean>
     
     <bean id="getDeviceMaskingGroups" class="com.emc.storageos.plugins.common.domainmodel.Operation">

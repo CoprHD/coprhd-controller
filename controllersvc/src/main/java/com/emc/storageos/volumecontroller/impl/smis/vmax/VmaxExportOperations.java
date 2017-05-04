@@ -322,11 +322,17 @@ public class VmaxExportOperations implements ExportMaskOperations {
             // check if port group name is specified
             URI portGroupURI = mask.getPortGroup();
             String portGroupName = null;
+            CIMObjectPath targetPortGroupPath = null;
             if (!NullColumnValueGetter.isNullURI(portGroupURI) &&
                     isUsePortGroupEnabled()) {
                 StoragePortGroup pg = _dbClient.queryObject(StoragePortGroup.class, portGroupURI);
                 portGroupName = pg.getLabel();
                 _log.info("port group name: " + portGroupName);
+                //Check if the port group existing in the array
+                targetPortGroupPath = _cimPath.getMaskingGroupPath(storage, portGroupName,
+                        SmisConstants.MASKING_GROUP_TYPE.SE_TargetMaskingGroup);
+
+                _helper.getInstance(storage, targetPortGroupPath, false, false, null);
                 
             } else {
                 DataSource portGroupDataSource = ExportMaskUtils.getExportDatasource(storage, initiatorList, dataSourceFactory,
@@ -335,10 +341,9 @@ public class VmaxExportOperations implements ExportMaskOperations {
                         portGroupDataSource);
                 // CTRL-9054 Always create unique port Groups.
                 portGroupName = _helper.generateGroupName(_helper.getExistingPortGroupsFromArray(storage), portGroupName);
-            }
+                targetPortGroupPath = createTargetPortGroup(storage, portGroupName, mask, targetURIList, taskCompleter);
+            }   
             
-            CIMObjectPath targetPortGroupPath = createTargetPortGroup(storage, portGroupName, targetURIList, taskCompleter);
-
             // 4. ExportMask = MaskingView (MV) = IG + SG + PG
             CIMObjectPath volumeParentGroupPath = storage.checkIfVmax3() ?
                     // TODO: Customized name for SLO based group
@@ -1763,6 +1768,17 @@ public class VmaxExportOperations implements ExportMaskOperations {
 
                         ExportMask mask = _dbClient.queryObject(ExportMask.class, exportMaskURI);
 
+                        URI pgURI = exportMask.getPortGroup();
+                        if (!NullColumnValueGetter.isNullURI(pgURI)) {
+                            StoragePortGroup portGroup = _dbClient.queryObject(StoragePortGroup.class, pgURI);
+                            if (!portGroup.getInactive() && !portGroup.getMutable()) {
+                                _log.info(String.format("The port group %s is immutable, done", 
+                                        portGroup.getNativeGuid()));
+                            
+                                taskCompleter.ready(_dbClient);
+                                return;
+                            }
+                        }
                         CIMInstance portGroupInstance = _helper.getPortGroupInstance(storage, mask.getMaskName());
                         if (null == portGroupInstance) {
                             String errMsg = String.format("removeInitiators failed - maskName %s : Port group not found ",
@@ -1958,47 +1974,40 @@ public class VmaxExportOperations implements ExportMaskOperations {
                         exportMask.setStoragePorts(storagePortURIs);
                         
                         // Get port group for the new exportMask
-                        if (!foundMaskInDb && isUsePortGroupEnabled()) {
-                            boolean isVplex = false;
-                            boolean isRP = false;
-                            // check if the exportMask is for VPLEX or RP. port group is only be set for non-VPLEX and non-RP
-                            StringSet initiators = exportMask.getInitiators();
-                            if (initiators != null && !initiators.isEmpty()) {
-                                Iterator<String> it = initiators.iterator();
-                                Initiator init = _dbClient.queryObject(Initiator.class, URI.create(it.next()));
-                                isVplex = VPlexControllerUtils.isVplexInitiator(init, _dbClient);
-                                if (!isVplex) {
-                                    isRP = init.checkInternalFlags(Flag.RECOVERPOINT);
-                                }
+                        if (!foundMaskInDb) {
+                            StoragePortGroup portGroup = null;
+                            _log.info("Setting port group for the export mask");
+                            String portGroupName = _helper.getPortGroupForGivenMaskingView(name, storage);
+                            String guid = String.format("%s+%s" , storage.getNativeGuid(), portGroupName);
+                            URIQueryResultList result = new URIQueryResultList();
+                            _dbClient.queryByConstraint(AlternateIdConstraint.Factory
+                                    .getPortGroupNativeGUIdConstraint(guid), result);
+                            Iterator<URI> it = result.iterator();
+                            if (it.hasNext()) {
+                                URI pgURI = it.next();
+                                portGroup = _dbClient.queryObject(StoragePortGroup.class, pgURI);
+                                
+                            } else {
+                                portGroup = new StoragePortGroup();
+                                portGroup.setId(URIUtil.createId(StoragePortGroup.class));
+                                portGroup.setLabel(portGroupName);
+                                portGroup.setNativeGuid(guid);
+                                portGroup.setStorageDevice(storage.getId());
+                                portGroup.setInactive(false);
+                                portGroup.setStoragePorts(new StringSet(storagePortURIs));
+                                _dbClient.createObject(portGroup);
                             }
-                            if (!isVplex && !isRP) {
-                                _log.info("Setting port group for the export mask");
-                                String portGroupName = _helper.getPortGroupForGivenMaskingView(name, storage);
-                                String guid = String.format("%s+%s" , storage.getNativeGuid(), portGroupName);
-                                URIQueryResultList result = new URIQueryResultList();
-                                _dbClient.queryByConstraint(AlternateIdConstraint.Factory
-                                        .getPortGroupNativeGUIdConstraint(guid), result);
-                                Iterator<URI> it = result.iterator();
-                                if (it.hasNext()) {
-                                    URI pgURI = it.next();
-                                    StoragePortGroup pg = _dbClient.queryObject(StoragePortGroup.class, pgURI);
-                                    if (!pg.checkInternalFlags(Flag.INTERNAL_OBJECT)) {
-                                        exportMask.setPortGroup(pgURI);
-                                    }
-                                } else {
-                                    StoragePortGroup portGroup = new StoragePortGroup();
-                                    portGroup.setId(URIUtil.createId(StoragePortGroup.class));
-                                    portGroup.setLabel(portGroupName);
-                                    portGroup.setNativeGuid(guid);
-                                    portGroup.setStorageDevice(storage.getId());
-                                    portGroup.setInactive(false);
-                                    portGroup.setRegistrationStatus(RegistrationStatus.REGISTERED.name());
-                                    portGroup.setStoragePorts(new StringSet(storagePortURIs));
-                                    _dbClient.createObject(portGroup);
-                                    exportMask.setPortGroup(portGroup.getId());
-                                }
+                            exportMask.setPortGroup(portGroup.getId());
+                            if (isUsePortGroupEnabled()) {
+                                portGroup.setRegistrationStatus(RegistrationStatus.REGISTERED.name());
+                                portGroup.setMutable(false);
+                            } else {
+                                portGroup.setRegistrationStatus(RegistrationStatus.UNREGISTERED.name());
+                                portGroup.setMutable(true);
                             }
+                            _dbClient.updateObject(portGroup);
                         }
+                        
                         // Add the mask name to the list for which volumes are already updated
                         maskNames.add(name);
                     }
@@ -2655,7 +2664,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
     }
 
     private CIMObjectPath createTargetPortGroup(StorageSystem storage,
-            String portGroupName,
+            String portGroupName, ExportMask mask,
             List<URI> targetURIList, TaskCompleter taskCompleter) throws Exception {
         _log.debug("{} createTargetPortGroup START...", storage.getSerialNumber());
         CIMObjectPath targetPortGroupPath = null;
@@ -2682,9 +2691,12 @@ public class VmaxExportOperations implements ExportMaskOperations {
                 portGroup.setNativeGuid(guid);
                 portGroup.setStorageDevice(storage.getId());
                 portGroup.setInactive(false);
-                portGroup.addInternalFlags(Flag.INTERNAL_OBJECT);
                 portGroup.setRegistrationStatus(RegistrationStatus.UNREGISTERED.name());
+                portGroup.setMutable(true);
+                portGroup.setStoragePorts(StringSetUtil.uriListToStringSet(targetURIList));
                 _dbClient.createObject(portGroup);
+                mask.setPortGroup(portGroup.getId());
+                _dbClient.updateObject(mask);
             }
         } catch (WBEMException we) {
             _log.info("{} Problem when trying to create target port group ... going to look up target port group.",

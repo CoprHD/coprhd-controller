@@ -20,7 +20,9 @@ public class StoragePortGroup extends DiscoveredDataObject {
     private String registrationStatus = RegistrationStatus.REGISTERED.toString();
     // performance data
     private StringMap metrics;
-    
+    // If the port group membership could be changed
+    private Boolean mutable;
+
     @RelationIndex(cf = "RelationIndex", type = StorageSystem.class)
     @Name("storageDevice")
     public URI getStorageDevice() {
@@ -54,7 +56,7 @@ public class StoragePortGroup extends DiscoveredDataObject {
         this.registrationStatus = registrationStatus;
         setChanged("registrationStatus");
     }
-    
+
     @Name("metrics")
     public StringMap getMetrics() {
         if (this.metrics == null) {
@@ -67,7 +69,7 @@ public class StoragePortGroup extends DiscoveredDataObject {
         this.metrics = metrics;
         setChanged("metrics");
     }
-    
+
     /**
      * Check if the port group could be used for volume export
      * 
@@ -81,6 +83,16 @@ public class StoragePortGroup extends DiscoveredDataObject {
             result = false;
         }
         return result;
+    }
+
+    @Name("mutable")
+    public Boolean getMutable() {
+        return mutable;
+    }
+
+    public void setMutable(Boolean mutable) {
+        this.mutable = mutable;
+        setChanged("mutable");
     }
 
 }

@@ -1703,6 +1703,10 @@ public class VirtualArrayService extends TaggedResource {
         if (vpoolURI != null) {
             ArgValidator.checkFieldUriType(vpoolURI, VirtualPool.class, "vpool");
             VirtualPool vpool = _dbClient.queryObject(VirtualPool.class, vpoolURI);
+            if (VirtualPool.vPoolSpecifiesHighAvailability(vpool)) {
+                // This is vplex, return empty
+                return portGroups;
+            }
             StringSet pools= vpool.getMatchedStoragePools();
             if (null != pools && !pools.isEmpty()) {
                 Iterator<String> poolItr = pools.iterator();

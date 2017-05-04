@@ -1503,10 +1503,12 @@ public class VolumeIngestionUtil {
      * @param hosts a List of Hosts for the ExportMask
      * @param cluster a Cluster for the ExportMask
      * @param exportMaskLabel the name of the ExportMask
+     * @param portGroupEnabled if port group is immutable
      * @throws Exception
      */
     public static <T extends BlockObject> ExportMask createExportMask(UnManagedExportMask eligibleMask, UnManagedVolume unManagedVolume,
-            ExportGroup exportGroup, T volume, DbClient dbClient, List<Host> hosts, Cluster cluster, String exportMaskLabel)
+            ExportGroup exportGroup, T volume, DbClient dbClient, List<Host> hosts, Cluster cluster, String exportMaskLabel,
+            Boolean portGroupEnabled)
             throws Exception {
         _logger.info("Creating ExportMask for unManaged Mask {}", eligibleMask.getMaskName());
         List<URI> initiatorUris = new ArrayList<URI>(Collections2.transform(
@@ -1524,7 +1526,7 @@ public class VolumeIngestionUtil {
         ExportMask exportMask = ExportMaskUtils.initializeExportMaskWithVolumes(eligibleMask.getStorageSystemUri(), exportGroup,
                 eligibleMask.getMaskName(), exportMaskLabel, allInitiators, null, storagePortUris, eligibleMask.getZoningMap(), volume,
                 eligibleMask.getUnmanagedInitiatorNetworkIds(), eligibleMask.getNativeId(), userAddedInis, dbClient, wwnToHluMap,
-                eligibleMask.getPortGroup());
+                eligibleMask.getPortGroup(), portGroupEnabled);
 
         // remove unmanaged mask if created if the block object is not marked as internal
         if (!volume.checkInternalFlags(Flag.PARTIALLY_INGESTED)) {

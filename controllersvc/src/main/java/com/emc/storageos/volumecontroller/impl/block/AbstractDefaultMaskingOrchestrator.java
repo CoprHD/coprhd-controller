@@ -661,6 +661,18 @@ abstract public class AbstractDefaultMaskingOrchestrator {
         if (exportGroup.getType() != null) {
             pathParams.setExportGroupType(exportGroup.getType());
         }
+        
+        URI pgURI = exportMask.getPortGroup();
+        if (!NullColumnValueGetter.isNullURI(pgURI)) {
+            // It has port group
+            
+            StoragePortGroup portGroup = _dbClient.queryObject(StoragePortGroup.class, pgURI);
+            if (!portGroup.getInactive() && !portGroup.getMutable()) {
+                _log.info(String.format("Using the port group %s for allocate ports for adding initiators", 
+                        portGroup.getNativeGuid()));
+                pathParams.setStoragePorts(portGroup.getStoragePorts());
+            }
+        }
         Map<URI, List<URI>> assignments = _blockScheduler.assignStoragePorts(storage, exportGroup, initiators,
                 exportMask.getZoningMap(), pathParams, volumeURIs, _networkDeviceController, exportGroup.getVirtualArray(), token);
         newTargetURIs = BlockStorageScheduler.getTargetURIsFromAssignments(assignments);

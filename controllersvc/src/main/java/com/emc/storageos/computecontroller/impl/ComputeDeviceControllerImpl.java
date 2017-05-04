@@ -808,7 +808,7 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
 
             waitFor = workflow.createStep(CHECK_HOST_INITIATORS,
                     "Check for host initiators", waitFor, cs.getId(),
-                    cs.getSystemType(), this.getClass(), new Workflow.Method("checkHostInitiators", hostId),
+                    cs.getSystemType(), this.getClass(), new Workflow.Method("checkHostInitiatorsStep", hostId),
                     null, null);
 
             // If host has a vcenter associated and OS type is NO_OS then skip vcenter operations, because
@@ -903,7 +903,7 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
             if (deactivateBootVolume && !NullColumnValueGetter.isNullURI(host.getBootVolumeId())) {
                 waitFor = workflow.createStep(DEACTIVATION_COMPUTE_SYSTEM_BOOT_VOLUME_UNTAG,
                         "Untag the boot volume for the host", waitFor, cs.getId(), cs.getSystemType(),
-                        this.getClass(), new Workflow.Method("untagBlockBootVolume", hostId, volumeDescriptors),
+                        this.getClass(), new Workflow.Method("untagBlockBootVolumeStep", hostId, volumeDescriptors),
                     null, null);
 
                 waitFor = workflow.createStep(DEACTIVATION_COMPUTE_SYSTEM_BOOT_VOLUME,
@@ -1125,7 +1125,8 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
 
     }
 
-                /**
+    /**
+     * Official Workflow Step
      * Untags the boot volume before it is deleted.
      *
      * @param hostId
@@ -1134,9 +1135,9 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
      *            {@link List<VolumeDescriptor>} list of boot volumes to untag
      * @param stepId
      *            {@link String} step id
-                 */
-    public void untagBlockBootVolume(URI hostId, List<VolumeDescriptor> volumeDescriptors, String stepId) {
-        log.info("untagBlockBootVolume START");
+     */
+    public void untagBlockBootVolumeStep(URI hostId, List<VolumeDescriptor> volumeDescriptors, String stepId) {
+        log.info("untagBlockBootVolumeStep START");
 
         Host host = null;
         Volume bootVolume = null;
@@ -1148,7 +1149,7 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
 
             if (host == null || NullColumnValueGetter.isNullURI(host.getBootVolumeId())) {
                 WorkflowStepCompleter.stepSucceded(stepId);
-                log.info("untagBlockBootVolume END");
+                log.info("untagBlockBootVolumeStep END");
                 return;
             }
 
@@ -1156,7 +1157,7 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
             bootVolume = _dbClient.queryObject(Volume.class, bootVolumeId);
             if (bootVolume == null || (bootVolume.getTag() == null)) {
                 WorkflowStepCompleter.stepSucceded(stepId);
-                log.info("untagBlockBootVolume END");
+                log.info("untagBlockBootVolumeStep END");
                 return;
             }
 
@@ -1189,7 +1190,7 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
                     host != null ? host.getHostName() : hostId.toString(), exception);
             WorkflowStepCompleter.stepFailed(stepId, serviceCoded);
         }
-        log.info("untagBlockBootVolume END");
+        log.info("untagBlockBootVolumeStep END");
     }
 
     /**
@@ -1235,13 +1236,14 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
     }
 
     /**
+     * Official Workflow Step
      * Validates that the host has initiators and fails the workflow if no initiators are found.
      *
      * @param hostId the host to check
      * @param stepId the workflow step id
      */
-    public void checkHostInitiators(URI hostId, String stepId) {
-        log.info("checkHostInitiators {}", hostId);
+    public void checkHostInitiatorsStep(URI hostId, String stepId) {
+        log.info("checkHostInitiatorsStep {}", hostId);
         try {
             WorkflowStepCompleter.stepExecuting(stepId);
 
@@ -1253,7 +1255,7 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
                 WorkflowStepCompleter.stepSucceded(stepId);
             }
         } catch (InternalException e) {
-            log.error("InternalException when trying to checkHostInitiators: " + e.getMessage(), e);
+            log.error("InternalException when trying to checkHostInitiatorsStep: " + e.getMessage(), e);
             WorkflowStepCompleter.stepFailed(stepId, e);
         }
     }
@@ -1491,6 +1493,7 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
     }
 
     /**
+     * Official Workflow Step
      * Deactivate compute system host
      *
      * @param csId

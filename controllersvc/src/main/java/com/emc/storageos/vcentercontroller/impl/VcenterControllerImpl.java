@@ -267,7 +267,7 @@ public class VcenterControllerImpl implements VcenterController {
                     String.format("vCenter cluster operation in vCenter datacenter %s", vcenterDataCenterId), null,
                     vcenterDataCenterId, vcenterDataCenterId.toString(),
                     this.getClass(),
-                    new Workflow.Method("createUpdateVcenterClusterOperation", createCluster, vcenter.getId(), vcenterDataCenter.getId(),
+                    new Workflow.Method("createUpdateVcenterClusterOperationStep", createCluster, vcenter.getId(), vcenterDataCenter.getId(),
                             cluster.getId()),
                     null,
                     null);
@@ -282,7 +282,7 @@ public class VcenterControllerImpl implements VcenterController {
                             vcenterDataCenterId,
                             vcenterDataCenterId.toString(),
                             this.getClass(),
-                            new Workflow.Method("vcenterClusterRemoveHostOperation", vcenter.getId(), vcenterDataCenter.getId(), cluster
+                            new Workflow.Method("vcenterClusterRemoveHostOperationStep", vcenter.getId(), vcenterDataCenter.getId(), cluster
                                     .getId(), host.getId()),
                             null,
                             null);
@@ -299,7 +299,7 @@ public class VcenterControllerImpl implements VcenterController {
                             vcenterDataCenterId,
                             vcenterDataCenterId.toString(),
                             this.getClass(),
-                            new Workflow.Method("vcenterClusterAddHostOperation", vcenter.getId(), vcenterDataCenter.getId(), cluster
+                            new Workflow.Method("vcenterClusterAddHostOperationStep", vcenter.getId(), vcenterDataCenter.getId(), cluster
                                     .getId(), host.getId()),
                             null,
                             null);
@@ -315,7 +315,15 @@ public class VcenterControllerImpl implements VcenterController {
 
     }
 
-    public void createUpdateVcenterClusterOperation(boolean createCluster, URI vcenterId, URI vcenterDataCenterId, URI clusterId,
+    /**
+     * Official Workflow Step
+     * @param createCluster
+     * @param vcenterId
+     * @param vcenterDataCenterId
+     * @param clusterId
+     * @param stepId
+     */
+    public void createUpdateVcenterClusterOperationStep(boolean createCluster, URI vcenterId, URI vcenterDataCenterId, URI clusterId,
             String stepId) {
         VcenterApiClient vcenterApiClient = null;
         try {
@@ -356,7 +364,7 @@ public class VcenterControllerImpl implements VcenterController {
 
             WorkflowStepCompleter.stepSucceded(stepId);
         } catch (Exception e) {
-            _log.error("createUpdateVcenterClusterOperation exception " + e);
+            _log.error("createUpdateVcenterClusterOperationStep exception " + e);
             WorkflowStepCompleter.stepFailed(stepId, VcenterControllerException.exceptions.clusterException(e.getLocalizedMessage(), e));
         } finally {
             if (vcenterApiClient != null) {
@@ -365,7 +373,15 @@ public class VcenterControllerImpl implements VcenterController {
         }
     }
 
-    public void vcenterClusterRemoveHostOperation(URI vcenterId, URI vcenterDataCenterId, URI clusterId, URI hostId, String stepId) {
+    /**
+     * Official Workflow Step
+     * @param vcenterId
+     * @param vcenterDataCenterId
+     * @param clusterId
+     * @param hostId
+     * @param stepId
+     */
+    public void vcenterClusterRemoveHostOperationStep(URI vcenterId, URI vcenterDataCenterId, URI clusterId, URI hostId, String stepId) {
         VcenterApiClient vcenterApiClient = null;
         try {
             WorkflowStepCompleter.stepExecuting(stepId);
@@ -385,7 +401,7 @@ public class VcenterControllerImpl implements VcenterController {
 
             WorkflowStepCompleter.stepSucceded(stepId);
         } catch (Exception e) {
-            _log.error("vcenterClusterRemoveHostOperation exception ", e);
+            _log.error("vcenterClusterRemoveHostOperationStep exception ", e);
             WorkflowStepCompleter.stepFailed(stepId, VcenterControllerException.exceptions.hostException(e.getLocalizedMessage(), e));
         } finally {
             if (vcenterApiClient != null) {
@@ -394,7 +410,15 @@ public class VcenterControllerImpl implements VcenterController {
         }
     }
 
-    public void vcenterClusterAddHostOperation(URI vcenterId, URI vcenterDataCenterId, URI clusterId, URI hostId, String stepId) {
+    /**
+     * Official Workflow Step
+     * @param vcenterId
+     * @param vcenterDataCenterId
+     * @param clusterId
+     * @param hostId
+     * @param stepId
+     */
+    public void vcenterClusterAddHostOperationStep(URI vcenterId, URI vcenterDataCenterId, URI clusterId, URI hostId, String stepId) {
         VcenterApiClient vcenterApiClient = null;
         try {
             WorkflowStepCompleter.stepExecuting(stepId);
@@ -415,7 +439,7 @@ public class VcenterControllerImpl implements VcenterController {
 
             WorkflowStepCompleter.stepSucceded(stepId);
         } catch (Exception e) {
-            _log.error("vcenterClusterAddHostOperation exception " + e);
+            _log.error("vcenterClusterAddHostOperationStep exception " + e);
             WorkflowStepCompleter.stepFailed(stepId, VcenterControllerException.exceptions.hostException(e.getLocalizedMessage(), e));
         } finally {
             if (vcenterApiClient != null) {
@@ -424,8 +448,16 @@ public class VcenterControllerImpl implements VcenterController {
         }
     }
 
-    // Find a host connected and powered on then refresh it
-    public void vcenterClusterSelectHostOperation(URI vcenterId, URI vcenterDataCenterId, URI clusterId, URI[] hostUris, String stepId) {
+    /**
+     * Official Workflow Step
+     * Find a host connected and powered on then refresh it
+     * @param vcenterId
+     * @param vcenterDataCenterId
+     * @param clusterId
+     * @param hostUris
+     * @param stepId
+     */
+    public void vcenterClusterSelectHostOperationStep(URI vcenterId, URI vcenterDataCenterId, URI clusterId, URI[] hostUris, String stepId) {
         VcenterApiClient vcenterApiClient = null;
         try {
             WorkflowStepCompleter.stepExecuting(stepId);
@@ -462,7 +494,7 @@ public class VcenterControllerImpl implements VcenterController {
 
             WorkflowStepCompleter.stepSucceded(stepId);
         } catch (Exception e) {
-            _log.error("vcenterClusterSelectHostOperation exception " + e);
+            _log.error("vcenterClusterSelectHostOperationStep exception " + e);
             WorkflowStepCompleter.stepFailed(stepId, VcenterControllerException.exceptions.hostException(e.getLocalizedMessage(), e));
         } finally {
             if (vcenterApiClient != null) {
@@ -471,7 +503,16 @@ public class VcenterControllerImpl implements VcenterController {
         }
     }
 
-    public void vcenterClusterCreateDatastoreOperation(URI vcenterId, URI vcenterDataCenterId, URI clusterId, URI volumeId,
+    /**
+     * Official Workflow Step
+     * @param vcenterId
+     * @param vcenterDataCenterId
+     * @param clusterId
+     * @param volumeId
+     * @param selectHostStepId
+     * @param stepId
+     */
+    public void vcenterClusterCreateDatastoreOperationStep(URI vcenterId, URI vcenterDataCenterId, URI clusterId, URI volumeId,
             String selectHostStepId, String stepId) {
         VcenterApiClient vcenterApiClient = null;
         try {
@@ -500,7 +541,7 @@ public class VcenterControllerImpl implements VcenterController {
 
             WorkflowStepCompleter.stepSucceded(stepId);
         } catch (Exception e) {
-            _log.error("vcenterClusterCreateDatastoreOperation exception " + e);
+            _log.error("vcenterClusterCreateDatastoreOperationStep exception " + e);
             WorkflowStepCompleter.stepFailed(stepId, VcenterControllerException.exceptions.hostException(e.getLocalizedMessage(), e));
         } finally {
             if (vcenterApiClient != null) {

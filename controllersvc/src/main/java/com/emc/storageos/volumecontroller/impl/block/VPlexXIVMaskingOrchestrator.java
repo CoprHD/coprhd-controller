@@ -218,6 +218,7 @@ public class VPlexXIVMaskingOrchestrator extends XIVMaskingOrchestrator
     /*
      * (non-Javadoc)
      * 
+     * Official Workflow Step
      * @see com.emc.storageos.volumecontroller.impl.block.
      * VplexBackEndMaskingOrchestrator#createOrAddVolumesToExportMask(java.net.URI, java.net.URI,
      * java.net.URI, java.util.Map, com.emc.storageos.volumecontroller.TaskCompleter, java.lang.String)
@@ -315,6 +316,7 @@ public class VPlexXIVMaskingOrchestrator extends XIVMaskingOrchestrator
     }
 
     /*
+     * Official Workflow Step
      * (non-Javadoc)
      * 
      * @see com.emc.storageos.volumecontroller.impl.block.

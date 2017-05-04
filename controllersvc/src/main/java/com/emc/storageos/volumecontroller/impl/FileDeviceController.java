@@ -303,6 +303,11 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                 descparams);
     }
 
+    /* 
+     * Official Workflow Step
+     * (non-Javadoc)
+     * @see com.emc.storageos.volumecontroller.FileController#createFS(java.net.URI, java.net.URI, java.net.URI, java.lang.String, java.lang.String)
+     */
     @Override
     public void createFS(URI storage, URI pool, URI fs, String nativeId, String opId) throws ControllerException {
         FileObject fileObject = null;
@@ -373,6 +378,11 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
         }
     }
 
+    /* 
+     * Official Workflow Step
+     * (non-Javadoc)
+     * @see com.emc.storageos.volumecontroller.FileController#delete(java.net.URI, java.net.URI, java.net.URI, boolean, java.lang.String, java.lang.String)
+     */
     @Override
     public void delete(URI storage, URI pool, URI uri, boolean forceDelete, String deleteType, String opId) throws ControllerException {
         ControllerUtils.setThreadLocalLogData(uri, opId);
@@ -608,6 +618,11 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
         }
     }
 
+    /* 
+     * Official Workflow Step
+     * (non-Javadoc)
+     * @see com.emc.storageos.volumecontroller.FileController#export(java.net.URI, java.net.URI, java.util.List, java.lang.String)
+     */
     @Override
     public void export(URI storage, URI uri, List<FileShareExport> exports, String opId) throws ControllerException {
         ControllerUtils.setThreadLocalLogData(uri, opId);
@@ -799,6 +814,11 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
         return strBuilder.toString();
     }
 
+    /* 
+     * Official Workflow Step
+     * (non-Javadoc)
+     * @see com.emc.storageos.volumecontroller.FileController#unexport(java.net.URI, java.net.URI, java.util.List, java.lang.String)
+     */
     @Override
     public void unexport(URI storage, URI fileUri, List<FileShareExport> exports, String opId) throws ControllerException {
         ControllerUtils.setThreadLocalLogData(fileUri, opId);
@@ -942,6 +962,11 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
         }
     }
 
+    /* 
+     * Official Workflow Step
+     * (non-Javadoc)
+     * @see com.emc.storageos.volumecontroller.FileController#expandFS(java.net.URI, java.net.URI, long, java.lang.String)
+     */
     @Override
     public void expandFS(URI storage, URI uri, long newFSsize, String opId) throws ControllerException {
         ControllerUtils.setThreadLocalLogData(uri, opId);
@@ -996,6 +1021,11 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
         }
     }
 
+    /* 
+     * Official Workflow Step
+     * (non-Javadoc)
+     * @see com.emc.storageos.volumecontroller.FileController#share(java.net.URI, java.net.URI, com.emc.storageos.volumecontroller.FileSMBShare, java.lang.String)
+     */
     @Override
     public void share(URI storage, URI uri, FileSMBShare smbShare, String opId) throws ControllerException {
         ControllerUtils.setThreadLocalLogData(uri, opId);
@@ -1103,6 +1133,11 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
         }
     }
 
+    /* 
+     * Official Workflow Step
+     * (non-Javadoc)
+     * @see com.emc.storageos.volumecontroller.FileController#deleteShare(java.net.URI, java.net.URI, com.emc.storageos.volumecontroller.FileSMBShare, java.lang.String)
+     */
     @Override
     public void deleteShare(URI storage, URI uri, FileSMBShare smbShare, String opId) throws ControllerException {
         ControllerUtils.setThreadLocalLogData(uri, opId);
@@ -1262,6 +1297,11 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
         return strBuilder.toString();
     }
 
+    /* 
+     * Official Workflow Step
+     * (non-Javadoc)
+     * @see com.emc.storageos.volumecontroller.FileController#modifyFS(java.net.URI, java.net.URI, java.net.URI, java.lang.String)
+     */
     @Override
     public void modifyFS(URI storage, URI pooluri, URI fsuri, String opId) throws ControllerException {
         ControllerUtils.setThreadLocalLogData(fsuri, opId);
@@ -1307,6 +1347,11 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
         }
     }
 
+    /* 
+     * Official Workflow Step
+     * (non-Javadoc)
+     * @see com.emc.storageos.volumecontroller.FileController#snapshotFS(java.net.URI, java.net.URI, java.net.URI, java.lang.String)
+     */
     @Override
     public void snapshotFS(URI storage, URI snapshot, URI fs, String task) throws ControllerException {
         ControllerUtils.setThreadLocalLogData(fs, task);
@@ -1370,6 +1415,11 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
         }
     }
 
+    /* 
+     * Official Workflow Step
+     * (non-Javadoc)
+     * @see com.emc.storageos.volumecontroller.FileController#restoreFS(java.net.URI, java.net.URI, java.net.URI, java.lang.String)
+     */
     @Override
     public void restoreFS(URI storage, URI fs, URI snapshot, String opId)
             throws ControllerException {
@@ -1967,6 +2017,11 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
         }
     }
 
+    /* 
+     * Official Workflow Step
+     * (non-Javadoc)
+     * @see com.emc.storageos.volumecontroller.FileController#updateExportRules(java.net.URI, java.net.URI, com.emc.storageos.model.file.FileExportUpdateParams, java.lang.String)
+     */
     @Override
     public void updateExportRules(URI storage, URI fsURI, FileExportUpdateParams param, String opId) throws ControllerException {
         ControllerUtils.setThreadLocalLogData(fsURI, opId);
@@ -2502,6 +2557,11 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
         return strBuilder.toString();
     }
 
+    /* 
+     * Official Workflow Step
+     * (non-Javadoc)
+     * @see com.emc.storageos.volumecontroller.FileController#deleteExportRules(java.net.URI, java.net.URI, boolean, java.lang.String, java.lang.String)
+     */
     @Override
     public void deleteExportRules(URI storage, URI fileUri, boolean allDirs,
             String subDir, String opId) throws ControllerException {
@@ -2702,6 +2762,11 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
         return rule;
     }
 
+    /* 
+     * Official Workflow Step
+     * (non-Javadoc)
+     * @see com.emc.storageos.volumecontroller.FileController#updateShareACLs(java.net.URI, java.net.URI, java.lang.String, com.emc.storageos.model.file.CifsShareACLUpdateParams, java.lang.String)
+     */
     @Override
     public void updateShareACLs(URI storage, URI fsURI, String shareName,
             CifsShareACLUpdateParams param,
@@ -3137,6 +3202,11 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
         return acls;
     }
 
+    /* 
+     * Official Workflow Step
+     * (non-Javadoc)
+     * @see com.emc.storageos.volumecontroller.FileController#deleteShareACLs(java.net.URI, java.net.URI, java.lang.String, java.lang.String)
+     */
     @Override
     public void deleteShareACLs(URI storage, URI fsURI, String shareName,
             String opId) throws InternalException {
@@ -3864,6 +3934,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
     }
 
     /**
+     * Official Workflow Step
      * Rollback create filesystem
      */
     @Override
@@ -4209,6 +4280,13 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
         }
     }
 
+    /**
+     * Official Workflow Step
+     * @param hostId
+     * @param resId
+     * @param mountPath
+     * @param opId
+     */
     public void unmountDevice(URI hostId, URI resId, String mountPath, String opId) {
         try {
             WorkflowStepCompleter.stepExecuting(opId);
@@ -4222,6 +4300,12 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
         }
     }
 
+    /**
+     * Official Workflow Step
+     * @param fsId
+     * @param param
+     * @param opId
+     */
     public void verifyMountDependencies(URI fsId, FileShareExportUpdateParams param, String opId) {
         try {
             WorkflowStepCompleter.stepExecuting(opId);
@@ -4254,6 +4338,13 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
         return unmountList;
     }
 
+    /**
+     * Official Workflow Step
+     * @param fsId
+     * @param subDir
+     * @param allDirs
+     * @param opId
+     */
     public void CheckIfExportIsMounted(URI fsId, String subDir, boolean allDirs, String opId) {
         WorkflowStepCompleter.stepExecuting(opId);
         List<MountInfo> mountList = FileOperationUtils.queryDBFSMounts(fsId, _dbClient);
@@ -4344,6 +4435,11 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
         return filteredExports;
     }
 
+    /**
+     * Official Workflow Step
+     * @param fsId
+     * @param opId
+     */
     public void checkIfMountExistsOnHost(URI fsId, String opId) {
         try {
             WorkflowStepCompleter.stepExecuting(opId);
@@ -4418,6 +4514,11 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
         }
     }
 
+    /* 
+     * Official Workflow Step
+     * (non-Javadoc)
+     * @see com.emc.storageos.volumecontroller.FileController#applyFilePolicy(java.net.URI, java.net.URI, java.net.URI, java.lang.String)
+     */
     @Override
     public void applyFilePolicy(URI storage, URI sourceFS, URI policyURI, String taskId) throws ControllerException {
         FileShare fsObj = null;
@@ -4498,9 +4599,9 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
     }
 
     /**
-     * 
+     * Official Workflow Step
      * @param storage
-     * @param filePolicy
+     * @param policyURI
      *            URI of the file policy to be applied
      * @param policyStorageResource
      * @param opId
@@ -4544,6 +4645,11 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
         }
     }
 
+    /* 
+     * Official Workflow Step
+     * (non-Javadoc)
+     * @see com.emc.storageos.volumecontroller.FileController#assignFileSnapshotPolicyToVirtualPools(java.net.URI, java.net.URI, java.net.URI, java.net.URI, java.lang.String)
+     */
     @Override
     public void assignFileSnapshotPolicyToVirtualPools(URI storageSystemURI, URI vNASURI, URI filePolicyToAssign, URI vpoolURI,
             String opId)
@@ -4583,6 +4689,11 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
         }
     }
 
+    /* 
+     * Official Workflow Step
+     * (non-Javadoc)
+     * @see com.emc.storageos.volumecontroller.FileController#assignFileSnapshotPolicyToProjects(java.net.URI, java.net.URI, java.net.URI, java.net.URI, java.net.URI, java.lang.String)
+     */
     @Override
     public void assignFileSnapshotPolicyToProjects(URI storageSystemURI, URI vNASURI,
             URI filePolicyToAssign, URI vpoolURI, URI projectURI, String opId) throws InternalException {
@@ -4622,6 +4733,11 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
         }
     }
 
+    /* 
+     * Official Workflow Step
+     * (non-Javadoc)
+     * @see com.emc.storageos.volumecontroller.FileController#assignFileReplicationPolicyToVirtualPools(java.net.URI, java.net.URI, java.net.URI, java.net.URI, java.net.URI, java.net.URI, java.net.URI, java.lang.String)
+     */
     @Override
     public void assignFileReplicationPolicyToVirtualPools(URI storageSystemURI, URI targetSystemURI,
             URI sourceVNasURI, URI targetVArrayURI, URI targetVNasURI, URI filePolicyToAssign,
@@ -4678,6 +4794,11 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
         }
     }
 
+    /* 
+     * Official Workflow Step
+     * (non-Javadoc)
+     * @see com.emc.storageos.volumecontroller.FileController#assignFileReplicationPolicyToProjects(java.net.URI, java.net.URI, java.net.URI, java.net.URI, java.net.URI, java.net.URI, java.net.URI, java.net.URI, java.lang.String)
+     */
     @Override
     public void assignFileReplicationPolicyToProjects(URI storageSystemURI, URI targetSystemURI,
             URI sourceVNasURI, URI targetVArrayURI, URI targetVNasURI, URI filePolicyToAssign,
@@ -4738,6 +4859,11 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
         }
     }
 
+    /* 
+     * Official Workflow Step
+     * (non-Javadoc)
+     * @see com.emc.storageos.volumecontroller.FileController#performFileReplicationOperation(java.net.URI, java.net.URI, java.lang.String, java.lang.String)
+     */
     @Override
     public void performFileReplicationOperation(URI storage, URI sourceFSURI, String opType, String opId) throws ControllerException {
         StorageSystem system = _dbClient.queryObject(StorageSystem.class, storage);
@@ -4784,6 +4910,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
     }
 
     /**
+     * Official Workflow Step
      * Fail over Work flow Method
      * 
      * @param storage target storage system
@@ -4816,6 +4943,11 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
         }
     }
 
+    /* 
+     * Official Workflow Step
+     * (non-Javadoc)
+     * @see com.emc.storageos.volumecontroller.FileController#checkFilePolicyPathHasResourceLabel(java.net.URI, java.net.URI, java.net.URI, java.net.URI, java.net.URI, java.lang.String)
+     */
     @Override
     public void checkFilePolicyPathHasResourceLabel(URI storage, URI filePolicyURI, URI nasURI, URI vpoolURI, URI projectURI, String opId) {
 

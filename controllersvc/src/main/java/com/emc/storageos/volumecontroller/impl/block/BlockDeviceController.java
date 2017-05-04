@@ -235,7 +235,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
     private static final String RESTORE_SNAPSHOT_SESSION_STEP_GROUP = "RestoreSnapshotSession";
     private static final String RESTORE_SNAPSHOT_SESSION_METHOD = "restoreBlockSnapshotSession";
     private static final String DELETE_SNAPSHOT_SESSION_STEP_GROUP = "DeleteSnapshotSession";
-    private static final String DELETE_SNAPSHOT_SESSION_METHOD = "deleteBlockSnapshotSession";
+    private static final String DELETE_SNAPSHOT_SESSION_METHOD = "deleteBlockSnapshotSessionStep";
     private static final String RESTORE_FROM_FULLCOPY_METHOD_NAME = "restoreFromFullCopy";
     private static final String ROLLBACK_CLEANUP_REPLICAS_STEP_GROUP = "RollbackReplicaCleanUp";
     private static final String ROLLBACK_CLEANUP_REPLICAS_METHOD_NAME = "rollbackCleanupReplicasStep";
@@ -552,6 +552,13 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
         return waitFor;
     }
 
+    /**
+     * Official Workflow Step
+     * @param systemURI
+     * @param volumeURIs
+     * @param opId
+     * @return
+     */
     public boolean rollbackCleanupReplicasStep(URI systemURI, List<URI> volumeURIs, String opId) {
         WorkflowStepCompleter.stepExecuting(opId);
         try {
@@ -904,6 +911,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
     }
 
     /**
+     * Official Workflow Step
      * {@inheritDoc} NOTE NOTE: The signature here MUST match the Workflow.Method modifyVolumesMethod just above (except
      * opId).
      * Currently this workflow step is used only for Hitachi Thin Volumes modification to update volume tieringPolicy.
@@ -1054,6 +1062,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
     }
 
     /**
+     * Official Workflow Step
      * {@inheritDoc} NOTE: The signature here MUST match the Workflow.Method rollbackCreateVolumesMethod just above
      * (except opId).
      */
@@ -1241,6 +1250,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
     }
 
     /**
+     * Official Workflow Step
      * {@inheritDoc} NOTE: The signature here MUST match the Workflow.Method rollbackCreateMetaVolumeMethod just above
      * (except opId).
      */
@@ -1315,6 +1325,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
     }
 
     /**
+     * Official Workflow Step
      * {@inheritDoc} NOTE: The signature here MUST match the Workflow.Method rollbackExpandVolume just above (except
      * opId).
      */
@@ -1379,6 +1390,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
     }
 
     /**
+     * Official Workflow Step
      * {@inheritDoc} NOTE NOTE: The signature here MUST match the Workflow.Method createMetaVolumesMethod just above
      * (except opId).
      */
@@ -1457,6 +1469,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
     }
 
     /**
+     * Official Workflow Step
      * {@inheritDoc} NOTE NOTE: The signature here MUST match the Workflow.Method createMetaVolumeMethod just above
      * (except opId).
      */
@@ -1521,6 +1534,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
     }
 
     /*
+     * Official Workflow Step
      * {@inheritDoc}
      * <p>
      * Single step workflow to expand volume with rollback.
@@ -1796,6 +1810,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
     }
 
     /**
+     * Official Workflow Step
      * {@inheritDoc} NOTE NOTE: The arguments here must match deleteVolumesMethod defined above (except opId).
      */
     @Override
@@ -1942,6 +1957,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
     }
 
     /**
+     * Official Workflow Step
      * Performs an untag operation on all volumes.
      *
      * @param systemURI
@@ -2006,6 +2022,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
     }
 
     /**
+     * Official Workflow Step
      * Workflow step to delete a volume
      *
      * @param storageURI
@@ -2035,6 +2052,11 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
         return status;
     }
 
+    /* 
+     * Official Workflow Step
+     * (non-Javadoc)
+     * @see com.emc.storageos.volumecontroller.BlockController#createSingleSnapshot(java.net.URI, java.util.List, java.lang.Boolean, java.lang.Boolean, java.lang.String)
+     */
     @Override
     public void createSingleSnapshot(URI storage, List<URI> snapshotList, Boolean createInactive, Boolean readOnly, String opId)
             throws ControllerException {
@@ -2115,6 +2137,11 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
         }
     }
 
+    /* 
+     * Official Workflow Step
+     * (non-Javadoc)
+     * @see com.emc.storageos.volumecontroller.BlockController#deleteSnapshot(java.net.URI, java.net.URI, java.lang.String)
+     */
     @Override
     public void deleteSnapshot(URI storage, URI snapshot, String opId) throws ControllerException {
         _log.info("START deleteSnapshot");
@@ -2164,10 +2191,18 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
     }
 
     private Workflow.Method establishVolumeAndSnapshotGroupRelationMethod(URI storage, URI sourceVolume, URI snapshot) {
-        return new Workflow.Method("establishVolumeSnapshotGroupRelation", storage, sourceVolume, snapshot);
+        return new Workflow.Method("establishVolumeSnapshotGroupRelationStep", storage, sourceVolume, snapshot);
     }
 
-    public void establishVolumeSnapshotGroupRelation(
+    /**
+     * Official Workflow Step
+     * @param storage
+     * @param sourceVolume
+     * @param snapshot
+     * @param opId
+     * @throws ControllerException
+     */
+    public void establishVolumeSnapshotGroupRelationStep(
             URI storage, URI sourceVolume, URI snapshot, String opId)
                     throws ControllerException {
         try {
@@ -2579,6 +2614,14 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
         return new Workflow.Method(TERMINATE_RESTORE_SESSIONS_METHOD, storage, source, snapshot);
     }
 
+    /**
+     * Official Workflow Step
+     * @param storage
+     * @param source
+     * @param snapshot
+     * @param opId
+     * @return
+     */
     public boolean terminateRestoreSessionsStep(URI storage, URI source, URI snapshot, String opId) {
         _log.info("Terminating restore sessions for snapshot: {}", snapshot);
         TaskCompleter completer = null;
@@ -2654,14 +2697,15 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
     }
 
     public Workflow.Method rollbackMirrorMethod(URI storage, List<URI> mirrorList) {
-        return new Workflow.Method("rollbackMirror", storage, mirrorList);
+        return new Workflow.Method("rollbackMirrorStep", storage, mirrorList);
     }
 
     /**
+     * Official Workflow Step
      * {@inheritDoc} NOTE NOTE: The signature here MUST match the Workflow.Method rollbackMirrorMethod just above
      * (except opId).
      */
-    public void rollbackMirror(URI storage, List<URI> mirrorList, String taskId) {
+    public void rollbackMirrorStep(URI storage, List<URI> mirrorList, String taskId) {
         WorkflowStepCompleter.stepExecuting(taskId);
 
         try {
@@ -2691,7 +2735,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
 
                 if (mirrorIsPausable(mirrors)) {
                     _log.info("Attempting to fracture {} for rollback", mirrorNativeIds);
-                    fractureMirror(storage, mirrorURIsToRollback, isCG, false, taskId);
+                    fractureMirrorStep(storage, mirrorURIsToRollback, isCG, false, taskId);
                 }
 
                 _log.info("Attempting to detach {} for rollback", mirrorNativeIds);
@@ -2701,7 +2745,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             }
             WorkflowStepCompleter.stepSucceded(taskId);
         } catch (InternalException ie) {
-            _log.error(String.format("rollbackMirror Failed - Array:%s, Mirror:%s", storage, Joiner.on("\t").join(mirrorList)));
+            _log.error(String.format("rollbackMirrorStep Failed - Array:%s, Mirror:%s", storage, Joiner.on("\t").join(mirrorList)));
             doFailTask(Volume.class, mirrorList, taskId, ie);
             WorkflowStepCompleter.stepFailed(taskId, ie);
         } catch (Exception e) {
@@ -2786,10 +2830,17 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
     }
 
     public Workflow.Method removeMirrorFromGroupMethod(URI storage, List<URI> mirrorList) {
-        return new Workflow.Method("removeMirrorFromGroup", storage, mirrorList);
+        return new Workflow.Method("removeMirrorFromGroupStep", storage, mirrorList);
     }
 
-    public void removeMirrorFromGroup(URI storage, List<URI> mirrorList, String opId) throws ControllerException {
+    /**
+     * Official Workflow Step
+     * @param storage
+     * @param mirrorList
+     * @param opId
+     * @throws ControllerException
+     */
+    public void removeMirrorFromGroupStep(URI storage, List<URI> mirrorList, String opId) throws ControllerException {
         TaskCompleter completer = null;
         try {
             WorkflowStepCompleter.stepExecuting(opId);
@@ -2808,14 +2859,15 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
     }
 
     public Workflow.Method fractureMirrorMethod(URI storage, List<URI> mirrorList, Boolean isCG, Boolean sync) {
-        return new Workflow.Method("fractureMirror", storage, mirrorList, isCG, sync);
+        return new Workflow.Method("fractureMirrorStep", storage, mirrorList, isCG, sync);
     }
 
     /**
+     * Official Workflow Step
      * {@inheritDoc} NOTE NOTE: The signature here MUST match the Workflow.Method fractureMirrorMethod just above
      * (except opId).
      */
-    public void fractureMirror(URI storage, List<URI> mirrorList, Boolean isCG, Boolean sync, String opId) throws ControllerException {
+    public void fractureMirrorStep(URI storage, List<URI> mirrorList, Boolean isCG, Boolean sync, String opId) throws ControllerException {
         TaskCompleter completer = null;
         try {
             WorkflowStepCompleter.stepExecuting(opId);
@@ -2850,7 +2902,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
 
         boolean isCG = isCGMirror(mirrors.get(0), _dbClient);
         if (mirrors.size() == 1 || isCG) {
-            fractureMirror(storage, mirrors, isCG, sync, opId);
+            fractureMirrorStep(storage, mirrors, isCG, sync, opId);
             return;
         }
 
@@ -2942,10 +2994,18 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
     }
 
     private Workflow.Method resumeNativeContinuousCopyMethod(URI storage, List<URI> mirrorList, Boolean isCG) {
-        return new Workflow.Method("resumeNativeContinuousCopy", storage, mirrorList, isCG);
+        return new Workflow.Method("resumeNativeContinuousCopyStep", storage, mirrorList, isCG);
     }
 
-    public void resumeNativeContinuousCopy(URI storage, List<URI> mirrorList, Boolean isCG, String opId) throws ControllerException {
+    /**
+     * Official Workflow Step
+     * @param storage
+     * @param mirrorList
+     * @param isCG
+     * @param opId
+     * @throws ControllerException
+     */
+    public void resumeNativeContinuousCopyStep(URI storage, List<URI> mirrorList, Boolean isCG, String opId) throws ControllerException {
         try {
             WorkflowStepCompleter.stepExecuting(opId);
             StorageSystem storageObj = _dbClient.queryObject(StorageSystem.class, storage);
@@ -2967,6 +3027,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
     }
 
     /**
+     * Official Workflow Step
      * {@inheritDoc} NOTE NOTE: The signature here MUST match the Workflow.Method detachMirrorMethod just above (except
      * opId).
      */
@@ -3165,6 +3226,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
     }
 
     /**
+     * Official Workflow Step
      * {@inheritDoc} NOTE NOTE: The signature here MUST match the Workflow.Method deleteMirrorMethod just above (except
      * opId).
      */
@@ -3189,6 +3251,11 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
         }
     }
 
+    /* 
+     * Official Workflow Step
+     * (non-Javadoc)
+     * @see com.emc.storageos.volumecontroller.BlockController#createConsistencyGroup(java.net.URI, java.net.URI, java.lang.String)
+     */
     @Override
     public void createConsistencyGroup(URI storage, URI consistencyGroup, String opId) throws ControllerException {
 
@@ -3221,7 +3288,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
 
     public Workflow.Method deleteConsistencyGroupMethod(URI storage, URI consistencyGroup, String groupName, Boolean keepRGName,
             Boolean markInactive, Boolean throwErrorIfNotDeleted) {
-        return new Workflow.Method("deleteReplicationGroupInConsistencyGroup", storage, consistencyGroup, groupName, keepRGName,
+        return new Workflow.Method("deleteReplicationGroupInConsistencyGroupStep", storage, consistencyGroup, groupName, keepRGName,
                 markInactive, throwErrorIfNotDeleted);
     }
 
@@ -3257,7 +3324,18 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
         }
     }
 
-    public void deleteReplicationGroupInConsistencyGroup(URI storage, URI consistencyGroup, String groupName, Boolean keepRGName,
+    /**
+     * Official Workflow Step
+     * @param storage
+     * @param consistencyGroup
+     * @param groupName
+     * @param keepRGName
+     * @param markInactive
+     * @param throwErrorIfNotDeleted
+     * @param opId
+     * @throws ControllerException
+     */
+    public void deleteReplicationGroupInConsistencyGroupStep(URI storage, URI consistencyGroup, String groupName, Boolean keepRGName,
             Boolean markInactive, Boolean throwErrorIfNotDeleted, String opId) throws ControllerException {
         TaskCompleter completer = null;
         try {
@@ -3428,10 +3506,18 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
     }
 
     private Workflow.Method establishVolumeAndNativeContinuousCopyGroupRelationMethod(URI storage, URI sourceVolume, URI mirror) {
-        return new Workflow.Method("establishVolumeNativeContinuousCopyGroupRelation", storage, sourceVolume, mirror);
+        return new Workflow.Method("establishVolumeNativeContinuousCopyGroupRelationStep", storage, sourceVolume, mirror);
     }
 
-    public void establishVolumeNativeContinuousCopyGroupRelation(
+    /**
+     * Official Workflow Step
+     * @param storage
+     * @param sourceVolume
+     * @param mirror
+     * @param opId
+     * @throws ControllerException
+     */
+    public void establishVolumeNativeContinuousCopyGroupRelationStep(
             URI storage, URI sourceVolume, URI mirror, String opId)
                     throws ControllerException {
         try {
@@ -3684,10 +3770,16 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
     }
 
     public Workflow.Method rollbackFullCopyVolumeMethod(URI storage, List<URI> fullCopy) {
-        return new Workflow.Method("rollbackFullCopyVolume", storage, fullCopy);
+        return new Workflow.Method("rollbackFullCopyVolumeStep", storage, fullCopy);
     }
 
-    public void rollbackFullCopyVolume(URI storage, List<URI> fullCopy, String taskId) {
+    /**
+     * Official Workflow Step
+     * @param storage
+     * @param fullCopy
+     * @param taskId
+     */
+    public void rollbackFullCopyVolumeStep(URI storage, List<URI> fullCopy, String taskId) {
         WorkflowStepCompleter.stepExecuting(taskId);
 
         List<Volume> volumes = _dbClient.queryObject(Volume.class, fullCopy);
@@ -3705,7 +3797,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                 WorkflowStepCompleter.stepSucceded(taskId);
             }
         } catch (InternalException ie) {
-            _log.error(String.format("rollbackFullCopyVolume Failed - Array:%s, Volume:%s", storage, fullCopy));
+            _log.error(String.format("rollbackFullCopyVolumeStep Failed - Array:%s, Volume:%s", storage, fullCopy));
             doFailTask(Volume.class, fullCopy, taskId, ie);
             WorkflowStepCompleter.stepFailed(taskId, ie);
         } catch (Exception e) {
@@ -3885,10 +3977,18 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
     }
 
     private Workflow.Method establishVolumeAndFullCopyGroupRelationMethod(URI storage, URI sourceVolume, URI fullCopy) {
-        return new Workflow.Method("establishVolumeFullCopyGroupRelation", storage, sourceVolume, fullCopy);
+        return new Workflow.Method("establishVolumeFullCopyGroupRelationStep", storage, sourceVolume, fullCopy);
     }
 
-    public void establishVolumeFullCopyGroupRelation(
+    /**
+     * Official Workflow Step
+     * @param storage
+     * @param sourceVolume
+     * @param fullCopy
+     * @param opId
+     * @throws ControllerException
+     */
+    public void establishVolumeFullCopyGroupRelationStep(
             URI storage, URI sourceVolume, URI fullCopy, String opId)
                     throws ControllerException {
         try {
@@ -4240,10 +4340,19 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
     }
 
     public <T extends BlockObject> Workflow.Method waitForSynchronizedMethod(Class clazz, URI storage, List<URI> target, boolean isCG) {
-        return new Workflow.Method("waitForSynchronized", clazz, storage, target, isCG);
+        return new Workflow.Method("waitForSynchronizedStep", clazz, storage, target, isCG);
     }
 
-    public void waitForSynchronized(Class<? extends BlockObject> clazz, URI storage, List<URI> target, boolean isCG, String opId)
+    /**
+     * Official Workflow Step
+     * @param clazz
+     * @param storage
+     * @param target
+     * @param isCG
+     * @param opId
+     * @throws ControllerException
+     */
+    public void waitForSynchronizedStep(Class<? extends BlockObject> clazz, URI storage, List<URI> target, boolean isCG, String opId)
             throws ControllerException {
         _log.info("START waitForSynchronized for {}", target);
         TaskCompleter completer = null;
@@ -4986,6 +5095,14 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
         return new Workflow.Method(FRACTURE_CLONE_METHOD, storage, clone, isCG);
     }
 
+    /**
+     * Official Workflow Step
+     * @param storage
+     * @param clone
+     * @param isCG
+     * @param opId
+     * @return
+     */
     public boolean fractureCloneStep(URI storage, List<URI> clone, boolean isCG, String opId) {
         _log.info("Fracture clone: {}", clone.get(0));
         TaskCompleter completer = null;
@@ -5246,10 +5363,18 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
     }
 
     public Workflow.Method fractureListMirrorMethod(URI storage, List<URI> mirrorList, Boolean sync) {
-        return new Workflow.Method("fractureListMirror", storage, mirrorList, sync);
+        return new Workflow.Method("fractureListMirrorStep", storage, mirrorList, sync);
     }
 
-    public void fractureListMirror(URI storage, List<URI> mirrorList, Boolean sync, String opId) throws ControllerException {
+    /**
+     * Official Workflow Step
+     * @param storage
+     * @param mirrorList
+     * @param sync
+     * @param opId
+     * @throws ControllerException
+     */
+    public void fractureListMirrorStep(URI storage, List<URI> mirrorList, Boolean sync, String opId) throws ControllerException {
         TaskCompleter completer = null;
         try {
             WorkflowStepCompleter.stepExecuting(opId);
@@ -5267,10 +5392,17 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
     }
 
     public Workflow.Method detachListMirrorMethod(URI storage, List<URI> mirrorList) {
-        return new Workflow.Method("detachListMirror", storage, mirrorList);
+        return new Workflow.Method("detachListMirrorStep", storage, mirrorList);
     }
 
-    public void detachListMirror(URI storage, List<URI> mirrorList, String opId) throws ControllerException {
+    /**
+     * Official Workflow Step
+     * @param storage
+     * @param mirrorList
+     * @param opId
+     * @throws ControllerException
+     */
+    public void detachListMirrorStep(URI storage, List<URI> mirrorList, String opId) throws ControllerException {
         TaskCompleter completer = null;
         try {
             WorkflowStepCompleter.stepExecuting(opId);
@@ -5287,10 +5419,17 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
     }
 
     public Workflow.Method deleteListMirrorMethod(URI storage, List<URI> mirrorList) {
-        return new Workflow.Method("deleteListMirror", storage, mirrorList);
+        return new Workflow.Method("deleteListMirrorStep", storage, mirrorList);
     }
 
-    public void deleteListMirror(URI storage, List<URI> mirrorList, String opId) throws ControllerException {
+    /**
+     * Official Workflow Step
+     * @param storage
+     * @param mirrorList
+     * @param opId
+     * @throws ControllerException
+     */
+    public void deleteListMirrorStep(URI storage, List<URI> mirrorList, String opId) throws ControllerException {
         TaskCompleter completer = null;
         try {
             WorkflowStepCompleter.stepExecuting(opId);
@@ -5330,10 +5469,17 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
     }
 
     public Workflow.Method deleteSelectedSnapshotMethod(URI storage, URI snapshot) {
-        return new Workflow.Method("deleteSelectedSnapshot", storage, snapshot);
+        return new Workflow.Method("deleteSelectedSnapshotStep", storage, snapshot);
     }
 
-    public void deleteSelectedSnapshot(URI storage, URI snapshot, String opId) throws ControllerException {
+    /**
+     * Official Workflow Step
+     * @param storage
+     * @param snapshot
+     * @param opId
+     * @throws ControllerException
+     */
+    public void deleteSelectedSnapshotStep(URI storage, URI snapshot, String opId) throws ControllerException {
         _log.info("START deleteSelectedSnapshot");
         TaskCompleter completer = null;
         WorkflowStepCompleter.stepExecuting(opId);
@@ -5459,10 +5605,17 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
     }
 
     public Workflow.Method fractureListCloneMethod(URI storage, List<URI> cloneList, Boolean sync) {
-        return new Workflow.Method("fractureListClone", storage, cloneList, sync);
+        return new Workflow.Method("fractureListCloneStep", storage, cloneList, sync);
     }
 
-    public void fractureListClone(URI storage, List<URI> cloneList, Boolean sync, String taskId) {
+    /**
+     * Official Workflow Step
+     * @param storage
+     * @param cloneList
+     * @param sync
+     * @param taskId
+     */
+    public void fractureListCloneStep(URI storage, List<URI> cloneList, Boolean sync, String taskId) {
         TaskCompleter completer = null;
         try {
             WorkflowStepCompleter.stepExecuting(taskId);
@@ -5509,6 +5662,14 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
         return new Workflow.Method("createListMirrorStep", storage, mirrorList, createInactive);
     }
 
+    /**
+     * Official Workflow Step
+     * @param storage
+     * @param mirrorList
+     * @param createInactive
+     * @param opId
+     * @throws ControllerException
+     */
     public void createListMirrorStep(URI storage, List<URI> mirrorList, Boolean createInactive, String opId)
             throws ControllerException {
         TaskCompleter completer = null;
@@ -5530,6 +5691,12 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
         return new Workflow.Method("rollbackListMirrorStep", storage, mirrorList);
     }
 
+    /**
+     * Official Workflow Step
+     * @param storage
+     * @param mirrorList
+     * @param taskId
+     */
     public void rollbackListMirrorStep(URI storage, List<URI> mirrorList, String taskId) {
         WorkflowStepCompleter.stepExecuting(taskId);
 
@@ -5558,7 +5725,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                 String mirrorNativeIds = Joiner.on(", ").join(transform(mirrorsToRollback, fctnBlockObjectToNativeID()));
                 if (mirrorIsPausable(mirrorsToRollback)) {
                     _log.info("Attempting to fracture {} for rollback", mirrorNativeIds);
-                    fractureMirror(storage, mirrorURIsToRollback, false, false, generateStepIdForDependentCallDuringRollback());
+                    fractureMirrorStep(storage, mirrorURIsToRollback, false, false, generateStepIdForDependentCallDuringRollback());
                 }
 
                 _log.info("Attempting to detach {} for rollback", mirrorNativeIds);
@@ -5639,6 +5806,12 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
         return new Workflow.Method("rollbackListSnapshotStep", storage, snapshotList);
     }
 
+    /**
+     * Official Workflow Step
+     * @param storage
+     * @param snapshotList
+     * @param taskId
+     */
     public void rollbackListSnapshotStep(URI storage, List<URI> snapshotList, String taskId) {
         WorkflowStepCompleter.stepExecuting(taskId);
         try {
@@ -5665,7 +5838,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                 String snapshotNativeIds = Joiner.on(", ").join(transform(snapshotsToRollback, fctnBlockObjectToNativeID()));
                 _log.info("Attempting to delete {} for rollback", snapshotNativeIds);
                 for (URI snapshotURI : snapshotURIsToRollback) {
-                    deleteSelectedSnapshot(storage, snapshotURI, generateStepIdForDependentCallDuringRollback());
+                    deleteSelectedSnapshotStep(storage, snapshotURI, generateStepIdForDependentCallDuringRollback());
                 }
             }
             WorkflowStepCompleter.stepSucceded(taskId);
@@ -6552,6 +6725,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
     }
 
     /**
+     * Official Workflow Step
      * Delete the array snapshot represented by the BlockSnapshotSession instance
      * with the passed URI to its source.
      *
@@ -6566,7 +6740,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
      * @param markInactive
      *            true if the step should mark the session inactive, false otherwise.
      */
-    public void deleteBlockSnapshotSession(URI systemURI, URI snapSessionURI, String groupName, Boolean markInactive, String stepId) {
+    public void deleteBlockSnapshotSessionStep(URI systemURI, URI snapSessionURI, String groupName, Boolean markInactive, String stepId) {
         TaskCompleter completer = null;
         try {
             StorageSystem system = _dbClient.queryObject(StorageSystem.class, systemURI);
@@ -6806,11 +6980,12 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
      */
     public Workflow.Method deleteReplicationGroupMethod(URI storage, URI consistencyGroup, String groupName, Boolean keepRGName,
             Boolean markInactive, String sourceGroupName) {
-        return new Workflow.Method("deleteReplicationGroup", storage, consistencyGroup, groupName, keepRGName, markInactive,
+        return new Workflow.Method("deleteReplicationGroupStep", storage, consistencyGroup, groupName, keepRGName, markInactive,
                 sourceGroupName);
     }
 
     /**
+     * Official Workflow Step
      * Delete array clone replication group
      * 
      * @param storage
@@ -6825,7 +7000,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
      *            source group name
      * @return the created workflow Method
      */
-    public void deleteReplicationGroup(URI storage, URI consistencyGroup, String groupName, Boolean keepRGName, Boolean markInactive,
+    public void deleteReplicationGroupStep(URI storage, URI consistencyGroup, String groupName, Boolean keepRGName, Boolean markInactive,
             String sourceGroupName, String opId) throws ControllerException {
         TaskCompleter completer = null;
         try {

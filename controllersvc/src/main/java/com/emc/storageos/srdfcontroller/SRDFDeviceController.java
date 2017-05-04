@@ -4,7 +4,6 @@
  */
 package com.emc.storageos.srdfcontroller;
 
-import static com.emc.storageos.db.client.constraint.ContainmentConstraint.Factory.getVolumesByConsistencyGroup;
 import static com.emc.storageos.db.client.model.Volume.PersonalityTypes.TARGET;
 import static com.emc.storageos.db.client.util.CommonTransformerFunctions.FCTN_STRING_TO_URI;
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -304,6 +303,13 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
         return new Workflow.Method(UPDATE_SRDF_PAIRING, sourceURIs, targetURIs);
     }
 
+    /**
+     * Official Workflow Step
+     * @param sourceURIs
+     * @param targetURIs
+     * @param opId
+     * @return
+     */
     public boolean updateSRDFPairingStep(List<URI> sourceURIs, List<URI> targetURIs, String opId) {
         log.info("Updating SRDF pairings");
 
@@ -630,6 +636,7 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
     }
 
     /**
+     * Official Workflow Step
      * Workflow step for refreshing the given StorageSystem via EMCRefreshSystem.
      *
      * @param system    The StorageSystem to refresh.
@@ -1114,6 +1121,15 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
                 rollback);
     }
 
+    /**
+     * Official Workflow Step
+     * @param systemURI
+     * @param sourceURI
+     * @param targetURI
+     * @param rollback
+     * @param opId
+     * @return
+     */
     public boolean convertToNonSrdfDevicesMethodStep(final URI systemURI, final URI sourceURI,
             final URI targetURI, final boolean rollback, final String opId) {
         log.info("START conversion of srdf to non srdf devices");
@@ -1177,6 +1193,15 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
         return new Workflow.Method(DETACH_SRDF_PAIR_METHOD, systemURI, sourceURI, targetURI, true);
     }
 
+    /**
+     * Official Workflow Step
+     * @param systemURI
+     * @param sourceURI
+     * @param targetURI
+     * @param onGroup
+     * @param opId
+     * @return
+     */
     public boolean detachVolumePairStep(final URI systemURI, final URI sourceURI,
             final URI targetURI, final boolean onGroup, final String opId) {
         log.info("START Detach Pair onGroup={}", onGroup);
@@ -1201,6 +1226,15 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
         return new Workflow.Method(REMOVE_ASYNC_PAIR_METHOD, systemURI, sourceURI, targetURI, rollback);
     }
 
+    /**
+     * Official Workflow Step
+     * @param systemURI
+     * @param sourceURI
+     * @param targetURI
+     * @param rollback
+     * @param opId
+     * @return
+     */
     public boolean removePairFromGroupStep(final URI systemURI, final URI sourceURI,
             final URI targetURI, final boolean rollback, final String opId) {
         log.info("START Remove Pair from Group");
@@ -1238,6 +1272,7 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
     }
 
     /**
+     * Official Workflow Step
      * Method to resume SRDF group called a workflow step.
      * 
      * @param systemURI Reference to storage system URI
@@ -1294,6 +1329,7 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
     }
 
     /**
+     * Official Workflow Step
      * Method to suspend SRDF group called a workflow step.
      * 
      * @param systemURI Reference to storage system URI
@@ -1335,6 +1371,14 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
         return true;
     }
 
+    /**
+     * Official Workflow Step
+     * @param systemURI
+     * @param sourceURI
+     * @param targetURI
+     * @param opId
+     * @return
+     */
     public boolean resumeSyncPairStep(final URI systemURI, final URI sourceURI,
             final URI targetURI, final String opId) {
         log.info("START Resume Sync Pair");
@@ -1361,6 +1405,14 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
         return new Workflow.Method(CREATE_SRDF_RESUME_PAIR_METHOD, systemURI, sourceURI, targetURI);
     }
 
+    /**
+     * Official Workflow Step
+     * @param systemURI
+     * @param sourceURI
+     * @param targetURI
+     * @param opId
+     * @return
+     */
     public boolean restoreStep(final URI systemURI, final URI sourceURI,
             final URI targetURI, final String opId) {
         log.info("START Restore");
@@ -1392,6 +1444,14 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
         return new Workflow.Method(CREATE_SRDF_RESYNC_PAIR_METHOD, systemURI, sourceURI, targetURI);
     }
 
+    /**
+     * Official Workflow Step
+     * @param systemURI
+     * @param sourceURI
+     * @param targetURI
+     * @param opId
+     * @return
+     */
     public boolean reSyncSRDFLinkStep(final URI systemURI, final URI sourceURI,
             final URI targetURI, final String opId) {
         log.info("START ReSync SRDF Links");
@@ -1423,6 +1483,15 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
         return rollbackSRDFLinksMethod(systemURI, asList(sourceURI), asList(targetURI), isGroupRollback);
     }
 
+    /**
+     * Official Workflow Step
+     * @param systemURI
+     * @param sourceURIs
+     * @param targetURIs
+     * @param isGroupRollback
+     * @param opId
+     * @return
+     */
     public boolean rollbackSRDFLinksStep(URI systemURI, List<URI> sourceURIs,
             List<URI> targetURIs, boolean isGroupRollback, String opId) {
         log.info("START rollback multiple SRDF links");
@@ -1450,6 +1519,16 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
         return new Workflow.Method(CREATE_LIST_REPLICAS_METHOD, systemURI, sourceURIs, targetURIs, vpoolChangeUri, addWaitForCopyState);
     }
 
+    /**
+     * Official Workflow Step
+     * @param systemURI
+     * @param sourceURIs
+     * @param targetURIs
+     * @param vpoolChangeUri
+     * @param addWaitForCopyState
+     * @param opId
+     * @return
+     */
     public boolean createListReplicasStep(URI systemURI, List<URI> sourceURIs, List<URI> targetURIs, URI vpoolChangeUri,
             boolean addWaitForCopyState, String opId) {
         log.info("START Creating list of replicas");
@@ -1490,6 +1569,7 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
     }
 
     /**
+     * Official Workflow Step
      * Method to update volume properties called as a workflow step.
      * 
      * @param volumeURIs List of volume URIs
@@ -1520,6 +1600,15 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
         return new Workflow.Method(CREATE_SRDF_VOLUME_PAIR, systemURI, sourceURI, targetURI, vpoolChangeUri);
     }
 
+    /**
+     * Official Workflow Step
+     * @param systemURI
+     * @param sourceURI
+     * @param targetURI
+     * @param vpoolChangeUri
+     * @param opId
+     * @return
+     */
     public boolean createSRDFVolumePairStep(final URI systemURI, final URI sourceURI,
             final URI targetURI, final URI vpoolChangeUri, final String opId) {
         log.info("START Add srdf volume pair");
@@ -1741,6 +1830,15 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
         return new Workflow.Method(ADD_SYNC_VOLUME_PAIRS_METHOD, systemURI, sourceURIs, remoteDirectorGroupURI, vpoolChangeUri);
     }
 
+    /**
+     * Official Workflow Step
+     * @param systemURI
+     * @param sourceURIs
+     * @param remoteDirectorGroupURI
+     * @param vpoolChangeUri
+     * @param opId
+     * @return
+     */
     public boolean addVolumePairsToCgMethodStep(URI systemURI, List<URI> sourceURIs, URI remoteDirectorGroupURI, URI vpoolChangeUri,
             String opId) {
         log.info("START Add VolumePair to CG");
@@ -1765,6 +1863,15 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
         return new Workflow.Method(SUSPEND_SRDF_LINK_METHOD, systemURI, sourceURI, targetURI, consExempt);
     }
 
+    /**
+     * Official Workflow Step
+     * @param systemURI
+     * @param sourceURI
+     * @param targetURI
+     * @param consExempt
+     * @param opId
+     * @return
+     */
     public boolean suspendSRDFLinkStep(URI systemURI, URI sourceURI, URI targetURI, boolean consExempt, String opId) {
         log.info("START Suspend SRDF link");
         TaskCompleter completer = null;
@@ -1794,6 +1901,15 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
         return new Workflow.Method(SPLIT_SRDF_LINK_METHOD, systemURI, sourceURI, targetURI, rollback);
     }
 
+    /**
+     * Official Workflow Step
+     * @param systemURI
+     * @param sourceURI
+     * @param targetURI
+     * @param rollback
+     * @param opId
+     * @return
+     */
     public boolean splitSRDFLinkStep(URI systemURI, URI sourceURI, URI targetURI,
             boolean rollback, String opId) {
         log.info("START Split SRDF link");
@@ -1823,6 +1939,14 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
         return new Workflow.Method(REMOVE_DEVICE_GROUPS_METHOD, systemURI, sourceURI, targetURI);
     }
 
+    /**
+     * Official Workflow Step
+     * @param systemURI
+     * @param sourceURI
+     * @param targetURI
+     * @param opId
+     * @return
+     */
     public boolean removeDeviceGroupsStep(final URI systemURI, final URI sourceURI,
             final URI targetURI, final String opId) {
         log.info("START remove device groups");
@@ -1848,6 +1972,15 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
         return new Method(CREATE_SRDF_ASYNC_MIRROR_METHOD, system, sourceURIs, targetURIs, vpoolChangeUri);
     }
 
+    /**
+     * Official Workflow Step
+     * @param systemURI
+     * @param sourceURIs
+     * @param targetURIs
+     * @param vpoolChangeUri
+     * @param opId
+     * @return
+     */
     public boolean createSrdfCgPairsStep(URI systemURI, List<URI> sourceURIs, List<URI> targetURIs, URI vpoolChangeUri, String opId) {
         log.info("START creating SRDF Pairs in CGs");
         SRDFMirrorCreateCompleter completer = null;
@@ -1927,6 +2060,11 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
         return new Workflow.Method("performProtectionOperation", systemUri, copy, op);
     }
 
+    /* 
+     * Official Workflow Step
+     * (non-Javadoc)
+     * @see com.emc.storageos.srdfcontroller.SRDFController#performProtectionOperation(java.net.URI, com.emc.storageos.model.block.Copy, java.lang.String, java.lang.String)
+     */
     @Override
     public void performProtectionOperation(final URI systemUri, final Copy copy,
             final String op, final String task) throws InternalException {

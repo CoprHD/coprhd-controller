@@ -589,6 +589,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
     }
 
     /**
+     * Official Workflow Step
      * WF Step to reinstate the RP VPLEX Source Virtual Volume to use the originally requested assets.
      *
      * With RP+VPLEX there is an option when the user adds High Availability to the Source VPool
@@ -1064,6 +1065,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
     }
 
     /**
+     * Official Workflow Step
      * RP Export group rollback orchestration steps
      *
      * @param stepId

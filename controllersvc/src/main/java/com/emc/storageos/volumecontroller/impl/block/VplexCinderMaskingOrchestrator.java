@@ -225,6 +225,7 @@ public class VplexCinderMaskingOrchestrator extends CinderMaskingOrchestrator
     }
 
     /**
+     * Official Workflow Step
      * Re-validate the ExportMask
      * 
      * This is required to be done as the ExportMask
@@ -427,6 +428,12 @@ public class VplexCinderMaskingOrchestrator extends CinderMaskingOrchestrator
                 completer);
     }
 
+    /* 
+     * Official Workflow Step
+     * 
+     * (non-Javadoc)
+     * @see com.emc.storageos.volumecontroller.impl.block.VplexBackEndMaskingOrchestrator#createOrAddVolumesToExportMask(java.net.URI, java.net.URI, java.net.URI, java.util.Map, java.util.List, com.emc.storageos.volumecontroller.TaskCompleter, java.lang.String)
+     */
     @Override
     public void createOrAddVolumesToExportMask(URI arrayURI,
             URI exportGroupURI,
@@ -533,6 +540,11 @@ public class VplexCinderMaskingOrchestrator extends CinderMaskingOrchestrator
                 initiatorURIs);
     }
 
+    /* 
+     * Official Workflow Step
+     * (non-Javadoc)
+     * @see com.emc.storageos.volumecontroller.impl.block.VplexBackEndMaskingOrchestrator#deleteOrRemoveVolumesFromExportMask(java.net.URI, java.net.URI, java.net.URI, java.util.List, java.util.List, java.lang.String)
+     */
     @Override
     public void deleteOrRemoveVolumesFromExportMask(URI arrayURI,
             URI exportGroupURI,

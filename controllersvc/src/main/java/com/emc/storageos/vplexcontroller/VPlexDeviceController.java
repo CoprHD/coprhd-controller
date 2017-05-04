@@ -273,7 +273,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
     private static final String VOLUME_FULLCOPY_GROUP_RELATION_STEP = "volumeFullcopyRelation";
     private static final String RESYNC_SNAPSHOT_STEP = "ResyncSnapshot";
     private static final String RELINK_SNAPSHOT_SESSION_TARGET_STEP = "RelinkSnapshotSessionTarget";
-    private static final String PAUSE_MIGRATION_STEP = "PauseMigrationStep";
+    private static final String PAUSE_MIGRATION_STEP = "PauseMigration";
     private static final String RESUME_MIGRATION_STEP = "ResumeMigration";
     private static final String CANCEL_MIGRATION_STEP = "CancelMigration";
     private static final String DELETE_MIGRATION_STEP = "DeleteMigration";
@@ -834,6 +834,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
     }
 
     /**
+     * Official Workflow Step
      * Do the creation of a VPlex Virtual Volume. This is called as a Workflow Step.
      * NOTE: The parameters here must match createVirtualVolumesMethod above (except stepId).
      *
@@ -1681,9 +1682,9 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
     }
 
     /**
+     * Official Workflow Step
      * Uses the VPLREX client for the VPLEX storage system with the passed URI to
      * tell the VPLERX system to forget the volumes with the passed URIs.
-     * Official Workflow Step
      *
      * @param vplexSystemURI
      *            The URI of the VPLEX storage system.
@@ -1938,8 +1939,8 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
     }
 
     /*
+     * Official Workflow Step
      * (non-Javadoc)
-     *
      * @see com.emc.storageos.volumecontroller.impl.vplex.VplexController#exportGroupCreate(java.net.URI, java.net.URI,
      * java.util.Map,
      * java.util.List, java.lang.String)
@@ -2979,6 +2980,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
     }
 
     /**
+     * Official Workflow Step
      * A Workflow Step to create a Storage View on the VPlex.
      *
      * @param vplexURI
@@ -3109,6 +3111,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
     }
 
     /**
+     * Official Workflow Step
      * A Workflow Step to register initiators on the VPLEX, if not already found registered.
      * 
      * @param initiatorUris the initiator URIs to check for registration
@@ -3178,6 +3181,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
     }
 
     /*
+     * Official Workflow Step
      * (non-Javadoc)
      *
      * @see com.emc.storageos.volumecontroller.impl.vplex.VplexController#exportGroupDelete(java.net.URI, java.net.URI,
@@ -3526,6 +3530,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
     }
 
     /*
+     * Official Workflow Step
      * (non-Javadoc)
      *
      * @see com.emc.storageos.volumecontroller.impl.vplex.VplexController#exportAddVolume(java.net.URI, java.net.URI,
@@ -3846,6 +3851,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
     }
 
     /*
+     * Official Workflow Step
      * (non-Javadoc)
      *
      * @see com.emc.storageos.volumecontroller.impl.vplex.VplexController#exportRemoveVolume(java.net.URI, java.net.URI,
@@ -4182,6 +4188,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
 
     /*
      * (non-Javadoc)
+     * Official Workflow Step
      *
      * @see com.emc.storageos.volumecontroller.impl.vplex.VplexController#exportAddInitiator(java.net.URI, java.net.URI,
      * java.net.URI,
@@ -4531,7 +4538,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
      * @throws DeviceControllerException
      */
     public void zoneRollbackStep(URI exportGroupURI, String rollbackContextKey, String taskId) throws DeviceControllerException {
-        _networkDeviceController.zoneRollback(exportGroupURI, rollbackContextKey, taskId);
+        _networkDeviceController.zoneRollbackStep(exportGroupURI, rollbackContextKey, taskId);
     }
 
     /**
@@ -5013,6 +5020,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
 
     /*
      * (non-Javadoc)
+     * Official Workflow Step
      *
      * @see com.emc.storageos.volumecontroller.impl.vplex.VplexController#exportRemoveInitiator(java.net.URI,
      * java.net.URI, java.net.URI,
@@ -6659,6 +6667,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
     }
 
     /**
+     * Official Workflow Step
      * Invoked by the migration workflow to commit the migration after it has
      * been completed.
      *
@@ -7034,6 +7043,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
     }
 
     /**
+     * Official Workflow Step
      * This step is executed after a virtual volume is successfully migrated to
      * delete the old source volumes. We create a sub workflow to perform this
      * task. We do this in a sub workflow because we don't want any of the steps
@@ -7583,6 +7593,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
     }
 
     /**
+     * Official Workflow Step
      * Create a Virtual Volume from an Imported Volume.
      * There are three cases here:
      * 1. We want to create a non-distributed virtual volume. In this case,
@@ -8339,6 +8350,11 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
         _log.info("Created and started sub workflow to execute the migration");
     }
 
+    /*
+     * Official Workflow Step
+     * (non-Javadoc)
+     * @see com.emc.storageos.volumecontroller.impl.block.AbstractBasicMaskingOrchestrator#exportGroupUpdate(java.net.URI, java.net.URI, com.emc.storageos.workflow.Workflow, java.lang.String)
+     */
     @Override
     public void exportGroupUpdate(URI storageURI, URI exportGroupURI,
             Workflow storageWorkflow, String token) throws Exception {
@@ -8368,6 +8384,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
     }
 
     /**
+     * Official Workflow Step
      * {@inheritDoc}
      */
     @Override
@@ -10603,6 +10620,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
     }
 
     /**
+     * Official Workflow Step
      * This method creates the virtual volume from the detached mirror device.
      *
      * @param vplexURI
@@ -11050,6 +11068,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
     }
 
     /**
+     * Official Workflow Step
      * Do the creation of a VPlex Mirror device and attach it as a mirror to the Virtual Volume.
      * This is called as a Workflow Step.
      * NOTE: The parameters here must match createMirrorsMethod above (except stepId).

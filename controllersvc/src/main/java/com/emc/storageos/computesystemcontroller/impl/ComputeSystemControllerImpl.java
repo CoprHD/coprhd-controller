@@ -211,8 +211,13 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
         WorkflowStepCompleter.stepSucceded(stepId);
     }
 
+    /*
+     * Official Workflow Step
+     * (non-Javadoc)
+     * @see com.emc.storageos.computesystemcontroller.ComputeSystemController#setHostBootVolumeStep(java.net.URI, java.net.URI, boolean, java.lang.String)
+     */
     @Override
-    public void setHostBootVolume(URI host, URI bootVolumeId, boolean updateSanBootTargets,String taskId) throws ControllerException {
+    public void setHostBootVolumeStep(URI host, URI bootVolumeId, boolean updateSanBootTargets,String taskId) throws ControllerException {
         TaskCompleter completer = null;
         try {
             completer = new HostCompleter(host, false, taskId);
@@ -223,7 +228,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
             }
             workflow.executePlan(completer, "Success", null, null, null, null);
         } catch  (Exception ex) {
-            String message = "setHostSanBootTargets caught an exception.";
+            String message = "setHostBootVolumeStep caught an exception.";
             _log.error(message, ex);
             ServiceError serviceError = DeviceControllerException.errors.jobFailed(ex);
             completer.error(_dbClient, serviceError);
@@ -238,19 +243,26 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
             _log.info("Generating steps for setting boot volume associstion");
             waitFor = workflow.createStep(null,
                     "Validate Boot Volume export", waitFor, host.getId(), host.getLabel(),
-                    this.getClass(), new Workflow.Method("validateBootVolumeExport", hostId, volumeId),
+                    this.getClass(), new Workflow.Method("validateBootVolumeExportStep", hostId, volumeId),
                     new Workflow.Method("rollbackMethodNull"), null);
 
             waitFor = workflow.createStep(null,
                     "Set Boot Volume Association", waitFor, host.getId(), host.getLabel(),
-                    this.getClass(), new Workflow.Method("setHostBootVolumeId", hostId, volumeId),
+                    this.getClass(), new Workflow.Method("setHostBootVolumeIdStep", hostId, volumeId),
                     new Workflow.Method("rollbackHostBootVolumeId", hostId, volumeId), null);
         }
         return waitFor;
     }
 
-    public void validateBootVolumeExport(URI hostId, URI volumeId, String stepId) throws ControllerException {
-        _log.info("validateBootVolumeExport :"+ hostId.toString()+" volume: "+ volumeId.toString());
+    /**
+     * Official Workflow Step
+     * @param hostId
+     * @param volumeId
+     * @param stepId
+     * @throws ControllerException
+     */
+    public void validateBootVolumeExportStep(URI hostId, URI volumeId, String stepId) throws ControllerException {
+        _log.info("validateBootVolumeExportStep :"+ hostId.toString()+" volume: "+ volumeId.toString());
         Host host = null;
         try{
             WorkflowStepCompleter.stepExecuting(stepId);
@@ -283,8 +295,15 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
 
     }
 
-    public void setHostBootVolumeId(URI hostId, URI volumeId, String stepId) throws ControllerException {
-        _log.info("setHostBootVolumeId :"+ hostId.toString());
+    /**
+     * Official Workflow Step
+     * @param hostId
+     * @param volumeId
+     * @param stepId
+     * @throws ControllerException
+     */
+    public void setHostBootVolumeIdStep(URI hostId, URI volumeId, String stepId) throws ControllerException {
+        _log.info("setHostBootVolumeIdStep :"+ hostId.toString());
         Host host = null;
         try {
             WorkflowStepCompleter.stepExecuting(stepId);
@@ -312,8 +331,15 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
 
     }
 
-    public void rollbackHostBootVolumeId(URI hostId, URI volumeId, String stepId) throws ControllerException {
-        _log.info("rollbackHostBootVolumeId:"+ hostId.toString());
+    /**
+     * Official Workflow Step
+     * @param hostId
+     * @param volumeId
+     * @param stepId
+     * @throws ControllerException
+     */
+    public void rollbackHostBootVolumeIdStep(URI hostId, URI volumeId, String stepId) throws ControllerException {
+        _log.info("rollbackHostBootVolumeIdStep:"+ hostId.toString());
         Host host = null;
         try {
             WorkflowStepCompleter.stepExecuting(stepId);
@@ -348,13 +374,20 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
             _log.info("Generating steps for San Boot Targets");
             newWaitFor = workflow.createStep(null,
                     "Set UCS san boot targets for the host", waitFor, host.getId(), host.getLabel(),
-                    this.getClass(), new Workflow.Method("setHostSanBootTargets", hostId, volumeId),
+                    this.getClass(), new Workflow.Method("setHostSanBootTargetsStep", hostId, volumeId),
                     new Workflow.Method(ROLLBACK_NULL_METHOD), null);
         }
         return newWaitFor;
     }
 
-    public void setHostSanBootTargets(URI hostId, URI volumeId, String stepId) throws ControllerException {
+    /**
+     * Official Workflow Step
+     * @param hostId
+     * @param volumeId
+     * @param stepId
+     * @throws ControllerException
+     */
+    public void setHostSanBootTargetsStep(URI hostId, URI volumeId, String stepId) throws ControllerException {
         Host host = null;
         try {
             WorkflowStepCompleter.stepExecuting(stepId);

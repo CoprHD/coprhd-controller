@@ -246,6 +246,7 @@ public abstract class AbstractConsistencyGroupManager implements ConsistencyGrou
     }
 
     /**
+     * Official Workflow Step
      * Deletes the consistency group with the passed URI on the VPLEX storage
      * system with the passed URU.
      *
@@ -489,6 +490,7 @@ public abstract class AbstractConsistencyGroupManager implements ConsistencyGrou
     }
 
     /**
+     * Official Workflow Step
      * Method call when we need to rollback the deletion of a consistency group.
      *
      * @param cgURI The consistency group URI
@@ -575,6 +577,7 @@ public abstract class AbstractConsistencyGroupManager implements ConsistencyGrou
     }
 
     /**
+     * Official Workflow Step
      * The method called by the workflow to remove VPLEX volumes from a VPLEX
      * consistency group.
      *

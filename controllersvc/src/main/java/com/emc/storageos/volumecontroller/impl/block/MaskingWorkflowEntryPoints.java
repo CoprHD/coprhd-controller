@@ -37,7 +37,6 @@ import com.emc.storageos.volumecontroller.impl.ControllerServiceImpl;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportDeleteCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportMaskRemoveInitiatorCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportMaskRemoveVolumeCompleter;
-import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportOrchestrationTask;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportTaskCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.RollbackExportGroupCreateCompleter;
 import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
@@ -100,6 +99,7 @@ public class MaskingWorkflowEntryPoints implements Controller {
     }
 
     /**
+     * Official Workflow Step
      * Create the actual Export Mask on a Storage Array. This is called as a subtask
      * from exportGroupCreate().
      *
@@ -196,7 +196,12 @@ public class MaskingWorkflowEntryPoints implements Controller {
     }
 
     /**
+     * Official Workflow Step
      * Zoning map update entry point
+     * @param exportGroupURI
+     * @param storageURI
+     * @param token
+     * @throws ControllerException
      */
     public void doExportMaskZoningMapUpdate(URI exportGroupURI, URI storageURI,
             String token) throws ControllerException {
@@ -228,6 +233,7 @@ public class MaskingWorkflowEntryPoints implements Controller {
     }
 
     /**
+     * Official Workflow Step
      * Zoning map update roll back entry point
      */
     public void rollbackExportMaskZoningMapUpdate(URI exportGroupURI,
@@ -239,6 +245,17 @@ public class MaskingWorkflowEntryPoints implements Controller {
         _log.info("END - rollbackExportMaskZoningMapUpdate");
     }
 
+    /**
+     * Official Workflow Step
+     * @param storageURI
+     * @param exportGroupURI
+     * @param exportMaskURI
+     * @param volumeMap
+     * @param initiatorURIs
+     * @param taskCompleter
+     * @param token
+     * @throws ControllerException
+     */
     public void doExportGroupAddVolumes(URI storageURI, URI exportGroupURI,
             URI exportMaskURI, Map<URI, Integer> volumeMap,
             List<URI> initiatorURIs,
@@ -387,6 +404,17 @@ public class MaskingWorkflowEntryPoints implements Controller {
         }
     }
 
+    /**
+     * Official Workflow Step
+     * @param storageURI
+     * @param exportGroupURI
+     * @param exportMaskURI
+     * @param volumeURIs
+     * @param initiatorURIs
+     * @param taskCompleter
+     * @param token
+     * @throws ControllerException
+     */
     public void doExportGroupDelete(URI storageURI, URI exportGroupURI,
             URI exportMaskURI, List<URI> volumeURIs,
             List<URI> initiatorURIs, TaskCompleter taskCompleter, String token) throws ControllerException {
@@ -418,6 +446,17 @@ public class MaskingWorkflowEntryPoints implements Controller {
         }
     }
 
+    /**
+     * Official Workflow Step
+     * @param storageURI
+     * @param exportGroupURI
+     * @param exportMaskURI
+     * @param volumeURIs
+     * @param initiatorURIs
+     * @param taskCompleter
+     * @param token
+     * @throws ControllerException
+     */
     public void doExportGroupRemoveVolumes(URI storageURI, URI exportGroupURI,
             URI exportMaskURI, List<URI> volumeURIs,
             List<URI> initiatorURIs,
@@ -457,6 +496,16 @@ public class MaskingWorkflowEntryPoints implements Controller {
         }
     }
 
+    /**
+     * Official Workflow Step
+     * @param storageURI
+     * @param exportGroupURI
+     * @param volumeURIs
+     * @param initiatorURIs
+     * @param taskCompleter
+     * @param token
+     * @throws ControllerException
+     */
     public void doExportGroupRemoveVolumesCleanup(URI storageURI, URI exportGroupURI,
             List<URI> volumeURIs,
             List<URI> initiatorURIs,
@@ -493,6 +542,18 @@ public class MaskingWorkflowEntryPoints implements Controller {
         }
     }
 
+    /**
+     * Official Workflow Step
+     * @param storageURI
+     * @param exportGroupURI
+     * @param exportMaskURI
+     * @param volumeURIs
+     * @param initiatorURIs
+     * @param newSps
+     * @param taskCompleter
+     * @param token
+     * @throws ControllerException
+     */
     public void doExportGroupAddInitiators(URI storageURI, URI exportGroupURI,
             URI exportMaskURI,
             List<URI> volumeURIs,
@@ -569,6 +630,18 @@ public class MaskingWorkflowEntryPoints implements Controller {
                 volumeURIs, initiatorURIs, true, taskCompleter, token);
     }
 
+    /**
+     * Official Workflow Step
+     * @param storageURI
+     * @param exportGroupURI
+     * @param exportMaskURI
+     * @param volumeURIs
+     * @param initiatorURIs
+     * @param removeTargets
+     * @param taskCompleter
+     * @param token
+     * @throws ControllerException
+     */
     public void doExportGroupRemoveInitiators(URI storageURI, URI exportGroupURI,
             URI exportMaskURI,
             List<URI> volumeURIs,
@@ -609,6 +682,14 @@ public class MaskingWorkflowEntryPoints implements Controller {
         }
     }
 
+    /**
+     * Official Workflow Step
+     * @param exportGroupURI
+     * @param exportMaskURI
+     * @param taskCompleter
+     * @param token
+     * @throws ControllerException
+     */
     public void doExportGroupToCleanExportMask(URI exportGroupURI, URI exportMaskURI,
             TaskCompleter taskCompleter, String token) throws ControllerException {
         String call = String.format("doExportGroupToCleanExportMask(%s, %s, %s)",
@@ -624,6 +705,15 @@ public class MaskingWorkflowEntryPoints implements Controller {
         }
     }
 
+    /**
+     * Official Workflow Step
+     * @param exportGroupURI
+     * @param exportMaskURI
+     * @param volumesToRemove
+     * @param taskCompleter
+     * @param token
+     * @throws ControllerException
+     */
     public void doExportGroupToCleanVolumesInExportMask(URI exportGroupURI,
             URI exportMaskURI, List<URI> volumesToRemove, TaskCompleter taskCompleter,
             String token) throws ControllerException {
@@ -643,6 +733,16 @@ public class MaskingWorkflowEntryPoints implements Controller {
         }
     }
     
+    /**
+     * Official Workflow Step
+     * @param storageURI
+     * @param exportGroupURI
+     * @param exportMaskURI
+     * @param newPaths
+     * @param taskCompleter
+     * @param token
+     * @throws ControllerException
+     */
     public void doExportMaskAddPaths(URI storageURI, URI exportGroupURI,
             URI exportMaskURI,
             Map<URI, List<URI>> newPaths,
@@ -672,6 +772,17 @@ public class MaskingWorkflowEntryPoints implements Controller {
         }
     }
     
+    /**
+     * Official Workflow Step
+     * @param storageURI
+     * @param exportGroupURI
+     * @param exportMaskURI
+     * @param adjustedPaths
+     * @param removePaths
+     * @param taskCompleter
+     * @param token
+     * @throws ControllerException
+     */
     public void doExportMaskRemovePaths(URI storageURI, URI exportGroupURI,
             URI exportMaskURI,
             Map<URI, List<URI>> adjustedPaths,

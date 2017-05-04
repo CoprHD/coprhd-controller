@@ -388,7 +388,7 @@ public class HostService extends TaskResourceService {
 
         //The volume being set as the boot volume should be exported to the host and should not be exported to any other initiators.
         // The controller call invoked below validates that before setting the volume as the boot volume.
-        controller.setHostBootVolume(host.getId(), param.getBootVolume(), updateSanBootTargets, taskId);
+        controller.setHostBootVolumeStep(host.getId(), param.getBootVolume(), updateSanBootTargets, taskId);
         return toTask(host, taskId, op);
     }
 

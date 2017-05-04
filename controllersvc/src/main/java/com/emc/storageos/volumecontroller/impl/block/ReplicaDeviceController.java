@@ -523,6 +523,15 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
         return new Workflow.Method("addSnapshotSessionsToConsistencyGroupStep", storage, consistencyGroup, addVolumesList);
     }
 
+    /**
+     * Official Workflow Step
+     * @param storage
+     * @param consistencyGroup
+     * @param volumes
+     * @param opId
+     * @return
+     * @throws ControllerException
+     */
     public boolean addSnapshotSessionsToConsistencyGroupStep(URI storage, URI consistencyGroup, List<URI> volumes, String opId)
             throws ControllerException {
         TaskCompleter taskCompleter = null;
@@ -784,6 +793,7 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
     }
 
     /**
+     * Official Workflow Step
      * Orchestration method for adding members to a replication group.
      * 
      * @param storage

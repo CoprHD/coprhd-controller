@@ -185,6 +185,7 @@ public class FileReplicationDeviceController implements FileOrchestrationInterfa
     }
 
     /**
+     * Official Workflow Step
      * Call to Create Mirror session on Storage Device
      * 
      * @param systemURI
@@ -233,6 +234,7 @@ public class FileReplicationDeviceController implements FileOrchestrationInterfa
     }
 
     /**
+     * Official Workflow Step
      * Roll back Mirror session between source and target
      * 
      * @param systemURI

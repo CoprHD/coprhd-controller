@@ -287,6 +287,7 @@ public class VPlexHDSMaskingOrchestrator extends HDSMaskingOrchestrator
     }
 
     /**
+     * Official Workflow Step
      * Create an ExportMask on the HDS if it does not exist. Otherwise, just add the indicated
      * volumes to the ExportMask.
      */
@@ -359,6 +360,11 @@ public class VPlexHDSMaskingOrchestrator extends HDSMaskingOrchestrator
                 exportGroupURI, exportMaskURI, volumes, initiatorURIs);
     }
 
+    /* 
+     * Official Workflow Step
+     * (non-Javadoc)
+     * @see com.emc.storageos.volumecontroller.impl.block.VplexBackEndMaskingOrchestrator#deleteOrRemoveVolumesFromExportMask(java.net.URI, java.net.URI, java.net.URI, java.util.List, java.util.List, java.lang.String)
+     */
     @Override
     public void deleteOrRemoveVolumesFromExportMask(URI arrayURI,
             URI exportGroupURI, URI exportMaskURI,

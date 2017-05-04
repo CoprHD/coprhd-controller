@@ -353,7 +353,7 @@ public class ImageServerControllerImpl implements ImageServerController {
                             imageServerId, imageServerId.toString(), this
                             .getClass(),
                             new Workflow.Method(
-                                    "verifyComputeImageServer", imageServerId),
+                                    "verifyComputeImageServerStep", imageServerId),
                             new Workflow.Method(ROLLBACK_NOTHING_METHOD), null);
 
                     workflow.createStep(IMPORT_IMAGE_TO_SERVER_STEP, String
@@ -531,6 +531,7 @@ public class ImageServerControllerImpl implements ImageServerController {
     }
 
     /**
+     * Official Workflow Step
      * Method to import an image
      *
      * @param ciId {@link URI} computeImage URI
@@ -737,7 +738,7 @@ public class ImageServerControllerImpl implements ImageServerController {
                             "removing image %s", ciId), null, ciId, ciId
                             .toString(),
                             this.getClass(), new Workflow.Method(
-                                    "deleteImageMethod", ciId, imageServer.getId()),
+                                    "deleteImageStep", ciId, imageServer.getId()),
                             new Workflow.Method(ROLLBACK_NOTHING_METHOD), null);
                 }
                 //The image being deleted/cleaned up must also be removed from the
@@ -761,13 +762,14 @@ public class ImageServerControllerImpl implements ImageServerController {
     }
 
     /**
+     * Official Workflow Step
      * Deletes a given image from the imageServer
      * @param ciId {@link URI} compute image id
      * @param imageServerId {@link URI} compute image server id
      * @param stepId {@link String} step id
      */
-    public void deleteImageMethod(URI ciId, URI imageServerId, String stepId) {
-        log.info("deleteImageMethod {}", ciId);
+    public void deleteImageStep(URI ciId, URI imageServerId, String stepId) {
+        log.info("deleteImageStep {}", ciId);
         ImageServerDialog d = null;
         try {
             WorkflowStepCompleter.stepExecuting(stepId);
@@ -843,13 +845,13 @@ public class ImageServerControllerImpl implements ImageServerController {
             waitFor = workflow.createStep(OS_INSTALL_IMAGE_SERVER_CHECK_STEP,
                     "image server check pre os install", waitFor,
                     img.getId(), img.getImageType(),
-                    this.getClass(), new Workflow.Method("preOsInstallImageServerCheck", job.getId()),
+                    this.getClass(), new Workflow.Method("preOsInstallImageServerCheckStep", job.getId()),
                     new Workflow.Method(ROLLBACK_NOTHING_METHOD), null);
 
             waitFor = workflow.createStep(OS_INSTALL_PREPARE_PXE_STEP,
                     "prepare pxe boot", waitFor,
                     img.getId(), img.getImageType(),
-                    this.getClass(), new Workflow.Method("preparePxeBootMethod", job.getId()),
+                    this.getClass(), new Workflow.Method("preparePxeBootMethodStep", job.getId()),
                     new Workflow.Method(ROLLBACK_NOTHING_METHOD), null);
 
             String prepStepId = workflow.createStepId();
@@ -859,7 +861,7 @@ public class ImageServerControllerImpl implements ImageServerController {
             waitFor = workflow.createStep(OS_INSTALL_WAIT_FOR_FINISH_STEP,
                     "wait for os install to finish", waitFor,
                     img.getId(), img.getImageType(),
-                    this.getClass(), new Workflow.Method("waitForFinishMethod", job.getId(), host.getHostName()),
+                    this.getClass(), new Workflow.Method("waitForFinishStep", job.getId(), host.getHostName()),
                     new Workflow.Method(ROLLBACK_NOTHING_METHOD), null);
 
             waitFor = computeDeviceController.addStepsPostOsInstall(workflow, waitFor, cs.getId(), ce.getId(),
@@ -874,12 +876,13 @@ public class ImageServerControllerImpl implements ImageServerController {
     }
 
     /**
+     * Official Workflow Step
      * Performs preOs install check on the imageServer
      * @param jobId {@link URI} job id
      * @param stepId {@link String} step id
      */
-    public void preOsInstallImageServerCheck(URI jobId, String stepId) {
-        log.info("preOsInstallImageServerCheck {} ", jobId);
+    public void preOsInstallImageServerCheckStep(URI jobId, String stepId) {
+        log.info("preOsInstallImageServerCheckStep {} ", jobId);
         ImageServerDialog d = null;
         try {
             WorkflowStepCompleter.stepExecuting(stepId);
@@ -946,12 +949,13 @@ public class ImageServerControllerImpl implements ImageServerController {
     }
 
     /**
+     * Official Workflow Step
      * Prepare pxe boot method, copies the conf file
      * @param jobId {@link URI} job id
      * @param stepId {@link String} step id
      */
-    public void preparePxeBootMethod(URI jobId, String stepId) {
-        log.info("preparePxeBootMethod {} ", jobId);
+    public void preparePxeBootMethodStep(URI jobId, String stepId) {
+        log.info("preparePxeBootMethodStep {} ", jobId);
         ImageServerDialog d = null;
         try {
             WorkflowStepCompleter.stepExecuting(stepId);
@@ -991,13 +995,14 @@ public class ImageServerControllerImpl implements ImageServerController {
     }
 
     /**
+     * Official Workflow Step
      * Utility wait method to check os install status
      * @param jobId {@link URI} job id
      * @param hostName {@link String} host name for error reporting
      * @param stepId {@link String} step id
      */
-    public void waitForFinishMethod(URI jobId, String hostName, String stepId) {
-        log.info("waitForFinishMethod {}, {} ", jobId, hostName);
+    public void waitForFinishStep(URI jobId, String hostName, String stepId) {
+        log.info("waitForFinishStep {}, {} ", jobId, hostName);
 
         try {
             WorkflowStepCompleter.stepExecuting(stepId);
@@ -1122,7 +1127,7 @@ public class ImageServerControllerImpl implements ImageServerController {
                     computeImageServerID, computeImageServerID.toString(), this
                     .getClass(),
                     new Workflow.Method(
-                            "verifyComputeImageServer", computeImageServerID),
+                            "verifyComputeImageServerStep", computeImageServerID),
                     new Workflow.Method(ROLLBACK_NOTHING_METHOD), null);
             List<ComputeImage> computeImageList = getAllComputeImages();
             if (!CollectionUtils.isEmpty(computeImageList)) {
@@ -1179,13 +1184,14 @@ public class ImageServerControllerImpl implements ImageServerController {
     }
 
     /**
+     * Official Workflow Step
      * This method verifies if the given image Server is a valid imageServer.
      *
      * @param imageServerId {@link URI} of ComputeImageServer
      * @param stepId workflow stepid being executed.
      */
-    public void verifyComputeImageServer(URI imageServerId, String stepId) {
-        log.info("entering method verifyComputeImageServer");
+    public void verifyComputeImageServerStep(URI imageServerId, String stepId) {
+        log.info("entering method verifyComputeImageServerStep");
         WorkflowStepCompleter.stepExecuting(stepId);
 
         ComputeImageServer imageServer = dbClient.queryObject(

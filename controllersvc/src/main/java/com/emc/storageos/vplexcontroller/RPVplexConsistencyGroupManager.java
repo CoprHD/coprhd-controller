@@ -108,6 +108,7 @@ public class RPVplexConsistencyGroupManager extends AbstractConsistencyGroupMana
     }
 
     /**
+     * Official Workflow Step
      * Called by the workflow to create a new VPLEX consistency group.
      *
      * @param vplexURI The URI of the VPLEX storage system.

@@ -1588,7 +1588,7 @@ public class NetworkDeviceController implements NetworkController {
      * @return Workflow.Method
      */
     public Workflow.Method zoneRollbackMethod(URI exportGroupURI, String contextKey) {
-        return new Workflow.Method("zoneRollback", exportGroupURI, contextKey);
+        return new Workflow.Method("zoneRollbackStep", exportGroupURI, contextKey);
     }
 
     /**
@@ -1603,7 +1603,7 @@ public class NetworkDeviceController implements NetworkController {
      * @return
      * @throws DeviceControllerException
      */
-    public boolean zoneRollback(URI exportGroupURI, String contextKey, String taskId) throws DeviceControllerException {
+    public boolean zoneRollbackStep(URI exportGroupURI, String contextKey, String taskId) throws DeviceControllerException {
         TaskCompleter taskCompleter = null;
         try {
             NetworkFCContext context = (NetworkFCContext) WorkflowService.getInstance()

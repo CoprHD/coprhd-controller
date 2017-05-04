@@ -587,6 +587,11 @@ public class VplexXtremIOMaskingOrchestrator extends XtremIOMaskingOrchestrator 
                 exportGroupURI, exportMaskURI, volumeMap, initiatorURIs, completer);
     }
 
+    /* 
+     * Official Workflow Step
+     * (non-Javadoc)
+     * @see com.emc.storageos.volumecontroller.impl.block.VplexBackEndMaskingOrchestrator#createOrAddVolumesToExportMask(java.net.URI, java.net.URI, java.net.URI, java.util.Map, java.util.List, com.emc.storageos.volumecontroller.TaskCompleter, java.lang.String)
+     */
     @Override
     public void createOrAddVolumesToExportMask(URI arrayURI, URI exportGroupURI, URI exportMaskURI,
             Map<URI, Integer> volumeMap, List<URI> initiatorURIs, TaskCompleter completer, String stepId) {
@@ -667,6 +672,11 @@ public class VplexXtremIOMaskingOrchestrator extends XtremIOMaskingOrchestrator 
                 exportGroupURI, exportMaskURI, volumes, initiatorURIs);
     }
 
+    /* 
+     * Official Workflow Step
+     * (non-Javadoc)
+     * @see com.emc.storageos.volumecontroller.impl.block.VplexBackEndMaskingOrchestrator#deleteOrRemoveVolumesFromExportMask(java.net.URI, java.net.URI, java.net.URI, java.util.List, java.util.List, java.lang.String)
+     */
     @Override
     public void deleteOrRemoveVolumesFromExportMask(URI arrayURI, URI exportGroupURI, URI exportMaskURI,
             List<URI> volumes, List<URI> initiatorURIs, String stepId) {

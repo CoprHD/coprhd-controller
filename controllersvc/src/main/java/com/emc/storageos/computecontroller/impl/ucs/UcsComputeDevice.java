@@ -738,6 +738,14 @@ public class UcsComputeDevice implements ComputeDevice {
         return lsServer;
     }
 
+    /**
+     * Official Workflow Step
+     * @param cs
+     * @param hostURI
+     * @param createSpStepId
+     * @param stepId
+     * @throws ClientGeneralException
+     */
     public void deleteLsServerStep(ComputeSystem cs, URI hostURI, String createSpStepId, String stepId) throws ClientGeneralException {
         WorkflowStepCompleter.stepExecuting(stepId);
         String spDn = null;

@@ -4,6 +4,10 @@
  */
 package com.emc.storageos.volumecontroller.impl.block.taskcompleter;
 
+import java.net.URI;
+import java.util.List;
+import java.util.Map;
+
 import com.emc.storageos.Controller;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.BlockSnapshot;
@@ -12,10 +16,6 @@ import com.emc.storageos.volumecontroller.BlockStorageDevice;
 import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.workflow.Workflow;
 import com.emc.storageos.workflow.WorkflowStepCompleter;
-
-import java.net.URI;
-import java.util.List;
-import java.util.Map;
 
 /**
  * This class will contain entry points and utilities for invoking snapshot operations
@@ -66,7 +66,7 @@ public class SnapshotWorkflowEntryPoints implements Controller {
                         snapshotList, copyToTargetStep);
 
         Workflow.Method copy2TargetMethod =
-                new Workflow.Method("doCopySnapshotsToTarget",
+                new Workflow.Method("doCopySnapshotsToTargetStep",
                         storageSystem.getId(),
                         snapshotList, taskCompleter);
 
@@ -79,6 +79,7 @@ public class SnapshotWorkflowEntryPoints implements Controller {
     }
 
     /**
+     * Official Workflow Step
      * Entry method to invoke the copy-to-target operation.
      * 
      * @param storageURI [required] - StorageSystem object URI
@@ -88,7 +89,7 @@ public class SnapshotWorkflowEntryPoints implements Controller {
      *            completion of the workflow step
      * @param token [required] - Token used for step identification
      */
-    public void doCopySnapshotsToTarget(URI storageURI, List<URI> snapshotList,
+    public void doCopySnapshotsToTargetStep(URI storageURI, List<URI> snapshotList,
             TaskCompleter taskCompleter, String token) {
         WorkflowStepCompleter.stepExecuting(token);
 

@@ -136,6 +136,15 @@ public class ExportWorkflowEntryPoints implements Controller {
     // ====================== Methods to call Masking Orchestrator
     // ======================
 
+    /**
+     * Official Workflow Step
+     * @param storageURI
+     * @param exportGroupURI
+     * @param volumeMap
+     * @param initiatorURIs
+     * @param token
+     * @throws ControllerException
+     */
     public void exportGroupCreate(URI storageURI, URI exportGroupURI, Map<URI, Integer> volumeMap,
             List<URI> initiatorURIs, String token) throws ControllerException {
         try {
@@ -162,6 +171,7 @@ public class ExportWorkflowEntryPoints implements Controller {
     }
 
     /**
+     * Official Workflow Step
      * This function is called from a main workflow that performs updated to an export
      * group on may storage arrays. This step performs the updates for one array. It
      * simply invokes the workflow that was pre-created that will do the needed adds/removes,
@@ -200,6 +210,13 @@ public class ExportWorkflowEntryPoints implements Controller {
         }
     }
 
+    /**
+     * Official Workflow Step
+     * @param storageURI
+     * @param exportGroupURI
+     * @param token
+     * @throws ControllerException
+     */
     public void exportGroupDelete(URI storageURI, URI exportGroupURI, String token)
             throws ControllerException {
         try {
@@ -221,6 +238,14 @@ public class ExportWorkflowEntryPoints implements Controller {
         }
     }
 
+    /**
+     * Official Workflow Step
+     * @param storageURI
+     * @param exportGroupURI
+     * @param volumeMap
+     * @param token
+     * @throws ControllerException
+     */
     public void exportAddVolumes(URI storageURI, URI exportGroupURI, Map<URI, Integer> volumeMap,
             String token) throws ControllerException {
         try {
@@ -242,6 +267,14 @@ public class ExportWorkflowEntryPoints implements Controller {
         }
     }
 
+    /**
+     * Official Workflow Step
+     * @param storageURI
+     * @param exportGroupURI
+     * @param volumes
+     * @param token
+     * @throws ControllerException
+     */
     public void exportRemoveVolumes(URI storageURI, URI exportGroupURI, List<URI> volumes,
             String token) throws ControllerException {
         try {
@@ -263,6 +296,14 @@ public class ExportWorkflowEntryPoints implements Controller {
         }
     }
 
+    /**
+     * Official Workflow Step
+     * @param storageURI
+     * @param exportGroupURI
+     * @param initiatorURIs
+     * @param token
+     * @throws ControllerException
+     */
     public void exportAddInitiators(URI storageURI, URI exportGroupURI, List<URI> initiatorURIs,
             String token) throws ControllerException {
         try {
@@ -284,6 +325,14 @@ public class ExportWorkflowEntryPoints implements Controller {
         }
     }
 
+    /**
+     * Official Workflow Step
+     * @param storageURI
+     * @param exportGroupURI
+     * @param initiatorURIs
+     * @param token
+     * @throws ControllerException
+     */
     public void exportRemoveInitiators(URI storageURI, URI exportGroupURI, List<URI> initiatorURIs,
             String token) throws ControllerException {
         try {
@@ -307,6 +356,7 @@ public class ExportWorkflowEntryPoints implements Controller {
     }
 
     /**
+     * Official Workflow Step
      * Changes the PathParams (e.g. maxPaths, pathsPerInitiator) for a volume in all the
      * ExportMasks containing that volume in an Export Group.
      * 
@@ -340,6 +390,17 @@ public class ExportWorkflowEntryPoints implements Controller {
         }
     }
 
+    /**
+     * Official Workflow Step
+     * @param storageURI
+     * @param exportMaskURI
+     * @param exportGroupURI
+     * @param volumeURIs
+     * @param newVpoolURI
+     * @param rollback
+     * @param token
+     * @throws ControllerException
+     */
     public void exportChangePolicyAndLimits(URI storageURI, URI exportMaskURI,
             URI exportGroupURI, List<URI> volumeURIs, URI newVpoolURI,
             boolean rollback, String token) throws ControllerException {
@@ -358,6 +419,15 @@ public class ExportWorkflowEntryPoints implements Controller {
         }
     }
 
+    /**
+     * Official Workflow Step
+     * @param storageURI
+     * @param volumeURIs
+     * @param newVpoolURI
+     * @param rollback
+     * @param token
+     * @throws ControllerException
+     */
     public void changeAutoTieringPolicy(URI storageURI, List<URI> volumeURIs, URI newVpoolURI,
             boolean rollback, String token) throws ControllerException {
         try {
@@ -384,6 +454,17 @@ public class ExportWorkflowEntryPoints implements Controller {
         WorkflowStepCompleter.stepSucceded(stepId);
     }
     
+    /**
+     * Official Workflow Step
+     * @param storageURI
+     * @param exportGroupURI
+     * @param varray
+     * @param exportMaskURI
+     * @param adjustedPaths
+     * @param removePaths
+     * @param token
+     * @throws ControllerException
+     */
     public void exportAddPathsStep(URI storageURI, URI exportGroupURI, URI varray, URI exportMaskURI, Map<URI, List<URI>>adjustedPaths, 
             Map<URI, List<URI>>removePaths, String token) throws ControllerException{
         try {
@@ -405,6 +486,17 @@ public class ExportWorkflowEntryPoints implements Controller {
         }
     }
     
+    /**
+    * Official Workflow Step
+     * @param storageURI
+     * @param exportGroupURI
+     * @param varray
+     * @param exportMaskURI
+     * @param adjustedPaths
+     * @param removePaths
+     * @param token
+     * @throws ControllerException
+     */
     public void exportRemovePathsStep(URI storageURI, URI exportGroupURI, URI varray, URI exportMaskURI, Map<URI, List<URI>> adjustedPaths, 
             Map<URI, List<URI>>removePaths, String token) throws ControllerException{
         try {

@@ -8,7 +8,6 @@ import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.eclipse.jetty.util.log.Log;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -43,6 +42,11 @@ public class HostRescanDeviceController implements HostRescanController {
         return new Method("rescanHostStorage", hostId);
     }
     
+    /* 
+     * Official Workflow Step
+     * (non-Javadoc)
+     * @see com.emc.storageos.computecontroller.HostRescanController#rescanHostStorage(java.net.URI, java.lang.String)
+     */
     @Override
     public void rescanHostStorage(URI hostId, String taskId) {
         try {

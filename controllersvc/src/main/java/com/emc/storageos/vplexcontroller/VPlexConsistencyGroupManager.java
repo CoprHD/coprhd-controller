@@ -37,7 +37,6 @@ import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
-import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorException;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
 import com.emc.storageos.util.VPlexSrdfUtil;
 import com.emc.storageos.volumecontroller.ControllerException;
@@ -191,6 +190,7 @@ public class VPlexConsistencyGroupManager extends AbstractConsistencyGroupManage
     }
 
     /**
+     * Official Workflow Step
      * Method call when we need to rollback the deletion of a consistency group.
      *
      * @param vplexSystemURI The URI of the VPlex system.
@@ -280,6 +280,7 @@ public class VPlexConsistencyGroupManager extends AbstractConsistencyGroupManage
     }
 
     /**
+     * Official Workflow Step
      * Called by the workflow to create a new VPLEX consistency group.
      * 
      * @param vplexURI The URI of the VPLEX storage system.
@@ -398,6 +399,7 @@ public class VPlexConsistencyGroupManager extends AbstractConsistencyGroupManage
     }
 
     /**
+     * Official Workflow Step
      * The method called by the workflow to add VPLEX volumes to a VPLEX
      * consistency group.
      * 
@@ -482,6 +484,7 @@ public class VPlexConsistencyGroupManager extends AbstractConsistencyGroupManage
     }
 
     /**
+     * Official Workflow Step
      * Called by the workflow to set the properties for an existing VPLEX
      * consistency group with no volumes.
      * 
@@ -1011,6 +1014,7 @@ public class VPlexConsistencyGroupManager extends AbstractConsistencyGroupManage
     
     
     /**
+     * Official Workflow Step
      * Removes volumes from SRDF Target.
      * @param vplexURI
      * @param vplexVolumeURIs
@@ -1229,6 +1233,7 @@ public class VPlexConsistencyGroupManager extends AbstractConsistencyGroupManage
     }
     
     /**
+     * Official Workflow Step
      * Step to call the VPLEX to update the read-only flag on a consistency group.
      * If the Vplex Api library detects the firmware does not properly handle the flag,
      * a warning message is put in the SUCCESS status.

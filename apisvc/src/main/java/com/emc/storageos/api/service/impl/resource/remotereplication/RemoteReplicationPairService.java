@@ -211,6 +211,7 @@ public class RemoteReplicationPairService extends TaskResourceService {
                 new RemoteReplicationElement(RemoteReplicationSet.ElementType.CONSISTENCY_GROUP, cgURI);
 
         RemoteReplicationUtils.validateRemoteReplicationOperation(_dbClient, rrElement, RemoteReplicationController.RemoteReplicationOperations.FAIL_OVER);
+        _log.info("Execute operation for {} array type.", sourceElement.getSystemType());
         // VMAX SRDF integration logic
         if (sourceElement.getSystemType().equalsIgnoreCase(DiscoveredDataObject.Type.vmax.toString()) ||
                 sourceElement.getSystemType().equalsIgnoreCase(DiscoveredDataObject.Type.vmax3.toString())) {
@@ -314,6 +315,15 @@ public class RemoteReplicationPairService extends TaskResourceService {
                 new RemoteReplicationElement(RemoteReplicationSet.ElementType.CONSISTENCY_GROUP, cgURI);
 
         RemoteReplicationUtils.validateRemoteReplicationOperation(_dbClient, rrElement, RemoteReplicationController.RemoteReplicationOperations.FAIL_BACK);
+
+        _log.info("Execute operation for {} array type.", sourceElement.getSystemType());
+        // VMAX SRDF integration logic
+        if (sourceElement.getSystemType().equalsIgnoreCase(DiscoveredDataObject.Type.vmax.toString()) ||
+                sourceElement.getSystemType().equalsIgnoreCase(DiscoveredDataObject.Type.vmax3.toString())) {
+            // delegate to SRDF support
+            TaskList taskList = processSrdfGroupLinkRequest(rrPairs.get(0), ResourceOperationTypeEnum.FAILBACK_REMOTE_REPLICATION_CG_LINK);
+            return taskList;
+        }
 
         String taskId = UUID.randomUUID().toString();
         TaskList taskList = new TaskList();
@@ -897,7 +907,7 @@ public class RemoteReplicationPairService extends TaskResourceService {
         if(RemoteReplicationUtils.isSwapped(systemPair, _dbClient)) {
             Volume temp = sourceVolume;
             sourceVolume = targetVolume;
-            targetVolume = sourceVolume;
+            targetVolume = temp;
         }
 
         String type = BlockSnapshot.TechnologyType.SRDF.toString();

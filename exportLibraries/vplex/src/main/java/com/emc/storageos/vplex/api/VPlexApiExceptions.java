@@ -860,4 +860,7 @@ public interface VPlexApiExceptions {
     @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
     public VPlexApiException existingMaskFoundDuringBootVolumeExport(final String maskNames, final String computeResource,
             final String vplexClusterName);
+    
+    @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
+    public VPlexApiException logicalUnitsNotFoundForVolumes(final String volumeInfo);    
 }

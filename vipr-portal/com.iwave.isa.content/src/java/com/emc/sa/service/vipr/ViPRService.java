@@ -19,6 +19,7 @@ import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.engine.service.AbstractExecutionService;
 import com.emc.sa.model.dao.ModelClient;
 import com.emc.sa.service.vipr.block.BlockStorageUtils;
+import com.emc.sa.service.vipr.tasks.AcquireClusterLock;
 import com.emc.sa.service.vipr.tasks.AcquireHostLock;
 import com.emc.sa.service.vipr.tasks.ReleaseHostLock;
 import com.emc.storageos.db.client.constraint.NamedElementQueryResultList.NamedElement;
@@ -180,6 +181,13 @@ public abstract class ViPRService extends AbstractExecutionService {
         logDebug("Locks that already exist:", locks);
         if (cluster != null) {
             locks.remove(cluster.getId().toString());
+        }
+    }
+
+    protected void acquireClusterLock(Cluster cluster) {
+        if (cluster != null) {
+            execute(new AcquireClusterLock(cluster));
+            locks.add(cluster.getId().toString());
         }
     }
 

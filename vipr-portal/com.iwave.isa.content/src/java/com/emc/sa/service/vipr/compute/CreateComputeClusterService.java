@@ -260,12 +260,16 @@ public class CreateComputeClusterService extends ViPRService {
         if (cluster == null) {
             cluster = ComputeUtils.createCluster(name);
             logInfo("compute.cluster.created", name);
+            acquireClusterLock(cluster);
         } else {
             // If the hostName already exists, we remove it from the hostnames list.
             hostNames = ComputeUtils.removeExistingHosts(hostNames, cluster);
         }
 
         List<Host> hosts = ComputeUtils.createHosts(cluster, computeVirtualPool, hostNames, virtualArray);
+        for (Host host : hosts) {
+            acquireHostLock(host, cluster);
+        }
 
         logInfo("compute.cluster.hosts.created", ComputeUtils.nonNull(hosts).size());
 

@@ -43,6 +43,12 @@
                 min: 1
             }
         },
+
+		mountAllDirectories: {
+			type: "boolean",
+			initialValue: "false",
+			required: false
+		},
         
         mountList: {
             type: "table",

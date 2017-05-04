@@ -5,6 +5,7 @@
 package com.emc.sa.service.vipr.file;
 
 import static com.emc.sa.service.ServiceParams.COMMENT;
+import static com.emc.sa.service.ServiceParams.MOUNT_ALL_DIRECTORIES;
 import static com.emc.sa.service.ServiceParams.PROJECT;
 import static com.emc.sa.service.ServiceParams.SIZE_IN_GB;
 import static com.emc.sa.service.ServiceParams.VIRTUAL_ARRAY;
@@ -33,6 +34,8 @@ public class CreateNfsExportHelper {
     protected Double sizeInGb;
     @Param(VOLUME_NAME)
     protected String exportName;
+    @Param(value = MOUNT_ALL_DIRECTORIES, required = false)
+    protected Boolean mountSubDirectory;
 
     private String permissions;
     private List<String> exportHosts;
@@ -74,7 +77,7 @@ public class CreateNfsExportHelper {
     public URI createNfsExport() {
         URI fileSystemId = FileStorageUtils.createFileSystem(project, virtualArray, virtualPool, exportName,
                 sizeInGb);
-        FileStorageUtils.createFileSystemExport(fileSystemId, comment, security, permissions, rootUser, exportHosts, null);
+        FileStorageUtils.createFileSystemExport(fileSystemId, comment, security, permissions, rootUser, exportHosts, null, mountSubDirectory);
         return fileSystemId;
     }
 

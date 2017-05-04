@@ -8,6 +8,7 @@ import static com.emc.sa.service.ServiceParams.ADVISORY_LIMIT;
 import static com.emc.sa.service.ServiceParams.COMMENT;
 import static com.emc.sa.service.ServiceParams.FILESYSTEM_NAME;
 import static com.emc.sa.service.ServiceParams.GRACE_PERIOD;
+import static com.emc.sa.service.ServiceParams.MOUNT_ALL_DIRECTORIES;
 import static com.emc.sa.service.ServiceParams.PROJECT;
 import static com.emc.sa.service.ServiceParams.SIZE_IN_GB;
 import static com.emc.sa.service.ServiceParams.SOFT_LIMIT;
@@ -59,6 +60,8 @@ public class CreateNFSExportAndMountService extends ViPRService {
     protected Double advisoryLimit;
     @Param(value = GRACE_PERIOD, required = false)
     protected Double gracePeriod;
+    @Param(value = MOUNT_ALL_DIRECTORIES, required = false)
+    protected Boolean mountSubDirectory;
 
     @Bindable(itemType = FileStorageUtils.Mount.class)
     protected Mount[] mountList;
@@ -113,7 +116,7 @@ public class CreateNFSExportAndMountService extends ViPRService {
                 rootUserMapping = domain.trim() + "\\" + rootUserMapping.trim();
             }
             FileStorageUtils.createFileSystemExportWithoutRollBack(fileSystemId, comment, exportList.get(0).getSecurity(),
-                    exportList.get(0).getPermission(), rootUserMapping, exportList.get(0).getExportHosts(), null);
+                    exportList.get(0).getPermission(), rootUserMapping, exportList.get(0).getExportHosts(), null, mountSubDirectory);
             if (!exportList.isEmpty()) {
                 FileStorageUtils.updateFileSystemExport(fileSystemId, null, exportList.toArray(new FileExportRule[exportList.size()]));
             }

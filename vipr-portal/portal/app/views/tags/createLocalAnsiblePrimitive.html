@@ -73,6 +73,9 @@ ansibleResourceNames = _arg;
                 </div>
                 <div class="tab-pane" id="${hostFileTabID}">
                     #{Modal.body}
+                        #{field 'localAnsible.inventoryFiles'}
+                            #{Form.multiFileUpload field:field/}
+                        #{/field}
                         <div class="row" ng-repeat="inventory in updatedInventoryFiles" style="margin-bottom:5px;">
                             <div class="pull-left col-sm-11" v-field="inventory">
                                 <input-text disabled></input-text>
@@ -81,12 +84,6 @@ ansibleResourceNames = _arg;
                                 <button type="button" ng-click="deleteInventoryFile($index)" class="close">&times;</button>
                             </div>
                         </div>
-                        #{field 'localAnsible.inventoryFiles'}
-                            %{
-                            field.required = true
-                            }%
-                            #{Form.multiFileUpload field:field/}
-                        #{/field}
                         <input type="hidden" name="localAnsible.updatedInventoryFiles" ng-value="updatedInventoryFileNamesStr"/>
                     #{/Modal.body}
 

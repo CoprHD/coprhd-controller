@@ -513,6 +513,13 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
         List<URI> virtualVolumeURIs = new ArrayList<URI>();
         URI nullPoolURI = NullColumnValueGetter.getNullURI();
         vPoolCapabilities.put(VirtualPoolCapabilityValuesWrapper.AUTO_TIER__POLICY_NAME, null);
+        
+        // Associate the same performance parameters for the VPLEX volume as the
+        // primary backend volume similar to how the same vpool is associated with
+        // the VPLEX volume and primary backend volume.
+        URI performanceParamsURI = PerformanceParamsUtils.getPerformanceParamsIdForRole(
+                sourceParams, VolumeTopologyRole.PRIMARY, _dbClient);
+        
         for (int i = 0; i < vPoolCapabilities.getResourceCount(); i++) {
             // Compute the volume label based on the label of the underlying volume
             String volumeLabelBuilt = null;
@@ -546,7 +553,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
 
             volume = prepareVolume(VolumeType.VPLEX_VIRTUAL_VOLUME, volume,
                     size, thinVolumePreAllocationSize, project, vArray,
-                    vPool, vplexStorageSystemURI, nullPoolURI,
+                    vPool, performanceParamsURI, vplexStorageSystemURI, nullPoolURI,
                     volumeLabelBuilt, consistencyGroup, vPoolCapabilities);
 
             StringSet associatedVolumes = new StringSet();
@@ -790,6 +797,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
      * @param project A reference to the project.
      * @param vArray A reference to the virtual array
      * @param vPool The requested virtual pool.
+     * @param performanceParamsURI The URI of the PerformanceParams instance.
      * @param storageSystemURI The URI of the storage system.
      * @param storagePoolURI The URI of the storage pool.
      * @param label The label for the new volume.
@@ -800,8 +808,8 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
      */
     private Volume prepareVolume(VolumeType volType, Volume volume,
             long size, long thinVolumePreAllocationSize, Project project,
-            VirtualArray vArray, VirtualPool vPool, URI storageSystemURI,
-            URI storagePoolURI, String label,
+            VirtualArray vArray, VirtualPool vPool, URI performanceParamsURI,
+            URI storageSystemURI, URI storagePoolURI, String label,
             BlockConsistencyGroup consistencyGroup, VirtualPoolCapabilityValuesWrapper capabilities) {
 
         // Encapsulate the storage system and storage pool in a
@@ -810,9 +818,9 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                 vPool, vArray.getId());
         volRecomendation.addStorageSystem(storageSystemURI);
         volRecomendation.addStoragePool(storagePoolURI);
-        volume = StorageScheduler.prepareVolume(_dbClient,
-                volume, size, thinVolumePreAllocationSize, project, vArray,
-                vPool, volRecomendation, label, consistencyGroup, capabilities);
+        volume = StorageScheduler.prepareVolume(_dbClient, volume, size, thinVolumePreAllocationSize,
+                project, vArray, vPool, performanceParamsURI, volRecomendation, label, consistencyGroup,
+                capabilities);
 
         // For VPLEX volumes, the protocol will not be set when the
         // storage scheduler is invoked to prepare the volume because
@@ -893,8 +901,9 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
         volRecomendation.addStoragePool(recommendedPoolURI);
 
         // Create volume object
-        Volume volume = StorageScheduler.prepareVolume(dbClient, null,
-                backendVolume.getProvisionedCapacity(), thinVolumePreAllocationSize, project, varray, vPool, volRecomendation, mirrorLabel,
+        // TBD Heg pass null perf params. Revisit for mirrors.
+        Volume volume = StorageScheduler.prepareVolume(dbClient, null, backendVolume.getProvisionedCapacity(),
+                thinVolumePreAllocationSize, project, varray, vPool, null, volRecomendation, mirrorLabel,
                 null, capabilities);
 
         // Add INTERNAL_OBJECT flag to the volume created
@@ -4055,9 +4064,10 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                                     vpool.getThinVolumePreAllocationPercentage(), size);
                 }
 
+                // TBD Heg - Passing null performance params for now.
                 Volume volume = prepareVolume(VolumeType.BLOCK_VOLUME, null,
                         size, thinVolumePreAllocationSize, vplexProject,
-                        varray, vpool, storageDeviceURI,
+                        varray, vpool, null, storageDeviceURI,
                         storagePoolURI, newVolumeLabel, backendCG, vPoolCapabilities);
                 configureCGAndReplicationGroup(rootVpool, vPoolCapabilities, backendCG, volume);
                 volume.addInternalFlags(Flag.INTERNAL_OBJECT);

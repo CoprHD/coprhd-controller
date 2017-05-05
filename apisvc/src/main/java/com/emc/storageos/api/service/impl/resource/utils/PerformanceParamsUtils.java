@@ -69,7 +69,9 @@ public class PerformanceParamsUtils {
                 copyParamsList.add(transformPerformanceParams(copyParams));
             }
             performanceParamsMap.put(VolumeTopologySite.COPY, copyParamsList);
-
+        } else {
+            performanceParamsMap.put(VolumeTopologySite.SOURCE, new ArrayList<Map<VolumeTopologyRole, URI>>());
+            performanceParamsMap.put(VolumeTopologySite.COPY, new ArrayList<Map<VolumeTopologyRole, URI>>());
         }
         return performanceParamsMap;
     }

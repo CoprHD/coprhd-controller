@@ -1199,7 +1199,7 @@ srdf_setup() {
 
     echo "Setting up the virtual pool for VPool change (Add SRDF)"
     run cos create block ${VPOOL_CHANGE}                 \
-         --description 'Source-Virtual-Pool-for-VPoolChange' true \
+         --description 'Source-Virtual-Pool-for-VPoolChange' false \
          --protocols FC 		        \
          --numpaths 1				\
          --max_snapshots 10			\
@@ -3170,15 +3170,18 @@ test_vpool_change_add_srdf() {
     item=${RANDOM}
     volname="test-add_srdf-${item}"
     mkdir -p results/${item}
+    snap_db_esc=" | grep -Ev \"^Volume:|srdfLinkStatus|personality\""
 
     # Failures
     failure_injections="failure_004_final_step_in_workflow_complete \
         failure_015_SmisCommandHelper.invokeMethod_EMCCreateMultipleTypeElementsFromStoragePool \
         failure_015_SmisCommandHelper.invokeMethod_GetDefaultReplicationSettingData \
-        failure_015_SmisCommandHelper.invokeMethod_CreateElementReplica"
+        failure_015_SmisCommandHelper.invokeMethod_CreateElementReplica \
+        failure_004_final_step_in_workflow_complete:failure_015_SmisCommandHelper.invokeMethod_ModifyListSynchronization \
+        failure_004_final_step_in_workflow_complete:failure_015_SmisCommandHelper.invokeMethod_RemoveMembers"
 
     # Placeholder when a specific failure case is being worked...
-    #failure_injections="failure_004_final_step_in_workflow_complete"
+    #failure_injections="failure_004_final_step_in_workflow_complete:failure_015_SmisCommandHelper.invokeMethod_RemoveMembers"
 
     for failure in ${failure_injections}
     do
@@ -3188,7 +3191,7 @@ test_vpool_change_add_srdf() {
         set_artificial_failure ${failure}
 
         # Snap the state before the vpool change
-        snap_db 1 "${cfs[@]}"
+        snap_db 1 "${cfs[@]}" "${snap_db_esc}"
 
         fail volume change_cos ${PROJECT}/${volname} ${VPOOL_BASE_NOCG}
 
@@ -3196,7 +3199,7 @@ test_vpool_change_add_srdf() {
 	    verify_failures ${failure}
 
         # Validate the DB is back to the original state
-        snap_db 2 "${cfs[@]}" " | grep -Ev \"^Volume:|srdfLinkStatus|personality\""
+        snap_db 2 "${cfs[@]}" "${snap_db_esc}"
         validate_db 1 2 "${cfs[@]}"
 
         # Turn off failures

@@ -5855,7 +5855,6 @@ public class SmisCommandHelper implements SmisConstants {
      */
     private StringBuffer getPolicyByBlockObject(URI pool, String autoTierPolicyName, URI policyURI) {
         StoragePool storagePool = _dbClient.queryObject(StoragePool.class, pool);
-        StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, storagePool.getStorageDevice());
         StringBuffer policyName = new StringBuffer();
         if ((null != autoTierPolicyName && Constants.NONE.equalsIgnoreCase(autoTierPolicyName))
                 || (NullColumnValueGetter.isNullURI(policyURI))) {
@@ -7260,7 +7259,6 @@ public class SmisCommandHelper implements SmisConstants {
         CIMObjectPath blockObjectPath = _cimPath.getBlockObjectPath(storage,
                 blockObject);
         CloseableIterator<CIMInstance> aspectInstancesItr = null;
-        CloseableIterator<CIMObjectPath> groupSyncRefs = null;
 
         try {
             aspectInstancesItr = getAssociatorInstances(storage,

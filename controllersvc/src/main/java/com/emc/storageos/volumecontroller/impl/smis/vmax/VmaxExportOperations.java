@@ -5217,7 +5217,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
 
             _log.info(String.format("MaskingView will be named '%s'", maskingViewName));
             exportMask.setMaskName(maskingViewName);
-            _dbClient.persistObject(exportMask);
+            _dbClient.updateObject(exportMask);
         }
 
         return maskingViewName;

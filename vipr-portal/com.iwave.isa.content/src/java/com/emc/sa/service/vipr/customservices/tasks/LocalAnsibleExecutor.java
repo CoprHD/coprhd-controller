@@ -17,9 +17,11 @@
 
 package com.emc.sa.service.vipr.customservices.tasks;
 
+import java.net.URI;
 import java.util.List;
 import java.util.Map;
 
+import com.emc.storageos.db.client.URIUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.emc.sa.engine.ExecutionUtils;
@@ -34,11 +36,12 @@ public class LocalAnsibleExecutor implements MakeCustomServicesExecutor {
     private DbClient dbClient;
 
     @Override public ViPRExecutionTask<CustomServicesTaskResult> makeCustomServicesExecutor(final Map<String, List<String>> input, final CustomServicesWorkflowDocument.Step step) {
-        // TODO: change the following to URIUtil.parseUUIDFromURI(URI.create(step.getId())) when the step id is changed to URI
-        final String folder_unique_step = step.getId().replace("-", "");
+        //TODO: change the following to URIUtil.parseUUIDFromURI(URI.create(step.getId())) when the step id is changed to URI
+        final String folderUniqueStep = step.getId().replace("-", "");
         final String orderDir = String.format("%s%s/%s/", CustomServicesConstants.ORDER_DIR_PATH,
-                ExecutionUtils.currentContext().getOrder().getOrderNumber(), folder_unique_step);
+                ExecutionUtils.currentContext().getOrder().getOrderNumber(),folderUniqueStep);
         MakeCustomServicesExecutor.createOrderDir(orderDir);
+        //mount only if the
 
         return new CustomServicesLocalAnsibleExecution(input, step, dbClient, orderDir);
     }

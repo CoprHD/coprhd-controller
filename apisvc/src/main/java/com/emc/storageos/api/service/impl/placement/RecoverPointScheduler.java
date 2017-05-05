@@ -1471,10 +1471,16 @@ public class RecoverPointScheduler implements Scheduler {
                                                     secondaryAssociatedStorageSystem),
                                             dbClient, StorageSystemType.BLOCK);
 
+                                    boolean validForStandbyPlacement = false;
                                     if (secondarySourceStorageSystemURI.equals(primarySourceStorageSystemURI)
                                             && !secondarySourceInternalSiteName.equals(sourceRec.getInternalSiteName())) {
+                                        validForStandbyPlacement = true;
                                         validSecondaryAssociatedStorageSystems.add(secondaryAssociatedStorageSystem);
-                                    }
+                                    } 
+                                    
+                                    _log.info(String.format("RP Placement: associated storage system entry [%s] "
+                                            + "%s valid for standby placement.", 
+                                            secondaryAssociatedStorageSystem, (validForStandbyPlacement ? "" : "NOT")));
                                 }
 
                                 for (String secondaryAssociatedStorageSystem : validSecondaryAssociatedStorageSystems) {
@@ -4197,7 +4203,7 @@ public class RecoverPointScheduler implements Scheduler {
         }
 
         // Check to make sure the RP site is connected to the varray
-        return (connected && RPHelper.rpInitiatorsInStorageConnectedNework(
+        return (connected && RPHelper.rpInitiatorsInStorageConnectedNetwork(
                 storageSystemURI, protectionSystemURI, siteId, virtualArray.getId(), dbClient));
     }
 

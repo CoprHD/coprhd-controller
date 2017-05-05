@@ -529,6 +529,7 @@ public class WorkflowBuilder extends Controller {
                 }
                 final CustomServicesPrimitiveUpdateParam primitiveUpdateParam = new CustomServicesPrimitiveUpdateParam();
                 primitiveUpdateParam.setName(newName);
+                primitiveUpdateParam.setFriendlyName(newName);
                 getCatalogClient().customServicesPrimitives().updatePrimitive(primitiveID, primitiveUpdateParam);
             }
         } catch (final Exception e) {
@@ -611,6 +612,7 @@ public class WorkflowBuilder extends Controller {
                 // Update name, description
                 final CustomServicesPrimitiveUpdateParam primitiveUpdateParam = new CustomServicesPrimitiveUpdateParam();
                 primitiveUpdateParam.setName(shellPrimitive.getName());
+                primitiveUpdateParam.setFriendlyName(shellPrimitive.getName());
                 primitiveUpdateParam.setDescription(shellPrimitive.getDescription());
 
                 // Get and update differences between existing and new inputs
@@ -708,6 +710,7 @@ public class WorkflowBuilder extends Controller {
                 // Update name, description
                 final CustomServicesPrimitiveUpdateParam primitiveUpdateParam = new CustomServicesPrimitiveUpdateParam();
                 primitiveUpdateParam.setName(restAPIPrimitive.getName());
+                primitiveUpdateParam.setFriendlyName(restAPIPrimitive.getName());
                 primitiveUpdateParam.setDescription(restAPIPrimitive.getDescription());
 
                 // Get and update differences between existing and new inputs
@@ -758,6 +761,7 @@ public class WorkflowBuilder extends Controller {
                 // Update name, description
                 final CustomServicesPrimitiveUpdateParam primitiveUpdateParam = new CustomServicesPrimitiveUpdateParam();
                 primitiveUpdateParam.setName(localAnsible.getName());
+                primitiveUpdateParam.setFriendlyName(localAnsible.getName());
                 primitiveUpdateParam.setDescription(localAnsible.getDescription());
 
                 // Get and update differences between existing and new inputs

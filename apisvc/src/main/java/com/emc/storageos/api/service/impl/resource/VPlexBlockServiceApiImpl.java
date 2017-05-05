@@ -486,9 +486,9 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
             // reflect this as well.
             VirtualPoolCapabilityValuesWrapper backendCapabilities = vPoolCapabilities;
             if (role == VolumeTopologyRole.HA) {
-                // TBD Heg For basic VPLEX volume creation. Revisit for RP/SRDF and other on top of VPLEX.
-                // There may not be child descriptors when called in these cases as seen in makeBackendVolumeDescriptors.
-                VirtualPool haVpool = vplexRecommendations.get(0).getRecommendation().getVirtualPool();
+                // Note there it not an embedded child recommendation for the VPLEX 
+                // recommendations on the HA side of distributed volumes.
+                VirtualPool haVpool = vplexRecommendations.get(0).getVirtualPool();
                 backendCapabilities = PerformanceParamsUtils.overridePrimaryCapabilitiesForVplexHA(
                         haVpool, sourceParams, vPoolCapabilities, _dbClient);
             }
@@ -4031,15 +4031,14 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
             return descriptors;
         }
         
-        // TBD Heg for now ignore this path which is not taken for basic VLPEX volume creation.
-
         // Sum resourceCount across all recommendations
         int totalResourceCount = 0;
         for (VPlexRecommendation recommendation : recommendations) {
             totalResourceCount += recommendation.getResourceCount();
         }
         // The code below is used for the HA side of distributed volumes.
-        // The HA side does not currently call the lower level schedulers to get descriptors.
+        // The HA side does have embedded child recommendations in their
+        // VPlexRecommendation instances.
         s_logger.info("Processing recommendations for Virtual Array {}", varrayId);
         int volumeCounter = 0;
         
@@ -4056,22 +4055,22 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                 s_logger.info("Volume label is {}", newVolumeLabel);
                 VirtualArray varray = _dbClient.queryObject(VirtualArray.class, varrayId);
                 
-                // This is also handled in StorageScheduler.prepareRecomendedVolumes
-                long thinVolumePreAllocationSize = 0;
-                if (null != vpool.getThinVolumePreAllocationPercentage()) {
-                    thinVolumePreAllocationSize = VirtualPoolUtil
-                            .getThinVolumePreAllocationSize(
-                                    vpool.getThinVolumePreAllocationPercentage(), size);
-                }
+                // TBD Heg Should not need this as it is in the capabilities.
+                long thinVolumePreAllocationSize = vPoolCapabilities.getThinVolumePreAllocateSize();
+                //long thinVolumePreAllocationSize = 0;
+                //if (null != vpool.getThinVolumePreAllocationPercentage()) {
+                //    thinVolumePreAllocationSize = VirtualPoolUtil
+                //            .getThinVolumePreAllocationSize(
+                //                    vpool.getThinVolumePreAllocationPercentage(), size);
+                //}
 
-                // TBD Heg - Passing null performance params for now.
                 Volume volume = prepareVolume(VolumeType.BLOCK_VOLUME, null,
                         size, thinVolumePreAllocationSize, vplexProject,
-                        varray, vpool, null, storageDeviceURI,
+                        varray, vpool, performanceParamsURI, storageDeviceURI,
                         storagePoolURI, newVolumeLabel, backendCG, vPoolCapabilities);
                 configureCGAndReplicationGroup(rootVpool, vPoolCapabilities, backendCG, volume);
                 volume.addInternalFlags(Flag.INTERNAL_OBJECT);
-                _dbClient.persistObject(volume);
+                _dbClient.updateObject(volume);
 
                 if (createTask) {
                     _dbClient.createTaskOpStatus(Volume.class, volume.getId(),

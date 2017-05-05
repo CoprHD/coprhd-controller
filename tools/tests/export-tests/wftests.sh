@@ -1004,7 +1004,6 @@ hpux_setup() {
         run hosts create hpuxhost1 $TENANT HPUX ${HPUX_HOST_IP} --port ${HPUX_HOST_PORT} --username ${HPUX_HOST_USERNAME} --password ${HPUX_HOST_PASSWORD} --discoverable true 
     else
         secho "HP-UX simulator does not exist!  Failing."
-	exit 1;
     fi 
 }
 

@@ -92,7 +92,11 @@ public class HP3PARIngestHelper {
 				driverVolume.setStoragePoolId(objVolMember.getUserCPG());
 				driverVolume.setNativeId(objVolMember.getName());
 				driverVolume.setProvisionedCapacity(objVolMember.getSizeMiB() * HP3PARConstants.MEGA_BYTE);
-				driverVolume.setAllocatedCapacity(objVolMember.getSizeMiB() * HP3PARConstants.MEGA_BYTE);
+				// Allocated capacity is the sum of user, snapshot and admin reserved space
+				Long allocatedCapacity = objVolMember.getUserSpace().getReservedMiB();
+				allocatedCapacity += objVolMember.getSnapshotSpace().getReservedMiB();
+				allocatedCapacity += objVolMember.getAdminSpace().getReservedMiB();
+				driverVolume.setAllocatedCapacity(allocatedCapacity * HP3PARConstants.MEGA_BYTE);
 				driverVolume.setWwn(objVolMember.getWwn());
 				driverVolume.setNativeId(objVolMember.getName());
 				driverVolume.setDeviceLabel(objVolMember.getName());
@@ -320,9 +324,11 @@ public class HP3PARIngestHelper {
 					driverClone.setWwn(objClone.getWwn());
 					driverClone.setThinlyProvisioned(volume.getThinlyProvisioned());
 
-					// TODO: We need to have more clarity on provisioned and
-					// allocated sizes
-					driverClone.setAllocatedCapacity(objClone.getSizeMiB() * HP3PARConstants.MEGA_BYTE);
+					// Allocated capacity is the sum of user, snapshot and admin reserved space
+					Long allocatedCapacity = objClone.getUserSpace().getReservedMiB();
+					allocatedCapacity += objClone.getSnapshotSpace().getReservedMiB();
+					allocatedCapacity += objClone.getAdminSpace().getReservedMiB();
+					driverClone.setAllocatedCapacity(allocatedCapacity * HP3PARConstants.MEGA_BYTE);
 					driverClone.setProvisionedCapacity(objClone.getSizeMiB() * HP3PARConstants.MEGA_BYTE);
 					driverClone.setReplicationState(VolumeClone.ReplicationState.SYNCHRONIZED);
 					clones.add(driverClone);				

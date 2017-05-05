@@ -17,16 +17,22 @@
 
 package com.emc.sa.service.vipr.customservices.tasks;
 
-import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorException;
-import org.apache.commons.lang.StringUtils;
-import org.slf4j.LoggerFactory;
-
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.lang.StringUtils;
+import org.slf4j.LoggerFactory;
+
+import com.emc.storageos.model.customservices.CustomServicesWorkflowDocument;
+import com.emc.storageos.model.customservices.CustomServicesWorkflowDocument.Step;
+import com.emc.storageos.primitives.CustomServicesConstants;
+import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorException;
 
 public final class AnsibleHelper {
     private static final org.slf4j.Logger logger = LoggerFactory.getLogger(AnsibleHelper.class);
@@ -54,16 +60,59 @@ public final class AnsibleHelper {
      * @return
      * @throws Exception
      */
-    public static String makeExtraArg(final Map<String, List<String>> input) throws Exception {
+    public static String makeExtraArg(final Map<String, List<String>> input, final Step step) throws Exception {
         if (input == null) {
             return null;
         }
 
+        final List<String> arrayInput = new ArrayList<>();
+        final List<String> inputParamList = new ArrayList<>();
+
+        for (final String inputGroupKey : step.getInputGroups().keySet()) {
+            if (inputGroupKey.equals(CustomServicesConstants.INPUT_PARAMS)) {
+                for (final CustomServicesWorkflowDocument.Input stepInput : step.getInputGroups().get(inputGroupKey).getInputGroup()) {
+                    //Add only the extra-vars which is in the input_params to the extra-vars argument
+                        inputParamList.add(stepInput.getName());
+                    if (StringUtils.isNotBlank(stepInput.getType())
+                            && stepInput.getType().equals(CustomServicesConstants.InputType.ASSET_OPTION_MULTI.toString())) {
+                        //this is for array type. currently the only array type is InputType.ASSET_OPTION_MULTI. Do not think this can occur in anything other than input_params section
+                        arrayInput.add(stepInput.getName());
+                    }
+                }
+            }
+        }
+
         final StringBuilder sb = new StringBuilder();
         for (Map.Entry<String, List<String>> e : input.entrySet()) {
-            // TODO find a better way to fix this
-            if (e.getValue() != null && !StringUtils.isEmpty(e.getValue().get(0))) {
-                sb.append(e.getKey()).append("=").append(e.getValue().get(0).replace("\"", "")).append(" ");
+            boolean arrayElement = false;
+            if (!inputParamList.contains(e.getKey())) {
+                continue;
+            }
+
+            if(arrayInput.contains(e.getKey())){
+                arrayElement = true;
+            }
+
+            if (CollectionUtils.isNotEmpty(e.getValue())) {
+                sb.append(e.getKey()).append("=");
+
+                if (e.getValue().size() > 1 || arrayElement) {
+                    // for table support
+                    sb.append("[");
+                }
+
+                // Not wrapping with quotes. we will leave it to the ansible user.
+                String prefix = "";
+                for (String eachVal : e.getValue()) {
+                    // order ctx always sends only non-empty values. hence no check required for string being empty
+                    sb.append(prefix);
+                    prefix = ",";
+                    sb.append(eachVal.replace("\"", ""));
+                }
+                if (e.getValue().size() > 1 || arrayElement) {
+                    sb.append("]");
+                }
+                sb.append(" ");
             }
         }
         logger.info("extra vars:{}", sb.toString());

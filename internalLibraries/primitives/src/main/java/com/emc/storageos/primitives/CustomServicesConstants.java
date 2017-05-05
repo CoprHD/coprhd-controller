@@ -115,8 +115,8 @@ public final class CustomServicesConstants {
         ASSET_OPTION_MULTI("AssetOptionMulti"),
         FROM_STEP_INPUT("FromOtherStepInput"),
         FROM_STEP_OUTPUT("FromOtherStepOutput"),
-        ASSET_OPTION("AssetOption"), // TODO: Change this to the above values.
-        INVALID("Invalid");
+        INVALID("Invalid"),
+        DISABLED("Disabled");
 
         private final String inputType;
 

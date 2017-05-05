@@ -46,6 +46,7 @@ import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Migration;
 import com.emc.storageos.db.client.model.NFSShareACL;
+import com.emc.storageos.db.client.model.Network;
 import com.emc.storageos.db.client.model.ObjectBucketACL;
 import com.emc.storageos.db.client.model.ObjectNamespace;
 import com.emc.storageos.db.client.model.Project;
@@ -359,6 +360,12 @@ public interface ContainmentConstraint extends Constraint {
             DataObjectType doType = TypeMap.getDoType(FCEndpoint.class);
             ColumnField field = doType.getColumnField("networkDevice");
             return new ContainmentConstraintImpl(device, FCEndpoint.class, field);
+        }
+        
+        public static ContainmentConstraint getNetworkSystemNetworkConstraint(URI networkSystem) {
+            DataObjectType doType = TypeMap.getDoType(Network.class);
+            ColumnField field = doType.getColumnField("networkSystems");
+            return new ContainmentConstraintImpl(networkSystem, Network.class, field);
         }
 
         public static ContainmentConstraint getBlockObjectExportGroupConstraint(URI blockObject) {

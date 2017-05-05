@@ -492,6 +492,7 @@
         <property name="coordinator" ref="coordinator"/>
         <property name="remoteReplicationServiceApi" ref="remoteReplicationBlockServiceApiImpl"/>
         <property name="blockService" ref="blockService"/>
+        <property name="blockConsistencyGroupService" ref="blockConsistencyGroupService"/>
     </bean>
 
     <bean id="remoteReplicationManagementService" class="com.emc.storageos.api.service.impl.resource.remotereplication.RemoteReplicationManagementService">

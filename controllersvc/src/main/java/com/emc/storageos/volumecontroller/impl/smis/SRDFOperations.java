@@ -2051,6 +2051,12 @@ public class SRDFOperations implements SmisConstants {
                 // Rename the volume on the vmax array itself and update the deviceLabel
                 helper.renameVolume(dbClient, targetSystem, invalidTgt, invalidTgt.getLabel());
                 dbClient.updateAndReindexObject(asList(invalidTgt, trustedSrc, invalidSrc));
+
+                // call remote replication utils to fix existing remote replication pairs
+                // this should create a new rr pair for correct srdf pairing
+                RemoteReplicationUtils.updateOrCreateReplicationPairForSrdfPair(trustedSrc.getId(), invalidTgt.getId(), dbClient);
+                // this should remove rr pair for wrong srdf pairing
+                RemoteReplicationUtils.deleteRemoteReplicationPairForSrdfPair(invalidSrc.getId(), invalidTgt.getId(), dbClient);
             }
         }
     }

@@ -248,7 +248,8 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                 URI storagePoolURI = recommendation.getSourceStoragePool();
                 VirtualPool volumeVpool = recommendation.getVirtualPool();
                 s_logger.info("Volume virtual pool is {}", volumeVpool.getId().toString());
-                vPoolCapabilities.put(VirtualPoolCapabilityValuesWrapper.AUTO_TIER__POLICY_NAME, volumeVpool.getAutoTierPolicyName());
+                // TBD Heg. I have no idea why this is being done here, but it sure as heck makes no sense.
+                //vPoolCapabilities.put(VirtualPoolCapabilityValuesWrapper.AUTO_TIER__POLICY_NAME, volumeVpool.getAutoTierPolicyName());
                 s_logger.info("Recommendation is for {} resources in pool {}", recommendation.getResourceCount(),
                         storagePoolURI.toString());
                 for (int i = 0; i < recommendation.getResourceCount(); i++) {
@@ -492,7 +493,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                 backendCapabilities = PerformanceParamsUtils.overridePrimaryCapabilitiesForVplexHA(
                         haVpool, sourceParams, vPoolCapabilities, _dbClient);
             }
-            
+
             s_logger.info("Processing backend recommendations for Virtual Array {}", varrayId);
             List<VolumeDescriptor> varrayDescriptors = makeBackendVolumeDescriptors(
                     vplexRecommendations, project, vplexProject, vPool, performanceParamsURI,

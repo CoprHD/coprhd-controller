@@ -35,6 +35,7 @@ import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.CifsServerMap;
 import com.emc.storageos.db.client.model.CustomConfig;
+import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.DiscoveryStatus;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus;
@@ -1464,18 +1465,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
 
     private void discoverUmanagedFileSystems(AccessProfile profile) throws BaseCollectionException {
 
-        _log.debug("Access Profile Details :  IpAddress : PortNumber : {}, namespace : {}",
-                profile.getIpAddress() + profile.getPortNumber(),
-                profile.getnamespace());
-
-        URI storageSystemId = profile.getSystemId();
-
-        StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, storageSystemId);
-        if (null == storageSystem) {
-            return;
-        }
-
-        List<UnManagedFileSystem> unManagedFileSystems = new ArrayList<>();
+        List<UnManagedFileSystem> newUnManagedFileSystems = new ArrayList<>();
         List<UnManagedFileSystem> existingUnManagedFileSystems = new ArrayList<>();
 
         List<UnManagedFileQuotaDirectory> newUnManagedFileQuotaDir = new ArrayList<>();
@@ -1489,6 +1479,17 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
 
         List<UnManagedFileExportRule> newUnManagedExportRules = new ArrayList<>();
         List<UnManagedFileExportRule> oldUnManagedExportRules = new ArrayList<>();
+
+        _log.debug("Access Profile Details :  IpAddress : PortNumber : {}, namespace : {}",
+                profile.getIpAddress() + profile.getPortNumber(),
+                profile.getnamespace());
+
+        URI storageSystemId = profile.getSystemId();
+
+        StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, storageSystemId);
+        if (null == storageSystem) {
+            return;
+        }
 
         Set<URI> allDiscoveredUnManagedFileSystems = new HashSet<>();
 
@@ -1569,15 +1570,16 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
 
                     totalIsilonFSDiscovered += discoveredFS.size();
 
-                    int newFileSystemsCount = 0;
-                    int existingFileSystemsCount = 0;
-
                     for (FileShare fs : discoveredFS) {
                         if (!checkStorageFileSystemExistsInDB(fs.getNativeGuid())) {
 
                             // Create UnManaged FS
                             String fsPathName = fs.getPath();
                             UnManagedFileSystem unManagedFs = checkUnManagedFileSystemExistsInDB(fs.getNativeGuid());
+
+                            if (unManagedFs != null) {
+                                existingUnManagedFileSystems.add(unManagedFs);
+                            }
 
                             // get the matched vNAS Server
                             NASServer nasServer = getMatchedNASServer(nasServers, fsPathName);
@@ -1594,11 +1596,11 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                                 continue; // Skip further ingestion steps on this file share & move to next file share
                             }
 
-                            boolean alreadyExist = unManagedFs == null ? false : true;
                             unManagedFs = createUnManagedFileSystem(unManagedFs,
                                     fs.getNativeGuid(), storageSystem, storagePool, nasServer, fs);
 
                             unManagedFs.setHasNFSAcl(false);
+                            newUnManagedFileSystems.add(unManagedFs);
 
                             /**
                              * Set and create the NFS ACLs only if the system is enabled with NFSv4!!!
@@ -1638,7 +1640,6 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                                     storageSystem, isilonApi, oldUnManagedCifsShareACLList);
                             _log.info("Number of shares ACLs discovered for file system {} is {}", unManagedFs.getId(),
                                     newUnManagedCifsShareACLList.size());
-                            ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
                             if (unManagedFs.getHasExports() || unManagedFs.getHasShares()) {
                                 _log.info("FS {} is having exports/shares", fs.getPath());
@@ -1648,73 +1649,32 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                                 _log.info("FS {} does not have export or share", fs.getPath());
                             }
 
-                            if (alreadyExist) {
-                                existingUnManagedFileSystems.add(unManagedFs);
-                                existingFileSystemsCount++;
-                            } else {
-                                unManagedFileSystems.add(unManagedFs);
-                                newFileSystemsCount++;
-                            }
-                            // Saving bunch of Unmanaged objects!!!
-                            if (!newUnManagedExportRules.isEmpty() && newUnManagedExportRules.size() >= MAX_UMFS_RECORD_SIZE) {
-                                _log.info("Saving Number of UnManagedFileExportRule(s) {}", newUnManagedExportRules.size());
-                                _dbClient.createObject(newUnManagedExportRules);
-                                newUnManagedExportRules.clear();
-                            }
-
-                            if (!oldUnManagedExportRules.isEmpty() && oldUnManagedExportRules.size() >= MAX_UMFS_RECORD_SIZE) {
-                                _log.info("Saving Number of UnManagedFileExportRule(s) {}", newUnManagedExportRules.size());
-                                _dbClient.updateObject(oldUnManagedExportRules);
-                                oldUnManagedExportRules.clear();
-                            }
-
-                            // save ACLs in db
-                            if (!newUnManagedCifsShareACLList.isEmpty() && newUnManagedCifsShareACLList.size() >= MAX_UMFS_RECORD_SIZE) {
-                                _log.info("Saving Number of new UnManagedCifsShareACL(s) {}", newUnManagedCifsShareACLList.size());
-                                _dbClient.createObject(newUnManagedCifsShareACLList);
-                                newUnManagedCifsShareACLList.clear();
-                            }
-                            // save old acls
-                            if (!oldUnManagedCifsShareACLList.isEmpty() && oldUnManagedCifsShareACLList.size() >= MAX_UMFS_RECORD_SIZE) {
-                                _log.info("Saving Number of existing UnManagedCifsShareACL(s) {}", oldUnManagedCifsShareACLList.size());
-                                _dbClient.updateObject(oldUnManagedCifsShareACLList);
-                                oldUnManagedCifsShareACLList.clear();
-                            }
-
-                            // save NFS ACLs in db
-                            if (!newUnManagedNfsShareACLList.isEmpty() && newUnManagedNfsShareACLList.size() >= MAX_UMFS_RECORD_SIZE) {
-                                _log.info("Saving Number of new UnManagedNfsShareACL(s) {}", newUnManagedNfsShareACLList.size());
-                                _dbClient.createObject(newUnManagedNfsShareACLList);
-                                newUnManagedNfsShareACLList.clear();
-                            }
-
-                            // save old acls
-                            if (!oldUnManagedNfsShareACLList.isEmpty() && oldUnManagedNfsShareACLList.size() >= MAX_UMFS_RECORD_SIZE) {
-                                _log.info("Saving Number of old NFS UnManagedFileExportRule(s) {}", oldUnManagedNfsShareACLList.size());
-                                _dbClient.updateObject(oldUnManagedNfsShareACLList);
-                                oldUnManagedNfsShareACLList.clear();
-                            }
-
-                            allDiscoveredUnManagedFileSystems.add(unManagedFs.getId());
                             /**
                              * Persist 200 objects and clear them to avoid memory issue
                              */
-                            validateListSizeLimitAndPersist(unManagedFileSystems, existingUnManagedFileSystems,
+                            // save bunch of export rules in db
+                            validateSizeLimitAndPersist(newUnManagedExportRules, oldUnManagedExportRules,
                                     Constants.DEFAULT_PARTITION_SIZE * 2);
 
+                            // save bunch of ACLs in db
+                            validateSizeLimitAndPersist(newUnManagedCifsShareACLList, oldUnManagedCifsShareACLList,
+                                    Constants.DEFAULT_PARTITION_SIZE * 2);
+
+                            // save bunch of NFS ACLs in db
+                            validateSizeLimitAndPersist(newUnManagedNfsShareACLList, newUnManagedNfsShareACLList,
+                                    Constants.DEFAULT_PARTITION_SIZE * 2);
+
+                            allDiscoveredUnManagedFileSystems.add(unManagedFs.getId());
+
+                            // save bunch of file system in db
+                            validateListSizeLimitAndPersist(newUnManagedFileSystems, existingUnManagedFileSystems,
+                                    Constants.DEFAULT_PARTITION_SIZE * 2);
                         }
                     }
-                    _log.info("New unmanaged Isilon file systems count: {}", newFileSystemsCount);
-                    _log.info("Update unmanaged Isilon file systems count: {}", existingFileSystemsCount);
-                    if (!unManagedFileSystems.isEmpty()) {
-                        _dbClient.createObject(unManagedFileSystems);
-                    }
-                    if (!existingUnManagedFileSystems.isEmpty()) {
-                        _dbClient.updateAndReindexObject(existingUnManagedFileSystems);
-                    }
 
-                    List<UnManagedFileQuotaDirectory> existingUmfsQd = new ArrayList<UnManagedFileQuotaDirectory>();
-                    List<UnManagedFileQuotaDirectory> newUmfsQd = new ArrayList<UnManagedFileQuotaDirectory>();
+                    /**
+                     * Create and set Quota Directory for this file system..
+                     */
 
                     for (UnManagedFileQuotaDirectory umfsQd : discoveredUmfsQd) {
                         if (!checkStorageQuotaDirectoryExistsInDB(umfsQd.getNativeGuid())) {
@@ -1722,7 +1682,6 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                             String fsUnManagedQdNativeGuid = NativeGUIDGenerator.generateNativeGuidForUnManagedQuotaDir(
                                     storageSystem.getSystemType(), storageSystem.getSerialNumber(), umfsQd.getNativeId(), "");
 
-                            String qdPathName = umfsQd.getPath();
                             UnManagedFileQuotaDirectory unManagedFileQd = checkUnManagedFileSystemQuotaDirectoryExistsInDB(
                                     fsUnManagedQdNativeGuid);
 
@@ -1737,17 +1696,13 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                         }
                     }
 
-                    _log.info("New unmanaged Isilon file systems QuotaDirecotry  count: {}", newUnManagedFileQuotaDir.size());
-                    _log.info("Update unmanaged Isilon file systems QuotaDirectory count: {}", existingUnManagedFileQuotaDir.size());
-                    if (!newUnManagedFileQuotaDir.isEmpty()) {
-                        _dbClient.createObject(newUnManagedFileQuotaDir);
-                    }
-                    if (!existingUnManagedFileQuotaDir.isEmpty()) {
-                        _dbClient.updateObject(existingUnManagedFileQuotaDir);
-                    }
+                    // save bunch of QDs in db
+                    validateSizeLimitAndPersist(newUnManagedFileQuotaDir, existingUnManagedFileQuotaDir,
+                            Constants.DEFAULT_PARTITION_SIZE * 2);
 
                 } while (resumeToken != null);
             }
+
             // Saving bunch of Unmanaged objects!!!
             if (!newUnManagedExportRules.isEmpty()) {
                 _log.info("Saving Number of UnManagedFileExportRule(s) {}", newUnManagedExportRules.size());
@@ -1771,7 +1726,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
             // save old acls
             if (!oldUnManagedCifsShareACLList.isEmpty()) {
                 _log.info("Saving Number of UnManagedFileExportRule(s) {}", oldUnManagedCifsShareACLList.size());
-                _dbClient.persistObject(oldUnManagedCifsShareACLList);
+                _dbClient.updateObject(oldUnManagedCifsShareACLList);
                 oldUnManagedCifsShareACLList.clear();
             }
 
@@ -1789,10 +1744,30 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                 oldUnManagedNfsShareACLList.clear();
             }
 
+            // save new QDs to DB
+            if (!newUnManagedFileQuotaDir.isEmpty()) {
+                _log.info("New unmanaged Isilon file systems QuotaDirecotry  count: {}", newUnManagedFileQuotaDir.size());
+                _dbClient.createObject(newUnManagedFileQuotaDir);
+            }
+
+            // save old QDs
+            if (!existingUnManagedFileQuotaDir.isEmpty()) {
+                _log.info("Update unmanaged Isilon file systems QuotaDirectory count: {}",
+                        existingUnManagedFileQuotaDir.size());
+                _dbClient.updateObject(existingUnManagedFileQuotaDir);
+            }
+
+            // save new FS
+            if (!newUnManagedFileSystems.isEmpty()) {
+                _dbClient.createObject(newUnManagedFileSystems);
+            }
+
+            // save old FS
+            if (!existingUnManagedFileSystems.isEmpty()) {
+                _dbClient.updateObject(existingUnManagedFileSystems);
+            }
+
             _log.info("Discovered {} Isilon file systems.", totalIsilonFSDiscovered);
-            // Process those active unmanaged fs objects available in database but not in newly discovered items, to
-            // mark them inactive.
-            markUnManagedFSObjectsInActive(storageSystem, allDiscoveredUnManagedFileSystems);
 
             // discovery succeeds
             detailedStatusMessage = String.format("Discovery completed successfully for Isilon: %s; new unmanaged file systems count: %s",
@@ -1892,6 +1867,26 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                     Constants.DEFAULT_PARTITION_SIZE, _dbClient,
                     UNMANAGED_FILESYSTEM);
             existingUnManagedFileSystems.clear();
+        }
+    }
+
+    private <T extends DataObject> void validateSizeLimitAndPersist(List<T> newRecords,
+            List<T> oldRecords, int limit) {
+
+        if (newRecords != null && !newRecords.isEmpty() &&
+                newRecords.size() >= limit) {
+            _partitionManager.insertInBatches(newRecords,
+                    Constants.DEFAULT_PARTITION_SIZE, _dbClient,
+                    UNMANAGED_FILESYSTEM);
+            newRecords.clear();
+        }
+
+        if (oldRecords != null && !oldRecords.isEmpty() &&
+                oldRecords.size() >= limit) {
+            _partitionManager.updateInBatches(oldRecords,
+                    Constants.DEFAULT_PARTITION_SIZE, _dbClient,
+                    UNMANAGED_FILESYSTEM);
+            oldRecords.clear();
         }
     }
 

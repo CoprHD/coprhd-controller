@@ -183,18 +183,15 @@ public class RemoteReplicationGroupService extends TaskResourceService {
         }
         RemoteReplicationGroupList result = new RemoteReplicationGroupList();
         Set<String> sourceDevices = RemoteReplicationUtils.getStorageSystemsForVarrayVpool(varrayURI, vpoolURI, _dbClient, _coordinator);
-        Set<Set<String>> targetSystemsForAllPairs = new HashSet<>();
         Set<String> allTargetSystems = new HashSet<String>();
         for (Entry<String, String> pair : vpool.getRemoteReplicationProtectionSettings().entrySet()) {
             URI targetvArrayURI = URI.create(pair.getKey());
             URI targetvPoolURI = URI.create(pair.getValue());
             Set<String> targetDevices = RemoteReplicationUtils.getStorageSystemsForVarrayVpool(targetvArrayURI,
                     targetvPoolURI, _dbClient, _coordinator);
-            targetSystemsForAllPairs.add(targetDevices);
             allTargetSystems.addAll(targetDevices);
         }
         Iterator<RemoteReplicationGroup> it = RemoteReplicationUtils.findAllRemoteRepliationGroupsIteratively(_dbClient);
-        outloop:
         while (it.hasNext()) {
             RemoteReplicationGroup rrGroup = it.next();
 
@@ -210,11 +207,9 @@ public class RemoteReplicationGroupService extends TaskResourceService {
                 continue;
             }
 
-            // rr group's target device should be contained by every target varray/vpool pair's devices
-            for (Set<String> targetDevices : targetSystemsForAllPairs) {
-                if (!targetDevices.contains(groupTargetDevice)) {
-                    continue outloop;
-                }
+            // rr group's target device should be contained in at least one varray/vpool pair's devices
+            if (!allTargetSystems.contains(groupTargetDevice)) {
+                continue;
             }
 
             if (StringUtils.isEmpty(rrGroup.getStorageSystemType())) {

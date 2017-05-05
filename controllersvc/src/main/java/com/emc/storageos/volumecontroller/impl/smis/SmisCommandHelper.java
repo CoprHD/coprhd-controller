@@ -555,7 +555,9 @@ public class SmisCommandHelper implements SmisConstants {
 
         List<CIMArgument> args = new ArrayList<CIMArgument>();
         args.addAll(Arrays.asList(baseArguments));
-        args.add(_cimArgument.referenceArray(CP_COLLECTIONS, new CIMObjectPath[] { volumeGroupPath }));
+        if (volumeGroupPath != null) {
+            args.add(_cimArgument.referenceArray(CP_COLLECTIONS, new CIMObjectPath[] { volumeGroupPath }));
+        }
         args.add(_cimArgument.object(CP_REPLICATION_SETTING_DATA, replicaSettingData));
 
         return args.toArray(new CIMArgument[] {});
@@ -1182,21 +1184,19 @@ public class SmisCommandHelper implements SmisConstants {
     public CIMArgument[] getCreateVolumesBasedOnVolumeGroupInputArguments40(
             StorageSystem storage, CIMObjectPath poolPath,
             CIMObjectPath volumeGroupPath, String label, int count, long capacity) {
+
+        List<CIMArgument> list = new ArrayList<>();
+        list.add(_cimArgument.uint16(CP_ELEMENT_TYPE, STORAGE_VOLUME_VALUE));
         if (label != null) {
-            return new CIMArgument[] {
-                    _cimArgument.uint16(CP_ELEMENT_TYPE, STORAGE_VOLUME_VALUE),
-                    _cimArgument.string(CP_ELEMENT_NAME, label),
-                    _cimArgument.uint32(CP_EMC_NUMBER_OF_DEVICES, count),
-                    _cimArgument.uint64(CP_SIZE, capacity),
-                    _cimArgument.reference(CP_IN_POOL, poolPath),
-                    _cimArgument.referenceArray(CP_EMC_COLLECTIONS, toMultiElementArray(count, volumeGroupPath)) };
+            list.add(_cimArgument.string(CP_ELEMENT_NAME, label));
         }
-        return new CIMArgument[] {
-                _cimArgument.uint16(CP_ELEMENT_TYPE, STORAGE_VOLUME_VALUE),
-                _cimArgument.uint32(CP_EMC_NUMBER_OF_DEVICES, count),
-                _cimArgument.uint64(CP_SIZE, capacity),
-                _cimArgument.reference(CP_IN_POOL, poolPath),
-                _cimArgument.referenceArray(CP_EMC_COLLECTIONS, toMultiElementArray(count, volumeGroupPath)) };
+        list.add(_cimArgument.uint32(CP_EMC_NUMBER_OF_DEVICES, count));
+        list.add(_cimArgument.uint64(CP_SIZE, capacity));
+        list.add(_cimArgument.reference(CP_IN_POOL, poolPath));
+        if (volumeGroupPath != null) {
+            list.add(_cimArgument.referenceArray(CP_EMC_COLLECTIONS, toMultiElementArray(count, volumeGroupPath)));
+        }
+        return list.toArray(new CIMArgument[list.size()]);
     }
 
     public CIMArgument[] getCreateVolumesBasedOnVolumeGroupInputArguments80(
@@ -1213,7 +1213,9 @@ public class SmisCommandHelper implements SmisConstants {
                 toMultiElementArray(count, new UnsignedInteger64(Long.toString(capacity)))));
         list.add(_cimArgument.referenceArray(CP_IN_POOL,
                 toMultiElementArray(count, poolPath)));
-        list.add(_cimArgument.referenceArray(CP_EMC_COLLECTIONS, toMultiElementArray(count, volumeGroupPath)));
+        if (volumeGroupPath != null) {
+            list.add(_cimArgument.referenceArray(CP_EMC_COLLECTIONS, toMultiElementArray(count, volumeGroupPath)));
+        }
 
         if (label != null) {
             list.add(_cimArgument.stringArray(CP_ELEMENT_NAMES,
@@ -4983,7 +4985,7 @@ public class SmisCommandHelper implements SmisConstants {
             addTargetPoolToArgs(storageDevice, pool, args);
         }
 
-        if (storageDevice.checkIfVmax3()) {
+        if (storageDevice.checkIfVmax3() && volumeGroupPath != null) {
             args.add(_cimArgument.referenceArray(SmisConstants.CP_COLLECTIONS, new CIMObjectPath[] { volumeGroupPath }));
         }
 
@@ -5442,22 +5444,17 @@ public class SmisCommandHelper implements SmisConstants {
      */
     public CIMObjectPath getVolumeGroupPath(StorageSystem forProvider, StorageSystem storageSystem, Volume volume, StoragePool storagePool) {
         CIMObjectPath volumeGrouptPath = null;
-        if (storageSystem.checkIfVmax3()) {
+        URI policyURI = volume.getAutoTieringPolicyUri();
+        // Don't create Parking SLO SG if there is no Fast policy associated
+        if (storageSystem.checkIfVmax3() && !NullColumnValueGetter.isNullURI(policyURI)) {
             if (storagePool == null) {
                 storagePool = _dbClient.queryObject(StoragePool.class, volume.getPool());
             }
 
+            AutoTieringPolicy policy = _dbClient.queryObject(AutoTieringPolicy.class, policyURI);
+            String slo = policy.getVmaxSLO();
+            String workload = policy.getVmaxWorkload().toUpperCase();
             String srp = storagePool.getPoolName();
-            // default values in case autoTierPolicy is not set then use NONE SLO for V3 AFA and Optimized SLO for V3
-            String slo = storageSystem.isV3AllFlashArray() ? Constants.NONE.toUpperCase() : Constants.OPTIMIZED_SLO;
-            String workload = Constants.NONE.toUpperCase();
-
-            URI policyURI = volume.getAutoTieringPolicyUri();
-            if (!NullColumnValueGetter.isNullURI(policyURI)) {
-                AutoTieringPolicy policy = _dbClient.queryObject(AutoTieringPolicy.class, policyURI);
-                slo = policy.getVmaxSLO();
-                workload = policy.getVmaxWorkload().toUpperCase();
-            }
 
             // Try to find existing storage group.
             volumeGrouptPath = getVolumeGroupBasedOnSLO(forProvider, storageSystem, slo, workload, srp);

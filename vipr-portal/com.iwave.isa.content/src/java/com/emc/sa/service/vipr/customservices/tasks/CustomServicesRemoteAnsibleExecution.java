@@ -62,7 +62,7 @@ public class CustomServicesRemoteAnsibleExecution extends ViPRExecutionTask<Cust
 
         final Exec.Result result;
         try {
-            result = executeRemoteCmd(AnsibleHelper.makeExtraArg(input));
+            result = executeRemoteCmd(AnsibleHelper.makeExtraArg(input, step));
 
         } catch (final Exception e) {
             throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed("Custom Service Task Failed" + e);

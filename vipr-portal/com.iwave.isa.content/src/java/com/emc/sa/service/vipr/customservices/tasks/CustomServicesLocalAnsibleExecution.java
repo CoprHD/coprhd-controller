@@ -55,12 +55,13 @@ public class CustomServicesLocalAnsibleExecution extends ViPRExecutionTask<Custo
     private static final org.slf4j.Logger logger = LoggerFactory.getLogger(CustomServicesLocalAnsibleExecution.class);
     private final Step step;
     private final Map<String, List<String>> input;
-    private final String orderDir = String.format("%s%s/", CustomServicesConstants.ORDER_DIR_PATH,
-            ExecutionUtils.currentContext().getOrder().getOrderNumber());
+    private final String orderDir;
+//    private final String orderDir = String.format("%s%s/", CustomServicesConstants.ORDER_DIR_PATH,
+//            ExecutionUtils.currentContext().getOrder().getOrderNumber());
     private final long timeout;
     private final DbClient dbClient;
 
-    public CustomServicesLocalAnsibleExecution(final Map<String, List<String>> input, final Step step, final DbClient dbClient) {
+    public CustomServicesLocalAnsibleExecution(final Map<String, List<String>> input, final Step step, final DbClient dbClient, final String orderDir) {
         this.input = input;
         this.step = step;
         if (step.getAttributes() == null || step.getAttributes().getTimeout() == -1) {
@@ -69,6 +70,7 @@ public class CustomServicesLocalAnsibleExecution extends ViPRExecutionTask<Custo
             this.timeout = step.getAttributes().getTimeout();
         }
         this.dbClient = dbClient;
+        this.orderDir = orderDir;
     }
 
     @Override
@@ -132,7 +134,7 @@ public class CustomServicesLocalAnsibleExecution extends ViPRExecutionTask<Custo
             AnsibleHelper.writeResourceToFile(inventoryResourceBytes, inventoryFileName);
 
             final String user = ExecutionUtils.currentContext().getOrder().getSubmittedByUserId();
-            result = executeLocal(inventoryFileName, AnsibleHelper.makeExtraArg(input), String.format("%s%s", orderDir, playbook), user);
+            result = executeLocal(inventoryFileName, AnsibleHelper.makeExtraArg(input, step), String.format("%s%s", orderDir, playbook), user);
 
         } catch (final Exception e) {
             throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed("Custom Service Task Failed" + e);

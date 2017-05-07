@@ -17,6 +17,24 @@
 
 package com.emc.sa.service.vipr.customservices.tasks;
 
+import java.io.ByteArrayInputStream;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.net.URI;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.apache.commons.codec.binary.Base64;
+import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
+import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
+import org.apache.commons.compress.compressors.gzip.GzipCompressorInputStream;
+import org.apache.commons.compress.utils.IOUtils;
+import org.apache.commons.lang.StringUtils;
+import org.slf4j.LoggerFactory;
+
 import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.service.vipr.tasks.ViPRExecutionTask;
 import com.emc.storageos.db.client.DbClient;
@@ -28,22 +46,6 @@ import com.emc.storageos.model.customservices.CustomServicesWorkflowDocument.Ste
 import com.emc.storageos.primitives.CustomServicesConstants;
 import com.emc.storageos.services.util.Exec;
 import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorException;
-import java.io.ByteArrayInputStream;
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.OutputStream;
-import java.net.URI;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import org.apache.commons.codec.binary.Base64;
-import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
-import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
-import org.apache.commons.compress.compressors.gzip.GzipCompressorInputStream;
-import org.apache.commons.compress.utils.IOUtils;
-import org.apache.commons.lang.StringUtils;
-import org.slf4j.LoggerFactory;
 
 /**
  * Runs CustomServices Operation: Ansible Playbook.
@@ -56,12 +58,11 @@ public class CustomServicesLocalAnsibleExecution extends ViPRExecutionTask<Custo
     private final Step step;
     private final Map<String, List<String>> input;
     private final String orderDir;
-//    private final String orderDir = String.format("%s%s/", CustomServicesConstants.ORDER_DIR_PATH,
-//            ExecutionUtils.currentContext().getOrder().getOrderNumber());
     private final long timeout;
     private final DbClient dbClient;
 
-    public CustomServicesLocalAnsibleExecution(final Map<String, List<String>> input, final Step step, final DbClient dbClient, final String orderDir) {
+    public CustomServicesLocalAnsibleExecution(final Map<String, List<String>> input, final Step step, final DbClient dbClient,
+            final String orderDir) {
         this.input = input;
         this.step = step;
         if (step.getAttributes() == null || step.getAttributes().getTimeout() == -1) {
@@ -134,7 +135,7 @@ public class CustomServicesLocalAnsibleExecution extends ViPRExecutionTask<Custo
             AnsibleHelper.writeResourceToFile(inventoryResourceBytes, inventoryFileName);
 
             final String user = ExecutionUtils.currentContext().getOrder().getSubmittedByUserId();
-            result = executeLocal(inventoryFileName, AnsibleHelper.makeExtraArg(input, step), String.format("%s%s", orderDir, playbook), user);
+            result = executeLocal(inventoryFileName, AnsibleHelper.makeExtraArg(input), String.format("%s%s", orderDir, playbook), user);
 
         } catch (final Exception e) {
             throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed("Custom Service Task Failed" + e);

@@ -91,6 +91,7 @@ import com.emc.sa.service.vipr.block.tasks.GetBlockExports;
 import com.emc.sa.service.vipr.block.tasks.GetBlockResource;
 import com.emc.sa.service.vipr.block.tasks.GetBlockSnapshot;
 import com.emc.sa.service.vipr.block.tasks.GetBlockSnapshots;
+import com.emc.sa.service.vipr.block.tasks.GetBlockVirtualPool;
 import com.emc.sa.service.vipr.block.tasks.GetBlockVolume;
 import com.emc.sa.service.vipr.block.tasks.GetBlockVolumeByWWN;
 import com.emc.sa.service.vipr.block.tasks.GetBlockVolumes;
@@ -144,6 +145,7 @@ import com.emc.storageos.model.block.export.InitiatorPathParam;
 import com.emc.storageos.model.customconfig.SimpleValueRep;
 import com.emc.storageos.model.systems.StorageSystemRestRep;
 import com.emc.storageos.model.varray.VirtualArrayRestRep;
+import com.emc.storageos.model.vpool.BlockVirtualPoolRestRep;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
 import com.emc.vipr.client.Task;
 import com.emc.vipr.client.Tasks;
@@ -632,10 +634,51 @@ public class BlockStorageUtils {
         } while (retryNeeded);
     }
 
-    public static boolean isVMAXUsePortGroupEnabled() {
+    public static boolean isVMAXUsePortGroupEnabled(URI id) {
         SimpleValueRep value = execute(new GetVMAXUsePortGroupEnabledConfig());
         if (value.getValue().equalsIgnoreCase("true")) {
-            return true;
+            if (ResourceType.isType(ResourceType.VOLUME, id)) {
+                BlockObjectRestRep obj = getVolume(id);
+                if (obj instanceof VolumeRestRep) {
+                    VolumeRestRep volume = (VolumeRestRep) obj;
+                    if (StringUtils.equalsIgnoreCase(volume.getSystemType(), DiscoveredDataObject.Type.vmax.name()) ||
+                            StringUtils.equalsIgnoreCase(volume.getSystemType(), DiscoveredDataObject.Type.vmax3.name())) {
+                        return true;
+                    }
+                }
+                if (obj instanceof BlockSnapshotRestRep) {
+                    BlockSnapshotRestRep snapshot = (BlockSnapshotRestRep) obj;
+                    BlockObjectRestRep parent = getVolume(snapshot.getParent().getId());
+                    if (parent instanceof VolumeRestRep) {
+                        VolumeRestRep volume = (VolumeRestRep) obj;
+                        if (StringUtils.equalsIgnoreCase(volume.getSystemType(), DiscoveredDataObject.Type.vmax.name()) ||
+                                StringUtils.equalsIgnoreCase(volume.getSystemType(), DiscoveredDataObject.Type.vmax3.name())) {
+                            return true;
+                        }
+                    }
+                    if (parent instanceof BlockMirrorRestRep) {
+                        BlockMirrorRestRep mirror = (BlockMirrorRestRep) obj;
+                        if (StringUtils.equalsIgnoreCase(mirror.getSystemType(), DiscoveredDataObject.Type.vmax.name()) ||
+                                StringUtils.equalsIgnoreCase(mirror.getSystemType(), DiscoveredDataObject.Type.vmax3.name())) {
+                            return true;
+                        }
+                    }
+                }
+                if (obj instanceof BlockMirrorRestRep) {
+                    BlockMirrorRestRep mirror = (BlockMirrorRestRep) obj;
+                    if (StringUtils.equalsIgnoreCase(mirror.getSystemType(), DiscoveredDataObject.Type.vmax.name()) ||
+                            StringUtils.equalsIgnoreCase(mirror.getSystemType(), DiscoveredDataObject.Type.vmax3.name())) {
+                        return true;
+                    }
+                }
+            }
+            if (ResourceType.isType(ResourceType.VIRTUAL_POOL, id)) {
+                BlockVirtualPoolRestRep virtualPool = execute(new GetBlockVirtualPool(id));
+                if (StringUtils.equalsIgnoreCase(virtualPool.getSystemType(), DiscoveredDataObject.Type.vmax.name()) ||
+                        StringUtils.equalsIgnoreCase(virtualPool.getSystemType(), DiscoveredDataObject.Type.vmax3.name())) {
+                    return true;
+                }
+            }
         }
         return false;
     }

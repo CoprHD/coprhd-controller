@@ -220,7 +220,7 @@ public class RemoteReplicationPairService extends TaskResourceService {
 
         String taskId = UUID.randomUUID().toString();
         TaskList taskList = new TaskList();
-        Operation op = _dbClient.createTaskOpStatus(RemoteReplicationPair.class, cg.getId(),
+        Operation op = _dbClient.createTaskOpStatus(BlockConsistencyGroup.class, cg.getId(),
                 taskId, ResourceOperationTypeEnum.FAILOVER_REMOTE_REPLICATION_CG_LINK);
         TaskResourceRep volumeTaskResourceRep = toTask(cg, taskId, op);
         taskList.getTaskList().add(volumeTaskResourceRep);
@@ -325,7 +325,7 @@ public class RemoteReplicationPairService extends TaskResourceService {
 
         String taskId = UUID.randomUUID().toString();
         TaskList taskList = new TaskList();
-        Operation op = _dbClient.createTaskOpStatus(RemoteReplicationPair.class, cg.getId(),
+        Operation op = _dbClient.createTaskOpStatus(BlockConsistencyGroup.class, cg.getId(),
                 taskId, ResourceOperationTypeEnum.FAILBACK_REMOTE_REPLICATION_CG_LINK);
         TaskResourceRep volumeTaskResourceRep = toTask(cg, taskId, op);
         taskList.getTaskList().add(volumeTaskResourceRep);
@@ -422,7 +422,7 @@ public class RemoteReplicationPairService extends TaskResourceService {
         String taskId = UUID.randomUUID().toString();
         TaskList taskList = new TaskList();
 
-        Operation op = _dbClient.createTaskOpStatus(RemoteReplicationPair.class, cg.getId(),
+        Operation op = _dbClient.createTaskOpStatus(BlockConsistencyGroup.class, cg.getId(),
                 taskId, ResourceOperationTypeEnum.ESTABLISH_REMOTE_REPLICATION_CG_LINK);
         TaskResourceRep volumeTaskResourceRep = toTask(cg, taskId, op);
         taskList.getTaskList().add(volumeTaskResourceRep);
@@ -508,7 +508,7 @@ public class RemoteReplicationPairService extends TaskResourceService {
 
         String taskId = UUID.randomUUID().toString();
         TaskList taskList = new TaskList();
-        Operation op = _dbClient.createTaskOpStatus(RemoteReplicationPair.class, cg.getId(),
+        Operation op = _dbClient.createTaskOpStatus(BlockConsistencyGroup.class, cg.getId(),
                 taskId, ResourceOperationTypeEnum.SPLIT_REMOTE_REPLICATION_CG_LINK);
         TaskResourceRep volumeTaskResourceRep = toTask(cg, taskId, op);
         taskList.getTaskList().add(volumeTaskResourceRep);
@@ -762,7 +762,7 @@ public class RemoteReplicationPairService extends TaskResourceService {
 
         // Create a task for the remote replication mode change
         String taskId = UUID.randomUUID().toString();
-        Operation op = _dbClient.createTaskOpStatus(RemoteReplicationPair.class, rrPair.getId(),
+        Operation op = _dbClient.createTaskOpStatus(BlockConsistencyGroup.class, rrPair.getId(),
                 taskId, ResourceOperationTypeEnum.CHANGE_REMOTE_REPLICATION_MODE);
 
         // send request to controller

@@ -38,7 +38,7 @@ public class SRDFSwapCompleter extends SRDFTaskCompleter {
         } finally {
             super.complete(dbClient, status, coded);
             // at this point we are done with all db updates for SRDF volumes, now update remote replication pairs
-            super.updateRemoteReplicationPairs();
+            //super.updateRemoteReplicationPairs();
         }
     }
 

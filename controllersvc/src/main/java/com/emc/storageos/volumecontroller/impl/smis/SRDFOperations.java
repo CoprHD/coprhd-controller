@@ -1037,6 +1037,8 @@ public class SRDFOperations implements SmisConstants {
             sourceVol.setSrdfGroup(raGroupUri);
             sourceVol.getSrdfTargets().clear();
             dbClient.persistObject(sourceVol);
+            // update remote replication pairs to reflect change in volumes
+            updateRemoteReplicationPairs(srdfTargets);
         }
     }
 
@@ -2402,6 +2404,28 @@ public class SRDFOperations implements SmisConstants {
             return SmisException.errors.swapOperationNotAllowedDueToActiveCopySessions();
         }
         return SmisException.errors.jobFailed(message);
+    }
+
+    /**
+     * Update/create remote replication pairs for SRDF volumes.
+     */
+    private void updateRemoteReplicationPairs(Set<String> srdfVolumes) {
+        if (srdfVolumes != null && !srdfVolumes.isEmpty()) {
+            List<URI> volumeURIs = URIUtil.toURIList(srdfVolumes);
+            List<Volume> volumes = dbClient.queryObject(Volume.class, volumeURIs);
+            for (Volume v : volumes) {
+                try {
+                    if (v.getSrdfTargets() != null) {
+                        for (String targetId : v.getSrdfTargets()) {
+                            // call updateOrCreate... to cover link create case
+                            RemoteReplicationUtils.updateOrCreateReplicationPairForSrdfPair(v.getId(), URI.create(targetId), dbClient);
+                        }
+                    }
+                } catch (Exception ex) {
+                    log.error("Failed to update remote replication pair for srdf volume {}/{}", v.getId(), v.getLabel(), ex);
+                }
+            }
+        }
     }
 
 }

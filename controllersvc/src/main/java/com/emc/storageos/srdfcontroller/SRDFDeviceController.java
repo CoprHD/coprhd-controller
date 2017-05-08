@@ -318,8 +318,9 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
             ServiceError error = DeviceControllerException.errors.jobFailed(e);
             if (null != completer) {
                 completer.error(dbClient, error);
+            } else {
+                WorkflowStepCompleter.stepFailed(opId, error);
             }
-            WorkflowStepCompleter.stepFailed(opId, error);
             return false;
         }
         return true;
@@ -1140,8 +1141,9 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
             ServiceError error = DeviceControllerException.errors.jobFailed(e);
             if (null != completer) {
                 completer.error(dbClient, error);
+            } else {
+                WorkflowStepCompleter.stepFailed(opId, error);
             }
-            WorkflowStepCompleter.stepFailed(opId, error);
             return false;
         }
         return true;
@@ -1190,8 +1192,9 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
             ServiceError error = DeviceControllerException.errors.jobFailed(e);
             if (null != completer) {
                 completer.error(dbClient, error);
+            } else {
+                WorkflowStepCompleter.stepFailed(opId, error);
             }
-            WorkflowStepCompleter.stepFailed(opId, error);
             return false;
         }
         return true;
@@ -1216,8 +1219,9 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
             ServiceError error = DeviceControllerException.errors.jobFailed(e);
             if (null != completer) {
                 completer.error(dbClient, error);
+            } else {
+                WorkflowStepCompleter.stepFailed(opId, error);
             }
-            WorkflowStepCompleter.stepFailed(opId, error);
             return false;
         }
         return true;
@@ -1272,8 +1276,9 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
             ServiceError error = DeviceControllerException.errors.jobFailed(e);
             if (null != completer) {
                 completer.error(dbClient, error);
+            } else {
+                WorkflowStepCompleter.stepFailed(opId, error);
             }
-            WorkflowStepCompleter.stepFailed(opId, error);
             return false;
         }
         return true;
@@ -1328,8 +1333,9 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
             ServiceError error = DeviceControllerException.errors.jobFailed(e);
             if (null != completer) {
                 completer.error(dbClient, error);
+            } else {
+                WorkflowStepCompleter.stepFailed(opId, error);
             }
-            WorkflowStepCompleter.stepFailed(opId, error);
             return false;
         }
         return true;
@@ -1349,8 +1355,9 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
             ServiceError error = DeviceControllerException.errors.jobFailed(e);
             if (null != completer) {
                 completer.error(dbClient, error);
+            } else {
+                WorkflowStepCompleter.stepFailed(opId, error);
             }
-            WorkflowStepCompleter.stepFailed(opId, error);
             return false;
         }
         return true;
@@ -1375,8 +1382,9 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
             ServiceError error = DeviceControllerException.errors.jobFailed(e);
             if (null != completer) {
                 completer.error(dbClient, error);
+            } else {
+                WorkflowStepCompleter.stepFailed(opId, error);
             }
-            WorkflowStepCompleter.stepFailed(opId, error);
             return false;
         }
         return true;
@@ -1405,8 +1413,9 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
             ServiceError error = DeviceControllerException.errors.jobFailed(e);
             if (null != completer) {
                 completer.error(dbClient, error);
+            } else {
+                WorkflowStepCompleter.stepFailed(opId, error);
             }
-            WorkflowStepCompleter.stepFailed(opId, error);
             return false;
         }
         return true;
@@ -1439,8 +1448,9 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
             // Succeed here, to allow other rollbacks to run
             if (null != completer) {
                 completer.ready(dbClient);
+            } else {
+                WorkflowStepCompleter.stepSucceded(opId);
             }
-            WorkflowStepCompleter.stepSucceded(opId);
             return false;
         }
         return true;
@@ -1473,8 +1483,9 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
             ServiceError error = DeviceControllerException.errors.jobFailed(e);
             if (null != completer) {
                 completer.error(dbClient, error);
+            } else {
+                WorkflowStepCompleter.stepFailed(opId, error);
             }
-            WorkflowStepCompleter.stepFailed(opId, error);
             return false;
         }
         return true;
@@ -1539,15 +1550,12 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
             log.info("Target: {}", targetURI);
             log.info("OpId: {}", opId);
         } catch (Exception e) {
-            if (completer != null) {
-                if (!completer.isCompleted()) {
-                    ServiceError error = DeviceControllerException.errors.jobFailed(e);
-                    completer.error(dbClient, error);
-                    WorkflowStepCompleter.stepFailed(opId, error);
-                } else {
-                    log.debug("Task has been marked as completed.  Not performing any error handling.");
-                }
-            }
+            ServiceError error = DeviceControllerException.errors.jobFailed(e);
+            if (!completer.isCompleted()) {
+                completer.error(dbClient, error);
+             } else {
+                 log.debug("Task has been marked as completed.  Not performing any error handling.");
+             }
 
             return false;
         }
@@ -1765,8 +1773,9 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
             ServiceError error = DeviceControllerException.errors.jobFailed(e);
             if (null != completer) {
                 completer.error(dbClient, error);
+            } else {
+                WorkflowStepCompleter.stepFailed(opId, error);
             }
-            WorkflowStepCompleter.stepFailed(opId, error);
             return false;
         }
         return true;
@@ -1793,8 +1802,9 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
             ServiceError error = DeviceControllerException.errors.jobFailed(e);
             if (null != completer) {
                 completer.error(dbClient, error);
+            } else {
+                WorkflowStepCompleter.stepFailed(opId, error);
             }
-            WorkflowStepCompleter.stepFailed(opId, error);
             return false;
         }
 
@@ -1822,8 +1832,9 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
             ServiceError error = DeviceControllerException.errors.jobFailed(e);
             if (null != completer) {
                 completer.error(dbClient, error);
+            } else {
+                WorkflowStepCompleter.stepFailed(opId, error);
             }
-            WorkflowStepCompleter.stepFailed(opId, error);
             return false;
         }
         return true;
@@ -1848,8 +1859,9 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
             ServiceError error = DeviceControllerException.errors.jobFailed(e);
             if (null != completer) {
                 completer.error(dbClient, error);
+            } else {
+                WorkflowStepCompleter.stepFailed(opId, error);
             }
-            WorkflowStepCompleter.stepFailed(opId, error);
             return false;
         }
         return false;
@@ -1875,8 +1887,9 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
             ServiceError error = DeviceControllerException.errors.jobFailed(e);
             if (null != completer) {
                 completer.error(dbClient, error);
+            } else {
+                WorkflowStepCompleter.stepFailed(opId, error);
             }
-            WorkflowStepCompleter.stepFailed(opId, error);
             return false;
         }
         return false;
@@ -2070,6 +2083,8 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
             ServiceError error = DeviceControllerException.errors.jobFailed(e);
             if (null != completer) {
                 completer.error(dbClient, error);
+            } else {
+                WorkflowStepCompleter.stepFailed(task, error);
             }
         }
     }

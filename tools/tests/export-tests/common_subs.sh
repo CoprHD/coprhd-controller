@@ -79,7 +79,10 @@ report_results() {
     ss=${SS}
 
     if [ "${SS}" = "vplex" ]; then
-	ss="${SS} ${VPLEX_MODE}"
+	    ss="${SS} ${VPLEX_MODE}"
+    fi
+    if [ "${SS}" = "srdf" ]; then
+        ss="${SS} ${SRDF_MODE}"
     fi
 
     simulator="Hardware"

@@ -2611,7 +2611,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
 
     @Override
     public void doCreateLink(final StorageSystem system, final URI sourceURI,
-            final URI targetURI, final TaskCompleter completer) {
+            final URI targetURI, final TaskCompleter completer) throws Exception {
         _srdfOperations.createSRDFVolumePair(system, sourceURI, targetURI, completer);
     }
 

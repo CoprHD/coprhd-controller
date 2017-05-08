@@ -118,6 +118,7 @@ SHORTENED_HOST=${SHORTENED_HOST:=`echo $BOURNE_IP | awk -F. '{ print $1 }'`}
 # cos configuration
 #
 VPOOL_BASE=vpool
+VPOOL_BASE_NOCG=vpool-nocg
 VPOOL_CHANGE=${VPOOL_BASE}-change
 VPOOL_FAST=${VPOOL_BASE}-fast
 
@@ -1116,6 +1117,19 @@ srdf_setup() {
     run cos update block ${VPOOL_BASE}_SRDF_TARGET --storage ${SRDF_V3_VMAXB_NATIVEGUID}
     run cos allow ${VPOOL_BASE}_SRDF_TARGET block $TENANT
 
+    # As above, but without multivolume consistency
+    run cos create block ${VPOOL_BASE_NOCG}_SRDF_TARGET		          \
+	--description 'Target-Virtual-Pool-for-V3-SRDF-Protection' false \
+			 --protocols FC 		          \
+			 --numpaths 1				  \
+			 --max_snapshots 10 			  \
+			 --provisionType 'Thin'	          \
+			 --neighborhoods $NH                      \
+                         --system_type vmax
+
+    run cos update block ${VPOOL_BASE_NOCG}_SRDF_TARGET --storage ${SRDF_V3_VMAXB_NATIVEGUID}
+    run cos allow ${VPOOL_BASE_NOCG}_SRDF_TARGET block $TENANT
+
     case "$SRDF_MODE" in 
         async)
             echo "Setting up the virtual pool for SRDF sync mode"
@@ -1132,9 +1146,23 @@ srdf_setup() {
 
     	   run cos update block ${VPOOL_BASE} --storage ${SRDF_V3_VMAXA_NATIVEGUID}
            run cos allow ${VPOOL_BASE} block $TENANT
+
+           echo "Setting up the virtual pool for SRDF sync mode (nocg)"
+    	    run cos create block ${VPOOL_BASE_NOCG}                 \
+			 --description 'Source-Virtual-Pool-for-Async-SRDF-Protection' true \
+			 --protocols FC 		        \
+			 --numpaths 1				\
+			 --max_snapshots 10			\
+	                 --provisionType 'Thin'	        \
+                         --system_type vmax                     \
+			 --neighborhoods $NH                    \
+			 --srdf "${NH}:${VPOOL_BASE_NOCG}_SRDF_TARGET:ASYNCHRONOUS"
+
+    	   run cos update block ${VPOOL_BASE_NOCG} --storage ${SRDF_V3_VMAXA_NATIVEGUID}
+           run cos allow ${VPOOL_BASE_NOCG} block $TENANT
 	;; 
 	sync)
-            echo "Setting up the virtual pool for SRDF sync mode"	
+        echo "Setting up the virtual pool for SRDF sync mode"
 	    run cos create block ${VPOOL_BASE}                 \
 		 	 --description 'Source-Virtual-Pool-for-Sync-SRDF-Protection' true \
 			 --protocols FC 		        \
@@ -1148,12 +1176,39 @@ srdf_setup() {
 
 	    run cos update block ${VPOOL_BASE} --storage ${SRDF_V3_VMAXA_NATIVEGUID}
 	    run cos allow ${VPOOL_BASE} block $TENANT
+
+	    echo "Setting up the virtual pool for SRDF sync mode (nocg)"
+	    run cos create block ${VPOOL_BASE_NOCG}                 \
+		 	 --description 'Source-Virtual-Pool-for-Sync-SRDF-Protection' true \
+			 --protocols FC 		        \
+			 --numpaths 1				\
+			 --max_snapshots 10			\
+	                 --provisionType 'Thin'	        \
+                         --system_type vmax                     \
+			 --neighborhoods $NH                    \
+			 --srdf "${NH}:${VPOOL_BASE_NOCG}_SRDF_TARGET:SYNCHRONOUS"
+
+	    run cos update block ${VPOOL_BASE_NOCG} --storage ${SRDF_V3_VMAXA_NATIVEGUID}
+	    run cos allow ${VPOOL_BASE_NOCG} block $TENANT
 	;;
 	*)
             secho "Invalid SRDF_MODE: $SRDF_MODE (should be 'sync' or 'async')"
             Usage
         ;;
-    esac    
+    esac
+
+    echo "Setting up the virtual pool for VPool change (Add SRDF)"
+    run cos create block ${VPOOL_CHANGE}                 \
+         --description 'Source-Virtual-Pool-for-VPoolChange' false \
+         --protocols FC 		        \
+         --numpaths 1				\
+         --max_snapshots 10			\
+                 --provisionType 'Thin'	        \
+                     --system_type vmax                     \
+         --neighborhoods $NH
+
+    run cos update block ${VPOOL_CHANGE} --storage ${SRDF_V3_VMAXA_NATIVEGUID}
+    run cos allow ${VPOOL_CHANGE} block $TENANT
 }
 
 host_setup() {
@@ -3106,6 +3161,61 @@ test_13() {
       report_results test_13 ${failure}
     done
 }
+
+test_vpool_change_add_srdf() {
+    echot "Test VPool Change for Adding SRDF Begins"
+
+    # Setup
+    cfs=("Volume")
+    item=${RANDOM}
+    volname="test-add_srdf-${item}"
+    mkdir -p results/${item}
+    snap_db_esc=" | grep -Ev \"^Volume:|srdfLinkStatus|personality\""
+
+    # Failures
+    failure_injections="failure_004_final_step_in_workflow_complete \
+        failure_015_SmisCommandHelper.invokeMethod_EMCCreateMultipleTypeElementsFromStoragePool \
+        failure_015_SmisCommandHelper.invokeMethod_GetDefaultReplicationSettingData \
+        failure_015_SmisCommandHelper.invokeMethod_CreateElementReplica \
+        failure_004_final_step_in_workflow_complete:failure_015_SmisCommandHelper.invokeMethod_ModifyListSynchronization \
+        failure_004_final_step_in_workflow_complete:failure_015_SmisCommandHelper.invokeMethod_RemoveMembers"
+
+    # Placeholder when a specific failure case is being worked...
+    #failure_injections="failure_004_final_step_in_workflow_complete:failure_015_SmisCommandHelper.invokeMethod_RemoveMembers"
+
+    for failure in ${failure_injections}
+    do
+        runcmd volume create ${volname} ${PROJECT} ${NH} ${VPOOL_CHANGE} 1GB
+
+        # Turn on failure at a specific point
+        set_artificial_failure ${failure}
+
+        # Snap the state before the vpool change
+        snap_db 1 "${cfs[@]}" "${snap_db_esc}"
+
+        fail volume change_cos ${PROJECT}/${volname} ${VPOOL_BASE_NOCG}
+
+        # Verify injected failures were hit
+	    verify_failures ${failure}
+
+        # Validate the DB is back to the original state
+        snap_db 2 "${cfs[@]}" "${snap_db_esc}"
+        validate_db 1 2 "${cfs[@]}"
+
+        # Turn off failures
+        set_artificial_failure none
+
+        # Rerun the command
+        runcmd volume change_cos ${PROJECT}/${volname} ${VPOOL_BASE_NOCG}
+
+        # Remove the volume
+        runcmd volume delete ${PROJECT}/${volname} --wait
+
+        # Report results
+        report_results test_vpool_change_add_srdf ${failure}
+    done
+}
+
 
 cleanup() {
     if [ "${DO_CLEANUP}" = "1" ]; then

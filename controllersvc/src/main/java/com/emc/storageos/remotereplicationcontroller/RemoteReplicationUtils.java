@@ -10,14 +10,17 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
@@ -26,6 +29,7 @@ import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.RemoteDirectorGroup;
+import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.VirtualArray;
@@ -43,6 +47,8 @@ import com.emc.storageos.volumecontroller.impl.externaldevice.RemoteReplicationD
 import com.emc.storageos.volumecontroller.impl.externaldevice.RemoteReplicationDataClientImpl;
 import com.emc.storageos.volumecontroller.impl.externaldevice.RemoteReplicationElement;
 import com.emc.storageos.volumecontroller.impl.smis.srdf.SRDFUtils;
+import com.emc.storageos.volumecontroller.impl.utils.ObjectLocalCache;
+import com.emc.storageos.volumecontroller.impl.utils.attrmatchers.NeighborhoodsMatcher;
 
 public class RemoteReplicationUtils {
     private static final Logger _log = LoggerFactory.getLogger(RemoteReplicationUtils.class);
@@ -57,6 +63,31 @@ public class RemoteReplicationUtils {
             volumes.add(targetVolume);
         }
         return volumes;
+    }
+
+    /**
+     * Get storage systems which contain storage pool(s) belonging to both the
+     * given vArray and vPool.
+     *
+     * @param varrayURI
+     * @param vpoolURI
+     * @return URI string set of qualified storage systems
+     */
+    public static Set<String> getStorageSystemsForVarrayVpool(URI varrayURI, URI vpoolURI, DbClient dbClient,
+            CoordinatorClient coordinator) {
+        VirtualPool vpool = dbClient.queryObject(VirtualPool.class, vpoolURI);
+        List<StoragePool> vpoolPools = VirtualPool.getValidStoragePools(vpool, dbClient, true);
+        NeighborhoodsMatcher matcher = new NeighborhoodsMatcher();
+        matcher.setCoordinatorClient(coordinator);
+        matcher.setObjectCache(new ObjectLocalCache(dbClient));
+        Set<URI> varrayPools = new HashSet<>(matcher.getVarrayPools(varrayURI.toString()));
+        Set<String> result = new HashSet<>();
+        for (StoragePool pool : vpoolPools) {
+            if (varrayPools.contains(pool.getId())) {
+                result.add(pool.getStorageDevice().toString());
+            }
+        }
+        return result;
     }
 
     public static VirtualPool getTargetVPool(VirtualPool remoteReplicationVPool, DbClient dbClient) {

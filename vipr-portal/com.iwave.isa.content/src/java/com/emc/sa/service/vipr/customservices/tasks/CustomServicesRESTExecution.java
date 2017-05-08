@@ -49,6 +49,7 @@ public class CustomServicesRESTExecution extends ViPRExecutionTask<CustomService
         this.input = input;
         this.step = step;
         this.coordinator = coordinator;
+        provideDetailArgs(step.getId());
     }
 
     @Override

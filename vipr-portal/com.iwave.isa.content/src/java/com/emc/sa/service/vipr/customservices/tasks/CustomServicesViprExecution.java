@@ -25,6 +25,7 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import com.emc.storageos.primitives.input.InputParameter;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
 import org.codehaus.jackson.map.ObjectMapper;
@@ -76,6 +77,7 @@ public class CustomServicesViprExecution extends ViPRExecutionTask<CustomService
         }
         this.primitive = (CustomServicesViPRPrimitive)primitive;
         this.client = client;
+        provideDetailArgs(step.getId());
     }
 
     @Override
@@ -215,15 +217,13 @@ public class CustomServicesViprExecution extends ViPRExecutionTask<CustomService
 
         logger.info("URI string is: {}", path);
 
-        //TODO: Get from the primitive
-        final List<String> al = new ArrayList<String>();
-        al.add("name");
-        al.add("location");
+        final Map<String, List<InputParameter>> viprInputs = primitive.input();
+        final List<InputParameter> queries = viprInputs.get(CustomServicesConstants.QUERY_PARAMS);
 
         final StringBuilder fullPath = new StringBuilder(path);
         String prefix = "?";
-        for (final String a : al) {
-            final String value = input.get(a).get(0);
+        for (final InputParameter a : queries) {
+            final String value = input.get(a.getName()).get(0);
             if (!StringUtils.isEmpty(value)) {
                 fullPath.append(prefix).append(a).append("=").append(value);
                 prefix = "&";
@@ -234,7 +234,6 @@ public class CustomServicesViprExecution extends ViPRExecutionTask<CustomService
 
         return fullPath.toString();
     }
-
 
     /**
      * POST body format:

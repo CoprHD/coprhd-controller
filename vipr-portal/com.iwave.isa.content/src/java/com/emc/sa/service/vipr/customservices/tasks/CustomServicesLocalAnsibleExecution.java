@@ -35,6 +35,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.URI;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import org.apache.commons.codec.binary.Base64;
@@ -69,6 +70,7 @@ public class CustomServicesLocalAnsibleExecution extends ViPRExecutionTask<Custo
             this.timeout = step.getAttributes().getTimeout();
         }
         this.dbClient = dbClient;
+        provideDetailArgs(step.getId());
     }
 
     @Override
@@ -190,7 +192,7 @@ public class CustomServicesLocalAnsibleExecution extends ViPRExecutionTask<Custo
                 .setCommandLine(AnsibleHelper.getOptions(CustomServicesConstants.ANSIBLE_COMMAND_LINE, input))
                 .build();
         //default to no host key checking
-        final Map<String,String> environment = new HashMap<>();
+        final Map<String,String> environment = new HashMap<String,String>();
         environment.put("ANSIBLE_HOST_KEY_CHECKING", "false");
 
         return Exec.exec(new File(orderDir), timeout, null, environment, cmds);

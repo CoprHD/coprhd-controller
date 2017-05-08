@@ -166,17 +166,19 @@ public class CustomServicesService extends ViPRService {
                     try {
                         updateOutputPerStep(step, res);
                     } catch (final Exception e) {
-                        logger.warn("Failed to parse output" + e);
+                        logger.warn("Failed to parse output" + e + "step Id:{}", step.getId());
                     }
                 }
                 next = getNext(isSuccess, res, step);
             } catch (final Exception e) {
                 logger.warn(
-                        "failed to execute step. Try to get failure path. Exception Received:" + e + e.getStackTrace()[0].getLineNumber());
+                        "failed to execute step step Id:{}", step.getId() + "Try to get failure path. Exception Received:" + e);
                 next = getNext(false, null, step);
             }
             if (next == null) {
-                throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed("Failed to get next step");
+                ExecutionUtils.currentContext().logError("customServicesService.logStatus", "failure path is not set for step Id:" + step.getId()
+                + "Workflow execution failed");
+                break;
             }
             if ((System.currentTimeMillis() - timeout) > CustomServicesConstants.TIMEOUT) {
                 throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed("Operation Timed out");
@@ -208,12 +210,12 @@ public class CustomServicesService extends ViPRService {
         }
         final ImmutableMap<String, Step> stepsHash = builder.build();
 
-        ExecutionUtils.currentContext().logInfo("customServicesService.status", obj.getName(), obj.getDescription());
+        ExecutionUtils.currentContext().logInfo("customServicesService.status", obj.getName());
 
         return stepsHash;
     }
 
-    private boolean needUpdate(final Step step, final Map<String, CustomServicesWorkflowDocument.InputGroup> stepInput) {
+    /*private boolean needUpdate(final Step step, final Map<String, CustomServicesWorkflowDocument.InputGroup> stepInput) {
         if (step.getType().equals(StepType.WORKFLOW.toString()) || stepInput == null || step.getInputGroups() == null) {
             return false;
         }
@@ -221,7 +223,7 @@ public class CustomServicesService extends ViPRService {
         return true;
     }
 
-   /* private Step updatesubWfInput(final Step step, final Map<String, CustomServicesWorkflowDocument.InputGroup> stepInput) {
+    private Step updatesubWfInput(final Step step, final Map<String, CustomServicesWorkflowDocument.InputGroup> stepInput) {
         if (!needUpdate(step, stepInput)) {
             return step;
         }

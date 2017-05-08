@@ -178,6 +178,9 @@ public class VNXBlockAutoTieringPolicyMatcher extends AttributeMatcher {
         List<StoragePool> filteredPoolList = new ArrayList<StoragePool>();
         for (StoragePool pool : initialPools) {
             StringMap tierUtilizationPercentage = pool.getTierUtilizationPercentage();
+            if (tierUtilizationPercentage == null) {
+                continue;
+            }
             if (null == tierUtilizationPercentage.get(driveType)) {
                 continue;
             }

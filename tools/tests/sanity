@@ -7249,8 +7249,14 @@ sbsdk_remote_replication_tests()
     echo "**** Failover replication group: ${SBSDK_DRIVER_REPLICATION_SET1_GROUP1} *******"
     run remotereplicationgroup failover ${SBSDK_DRIVER_REPLICATION_SET1_GROUP1}
 
+    echo "**** Failback replication group: ${SBSDK_DRIVER_REPLICATION_SET1_GROUP1} *******"
+    run remotereplicationgroup failback ${SBSDK_DRIVER_REPLICATION_SET1_GROUP1}
+
     echo "**** Failover replication set: ${SBSDK_DRIVER_REPLICATION_SET1} *******"
     run remotereplicationset failover ${SBSDK_DRIVER_REPLICATION_SET1}
+
+    echo "**** Failback replication set: ${SBSDK_DRIVER_REPLICATION_SET1} *******"
+    run remotereplicationset failback ${SBSDK_DRIVER_REPLICATION_SET1}
 
     #Delete the volume
     echo "***** Deleting volume $VOLUME_NO_GROUP_NAME *****"

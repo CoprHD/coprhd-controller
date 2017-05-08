@@ -57,7 +57,8 @@ public class CreateMultipleBlockVolumes extends WaitForTasks<VolumeRestRep> {
             create.setConsistencyGroup(param.getConsistencyGroup());
 
             BlockVirtualPoolRestRep vpool = getClient().blockVpools().get(param.getVirtualPool());
-            if ((vpool != null) && (vpool.getProtection().getRemoteReplicationParam() != null)) {
+            if ((vpool != null) && (vpool.getProtection() != null) &&
+                    (vpool.getProtection().getRemoteReplicationParam() != null)) {
 
                 List<NamedRelatedResourceRep> rrSets = getClient().remoteReplicationSets().
                         listRemoteReplicationSets(param.getVirtualArray(),param.getVirtualPool()).

@@ -19,7 +19,7 @@ import com.emc.storageos.db.client.model.VolumeTopology.VolumeTopologyRole;
 import com.emc.storageos.db.client.model.VolumeTopology.VolumeTopologySite;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.model.block.BlockPerformanceParamsMap;
-import com.emc.storageos.model.block.VolumeCreatePerformanceParams;
+import com.emc.storageos.model.block.BlockPerformanceParamsOverrideParam;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
 
 /**
@@ -30,13 +30,13 @@ public class PerformanceParamsUtils {
     /**
      * Get the performance parameters for the passed role.
      * 
-     * @param performanceParams The performance parameter for a volume create request.
+     * @param performanceParams The performance parameter overrides.
      * @param role A VolumeTopologyRole.
      * @param dbClient A reference to a DbClient.
      * 
      * @return The URI of a PerformanceParams instance or null.
      */
-    public static URI getPerformanceParamsIdForSourceRole(VolumeCreatePerformanceParams performanceParams,
+    public static URI getPerformanceParamsIdForSourceRole(BlockPerformanceParamsOverrideParam performanceParams,
             VolumeTopologyRole role, DbClient dbClient) {
         URI performanceParamsURI = null;
         if (performanceParams != null) {
@@ -49,13 +49,13 @@ public class PerformanceParamsUtils {
     }
 
     /**
-     * Transform the performance params for a volume create request to a Java map.
+     * Transform the performance params to a Java map.
      * 
-     * @param performanceParams The performance params for a volume create request or null.
+     * @param performanceParams The performance parameter overrides or null.
      * 
      * @return A Map specifying the performance parameters.
      */
-    public static Map<VolumeTopologySite, List<Map<VolumeTopologyRole, URI>>> transformPerformanceParams(VolumeCreatePerformanceParams performanceParams) {
+    public static Map<VolumeTopologySite, List<Map<VolumeTopologyRole, URI>>> transformPerformanceParams(BlockPerformanceParamsOverrideParam performanceParams) {
         Map<VolumeTopologySite, List<Map<VolumeTopologyRole, URI>>> performanceParamsMap = new HashMap<>();
         if (performanceParams != null) {
             // Translate the source site performance parameters.

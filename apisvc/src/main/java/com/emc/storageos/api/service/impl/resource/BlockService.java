@@ -140,7 +140,7 @@ import com.emc.storageos.model.block.VirtualArrayChangeParam;
 import com.emc.storageos.model.block.VirtualPoolChangeParam;
 import com.emc.storageos.model.block.VolumeBulkRep;
 import com.emc.storageos.model.block.VolumeCreate;
-import com.emc.storageos.model.block.VolumeCreatePerformanceParams;
+import com.emc.storageos.model.block.BlockPerformanceParamsOverrideParam;
 import com.emc.storageos.model.block.VolumeDeleteTypeEnum;
 import com.emc.storageos.model.block.VolumeExpandParam;
 import com.emc.storageos.model.block.VolumeFullCopyCreateParam;
@@ -764,9 +764,9 @@ public class BlockService extends TaskResourceService {
         // specified would override the corresponding properties in the virtual pool.
         // Aside from general validation, we need to ensure that the passed performance
         // parameters are appropriate for the volume topology defined by the virtual pool.
-        VolumeCreatePerformanceParams performanceParams = param.getPerformanceParams();
+        BlockPerformanceParamsOverrideParam performanceParams = param.getPerformanceParams();
         if (performanceParams != null) {
-            blockServiceImpl.validatePerformanceParameters(performanceParams);
+            blockServiceImpl.validatePerformanceParametersForVolumeCreate(performanceParams);
         }
 
         // Get the count indicating the number of volumes to create. If not
@@ -5298,6 +5298,8 @@ public class BlockService extends TaskResourceService {
         VirtualPoolCapabilityValuesWrapper capabilities = new VirtualPoolCapabilityValuesWrapper();
         capabilities.put(VirtualPoolCapabilityValuesWrapper.RESOURCE_COUNT, count);
         capabilities.put(VirtualPoolCapabilityValuesWrapper.SIZE, sourceVolume.getCapacity());
+        
+        // TB Heg Hmmm should these come from the mirror virtual pool?
         capabilities.put(VirtualPoolCapabilityValuesWrapper.THIN_PROVISIONING, sourceVolume.getThinlyProvisioned());
         capabilities.put(VirtualPoolCapabilityValuesWrapper.THIN_VOLUME_PRE_ALLOCATE_SIZE,
                 sourceVolume.getThinVolumePreAllocationSize());

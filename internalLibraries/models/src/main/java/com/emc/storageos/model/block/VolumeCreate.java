@@ -25,7 +25,7 @@ public class VolumeCreate {
     private URI project;
     private URI consistencyGroup;
     private URI computeResource;
-    private VolumeCreatePerformanceParams performanceParams;
+    private BlockPerformanceParamsOverrideParam performanceParams;
 
     public VolumeCreate() {
     }
@@ -162,16 +162,17 @@ public class VolumeCreate {
 	}
 	
     /**
-     * The performance parameters to use when the newly created volume is exported.
+     * The performance parameters to use when the newly created volume is 
+     * provisioned.
      * 
      * @return The performance parameters.
      */
     @XmlElement(name = "performance_params")
-    public VolumeCreatePerformanceParams getPerformanceParams() {
+    public BlockPerformanceParamsOverrideParam getPerformanceParams() {
         return performanceParams;
     }
 
-    public void setPerformanceParams(VolumeCreatePerformanceParams performanceParams) {
+    public void setPerformanceParams(BlockPerformanceParamsOverrideParam performanceParams) {
         this.performanceParams = performanceParams;
     }	
 }

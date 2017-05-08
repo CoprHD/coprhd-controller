@@ -225,6 +225,9 @@ public class StorageScheduler implements Scheduler {
     public void getRecommendationsForMirrors(VirtualArray vArray, VirtualPool vPool,
             VirtualPoolCapabilityValuesWrapper capabilities, List<Recommendation> volumeRecommendations) {
 
+        // TBD Heg Here the vpool is the mirror virtual pool, however the capabilities has the thin provisioning
+        // and pre-allocation of the source volume vpool. The pass volume recommendations have info about the 
+        // source volume.
         List<VolumeRecommendation> mirrorRecommendations = new ArrayList<VolumeRecommendation>();
         // separate volumes by different devices
         Map<URI, List<VolumeRecommendation>> deviceMap = VolumeRecommendation.getDeviceMap(volumeRecommendations, _dbClient);
@@ -431,8 +434,11 @@ public class StorageScheduler implements Scheduler {
             throw APIException.badRequests.noStoragePoolsForVpoolInVarray(varray.getLabel(), vpool.getLabel());
         }
 
+        // TBD Heg this will be pre-alloc size of the mirror source
         AttributeMapBuilder provMapBuilder = new ProvisioningAttributeMapBuilder(capabilities.getSize(),
                 varrayId, capabilities.getThinVolumePreAllocateSize());
+        
+        // TBD Heg provision type from mirror vpool. OK.
         provMapBuilder.putAttributeInMap(AttributeMatcher.Attributes.provisioning_type.toString(),
                 vpool.getSupportedProvisioningType());
 
@@ -526,6 +532,7 @@ public class StorageScheduler implements Scheduler {
         }
 
         // populate DriveType,and Raid level and Policy Name for FAST Initial Placement Selection
+        // TBD Heg no auto tiering for mirror as not set in capabilities.
         provMapBuilder.putAttributeInMap(Attributes.auto_tiering_policy_name.toString(), capabilities.getAutoTierPolicyName());
         provMapBuilder.putAttributeInMap(Attributes.unique_policy_names.toString(), vpool.getUniquePolicyNames());
         provMapBuilder.putAttributeInMap(AttributeMatcher.PLACEMENT_MATCHERS, true);
@@ -1803,6 +1810,8 @@ public class StorageScheduler implements Scheduler {
         // Setting the source Volume autoTieringPolicy in Mirror.
         // @TODO we must accept the policy as an input for mirrors and requires API changes.
         // Hence for timebeing, we are setting the source policy in mirror.
+        
+        // TBD Heg Not true. The auto tiering policy is in the mirror virtual pool
         if (!NullColumnValueGetter.isNullURI(volume.getAutoTieringPolicyUri())) {
             createdMirror.setAutoTieringPolicyUri(volume.getAutoTieringPolicyUri());
         }
@@ -1812,9 +1821,11 @@ public class StorageScheduler implements Scheduler {
         createdMirror.setProject(new NamedURI(volume.getProject().getURI(), createdMirror.getLabel()));
         createdMirror.setTenant(new NamedURI(volume.getTenant().getURI(), createdMirror.getLabel()));
         createdMirror.setPool(recommendedPoolURI);
+        // This is the source virtual pool.
         createdMirror.setVirtualPool(vPool.getId());
         createdMirror.setSyncState(SynchronizationState.UNKNOWN.toString());
         createdMirror.setSyncType(BlockMirror.MIRROR_SYNC_TYPE);
+        // TBD Heg Not true the placement occurred based on the mirror virtual pool thin provisioning setting.
         createdMirror.setThinlyProvisioned(volume.getThinlyProvisioned());
         dbClient.createObject(createdMirror);
         addMirrorToVolume(volume, createdMirror, dbClient);

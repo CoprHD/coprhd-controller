@@ -30,7 +30,7 @@ import com.emc.storageos.model.application.VolumeGroupUpdateParam.VolumeGroupVol
 import com.emc.storageos.model.block.NativeContinuousCopyCreate;
 import com.emc.storageos.model.block.VirtualPoolChangeParam;
 import com.emc.storageos.model.block.VolumeCreate;
-import com.emc.storageos.model.block.VolumeCreatePerformanceParams;
+import com.emc.storageos.model.block.BlockPerformanceParamsOverrideParam;
 import com.emc.storageos.model.systems.StorageSystemConnectivityList;
 import com.emc.storageos.model.vpool.VirtualPoolChangeList;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
@@ -676,5 +676,5 @@ public interface BlockServiceApi {
      * 
      * @param requestParams A reference to the performance parameters passed in the request.
      */
-    public void validatePerformanceParameters(VolumeCreatePerformanceParams requestParams);
+    public void validatePerformanceParametersForVolumeCreate(BlockPerformanceParamsOverrideParam requestParams);
 }

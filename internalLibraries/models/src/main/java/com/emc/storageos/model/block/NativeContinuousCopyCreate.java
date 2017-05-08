@@ -20,6 +20,7 @@ public class NativeContinuousCopyCreate {
 
     private String name;
     private Integer count;
+    private BlockPerformanceParamsOverrideParam performanceParams;    
 
     public NativeContinuousCopyCreate() {
     }
@@ -54,4 +55,19 @@ public class NativeContinuousCopyCreate {
     public void setCount(Integer count) {
         this.count = count;
     }
+    
+    /**
+     * The performance parameters to use when the newly created mirror is 
+     * provisioned.
+     * 
+     * @return The performance parameters.
+     */
+    @XmlElement(name = "performance_params")
+    public BlockPerformanceParamsOverrideParam getPerformanceParams() {
+        return performanceParams;
+    }
+
+    public void setPerformanceParams(BlockPerformanceParamsOverrideParam performanceParams) {
+        this.performanceParams = performanceParams;
+    }    
 }

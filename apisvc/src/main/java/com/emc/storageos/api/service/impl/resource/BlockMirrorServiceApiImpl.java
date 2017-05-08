@@ -60,7 +60,7 @@ import com.emc.storageos.model.TaskResourceRep;
 import com.emc.storageos.model.block.NativeContinuousCopyCreate;
 import com.emc.storageos.model.block.VirtualPoolChangeParam;
 import com.emc.storageos.model.block.VolumeCreate;
-import com.emc.storageos.model.block.VolumeCreatePerformanceParams;
+import com.emc.storageos.model.block.BlockPerformanceParamsOverrideParam;
 import com.emc.storageos.model.block.VolumeDeleteTypeEnum;
 import com.emc.storageos.model.vpool.VirtualPoolChangeOperationEnum;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
@@ -825,6 +825,8 @@ public class BlockMirrorServiceApiImpl extends AbstractBlockServiceApiImpl<Stora
                 mirrorVPool = _dbClient.queryObject(VirtualPool.class, mirrorPoolUri);
             }
         }
+        
+        
         for (int i = 0; i < capabilities.getResourceCount(); i++) {
             VolumeRecommendation volumeRecommendation = new VolumeRecommendation(
                     VolumeRecommendation.VolumeType.BLOCK_VOLUME, sourceVolume.getCapacity(),
@@ -834,6 +836,17 @@ public class BlockMirrorServiceApiImpl extends AbstractBlockServiceApiImpl<Stora
             currentRecommendation.add(volumeRecommendation);
         }
         VirtualArray vArray = _dbClient.queryObject(VirtualArray.class, sourceVolume.getVirtualArray());
+        
+        // TBD Heg placement does not account for auto tiering policy in mirror vpool and 
+        // uses the thin volume pre-allocation size for the source volume.
+        
+        
+        // TB Heg Hmmm should these come from the mirror virtual pool?
+        capabilities.put(VirtualPoolCapabilityValuesWrapper.THIN_PROVISIONING, sourceVolume.getThinlyProvisioned());
+        capabilities.put(VirtualPoolCapabilityValuesWrapper.THIN_VOLUME_PRE_ALLOCATE_SIZE,
+                sourceVolume.getThinVolumePreAllocationSize());
+
+        
         _scheduler.getRecommendationsForMirrors(vArray, mirrorVPool, capabilities,
                 currentRecommendation);
         // only mirror will be prepared (the source already exist)
@@ -931,6 +944,6 @@ public class BlockMirrorServiceApiImpl extends AbstractBlockServiceApiImpl<Stora
      * {@inheritDoc}
      */
     @Override
-    public void validatePerformanceParameters(VolumeCreatePerformanceParams requestParams) {
+    public void validatePerformanceParametersForVolumeCreate(BlockPerformanceParamsOverrideParam requestParams) {
     }
 }

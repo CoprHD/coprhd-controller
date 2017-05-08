@@ -11,9 +11,9 @@ import javax.xml.bind.annotation.XmlElement;
 
 /**
  * Class captures the performance parameter settings when posting a request
- * to provision a new volume.
+ * to provision a new volume or create a new continuous copy i.e., mirror.
  */
-public class VolumeCreatePerformanceParams {
+public class BlockPerformanceParamsOverrideParam {
 
     // The performance parameters for the source volume in the volume topology.
     private BlockPerformanceParamsMap sourcePerformanceParams;
@@ -24,7 +24,7 @@ public class VolumeCreatePerformanceParams {
     /**
      * Default constructor
      */
-    public VolumeCreatePerformanceParams() {
+    public BlockPerformanceParamsOverrideParam() {
     }
 
     /*

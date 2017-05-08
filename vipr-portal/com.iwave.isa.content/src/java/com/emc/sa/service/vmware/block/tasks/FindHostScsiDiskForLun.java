@@ -119,6 +119,8 @@ public class FindHostScsiDiskForLun extends ExecutionTask<HostScsiDisk> {
 
         if (availableDiskOnly) {
             scsiDisks = storageAPI.queryAvailableDisksForVmfs(null);
+        } else {
+            scsiDisks = storageAPI.listScsiDisks();
         }
 
         for (HostScsiDisk entry : scsiDisks) {

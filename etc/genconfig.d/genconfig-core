@@ -288,3 +288,23 @@ _get_all_nodes_in_my_vdc() {
 
     echo "${all_nodes}"
 }
+
+# mount custom chroot jail director
+_genconfig_custom_mount() {
+   mount -t proc -o ro proc /opt/customroot/proc
+   mount -t sysfs -o ro sysfs /opt/customroot/sys
+   mount -t devtmpfs -o ro devtmpfs /opt/customroot/dev
+   mount -t tmpfs -o ro tmpfs /opt/customroot/dev/shm
+   mount -t devpts -o ro devpts /opt/customroot/dev/pts
+
+   cp -f /etc/hosts /opt/customroot/etc
+   cp -f /etc/resolv.conf /opt/customroot/etc/resolv.conf
+   
+   mount --bind /usr /opt/customroot/usr
+   mount --bind /lib /opt/customroot/lib
+   mount --bind /lib64 /opt/customroot/lib64
+   
+   mount -o bind,remount,ro /opt/customroot/usr
+   mount -o bind,remount,ro /opt/customroot/lib
+   mount -o bind,remount,ro /opt/customroot/lib64
+}

@@ -58,6 +58,7 @@ public class RemoteReplicationFailoverCompleter extends TaskCompleter {
                 setType(BlockConsistencyGroup.class);
                 break;
             case REPLICATION_SET:
+                setType(com.emc.storageos.db.client.model.remotereplication.RemoteReplicationSet.class);
                 break;
         }
     }

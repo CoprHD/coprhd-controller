@@ -21,6 +21,18 @@ def remotereplicationset_list(args):
     for set in sets:
         print set
 
+def remotereplicationset_failover(args):
+    bourne.connect(args.ip)
+
+    replicationset_uri = bourne.replicationset_query(args.replicationset_name)
+    print 'Replication set uri: ' + replicationset_uri
+
+    s = bourne.replicationset_failover(replicationset_uri)
+    if (s['state'] == 'ready'):
+        print 'Failed over remote replication set with id ' + s['resource']['id']
+    else:
+        print 'Failed to failover remote replication set.'
+
 #----------------------------------------------------------------------
 # command-line parsing
 #----------------------------------------------------------------------
@@ -38,6 +50,10 @@ parser.add_argument('--ip',	metavar = 'ipaddr',	help = 'IP address of bourne', d
 # remote replication set list
 list = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
 
+# remotereplicationset failover
+failover = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+failover.add_argument('replicationset_name', help = 'The name of the replication group.')
+
 #----------------------------------------------------------------------
 # Main script
 #----------------------------------------------------------------------
@@ -54,6 +70,9 @@ try:
     if (cmd == "list"):
         args = list.parse_args()
         remotereplicationset_list(args)
+    elif (cmd == "failover"):
+        args = failover.parse_args()
+        remotereplicationset_failover(args)
     else:
         parser.print_help()
 

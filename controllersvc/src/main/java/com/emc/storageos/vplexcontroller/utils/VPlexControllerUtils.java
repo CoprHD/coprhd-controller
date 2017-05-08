@@ -2,7 +2,7 @@
  * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
-package com.emc.storageos.vplexcontroller;
+package com.emc.storageos.vplexcontroller.utils;
 
 import static com.google.common.collect.Collections2.transform;
 
@@ -75,7 +75,7 @@ public class VPlexControllerUtils {
      * @return
      * @throws ControllerException
      */
-    protected static <T extends DataObject> T getDataObject(Class<T> clazz, URI id, DbClient dbClient)
+    public static <T extends DataObject> T getDataObject(Class<T> clazz, URI id, DbClient dbClient)
             throws DeviceControllerException {
         try {
             T object = null;

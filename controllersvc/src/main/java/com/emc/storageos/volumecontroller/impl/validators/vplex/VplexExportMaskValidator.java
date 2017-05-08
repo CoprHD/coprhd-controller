@@ -28,7 +28,7 @@ import com.emc.storageos.volumecontroller.impl.validators.ValidatorLogger;
 import com.emc.storageos.vplex.api.VPlexApiClient;
 import com.emc.storageos.vplex.api.VPlexApiFactory;
 import com.emc.storageos.vplex.api.VPlexStorageViewInfo;
-import com.emc.storageos.vplexcontroller.VPlexControllerUtils;
+import com.emc.storageos.vplexcontroller.utils.VPlexControllerUtils;
 
 public class VplexExportMaskValidator extends AbstractVplexValidator implements Validator {
     private Logger log = LoggerFactory.getLogger(VplexExportMaskValidator.class);

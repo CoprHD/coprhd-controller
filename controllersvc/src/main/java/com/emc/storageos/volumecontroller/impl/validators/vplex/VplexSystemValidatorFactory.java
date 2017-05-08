@@ -33,7 +33,7 @@ import com.emc.storageos.volumecontroller.impl.validators.Validator;
 import com.emc.storageos.volumecontroller.impl.validators.ValidatorConfig;
 import com.emc.storageos.volumecontroller.impl.validators.ValidatorLogger;
 import com.emc.storageos.vplex.api.VPlexApiFactory;
-import com.emc.storageos.vplexcontroller.VPlexControllerUtils;
+import com.emc.storageos.vplexcontroller.utils.VPlexControllerUtils;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Lists;
 

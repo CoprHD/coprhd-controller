@@ -2,7 +2,7 @@
  * Copyright (c) 2017 EMC Corporation
  * All Rights Reserved
  */
-package com.emc.storageos.vplexcontroller;
+package com.emc.storageos.vplexcontroller.utils;
 
 import com.emc.storageos.volumecontroller.impl.utils.ExportOperationContext;
 

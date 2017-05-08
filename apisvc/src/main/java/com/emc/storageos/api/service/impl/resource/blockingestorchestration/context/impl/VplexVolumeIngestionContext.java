@@ -47,8 +47,8 @@ import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVol
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.util.ConnectivityUtil;
 import com.emc.storageos.vplex.api.VPlexApiConstants;
-import com.emc.storageos.vplexcontroller.VPlexControllerUtils;
 import com.emc.storageos.vplexcontroller.VplexBackendIngestionContext;
+import com.emc.storageos.vplexcontroller.utils.VPlexControllerUtils;
 
 /**
  * A combined implementation of VolumeIngestionContext and IngestionRequestContext

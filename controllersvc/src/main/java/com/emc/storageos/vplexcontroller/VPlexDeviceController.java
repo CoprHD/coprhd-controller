@@ -5,7 +5,7 @@
 package com.emc.storageos.vplexcontroller;
 
 import static com.emc.storageos.db.client.util.CommonTransformerFunctions.fctnDataObjectToID;
-import static com.emc.storageos.vplexcontroller.VPlexControllerUtils.getDataObject;
+import static com.emc.storageos.vplexcontroller.utils.VPlexControllerUtils.getDataObject;
 import static com.google.common.collect.Collections2.transform;
 
 import java.io.IOException;
@@ -190,6 +190,8 @@ import com.emc.storageos.vplexcontroller.completers.MigrationWorkflowCompleter;
 import com.emc.storageos.vplexcontroller.completers.VolumeGroupUpdateTaskCompleter;
 import com.emc.storageos.vplexcontroller.job.VPlexCacheStatusJob;
 import com.emc.storageos.vplexcontroller.job.VPlexMigrationJob;
+import com.emc.storageos.vplexcontroller.utils.VPlexControllerUtils;
+import com.emc.storageos.vplexcontroller.utils.VplexExportOperationContext;
 import com.emc.storageos.workflow.Workflow;
 import com.emc.storageos.workflow.WorkflowException;
 import com.emc.storageos.workflow.WorkflowService;

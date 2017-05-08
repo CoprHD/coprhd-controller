@@ -4,8 +4,8 @@
  */
 package com.emc.storageos.vplexcontroller;
 
-import static com.emc.storageos.vplexcontroller.VPlexControllerUtils.getDataObject;
-import static com.emc.storageos.vplexcontroller.VPlexControllerUtils.getVPlexAPIClient;
+import static com.emc.storageos.vplexcontroller.utils.VPlexControllerUtils.getDataObject;
+import static com.emc.storageos.vplexcontroller.utils.VPlexControllerUtils.getVPlexAPIClient;
 
 import java.net.URI;
 import java.util.ArrayList;
@@ -39,6 +39,7 @@ import com.emc.storageos.volumecontroller.impl.utils.ClusterConsistencyGroupWrap
 import com.emc.storageos.vplex.api.VPlexApiClient;
 import com.emc.storageos.vplex.api.VPlexApiException;
 import com.emc.storageos.vplex.api.VPlexConsistencyGroupInfo;
+import com.emc.storageos.vplexcontroller.utils.VPlexControllerUtils;
 import com.emc.storageos.workflow.Workflow;
 import com.emc.storageos.workflow.WorkflowException;
 import com.emc.storageos.workflow.WorkflowStepCompleter;

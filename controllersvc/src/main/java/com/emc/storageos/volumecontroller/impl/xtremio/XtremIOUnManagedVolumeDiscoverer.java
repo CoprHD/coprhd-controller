@@ -52,7 +52,7 @@ import com.emc.storageos.util.NetworkUtil;
 import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
 import com.emc.storageos.volumecontroller.impl.utils.DiscoveryUtils;
 import com.emc.storageos.volumecontroller.impl.xtremio.prov.utils.XtremIOProvUtils;
-import com.emc.storageos.vplexcontroller.VPlexControllerUtils;
+import com.emc.storageos.vplexcontroller.utils.VPlexControllerUtils;
 import com.emc.storageos.xtremio.restapi.XtremIOClient;
 import com.emc.storageos.xtremio.restapi.XtremIOClientFactory;
 import com.emc.storageos.xtremio.restapi.XtremIOConstants;

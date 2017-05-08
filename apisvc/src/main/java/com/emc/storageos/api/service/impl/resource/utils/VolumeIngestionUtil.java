@@ -101,8 +101,8 @@ import com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.processor.
 import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
 import com.emc.storageos.volumecontroller.placement.BlockStorageScheduler;
 import com.emc.storageos.vplex.api.VPlexApiConstants;
-import com.emc.storageos.vplexcontroller.VPlexControllerUtils;
 import com.emc.storageos.vplexcontroller.VplexBackendIngestionContext;
+import com.emc.storageos.vplexcontroller.utils.VPlexControllerUtils;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.Sets;

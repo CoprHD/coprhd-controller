@@ -35,6 +35,7 @@ import com.emc.storageos.vplex.api.VPlexDeviceInfo;
 import com.emc.storageos.vplex.api.VPlexDistributedDeviceInfo;
 import com.emc.storageos.vplex.api.VPlexResourceInfo;
 import com.emc.storageos.vplex.api.VPlexStorageVolumeInfo;
+import com.emc.storageos.vplexcontroller.utils.VPlexControllerUtils;
 
 /**
  * A context object for holding all the data and functionality

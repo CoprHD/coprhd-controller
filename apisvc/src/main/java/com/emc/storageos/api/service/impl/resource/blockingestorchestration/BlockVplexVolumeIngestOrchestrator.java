@@ -55,8 +55,8 @@ import com.emc.storageos.db.client.model.util.BlockConsistencyGroupUtils;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.util.ConnectivityUtil;
 import com.emc.storageos.volumecontroller.impl.ControllerUtils;
-import com.emc.storageos.vplexcontroller.VPlexControllerUtils;
 import com.emc.storageos.vplexcontroller.VplexBackendIngestionContext;
+import com.emc.storageos.vplexcontroller.utils.VPlexControllerUtils;
 import com.google.common.base.Joiner;
 
 /**

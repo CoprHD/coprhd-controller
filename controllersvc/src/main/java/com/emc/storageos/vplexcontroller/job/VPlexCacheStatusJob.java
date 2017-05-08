@@ -24,8 +24,8 @@ import com.emc.storageos.vplex.api.VPlexApiClient;
 import com.emc.storageos.vplex.api.VPlexApiFactory;
 import com.emc.storageos.vplex.api.VPlexCacheStatusInfo;
 import com.emc.storageos.vplex.api.VPlexCacheStatusInfo.InvalidateStatus;
-import com.emc.storageos.vplexcontroller.VPlexControllerUtils;
 import com.emc.storageos.vplexcontroller.completers.CacheStatusTaskCompleter;
+import com.emc.storageos.vplexcontroller.utils.VPlexControllerUtils;
 
 /**
  * Job checks the progress of a cache invalidate operation on a VPLEX volume.

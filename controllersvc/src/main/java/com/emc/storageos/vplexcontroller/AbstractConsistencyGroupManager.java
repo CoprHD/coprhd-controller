@@ -4,8 +4,6 @@
  */
 package com.emc.storageos.vplexcontroller;
 
-import static com.emc.storageos.vplexcontroller.VPlexControllerUtils.getDataObject;
-import static com.emc.storageos.vplexcontroller.VPlexControllerUtils.getVPlexAPIClient;
 
 import java.net.URI;
 import java.util.ArrayList;
@@ -42,6 +40,7 @@ import com.emc.storageos.vplex.api.VPlexApiException;
 import com.emc.storageos.vplex.api.VPlexApiFactory;
 import com.emc.storageos.vplex.api.VPlexConsistencyGroupInfo;
 import com.emc.storageos.vplexcontroller.VPlexDeviceController.VPlexTaskCompleter;
+import com.emc.storageos.vplexcontroller.utils.VPlexControllerUtils;
 import com.emc.storageos.workflow.Workflow;
 import com.emc.storageos.workflow.WorkflowException;
 import com.emc.storageos.workflow.WorkflowService;
@@ -112,7 +111,7 @@ public abstract class AbstractConsistencyGroupManager implements ConsistencyGrou
                 new HashMap<ClusterConsistencyGroupWrapper, List<URI>>();
 
         for (URI vplexVolumeURI : vplexVolumeURIs) {
-            Volume vplexVolume = getDataObject(Volume.class, vplexVolumeURI, dbClient);
+            Volume vplexVolume = VPlexControllerUtils.getDataObject(Volume.class, vplexVolumeURI, dbClient);
             addVolumeToClusterConsistencyGroup(vplexVolume, clusterConsistencyGroups, cg);
         }
 
@@ -154,7 +153,7 @@ public abstract class AbstractConsistencyGroupManager implements ConsistencyGrou
     public String addStepsForDeleteConsistencyGroup(Workflow workflow, String waitFor, URI vplexSystemURI, URI cgURI, boolean markInactive)
             throws ControllerException {
         // Get the CG.
-        BlockConsistencyGroup cg = getDataObject(BlockConsistencyGroup.class, cgURI, dbClient);
+        BlockConsistencyGroup cg = VPlexControllerUtils.getDataObject(BlockConsistencyGroup.class, cgURI, dbClient);
 
         // Add step to delete local. There should only be a local for
         // VPLEX CGs and there should be either one or two depending upon
@@ -164,7 +163,7 @@ public abstract class AbstractConsistencyGroupManager implements ConsistencyGrou
             List<URI> localSystemUris = BlockConsistencyGroupUtils
                     .getLocalSystems(cg, dbClient);
             for (URI localSystemUri : localSystemUris) {
-                StorageSystem localSystem = getDataObject(StorageSystem.class,
+                StorageSystem localSystem = VPlexControllerUtils.getDataObject(StorageSystem.class,
                         localSystemUri, dbClient);
                 String localCgName = cg.getCgNameOnStorageSystem(localSystemUri);
                 Workflow.Method deleteCGMethod = new Workflow.Method(
@@ -219,7 +218,7 @@ public abstract class AbstractConsistencyGroupManager implements ConsistencyGrou
             throws ControllerException {
         try {
             // Get the CG.
-            BlockConsistencyGroup cg = getDataObject(BlockConsistencyGroup.class, cgURI, dbClient);
+            BlockConsistencyGroup cg = VPlexControllerUtils.getDataObject(BlockConsistencyGroup.class, cgURI, dbClient);
 
             // Add step to delete local. There should only be a local for
             // VPLEX CGs and there should be either one or two depending upon
@@ -267,8 +266,8 @@ public abstract class AbstractConsistencyGroupManager implements ConsistencyGrou
             log.info(String.format("Executing workflow step deleteCG. Storage System: %s, CG Name: %s, Cluster Name: %s",
                     vplexSystemURI, cgName, clusterName));
 
-            StorageSystem vplexSystem = getDataObject(StorageSystem.class, vplexSystemURI, dbClient);
-            VPlexApiClient client = getVPlexAPIClient(vplexApiFactory, vplexSystem, dbClient);
+            StorageSystem vplexSystem = VPlexControllerUtils.getDataObject(StorageSystem.class, vplexSystemURI, dbClient);
+            VPlexApiClient client = VPlexControllerUtils.getVPlexAPIClient(vplexApiFactory, vplexSystem, dbClient);
             log.info("Got VPlex API client for VPlex system {}", vplexSystemURI);
 
             // Make a call to the VPlex API client to delete the consistency group.
@@ -307,7 +306,7 @@ public abstract class AbstractConsistencyGroupManager implements ConsistencyGrou
      * @param setInactive true to mark the CG for deletion.
      */
     protected void cleanUpVplexCG(URI vplexSystemURI, URI cgUri, String cgName, boolean setInactive) {
-        BlockConsistencyGroup cg = getDataObject(BlockConsistencyGroup.class, cgUri, dbClient);
+        BlockConsistencyGroup cg = VPlexControllerUtils.getDataObject(BlockConsistencyGroup.class, cgUri, dbClient);
 
         // Remove all storage system CG entries stored on the BlockConsistencyGroup that match
         // the give CG name. For RecoverPoint, there will be an entry for the distributed CG
@@ -363,7 +362,7 @@ public abstract class AbstractConsistencyGroupManager implements ConsistencyGrou
 
     @Override
     public void deleteConsistencyGroupVolume(URI vplexURI, Volume volume, BlockConsistencyGroup cg) throws Exception {
-        VPlexApiClient client = getVPlexAPIClient(vplexApiFactory, vplexURI, dbClient);
+        VPlexApiClient client = VPlexControllerUtils.getVPlexAPIClient(vplexApiFactory, vplexURI, dbClient);
 
         // Determine the VPlex CG corresponding to the this volume
         ClusterConsistencyGroupWrapper clusterCg =
@@ -394,7 +393,7 @@ public abstract class AbstractConsistencyGroupManager implements ConsistencyGrou
      * @throws Exception
      */
     protected String getVplexCgName(Volume volume, URI cgURI) throws Exception {
-        BlockConsistencyGroup cg = getDataObject(BlockConsistencyGroup.class, cgURI, dbClient);
+        BlockConsistencyGroup cg = VPlexControllerUtils.getDataObject(BlockConsistencyGroup.class, cgURI, dbClient);
 
         ClusterConsistencyGroupWrapper clusterConsistencyGroup =
                 getClusterConsistencyGroup(volume, cg);
@@ -404,7 +403,7 @@ public abstract class AbstractConsistencyGroupManager implements ConsistencyGrou
 
     @Override
     public void addVolumeToCg(URI cgURI, Volume vplexVolume, VPlexApiClient client, boolean addToViPRCg) throws Exception {
-        BlockConsistencyGroup cg = getDataObject(BlockConsistencyGroup.class,
+        BlockConsistencyGroup cg = VPlexControllerUtils.getDataObject(BlockConsistencyGroup.class,
                 cgURI, dbClient);
 
         ClusterConsistencyGroupWrapper clusterCgWrapper =
@@ -422,7 +421,7 @@ public abstract class AbstractConsistencyGroupManager implements ConsistencyGrou
 
     @Override
     public void removeVolumeFromCg(URI cgURI, Volume vplexVolume, VPlexApiClient client, boolean removeFromViPRCg) throws Exception {
-        BlockConsistencyGroup cg = getDataObject(BlockConsistencyGroup.class,
+        BlockConsistencyGroup cg = VPlexControllerUtils.getDataObject(BlockConsistencyGroup.class,
                 cgURI, dbClient);
 
         ClusterConsistencyGroupWrapper clusterCgWrapper =
@@ -513,9 +512,9 @@ public abstract class AbstractConsistencyGroupManager implements ConsistencyGrou
 
             // Get the VPlex API client.
             URI vplexSystemURI = rbData.getVplexSystemURI();
-            StorageSystem vplexSystem = getDataObject(StorageSystem.class,
+            StorageSystem vplexSystem = VPlexControllerUtils.getDataObject(StorageSystem.class,
                     vplexSystemURI, dbClient);
-            VPlexApiClient client = getVPlexAPIClient(vplexApiFactory, vplexSystem,
+            VPlexApiClient client = VPlexControllerUtils.getVPlexAPIClient(vplexApiFactory, vplexSystem,
                     dbClient);
             log.info("Got VPlex API client for VPlex system {}", vplexSystemURI);
 
@@ -527,7 +526,7 @@ public abstract class AbstractConsistencyGroupManager implements ConsistencyGrou
             log.info("Recreated CG {} on system {}", cgName, vplexSystemURI);
 
             // Update the consistency group in the database.
-            BlockConsistencyGroup cg = getDataObject(BlockConsistencyGroup.class, cgURI,
+            BlockConsistencyGroup cg = VPlexControllerUtils.getDataObject(BlockConsistencyGroup.class, cgURI,
                     dbClient);
             cg.addSystemConsistencyGroup(vplexSystemURI.toString(),
                     BlockConsistencyGroupUtils.buildClusterCgName(clusterName, cgName));
@@ -625,15 +624,15 @@ public abstract class AbstractConsistencyGroupManager implements ConsistencyGrou
             }
 
             // Get the API client.
-            StorageSystem vplexSystem = getDataObject(StorageSystem.class, vplexURI, dbClient);
-            VPlexApiClient client = getVPlexAPIClient(vplexApiFactory, vplexSystem, dbClient);
+            StorageSystem vplexSystem = VPlexControllerUtils.getDataObject(StorageSystem.class, vplexURI, dbClient);
+            VPlexApiClient client = VPlexControllerUtils.getVPlexAPIClient(vplexApiFactory, vplexSystem, dbClient);
             log.info("Got VPLEX API client.");
 
             Map<String, List<String>> cgToVolumesMap = new HashMap<String, List<String>>();
             // Get the names of the volumes to be removed.
             List<Volume> vplexVolumes = new ArrayList<Volume>();           
             for (URI vplexVolumeURI : vplexVolumeURIs) {
-                Volume vplexVolume = getDataObject(Volume.class, vplexVolumeURI, dbClient);
+                Volume vplexVolume = VPlexControllerUtils.getDataObject(Volume.class, vplexVolumeURI, dbClient);
                 if (vplexVolume == null || vplexVolume.getInactive()) {
                     log.error(String.format("Skipping null or inactive vplex volume %s", vplexVolumeURI.toString()));
                     continue;

@@ -41,8 +41,8 @@ import com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.processor.
 import com.emc.storageos.volumecontroller.impl.smis.srdf.SRDFUtils;
 import com.emc.storageos.vplex.api.VPlexApiClient;
 import com.emc.storageos.vplex.api.VPlexApiFactory;
-import com.emc.storageos.vplexcontroller.VPlexControllerUtils;
 import com.emc.storageos.vplexcontroller.VplexBackendIngestionContext;
+import com.emc.storageos.vplexcontroller.utils.VPlexControllerUtils;
 
 public class ImplicitUnManagedObjectsMatcher {
     private static final String LOCAL = "LOCAL";

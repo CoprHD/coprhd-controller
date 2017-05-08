@@ -26,8 +26,8 @@ import com.emc.storageos.volumecontroller.impl.JobPollResult;
 import com.emc.storageos.vplex.api.VPlexApiClient;
 import com.emc.storageos.vplex.api.VPlexApiFactory;
 import com.emc.storageos.vplex.api.VPlexMigrationInfo;
-import com.emc.storageos.vplexcontroller.VPlexControllerUtils;
 import com.emc.storageos.vplexcontroller.completers.MigrationTaskCompleter;
+import com.emc.storageos.vplexcontroller.utils.VPlexControllerUtils;
 
 /**
  * Job keeps track of the status of a VPlex migration.

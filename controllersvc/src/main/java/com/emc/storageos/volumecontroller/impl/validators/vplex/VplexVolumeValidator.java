@@ -35,7 +35,7 @@ import com.emc.storageos.vplex.api.VPlexResourceInfo;
 import com.emc.storageos.vplex.api.VPlexStorageVolumeInfo;
 import com.emc.storageos.vplex.api.VPlexVirtualVolumeInfo;
 import com.emc.storageos.vplex.api.clientdata.VolumeInfo;
-import com.emc.storageos.vplexcontroller.VPlexControllerUtils;
+import com.emc.storageos.vplexcontroller.utils.VPlexControllerUtils;
 
 public class VplexVolumeValidator extends AbstractVplexValidator {
     private VPlexApiClient client = null;

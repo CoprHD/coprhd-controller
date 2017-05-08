@@ -42,7 +42,7 @@ import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportRemoveV
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportTaskCompleter;
 import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
 import com.emc.storageos.volumecontroller.placement.ExportPathUpdater;
-import com.emc.storageos.vplexcontroller.VPlexControllerUtils;
+import com.emc.storageos.vplexcontroller.utils.VPlexControllerUtils;
 import com.emc.storageos.workflow.Workflow;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Collections2;

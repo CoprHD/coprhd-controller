@@ -77,7 +77,7 @@ import com.emc.storageos.volumecontroller.FileControllerConstants;
 import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
 import com.emc.storageos.volumecontroller.impl.utils.DiscoveryUtils;
 import com.emc.storageos.volumecontroller.impl.utils.UnManagedExportVerificationUtility;
-import com.emc.storageos.vplexcontroller.VPlexControllerUtils;
+import com.emc.storageos.vplexcontroller.utils.VPlexControllerUtils;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Sets;
 import com.google.common.collect.Sets.SetView;

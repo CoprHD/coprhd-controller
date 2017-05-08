@@ -3296,6 +3296,7 @@ order.rollbackTasks=Rollback Steps
 order.executionWindow=Execution Window
 order.resubmit=Resubmit
 order.affectedResources=Affected Resources
+order.taskWarningMessages=Task Warning Messages
 order.breadcrumbs.root=Service Catalog
 
 order.executionLogs=Logs
@@ -4052,6 +4053,7 @@ tasks.errorCodeDetails=Error Details
 tasks.actions=Actions
 tasks.orderId=Order
 tasks.viewOrder=View Order
+tasks.warningMessages=Warning Messages
 
 taskLogs.time=Time
 taskLogs.severity=Level

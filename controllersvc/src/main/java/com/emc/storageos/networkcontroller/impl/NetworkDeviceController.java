@@ -904,11 +904,18 @@ public class NetworkDeviceController implements NetworkController {
      * 
      * @param token String Workflow stepId
      * @param result BiosCommandResult
+     * @param warningMessage - optional warning message if completed successfully (can be null)
      */
-    private void completeWorkflowState(String token, String operation, BiosCommandResult result) {
+    private void completeWorkflowState(String token, String operation, BiosCommandResult result, 
+    		String warningMessage) {
         // Update the workflow state.
         if (Operation.Status.valueOf(result.getCommandStatus()).equals(Operation.Status.ready)) {
-            WorkflowStepCompleter.stepSucceded(token);
+        	if (warningMessage != null && !warningMessage.isEmpty()) {
+        	    WorkflowService.getInstance().postTaskWarningMessage(token, warningMessage);
+        		WorkflowStepCompleter.stepSucceeded(token, warningMessage);
+        	} else {
+                WorkflowStepCompleter.stepSucceded(token);
+        	}
         } else if (Operation.Status.valueOf(result.getCommandStatus()).equals(Operation.Status.error)) {
             ServiceError svcError = NetworkDeviceControllerException.errors.zoneOperationFailed(
                     operation, result.getMessage());
@@ -1063,7 +1070,7 @@ public class NetworkDeviceController implements NetworkController {
             WorkflowService.getInstance().storeStepData(token, context);
 
             // Update the workflow state.
-            completeWorkflowState(token, "zoneExportMaskCreate", result);
+            completeWorkflowState(token, "zoneExportMaskCreate", result, null);
 
         } catch (Exception ex) {
             _log.error("Exception zoning Export Masks", ex);
@@ -1246,7 +1253,7 @@ public class NetworkDeviceController implements NetworkController {
             WorkflowService.getInstance().storeStepData(token, context);
 
             // Update the workflow state.
-            completeWorkflowState(token, "zoneExportAddInitiators", result);
+            completeWorkflowState(token, "zoneExportAddInitiators", result, null);
 
             return status;
         } catch (Exception ex) {
@@ -1323,6 +1330,9 @@ public class NetworkDeviceController implements NetworkController {
                 WorkflowStepCompleter.stepSucceded(stepId);
                 return true;
             }
+            
+            // Generate warning message if required.
+            String warningMessage = generateExistingZoneWarningMessages(context.getZoneInfos());
 
             // Determine what needs to be rolled back.
             List<NetworkFCZoneInfo> lastReferenceZoneInfo = new ArrayList<NetworkFCZoneInfo>();
@@ -1361,7 +1371,7 @@ public class NetworkDeviceController implements NetworkController {
             }
 
             // Update the workflow state.
-            completeWorkflowState(stepId, "zoneExportMasksDelete", result);
+            completeWorkflowState(stepId, "zoneExportMasksDelete", result, warningMessage.toString());
 
             _log.info("Successfully removed zones for ExportGroup: {}", exportGroupId.toString());
         } catch (Exception ex) {
@@ -1557,7 +1567,7 @@ public class NetworkDeviceController implements NetworkController {
             InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_025);
 
             // Update the workflow state.
-            completeWorkflowState(stepId, "zoneExportRemoveInitiators", result);
+            completeWorkflowState(stepId, "zoneExportRemoveInitiators", result, null);
 
             if (result.isCommandSuccess()) {
                 isOperationSuccessful = true;
@@ -1641,7 +1651,7 @@ public class NetworkDeviceController implements NetworkController {
                     context.isAddingZones());
             InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_021);
 
-            completeWorkflowState(taskId, "ZoneRollback", result);
+            completeWorkflowState(taskId, "ZoneRollback", result, null);
 
             if (result.isCommandSuccess() && !lastReferenceZoneInfo.isEmpty()) {
                 _log.info("There seems to be last reference zones that were removed, clean those zones from the zoning map.");
@@ -2114,6 +2124,7 @@ public class NetworkDeviceController implements NetworkController {
                             info.setNetworkWwn(NetworkUtil.getNetworkWwn(network));
                             info.setFabricId(network.getNativeId());
                             info.setNetworkSystemId(networkSystem.getId().toString());
+                            info.setMemberCount(zone.getMembers().size());
                             map.put(info.getZoneReferenceKey(), info);
                         }
                     }
@@ -2888,5 +2899,27 @@ public class NetworkDeviceController implements NetworkController {
             taskCompleter.error(_dbClient, svcError);
         }
         return completedSuccessfully;
+    }
+
+    /**
+     * Generating warning messages if there are any zoneInfos that won't be deleted because
+     * their existingZone value is true (and we are removing the last reference.)
+     * @param zoneInfos -- list of NetworkFCZoneInfo representingzones to be delete.
+     * @return -- Warning message text (may include information about multiple zones)
+     */
+    private String generateExistingZoneWarningMessages(List<NetworkFCZoneInfo> zoneInfos) {
+        StringBuilder buf = new StringBuilder();
+        StringSet zoneNames = new StringSet();;
+        // Issue warning for zones that are lastRef but existing, as they won't be removed.
+        for (NetworkFCZoneInfo zoneInfo : zoneInfos) {
+            if (zoneInfo.isLastReference() && zoneInfo.isExistingZone()) {
+                zoneNames.add(zoneInfo.getZoneName());
+            }
+        }
+        if (!zoneNames.isEmpty()) {
+            buf.append("Zones which will not be deleted because they may be used externally: ");
+            buf.append(com.google.common.base.Joiner.on(' ').join(zoneNames));
+        }
+        return buf.toString();
     }
 }

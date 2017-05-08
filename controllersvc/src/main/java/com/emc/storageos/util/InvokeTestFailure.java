@@ -260,7 +260,7 @@ public final class InvokeTestFailure {
             if (!Strings.isNullOrEmpty(failOnMethodName)
                     && (failOnMethodName.equalsIgnoreCase(methodName) || failOnMethodName.equalsIgnoreCase("*"))) {
                 log("Injecting failure: " + ARTIFICIAL_FAILURE_015 + methodName);
-                throw new WBEMException("CIM_ERROR_FAILED (Unable to connect)");
+                throw new WBEMException("Artificially Thrown Exception: " + failureKey + methodName + ", CIM_ERROR_FAILED (Unable to connect)");
             }
         }
     }

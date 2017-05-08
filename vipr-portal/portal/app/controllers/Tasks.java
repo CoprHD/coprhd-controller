@@ -413,6 +413,7 @@ public class Tasks extends Controller {
         public String orderNumber;
         public String workflowId;
         public List<WorkflowStep> steps = Collections.emptyList();
+        public List<String> warningMessages = Lists.newArrayList();
 
         public TaskSummary(TaskResourceRep task) {
             id = task.getId();
@@ -469,6 +470,8 @@ public class Tasks extends Controller {
                 progress = 100;
                 isError = true;
             }
+
+            warningMessages = task.getWarningMessages();
         }
     }
 

@@ -1017,7 +1017,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             args.setOpId(opId);
             // work flow and we need to add TaskCompleter
             WorkflowStepCompleter.stepExecuting(opId);
-            // Acquire lock for VNXFILE Storage System
+
             acquireStepLock(storageObj, opId);
             BiosCommandResult result = getDevice(storageObj.getSystemType()).doReduceFS(storageObj, args);
             if (result.getCommandPending()) {
@@ -1027,7 +1027,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             if (result.isCommandSuccess()) {
                 _log.info("FileSystem old capacity :" + args.getFsCapacity() + ":Reduced Size:" + args.getNewFSCapacity());
                 args.setFsCapacity(args.getNewFSCapacity());
-                _log.info("FileSystem new capacity :" + args.getFsCapacity());
+
                 WorkflowStepCompleter.stepSucceded(opId);
             } else if (!result.getCommandPending()) {
                 WorkflowStepCompleter.stepFailed(opId, result.getServiceCoded());

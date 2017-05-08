@@ -1286,7 +1286,7 @@ public class FileService extends TaskResourceService {
     }
     
     /**
-     * Reduce file system provision capacity
+     * Reduce file system quota -- supported only on Isilon
      * 
      * @param id - the URN of a ViPR File system
      * @param param - File system reduction parameters
@@ -1301,7 +1301,7 @@ public class FileService extends TaskResourceService {
     public TaskResourceRep reduce(@PathParam("id") URI id, FileSystemReduceParam param)
             throws InternalException {
         _log.info(String.format(
-                "FileShareReduce --- FileShare id: %1$s, New Size: %2$s", id, param.getNewSize()));
+                "FileShareReduce --- FileShare id: %1$s, New Quota: %2$s", id, param.getNewSize()));
         // check file system
         ArgValidator.checkFieldUriType(id, FileShare.class, "id");
         FileShare fs = queryResource(id);
@@ -1309,7 +1309,7 @@ public class FileService extends TaskResourceService {
         
         StorageSystem device = _dbClient.queryObject(StorageSystem.class, fs.getStorageDevice());
         if(!device.deviceIsType(DiscoveredDataObject.Type.isilon)) {
-        	throw APIException.badRequests.reduceFileSystemNotSupported(id, "Currently, Isilon only supports reduction of filesystem ");
+        	throw APIException.badRequests.reduceFileSystemNotSupported(id, "Reduction of filesystem quota is supported only on Isilon");
         }
 
         Long newFSsize = SizeUtil.translateSize(param.getNewSize());
@@ -1345,14 +1345,14 @@ public class FileService extends TaskResourceService {
         String task = UUID.randomUUID().toString();
         Operation op = _dbClient.createTaskOpStatus(FileShare.class, fs.getId(),
                 task, ResourceOperationTypeEnum.REDUCE_FILE_SYSTEM);
-        op.setDescription("Filesystem reduce");
+        op.setDescription("Filesystem reduce quota");
 
         FileServiceApi fileServiceApi = getFileShareServiceImpl(fs, _dbClient);
         try {
-            fileServiceApi.reduceFileShare(fs, newFSsize, task);
+            fileServiceApi.reduceFileShareQuota(fs, newFSsize, task);
         } catch (InternalException e) {
             if (_log.isErrorEnabled()) {
-                _log.error("Reduce File Size error", e);
+                _log.error("Reduce File Quota error", e);
             }
 
             fs = _dbClient.queryObject(FileShare.class, fs.getId());

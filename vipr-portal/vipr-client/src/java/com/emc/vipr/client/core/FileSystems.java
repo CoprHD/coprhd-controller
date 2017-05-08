@@ -209,7 +209,7 @@ public class FileSystems extends ProjectResources<FileShareRestRep> implements T
     }
     
     /**
-     * Begins reduceing the given file system by ID.
+     * Begins reduce the given file system by ID.
      * <p>
      * API Call: <tt>POST /file/filesystems/{id}/reduce</tt>
      * 

@@ -881,7 +881,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         if(capacity.compareTo(quota.getUsagePhysical()) < 0) {
             String msg = String
                     .format(
-                            "In Reduceing Isilon FS requested capacity is less than current capacity of file system. Path: %s, current capacity: %d",
+                            "In Reduction Isilon FS requested capacity is less than currently used physical space. Path: %s, current capacity: %d",
                             quota.getPath(), quota.getThresholds().getHard());
             _log.error(msg);
             throw IsilonException.exceptions.reduceFsFailedinvalidParameters(quota.getPath(),

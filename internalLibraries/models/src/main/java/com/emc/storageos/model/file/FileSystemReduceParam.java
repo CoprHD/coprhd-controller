@@ -20,7 +20,7 @@ public class FileSystemReduceParam {
 	}
 	
 	/**
-     * Defines new expanded size of a FileSystem.
+     *Defines new reduced quota of a FileSystem
      * Supported size formats: TB, GB, MB, B. Default format is size in bytes.
      * Examples: 100GB, 614400000, 614400000B
      */

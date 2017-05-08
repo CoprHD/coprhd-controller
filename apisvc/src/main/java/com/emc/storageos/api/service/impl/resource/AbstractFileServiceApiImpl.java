@@ -233,7 +233,7 @@ public abstract class AbstractFileServiceApiImpl<T> implements FileServiceApi {
      * Reduce fileshare provision capacity
      */
     @Override
-    public void reduceFileShare(FileShare fileshare, Long newSize, String taskId)
+    public void  reduceFileShareQuota(FileShare fileshare, Long newSize, String taskId)
             throws InternalException {
 
         FileOrchestrationController controller = getController(
@@ -241,7 +241,7 @@ public abstract class AbstractFileServiceApiImpl<T> implements FileServiceApi {
         final List<FileDescriptor> fileDescriptors = new ArrayList<FileDescriptor>();
 
         if (fileshare.getParentFileShare() != null && fileshare.getPersonality().equals(FileShare.PersonalityTypes.TARGET.name())) {
-            throw APIException.badRequests.expandMirrorFileSupportedOnlyOnSource(fileshare.getId());
+            throw APIException.badRequests.reduceMirrorFileSupportedOnlyOnSource(fileshare.getId());
         } else {
             List<String> targetfileUris = new ArrayList<String>();
             // if filesystem is target then throw exception

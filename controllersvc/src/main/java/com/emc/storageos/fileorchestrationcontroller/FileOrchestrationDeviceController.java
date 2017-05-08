@@ -2558,7 +2558,8 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
     }
 
     /**
-     * This method is responsible for reduction of fileshare size
+     * This method is responsible for reduction of fileshare quota
+     * 
      * a Workflow and invoking the FileOrchestrationInterface.addStepsForReduceFileSystems
      * 
      * @param fileDescriptors

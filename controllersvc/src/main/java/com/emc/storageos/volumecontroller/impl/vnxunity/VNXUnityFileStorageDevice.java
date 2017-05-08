@@ -1818,6 +1818,6 @@ implements FileStorageDevice {
 	@Override
 	public BiosCommandResult doReduceFS(StorageSystem storage, FileDeviceInputOutput fd) throws ControllerException {
 		return BiosCommandResult.createErrorResult(
-                DeviceControllerErrors.vnxe.operationNotSupported("resync the mirror link", "Unity"));
+                DeviceControllerErrors.vnxe.operationNotSupported("reduction of filesystem quota", "Unity"));
 	}
 }

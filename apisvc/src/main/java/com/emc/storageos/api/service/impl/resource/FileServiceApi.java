@@ -105,14 +105,14 @@ public interface FileServiceApi {
             throws InternalException;
 
     /**
-     * Reduction of file share size
+     * Reduction of file system quota, supported only on Isilon
      *
      * @param fileshare
      * @param newSize
      * @param taskId
      * @throws InternalException
      */
-    public void reduceFileShare(FileShare fileshare, Long newSize, String taskId)
+    public void  reduceFileShareQuota(FileShare fileshare, Long newSize, String taskId)
             throws InternalException;
     /**
      * Create Continuous Copies for existing source file system

@@ -83,17 +83,6 @@ public class RemoteReplicationSetService extends TaskResourceService {
     // remote replication service api implementations
     private RemoteReplicationBlockServiceApiImpl remoteReplicationServiceApi;
 
-    private NeighborhoodsMatcher matcher;
-
-    private NeighborhoodsMatcher getMatcher() {
-        if (matcher == null) {
-            matcher = new NeighborhoodsMatcher();
-            matcher.setCoordinatorClient(_coordinator);
-            matcher.setObjectCache(new ObjectLocalCache(_dbClient));
-        }
-        return matcher;
-    }
-
     public RemoteReplicationBlockServiceApiImpl getRemoteReplicationServiceApi() {
         return remoteReplicationServiceApi;
     }
@@ -136,7 +125,7 @@ public class RemoteReplicationSetService extends TaskResourceService {
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR })
     public RemoteReplicationSetList getRemoteReplicationSetsForVarrayVpool(@PathParam("varray") URI varrayURI,
             @PathParam("vpool") URI vpoolURI) {
-        _log.info("Called: getRemoteReplicationSets() with params: (varray: {}, vpool: {})", varrayURI, vpoolURI);
+        _log.info("Called: getRemoteReplicationSetsForVarrayVpool() with params: (varray: {}, vpool: {})", varrayURI, vpoolURI);
         ArgValidator.checkFieldUriType(varrayURI, VirtualArray.class, "virtual array id");
         ArgValidator.checkFieldUriType(vpoolURI, VirtualPool.class, "virtual pool id");
         VirtualPool vpool = _dbClient.queryObject(VirtualPool.class, vpoolURI);
@@ -149,7 +138,8 @@ public class RemoteReplicationSetService extends TaskResourceService {
 
         RemoteReplicationSetList result = new RemoteReplicationSetList();
 
-        Set<String> sourceDevices = getStorageSystemsForVarrayVpool(varrayURI, vpoolURI);
+        Set<String> sourceDevices = RemoteReplicationUtils.getStorageSystemsForVarrayVpool(varrayURI, vpoolURI,
+                _dbClient, _coordinator);
 
         // Hold storage systems belonging to every target varray/vpool pair separately.
         Set<Set<String>> targetSystemsForAllPairs = new HashSet<>();
@@ -158,7 +148,8 @@ public class RemoteReplicationSetService extends TaskResourceService {
         for (Entry<String, String> pair : vpool.getRemoteReplicationProtectionSettings().entrySet()) {
             URI targetvArrayURI = URI.create(pair.getKey());
             URI targetvPoolURI = URI.create(pair.getValue());
-            Set<String> targetDevices = getStorageSystemsForVarrayVpool(targetvArrayURI, targetvPoolURI);
+            Set<String> targetDevices = RemoteReplicationUtils.getStorageSystemsForVarrayVpool(targetvArrayURI,
+                    targetvPoolURI, _dbClient, _coordinator);
             targetSystemsForAllPairs.add(targetDevices);
             allTargetSystems.addAll(targetDevices);
         }
@@ -201,36 +192,6 @@ public class RemoteReplicationSetService extends TaskResourceService {
             result.getRemoteReplicationSets().add(toNamedRelatedResource(rrSet));
         }
         return result;
-    }
-
-    /**
-     * Get storage systems which contain storage pool(s) belonging to both the given vArray and vPool.
-     * @param varrayURI
-     * @param vpoolURI
-     * @return URI string set of qualified storage systems
-     */
-    private Set<String> getStorageSystemsForVarrayVpool(URI varrayURI, URI vpoolURI) {
-        VirtualPool vpool = _dbClient.queryObject(VirtualPool.class, vpoolURI);
-        List<StoragePool> vpoolPools = VirtualPool.getValidStoragePools(vpool, _dbClient, true);
-        Set<URI> varrayPools = getStoragePoolsForVarray(varrayURI);
-        Set<String> result = new HashSet<>();
-        for (StoragePool pool : vpoolPools) {
-            if (varrayPools.contains(pool.getId())) {
-                result.add(pool.getStorageDevice().toString());
-            }
-        }
-        return result;
-    }
-
-    /**
-     * Get storage pools which belong to given the vArray.
-     * @param varrayURI
-     * @return URI set of qualified storage pools
-     */
-    private Set<URI> getStoragePoolsForVarray(URI varrayURI) {
-        NeighborhoodsMatcher matcher = getMatcher();
-        List<URI> vArrayStoragePoolURIs = matcher.getVarrayPools(varrayURI.toString());
-        return new HashSet<>(vArrayStoragePoolURIs);
     }
 
     /**

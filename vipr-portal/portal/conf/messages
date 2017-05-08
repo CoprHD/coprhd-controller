@@ -2466,7 +2466,7 @@ replicationCopy.title=Replication Copy
 
 # Recoverpoint
 vpool.rpJournalSize=RecoverPoint Source Journal Size
-vpool.rpJournalSize.help=Valid value is "Min", "min", or a number >= 10GB
+vpool.rpJournalSize.help=Valid value is "Min", "min", or a number >= 10GB. It is recommended to use a consistent size for all RecoverPoint journals.
 vpool.rpRemoteCopyMode=Replication Mode
 vpool.rpRpoValue=RPO
 vpool.rpCopies=RecoverPoint Copies
@@ -2484,7 +2484,7 @@ rpCopy.journalVArray.help=Optionally select a virtual array for this RecoverPoin
 rpCopy.journalVPool=Journal Virtual Pool
 rpCopy.journalVPool.help=Optionally select a virtual pool for this RecoverPoint copy's journal volume (defaults to same Virtual pool as the RecoverPoint copy)
 rpCopy.journalSize=Journal Size
-rpCopy.journalSize.help=Valid value is "Min", "min", or a number >= 10GB
+rpCopy.journalSize.help=Valid value is "Min", "min", or a number >= 10GB. It is recommended to use a consistent size for all RecoverPoint journals.
 
 # SRDF
 vpool.srdf.error.notSupported=Must be EMC VMAX when SRDF copy protection is used

@@ -902,17 +902,29 @@ public class NetworkDeviceController implements NetworkController {
      * Sets the completed Workflow state to read or error depending on the
      * BiosCommandResult received from lower layers.
      * 
+     * @param completer task completer
      * @param token String Workflow stepId
      * @param result BiosCommandResult
+     * @param warningMessage - optional warning message if completed successfully (can be null)
      */
-    private void completeWorkflowState(TaskCompleter completer, String token, String operation, BiosCommandResult result) {
+    private void completeWorkflowState(TaskCompleter completer, String token, String operation, BiosCommandResult result, 
+    		String warningMessage) {
         // Update the workflow state.
         if (Operation.Status.valueOf(result.getCommandStatus()).equals(Operation.Status.ready)) {
-            if (completer != null) {
-                completer.ready(_dbClient);
-            } else {
-                WorkflowStepCompleter.stepSucceded(token);
-            }
+        	if (warningMessage != null && !warningMessage.isEmpty()) {
+        	    WorkflowService.getInstance().postTaskWarningMessage(token, warningMessage);
+                if (completer != null) {
+                    completer.ready(_dbClient);
+                } else {
+        	        WorkflowStepCompleter.stepSucceeded(token, warningMessage);
+        	    }
+        	} else {
+                if (completer != null) {
+                    completer.ready(_dbClient);
+                } else {
+                    WorkflowStepCompleter.stepSucceded(token);
+                }
+        	}
         } else if (Operation.Status.valueOf(result.getCommandStatus()).equals(Operation.Status.error)) {
             ServiceError svcError = NetworkDeviceControllerException.errors.zoneOperationFailed(
                     operation, result.getMessage());
@@ -1071,7 +1083,7 @@ public class NetworkDeviceController implements NetworkController {
             WorkflowService.getInstance().storeStepData(token, context);
 
             // Update the workflow state.
-            completeWorkflowState(null, token, "zoneExportMaskCreate", result);
+            completeWorkflowState(null, token, "zoneExportMaskCreate", result, null);
 
         } catch (Exception ex) {
             _log.error("Exception zoning Export Masks", ex);
@@ -1254,7 +1266,7 @@ public class NetworkDeviceController implements NetworkController {
             WorkflowService.getInstance().storeStepData(token, context);
 
             // Update the workflow state.
-            completeWorkflowState(null, token, "zoneExportAddInitiators", result);
+            completeWorkflowState(null, token, "zoneExportAddInitiators", result, null);
 
             return status;
         } catch (Exception ex) {
@@ -1332,6 +1344,9 @@ public class NetworkDeviceController implements NetworkController {
                 return true;
             }
 
+            // Generate warning message if required.
+            String warningMessage = generateExistingZoneWarningMessages(context.getZoneInfos());
+
             // Determine what needs to be rolled back.
             List<NetworkFCZoneInfo> lastReferenceZoneInfo = new ArrayList<NetworkFCZoneInfo>();
             List<NetworkFCZoneInfo> rollbackList = new ArrayList<NetworkFCZoneInfo>();
@@ -1369,7 +1384,7 @@ public class NetworkDeviceController implements NetworkController {
             }
 
             // Update the workflow state.
-            completeWorkflowState(taskCompleter, stepId, "zoneExportMasksDelete", result);
+            completeWorkflowState(taskCompleter, stepId, "zoneExportMasksDelete", result, warningMessage.toString());
 
             _log.info("Successfully removed zones for ExportGroup: {}", exportGroupId.toString());
         } catch (Exception ex) {
@@ -1568,7 +1583,7 @@ public class NetworkDeviceController implements NetworkController {
             InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_025);
 
             // Update the workflow state.
-            completeWorkflowState(taskCompleter, stepId, "zoneExportRemoveInitiators", result);
+            completeWorkflowState(taskCompleter, stepId, "zoneExportRemoveInitiators", result, null);
 
             if (result.isCommandSuccess()) {
                 isOperationSuccessful = true;
@@ -1657,7 +1672,7 @@ public class NetworkDeviceController implements NetworkController {
                 updateZoningMap(lastReferenceZoneInfo, exportGroupURI, null);
             }
 
-            completeWorkflowState(taskCompleter, taskId, "ZoneRollback", result);
+            completeWorkflowState(taskCompleter, taskId, "ZoneRollback", result, null);
 
             return result.isCommandSuccess();
         } catch (Exception ex) {
@@ -2125,6 +2140,7 @@ public class NetworkDeviceController implements NetworkController {
                             info.setNetworkWwn(NetworkUtil.getNetworkWwn(network));
                             info.setFabricId(network.getNativeId());
                             info.setNetworkSystemId(networkSystem.getId().toString());
+                            info.setMemberCount(zone.getMembers().size());
                             map.put(info.getZoneReferenceKey(), info);
                         }
                     }
@@ -2899,5 +2915,27 @@ public class NetworkDeviceController implements NetworkController {
             taskCompleter.error(_dbClient, svcError);
         }
         return completedSuccessfully;
+    }
+
+    /**
+     * Generating warning messages if there are any zoneInfos that won't be deleted because
+     * their existingZone value is true (and we are removing the last reference.)
+     * @param zoneInfos -- list of NetworkFCZoneInfo representingzones to be delete.
+     * @return -- Warning message text (may include information about multiple zones)
+     */
+    private String generateExistingZoneWarningMessages(List<NetworkFCZoneInfo> zoneInfos) {
+        StringBuilder buf = new StringBuilder();
+        StringSet zoneNames = new StringSet();;
+        // Issue warning for zones that are lastRef but existing, as they won't be removed.
+        for (NetworkFCZoneInfo zoneInfo : zoneInfos) {
+            if (zoneInfo.isLastReference() && zoneInfo.isExistingZone()) {
+                zoneNames.add(zoneInfo.getZoneName());
+}
+        }
+        if (!zoneNames.isEmpty()) {
+            buf.append("Zones which will not be deleted because they may be used externally: ");
+            buf.append(com.google.common.base.Joiner.on(' ').join(zoneNames));
+        }
+        return buf.toString();
     }
 }

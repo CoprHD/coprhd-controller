@@ -26,8 +26,18 @@ public class ComputeElementRestRep extends DiscoveredSystemObjectRestRep {
     private String originalUuid;
     private Boolean available;
     private String model;
+    private String hostName;
 
     public ComputeElementRestRep() {
+    }
+
+    @XmlElement(name = "host_name")
+    public String getHostName() {
+        return hostName;
+    }
+
+    public void setHostName(String hostName) {
+        this.hostName = hostName;
     }
 
     @XmlElement(name = "ram")

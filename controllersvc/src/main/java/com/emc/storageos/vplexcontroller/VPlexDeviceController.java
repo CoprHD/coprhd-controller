@@ -4426,6 +4426,18 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
             Map<URI, List<URI>> assignments = _blockScheduler.assignStoragePorts(vplex, exportGroup,
                     initiators, exportMask.getZoningMap(), pathParams, volumeURIs, _networkDeviceController, varrayURI, opId);
             List<URI> newTargetURIs = BlockStorageScheduler.getTargetURIsFromAssignments(assignments);
+            
+            // Build a list of StoragePort targets to remove during rollback. Do not remove existing storage ports during rollback.
+            List<URI> rollbackTargetURIs = new ArrayList<URI>();
+            for (URI target : newTargetURIs) {
+            	if (exportMask.getStoragePorts().contains(target.toString())) {
+            		// Skip the target port if it exists in the ViPR ExportMask
+            		continue;
+            	}
+            	
+            	rollbackTargetURIs.add(target);
+            }            
+            
             exportMask.addZoningMap(BlockStorageScheduler.getZoneMapFromAssignments(assignments));
             _dbClient.updateObject(exportMask);
 
@@ -4458,7 +4470,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
                     newTargetURIs, shared, addInitCompleter);
 
             Workflow.Method addToViewRollbackMethod = storageViewAddInitiatorsRollbackMethod(vplexURI,
-                    exportURI, exportMask.getId(), hostInitiatorURIs, newTargetURIs,
+                    exportURI, exportMask.getId(), hostInitiatorURIs, rollbackTargetURIs,
                     addInitStep);
 
             lastStepId = workflow.createStep("storageView", "Add " + message,

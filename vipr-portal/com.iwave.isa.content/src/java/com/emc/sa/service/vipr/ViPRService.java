@@ -349,6 +349,14 @@ public abstract class ViPRService extends AbstractExecutionService {
         }
     }
 
+    /**
+     * Invoke a failure if the artificialFailure variable is passed by the service.
+     * This is an internal-only setting that allows testers and automated suites to inject a failure
+     * into a catalog service step at key locations to test rollback.
+     *
+     * @param failure
+     *            key from above
+     */
     public static void artificialFailure(String failure) {
         if (artificialFailure != null && artificialFailure.equals(failure)) {
         	log("Injecting catalog failure: " + failure);

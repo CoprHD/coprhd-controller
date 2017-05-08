@@ -137,15 +137,15 @@ public class CustomServicesValidationResponse {
 
     public static class ErrorInput {
 
-        private String errorMessage;
+        private List<String> errorMessages;
 
-        @XmlElement(name = "error_message")
-        public String getErrorMessage() {
-            return errorMessage;
+        @XmlElement(name = "error_messages")
+        public List<String> getErrorMessages() {
+            return errorMessages;
         }
 
-        public void setErrorMessage(String errorMessage) {
-            this.errorMessage = errorMessage;
+        public void setErrorMessages(List<String> errorMessages) {
+            this.errorMessages = errorMessages;
         }
 
     }

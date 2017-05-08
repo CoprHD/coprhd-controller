@@ -17,15 +17,15 @@
 						<div class="tab-pane fade in active" id="{{workflowTab.elementid}}_input">
 							<div id="inputDiv" ng-repeat="inputParam in stepData.inputGroups.input_params">
 								<div ng-repeat="input in inputParam">
-									<div ng-if="getInputErrorMessage(stepData.id,input.name)!=null" class="error-input-container">
+									<div ng-if="getInputError(stepData.id,input.name)!=null" class="error-input-container">
 										<div class="error-input-icon-hover" ng-mouseover="hoverInputErrorIn(stepData.id,input.name)" ng-mouseleave="hoverInputErrorOut(stepData.id,input.name)"></div>
-										<div ng-if="getInputErrorMessage(stepData.id,input.name)!=null" ng-class="{'visible':alert.error.errorSteps[stepData.id].errorInputGroups.input_params.errorInputs[input.name].visible}" class="custom-error-popover top custom-error-input-popover">
-											<div class="arrow"></div><div ng-init="message=getInputErrorMessage(stepData.id,input.name)" class="custom-popover-content">{{message}}</div>
+										<div ng-init="inputError=getInputError(stepData.id,input.name)" ng-class="{'visible':alert.error.errorSteps[stepData.id].errorInputGroups.input_params.errorInputs[input.name].visible}" class="custom-error-popover top custom-error-input-popover">
+											<div class="arrow"></div><div ng-repeat="message in inputError.errorMessages" class="custom-popover-content">{{message}}</div>
 										</div>
 									</div>
 									<collapse id="{{stepData.id}}_{{input.name}}_collapsible" title-key={{input.name}} icon="error-icon"
 											  ng-class="{'required':input.required && stepData.type==='vipr',
-											  'input-error-icon':alert.error.errorSteps.{{stepData.id}}.errorInputGroups.input_params.errorInputs['{{input.name}}'].errorMessage}">
+											  'input-error-icon':alert.error.errorSteps.{{stepData.id}}.errorInputGroups.input_params.errorInputs['{{input.name}}'].errorMessages}">
 										 <control-group class="col-sm-12" v-field="input.type" width="9" >
 	                        				<select-one options="UserInputTypeOption" auto-default v-disabled='locked' ng-change="setWorkflowModified('true')"></select-one>
 	                        			</control-group>

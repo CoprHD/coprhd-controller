@@ -212,17 +212,18 @@ public class ValidationHelper {
     private Map<String,CustomServicesValidationResponse.ErrorInput> validateInput(final List<Input> stepInputList) {
         final Map<String,CustomServicesValidationResponse.ErrorInput> errorInputMap = new HashMap<>();
         final Set<String> uniqueInputNames = new HashSet<>();
+        final List<String> errorMessages = new ArrayList<>();
         for (final Input input : stepInputList) {
             final CustomServicesValidationResponse.ErrorInput errorInput = new CustomServicesValidationResponse.ErrorInput();
             if (StringUtils.isNotBlank(input.getType()) && !(input.getType().equals(CustomServicesConstants.InputType.FROM_STEP_INPUT.toString())
                     || input.getType().equals(CustomServicesConstants.InputType.FROM_STEP_OUTPUT.toString()))) {
                 // Enforce uniqueness only for those input that will be displayed in the order page and need user input/ selection.
                 if (StringUtils.isBlank(input.getFriendlyName())) {
-                    errorInput.setErrorMessage(CustomServicesConstants.ERROR_MSG_DISPLAY_IS_EMPTY);
+                    errorMessages.add(CustomServicesConstants.ERROR_MSG_DISPLAY_IS_EMPTY);
                 } else {
                     final String addtoSetStr = input.getFriendlyName().toLowerCase().replaceAll("\\s", "");
                     if (uniqueFriendlyInputNames.contains(addtoSetStr)) {
-                        errorInput.setErrorMessage(CustomServicesConstants.ERROR_MSG_DISPLAY_NAME_NOT_UNIQUE);
+                        errorMessages.add(CustomServicesConstants.ERROR_MSG_DISPLAY_NAME_NOT_UNIQUE);
                     } else {
                         uniqueFriendlyInputNames.add(input.getFriendlyName().toLowerCase());
                     }
@@ -230,16 +231,17 @@ public class ValidationHelper {
             }
             // Enforce uniqueness for all input names in the step to be present and unique
             if (StringUtils.isBlank(input.getName())) {
-                errorInput.setErrorMessage(CustomServicesConstants.ERROR_MSG_INPUT_NAME_IS_EMPTY);
+                errorMessages.add(CustomServicesConstants.ERROR_MSG_INPUT_NAME_IS_EMPTY);
             } else {
                 final String addtoSetStr = input.getName().toLowerCase().replaceAll("\\s", "");
                 if (uniqueInputNames.contains(addtoSetStr)) {
-                    errorInput.setErrorMessage(CustomServicesConstants.ERROR_MSG_INPUT_NAME_NOT_UNIQUE_IN_STEP);
+                    errorMessages.add(CustomServicesConstants.ERROR_MSG_INPUT_NAME_NOT_UNIQUE_IN_STEP);
                 } else {
                     uniqueInputNames.add(input.getName().toLowerCase());
                 }
             }
-            if (errorInput.getErrorMessage() != null) {
+            if (!errorMessages.isEmpty()) {
+                errorInput.setErrorMessages(errorMessages);
                 errorInputMap.put(input.getName(), errorInput);
             }
         }

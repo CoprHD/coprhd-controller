@@ -29,13 +29,8 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
 
     $scope.libOpen = true;
     $scope.toggleLib = function() {
-        $("#theSidebar").addClass("collapsed-home-sidebar");
         $("#builderController").toggleClass("collapsedBuilder");
         $("#libSidebar").toggleClass("collapsedSideBar");
-        $("#libSidebar").one("webkitTransitionEnd otransitionend oTransitionEnd msTransitionEnd transitionend",
-            function(event) {
-            $("#theSidebar").removeClass("collapsed-home-sidebar");
-        });
 
         $scope.libOpen = !$scope.libOpen;
     }
@@ -836,14 +831,12 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
         $scope.alert.error.errorSteps[step].errorInputGroups.input_params.errorInputs[input].visible = false;
     }
 
-    $scope.getInputErrorMessage = function(step,input) {
+    $scope.getInputError = function(step,input) {
         if ('alert' in $scope && 'error' in $scope.alert && 'errorSteps' in $scope.alert.error && step in $scope.alert.error.errorSteps){
             var stepError = $scope.alert.error.errorSteps[step];
             if ('errorInputGroups' in stepError && 'input_params' in stepError.errorInputGroups && 'errorInputs' in stepError.errorInputGroups.input_params && input in stepError.errorInputGroups.input_params.errorInputs) {
                 var inputError = stepError.errorInputGroups.input_params.errorInputs[input];
-                if ('errorMessage' in inputError) {
-                    return inputError.errorMessage;
-                }
+                return inputError;
             }
         }
     }

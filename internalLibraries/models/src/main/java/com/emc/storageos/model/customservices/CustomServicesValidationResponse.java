@@ -123,31 +123,21 @@ public class CustomServicesValidationResponse {
 
     public static class ErrorInputGroup {
 
-        private List<ErrorInput> errorInputGroup;
+        private Map<String,ErrorInput> errorInputs;
 
-        @XmlElement(name = "error_input")
-        public List<ErrorInput> getErrorInputGroup() {
-            return errorInputGroup;
+        @XmlElement(name = "error_inputs")
+        public Map<String,ErrorInput> getErrorInputs() {
+            return errorInputs;
         }
 
-        public void setErrorInputGroup(List<ErrorInput> errorInputGroup) {
-            this.errorInputGroup = errorInputGroup;
+        public void setErrorInputs(Map<String,ErrorInput> errorInputs) {
+            this.errorInputs = errorInputs;
         }
     }
 
     public static class ErrorInput {
 
-        private String name;
         private String errorMessage;
-
-        @XmlElement(name = "name")
-        public String getName() {
-            return name;
-        }
-
-        public void setName(String name) {
-            this.name = name;
-        }
 
         @XmlElement(name = "error_message")
         public String getErrorMessage() {

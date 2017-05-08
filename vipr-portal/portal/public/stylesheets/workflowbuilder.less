@@ -26,6 +26,99 @@
     color:#f0ad4e;
 }
 
+.message-bar-icon {
+    position: relative;
+    top: 2px;
+    display: inline-block;
+    width: 23px;
+}
+
+.button-icon {
+    width: 13px;
+}
+
+.message-failure-icon:before {
+    content: url(/public/img/customServices/FailedMessage.svg);
+}
+
+.failure-icon:before {
+    content: url(/public/img/customServices/Failed.svg);
+}
+
+.error-input-container {
+    position:absolute;
+    width: 300px;
+}
+
+.error-input-icon-hover {
+    position: absolute;
+    z-index: 3;
+    width: 20px;
+    height: 20px;
+    left: 44px;
+    top: 10px;
+}
+
+.custom-error-input-popover {
+    position: absolute;
+    left: -4px;
+    bottom: 0px;
+}
+
+.custom-error-step-popover {
+    position: absolute;
+    left: -58px;
+    bottom: 99px;
+}
+
+.custom-error-popover {
+    min-width: 110px;
+    display: block;
+    background-color: #be1e2d;
+    color: white;
+    font-size: 13px;
+    z-index: 1010;
+    max-width: 276px;
+    text-align: left;
+    -webkit-box-shadow: 0 5px 10px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 5px 10px rgba(0, 0, 0, 0.2);
+    white-space: normal;
+    padding: 7px 14px;
+    transition: opacity 0.5s;
+    opacity: 0;
+}
+
+.custom-error-popover.visible {
+    opacity: 1;
+}
+
+.custom-popover-content {
+    padding-top: 1px;
+    padding-bottom: 1px;
+}
+
+.custom-error-popover.top > .arrow {
+    //left: 50%;
+    left: 58px;
+    margin-left: -11px;
+    border-bottom-width: 0;
+    border-top-color: #be1e2d;
+    bottom: -10px;
+}
+
+.custom-error-popover > .arrow {
+    border-width: 11px;
+}
+
+.custom-error-popover  > .arrow, .custom-error-popover > .arrow:after {
+    position: absolute;
+    display: block;
+    width: 0;
+    height: 0;
+    border-color: transparent;
+    border-style: solid;
+}
+
 .jsPlumb_dragged {
     z-index: 999;
 }
@@ -45,6 +138,13 @@
 
 .example-item-card-wrapper a {
     text-decoration: none;
+}
+
+.item-card-error-icon {
+    position: absolute;
+    left: -12px;
+    width: 25px;
+    top: -9px;
 }
 
 .item {
@@ -92,7 +192,7 @@
 }
 
 .collapsed-home-sidebar {
-  display: none;
+  //display: none;
     //overflow: hidden;
     //transform: translate3d(0,0,0);
 }
@@ -151,10 +251,7 @@
     top: 0;
     right: 0;
     left: 0;
-    padding-top: 15px;
-    padding-left: 15px;
-    padding-right: 15px;
-    padding-top: 15px;
+    padding: 15px;
 }
 
 .message-bar-closebtn {
@@ -380,7 +477,7 @@ table, th , td {
     bottom: 0;
     top: 0;
     width: 408px;
-    margin-top: 36px;
+    margin-top: 85px;
     overflow-x: hidden;
 }
 
@@ -475,6 +572,10 @@ table, th , td {
     background-size: contain;
     background-image: url(/public/img/customServices/LocalAnsible.svg);
     background-repeat: no-repeat
+}
+
+.input-error-icon .panel-title .glyphicon-error-icon:before {
+    content: url(/public/img/customServices/Failed.svg);
 }
 
 .required .panel-title:after {

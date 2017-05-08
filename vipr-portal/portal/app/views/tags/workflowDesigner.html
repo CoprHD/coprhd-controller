@@ -2,27 +2,38 @@
     <div class="button-bar">
         <div class="button-bar-container">
             <button ng-disabled="!modified|| workflowData.state == 'PUBLISHED'" id="Save" type="button" class="btn btn-default" value="Save" ng-click="saveWorkflow();" />
-            <span ng-class="{'glyphicon-ok-sign success-icon':!modified,'glyphicon-exclamation-sign warning-icon':modified}" class="glyphicon "></span> Save</button>
+                <span ng-class="{'glyphicon-ok-sign success-icon':!modified,
+                'glyphicon-exclamation-sign warning-icon':modified && workflowData.state != 'SAVING',
+                'glyphicon-refresh rotate':workflowData.state == 'SAVING'}" class="glyphicon "></span>
+                Save
+            </button>
             <button ng-disabled="modified || workflowData.state == 'VALID' || workflowData.state == 'PUBLISHED'" id="Validate" type="button" class="btn btn-default" value="Validate" ng-click="validateWorkflow();" />
-            <span ng-hide="(workflowData.state != 'VALID' && workflowData.state != 'PUBLISHED')" class="glyphicon glyphicon-ok-sign success-icon"></span> Validate</button>
+                <span ng-class="{'failure-icon button-icon':workflowData.state == 'INVALID',
+                'glyphicon-ok-sign success-icon':workflowData.state == 'VALID' || workflowData.state == 'PUBLISHED',
+                'glyphicon-refresh rotate':workflowData.state == 'VALIDATING'}" class="glyphicon"></span>
+                Validate
+            </button>
             <button ng-disabled="modified || workflowData.state != 'VALID'" id="Publish" type="button" class="btn btn-default" value="Publish" ng-click="publishorkflow();" />
-            <span ng-hide="workflowData.state != 'PUBLISHED'" class="glyphicon glyphicon-ok-sign success-icon"></span> Publish</button>
-            <button ng-disabled="workflowData.state != 'PUBLISHED'" id="Unpublish" type="button" class="btn btn-default" value="Unpublish" ng-click="unpublishWorkflow();" />Unpublish</button>
+                <span ng-class="{'glyphicon-ok-sign success-icon':workflowData.state == 'PUBLISHED',
+                'glyphicon-refresh rotate':workflowData.state == 'PUBLISHING'}" class="glyphicon"></span>
+                Publish
+            </button>
+            <button ng-disabled="workflowData.state != 'PUBLISHED'" id="Unpublish" type="button" class="btn btn-default" value="Unpublish" ng-click="unpublishWorkflow();" />
+                <span ng-class="{'glyphicon-refresh rotate':workflowData.state == 'UNPUBLISHING'}" class="glyphicon"></span>
+                Unpublish
+            </button>
         </div>
     </div>
     <div class="message-bar">
-        <div class="message-bar-success" ng-if="alert.status=='SUCCESS'">
+        <div class="message-bar-success" ng-if="alert.status=='SUCCESS' && showAlert">
             <span class="glyphicon glyphicon-ok-sign" style="padding-right: 10px;"></span>
             <a class="glyphicon glyphicon-remove message-bar-closebtn" ng-click="closeAlert()"></a>
             Success Message!
         </div>
-        <div class="message-bar-failure" ng-if="alert.status=='INVALID'">
-            <span class="glyphicon glyphicon-remove-sign" style="padding-right: 10px;"></span>
+        <div class="message-bar-failure" ng-if="alert.status=='INVALID' && showAlert">
+            <span class="message-bar-icon message-failure-icon" style="padding-right: 10px;"></span>
             <a class="glyphicon glyphicon-remove message-bar-closebtn" ng-click="closeAlert()"></a>
-            Workflow validation failed. The following steps have errors:
-            <ul>
-                <li ng-repeat="(key, value) in alert.error.errorSteps"> {{key}} </li>
-            </ul>
+            {{alert.error.errorMessage}}
         </div>
     </div>
     <div class="builder-container">

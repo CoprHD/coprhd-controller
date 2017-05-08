@@ -25,7 +25,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.collections.MapUtils;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.LoggerFactory;
@@ -57,13 +56,13 @@ public class ValidationHelper {
         this.stepsHash = builder.build();
     }
 
-    private static boolean isInputEmpty(final Map<String, CustomServicesWorkflowDocument.InputGroup> input, final String type) {
-        if (input == null) {
+    private static boolean isInputEmpty(final Map<String, CustomServicesWorkflowDocument.InputGroup> inputGroups, final String inputGroupName) {
+        if (inputGroups == null) {
             // This is a valid case. Not error. The input can be empty for a step. eg., Show / get primitives
             logger.debug("No Input is defined");
             return true;
         }
-        final CustomServicesWorkflowDocument.InputGroup inputGroup = input.get(type);
+        final CustomServicesWorkflowDocument.InputGroup inputGroup = inputGroups.get(inputGroupName);
         if (inputGroup == null) {
             logger.debug("No input params defined");
             return true;
@@ -182,14 +181,14 @@ public class ValidationHelper {
     }
 
     private Map<String, CustomServicesValidationResponse.ErrorInputGroup> validateStepInput(final Step step) {
-        final Map<String, CustomServicesWorkflowDocument.InputGroup> input = step.getInputGroups();
+        final Map<String, CustomServicesWorkflowDocument.InputGroup> inputGroups = step.getInputGroups();
         final Map<String, CustomServicesValidationResponse.ErrorInputGroup> errorInputGroup = new HashMap<>();
-        if (step.getInputGroups() != null) {
+        if (inputGroups != null) {
             for (final String inputGroupKey : step.getInputGroups().keySet()) {
-                if (!isInputEmpty(input, inputGroupKey)) {
-                    final List<CustomServicesValidationResponse.ErrorInput> errorInputList = validateInput(
-                            input.get(inputGroupKey).getInputGroup());
-                    addErrorInputGroup(errorInputList, errorInputGroup, inputGroupKey);
+                if (!isInputEmpty(inputGroups, inputGroupKey)) {
+                    final Map<String,CustomServicesValidationResponse.ErrorInput> errorInputMap = validateInput(
+                            inputGroups.get(inputGroupKey).getInputGroup());
+                    addErrorInputGroup(errorInputMap, errorInputGroup, inputGroupKey);
                 }
             }
         }
@@ -198,14 +197,11 @@ public class ValidationHelper {
     }
 
     private Map<String, CustomServicesValidationResponse.ErrorInputGroup> addErrorInputGroup(
-            final List<CustomServicesValidationResponse.ErrorInput> errorInputList,
+            final Map<String,CustomServicesValidationResponse.ErrorInput> errorInputMap,
             final Map<String, CustomServicesValidationResponse.ErrorInputGroup> errorInputGroup, final String inputGroupKey) {
-        if (!CollectionUtils.isEmpty(errorInputList)) {
-            CustomServicesValidationResponse.ErrorInputGroup inputGroup = new CustomServicesValidationResponse.ErrorInputGroup() {
-                {
-                    setErrorInputGroup(errorInputList);
-                }
-            };
+        if (!errorInputMap.isEmpty()) {
+            CustomServicesValidationResponse.ErrorInputGroup inputGroup = new CustomServicesValidationResponse.ErrorInputGroup();
+            inputGroup.setErrorInputs(errorInputMap);
             errorInputGroup.put(inputGroupKey, inputGroup);
         }
         return errorInputGroup;
@@ -213,8 +209,8 @@ public class ValidationHelper {
 
     // Todo: Revisit this piece of code. Currently only the input field name being present and unique are enforced. This piece will be
     // revisited in COP-28892
-    private List<CustomServicesValidationResponse.ErrorInput> validateInput(final List<Input> stepInputList) {
-        final List<CustomServicesValidationResponse.ErrorInput> errorInputList = new ArrayList<>();
+    private Map<String,CustomServicesValidationResponse.ErrorInput> validateInput(final List<Input> stepInputList) {
+        final Map<String,CustomServicesValidationResponse.ErrorInput> errorInputMap = new HashMap<>();
         final Set<String> uniqueInputNames = new HashSet<>();
         for (final Input input : stepInputList) {
             final CustomServicesValidationResponse.ErrorInput errorInput = new CustomServicesValidationResponse.ErrorInput();
@@ -222,12 +218,10 @@ public class ValidationHelper {
                     || input.getType().equals(CustomServicesConstants.InputType.FROM_STEP_OUTPUT.toString()))) {
                 // Enforce uniqueness only for those input that will be displayed in the order page and need user input/ selection.
                 if (StringUtils.isBlank(input.getFriendlyName())) {
-                    errorInput.setName(input.getName());
                     errorInput.setErrorMessage(CustomServicesConstants.ERROR_MSG_DISPLAY_IS_EMPTY);
                 } else {
                     final String addtoSetStr = input.getFriendlyName().toLowerCase().replaceAll("\\s", "");
                     if (uniqueFriendlyInputNames.contains(addtoSetStr)) {
-                        errorInput.setName(input.getName());
                         errorInput.setErrorMessage(CustomServicesConstants.ERROR_MSG_DISPLAY_NAME_NOT_UNIQUE);
                     } else {
                         uniqueFriendlyInputNames.add(input.getFriendlyName().toLowerCase());
@@ -236,23 +230,20 @@ public class ValidationHelper {
             }
             // Enforce uniqueness for all input names in the step to be present and unique
             if (StringUtils.isBlank(input.getName())) {
-                errorInput.setName(input.getName());
                 errorInput.setErrorMessage(CustomServicesConstants.ERROR_MSG_INPUT_NAME_IS_EMPTY);
             } else {
                 final String addtoSetStr = input.getName().toLowerCase().replaceAll("\\s", "");
                 if (uniqueInputNames.contains(addtoSetStr)) {
-                    errorInput.setName(input.getName());
                     errorInput.setErrorMessage(CustomServicesConstants.ERROR_MSG_INPUT_NAME_NOT_UNIQUE_IN_STEP);
                 } else {
                     uniqueInputNames.add(input.getName().toLowerCase());
                 }
             }
-
-            if (errorInput.getName() != null){
-                errorInputList.add(errorInput);
+            if (errorInput.getErrorMessage() != null) {
+                errorInputMap.put(input.getName(), errorInput);
             }
         }
-        return errorInputList;
+        return errorInputMap;
     }
 
 }

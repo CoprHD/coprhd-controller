@@ -1227,8 +1227,8 @@
     },
     {
         key : "controller_metering_persist_stat_records",
-        label : "Persist metering Stat records to Database",
-        description : "Indicates whether Stat records generated during metering will be persisted in database.",
+        label : "Persist metering statistical records in the database",
+        description : "Indicates whether statistical records generated during metering will be stored in the database.",
         type : "string",
         allowedValues : ( "true", "false" ),
         userConfigurable : false,

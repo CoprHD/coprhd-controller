@@ -1438,8 +1438,8 @@ public class StorageScheduler implements Scheduler {
                     mirrorLabel = ControllerUtils.getMirrorLabel(mirrorLabel, volumeCounter++);
                 }
                 // Prepare a single mirror based on source volume and storage pool recommendation
-                BlockMirror mirror = initializeMirror(volume, vPool, recommendation.getCandidatePools().get(0),
-                        mirrorLabel, _dbClient);
+                BlockMirror mirror = initializeMirror(volume, vPool, cosCapabilities, 
+                        recommendation.getCandidatePools().get(0), mirrorLabel, _dbClient);
 
                 // set mirror id in recommendation
                 recommendation.setId(mirror.getId());
@@ -1791,7 +1791,8 @@ public class StorageScheduler implements Scheduler {
      * @param dbClient
      * @return BlockMirror (persisted)
      */
-    public static BlockMirror initializeMirror(Volume volume, VirtualPool vPool, URI recommendedPoolURI,
+    public static BlockMirror initializeMirror(Volume volume, VirtualPool vPool, 
+            VirtualPoolCapabilityValuesWrapper capabilities, URI recommendedPoolURI,
             String volumeLabel, DbClient dbClient) {
         BlockMirror createdMirror = new BlockMirror();
         createdMirror.setSource(new NamedURI(volume.getId(), volume.getLabel()));
@@ -1804,13 +1805,12 @@ public class StorageScheduler implements Scheduler {
         createdMirror.setStorageController(volume.getStorageController());
         createdMirror.setSystemType(volume.getSystemType());
         createdMirror.setVirtualArray(volume.getVirtualArray());
-        // Setting the source Volume autoTieringPolicy in Mirror.
-        // @TODO we must accept the policy as an input for mirrors and requires API changes.
-        // Hence for timebeing, we are setting the source policy in mirror.
-        
-        // TBD Heg Not true. The auto tiering policy is in the mirror virtual pool
-        if (!NullColumnValueGetter.isNullURI(volume.getAutoTieringPolicyUri())) {
-            createdMirror.setAutoTieringPolicyUri(volume.getAutoTieringPolicyUri());
+        if (NullColumnValueGetter.isNotNullValue(capabilities.getAutoTierPolicyName())) {
+            URI autoTierPolicyUri = getAutoTierPolicy(recommendedPoolURI,
+                    capabilities.getAutoTierPolicyName(), dbClient);
+            if (null != autoTierPolicyUri) {
+                createdMirror.setAutoTieringPolicyUri(autoTierPolicyUri);
+            }
         }
         createdMirror.setProtocol(new StringSet());
         createdMirror.getProtocol().addAll(volume.getProtocol());
@@ -1823,15 +1823,10 @@ public class StorageScheduler implements Scheduler {
         createdMirror.setSyncState(SynchronizationState.UNKNOWN.toString());
         createdMirror.setSyncType(BlockMirror.MIRROR_SYNC_TYPE);
         // TBD Heg Not true the placement occurred based on the mirror virtual pool thin provisioning setting.
-        createdMirror.setThinlyProvisioned(volume.getThinlyProvisioned());
+        createdMirror.setThinlyProvisioned(capabilities.getThinProvisioning());
         dbClient.createObject(createdMirror);
         addMirrorToVolume(volume, createdMirror, dbClient);
         return createdMirror;
-    }
-
-    public static BlockMirror initializeMirror(Volume volume, VirtualPool vPool, URI recommendedPoolURI,
-            DbClient dbClient) {
-        return initializeMirror(volume, vPool, recommendedPoolURI, volume.getLabel(), dbClient);
     }
 
     /**
@@ -1848,7 +1843,7 @@ public class StorageScheduler implements Scheduler {
         mirrors.add(mirror.getId().toString());
         volume.setMirrors(mirrors);
         // Persist changes
-        dbClient.persistObject(volume);
+        dbClient.updateObject(volume);
     }
 
     public static void addVolumeCapacityToReservedCapacityMap(DbClient _dbClient, Volume volume) {

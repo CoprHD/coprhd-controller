@@ -1438,7 +1438,7 @@ public class StorageScheduler implements Scheduler {
                     mirrorLabel = ControllerUtils.getMirrorLabel(mirrorLabel, volumeCounter++);
                 }
                 // Prepare a single mirror based on source volume and storage pool recommendation
-                BlockMirror mirror = initializeMirror(volume, vPool, cosCapabilities, 
+                BlockMirror mirror = initializeMirror(volume, vPool, performanceParamsURI, cosCapabilities, 
                         recommendation.getCandidatePools().get(0), mirrorLabel, _dbClient);
 
                 // set mirror id in recommendation
@@ -1786,12 +1786,14 @@ public class StorageScheduler implements Scheduler {
      *
      * @param volume Volume
      * @param vPool
+     * @param performanceParamsURI
+     * @param capabilities
      * @param recommendedPoolURI Pool that should be used to create the mirror
      * @param volumeLabel
      * @param dbClient
      * @return BlockMirror (persisted)
      */
-    public static BlockMirror initializeMirror(Volume volume, VirtualPool vPool, 
+    public static BlockMirror initializeMirror(Volume volume, VirtualPool vPool, URI performanceParamsURI,
             VirtualPoolCapabilityValuesWrapper capabilities, URI recommendedPoolURI,
             String volumeLabel, DbClient dbClient) {
         BlockMirror createdMirror = new BlockMirror();
@@ -1820,6 +1822,7 @@ public class StorageScheduler implements Scheduler {
         createdMirror.setPool(recommendedPoolURI);
         // This is the source virtual pool.
         createdMirror.setVirtualPool(vPool.getId());
+        createdMirror.setPerformanceParams(performanceParamsURI);
         createdMirror.setSyncState(SynchronizationState.UNKNOWN.toString());
         createdMirror.setSyncType(BlockMirror.MIRROR_SYNC_TYPE);
         // TBD Heg Not true the placement occurred based on the mirror virtual pool thin provisioning setting.

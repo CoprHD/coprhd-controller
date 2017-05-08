@@ -63,12 +63,14 @@ public class CustomServicesViprExecution extends ViPRExecutionTask<CustomService
         this.step = step;
         if (daos.get(CustomServicesConstants.VIPR_PRIMITIVE_TYPE) == null) {
             logger.error("ViPR operation DAO not found");
+            ExecutionUtils.currentContext().logError("customServicesOperationExecution.logStatus", step.getId(), "ViPR operation DAO not found");
             throw InternalServerErrorException.internalServerErrors
                     .customServiceExecutionFailed("ViPR operation DAO not found: " + step.getOperation());
         }
         final CustomServicesPrimitiveType primitive = daos.get(CustomServicesConstants.VIPR_PRIMITIVE_TYPE).get(step.getOperation());
 
         if (null == primitive) {
+            ExecutionUtils.currentContext().logError("customServicesOperationExecution.logStatus", step.getId(), "Primitive not found: " + step.getOperation());
             throw InternalServerErrorException.internalServerErrors
                     .customServiceExecutionFailed("Primitive not found: " + step.getOperation());
         }
@@ -155,6 +157,9 @@ public class CustomServicesViprExecution extends ViPRExecutionTask<CustomService
             }
 
             if (response == null) {
+                ExecutionUtils.currentContext().logError("customServicesOperationExecution.logStatus", step.getId(),
+                        "REST Execution Failed. Response returned is null");
+
                 throw InternalServerErrorException.internalServerErrors.
                         customServiceExecutionFailed("REST Execution Failed. Response returned is null");
             }
@@ -170,14 +175,17 @@ public class CustomServicesViprExecution extends ViPRExecutionTask<CustomService
         } catch (final InternalServerErrorException e) {
 
             logger.warn("Exception received:{}", e);
+
             if (e.getServiceCode().getCode() == ServiceCode.CUSTOM_SERVICE_NOTASK.getCode()) {
                 return new CustomServicesTaskResult(responseString, responseString, response.getStatus(), null);
             }
 
+            ExecutionUtils.currentContext().logError("customServicesOperationExecution.logStatus", step.getId(), e);
             throw InternalServerErrorException.internalServerErrors.
                     customServiceExecutionFailed("Failed to Execute REST request" + e.getMessage());
         } catch (final Exception e) {
             logger.warn("Exception received:{}", e);
+            ExecutionUtils.currentContext().logError("customServicesOperationExecution.logStatus", step.getId(), e);
             throw InternalServerErrorException.internalServerErrors.
                     customServiceExecutionFailed("REST Execution Failed" + e.getMessage());
         }
@@ -185,7 +193,7 @@ public class CustomServicesViprExecution extends ViPRExecutionTask<CustomService
 
 
     /**
-     * Example uri: "/block/volumes/{id}/findname/{name}";
+     * Example uri: "/block/volumes/{id}/findname/{name}?query1=value1";
      * @param templatePath
      * @return
      */
@@ -196,18 +204,35 @@ public class CustomServicesViprExecution extends ViPRExecutionTask<CustomService
         
         for(final String key : pathParameters) {
             List<String> value = input.get(key);
-            if(null == value) {
+            if (null == value) {
                 throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed("Unfulfilled path parameter: " + key);
             }
-	    //TODO find a better fix
-            pathParameterMap.put(key, value.get(0).replace("\"",""));
+            //TODO find a better fix
+            pathParameterMap.put(key, value.get(0).replace("\"", ""));
         }
         
         final String path = template.expand(pathParameterMap).getPath(); 
 
         logger.info("URI string is: {}", path);
 
-        return path;
+        //TODO: Get from the primitive
+        final List<String> al = new ArrayList<String>();
+        al.add("name");
+        al.add("location");
+
+        final StringBuilder fullPath = new StringBuilder(path);
+        String prefix = "?";
+        for (final String a : al) {
+            final String value = input.get(a).get(0);
+            if (!StringUtils.isEmpty(value)) {
+                fullPath.append(prefix).append(a).append("=").append(value);
+                prefix = "&";
+            }
+        }
+
+        logger.info("URI string with query:{}", fullPath.toString());
+
+        return fullPath.toString();
     }
 
 
@@ -336,6 +361,7 @@ public class CustomServicesViprExecution extends ViPRExecutionTask<CustomService
         String get = "";
         if (vals == -1) {
             logger.error("Cannot Build ViPR Request body");
+            ExecutionUtils.currentContext().logError("customServicesOperationExecution.logStatus", step.getId(),"Cannot Build ViPR Request body");
             throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed("Cannot Build ViPR Request body");
         }
         for (int k = 0; k < vals; k++) {

@@ -30,11 +30,10 @@ import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorExcepti
 
 import org.apache.commons.codec.binary.Base64;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 
-import java.io.FileOutputStream;
-import java.io.IOException;
+import java.io.File;
 import java.net.URI;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -47,7 +46,7 @@ public class CustomServicesShellScriptExecution extends ViPRExecutionTask<Custom
             ExecutionUtils.currentContext().getOrder().getOrderNumber());
     private final long timeout;
 
-    private DbClient dbClient;
+    private final DbClient dbClient;
 
     public CustomServicesShellScriptExecution(final Map<String, List<String>> input,final CustomServicesWorkflowDocument.Step step,final DbClient dbClient) {
         this.input = input;
@@ -67,22 +66,27 @@ public class CustomServicesShellScriptExecution extends ViPRExecutionTask<Custom
         final Exec.Result result;
         try {
             final URI scriptid = step.getOperation();
-            // get the resource database
+
+            logger.debug("CS: Get the resources for script execution");
             final CustomServicesDBScriptPrimitive primitive = dbClient.queryObject(CustomServicesDBScriptPrimitive.class, scriptid);
             if (null == primitive) {
-                logger.error("Error retrieving the script primitive from DB. {} not found in DB", scriptid);
+                logger.error("Error retrieving script primitive from DB. {} not found in DB", scriptid);
+                ExecutionUtils.currentContext().logError("customServicesOperationExecution.logStatus", step.getId(), "Error retrieving script primitive from DB.");
                 throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed(scriptid + " not found in DB");
             }
 
             final CustomServicesDBScriptResource script = dbClient.queryObject(CustomServicesDBScriptResource.class,
                     primitive.getResource());
             if (null == script) {
-                logger.error("Error retrieving the resource for the script primitive from DB. {} not found in DB",
+                logger.error("Error retrieving resource for the script primitive from DB. {} not found in DB",
                         primitive.getResource());
 
+                ExecutionUtils.currentContext().logError("customServicesOperationExecution.logStatus", step.getId(),"Error retrieving resource for the script primitive from DB.");
                 throw InternalServerErrorException.internalServerErrors
                         .customServiceExecutionFailed(primitive.getResource() + " not found in DB");
             }
+
+            logger.debug("CS: Execute primitive:{} with script:{}", primitive.getId(), script.getId());
 
             final String scriptFileName = String.format("%s%s.sh", orderDir, URIUtil.parseUUIDFromURI(scriptid).replace("-", ""));
             final byte[] bytes = Base64.decodeBase64(script.getResource());
@@ -92,19 +96,23 @@ public class CustomServicesShellScriptExecution extends ViPRExecutionTask<Custom
             result = executeCmd(scriptFileName, inputToScript);
 
         } catch (final Exception e) {
+            logger.error("CS: Could not execute shell script step:{}. Exception:{}", step.getId(), e);
+            ExecutionUtils.currentContext().logError("customServicesOperationExecution.logStatus", step.getId(), "Could not execute shell script step"+e);
             throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed("Custom Service Task Failed" + e);
         }
 
         ExecutionUtils.currentContext().logInfo("customServicesScriptExecution.doneInfo", step.getId());
 
         if (result == null) {
+            logger.error("CS: Script Execution result is null for step:{}", step.getId());
+            ExecutionUtils.currentContext().logError("customServicesOperationExecution.logStatus", step.getId()," Script Execution result is null");
             throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed("Script/Ansible execution Failed");
         }
 
         logger.info("CustomScript Execution result:output{} error{} exitValue:{}", result.getStdOutput(), result.getStdError(),
                 result.getExitValue());
 
-        return new CustomServicesTaskResult(result.getStdOutput(), result.getStdError(), result.getExitValue(), null);
+        return new CustomServicesScriptTaskResult(AnsibleHelper.parseOut(result.getStdOutput()), result.getStdOutput(), result.getStdError(), result.getExitValue());
     }
 
     // Execute Shell Script resource
@@ -113,7 +121,7 @@ public class CustomServicesShellScriptExecution extends ViPRExecutionTask<Custom
         cmd.setShellArgs(extraVars);
         final String[] cmds = cmd.build();
 
-        return Exec.exec(timeout, cmds);
+        return Exec.exec(new File(orderDir), timeout, null, new HashMap<String,String>(), cmds);
     }
 
     private String makeParam(final Map<String, List<String>> input) throws Exception {

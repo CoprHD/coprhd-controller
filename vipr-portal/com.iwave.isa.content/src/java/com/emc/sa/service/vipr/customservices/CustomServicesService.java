@@ -19,6 +19,7 @@ package com.emc.sa.service.vipr.customservices;
 
 import java.beans.PropertyDescriptor;
 import java.io.File;
+import java.io.IOException;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.ParameterizedType;
@@ -48,6 +49,7 @@ import com.emc.sa.service.vipr.ViPRExecutionUtils;
 import com.emc.sa.service.vipr.ViPRService;
 import com.emc.sa.service.vipr.customservices.tasks.CustomServicesExecutors;
 import com.emc.sa.service.vipr.customservices.tasks.CustomServicesRestTaskResult;
+import com.emc.sa.service.vipr.customservices.tasks.CustomServicesScriptTaskResult;
 import com.emc.sa.service.vipr.customservices.tasks.CustomServicesTaskResult;
 import com.emc.sa.service.vipr.customservices.tasks.MakeCustomServicesExecutor;
 import com.emc.sa.workflow.WorkflowHelper;
@@ -136,7 +138,7 @@ public class CustomServicesService extends ViPRService {
      */
     public void wfExecutor(final URI uri, final Map<String, CustomServicesWorkflowDocument.InputGroup> stepInput) throws Exception {
 
-        logger.info("Parsing Workflow Definition");
+        logger.info("CS: Parsing Workflow Definition");
 
         final ImmutableMap<String, Step> stepsHash = getStepHash(uri);
 
@@ -148,41 +150,30 @@ public class CustomServicesService extends ViPRService {
 
             ExecutionUtils.currentContext().logInfo("customServicesService.stepStatus", step.getId(), step.getType());
 
-            final Step updatedStep = updatesubWfInput(step, stepInput);
+            //final Step updatedStep = updatesubWfInput(step, stepInput);
 
-            updateInputPerStep(updatedStep);
+            updateInputPerStep(step);
 
             final CustomServicesTaskResult res;
             try {
-                if (updatedStep.getType().equals(StepType.WORKFLOW.toString())) {
+                final MakeCustomServicesExecutor task = executor.get(step.getType());
+                task.setParam(getClient().getRestClient());
 
-                    wfExecutor(updatedStep.getOperation(), updatedStep.getInputGroups());
+                res = ViPRExecutionUtils.execute(task.makeCustomServicesExecutor(inputPerStep.get(step.getId()), step));
 
-                    // We Don't evaluate output/result for Workflow Step. It is already evaluated.
-                    // We would have got exception if Sub WF has failed
-                    res = new CustomServicesTaskResult("Success", "No Error", 200, null);
-                } else {
-                    final MakeCustomServicesExecutor task = executor.get(updatedStep.getType());
-                    task.setParam(getClient().getRestClient());
-
-                    res = ViPRExecutionUtils.execute(task.makeCustomServicesExecutor(inputPerStep.get(updatedStep.getId()), updatedStep));
-                }
-
-                boolean isSuccess = isSuccess(updatedStep, res);
+                boolean isSuccess = isSuccess(step, res);
                 if (isSuccess) {
                     try {
-                        updateOutputPerStep(updatedStep, res);
+                        updateOutputPerStep(step, res);
                     } catch (final Exception e) {
-                        logger.info("Failed to parse output" + e);
-
-                        isSuccess = false;
+                        logger.warn("Failed to parse output" + e);
                     }
                 }
-                next = getNext(isSuccess, res, updatedStep);
+                next = getNext(isSuccess, res, step);
             } catch (final Exception e) {
-                logger.info(
+                logger.warn(
                         "failed to execute step. Try to get failure path. Exception Received:" + e + e.getStackTrace()[0].getLineNumber());
-                next = getNext(false, null, updatedStep);
+                next = getNext(false, null, step);
             }
             if (next == null) {
                 throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed("Failed to get next step");
@@ -230,7 +221,7 @@ public class CustomServicesService extends ViPRService {
         return true;
     }
 
-    private Step updatesubWfInput(final Step step, final Map<String, CustomServicesWorkflowDocument.InputGroup> stepInput) {
+   /* private Step updatesubWfInput(final Step step, final Map<String, CustomServicesWorkflowDocument.InputGroup> stepInput) {
         if (!needUpdate(step, stepInput)) {
             return step;
         }
@@ -260,7 +251,7 @@ public class CustomServicesService extends ViPRService {
         }
 
         return step;
-    }
+    }*/
 
     private void orderDirCleanup(final String orderDir) {
         try {
@@ -288,12 +279,12 @@ public class CustomServicesService extends ViPRService {
 
     private String getNext(final boolean status, final CustomServicesTaskResult result, final Step step) {
         if (status) {
-            ExecutionUtils.currentContext().logInfo("customServicesService.stepSuccessStatus", step, result.getReturnCode());
+            ExecutionUtils.currentContext().logInfo("customServicesService.stepSuccessStatus", step.getId(), result.getReturnCode());
 
             return step.getNext().getDefaultStep();
         }
 
-        ExecutionUtils.currentContext().logError("customServicesService.stepFailedStatus", step);
+        ExecutionUtils.currentContext().logError("customServicesService.stepFailedStatus", step.getId());
 
         return step.getNext().getFailedStep();
     }
@@ -456,10 +447,19 @@ public class CustomServicesService extends ViPRService {
     private List<String> evaluateAnsibleOut(final String result, final String key) throws Exception {
         final List<String> out = new ArrayList<String>();
 
-        final JsonNode arrNode = new ObjectMapper().readTree(result).get(key);
+        final JsonNode node;
+        try {
+            node = new ObjectMapper().readTree(result);
+        } catch (final IOException e) {
+            logger.warn("Could not parse Script output" + e);
+            return null;
+        }
 
-        if (arrNode.isNull()) {
-            throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed("Could not parse the output" + key);
+        final JsonNode arrNode = node.get(key);
+
+        if (arrNode == null) {
+            logger.warn("Could not find value for:{}", key);
+            return null;
         }
 
         if (arrNode.isArray()) {
@@ -469,6 +469,8 @@ public class CustomServicesService extends ViPRService {
         } else {
             out.add(arrNode.toString());
         }
+
+        logger.info("parsed result key:{} value:{}", key, out);
 
         return out;
     }
@@ -499,8 +501,10 @@ public class CustomServicesService extends ViPRService {
             }
         } else {
             for (final CustomServicesWorkflowDocument.Output o : output) {
-                if (isAnsible(step)) {
-                    out.put(o.getName(), evaluateAnsibleOut(result, o.getName()));
+                if (isScript(step)) {
+                    final String outToParse = ((CustomServicesScriptTaskResult)res).getScriptOut();
+                    logger.info("Parse non vipr output:{}", outToParse);
+                    out.put(o.getName(), evaluateAnsibleOut(outToParse, o.getName()));
                 } else if (step.getType().equals(StepType.REST.toString())) {
                     final CustomServicesRestTaskResult restResult = (CustomServicesRestTaskResult) res;
                     final Set<Map.Entry<String, List<String>>> headers = restResult.getHeaders();
@@ -512,7 +516,7 @@ public class CustomServicesService extends ViPRService {
                 }
             }
         }
-        // set the default result.
+        //set the default result.
         out.put(CustomServicesConstants.OPERATION_OUTPUT, Arrays.asList(res.getOut()));
         out.put(CustomServicesConstants.OPERATION_ERROR, Arrays.asList(res.getErr()));
         out.put(CustomServicesConstants.OPERATION_RETURNCODE, Arrays.asList(String.valueOf(res.getReturnCode())));
@@ -682,7 +686,7 @@ public class CustomServicesService extends ViPRService {
         return null;
     }
 
-    private boolean isAnsible(final Step step) {
+    private boolean isScript(final Step step) {
         if (step.getType().equals(StepType.LOCAL_ANSIBLE.toString()) || step.getType().equals(StepType.REMOTE_ANSIBLE.toString())
                 || step.getType().equals(StepType.SHELL_SCRIPT.toString()))
             return true;

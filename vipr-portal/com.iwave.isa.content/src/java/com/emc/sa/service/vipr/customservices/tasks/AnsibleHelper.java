@@ -76,11 +76,18 @@ public final class AnsibleHelper {
         final Pattern pattern = Pattern.compile(regexString);
         final Matcher matcher = pattern.matcher(out);
 
+        final StringBuilder result = new StringBuilder("{");
+        String prefix = "";
         while (matcher.find()) {
-            return matcher.group(1);
+            logger.info("find value:{}", matcher.group(1));
+            result.append(prefix);
+            prefix = ",";
+            result.append(matcher.group(1));
         }
 
-        return out;
+        result.append("}");
+
+        return result.toString();
     }
 
     public static void writeResourceToFile(final byte[] bytes, final String fileName) {

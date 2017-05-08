@@ -58,24 +58,27 @@ public class CustomServicesRemoteAnsibleExecution extends ViPRExecutionTask<Cust
     public CustomServicesTaskResult executeTask() throws Exception {
 
         ExecutionUtils.currentContext().logInfo("customServicesScriptExecution.statusInfo", step.getId());
-        final URI scriptid = step.getOperation();
 
         final Exec.Result result;
         try {
             result = executeRemoteCmd(AnsibleHelper.makeExtraArg(input));
 
         } catch (final Exception e) {
+            ExecutionUtils.currentContext().logError("customServicesOperationExecution.logStatus", step.getId(),"Custom Service Task Failed" + e);
             throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed("Custom Service Task Failed" + e);
         }
 
         ExecutionUtils.currentContext().logInfo("customServicesScriptExecution.doneInfo", step.getId());
 
         if (result == null) {
+            ExecutionUtils.currentContext().logError("customServicesOperationExecution.logStatus", step.getId(),"Remote Ansible execution Failed");
             throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed("Remote Ansible execution Failed");
         }
 
         logger.info("CustomScript Execution result:output{} error{} exitValue:{}", result.getStdOutput(), result.getStdError(),
                 result.getExitValue());
+
+        ExecutionUtils.currentContext().logInfo("customServicesScriptExecution.doneInfo", step.getId());
 
         return new CustomServicesTaskResult(AnsibleHelper.parseOut(result.getStdOutput()), result.getStdError(), result.getExitValue(),
                 null);

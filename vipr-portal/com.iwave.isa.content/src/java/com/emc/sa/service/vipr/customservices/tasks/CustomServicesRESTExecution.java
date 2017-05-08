@@ -57,24 +57,25 @@ public class CustomServicesRESTExecution extends ViPRExecutionTask<CustomService
             ExecutionUtils.currentContext().logInfo("customServicesRESTExecution.startInfo", step.getId());
 
             //TODO get it from primitive which are not runtime variable
-            final String authType = getOptions(CustomServicesConstants.AUTH_TYPE, input);
+            final String authType = AnsibleHelper.getOptions(CustomServicesConstants.AUTH_TYPE, input);
             if (StringUtils.isEmpty(authType)) {
                 logger.error("Auth type cannot be undefined");
+                ExecutionUtils.currentContext().logError("customServicesOperationExecution.logStatus", step.getId(),"Auth type cannot be undefined");
                 throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed("Cannot find Auth type");
             }
 
-            final Client client = BuildRestRequest.makeClient(new DefaultClientConfig(), coordinator, authType, getOptions(CustomServicesConstants.PROTOCOL, input),
-                    getOptions(CustomServicesConstants.USER, input), getOptions(CustomServicesConstants.PASSWORD, input));
+            final Client client = BuildRestRequest.makeClient(new DefaultClientConfig(), coordinator, authType, AnsibleHelper.getOptions(CustomServicesConstants.PROTOCOL, input),
+                    AnsibleHelper.getOptions(CustomServicesConstants.USER, input), AnsibleHelper.getOptions(CustomServicesConstants.PASSWORD, input));
             final WebResource webResource = BuildRestRequest.makeWebResource(client, getUrl(), null);
             final WebResource.Builder builder = BuildRestRequest.makeRequestBuilder(webResource, step, input);
 
             final CustomServicesConstants.RestMethods method =
-                    CustomServicesConstants.RestMethods.valueOf(getOptions(CustomServicesConstants.METHOD, input));
+                    CustomServicesConstants.RestMethods.valueOf(AnsibleHelper.getOptions(CustomServicesConstants.METHOD, input));
             final CustomServicesTaskResult result;
             switch (method) {
                 case PUT:
                 case POST:
-                    final String body = RESTHelper.makePostBody(getOptions(CustomServicesConstants.BODY, input), input);
+                    final String body = RESTHelper.makePostBody(AnsibleHelper.getOptions(CustomServicesConstants.BODY, input), input);
                     result = executeRest(method, body, builder);
                     break;
                 default:
@@ -118,21 +119,22 @@ public class CustomServicesRESTExecution extends ViPRExecutionTask<CustomService
 
     public String getUrl() {
         //TODO get from primitive.
-        final String target = getOptions(CustomServicesConstants.TARGET, input);
-        final String path = getOptions(CustomServicesConstants.PATH, input);
-        final String port = getOptions(CustomServicesConstants.PORT, input);
-        final String protocol =  getOptions(CustomServicesConstants.PROTOCOL, input);
+        final String target = AnsibleHelper.getOptions(CustomServicesConstants.TARGET, input);
+        final String path = AnsibleHelper.getOptions(CustomServicesConstants.PATH, input);
+        final String port = AnsibleHelper.getOptions(CustomServicesConstants.PORT, input);
+        final String protocol =  AnsibleHelper.getOptions(CustomServicesConstants.PROTOCOL, input);
 
         if (StringUtils.isEmpty(target) || StringUtils.isEmpty(path) || StringUtils.isEmpty(port) || StringUtils.isEmpty(protocol)) {
             logger.error("target/path/port is not defined. target:{}, path:{}, port:{}", target, path, port);
 
+            ExecutionUtils.currentContext().logError("customServicesOperationExecution.logStatus", step.getId(),"Cannot build URL");
             throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed("Cannot build URL");
         }
 
         return String.format("%s://%s:%s/%s", protocol, target,port, RESTHelper.makePath(path, input));
     }
 
-    private String getOptions(final String key, final Map<String, List<String>> input) {
+  /*  private String getOptions(final String key, final Map<String, List<String>> input) {
         if (input.get(key) != null) {
             return StringUtils.strip(input.get(key).get(0).toString(), "\"");
         }
@@ -140,5 +142,5 @@ public class CustomServicesRESTExecution extends ViPRExecutionTask<CustomService
         logger.info("key not defined. key:{}", key);
 
         return null;
-    }
+    }*/
 }

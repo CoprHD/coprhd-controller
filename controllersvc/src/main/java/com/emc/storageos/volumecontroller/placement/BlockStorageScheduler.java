@@ -1473,10 +1473,17 @@ public class BlockStorageScheduler {
                         volParam = _dbClient.queryObject(ExportPathParams.class, exportPathParamsUri);
                     }
                 }
-                if (volParam == null) {
+                if (volParam == null || volParam.getMaxPaths() == null || volParam.getMaxPaths() == 0) {
                     // Otherwise check use the Vpool path parameters
                     URI vPoolURI = getBlockObjectVPoolURI(blockObject, _dbClient);
+                    URI pgURI = null;
+                    if (volParam != null) {
+                        pgURI = volParam.getPortGroup();
+                    }
                     volParam = getExportPathParam(blockObject, vPoolURI, _dbClient);
+                    if (pgURI != null) {
+                        volParam.setPortGroup(pgURI);
+                    }
                 }
                 if (volParam.getMaxPaths() > param.getMaxPaths()) {
                     param = volParam;

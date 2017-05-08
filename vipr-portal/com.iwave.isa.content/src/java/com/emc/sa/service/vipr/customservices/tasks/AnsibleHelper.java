@@ -37,7 +37,8 @@ import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorExcepti
 public final class AnsibleHelper {
     private static final org.slf4j.Logger logger = LoggerFactory.getLogger(AnsibleHelper.class);
 
-    private AnsibleHelper() {}
+    private AnsibleHelper() {
+    }
 
     public static String getOptions(final String key, final Map<String, List<String>> input) {
 
@@ -71,11 +72,12 @@ public final class AnsibleHelper {
         for (final String inputGroupKey : step.getInputGroups().keySet()) {
             if (inputGroupKey.equals(CustomServicesConstants.INPUT_PARAMS)) {
                 for (final CustomServicesWorkflowDocument.Input stepInput : step.getInputGroups().get(inputGroupKey).getInputGroup()) {
-                    //Add only the extra-vars which is in the input_params to the extra-vars argument
-                        inputParamList.add(stepInput.getName());
+                    // Add only the extra-vars which is in the input_params to the extra-vars argument
+                    inputParamList.add(stepInput.getName());
                     if (StringUtils.isNotBlank(stepInput.getType())
                             && stepInput.getType().equals(CustomServicesConstants.InputType.ASSET_OPTION_MULTI.toString())) {
-                        //this is for array type. currently the only array type is InputType.ASSET_OPTION_MULTI. Do not think this can occur in anything other than input_params section
+                        // this is for array type. currently the only array type is InputType.ASSET_OPTION_MULTI. Do not think this can
+                        // occur in anything other than input_params section
                         arrayInput.add(stepInput.getName());
                     }
                 }
@@ -83,41 +85,49 @@ public final class AnsibleHelper {
         }
 
         final StringBuilder sb = new StringBuilder();
-        for (Map.Entry<String, List<String>> e : input.entrySet()) {
+        for (Map.Entry<String, List<String>> inputEntry : input.entrySet()) {
             boolean arrayElement = false;
-            if (!inputParamList.contains(e.getKey())) {
+            if (!inputParamList.contains(inputEntry.getKey())) {
                 continue;
             }
 
-            if(arrayInput.contains(e.getKey())){
+            if (arrayInput.contains(inputEntry.getKey())) {
                 arrayElement = true;
             }
 
-            if (CollectionUtils.isNotEmpty(e.getValue())) {
-                sb.append(e.getKey()).append("=");
-
-                if (e.getValue().size() > 1 || arrayElement) {
-                    // for table support
-                    sb.append("[");
-                }
-
-                // Not wrapping with quotes. we will leave it to the ansible user.
-                String prefix = "";
-                for (String eachVal : e.getValue()) {
-                    // order ctx always sends only non-empty values. hence no check required for string being empty
-                    sb.append(prefix);
-                    prefix = ",";
-                    sb.append(eachVal.replace("\"", ""));
-                }
-                if (e.getValue().size() > 1 || arrayElement) {
-                    sb.append("]");
-                }
-                sb.append(" ");
-            }
+            sb.append(addExtraArg(inputEntry, arrayElement));
         }
         logger.info("extra vars:{}", sb.toString());
 
         return sb.toString().trim();
+    }
+
+    private static StringBuilder addExtraArg(final Map.Entry<String, List<String>> map,
+            final boolean arrayElement) {
+        final StringBuilder sb = new StringBuilder();
+        if (CollectionUtils.isNotEmpty(map.getValue())) {
+            sb.append(map.getKey()).append("=");
+
+            if (map.getValue().size() > 1 || arrayElement) {
+                // for table support
+                sb.append("[");
+            }
+
+            // Not wrapping with quotes. we will leave it to the ansible user.
+            String prefix = "";
+            for (String eachVal : map.getValue()) {
+                // order ctx always sends only non-empty values. hence no check required for string being empty
+                sb.append(prefix);
+                prefix = ",";
+                sb.append(eachVal.replace("\"", ""));
+            }
+            if (map.getValue().size() > 1 || arrayElement) {
+                sb.append("]");
+            }
+            sb.append(" ");
+        }
+        return sb;
+
     }
 
     public static String parseOut(final String out) {

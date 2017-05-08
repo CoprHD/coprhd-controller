@@ -513,6 +513,10 @@ vmax3_setup() {
     run storagepool update $VMAX_NATIVEGUID --type block --volume_type THIN_ONLY
     run storagepool update $VMAX_NATIVEGUID --type block --volume_type THICK_ONLY
 
+    if [ "${SIM}" = "1" ]; then
+	run storageport update $VMAX_NATIVEGUID --tzone ${NH}/${FC_ZONE_A} FC
+    fi
+
     setup_varray
 
     run storagepool update $VMAX_NATIVEGUID --nhadd $NH --type block
@@ -897,6 +901,10 @@ xio_setup() {
     run storagedevice discover_all --ignore_error
 
     run storagepool update $XTREMIO_NATIVEGUID --type block --volume_type THIN_ONLY
+
+    if [ "${SIM}" = "1" ]; then
+	run storageport update $XTREMIO_NATIVEGUID --tzone ${NH}/${FC_ZONE_A} FC
+    fi
 
     setup_varray
 

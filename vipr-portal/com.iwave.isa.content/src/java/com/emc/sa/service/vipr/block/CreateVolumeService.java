@@ -41,7 +41,8 @@ public class CreateVolumeService extends ViPRService {
 
         //checks to make if pool supports remote replication
         BlockVirtualPoolRestRep vpool = getClient().blockVpools().get(volumeParams.virtualPool);
-        if ((vpool != null) && (vpool.getProtection().getRemoteReplicationParam() != null)) {
+        if ((vpool != null) && (vpool.getProtection() != null) &&
+                (vpool.getProtection().getRemoteReplicationParam() != null)) {
 
             // one remote replication set must be available
             List<NamedRelatedResourceRep> rrSets = getClient().remoteReplicationSets().

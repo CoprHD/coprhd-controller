@@ -431,11 +431,9 @@ public class StorageScheduler implements Scheduler {
             throw APIException.badRequests.noStoragePoolsForVpoolInVarray(varray.getLabel(), vpool.getLabel());
         }
 
-        // TBD Heg this will be pre-alloc size of the mirror source
         AttributeMapBuilder provMapBuilder = new ProvisioningAttributeMapBuilder(capabilities.getSize(),
                 varrayId, capabilities.getThinVolumePreAllocateSize());
         
-        // TBD Heg provision type from mirror vpool. OK.
         provMapBuilder.putAttributeInMap(AttributeMatcher.Attributes.provisioning_type.toString(),
                 vpool.getSupportedProvisioningType());
 
@@ -529,7 +527,6 @@ public class StorageScheduler implements Scheduler {
         }
 
         // populate DriveType,and Raid level and Policy Name for FAST Initial Placement Selection
-        // TBD Heg no auto tiering for mirror as not set in capabilities.
         provMapBuilder.putAttributeInMap(Attributes.auto_tiering_policy_name.toString(), capabilities.getAutoTierPolicyName());
         provMapBuilder.putAttributeInMap(Attributes.unique_policy_names.toString(), vpool.getUniquePolicyNames());
         provMapBuilder.putAttributeInMap(AttributeMatcher.PLACEMENT_MATCHERS, true);
@@ -1825,8 +1822,8 @@ public class StorageScheduler implements Scheduler {
         createdMirror.setPerformanceParams(performanceParamsURI);
         createdMirror.setSyncState(SynchronizationState.UNKNOWN.toString());
         createdMirror.setSyncType(BlockMirror.MIRROR_SYNC_TYPE);
-        // TBD Heg Not true the placement occurred based on the mirror virtual pool thin provisioning setting.
         createdMirror.setThinlyProvisioned(capabilities.getThinProvisioning());
+        createdMirror.setIsDeduplicated(capabilities.getDedupCapable());
         dbClient.createObject(createdMirror);
         addMirrorToVolume(volume, createdMirror, dbClient);
         return createdMirror;

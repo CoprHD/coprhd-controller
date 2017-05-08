@@ -691,6 +691,10 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
         });
     }
 
+    $scope.setWorkflowModified = function (state) {
+        $scope.modified = state;
+    }
+
     function buildJSON() {
         var blocks = []
         diagramContainer.find(" .item,  .item-start-end").each(function(idx, elem) {
@@ -718,7 +722,7 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
         });
     }
 
-    function updateWorkflowData(resp,successCallback,failCallback){
+    function updateWorkflowData(resp,successCallback){
         $scope.workflowData.state = resp.data.state;
         if (successCallback) successCallback();
     }

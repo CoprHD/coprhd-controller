@@ -27,34 +27,34 @@
 											  ng-class="{'required':input.required && stepData.type==='vipr',
 											  'input-error-icon':alert.error.errorSteps.{{stepData.id}}.errorInputGroups.input_params.errorInputs['{{input.name}}'].errorMessage}">
 										 <control-group class="col-sm-12" v-field="input.type" width="9" >
-	                        				<select-one options="UserInputTypeOption" auto-default v-disabled='locked'></select-one>
+	                        				<select-one options="UserInputTypeOption" auto-default v-disabled='locked' ng-change="setWorkflowModified('true')"></select-one>
 	                        			</control-group>
 										<control-group class="col-sm-12" v-field='input.friendlyName' ng-if="input.type=='InputFromUser' || input.type=='AssetOptionSingle'|| input.type=='AssetOptionMulti'" width="9">
-											<input-text></input-text>
+											<input-text ng-change="setWorkflowModified('true')"></input-text>
 										</control-group>
 										<control-group class="col-sm-12" v-field='input.decription' ng-if="input.type=='InputFromUser' || input.type=='AssetOptionSingle'|| input.type=='AssetOptionMulti'" width="9">
-                        					<input-text></input-text>
+                        					<input-text ng-change="setWorkflowModified('true')"></input-text>
           								</control-group>
 	   									<control-group class="col-sm-12" v-field="input.required" width="9" ng-if="stepData.type!=='vipr'" >
-											<boolean-checkbox v-default-value="false"></boolean-checkbox>
+											<boolean-checkbox v-default-value="false" ng-change="setWorkflowModified('true')"></boolean-checkbox>
 	  									</control-group>
 	                        			<control-group class="col-sm-12" label-key ="input.stepInput" v-field="input.value" ng-if="input.type=='FromOtherStepInput'" width="9"  >
-	                        				<select-one options="stepInputOptions" auto-default v-disabled='locked'></select-one>
+	                        				<select-one options="stepInputOptions" auto-default v-disabled='locked' ng-change="setWorkflowModified('true')"></select-one>
 	                        			</control-group>
 	                        			<control-group class="col-sm-12" label-key="input.stepOutput" v-field="input.value" ng-if="input.type=='FromOtherStepOutput'" width="9" >
-	                        				<select-one options="stepOutputOptions" auto-default v-disabled='locked'></select-one>
+	                        				<select-one options="stepOutputOptions" auto-default v-disabled='locked' ng-change="setWorkflowModified('true')"></select-one>
 	                        			</control-group>
 	                        			<control-group class="col-sm-12" label-key="input.assetOption" v-field="input.value" ng-if="input.type=='AssetOptionSingle'|| input.type=='AssetOptionMulti'" width="9" >
-	                        				<select-one options="AssetOptionTypes" auto-default v-disabled='locked'></select-one>
+	                        				<select-one options="AssetOptionTypes" auto-default v-disabled='locked' ng-change="setWorkflowModified('true')"></select-one>
 	                        			</control-group>
 	  									<control-group class="col-sm-12" v-field="input.defaultValue" ng-if="input.type=='InputFromUser'" width="9">
-	                        				<input-text></input-text>
+	                        				<input-text ng-change="setWorkflowModified('true')"></input-text>
 	                        			</control-group>
 	                        			<control-group class="col-sm-12" v-field='input.inputFieldType' ng-if="input.type=='InputFromUser'" width="9">
-	                        				<select-one options="InputFieldOption" auto-default v-disabled='locked'></select-one>
+	                        				<select-one options="InputFieldOption" auto-default v-disabled='locked' ng-change="setWorkflowModified('true')"></select-one>
 	                        			</control-group>
 	                        			<control-group class="col-sm-12" v-field='input.tableName' ng-if="input.type=='InputFromUser' || input.type=='AssetOptionSingle'" width="9">
-	                        				<input-text></input-text>
+	                        				<input-text ng-change="setWorkflowModified('true')"></input-text>
 	          							</control-group>
           							</collapse>
 								</div>

@@ -20,14 +20,15 @@ public class NativeContinuousCopyCreate {
 
     private String name;
     private Integer count;
-    private BlockPerformanceParamsOverrideParam performanceParams;    
+    private BlockPerformanceParamsMap performanceParams;    
 
     public NativeContinuousCopyCreate() {
     }
 
-    public NativeContinuousCopyCreate(String name, Integer count) {
+    public NativeContinuousCopyCreate(String name, Integer count, BlockPerformanceParamsMap performanceParams) {
         this.name = name;
         this.count = count;
+        this.performanceParams = performanceParams;
     }
 
     /**
@@ -63,11 +64,11 @@ public class NativeContinuousCopyCreate {
      * @return The performance parameters.
      */
     @XmlElement(name = "performance_params")
-    public BlockPerformanceParamsOverrideParam getPerformanceParams() {
+    public BlockPerformanceParamsMap getPerformanceParams() {
         return performanceParams;
     }
 
-    public void setPerformanceParams(BlockPerformanceParamsOverrideParam performanceParams) {
+    public void setPerformanceParams(BlockPerformanceParamsMap performanceParams) {
         this.performanceParams = performanceParams;
     }    
 }

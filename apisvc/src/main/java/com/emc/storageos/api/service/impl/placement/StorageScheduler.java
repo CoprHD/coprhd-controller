@@ -225,9 +225,6 @@ public class StorageScheduler implements Scheduler {
     public void getRecommendationsForMirrors(VirtualArray vArray, VirtualPool vPool,
             VirtualPoolCapabilityValuesWrapper capabilities, List<Recommendation> volumeRecommendations) {
 
-        // TBD Heg Here the vpool is the mirror virtual pool, however the capabilities has the thin provisioning
-        // and pre-allocation of the source volume vpool. The pass volume recommendations have info about the 
-        // source volume.
         List<VolumeRecommendation> mirrorRecommendations = new ArrayList<VolumeRecommendation>();
         // separate volumes by different devices
         Map<URI, List<VolumeRecommendation>> deviceMap = VolumeRecommendation.getDeviceMap(volumeRecommendations, _dbClient);

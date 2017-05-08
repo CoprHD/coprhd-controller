@@ -37,6 +37,7 @@ public class Copy implements Serializable {
     private String pointInTime;
     // The desired access mode for the target. Applies to RecoverPoint copies.
     private String accessMode;
+    private BlockPerformanceParamsMap performanceParams;
 
     public enum SyncDirection {
         SOURCE_TO_TARGET,
@@ -185,4 +186,19 @@ public class Copy implements Serializable {
     public void setAccessMode(String accessMode) {
         this.accessMode = accessMode;
     }
+    
+    /**
+     * The performance parameters to use when the newly created mirror is 
+     * provisioned.
+     * 
+     * @return The performance parameters.
+     */
+    @XmlElement(name = "performance_params")
+    public BlockPerformanceParamsMap getPerformanceParams() {
+        return performanceParams;
+    }
+
+    public void setPerformanceParams(BlockPerformanceParamsMap performanceParams) {
+        this.performanceParams = performanceParams;
+    }    
 }

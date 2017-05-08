@@ -14,6 +14,7 @@ import static com.emc.storageos.db.client.constraint.ContainmentConstraint.Facto
 import static com.emc.storageos.db.client.util.CommonTransformerFunctions.fctnDataObjectToID;
 import static com.emc.storageos.db.client.util.NullColumnValueGetter.isNullURI;
 import static com.emc.storageos.model.block.Copy.SyncDirection.SOURCE_TO_TARGET;
+import static com.google.common.base.Strings.isNullOrEmpty;
 import static com.google.common.collect.Collections2.transform;
 import static java.lang.Boolean.FALSE;
 import static java.lang.Boolean.parseBoolean;
@@ -140,7 +141,7 @@ import com.emc.storageos.model.block.VirtualArrayChangeParam;
 import com.emc.storageos.model.block.VirtualPoolChangeParam;
 import com.emc.storageos.model.block.VolumeBulkRep;
 import com.emc.storageos.model.block.VolumeCreate;
-import com.emc.storageos.model.block.BlockPerformanceParamsOverrideParam;
+import com.emc.storageos.model.block.VolumeCreatePerformanceParams;
 import com.emc.storageos.model.block.VolumeDeleteTypeEnum;
 import com.emc.storageos.model.block.VolumeExpandParam;
 import com.emc.storageos.model.block.VolumeFullCopyCreateParam;
@@ -427,7 +428,7 @@ public class BlockService extends TaskResourceService {
                     taskList.getTaskList().add(taskResp);
                 } else {
                     NativeContinuousCopyCreate mirror = new NativeContinuousCopyCreate(
-                            copy.getName(), copy.getCount());
+                            copy.getName(), copy.getCount(), copy.getPerformanceParams());
                     taskList = startMirrors(id, mirror);
                 }
             } else {
@@ -764,7 +765,7 @@ public class BlockService extends TaskResourceService {
         // specified would override the corresponding properties in the virtual pool.
         // Aside from general validation, we need to ensure that the passed performance
         // parameters are appropriate for the volume topology defined by the virtual pool.
-        BlockPerformanceParamsOverrideParam performanceParams = param.getPerformanceParams();
+        VolumeCreatePerformanceParams performanceParams = param.getPerformanceParams();
         if (performanceParams != null) {
             blockServiceImpl.validatePerformanceParametersForVolumeCreate(performanceParams);
         }
@@ -5295,25 +5296,73 @@ public class BlockService extends TaskResourceService {
             BlockServiceUtils.validateVMAX3ActiveSnapSessionsExists(sourceVolume.getId(), _dbClient, MIRRORS);
         }
 
-        VirtualPoolCapabilityValuesWrapper capabilities = new VirtualPoolCapabilityValuesWrapper();
-        capabilities.put(VirtualPoolCapabilityValuesWrapper.RESOURCE_COUNT, count);
-        capabilities.put(VirtualPoolCapabilityValuesWrapper.SIZE, sourceVolume.getCapacity());
-        
-        // TB Heg Hmmm should these come from the mirror virtual pool?
-        capabilities.put(VirtualPoolCapabilityValuesWrapper.THIN_PROVISIONING, sourceVolume.getThinlyProvisioned());
-        capabilities.put(VirtualPoolCapabilityValuesWrapper.THIN_VOLUME_PRE_ALLOCATE_SIZE,
-                sourceVolume.getThinVolumePreAllocationSize());
+        // Get the virtual pool for the mirror.
+        VirtualPool mirrorVpool = sourceVPool;
+        if (!isNullOrEmpty(sourceVPool.getMirrorVirtualPool())) {
+            URI mirrorPoolUri = URI.create(sourceVPool.getMirrorVirtualPool());
+            if (!URIUtil.isNull(mirrorPoolUri)) {
+                mirrorVpool = _dbClient.queryObject(VirtualPool.class, mirrorPoolUri);
+            }
+        }
 
+        // Get the appropriate service API implementation.
         BlockServiceApi serviceApi = null;
         if ((storageSystem != null)
-                && (DiscoveredDataObject.Type.vplex.name().equals(storageSystem
-                        .getSystemType()))) {
+                && (DiscoveredDataObject.Type.vplex.name().equals(storageSystem.getSystemType()))) {
             serviceApi = getBlockServiceImpl(storageSystem.getSystemType());
         } else {
             serviceApi = getBlockServiceImpl("mirror");
         }
+
+        // Validate the performance parameters supplied in the request if any and store
+        // this information in the capabilities wrapper. Any performance parameters
+        // specified would override the corresponding properties in the mirror virtual pool.
+        // Aside from general validation, we need to ensure that the passed performance
+        // parameters are appropriate for the volume topology defined by the virtual pool.
+        BlockPerformanceParamsMap performanceParams = copy.getPerformanceParams();
+        if (performanceParams != null) {
+            serviceApi.validatePerformanceParametersForMirrorCreate(performanceParams);
+        }
+
+        // Populate capabilities for volume placement.
+        VirtualPoolCapabilityValuesWrapper capabilities = new VirtualPoolCapabilityValuesWrapper();
+        capabilities.put(VirtualPoolCapabilityValuesWrapper.RESOURCE_COUNT, count);
+        capabilities.put(VirtualPoolCapabilityValuesWrapper.SIZE, sourceVolume.getCapacity());
+        if (VirtualPool.ProvisioningType.Thin.toString().equalsIgnoreCase(mirrorVpool.getSupportedProvisioningType())) {
+            capabilities.put(VirtualPoolCapabilityValuesWrapper.THIN_PROVISIONING, Boolean.TRUE);
+        } else {
+            capabilities.put(VirtualPoolCapabilityValuesWrapper.THIN_PROVISIONING, Boolean.FALSE);            
+        }
+        
+        // Get the thin volume pre-allocation percentage. The value in the 
+        // performance parameters, if any, overrides the value from the
+        // mirror virtual pool. Use this value to determine the thin volume
+        // pre-allocation size to set in the capabilities.
+        Integer thinVolumePreAllocPercentage = PerformanceParamsUtils.getThinVolumePreAllocPercentage(
+                performanceParams, VolumeTopologyRole.PRIMARY_MIRROR, mirrorVpool, _dbClient);
+        if (null != thinVolumePreAllocPercentage && 0 < thinVolumePreAllocPercentage) {
+            capabilities.put(VirtualPoolCapabilityValuesWrapper.THIN_VOLUME_PRE_ALLOCATE_SIZE, VirtualPoolUtil
+                    .getThinVolumePreAllocationSize(thinVolumePreAllocPercentage, sourceVolume.getCapacity()));
+        }
+        
+        // Get the deduplication setting. The value in the performance parameters,
+        // if any, overrides the value from the mirror virtual pool.
+        Boolean dedupCapable = PerformanceParamsUtils.getIsDedupCapable(
+                performanceParams, VolumeTopologyRole.PRIMARY_MIRROR, mirrorVpool, _dbClient);
+        if (dedupCapable) {
+            capabilities.put(VirtualPoolCapabilityValuesWrapper.DEDUP, dedupCapable);
+        }
+        
+        // Get the autotiering policy name. The value in the performance parameters,
+        // if any, overrides the value from the virtual pool.
+        String autoTierPolicyName = PerformanceParamsUtils.getAutoTierinigPolicyName(
+                performanceParams, VolumeTopologyRole.PRIMARY_MIRROR, mirrorVpool, _dbClient);
+        if (NullColumnValueGetter.isNotNullValue(autoTierPolicyName)) {
+            capabilities.put(VirtualPoolCapabilityValuesWrapper.AUTO_TIER__POLICY_NAME, autoTierPolicyName);
+        }
+
         return serviceApi.startNativeContinuousCopies(storageSystem, sourceVolume,
-                sourceVPool, capabilities, copy, taskId);
+                sourceVPool, mirrorVpool, capabilities, copy, taskId);
     }
 
     /**

@@ -104,7 +104,7 @@ import com.emc.storageos.model.block.BlockPerformanceParamsMap;
 import com.emc.storageos.model.block.NativeContinuousCopyCreate;
 import com.emc.storageos.model.block.VirtualPoolChangeParam;
 import com.emc.storageos.model.block.VolumeCreate;
-import com.emc.storageos.model.block.BlockPerformanceParamsOverrideParam;
+import com.emc.storageos.model.block.VolumeCreatePerformanceParams;
 import com.emc.storageos.model.block.VolumeDeleteTypeEnum;
 import com.emc.storageos.model.project.ProjectElement;
 import com.emc.storageos.model.project.ProjectParam;
@@ -2769,7 +2769,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
      */
     @Override
     public TaskList startNativeContinuousCopies(StorageSystem vplexStorageSystem, Volume vplexVolume,
-            VirtualPool sourceVirtualPool, VirtualPoolCapabilityValuesWrapper capabilities,
+            VirtualPool sourceVirtualPool, VirtualPool mirrorVpool, VirtualPoolCapabilityValuesWrapper capabilities,
             NativeContinuousCopyCreate param, String taskId)
             throws ControllerException {
 
@@ -2796,12 +2796,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                     .noAssociatedVolumesForVPLEXVolume(vplexVolume.forDisplay());
         }
 
-        VirtualPool sourceMirrorVPool = null;
-        // Set source mirror vpool
-        if (!isNullOrEmpty(sourceVirtualPool.getMirrorVirtualPool())
-                && !NullColumnValueGetter.isNullURI(URI.create(sourceVirtualPool.getMirrorVirtualPool()))) {
-            sourceMirrorVPool = _dbClient.queryObject(VirtualPool.class, URI.create(sourceVirtualPool.getMirrorVirtualPool()));
-        }
+        VirtualPool sourceMirrorVPool = mirrorVpool;
 
         // Check if volume is distributed and if HA Mirror Vpool is also set
         VirtualPool haMirrorVPool = VPlexUtil.getHAMirrorVpool(sourceVirtualPool, associatedVolumeIds, _dbClient);
@@ -2840,20 +2835,20 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
             }
 
             VirtualPool backendVolumeVpool = _dbClient.queryObject(VirtualPool.class, backendVolume.getVirtualPool());
-            VirtualPool mirrorVpool = backendVolumeToMirrorVpoolMap.get(backendVolume);
+            VirtualPool beMirrorVpool = backendVolumeToMirrorVpoolMap.get(backendVolume);
             // Get recommendations for the mirror placement
             List<Recommendation> volumeRecommendations = null;
             VirtualArray varray = null;
-            if (mirrorVpool != null) {
+            if (beMirrorVpool != null) {
                 // If mirror vpool is provided try to get recommendations using the provided mirror vpool
                 // Check if any of the varray for mirror vpool is same as that of the source volume varray.
                 // If yes then get recommendations using that varray.
-                StringSet mirrorVPoolVarrays = mirrorVpool.getVirtualArrays();
+                StringSet mirrorVPoolVarrays = beMirrorVpool.getVirtualArrays();
                 boolean foundMatch = false;
                 for (String mirrorVPoolVarrayId : mirrorVPoolVarrays) {
                     if (mirrorVPoolVarrayId.equals(backendVolumeVarrayURI.toString())) {
                         varray = _dbClient.queryObject(VirtualArray.class, backendVolumeVarrayURI);
-                        volumeRecommendations = _scheduler.getRecommendationsForMirrors(varray, project, backendVolumeVpool, mirrorVpool,
+                        volumeRecommendations = _scheduler.getRecommendationsForMirrors(varray, project, backendVolumeVpool, beMirrorVpool,
                                 capabilities, vplexStorageSystemURI, backendVolume.getStorageController(), cluster);
                         foundMatch = true;
                         break;
@@ -2870,7 +2865,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                                 _dbClient)) {
                             varray = _dbClient.queryObject(VirtualArray.class, URI.create(mirrorVPoolVarrayId));
                             volumeRecommendations = _scheduler.getRecommendationsForMirrors(varray, project, backendVolumeVpool,
-                                    mirrorVpool, capabilities, vplexStorageSystemURI, backendVolume.getStorageController(), cluster);
+                                    beMirrorVpool, capabilities, vplexStorageSystemURI, backendVolume.getStorageController(), cluster);
                             if (!volumeRecommendations.isEmpty()) {
                                 foundMatch = true;
                                 break;
@@ -2885,22 +2880,22 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                     s_logger.info("Mirror vpool is not specified, use the source volume virtual pool and virtual array");
                     // In case of Vplex local if mirror pool is not provided then we can use source vpool as mirror vpool.
                     sourceMirrorVPool = backendVolumeVpool;
-                    mirrorVpool = backendVolumeVpool;
+                    beMirrorVpool = backendVolumeVpool;
                     backendVolumeToMirrorVpoolMap.put(backendVolume, sourceMirrorVPool);
                     // Separate Mirror vpool is not provided so use the source volume vpool and varray for
                     // getting recommendations.Here sourceVirtualPool and mirrorVPool will be same.
                     varray = _dbClient.queryObject(VirtualArray.class, backendVolumeVarrayURI);
-                    volumeRecommendations = _scheduler.getRecommendationsForMirrors(varray, project, backendVolumeVpool, mirrorVpool,
+                    volumeRecommendations = _scheduler.getRecommendationsForMirrors(varray, project, backendVolumeVpool, beMirrorVpool,
                             capabilities, vplexStorageSystemURI, backendVolume.getStorageController(), cluster);
                 }
             }
 
-            if (mirrorVpool == null) {
+            if (beMirrorVpool == null) {
                 throw APIException.badRequests.noMirrorVpoolForVplexVolume(vplexVolume.getLabel());
             }
 
             if (varray == null) {
-                throw APIException.badRequests.noVarrayForMirrorVpoolWithExpectedVplex(mirrorVpool.getLabel(),
+                throw APIException.badRequests.noVarrayForMirrorVpoolWithExpectedVplex(beMirrorVpool.getLabel(),
                         vplexStorageSystem.getLabel(), cluster);
             }
 
@@ -2932,12 +2927,12 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
         for (Volume backendVolume : backendvolumeToMirrorRecommendationMap.keySet()) {
             List<Recommendation> volumeRecommendations = backendvolumeToMirrorRecommendationMap.get(backendVolume);
             VirtualArray varray = backendvolumeToMirrorVarrayMap.get(backendVolume);
-            VirtualPool mirrorVpool = backendVolumeToMirrorVpoolMap.get(backendVolume);
+            VirtualPool beMirrorVpool = backendVolumeToMirrorVpoolMap.get(backendVolume);
             long thinVolumePreAllocationSize = 0;
-            if (null != mirrorVpool.getThinVolumePreAllocationPercentage()) {
+            if (null != beMirrorVpool.getThinVolumePreAllocationPercentage()) {
                 thinVolumePreAllocationSize = VirtualPoolUtil
                         .getThinVolumePreAllocationSize(
-                                mirrorVpool.getThinVolumePreAllocationPercentage(), vplexVolume.getCapacity());
+                                beMirrorVpool.getThinVolumePreAllocationPercentage(), vplexVolume.getCapacity());
             }
 
             for (Recommendation volumeRecommendation : volumeRecommendations) {
@@ -2954,7 +2949,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                 }
 
                 // Create mirror object
-                VplexMirror createdMirror = initializeMirror(vplexVolume, mirrorVpool, varray, mirrorLabelBuilder.toString(),
+                VplexMirror createdMirror = initializeMirror(vplexVolume, beMirrorVpool, varray, mirrorLabelBuilder.toString(),
                         thinVolumePreAllocationSize, _dbClient);
                 preparedMirrors.add(createdMirror);
                 Operation op = _dbClient.createTaskOpStatus(VplexMirror.class, createdMirror.getId(), taskId,
@@ -2969,7 +2964,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                 descriptors.add(descriptor);
 
                 // Create backend volume object and add it to the VplexMirror created above.
-                Volume volume = prepareVolume(createdMirror, backendVolume, mirrorVpool, varray,
+                Volume volume = prepareVolume(createdMirror, backendVolume, beMirrorVpool, varray,
                         vplexRecommendation.getSourceStorageSystem(),
                         vplexRecommendation.getSourceStoragePool(), mirrorLabelBuilder.toString(), thinVolumePreAllocationSize,
                         capabilities, _dbClient);
@@ -4488,7 +4483,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
      * {@inheritDoc}
      */
     @Override
-    public void validatePerformanceParametersForVolumeCreate(BlockPerformanceParamsOverrideParam requestParams) {
+    public void validatePerformanceParametersForVolumeCreate(VolumeCreatePerformanceParams requestParams) {
         // Just return if the passed performance params are null.
         if (requestParams == null) {
             return;

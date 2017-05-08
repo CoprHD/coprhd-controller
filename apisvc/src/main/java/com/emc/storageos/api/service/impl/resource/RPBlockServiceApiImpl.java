@@ -90,7 +90,7 @@ import com.emc.storageos.model.TaskResourceRep;
 import com.emc.storageos.model.application.VolumeGroupUpdateParam.VolumeGroupVolumeList;
 import com.emc.storageos.model.block.VirtualPoolChangeParam;
 import com.emc.storageos.model.block.VolumeCreate;
-import com.emc.storageos.model.block.BlockPerformanceParamsOverrideParam;
+import com.emc.storageos.model.block.VolumeCreatePerformanceParams;
 import com.emc.storageos.model.block.VolumeDeleteTypeEnum;
 import com.emc.storageos.model.systems.StorageSystemConnectivityList;
 import com.emc.storageos.model.systems.StorageSystemConnectivityRestRep;
@@ -4406,11 +4406,4 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
             }
         }
     }
-    
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void validatePerformanceParametersForVolumeCreate(BlockPerformanceParamsOverrideParam requestParams) {
-    }    
 }

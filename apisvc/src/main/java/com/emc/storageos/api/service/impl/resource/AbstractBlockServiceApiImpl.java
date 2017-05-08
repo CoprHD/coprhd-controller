@@ -77,9 +77,11 @@ import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.TaskResourceRep;
 import com.emc.storageos.model.application.VolumeGroupUpdateParam.VolumeGroupVolumeList;
+import com.emc.storageos.model.block.BlockPerformanceParamsMap;
 import com.emc.storageos.model.block.NativeContinuousCopyCreate;
 import com.emc.storageos.model.block.VirtualPoolChangeParam;
 import com.emc.storageos.model.block.VolumeCreate;
+import com.emc.storageos.model.block.VolumeCreatePerformanceParams;
 import com.emc.storageos.model.block.VolumeDeleteTypeEnum;
 import com.emc.storageos.model.systems.StorageSystemConnectivityList;
 import com.emc.storageos.model.varray.VirtualArrayConnectivityRestRep;
@@ -341,7 +343,7 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
      */
     @Override
     public TaskList startNativeContinuousCopies(StorageSystem storageSystem,
-            Volume sourceVolume, VirtualPool sourceVpool,
+            Volume sourceVolume, VirtualPool sourceVpool, VirtualPool mirrorVpool,
             VirtualPoolCapabilityValuesWrapper capabilities,
             NativeContinuousCopyCreate param, String task) throws ControllerException {
         throw APIException.methodNotAllowed.notSupported();
@@ -2118,5 +2120,19 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
         }
 
         return cgTask;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void validatePerformanceParametersForVolumeCreate(VolumeCreatePerformanceParams requestParams) {
+    }    
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void validatePerformanceParametersForMirrorCreate(BlockPerformanceParamsMap performanceParams) {
     }
 }

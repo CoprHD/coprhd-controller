@@ -130,7 +130,10 @@ public class RemoteReplicationDeviceController implements RemoteReplicationContr
 
     @Override
     public void resume(RemoteReplicationElement replicationElement, String opId) {
+        RemoteReplicationFailoverCompleter taskCompleter = new RemoteReplicationFailoverCompleter(replicationElement, opId);
 
+        RemoteReplicationDevice rrDevice = getRemoteReplicationDevice();
+        rrDevice.resume(replicationElement, taskCompleter);
     }
 
     @Override

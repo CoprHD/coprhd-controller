@@ -93,9 +93,9 @@ public class CustomServicesShellScriptExecution extends ViPRExecutionTask<Custom
             final String scriptFileName = String.format("%s%s.sh", orderDir, URIUtil.parseUUIDFromURI(scriptid).replace("-", ""));
             final byte[] bytes = Base64.decodeBase64(script.getResource());
             AnsibleHelper.writeResourceToFile(bytes, scriptFileName);
-            final String inputToScript = makeParam(input);
+            //final String inputToScript = makeParam(input);
 
-            result = executeCmd(scriptFileName, inputToScript);
+            result = executeCmd(scriptFileName);
 
         } catch (final Exception e) {
             logger.error("CS: Could not execute shell script step:{}. Exception:{}", step.getId(), e);
@@ -118,24 +118,28 @@ public class CustomServicesShellScriptExecution extends ViPRExecutionTask<Custom
     }
 
     // Execute Shell Script resource
-    private Exec.Result executeCmd(final String shellScript, final String extraVars) {
+    private Exec.Result executeCmd(final String shellScript) throws Exception {
         final AnsibleCommandLine cmd = new AnsibleCommandLine(CustomServicesConstants.SHELL_BIN, shellScript);
-        cmd.setShellArgs(extraVars);
+        //cmd.setShellArgs(extraVars);
         final String[] cmds = cmd.build();
 
-        return Exec.exec(new File(orderDir), timeout, null, new HashMap<String,String>(), cmds);
+        //default to no host key checking
+        final Map<String,String> environment = makeParam(input);
+
+        return Exec.exec(new File(orderDir), timeout, null, environment, cmds);
     }
 
-    private String makeParam(final Map<String, List<String>> input) throws Exception {
-        final StringBuilder sb = new StringBuilder();
+    private Map<String,String> makeParam(final Map<String, List<String>> input) throws Exception {
+        final Map<String,String> environment = new HashMap<String,String>();
+
 
         for(Map.Entry<String, List<String>> e : input.entrySet()) {
             if (StringUtils.isEmpty(e.getKey()) || e.getValue().isEmpty()) {
                 continue;
             }
-            sb.append(e.getKey()).append("=").append(e.getValue().get(0).replace("\"", "")).append(" ");
+            environment.put(e.getKey(), e.getValue().get(0).replace("\"", ""));
         }
 
-        return sb.toString();
+        return environment;
     }
 }

@@ -178,7 +178,7 @@ public class CustomServicesService extends ViPRService {
             if (next == null) {
                 ExecutionUtils.currentContext().logError("customServicesService.logStatus", "failure path is not set for step Id:" + step.getId()
                 + "Workflow execution failed");
-                break;
+                throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed("Workflow Execution failed");
             }
             if ((System.currentTimeMillis() - timeout) > CustomServicesConstants.TIMEOUT) {
                 throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed("Operation Timed out");

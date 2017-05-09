@@ -71,11 +71,8 @@ public class CustomServicesLocalAnsibleExecution extends ViPRExecutionTask<Custo
             this.timeout = step.getAttributes().getTimeout();
         }
         this.dbClient = dbClient;
-<<<<<<< HEAD
         provideDetailArgs(step.getId());
-=======
         this.orderDir = orderDir;
->>>>>>> 5eb7c0173ec3765a1545373c21756af5cd113d7d
     }
 
     @Override

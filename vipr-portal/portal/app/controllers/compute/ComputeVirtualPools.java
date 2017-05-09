@@ -8,6 +8,7 @@ import static com.emc.vipr.client.core.util.ResourceUtils.uri;
 import static com.emc.vipr.client.core.util.ResourceUtils.uris;
 import static controllers.Common.flashException;
 
+import java.lang.reflect.Type;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -18,44 +19,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
-import java.lang.reflect.Type;
-
-import jobs.vipr.TenantsCall;
-
-import com.google.gson.Gson;
-import com.google.gson.reflect.TypeToken;
-
-import models.ComputeSystemTypes;
-import models.DriveTypes;
-import models.PoolAssignmentTypes;
-import models.SearchScopes;
-import models.StorageSystemTypes;
-import models.datatable.ComputeVirtualPoolElementDataTable;
-import models.datatable.ComputeVirtualPoolElementDataTable.ComputeVirtualElementInfo;
-import models.datatable.ComputeVirtualPoolsDataTable;
-import models.datatable.ComputeVirtualPoolsDataTable.VirtualPoolInfo;
 
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 
-import play.Logger;
-import play.data.binding.As;
-import play.data.validation.MaxSize;
-import play.data.validation.MinSize;
-import play.data.validation.Required;
-import play.data.validation.Validation;
-import play.mvc.With;
-import util.BourneUtil;
-import util.ComputeSystemUtils;
-import util.ComputeVirtualPoolUtils;
-import util.MessagesUtils;
-import util.StringOption;
-import util.TenantUtils;
-import util.VirtualArrayUtils;
-import util.VirtualPoolUtils;
-import util.builders.ACLUpdateBuilder;
-import util.datatable.DataTablesSupport;
-
+import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.RelatedResourceRep;
 import com.emc.storageos.model.auth.ACLEntry;
@@ -75,11 +43,40 @@ import com.emc.vipr.client.exceptions.ViPRException;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
 
+import controllers.Common;
 import controllers.deadbolt.Restrict;
 import controllers.deadbolt.Restrictions;
 import controllers.util.ViprResourceController;
-import controllers.Common;
+import jobs.vipr.TenantsCall;
+import models.ComputeSystemTypes;
+import models.DriveTypes;
+import models.PoolAssignmentTypes;
+import models.SearchScopes;
+import models.StorageSystemTypes;
+import models.datatable.ComputeVirtualPoolElementDataTable;
+import models.datatable.ComputeVirtualPoolElementDataTable.ComputeVirtualElementInfo;
+import models.datatable.ComputeVirtualPoolsDataTable;
+import models.datatable.ComputeVirtualPoolsDataTable.VirtualPoolInfo;
+import play.Logger;
+import play.data.binding.As;
+import play.data.validation.MaxSize;
+import play.data.validation.MinSize;
+import play.data.validation.Required;
+import play.data.validation.Validation;
+import play.mvc.With;
+import util.BourneUtil;
+import util.ComputeSystemUtils;
+import util.ComputeVirtualPoolUtils;
+import util.MessagesUtils;
+import util.StringOption;
+import util.TenantUtils;
+import util.VirtualArrayUtils;
+import util.VirtualPoolUtils;
+import util.builders.ACLUpdateBuilder;
+import util.datatable.DataTablesSupport;
 
 @With(Common.class)
 @Restrictions({ @Restrict("SYSTEM_ADMIN"), @Restrict("RESTRICTED_SYSTEM_ADMIN") })
@@ -191,7 +188,28 @@ public class ComputeVirtualPools extends ViprResourceController {
         if (computeVirtualPool == null) {
             error(MessagesUtils.get(UNKNOWN, id));
         }
-        render(computeVirtualPool);
+        List<NamedRelatedResourceRep> temps = computeVirtualPool.getServiceProfileTemplates();
+
+        List<RelatedResourceRep> varrays = computeVirtualPool.getVirtualArrays();
+        StringBuilder selectedTemplatesBuilder = new StringBuilder();
+        for (RelatedResourceRep varray : varrays) {
+
+            List<ComputeSystemRestRep> arrayComputes = VirtualArrayUtils.getComputeSystems(varray.getId());
+            for (ComputeSystemRestRep acomp : arrayComputes) {
+                for (NamedRelatedResourceRep spt : acomp.getServiceProfileTemplates()) {
+                    if (CollectionUtils.isNotEmpty(temps)) {
+                        for (NamedRelatedResourceRep template : temps) {
+                            if (spt.getId().equals(template.getId())) {
+                                selectedTemplatesBuilder.append(acomp.getName()).append(" - ").append(template.getName())
+                                        .append(", ");
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        String selectedTemplatesString = StringUtils.stripEnd(selectedTemplatesBuilder.toString(), ", ");
+        render(computeVirtualPool, selectedTemplatesString);
     }
 
     private static void handleError(ComputeVirtualPoolsForm computeVirtualPool) {
@@ -318,26 +336,25 @@ public class ComputeVirtualPools extends ViprResourceController {
         if (computeVirtualPool.virtualArrays != null) {
             for (String arrayId : computeVirtualPool.virtualArrays) {
                 List<ComputeSystemRestRep> arrayComputes = VirtualArrayUtils.getComputeSystems(uri(arrayId));
-                for (ComputeSystemRestRep comp : arrayComputes) {
-                    for (ComputeSystemRestRep acomp : arrayComputes) {
-                        String compId = acomp.getId().toString();
-                        if (!computeSystemsMap.containsKey(compId)) {
-                            computeSystemsMap.put(compId, acomp.getName());
-                        }
-                        Set<String> spts = csTemplatesMap.get(compId);
-                        if (spts == null) {
-                            spts = new HashSet<String>();
-                        }
-                        for (NamedRelatedResourceRep spt : acomp.getServiceProfileTemplates()) {
-                            spts.add(spt.getId().toString());
-                            if (!templatesMap.containsKey(spt.getId().toString())) {
-                                templatesMap.put(spt.getId().toString(), spt.getName());
-                            }
-                        }
-                        csTemplatesMap.put(compId, spts);
-                    }
 
+                for (ComputeSystemRestRep acomp : arrayComputes) {
+                    String compId = acomp.getId().toString();
+                    if (!computeSystemsMap.containsKey(compId)) {
+                        computeSystemsMap.put(compId, acomp.getName());
+                    }
+                    Set<String> spts = csTemplatesMap.get(compId);
+                    if (spts == null) {
+                        spts = new HashSet<String>();
+                    }
+                    for (NamedRelatedResourceRep spt : acomp.getServiceProfileTemplates()) {
+                        spts.add(spt.getId().toString());
+                        if (!templatesMap.containsKey(spt.getId().toString())) {
+                            templatesMap.put(spt.getId().toString(), spt.getName());
+                        }
+                    }
+                    csTemplatesMap.put(compId, spts);
                 }
+
             }
 
             for (Entry<String, Set<String>> comp : csTemplatesMap.entrySet()) {
@@ -396,21 +413,12 @@ public class ComputeVirtualPools extends ViprResourceController {
             List<ComputeElementRestRep> allComputeElements = (List<ComputeElementRestRep>) ComputeSystemUtils
                     .getAllComputeElements();
 
-            if (cvpid != null) {
-                ComputeVirtualPoolRestRep origComputePool = ComputeVirtualPoolUtils.getComputeVirtualPool(cvpid);
-                List<ComputeElementRestRep> assignedList = Lists.newArrayList();
+            if (NullColumnValueGetter.isNotNullValue(cvpid)) {
+                computeVirtualPool.id =  NullColumnValueGetter.getStringValue(cvpid);
                 // We always show the full list of matching elements - in case of manual - selected ones will be checked
                 List<ComputeElementRestRep> matchedElements = ComputeVirtualPoolUtils.listMatchingComputeElements(computeVirtualPool
                         .createMatch());
-                // The returned list will not include any that are already assigned -
-                // Check if the computePool is in use and using assigned OR if using assigned from the current form - protecting against npe
-                if ((isTrue(origComputePool.getInUse()) && isFalse(origComputePool.getUseMatchedElements()))
-                        || (StringUtils.isNotEmpty(computeVirtualPool.elementSelection) && computeVirtualPool.elementSelection
-                                .equalsIgnoreCase(PoolAssignmentTypes.MANUAL))
-                        || (StringUtils.isEmpty(computeVirtualPool.elementSelection) && isFalse(origComputePool.getUseMatchedElements()))) {
-                    ComputeElementListRestRep elementList = ComputeVirtualPoolUtils.getAssignedComputeElements(cvpid);
-                    assignedList = elementList.getList();
-                }
+
                 for (ComputeElementRestRep element : allComputeElements) {
                     String computeSystemName = ": " + element.getName();
                     for (ComputeSystemRestRep compSys : allComputes) {
@@ -419,16 +427,9 @@ public class ComputeVirtualPools extends ViprResourceController {
                             break;
                         }
                     }
-                    // make sure the element is part of this computevirtualpool
-                    for (ComputeElementRestRep assignedElement : assignedList) {
-                        if (assignedElement.getId().equals(element.getId())) {
-                            results.add(new ComputeVirtualElementInfo(element,
-                                    element.getName(), computeSystemName));
-                            break;
-                        }
-                    }
-                    for (ComputeElementRestRep matchedElement : matchedElements) {
-                        if (matchedElement.getId().equals(element.getId())) {
+
+                    for (ComputeElementRestRep filteredElement : matchedElements) {
+                        if (filteredElement.getId().equals(element.getId())) {
                             results.add(new ComputeVirtualElementInfo(element,
                                     element.getName(), computeSystemName));
                             break;
@@ -567,6 +568,7 @@ public class ComputeVirtualPools extends ViprResourceController {
                 // return create();
             } else {
                 computeVirtualPool = update();
+                computeVirtualPool = ComputeVirtualPoolUtils.getComputeVirtualPool(id);
                 // return update();
             }
             computeVirtualPool = saveComputeElements(computeVirtualPool);
@@ -716,6 +718,9 @@ public class ComputeVirtualPools extends ViprResourceController {
             }
             else {
                 param.setVarrays(Sets.<String> newHashSet());
+            }
+            if(NullColumnValueGetter.isNotNullValue(this.id)) {
+                param.setId(this.id);
             }
 
             param.setMinProcessors(this.minProcessors);

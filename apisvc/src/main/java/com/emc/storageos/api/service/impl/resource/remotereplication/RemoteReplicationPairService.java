@@ -28,6 +28,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.api.service.impl.resource.ArgValidator;
+import com.emc.storageos.api.service.impl.resource.BlockConsistencyGroupService;
 import com.emc.storageos.api.service.impl.resource.BlockService;
 import com.emc.storageos.api.service.impl.resource.TaskResourceService;
 import com.emc.storageos.db.client.URIUtil;
@@ -79,6 +80,8 @@ public class RemoteReplicationPairService extends TaskResourceService {
 
     private BlockService blockService;
 
+    BlockConsistencyGroupService blockConsistencyGroupService;
+
     public RemoteReplicationBlockServiceApiImpl getRemoteReplicationServiceApi() {
         return remoteReplicationServiceApi;
     }
@@ -93,6 +96,14 @@ public class RemoteReplicationPairService extends TaskResourceService {
 
     public void setBlockService(BlockService blockService) {
         this.blockService = blockService;
+    }
+
+    public BlockConsistencyGroupService getBlockConsistencyGroupService() {
+        return blockConsistencyGroupService;
+    }
+
+    public void setBlockConsistencyGroupService(BlockConsistencyGroupService blockConsistencyGroupService) {
+        this.blockConsistencyGroupService = blockConsistencyGroupService;
     }
 
     @Override
@@ -198,6 +209,14 @@ public class RemoteReplicationPairService extends TaskResourceService {
                 new RemoteReplicationElement(RemoteReplicationSet.ElementType.CONSISTENCY_GROUP, cgURI);
 
         RemoteReplicationUtils.validateRemoteReplicationOperation(_dbClient, rrElement, RemoteReplicationController.RemoteReplicationOperations.FAIL_OVER);
+        _log.info("Execute operation for {} array type.", sourceElement.getSystemType());
+        // VMAX SRDF integration logic
+        if (sourceElement.getSystemType().equalsIgnoreCase(DiscoveredDataObject.Type.vmax.toString()) ||
+                sourceElement.getSystemType().equalsIgnoreCase(DiscoveredDataObject.Type.vmax3.toString())) {
+            // delegate to SRDF support
+            TaskList taskList = processSrdfGroupLinkRequest(rrPairs.get(0), ResourceOperationTypeEnum.FAILOVER_REMOTE_REPLICATION_CG_LINK);
+            return taskList;
+        }
 
         String taskId = UUID.randomUUID().toString();
         TaskList taskList = new TaskList();
@@ -250,7 +269,7 @@ public class RemoteReplicationPairService extends TaskResourceService {
         if (sourceVolume.getSystemType().equalsIgnoreCase(DiscoveredDataObject.Type.vmax.toString()) ||
                 sourceVolume.getSystemType().equalsIgnoreCase(DiscoveredDataObject.Type.vmax3.toString())) {
             // delegate to SRDF support
-            TaskList taskList = processSrdfLinkRequest(rrPair, ResourceOperationTypeEnum.FAILOVER_REMOTE_REPLICATION_PAIR_LINK);
+            TaskList taskList = processSrdfVolumeLinkRequest(rrPair, ResourceOperationTypeEnum.FAILOVER_REMOTE_REPLICATION_PAIR_LINK);
             return taskList.getTaskList().get(0);
         }
 
@@ -294,6 +313,15 @@ public class RemoteReplicationPairService extends TaskResourceService {
                 new RemoteReplicationElement(RemoteReplicationSet.ElementType.CONSISTENCY_GROUP, cgURI);
 
         RemoteReplicationUtils.validateRemoteReplicationOperation(_dbClient, rrElement, RemoteReplicationController.RemoteReplicationOperations.FAIL_BACK);
+
+        _log.info("Execute operation for {} array type.", sourceElement.getSystemType());
+        // VMAX SRDF integration logic
+        if (sourceElement.getSystemType().equalsIgnoreCase(DiscoveredDataObject.Type.vmax.toString()) ||
+                sourceElement.getSystemType().equalsIgnoreCase(DiscoveredDataObject.Type.vmax3.toString())) {
+            // delegate to SRDF support
+            TaskList taskList = processSrdfGroupLinkRequest(rrPairs.get(0), ResourceOperationTypeEnum.FAILBACK_REMOTE_REPLICATION_CG_LINK);
+            return taskList;
+        }
 
         String taskId = UUID.randomUUID().toString();
         TaskList taskList = new TaskList();
@@ -347,7 +375,7 @@ public class RemoteReplicationPairService extends TaskResourceService {
         if (sourceVolume.getSystemType().equalsIgnoreCase(DiscoveredDataObject.Type.vmax.toString()) ||
                 sourceVolume.getSystemType().equalsIgnoreCase(DiscoveredDataObject.Type.vmax3.toString())) {
             // delegate to SRDF support
-            TaskList taskList = processSrdfLinkRequest(rrPair, ResourceOperationTypeEnum.FAILBACK_REMOTE_REPLICATION_PAIR_LINK);
+            TaskList taskList = processSrdfVolumeLinkRequest(rrPair, ResourceOperationTypeEnum.FAILBACK_REMOTE_REPLICATION_PAIR_LINK);
             return taskList.getTaskList().get(0);
         }
 
@@ -849,13 +877,74 @@ public class RemoteReplicationPairService extends TaskResourceService {
     }
 
     /**
+     * Process srdf consistency group link operation request for srdf protected cg.
+     *
+     * @param systemPair remote replication pair with volumes in srdf protected consistency group
+     * @param operationType link operation type
+     * @return
+     */
+    private TaskList processSrdfGroupLinkRequest(RemoteReplicationPair systemPair, ResourceOperationTypeEnum operationType) {
+        TaskList taskList = null;
+        String taskId = UUID.randomUUID().toString();
+
+        URI sourceElementURI = systemPair.getSourceElement().getURI();
+        URI targetElementURI = systemPair.getTargetElement().getURI();
+        Volume sourceVolume = _dbClient.queryObject(Volume.class, sourceElementURI);
+        if (!sourceVolume.checkForSRDF()) {
+            // not srdf volume --- not supported
+            BadRequestException ex = APIException.badRequests.volumeMustBeSRDFProtected(sourceVolume.getId());
+            _log.error("Bad request --- VMAX volume is not SRDF volume.", ex);
+            taskList = new TaskList();
+            taskList.addTask(processSrdfAPIError(sourceVolume, taskId, operationType, ex));
+            return taskList;
+        }
+
+        Volume targetVolume = _dbClient.queryObject(Volume.class, targetElementURI);
+        // check for swap: srdf changes srdf personalities of volumes after swap. rr pair source volume has srdf target personality and
+        // rr pair target volume has srdf source personality after srdf swap.
+        if(RemoteReplicationUtils.isSwapped(systemPair, _dbClient)) {
+            Volume temp = sourceVolume;
+            sourceVolume = targetVolume;
+            targetVolume = temp;
+        }
+
+        String type = BlockSnapshot.TechnologyType.SRDF.toString();
+        Copy copy = new Copy();
+        copy.setType(type);
+        copy.setCopyID(targetVolume.getVirtualArray());
+        CopiesParam param = new CopiesParam();
+        param.getCopies().add(copy);
+        URI cgURI = sourceVolume.getConsistencyGroup();
+        try {
+            switch (operationType) {
+                case FAILOVER_REMOTE_REPLICATION_CG_LINK:
+                    taskList = blockConsistencyGroupService.failoverProtection(cgURI, param);
+                    break;
+
+                case FAILBACK_REMOTE_REPLICATION_CG_LINK:
+                    taskList = blockConsistencyGroupService.failoverCancel(cgURI, param);
+                    break;
+                default:
+                    taskList = new TaskList();
+                    break;
+            }
+            return taskList;
+        } catch (APIException ex) {
+            taskList = new TaskList();
+            taskList.addTask(processSrdfAPIError(sourceVolume, taskId, operationType, ex));
+            return taskList;
+        }
+    }
+
+
+    /**
      * Process srdf link operation request for source volume in replication pair.
      *
      * @param systemPair replication pair
      * @param operationType link operation type
      * @return
      */
-    private TaskList processSrdfLinkRequest(RemoteReplicationPair systemPair, ResourceOperationTypeEnum operationType) {
+    private TaskList processSrdfVolumeLinkRequest(RemoteReplicationPair systemPair, ResourceOperationTypeEnum operationType) {
         TaskList taskList = null;
         String taskId = UUID.randomUUID().toString();
         // We follow loose integration with SRDF link operations.
@@ -864,7 +953,7 @@ public class RemoteReplicationPairService extends TaskResourceService {
         if (!sourceVolume.checkForSRDF()) {
             // not srdf volume --- not supported
             BadRequestException ex = APIException.badRequests.volumeMustBeSRDFProtected(sourceVolume.getId());
-            _log.error("Bad request --- VMAX volume is not SRDF source", ex);
+            _log.error("Bad request --- VMAX volume is not SRDF volume.", ex);
             taskList = new TaskList();
             taskList.addTask(processSrdfAPIError(sourceVolume, taskId, operationType, ex));
             return taskList;
@@ -876,6 +965,8 @@ public class RemoteReplicationPairService extends TaskResourceService {
         boolean isSwapped = RemoteReplicationUtils.isSwapped(systemPair, _dbClient);
         NamedURI sourceElement;
         NamedURI targetElement;
+        // check for swap: srdf changes srdf personalities of volumes after swap. rr pair source volume has srdf target personality and
+        // rr pair target volume has srdf source personality after srdf swap.
         if (isSwapped){
             sourceElement = systemPair.getTargetElement();
             targetElement = systemPair.getSourceElement();

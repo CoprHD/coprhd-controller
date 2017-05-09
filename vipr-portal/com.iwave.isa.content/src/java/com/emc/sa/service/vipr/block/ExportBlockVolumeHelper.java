@@ -32,6 +32,8 @@ import java.util.Set;
 import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.engine.bind.Param;
 import com.emc.sa.service.vipr.ViPRService;
+import com.emc.sa.service.vipr.block.tasks.FindExportByHost;
+import com.emc.sa.util.ResourceType;
 import com.emc.storageos.db.client.model.Cluster;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.model.block.BlockObjectRestRep;
@@ -97,7 +99,7 @@ public class ExportBlockVolumeHelper {
             volumeIds = Collections.singletonList(volumeId);
         }
 
-        precheckPortGroupParameter(ResourceUtils.uri(volumeIds.get(0)), portGroup);
+        precheckPortGroupParameter(ResourceUtils.uri(volumeIds.get(0)), hostId, projectId, virtualArrayId, portGroup);
 
         if (BlockStorageUtils.isHost(hostId)) {
             host = BlockStorageUtils.getHost(hostId);
@@ -317,8 +319,21 @@ public class ExportBlockVolumeHelper {
         }
     }
     
-    public static void precheckPortGroupParameter(URI id, URI portGroup) {
-        if (BlockStorageUtils.isVMAXUsePortGroupEnabled(id) && portGroup == null) {
+    public static void precheckPortGroupParameter(URI resourceId, URI hostOrClusterId, URI projectId, URI vArrayId, URI portGroup) {
+        boolean exportExist = false;
+        if (BlockStorageUtils.isHost(hostOrClusterId)) {
+            List<ExportGroupRestRep> exportGroups = BlockStorageUtils.findExportsContainingHost(hostOrClusterId, projectId, vArrayId);
+            if (exportGroups != null && !exportGroups.isEmpty()) {
+                exportExist = true;
+            }
+        } else if (BlockStorageUtils.isCluster(hostOrClusterId)) {
+            List<ExportGroupRestRep> exportGroups = BlockStorageUtils.findExportsContainingCluster(hostOrClusterId, projectId, vArrayId);
+            if (exportGroups != null && !exportGroups.isEmpty()) {
+                exportExist = true;
+            }
+        }
+
+        if (!exportExist && BlockStorageUtils.isVMAXUsePortGroupEnabled(resourceId) && portGroup == null) {
             ExecutionUtils.fail("failTask.exportPortGroupParameters.precheck", new Object[] {}, new Object[] {});
         }
     }

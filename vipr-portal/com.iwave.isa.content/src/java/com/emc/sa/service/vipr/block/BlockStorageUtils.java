@@ -411,11 +411,11 @@ public class BlockStorageUtils {
     public static ExportGroupRestRep findExportsByName(String name, URI projectId, URI varrayId) {
         return execute(new FindExportByName(name, projectId, varrayId));
     }
-    
+
     public static URI adjustExportPaths(URI vArray, Integer minPaths, Integer maxPaths, Integer pathsPerInitiator,
             URI storageSystemId, URI id, List<InitiatorPathParam> addedPaths, List<InitiatorPathParam> removedPaths,
             boolean suspendWait) {
-        
+
         Task<ExportGroupRestRep> task = execute(new AdjustExportPaths(vArray, minPaths, maxPaths, pathsPerInitiator,
                 storageSystemId, id, addedPaths, removedPaths, suspendWait));
         URI exportId = task.getResourceId();
@@ -496,7 +496,7 @@ public class BlockStorageUtils {
 
     public static Task<ExportGroupRestRep> createHostExportNoWait(String exportName, URI projectId,
             URI virtualArrayId, List<URI> volumeIds, Integer hlu, Host host) {
-        return execute(new CreateExportNoWait(exportName == null ? host.getHostName() : exportName, 
+        return execute(new CreateExportNoWait(exportName == null ? host.getHostName() : exportName,
                 virtualArrayId, projectId, volumeIds, hlu, host.getHostName(), host.getId(), null));
     }
 
@@ -530,6 +530,7 @@ public class BlockStorageUtils {
     public static Task<ExportGroupRestRep> addHostAndVolumeToExportNoWait(URI exportId, URI host, URI volumeId, Integer hlu) {
         return execute(new AddHostAndVolumeToExportNoWait(exportId, host, volumeId, hlu));
     }
+
     public static void addClusterToExport(URI exportId, URI cluster, Integer minPaths, Integer maxPaths,
             Integer pathsPerInitiator, URI portGroup) {
         Task<ExportGroupRestRep> task = execute(new AddClusterToExport(exportId, cluster, minPaths, maxPaths,
@@ -550,8 +551,7 @@ public class BlockStorageUtils {
                 Set<URI> volumesInExport = exportToVolumesMap.get(export.getExport().getId());
                 if (volumesInExport == null) {
                     volumesInExport = Sets.newHashSet(volumeId);
-                }
-                else {
+                } else {
                     volumesInExport.add(volumeId);
                 }
                 exportToVolumesMap.put(export.getExport().getId(), volumesInExport);
@@ -578,8 +578,7 @@ public class BlockStorageUtils {
                 URI exportId = export.getExport().getId();
                 if (resourcesInExport.containsKey(exportId)) {
                     resourcesInExport.get(exportId).add(blockResourceId);
-                }
-                else {
+                } else {
                     resourcesInExport.put(exportId, Sets.newHashSet(blockResourceId));
                 }
             }
@@ -634,11 +633,11 @@ public class BlockStorageUtils {
         } while (retryNeeded);
     }
 
-    public static boolean isVMAXUsePortGroupEnabled(URI id) {
+    public static boolean isVMAXUsePortGroupEnabled(URI resourceId) {
         SimpleValueRep value = execute(new GetVMAXUsePortGroupEnabledConfig());
         if (value.getValue().equalsIgnoreCase("true")) {
-            if (ResourceType.isType(ResourceType.VOLUME, id)) {
-                BlockObjectRestRep obj = getVolume(id);
+            if (ResourceType.isType(ResourceType.VOLUME, resourceId)) {
+                BlockObjectRestRep obj = getVolume(resourceId);
                 if (obj instanceof VolumeRestRep) {
                     VolumeRestRep volume = (VolumeRestRep) obj;
                     if (StringUtils.equalsIgnoreCase(volume.getSystemType(), DiscoveredDataObject.Type.vmax.name()) ||
@@ -672,8 +671,8 @@ public class BlockStorageUtils {
                     }
                 }
             }
-            if (ResourceType.isType(ResourceType.VIRTUAL_POOL, id)) {
-                BlockVirtualPoolRestRep virtualPool = execute(new GetBlockVirtualPool(id));
+            if (ResourceType.isType(ResourceType.VIRTUAL_POOL, resourceId)) {
+                BlockVirtualPoolRestRep virtualPool = execute(new GetBlockVirtualPool(resourceId));
                 if (StringUtils.equalsIgnoreCase(virtualPool.getSystemType(), DiscoveredDataObject.Type.vmax.name()) ||
                         StringUtils.equalsIgnoreCase(virtualPool.getSystemType(), DiscoveredDataObject.Type.vmax3.name())) {
                     return true;
@@ -902,8 +901,7 @@ public class BlockStorageUtils {
                     fullCopies.add(blockResourceId);
                 }
                 volumes.add(blockResourceId);
-            }
-            else if (ResourceType.isType(BLOCK_SNAPSHOT, blockResourceId)) {
+            } else if (ResourceType.isType(BLOCK_SNAPSHOT, blockResourceId)) {
                 deactivateSnapshot(blockResourceId, type);
             }
         }
@@ -1162,11 +1160,9 @@ public class BlockStorageUtils {
     public static <T extends BlockObjectRestRep> URI getProjectId(T resource) {
         if (resource instanceof BlockSnapshotRestRep) {
             return ((BlockSnapshotRestRep) resource).getProject().getId();
-        }
-        else if (resource instanceof VolumeRestRep) {
+        } else if (resource instanceof VolumeRestRep) {
             return ((VolumeRestRep) resource).getProject().getId();
-        }
-        else if (resource instanceof BlockMirrorRestRep) {
+        } else if (resource instanceof BlockMirrorRestRep) {
             return ((BlockMirrorRestRep) resource).getProject().getId();
         }
         throw new IllegalStateException(ExecutionUtils.getMessage("illegalState.projectNotFound", resource.getId()));
@@ -1178,11 +1174,9 @@ public class BlockStorageUtils {
     public static URI getVirtualArrayId(BlockObjectRestRep resource) {
         if (resource instanceof VolumeRestRep) {
             return ((VolumeRestRep) resource).getVirtualArray().getId();
-        }
-        else if (resource instanceof BlockSnapshotRestRep) {
+        } else if (resource instanceof BlockSnapshotRestRep) {
             return ((BlockSnapshotRestRep) resource).getVirtualArray().getId();
-        }
-        else if (resource instanceof BlockMirrorRestRep) {
+        } else if (resource instanceof BlockMirrorRestRep) {
             return ((BlockMirrorRestRep) resource).getVirtualArray().getId();
         }
         throw new IllegalStateException(ExecutionUtils.getMessage("illegalState.varrayNotFound", resource.getId()));
@@ -1196,8 +1190,7 @@ public class BlockStorageUtils {
                 if (StringUtils.equals("TARGET", rp.getPersonality())) {
                     return "rp";
                 }
-            }
-            else if (volume.getProtection() != null && volume.getProtection().getSrdfRep() != null) {
+            } else if (volume.getProtection() != null && volume.getProtection().getSrdfRep() != null) {
                 VolumeRestRep.SRDFRestRep srdf = volume.getProtection().getSrdfRep();
                 if (srdf.getAssociatedSourceVolume() != null ||
                         (srdf.getSRDFTargetVolumes() != null && !srdf.getSRDFTargetVolumes().isEmpty())) {
@@ -1272,7 +1265,7 @@ public class BlockStorageUtils {
         public String toString() {
             String parent = super.toString();
             return parent + ", Host Id=" + hostId + ", HLU=" + hlu + ", MIN_PATHS=" + minPaths + ", MAX_PATHS="
-            + maxPaths + ", PATHS_PER_INITIATOR=" + pathsPerInitiator;
+                    + maxPaths + ", PATHS_PER_INITIATOR=" + pathsPerInitiator;
         }
 
         @Override
@@ -1600,7 +1593,7 @@ public class BlockStorageUtils {
         return volumesToUse;
     }
 
-    public static boolean isVmaxConsistencyVolume(VolumeRestRep volume ) {
+    public static boolean isVmaxConsistencyVolume(VolumeRestRep volume) {
         return volume.getConsistencyGroup() != null &&
                 (volume.getSystemType().equalsIgnoreCase(DiscoveredDataObject.Type.vmax.name()) ||
                         volume.getSystemType().equalsIgnoreCase(DiscoveredDataObject.Type.vmax3.name()));

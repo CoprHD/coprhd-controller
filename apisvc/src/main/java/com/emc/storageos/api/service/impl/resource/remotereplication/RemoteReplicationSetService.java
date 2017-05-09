@@ -179,11 +179,6 @@ public class RemoteReplicationSetService extends TaskResourceService {
                 }
             }
 
-            if ( (rrSet.getStorageSystemType() == null) || rrSet.getStorageSystemType().isEmpty()) {
-                throw new RuntimeException("No StorageType defined for RemoteReplicationSet '" +
-                        rrSet.getLabel() + "' (" + rrSet.getId() + ")");
-            }
-
             /* Finally, a rr set is qualified and put in result collection only if it meets following conditions:
                - Its source systems collection is the subset of ones filtered by given varray and vpool;
                - Its target systems collection is subset of ones of all target varray/vpool pairs;

@@ -9902,6 +9902,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
 
             List<ExportMask> exportMasks = ExportMaskUtils.getExportMasks(_dbClient, exportGroup, vplex.getId());
             Map<URI, List<URI>> maskToInitiatorsMap = new HashMap<URI, List<URI>>();
+            Set<URI> zoningInitiators = new HashSet<>();
             for (ExportMask mask : exportMasks) {
                 boolean sharedMask = false;
                 if (sharedExportMask != null) {
@@ -9915,6 +9916,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
                 for (Initiator initiator : initiators) {
                     if (exportMaskHosts.contains(VPlexUtil.getInitiatorHost(initiator))) {
                         maskToInitiatorsMap.get(mask.getId()).add(initiator.getId());
+                        zoningInitiators.add(initiator.getId());
                     }
                 }
             }
@@ -9929,7 +9931,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
                     .zoneExportRemoveInitiatorsMethod(zoningParams);
             zoningStepId = workflow.createStep(ZONING_STEP,
                     String.format("Zone initiator %s to ExportGroup %s(%s)",
-                            null, exportGroup.getLabel(), exportGroup.getId()),
+                           Joiner.on(", ").join(zoningInitiators), exportGroup.getLabel(), exportGroup.getId()),
                     addInitStep, vplex.getId(), vplex.getSystemType(),
                     _networkDeviceController.getClass(), zoningMethod, zoningRollbackMethod, zoningStepId);
         }

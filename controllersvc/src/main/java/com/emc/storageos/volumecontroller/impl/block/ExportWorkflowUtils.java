@@ -22,6 +22,7 @@ import com.emc.storageos.computecontroller.impl.HostRescanDeviceController;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.BlockObject;
+import com.emc.storageos.db.client.model.DataObject.Flag;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.DiscoveredSystemObject;
 import com.emc.storageos.db.client.model.ExportGroup;
@@ -112,8 +113,8 @@ public class ExportWorkflowUtils {
                 ExportWorkflowEntryPoints.exportGroupDeleteMethod(storage, export);
 
         return newWorkflowStep(workflow, wfGroupId,
-                String.format("Creating export on storage array %s (%s)",
-                        storageSystem.getNativeGuid(), storage.toString()),
+                String.format("Creating export (%s) on storage array %s",
+                        export, storageSystem.getNativeGuid()),
                 storageSystem, method, rollback, waitFor, null);
     }
 
@@ -142,6 +143,7 @@ public class ExportWorkflowUtils {
      * @param blockStorageControllerUri the block storage controller. This will always
      *            be used for adding/removing initiators as we
      *            do not want a protection controller doing this.
+     * @param workFlowList holds workflow and sub workflow instances to release all locks during failure
      * @param storageUri the storage controller used to perform the export update.
      *            This can be either a block storage controller or protection
      *            controller.
@@ -156,7 +158,7 @@ public class ExportWorkflowUtils {
             ExportMask exportMask,
             Map<URI, Integer> addedBlockObjects,
             Map<URI, Integer> removedBlockObjects,
-            List<URI> addedInitiators, List<URI> removedInitiators, URI blockStorageControllerUri)
+            List<URI> addedInitiators, List<URI> removedInitiators, URI blockStorageControllerUri, List<Workflow> workflowList)
             throws IOException, WorkflowException, WorkflowRestartedException {
 
         // Filter the addedInitiators for non VPLEX system by the Export Group varray.
@@ -173,6 +175,7 @@ public class ExportWorkflowUtils {
         // This helps us to preserve parent/child relationships.
         String exportGroupUpdateStepId = workflow.createStepId();
         Workflow storageWorkflow = newWorkflow("storageSystemExportGroupUpdate", false, exportGroupUpdateStepId);
+        workflowList.add(storageWorkflow);
         DiscoveredSystemObject storageSystem = getStorageSystem(_dbClient, blockStorageControllerUri);
         String stepId = null;
 
@@ -235,7 +238,9 @@ public class ExportWorkflowUtils {
             }
         }
 
-        if (exportMask == null) {
+        boolean addObject = (addedInitiators != null && !addedInitiators.isEmpty())
+                || (addedBlockObjects != null && !addedBlockObjects.isEmpty());
+        if (exportMask == null && addObject) { // recreate export mask only for add initiator/volume
             if (addedInitiators == null) {
                 addedInitiators = new ArrayList<URI>();
             }
@@ -297,8 +302,8 @@ public class ExportWorkflowUtils {
             Workflow.Method method =
                     ExportWorkflowEntryPoints.exportGroupUpdateMethod(blockStorageControllerUri, exportGroupUri, storageWorkflow);
             return newWorkflowStep(workflow, wfGroupId,
-                    String.format("Updating export on storage array %s (%s)",
-                            storageSystem.getNativeGuid(), blockStorageControllerUri.toString()),
+                    String.format("Updating export (%s) on storage array %s",
+                            exportGroupUri, storageSystem.getNativeGuid()),
                     storageSystem, method, null, waitFor, exportGroupUpdateStepId);
         } catch (Exception ex) {
             getWorkflowService().releaseAllWorkflowLocks(storageWorkflow);
@@ -307,8 +312,7 @@ public class ExportWorkflowUtils {
     }
 
     public String generateExportGroupDeleteWorkflow(Workflow workflow, String wfGroupId,
-            String waitFor, URI storage,
-            URI export)
+            String waitFor, URI storage, URI export)
             throws WorkflowException {
         DiscoveredSystemObject storageSystem = getStorageSystem(_dbClient, storage);
 
@@ -316,8 +320,8 @@ public class ExportWorkflowUtils {
                 ExportWorkflowEntryPoints.exportGroupDeleteMethod(storage, export);
 
         return newWorkflowStep(workflow, wfGroupId,
-                String.format("Deleting export on storage array %s (%s)",
-                        storageSystem.getNativeGuid(), storage.toString()),
+                String.format("Deleting export (%s) on storage array %s",
+                        export, storageSystem.getNativeGuid()),
                 storageSystem, method, null, waitFor, null);
     }
 
@@ -328,17 +332,23 @@ public class ExportWorkflowUtils {
         DiscoveredSystemObject storageSystem = getStorageSystem(_dbClient, storage);
 
         Workflow.Method rollback = rollbackMethodNullMethod();
-        if (!DiscoveredDataObject.Type.vplex.name().equals(storageSystem.getSystemType())) {
-            List<URI> volumeList = new ArrayList<URI>();
-            volumeList.addAll(volumeMap.keySet());
-            rollback = ExportWorkflowEntryPoints.exportRemoveVolumesMethod(storage, export, volumeList);
+        if (export != null) {
+            ExportGroup exportGroup = _dbClient.queryObject(ExportGroup.class, export);
+            // Only add the rollback method to remove volumes from export in cases where we are dealing
+            // with RP+VPlex. This allows the RP orchestration sub-workflow to rollback correctly.
+            if (DiscoveredDataObject.Type.vplex.name().equals(storageSystem.getSystemType())
+                    && exportGroup.checkInternalFlags(Flag.RECOVERPOINT)) {
+                List<URI> volumeList = new ArrayList<URI>();
+                volumeList.addAll(volumeMap.keySet());
+                rollback = ExportWorkflowEntryPoints.exportRemoveVolumesMethod(storage, export, volumeList);
+            }
         }
 
         Workflow.Method method = ExportWorkflowEntryPoints.exportAddVolumesMethod(storage, export, volumeMap);
 
         return newWorkflowStep(workflow, wfGroupId,
-                String.format("Adding volumes to export on storage array %s (%s)",
-                        storageSystem.getNativeGuid(), storage.toString()),
+                String.format("Adding volumes to export (%s) on storage array %s",
+                        export, storageSystem.getNativeGuid()),
                 storageSystem, method, rollback, waitFor, null);
     }
 
@@ -353,8 +363,8 @@ public class ExportWorkflowUtils {
                         volumes);
 
         return newWorkflowStep(workflow, wfGroupId,
-                String.format("Removing volumes from export on storage array %s (%s)",
-                        storageSystem.getNativeGuid(), storage.toString()),
+                String.format("Removing volumes from export (%s) on storage array %s",
+                        export, storageSystem.getNativeGuid()),
                 storageSystem, method, null, waitFor, null);
     }
 
@@ -370,8 +380,8 @@ public class ExportWorkflowUtils {
                         initiatorURIs);
 
         return newWorkflowStep(workflow, wfGroupId,
-                String.format("Removing initiators from export on storage array %s (%s)",
-                        storageSystem.getNativeGuid(), storage.toString()),
+                String.format("Removing initiators from export (%s) on storage array %s",
+                        export, storageSystem.getNativeGuid()),
                 storageSystem, method, null, waitFor, null);
     }
 
@@ -386,8 +396,8 @@ public class ExportWorkflowUtils {
                         initiatorURIs);
 
         return newWorkflowStep(workflow, wfGroupId,
-                String.format("Adding initiators from export on storage array %s (%s)",
-                        storageSystem.getNativeGuid(), storage.toString()),
+                String.format("Adding initiators from export (%s) on storage array %s",
+                        export, storageSystem.getNativeGuid()),
                 storageSystem, method, rollbackMethodNullMethod(), waitFor, null);
     }
 
@@ -681,15 +691,22 @@ public class ExportWorkflowUtils {
      */
     public String generateExportAddPathsWorkflow(Workflow workflow, String wfGroupId, String waitFor,
             URI storageURI, URI exportGroupURI, URI varray, ExportMask exportMask, Map<URI, List<URI>> adjustedPaths, 
-            Map<URI, List<URI>> removedPaths) throws ControllerException {
+            Map<URI, List<URI>> removedPaths, boolean rollback) throws ControllerException {
         DiscoveredSystemObject storageSystem = getStorageSystem(_dbClient, storageURI);
 
         Workflow.Method method = ExportWorkflowEntryPoints.exportAddPathsMethod(
                 storageURI, exportGroupURI, varray, exportMask.getId(), adjustedPaths, removedPaths);
+        
+        Workflow.Method rollbackMethod = null;
+        if (rollback) {
+            // TODO it may need to figure out the newly added paths to be removed
+            rollbackMethod = ExportWorkflowEntryPoints.exportRemovePathsMethod(
+                storageURI, exportGroupURI, varray, exportMask.getId(), adjustedPaths, removedPaths);
+        }
         String stepDescription = String.format("Export add paths mask %s hosts %s", exportMask.getMaskName(), 
                 ExportMaskUtils.getHostNamesInMask(exportMask, _dbClient));
         return newWorkflowStep(workflow, wfGroupId, stepDescription,
-                storageSystem, method, null, waitFor);
+                storageSystem, method, rollbackMethod, waitFor);
     }
     
     /**
@@ -703,22 +720,25 @@ public class ExportWorkflowUtils {
      * @param exportMask
      * @param adjustedpaths
      * @param removePaths
-     * @param isPending
-     * @param suspendMessage
+     * @param rollback - if rollback when failure
      * @return
      * @throws ControllerException
      */
     public String generateExportRemovePathsWorkflow(Workflow workflow, String wfGroupId, String waitFor,
             URI storageURI, URI exportGroupURI, URI varray, ExportMask exportMask, Map<URI, List<URI>> adjustedPaths, 
-            Map<URI, List<URI>> removePaths) 
-                    throws ControllerException {
+            Map<URI, List<URI>> removePaths, boolean rollback) throws ControllerException {
         DiscoveredSystemObject storageSystem = getStorageSystem(_dbClient, storageURI);
 
         Workflow.Method method = ExportWorkflowEntryPoints.exportRemovePathsMethod(
                 storageURI, exportGroupURI, varray, exportMask.getId(), adjustedPaths, removePaths);
         String stepDescription = String.format("Export remove paths mask %s hosts %s", exportMask.getMaskName(), 
                 ExportMaskUtils.getHostNamesInMask(exportMask, _dbClient));
-        return newWorkflowStep(workflow, wfGroupId, stepDescription, storageSystem, method, null, waitFor);
+        Workflow.Method rollbackMethod = null;
+        if (rollback) {
+            rollbackMethod = ExportWorkflowEntryPoints.exportAddPathsMethod(
+                    storageURI, exportGroupURI, varray, exportMask.getId(), removePaths, new HashMap<URI, List<URI>>());
+        }
+        return newWorkflowStep(workflow, wfGroupId, stepDescription, storageSystem, method, rollbackMethod, waitFor);
     }
     
     /**
@@ -730,24 +750,32 @@ public class ExportWorkflowUtils {
      * @param exportGroupURI -- Export Group URI
      * @param adjustedPaths - The paths going to be added and/or retained
      * @param waitFor -- wait for this previous step
+     * @param rollback - if rollback when failure
      * @return stepId that was generated
      * @throws ControllerException
      */
     public String generateZoningAddPathsWorkflow(Workflow workflow, String wfGroupId, URI systemURI, URI exportGroupURI, 
-            Map<URI, Map<URI, List<URI>>> exportMaskNewPathsMap, Map<URI, List<URI>>newPaths, String waitFor) throws ControllerException {
+            Map<URI, Map<URI, List<URI>>> exportMaskNewPathsMap, Map<URI, List<URI>>newPaths, String waitFor,
+            boolean rollback) throws ControllerException {
         String zoningStep = workflow.createStepId();
 
         ExportTaskCompleter taskCompleter = new ZoningAddPathsCompleter(exportGroupURI, zoningStep, exportMaskNewPathsMap);
         List<URI> maskURIs = new ArrayList<URI> (exportMaskNewPathsMap.keySet());
         Workflow.Method zoningExecuteMethod = networkDeviceController.zoneExportAddPathsMethod(systemURI, exportGroupURI, 
                 maskURIs, newPaths, taskCompleter);
-
+        Workflow.Method rollbackMethod = null;
+        if (rollback) {
+            List<NetworkZoningParam> zoningParams = NetworkZoningParam.
+                    convertPathsToNetworkZoningParam(exportGroupURI, exportMaskNewPathsMap, _dbClient);
+            rollbackMethod = networkDeviceController
+                    .zoneExportRemovePathsMethod(zoningParams, taskCompleter);
+        }
         zoningStep = workflow.createStep(
                 wfGroupId,
                 "Zoning add paths subtask: " + exportGroupURI,
                 waitFor, NullColumnValueGetter.getNullURI(),
                 "network-system", networkDeviceController.getClass(),
-                zoningExecuteMethod, null, zoningStep);
+                zoningExecuteMethod, rollbackMethod, zoningStep);
         
         return zoningStep;
     }
@@ -762,12 +790,13 @@ public class ExportWorkflowUtils {
      * @param maskAjustedPathMap - adjusted paths per mask
      * @param maskRemovePaths - remove paths per mask
      * @param waitFor - wait for step
+     * @param rollback - if rollback when failure
      * @return - generated step id
      * @throws ControllerException
      */
     public String generateZoningRemovePathsWorkflow(Workflow workflow, String wfGroupId, URI storageURI, URI exportGroupURI, 
-            Map<URI, Map<URI, List<URI>>> maskAdjustedPathMap, Map<URI, Map<URI, List<URI>>> maskRemovePaths, String waitFor) 
-                    throws ControllerException {
+            Map<URI, Map<URI, List<URI>>> maskAdjustedPathMap, Map<URI, Map<URI, List<URI>>> maskRemovePaths, String waitFor,
+            boolean rollback) throws ControllerException {
 
         String zoningStep = workflow.createStepId();
         ZoningRemovePathsCompleter taskCompleter = new ZoningRemovePathsCompleter(exportGroupURI, zoningStep, maskAdjustedPathMap);
@@ -775,12 +804,28 @@ public class ExportWorkflowUtils {
                 convertPathsToNetworkZoningParam(exportGroupURI, maskRemovePaths, _dbClient);
         Workflow.Method zoningExecuteMethod = networkDeviceController
                 .zoneExportRemovePathsMethod(zoningParams, taskCompleter);
+        Workflow.Method rollbackMethod = null;
+        if (rollback) {
+            List<URI> maskURIs = new ArrayList<URI> (maskRemovePaths.keySet());
+            Map<URI, List<URI>> paths = new HashMap<URI, List<URI>>();
+            for (Map<URI, List<URI>> removedPaths : maskRemovePaths.values()) {
+                for (Map.Entry<URI, List<URI>> entry : removedPaths.entrySet()) {
+                    if (paths.get(entry.getKey()) != null) {
+                        paths.get(entry.getKey()).addAll(entry.getValue());
+                    } else {
+                        paths.put(entry.getKey(), entry.getValue());
+                    }
+                }
+            }
+            rollbackMethod = networkDeviceController.zoneExportAddPathsMethod(storageURI, exportGroupURI, 
+                    maskURIs, paths, taskCompleter);
+        }
         zoningStep = workflow.createStep(
                 wfGroupId,
                 "Zoning subtask for remvoe paths: " + exportGroupURI,
                 waitFor, NullColumnValueGetter.getNullURI(),
                 "network-system", networkDeviceController.getClass(),
-                zoningExecuteMethod, null, zoningStep);
+                zoningExecuteMethod, rollbackMethod, zoningStep);
 
         return zoningStep;
     }
@@ -790,9 +835,11 @@ public class ExportWorkflowUtils {
      * @param workflow -- Workflow being generated
      * @param zoningMap -- zoning map with the cahnges (used for initiators)
      * @param waitFor -- previous step id to work on
+     * @param rollback -- if roll back when failure
      * @return -- Step group or previous step to wait for
      */
-    public String generateHostRescanWorkflowSteps(Workflow workflow, Map<URI, List<URI>> zoningMap, String waitFor) { 
+    public String generateHostRescanWorkflowSteps(Workflow workflow, Map<URI, List<URI>> zoningMap, String waitFor,
+            boolean rollback) { 
         // Determine the set of hosts that neet to be rescanned.
         Set<URI> hostURIs = new HashSet<URI>();
         for (URI initiatorURI : zoningMap.keySet()) {
@@ -817,12 +864,15 @@ public class ExportWorkflowUtils {
                 continue;
             }
             Workflow.Method rescan = hostRescanDeviceController.rescanHostStorageMethod(hostURI);
-            Workflow.Method nullMethod = hostRescanDeviceController.nullWorkflowStepMethod();
+            Workflow.Method rollbackMethod = null;
+            if (rollback) {
+                rollbackMethod = hostRescanDeviceController.rescanHostStorageMethod(hostURI);
+            }
             workflow.createStep(stepGroup,
                     String.format("Rescan Host Storage: %s", host.getHostName()),
                     waitFor, NullColumnValueGetter.getNullURI(),
                     "host-rescan", hostRescanDeviceController.getClass(),
-                    rescan, nullMethod, null);
+                    rescan, rollbackMethod, null);
             queuedStep = true;
         }
         return (queuedStep ? stepGroup : waitFor);

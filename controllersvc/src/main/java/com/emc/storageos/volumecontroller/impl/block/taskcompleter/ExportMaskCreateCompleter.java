@@ -83,6 +83,7 @@ public class ExportMaskCreateCompleter extends ExportMaskInitiatorCompleter {
                 dbClient.updateObject(exportMask);
                 exportGroup.addExportMask(exportMask.getId());
                 dbClient.updateObject(exportGroup);
+                updatePortGroupVolumeCount(exportMask.getPortGroup(), dbClient);
             }
 
             _log.info(String.format(

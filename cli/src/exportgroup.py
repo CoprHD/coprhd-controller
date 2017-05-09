@@ -1606,12 +1606,12 @@ def add_cluster_parser(subcommand_parsers, common_parser):
                                 metavar='<datacentername>',
                                 dest='datacenter',
                                 help='name of datacenter',
-                                default="")
+                                default=None)
     add_cluster_parser.add_argument('-vcenter', '-vc',
                                 help='name of a vcenter',
                                 dest='vcenter',
                                 metavar='<vcentername>',
-                                default="")                                
+                                default=None)                                
     add_cluster_parser.add_argument('-tenant', '-tn',
                                     metavar='<tenantname>',
                                     dest='tenant',
@@ -1684,6 +1684,11 @@ def remove_cluster_parser(subcommand_parsers, common_parser):
                                        dest='tenant',
                                        help='container tenant name')
 
+    remove_cluster_parser.add_argument('-force', '-f',
+                                   dest='force',
+                                   help='force flag',
+                                   action='store_true')
+
     remove_cluster_parser.add_argument('-synchronous', '-sync',
                                        dest='sync',
                                        help='Execute in synchronous mode',
@@ -1699,6 +1704,8 @@ def remove_cluster_parser(subcommand_parsers, common_parser):
 
 
 def exportgroup_remove_cluster(args):
+    if not args.force:
+        raise SOSError(SOSError.CMD_LINE_ERR,"error: -force is mandatory. Use force flag with care, as it removes cluster access to all underlying storage.")
     if not args.sync and args.synctimeout !=0:
         raise SOSError(SOSError.CMD_LINE_ERR,"error: Cannot use synctimeout without Sync ")
     try:
@@ -1785,7 +1792,7 @@ def remove_host_parser(subcommand_parsers, common_parser):
     mandatory_args.add_argument('-name', '-n',
                                 metavar='<exportgroupname>',
                                 dest='name',
-                                help='name of Export Group ',
+                                help='name of Export Group',
                                 required=True)
     mandatory_args.add_argument('-hl', '-hostlabel',
                                 dest='hostlabel',
@@ -1806,6 +1813,10 @@ def remove_host_parser(subcommand_parsers, common_parser):
                                     metavar='<tenantname>',
                                     dest='tenant',
                                     help='container tenant name')
+    remove_host_parser.add_argument('-force', '-f',
+                                   dest='force',
+                                   help='force flag',
+                                   action='store_true')
 
     remove_host_parser.add_argument('-synchronous', '-sync',
                                     dest='sync',
@@ -1822,6 +1833,8 @@ def remove_host_parser(subcommand_parsers, common_parser):
 
 
 def exportgroup_remove_host(args):
+    if not args.force:
+        raise SOSError(SOSError.CMD_LINE_ERR,"error: -force is mandatory. Use force flag with care, as it removes host access to all underlying storage.")
     if not args.sync and args.synctimeout !=0:
         raise SOSError(SOSError.CMD_LINE_ERR,"error: Cannot use synctimeout without Sync ")
     try:

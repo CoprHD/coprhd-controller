@@ -746,7 +746,7 @@ public class ExportMaskUtils {
         exportMask.addToUserCreatedInitiators(userAddedInis);
 
         // Set port group
-        if (portGroupName != null) {
+        if (NullColumnValueGetter.isNotNullValue(portGroupName)) {
             StorageSystem system = dbClient.queryObject(StorageSystem.class, storage);
             String guid = String.format("%s+%s" , system.getNativeGuid(), portGroupName);
             URIQueryResultList result = new URIQueryResultList();

@@ -50,6 +50,7 @@ import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.BlockObject;
+import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.DataObject.Flag;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportGroup.ExportGroupType;
@@ -67,6 +68,7 @@ import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus
 import com.emc.storageos.db.client.model.Volume.PersonalityTypes;
 import com.emc.storageos.db.client.util.CommonTransformerFunctions;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
+import com.emc.storageos.db.client.util.StringSetUtil;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.networkcontroller.impl.NetworkDeviceController;
@@ -105,6 +107,7 @@ import com.emc.storageos.volumecontroller.impl.utils.ExportOperationContext;
 import com.emc.storageos.volumecontroller.impl.utils.ExportOperationContext.ExportOperationContextOperation;
 import com.emc.storageos.volumecontroller.impl.validators.ValidatorFactory;
 import com.emc.storageos.volumecontroller.impl.validators.contexts.ExportMaskValidationContext;
+import com.emc.storageos.vplexcontroller.VPlexControllerUtils;
 import com.emc.storageos.workflow.WorkflowService;
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
@@ -315,27 +318,24 @@ public class VmaxExportOperations implements ExportMaskOperations {
             String csgName = customConfigHandler.getComputedCustomConfigValue(cascadedSGCustomTemplateName, storage.getSystemType(),
                     cascadedSGDataSource);
 
-         // 3. PortGroup (PG)
+            // 3. PortGroup (PG)
             // check if port group name is specified
             URI portGroupURI = mask.getPortGroup();
             String portGroupName = null;
-            if (!NullColumnValueGetter.isNullURI(portGroupURI) && 
-                    isUsePortGroupEnabled(storage.getSystemType())) {
+            if (!NullColumnValueGetter.isNullURI(portGroupURI) &&
+                    isUsePortGroupEnabled()) {
                 StoragePortGroup pg = _dbClient.queryObject(StoragePortGroup.class, portGroupURI);
                 portGroupName = pg.getLabel();
-                _dbClient.updateObject(mask);
                 _log.info("port group name: " + portGroupName);
                 
-            }
-            if (portGroupName == null) {
+            } else {
                 DataSource portGroupDataSource = ExportMaskUtils.getExportDatasource(storage, initiatorList, dataSourceFactory,
                         portGroupCustomTemplateName);
                 portGroupName = customConfigHandler.getComputedCustomConfigValue(portGroupCustomTemplateName, storage.getSystemType(),
                         portGroupDataSource);
+                // CTRL-9054 Always create unique port Groups.
                 portGroupName = _helper.generateGroupName(_helper.getExistingPortGroupsFromArray(storage), portGroupName);
             }
-
-            // CTRL-9054 Always create unique port Groups.
             
             CIMObjectPath targetPortGroupPath = createTargetPortGroup(storage, portGroupName, targetURIList, taskCompleter);
 
@@ -1891,6 +1891,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
                         exportMask.setStorageDevice(storage.getId());
                         exportMask.setId(URIUtil.createId(ExportMask.class));
                         exportMask.setCreatedBySystem(false);
+                        
                     }
 
                     // Do some one-time updates for the ExportMask
@@ -1955,6 +1956,49 @@ public class VmaxExportOperations implements ExportMaskOperations {
                                 instance);
                         List<String> storagePortURIs = ExportUtils.storagePortNamesToURIs(_dbClient, storagePorts);
                         exportMask.setStoragePorts(storagePortURIs);
+                        
+                        // Get port group for the new exportMask
+                        if (!foundMaskInDb && isUsePortGroupEnabled()) {
+                            boolean isVplex = false;
+                            boolean isRP = false;
+                            // check if the exportMask is for VPLEX or RP. port group is only be set for non-VPLEX and non-RP
+                            StringSet initiators = exportMask.getInitiators();
+                            if (initiators != null && !initiators.isEmpty()) {
+                                Iterator<String> it = initiators.iterator();
+                                Initiator init = _dbClient.queryObject(Initiator.class, URI.create(it.next()));
+                                isVplex = VPlexControllerUtils.isVplexInitiator(init, _dbClient);
+                                if (!isVplex) {
+                                    isRP = init.checkInternalFlags(Flag.RECOVERPOINT);
+                                }
+                            }
+                            if (!isVplex && !isRP) {
+                                _log.info("Setting port group for the export mask");
+                                String portGroupName = _helper.getPortGroupForGivenMaskingView(name, storage);
+                                String guid = String.format("%s+%s" , storage.getNativeGuid(), portGroupName);
+                                URIQueryResultList result = new URIQueryResultList();
+                                _dbClient.queryByConstraint(AlternateIdConstraint.Factory
+                                        .getPortGroupNativeGUIdConstraint(guid), result);
+                                Iterator<URI> it = result.iterator();
+                                if (it.hasNext()) {
+                                    URI pgURI = it.next();
+                                    StoragePortGroup pg = _dbClient.queryObject(StoragePortGroup.class, pgURI);
+                                    if (!pg.checkInternalFlags(Flag.INTERNAL_OBJECT)) {
+                                        exportMask.setPortGroup(pgURI);
+                                    }
+                                } else {
+                                    StoragePortGroup portGroup = new StoragePortGroup();
+                                    portGroup.setId(URIUtil.createId(StoragePortGroup.class));
+                                    portGroup.setLabel(portGroupName);
+                                    portGroup.setNativeGuid(guid);
+                                    portGroup.setStorageDevice(storage.getId());
+                                    portGroup.setInactive(false);
+                                    portGroup.setRegistrationStatus(RegistrationStatus.REGISTERED.name());
+                                    portGroup.setStoragePorts(new StringSet(storagePortURIs));
+                                    _dbClient.createObject(portGroup);
+                                    exportMask.setPortGroup(portGroup.getId());
+                                }
+                            }
+                        }
                         // Add the mask name to the list for which volumes are already updated
                         maskNames.add(name);
                     }
@@ -2227,7 +2271,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
                 Set existingInitiators = (mask.getExistingInitiators() != null) ? mask.getExistingInitiators() : Collections.emptySet();
                 Set existingVolumes = (mask.getExistingVolumes() != null) ? mask.getExistingVolumes().keySet() : Collections.emptySet();
 
-                builder.append(String.format("%nXM object: %s I{%s} V:{%s}%n", name,
+                builder.append(String.format("%nXM existing objects: %s I{%s} V:{%s}%n", name,
                         Joiner.on(',').join(existingInitiators),
                         Joiner.on(',').join(existingVolumes)));
 
@@ -2235,47 +2279,84 @@ public class VmaxExportOperations implements ExportMaskOperations {
                         Joiner.on(',').join(discoveredPorts),
                         Joiner.on(',').join(discoveredVolumes.keySet())));
 
-                // Check the initiators and update the lists as necessary
-                boolean addInitiators = false;
-                List<String> initiatorsToAdd = new ArrayList<String>();
-                List<Initiator> initiatorObjectsForComputeResource = new ArrayList<>();
+                List<String> initiatorsToAddToExisting = new ArrayList<String>();
+                List<Initiator> initiatorsToAddToUserAddedAndInitiatorList = new ArrayList<Initiator>();
+
+                /**
+                 * For the newly discovered initiators, if they are ViPR discovered ports and belong to same resource
+                 * add them to user added and initiators list, otherwise add to existing list.
+                 */
                 for (String port : discoveredPorts) {
                     String normalizedPort = Initiator.normalizePort(port);
                     if (!mask.hasExistingInitiator(normalizedPort) &&
                             !mask.hasUserInitiator(normalizedPort)) {
-                        initiatorsToAdd.add(normalizedPort);
                         Initiator existingInitiator = ExportUtils.getInitiator(Initiator.toPortNetworkId(port), _dbClient);
                         // Don't add additional initiator to initiators list if it belongs to different host/cluster
                         if (existingInitiator != null && !ExportMaskUtils.checkIfDifferentResource(mask, existingInitiator)) {
-                            initiatorObjectsForComputeResource.add(existingInitiator);
+                            _log.info("Initiator {}->{} belonging to same compute, adding to userAdded and initiator list.",
+                                    normalizedPort, existingInitiator.getId());
+                            initiatorsToAddToUserAddedAndInitiatorList.add(existingInitiator);
+                        } else {
+                            initiatorsToAddToExisting.add(normalizedPort);
                         }
-                        addInitiators = true;
                     }
                 }
 
-                boolean removeInitiators = false;
-                List<String> initiatorsToRemove = new ArrayList<String>();
-                List<URI> initiatorIdsToRemove = new ArrayList<>();
+                /**
+                 * Get the existing initiators from the mask and remove the non-discovered ports because
+                 * they are not discovered and are stale.
+                 * 
+                 * If the mask has existing initiators but if they are discovered and belongs to same compute resource, then the
+                 * initiators has to get added to user Added and initiators list, and removed from existing list.
+                 */
+                List<String> initiatorsToRemoveFromExistingList = new ArrayList<String>();
                 if (mask.getExistingInitiators() != null &&
                         !mask.getExistingInitiators().isEmpty()) {
-                    initiatorsToRemove.addAll(mask.getExistingInitiators());
-                    initiatorsToRemove.removeAll(discoveredPorts);
-                }
-
-                if (mask.getInitiators() != null &&
-                        !mask.getInitiators().isEmpty()) {
-                    initiatorIdsToRemove.addAll(transform(mask.getInitiators(),
-                            CommonTransformerFunctions.FCTN_STRING_TO_URI));
-                    for (String port : discoveredPorts) {
-                        Initiator existingInitiator = ExportUtils.getInitiator(Initiator.toPortNetworkId(port), _dbClient);
-                        if (existingInitiator != null) {
-                            initiatorIdsToRemove.remove(existingInitiator.getId());
+                    for (String existingInitiatorStr : mask.getExistingInitiators()) {
+                        if (!discoveredPorts.contains(existingInitiatorStr)) {
+                            initiatorsToRemoveFromExistingList.add(existingInitiatorStr);
+                        } else {
+                            Initiator existingInitiator = ExportUtils.getInitiator(Initiator.toPortNetworkId(existingInitiatorStr),
+                                    _dbClient);
+                            if (existingInitiator != null && !ExportMaskUtils.checkIfDifferentResource(mask, existingInitiator)) {
+                                _log.info("Initiator {}->{} belonging to same compute, removing from existing,"
+                                        + " and adding to userAdded and initiator list", existingInitiatorStr, existingInitiator.getId());
+                                initiatorsToAddToUserAddedAndInitiatorList.add(existingInitiator);
+                                initiatorsToRemoveFromExistingList.add(existingInitiatorStr);
+                            }
                         }
                     }
                 }
 
-                removeInitiators = !initiatorsToRemove.isEmpty() || !initiatorIdsToRemove.isEmpty();
+                /**
+                 * Get all the initiators from the mask and remove all the ViPR discovered ports.
+                 * The remaining list has to be removed from user Added and initiator list, because they are not available in ViPR
+                 * but has to be moved to existing list.
+                 */
+                List<URI> initiatorsToRemoveFromUserAddedAndInitiatorList = new ArrayList<URI>();
+                if (mask.getInitiators() != null &&
+                        !mask.getInitiators().isEmpty()) {
+                    initiatorsToRemoveFromUserAddedAndInitiatorList.addAll(transform(mask.getInitiators(),
+                            CommonTransformerFunctions.FCTN_STRING_TO_URI));
+                    for (String port : discoveredPorts) {
+                        String normalizedPort = Initiator.normalizePort(port);
+                        Initiator initiatorDiscoveredInViPR = ExportUtils.getInitiator(Initiator.toPortNetworkId(port), _dbClient);
+                        if (initiatorDiscoveredInViPR != null) {
+                            initiatorsToRemoveFromUserAddedAndInitiatorList.remove(initiatorDiscoveredInViPR.getId());
+                        } else if (!mask.hasExistingInitiator(normalizedPort)) {
+                            _log.info("Initiator {} not found in database, removing from user Added and initiator list,"
+                                    + " and adding to existing list.", port);
+                            initiatorsToAddToExisting.add(normalizedPort);
+                        }
+                    }
+                }
 
+                boolean removeInitiators = !initiatorsToRemoveFromExistingList.isEmpty()
+                        || !initiatorsToRemoveFromUserAddedAndInitiatorList.isEmpty();
+                boolean addInitiators = !initiatorsToAddToUserAddedAndInitiatorList.isEmpty()
+                        || !initiatorsToAddToExisting.isEmpty();
+
+                
                 // Check the volumes and update the lists as necessary
                 Map<String, Integer> volumesToAdd = ExportMaskUtils.diffAndFindNewVolumes(mask, discoveredVolumes);
                 boolean addVolumes = !volumesToAdd.isEmpty();
@@ -2340,8 +2421,12 @@ public class VmaxExportOperations implements ExportMaskOperations {
 
                 builder.append(
                         String.format("XM refresh: %s existing initiators; add:{%s} remove:{%s}%n",
-                                name, Joiner.on(',').join(initiatorsToAdd),
-                                Joiner.on(',').join(initiatorsToRemove)));
+                                name, Joiner.on(',').join(initiatorsToAddToExisting),
+                                Joiner.on(',').join(initiatorsToRemoveFromExistingList)));
+                builder.append(
+                        String.format("XM refresh: %s user added and initiator list; add:{%s} remove:{%s}%n",
+                                name, Joiner.on(',').join(initiatorsToAddToUserAddedAndInitiatorList),
+                                Joiner.on(',').join(initiatorsToRemoveFromUserAddedAndInitiatorList)));
                 builder.append(
                         String.format("XM refresh: %s volumes; add:{%s} remove:{%s}%n",
                                 name, Joiner.on(',').join(volumesToAdd.keySet()),
@@ -2354,10 +2439,10 @@ public class VmaxExportOperations implements ExportMaskOperations {
                 // Any changes indicated, then update the mask and persist it
                 if (addInitiators || removeInitiators || addVolumes ||
                         removeVolumes || addStoragePorts || removeStoragePorts) {
-                    mask.removeFromExistingInitiators(initiatorsToRemove);
-                    if (initiatorIdsToRemove != null && !initiatorIdsToRemove.isEmpty()) {
-                        mask.removeInitiators(_dbClient.queryObject(Initiator.class, initiatorIdsToRemove));
-                        mask.removeFromUserAddedInitiatorsByURI(initiatorIdsToRemove);
+                    mask.removeFromExistingInitiators(initiatorsToRemoveFromExistingList);
+                    if (!initiatorsToRemoveFromUserAddedAndInitiatorList.isEmpty()) {
+                        mask.removeInitiators(_dbClient.queryObject(Initiator.class, initiatorsToRemoveFromUserAddedAndInitiatorList));
+                        mask.removeFromUserAddedInitiatorsByURI(initiatorsToRemoveFromUserAddedAndInitiatorList);
                     }
                     // https://coprhd.atlassian.net/browse/COP-17224 - For those cases where InitiatorGroups are shared
                     // by
@@ -2368,18 +2453,18 @@ public class VmaxExportOperations implements ExportMaskOperations {
                     // We shouldn't read the initiators that we find as 'existing' (that is created outside of CoprHD),
                     // instead we should consider them userAdded for this ExportMask, as well.
                     List<Initiator> userAddedInitiators = ExportMaskUtils.findIfInitiatorsAreUserAddedInAnotherMask(mask,
-                            initiatorObjectsForComputeResource,
+                            initiatorsToAddToUserAddedAndInitiatorList,
                             _dbClient);
                     mask.addToUserCreatedInitiators(userAddedInitiators);
 
                     builder.append(
                             String.format("XM refresh: %s user added initiators; add:{%s} remove:{%s}%n",
                                     name, Joiner.on(',').join(userAddedInitiators),
-                                    Joiner.on(',').join(initiatorIdsToRemove)));
-                    mask.addInitiators(initiatorObjectsForComputeResource);
-                    mask.addToUserCreatedInitiators(initiatorObjectsForComputeResource);
+                                    Joiner.on(',').join(initiatorsToRemoveFromUserAddedAndInitiatorList)));
+                    mask.addInitiators(initiatorsToAddToUserAddedAndInitiatorList);
+                    mask.addToUserCreatedInitiators(initiatorsToAddToUserAddedAndInitiatorList);
 
-                    mask.addToExistingInitiatorsIfAbsent(initiatorsToAdd);
+                    mask.addToExistingInitiatorsIfAbsent(initiatorsToAddToExisting);
                     mask.removeFromExistingVolumes(volumesToRemove);
                     mask.addToExistingVolumesIfAbsent(volumesToAdd);
                     mask.getStoragePorts().addAll(storagePortsToAdd);
@@ -2392,7 +2477,8 @@ public class VmaxExportOperations implements ExportMaskOperations {
                     builder.append("XM refresh: There are no changes to the mask\n");
                 }
                 _networkDeviceController.refreshZoningMap(mask,
-                        initiatorsToRemove, Collections.EMPTY_LIST,
+                        transform(initiatorsToRemoveFromUserAddedAndInitiatorList, CommonTransformerFunctions.FCTN_URI_TO_STRING),
+                        Collections.EMPTY_LIST,
                         (addInitiators || removeInitiators), true);
                 _log.info(builder.toString());
             }
@@ -5386,13 +5472,14 @@ public class VmaxExportOperations implements ExportMaskOperations {
 
     }
     /**
-     * Check whether use port group is enabled.
+     * Check whether use existing port group is enabled.
      * 
-     * @return
+     * @return true or false
      */
-     private Boolean isUsePortGroupEnabled(String systemType) {
+     private Boolean isUsePortGroupEnabled() {
         Boolean reusePortGroupEnabled = false;
 
+        String systemType = DiscoveredDataObject.Type.vmax.name();
         try {
             reusePortGroupEnabled = Boolean.valueOf(
                     customConfigHandler.getComputedCustomConfigValue(

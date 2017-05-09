@@ -25,19 +25,24 @@ import com.emc.storageos.volumecontroller.impl.plugins.SMICommunicationInterface
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.emc.storageos.customconfigcontroller.CustomConfigConstants;
+import com.emc.storageos.customconfigcontroller.impl.CustomConfigHandler;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
+import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
 import com.emc.storageos.db.client.model.HostInterface;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StoragePort.TransportType;
+import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.ZoneInfo;
 import com.emc.storageos.db.client.model.ZoneInfoMap;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedExportMask;
+import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.client.util.WWNUtility;
 import com.emc.storageos.db.client.util.iSCSIUtility;
 import com.emc.storageos.networkcontroller.impl.NetworkDeviceController;
@@ -77,6 +82,7 @@ public class ExportProcessor extends Processor {
     private List<UnManagedExportMask> _unManagedExportMasksToUpdate = null;
 
     private PartitionManager _partitionManager;
+    private CustomConfigHandler customConfigHandler;
 
     /**
      * Method for setting the partition manager via injection.
@@ -85,6 +91,10 @@ public class ExportProcessor extends Processor {
      */
     public void setPartitionManager(PartitionManager partitionManager) {
         _partitionManager = partitionManager;
+    }
+    
+    public void setCustomConfigHandler (CustomConfigHandler handler) {
+        this.customConfigHandler = handler; 
     }
 
     /**
@@ -171,17 +181,25 @@ public class ExportProcessor extends Processor {
             // set storage system id
             URI systemId = (URI) keyMap.get(Constants.SYSTEMID);
             mask.setStorageSystemUri(systemId);
-
+            boolean setPortGroup = false;
+            StorageSystem storage = _dbClient.queryObject(StorageSystem.class, systemId);
+            if (Type.vmax.name().equals(storage.getSystemType())) {
+                setPortGroup = Boolean.valueOf(
+                        customConfigHandler.getComputedCustomConfigValue(
+                                CustomConfigConstants.VMAX_USE_PORT_GROUP_ENABLED,
+                                storage.getSystemType(), null));
+                
+            }
             response = (EnumerateResponse<CIMInstance>) resultObj;
             processVolumesAndInitiatorsPaths(response.getResponses(), mask, matchedInitiators, matchedPorts, knownIniSet,
-                    knownNetworkIdSet, knownPortSet, knownVolumeSet);
+                    knownNetworkIdSet, knownPortSet, knownVolumeSet, setPortGroup);
 
             while (!response.isEnd()) {
                 _logger.info("Processing next Chunk");
                 response = client.getInstancesWithPath(Constants.MASKING_PATH, response.getContext(),
                         new UnsignedInteger32(BATCH_SIZE));
                 processVolumesAndInitiatorsPaths(response.getResponses(), mask, matchedInitiators, matchedPorts, knownIniSet,
-                        knownNetworkIdSet, knownPortSet, knownVolumeSet);
+                        knownNetworkIdSet, knownPortSet, knownVolumeSet, setPortGroup);
             }
 
             // CTRL - 8918 - always update the mask with new initiators and volumes.
@@ -494,7 +512,8 @@ public class ExportProcessor extends Processor {
 
     private void processVolumesAndInitiatorsPaths(CloseableIterator<CIMInstance> it, UnManagedExportMask mask,
             List<Initiator> matchedInitiators, List<StoragePort> matchedPorts, Set<String> knownIniSet,
-            Set<String> knownNetworkIdSet, Set<String> knownPortSet, Set<String> knownVolumeSet) {
+            Set<String> knownNetworkIdSet, Set<String> knownPortSet, Set<String> knownVolumeSet,
+            boolean setPortGroup) {
         while (it.hasNext()) {
             CIMInstance cimi = it.next();
 
@@ -628,13 +647,18 @@ public class ExportProcessor extends Processor {
                     break;
 
                 case SmisConstants.CP_SE_TARGET_MASKING_GROUP:
-
-                    String portGroupName = this.getCIMPropertyValue(cimi, SmisConstants.CP_ELEMENT_NAME);
-                    if (portGroupName == null) {
-                        portGroupName = this.getCIMPropertyValue(cimi, SmisConstants.CP_NAME);
+                    if (setPortGroup) {
+                        String portGroupName = this.getCIMPropertyValue(cimi, SmisConstants.CP_ELEMENT_NAME);
+                        if (portGroupName == null) {
+                            portGroupName = this.getCIMPropertyValue(cimi, SmisConstants.CP_NAME);
+                        }
+                        mask.setPortGroup(portGroupName);
+                        _logger.info("Set the port group " + portGroupName);
+                    } else {
+                        if (NullColumnValueGetter.isNotNullValue(mask.getPortGroup())) {
+                            mask.setPortGroup(NullColumnValueGetter.getNullStr());
+                        }
                     }
-                    mask.setPortGroup(portGroupName);
-                    _logger.info("looking at port group " + portGroupName);
                     break;
                     
                 default:

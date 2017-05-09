@@ -462,15 +462,20 @@ def storageportgroup_list(args):
                 args.type)
             for portgroup in uris:
                 is_active_obj = obj.storageportgroup_show_id(ssuri, portgroup['id'])
-                if(is_active_obj is not None):
+                if(is_active_obj):
+                    storageports = is_active_obj['storage_ports']['storage_port']
+                    ports = []
+                    for storageport in storageports:
+                        ports.append(storageport['name'])
+                    is_active_obj['storageports'] = ports
+                    is_active_obj['portgroupname'] = is_active_obj['name']
                     output.append(is_active_obj)
             if(args.verbose is True):
                 return common.format_json_object(output)
             else:
                 from common import TableGenerator
                 TableGenerator(
-                    output, [
-                        'name',
+                    output, ['portgroupname',
                         'storageports',
                         'registration_status']).printTable()
                 

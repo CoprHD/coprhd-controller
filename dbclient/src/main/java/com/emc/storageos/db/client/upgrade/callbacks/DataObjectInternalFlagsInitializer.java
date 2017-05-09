@@ -52,7 +52,6 @@ public class DataObjectInternalFlagsInitializer extends BaseCustomMigrationCallb
             FileShare fs = fileShareObjs.next();
             log.debug("Examining FileShare (id={}) for upgrade", fs.getId().toString());
             if (fs.getProject() == null) {
-                // Not the normal way to mark named URIs, but it's OK for this internal type.
                 fs.setProject(new NamedURI(FileShare.INTERNAL_OBJECT_PROJECT_URN, fs.getLabel()));
                 fs.addInternalFlags(Flag.INTERNAL_OBJECT, Flag.NO_PUBLIC_ACCESS, Flag.NO_METERING);
                 dbClient.updateAndReindexObject(fs);

@@ -33,7 +33,7 @@ import com.google.common.collect.Lists;
 @AssetNamespace("vipr")
 public class RemoteReplicationProvider extends BaseAssetOptionsProvider {
 
-    private RemoteReplicationSets setsForVpoolVarray;
+    RemoteReplicationSets setClient = null;
 
     /**
      * Return menu options for replication modes supported by the remote replication
@@ -51,7 +51,7 @@ public class RemoteReplicationProvider extends BaseAssetOptionsProvider {
 
         RemoteReplicationSetRestRep rrSet = getRrSet(ctx,virtualArrayId, virtualPoolId);
 
-        RemoteReplicationSetRestRep rrSetObj = api(ctx).remoteReplicationSets().
+        RemoteReplicationSetRestRep rrSetObj = getClient(ctx).
                 getRemoteReplicationSetsRestRep(rrSet.getId().toString());
 
         List<AssetOption> options = new ArrayList<>();
@@ -77,7 +77,7 @@ public class RemoteReplicationProvider extends BaseAssetOptionsProvider {
 
         RemoteReplicationSetRestRep rrSet = getRrSet(ctx,virtualArrayId, virtualPoolId);
 
-        return createNamedResourceOptions(setsForVpoolVarray.
+        return createNamedResourceOptions(getClient(ctx).
                 getGroupsForSet(rrSet.getId()).getRemoteReplicationGroups());
     }
 
@@ -234,7 +234,7 @@ public class RemoteReplicationProvider extends BaseAssetOptionsProvider {
             URI storageSystemTypeUri) {
         List<AssetOption> options = Lists.newArrayList();
 
-        List<RemoteReplicationSetRestRep> rrSets = api(ctx).remoteReplicationSets().
+        List<RemoteReplicationSetRestRep> rrSets = getClient(ctx).
                 listRemoteReplicationSets(storageSystemTypeUri).getRemoteReplicationSets();
 
         Set<String> allModes = new HashSet<>();
@@ -304,7 +304,7 @@ public class RemoteReplicationProvider extends BaseAssetOptionsProvider {
      */
     private List<RemoteReplicationSetRestRep> getRrSet(AssetOptionsContext ctx) {
 
-        List<RemoteReplicationSetRestRep> rrSets = api(ctx).remoteReplicationSets().
+        List<RemoteReplicationSetRestRep> rrSets = getClient(ctx).
                 listRemoteReplicationSets().getRemoteReplicationSets();
 
        removeUnreachableSets(rrSets);
@@ -322,14 +322,12 @@ public class RemoteReplicationProvider extends BaseAssetOptionsProvider {
      */
     private RemoteReplicationSetRestRep getRrSet(AssetOptionsContext ctx,URI virtualArrayId, URI virtualPoolId) {
 
-        setsForVpoolVarray = api(ctx).remoteReplicationSets();
-
         BlockVirtualPoolRestRep vpool = api(ctx).blockVpools().get(virtualPoolId);
         if ((vpool == null) || (vpool.getProtection().getRemoteReplicationParam() == null)) {
             return null;
         }
 
-        List<RemoteReplicationSetRestRep> rrSets = setsForVpoolVarray.
+        List<RemoteReplicationSetRestRep> rrSets = getClient(ctx).
                 listRemoteReplicationSets(virtualArrayId,virtualPoolId).getRemoteReplicationSets();
 
         removeUnreachableSets(rrSets);
@@ -358,6 +356,16 @@ public class RemoteReplicationProvider extends BaseAssetOptionsProvider {
                 it.remove();
             }
         }
+    }
+
+    /*
+     * Get client for set operations (cached)
+     */
+    RemoteReplicationSets getClient(AssetOptionsContext ctx) {
+        if (setClient == null) {
+            setClient = api(ctx).remoteReplicationSets();
+        }
+        return setClient;
     }
 
 }

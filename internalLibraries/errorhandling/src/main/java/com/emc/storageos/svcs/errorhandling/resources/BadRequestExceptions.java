@@ -422,10 +422,6 @@ public interface BadRequestExceptions {
     public BadRequestException invalidParameterBelowMinimum(String string, long size, long minimum,
             String unit);
     
-    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID_RANGE)
-    public BadRequestException invalidParameterAboveMinimum(String string, long size, long minimum,
-            String unit);
-
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException invalidParameterBlockCopyDoesNotBelongToVolume(URI pid, URI id);
 

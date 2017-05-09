@@ -911,7 +911,7 @@ class Fileshare(object):
         fileshare_detail = self.show(name)
         current_size = float(fileshare_detail["capacity_gb"])
 
-        if(new_size <= current_size):
+        if(new_size >= current_size):
             raise SOSError(
                 SOSError.VALUE_ERR,
                 "error: Incorrect value of new size: " + str(new_size) +

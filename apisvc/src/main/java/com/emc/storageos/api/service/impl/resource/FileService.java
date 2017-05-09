@@ -1328,12 +1328,16 @@ public class FileService extends TaskResourceService {
                 List<QuotaDirectory> quotaDirs = queryDBQuotaDirectories(fs);
                 if (null != quotaDirs && !quotaDirs.isEmpty()){
                 	long qdsize = 0;
-                    // validate-1 : new quota size should not less any quotas of filesystem
+                    // we will check sub quotas of filesystem 
+                	//that new size should not be less than any of the sub quota. 
                     for (QuotaDirectory quotaDir : quotaDirs) {
                     	qdsize = newFSsize - quotaDir.getSize();
+                    	
                         if (qdsize < MIN_EXPAND_SIZE) {
-                            throw APIException.badRequests.invalidParameterAboveMinimum(
-                            		"new_size", newFSsize, quotaDir.getSize() + MIN_EXPAND_SIZE, "bytes");
+                        	String msg = String
+                                    .format("In Reduction Isilon FS requested capacity is less than any sub quota size. Quota Path: %s, current capacity: %d",
+                                            quotaDir.getPath(), quotaDir.getSize());
+                        	throw APIException.badRequests.reduceFileSystemNotSupported(id, msg);
                         }
                     }
                 }
@@ -1341,11 +1345,6 @@ public class FileService extends TaskResourceService {
         		throw APIException.badRequests.parameterMustBeLessThan("new_size", fs.getCapacity());
         	}
         }
-        
-        Project project = _dbClient.queryObject(Project.class, fs.getProject().getURI());
-        TenantOrg tenant = _dbClient.queryObject(TenantOrg.class, fs.getTenant().getURI());
-        VirtualPool vpool = _dbClient.queryObject(VirtualPool.class, fs.getVirtualPool());
-        CapacityUtils.validateQuotasForProvisioning(_dbClient, vpool, project, tenant, newFSsize, "filesystem");
 
         String task = UUID.randomUUID().toString();
         Operation op = _dbClient.createTaskOpStatus(FileShare.class, fs.getId(),

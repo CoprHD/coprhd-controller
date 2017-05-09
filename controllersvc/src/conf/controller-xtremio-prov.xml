@@ -15,6 +15,7 @@
        xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
 
     <bean id="xtremioRestClientFactory" class="com.emc.storageos.xtremio.restapi.XtremIOClientFactory"
+              factory-method="getInstance" lazy-init="false" scope="singleton"
               init-method="init" >
         <property name="connectionTimeoutMs" value="30000"/>
         <property name="maxConnections" value="300"/>

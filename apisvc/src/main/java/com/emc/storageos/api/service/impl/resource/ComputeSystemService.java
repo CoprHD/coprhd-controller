@@ -11,6 +11,7 @@ import static com.emc.storageos.api.mapper.TaskMapper.toTask;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -43,6 +44,7 @@ import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
+import com.emc.storageos.db.client.model.Cluster;
 import com.emc.storageos.db.client.model.ComputeBootDef;
 import com.emc.storageos.db.client.model.ComputeBootPolicy;
 import com.emc.storageos.db.client.model.ComputeElement;
@@ -94,6 +96,7 @@ import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.volumecontroller.AsyncTask;
 import com.emc.storageos.volumecontroller.ControllerException;
+import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
 import com.emc.storageos.volumecontroller.impl.monitoring.RecordableBourneEvent;
 import com.emc.storageos.volumecontroller.impl.monitoring.RecordableEventManager;
@@ -167,7 +170,7 @@ public class ComputeSystemService extends TaskResourceService {
             if (!serviceProfileTemplate.getUpdating()) {
                 NamedRelatedResourceRep sptNamedRelatedResource = new NamedRelatedResourceRep();
                 sptNamedRelatedResource.setId(serviceProfileTemplate.getId());
-                sptNamedRelatedResource.setName(serviceProfileTemplate.getLabel());
+                sptNamedRelatedResource.setName(serviceProfileTemplate.getLabel()+ " (Initial Template)");
                 serviceProfileTemplates.add(sptNamedRelatedResource);
             } else {
                 _log.info(" updating service profile template:" + serviceProfileTemplate.getLabel() + " id:"
@@ -177,7 +180,7 @@ public class ComputeSystemService extends TaskResourceService {
                 if (valid) {
                     NamedRelatedResourceRep sptNamedRelatedResource = new NamedRelatedResourceRep();
                     sptNamedRelatedResource.setId(serviceProfileTemplate.getId());
-                    sptNamedRelatedResource.setName(serviceProfileTemplate.getLabel());
+                    sptNamedRelatedResource.setName(serviceProfileTemplate.getLabel()+ " (Updating Template)");
                     serviceProfileTemplates.add(sptNamedRelatedResource);
                 } else {
                     _log.info("invalid uSPT");
@@ -993,11 +996,28 @@ public class ComputeSystemService extends TaskResourceService {
         _dbClient.queryByConstraint(ContainmentConstraint.Factory
                 .getComputeSystemComputeElemetsConstraint(cs.getId()), ceUriList);
         Iterator<URI> iterator = ceUriList.iterator();
+        Collection<URI> hostIds = _dbClient.queryByType(Host.class, true);
+        Collection<Host> hosts = _dbClient.queryObjectFields(Host.class,
+             Arrays.asList("label", "computeElement","cluster"), ControllerUtils.getFullyImplementedCollection(hostIds));
         while (iterator.hasNext()) {
             ComputeElement ce = _dbClient.queryObject(ComputeElement.class, iterator.next());
-            ComputeElementRestRep rest = map(ce);
-            if (rest != null) {
-                result.getList().add(rest);
+            if (ce!=null){
+                Host associatedHost = null;
+                for (Host host : hosts){
+                    if (!NullColumnValueGetter.isNullURI(host.getComputeElement()) && host.getComputeElement().equals(ce.getId())) {
+                        associatedHost = host;
+                        break;
+                    }
+                }
+                Cluster cluster = null;
+                if (associatedHost!=null && !NullColumnValueGetter.isNullURI(associatedHost.getCluster())){
+                   cluster = _dbClient.queryObject(Cluster.class, associatedHost.getCluster());
+                }
+
+                ComputeElementRestRep rest = map(ce, associatedHost, cluster);
+                if (rest != null) {
+                   result.getList().add(rest);
+                }
             }
         }
         return result;

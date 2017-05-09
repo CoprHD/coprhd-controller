@@ -3826,9 +3826,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
         try {
             ExportOperationContext context = (ExportOperationContext) WorkflowService.getInstance().loadStepData(rollbackContextKey);
             WorkflowService.getInstance().storeStepData(token, context);
-            ExportMask mask = _dbClient.queryObject(ExportMask.class, exportMaskURI);
-            ExportGroup exportGroup = _dbClient.queryObject(ExportGroup.class, exportGroupURI);
-            storageViewRemoveVolumes(vplexURI, exportGroup.getId(), mask.getId(), volumeURIs, rollbackContextKey, taskCompleter, rollbackContextKey, token);
+            storageViewRemoveVolumes(vplexURI, exportGroupURI, exportMaskURI, volumeURIs, rollbackContextKey, taskCompleter, rollbackContextKey, token);
         } catch (Exception e) {
             String message = String.format("Failed to remove Volume(s) %s on rollback from ExportGroup %s",
                     Joiner.on(",").join(volumeURIs), exportGroupURI);

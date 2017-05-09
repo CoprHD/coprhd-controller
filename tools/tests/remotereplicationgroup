@@ -45,7 +45,7 @@ def remotereplicationgroup_create_storage_type(args):
                                                     args.port, args.ssl_port, args.driver_class)
     print storage_type
 
-def remotereplicationgroup_resume
+def remotereplicationgroup_resume(args):
     bourne.connect(args.ip)
 
     replicationgroup_uri = bourne.replicationgroup_query(args.replicationgroup_name)

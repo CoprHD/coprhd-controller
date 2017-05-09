@@ -1701,23 +1701,24 @@ public class VirtualArrayService extends TaggedResource {
 
         Set<URI> includedSystems = new HashSet<URI>();
         if (vpoolURI != null) {
+            // vpool is specified. Get storage port groups belonging to the same storage system as the vpool
+            // valid storage pools.
             ArgValidator.checkFieldUriType(vpoolURI, VirtualPool.class, "vpool");
             VirtualPool vpool = _dbClient.queryObject(VirtualPool.class, vpoolURI);
             if (VirtualPool.vPoolSpecifiesHighAvailability(vpool)) {
                 // This is vplex, return empty
+                _log.warn(String.format("The vpool %s is for vplex, no port group is supported", vpool.getLabel()));
                 return portGroups;
             }
-            StringSet pools= vpool.getMatchedStoragePools();
+            List<StoragePool> pools = VirtualPool.getValidStoragePools(vpool, _dbClient, true);
             if (null != pools && !pools.isEmpty()) {
-                Iterator<String> poolItr = pools.iterator();
-                while (poolItr.hasNext()) {
-                    URI poolURI = URI.create(poolItr.next());
-                    StoragePool pool = _dbClient.queryObject(StoragePool.class, poolURI);
-                    if (pool == null) {
-                        continue;
-                    }
+                for (StoragePool pool : pools) {
                     includedSystems.add(pool.getStorageDevice());
                 }
+            } else {
+                _log.warn(String.format("The vpool %s does not have any valid storage pools, no port group returned", 
+                        vpool.getLabel()));
+                return portGroups;
             }
         }
         for (URI portURI : portURIs) {

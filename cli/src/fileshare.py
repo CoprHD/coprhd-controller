@@ -405,7 +405,7 @@ class Fileshare(object):
     def export(
             self, name, security_type, permission, root_user,
             endpoints, protocol, share_name, share_description,
-            permission_type, sub_dir, sync,synctimeout):
+            permission_type, sub_dir, sync,synctimeout,bypassdnscheck):
         '''
         Makes REST API call to export fileshare to a host
         Parameters:
@@ -452,6 +452,9 @@ class Fileshare(object):
                 }
                 if(sub_dir):
                     request["sub_directory"] = sub_dir
+
+                if(bypassdnscheck):
+                    request["bypass_dns_check"] = bypassdnscheck
                 
 
                 body = json.dumps(request)
@@ -513,7 +516,7 @@ class Fileshare(object):
             return o
 
 
-    def export_rule(self, name, operation, securityflavor, user=None, roothosts=None, readonlyhosts=None, readwritehosts=None, subDir=None):
+    def export_rule(self, name, operation, securityflavor, user=None, roothosts=None, readonlyhosts=None, readwritehosts=None, subDir=None, bypassdnscheck="false"):
         
         fileshare_uri = self.fileshare_query(name)
         exportRulesparam = dict()
@@ -528,14 +531,17 @@ class Fileshare(object):
             exportRulesparam['anon'] = user
 
         exportRulerequest = {'exportRules':[exportRulesparam]}
+        
+        request = {}
+        request["bypass_dns_check"] = bypassdnscheck
 
         if("add"== operation):
-            request = {'add': exportRulerequest}
+            request['add'] = exportRulerequest
         elif("delete" == operation):
-            request = {'delete' : exportRulerequest}
+            request['delete'] = exportRulerequest
         else:
-            request = {'modify' : exportRulerequest}
-    
+            request['modify'] = exportRulerequest
+            
         body = json.dumps(request)
         params = ''
         if(subDir):
@@ -2033,6 +2039,11 @@ def export_parser(subcommand_parsers, common_parser):
                                dest='synctimeout',
                                default=0,
                                type=int)
+    export_parser.add_argument('-bypassdnscheck',
+                               help='Bypass the FQDN validation for expoted hosts',
+                               dest='bypassdnscheck',
+                               choices=["true", "false"],
+                               default="false")
     export_parser.set_defaults(func=fileshare_export)
 
 
@@ -2079,7 +2090,7 @@ def fileshare_export(args):
             args.tenant + "/" + args.project + "/" + args.name,
             args.security, args.permission, args.root_user, args.endpoint,
             args.protocol, args.share, args.desc,
-            args.permission_type, args.subdir, args.sync,args.synctimeout)
+            args.permission_type, args.subdir, args.sync,args.synctimeout,args.bypassdnscheck)
 
 #        if(args.sync == False):
 #            return common.format_json_object(res)
@@ -2404,6 +2415,12 @@ def export_rule_parser(subcommand_parsers, common_parser):
                                     dest='user',
                                     metavar='<user>',
                                     help='User')
+    export_rule_parser.add_argument('-bypassdnscheck',
+                                    choices=["true", "false"],
+                                    default="false",
+                                    dest='bypassdnscheck',
+                                    metavar='<bypassdnscheck>',
+                                    help='Bypass the FQDN validation for expoted hosts')
     
     export_rule_parser.set_defaults(func=fileshare_export_rule)
 
@@ -2420,7 +2437,7 @@ def fileshare_export_rule(args):
         if(not args.user):
             raise SOSError(SOSError.CMD_LINE_ERR, "Anonymous user should be provided to add/update/delete export rule")
         res = obj.export_rule(
-            args.tenant + "/" + args.project + "/" + args.name, args.operation, args.securityflavor, args.user, args.roothosts, args.readonlyhosts, args.readwritehosts, args.subdir)
+            args.tenant + "/" + args.project + "/" + args.name, args.operation, args.securityflavor, args.user, args.roothosts, args.readonlyhosts, args.readwritehosts, args.subdir, args.bypassdnscheck)
 
     except SOSError as e:
         raise e

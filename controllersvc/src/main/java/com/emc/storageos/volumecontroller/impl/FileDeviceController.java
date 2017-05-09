@@ -646,6 +646,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             List<FileExport> fileExports = new ArrayList<FileExport>();
             if (exports != null) {
                 for (FileShareExport fileShareExport : exports) {
+                    args.setBypassDnsCheck(fileShareExport.getBypassDnsCheck());
                     FileExport fExport = fileShareExport.getFileExport();
                     fExport.setMountPoint(fileShareExport.getMountPath());
                     _log.info("FileExport:clients:" + fExport.getClients() + ":portName:" + fExport.getStoragePortName()
@@ -2043,6 +2044,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
 
             args.setSubDirectory(param.getSubDir());
             args.setAllExportRules(param);
+            args.setBypassDnsCheck(param.getBypassDnsCheck());
 
             _log.info("Controller Recieved FileExportUpdateParams {}", param);
 

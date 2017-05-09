@@ -23,16 +23,18 @@ public class CreateFileSystemExport extends WaitForTask<FileShareRestRep> {
     private final List<String> hosts;
     private final String subDirectory;
     private final String comment;
+    private final boolean bypassDnsCheck;
 
     // Security Types: sys, krb5, krb5i, krb5p
     // Permissions: ro, rw, root
     public CreateFileSystemExport(String fileSystemId, String comment, String protocol, String security, String permissions, String user,
-            List<String> hosts, String subDirectory) {
-        this(uri(fileSystemId), comment, protocol, security, permissions, user, hosts, subDirectory);
+            List<String> hosts, String subDirectory, boolean bypassDnsCheck) {
+        this(uri(fileSystemId), comment, protocol, security, permissions, user, hosts, subDirectory, bypassDnsCheck);
     }
 
+
     public CreateFileSystemExport(URI fileSystemId, String comment, String protocol, String security, String permissions, String user,
-            List<String> hosts, String subDirectory) {
+            List<String> hosts, String subDirectory, boolean bypassDnsCheck) {
         this.fileSystemId = fileSystemId;
         this.protocol = protocol;
         this.security = security;
@@ -41,8 +43,11 @@ public class CreateFileSystemExport extends WaitForTask<FileShareRestRep> {
         this.hosts = hosts;
         this.subDirectory = subDirectory;
         this.comment = comment;
-        provideDetailArgs(fileSystemId, comment, protocol, security, permissions, user, hosts, subDirectory);
+        this.bypassDnsCheck=bypassDnsCheck;
+        provideDetailArgs(fileSystemId, comment, protocol, security, permissions, user, hosts, subDirectory,bypassDnsCheck);
     }
+
+
 
     @Override
     protected Task<FileShareRestRep> doExecute() throws Exception {
@@ -52,6 +57,7 @@ public class CreateFileSystemExport extends WaitForTask<FileShareRestRep> {
         export.setPermissions(permissions);
         export.setRootUserMapping(user);
         export.getEndpoints().addAll(hosts);
+        export.setBypassDnsCheck(bypassDnsCheck);
         if (StringUtils.isNotBlank(comment)) {
             export.setComments(comment);
         }

@@ -526,11 +526,13 @@ URI_REPLICATION_COMPRESS        = URI_SERVICES_BASE + '/vdc/data-service/vpools/
 URI_REMOTEREPLICATIONSET_LIST            = URI_SERVICES_BASE   + '/vdc/block/remotereplicationsets'
 URI_REMOTEREPLICATIONSET_INSTANCE        = URI_SERVICES_BASE   + '/vdc/block/remotereplicationsets/{0}'
 URI_REMOTEREPLICATIONSET_FAILOVER        = URI_SERVICES_BASE   + '/vdc/block/remotereplicationsets/{0}/failover'
+URI_REMOTEREPLICATIONSET_RESUME        = URI_SERVICES_BASE   + '/vdc/block/remotereplicationsets/{0}/resume'
 URI_REMOTEREPLICATIONSET_TASK            = URI_SERVICES_BASE   + '/vdc/block/remotereplicationsets/{0}/tasks/{1}'
 URI_REMOTEREPLICATIONGROUP_LIST            = URI_SERVICES_BASE   + '/vdc/block/remotereplicationgroups'
 URI_REMOTEREPLICATIONGROUP_INSTANCE        = URI_SERVICES_BASE   + '/vdc/block/remotereplicationgroups/{0}'
 URI_REMOTEREPLICATIONGROUP_CREATE        = URI_SERVICES_BASE   + '/vdc/block/remotereplicationgroups/create-group'
 URI_REMOTEREPLICATIONGROUP_FAILOVER        = URI_SERVICES_BASE   + '/vdc/block/remotereplicationgroups/{0}/failover'
+URI_REMOTEREPLICATIONGROUP_RESUME        = URI_SERVICES_BASE   + '/vdc/block/remotereplicationgroups/{0}/resume'
 URI_REMOTEREPLICATIONGROUP_TASK          = URI_SERVICES_BASE   + '/vdc/block/remotereplicationgroups/{0}/tasks/{1}'
 URI_STORAGE_SYSTEM_TYPE_CREATE           = URI_SERVICES_BASE   + '/vdc/storage-system-types/internal'
 URI_REMOTEREPLICATIONPAIR_LIST            = URI_SERVICES_BASE   + '/vdc/block/remotereplicationpairs'
@@ -9453,8 +9455,22 @@ class Bourne:
         s = self.api_sync_2(o['resource']['id'], o['op_id'], self.replicationgroup_show_task)
         return s
 
+    def replicationgroup_resume(self, replicationgroup_uri):
+        o = self.api('POST', URI_REMOTEREPLICATIONGROUP_RESUME.format(replicationgroup_uri))
+        self.assert_is_dict(o)
+        print '@@@@: ' + str(o) + ' :@@@@'
+        s = self.api_sync_2(o['resource']['id'], o['op_id'], self.replicationgroup_show_task)
+        return s
+
     def replicationset_failover(self, replicationset_uri):
         o = self.api('POST', URI_REMOTEREPLICATIONSET_FAILOVER.format(replicationset_uri))
+        self.assert_is_dict(o)
+        print '@@@@: ' + str(o) + ' :@@@@'
+        s = self.api_sync_2(o['resource']['id'], o['op_id'], self.replicationset_show_task)
+        return s
+
+    def replicationset_resume(self, replicationset_uri):
+        o = self.api('POST', URI_REMOTEREPLICATIONSET_RESUME.format(replicationset_uri))
         self.assert_is_dict(o)
         print '@@@@: ' + str(o) + ' :@@@@'
         s = self.api_sync_2(o['resource']['id'], o['op_id'], self.replicationset_show_task)

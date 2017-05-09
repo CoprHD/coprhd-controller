@@ -45,6 +45,17 @@ def remotereplicationgroup_create_storage_type(args):
                                                     args.port, args.ssl_port, args.driver_class)
     print storage_type
 
+def remotereplicationgroup_resume
+    bourne.connect(args.ip)
+
+    replicationgroup_uri = bourne.replicationgroup_query(args.replicationgroup_name)
+    print 'Replication group uri: ' + replicationgroup_uri
+
+    s = bourne.replicationgroup_resume(replicationgroup_uri)
+    if (s['state'] == 'ready'):
+        print 'Resumed remote replication group with id ' + s['resource']['id']
+    else:
+        print 'Failed to resume remote replication group.'
 
 # Failover remote replication group.
 def remotereplicationgroup_failover(args):
@@ -98,9 +109,9 @@ create.add_argument('--target_system', help = 'The Native GUID of the target sto
 create.add_argument('--source_ports', help = 'The names of source ports')
 create.add_argument('--target_ports', help = 'The names of target ports')
 
-# remotereplicationgroup failover
-failover = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
-failover.add_argument('replicationgroup_name', help = 'The name of the replication group.')
+# remotereplicationgroup operations
+operation = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+operation.add_argument('replicationgroup_name', help = 'The name of the replication group.')
 
 #----------------------------------------------------------------------
 # Main script
@@ -125,8 +136,11 @@ try:
         args = create_storage_type.parse_args()
         remotereplicationgroup_create_storage_type(args)
     elif (cmd == "failover"):
-        args = failover.parse_args()
+        args = operation.parse_args()
         remotereplicationgroup_failover(args)
+    elif (cmd == "resume"):
+        args = operation.parse_args()
+        remotereplicationgroup_resume(args)
     else:
         parser.print_help()
 

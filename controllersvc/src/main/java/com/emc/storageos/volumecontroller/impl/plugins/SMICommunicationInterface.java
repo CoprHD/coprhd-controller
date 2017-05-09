@@ -84,7 +84,6 @@ public class SMICommunicationInterface extends ExtendedCommunicationInterfaceImp
             _logger.info("CIMClient initialized successfully");
             executor.setKeyMap(_keyMap);
             executor.execute(_ns);
-            _logger.info("Started Injection of Stats to Cassandra");
             dumpStatRecords();
             injectStats();
         } catch (Exception e) {

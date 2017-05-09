@@ -109,7 +109,6 @@ public final class InvokeTestFailure {
     public static final String ARTIFICIAL_FAILURE_073 = "failure_073_UcsComputeDevice.createLsServer_createServiceProfileFromTemplate";
     public static final String ARTIFICIAL_FAILURE_074 = "failure_074_VPlexDeviceController_deleteStorageView_before_delete";
     public static final String ARTIFICIAL_FAILURE_080 = "failure_080_BlockDeviceController.expandVolume_before_device_expand";
-    public static final String ARTIFICIAL_FAILURE_081 = "failure_081_BlockDeviceController.expandVolume_after_device_expand";
     public static final String ARTIFICIAL_FAILURE_082 = "failure_082_set_resource_tag";
 
     private static final int FAILURE_SUBSTRING_LENGTH = 11;

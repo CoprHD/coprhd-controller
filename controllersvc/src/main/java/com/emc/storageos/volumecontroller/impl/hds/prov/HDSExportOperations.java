@@ -78,6 +78,10 @@ import com.emc.storageos.volumecontroller.impl.hds.prov.utils.HDSUtils;
 import com.emc.storageos.volumecontroller.impl.job.QueueJob;
 import com.emc.storageos.volumecontroller.impl.smis.ExportMaskOperations;
 import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
+import com.emc.storageos.volumecontroller.impl.validators.ValidatorFactory;
+import com.emc.storageos.volumecontroller.impl.validators.contexts.ExportMaskValidationContext;
+import com.emc.storageos.volumecontroller.impl.validators.hds.AbstractHDSValidator;
+import com.emc.storageos.workflow.WorkflowService;
 import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
 import com.google.common.collect.Collections2;
@@ -110,6 +114,8 @@ public class HDSExportOperations implements ExportMaskOperations {
     private CustomConfigHandler customConfigHandler;
     @Autowired
     private NetworkDeviceController _networkDeviceController;
+
+    private ValidatorFactory validator;
 
     static {
         // When a new model supports host modes then we should add them to this list.
@@ -194,7 +200,7 @@ public class HDSExportOperations implements ExportMaskOperations {
             log.info("createExportMask: initiators: {}", Joiner.on(',').join(initiatorList));
             log.info("createExportMask: assignments: {}", Joiner.on(',').join(targetURIList));
 
-            hdsApiClient = hdsApiFactory.getClient(getHDSServerManagementServerInfo(storage),
+            hdsApiClient = hdsApiFactory.getClient(HDSUtils.getHDSServerManagementServerInfo(storage),
                     storage.getSmisUserName(), storage.getSmisPassword());
             systemObjectID = HDSUtils.getSystemObjectID(storage);
             exportMask = dbClient.queryObject(ExportMask.class, exportMaskId);
@@ -822,9 +828,22 @@ public class HDSExportOperations implements ExportMaskOperations {
                 log.info("deleteExportMask: initiators: {}", Joiner.on(',').join(initiatorList));
             }
 
+            // Get the context from the task completer, in case this is a rollback.
+            boolean isRollback = WorkflowService.getInstance().isStepInRollbackState(taskCompleter.getOpId());
             ExportMask exportMask = dbClient.queryObject(ExportMask.class, exportMaskURI);
+
+            ExportMaskValidationContext ctx = new ExportMaskValidationContext();
+            ctx.setStorage(storage);
+            ctx.setExportMask(exportMask);
+            ctx.setBlockObjects(volumeURIList, dbClient);
+            ctx.setInitiators(initiatorList);
+            // Allow exceptions to be thrown when not rolling back
+            ctx.setAllowExceptions(!isRollback);
+            AbstractHDSValidator deleteMaskValidator = (AbstractHDSValidator) validator.exportMaskDelete(ctx);
+            deleteMaskValidator.validate();
+
             HDSApiClient hdsApiClient = hdsApiFactory.getClient(
-                    getHDSServerManagementServerInfo(storage), storage.getSmisUserName(),
+                    HDSUtils.getHDSServerManagementServerInfo(storage), storage.getSmisUserName(),
                     storage.getSmisPassword());
             HDSApiExportManager exportMgr = hdsApiClient.getHDSApiExportManager();
             String systemObjectId = HDSUtils.getSystemObjectID(storage);
@@ -878,7 +897,7 @@ public class HDSExportOperations implements ExportMaskOperations {
             }
 
             hdsApiClient = hdsApiFactory.getClient(
-                    getHDSServerManagementServerInfo(storage),
+                    HDSUtils.getHDSServerManagementServerInfo(storage),
                     storage.getSmisUserName(), storage.getSmisPassword());
             HDSApiExportManager exportMgr = hdsApiClient
                     .getHDSApiExportManager();
@@ -981,7 +1000,7 @@ public class HDSExportOperations implements ExportMaskOperations {
             }
 
             HDSApiClient hdsApiClient = hdsApiFactory.getClient(
-                    getHDSServerManagementServerInfo(storage), storage.getSmisUserName(),
+                    HDSUtils.getHDSServerManagementServerInfo(storage), storage.getSmisUserName(),
                     storage.getSmisPassword());
             HDSApiExportManager exportMgr = hdsApiClient.getHDSApiExportManager();
             String systemObjectID = HDSUtils.getSystemObjectID(storage);
@@ -1018,9 +1037,9 @@ public class HDSExportOperations implements ExportMaskOperations {
                 } else {
                     log.info("No volumes found on system: {}", systemObjectID);
                 }
-                // Update the status after deleting the volume from all HSD's.
-                taskCompleter.ready(dbClient);
             }
+            // Update the status after deleting the volume from all HSD's.
+            taskCompleter.ready(dbClient);
         } catch (Exception e) {
             log.error(
                     String.format("removeVolume failed - maskURI: %s",
@@ -1076,7 +1095,7 @@ public class HDSExportOperations implements ExportMaskOperations {
             log.info("addInitiator: targets : {}", Joiner.on(",").join(targetURIList));
 
             hdsApiClient = hdsApiFactory.getClient(
-                    getHDSServerManagementServerInfo(storage), storage.getSmisUserName(),
+                    HDSUtils.getHDSServerManagementServerInfo(storage), storage.getSmisUserName(),
                     storage.getSmisPassword());
             HDSApiExportManager exportMgr = hdsApiClient.getHDSApiExportManager();
             systemObjectID = HDSUtils.getSystemObjectID(storage);
@@ -1280,7 +1299,7 @@ public class HDSExportOperations implements ExportMaskOperations {
                 return;
             }
             HDSApiClient hdsApiClient = hdsApiFactory.getClient(
-                    getHDSServerManagementServerInfo(storage), storage.getSmisUserName(),
+                    HDSUtils.getHDSServerManagementServerInfo(storage), storage.getSmisUserName(),
                     storage.getSmisPassword());
             HDSApiExportManager exportMgr = hdsApiClient.getHDSApiExportManager();
             String systemObjectID = HDSUtils.getSystemObjectID(storage);
@@ -1393,15 +1412,15 @@ public class HDSExportOperations implements ExportMaskOperations {
             List<String> initiatorNames, boolean mustHaveAllPorts) throws DeviceControllerException {
         Map<String, Set<URI>> matchingMasks = new HashMap<String, Set<URI>>();
         log.info("finding export masks for storage {}", storage.getId());
-        HDSApiClient client = hdsApiFactory.getClient(
-                getHDSServerManagementServerInfo(storage),
-                storage.getSmisUserName(), storage.getSmisPassword());
-        HDSApiExportManager exportManager = client.getHDSApiExportManager();
         String systemObjectID = HDSUtils.getSystemObjectID(storage);
         Map<URI, Set<HostStorageDomain>> matchedHostHSDsMap = new HashMap<URI, Set<HostStorageDomain>>();
         Map<URI, Set<URI>> hostToInitiatorMap = new HashMap<URI, Set<URI>>();
         Map<URI, Set<String>> matchedHostInitiators = new HashMap<URI, Set<String>>();
         try {
+            HDSApiClient client = hdsApiFactory.getClient(
+                    HDSUtils.getHDSServerManagementServerInfo(storage),
+                    storage.getSmisUserName(), storage.getSmisPassword());
+            HDSApiExportManager exportManager = client.getHDSApiExportManager();
             List<HostStorageDomain> hsdList = exportManager
                     .getHostStorageDomains(systemObjectID);
             for (HostStorageDomain hsd : hsdList) {
@@ -1505,7 +1524,7 @@ public class HDSExportOperations implements ExportMaskOperations {
                             exportMaskWithHostInitiators.add(maskForHSD); 
                         } else {
                             ExportMaskUtils.sanitizeExportMaskContainers(dbClient, maskForHSD);
-                            dbClient.updateAndReindexObject(maskForHSD);
+                            dbClient.updateObject(maskForHSD);
                         }
                         updateMatchingMasksForHost(
                                 matchedHostInitiators.get(hostURI), maskForHSD,
@@ -1809,7 +1828,7 @@ public class HDSExportOperations implements ExportMaskOperations {
 
         try {
             HDSApiClient client = hdsApiFactory.getClient(
-                    getHDSServerManagementServerInfo(storage), storage.getSmisUserName(),
+                    HDSUtils.getHDSServerManagementServerInfo(storage), storage.getSmisUserName(),
                     storage.getSmisPassword());
             HDSApiExportManager exportManager = client.getHDSApiExportManager();
             String systemObjectID = HDSUtils.getSystemObjectID(storage);
@@ -1830,8 +1849,8 @@ public class HDSExportOperations implements ExportMaskOperations {
                     maskName = (null == hsd.getName()) ? hsd.getNickname() : hsd.getName();
 
                     // Get volumes and initiators for the masking instance
-                    discoveredVolumes.putAll(getVolumesFromHSD(hsd, storage));
-                    discoveredInitiators.addAll(getInitiatorsFromHSD(hsd));
+                    discoveredVolumes.putAll(HDSUtils.getVolumesFromHSD(hsd, storage));
+                    discoveredInitiators.addAll(HDSUtils.getInitiatorsFromHSD(hsd));
                 }
                 Set existingInitiators = (mask.getExistingInitiators() != null) ? mask.getExistingInitiators() : Collections.emptySet();
                 Set existingVolumes = (mask.getExistingVolumes() != null) ? mask.getExistingVolumes().keySet() : Collections.emptySet();
@@ -1912,71 +1931,6 @@ public class HDSExportOperations implements ExportMaskOperations {
         return mask;
     }
 
-    /**
-     * Return the initiators from HSD passed in.
-     * 
-     * @param hsd
-     * @return
-     */
-    private List<String> getInitiatorsFromHSD(HostStorageDomain hsd) {
-        List<String> initiatorsList = new ArrayList<String>();
-        if (null != hsd.getWwnList()) {
-            for (WorldWideName wwn : hsd.getWwnList()) {
-                String wwnName = wwn.getWwn();
-                String normalizedPortWWN = wwnName.replace(HDSConstants.DOT_OPERATOR, "");
-                initiatorsList.add(normalizedPortWWN);
-            }
-        }
-
-        if (null != hsd.getIscsiList()) {
-            for (ISCSIName iscsi : hsd.getIscsiList()) {
-                initiatorsList.add(iscsi.getiSCSIName());
-            }
-        }
-        return initiatorsList;
-    }
-
-    /**
-     * Return a map[deviceId] => lun from the give HostStorageDomain.
-     * 
-     * @param hsd
-     * @return
-     */
-    private Map<String, Integer> getVolumesFromHSD(HostStorageDomain hsd, StorageSystem storage) {
-        Map<String, Integer> volumesFromHSD = new HashMap<String, Integer>();
-        List<Path> pathList = hsd.getPathList();
-        if (null != pathList) {
-            for (Path path : pathList) {
-                String volumeWWN = HDSUtils.generateHitachiVolumeWWN(storage, path.getDevNum());
-                volumesFromHSD.put(volumeWWN, Integer.valueOf(path.getLun()));
-            }
-        }
-        return volumesFromHSD;
-    }
-
-    /**
-     * Generates the HiCommand Server URI.
-     * 
-     * @param system
-     * @return
-     */
-    private URI getHDSServerManagementServerInfo(StorageSystem system) {
-        String protocol;
-        String providerIP;
-        int port;
-        if (Boolean.TRUE.equals(system.getSmisUseSSL())) {
-            protocol = HDSConstants.HTTPS_URL;
-        } else {
-            protocol = HDSConstants.HTTP_URL;
-        }
-        providerIP = system.getSmisProviderIP();
-        port = system.getSmisPortNumber();
-        URI uri = URI.create(String.format("%1$s://%2$s:%3$d/service/StorageManager",
-                protocol, providerIP, port));
-        log.info("HiCommand DM server url to query: {}", uri);
-        return uri;
-    }
-
     @Override
     public void updateStorageGroupPolicyAndLimits(StorageSystem storage,
             ExportMask exportMask, List<URI> volumeURIs, VirtualPool newVirtualPool,
@@ -2047,5 +2001,9 @@ public class HDSExportOperations implements ExportMaskOperations {
     public void removePaths(StorageSystem storage, URI exportMask, Map<URI, List<URI>> adjustedPaths, Map<URI, List<URI>> removePaths, TaskCompleter taskCompleter)
             throws DeviceControllerException {
         throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+    }
+
+    public void setValidator(ValidatorFactory validator) {
+        this.validator = validator;
     }
 }

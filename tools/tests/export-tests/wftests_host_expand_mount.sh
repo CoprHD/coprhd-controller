@@ -10,7 +10,8 @@ test_expand_host_filesystem() {
     test_name="test_expand_host_filesystem"
     echot "Test ${test_name} Begins"
     common_failure_injections="failure_004_final_step_in_workflow_complete \
-                               failure_080_BlockDeviceController.expandVolume_before_device_expand"
+                               failure_080_BlockDeviceController.expandVolume_before_device_expand \
+                               failure_081_BlockDeviceController.expandVolume_after_device_expand"
 
     os_failure_injections=""
 

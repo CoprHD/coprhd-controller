@@ -2597,7 +2597,8 @@ test_expand_volume_and_datastore() {
     run syssvc $SANITY_CONFIG_FILE localhost set_prop system_proxyuser_encpassword $SYSADMIN_PASSWORD
 
     common_failure_injections="failure_004_final_step_in_workflow_complete \
-                         failure_080_BlockDeviceController.expandVolume_before_device_expand"
+                         failure_080_BlockDeviceController.expandVolume_before_device_expand \
+                         failure_081_BlockDeviceController.expandVolume_after_device_expand"    
     catalog_failures_injections="expand_vmfs_datastore"                
                 
     item=${RANDOM}

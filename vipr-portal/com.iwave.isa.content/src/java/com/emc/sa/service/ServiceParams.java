@@ -179,4 +179,5 @@ public interface ServiceParams {
     public String FS_TYPE = "fsType";
  
     public String ARTIFICIAL_FAILURE = "artificialFailure";
+    public String BYPASS_DNS_CHECK = "bypassDnsCheck";
 }

@@ -33,7 +33,7 @@ public class SetBlockVolumeMachineTag extends ViPRExecutionTask<Void> {
             MachineTagUtils.setBlockVolumeTag(getClient(), volumeId, tagName, tagValue);
         } catch (Exception ex) {
             String command = BlockStorageUtils.getVolumeTagCommand(volumeId, tagName, tagValue);
-            ExecutionUtils.fail("failTask.SetBlockVolumeMachineTag", new Object[] { command });
+            ExecutionUtils.fail("failTask.SetBlockVolumeMachineTag", new Object [] { volumeId, tagName, tagValue }, command);
         }
     }
 }

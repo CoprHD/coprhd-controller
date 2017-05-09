@@ -789,6 +789,16 @@ public class WorkflowBuilder extends Controller {
                 URI packageId = null;
                 boolean updateDone = false;
                 if (!localAnsible.isExisting()) {
+                    // NEW RESOURCE
+                    // Before creating resource check if this primitive is not used
+                    final CustomServicesWorkflowList customServicesWorkflowList = getCatalogClient().customServicesPrimitives().getWorkflows(localAnsible.getId());
+                    if (customServicesWorkflowList != null && customServicesWorkflowList.getWorkflows() != null) {
+                        if (!customServicesWorkflowList.getWorkflows().isEmpty()) {
+                            flash.error("Primitive %s is being used in Workflow", localAnsible.getName());
+                            return;
+                        }
+                    }
+
                     // create new resource
                     final CustomServicesPrimitiveResourceRestRep primitiveResourceRestRep = getCatalogClient().customServicesPrimitives()
                             .createPrimitiveResource("ANSIBLE", localAnsible.getAnsiblePackage(), localAnsible.getAnsiblePackageName());
@@ -798,6 +808,7 @@ public class WorkflowBuilder extends Controller {
                         primitiveUpdateParam.setResource(packageId);
                     }
                 } else {
+                    // EXISTING RESOURCE
                     packageId = new URI(localAnsible.getExistingResource());
                     primitiveUpdateParam.setResource(packageId);
 
@@ -906,8 +917,6 @@ public class WorkflowBuilder extends Controller {
             localAnsiblePrimitiveForm.setDescription(primitiveRestRep.getDescription());
             localAnsiblePrimitiveForm.setInputs(convertListToString(convertInputParamsGroupsToList(primitiveRestRep.getInputGroups())));
             localAnsiblePrimitiveForm.setOutputs(convertListToString(convertOutputGroupsToList(primitiveRestRep.getOutput())));
-            // TODO: get script name from API
-            localAnsiblePrimitiveForm.setAnsiblePackageName("SAMPLE NAME");
             localAnsiblePrimitiveForm.setAnsiblePlaybook(primitiveRestRep.getAttributes().get("playbook"));
             localAnsiblePrimitiveForm.setExisting(true);
             localAnsiblePrimitiveForm.setExistingResource(primitiveRestRep.getResource().getId().toString());

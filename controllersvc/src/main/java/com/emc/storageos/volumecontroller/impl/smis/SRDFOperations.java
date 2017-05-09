@@ -980,6 +980,14 @@ public class SRDFOperations implements SmisConstants {
         completer.error(dbClient, error);
     }
 
+    /**
+     * Process srdf volumes after swap operation.
+     * @param sourceVolume
+     * @param targetVolume
+     * @param dbClient
+     * @param status
+     * @return set of source srdf volumes after swap (targets before the swap)
+     */
     private Set<String> changeSRDFVolumeBehaviors(Volume sourceVolume, Volume targetVolume, DbClient dbClient, String status) {
         List<Volume> volumes = new ArrayList<>();
         StringSet srdfSourcesAfterSwap = new StringSet();

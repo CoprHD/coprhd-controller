@@ -9,7 +9,7 @@ import java.util.Map;
 public class ControllerPropertyPage extends CustomPropertyPage {
     private Property meteringEnabled;
     private Property meteringInterval;
-    private Property persistMeteringStats;
+    private Property meteringCollectionType;
     private Property monitoringEnabled;
     private Property mdsCloneZoneset;
     private Property mdsAllowZonesetCommit;
@@ -19,7 +19,7 @@ public class ControllerPropertyPage extends CustomPropertyPage {
         setRenderTemplate("controllerPage.html");
         meteringEnabled = addCustomProperty(properties, "controller_enable_metering");
         meteringInterval = addCustomProperty(properties, "controller_metering_interval");
-        persistMeteringStats = addCustomProperty(properties, "controller_metering_persist_stat_records");
+        meteringCollectionType = addCustomProperty(properties, "controller_metering_collection_type");
         monitoringEnabled = addCustomProperty(properties, "controller_enable_monitoring");
         mdsCloneZoneset = addCustomProperty(properties, "controller_mds_clone_zoneset");
         mdsAllowZonesetCommit = addCustomProperty(properties, "controller_mds_allow_zoneset_commit");
@@ -34,8 +34,8 @@ public class ControllerPropertyPage extends CustomPropertyPage {
         return meteringInterval;
     }
 
-    public Property getPersistMeteringStats() {
-        return persistMeteringStats;
+    public Property getMeteringCollectionType() {
+        return meteringCollectionType;
     }
 
     public Property getMonitoringEnabled() {

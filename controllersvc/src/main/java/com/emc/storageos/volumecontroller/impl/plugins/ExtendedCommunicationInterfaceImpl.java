@@ -118,8 +118,8 @@ public abstract class ExtendedCommunicationInterfaceImpl implements ExtendedComm
         List<Stat> stats = (List<Stat>) _keyMap.get(Constants._Stats);
         @SuppressWarnings("unchecked")
         Map<String, String> props = (Map<String, String>) _keyMap.get(Constants.PROPS);
-        boolean persistStats = Boolean.valueOf(props.get(Constants.METERING_PERSIST_STAT_RECORDS));
-        if (persistStats) {
+        String collectionType = props.get(Constants.METERING_COLLECTION_TYPE);
+        if (collectionType != null && Constants.METERING_COLLECTION_TYPE_FULL.equalsIgnoreCase(collectionType)) {
             _logger.info("Started Injection of Stats to Cassandra");
             // insert in batches
             int size = Constants.DEFAULT_PARTITION_SIZE;

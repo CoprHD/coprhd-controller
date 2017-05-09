@@ -439,6 +439,8 @@ _genconfig_system_init() {
        _genconfig_mkdir 755 storageos:storageos /opt/customroot/usr
        _genconfig_mkdir 755 storageos:storageos /opt/customroot/lib
        _genconfig_mkdir 755 storageos:storageos /opt/customroot/lib64
+	   _genconfig_mkdir 755 storageos:storageos /opt/customroot/sbin
+	   _genconfig_mkdir 755 storageos:storageos /opt/customroot/bin
 
        _genconfig_custom_mount
     fi

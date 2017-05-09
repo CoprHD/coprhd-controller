@@ -303,8 +303,12 @@ _genconfig_custom_mount() {
    mount --bind /usr /opt/customroot/usr
    mount --bind /lib /opt/customroot/lib
    mount --bind /lib64 /opt/customroot/lib64
+   mount --bind /sbin /opt/customroot/sbin
+   mount --bind /bin /opt/customroot/bin
    
    mount -o bind,remount,ro /opt/customroot/usr
    mount -o bind,remount,ro /opt/customroot/lib
    mount -o bind,remount,ro /opt/customroot/lib64
+   mount -o bind,remount,ro /opt/customroot/sbin
+   mount -o bind,remount,ro /opt/customroot/bin
 }

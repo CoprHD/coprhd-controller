@@ -16,7 +16,6 @@ import com.emc.sa.engine.service.Service;
 import com.emc.sa.service.ArtificialFailures;
 import com.emc.sa.service.vipr.block.BlockStorageUtils;
 import com.emc.sa.service.vmware.VMwareHostService;
-import com.emc.storageos.model.block.BlockObjectRestRep;
 import com.emc.storageos.model.block.VolumeRestRep;
 import com.vmware.vim25.mo.Datastore;
 
@@ -32,7 +31,6 @@ public class ExpandVmfsDatastoreService extends VMwareHostService {
     @Param(SIZE_IN_GB)
     protected Double sizeInGb;
 
-    private BlockObjectRestRep volume;
     private Datastore datastore;
 
     @Override
@@ -40,7 +38,7 @@ public class ExpandVmfsDatastoreService extends VMwareHostService {
         StringBuilder preCheckErrors = new StringBuilder();
 
         super.precheck();
-        volume = BlockStorageUtils.getVolume(volumeId);
+        BlockStorageUtils.getVolume(volumeId);
         acquireHostLock();
         datastore = vmware.getDatastore(datacenter.getLabel(), datastoreName);
 

@@ -5,7 +5,6 @@
 package com.emc.storageos.volumecontroller.impl.block.taskcompleter;
 
 import java.net.URI;
-import java.util.ArrayList;
 import java.util.List;
 
 import org.slf4j.Logger;
@@ -18,27 +17,23 @@ import com.emc.storageos.db.client.model.Operation.Status;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.exceptions.DeviceControllerException;
-import com.emc.storageos.networkcontroller.NetworkFCZoneInfo;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.volumecontroller.TaskCompleter;
 
 public class ZoneReferencesRemoveCompleter extends TaskCompleter {
     private static final Logger _log = LoggerFactory.getLogger(ZoneReferencesRemoveCompleter.class);
 
-    private List<NetworkFCZoneInfo> zoneInfoList;
     private boolean removeZoneReferences;
 
     /**
      * Constructor for ZoneReferencesRemoveCompleter.
      * 
-     * @param zoneList List of FCZoneInfo instance
+     * @param refList List of FCZoneInfo instance
      * @param removeZoneRefs True if Zone needs to be removed or Zone was added and needs to be removed in rollback call. Else False.
      * @param opId Operation ID.
      */
-    public ZoneReferencesRemoveCompleter(List<NetworkFCZoneInfo> zoneList, boolean removeZoneRefs, String opId) {
-        super();
-        zoneInfoList = new ArrayList<NetworkFCZoneInfo>();
-        zoneInfoList.addAll(zoneList);
+    public ZoneReferencesRemoveCompleter(List<URI> refList, boolean removeZoneRefs, String opId) {
+        super(ZoneReferencesRemoveCompleter.class, refList, opId);
         removeZoneReferences = removeZoneRefs;
     }
 
@@ -46,13 +41,12 @@ public class ZoneReferencesRemoveCompleter extends TaskCompleter {
     protected void complete(DbClient dbClient, Operation.Status status, ServiceCoded coded)
             throws DeviceControllerException {
 
-        if (removeZoneReferences && status == Status.error) {
+        if (removeZoneReferences || status == Status.error) {
             String refKey = null;
             try {
-                for (NetworkFCZoneInfo fabricInfo : zoneInfoList) {
-                    URI fcZoneReferenceId = fabricInfo.getFcZoneReferenceId();
+                for (URI fcZoneReferenceId : getIds()) {
                     if (NullColumnValueGetter.isNullURI(fcZoneReferenceId)) {
-                        _log.info("fcZoneReferenceId corresponding to zone info {} is null. Nothing to remove.", fabricInfo.toString());
+                        _log.info("fcZoneReferenceId is null. Nothing to remove.");
                         continue;
                     }
                     FCZoneReference ref = dbClient.queryObject(FCZoneReference.class, fcZoneReferenceId);
@@ -67,5 +61,7 @@ public class ZoneReferencesRemoveCompleter extends TaskCompleter {
                 _log.error("Could not persist FCZoneReference: " + refKey);
             }
         }
+        
+        updateWorkflowStatus(status, coded);
     }
 }

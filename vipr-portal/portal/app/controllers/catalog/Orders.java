@@ -507,6 +507,8 @@ public class Orders extends OrderExecution {
 
         public Map<URI, String> viprTaskStepMessages;
 
+        public Map<URI, List<String>> viprTaskWarningMessages;
+
         public OrderDetails(String orderId) {
             order = OrderUtils.getOrder(uri(orderId));
             orderParameters = order.getParameters();
@@ -522,6 +524,7 @@ public class Orders extends OrderExecution {
             List<SearchResultResourceRep> searchResults = client.tasks().performSearchBy("tag", TagUtils.createOrderIdTag(orderId));
             viprTasks = client.tasks().getByRefs(searchResults);
             setTaskStepMessages();
+            setTaskWarningMessages();
 
             checkLastUpdated(viprTasks);
 
@@ -555,6 +558,15 @@ public class Orders extends OrderExecution {
                         scheduledEvent.getScheduleInfo().getMinuteOfHour());
                 DateTime startDateTime = DateTime.parse(isoDateTimeStr);
                 scheduleStartDateTime = startDateTime.toDate();
+            }
+        }
+
+        private void setTaskWarningMessages() {
+            viprTaskWarningMessages = Maps.newHashMap();
+            for (TaskResourceRep task : viprTasks) {
+                if (task != null && task.getWarningMessages() != null && !task.getWarningMessages().isEmpty()) {
+                    viprTaskWarningMessages.put(task.getId(), task.getWarningMessages());
+                }
             }
         }
 

@@ -715,7 +715,7 @@ public class VPlexScheduler implements Scheduler {
         // Get the performance parameters for the source volume.
         Map<VolumeTopologyRole, URI> sourceParams = null;
         List<Map<VolumeTopologyRole, URI>> sourceParamList = performanceParams.get(VolumeTopologySite.SOURCE);
-        if (CollectionUtils.isEmpty(sourceParamList)) {
+        if (!CollectionUtils.isEmpty(sourceParamList)) {
             // There is only one source volume in a volume topology.
             sourceParams = sourceParamList.get(0);
         }

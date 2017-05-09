@@ -74,14 +74,18 @@ ansibleResourceNames = _arg;
                 <div class="tab-pane" id="${hostFileTabID}">
                     #{Modal.body}
                         #{field 'localAnsible.inventoryFiles'}
+                            %{
+                            field.width = 8
+                            field.labelWidth = 2
+                            }%
                             #{Form.multiFileUpload field:field/}
                         #{/field}
-                        <div class="row" ng-repeat="inventory in updatedInventoryFiles" style="margin-bottom:5px;">
+                        <div class="row" ng-repeat="inventory in updatedInventoryFiles track by $index" style="margin-bottom:5px;">
                             <div class="pull-left col-sm-11" v-field="inventory">
                                 <input-text disabled></input-text>
                             </div>
                             <div class="pull-left col-sm-1" style="padding-left:0px; margin-top:5px;">
-                                <button type="button" ng-click="deleteInventoryFile($index)" class="close">&times;</button>
+                                <button type="button" ng-click="deleteInventoryFile($index)" class="close" title="&{'localAnsible.inventoryFiles.delete'}"><span class="glyphicon glyphicon-trash"></span></button>
                             </div>
                         </div>
                         <input type="hidden" name="localAnsible.updatedInventoryFiles" ng-value="updatedInventoryFileNamesStr"/>
@@ -161,7 +165,9 @@ ansibleResourceNames = _arg;
     function checkLAFinish() {
         var complete = true;
         var chooseExisting = $('[name="localAnsible.existing"]').val();
-        if (!chooseExisting || chooseExisting === "false") chooseExisting = false;
+        if (!chooseExisting || chooseExisting === "false") {
+            chooseExisting = false;
+        }
         else chooseExisting = true;
         if (isBlank($('#localAnsible_name').val()) || isBlank($('#localAnsible_ansiblePlaybook').val())) {
             complete = false;

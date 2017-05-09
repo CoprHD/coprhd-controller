@@ -5063,6 +5063,7 @@ shellPrimitive.newScript=Provide New Script?
 localAnsible.primitive.add.title=Add Local Ansible
 localAnsible.primitive.edit.title=Edit Local Ansible
 localAnsible.inventoryFiles=Upload
+localAnsible.inventoryFiles.delete=Delete
 localAnsible.existingResource=Select Package
 localAnsible.ansiblePackage=Package
 localAnsible.ansiblePackageName=Package Name

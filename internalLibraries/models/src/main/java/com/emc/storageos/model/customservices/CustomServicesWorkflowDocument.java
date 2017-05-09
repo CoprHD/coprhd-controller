@@ -94,6 +94,7 @@ public class CustomServicesWorkflowDocument {
         private String tableName;
         private boolean required = true;
         private boolean locked = false;
+        // Use this to set "key,value" pairs for type "InputFromUserMulti"
         private Map<String, String> options;
 
         @XmlElement(name = "name")

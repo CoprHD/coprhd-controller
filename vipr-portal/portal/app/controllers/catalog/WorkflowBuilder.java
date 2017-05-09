@@ -431,7 +431,7 @@ public class WorkflowBuilder extends Controller {
         final List<String> categories = new ArrayList<String>();
         final List<String> services = new ArrayList<String>();
 
-        List<CustomServicesPrimitiveRestRep> primitives = getCatalogClient().customServicesPrimitives()
+        final List<CustomServicesPrimitiveRestRep> primitives = getCatalogClient().customServicesPrimitives()
                 .getByIds(primitiveList.getPrimitives());
         for (final CustomServicesPrimitiveRestRep primitive : primitives) {
             final String parent = (fileParents != null && fileParents.containsKey(primitive.getId()))
@@ -540,11 +540,13 @@ public class WorkflowBuilder extends Controller {
 
     public static void getInventoryFilesForPackage(final URI packageId) {
         final List<String> inventoryFileNames = new ArrayList<String>();
-        final CustomServicesPrimitiveResourceList customServicesPrimitiveResourceList = getCatalogClient().customServicesPrimitives()
-                .getPrimitiveResourcesByType(CustomServicesConstants.ANSIBLE_INVENTORY_TYPE, packageId);
-        if (null != customServicesPrimitiveResourceList.getResources()) {
-            for (NamedRelatedResourceRep inventoryResource : customServicesPrimitiveResourceList.getResources()) {
-                inventoryFileNames.add(inventoryResource.getName());
+        if (null != packageId) {
+            final CustomServicesPrimitiveResourceList customServicesPrimitiveResourceList = getCatalogClient().customServicesPrimitives()
+                    .getPrimitiveResourcesByType(CustomServicesConstants.ANSIBLE_INVENTORY_TYPE, packageId);
+            if (null != customServicesPrimitiveResourceList.getResources()) {
+                for (NamedRelatedResourceRep inventoryResource : customServicesPrimitiveResourceList.getResources()) {
+                    inventoryFileNames.add(inventoryResource.getName());
+                }
             }
         }
         renderJSON(inventoryFileNames);
@@ -1019,8 +1021,8 @@ public class WorkflowBuilder extends Controller {
                     .getPrimitive(step.getOperation());
             final CustomServicesPrimitiveResourceList customServicesPrimitiveResourceList = getCatalogClient().customServicesPrimitives()
                     .getPrimitiveResourcesByType(CustomServicesConstants.ANSIBLE_INVENTORY_TYPE, primitiveRestRep.getResource().getId());
-            if (customServicesPrimitiveResourceList != null && customServicesPrimitiveResourceList.getResources() != null &&
-                    customServicesPrimitiveResourceList.getResources().size() > 0) {
+            if (customServicesPrimitiveResourceList != null
+                    && CollectionUtils.isNotEmpty(customServicesPrimitiveResourceList.getResources())) {
                 final Map<String, String> options = new HashMap<String, String>();
                 for (NamedRelatedResourceRep n : customServicesPrimitiveResourceList.getResources()) {
                     options.put(n.getId().toString(), n.getName());
@@ -1095,20 +1097,15 @@ public class WorkflowBuilder extends Controller {
                 final CustomServicesWorkflowRestRep customServicesWorkflowRestRep = getCatalogClient().customServicesPrimitives()
                         .getWorkflow(workflowId);
                 if (null != customServicesWorkflowRestRep) {
-                    try {
-                        Logger.info("Updating workflow {} with new host inventory files", workflowId);
-                        final CustomServicesWorkflowUpdateParam param = new CustomServicesWorkflowUpdateParam();
-                        for (final CustomServicesWorkflowDocument.Step step : customServicesWorkflowRestRep.getDocument().getSteps()) {
-                            addInventoryFileInputs(step);
-                        }
-                        param.setDocument(customServicesWorkflowRestRep.getDocument());
-                        getCatalogClient().customServicesPrimitives().editWorkflow(workflowId, param);
-
-                        updatedWorkflows = true;
-                    } catch (Exception e) {
-                        e.printStackTrace();
+                    Logger.info("Updating workflow {} with new host inventory files", workflowId);
+                    final CustomServicesWorkflowUpdateParam param = new CustomServicesWorkflowUpdateParam();
+                    for (final CustomServicesWorkflowDocument.Step step : customServicesWorkflowRestRep.getDocument().getSteps()) {
+                        addInventoryFileInputs(step);
                     }
+                    param.setDocument(customServicesWorkflowRestRep.getDocument());
+                    getCatalogClient().customServicesPrimitives().editWorkflow(workflowId, param);
 
+                    updatedWorkflows = true;
                 }
             }
         }

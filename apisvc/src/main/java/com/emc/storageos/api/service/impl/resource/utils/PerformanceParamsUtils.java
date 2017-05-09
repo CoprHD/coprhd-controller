@@ -391,6 +391,12 @@ public class PerformanceParamsUtils {
             haCapabilities.removeCapabilityEntry(VirtualPoolCapabilityValuesWrapper.AUTO_TIER__POLICY_NAME);            
         }
 
+        // Set is thin provisioning for the HA side.
+        if (VirtualPool.ProvisioningType.Thin.toString().equalsIgnoreCase(
+                haVpool.getSupportedProvisioningType())) {
+            haCapabilities.put(VirtualPoolCapabilityValuesWrapper.THIN_PROVISIONING, Boolean.TRUE);
+        }
+
         // Set the thin volume pre-allocation size for the HA side into the HA capabilities.
         Integer thinVolumePreAllocPercentage = getThinVolumePreAllocPercentage(
                 performanceParams, VolumeTopologyRole.HA, haVpool, dbClient);
@@ -398,7 +404,7 @@ public class PerformanceParamsUtils {
             haCapabilities.put(VirtualPoolCapabilityValuesWrapper.THIN_VOLUME_PRE_ALLOCATE_SIZE, VirtualPoolUtil
                     .getThinVolumePreAllocationSize(thinVolumePreAllocPercentage, haCapabilities.getSize()));
         }
-        
+
         // Set the dedup capable for the HA side into the HA capabilities.
         Boolean dedupCapable = getIsDedupCapable(performanceParams, VolumeTopologyRole.HA, haVpool, dbClient);
         if (dedupCapable) {

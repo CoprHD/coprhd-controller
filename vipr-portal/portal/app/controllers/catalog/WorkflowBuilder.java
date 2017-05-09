@@ -868,7 +868,6 @@ public class WorkflowBuilder extends Controller {
                 final ImmutableMap.Builder<String, InputCreateList> builder = ImmutableMap.<String, InputCreateList> builder();
                 // Add Input Groups
                 addInputs(localAnsible.getInputs(), builder, CustomServicesConstants.INPUT_PARAMS);
-                // addInputs("host_file", builder, CustomServicesConstants.ANSIBLE_OPTIONS);
                 primitiveCreateParam.setInput(builder.build());
 
                 if (StringUtils.isNotEmpty(localAnsible.getOutputs())) {

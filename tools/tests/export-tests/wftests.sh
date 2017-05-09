@@ -1535,7 +1535,7 @@ test_3() {
     failure_injections="${common_failure_injections} ${storage_failure_injections}"
 
     # Placeholder when a specific failure case is being worked...
-     failure_injections="failure_004"
+    # failure_injections="failure_004"
 
     if [ "${SS}" = "vplex" ]
     then
@@ -2242,7 +2242,7 @@ test_9() {
     failure_injections="${common_failure_injections} ${storage_failure_injections}"
 
     # Placeholder when a specific failure case is being worked...
-    failure_injections="failure_043_VPlexVmaxMaskingOrchestrator.deleteOrRemoveVolumesFromExportMask_before_operation"
+    # failure_injections="failure_043_VPlexVmaxMaskingOrchestrator.deleteOrRemoveVolumesFromExportMask_before_operation"
 
     if [ "${SS}" = "vplex" ]
     then

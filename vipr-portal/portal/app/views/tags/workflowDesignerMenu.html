@@ -6,53 +6,61 @@
 			<h3>{{stepData.friendlyName}}</h3>
 			<p>{{stepData.description}}</p>
 			<div class="panel with-nav-tabs panel-default">
-				<div class="panel-heading">
+				<div class="panel-heading input-panel">
 					<ul class="nav nav-tabs">
-						<li class="active"><a href="#tab1default" data-toggle="tab">Input</a></li>
-						<li><a href="#tab2default" data-toggle="tab">Output</a></li>
+						<li class="active"><a href="{{workflowTab.href}}_input" class="workflow-tab" data-toggle="tab">Input</a></li>
+						<li><a href="{{workflowTab.href}}_output" class="workflow-tab" data-toggle="tab">Output</a></li>
 					</ul>
 				</div>
 				 <div class="panel-body">
 					<div class="tab-content">
-						<div class="tab-pane fade in active" id="tab1default">
+						<div class="tab-pane fade in active" id="{{workflowTab.elementid}}_input">
 							<div id="inputDiv" ng-repeat="inputParam in stepData.inputGroups.input_params">
 								<div ng-repeat="input in inputParam">
-									<collapse title-key={{input.name}} ng-class="{'required':input.required && stepData.type==='vipr'}">
+									<div ng-if="getInputError(stepData.id,input.name)!=null" class="error-input-container">
+										<div class="error-input-icon-hover" ng-mouseover="hoverInputErrorIn(stepData.id,input.name)" ng-mouseleave="hoverInputErrorOut(stepData.id,input.name)"></div>
+										<div ng-init="inputError=getInputError(stepData.id,input.name)" ng-class="{'visible':alert.error.errorSteps[stepData.id].errorInputGroups.input_params.errorInputs[input.name].visible}" class="custom-error-popover top custom-error-input-popover">
+											<div class="arrow"></div><div ng-repeat="message in inputError.errorMessages" class="custom-popover-content">{{message}}</div>
+										</div>
+									</div>
+									<collapse id="{{stepData.id}}_{{input.name}}_collapsible" title-key={{input.name}} icon="error-icon"
+											  ng-class="{'required':input.required && stepData.type==='vipr',
+											  'input-error-icon':alert.error.errorSteps.{{stepData.id}}.errorInputGroups.input_params.errorInputs['{{input.name}}'].errorMessages}">
 										 <control-group class="col-sm-12" v-field="input.type" width="9" >
-	                        				<select-one options="UserInputTypeOption" auto-default v-disabled='locked'></select-one>
+	                        				<select-one options="UserInputTypeOption" auto-default v-disabled='locked' ng-change="setWorkflowModified('true')"></select-one>
 	                        			</control-group>
 										<control-group class="col-sm-12" v-field='input.friendlyName' ng-if="input.type=='InputFromUser' || input.type=='AssetOptionSingle'|| input.type=='AssetOptionMulti'" width="9">
-											<input-text></input-text>
+											<input-text ng-change="setWorkflowModified('true')"></input-text>
 										</control-group>
 										<control-group class="col-sm-12" v-field='input.decription' ng-if="input.type=='InputFromUser' || input.type=='AssetOptionSingle'|| input.type=='AssetOptionMulti'" width="9">
-                        					<input-text></input-text>
+                        					<input-text ng-change="setWorkflowModified('true')"></input-text>
           								</control-group>
 	   									<control-group class="col-sm-12" v-field="input.required" width="9" ng-if="stepData.type!=='vipr'" >
-											<boolean-checkbox v-default-value="false"></boolean-checkbox>
+											<boolean-checkbox v-default-value="false" ng-change="setWorkflowModified('true')"></boolean-checkbox>
 	  									</control-group>
 	                        			<control-group class="col-sm-12" label-key ="input.stepInput" v-field="input.value" ng-if="input.type=='FromOtherStepInput'" width="9"  >
-	                        				<select-one options="stepInputOptions" auto-default v-disabled='locked'></select-one>
+	                        				<select-one options="stepInputOptions" auto-default v-disabled='locked' ng-change="setWorkflowModified('true')"></select-one>
 	                        			</control-group>
 	                        			<control-group class="col-sm-12" label-key="input.stepOutput" v-field="input.value" ng-if="input.type=='FromOtherStepOutput'" width="9" >
-	                        				<select-one options="stepOutputOptions" auto-default v-disabled='locked'></select-one>
+	                        				<select-one options="stepOutputOptions" auto-default v-disabled='locked' ng-change="setWorkflowModified('true')"></select-one>
 	                        			</control-group>
 	                        			<control-group class="col-sm-12" label-key="input.assetOption" v-field="input.value" ng-if="input.type=='AssetOptionSingle'|| input.type=='AssetOptionMulti'" width="9" >
-	                        				<select-one options="AssetOptionTypes" auto-default v-disabled='locked'></select-one>
+	                        				<select-one options="AssetOptionTypes" auto-default v-disabled='locked' ng-change="setWorkflowModified('true')"></select-one>
 	                        			</control-group>
 	  									<control-group class="col-sm-12" v-field="input.defaultValue" ng-if="input.type=='InputFromUser'" width="9">
-	                        				<input-text></input-text>
+	                        				<input-text ng-change="setWorkflowModified('true')"></input-text>
 	                        			</control-group>
 	                        			<control-group class="col-sm-12" v-field='input.inputFieldType' ng-if="input.type=='InputFromUser'" width="9">
-	                        				<select-one options="InputFieldOption" auto-default v-disabled='locked'></select-one>
+	                        				<select-one options="InputFieldOption" auto-default v-disabled='locked' ng-change="setWorkflowModified('true')"></select-one>
 	                        			</control-group>
 	                        			<control-group class="col-sm-12" v-field='input.tableName' ng-if="input.type=='InputFromUser' || input.type=='AssetOptionSingle'" width="9">
-	                        				<input-text></input-text>
+	                        				<input-text ng-change="setWorkflowModified('true')"></input-text>
 	          							</control-group>
           							</collapse>
 								</div>
 							</div>
 						</div>
-						<div class="tab-pane fade" id="tab2default">
+						<div class="tab-pane fade" id="{{workflowTab.elementid}}_output">
 							<div ng-repeat="output in stepData.output">
 								<collapse title-key={{output.name}}> <control-group
 									v-field="output.name"> <label>{{output.name}}</label>

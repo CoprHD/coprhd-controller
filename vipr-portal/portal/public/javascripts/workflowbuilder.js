@@ -29,8 +29,8 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
 
     $scope.libOpen = true;
     $scope.toggleLib = function() {
-        $("#libSidebar").toggleClass("collapsedLib");
-        $("#builderController").toggleClass("col-md-12 col-md-8");
+        $("#builderController").toggleClass("collapsedBuilder");
+        $("#libSidebar").toggleClass("collapsedSideBar");
 
         $scope.libOpen = !$scope.libOpen;
     }
@@ -419,6 +419,7 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
     var DEFAULT_OUTPUT_PARAMS = ["operation_output","operation_error","operation_returncode"];
 
     $scope.modified = false;
+    $scope.showAlert = false;
     $scope.selectedId = '';
 
     initializeJsPlumb();
@@ -528,7 +529,7 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
         connector: ["Flowchart", {
             cornerRadius: 5
         }],
-        anchors: [1, 0.5, 1, 0,10,0],
+        anchors: [0.5, 1, 0, 1,0,10],
 		connectorStyle:{ strokeStyle:"#3fac49", lineWidth:1 },
         cssClass: "passEndpoint"
     };
@@ -541,7 +542,7 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
         connector: ["Flowchart", {
             cornerRadius: 5
         }],
-        anchors: [0.5, 1, 0, 1,0,10],
+        anchors: [1, 0.5, 1, 0,10,0],
         connectorStyle:{ strokeStyle:"#ee3825", lineWidth:1 },
         cssClass: "failEndpoint"
     };
@@ -580,11 +581,6 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
         if (!stepData.output) {
             stepData.output = [];
         }
-        for(var outputparam in DEFAULT_OUTPUT_PARAMS) {
-            if(DEFAULT_OUTPUT_PARAMS.hasOwnProperty(outputparam)) {
-                stepData.output.push({type:"String", name:DEFAULT_OUTPUT_PARAMS[outputparam]});
-            }
-        }
 
         $scope.modified = true;
         loadStep(stepData);
@@ -606,29 +602,41 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
                 sourceNext.failedStep=connection.targetId
             }
             // Populate array for input and output from previous steps
-            var inparams = [];
-			if("inputGroups" in sourceData && "input_params" in sourceData.inputGroups){
-    			inparams = sourceData.inputGroups.input_params.inputGroup;
-			}
-            for(var inputparam in inparams) {
-            	if(inparams.hasOwnProperty(inputparam)) {
-            		var inparam_name = inparams[inputparam].name;
-            		var stepidconcate = sourceData.id + "." + inparam_name;
-            		var stepnameconcate = sourceData.friendlyName + " " + inparam_name
-            		
-            		$scope.stepInputOptions.push({id:stepidconcate, name:stepnameconcate});
-            	}
+
+            if (sourceData.id !== 'Start' && sourceData.id !== 'End'){
+                var inparams = [];
+                if("inputGroups" in sourceData && "input_params" in sourceData.inputGroups){
+                    inparams = sourceData.inputGroups.input_params.inputGroup;
+                }
+                for(var inputparam in inparams) {
+                    if(inparams.hasOwnProperty(inputparam)) {
+                        var inparam_name = inparams[inputparam].name;
+                        var stepidconcate = sourceData.id + "." + inparam_name;
+                        var stepnameconcate = sourceData.friendlyName + " " + inparam_name
+
+                        $scope.stepInputOptions.push({id:stepidconcate, name:stepnameconcate});
+                    }
+                }
+                var outparams = sourceData.output;
+                for(var outputparam in outparams) {
+                    if(outparams.hasOwnProperty(outputparam)) {
+                        var outparam_name = outparams[outputparam].name;
+                        var stepidconcate = sourceData.id + "." + outparam_name;
+                        var stepnameconcate = sourceData.friendlyName + " " + outparam_name
+
+                        $scope.stepOutputOptions.push({id:stepidconcate, name:stepnameconcate});
+                    }
+                }
+
+                for(var outputparam in DEFAULT_OUTPUT_PARAMS) {
+                    if(DEFAULT_OUTPUT_PARAMS.hasOwnProperty(outputparam)) {
+                        var outparam_name = DEFAULT_OUTPUT_PARAMS[outputparam];
+                        var stepidconcate = sourceData.id + "." + outparam_name;
+                        var stepnameconcate = sourceData.friendlyName + " " + outparam_name
+                        $scope.stepOutputOptions.push({id:stepidconcate, name:stepnameconcate});
+                    }
+                }
             }
-            var outparams = sourceData.output;
-            for(var outputparam in outparams) {
-            	if(outparams.hasOwnProperty(outputparam)) {
-            		var outparam_name = outparams[outputparam].name;
-            		var stepidconcate = sourceData.id + "." + outparam_name;
-            		var stepnameconcate = sourceData.friendlyName + " " + outparam_name
-            		
-            		$scope.stepOutputOptions.push({id:stepidconcate, name:stepnameconcate});
-            	}
-            }            
             sourceData.next=sourceNext;
             $scope.modified = true;
             $scope.$apply();
@@ -654,18 +662,10 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
 			if("inputGroups" in sourceData && "input_params" in sourceData.inputGroups){
     			inparams = sourceData.inputGroups.input_params.inputGroup;
 			}
-            for(var inputparam in inparams) {
-            	if(inparams.hasOwnProperty(inputparam)) {
-            		var inparam_name = inparams[inputparam].name;
-            		var stepidconcate = sourceData.id + "." + inparam_name;
-            		
-            		for (var i =0; i < $scope.stepInputOptions.length; i++) {
-   						if ($scope.stepInputOptions[i].id === stepidconcate) {
-      						$scope.stepInputOptions.splice(i,1);
-      						break;
-  						 }
-  					}
-            	}
+            for (var i =0; i < $scope.stepInputOptions.length; i++) {
+                if ($scope.stepInputOptions[i].id.startsWith(sourceData.id + ".")) {
+                    $scope.stepInputOptions.splice(i,1);
+                 }
             }
             var outparams = sourceData.output;
             for(var outputparam in outparams) {
@@ -686,6 +686,10 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
         });
     }
 
+    $scope.setWorkflowModified = function (state) {
+        $scope.modified = state;
+    }
+
     function buildJSON() {
         var blocks = []
         diagramContainer.find(" .item,  .item-start-end").each(function(idx, elem) {
@@ -704,39 +708,56 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
     }
 
     $scope.saveWorkflow = function() {
+        $scope.workflowData.state = 'SAVING';
         buildJSON();
         $http.post(routes.Workflow_save({workflowId : $scope.workflowData.id}),{workflowDoc : $scope.workflowData.document}).then(function (resp) {
-            checkStateResponse(resp,function(){$scope.modified = false;});
+            updateWorkflowData(resp,function(){
+                $scope.modified = false;
+            });
         });
     }
 
-    function checkStateResponse(resp,successCallback,failCallback){
-        if (resp.status == 200) {
-            $scope.workflowData.state = resp.data.state;
-            if (successCallback) successCallback();
-        } else {
-            if (failCallback) failCallback();
-            //TODO: show error
-        }
+    function updateWorkflowData(resp,successCallback){
+        $scope.workflowData.state = resp.data.state;
+        if (successCallback) successCallback();
     }
 
     $scope.validateWorkflow = function() {
+        $scope.workflowData.state = 'VALIDATING';
+        delete $scope.alert;
         $http.post(routes.Workflow_validate({workflowId : $scope.workflowData.id})).then(function (resp) {
-            checkStateResponse(resp);
-            var url = routes.ServiceCatalog_showService({serviceId: $scope.workflowData.id});
-            window.location.href = url;
+            if (resp.data.status == "INVALID") {
+                $scope.showAlert = true;
+                $scope.alert = resp.data;
+                $scope.workflowData.state = resp.data.status;
+                if ($scope.alert.error) {
+                    if (!$scope.alert.error.errorMessage) {
+                        $scope.alert.error.errorMessage='Workflow validation failed. There are '+Object.keys(resp.data.error.errorSteps).length+' steps with errors.';
+                    }
+                }
+            } else {
+                var url = routes.ServiceCatalog_showService({serviceId: $scope.workflowData.id});
+                window.location.href = url;
+            }
+        },
+        function(){
+            $scope.showAlert = true;
+            $scope.alert = {status : "INVALID", error : {errorMessage : "An unexpected error occurred while validating the workflow."}};
+            $scope.workflowData.state = 'INVALID';
         });
     }
 
     $scope.publishorkflow = function() {
+        $scope.workflowData.state = 'PUBLISHING';
         $http.post(routes.Workflow_publish({workflowId : $scope.workflowData.id})).then(function (resp) {
-            checkStateResponse(resp);
+            updateWorkflowData(resp);
         });
     }
 
     $scope.unpublishWorkflow = function() {
+        $scope.workflowData.state = 'UNPUBLISHING';
         $http.post(routes.Workflow_unpublish({workflowId : $scope.workflowData.id})).then(function (resp) {
-            checkStateResponse(resp);
+            updateWorkflowData(resp);
         });
     }
 
@@ -771,7 +792,6 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
 
 	var draggableNodeTypes = {"shellNodeType":shellNodeType, "localAnsibleNodeType":localAnsibleNodeType, "restAPINodeType":restAPINodeType, "viprRestAPINodeType":viprRestAPINodeType, "workflowNodeType":workflowNodeType}
     function getStepIcon(stepType){
-        console.log(stepType);
         var stepIcon = "TreeNodeStep.svg";
         if(stepType != null) {
             switch(stepType.toLowerCase()){
@@ -794,6 +814,48 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
         }
         return "/public/img/customServices/" + stepIcon;
     }
+
+    $scope.hoverErrorIn = function(id) {
+        $scope.alert.error.errorSteps[id].visible = true;
+    }
+
+    $scope.hoverErrorOut = function(id) {
+        $scope.alert.error.errorSteps[id].visible = false;
+    }
+
+    $scope.hoverInputErrorIn = function(step,input) {
+        $scope.alert.error.errorSteps[step].errorInputGroups.input_params.errorInputs[input].visible = true;
+    }
+
+    $scope.hoverInputErrorOut = function(step,input) {
+        $scope.alert.error.errorSteps[step].errorInputGroups.input_params.errorInputs[input].visible = false;
+    }
+
+    $scope.getInputError = function(step,input) {
+        if ('alert' in $scope && 'error' in $scope.alert && 'errorSteps' in $scope.alert.error && step in $scope.alert.error.errorSteps){
+            var stepError = $scope.alert.error.errorSteps[step];
+            if ('errorInputGroups' in stepError && 'input_params' in stepError.errorInputGroups && 'errorInputs' in stepError.errorInputGroups.input_params && input in stepError.errorInputGroups.input_params.errorInputs) {
+                var inputError = stepError.errorInputGroups.input_params.errorInputs[input];
+                return inputError;
+            }
+        }
+    }
+
+    $scope.checkStepErrorMessage = function(id) {
+        var stepError = $scope.alert.error.errorSteps[id];
+        if ('errorInputGroups' in stepError && 'input_params' in stepError.errorInputGroups && 'errorInputs' in stepError.errorInputGroups.input_params) {
+            var inputErrorCount = Object.keys(stepError.errorInputGroups.input_params.errorInputs).length;
+            if (inputErrorCount > 0){
+                if (stepError.errorMessages) {
+                    $scope.alert.error.errorSteps[id].errorMessages.push("Step has "+inputErrorCount+" input errors");
+                } else {
+                    $scope.alert.error.errorSteps[id].errorMessages = ["Step has "+inputErrorCount+" input errors"];
+                }
+            }
+
+        }
+    }
+
     function loadStep(step) {
         if(!step.positionY || !step.positionX){
             return;
@@ -807,9 +869,12 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
         var trimmedStepName = stepName;
         if (stepName.length > 70)
             trimmedStepName = stepName.substring(0,65)+'...';
-
         var stepHTML = `
         <div id="${stepDivID}" class="example-item-card-wrapper">
+            <div ng-if="alert.error.errorSteps.${stepId}" ng-init="checkStepErrorMessage('${stepId}')" ng-class="{'visible':alert.error.errorSteps.${stepId}.visible}" class="custom-error-popover custom-error-step-popover top">
+                <div class="arrow"></div><div ng-repeat="message in alert.error.errorSteps.${stepId}.errorMessages" class="custom-popover-content">{{message}}</div>
+            </div>
+            <span id="${stepId}-error"  class="glyphicon item-card-error-icon failure-icon" ng-if="alert.error.errorSteps.${stepId}" ng-mouseover="hoverErrorIn('${stepId}')" ng-mouseleave="hoverErrorOut('${stepId}')"></span>
             <div  class="button-container">
                 <a class="glyphicon glyphicon-pencil button-step-close" ng-click="select('${stepId}')"></a>
                 <a class="glyphicon glyphicon-remove button-step-close" ng-click="removeStep('${stepId}')"></a>
@@ -825,6 +890,7 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
         if (stepId === "Start" || stepId === "End"){
             var stepSEHTML = `
             <div id="${stepDivID}" class="example-item-card-wrapper">
+                <span class="glyphicon glyphicon-remove-sign item-card-error-icon failure-icon" ng-if="alert.error.errorSteps.${stepId}"></span>
                 <div id="${stepId}"  class="item-start-end" ng-class="{\'highlighted\':selectedId == '${stepId}'}">
                     <div class="itemTextStartEnd">${stepName}</div>
                 </div>
@@ -911,6 +977,10 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
 
     $scope.closeMenu = function() {
         $scope.menuOpen = false;
+    }
+
+    $scope.closeAlert = function() {
+        $scope.showAlert = false;
     }
 });
 

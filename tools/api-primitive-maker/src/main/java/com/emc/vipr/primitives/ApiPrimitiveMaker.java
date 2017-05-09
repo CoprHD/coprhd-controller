@@ -119,13 +119,13 @@ public final class ApiPrimitiveMaker {
                     INPUT_METHOD, OUTPUT_METHOD, ATTRIBUTES_METHOD,
                     PATH_METHOD, METHOD_METHOD, BODY_METHOD, RESPONSE_METHOD).build();
 
-    private static ImmutableList<String> METHOD_BLACK_LIST = ImmutableList
+    private static final ImmutableList<String> METHOD_BLACK_LIST = ImmutableList
             .<String> builder().add("assignTags").add("getTags").add("search")
             .add("getBulkIds").add("getBulkResources").add("getTasks").build();
 
-    final private static Logger _log = LoggerFactory
+    private static final Logger _log = LoggerFactory
             .getLogger(ApiPrimitiveMaker.class);
-
+    
     private ApiPrimitiveMaker() {
     }
 
@@ -336,38 +336,56 @@ public final class ApiPrimitiveMaker {
     private static Iterable<FieldSpec> makeInput(final ApiMethod method, ImmutableMap<String, FieldSpec> requestFields) {
         final ImmutableList.Builder<FieldSpec> builder = ImmutableList
                 .<FieldSpec> builder();
-        final ImmutableList.Builder<String> parameters = new ImmutableList.Builder<String>();
+        final ImmutableList.Builder<String> path_parameters = new ImmutableList.Builder<String>();
+        final ImmutableList.Builder<String> query_parameters = new ImmutableList.Builder<String>();
+        final ImmutableList.Builder<String> body_parameters = new ImmutableList.Builder<String>();
         final ParameterFieldName.Input name = new ParameterFieldName.Input();
 
-        parameters.addAll(requestFields.keySet());
+        body_parameters.addAll(requestFields.keySet());
         builder.addAll(requestFields.values());
         
         for (ApiField pathParameter : method.pathParameters) {
             FieldSpec param = makeInputParameter(name, pathParameter, true);
-            parameters.add(param.name);
+            path_parameters.add(param.name);
             builder.add(param);
         }
 
         for (ApiField queryParameter : method.queryParameters) {
             FieldSpec param = makeInputParameter(name, queryParameter,
                     queryParameter.required);
-            parameters.add(param.name);
+            query_parameters.add(param.name);
             builder.add(param);
         }
 
         builder.add(FieldSpec.builder(
-                ParameterizedTypeName.get(ImmutableList.class, InputParameter.class), "INPUT_LIST")
+                ParameterizedTypeName.get(ImmutableList.class, InputParameter.class), "PATH_INPUT")
                 .addModifiers(Modifier.PRIVATE, Modifier.FINAL,Modifier.STATIC)
                 .initializer("new $T().add($L).build()", 
                         ParameterizedTypeName.get(ImmutableList.Builder.class,InputParameter.class),
-                        Joiner.on(",").join(parameters.build())).build());
+                        Joiner.on(",").join(path_parameters.build())).build());
+        builder.add(FieldSpec.builder(
+                ParameterizedTypeName.get(ImmutableList.class, InputParameter.class), "QUERY_INPUT")
+                .addModifiers(Modifier.PRIVATE, Modifier.FINAL,Modifier.STATIC)
+                .initializer("new $T().add($L).build()", 
+                        ParameterizedTypeName.get(ImmutableList.Builder.class,InputParameter.class),
+                        Joiner.on(",").join(query_parameters.build())).build());
+        builder.add(FieldSpec.builder(
+                ParameterizedTypeName.get(ImmutableList.class, InputParameter.class), "BODY_INPUT")
+                .addModifiers(Modifier.PRIVATE, Modifier.FINAL,Modifier.STATIC)
+                .initializer("new $T().add($L).build()", 
+                        ParameterizedTypeName.get(ImmutableList.Builder.class,InputParameter.class),
+                        Joiner.on(",").join(body_parameters.build())).build());
         
         return builder.add(
                 FieldSpec
                         .builder(ParameterizedTypeName.get(ClassName.get(Map.class), ClassName.get(String.class), 
                                 ParameterizedTypeName.get(List.class, InputParameter.class)), "INPUT")
                         .addModifiers(Modifier.PRIVATE, Modifier.FINAL,Modifier.STATIC)
-                        .initializer("$T.of($T.INPUT_PARAMS, $L)", ImmutableMap.class, CustomServicesConstants.class, "INPUT_LIST")
+                        .initializer("$T.of($T.INPUT_PARAMS, $L, $T.PATH_PARAMS, $L, $T.QUERY_PARAMS, $L)", 
+                                ImmutableMap.class, 
+                                CustomServicesConstants.class, "BODY_INPUT",
+                                CustomServicesConstants.class, "PATH_INPUT",
+                                CustomServicesConstants.class, "QUERY_INPUT")
                         .build()).build();
     }
 

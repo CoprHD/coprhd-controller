@@ -18,12 +18,16 @@ package com.emc.vipr.primitives;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.charset.Charset;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.List;
 
 import com.emc.apidocs.ApiDoclet;
 import com.emc.apidocs.DocReporter;
 import com.emc.apidocs.KnownPaths;
 import com.emc.apidocs.model.ApiService;
+import com.google.common.collect.ImmutableList;
 import com.squareup.javapoet.JavaFile;
 import com.sun.javadoc.DocErrorReporter;
 import com.sun.javadoc.LanguageVersion;
@@ -38,25 +42,41 @@ public class PrimitiveDoclet {
     private static final String CONTENT_OPTION = "-c";
     private static final String OUTPUT_OPTION = "-d";
     private static final String SOURCE_DIR = "src/main/generated";
-
+    private static final String README = "src/conf/README";
+    private static final String ReadMePreamble = 
+            "This file contains the class names of all of the primitives\n" +
+            "that were generated for vipr operations.\n" +
+            "In order to add a vipr primitive to the whitelist of supported\n" +
+            "primitives the class name should be added to the list in spring "+
+            "config file: src/conf/sa-vipr-operations.xml\n";
+    
     private static String outputDirectory;
     private static String contentDirectory;
-
+    
     public static boolean start(RootDoc root) {
         KnownPaths.init(contentDirectory, outputDirectory);
-        List<ApiService> services = ApiDoclet.findApiServices(root.classes());
-
-        Iterable<JavaFile> files = ApiPrimitiveMaker.makePrimitives(services);
-
+        final List<ApiService> services = ApiDoclet.findApiServices(root.classes());
+        final Path readMe = new File(outputDirectory + README).toPath();
+        
+        final Iterable<JavaFile> files = ApiPrimitiveMaker.makePrimitives(services);
+        ImmutableList.Builder<String> lines = ImmutableList.<String>builder();
+        lines.add(ReadMePreamble);
         for (final JavaFile file : files) {
             try {
+                lines.add("<value>"+file.packageName+"."+file.typeSpec.name+"</value>");
                 file.writeTo(new File(outputDirectory + SOURCE_DIR));
             } catch (IOException e) {
                 throw new RuntimeException("Failed to write to output folder",
                         e);
             }
         }
-
+        try {
+            Files.createDirectories(readMe.getParent());
+            Files.write(readMe, lines.build(), Charset.forName("UTF-8"));
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to write README",
+                    e);
+        }
         return true;
     }
 

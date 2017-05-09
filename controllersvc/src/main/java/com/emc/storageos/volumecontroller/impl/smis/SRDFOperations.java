@@ -980,8 +980,10 @@ public class SRDFOperations implements SmisConstants {
         completer.error(dbClient, error);
     }
 
-    private void changeSRDFVolumeBehaviors(Volume sourceVolume, Volume targetVolume, DbClient dbClient, String status) {
+    private Set<String> changeSRDFVolumeBehaviors(Volume sourceVolume, Volume targetVolume, DbClient dbClient, String status) {
         List<Volume> volumes = new ArrayList<>();
+        StringSet srdfSourcesAfterSwap = new StringSet();
+
         if (sourceVolume.hasConsistencyGroup()) {
             List<URI> srcVolumeUris = dbClient.queryByConstraint(
                     getVolumesByConsistencyGroup(sourceVolume.getConsistencyGroup()));
@@ -1030,6 +1032,8 @@ public class SRDFOperations implements SmisConstants {
                 sourceVol.setLinkStatus(status);
                 sourceVol.setSrdfParent(new NamedURI(targetVol.getId(), targetVol.getLabel()));
                 dbClient.persistObject(targetVol);
+                // add target (source after swap)
+                srdfSourcesAfterSwap.add(targetVol.getId().toString());
             }
             sourceVol.setPersonality(TARGET.toString());
             sourceVol.setAccessState(Volume.VolumeAccessState.NOT_READY.name());
@@ -1037,9 +1041,8 @@ public class SRDFOperations implements SmisConstants {
             sourceVol.setSrdfGroup(raGroupUri);
             sourceVol.getSrdfTargets().clear();
             dbClient.persistObject(sourceVol);
-            // update remote replication pairs to reflect change in volumes
-            updateRemoteReplicationPairs(srdfTargets);
         }
+        return srdfSourcesAfterSwap;
     }
 
     private void changeRemoteDirectorGroup(URI remoteGroupUri) {
@@ -1293,6 +1296,8 @@ public class SRDFOperations implements SmisConstants {
         log.info("START performSwap");
         checkTargetHasParentOrFail(target);
 
+        Set<String> srdfSourcesAfterSwap = null;
+
         ServiceError error = null;
         try {
             Volume sourceVolume = getSourceVolume(target);
@@ -1315,7 +1320,7 @@ public class SRDFOperations implements SmisConstants {
             log.info("Swapping Volume Pair {} succeeded ", sourceVolume.getId());
 
             log.info("Changing R1 and R2 characteristics after swap");
-            changeSRDFVolumeBehaviors(sourceVolume, target, dbClient, LinkStatus.SWAPPED.toString());
+            srdfSourcesAfterSwap = changeSRDFVolumeBehaviors(sourceVolume, target, dbClient, LinkStatus.SWAPPED.toString());
             log.info("Updating RemoteDirectorGroup after swap");
             changeRemoteDirectorGroup(target.getSrdfGroup());
 
@@ -1359,6 +1364,8 @@ public class SRDFOperations implements SmisConstants {
         } finally {
             if (error == null) {
                 completer.ready(dbClient);
+                // update remote replication pairs to reflect change in volumes
+                updateRemoteReplicationPairs(srdfSourcesAfterSwap);
             } else {
                 completer.error(dbClient, error);
             }
@@ -2414,6 +2421,7 @@ public class SRDFOperations implements SmisConstants {
             List<URI> volumeURIs = URIUtil.toURIList(srdfVolumes);
             List<Volume> volumes = dbClient.queryObject(Volume.class, volumeURIs);
             for (Volume v : volumes) {
+                log.info("Processing volume: {}/{}", v.getId(), v.getLabel());
                 try {
                     if (v.getSrdfTargets() != null) {
                         for (String targetId : v.getSrdfTargets()) {

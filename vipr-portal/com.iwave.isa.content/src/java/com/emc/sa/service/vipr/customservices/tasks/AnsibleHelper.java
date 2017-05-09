@@ -68,60 +68,52 @@ public final class AnsibleHelper {
 
         final List<String> arrayInput = new ArrayList<>();
         final List<String> inputParamList = new ArrayList<>();
+        final StringBuilder sb = new StringBuilder();
 
-        for (final String inputGroupKey : step.getInputGroups().keySet()) {
-            if (inputGroupKey.equals(CustomServicesConstants.INPUT_PARAMS)) {
-                for (final CustomServicesWorkflowDocument.Input stepInput : step.getInputGroups().get(inputGroupKey).getInputGroup()) {
-                    // Add only the extra-vars which is in the input_params to the extra-vars argument
-                    inputParamList.add(stepInput.getName());
+        if (step.getInputGroups().containsKey(CustomServicesConstants.INPUT_PARAMS)) {
+            for (final CustomServicesWorkflowDocument.Input stepInput : step.getInputGroups()
+                    .get(CustomServicesConstants.INPUT_PARAMS.toString()).getInputGroup()) {
+                // Add only the extra-vars which is in the input_params to the extra-vars argument
+                if (input.containsKey(stepInput.getName())) {
                     if (StringUtils.isNotBlank(stepInput.getType())
                             && stepInput.getType().equals(CustomServicesConstants.InputType.ASSET_OPTION_MULTI.toString())) {
                         // this is for array type. currently the only array type is InputType.ASSET_OPTION_MULTI. Do not think this can
-                        // occur in anything other than input_params section
-                        arrayInput.add(stepInput.getName());
+                        // occur in anything other than input_params section. For array type the value is at index 0 with comma seperated
+                        // values (as sent from order form).
+                        // Hence when we send to the ansible we wrap it with [value]
+                        sb.append(addExtraArg(stepInput.getName(), input.get(stepInput.getName()), true));
+                    } else {
+                        sb.append(addExtraArg(stepInput.getName(), input.get(stepInput.getName()), false));
                     }
+
                 }
             }
-        }
-
-        final StringBuilder sb = new StringBuilder();
-        for (Map.Entry<String, List<String>> inputEntry : input.entrySet()) {
-            boolean arrayElement = false;
-            if (!inputParamList.contains(inputEntry.getKey())) {
-                continue;
-            }
-
-            if (arrayInput.contains(inputEntry.getKey())) {
-                arrayElement = true;
-            }
-
-            sb.append(addExtraArg(inputEntry, arrayElement));
         }
         logger.info("extra vars:{}", sb.toString());
 
         return sb.toString().trim();
     }
 
-    private static StringBuilder addExtraArg(final Map.Entry<String, List<String>> map,
+    private static StringBuilder addExtraArg(final String inputKey, final List<String> inputValue,
             final boolean arrayElement) {
         final StringBuilder sb = new StringBuilder();
-        if (CollectionUtils.isNotEmpty(map.getValue())) {
-            sb.append(map.getKey()).append("=");
+        if (CollectionUtils.isNotEmpty(inputValue)) {
+            sb.append(inputKey).append("=");
 
-            if (map.getValue().size() > 1 || arrayElement) {
+            if (inputValue.size() > 1 || arrayElement) {
                 // for table support
                 sb.append("[");
             }
 
             // Not wrapping with quotes. we will leave it to the ansible user.
             String prefix = "";
-            for (String eachVal : map.getValue()) {
+            for (String eachVal : inputValue) {
                 // order ctx always sends only non-empty values. hence no check required for string being empty
                 sb.append(prefix);
                 prefix = ",";
                 sb.append(eachVal.replace("\"", ""));
             }
-            if (map.getValue().size() > 1 || arrayElement) {
+            if (inputValue.size() > 1 || arrayElement) {
                 sb.append("]");
             }
             sb.append(" ");

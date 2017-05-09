@@ -7485,7 +7485,8 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
      */
     private Workflow.Method rollbackUpgradeVirtualVolumeLocalToDistributedMethod(
             URI vplexURI, String virtualVolumeName, String virtualVolumePath, String executeStepId) {
-        return new Workflow.Method(RB_UPGRADE_VIRTUAL_VOLUME_LOCAL_TO_DISTRIBUUTED_METHOD_NAME, vplexURI, virtualVolumeName, executeStepId);
+        return new Workflow.Method(RB_UPGRADE_VIRTUAL_VOLUME_LOCAL_TO_DISTRIBUUTED_METHOD_NAME, 
+                vplexURI, virtualVolumeName, virtualVolumePath, executeStepId);
     }
 
     /**

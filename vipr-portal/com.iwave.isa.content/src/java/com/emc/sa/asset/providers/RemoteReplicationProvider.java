@@ -33,7 +33,7 @@ import com.google.common.collect.Lists;
 @AssetNamespace("vipr")
 public class RemoteReplicationProvider extends BaseAssetOptionsProvider {
 
-    private RemoteReplicationSets setsForPoolVarray;
+    private RemoteReplicationSets setsForVpoolVarray;
 
     /**
      * Return menu options for replication modes supported by the remote replication
@@ -77,7 +77,7 @@ public class RemoteReplicationProvider extends BaseAssetOptionsProvider {
 
         RemoteReplicationSetRestRep rrSet = getRrSet(ctx,virtualArrayId, virtualPoolId);
 
-        return createNamedResourceOptions(setsForPoolVarray.
+        return createNamedResourceOptions(setsForVpoolVarray.
                 getGroupsForSet(rrSet.getId()).getRemoteReplicationGroups());
     }
 
@@ -116,14 +116,27 @@ public class RemoteReplicationProvider extends BaseAssetOptionsProvider {
      */
     @Asset("sourceStorageSystem")
     @AssetDependencies("storageSystemType")
-    public List<AssetOption> getSourceStorageSystem(AssetOptionsContext ctx, String storageSystemTypeId) {
+    public List<AssetOption> getSourceStorageSystem(AssetOptionsContext ctx,
+            String storageSystemTypeId) {
         ViPRCoreClient client = api(ctx);
         List<AssetOption> options = Lists.newArrayList();
-        List<StorageSystemRestRep> storageSystems = client.storageSystems().getAll();
+        List<StorageSystemRestRep> allStorageSystems = client.storageSystems().getAll();
         Map<String,String> typeIds = getStorageSystemTypeMap(client);
-        for (StorageSystemRestRep storageSystem : storageSystems) {
+
+        // find source systems in all sets
+        List<RemoteReplicationSetRestRep> rrSets = getRrSet(ctx);
+        List<String> sourceSystemsFromSets = new ArrayList<>();
+        for(RemoteReplicationSetRestRep rrSet: rrSets) {
+            if(rrSet.getSourceSystems() != null) {
+                sourceSystemsFromSets.addAll(rrSet.getSourceSystems());
+            }
+        }
+
+        // make options for storage systems of desired type in source system list
+        for (StorageSystemRestRep storageSystem : allStorageSystems) {
             if(storageSystem.getSystemType() != null &&
-                    storageSystem.getSystemType().equals(typeIds.get(storageSystemTypeId))) {
+                    storageSystem.getSystemType().equals(typeIds.get(storageSystemTypeId)) &&
+                    sourceSystemsFromSets.contains(storageSystem.getId().toString())) {
                 options.add(new AssetOption(storageSystem.getId(), storageSystem.getName()));
             }
         }
@@ -148,10 +161,24 @@ public class RemoteReplicationProvider extends BaseAssetOptionsProvider {
         List<AssetOption> options = Lists.newArrayList();
         List<StorageSystemRestRep> storageSystems = client.storageSystems().getAll();
         Map<String,String> typeIds = getStorageSystemTypeMap(client);
+
+        // find target systems in same set as source system
+        List<RemoteReplicationSetRestRep> rrSets = getRrSet(ctx);
+        List<String> targetSystems = new ArrayList<>();
+        for(RemoteReplicationSetRestRep rrSet: rrSets) {
+            if ((rrSet.getSourceSystems() != null) &&
+                    (rrSet.getSourceSystems().contains(sourceStorageSystemId.toString())) &&
+                    (rrSet.getTargetSystems() != null)) {
+                targetSystems.addAll(rrSet.getTargetSystems());
+            }
+        }
+
+        // make options for systems of desired type, that are in target system list
         for (StorageSystemRestRep storageSystem : storageSystems) {
             if( !storageSystem.getId().equals(sourceStorageSystemId) && // skip src array
                     (storageSystem.getSystemType() != null) &&
-                    storageSystem.getSystemType().equals(typeIds.get(storageSystemTypeId))) {
+                    storageSystem.getSystemType().equals(typeIds.get(storageSystemTypeId)) &&
+                    targetSystems.contains(storageSystem.getId().toString())) {
                 options.add(new AssetOption(storageSystem.getId(), storageSystem.getName()));
             }
         }
@@ -225,7 +252,7 @@ public class RemoteReplicationProvider extends BaseAssetOptionsProvider {
 
     /* Retrieve a map of the storage system IDs & types supported in ViPR.  The map
      * returned contains entries with type names as keys, as well as the same
-     * entries with ID as key to allow lookups in both directions.
+     * entries with ID as key (to allow lookups in both directions).
      */
     private Map<String,String> getStorageSystemTypeMap(ViPRCoreClient client) {
 
@@ -272,20 +299,40 @@ public class RemoteReplicationProvider extends BaseAssetOptionsProvider {
     }
 
     /*
-     * Get the Remote Replication Set for the given VirtualPool & VirtualArray.Throws
+     * Get the reachable Remote Replication Sets. Throws
+     * exception if no set is found.
+     */
+    private List<RemoteReplicationSetRestRep> getRrSet(AssetOptionsContext ctx) {
+
+        List<RemoteReplicationSetRestRep> rrSets = api(ctx).remoteReplicationSets().
+                listRemoteReplicationSets().getRemoteReplicationSets();
+
+       removeUnreachableSets(rrSets);
+
+        if ((rrSets == null) || rrSets.isEmpty()) {
+            throw new IllegalStateException("No Remote Replication Set was found containing storage systems.");
+        }
+
+        return rrSets;
+    }
+
+    /*
+     * Get the reachable Remote Replication Set for the given VirtualPool & VirtualArray. Throws
      * exception if no (or more than one) set is found.
      */
     private RemoteReplicationSetRestRep getRrSet(AssetOptionsContext ctx,URI virtualArrayId, URI virtualPoolId) {
 
-        setsForPoolVarray = api(ctx).remoteReplicationSets();
+        setsForVpoolVarray = api(ctx).remoteReplicationSets();
 
         BlockVirtualPoolRestRep vpool = api(ctx).blockVpools().get(virtualPoolId);
         if ((vpool == null) || (vpool.getProtection().getRemoteReplicationParam() == null)) {
             return null;
         }
 
-        List<RemoteReplicationSetRestRep> rrSets = setsForPoolVarray.
+        List<RemoteReplicationSetRestRep> rrSets = setsForVpoolVarray.
                 listRemoteReplicationSets(virtualArrayId,virtualPoolId).getRemoteReplicationSets();
+
+        removeUnreachableSets(rrSets);
 
         if ((rrSets == null) || rrSets.isEmpty()) {
             throw new IllegalStateException("No RemoteReplicationSet was found for the selected " +
@@ -297,8 +344,20 @@ public class RemoteReplicationProvider extends BaseAssetOptionsProvider {
                     ") found for VirtualArray (" + virtualArrayId + ") and VirtualPool (" + virtualPoolId +
                     ").  RemoteReplicationSets found were: " + rrSets);
         }
-
         return rrSets.get(0);
+    }
+
+    /*
+     * remove unreachable sets from list
+     */
+    private void removeUnreachableSets(List<RemoteReplicationSetRestRep> rrSets) {
+        java.util.Iterator<RemoteReplicationSetRestRep> it = rrSets.iterator();
+        while(it.hasNext()){
+            RemoteReplicationSetRestRep rrSet = it.next();
+            if((rrSet != null) && (rrSet.getReachable() != null) && !rrSet.getReachable()) {
+                it.remove();
+            }
+        }
     }
 
 }

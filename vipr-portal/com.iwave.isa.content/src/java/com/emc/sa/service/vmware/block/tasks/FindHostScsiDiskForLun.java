@@ -203,7 +203,11 @@ public class FindHostScsiDiskForLun extends ExecutionTask<HostScsiDisk> {
 
     private void diskNotFound(boolean fail) {
         if (fail && this.throwIfNotFound) {
-            throw stateException("FindHostScsiDiskForLun.illegalState.diskNotFound", lunDiskName, host.getName());
+            if (availableDiskOnly) {
+                throw stateException("FindHostScsiDiskForLun.illegalState.diskNotFoundCheckDatastoreRDM", lunDiskName, host.getName());
+            } else {
+                throw stateException("FindHostScsiDiskForLun.illegalState.diskNotFound", lunDiskName, host.getName());
+            }
         } else {
             logInfo("FindHostScsiDiskForLun.illegalState.diskNotFound", lunDiskName, host.getName());
         }

@@ -110,6 +110,7 @@ public class CustomServicesShellScriptExecution extends ViPRExecutionTask<Custom
     // Execute Shell Script resource
     private Exec.Result executeCmd(final String playbook, final String extraVars) {
         final AnsibleCommandLine cmd = new AnsibleCommandLine(CustomServicesConstants.SHELL_BIN, playbook);
+        cmd.setPrefix(CustomServicesConstants.CHROOT_PREFIX);
         cmd.setShellArgs(extraVars);
         final String[] cmds = cmd.build();
 

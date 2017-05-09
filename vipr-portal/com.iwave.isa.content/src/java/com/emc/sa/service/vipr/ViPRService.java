@@ -365,8 +365,9 @@ public abstract class ViPRService extends AbstractExecutionService {
     }
     
     /**
-     * Local logging, needed for debug on failure detection.
-     *
+     * Local logging, needed for debug on failure detection. Copied from InvokeTestFailure#log(String)
+     * 
+     * @see com.emc.storageos.util.InvokeTestFailure#log(String)
      * @param msg error message
      */
     private static void log(String msg) {

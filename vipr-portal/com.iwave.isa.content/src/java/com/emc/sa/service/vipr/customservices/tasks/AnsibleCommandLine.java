@@ -122,18 +122,20 @@ public class AnsibleCommandLine {
             builder.add(ssh).add(node);
         }
 
-        final ImmutableList<String> opt = optionalParam.build();
-        builder.add(ansiblePath).add(opt.toArray(new String[opt.size()])).add(playbook);
-
-        if (!StringUtils.isEmpty(extraVars))
-            builder.add("--extra-vars").add(extraVars);
-
         if (!StringUtils.isEmpty(shellArgs)) {
             final String[] splited = shellArgs.split("\\s+");
 
             for (final String part : splited)
                 builder.add(part);
         }
+
+        final ImmutableList<String> opt = optionalParam.build();
+        builder.add(ansiblePath).add(opt.toArray(new String[opt.size()])).add(playbook);
+
+        if (!StringUtils.isEmpty(extraVars))
+            builder.add("--extra-vars").add(extraVars);
+
+
 
         final ImmutableList<String> cmdList = builder.build();
 

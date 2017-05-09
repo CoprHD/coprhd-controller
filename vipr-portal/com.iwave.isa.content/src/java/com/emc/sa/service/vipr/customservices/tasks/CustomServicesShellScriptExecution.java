@@ -29,6 +29,7 @@ import com.emc.storageos.services.util.Exec;
 import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorException;
 
 import org.apache.commons.codec.binary.Base64;
+import org.apache.commons.lang.StringUtils;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
@@ -117,8 +118,8 @@ public class CustomServicesShellScriptExecution extends ViPRExecutionTask<Custom
     }
 
     // Execute Shell Script resource
-    private Exec.Result executeCmd(final String playbook, final String extraVars) {
-        final AnsibleCommandLine cmd = new AnsibleCommandLine(CustomServicesConstants.SHELL_BIN, playbook);
+    private Exec.Result executeCmd(final String shellScript, final String extraVars) {
+        final AnsibleCommandLine cmd = new AnsibleCommandLine(CustomServicesConstants.SHELL_BIN, shellScript);
         cmd.setShellArgs(extraVars);
         final String[] cmds = cmd.build();
 
@@ -127,10 +128,14 @@ public class CustomServicesShellScriptExecution extends ViPRExecutionTask<Custom
 
     private String makeParam(final Map<String, List<String>> input) throws Exception {
         final StringBuilder sb = new StringBuilder();
-        for (List<String> value : input.values()) {
-            // TODO find a better way to fix this
-            sb.append(value.get(0).replace("\"", "")).append(" ");
+
+        for(Map.Entry<String, List<String>> e : input.entrySet()) {
+            if (StringUtils.isEmpty(e.getKey()) || e.getValue().isEmpty()) {
+                continue;
+            }
+            sb.append(e.getKey()).append("=").append(e.getValue().get(0).replace("\"", "")).append(" ");
         }
+
         return sb.toString();
     }
 }

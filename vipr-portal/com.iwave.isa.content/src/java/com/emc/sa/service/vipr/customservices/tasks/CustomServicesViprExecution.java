@@ -199,7 +199,7 @@ public class CustomServicesViprExecution extends ViPRExecutionTask<CustomService
      * @param templatePath
      * @return
      */
-    private String makePath(String templatePath) {
+    private String makePath(final String templatePath) {
         final UriTemplate template = new UriTemplate(templatePath);
         final List<String> pathParameters = template.getVariableNames();
         final Map<String, Object> pathParameterMap = new HashMap<String, Object>();
@@ -223,9 +223,13 @@ public class CustomServicesViprExecution extends ViPRExecutionTask<CustomService
         final StringBuilder fullPath = new StringBuilder(path);
         String prefix = "?";
         for (final InputParameter a : queries) {
+            if (input.get(a.getName()) == null) {
+                logger.warn("Query parameter value is not set for:{}", a.getName());
+                continue;
+            }
             final String value = input.get(a.getName()).get(0);
             if (!StringUtils.isEmpty(value)) {
-                fullPath.append(prefix).append(a).append("=").append(value);
+                fullPath.append(prefix).append(a.getName()).append("=").append(value);
                 prefix = "&";
             }
         }

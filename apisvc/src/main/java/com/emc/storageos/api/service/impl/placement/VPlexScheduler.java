@@ -346,13 +346,6 @@ public class VPlexScheduler implements Scheduler {
             String vplexStorageSystemId = vplexSystemIdsIter.next();
             _log.info("Check matching pools for VPlex {}", vplexStorageSystemId);
 
-            // Check if the resource can be placed on the matching
-            // pools for this VPlex storage system.
-            if (VirtualPool.ProvisioningType.Thin.toString()
-                    .equalsIgnoreCase(mirrorVpool.getSupportedProvisioningType())) {
-                capabilities.put(VirtualPoolCapabilityValuesWrapper.THIN_PROVISIONING, Boolean.TRUE);
-            }
-
             List<Recommendation> recommendationsForMirrorVarray = _blockScheduler.getRecommendationsForPools(
                     srcVarray.getId().toString(), vplexPoolMapForSrcVarray.get(vplexStorageSystemId),
                     capabilities);
@@ -728,7 +721,7 @@ public class VPlexScheduler implements Scheduler {
         }
         
         VirtualPoolCapabilityValuesWrapper haCapabilities = PerformanceParamsUtils.overridePrimaryCapabilitiesForVplexHA(
-                haVpool, sourceParams, srcCapabilities, _dbClient);
+                haVpool, sourceParams, VolumeTopologyRole.HA, srcCapabilities, _dbClient);
         
         // Don't look for SRDF in the HA side.
         haCapabilities.put(VirtualPoolCapabilityValuesWrapper.PERSONALITY, null);

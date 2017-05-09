@@ -767,7 +767,7 @@ public class BlockService extends TaskResourceService {
         // parameters are appropriate for the volume topology defined by the virtual pool.
         VolumeCreatePerformanceParams performanceParams = param.getPerformanceParams();
         if (performanceParams != null) {
-            blockServiceImpl.validatePerformanceParametersForVolumeCreate(performanceParams);
+            blockServiceImpl.validatePerformanceParametersForVolumeCreate(vpool, performanceParams);
         }
 
         // Get the count indicating the number of volumes to create. If not
@@ -5321,7 +5321,7 @@ public class BlockService extends TaskResourceService {
         // parameters are appropriate for the volume topology defined by the virtual pool.
         BlockPerformanceParamsMap performanceParams = copy.getPerformanceParams();
         if (performanceParams != null) {
-            serviceApi.validatePerformanceParametersForMirrorCreate(performanceParams);
+            serviceApi.validatePerformanceParametersForMirrorCreate(sourceVPool, performanceParams);
         }
 
         // Populate capabilities for volume placement.

@@ -742,7 +742,7 @@ public class DefaultBlockServiceApiImpl extends AbstractBlockServiceApiImpl<Stor
      * {@inheritDoc}
      */
     @Override
-    public void validatePerformanceParametersForVolumeCreate(VolumeCreatePerformanceParams requestParams) {
+    public void validatePerformanceParametersForVolumeCreate(VirtualPool vpool, VolumeCreatePerformanceParams requestParams) {
         // Just return if the passed performance params are null.
         if (requestParams == null) {
             return;

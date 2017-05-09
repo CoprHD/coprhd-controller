@@ -9,7 +9,6 @@ import static com.emc.storageos.api.mapper.TaskMapper.toTask;
 import static com.emc.storageos.db.client.constraint.AlternateIdConstraint.Factory.getVolumesByAssociatedId;
 import static com.emc.storageos.db.client.util.CommonTransformerFunctions.FCTN_STRING_TO_URI;
 import static com.emc.storageos.db.client.util.CommonTransformerFunctions.FCTN_VPLEX_MIRROR_TO_URI;
-import static com.google.common.base.Strings.isNullOrEmpty;
 import static com.google.common.collect.Collections2.transform;
 import static com.google.common.collect.Iterables.removeIf;
 import static java.lang.String.format;
@@ -248,8 +247,6 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                 URI storagePoolURI = recommendation.getSourceStoragePool();
                 VirtualPool volumeVpool = recommendation.getVirtualPool();
                 s_logger.info("Volume virtual pool is {}", volumeVpool.getId().toString());
-                // TBD Heg. I have no idea why this is being done here, but it sure as heck makes no sense.
-                //vPoolCapabilities.put(VirtualPoolCapabilityValuesWrapper.AUTO_TIER__POLICY_NAME, volumeVpool.getAutoTierPolicyName());
                 s_logger.info("Recommendation is for {} resources in pool {}", recommendation.getResourceCount(),
                         storagePoolURI.toString());
                 for (int i = 0; i < recommendation.getResourceCount(); i++) {
@@ -491,7 +488,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                 // recommendations on the HA side of distributed volumes.
                 VirtualPool haVpool = vplexRecommendations.get(0).getVirtualPool();
                 backendCapabilities = PerformanceParamsUtils.overridePrimaryCapabilitiesForVplexHA(
-                        haVpool, sourceParams, vPoolCapabilities, _dbClient);
+                        haVpool, sourceParams, VolumeTopologyRole.HA, vPoolCapabilities, _dbClient);
             }
 
             s_logger.info("Processing backend recommendations for Virtual Array {}", varrayId);
@@ -544,14 +541,8 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                 volumePrecreated = true;
             }
 
-            // TBD Heg Should not need this as it is in the capabilities.
+            // Prepare volume.
             long thinVolumePreAllocationSize = vPoolCapabilities.getThinVolumePreAllocateSize();
-            //if (null != vPool.getThinVolumePreAllocationPercentage()) {
-            //    thinVolumePreAllocationSize = VirtualPoolUtil
-            //            .getThinVolumePreAllocationSize(
-            //                    vPool.getThinVolumePreAllocationPercentage(), size);
-            //}
-
             volume = prepareVolume(VolumeType.VPLEX_VIRTUAL_VOLUME, volume,
                     size, thinVolumePreAllocationSize, project, vArray,
                     vPool, performanceParamsURI, vplexStorageSystemURI, nullPoolURI,
@@ -1849,7 +1840,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
         if (cgURI != null) {
             cosWrapper.put(VirtualPoolCapabilityValuesWrapper.BLOCK_CONSISTENCY_GROUP, cgURI);
         }
-        // TBD Heg
+        // TBD Heg Migration
         List<Recommendation> recommendations = getBlockScheduler().scheduleStorage(varray, requestedVPlexSystems,
                 null, vpool, new HashMap<VolumeTopologySite, List<Map<VolumeTopologyRole, URI>>>(), false, null, null,
                 cosWrapper, targetProject, VpoolUse.ROOT, new HashMap<VpoolUse, List<Recommendation>>());
@@ -1986,7 +1977,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
 
         boolean premadeRecs = false;
 
-        // TBD Heg
+        // TBD Heg Migration
         if (recommendations == null || recommendations.isEmpty()) {
             recommendations = getBlockScheduler().scheduleStorage(varray, requestedVPlexSystems, null, vpool,
                     new HashMap<VolumeTopologySite, List<Map<VolumeTopologyRole, URI>>>(), false, null, null,
@@ -2769,7 +2760,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
      */
     @Override
     public TaskList startNativeContinuousCopies(StorageSystem vplexStorageSystem, Volume vplexVolume,
-            VirtualPool sourceVirtualPool, VirtualPool mirrorVpool, VirtualPoolCapabilityValuesWrapper capabilities,
+            VirtualPool sourceVirtualPool, VirtualPool sourceMirrorVPool, VirtualPoolCapabilityValuesWrapper capabilities,
             NativeContinuousCopyCreate param, String taskId)
             throws ControllerException {
 
@@ -2795,8 +2786,6 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
             throw InternalServerErrorException.internalServerErrors
                     .noAssociatedVolumesForVPLEXVolume(vplexVolume.forDisplay());
         }
-
-        VirtualPool sourceMirrorVPool = mirrorVpool;
 
         // Check if volume is distributed and if HA Mirror Vpool is also set
         VirtualPool haMirrorVPool = VPlexUtil.getHAMirrorVpool(sourceVirtualPool, associatedVolumeIds, _dbClient);
@@ -2826,7 +2815,19 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
         Map<Volume, VirtualArray> backendvolumeToMirrorVarrayMap = new HashMap<Volume, VirtualArray>();
 
         for (Volume backendVolume : backendVolumeToMirrorVpoolMap.keySet()) {
+            VirtualPool beMirrorVpool = backendVolumeToMirrorVpoolMap.get(backendVolume);
+            VirtualPool backendVolumeVpool = _dbClient.queryObject(VirtualPool.class, backendVolume.getVirtualPool());
             URI backendVolumeVarrayURI = backendVolume.getVirtualArray();
+            VirtualPoolCapabilityValuesWrapper beCapabilities = new VirtualPoolCapabilityValuesWrapper(capabilities);
+            if (!backendVolumeVarrayURI.equals(vplexVolume.getVirtualArray())) {
+                // The passed capabilities are already set for a source side mirror, however
+                // if the mirror is on the HA side, we need to set them so the HA mirror 
+                // vpool and performance parameters are properly reflected in the capabilities
+                // passed for volume placement.
+                Map<VolumeTopologyRole, URI> performanceParams = PerformanceParamsUtils.transformPerformanceParams(param.getPerformanceParams());
+                beCapabilities = PerformanceParamsUtils.overridePrimaryCapabilitiesForVplexHA(
+                        beMirrorVpool, performanceParams, VolumeTopologyRole.HA_MIRROR, capabilities, _dbClient);
+            }
             // Get the VPLEX cluster value from the varray
             String cluster = ConnectivityUtil.getVplexClusterForVarray(backendVolumeVarrayURI, vplexStorageSystemURI, _dbClient);
             if (cluster.equals(ConnectivityUtil.CLUSTER_UNKNOWN)) {
@@ -2834,8 +2835,6 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                         .noVplexClusterInfoForVarray(backendVolumeVarrayURI.toString(), vplexStorageSystemURI.toString());
             }
 
-            VirtualPool backendVolumeVpool = _dbClient.queryObject(VirtualPool.class, backendVolume.getVirtualPool());
-            VirtualPool beMirrorVpool = backendVolumeToMirrorVpoolMap.get(backendVolume);
             // Get recommendations for the mirror placement
             List<Recommendation> volumeRecommendations = null;
             VirtualArray varray = null;
@@ -2849,7 +2848,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                     if (mirrorVPoolVarrayId.equals(backendVolumeVarrayURI.toString())) {
                         varray = _dbClient.queryObject(VirtualArray.class, backendVolumeVarrayURI);
                         volumeRecommendations = _scheduler.getRecommendationsForMirrors(varray, project, backendVolumeVpool, beMirrorVpool,
-                                capabilities, vplexStorageSystemURI, backendVolume.getStorageController(), cluster);
+                                beCapabilities, vplexStorageSystemURI, backendVolume.getStorageController(), cluster);
                         foundMatch = true;
                         break;
                     }
@@ -2865,7 +2864,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                                 _dbClient)) {
                             varray = _dbClient.queryObject(VirtualArray.class, URI.create(mirrorVPoolVarrayId));
                             volumeRecommendations = _scheduler.getRecommendationsForMirrors(varray, project, backendVolumeVpool,
-                                    beMirrorVpool, capabilities, vplexStorageSystemURI, backendVolume.getStorageController(), cluster);
+                                    beMirrorVpool, beCapabilities, vplexStorageSystemURI, backendVolume.getStorageController(), cluster);
                             if (!volumeRecommendations.isEmpty()) {
                                 foundMatch = true;
                                 break;
@@ -2886,7 +2885,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                     // getting recommendations.Here sourceVirtualPool and mirrorVPool will be same.
                     varray = _dbClient.queryObject(VirtualArray.class, backendVolumeVarrayURI);
                     volumeRecommendations = _scheduler.getRecommendationsForMirrors(varray, project, backendVolumeVpool, beMirrorVpool,
-                            capabilities, vplexStorageSystemURI, backendVolume.getStorageController(), cluster);
+                            beCapabilities, vplexStorageSystemURI, backendVolume.getStorageController(), cluster);
                 }
             }
 
@@ -3969,12 +3968,6 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
         s_logger.info("Generated backend descriptors for {} recommendations varray {}",
                 recommendations.size(), varrayCount);
 
-        // TBD Heg - Should already have the tiering policy name overridden by performance params.
-        // No need to set it again here as it will blow away the performance params override.
-        //vPoolCapabilities.put(VirtualPoolCapabilityValuesWrapper.AUTO_TIER__POLICY_NAME,
-                //vpool.getAutoTierPolicyName());
-
-
         if (firstRecommendation.getRecommendation() != null) {
             // If these recommendations have lower level recommendation, process them.
             // This path is used for the source side of Distributed Volumes and for Local volumes
@@ -4051,15 +4044,8 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                 s_logger.info("Volume label is {}", newVolumeLabel);
                 VirtualArray varray = _dbClient.queryObject(VirtualArray.class, varrayId);
                 
-                // TBD Heg Should not need this as it is in the capabilities.
+                // Prepare volume
                 long thinVolumePreAllocationSize = vPoolCapabilities.getThinVolumePreAllocateSize();
-                //long thinVolumePreAllocationSize = 0;
-                //if (null != vpool.getThinVolumePreAllocationPercentage()) {
-                //    thinVolumePreAllocationSize = VirtualPoolUtil
-                //            .getThinVolumePreAllocationSize(
-                //                    vpool.getThinVolumePreAllocationPercentage(), size);
-                //}
-
                 Volume volume = prepareVolume(VolumeType.BLOCK_VOLUME, null,
                         size, thinVolumePreAllocationSize, vplexProject,
                         varray, vpool, performanceParamsURI, storageDeviceURI,
@@ -4483,7 +4469,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
      * {@inheritDoc}
      */
     @Override
-    public void validatePerformanceParametersForVolumeCreate(VolumeCreatePerformanceParams requestParams) {
+    public void validatePerformanceParametersForVolumeCreate(VirtualPool vpool, VolumeCreatePerformanceParams requestParams) {
         // Just return if the passed performance params are null.
         if (requestParams == null) {
             return;
@@ -4491,10 +4477,37 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
         
         // We need to verify that the passed performance parameters are appropriate for
         // a VPLEX volume. For now we verify that performance parameters passed for 
-        // the SOURCE and SOURCE_HA roles are exist and are active. We still need to
-        // account for the source and ha mirrors.
-        BlockPerformanceParamsMap sourceParams = requestParams.getSourceParams();
+        // the SOURCE and SOURCE_HA roles are exist and are active.
+        List<VolumeTopologyRole> roles = new ArrayList<>();
+        roles.add(VolumeTopologyRole.PRIMARY);
+        if (VirtualPool.vPoolSpecifiesHighAvailabilityDistributed(vpool)) {
+            roles.add(VolumeTopologyRole.HA);
+        }
         PerformanceParamsUtils.validatePerformanceParamsForRole(
-                sourceParams, Arrays.asList(VolumeTopologyRole.PRIMARY, VolumeTopologyRole.HA), _dbClient);        
+                requestParams.getSourceParams(), roles, _dbClient);        
+    }
+    
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void validatePerformanceParametersForMirrorCreate(VirtualPool sourceVolumeVpool, BlockPerformanceParamsMap performanceParams) {
+        // Just return if the passed performance params are null.
+        if (performanceParams == null) {
+            return;
+        }
+
+        // We need to verify that the passed performance parameters are appropriate for
+        // a VPLEX block volume. Validate that if performance parameters are passed for
+        // the primary side mirror that they exist and are active.
+        // TBD Heg - Maybe refine to examine which sides of the distributed volume will
+        // actually get a mirror and only verify performance params for that side(s).
+        List<VolumeTopologyRole> roles = new ArrayList<>();
+        roles.add(VolumeTopologyRole.PRIMARY_MIRROR);
+        if (VirtualPool.vPoolSpecifiesHighAvailabilityDistributed(sourceVolumeVpool)) {
+            roles.add(VolumeTopologyRole.HA_MIRROR);
+        }
+        PerformanceParamsUtils.validatePerformanceParamsForRole(
+                performanceParams, roles, _dbClient);
     }    
 }

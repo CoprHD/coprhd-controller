@@ -676,15 +676,17 @@ public interface BlockServiceApi {
      * For a volume create request validates that the performance parameters passed are valid 
      * and are appropriate.
      * 
+     * @param vpool The virtual pool.
      * @param requestParams A reference to the performance parameters passed in the request.
      */
-    public void validatePerformanceParametersForVolumeCreate(VolumeCreatePerformanceParams requestParams);
+    public void validatePerformanceParametersForVolumeCreate(VirtualPool vpool, VolumeCreatePerformanceParams requestParams);
     
     /**
      * For a mirror create request validates that the performance parameters passed are valid 
      * and are appropriate.
      * 
+     * @param sourceVolumeVpool The source volume virtual pool.
      * @param requestParams A reference to the performance parameters passed in the request.
      */
-    public void validatePerformanceParametersForMirrorCreate(BlockPerformanceParamsMap requestParams);    
+    public void validatePerformanceParametersForMirrorCreate(VirtualPool sourceVolumeVpool, BlockPerformanceParamsMap performanceParams);    
 }

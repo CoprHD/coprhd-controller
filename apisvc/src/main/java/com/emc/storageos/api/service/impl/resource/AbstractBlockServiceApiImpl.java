@@ -2126,13 +2126,13 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
      * {@inheritDoc}
      */
     @Override
-    public void validatePerformanceParametersForVolumeCreate(VolumeCreatePerformanceParams requestParams) {
+    public void validatePerformanceParametersForVolumeCreate(VirtualPool vpool, VolumeCreatePerformanceParams requestParams) {
     }    
 
     /**
      * {@inheritDoc}
      */
     @Override
-    public void validatePerformanceParametersForMirrorCreate(BlockPerformanceParamsMap performanceParams) {
+    public void validatePerformanceParametersForMirrorCreate(VirtualPool sourceVolumeVpool, BlockPerformanceParamsMap performanceParams) {
     }
 }

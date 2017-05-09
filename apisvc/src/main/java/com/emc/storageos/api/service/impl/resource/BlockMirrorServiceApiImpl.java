@@ -943,7 +943,7 @@ public class BlockMirrorServiceApiImpl extends AbstractBlockServiceApiImpl<Stora
      * {@inheritDoc}
      */
     @Override
-    public void validatePerformanceParametersForMirrorCreate(BlockPerformanceParamsMap performanceParams) {
+    public void validatePerformanceParametersForMirrorCreate(VirtualPool sourceVolumeVpool, BlockPerformanceParamsMap performanceParams) {
         // We need to verify that the passed performance parameters are appropriate for
         // a simple block volume.
         PerformanceParamsUtils.validatePerformanceParamsForRole(

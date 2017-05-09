@@ -368,20 +368,22 @@ public class PerformanceParamsUtils {
      * volume.
      *  
      * @param haVpool The HA virtual pool.
-     * @param primaryCapabilities The capabilities for the primary side of the VPLEX volume.
      * @param performanceParams The performance parameters.
+     * @param haRole The HA role.
+     * @param primaryCapabilities The capabilities for the primary side of the VPLEX volume.
+     * @param dbClient A reference to a db client.
      * 
      * @return The capabilities to use when matching pools for the HA side of the volume.
      */
     public static VirtualPoolCapabilityValuesWrapper overridePrimaryCapabilitiesForVplexHA(
             VirtualPool haVpool, Map<VolumeTopologyRole, URI> performanceParams,
-            VirtualPoolCapabilityValuesWrapper primaryCapabilities, DbClient dbClient) {
+            VolumeTopologyRole haRole, VirtualPoolCapabilityValuesWrapper primaryCapabilities, DbClient dbClient) {
         
         // Initialize HA capabilities.
         VirtualPoolCapabilityValuesWrapper haCapabilities = new VirtualPoolCapabilityValuesWrapper(primaryCapabilities);
 
         // Set the auto tiering policy name for the HA side into the HA capabilities.
-        String autoTierPolicyName = PerformanceParamsUtils.getAutoTierinigPolicyName(
+        String autoTierPolicyName = getAutoTierinigPolicyName(
                 performanceParams, VolumeTopologyRole.HA, haVpool, dbClient);
         if (NullColumnValueGetter.isNotNullValue(autoTierPolicyName)) {
             haCapabilities.put(VirtualPoolCapabilityValuesWrapper.AUTO_TIER__POLICY_NAME, autoTierPolicyName);
@@ -390,7 +392,7 @@ public class PerformanceParamsUtils {
         }
 
         // Set the thin volume pre-allocation size for the HA side into the HA capabilities.
-        Integer thinVolumePreAllocPercentage = PerformanceParamsUtils.getThinVolumePreAllocPercentage(
+        Integer thinVolumePreAllocPercentage = getThinVolumePreAllocPercentage(
                 performanceParams, VolumeTopologyRole.HA, haVpool, dbClient);
         if (null != thinVolumePreAllocPercentage && 0 < thinVolumePreAllocPercentage) {
             haCapabilities.put(VirtualPoolCapabilityValuesWrapper.THIN_VOLUME_PRE_ALLOCATE_SIZE, VirtualPoolUtil
@@ -398,7 +400,7 @@ public class PerformanceParamsUtils {
         }
         
         // Set the dedup capable for the HA side into the HA capabilities.
-        Boolean dedupCapable = PerformanceParamsUtils.getIsDedupCapable(performanceParams, VolumeTopologyRole.HA, haVpool, dbClient);
+        Boolean dedupCapable = getIsDedupCapable(performanceParams, VolumeTopologyRole.HA, haVpool, dbClient);
         if (dedupCapable) {
             haCapabilities.put(VirtualPoolCapabilityValuesWrapper.DEDUP, dedupCapable);
         } else {

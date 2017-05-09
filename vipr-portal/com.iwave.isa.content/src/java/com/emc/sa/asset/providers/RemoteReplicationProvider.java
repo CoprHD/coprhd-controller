@@ -48,13 +48,17 @@ public class RemoteReplicationProvider extends BaseAssetOptionsProvider {
     @AssetDependencies({ "blockVirtualArray", "blockVirtualPool" })
     public List<AssetOption>
     getRemoteReplicationModes(AssetOptionsContext ctx, URI virtualArrayId, URI virtualPoolId) {
+        List<AssetOption> options = new ArrayList<>();
 
         RemoteReplicationSetRestRep rrSet = getRrSet(ctx,virtualArrayId, virtualPoolId);
+
+        if (rrSet == null) {
+            return options; // no sets or remote replication not supported
+        }
 
         RemoteReplicationSetRestRep rrSetObj = getClient(ctx).
                 getRemoteReplicationSetsRestRep(rrSet.getId().toString());
 
-        List<AssetOption> options = new ArrayList<>();
         for(String mode : rrSetObj.getSupportedReplicationModes()) {
             options.add(new AssetOption(mode,mode));
         }
@@ -76,6 +80,10 @@ public class RemoteReplicationProvider extends BaseAssetOptionsProvider {
             URI virtualArrayId, URI virtualPoolId) {
 
         RemoteReplicationSetRestRep rrSet = getRrSet(ctx,virtualArrayId, virtualPoolId);
+
+        if (rrSet == null) {
+            return new ArrayList<>(); // no sets or remote replication not supported
+        }
 
         return createNamedResourceOptions(getClient(ctx).
                 getGroupsForSet(rrSet.getId()).getRemoteReplicationGroups());

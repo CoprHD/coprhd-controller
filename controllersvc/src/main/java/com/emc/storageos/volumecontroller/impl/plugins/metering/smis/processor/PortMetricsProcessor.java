@@ -17,7 +17,6 @@ import java.util.Set;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.customconfigcontroller.CustomConfigConstants;
@@ -68,13 +67,15 @@ public class PortMetricsProcessor {
 
     private static volatile DbClient _dbClient;
     private static volatile CoordinatorClient _coordinator;
-    @Autowired
     private static CustomConfigHandler customConfigHandler;
 
     final private static int DEFAULT_PORT_UTILIZATION_CEILING = 100;
     final private static int DEFAULT_CPU_UTILIZATION_CEILING = 100;
+    final private static int DEFAULT_PORT_UTILIZATION_FLOOR = 0;
+    final private static int DEFAULT_CPU_UTILIZATION_FLOOR = 0;
     final private static int DEFAULT_INITIATOR_CEILING = Integer.MAX_VALUE;
     final private static int DEFAULT_VOLUME_CEILING = Integer.MAX_VALUE;
+    final private static double DEFAULT_VOLUME_COEFFICIENT = 1.0;
 
     final private static int DEFAULT_DAYS_OF_AVG = 1;
     final private static double DEFAULT_EMA_FACTOR = 0.6;
@@ -86,6 +87,9 @@ public class PortMetricsProcessor {
     final static private long MAX_SAMPLE_AGE_MSEC = 48 * 60 * 60 * 1000;
     final static private int MINUTES_PER_DAY = 60 * 24;
     final static private long SECONDS_PER_YEAR = 60 * 60 * 24 * 365;
+    
+    /** Maximum volumes on a port normally */
+    final private static Long MAX_VOLUMES_PER_PORT = 2048L;
 
     public PortMetricsProcessor() {
     };
@@ -352,6 +356,8 @@ public class PortMetricsProcessor {
         DiscoveredDataObject.Type type = DiscoveredDataObject.Type.valueOf(system.getSystemType());
         StringMap portMap = port.getMetrics();
         double emaFactor = getEmaFactor(DiscoveredDataObject.Type.valueOf(system.getSystemType()));
+        double portBusyFloor = getPortBusyFloor(DiscoveredDataObject.Type.valueOf(system.getSystemType()));
+        double cpuBusyFloor = getCpuBusyFloor(DiscoveredDataObject.Type.valueOf(system.getSystemType()));
         if (emaFactor > 1.0)
         {
             emaFactor = 1.0;  // in case of invalid user input
@@ -361,10 +367,13 @@ public class PortMetricsProcessor {
         Double portPercentBusy = (portAvgBusy * emaFactor) + ((1 - emaFactor) * portEmaBusy);
         MetricsKeys.putDouble(MetricsKeys.avgPortPercentBusy, portPercentBusy, port.getMetrics());
 
+        // The port metric contains poertPercentBusy if it's over the floor.
+        // If the usage is less than the floor, don't count it in order to make volume component predominate.
+        Double portMetricDouble = ((portPercentBusy >= portBusyFloor) ? portPercentBusy : 0.0);
+
         // Calculate the overall port metric, which is a percent 0-100%
         Double cpuAvgBusy = null;
         Double cpuEmaBusy = null;
-        Double portMetricDouble = portPercentBusy;
 
         // compute port cpu busy if applicable
         if (type == DiscoveredDataObject.Type.vmax ||
@@ -378,20 +387,11 @@ public class PortMetricsProcessor {
             // Update port bandwidth and cpu usage average. These are used by the UI.
             Double cpuPercentBusy = (cpuAvgBusy * emaFactor) + ((1 - emaFactor) * cpuEmaBusy);
             MetricsKeys.putDouble(MetricsKeys.avgCpuPercentBusy, cpuPercentBusy, port.getMetrics());
-
-            portMetricDouble += cpuPercentBusy;
-            Long volumeCount = MetricsKeys.getLong(MetricsKeys.volumeCount, port.getMetrics());
-            
-            _log.info(String.format("Volume Count for port %s : %d", portName(port), volumeCount));
-            
-            // Compute port metric taking into account volume count information. 
-            // A volume will be considered 100% busy if it has 2048 volumes mapped to it. Although certain arrays such as VMAX have a 
-            // higher limit (4096), we will still use 2048 to make sure volumes are evenly distributed across ports. 
-            
-            Double volumeCountBusyMetric = (volumeCount / 2048) * 100.0;
-            portMetricDouble += volumeCountBusyMetric;
-            portMetricDouble /= 3.0; // maintain on a scale of 0 - 100%
-            _log.info("portMetricDouble with volume count information : " + portMetricDouble);
+            // If cpuPercentBusy is greater than the cpuBusyFloor, average it in to port metric.
+            if (cpuPercentBusy >= cpuBusyFloor) {
+                portMetricDouble += cpuPercentBusy;
+                portMetricDouble /= 2;
+            }
         }
 
         _log.info(String.format("%s %s: portMetric %f port %f %f cpu %s %s",
@@ -708,22 +708,30 @@ public class PortMetricsProcessor {
             List<StoragePort> candidatePorts, StorageSystem system, boolean updatePortUsages) {
         Map<StoragePort, Long> usages = new HashMap<StoragePort, Long>();
         boolean metricsValid = metricsValid(system, candidatePorts);
+        Double volumeCoefficient = getVolumeCoefficient(StorageSystem.Type.valueOf(system.getSystemType()));
 
-        // Disqualify any ports over one of their ceilings
-        List<StoragePort> portsUnderCeiling = eliminatePortsOverCeiling(candidatePorts, system, true);
+        // Disqualify any ports over one of their ceilings. This will recalculate the volume counts and
+        // initiator counts if updatePortUsages is true.
+        List<StoragePort> portsUnderCeiling = eliminatePortsOverCeiling(candidatePorts, system, updatePortUsages);
 
         for (StoragePort sp : portsUnderCeiling) {
             // only compute port metric for front end port
             if (sp.getPortType().equals(StoragePort.PortType.frontend.name())) {
                 Long usage = 0L;
+                Long volumeCount = MetricsKeys.getLong(MetricsKeys.volumeCount, sp.getMetrics());
                 if (metricsValid) {
+                    // If metrics vald, the metric is the sum of:
+                    // 1) the port metric (which includes port and cpu percent busy terms if applicable)
+                    // 2) the volumeCoefficient * volumeCount * 100.0 / 2048 (volumes expressed as percent of 2048)
+                    // At standard settings, about 21 volumes is equivalent to a 1% difference in port busy.
                     Double metric = MetricsKeys.getDouble(MetricsKeys.portMetric, sp.getMetrics());
-                    usage = new Double(metric * 10.0).longValue();
+                    metric += (volumeCoefficient * volumeCount * 100.0) / MAX_VOLUMES_PER_PORT;
+                    usage = new Double(metric * 1000.0).longValue();
                 } else {
-                    usage = MetricsKeys.getLong(MetricsKeys.volumeCount, sp.getMetrics());
+                    usage = volumeCount * 1000;
                 }
                 usages.put(sp, usage);
-                _log.info(String.format("Port usage: port %s metric %d %s", portName(sp), usage,
+                _log.info(String.format("Port usage: port %s metric %d volumes %d %s", portName(sp), usage, volumeCount,
                         metricsValid ? "portMetric" : "volumeCount"));
             }
         }
@@ -1397,6 +1405,51 @@ public class PortMetricsProcessor {
     }
 
     /**
+     * Get port utilization percentage floor value for given storage system's type. Valid range is b/w 0 - 100
+     * 
+     * @param systemType - storage system type {@link DiscoveredDataObject.Type}
+     * @return 0 - 100
+     */
+    static public Integer getPortBusyFloor(StorageSystem.Type systemType) {
+        int floor = DEFAULT_PORT_UTILIZATION_FLOOR;  // default to 0% if not specified
+
+        try {
+            floor = Integer.valueOf(
+                    customConfigHandler.getComputedCustomConfigValue(
+                            CustomConfigConstants.PORT_ALLOCATION_PORT_UTILIZATION_FLOOR,
+                            getStorageSystemTypeName(systemType), null));
+            if (floor <= 0 || floor > 100) {
+                floor = DEFAULT_PORT_UTILIZATION_FLOOR;
+            }
+        } catch (Exception e) {
+            _log.debug(e.getMessage());
+        }
+        return floor;
+    }
+
+    /**
+     * Get cpu utilization percentage floor value for given storage system's type. Valid range is b/w 0 - 100
+     * 
+     * @param systemType - storage system type {@link DiscoveredDataObject.Type}
+     * @return 0 - 100
+     */
+    static public Integer getCpuBusyFloor(StorageSystem.Type systemType) {
+        int floor = DEFAULT_CPU_UTILIZATION_FLOOR;  // default to 0% if not specified
+
+        try {
+            floor = Integer.valueOf(
+                    customConfigHandler.getComputedCustomConfigValue(
+                            CustomConfigConstants.PORT_ALLOCATION_CPU_UTILIZATION_FLOOR,
+                            getStorageSystemTypeName(systemType), null));
+            if (floor <= 0 || floor > 100) {
+                floor = DEFAULT_CPU_UTILIZATION_FLOOR;
+            }
+        } catch (Exception e) {
+            _log.debug(e.getMessage());
+        }
+        return floor;
+    }
+    /**
      * Get CPU utilization percentage ceiling value for given storage system's type. Valid range is b/w 1 - 100
      * 
      * @param systemType - storage system type {@link DiscoveredDataObject.Type}
@@ -1472,6 +1525,29 @@ public class PortMetricsProcessor {
             _log.debug(e.getMessage());
         }
         return emaFactor;
+    }
+
+    /**
+     * Get volume coefficient. This controlls how much weight volume count has in the port metric.
+     * Range is 0 through 2.0 where 1.0 is "normal weight" and 0.0 is disabled.
+     * 
+     * @return 0 - 2.0
+     */
+    static public Double getVolumeCoefficient(StorageSystem.Type systemType) {
+        double volumeCoefficient = DEFAULT_VOLUME_COEFFICIENT;  // default to factor of 1.0
+
+        try {
+            volumeCoefficient = Double.valueOf(
+                    customConfigHandler.getComputedCustomConfigValue(
+                            CustomConfigConstants.PORT_ALLOCATION_VOLUME_COEFFICIENT,
+                            getStorageSystemTypeName(systemType), null));
+            if (volumeCoefficient < 0.0 || volumeCoefficient > 2.0) {
+                volumeCoefficient = DEFAULT_VOLUME_COEFFICIENT;
+            }
+        } catch (Exception e) {
+            _log.debug(e.getMessage());
+        }
+        return volumeCoefficient;
     }
 
     /**

@@ -96,18 +96,8 @@ public class WorkflowBuilder extends Controller {
 
     public static void view() {
         setAnsibleResources();
-
-        StringOption[] restCallMethodOptions = {
-                new StringOption("GET", "GET"),
-                new StringOption("POST", "POST"),
-                new StringOption("PUT", "PUT"), };
-        renderArgs.put("restCallMethodOptions", Arrays.asList(restCallMethodOptions));
-
-        Map<String, String> restCallAuthTypes = Maps.newHashMap();
-        restCallAuthTypes.put(AuthType.NONE.toString(), Messages.get("rest.authType.noAuth"));
-        restCallAuthTypes.put(AuthType.BASIC.toString(), Messages.get("rest.authType.basicAuth"));
-        renderArgs.put("restCallAuthTypes", restCallAuthTypes);
-
+        setRestCallResources();
+        Common.copyRenderArgsToAngular();
         render();
     }
 
@@ -121,7 +111,13 @@ public class WorkflowBuilder extends Controller {
             }
         }
         renderArgs.put("ansibleResourceNames", ansibleResourceNames);
-        Common.copyRenderArgsToAngular();
+    }
+
+    private static void setRestCallResources() {
+        final List<StringOption> restCallAuthTypes = new ArrayList<StringOption>();
+        restCallAuthTypes.add(new StringOption(AuthType.NONE.toString(), Messages.get("rest.authType.noAuth")));
+        restCallAuthTypes.add(new StringOption(AuthType.BASIC.toString(), Messages.get("rest.authType.basicAuth")));
+        renderArgs.put("restCallAuthTypes", restCallAuthTypes);
     }
 
     private static enum WFBuilderNodeTypes {
@@ -671,20 +667,14 @@ public class WorkflowBuilder extends Controller {
             primitiveCreateParam.getAttributes().put(CustomServicesConstants.PROTOCOL.toString(), "https");
             primitiveCreateParam.getAttributes().put(CustomServicesConstants.METHOD.toString(), restAPIPrimitive.getMethod());
             primitiveCreateParam.getAttributes().put(CustomServicesConstants.AUTH_TYPE.toString(), restAPIPrimitive.getAuthType());
-            if (AuthType.BASIC.toString().equals(restAPIPrimitive.getAuthType())) {
-                // Adding user, password to inputs if its "BASIC" auth type
-                restAPIPrimitive.setRestOptions(restAPIPrimitive.getRestOptions() + "user,password");
-            }
 
             final ImmutableMap.Builder<String, InputCreateList> builder = ImmutableMap.<String, InputCreateList> builder();
             // Add Input Groups
-            addInputs(restAPIPrimitive.getInputs(), builder, CustomServicesConstants.INPUT_PARAMS);
             addInputs(restAPIPrimitive.getHeaders(), builder, CustomServicesConstants.HEADERS);
             addInputs(restAPIPrimitive.getQueryParams(), builder, CustomServicesConstants.QUERY_PARAMS);
-            // TODO: REST_OPTIONS is currently not allowed in API. After fix, uncomment this line
-            // addInputs(restAPIPrimitive.getRestOptions(), builder, CustomServicesConstants.REST_OPTIONS);
             primitiveCreateParam.setInput(builder.build());
 
+            // Add Outputs
             if (StringUtils.isNotEmpty(restAPIPrimitive.getOutputs())) {
                 primitiveCreateParam.setOutput(getListFromInputOutputString(restAPIPrimitive.getOutputs()));
             }
@@ -902,8 +892,7 @@ public class WorkflowBuilder extends Controller {
             shellPrimitive.setDescription(primitiveRestRep.getDescription());
             shellPrimitive.setInputs(convertListToString(convertInputParamsGroupsToList(primitiveRestRep.getInputGroups())));
             shellPrimitive.setOutputs(convertListToString(convertOutputGroupsToList(primitiveRestRep.getOutput())));
-            // TODO: get script name from API
-            shellPrimitive.setScriptName("SAMPLE NAME");
+            shellPrimitive.setScriptName(primitiveRestRep.getResource().getName());
         }
         return shellPrimitive;
     }

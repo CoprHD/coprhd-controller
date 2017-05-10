@@ -30,8 +30,8 @@ inputOutputTabID = 'inputOutputContent';
                         <control-group v-field='shellPrimitive.name' labelWidth="1" required >
                             <input-text class="initialFocus"></input-text>
                         </control-group>
-                        <control-group v-field='shellPrimitive.description' labelWidth="1" >
-                            <input-text></input-text>
+                        <control-group v-field='shellPrimitive.description'>
+                            <textarea class="form-control" rows="5" name="shellPrimitive.description" id="shellPrimitive_description" ng-model="field.value"></textarea>
                         </control-group>
                     #{/Modal.body}
                 </div>
@@ -49,6 +49,11 @@ inputOutputTabID = 'inputOutputContent';
                                 #{Form.fileUploadControlGroup field:field/}
                             #{/field}
                         </div>
+
+                        <control-group v-field='shellPrimitive.scriptName' labelWidth="1" ng-if="!shellPrimitive.newScript">
+                            <input-text></input-text>
+                        </control-group>
+
                     #{/Modal.body}
                 </div>
                 <div class="tab-pane" id="${inputOutputTabID}">

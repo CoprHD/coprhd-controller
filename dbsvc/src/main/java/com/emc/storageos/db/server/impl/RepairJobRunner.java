@@ -53,10 +53,14 @@ public class RepairJobRunner implements NotificationListener, AutoCloseable {
     final private Condition finished = lock.newCondition();
     private boolean repairRangeDone = false;
 
+    public static enum RepairJobStatus {
+        SUCCESS, FAILED_NEED_RETRY, FAILED
+    }
+
     /**
      * Flag to indicate the job is successful or failed
      */
-    private boolean _success = true;
+    private RepairJobStatus repairJobStatus = RepairJobStatus.SUCCESS;
 
     /**
      * Total number of repair sessions to be executed
@@ -184,19 +188,19 @@ public class RepairJobRunner implements NotificationListener, AutoCloseable {
      * @throws IOException
      * @throws InterruptedException
      */
-    public boolean runRepair() throws IOException, InterruptedException {
+    public RepairJobStatus runRepair() throws IOException, InterruptedException {
         _startTimeInMillis = System.currentTimeMillis();
 
         List<StringTokenRange> localRanges = getLocalRanges(keySpaceName);
         if (localRanges == null) {
-            _success = false;
-            return false;
+            repairJobStatus = RepairJobStatus.FAILED_NEED_RETRY;
+            return repairJobStatus;
         }
 
         _totalRepairSessions = localRanges.size();
         if (_totalRepairSessions == 0) {
             _log.info("Nothing to repair for keyspace {}", keySpaceName);
-            return _success;
+            return repairJobStatus;
         }
 
         _log.info("Run repair job for {}. Total # local ranges {}",
@@ -216,13 +220,13 @@ public class RepairJobRunner implements NotificationListener, AutoCloseable {
         lock.lock();
         try {
             _aborted = false;
-            _success = true;
+            repairJobStatus = RepairJobStatus.SUCCESS;
             while (_completedRepairSessions < _totalRepairSessions) {
 
                 String currentDigest = DbRepairRunnable.getClusterStateDigest();
                 if (!clusterStateDigest.equals(currentDigest)) {
                     _log.error("Cluster state changed from {} to {}, repair failed", clusterStateDigest, currentDigest);
-                    _success = false;
+                    repairJobStatus = RepairJobStatus.FAILED_NEED_RETRY;
                     break;
                 }
 
@@ -230,7 +234,7 @@ public class RepairJobRunner implements NotificationListener, AutoCloseable {
 
                 repairRange(range);
 
-                if (!_success) {
+                if (repairJobStatus != RepairJobStatus.SUCCESS) {
                     _log.error("Fail to repair range {} {}. Stopping the job", range.begin, range.end);
                     break;
                 }
@@ -246,7 +250,7 @@ public class RepairJobRunner implements NotificationListener, AutoCloseable {
         }
 
         // Reset lastToken after a successful full repair of local primary ranges
-        if (_success) {
+        if (repairJobStatus == RepairJobStatus.SUCCESS) {
             _lastToken = null;
         }
 
@@ -254,7 +258,7 @@ public class RepairJobRunner implements NotificationListener, AutoCloseable {
         _log.info("Db repair consumes {} ",repairMillis > MIN_MINUTE_FOR_REPAIR_TIME_IN_LOG * TimeUtils.MINUTES ?
                 repairMillis / TimeUtils.MINUTES + " minutes" : repairMillis / TimeUtils.SECONDS + " seconds");
 
-        return _success;
+        return repairJobStatus;
     }
 
     private void repairRange(StringTokenRange range) throws InterruptedException {
@@ -271,7 +275,7 @@ public class RepairJobRunner implements NotificationListener, AutoCloseable {
             }
         }
 
-        _log.info("Repair this range is done success={}", _success);
+        _log.info("Repair this range is done success={}", (repairJobStatus == RepairJobStatus.SUCCESS) ? "true" : "false");
     }
 
     /**
@@ -353,14 +357,14 @@ public class RepairJobRunner implements NotificationListener, AutoCloseable {
                     // repair status is int array with [0] = cmd number, [1] = status
                     if (status[1] == ActiveRepairService.Status.SESSION_FAILED.ordinal()) {
                         _log.info("Repair cmd={} failed", status[0]);
-                        _success = false;
+                        repairJobStatus = RepairJobStatus.FAILED_NEED_RETRY;
                         repairRangeDone = true;
                         finished.signal();
                     } else if (status[1] == ActiveRepairService.Status.FINISHED.ordinal() ||
                             (_aborted && status[1] == ActiveRepairService.Status.SESSION_SUCCESS.ordinal())) {
                         _log.info("Repair cmd={} finished", status[0]);
                         if (_aborted) {
-                            _success = false;
+                            repairJobStatus = RepairJobStatus.FAILED;
                         }
                         repairRangeDone = true;
                         finished.signal();

@@ -76,8 +76,8 @@ public final class InvokeTestFailure {
     public static final String ARTIFICIAL_FAILURE_040 = "failure_040_XtremIOStorageDeviceController.doDeleteVolume_before_delete_volume";
     public static final String ARTIFICIAL_FAILURE_041 = "failure_041_XtremIOStorageDeviceController.doDeleteVolume_after_delete_volume";
     public static final String ARTIFICIAL_FAILURE_042 = "failure_042_host_cluster_ComputeSystemControllerImpl.updateHostAndInitiatorClusterReferences";
-    public static final String ARTIFICIAL_FAILURE_043 = "failure_043_VPlexVmaxMaskingOrchestrator.deleteOrRemoveVolumesToExportMask_before_operation";
-    public static final String ARTIFICIAL_FAILURE_044 = "failure_044_VPlexVmaxMaskingOrchestrator.deleteOrRemoveVolumesToExportMask_after_operation";
+    public static final String ARTIFICIAL_FAILURE_043 = "failure_043_VPlexVmaxMaskingOrchestrator.deleteOrRemoveVolumesFromExportMask_before_operation";
+    public static final String ARTIFICIAL_FAILURE_044 = "failure_044_VPlexVmaxMaskingOrchestrator.deleteOrRemoveVolumesFromExportMask_after_operation";
     public static final String ARTIFICIAL_FAILURE_045 = "failure_045_VPlexDeviceController.createVirtualVolume_before_create_operation";
     public static final String ARTIFICIAL_FAILURE_046 = "failure_046_VPlexDeviceController.createVirtualVolume_after_create_operation";
     public static final String ARTIFICIAL_FAILURE_047 = "failure_047_NetworkDeviceController.zoneExportMaskCreate_before_zone";

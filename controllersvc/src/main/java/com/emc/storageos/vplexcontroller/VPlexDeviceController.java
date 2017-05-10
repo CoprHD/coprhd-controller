@@ -4904,6 +4904,8 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
                     }
                 }
             }
+
+            InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_082);
             completer.ready(_dbClient);
         } catch (VPlexApiException vae) {
             _log.error("VPlexApiException adding storagePorts to Storage View: " + vae.getMessage(), vae);
@@ -4916,12 +4918,45 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
         }
     }
 
+    /**
+     * @see storageViewAddStoragePortsRollback
+     * @param vplexURI
+     *            -- URI of VPlex StorageSystem
+     * @param exportGroupURI
+     *            -- ExportGroup URI
+     * @param exportMaskURI
+     *            -- ExportMask URI
+     * @param targetURIs
+     *            -- list of targets URIs
+     * @param rollbackContextKey
+     *            -- Context token
+     * @return Workflow.Method for addition to workflow.
+     */
     public Workflow.Method storageViewAddStoragePortsRollbackMethod(URI vplexURI, URI exportGroupURI, URI exportMaskURI,
             List<URI> targetURIs, String rollbackContextKey) {
         return new Workflow.Method(STORAGE_VIEW_ADD_STORAGE_PORTS_ROLLBACK_METHOD, vplexURI,
                 exportGroupURI, exportMaskURI, targetURIs, rollbackContextKey);
     }
 
+    /**
+     * Rollback entry point. This is a wrapper around the storageViewRemoveStoragePorts
+     * operation, which requires that we extract the export context using the roll back token
+     * that's passed in and store it in the current step's context.
+     * 
+     * @param vplexURI
+     *            -- URI of VPlex StorageSystem
+     * @param exportURI
+     *            -- ExportGroup URI
+     * @param maskURI
+     *            -- ExportMask URI
+     * @param targetURIs
+     *            -- list of targets URIs
+     * @param rollbackContextKey
+     *            -- Context token
+     * @param stepId
+     *            -- Workflow step id.
+     * @throws DeviceControllerException
+     */
     public void storageViewAddStoragePortsRollback(URI vplexURI, URI exportURI, URI maskURI,
             List<URI> targetURIs, String rollbackContextKey, String stepId) throws DeviceControllerException {
         // Take the context of the step in flight and feed it into our current step
@@ -4948,6 +4983,8 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
      *            -- ExportMask URI
      * @param targetURIs
      *            -- list of additional targets URIs
+     * @param rollbackContextKey
+     *            -- Context token
      * @return Workflow.Method for addition to workflow.
      */
     public Workflow.Method storageViewRemoveStoragePortsMethod(URI vplexURI, URI exportURI, URI maskURI,
@@ -4969,6 +5006,8 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
      *            -- list of targets URIs (VPLEX FE ports) to be removed.
      *            If non null, the targets (VPlex front end ports) indicated by the targetURIs will be removed
      *            from the Storage View.
+     * @param rollbackContextKey
+     *            -- Context token for rollback processing
      * @param stepId
      *            -- Workflow step id.
      * @throws WorkflowException

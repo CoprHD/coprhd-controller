@@ -19,6 +19,7 @@
     <import resource="classpath:attr-matcher.xml"/>
     <import resource="classpath:jmx-conf.xml"/>
     <import resource="classpath:geoclient-conf.xml"/>
+    <import resource="classpath:sa-vipr-operations.xml" />
 
     <bean class="org.springframework.context.annotation.CommonAnnotationBeanPostProcessor" />
 
@@ -261,8 +262,6 @@
 	<bean id="customServicesRemoteAnsibleDao" class="com.emc.sa.catalog.primitives.CustomServicesRemoteAnsiblePrimitiveDAO"/>
 
     <bean id="customServicesScriptDao" class="com.emc.sa.catalog.primitives.CustomServicesScriptPrimitiveDAO" />
-
-    <bean id="customServicesViprDao" class="com.emc.sa.catalog.primitives.CustomServicesViprPrimitiveDAO" />
     
     <bean id="customServicesRESTApiDao" class="com.emc.sa.catalog.primitives.CustomServicesRESTApiPrimitiveDAO" />
 

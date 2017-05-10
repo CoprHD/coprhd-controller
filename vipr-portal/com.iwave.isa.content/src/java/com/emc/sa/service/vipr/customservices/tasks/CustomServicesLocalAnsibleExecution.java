@@ -23,11 +23,10 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.URI;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import com.emc.storageos.db.client.URIUtil;
-import com.emc.storageos.db.client.model.uimodels.CustomServicesDBAnsibleInventoryResource;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
 import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
@@ -39,6 +38,8 @@ import org.slf4j.LoggerFactory;
 import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.service.vipr.tasks.ViPRExecutionTask;
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.URIUtil;
+import com.emc.storageos.db.client.model.uimodels.CustomServicesDBAnsibleInventoryResource;
 import com.emc.storageos.db.client.model.uimodels.CustomServicesDBAnsiblePrimitive;
 import com.emc.storageos.db.client.model.uimodels.CustomServicesDBAnsibleResource;
 import com.emc.storageos.model.customservices.CustomServicesWorkflowDocument.Step;
@@ -56,12 +57,12 @@ public class CustomServicesLocalAnsibleExecution extends ViPRExecutionTask<Custo
     private static final org.slf4j.Logger logger = LoggerFactory.getLogger(CustomServicesLocalAnsibleExecution.class);
     private final Step step;
     private final Map<String, List<String>> input;
-    private final String orderDir = String.format("%s%s/", CustomServicesConstants.ORDER_DIR_PATH,
-            ExecutionUtils.currentContext().getOrder().getOrderNumber());
+    private final String orderDir;
     private final long timeout;
     private final DbClient dbClient;
 
-    public CustomServicesLocalAnsibleExecution(final Map<String, List<String>> input, final Step step, final DbClient dbClient) {
+    public CustomServicesLocalAnsibleExecution(final Map<String, List<String>> input, final Step step, final DbClient dbClient,
+            final String orderDir) {
         this.input = input;
         this.step = step;
         if (step.getAttributes() == null || step.getAttributes().getTimeout() == -1) {
@@ -70,6 +71,7 @@ public class CustomServicesLocalAnsibleExecution extends ViPRExecutionTask<Custo
             this.timeout = step.getAttributes().getTimeout();
         }
         this.dbClient = dbClient;
+        this.orderDir = orderDir;
     }
 
     @Override
@@ -185,7 +187,9 @@ public class CustomServicesLocalAnsibleExecution extends ViPRExecutionTask<Custo
                 .setExtraVars(extraVars)
                 .setCommandLine(AnsibleHelper.getOptions(CustomServicesConstants.ANSIBLE_COMMAND_LINE, input))
                 .build();
-
-        return Exec.exec(timeout, cmds);
+        //default to no host key checking
+        final Map<String,String> environment = new HashMap<>();
+        environment.put("ANSIBLE_HOST_KEY_CHECKING", "false");
+        return Exec.exec(timeout, null, environment, cmds);
     }
 }

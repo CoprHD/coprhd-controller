@@ -45,33 +45,55 @@
         padding-top: 7px;
         padding-bottom: 7px;
     }
+
+
+
 </style>
 <div id="row-main" class="row">
-    <div ng-controller="treeController" ng-init="initializeTreeConfig(true)">
-        <div id="libSidebar" class="col-md-4" style="padding-right:0px; padding-left:5px;">
+    <div ng-controller="treeController" class="tree-controller">
+        <div id="libSidebar" style="padding-right:0px; padding-left:5px;">
             <div id="theSidebar" class="home-sidebar" >
-                <div class="input-group">
-                    <input style="float:left;width:200px;margin-right:10px;"  class="search-input form-control" placeholder="Search..."></input>
-                    <input style="width:175px;" class="form-control" placeholder="Filter By"></input>
+                <div style="font-size: 20px;padding: 15px;">
+                    Workflow &amp; Operation Library
                 </div>
-                <div style="overflow: auto; height:100%; overflow-x: hidden;">
+                <div class="input-group">
+                    <input style="float:left;width:300px;"  class="search-input form-control" placeholder="Search..."></input>
+                    <span class="input-group-btn">
+                        <div class="btn-group" style="padding-right:5px;">
+                            <button id="addWorkflow" type="button" class="btn btn-xs btn-success dropdown-toggle" title="Add" data-toggle="dropdown">
+                                <span class="glyphicon glyphicon-plus"></span> <span class="caret"></span>
+                            </button>
+                            <ul class="dropdown-menu" role="menu">
+                                <li class="dropdown-header">&{'wfBuilder.menu.operations'}</li>
+                                <li><a href="#" ng-click="openShellScriptModal();">&{'wfBuilder.menu.addShellScript'}</a></li>
+                                <li><a href="#" ng-click="openLocalAnsibleModal();">&{'wfBuilder.menu.addLocalAnsible'}</a></li>
+                                <li><a href="#" ng-click="openRestAPIModal();">&{'wfBuilder.menu.addRestAPI'}</a></li>
+                                <li role="separator" class="divider"></li>
+                                <li><a href="#" ng-click="addWorkflow();">&{'wfBuilder.menu.addWorkflow'}</a></li>
+                                <li role="separator" class="divider"></li>
+                                <li><a href="#" ng-click="addFolder();">&{'wfBuilder.menu.addFolder'}</a></li>
+                            </ul>
+                        </div>
+                    </span>
+                </div>
+                <div class="jstree-container">
                     <div id="jstree_demo" style="padding-top:10px;">
                     </div>
                 </div>
             </div>
-        </div>
 
-        <div>
-            <button class="lib-slider-button"  ng-click="toggleLib();">
-                <span ng-class="{'glyphicon-chevron-left':libOpen,'glyphicon-chevron-right':!libOpen}" class="glyphicon" style="width:8px;font-size:10px;"></span>
-            </button>
+            <div>
+                <button class="lib-slider-button"  ng-click="toggleLib();">
+                    <span ng-class="{'glyphicon-chevron-left':libOpen,'glyphicon-chevron-right':!libOpen}" class="glyphicon" style="width:8px;font-size:10px;"></span>
+                </button>
+            </div>
         </div>
     </div>
 
     <!-- Workflow Tabs -->
-    <div id="builderController" ng-controller="builderController" class="col-md-8" style="-webkit-transition-duration: 0.8s;">
+    <div id="builderController" ng-controller="builderController">
         <div class="builder-column">
-            <div ng-show="isWorkflowTabsEmpty()">
+            <div ng-show="isWorkflowTabsEmpty()" style="height:100%;">
                 <div class="homeTab">
                         <div>
                             Create new workflow in custom library and/or edit
@@ -81,13 +103,13 @@
 
             <ul id="wftabs" class="nav nav-tabs workflow-nav-tabs" role="tablist" ng-hide="isWorkflowTabsEmpty()">
                 <li ng-repeat="workflowTab in workflowTabs" class="">
-                    <a href="{{workflowTab.href}}" role="tab" data-toggle="tab">{{workflowTab.name}}
-                        <button class="close" ng-click="closeTab(workflowTab.elementid)" type="button" title="Close tab"><span aria-hidden="true">&times;</span></button>
+                    <a class="workflow-tab" href="{{workflowTab.href}}" role="tab" data-toggle="tab">{{workflowTab.name}}
+                        <button class="close tab-close" ng-click="closeTab(workflowTab.elementid)" type="button" title="Close tab"><span style="position: absolute; top: 7px;" aria-hidden="true">&times;</span></button>
                     </a>
                 </li>
             </ul>
 
-            <div class="tab-content">
+            <div class="tab-content builder-tab-content" style="padding: 0px;">
                 #{workflowDesigner/}
             </div>
         </div>

@@ -125,6 +125,8 @@ var routes = {
   Workflow_delete: #{jsAction @catalog.WorkflowBuilder.deleteWorkflow(':workflowID', ':dirID') /},
   Workflow_edit_name: #{jsAction @catalog.WorkflowBuilder.editWorkflowName(':id',':newName') /},
   Primitive_get: #{jsAction @catalog.WorkflowBuilder.getPrimitive(':primitiveId', ':primitiveType') /},
+  Primitive_edit_name: #{jsAction @catalog.WorkflowBuilder.editPrimitiveName(':primitiveID', ':newName') /},
+  InventoryFiles_For_Package_get: #{jsAction @catalog.WorkflowBuilder.getInventoryFilesForPackage(':packageId') /},
   FileProtectionPolicy_getVpoolForProtectionPolicy: #{jsAction @arrays.FileProtectionPolicies.getVpoolForProtectionPolicy(':id') /},
   FileProtectionPolicy_getVarraysAssociatedWithPools: #{jsAction @arrays.FileProtectionPolicies.getVarraysAssociatedWithPools(':id') /},
   Primitive_delete: #{jsAction @catalog.WorkflowBuilder.deletePrimitive(':primitiveId', ':dirID') /}

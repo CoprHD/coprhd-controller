@@ -143,6 +143,12 @@ public class CustomServicesRemoteAnsiblePrimitiveDAO implements CustomServicesPr
     }
 
     @Override
+    public void importPrimitive(final CustomServicesPrimitiveRestRep operation) {
+        final CustomServicesDBRemoteAnsiblePrimitive primitive = CustomServicesDBHelper.makeDBPrimitive(CustomServicesDBRemoteAnsiblePrimitive.class, operation);
+        client.save(primitive);
+    }
+    
+    @Override
     public boolean hasResource() {
         return false;
     }

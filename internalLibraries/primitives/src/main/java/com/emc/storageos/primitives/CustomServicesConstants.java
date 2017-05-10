@@ -72,6 +72,7 @@ public final class CustomServicesConstants {
     public static final String REMOTE_USER = "remote_node_user";
     public static final String REMOTE_NODE = "remote_node_ip";
     // Keys for Step.InputGroup
+    public static final String PATH_PARAMS = "path_params";
     public static final String INPUT_PARAMS = "input_params";
     public static final String CONNECTION_DETAILS = "connection_details";
     public static final String ANSIBLE_OPTIONS = "ansible_options";
@@ -115,8 +116,8 @@ public final class CustomServicesConstants {
         ASSET_OPTION_MULTI("AssetOptionMulti"),
         FROM_STEP_INPUT("FromOtherStepInput"),
         FROM_STEP_OUTPUT("FromOtherStepOutput"),
-        ASSET_OPTION("AssetOption"), // TODO: Change this to the above values.
-        INVALID("Invalid");
+        INVALID("Invalid"),
+        DISABLED("Disabled");
 
         private final String inputType;
 

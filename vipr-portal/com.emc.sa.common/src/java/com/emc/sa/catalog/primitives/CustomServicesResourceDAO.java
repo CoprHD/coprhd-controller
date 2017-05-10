@@ -20,6 +20,7 @@ import java.net.URI;
 import java.util.List;
 
 import com.emc.storageos.db.client.constraint.NamedElementQueryResultList.NamedElement;
+import com.emc.storageos.model.customservices.CustomServicesPrimitiveResourceRestRep;
 import com.emc.storageos.primitives.CustomServicesPrimitiveResourceType;
 
 /**
@@ -74,6 +75,13 @@ public interface CustomServicesResourceDAO<Resource extends CustomServicesPrimit
      * @return A named element list of resources
      */
     public List<NamedElement> listResources(final String parentId);
+    
+    /**
+     * List all resources that have the given resource as the parent
+     * @param uri
+     * @return A named element list of related resources
+     */
+    public List<NamedElement> listRelatedResources(final URI uri);
 
     /**
      * Get the resource model type that this dao supports
@@ -88,4 +96,13 @@ public interface CustomServicesResourceDAO<Resource extends CustomServicesPrimit
      * @return the name of the resource persistence model class
      */
     public String getResourceModel();
+
+    /**
+     * 
+     * Import a resource given the rest representation and the file bytes
+     * @param resource rest representation of the resource
+     * @param bytes the file bytes
+     * 
+     */
+    public void importResource(CustomServicesPrimitiveResourceRestRep resource, byte[] bytes);
 }

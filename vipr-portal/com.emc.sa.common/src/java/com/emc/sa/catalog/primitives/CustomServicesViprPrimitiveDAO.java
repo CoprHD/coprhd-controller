@@ -20,10 +20,6 @@ import java.net.URI;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Set;
-
-import org.reflections.Reflections;
-import org.reflections.scanners.SubTypesScanner;
 
 import com.emc.storageos.api.service.impl.resource.ArgValidator;
 import com.emc.storageos.db.client.constraint.NamedElementQueryResultList.NamedElement;
@@ -47,15 +43,24 @@ public class CustomServicesViprPrimitiveDAO implements
     private static final List<NamedElement> EMPTY_RESOURCE_LIST = ImmutableList.<NamedElement> builder().build();
     private final ImmutableMap<URI, CustomServicesViPRPrimitive> PRIMITIVES_MAP;
 
-    public CustomServicesViprPrimitiveDAO() {
-
-        final Set<Class<? extends CustomServicesViPRPrimitive>> primitives = new Reflections("com.emc.storageos", new SubTypesScanner())
-                .getSubTypesOf(CustomServicesViPRPrimitive.class);
+    public CustomServicesViprPrimitiveDAO(final List<String> viprOperations) {
         final Builder<URI, CustomServicesViPRPrimitive> builder = ImmutableMap.<URI, CustomServicesViPRPrimitive> builder();
-        for (final Class<? extends CustomServicesViPRPrimitive> primitive : primitives) {
+        for (final String primitiveClass : viprOperations) {
+            Class<?> primitive;
+            
+            try {
+                primitive = Class.forName(primitiveClass);
+            } catch (final ClassNotFoundException e1) {
+                throw new RuntimeException("Class " + primitiveClass + " not found.", e1);
+            }
+            
+            if(!CustomServicesViPRPrimitive.class.isAssignableFrom(primitive)) {
+                throw new RuntimeException("Class " + primitiveClass + " is not a vipr primitive.");
+            }
+            
             final CustomServicesViPRPrimitive instance;
             try {
-                instance = primitive.newInstance();
+                instance = (CustomServicesViPRPrimitive)primitive.newInstance();
             } catch (final IllegalAccessException | InstantiationException e) {
                 throw new RuntimeException("Failed to create instance of primitive: " + primitive.getName(), e);
             }
@@ -91,6 +96,11 @@ public class CustomServicesViprPrimitiveDAO implements
     }
 
     @Override
+    public void importPrimitive(CustomServicesPrimitiveRestRep operation) {
+        throw APIException.methodNotAllowed.notSupported();
+    }
+    
+    @Override
     public List<URI> list() {
         return PRIMITIVES_MAP.keySet().asList();
     }
@@ -117,5 +127,4 @@ public class CustomServicesViprPrimitiveDAO implements
     public boolean hasResource() {
         return false;
     }
-
 }

@@ -114,7 +114,7 @@ public class CustomServicesShellScriptExecution extends ViPRExecutionTask<Custom
         cmd.setShellArgs(extraVars);
         final String[] cmds = cmd.build();
 
-        return Exec.exec(timeout, cmds);
+        return Exec.sudo(timeout, cmds);
     }
 
     private String makeParam(final Map<String, List<String>> input) throws Exception {

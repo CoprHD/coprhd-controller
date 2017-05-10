@@ -2615,8 +2615,7 @@ test_expand_volume_and_datastore() {
     # Only perform the tests if the datastore exists
     if [ $? -eq 0 ];
     then
-        #${HAPPY_PATH_TEST_INJECTION} ${common_failure_injections} 
-        failure_injections="${catalog_failures_injections}"  
+        failure_injections="${HAPPY_PATH_TEST_INJECTION} ${catalog_failures_injections} ${common_failure_injections}"
         size=1
     
         for failure in ${failure_injections}
@@ -2649,13 +2648,17 @@ test_expand_volume_and_datastore() {
                 # Turn failure injection on
                 set_artificial_failure ${failure}
 
-                # Move the host to the cluster
-                fail expand_volume_and_datastore_for_host ${TENANT} ${volume1} ${datastore1} ${PROJECT} ${vcenter} ${VCENTER_DATACENTER} ${VCENTER_HOST} "${size}" ${failure}
+                if [ ${failure} == "failure_081_BlockDeviceController.expandVolume_after_device_expand" ]; then
+                    runcmd expand_volume_and_datastore_for_host ${TENANT} ${volume1} ${datastore1} ${PROJECT} ${vcenter} ${VCENTER_DATACENTER} ${VCENTER_HOST} "${size}" ${failure} 
+                    size=$((size + 1))
+                else
+                    fail expand_volume_and_datastore_for_host ${TENANT} ${volume1} ${datastore1} ${PROJECT} ${vcenter} ${VCENTER_DATACENTER} ${VCENTER_HOST} "${size}" ${failure}
+                fi
     
                 verify_failures ${failure}
                 
                 # Let the async jobs calm down
-                sleep 5 
+                sleep 5
                 
                 # Rerun the command
                 set_artificial_failure none       
@@ -2668,7 +2671,7 @@ test_expand_volume_and_datastore() {
                     echo "Failed to expand datastore ${datastore1}"  
                     incr_fail_count
                     report_results ${test_name} ${failure}
-                    continue;
+                    #continue;
                 fi         
             fi          
             

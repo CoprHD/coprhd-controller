@@ -19,7 +19,8 @@ import com.emc.storageos.db.client.util.KeyspaceUtil;
  * Class schedules and runs GC job on geodb
  */
 class GlobalGCExecutorLoop extends GarbageCollectionExecutorLoop {
-    private static final Logger log = LoggerFactory.getLogger(GlobalGCExecutorLoop.class);
+    private static final String GEO_DB_GC_LOCK = "GEO_DB_GC_Lock";
+	private static final Logger log = LoggerFactory.getLogger(GlobalGCExecutorLoop.class);
     private static final String GeoLockName = "GeoGCLock";
 
     private GlobalLockItf glock = null;
@@ -86,4 +87,9 @@ class GlobalGCExecutorLoop extends GarbageCollectionExecutorLoop {
             }
         }
     }
+    
+    @Override
+	protected String getGCZKLockName() {
+		return GEO_DB_GC_LOCK;
+	}
 }

@@ -2088,4 +2088,21 @@ public class ControllerUtils {
         }
         return false;
     }
+
+   /**
+    *  Convert objects (like URIQueryResultList) that only implement iterator to fully implemented Collection
+    *
+    *  @param collectionIn
+    *  @return collectionOut
+    */
+    public static <T> Collection<T> getFullyImplementedCollection(Collection<T> collectionIn) {
+        // Convert objects (like URIQueryResultList) that only implement iterator to
+        // fully implemented Collection
+        Collection<T> collectionOut = new ArrayList<>();
+        Iterator<T> iter = collectionIn.iterator();
+        while (iter.hasNext()) {
+            collectionOut.add(iter.next());
+        }
+        return collectionOut;
+    }
 }

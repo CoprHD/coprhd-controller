@@ -2,7 +2,6 @@ package com.emc.storageos.api.mapper;
 
 import static com.emc.storageos.api.mapper.DbObjectMapper.toRelatedResource;
 
-import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -13,7 +12,6 @@ import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.model.remotereplication.RemoteReplicationGroupRestRep;
 import com.emc.storageos.model.remotereplication.RemoteReplicationPairRestRep;
 import com.emc.storageos.model.remotereplication.RemoteReplicationSetRestRep;
-
 
 public class RemoteReplicationMapper {
 
@@ -45,9 +43,11 @@ public class RemoteReplicationMapper {
             Set<String> targetSystems = new HashSet<>();
             for (String storageSystemName : from.getSystemToRolesMap().keySet()) {
                 for (String role:from.getSystemToRolesMap().get(storageSystemName)) {
-                    if (role.equals("TARGET")) {
+                    if (role.equals(com.emc.storageos.storagedriver.model.remotereplication.
+                            RemoteReplicationSet.ReplicationRole.TARGET)) {
                         targetSystems.add(storageSystemName);
-                    } else if (role.equals("SOURCE")) {
+                    } else if (role.equals(com.emc.storageos.storagedriver.model.remotereplication.
+                            RemoteReplicationSet.ReplicationRole.SOURCE)) {
                         sourceSystems.add(storageSystemName);
                     }
                 }

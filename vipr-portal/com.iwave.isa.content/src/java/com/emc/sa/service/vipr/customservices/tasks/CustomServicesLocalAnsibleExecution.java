@@ -182,7 +182,7 @@ public class CustomServicesLocalAnsibleExecution extends ViPRExecutionTask<Custo
     private Exec.Result executeLocal(final String ips, final String extraVars, final String playbook, final String user) {
         final AnsibleCommandLine cmd = new AnsibleCommandLine(CustomServicesConstants.ANSIBLE_LOCAL_BIN, playbook);
         final String[] cmds = cmd.setHostFile(ips).setUser(user)
-                .setPrefix(CustomServicesConstants.CHROOT_PREFIX)
+                .setChrootCmd(CustomServicesConstants.CHROOT_CMD)
                 .setLimit(null)
                 .setTags(null)
                 .setExtraVars(extraVars)

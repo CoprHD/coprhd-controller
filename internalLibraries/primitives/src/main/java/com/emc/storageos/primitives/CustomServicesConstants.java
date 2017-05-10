@@ -57,7 +57,8 @@ public final class CustomServicesConstants {
     public static final String SHELL_BIN = "/usr/bin/sh";
     public static final String SHELL_LOCAL_BIN = "/usr/bin/ssh";
     public static final String ORDER_DIR_PATH = "/opt/customroot/CS";
-    public static final String CHROOT_PREFIX = "chroot /opt/customroot";
+    public static final String CHROOT_CMD = "/usr/bin/chroot";
+    public static final String CHROOT_DIR = "/opt/customroot";
     public static final String EXTRA_VARS = "--extra-vars";
     public static final String UNTAR = "tar";
     public static final String UNTAR_OPTION = "-zxvf";

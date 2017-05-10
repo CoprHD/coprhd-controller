@@ -16,6 +16,7 @@
  */
 package com.emc.sa.service.vipr.customservices.tasks;
 
+import com.emc.storageos.primitives.CustomServicesConstants;
 import com.google.common.collect.ImmutableList;
 import org.apache.commons.lang.StringUtils;
 
@@ -33,6 +34,7 @@ public class AnsibleCommandLine {
     private String node;
     private String extraVars;
     private String shellArgs;
+    private String chrootCmd;
     private final ImmutableList.Builder<String> optionalParam = ImmutableList.builder();
 
     public AnsibleCommandLine(final String ansiblePath, final String playbook) {
@@ -113,10 +115,24 @@ public class AnsibleCommandLine {
         return this;
     }
 
+    public AnsibleCommandLine setChrootCmd(final String chrootcmd) {
+        if (!StringUtils.isEmpty(chrootcmd)) {
+            this.chrootCmd = chrootcmd;
+        }
+
+        return this;
+    }
+
     public String[] build() {
         final ImmutableList.Builder<String> builder = ImmutableList.builder();
-        if (!StringUtils.isEmpty(prefix))
+        if (!StringUtils.isEmpty(prefix)) {
             builder.add(prefix);
+        }
+
+        if (!StringUtils.isEmpty(chrootCmd)) {
+            builder.add(chrootCmd);
+            builder.add(CustomServicesConstants.CHROOT_DIR);
+        }
 
         if (!StringUtils.isEmpty(ssh) && !StringUtils.isEmpty(node)) {
             builder.add(ssh).add(node);

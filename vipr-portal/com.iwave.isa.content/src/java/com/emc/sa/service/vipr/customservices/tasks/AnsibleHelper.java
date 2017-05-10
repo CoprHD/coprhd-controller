@@ -19,7 +19,6 @@ package com.emc.sa.service.vipr.customservices.tasks;
 
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
@@ -65,9 +64,6 @@ public final class AnsibleHelper {
         if (input == null) {
             return null;
         }
-
-        final List<String> arrayInput = new ArrayList<>();
-        final List<String> inputParamList = new ArrayList<>();
         final StringBuilder sb = new StringBuilder();
 
         if (step.getInputGroups().containsKey(CustomServicesConstants.INPUT_PARAMS)) {
@@ -78,14 +74,12 @@ public final class AnsibleHelper {
                     if (StringUtils.isNotBlank(stepInput.getType())
                             && stepInput.getType().equals(CustomServicesConstants.InputType.ASSET_OPTION_MULTI.toString())) {
                         // this is for array type. currently the only array type is InputType.ASSET_OPTION_MULTI. Do not think this can
-                        // occur in anything other than input_params section. For array type the value is at index 0 with comma seperated
-                        // values (as sent from order form).
-                        // Hence when we send to the ansible we wrap it with [value]
+                        // occur in anything other than input_params section. For array type the value is at index 0 with comma separated
+                        // values (as sent from order form). Hence when we send to ansible we wrap it with [value]
                         sb.append(addExtraArg(stepInput.getName(), input.get(stepInput.getName()), true));
                     } else {
                         sb.append(addExtraArg(stepInput.getName(), input.get(stepInput.getName()), false));
                     }
-
                 }
             }
         }

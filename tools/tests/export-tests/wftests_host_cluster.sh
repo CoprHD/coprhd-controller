@@ -2648,12 +2648,7 @@ test_expand_volume_and_datastore() {
                 # Turn failure injection on
                 set_artificial_failure ${failure}
 
-                if [ ${failure} == "failure_081_BlockDeviceController.expandVolume_after_device_expand" ]; then
-                    runcmd expand_volume_and_datastore_for_host ${TENANT} ${volume1} ${datastore1} ${PROJECT} ${vcenter} ${VCENTER_DATACENTER} ${VCENTER_HOST} "${size}" ${failure} 
-                    size=$((size + 1))
-                else
-                    fail expand_volume_and_datastore_for_host ${TENANT} ${volume1} ${datastore1} ${PROJECT} ${vcenter} ${VCENTER_DATACENTER} ${VCENTER_HOST} "${size}" ${failure}
-                fi
+                fail expand_volume_and_datastore_for_host ${TENANT} ${volume1} ${datastore1} ${PROJECT} ${vcenter} ${VCENTER_DATACENTER} ${VCENTER_HOST} "${size}" ${failure}
     
                 verify_failures ${failure}
                 

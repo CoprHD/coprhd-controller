@@ -79,7 +79,6 @@ public final class AnsibleHelper {
         final StringBuilder result = new StringBuilder("{");
         String prefix = "";
         while (matcher.find()) {
-            logger.info("find value:{}", matcher.group(1));
             result.append(prefix);
             prefix = ",";
             result.append(matcher.group(1));

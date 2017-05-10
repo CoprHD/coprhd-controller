@@ -25,7 +25,6 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import com.emc.storageos.primitives.input.InputParameter;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
 import org.codehaus.jackson.map.ObjectMapper;
@@ -42,6 +41,7 @@ import com.emc.storageos.model.TaskResourceRep;
 import com.emc.storageos.model.customservices.CustomServicesWorkflowDocument;
 import com.emc.storageos.primitives.CustomServicesConstants;
 import com.emc.storageos.primitives.CustomServicesPrimitiveType;
+import com.emc.storageos.primitives.input.InputParameter;
 import com.emc.storageos.primitives.java.vipr.CustomServicesViPRPrimitive;
 import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorException;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
@@ -217,10 +217,14 @@ public class CustomServicesViprExecution extends ViPRExecutionTask<CustomService
 
         logger.info("URI string is: {}", path);
 
+        final StringBuilder fullPath = new StringBuilder(path);
+
         final Map<String, List<InputParameter>> viprInputs = primitive.input();
+        if (viprInputs == null) {
+            return fullPath.toString();
+        }
         final List<InputParameter> queries = viprInputs.get(CustomServicesConstants.QUERY_PARAMS);
 
-        final StringBuilder fullPath = new StringBuilder(path);
         String prefix = "?";
         for (final InputParameter a : queries) {
             if (input.get(a.getName()) == null) {

@@ -134,14 +134,4 @@ public class CustomServicesRESTExecution extends ViPRExecutionTask<CustomService
 
         return String.format("%s://%s:%s/%s", protocol, target,port, RESTHelper.makePath(path, input));
     }
-
-  /*  private String getOptions(final String key, final Map<String, List<String>> input) {
-        if (input.get(key) != null) {
-            return StringUtils.strip(input.get(key).get(0).toString(), "\"");
-        }
-
-        logger.info("key not defined. key:{}", key);
-
-        return null;
-    }*/
 }

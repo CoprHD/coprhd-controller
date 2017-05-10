@@ -150,8 +150,6 @@ public class CustomServicesService extends ViPRService {
 
             ExecutionUtils.currentContext().logInfo("customServicesService.stepStatus", step.getId(), step.getType());
 
-            //final Step updatedStep = updatesubWfInput(step, stepInput);
-
             updateInputPerStep(step);
 
             final CustomServicesTaskResult res;
@@ -214,46 +212,6 @@ public class CustomServicesService extends ViPRService {
 
         return stepsHash;
     }
-
-    /*private boolean needUpdate(final Step step, final Map<String, CustomServicesWorkflowDocument.InputGroup> stepInput) {
-        if (step.getType().equals(StepType.WORKFLOW.toString()) || stepInput == null || step.getInputGroups() == null) {
-            return false;
-        }
-
-        return true;
-    }
-
-    private Step updatesubWfInput(final Step step, final Map<String, CustomServicesWorkflowDocument.InputGroup> stepInput) {
-        if (!needUpdate(step, stepInput)) {
-            return step;
-        }
-
-        for (final CustomServicesWorkflowDocument.InputGroup inputGroup : step.getInputGroups().values()) {
-            for (final Input value : inputGroup.getInputGroup()) {
-                final String name = value.getFriendlyName();
-                switch (CustomServicesConstants.InputType.fromString(value.getType())) {
-                    case FROM_USER:
-                    case ASSET_OPTION_SINGLE:
-                        for (final CustomServicesWorkflowDocument.InputGroup inputGroup1 : stepInput.values()) {
-                            for (final Input value1 : inputGroup1.getInputGroup()) {
-                                final String name1 = value1.getFriendlyName();
-                                if (name1.equals(name)) {
-                                    logger.debug("Change the type name:{}", name);
-                                    value.setType(value1.getType());
-                                    value.setValue(value1.getValue());
-                                    value.setDefaultValue(value1.getDefaultValue());
-                                }
-                            }
-                        }
-                        break;
-                    default:
-                        logger.info("do nothing");
-                }
-            }
-        }
-
-        return step;
-    }*/
 
     private void orderDirCleanup(final String orderDir) {
         try {

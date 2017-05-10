@@ -93,7 +93,6 @@ public class CustomServicesShellScriptExecution extends ViPRExecutionTask<Custom
             final String scriptFileName = String.format("%s%s.sh", orderDir, URIUtil.parseUUIDFromURI(scriptid).replace("-", ""));
             final byte[] bytes = Base64.decodeBase64(script.getResource());
             AnsibleHelper.writeResourceToFile(bytes, scriptFileName);
-            //final String inputToScript = makeParam(input);
 
             result = executeCmd(scriptFileName);
 
@@ -120,7 +119,6 @@ public class CustomServicesShellScriptExecution extends ViPRExecutionTask<Custom
     // Execute Shell Script resource
     private Exec.Result executeCmd(final String shellScript) throws Exception {
         final AnsibleCommandLine cmd = new AnsibleCommandLine(CustomServicesConstants.SHELL_BIN, shellScript);
-        //cmd.setShellArgs(extraVars);
         final String[] cmds = cmd.build();
 
         //default to no host key checking

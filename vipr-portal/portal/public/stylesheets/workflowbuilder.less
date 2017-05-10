@@ -1,6 +1,6 @@
 .exampleEditor {
     background-color: #eee !important;
-    //height: calc(100vh-50px);
+    //height: calc(80vh-50px);
     position: absolute;
     bottom: 8px;
     right: 8px;
@@ -12,22 +12,111 @@
 
 .homeTab{
     background-color: #fcfcfc;
-    height:100vh;
+    height:100%;
     text-align: center;
     padding-top: 300px;
     font-size: 30px;
     color: #efeded;
 }
 
-.newEditor {
-    height:80vh;
-
-}
 .success-icon {
     color:#5cb85c;
 }
 .warning-icon {
     color:#f0ad4e;
+}
+
+.message-bar-icon {
+    position: relative;
+    top: 2px;
+    display: inline-block;
+    width: 23px;
+}
+
+.button-icon {
+    width: 13px;
+}
+
+.message-failure-icon:before {
+    content: url(/public/img/customServices/FailedMessage.svg);
+}
+
+.failure-icon:before {
+    content: url(/public/img/customServices/Failed.svg);
+}
+
+.error-input-container {
+    position:absolute;
+    width: 300px;
+}
+
+.error-input-icon-hover {
+    position: absolute;
+    z-index: 3;
+    width: 20px;
+    height: 20px;
+    left: 44px;
+    top: 10px;
+}
+
+.custom-error-input-popover {
+    position: absolute;
+    left: -4px;
+    bottom: 0px;
+}
+
+.custom-error-step-popover {
+    position: absolute;
+    left: -58px;
+    bottom: 99px;
+}
+
+.custom-error-popover {
+    min-width: 110px;
+    display: block;
+    background-color: #be1e2d;
+    color: white;
+    font-size: 13px;
+    z-index: 1010;
+    max-width: 276px;
+    text-align: left;
+    -webkit-box-shadow: 0 5px 10px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 5px 10px rgba(0, 0, 0, 0.2);
+    white-space: normal;
+    padding: 7px 14px;
+    transition: opacity 0.5s;
+    opacity: 0;
+}
+
+.custom-error-popover.visible {
+    opacity: 1;
+}
+
+.custom-popover-content {
+    padding-top: 1px;
+    padding-bottom: 1px;
+}
+
+.custom-error-popover.top > .arrow {
+    //left: 50%;
+    left: 58px;
+    margin-left: -11px;
+    border-bottom-width: 0;
+    border-top-color: #be1e2d;
+    bottom: -10px;
+}
+
+.custom-error-popover > .arrow {
+    border-width: 11px;
+}
+
+.custom-error-popover  > .arrow, .custom-error-popover > .arrow:after {
+    position: absolute;
+    display: block;
+    width: 0;
+    height: 0;
+    border-color: transparent;
+    border-style: solid;
 }
 
 .jsPlumb_dragged {
@@ -49,6 +138,13 @@
 
 .example-item-card-wrapper a {
     text-decoration: none;
+}
+
+.item-card-error-icon {
+    position: absolute;
+    left: -12px;
+    width: 25px;
+    top: -9px;
 }
 
 .item {
@@ -83,16 +179,87 @@
 }
 
 .home-sidebar {
+    margin-top: 10px;
     background-color: white !important;
     z-index:999 !important;
     width: 100%;
-    height: 90vh;
+    background-color: white !important;
+    z-index: 999 !important;
+    position: absolute;
+    bottom: 0;
+    top: 0;
+    width: 408px;
 }
 
-.buttonbar {
+.button-bar {
+    overflow: hidden;
+}
+
+.button-bar-container {
     margin: 10px;
     float: right;
 }
+
+.message-bar {
+    position: relative;
+    z-index: 1;
+}
+
+.message-bar-success {
+    background-color: #dff0d8;
+    border-color: #d6e9c6;
+    color: #3c763d;
+    position: absolute;
+    top: 0;
+    right: 0;
+    left: 0;
+    padding: 15px;
+}
+
+/* The starting CSS styles for the enter animation */
+.message-bar-failure.ng-enter {
+  transition:padding-top 0.2s linear;
+  transition:max-height 0.2s linear;
+  max-height: 0;
+}
+
+/* The finishing CSS styles for the enter animation */
+.message-bar-failure.ng-enter.ng-enter-active {
+  max-height: 100px;
+}
+
+.message-bar-failure.ng-leave {
+  transition:0.2s linear all;
+  opacity:1;
+}
+.message-bar-failure.ng-leave.ng-leave-active {
+  opacity:0;
+}
+
+.message-bar-failure {
+  overflow: hidden;
+    color: #a94442;
+    background-color: #f2dede;
+    border-color: #ebccd1;
+    position: absolute;
+    top: 0;
+    right: 0;
+    left: 0;
+    padding: 15px;
+}
+
+.message-bar-closebtn {
+    text-decoration: none;
+     cursor: pointer;
+     cursor: hand;
+     padding-right: 10px;
+     float:right;
+ }
+
+.passEndpoint svg circle {
+     fill: #5cb85c;
+     border-color: #4cae4c;
+ }
 
 .failEndpoint svg circle {
     fill: #d9534f;
@@ -141,7 +308,22 @@
 
 .builder-column {
     width: auto;
+    height: 100%;
     overflow: hidden;
+}
+
+.builder-tab-content {
+    position: absolute;
+    margin-top: 52px;
+    top: 0;
+    bottom: 0;
+    right: 0;
+    left: 0;
+}
+
+.tab-close {
+    margin-right: 11px;
+    margin-left: 9px;
 }
 
 .button-step-close {
@@ -165,6 +347,9 @@ table, th , td {
 
 .sidenav-panel {
     overflow:scroll;
+    /* hack to improve chrome performance by forcing GPU rendering */
+    -webkit-transform: translate3d(0,0,0);
+    transform: translate3d(0,0,0);
 }
 
 .sidenav {
@@ -172,9 +357,10 @@ table, th , td {
     width: 0; /* 0 width - change this with JavaScript */
     position: absolute; /* Stay in place */
     z-index: 2; /* Stay on top */
-    right: 6px;
+    right: 0px;
     background-color: #eee; /* Black*/
     overflow-x: hidden; /* Disable horizontal scroll */
+    overflow-y: scroll;
     padding-top: 20px; /* Place content 60px from the top */
     transition: 0.5s; /* 0.5 second transition effect to slide in the sidenav */
     border: 1px solid rgb(192, 192, 192);
@@ -203,11 +389,10 @@ table, th , td {
 
 .lib-slider-button {
     padding: 1px;
-    height: 100vh;
+    height: 100%;
     position: absolute;
-    z-index: 1; /* Stay on top */
-    transition: margin-right .5s;
-    margin-right: 0px;
+    z-index: 1;
+    margin-left: 408px;
 }
 
 .slider-open {
@@ -227,43 +412,87 @@ table, th , td {
 .side-container {
     float: right;
     position: absolute;
-    right: 8px;
-    bottom: 8px;
-    top: 105px;
+    right: 0px;
+    bottom: 0px;
+    top: 0px;
 
     z-index: 1;
 }
 
 .builder-container {
+    border: 1px solid rgb(192, 192, 192);
     clear: both;
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    right: 0;
+    left: 0;
+    margin-top: 54px;
 }
 
 #libSidebar {
+  position: absolute;
+  bottom: 0;
+  left:0px;
+  top: 0;
+  padding-right: 0px;
+  padding-left: 5px;
   /* for the animation */
-  transition: margin 0.8s ease;
+  transition:all 0.2s linear;
+  -webkit-transition: all 0.2s linear;
 }
 
-.collapsedLib {
-  /* hide it for small displays*/
-  display: none;
-}
-
-@media (min-width: 992px) {
-  .collapsedLib {
-    display: block;
-    /* same width as sidebar */
-    margin-left: -33.334%;
-  }
+#libSidebar.collapsedSideBar {
+  left: -413px;
 }
 
 #row-main {
   /* necessary to hide collapsed sidebar */
-  overflow-x: hidden;
+  overflow: hidden;
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: 0;
+  bottom: 0;
+  margin-left: 0px;
+  margin-right: 0px;
+  z-index: 0;
+}
+
+.tree-controller {
+    position: absolute;
+    bottom: 0;
+    top: 0;
+}
+
+.jstree-container {
+    overflow: auto;
+    /* hack to improve chrome performance by forcing GPU rendering */
+    -webkit-transform: translate3d(0,0,0);
+    transform: translate3d(0,0,0);
+    position: absolute;
+    bottom: 0;
+    top: 0;
+    width: 408px;
+    margin-top: 85px;
+    overflow-x: hidden;
 }
 
 #builderController {
-  /* for the animation */
-  transition: width 0.8s ease;
+    /* for the animation */
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    transition:all 0.2s linear;
+    -webkit-transition: all 0.2s linear;
+    margin-left: 427px;
+    margin-top: 10px;
+}
+
+#builderController.collapsedBuilder {
+  margin-left: 14px;
 }
 
 #inputDiv .col-sm-3,
@@ -342,6 +571,10 @@ table, th , td {
     background-repeat: no-repeat
 }
 
+.input-error-icon .panel-title .glyphicon-error-icon:before {
+    content: url(/public/img/customServices/Failed.svg);
+}
+
 .required .panel-title:after {
   content: '*';
   color: #a94442;
@@ -350,4 +583,12 @@ table, th , td {
 
 .primitivesNav > li > a{
     padding: 10px 5px;
+}
+
+.panel-heading.input-panel {
+    padding-bottom: 0px;
+}
+
+.input-panel .nav-tabs {
+    border-bottom: 0px;
 }

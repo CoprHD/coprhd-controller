@@ -680,7 +680,10 @@ public class UCSMServiceImpl implements UCSMService {
         unbindSPFromSPTConfigConfMo.getContent().add(factory.createConfigConfMoInConfig(configConfig));
 
         LsServer pushedObject = pushLsServer(computeSession, factory, unbindSPFromSPTConfigConfMo);
-        String pushedObjectTemplateName = pushedObject.getSrcTemplName();
+        String pushedObjectTemplateName = null;
+        if (pushedObject!=null) { 
+            pushedObjectTemplateName = pushedObject.getSrcTemplName();
+        }
 
         if( (pushedObject == null) || (pushedObjectTemplateName!=null && !pushedObjectTemplateName.equals(""))) { // COP-26669
             throw new ClientGeneralException(ClientMessageKeys.UNEXPECTED_FAILURE,

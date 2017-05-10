@@ -300,8 +300,13 @@ public class StorageSystemService extends TaskResourceService {
         }
         ArgValidator.checkFieldNotEmpty(param.getName(), "name");
         checkForDuplicateName(param.getName(), StorageSystem.class);
-
-        ArgValidator.checkFieldValidIP(param.getIpAddress(), "ip_address");
+        
+        if (systemType.equals(StorageSystem.Type.isilon) || systemType.equals(StorageSystem.Type.unity)
+                || systemType.equals(StorageSystem.Type.vnxfile)) {
+            ArgValidator.checkFieldValidInetAddress(param.getIpAddress(), "ip_address");
+        } else {
+            ArgValidator.checkFieldValidIP(param.getIpAddress(), "ip_address");
+        }
         ArgValidator.checkFieldNotNull(param.getPortNumber(), "port_number");
         ArgValidator.checkFieldRange(param.getPortNumber(), 1, 65535, "port_number");
         validateStorageSystemExists(param.getIpAddress(), param.getPortNumber());
@@ -363,7 +368,7 @@ public class StorageSystemService extends TaskResourceService {
      * @param param
      */
     private void validateVNXFileSMISProviderMandatoryDetails(StorageSystemRequestParam param) {
-        ArgValidator.checkFieldValidIP(param.getSmisProviderIP(), "smis_provider_ip");
+        ArgValidator.checkFieldValidInetAddress(param.getSmisProviderIP(), "smis_provider_ip");
         ArgValidator.checkFieldNotNull(param.getSmisPortNumber(), "smis_port_number");
         ArgValidator.checkFieldRange(param.getSmisPortNumber(), 1, 65535, "smis_port_number");
         ArgValidator.checkFieldNotEmpty(param.getSmisUserName(), "smis_user_name");
@@ -381,7 +386,7 @@ public class StorageSystemService extends TaskResourceService {
          * Because while doing update client can try to update one among all existing mandatory fields.
          */
         if (param.getSmisProviderIP() != null) {
-            ArgValidator.checkFieldValidIP(param.getSmisProviderIP(), "smis_provider_ip");
+            ArgValidator.checkFieldValidInetAddress(param.getSmisProviderIP(), "smis_provider_ip");
         }
         if (param.getSmisUserName() != null) {
             ArgValidator.checkFieldNotEmpty(param.getSmisUserName(), "smis_user_name");
@@ -589,7 +594,13 @@ public class StorageSystemService extends TaskResourceService {
 
             String ipAddress = (param.getIpAddress() != null) ? param.getIpAddress() : system.getIpAddress();
             Integer portNumber = (param.getPortNumber() != null) ? param.getPortNumber() : system.getPortNumber();
-            ArgValidator.checkFieldValidIP(ipAddress, "ip_address");
+            if (systemType.equals(StorageSystem.Type.isilon) || systemType.equals(StorageSystem.Type.unity)
+                    || systemType.equals(StorageSystem.Type.vnxfile) || systemType.equals(StorageSystem.Type.vnxe)) {
+                ArgValidator.checkFieldValidInetAddress(ipAddress, "ip_address");
+            } else {
+                ArgValidator.checkFieldValidIP(ipAddress, "ip_address");
+            }
+
             ArgValidator.checkFieldRange(portNumber, 1, 65535, "port_number");
             validateStorageSystemExists(ipAddress, portNumber);
             system.setMgmtAccessPoint(ipAddress + "-" + portNumber);

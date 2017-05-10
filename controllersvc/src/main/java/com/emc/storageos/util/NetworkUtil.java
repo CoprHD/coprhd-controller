@@ -30,7 +30,9 @@ import com.emc.storageos.db.client.model.Network;
 import com.emc.storageos.db.client.model.NetworkSystem;
 import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
+import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.exceptions.DatabaseException;
+import com.emc.storageos.networkcontroller.NetworkFCZoneInfo;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 
 public class NetworkUtil {
@@ -591,5 +593,25 @@ public class NetworkUtil {
         }
 
         return networkToEndPoints;
+    }
+
+    /**
+     * Convenience method to extract all of the FC zone references from a list of NetworkFCZoneInfo objects to a single list.
+     * 
+     * @param zoneInfoList zone info list
+     * @return list of FCZoneReference URIs
+     */
+    public static List<URI> getFCZoneReferences(List<NetworkFCZoneInfo> zoneInfoList) {
+        Set<URI> zoneRefs = new HashSet<>();
+        
+        if (zoneInfoList != null) {
+            for (NetworkFCZoneInfo zoneInfo : zoneInfoList) {
+                if (!NullColumnValueGetter.isNullURI(zoneInfo.getFcZoneReferenceId())) {
+                    zoneRefs.add(zoneInfo.getFcZoneReferenceId());
+                }
+            }
+        }
+        
+        return new ArrayList<URI>(zoneRefs);
     }
 }

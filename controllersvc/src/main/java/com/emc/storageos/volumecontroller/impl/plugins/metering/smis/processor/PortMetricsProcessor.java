@@ -356,6 +356,12 @@ public class PortMetricsProcessor {
         DiscoveredDataObject.Type type = DiscoveredDataObject.Type.valueOf(system.getSystemType());
         StringMap portMap = port.getMetrics();
         double emaFactor = getEmaFactor(DiscoveredDataObject.Type.valueOf(system.getSystemType()));
+        // The port and cpu Busy Floor values were added as a way to remove background idle load from
+        // the calculations. The idea is even with no traffic, the port (and especially the cpu) may show
+        // a small load which should be ignored in favor of balancing the number of volumes.
+        // If the percent busy is below the floor for either one, then the value is not added into the metric.
+        // A volume term is added to the metric in computeStoragePortUsage and will dominate the usage value
+        // on idle systems. The floors are expressed in percent from 0 - 100 %.
         double portBusyFloor = getPortBusyFloor(DiscoveredDataObject.Type.valueOf(system.getSystemType()));
         double cpuBusyFloor = getCpuBusyFloor(DiscoveredDataObject.Type.valueOf(system.getSystemType()));
         if (emaFactor > 1.0)
@@ -696,9 +702,23 @@ public class PortMetricsProcessor {
 
     /**
      * Computes the usage of a set of candidate StoragePorts.
-     * This is done by finding all the ExportMasks containing the ports, and then
-     * totaling the number of Initiators across all masks that are using the port.
-     * 
+     * The usage value is what is actually used by the StoragePortsAllocator to choose between two otherwise 
+     * equivalent (from a redundancy standpoint) ports. The algorithm has gotten a bit more complicated over time.
+     * 1. Ports that are above a ceiling value can be eliminated from consideration (in eliminatePortsOverCeiling).
+     * There can be ceilings on port percent busy, cpu percent busy, initiator count, or volume count.
+     * Initiator and volume counts are updated before checking as a side effect of calling eliminatePortsOverCeiling.
+     * 2. Ports not disqualified because of a ceiling compute a usage value. There are two cases: 
+     * a) there are valid metrics for all the ports being ranked (metricsValid = true), or b) one or more ports
+     * do not have valid metrics (i.e. their samples are not sufficient to compute metric values).
+     * 3. For valid metrics, there are two components added together, the metric and the volume component.
+     * The metric component is the EMA of the percent busy for port and cpu summed together and divided by 2
+     * on a 0 to 100% scale.
+     * The volume component is as follows: the number of volumes * 100.0 / 2048 to give the percentage from 0-100%
+     * indicating the number of volumes on a 0-2048 scale. When added to the usage, the volume component is
+     * multiplied by a volumeCoefficient so that the amount of effect the volumeComponent has is tunable in the field.
+     * 4. The usage consisting of both components is converted to a long value where a 1% metric change = 1000 and 2048
+     * and a 1% volume contribution is also 1000.
+     *  
      * @param candidatePorts -- List of StoragePort
      * @param system StorageSystem
      * @param updatePortUsages -- If true, recomputes port initiator and volume count usages

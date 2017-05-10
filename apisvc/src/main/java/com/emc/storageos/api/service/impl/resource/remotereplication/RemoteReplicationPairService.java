@@ -627,14 +627,47 @@ public class RemoteReplicationPairService extends TaskResourceService {
         return toTask(rrPair, taskId, op);
     }
 
-    /**
-     * TODO:
-     * @param ids
-     * @return
-     * @throws InternalException
-     */
     public TaskList resumeRemoteReplicationCGLink(List<URI> ids) throws InternalException {
-        return null;
+        _log.info("Called: resumeRemoteReplicationCGLink() with ids {}", ids);
+        for (URI id : ids) {
+            ArgValidator.checkFieldUriType(id, RemoteReplicationPair.class, "id");
+        }
+
+        List<RemoteReplicationPair> rrPairs = _dbClient.queryObject(RemoteReplicationPair.class, ids);
+        URI sourceElementURI = rrPairs.get(0).getSourceElement().getURI();
+        ArgValidator.checkFieldUriType(sourceElementURI, Volume.class, "id");
+        Volume sourceElement = _dbClient.queryObject(Volume.class, sourceElementURI);
+        URI cgURI = sourceElement.getConsistencyGroup();
+        BlockConsistencyGroup cg = _dbClient.queryObject(BlockConsistencyGroup.class, cgURI);
+
+        RemoteReplicationElement rrElement =
+                new RemoteReplicationElement(RemoteReplicationSet.ElementType.CONSISTENCY_GROUP, cgURI);
+
+        RemoteReplicationUtils.validateRemoteReplicationOperation(_dbClient, rrElement, RemoteReplicationController.RemoteReplicationOperations.RESUME);
+
+        String taskId = UUID.randomUUID().toString();
+        TaskList taskList = new TaskList();
+        Operation op = _dbClient.createTaskOpStatus(BlockConsistencyGroup.class, cg.getId(),
+                taskId, ResourceOperationTypeEnum.RESUME_REMOTE_REPLICATION_CG_LINK);
+        TaskResourceRep volumeTaskResourceRep = toTask(cg, taskId, op);
+        taskList.getTaskList().add(volumeTaskResourceRep);
+
+        // send request to controller
+        try {
+            RemoteReplicationBlockServiceApiImpl rrServiceApi = getRemoteReplicationServiceApi();
+            rrServiceApi.resumeRemoteReplicationElementLink(rrElement, taskId);
+        } catch (final ControllerException e) {
+            _log.error("Controller Error", e);
+                op = cg.getOpStatus().get(taskId);
+                op.error(e);
+                cg.getOpStatus().updateTaskStatus(taskId, op);
+                _dbClient.updateObject(cg);
+        }
+
+        auditOp(OperationTypeEnum.RESUME_REMOTE_REPLICATION_CG_LINK, true, AuditLogManager.AUDITOP_BEGIN,
+                cg.getLabel());
+
+        return taskList;
     }
 
 

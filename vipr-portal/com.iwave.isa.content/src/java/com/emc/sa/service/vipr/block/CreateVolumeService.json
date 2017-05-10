@@ -52,14 +52,15 @@
          type:"group",
      	 collapsed:false,
          items:{
+          remoteReplicationMode:{
+            type:"assetType.vipr.remoteReplicationMode",
+            omitNone:true,
+            required:false
+          },
           remoteReplicationGroup:{
             type:"assetType.vipr.remoteReplicationGroup",
             required:false
-          },
-          remoteReplicationMode:{
-            type:"assetType.vipr.remoteReplicationMode",
-            required:false
-         }
+          }
         }
       }
         

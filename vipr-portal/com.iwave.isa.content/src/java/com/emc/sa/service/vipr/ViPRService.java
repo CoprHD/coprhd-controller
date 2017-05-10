@@ -360,7 +360,7 @@ public abstract class ViPRService extends AbstractExecutionService {
     public static void artificialFailure(String failure) {
         if (artificialFailure != null && artificialFailure.equals(failure)) {
         	log("Injecting catalog failure: " + failure);
-            ExecutionUtils.fail("failTask.ArtificialFailure", artificialFailure);
+            ExecutionUtils.fail("failTask.ArtificialFailure", artificialFailure, artificialFailure);
         }
     }
     

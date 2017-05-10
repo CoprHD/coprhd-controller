@@ -270,9 +270,25 @@ public class VMwareSupport {
      *            true to enable storage io control or false to disable storage io control
      */
     public void setStorageIOControl(Datastore datastore, Boolean enabled) {
+        setStorageIOControl(datastore, enabled, false);
+    }
+
+    /**
+     * Sets the storage IO control for the given datastore
+     * 
+     * @param datastore
+     *            the datastore to set the storage io control on
+     * @param enabled
+     *            true to enable storage io control or false to disable storage io control
+     * @param failIfErrorDuringEnable
+     *            true to fail the operation of enabling storage I/O if storage I/O is not supported
+     */
+    public void setStorageIOControl(Datastore datastore, Boolean enabled, Boolean failIfErrorDuringEnable) {
         if (enabled != null && datastore != null) {
             if (datastore.getCapability() != null && datastore.getCapability().storageIORMSupported) {
                 execute(new SetStorageIOControl(datastore, enabled));
+            } else if (enabled && failIfErrorDuringEnable) {
+                ExecutionUtils.fail("failTask.SetStorageIOControl", new Object[] {}, datastore.getName());
             } else {
                 logWarn("vmware.support.storage.io.control.not.supported", datastore.getName());
             }

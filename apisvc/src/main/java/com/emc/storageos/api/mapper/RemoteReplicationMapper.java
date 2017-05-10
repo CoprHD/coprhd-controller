@@ -43,11 +43,11 @@ public class RemoteReplicationMapper {
             Set<String> targetSystems = new HashSet<>();
             for (String storageSystemName : from.getSystemToRolesMap().keySet()) {
                 for (String role:from.getSystemToRolesMap().get(storageSystemName)) {
-                    if (role.equals(com.emc.storageos.storagedriver.model.remotereplication.
-                            RemoteReplicationSet.ReplicationRole.TARGET)) {
+                    if (com.emc.storageos.storagedriver.model.remotereplication.
+                            RemoteReplicationSet.ReplicationRole.TARGET.name().equals(role)) {
                         targetSystems.add(storageSystemName);
-                    } else if (role.equals(com.emc.storageos.storagedriver.model.remotereplication.
-                            RemoteReplicationSet.ReplicationRole.SOURCE)) {
+                    } else if (com.emc.storageos.storagedriver.model.remotereplication.
+                            RemoteReplicationSet.ReplicationRole.SOURCE.name().equals(role)) {
                         sourceSystems.add(storageSystemName);
                     }
                 }

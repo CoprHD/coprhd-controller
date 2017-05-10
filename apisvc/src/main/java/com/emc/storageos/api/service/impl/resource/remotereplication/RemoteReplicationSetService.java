@@ -112,7 +112,7 @@ public class RemoteReplicationSetService extends TaskResourceService {
 
         Iterator<RemoteReplicationSet> iter = RemoteReplicationUtils.findAllRemoteRepliationSetsIteratively(_dbClient);
         while (iter.hasNext()) {
-            rrSetList.getRemoteReplicationSets().add(RemoteReplicationMapper.map(iter.next()));
+            rrSetList.getRemoteReplicationSets().add(toNamedRelatedResource(iter.next()));
         }
         return rrSetList;
     }
@@ -190,7 +190,7 @@ public class RemoteReplicationSetService extends TaskResourceService {
                - Its target systems collection is subset of ones of all target varray/vpool pairs;
                - Its target systems contain at least one storage system for each target varray/vpool pair.
              */
-            result.getRemoteReplicationSets().add(RemoteReplicationMapper.map(rrSet));
+            result.getRemoteReplicationSets().add(toNamedRelatedResource(rrSet));
         }
         return result;
     }
@@ -293,7 +293,7 @@ public class RemoteReplicationSetService extends TaskResourceService {
                 // Pass ones whose target systems can't cover target CGs
                 continue;
             }
-            result.getRemoteReplicationSets().add(RemoteReplicationMapper.map(rrSet));
+            result.getRemoteReplicationSets().add(toNamedRelatedResource(rrSet));
         }
         return result;
     }
@@ -323,7 +323,7 @@ public class RemoteReplicationSetService extends TaskResourceService {
             _log.info("Found sets: {}", rrSets);
             Iterator<RemoteReplicationSet> iter = rrSets.iterator();
             while (iter.hasNext()) {
-                rrSetList.getRemoteReplicationSets().add(RemoteReplicationMapper.map(iter.next()));
+                rrSetList.getRemoteReplicationSets().add(toNamedRelatedResource(iter.next()));
             }
         }
         return rrSetList;

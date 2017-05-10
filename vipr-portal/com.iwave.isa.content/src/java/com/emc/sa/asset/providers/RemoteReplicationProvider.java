@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.ListIterator;
 import java.util.Map;
 import java.util.Set;
 
@@ -19,6 +20,7 @@ import com.emc.sa.asset.BaseAssetOptionsProvider;
 import com.emc.sa.asset.annotation.Asset;
 import com.emc.sa.asset.annotation.AssetDependencies;
 import com.emc.sa.asset.annotation.AssetNamespace;
+import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.ports.StoragePortRestRep;
 import com.emc.storageos.model.remotereplication.RemoteReplicationSetRestRep;
 import com.emc.storageos.model.storagesystem.type.StorageSystemTypeRestRep;
@@ -50,7 +52,7 @@ public class RemoteReplicationProvider extends BaseAssetOptionsProvider {
     getRemoteReplicationModes(AssetOptionsContext ctx, URI virtualArrayId, URI virtualPoolId) {
         List<AssetOption> options = new ArrayList<>();
 
-        RemoteReplicationSetRestRep rrSet = getRrSet(ctx,virtualArrayId, virtualPoolId);
+        NamedRelatedResourceRep rrSet = getRrSet(ctx,virtualArrayId, virtualPoolId);
 
         if (rrSet == null) {
             return options; // no sets or remote replication not supported
@@ -79,7 +81,7 @@ public class RemoteReplicationProvider extends BaseAssetOptionsProvider {
     public List<AssetOption> getRemoteReplicationGroups(AssetOptionsContext ctx,
             URI virtualArrayId, URI virtualPoolId) {
 
-        RemoteReplicationSetRestRep rrSet = getRrSet(ctx,virtualArrayId, virtualPoolId);
+        NamedRelatedResourceRep rrSet = getRrSet(ctx,virtualArrayId, virtualPoolId);
 
         if (rrSet == null) {
             return new ArrayList<>(); // no sets or remote replication not supported
@@ -132,11 +134,15 @@ public class RemoteReplicationProvider extends BaseAssetOptionsProvider {
         Map<String,String> typeIds = getStorageSystemTypeMap(client);
 
         // find source systems in all sets
-        List<RemoteReplicationSetRestRep> rrSets = getRrSet(ctx);
+        List<NamedRelatedResourceRep> rrSets = getRrSet(ctx);
         List<String> sourceSystemsFromSets = new ArrayList<>();
-        for(RemoteReplicationSetRestRep rrSet: rrSets) {
-            if(rrSet.getSourceSystems() != null) {
-                sourceSystemsFromSets.addAll(rrSet.getSourceSystems());
+        for(NamedRelatedResourceRep rrSet: rrSets) {
+
+            RemoteReplicationSetRestRep rrSetObj = client.remoteReplicationSets().
+                    getRemoteReplicationSetsRestRep(rrSet.getId().toString());
+
+            if(rrSetObj.getSourceSystems() != null) {
+                sourceSystemsFromSets.addAll(rrSetObj.getSourceSystems());
             }
         }
 
@@ -171,13 +177,17 @@ public class RemoteReplicationProvider extends BaseAssetOptionsProvider {
         Map<String,String> typeIds = getStorageSystemTypeMap(client);
 
         // find target systems in same set as source system
-        List<RemoteReplicationSetRestRep> rrSets = getRrSet(ctx);
+        List<NamedRelatedResourceRep> rrSets = getRrSet(ctx);
         List<String> targetSystems = new ArrayList<>();
-        for(RemoteReplicationSetRestRep rrSet: rrSets) {
-            if ((rrSet.getSourceSystems() != null) &&
-                    (rrSet.getSourceSystems().contains(sourceStorageSystemId.toString())) &&
-                    (rrSet.getTargetSystems() != null)) {
-                targetSystems.addAll(rrSet.getTargetSystems());
+        for(NamedRelatedResourceRep rrSet: rrSets) {
+
+            RemoteReplicationSetRestRep rrSetObj = client.remoteReplicationSets().
+                    getRemoteReplicationSetsRestRep(rrSet.getId().toString());
+
+            if ((rrSetObj.getSourceSystems() != null) &&
+                    (rrSetObj.getSourceSystems().contains(sourceStorageSystemId.toString())) &&
+                    (rrSetObj.getTargetSystems() != null)) {
+                targetSystems.addAll(rrSetObj.getTargetSystems());
             }
         }
 
@@ -240,14 +250,19 @@ public class RemoteReplicationProvider extends BaseAssetOptionsProvider {
     @AssetDependencies("storageSystemType")
     public List<AssetOption> getRemoteReplicationModeForArrayType(AssetOptionsContext ctx,
             URI storageSystemTypeUri) {
+        ViPRCoreClient client = api(ctx);
         List<AssetOption> options = Lists.newArrayList();
 
-        List<RemoteReplicationSetRestRep> rrSets = getClient(ctx).
+        List<NamedRelatedResourceRep> rrSets = getClient(ctx).
                 listRemoteReplicationSets(storageSystemTypeUri).getRemoteReplicationSets();
 
         Set<String> allModes = new HashSet<>();
-        for(RemoteReplicationSetRestRep rrSet : rrSets) {
-            Set<String> modesForSet = rrSet.getSupportedReplicationModes();
+        for(NamedRelatedResourceRep rrSet : rrSets) {
+
+            RemoteReplicationSetRestRep rrSetObj = client.remoteReplicationSets().
+                    getRemoteReplicationSetsRestRep(rrSet.getId().toString());
+
+            Set<String> modesForSet = rrSetObj.getSupportedReplicationModes();
             allModes.addAll(modesForSet);
         }
 
@@ -310,12 +325,12 @@ public class RemoteReplicationProvider extends BaseAssetOptionsProvider {
      * Get the reachable Remote Replication Sets. Throws
      * exception if no set is found.
      */
-    private List<RemoteReplicationSetRestRep> getRrSet(AssetOptionsContext ctx) {
+    private List<NamedRelatedResourceRep> getRrSet(AssetOptionsContext ctx) {
 
-        List<RemoteReplicationSetRestRep> rrSets = getClient(ctx).
+        List<NamedRelatedResourceRep> rrSets = getClient(ctx).
                 listRemoteReplicationSets().getRemoteReplicationSets();
 
-       removeUnreachableSets(rrSets);
+        removeUnreachableSets(rrSets,ctx);
 
         if ((rrSets == null) || rrSets.isEmpty()) {
             throw new IllegalStateException("No Remote Replication Set was found containing storage systems.");
@@ -328,17 +343,17 @@ public class RemoteReplicationProvider extends BaseAssetOptionsProvider {
      * Get the reachable Remote Replication Set for the given VirtualPool & VirtualArray. Throws
      * exception if no (or more than one) set is found.
      */
-    private RemoteReplicationSetRestRep getRrSet(AssetOptionsContext ctx,URI virtualArrayId, URI virtualPoolId) {
+    private NamedRelatedResourceRep getRrSet(AssetOptionsContext ctx,URI virtualArrayId, URI virtualPoolId) {
 
         BlockVirtualPoolRestRep vpool = api(ctx).blockVpools().get(virtualPoolId);
         if ((vpool == null) || (vpool.getProtection().getRemoteReplicationParam() == null)) {
             return null;
         }
 
-        List<RemoteReplicationSetRestRep> rrSets = getClient(ctx).
+        List<NamedRelatedResourceRep> rrSets = getClient(ctx).
                 listRemoteReplicationSets(virtualArrayId,virtualPoolId).getRemoteReplicationSets();
 
-        removeUnreachableSets(rrSets);
+        removeUnreachableSets(rrSets,ctx);
 
         if ((rrSets == null) || rrSets.isEmpty()) {
             throw new IllegalStateException("No RemoteReplicationSet was found for the selected " +
@@ -356,11 +371,15 @@ public class RemoteReplicationProvider extends BaseAssetOptionsProvider {
     /*
      * remove unreachable sets from list
      */
-    private void removeUnreachableSets(List<RemoteReplicationSetRestRep> rrSets) {
-        java.util.Iterator<RemoteReplicationSetRestRep> it = rrSets.iterator();
-        while(it.hasNext()){
-            RemoteReplicationSetRestRep rrSet = it.next();
-            if((rrSet != null) && (rrSet.getReachable() != null) && !rrSet.getReachable()) {
+    private void removeUnreachableSets(List<NamedRelatedResourceRep> rrSets, AssetOptionsContext ctx) {
+        ViPRCoreClient client = api(ctx);
+        ListIterator<NamedRelatedResourceRep> it = rrSets.listIterator();
+        while (it.hasNext()) {
+
+            RemoteReplicationSetRestRep rrSetObj = client.remoteReplicationSets().
+                    getRemoteReplicationSetsRestRep(it.next().getId().toString());
+
+            if((rrSetObj != null) && (rrSetObj.getReachable() != null) && !rrSetObj.getReachable()) {
                 it.remove();
             }
         }

@@ -237,10 +237,10 @@ prerun_setup() {
     else
         # VPLEX-specific entrypoints
         exportCreateDeviceStep=VPlexDeviceController.createStorageView
-    	exportAddVolumesDeviceStep=ExportWorkflowEntryPoints.exportAddVolumes
-    	exportRemoveVolumesDeviceStep=ExportWorkflowEntryPoints.exportRemoveVolumes
-    	exportAddInitiatorsDeviceStep=ExportWorkflowEntryPoints.exportAddInitiators
-    	exportRemoveInitiatorsDeviceStep=ExportWorkflowEntryPoints.exportRemoveInitiators
+    	exportAddVolumesDeviceStep=VPlexDeviceController.storageViewAddVolumes
+    	exportRemoveVolumesDeviceStep=VPlexDeviceController.storageViewRemoveVolumes
+    	exportAddInitiatorsDeviceStep=VPlexDeviceController.storageViewAddInitiators
+    	exportRemoveInitiatorsDeviceStep=VPlexDeviceController.storageViewRemoveInitiators
     	exportDeleteDeviceStep=VPlexDeviceController.deleteStorageView
     fi
 }
@@ -1531,8 +1531,7 @@ test_1() {
     then
 	# Would love to have injections in the vplex package itself somehow, but hard to do since I stuck InvokeTestFailure in controller,
 	# which depends on vplex project, not the other way around.
-	storage_failure_injections="failure_004:failure_043_VPlexVmaxMaskingOrchestrator.deleteOrRemoveVolumesToExportMask_before_operation \
-                                    failure_004:failure_044_VPlexVmaxMaskingOrchestrator.deleteOrRemoveVolumesToExportMask_after_operation \
+	storage_failure_injections="failure_004:failure_043_VPlexVmaxMaskingOrchestrator.deleteOrRemoveVolumesFromExportMask_before_operation \
                                     failure_015_SmisCommandHelper.invokeMethod_EMCCreateMultipleTypeElementsFromStoragePool \
                                     failure_015_SmisCommandHelper.invokeMethod_AddMembers \
                                     failure_045_VPlexDeviceController.createVirtualVolume_before_create_operation \
@@ -1585,7 +1584,7 @@ test_1() {
     failure_injections="${common_failure_injections} ${storage_failure_injections}"
 
     # Placeholder when a specific failure case is being worked...
-    # failure_injections="failure_004:failure_040 failure_004:failure_041"
+    # failure_injections="failure_004:failure_043_VPlexVmaxMaskingOrchestrator.deleteOrRemoveVolumesFromExportMask_before_operation"
 
     if [ "${SS}" = "vplex" ]
     then
@@ -1694,8 +1693,7 @@ test_2() {
     then
 	# Would love to have injections in the vplex package itself somehow, but hard to do since I stuck InvokeTestFailure in controller,
 	# which depends on vplex project, not the other way around.
-	storage_failure_injections="failure_004:failure_043_VPlexVmaxMaskingOrchestrator.deleteOrRemoveVolumesToExportMask_before_operation \
-                                    failure_004:failure_044_VPlexVmaxMaskingOrchestrator.deleteOrRemoveVolumesToExportMask_after_operation \
+	storage_failure_injections="failure_004:failure_043_VPlexVmaxMaskingOrchestrator.deleteOrRemoveVolumesFromExportMask_before_operation \
                                     failure_015_SmisCommandHelper.invokeMethod_EMCCreateMultipleTypeElementsFromStoragePool \
                                     failure_015_SmisCommandHelper.invokeMethod_AddMembers \
                                     failure_015_SmisCommandHelper.invokeMethod_CreateGroup \
@@ -1910,7 +1908,7 @@ test_3() {
     failure_injections="${common_failure_injections} ${storage_failure_injections}"
 
     # Placeholder when a specific failure case is being worked...
-    # failure_injections="failure_015_SmisCommandHelper.invokeMethod_EMCCreateMultipleTypeElementsFromStoragePool"
+    # failure_injections="failure_004"
 
     if [ "${SS}" = "vplex" ]
     then
@@ -2011,7 +2009,6 @@ test_4() {
     common_failure_injections="failure_047_NetworkDeviceController.zoneExportMaskCreate_before_zone \
                                failure_048_NetworkDeviceController.zoneExportMaskCreate_after_zone \
                                failure_004_final_step_in_workflow_complete \
-                               failure_004:failure_018_Export_doRollbackExportCreate_before_delete \
                                failure_004:failure_020_Export_zoneRollback_before_delete \
                                failure_004:failure_021_Export_zoneRollback_after_delete"
 
@@ -2025,27 +2022,29 @@ test_4() {
     storage_failure_injections=""
     if [ "${SS}" = "vplex" ]
     then
-	storage_failure_injections=""
+	storage_failure_injections="failure_004:failure_074_VPlexDeviceController.deleteStorageView_before_delete"
     fi 
 
     if [ "${SS}" = "vnx" ]
     then
-        storage_failure_injections="failure_015_SmisCommandHelper.invokeMethod_CreateStorageHardwareID"
+        storage_failure_injections="failure_015_SmisCommandHelper.invokeMethod_CreateStorageHardwareID \
+                                    failure_004:failure_018_Export_doRollbackExportCreate_before_delete"
     fi
 
     if [ "${SS}" = "vmax2" -o "${SS}" = "vmax3" ]
     then
-	storage_failure_injections="failure_015_SmisCommandHelper.invokeMethod_CreateGroup"
+	storage_failure_injections="failure_015_SmisCommandHelper.invokeMethod_CreateGroup \
+                                    failure_004:failure_018_Export_doRollbackExportCreate_before_delete"
     fi
 
     if [ "${SS}" = "unity" ]; then
-      storage_failure_injections=""
+      storage_failure_injections="failure_004:failure_018_Export_doRollbackExportCreate_before_delete"
     fi
 
     failure_injections="${common_failure_injections} ${storage_failure_injections} ${network_failure_injections}"
 
     # Placeholder when a specific failure case is being worked...
-    # failure_injections="failure_004:failure_018_Export_doRollbackExportCreate_before_delete"
+    #failure_injections="failure_004:failure_074_VPlexDeviceController.deleteStorageView_before_delete"
 
     for failure in ${failure_injections}
     do
@@ -2122,29 +2121,32 @@ test_5() {
     echot "Test 5 Begins"
     expname=${EXPORT_GROUP_NAME}t5
 
-    common_failure_injections="failure_018_Export_doRollbackExportCreate_before_delete"
+    common_failure_injections=""
 
     storage_failure_injections=""
     if [ "${SS}" = "vplex" ]
     then
-	storage_failure_injections=""
+	storage_failure_injections="failure_074_VPlexDeviceController.deleteStorageView_before_delete"
     fi
 
     if [ "${SS}" = "vmax2" ]
     then
-	storage_failure_injections="failure_015_SmisCommandHelper.invokeMethod_DeleteGroup"
+	storage_failure_injections="failure_015_SmisCommandHelper.invokeMethod_DeleteGroup \
+                                    failure_018_Export_doRollbackExportCreate_before_delete"
     fi
 
     if [ "${SS}" = "vmax3" ]
     then
 	storage_failure_injections="failure_015_SmisCommandHelper.invokeMethod_DeleteGroup \
-                                    failure_015_SmisCommandHelper.invokeMethod_AddMembers"
+                                    failure_015_SmisCommandHelper.invokeMethod_AddMembers \
+                                    failure_018_Export_doRollbackExportCreate_before_delete"
     fi
 
     if [ "${SS}" = "vnx" ]
     then
 	storage_failure_injections="failure_015_SmisCommandHelper.invokeMethod_DeleteProtocolController \
-                                    failure_015_SmisCommandHelper.invokeMethod_DeleteStorageHardwareID"
+                                    failure_015_SmisCommandHelper.invokeMethod_DeleteStorageHardwareID \
+	                            failure_018_Export_doRollbackExportCreate_before_delete"
     fi
 
     failure_injections="${common_failure_injections} ${storage_failure_injections} ${network_failure_injections}"
@@ -2261,7 +2263,7 @@ test_6() {
       runcmd export_group create $PROJECT ${expname}1 $NH --type Host --volspec ${PROJECT}/${VOLNAME}-1 --hosts "${HOST1}"
 
       # Snap the DB state with the export group created
-      snap_db 2 "${cfs[@]}"
+      snap_db 2 "${cfs[@]}" "| grep -v existingVolumes"
 
       # Turn on failure at a specific point
       set_artificial_failure ${failure}
@@ -2332,8 +2334,8 @@ test_7() {
     storage_failure_injections=""
     if [ "${SS}" = "vplex" ]
     then
-	storage_failure_injections="failure_004:failure_024_Export_zone_removeInitiator_before_delete \
-                                    failure_004:failure_025_Export_zone_removeInitiator_after_delete \
+	storage_failure_injections="failure_004:failure_020_Export_zoneRollback_before_delete \
+                                    failure_004:failure_021_Export_zoneRollback_after_delete \
                                     failure_060_VPlexDeviceController.storageViewAddInitiators_storageview_nonexisting"
     fi
 
@@ -2346,7 +2348,7 @@ test_7() {
     failure_injections="${common_failure_injections} ${storage_failure_injections} ${network_failure_injections}"
 
     # Placeholder when a specific failure case is being worked...
-    # failure_injections="failure_058_NetworkDeviceController.zoneExportAddInitiators_before_zone"
+    # failure_injections="failure_004:failure_016_Export_doRemoveInitiator"
 
     for failure in ${failure_injections}
     do
@@ -2398,12 +2400,15 @@ test_7() {
       set_artificial_failure none
       runcmd export_group update ${PROJECT}/${expname}1 --addInits ${HOST1}/${H1PI2}
 
+      # Perform any DB validation in here
+      snap_db 4 "${cfs[@]}"
+
       # Delete the export
       runcmd export_group delete ${PROJECT}/${expname}1
 
       # Verify the DB is back to the original state
-      snap_db 4 "${cfs[@]}"
-      validate_db 1 4 "${cfs[@]}"
+      snap_db 5 "${cfs[@]}"
+      validate_db 1 5 "${cfs[@]}"
 
       # Report results
       report_results test_7 ${failure}
@@ -2573,7 +2578,7 @@ test_9() {
     storage_failure_injections=""
     if [ "${SS}" = "vplex" ]
     then
-	storage_failure_injections="failure_009_VPlexVmaxMaskingOrchestrator.deleteOrRemoveVolumesToExportMask_before_operation"
+	storage_failure_injections="failure_043_VPlexVmaxMaskingOrchestrator.deleteOrRemoveVolumesFromExportMask_before_operation"
     fi
 
     if [ "${SS}" = "unity" ]
@@ -2610,7 +2615,7 @@ test_9() {
     failure_injections="${common_failure_injections} ${storage_failure_injections}"
 
     # Placeholder when a specific failure case is being worked...
-    # failure_injections="failure_015_SmisCommandHelper.invokeMethod_EMCListSFSEntries"
+    # failure_injections="failure_043_VPlexVmaxMaskingOrchestrator.deleteOrRemoveVolumesFromExportMask_before_operation"
 
     if [ "${SS}" = "vplex" ]
     then
@@ -2717,12 +2722,13 @@ test_10() {
     failure_injections="${common_failure_injections} ${storage_failure_injections}"
 
     # Placeholder when a specific failure case is being worked...
-    # failure_injections="failure_firewall"
+    # failure_injections="failure_004"
     # failure_injections="failure_015_SmisCommandHelper.invokeMethod_*"
 
     for failure in ${failure_injections}
     do
-      firewall_test=1
+      # By default, turn off the firewall test as it takes a really long time to run.
+      firewall_test=0
       if [ "${failure}" = "failure_firewall" ]
       then
 	  # Find the IP address we need to firewall

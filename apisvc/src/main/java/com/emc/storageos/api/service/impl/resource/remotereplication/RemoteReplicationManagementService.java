@@ -189,7 +189,7 @@ public class RemoteReplicationManagementService extends TaskResourceService {
                                 operationParam.getIds().size() > 1) {
                     // Bad request
                     throw APIException.badRequests.remoteReplicationOperationPrecheckFailed(String.format(
-                            "Multiple pairs in the request. For VMAX arrays, operations with context %s are supported only for a single pair in the request.",
+                            "Multiple pairs in the request. For VMAX arrays, operations with context %s are supported only for a single pair in the request",
                             operationContext.toString()));
                 }
 
@@ -268,7 +268,7 @@ public class RemoteReplicationManagementService extends TaskResourceService {
                                 operationParam.getIds().size() > 1) {
                     // Bad request
                     throw APIException.badRequests.remoteReplicationOperationPrecheckFailed(String.format(
-                            "Multiple pairs in the request. For VMAX arrays, operations with context %s are supported only for a single pair in the request.",
+                            "Multiple pairs in the request. For VMAX arrays, operations with context %s are supported only for a single pair in the request",
                             operationContext.toString()));
                 }
 
@@ -347,7 +347,7 @@ public class RemoteReplicationManagementService extends TaskResourceService {
                                 operationParam.getIds().size() > 1) {
                     // Bad request
                     throw APIException.badRequests.remoteReplicationOperationPrecheckFailed(String.format(
-                            "Multiple pairs in the request. For VMAX arrays, operations with context %s are supported only for a single pair in the request.",
+                            "Multiple pairs in the request. For VMAX arrays, operations with context %s are supported only for a single pair in the request",
                             operationContext.toString()));
                 }
 

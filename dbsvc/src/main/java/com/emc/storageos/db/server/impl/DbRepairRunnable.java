@@ -219,7 +219,8 @@ public class DbRepairRunnable implements Runnable {
                     notifier.close(); // Notify the thread triggering the repair before we finish
 
                     while (true) {
-                        if (runner.runRepair() == RepairJobRunner.RepairJobStatus.SUCCESS) {
+                        RepairJobRunner.RepairJobStatus repairJobStatus = runner.runRepair();
+                        if (repairJobStatus == RepairJobRunner.RepairJobStatus.SUCCESS) {
                             log.info("Repair keyspace {} at cluster state {} completed successfully", keySpaceName,
                                     state.getCurrentDigest());
 
@@ -233,7 +234,7 @@ public class DbRepairRunnable implements Runnable {
                             break;
                         }
 
-                        if (runner.runRepair() == RepairJobRunner.RepairJobStatus.FAILED) {
+                        if (repairJobStatus == RepairJobRunner.RepairJobStatus.FAILED) {
                             log.error("Repair job {} for keyspace {} failed due to force abortion. No need retry.",
                                     this.state.getCurrentDigest(), keySpaceName);
                             saveStates();

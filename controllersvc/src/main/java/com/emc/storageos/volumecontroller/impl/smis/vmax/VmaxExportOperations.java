@@ -817,20 +817,19 @@ public class VmaxExportOperations implements ExportMaskOperations {
             }
 
             boolean isVmax3 = storage.checkIfVmax3();
+            ExportMask mask = _dbClient.queryObject(ExportMask.class, exportMaskURI);
             ExportOperationContext context = new VmaxExportOperationContext();
             // Prime the context object
             taskCompleter.updateWorkflowStepContext(context);
             String maskingViewName = _helper.getExportMaskName(exportMaskURI);
             // Always get the Storage Group from masking View, rather than depending on the name to find out SG.
             String parentGroupName = _helper.getStorageGroupForGivenMaskingView(maskingViewName, storage);
-            // Neither masking view nor Storage Group exists. remove the volumes from the mask.
-            // TODO I think we can delete the export mask too.
+            // Storage Group does not exist, remove the volumes from the mask.
             if (null == parentGroupName) {
                 List<URI> volumeURIList = new ArrayList<URI>();
                 for (VolumeURIHLU vuh : volumeURIHLUs) {
                     volumeURIList.add(vuh.getVolumeURI());
                 }
-                ExportMask mask = _dbClient.queryObject(ExportMask.class, exportMaskURI);
                 mask.removeVolumes(volumeURIList);
                 _dbClient.updateObject(mask);
                 taskCompleter.error(_dbClient, DeviceControllerException.errors
@@ -839,7 +838,6 @@ public class VmaxExportOperations implements ExportMaskOperations {
             }
 
             // Get the export mask initiator list. This is required to compute the storage group name
-            ExportMask mask = _dbClient.queryObject(ExportMask.class, exportMaskURI);
             Set<Initiator> initiators = ExportMaskUtils.getInitiatorsForExportMask(_dbClient, mask, null);
 
             // Flag to indicate whether or not we need to use the EMCForce flag on this operation.
@@ -1249,14 +1247,9 @@ public class VmaxExportOperations implements ExportMaskOperations {
                 String maskingViewName = _helper.getExportMaskName(exportMaskURI);
                 // Always get the Storage Group from masking View, rather than depending on the name to find out SG.
                 String parentGroupName = _helper.getStorageGroupForGivenMaskingView(maskingViewName, storage);
-                // Neither masking view nor Storage Group exists. remove the volumes from the mask.
-                // TODO I think we can delete the export mask too.
+                // Storage Group does not exist, no operation on array side
                 if (null == parentGroupName) {
-                    ExportMask mask = _dbClient.queryObject(ExportMask.class, exportMaskURI);
-                    mask.removeVolumes(volumeURIList);
-                    _dbClient.updateObject(mask);
-                    taskCompleter.error(_dbClient, DeviceControllerException.errors
-                            .vmaxStorageGroupNameNotFound(maskingViewName));
+                    taskCompleter.ready(_dbClient);
                     return;
                 }
 
@@ -1267,6 +1260,33 @@ public class VmaxExportOperations implements ExportMaskOperations {
                     _log.info("Could not find any groups to which the volumes to remove belong.");
                     taskCompleter.ready(_dbClient);
                     return;
+                }
+
+                // Validate all user added volumes are in the mask, throw exception if there are mismatch between ViPR DB and array
+                StringMap maskVolumes = exportMask.getUserAddedVolumes();
+                if (!CollectionUtils.isEmpty(maskVolumes)) {
+                    List<URI> remainingVolumeURIList = new ArrayList<URI>();
+                    for (String volId : maskVolumes.values()) {
+                        URI uri = URI.create(volId);
+                        if (!volumeURIList.contains(uri)) {
+                            remainingVolumeURIList.add(uri);
+                        }
+                    }
+
+                    Map<String, List<URI>> remainingVolumesByGroup = _helper.groupVolumesBasedOnExistingGroups(storage, parentGroupName, remainingVolumeURIList);
+                    Set<URI> remainingVolumeURISet = new HashSet<URI>(remainingVolumeURIList);
+                    for (Collection<URI> volumes : remainingVolumesByGroup.values()) {
+                        remainingVolumeURISet.removeAll(volumes);
+                    }
+
+                    if (!remainingVolumeURISet.isEmpty()) {
+                        String errMsg = String.format("Volumes %s are not found in the masking view %s. Attempt to remove volumes from the mask would lead to an empty storage group. This is not allowed on the array. Please remove the dangling volumes from the export first.",
+                                Joiner.on(',').join(remainingVolumeURISet), maskingViewName);
+                        _log.error(errMsg);
+                        ServiceError serviceError = DeviceControllerException.errors.jobFailedMsg(errMsg, null);
+                        taskCompleter.error(_dbClient, serviceError);
+                        return;
+                    }
                 }
 
                 /**
@@ -1285,6 +1305,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
                     if (volumesByGroup.get(childGroupName) != null && volumesByGroup.get(childGroupName).size() == volumeURIList.size() &&
                             !_helper.isStorageGroupSizeGreaterThanGivenVolumes(childGroupName, storage, volumeURIList.size())) {
                         _log.info("Storage Group has no more than {} volumes", volumeURIList.size());
+
                         URI blockURI = volumeURIList.get(0);
                         BlockObject blockObj = BlockObject.fetch(_dbClient, blockURI);
                         CIMObjectPath maskingGroupPath = _cimPath.getMaskingGroupPath(

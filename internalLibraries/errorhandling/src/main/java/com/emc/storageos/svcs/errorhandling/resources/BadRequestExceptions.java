@@ -3287,6 +3287,12 @@ public interface BadRequestExceptions {
     public BadRequestException cannotCreateReadOnlySnapshotForNonXIOVolumes(); 
     
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException userNotAuthorizedForWorkflow();
+    
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException userNotAuthorizedForWorkflowStep();    
+    
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException portGroupInvalid(String portGroupURI);
     
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)

@@ -1057,10 +1057,10 @@ public class BlockService extends TaskResourceService {
     }
 
     /**
-     * returns the types (RP, VPLEX, SRDF or LOCAL) that will be created based on the vpool
+     * Returns the types (RP, VPLEX, SRDF or LOCAL) that will be created based on the vpool
      *
-     * @param vpool
-     * @param requestedTypes
+     * @param vpool The vpool to find requested types
+     * @return All requested types for the vpool
      */
     private ArrayList<String> getRequestedTypes(VirtualPool vpool) {
 

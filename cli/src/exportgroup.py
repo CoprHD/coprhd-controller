@@ -129,7 +129,7 @@ class ExportGroup(object):
 
         return s
 
-    def exportgroup_create(self, name, project, tenant, varray,
+    def exportgroup_create(self, name, datacenter, vcenter, project, tenant, varray,
                            exportgrouptype, export_destination=None):
         '''
         This function will take export group name and project name  as input
@@ -168,8 +168,8 @@ class ExportGroup(object):
                         cluster_obj = Cluster(self.__ipAddr, self.__port)
                         try:
                             cluster_uri = cluster_obj.cluster_query(
-                                export_destination,
-                                fullproj)
+                                export_destination, datacenter, vcenter,
+                                tenant)
                         except SOSError as e:
                             raise e
                         parms['clusters'] = [cluster_uri]
@@ -593,7 +593,7 @@ class ExportGroup(object):
         o = self.send_json_request(exportgroup_uri, parms)
         return self.check_for_sync(o, sync,synctimeout)
 
-    def exportgroup_remove_cluster(self, exportgroupname, tenantname,
+    def exportgroup_remove_cluster(self, exportgroupname, datacenter, vcenter, tenantname,
                                    projectname, clusternames, sync,synctimeout=0, varray=None):
         varrayuri = None
         if(varray):
@@ -606,7 +606,7 @@ class ExportGroup(object):
         cluster_uris = []
         clusterObject = Cluster(self.__ipAddr, self.__port)
         for clustername in clusternames:
-            cluster_uris.append(clusterObject.cluster_query(clustername,
+            cluster_uris.append(clusterObject.cluster_query(clustername, datacenter, vcenter, 
                                                             tenantname))
         parms = {}
         parms['cluster_changes'] = self._remove_list(cluster_uris)
@@ -874,7 +874,7 @@ class ExportGroup(object):
 
 	# If opeation is path_adjustment and wait is true and no verbose option selected, then display the task id of the suspended task
 	if (not verbose and wait and self.PATH_ADJ_OPERATION):
-		if (output.get('id')) :
+		if (output.get('id') and parms['removed_paths']) :
     		    print operation
 		    print 'There are tasks (URIs listed below) that are suspended as part of this operation. Manually resume the tasks.'
 		    print  output['id']
@@ -1016,6 +1016,16 @@ def create_parser(subcommand_parsers, common_parser):
                                metavar='<tenantname>',
                                dest='tenant',
                                help='container tenant name')
+    create_parser.add_argument('-datacenter', '-dc',
+                                metavar='<datacentername>',
+                                dest='datacenter',
+                                help='name of datacenter',
+                                default=None)
+    create_parser.add_argument('-vcenter', '-vc',
+                                help='name of a vcenter',
+                                dest='vcenter',
+                                metavar='<vcentername>',
+                                default=None)                               
     create_parser.add_argument(
         '-type', '-t',
         help="Type of the ExportGroup: " +
@@ -1035,7 +1045,7 @@ def create_parser(subcommand_parsers, common_parser):
 def exportgroup_create(args):
     try:
         obj = ExportGroup(args.ip, args.port)
-        obj.exportgroup_create(args.name, args.project, args.tenant,
+        obj.exportgroup_create(args.name, args.datacenter, args.vcenter, args.project, args.tenant,
                                args.varray, args.type, args.export_destination)
     except SOSError as e:
         raise common.format_err_msg_and_raise("create", "exportgroup",
@@ -1678,7 +1688,16 @@ def remove_cluster_parser(subcommand_parsers, common_parser):
                              metavar='<varray>',
                              dest='varray',
                              help='varray name')
-
+    remove_cluster_parser.add_argument('-datacenter', '-dc',
+                                metavar='<datacentername>',
+                                dest='datacenter',
+                                help='name of datacenter',
+                                default=None)
+    remove_cluster_parser.add_argument('-vcenter', '-vc',
+                                help='name of a vcenter',
+                                dest='vcenter',
+                                metavar='<vcentername>',
+                                default=None)
     remove_cluster_parser.add_argument('-tenant', '-tn',
                                        metavar='<tenantname>',
                                        dest='tenant',
@@ -1711,7 +1730,7 @@ def exportgroup_remove_cluster(args):
     try:
         objExGroup = ExportGroup(args.ip, args.port)
         objExGroup.exportgroup_remove_cluster(
-            args.name, args.tenant, args.project, args.cluster, args.sync,args.synctimeout, args.varray)
+            args.name,  args.datacenter, args.vcenter, args.tenant, args.project, args.cluster, args.sync,args.synctimeout, args.varray)
     except SOSError as e:
         raise common.format_err_msg_and_raise("remove_cluster", "exportgroup",
                                               e.err_text, e.err_code)

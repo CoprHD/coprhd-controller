@@ -384,7 +384,7 @@ public class PerformanceParamsUtils {
 
         // Set the auto tiering policy name for the HA side into the HA capabilities.
         String autoTierPolicyName = getAutoTierinigPolicyName(
-                performanceParams, VolumeTopologyRole.HA, haVpool, dbClient);
+                performanceParams, haRole, haVpool, dbClient);
         if (NullColumnValueGetter.isNotNullValue(autoTierPolicyName)) {
             haCapabilities.put(VirtualPoolCapabilityValuesWrapper.AUTO_TIER__POLICY_NAME, autoTierPolicyName);
         } else {
@@ -399,14 +399,14 @@ public class PerformanceParamsUtils {
 
         // Set the thin volume pre-allocation size for the HA side into the HA capabilities.
         Integer thinVolumePreAllocPercentage = getThinVolumePreAllocPercentage(
-                performanceParams, VolumeTopologyRole.HA, haVpool, dbClient);
+                performanceParams, haRole, haVpool, dbClient);
         if (null != thinVolumePreAllocPercentage && 0 < thinVolumePreAllocPercentage) {
             haCapabilities.put(VirtualPoolCapabilityValuesWrapper.THIN_VOLUME_PRE_ALLOCATE_SIZE, VirtualPoolUtil
                     .getThinVolumePreAllocationSize(thinVolumePreAllocPercentage, haCapabilities.getSize()));
         }
 
         // Set the dedup capable for the HA side into the HA capabilities.
-        Boolean dedupCapable = getIsDedupCapable(performanceParams, VolumeTopologyRole.HA, haVpool, dbClient);
+        Boolean dedupCapable = getIsDedupCapable(performanceParams, haRole, haVpool, dbClient);
         if (dedupCapable) {
             haCapabilities.put(VirtualPoolCapabilityValuesWrapper.DEDUP, dedupCapable);
         } else {

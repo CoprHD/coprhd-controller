@@ -991,6 +991,12 @@ public class HostService extends TaskResourceService {
     public TaskResourceRep createPairedInitiator(@PathParam("id") URI id,
             PairedInitiatorCreateParam createParam) throws DatabaseException {
         Host host = queryObject(Host.class, id, true);
+	
+	if (host.getVirtualMachine()==false)
+	    {
+		throw APIException.badRequests.addPairedInitiatorsToNonVirtualHost();
+	    }
+
         Cluster cluster = null;
         validatePairedInitiatorData(createParam);
         // create and populate the initiator

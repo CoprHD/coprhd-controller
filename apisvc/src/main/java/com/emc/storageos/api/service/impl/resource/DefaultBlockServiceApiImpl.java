@@ -755,7 +755,7 @@ public class DefaultBlockServiceApiImpl extends AbstractBlockServiceApiImpl<Stor
         // are passed for the source, which is the only one that applies for a simple
         // block volume with no mirrors.
         BlockPerformanceParamsMap sourceParams = requestParams.getSourceParams();
-        PerformanceParamsUtils.validatePerformanceParamsForRole(
+        PerformanceParamsUtils.validatePerformanceParamsForRoles(
                 sourceParams, Arrays.asList(VolumeTopologyRole.PRIMARY), _dbClient);
     }
 }

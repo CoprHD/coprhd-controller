@@ -16,12 +16,14 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.emc.storageos.api.service.authorization.PermissionsHelper;
+import com.emc.storageos.api.service.impl.resource.utils.PerformanceParamsUtils;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
@@ -236,8 +238,8 @@ public class SRDFScheduler implements Scheduler {
             candidatePools.addAll(pools);
         }
         // Schedule storage based on the source pool constraint.
-        return scheduleStorageSourcePoolConstraint(varray, project, vpool, capabilities,
-                candidatePools, null, capabilities.getBlockConsistencyGroup());
+        return scheduleStorageSourcePoolConstraint(varray, project, vpool, performanceParams, 
+                capabilities, candidatePools, null, capabilities.getBlockConsistencyGroup());
     }
 
     private List<StoragePool> filterPoolsForSupportedActiveModeProvider(List<StoragePool> candidatePools, VirtualPool vpool) {
@@ -277,6 +279,8 @@ public class SRDFScheduler implements Scheduler {
      *            Varray to protect this volume to.
      * @param vpool
      *            vpool requested
+     * @param performanceParams
+     *            The performance parameters map.
      * @param capabilities
      *            parameters
      * @param candidatePools
@@ -287,6 +291,7 @@ public class SRDFScheduler implements Scheduler {
      */
     private List<Recommendation> scheduleStorageSourcePoolConstraint(final VirtualArray varray,
             final Project project, final VirtualPool vpool,
+            final Map<VolumeTopologySite, List<Map<VolumeTopologyRole, URI>>> performanceParams,
             final VirtualPoolCapabilityValuesWrapper capabilities,
             final List<StoragePool> candidatePools, final Volume vpoolChangeVolume,
             final URI consistencyGroupUri) {
@@ -315,9 +320,11 @@ public class SRDFScheduler implements Scheduler {
             sb.append(targetVarray.getId()).append(" ");
         }
         _log.info(sb.toString());
+        
         Map<String, Object> attributeMap = new HashMap<String, Object>();
+        Map<VirtualArray, Map<VolumeTopologyRole, URI>> varrayCopyPerformanceParamsMap = new HashMap<>();
         Map<VirtualArray, List<StoragePool>> varrayPoolMap = getMatchingPools(targetVarrays, vpool,
-                capabilities, attributeMap);
+                performanceParams, capabilities, attributeMap, varrayCopyPerformanceParamsMap);
         if (varrayPoolMap == null || varrayPoolMap.isEmpty()) {
             // No matching storage pools found for any of the target varrays. There are no target
             // storage pools that match the passed vpool parameters and protocols and/or there are
@@ -344,10 +351,22 @@ public class SRDFScheduler implements Scheduler {
                     vpool.getLabel(), tmpTargetVarrays, errorMessage.toString());
 
         }
+        
+        // Get the performance parameters for the source, if any.
+        Map<VolumeTopologyRole, URI> sourceParams = null;
+        if (performanceParams != null) {
+            List<Map<VolumeTopologyRole, URI>> sourceParamsList = performanceParams.get(VolumeTopologySite.SOURCE);
+            if (!CollectionUtils.isEmpty(sourceParamsList)) {
+                // There should always only be a single entry in the source list.
+                sourceParams = sourceParamsList.get(0);
+            }
+        }
 
         // Reduce the source and target pool down to the pools available via target.
+        
         Set<SRDFPoolMapping> tmpDestPoolsList = getSRDFPoolMappings(varray, candidatePools,
-                varrayPoolMap, vpool, vpoolChangeVolume, capabilities.getSize());
+                varrayPoolMap, vpool, vpoolChangeVolume, capabilities.getSize(), sourceParams,
+                varrayCopyPerformanceParamsMap);
 
         if (tmpDestPoolsList == null || tmpDestPoolsList.isEmpty()) {
             // There are no target pools from any of the target varrays that share the
@@ -606,10 +625,11 @@ public class SRDFScheduler implements Scheduler {
         // Schedule storage based on source volume storage pool
         List<StoragePool> sourcePools = new ArrayList<StoragePool>();
         sourcePools.add(sourcePool);
+        // TBD Heg pass null performance params for now and revisit for change vpool.
         return scheduleStorageSourcePoolConstraint(
                 _dbClient.queryObject(VirtualArray.class, volume.getVirtualArray()),
-                _dbClient.queryObject(Project.class, volume.getProject().getURI()), vpool, wrapper,
-                sourcePools, volume, volume.getConsistencyGroup());
+                _dbClient.queryObject(Project.class, volume.getProject().getURI()), vpool, 
+                null, wrapper, sourcePools, volume, volume.getConsistencyGroup());
     }
 
     /**
@@ -658,12 +678,16 @@ public class SRDFScheduler implements Scheduler {
      *            Pool List from common placement logic for source
      * @param varrayPoolMap
      *            Pool List from common placement logic for target varrays
+     * @param sourceParams
+     *            The performance parameters for the source
+     * @param varrayCopyPerformanceParamsMap
+     *            Map of virtual array for a target to the performance parameters for that copy.
      * @return a list of source/destination pools
      */
-    private Set<SRDFPoolMapping> getSRDFPoolMappings(final VirtualArray varray,
-            final List<StoragePool> poolList,
+    private Set<SRDFPoolMapping> getSRDFPoolMappings(final VirtualArray varray, final List<StoragePool> poolList,
             final Map<VirtualArray, List<StoragePool>> varrayPoolMap, final VirtualPool vpool, final Volume vpoolChangeVolume,
-            final long size) {
+            final long size, final Map<VolumeTopologyRole, URI> sourceParams, 
+            final Map<VirtualArray, Map<VolumeTopologyRole, URI>> varrayCopyPerformanceParamsMap) {
         // Maps to reduce hits on the database for objects we'll need more than one time during
         // calculations
         Map<StoragePool, StorageSystem> sourcePoolStorageMap = new HashMap<StoragePool, StorageSystem>();
@@ -685,10 +709,12 @@ public class SRDFScheduler implements Scheduler {
         for (StoragePool sourcePool : sourcePoolStorageMap.keySet()) {
             // Go through each target virtual array and attempt to add an entry in the pool mapping
             for (VirtualArray targetVarray : varrayPoolMap.keySet()) {
+                // Get the copy performance parameters for the target in this virtual array.
+                Map<VolumeTopologyRole, URI> copyParams = varrayCopyPerformanceParamsMap.get(targetVarray);
                 // Add an entry to the mapping if the source and destination storage systems can see
                 // each other.
                 populateSRDFPoolList(varray, destPoolStorageMap, srcDestPoolList, sourcePool,
-                        targetVarray, vpool, vpoolChangeVolume, size);
+                        targetVarray, vpool, vpoolChangeVolume, size, sourceParams, copyParams);
             }
         }
 
@@ -715,24 +741,43 @@ public class SRDFScheduler implements Scheduler {
      *            source volume (null if not exists)
      * @param size
      *            required volume size
+     * @param sourceParams
+     *            The performance parameters for the source
+     * @param copyParams
+     *            The performance params for the copy in the target varray.
      */
-    private void populateSRDFPoolList(final VirtualArray sourceVarray,
-            final Map<StoragePool, StorageSystem> destPoolStorageMap,
-            final Set<SRDFPoolMapping> srcDestPoolList, final StoragePool sourcePool,
-            final VirtualArray targetVarray,
-            final VirtualPool vpool, final Volume vpoolChangeVolume, final long size) {
+    private void populateSRDFPoolList(final VirtualArray sourceVarray, final Map<StoragePool,
+            StorageSystem> destPoolStorageMap, final Set<SRDFPoolMapping> srcDestPoolList,
+            final StoragePool sourcePool, final VirtualArray targetVarray, final VirtualPool vpool,
+            final Volume vpoolChangeVolume, final long size, final Map<VolumeTopologyRole, URI> sourceParams, 
+            final Map<VolumeTopologyRole, URI> copyParams) {
 
         StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, sourcePool.getStorageDevice());
+        
         boolean isThinlyProvisioned = vpool.getSupportedProvisioningType().equalsIgnoreCase(VirtualPool.ProvisioningType.Thin.toString());
-        MetaVolumeRecommendation sourceVolumeRecommendation =
-                MetaVolumeUtils.getCreateRecommendation(storageSystem, sourcePool, size, isThinlyProvisioned,
-                        (vpoolChangeVolume != null ? Volume.determineFastExpansionForVolume(vpoolChangeVolume, _dbClient) : vpool.getFastExpansion()), null);
+        boolean fastExpansion = (vpoolChangeVolume != null ? Volume.determineFastExpansionForVolume(vpoolChangeVolume, _dbClient)
+                : PerformanceParamsUtils.getFastExpansion(sourceParams, VolumeTopologyRole.PRIMARY, vpool, _dbClient));
+        MetaVolumeRecommendation sourceVolumeRecommendation = MetaVolumeUtils.getCreateRecommendation(
+                storageSystem, sourcePool, size, isThinlyProvisioned, fastExpansion, null);
 
         long sourceMaxVolumeSizeLimitKb = isThinlyProvisioned ? sourcePool.getMaximumThinVolumeSize() : sourcePool
                 .getMaximumThickVolumeSize();
 
         _log.debug(String.format("Check which target pools match source pool %s based on the required volume configuration",
                 sourcePool.getNativeId()));
+
+        // Get the target vpool and then thin provisioning and fast expansion settings for the copy.
+        VirtualPool targetVpool = vpool;
+        Map<URI, VpoolRemoteCopyProtectionSettings> settingsMap = VirtualPool.getRemoteProtectionSettings(vpool, _dbClient);
+        VpoolRemoteCopyProtectionSettings settings = settingsMap.get(targetVarray.getId());
+        if (settings != null && settings.getVirtualPool() != null) {
+            // If using a different vpool than the source, update the capabilities with those
+            // of the target vpool and copy performance parameters.
+            targetVpool = _dbClient.queryObject(VirtualPool.class, settings.getVirtualPool());
+        }
+        boolean targetIsThinlyProvisioned = targetVpool.getSupportedProvisioningType().equalsIgnoreCase(VirtualPool.ProvisioningType.Thin.toString());
+        boolean targetFastExpansion = PerformanceParamsUtils.getFastExpansion(copyParams, VolumeTopologyRole.PRIMARY, targetVpool, _dbClient);
+        
         for (StoragePool targetPool : destPoolStorageMap.keySet()) {
             // This will check to see if the target pool candidate is on a storage system that can
             // talk SRDF to it.
@@ -743,7 +788,7 @@ public class SRDFScheduler implements Scheduler {
             }
             // Check that target pool can support required volume configuration.
             if (!validateRequiredVolumeConfiguration(sourcePool, targetPool, vpoolChangeVolume,
-                    destPoolStorageMap, sourceVolumeRecommendation, size, isThinlyProvisioned, vpool.getFastExpansion(),
+                    destPoolStorageMap, sourceVolumeRecommendation, size, targetIsThinlyProvisioned, targetFastExpansion,
                     sourceMaxVolumeSizeLimitKb)) {
                 continue;
             }
@@ -1232,26 +1277,58 @@ public class SRDFScheduler implements Scheduler {
      *            capabilities
      * @param attributeMap
      *            attributeMap
+     * @param varrayCopyPerformanceParamsMap
+     *            Map of virtual array for a target to the performance parameters for that copy.
      * @return A list of matching storage pools and varray mapping
      */
-    private Map<VirtualArray, List<StoragePool>> getMatchingPools(final List<VirtualArray> varrays,
-            final VirtualPool vpool, final VirtualPoolCapabilityValuesWrapper capabilities, Map<String, Object> attributeMap) {
+    private Map<VirtualArray, List<StoragePool>> getMatchingPools(final List<VirtualArray> varrays, final VirtualPool vpool,
+            final Map<VolumeTopologySite, List<Map<VolumeTopologyRole, URI>>> performanceParams,
+            final VirtualPoolCapabilityValuesWrapper capabilities, Map<String, Object> attributeMap,
+            Map<VirtualArray, Map<VolumeTopologyRole, URI>> varrayCopyPerformanceParamsMap) {
         Map<VirtualArray, List<StoragePool>> varrayStoragePoolMap = new HashMap<VirtualArray, List<StoragePool>>();
         Map<URI, VpoolRemoteCopyProtectionSettings> settingsMap = VirtualPool
                 .getRemoteProtectionSettings(vpool, _dbClient);
 
+        // Get the performance parameters for the copies, if any.
+        List<Map<VolumeTopologyRole, URI>> copyParamsList = null;
+        if (performanceParams != null) {
+            copyParamsList = performanceParams.get(VolumeTopologySite.COPY);
+        }
+        
+        int copyCount = 0;
         for (VirtualArray varray : varrays) {
+            // Get the performance parameters for the copy, if any.
+            Map<VolumeTopologyRole, URI> copyParams = null;
+            if (!CollectionUtils.isEmpty(copyParamsList)) {
+                copyParams = copyParamsList.get(copyCount++);
+            }
+            if (copyParams != null) {
+                varrayCopyPerformanceParamsMap.put(varray, copyParams);
+            }
+            
             // If there was no vpool specified with the target settings, use the base vpool for this
             // varray.
             VirtualPool targetVpool = vpool;
+            VirtualPoolCapabilityValuesWrapper copyCapabilities = null;
             VpoolRemoteCopyProtectionSettings settings = settingsMap.get(varray.getId());
             if (settings != null && settings.getVirtualPool() != null) {
+                // If using a different vpool than the source, update the capabilities with those
+                // of the target vpool and copy performance parameters.
                 targetVpool = _dbClient.queryObject(VirtualPool.class, settings.getVirtualPool());
+                
+                // If using a different vpool for the copy, then override the passed
+                // capabilities, which reflect the source vpool and source performance
+                // parameters, with the target vpool and the copy performance parameters.
+                // In this way, we get the proper matching pools for the copy.
+                copyCapabilities = PerformanceParamsUtils.overrideCapabilitiesForVolumePlacement(
+                        targetVpool, copyParams, VolumeTopologyRole.PRIMARY, capabilities, _dbClient);
+            } else {
+                copyCapabilities = new VirtualPoolCapabilityValuesWrapper(capabilities);
             }
-            capabilities.put(VirtualPoolCapabilityValuesWrapper.PERSONALITY, VirtualPoolCapabilityValuesWrapper.SRDF_TARGET);
+            copyCapabilities.put(VirtualPoolCapabilityValuesWrapper.PERSONALITY, VirtualPoolCapabilityValuesWrapper.SRDF_TARGET);
             // Find a matching pool for the target vpool
             varrayStoragePoolMap.put(varray,
-                    _blockScheduler.getMatchingPools(varray, targetVpool, capabilities, attributeMap));
+                    _blockScheduler.getMatchingPools(varray, targetVpool, copyCapabilities, attributeMap));
         }
 
         return varrayStoragePoolMap;

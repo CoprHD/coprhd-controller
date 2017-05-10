@@ -22,6 +22,7 @@ import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.util.CollectionUtils;
 
 import com.emc.storageos.Controller;
 import com.emc.storageos.api.service.authorization.PermissionsHelper;
@@ -29,6 +30,7 @@ import com.emc.storageos.api.service.impl.placement.SRDFScheduler;
 import com.emc.storageos.api.service.impl.placement.StorageScheduler;
 import com.emc.storageos.api.service.impl.placement.VirtualPoolUtil;
 import com.emc.storageos.api.service.impl.placement.VpoolUse;
+import com.emc.storageos.api.service.impl.resource.utils.PerformanceParamsUtils;
 import com.emc.storageos.api.service.impl.resource.utils.VirtualPoolChangeAnalyzer;
 import com.emc.storageos.blockorchestrationcontroller.BlockOrchestrationController;
 import com.emc.storageos.blockorchestrationcontroller.VolumeDescriptor;
@@ -68,6 +70,7 @@ import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.TaskResourceRep;
+import com.emc.storageos.model.block.BlockPerformanceParamsMap;
 import com.emc.storageos.model.block.VirtualPoolChangeParam;
 import com.emc.storageos.model.block.VolumeCreate;
 import com.emc.storageos.model.block.VolumeCreatePerformanceParams;
@@ -1461,5 +1464,33 @@ public class SRDFBlockServiceApiImpl extends AbstractBlockServiceApiImpl<SRDFSch
         }
         // TODO : add target volume volume groups if necessary
         return groupNames;
+    }
+    
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void validatePerformanceParametersForVolumeCreate(VirtualPool vpool, VolumeCreatePerformanceParams requestParams) {
+        // Just return if the passed performance params are null.
+        if (requestParams == null) {
+            return;
+        }
+        
+        // We need to verify that the passed performance parameters are appropriate for
+        // a simple block volume that is SRDF protected. First verify the parameters for
+        // the PRIMARY role at the source site.
+        List<VolumeTopologyRole> roles = new ArrayList<>();
+        roles.add(VolumeTopologyRole.PRIMARY);
+        PerformanceParamsUtils.validatePerformanceParamsForRoles(requestParams.getSourceParams(), roles, _dbClient);
+        
+        // Now validate the performance parameters for the PRIMARY role at the copy site.
+        // When specified, there should only be parameters for the one supported SRDF copy.
+        // TBD Heg We could validate and error if there are more than one or just ignore
+        // and take the first as done here.
+        List<BlockPerformanceParamsMap> copyParamsList = requestParams.getCopyParams();
+        if (!CollectionUtils.isEmpty(copyParamsList)) {
+            BlockPerformanceParamsMap copyParams = copyParamsList.get(0);
+            PerformanceParamsUtils.validatePerformanceParamsForRoles(copyParams, roles, _dbClient);            
+        }
     }
 }

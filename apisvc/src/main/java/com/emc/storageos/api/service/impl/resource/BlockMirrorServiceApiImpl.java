@@ -945,7 +945,7 @@ public class BlockMirrorServiceApiImpl extends AbstractBlockServiceApiImpl<Stora
     public void validatePerformanceParametersForMirrorCreate(VirtualPool sourceVolumeVpool, BlockPerformanceParamsMap performanceParams) {
         // We need to verify that the passed performance parameters are appropriate for
         // a simple block volume.
-        PerformanceParamsUtils.validatePerformanceParamsForRole(
+        PerformanceParamsUtils.validatePerformanceParamsForRoles(
                 performanceParams, Arrays.asList(VolumeTopologyRole.PRIMARY_MIRROR), _dbClient);
     }
 }

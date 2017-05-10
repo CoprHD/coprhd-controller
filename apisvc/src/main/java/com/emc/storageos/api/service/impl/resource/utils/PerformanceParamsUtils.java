@@ -103,7 +103,7 @@ public class PerformanceParamsUtils {
      * @param roles A list of VolumeTopologyRoles to validate.
      * @param dbClient A reference to a DbClient.
      */
-    public static void validatePerformanceParamsForRole(BlockPerformanceParamsMap performanceParamsMap,
+    public static void validatePerformanceParamsForRoles(BlockPerformanceParamsMap performanceParamsMap,
             List<VolumeTopologyRole> roles, DbClient dbClient) {
         if (performanceParamsMap != null) {
             for (VolumeTopologyRole role : roles) {
@@ -363,6 +363,33 @@ public class PerformanceParamsUtils {
     }
     
     /**
+     * Get the fast expansion setting. If set in the passed performance 
+     * parameters, return this value, otherwise the value comes from the passed
+     * virtual pool.
+     * 
+     * @param performanceParamsMap A map of performance parameter URIs by VolumeTopologyRole
+     * @param role A VolumeTopologyRole.
+     * @param vpool A reference to a VirtualPool.
+     * @param dbClient A reference to a DbClient.
+     * 
+     * @return True is set, False otherwise.
+     */
+    public static Boolean getFastExpansion(Map<VolumeTopologyRole, URI> performanceParamsMap,
+            VolumeTopologyRole role, VirtualPool vpool, DbClient dbClient) {
+        Boolean fastExpansion = Boolean.FALSE;
+        PerformanceParams performanceParams = getPerformanceParamsForRole(performanceParamsMap, role, dbClient);
+        if (performanceParams != null) {
+            // There will always be a value for dedup capable, so return that value.
+            return performanceParams.getFastExpansion();
+        }
+
+        // If here, use the value from virtual pool.
+        fastExpansion = vpool.getFastExpansion();
+
+        return fastExpansion != null ? fastExpansion : Boolean.FALSE;
+    }    
+    
+    /**
      * Override the passed primary side capabilities to take into account the values in
      * the HA virtual pool and the performance parameters for the HA side of a VPLEX
      * volume.
@@ -375,7 +402,7 @@ public class PerformanceParamsUtils {
      * 
      * @return The capabilities to use when matching pools for the HA side of the volume.
      */
-    public static VirtualPoolCapabilityValuesWrapper overridePrimaryCapabilitiesForVplexHA(
+    public static VirtualPoolCapabilityValuesWrapper overrideCapabilitiesForVolumePlacement(
             VirtualPool haVpool, Map<VolumeTopologyRole, URI> performanceParams,
             VolumeTopologyRole haRole, VirtualPoolCapabilityValuesWrapper primaryCapabilities, DbClient dbClient) {
         

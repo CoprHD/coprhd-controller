@@ -720,7 +720,7 @@ public class VPlexScheduler implements Scheduler {
             sourceParams = sourceParamList.get(0);
         }
         
-        VirtualPoolCapabilityValuesWrapper haCapabilities = PerformanceParamsUtils.overridePrimaryCapabilitiesForVplexHA(
+        VirtualPoolCapabilityValuesWrapper haCapabilities = PerformanceParamsUtils.overrideCapabilitiesForVolumePlacement(
                 haVpool, sourceParams, VolumeTopologyRole.HA, srcCapabilities, _dbClient);
         
         // Don't look for SRDF in the HA side.

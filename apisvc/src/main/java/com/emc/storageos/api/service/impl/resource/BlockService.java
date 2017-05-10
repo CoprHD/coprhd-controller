@@ -771,8 +771,7 @@ public class BlockService extends TaskResourceService {
         }
 
         // Get the count indicating the number of volumes to create. If not
-        // passed
-        // assume 1. Then get the volume placement recommendations.
+        // passed assume 1. Then get the volume placement recommendations.
         Integer volumeCount = 1;
         Long volumeSize = 0L;
         if (param.getCount() != null) {

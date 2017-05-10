@@ -487,7 +487,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                 // Note there it not an embedded child recommendation for the VPLEX 
                 // recommendations on the HA side of distributed volumes.
                 VirtualPool haVpool = vplexRecommendations.get(0).getVirtualPool();
-                backendCapabilities = PerformanceParamsUtils.overridePrimaryCapabilitiesForVplexHA(
+                backendCapabilities = PerformanceParamsUtils.overrideCapabilitiesForVolumePlacement(
                         haVpool, sourceParams, VolumeTopologyRole.HA, vPoolCapabilities, _dbClient);
             }
 
@@ -2831,7 +2831,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                 // the capabilities passed for volume placement.
                 backendVolumeToPerformanceParamsMap.put(backendVolume, PerformanceParamsUtils.getPerformanceParamsIdForRole(
                         performanceParamsMap, VolumeTopologyRole.HA_MIRROR, _dbClient));
-                beCapabilities = PerformanceParamsUtils.overridePrimaryCapabilitiesForVplexHA(
+                beCapabilities = PerformanceParamsUtils.overrideCapabilitiesForVolumePlacement(
                         beMirrorVpool, PerformanceParamsUtils.transformPerformanceParams(param.getPerformanceParams()),
                                 VolumeTopologyRole.HA_MIRROR, capabilities, _dbClient);
                 backendvolumeToCapabilitiesMap.put(backendVolume, beCapabilities);
@@ -4486,7 +4486,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
         if (VirtualPool.vPoolSpecifiesHighAvailabilityDistributed(vpool)) {
             roles.add(VolumeTopologyRole.HA);
         }
-        PerformanceParamsUtils.validatePerformanceParamsForRole(
+        PerformanceParamsUtils.validatePerformanceParamsForRoles(
                 requestParams.getSourceParams(), roles, _dbClient);        
     }
     
@@ -4510,7 +4510,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
         if (VirtualPool.vPoolSpecifiesHighAvailabilityDistributed(sourceVolumeVpool)) {
             roles.add(VolumeTopologyRole.HA_MIRROR);
         }
-        PerformanceParamsUtils.validatePerformanceParamsForRole(
+        PerformanceParamsUtils.validatePerformanceParamsForRoles(
                 performanceParams, roles, _dbClient);
     }    
 }

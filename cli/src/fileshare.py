@@ -83,6 +83,7 @@ class Fileshare(object):
 
     isTimeout = False
     timeout = 300
+    gb_to_byte = 1073741824
 
     def __init__(self, ipAddr, port):
         '''
@@ -911,7 +912,7 @@ class Fileshare(object):
         fileshare_detail = self.show(name)
         current_size = float(fileshare_detail["capacity_gb"])
 
-        if(new_size >= current_size):
+        if( (new_size * gb_to_byte) >= (current_size * gb_to_byte) ):
             raise SOSError(
                 SOSError.VALUE_ERR,
                 "error: Incorrect value of new size: " + str(new_size) +

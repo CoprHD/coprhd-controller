@@ -67,6 +67,7 @@ public class IsilonApi {
     private static final URI URI_ARRAY_GLOBAL_STATUS_ONEFS8 = URI.create("/platform/3/protocols/nfs/settings/global");
     private static final URI URI_STORAGE_PORTS = URI
             .create("/platform/1/cluster/smartconnect_zones");
+    private static final URI URI_AUTHENTICATION_DOMAIN = URI.create("/platform/1/auth/providers/ads/");
     // private static final URI URI_EVENTS = URI.create("/platform/1/events/");
     private static final URI URI_EVENTS = URI.create("/platform/2/event/events/");
     private static final URI URI_ONEFS8_EVENTS = URI.create("/platform/3/event/eventlists/");
@@ -2269,6 +2270,10 @@ public class IsilonApi {
         }
         sLogger.info("Isilon snapshotIQ license status is  {}", licenseStatus);
         return licenseStatus;
+    }
+    
+    public IsilonAuthenticationDomain getAuthenticationDomain(String domainName) throws IsilonException {
+        return get(_baseUrl.resolve(URI_AUTHENTICATION_DOMAIN), domainName,  "ads", IsilonAuthenticationDomain.class);
     }
 
 }

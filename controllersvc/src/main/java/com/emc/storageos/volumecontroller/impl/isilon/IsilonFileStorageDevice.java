@@ -66,6 +66,7 @@ import com.emc.storageos.fileorchestrationcontroller.FileOrchestrationUtils;
 import com.emc.storageos.isilon.restapi.IsilonApi;
 import com.emc.storageos.isilon.restapi.IsilonApi.IsilonList;
 import com.emc.storageos.isilon.restapi.IsilonApiFactory;
+import com.emc.storageos.isilon.restapi.IsilonAuthenticationDomain;
 import com.emc.storageos.isilon.restapi.IsilonException;
 import com.emc.storageos.isilon.restapi.IsilonExport;
 import com.emc.storageos.isilon.restapi.IsilonNFSACL;
@@ -2148,6 +2149,8 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
 
         // Process ACLs to add
         aclsToProcess.addAll(aclsToAdd);
+        
+        IsilonApi isi = getIsilonDevice(storage);
 
         // Process ACLs to modify
         for (ShareACL existingAcl : aclsToProcess) {
@@ -2157,8 +2160,11 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             }
             for (ShareACL aclToModify : aclsToModify) {
                 String domainOfmodifiedAce = aclToModify.getDomain();
-                if (domainOfmodifiedAce == null) {
+                IsilonAuthenticationDomain ad = isi.getAuthenticationDomain(domainOfmodifiedAce);
+                if (ad.getNetbios_domain() == null) {
                     domainOfmodifiedAce = "";
+                } else {
+                    domainOfmodifiedAce =ad.getNetbios_domain();
                 }
 
                 if (aclToModify.getUser() != null && existingAcl.getUser() != null) {
@@ -2182,8 +2188,11 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         for (ShareACL aclToDelete : aclsToDelete) {
 
             String domainOfDeleteAce = aclToDelete.getDomain();
-            if (domainOfDeleteAce == null) {
+            IsilonAuthenticationDomain ad = isi.getAuthenticationDomain(domainOfDeleteAce);
+            if (ad.getNetbios_domain() == null) {
                 domainOfDeleteAce = "";
+            } else {
+                domainOfDeleteAce = ad.getNetbios_domain();
             }
 
             for (Iterator<ShareACL> iterator = aclsToProcess.iterator(); iterator.hasNext();) {
@@ -2211,7 +2220,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         }
 
         // Process new ACLs
-        IsilonApi isi = getIsilonDevice(storage);
+        
         processAclsForShare(isi, args, aclsToProcess);
 
         BiosCommandResult result = BiosCommandResult.createSuccessfulResult();

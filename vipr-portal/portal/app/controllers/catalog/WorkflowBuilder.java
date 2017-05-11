@@ -19,7 +19,6 @@ package controllers.catalog;
 import static util.BourneUtil.getCatalogClient;
 
 import java.io.File;
-import java.io.InputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;

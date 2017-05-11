@@ -237,10 +237,11 @@ public final class RESTHelper {
 
         final StringBuilder fullPath = new StringBuilder(path);
 
-        final Map<String, List<InputParameter>> viprInputs = primitive.input();
-        if (viprInputs == null) {
+        if (primitive == null || primitive.input() == null) {
             return fullPath.toString();
         }
+
+        final Map<String, List<InputParameter>> viprInputs = primitive.input();
         final List<InputParameter> queries = viprInputs.get(CustomServicesConstants.QUERY_PARAMS);
 
         String prefix = "?";

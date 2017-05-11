@@ -135,6 +135,6 @@ public class CustomServicesRESTExecution extends ViPRExecutionTask<CustomService
             throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed("Cannot build URL");
         }
 
-        return String.format("%s://%s:%s/%s", protocol, target, port, RESTHelper.makePath(path, input));
+        return String.format("%s://%s:%s/%s", protocol, target, port, RESTHelper.makePath(path, input, null));
     }
 }

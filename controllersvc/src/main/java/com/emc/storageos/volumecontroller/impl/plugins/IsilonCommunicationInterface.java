@@ -158,7 +158,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
 
     private static final Integer MAX_RECORDS_SIZE = 100;
 
-    private List<String> _discPathsForUnManaged;
+    private Set<String> _discPathsForUnManaged;
     private int _discPathsLength;
     private static String _discCustomPath;
     @Autowired
@@ -171,9 +171,9 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
      * 
      * @return List object
      */
-    public List<String> getDiscPathsForUnManaged() {
+    public Set<String> getDiscPathsForUnManaged() {
         if (null == _discPathsForUnManaged) {
-            _discPathsForUnManaged = new ArrayList<String>();
+            _discPathsForUnManaged = new HashSet<>();
 
         }
         return _discPathsForUnManaged;
@@ -184,7 +184,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
      * 
      * @param ;discPathsForUnManaged
      */
-    public void setDiscPathsForUnManaged(List<String> discPathsForUnManaged) {
+    public void setDiscPathsForUnManaged(Set<String> discPathsForUnManaged) {
         this._discPathsForUnManaged = discPathsForUnManaged;
     }
 
@@ -1402,14 +1402,10 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
         }
         _log.info("Unmanaged file system locations are {}", paths);
         List<String> pathList = Arrays.asList(paths.split(","));
+        Set<String> pathSet = new HashSet<>();
+        pathSet.addAll(pathList);
 
-        /*
-         * fix COP-27008: if system-access-zone's dir has been removed
-         * and is just /ifs/
-         */
-        // pathList.remove("/ifs/");
-
-        setDiscPathsForUnManaged(pathList);
+        setDiscPathsForUnManaged(pathSet);
 
         _discCustomPath = getCustomConfigPath();
     }
@@ -1773,10 +1769,13 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
             detailedStatusMessage = String.format("Discovery completed successfully for Isilon: %s; new unmanaged file systems count: %s",
                     storageSystemId.toString(), unmanagedFsCount);
             _log.info(detailedStatusMessage);
+
+        } catch (IsilonException ex) {
+            detailedStatusMessage = String.format("Discovery failed for Isilon %s because %s",
+                    storageSystemId.toString(), ex.getLocalizedMessage());
+            _log.error(detailedStatusMessage, ex);
+            throw ex;
         } catch (Exception e) {
-            if (storageSystem != null) {
-                cleanupDiscovery(storageSystem);
-            }
             detailedStatusMessage = String.format("Discovery failed for Isilon %s because %s",
                     storageSystemId.toString(), e.getLocalizedMessage());
             _log.error(detailedStatusMessage, e);
@@ -1784,9 +1783,10 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
         } finally {
             if (storageSystem != null) {
                 try {
+                    cleanupDiscovery(storageSystem);
                     // set detailed message
                     storageSystem.setLastDiscoveryStatusMessage(detailedStatusMessage);
-                    _dbClient.persistObject(storageSystem);
+                    _dbClient.updateObject(storageSystem);
                 } catch (Exception ex) {
                     _log.error("Error while persisting object to DB", ex);
                 }
@@ -3579,8 +3579,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
         return false;
     }
 
-    private HashMap<String, Object> discoverAllFileSystem(StorageSystem storageSystem, String resumetoken, String umfsDiscoverPath)
-            throws IsilonCollectionException {
+    private HashMap<String, Object> discoverAllFileSystem(StorageSystem storageSystem, String resumetoken, String umfsDiscoverPath) {
 
         URI storageSystemId = storageSystem.getId();
         try {
@@ -3685,10 +3684,8 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
 
         } catch (IsilonException ie) {
             _log.error("discoverAllFileSystem failed. Storage system: {}", storageSystemId, ie);
-            IsilonCollectionException ice = new IsilonCollectionException("discoverAllFileSystem failed. Storage system: "
-                    + storageSystemId);
-            ice.initCause(ie);
-            throw ice;
+            throw ie;
+
         } catch (Exception e) {
             _log.error("discoverAllFileSystem failed. Storage system: {}", storageSystemId, e);
             IsilonCollectionException ice = new IsilonCollectionException("discoverAllFileSystem failed. Storage system: "

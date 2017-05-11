@@ -251,7 +251,8 @@ public class ValidationHelper {
                 }
             }
 
-            // Enforce uniqueness for all input names in the step
+            // Enforce uniqueness for all input names in the input group
+            //TODO: This might be revisited based on the discussion of unique names in step vs step input group
             final String uniqueInputNameErrorMessage = checkUniqueNames(false, input.getName(), uniqueInputNames);
 
             if (!uniqueInputNameErrorMessage.isEmpty()) {

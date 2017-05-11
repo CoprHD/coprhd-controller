@@ -170,6 +170,21 @@ public class Exec {
         return exec(timeout, maskFilter, newArray);
     }
 
+    /**
+     *  maskFilter is for masking any matched string when printing stdOutput in log file.
+     */
+    public static Result sudo(long timeout, Pattern maskFilter, Map<String,String> env, String... args) {
+        String userName = System.getProperty("user.name");
+        if (userName.equals("root")) {
+            // Root user does not need SUDO.
+            return exec(timeout, maskFilter, args);
+        }
+        List<String> tmpList = new ArrayList(Arrays.asList(args));
+        tmpList.add(0, "sudo");
+        String[] newArray = tmpList.toArray(new String[tmpList.size()]);
+        return exec(timeout, maskFilter, env, newArray);
+    }
+
     /***
      * Exec an external command providing exitStatus, stdOutput and stdError.
      * 

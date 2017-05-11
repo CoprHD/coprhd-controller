@@ -191,6 +191,6 @@ public class CustomServicesLocalAnsibleExecution extends ViPRExecutionTask<Custo
         //default to no host key checking
         final Map<String,String> environment = new HashMap<>();
         environment.put("ANSIBLE_HOST_KEY_CHECKING", "false");
-        return Exec.exec(timeout, null, environment, cmds);
+        return Exec.sudo(timeout, null, environment, cmds);
     }
 }

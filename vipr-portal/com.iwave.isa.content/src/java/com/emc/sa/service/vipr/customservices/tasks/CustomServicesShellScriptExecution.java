@@ -84,14 +84,15 @@ public class CustomServicesShellScriptExecution extends ViPRExecutionTask<Custom
             }
             logger.error("Order directory: " + exeOrderDir);
 
-            final String scriptFileName = String.format("%s%s.sh", exeOrderDir, URIUtil.parseUUIDFromURI(scriptid).replace("-", ""));
+            final String scriptFileName = String.format("%s%s.sh", orderDir, URIUtil.parseUUIDFromURI(scriptid).replace("-", ""));
             logger.error("File name with path: " + scriptFileName);
 
             final byte[] bytes = Base64.decodeBase64(script.getResource());
             AnsibleHelper.writeResourceToFile(bytes, scriptFileName);
             final String inputToScript = makeParam(input);
 
-            result = executeCmd(scriptFileName, inputToScript);
+            final String exeScriptFileName = String.format("%s%s.sh", exeOrderDir, URIUtil.parseUUIDFromURI(scriptid).replace("-", ""));
+            result = executeCmd(exeScriptFileName, inputToScript);
 
         } catch (final Exception e) {
             throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed("Custom Service Task Failed" + e);

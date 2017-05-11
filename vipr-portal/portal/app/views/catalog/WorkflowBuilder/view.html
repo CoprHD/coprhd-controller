@@ -9,6 +9,7 @@
 #{createShellPrimitive /}
 #{createLocalAnsiblePrimitive/}
 #{createRestAPIPrimitive/}
+#{importWorkflow/}
 
 <style>
     .dl-horizontal dt
@@ -22,6 +23,10 @@
     }
     .modal-body {
         height:250px;
+        overflow:auto;
+    }
+    .importBody {
+        height:100px;
         overflow:auto;
     }
     .modal-footer {
@@ -56,6 +61,7 @@
                 <div style="font-size: 20px;padding: 15px;">
                     Workflow &amp; Operation Library
                 </div>
+                <div>#{alerts/}</div>
                 <div class="input-group">
                     <input style="float:left;width:300px;"  class="search-input form-control" placeholder="Search..."></input>
                     <span class="input-group-btn">
@@ -72,6 +78,8 @@
                                 <li><a href="#" ng-click="addWorkflow();">&{'wfBuilder.menu.addWorkflow'}</a></li>
                                 <li role="separator" class="divider"></li>
                                 <li><a href="#" ng-click="addFolder();">&{'wfBuilder.menu.addFolder'}</a></li>
+                                <li role="separator" class="divider"></li>
+                                <li><a href="#" ng-click="importWorkflow();">&{'wfBuilder.menu.import'}</a></li>
                             </ul>
                         </div>
                     </span>
@@ -113,5 +121,11 @@
                 #{workflowDesigner/}
             </div>
         </div>
+    </div>
+
+    <div style="display: none">
+        #{form @exportWorkflow(), id:'exportWorkflowForm'}
+            <input type="hidden" id="exportWorkflowId" name="workflowId" />
+        #{/form}
     </div>
 </div>

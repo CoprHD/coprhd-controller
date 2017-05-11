@@ -1,0 +1,21 @@
+#{Modal.dialog id:'importWorkflowDialog', cssClass:'wide', titleKey:'importWorkflow.title'}
+<div class="row">
+    #{form @importWorkflow(), id:'importWorkflowForm', enctype:'multipart/form-data', class:'form form-horizontal',
+    autocomplete:"off"}
+        <input type="hidden" name="importWorkflow.wfDirID" id="importWorkflow_wfDirID"/>
+        #{Modal.body cssClass:'importBody'}
+            #{field 'importWorkflow.workflowFile'}
+                %{
+                    field.required = true
+                }%
+                #{Form.fileUploadControlGroup field:field/}
+            #{/field}
+        #{/Modal.body}
+        #{Modal.footer}
+            #{Form.button name:'button.save', id:'saveButtonImport', class:'primary', icon:'check',
+            submit:'importWorkflowForm'/}
+            #{Form.button name:'button.cancel', icon:'remove', data:['dismiss':'modal']/}
+        #{/Modal.footer}
+    #{/form}
+</div>
+#{/Modal.dialog}

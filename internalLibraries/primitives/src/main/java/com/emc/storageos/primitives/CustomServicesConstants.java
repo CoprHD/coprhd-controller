@@ -28,6 +28,7 @@ public final class CustomServicesConstants {
     public static final String ERROR_MSG_START_END_NOT_DEFINED = "Start or End Step not defined";
     public static final String ERROR_MSG_WORKFLOW_STEP_NULL = "Workflow Step is null";
     public static final String ERROR_MSG_WORKFLOW_NEXT_STEP_NOT_DEFINED = "Next step not defined for the step";
+    public static final String ERROR_MSG_WORKFLOW_START_END_CONNECTED = "Start is connected to End.";
     public static final String ERROR_MSG_WORKFLOW_PREVIOUS_STEP_NOT_DEFINED = "Previous step not defined for the step";
     public static final String ERROR_MSG_INPUT_TYPE_IS_NOT_DEFINED = "InputType is not defined";
     public static final String ERROR_MSG_INPUT_TYPE_IS_REQUIRED = "InputType is mandated for required fields";

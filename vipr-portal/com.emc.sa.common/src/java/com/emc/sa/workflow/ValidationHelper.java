@@ -179,9 +179,13 @@ public class ValidationHelper {
             if (StringUtils.isBlank(step.getNext().getDefaultStep()) && StringUtils.isBlank(step.getNext().getFailedStep())) {
                 errorString = CustomServicesConstants.ERROR_MSG_WORKFLOW_NEXT_STEP_NOT_DEFINED;
             }
-            if (StringUtils.isNotBlank(step.getNext().getDefaultStep())) { // The current step is a parent. Add the child / children of this
-                                                                           // parent so
-                // that we can find any step that has missing parent
+
+            // The current step is a parent. Add the child / children of this
+            // parent so that we can find any step that has missing parent
+            if (StringUtils.isNotBlank(step.getNext().getDefaultStep())) {
+                if (step.getId().equals(StepType.START.toString()) && step.getNext().getDefaultStep().equals(StepType.END.toString())) {
+                    errorString = CustomServicesConstants.ERROR_MSG_WORKFLOW_START_END_CONNECTED;
+                }
                 childSteps.add(step.getNext().getDefaultStep());
             }
             if (StringUtils.isNotBlank(step.getNext().getFailedStep())) {

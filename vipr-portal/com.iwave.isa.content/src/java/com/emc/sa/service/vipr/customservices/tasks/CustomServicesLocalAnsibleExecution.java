@@ -135,7 +135,14 @@ public class CustomServicesLocalAnsibleExecution extends ViPRExecutionTask<Custo
             AnsibleHelper.writeResourceToFile(inventoryResourceBytes, inventoryFileName);
 
             final String user = ExecutionUtils.currentContext().getOrder().getSubmittedByUserId();
-            result = executeLocal(inventoryFileName, AnsibleHelper.makeExtraArg(input,step), String.format("%s%s", orderDir, playbook), user);
+            final String folderUniqueStep = step.getId().replace("-", "");
+            final String chrootOrderDir = String.format("%s%s/%s/", CustomServicesConstants.CHROOT_ORDER_DIR_PATH,
+                    ExecutionUtils.currentContext().getOrder().getOrderNumber(),folderUniqueStep);
+
+            final String chrootInventoryFileName = String.format("%s%s", chrootOrderDir,
+                    URIUtil.parseUUIDFromURI(URI.create(hostFileFromStep)).replace("-", ""));
+
+            result = executeLocal(chrootInventoryFileName, AnsibleHelper.makeExtraArg(input,step), String.format("%s%s", chrootOrderDir, playbook), user);
 
         } catch (final Exception e) {
             throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed("Custom Service Task Failed" + e);

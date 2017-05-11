@@ -165,6 +165,8 @@ public class ExportGroupService extends TaskResourceService {
     private static final String OLD_INITIATOR_TYPE_NAME = "Exclusive";
     private static final String PATH_ADJUST_REQUIRE_SUSPEND = "controller_pathadjust_require_suspend";
 
+    private static final String STORAGE_SYSTEM_CLUSTER = "-cluster-";
+
     private static volatile BlockStorageScheduler _blockStorageScheduler;
 
     // From KnownMachineTypes, which is upstream so re-defining here.
@@ -3165,7 +3167,7 @@ public class ExportGroupService extends TaskResourceService {
         String storageSystem = system.getNativeGuid();
         if (Type.vplex.equals(Type.valueOf(system.getSystemType()))) {
             String vplexCluster = ConnectivityUtil.getVplexClusterForVarray(varray, system.getId(), _dbClient);
-            storageSystem = storageSystem + "-Cluster-" + vplexCluster;
+            storageSystem = storageSystem + STORAGE_SYSTEM_CLUSTER + vplexCluster;
         }
         response.setStorageSystem(storageSystem);
         

@@ -2027,7 +2027,7 @@ test_7() {
     expname=${EXPORT_GROUP_NAME}t7
 
     common_failure_injections="failure_004_final_step_in_workflow_complete \
-                               #failure_004:failure_016_Export_doRemoveInitiator"
+                               failure_004:failure_016_Export_doRemoveInitiator"
 
     network_failure_injections="failure_058_NetworkDeviceController.zoneExportAddInitiators_before_zone"
     if [ "${BROCADE}" = "1" ]

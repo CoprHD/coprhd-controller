@@ -1346,8 +1346,7 @@ public class SRDFScheduler implements Scheduler {
        if (vPoolUse == VpoolUse.SRDF_COPY) {
            recommendations = getRecommendationsForCopy(vArray, project, vPool, capabilities, currentRecommendations.get(VpoolUse.ROOT));
        } else {
-           recommendations = getRecommendationsForResources(vArray, project, vPool,
-                   new HashMap<VolumeTopologySite, List<Map<VolumeTopologyRole, URI>>>(), capabilities);
+           recommendations = getRecommendationsForResources(vArray, project, vPool, performanceParams, capabilities);
        } 
        return recommendations;
     }

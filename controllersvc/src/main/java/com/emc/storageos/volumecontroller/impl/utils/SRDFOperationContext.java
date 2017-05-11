@@ -1,16 +1,18 @@
+/*
+ * Copyright (c) 2017 Dell EMC
+ * All Rights Reserved
+ */
 package com.emc.storageos.volumecontroller.impl.utils;
 
-import com.emc.storageos.volumecontroller.TaskCompleter;
-import com.emc.storageos.workflow.WorkflowService;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.collect.Lists.newArrayList;
 
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.collect.Lists.newArrayList;
+import com.emc.storageos.volumecontroller.TaskCompleter;
+import com.emc.storageos.workflow.WorkflowService;
 
 /**
  * This class helps with storing workflow step data for the purpose of

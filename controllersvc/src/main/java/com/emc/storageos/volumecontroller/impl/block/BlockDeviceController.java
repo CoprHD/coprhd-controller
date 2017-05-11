@@ -1078,16 +1078,17 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                     }
                 }
                 // clearing targets explicitly, during vpool change if target volume creation failed for same reason,
-                // then we need to clear srdfTargets field for source
+                // then we need to clear srdfTargets and personality fields for source
                 if (null != volume.getSrdfTargets()) {
                     _log.info("Clearing targets for existing source");
                     volume.getSrdfTargets().clear();
                     _dbClient.updateObject(volume);
                 }
-                // for change Virtual Pool, if failed, clear targets for source
+                // for change Virtual Pool, if failed, clear targets and personality field for source and also
                 if (!NullColumnValueGetter.isNullNamedURI(volume.getSrdfParent())) {
                     URI sourceUri = volume.getSrdfParent().getURI();
                     Volume sourceVolume = _dbClient.queryObject(Volume.class, sourceUri);
+                    sourceVolume.setPersonality(NullColumnValueGetter.getNullStr());
                     if (null != sourceVolume.getSrdfTargets()) {
                         sourceVolume.getSrdfTargets().clear();
                         _dbClient.updateObject(sourceVolume);

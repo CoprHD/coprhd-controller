@@ -549,7 +549,65 @@ verify_zones() {
     done
 }
 
-# Cleans zones and zone referencese ($1=fabricId, $2=host)
+# Gets the zone name corresponding to a host and initiator
+get_zone_name() {
+    host=$1
+    initiator=$2
+
+    # Remove the ':' characters
+    initiator=${initiator//:}
+
+    zone=`/opt/storageos/bin/dbutils list FCZoneReference | grep zoneName | grep ${host} | grep ${initiator:4} | awk -F= '{print $2}'`
+    if [[ $zone = "" ]]; then
+        # Try to find the zone based on the initiator only - might be a pre-existing zone
+        zone=`/opt/storageos/bin/dbutils list FCZoneReference | grep zoneName | grep ${initiator:4} | awk -F= '{print $2}'`
+        if [[ $zone = "" ]]; then      
+            echo -e "\e[91mERROR\e[0m: Could not find a zone corresponding to initiator ${initiator}"
+        else
+            echo $zone
+        fi
+    else
+        echo $zone
+    fi  
+}
+
+# Verify that a given zone exists or has been removed
+verify_zone() {
+    zone=$1
+    fabricid=$2
+    check=$3 
+    
+    if [ "${SIM}" = "1" ]; then
+        network=$FABRIC_SIMULATOR
+    else
+        network=$BROCADE_NETWORK
+    fi
+    
+    recho "zone list $network --fabricid ${fabricid} --zone_name ${zone}"
+    zone list $network --fabricid ${fabricid} --zone_name ${zone} | grep ${zone} > /dev/null
+    returncode=$?
+    if [ $returncode -ne 0 -a "${check}" = "exists" ]; then
+        echo -e "\e[91mERROR\e[0m: Expected to find zone ${zone}, but did not."
+        incr_fail_count
+    elif [ $returncode -eq 0 -a "${check}" = "gone" ]; then
+        echo -e "\e[91mERROR\e[0m: Expected to not find zone ${zone}, but it is there."
+        incr_fail_count
+    fi    
+}
+
+# Determines if a zone is newly created.  A newly created zone is one
+# where the specified host name from the test occurrence is contained 
+# within the zone name.
+newly_created_zone_for_host() {
+    zone=$1
+    host=$2
+    if [[ "$zone" != *${host}* ]]; then
+        return 1
+    fi    
+    return 0
+}    
+
+# Cleans zones and zone references ($1=fabricId, $2=host)
 clean_zones() {
     fabricid=$1
 

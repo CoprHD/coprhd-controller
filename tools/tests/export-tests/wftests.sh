@@ -2026,8 +2026,9 @@ test_7() {
     echot "Test 7 Begins"
     expname=${EXPORT_GROUP_NAME}t7
 
-    common_failure_injections="failure_004_final_step_in_workflow_complete \
-                               failure_004:failure_016_Export_doRemoveInitiator"
+    common_failure_injections="failure_004_final_step_in_workflow_complete"
+    # \
+                               #failure_004:failure_016_Export_doRemoveInitiator"
 
     network_failure_injections="failure_058_NetworkDeviceController.zoneExportAddInitiators_before_zone"
     if [ "${BROCADE}" = "1" ]
@@ -2049,7 +2050,8 @@ test_7() {
                                     failure_004:failure_025_Export_zone_removeInitiator_after_delete"
     fi
 
-    failure_injections="${common_failure_injections} ${storage_failure_injections} ${network_failure_injections}"
+    failure_injections="${common_failure_injections}"
+    # ${storage_failure_injections} ${network_failure_injections}
 
     # Placeholder when a specific failure case is being worked...
     # failure_injections="failure_004:failure_016_Export_doRemoveInitiator"
@@ -2070,6 +2072,10 @@ test_7() {
       # prime the export
       runcmd export_group create $PROJECT ${expname}1 $NH --type Exclusive --volspec ${PROJECT}/${VOLNAME}-1 --inits "${HOST1}/${H1PI1}"
 
+      # Verify the zone names, as we know them, are on the switch
+      zone1=`get_zone_name ${HOST1} ${H1PI1}`
+      verify_zone ${zone1} ${FC_ZONE_A:7} exists
+      
       # Snsp the DB so we can validate after failures later
       snap_db 2 "${cfs[@]}"
 
@@ -2104,11 +2110,25 @@ test_7() {
       set_artificial_failure none
       runcmd export_group update ${PROJECT}/${expname}1 --addInits ${HOST1}/${H1PI2}
 
+      # Verify the zone names, as we know them, are on the switch
+      zone2=`get_zone_name ${HOST1} ${H1PI2}`
+      verify_zone ${zone2} ${FC_ZONE_A:7} exists
+
       # Perform any DB validation in here
       snap_db 4 "${cfs[@]}"
 
       # Delete the export
       runcmd export_group delete ${PROJECT}/${expname}1
+
+      # Only verify the zone has been removed if it is a newly created zone
+      if newly_created_zone_for_host $zone1 $HOST1; then
+        verify_zone ${zone1} ${FC_ZONE_A:7} gone    
+      fi
+
+      # Only verify the zone has been removed if it is a newly created zone
+      if newly_created_zone_for_host $zone2 $HOST1; then
+        verify_zone ${zone2} ${FC_ZONE_A:7} gone    
+      fi      
 
       # Verify the DB is back to the original state
       snap_db 5 "${cfs[@]}"

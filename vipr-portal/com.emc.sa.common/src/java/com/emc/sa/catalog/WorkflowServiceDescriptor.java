@@ -27,6 +27,7 @@ import java.util.Set;
 
 import javax.annotation.PostConstruct;
 
+import org.apache.commons.collections.MapUtils;
 import org.apache.commons.collections.map.MultiValueMap;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
@@ -118,24 +119,30 @@ public class WorkflowServiceDescriptor {
                             } else if (CustomServicesConstants.InputType.ASSET_OPTION_MULTI.toString().equals(wfInput.getType())) {
                                 serviceField.setType(wfInput.getValue());
                                 serviceField.setSelect(ServiceField.SELECT_MANY);
-                            } else if (CustomServicesConstants.InputType.FROM_USER_MULTI.toString().equals(wfInput.getType())
-                                    && StringUtils.isNotBlank(wfInput.getDefaultValue())) {
+                            } else if (CustomServicesConstants.InputType.FROM_USER_MULTI.toString().equals(wfInput.getType())) {
                                 serviceField.setType(ServiceField.TYPE_CHOICE);
-                                final Map<String, String> options = new HashMap<>();
-                                final List<String> defaultList = Arrays.asList(wfInput.getDefaultValue().split(","));
-                                for (final String value : defaultList) {
-                                    //making the key and value the same
-                                    options.put(value, value);
-
+                                if(StringUtils.isNotBlank(wfInput.getDefaultValue())) {
+                                    // For list of options
+                                    final Map<String, String> options = new HashMap<>();
+                                    final List<String> defaultList = Arrays.asList(wfInput.getDefaultValue().split(","));
+                                    for (final String value : defaultList) {
+                                        //making the key and value the same
+                                        options.put(value, value);
+                                    }
+                                    serviceField.setOptions(options);
+                                    serviceField.setInitialValue(options.get(defaultList.get(0)));
                                 }
-                                serviceField.setOptions(options);
-                                serviceField.setInitialValue(options.get(defaultList.get(0)));
+                                else if(MapUtils.isNotEmpty(wfInput.getOptions())) {
+                                    // For options Map
+                                    serviceField.setOptions(wfInput.getOptions());
+                                }
                             } else {
                                 continue;
                             }
                             final String inputName = wfInput.getName();
-                            // TODO: change this to get description
-                            serviceField.setDescription(wfInput.getFriendlyName());
+                            if(StringUtils.isNotBlank(wfInput.getDescription())) {
+                                serviceField.setDescription(wfInput.getDescription());
+                            }
                             final String friendlyName = StringUtils.isBlank(wfInput.getFriendlyName()) ?
                                     inputName :
                                     wfInput.getFriendlyName();

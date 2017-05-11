@@ -17,6 +17,16 @@
 
 package com.emc.sa.service.vipr.customservices.tasks;
 
+import java.io.File;
+import java.net.URI;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.apache.commons.codec.binary.Base64;
+import org.apache.commons.lang.StringUtils;
+import org.slf4j.LoggerFactory;
+
 import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.service.vipr.tasks.ViPRExecutionTask;
 import com.emc.storageos.db.client.DbClient;
@@ -27,16 +37,6 @@ import com.emc.storageos.model.customservices.CustomServicesWorkflowDocument;
 import com.emc.storageos.primitives.CustomServicesConstants;
 import com.emc.storageos.services.util.Exec;
 import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorException;
-
-import org.apache.commons.codec.binary.Base64;
-import org.apache.commons.lang.StringUtils;
-import org.slf4j.LoggerFactory;
-
-import java.io.File;
-import java.net.URI;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 
 public class CustomServicesShellScriptExecution extends ViPRExecutionTask<CustomServicesTaskResult> {
 
@@ -135,7 +135,15 @@ public class CustomServicesShellScriptExecution extends ViPRExecutionTask<Custom
             if (StringUtils.isEmpty(e.getKey()) || e.getValue().isEmpty()) {
                 continue;
             }
-            environment.put(e.getKey(), e.getValue().get(0).replace("\"", ""));
+            final List<String> listVal = e.getValue();
+            final StringBuilder sb = new StringBuilder();
+            String prefix = "";
+            for (final String val : listVal) {
+                sb.append(prefix);
+                prefix = ",";
+                sb.append(val.replace("\"", ""));
+            }
+            environment.put(e.getKey(), sb.toString().trim());
         }
 
         return environment;

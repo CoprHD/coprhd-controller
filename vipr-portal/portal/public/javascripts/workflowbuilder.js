@@ -421,7 +421,7 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
     var sbSite = $element.find('#sb-site');
     var jspInstance;
 
-    var INPUT_FIELD_OPTIONS = ['integer','boolean','text','password'];
+    var INPUT_FIELD_OPTIONS = ['number','boolean','text','password'];
     var INPUT_TYPE_OPTIONS = ['Disabled','AssetOptionMulti','AssetOptionSingle','InputFromUser','FromOtherStepOutput','FromOtherStepInput'];
     var ASSET_TYPE_OPTIONS = ['assetType.vipr.blockVirtualPool','assetType.vipr.virtualArray','assetType.vipr.project','assetType.vipr.host'];
 

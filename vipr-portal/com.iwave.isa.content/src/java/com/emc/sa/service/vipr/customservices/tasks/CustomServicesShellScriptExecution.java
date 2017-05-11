@@ -40,7 +40,9 @@ public class CustomServicesShellScriptExecution extends ViPRExecutionTask<Custom
     private static final org.slf4j.Logger logger = LoggerFactory.getLogger(CustomServicesShellScriptExecution.class);
     private final CustomServicesWorkflowDocument.Step step;
     private final Map<String, List<String>> input;
-    private  String orderDir = String.format("%s%s/", CustomServicesConstants.CHROOT_ORDER_DIR_PATH,
+    private  String orderDir = String.format("%s%s/", CustomServicesConstants.ORDER_DIR_PATH,
+            ExecutionUtils.currentContext().getOrder().getOrderNumber());
+    private String exeOrderDir = String.format("%s%s/", CustomServicesConstants.CHROOT_ORDER_DIR_PATH,
             ExecutionUtils.currentContext().getOrder().getOrderNumber());
     private final long timeout;
 
@@ -80,8 +82,11 @@ public class CustomServicesShellScriptExecution extends ViPRExecutionTask<Custom
                 throw InternalServerErrorException.internalServerErrors
                         .customServiceExecutionFailed(primitive.getResource() + " not found in DB");
             }
+            logger.error("Order directory: ", exeOrderDir);
 
-            final String scriptFileName = String.format("%s%s.sh", orderDir, URIUtil.parseUUIDFromURI(scriptid).replace("-", ""));
+            final String scriptFileName = String.format("%s%s.sh", exeOrderDir, URIUtil.parseUUIDFromURI(scriptid).replace("-", ""));
+            logger.error("File name with path: ", scriptFileName);
+
             final byte[] bytes = Base64.decodeBase64(script.getResource());
             AnsibleHelper.writeResourceToFile(bytes, scriptFileName);
             final String inputToScript = makeParam(input);

@@ -864,16 +864,21 @@ public class FileService extends TaskResourceService {
                 throw APIException.forbidden.onlyCurrentUserCanBeSetInRootUserMapping(user.getName());
             }
         }
-
+        // check for bypassDnsCheck flag. If null then set to false
+        Boolean dnsCheck = param.getBypassDnsCheck();
+        if (dnsCheck == null) {
+            dnsCheck = false;
+        }
         FileShareExport export = new FileShareExport(param.getEndpoints(), param.getSecurityType(), param.getPermissions(),
                 rootUserMapping, param.getProtocol(), sport.getPortGroup(), sport.getPortNetworkId(), path, mountPath,
-                subDirectory, param.getComments());
+                subDirectory, param.getComments(), dnsCheck);
 
         _log.info(String.format(
                 "FileShareExport --- FileShare id: %1$s, Clients: %2$s, StoragePort: %3$s, SecurityType: %4$s, " +
-                        "Permissions: %5$s, Root user mapping: %6$s, Protocol: %7$s, path: %8$s, mountPath: %9$s, SubDirectory: %10$s",
+                        "Permissions: %5$s, Root user mapping: %6$s, Protocol: %7$s, path: %8$s, mountPath: %9$s, SubDirectory: %10$s ,byPassDnsCheck: %11$s",
                 id, export.getClients(), sport.getPortName(), export.getSecurityType(), export.getPermissions(),
-                export.getRootUserMapping(), export.getProtocol(), export.getPath(), export.getMountPath(), export.getSubDirectory()));
+                export.getRootUserMapping(), export.getProtocol(), export.getPath(), export.getMountPath(), export.getSubDirectory(),
+                export.getBypassDnsCheck()));
 
         Operation op = _dbClient.createTaskOpStatus(FileShare.class, fs.getId(),
                 task, ResourceOperationTypeEnum.EXPORT_FILE_SYSTEM);
@@ -1674,7 +1679,7 @@ public class FileService extends TaskResourceService {
                         .resourceCannotBeDeleted("Please unassign the policy from file system. " + fs.getLabel());
             }
         }
-     // Verify the higher level replication policies assigned
+        // Verify the higher level replication policies assigned
         if (param.getForceDelete() && param.getDeleteType() != null && param.getDeleteType().equalsIgnoreCase("FULL")) {
             if (FilePolicyServiceUtils.vPoolHasReplicationPolicy(_dbClient, fs.getVirtualPool())
                     || FilePolicyServiceUtils.projectHasReplicationPolicy(_dbClient, fs.getProject().getURI(), fs.getVirtualPool())) {
@@ -2098,6 +2103,12 @@ public class FileService extends TaskResourceService {
         FileShare fs = queryResource(id);
 
         ArgValidator.checkEntity(fs, id, isIdEmbeddedInURL(id));
+
+        // check for bypassDnsCheck flag. If null then set to false
+        if (param.getBypassDnsCheck() == null) {
+
+            param.setBypassDnsCheck(false);
+        }
 
         // Check for VirtualPool whether it has NFS enabled
         VirtualPool vpool = _dbClient.queryObject(VirtualPool.class, fs.getVirtualPool());

@@ -4905,7 +4905,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
                 }
             }
 
-            InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_082);
+            InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_083);
             completer.ready(_dbClient);
         } catch (VPlexApiException vae) {
             _log.error("VPlexApiException adding storagePorts to Storage View: " + vae.getMessage(), vae);
@@ -7587,7 +7587,8 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
      */
     private Workflow.Method rollbackUpgradeVirtualVolumeLocalToDistributedMethod(
             URI vplexURI, String virtualVolumeName, String virtualVolumePath, String executeStepId) {
-        return new Workflow.Method(RB_UPGRADE_VIRTUAL_VOLUME_LOCAL_TO_DISTRIBUUTED_METHOD_NAME, vplexURI, virtualVolumeName, executeStepId);
+        return new Workflow.Method(RB_UPGRADE_VIRTUAL_VOLUME_LOCAL_TO_DISTRIBUUTED_METHOD_NAME, 
+                vplexURI, virtualVolumeName, virtualVolumePath, executeStepId);
     }
 
     /**

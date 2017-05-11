@@ -4,11 +4,15 @@
  */
 package com.emc.sa.service.vipr.file;
 
+import static com.emc.sa.service.ServiceParams.BYPASS_DNS_CHECK;
 import static com.emc.sa.service.ServiceParams.COMMENT;
 import static com.emc.sa.service.ServiceParams.FILESYSTEMS;
 import static com.emc.sa.service.ServiceParams.SUBDIRECTORY;
+
 import java.net.URI;
+
 import org.apache.commons.lang.StringUtils;
+
 import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.engine.bind.Bindable;
 import com.emc.sa.engine.bind.Param;
@@ -28,6 +32,9 @@ public class ExportFileSystemService extends ViPRService {
     @Bindable(itemType = FileStorageUtils.FileExportRule.class)
     protected FileStorageUtils.FileExportRule[] exportRules;
 
+    @Param(BYPASS_DNS_CHECK)
+    protected boolean bypassDnsCheck;
+
     @Override
     public void precheck() throws Exception {
         if (exportRules == null || exportRules.length == 0) {
@@ -38,9 +45,9 @@ public class ExportFileSystemService extends ViPRService {
     @Override
     public void execute() throws Exception {
         if (exportRules != null) {
-            String exportId = FileStorageUtils.createFileSystemExport(fileSystems, comment, exportRules[0], subDirectory);
+            String exportId = FileStorageUtils.createFileSystemExport(fileSystems, comment, exportRules[0], subDirectory, bypassDnsCheck);
             if (exportRules.length > 1 && StringUtils.isNotBlank(exportId)) {
-                FileStorageUtils.updateFileSystemExport(fileSystems, subDirectory, exportRules);
+                FileStorageUtils.updateFileSystemExport(fileSystems, subDirectory, exportRules, bypassDnsCheck);
             }
         }
     }

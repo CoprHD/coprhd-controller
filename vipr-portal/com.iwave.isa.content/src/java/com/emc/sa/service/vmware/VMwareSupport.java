@@ -803,8 +803,8 @@ public class VMwareSupport {
             if (volume != null) {
                 // VBDU: Check to ensure the correct datastore tag is in the volume returned
                 String tagValue = KnownMachineTags.getBlockVolumeVMFSDatastore(hostId, volume);
-                if (!tagValue.equalsIgnoreCase(datastore.getName())) {
-                    logError("vmware.support.datastore.doesntmatchvolume", datastore.getName());
+                if (tagValue == null || !tagValue.equalsIgnoreCase(datastore.getName())) {
+                    logError("vmware.support.datastore.doesntmatchvolume", volume.getName(), datastore.getName());
                     return null;
                 }
 

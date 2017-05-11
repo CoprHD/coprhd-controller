@@ -412,14 +412,14 @@ public class HDSExportOperations implements ExportMaskOperations {
             // Get the initiators part of the storagePort's Network
             List<String> formattedInitiators = getFormattedInitiators(initiatorsOnSameNetwork);
             if (hsd.getDomainType().equalsIgnoreCase(HDSConstants.HOST_GROUP_DOMAIN_TYPE)) {
-                List<WorldWideName> wwnList = new ArrayList(Collections2.transform(
+                List<WorldWideName> wwnList = new ArrayList<WorldWideName>(Collections2.transform(
                         formattedInitiators, HDSUtils.fctnPortWWNToWorldWideName()));
                 hsdToAddInitiators.setWwnList(wwnList);
                 fcHsdsToAddInitiators.add(hsdToAddInitiators);
             }
             if (hsd.getDomainType().equalsIgnoreCase(
                     HDSConstants.ISCSI_TARGET_DOMAIN_TYPE)) {
-                List<ISCSIName> iscsiNameList = new ArrayList(Collections2.transform(
+                List<ISCSIName> iscsiNameList = new ArrayList<ISCSIName>(Collections2.transform(
                         formattedInitiators, HDSUtils.fctnPortNameToISCSIName()));
                 hsdToAddInitiators.setIscsiList(iscsiNameList);
                 iSCSIHsdsToAddInitiators.add(hsdToAddInitiators);

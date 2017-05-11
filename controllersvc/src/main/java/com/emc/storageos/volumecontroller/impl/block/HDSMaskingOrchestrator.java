@@ -231,7 +231,7 @@ public class HDSMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                             // associated it with the ExportGroup.
                             if (!exportGroup.hasMask(exportMask.getId())) {
                                 exportGroup.addExportMask(exportMask.getId());
-                                _dbClient.updateAndReindexObject(exportGroup);
+                                _dbClient.updateObject(exportGroup);
                             }
                         }
                     }
@@ -545,10 +545,10 @@ public class HDSMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                     }
 
                     updateZoningMap(exportGroup, mask);
-                    _dbClient.updateAndReindexObject(mask);
+                    _dbClient.updateObject(mask);
                     // TODO: All export group modifications should be moved to completers
                     exportGroup.addExportMask(mask.getId());
-                    _dbClient.updateAndReindexObject(exportGroup);
+                    _dbClient.updateObject(exportGroup);
                 }
 
             }

@@ -4,13 +4,15 @@
  */
 package com.emc.storageos.volumecontroller.impl.smis.job;
 
-import com.emc.storageos.volumecontroller.JobContext;
-import com.emc.storageos.volumecontroller.TaskCompleter;
+import java.net.URI;
+
+import javax.cim.CIMObjectPath;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.cim.CIMObjectPath;
-import java.net.URI;
+import com.emc.storageos.volumecontroller.JobContext;
+import com.emc.storageos.volumecontroller.TaskCompleter;
 
 /**
  * This job class is used in the context of a synchronous SMI-S CreateElementReplica request,
@@ -29,5 +31,6 @@ public class SmisSRDFCreateMirrorJob extends SmisJob {
     public void updateStatus(final JobContext jobContext) throws Exception {
         log.info("START SmisSRDFCreateMirrorJob#updateStatus");
         // do nothing
+        log.info("END SmisSRDFCreateMirrorJob#updateStatus");
     }
 }

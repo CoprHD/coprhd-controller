@@ -193,7 +193,7 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
     }
 
     /**
-     * Check SMIS connection for a given storage system, based on AccessProfile
+     * Check and add valid SMIS connection for storage system to ConnectionManager.
      * 
      * @param accessProfile
      *            : AccessProfile for the providers
@@ -201,12 +201,13 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
      *            : Storage system
      * @return boolean : true if connection can be establish
      */
-    private static boolean getSMISConnectionStatus(AccessProfile accessProfile, StorageSystem system) {
+    private boolean getVnxFileSMISConnection(AccessProfile accessProfile, StorageSystem system) {
         boolean connectionStatus = false;
         try {
             final CIMConnectionFactory connectionFactory = (CIMConnectionFactory) accessProfile
                     .getCimConnectionFactory();
             CimConnection cxn = connectionFactory.getConnection(system);
+            // getConnection method also add the valid connection to connection manager.
             if (cxn != null) {
                 return connectionStatus = true;
             }
@@ -327,7 +328,7 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
             String model = sshDmApi.getModelInfo();
             storageSystem.setModel(model);
 
-            boolean connectionStatus = getSMISConnectionStatus(accessProfile, storageSystem);
+            boolean connectionStatus = getVnxFileSMISConnection(accessProfile, storageSystem);
             if (connectionStatus) {
                 storageSystem.setSmisConnectionStatus(ConnectionStatus.CONNECTED.toString());
             } else {

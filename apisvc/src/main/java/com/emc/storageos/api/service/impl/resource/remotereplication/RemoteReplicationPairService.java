@@ -232,10 +232,7 @@ public class RemoteReplicationPairService extends TaskResourceService {
             rrServiceApi.failoverRemoteReplicationElementLink(rrElement, taskId);
         } catch (final ControllerException e) {
             _log.error("Controller Error", e);
-                op = cg.getOpStatus().get(taskId);
-                op.error(e);
-                cg.getOpStatus().updateTaskStatus(taskId, op);
-                _dbClient.updateObject(cg);
+            _dbClient.error(BlockConsistencyGroup.class, cg.getId(), taskId, e);
         }
 
         auditOp(OperationTypeEnum.FAILOVER_REMOTE_REPLICATION_CG_LINK, true, AuditLogManager.AUDITOP_BEGIN,
@@ -334,10 +331,7 @@ public class RemoteReplicationPairService extends TaskResourceService {
             rrServiceApi.failbackRemoteReplicationElementLink(rrElement, taskId);
         } catch (final ControllerException e) {
             _log.error("Controller Error", e);
-            op = cg.getOpStatus().get(taskId);
-            op.error(e);
-            cg.getOpStatus().updateTaskStatus(taskId, op);;
-            _dbClient.updateObject(cg);
+            _dbClient.error(BlockConsistencyGroup.class, cg.getId(), taskId, e);
         }
 
         auditOp(OperationTypeEnum.FAILBACK_REMOTE_REPLICATION_CG_LINK, true, AuditLogManager.AUDITOP_BEGIN,
@@ -387,10 +381,7 @@ public class RemoteReplicationPairService extends TaskResourceService {
             rrServiceApi.failbackRemoteReplicationElementLink(rrElement, taskId);
         } catch (final ControllerException e) {
             _log.error("Controller Error", e);
-            op = rrPair.getOpStatus().get(taskId);
-            op.error(e);
-            rrPair.getOpStatus().updateTaskStatus(taskId, op);
-            _dbClient.updateObject(rrPair);
+            _dbClient.error(RemoteReplicationPair.class, rrPair.getId(), taskId, e);
         }
 
         auditOp(OperationTypeEnum.FAILBACK_REMOTE_REPLICATION_PAIR_LINK, true, AuditLogManager.AUDITOP_BEGIN,
@@ -431,10 +422,7 @@ public class RemoteReplicationPairService extends TaskResourceService {
             rrServiceApi.establishRemoteReplicationElementLink(rrElement, taskId);
         } catch (final ControllerException e) {
             _log.error("Controller Error", e);
-            op = cg.getOpStatus().get(taskId);
-            op.error(e);
-            cg.getOpStatus().updateTaskStatus(taskId, op);
-            _dbClient.updateObject(cg);
+            _dbClient.error(BlockConsistencyGroup.class, cg.getId(), taskId, e);
         }
 
         auditOp(OperationTypeEnum.ESTABLISH_REMOTE_REPLICATION_CG_LINK, true, AuditLogManager.AUDITOP_BEGIN,
@@ -473,10 +461,7 @@ public class RemoteReplicationPairService extends TaskResourceService {
             rrServiceApi.establishRemoteReplicationElementLink(rrElement, taskId);
         } catch (final ControllerException e) {
             _log.error("Controller Error", e);
-            op = rrPair.getOpStatus().get(taskId);
-            op.error(e);
-            rrPair.getOpStatus().updateTaskStatus(taskId, op);
-            _dbClient.updateObject(rrPair);
+            _dbClient.error(RemoteReplicationPair.class, rrPair.getId(), taskId, e);
         }
 
         auditOp(OperationTypeEnum.ESTABLISH_REMOTE_REPLICATION_PAIR_LINK, true, AuditLogManager.AUDITOP_BEGIN,
@@ -517,10 +502,7 @@ public class RemoteReplicationPairService extends TaskResourceService {
             rrServiceApi.splitRemoteReplicationElementLink(rrElement, taskId);
         } catch (final ControllerException e) {
             _log.error("Controller Error", e);
-            op = cg.getOpStatus().get(taskId);
-            op.error(e);
-            cg.getOpStatus().updateTaskStatus(taskId, op);
-            _dbClient.updateObject(cg);
+            _dbClient.error(BlockConsistencyGroup.class, cg.getId(), taskId, e);
         }
 
         auditOp(OperationTypeEnum.SPLIT_REMOTE_REPLICATION_CG_LINK, true, AuditLogManager.AUDITOP_BEGIN,
@@ -560,10 +542,7 @@ public class RemoteReplicationPairService extends TaskResourceService {
             rrServiceApi.splitRemoteReplicationElementLink(rrElement, taskId);
         } catch (final ControllerException e) {
             _log.error("Controller Error", e);
-            op = rrPair.getOpStatus().get(taskId);
-            op.error(e);
-            rrPair.getOpStatus().updateTaskStatus(taskId, op);
-            _dbClient.updateObject(rrPair);
+            _dbClient.error(RemoteReplicationPair.class, rrPair.getId(), taskId, e);
         }
 
         auditOp(OperationTypeEnum.SPLIT_REMOTE_REPLICATION_PAIR_LINK, true, AuditLogManager.AUDITOP_BEGIN,
@@ -613,10 +592,7 @@ public class RemoteReplicationPairService extends TaskResourceService {
             rrServiceApi.suspendRemoteReplicationElementLink(rrElement, taskId);
         } catch (final ControllerException e) {
             _log.error("Controller Error", e);
-            op = rrPair.getOpStatus().get(taskId);
-            op.error(e);
-            rrPair.getOpStatus().updateTaskStatus(taskId, op);
-            _dbClient.updateObject(rrPair);
+            _dbClient.error(RemoteReplicationPair.class, rrPair.getId(), taskId, e);
         }
 
         auditOp(OperationTypeEnum.SUSPEND_REMOTE_REPLICATION_PAIR_LINK, true, AuditLogManager.AUDITOP_BEGIN,
@@ -666,10 +642,7 @@ public class RemoteReplicationPairService extends TaskResourceService {
             rrServiceApi.resumeRemoteReplicationElementLink(rrElement, taskId);
         } catch (final ControllerException e) {
             _log.error("Controller Error", e);
-            op = rrPair.getOpStatus().get(taskId);
-            op.error(e);
-            rrPair.getOpStatus().updateTaskStatus(taskId, op);
-            _dbClient.updateObject(rrPair);
+            _dbClient.error(RemoteReplicationPair.class, rrPair.getId(), taskId, e);
         }
 
         auditOp(OperationTypeEnum.RESUME_REMOTE_REPLICATION_PAIR_LINK, true, AuditLogManager.AUDITOP_BEGIN,
@@ -718,10 +691,7 @@ public class RemoteReplicationPairService extends TaskResourceService {
             rrServiceApi.swapRemoteReplicationElementLink(rrElement, taskId);
         } catch (final ControllerException e) {
             _log.error("Controller Error", e);
-            op = cg.getOpStatus().get(taskId);
-            op.error(e);
-            cg.getOpStatus().updateTaskStatus(taskId, op);
-            _dbClient.updateObject(cg);
+            _dbClient.error(BlockConsistencyGroup.class, cg.getId(), taskId, e);
         }
 
         auditOp(OperationTypeEnum.SWAP_REMOTE_REPLICATION_CG_LINK, true, AuditLogManager.AUDITOP_BEGIN,
@@ -770,10 +740,7 @@ public class RemoteReplicationPairService extends TaskResourceService {
             rrServiceApi.swapRemoteReplicationElementLink(rrElement, taskId);
         } catch (final ControllerException e) {
             _log.error("Controller Error", e);
-            op = rrPair.getOpStatus().get(taskId);
-            op.error(e);
-            rrPair.getOpStatus().updateTaskStatus(taskId, op);
-            _dbClient.updateObject(rrPair);
+            _dbClient.error(RemoteReplicationPair.class, rrPair.getId(), taskId, e);
         }
 
         auditOp(OperationTypeEnum.SWAP_REMOTE_REPLICATION_PAIR_LINK, true, AuditLogManager.AUDITOP_BEGIN,
@@ -810,7 +777,7 @@ public class RemoteReplicationPairService extends TaskResourceService {
 
         // Create a task for the remote replication mode change
         String taskId = UUID.randomUUID().toString();
-        Operation op = _dbClient.createTaskOpStatus(BlockConsistencyGroup.class, rrPair.getId(),
+        Operation op = _dbClient.createTaskOpStatus(RemoteReplicationPair.class, rrPair.getId(),
                 taskId, ResourceOperationTypeEnum.CHANGE_REMOTE_REPLICATION_MODE);
 
         // send request to controller
@@ -819,10 +786,7 @@ public class RemoteReplicationPairService extends TaskResourceService {
             rrServiceApi.changeRemoteReplicationMode(rrElement, newMode, taskId);
         } catch (final ControllerException e) {
             _log.error("Controller Error", e);
-            op = rrPair.getOpStatus().get(taskId);
-            op.error(e);
-            rrPair.getOpStatus().updateTaskStatus(taskId, op);
-            _dbClient.updateObject(rrPair);
+            _dbClient.error(RemoteReplicationPair.class, rrPair.getId(), taskId, e);
         }
 
         auditOp(OperationTypeEnum.CHANGE_REMOTE_REPLICATION_MODE, true, AuditLogManager.AUDITOP_BEGIN,
@@ -854,7 +818,7 @@ public class RemoteReplicationPairService extends TaskResourceService {
         // Create a task for the move remote replication pair operation
         String taskId = UUID.randomUUID().toString();
         Operation op = _dbClient.createTaskOpStatus(RemoteReplicationPair.class, rrPair.getId(),
-                taskId, ResourceOperationTypeEnum.CHANGE_REMOTE_REPLICATION_MODE);
+                taskId, ResourceOperationTypeEnum.MOVE_REMOTE_REPLICATION_PAIR);
 
         // send request to controller
         try {
@@ -862,13 +826,10 @@ public class RemoteReplicationPairService extends TaskResourceService {
             rrServiceApi.moveRemoteReplicationPair(id, newGroup, taskId);
         } catch (final ControllerException e) {
             _log.error("Controller Error", e);
-            op = rrPair.getOpStatus().get(taskId);
-            op.error(e);
-            rrPair.getOpStatus().updateTaskStatus(taskId, op);
-            _dbClient.updateObject(rrPair);
+            _dbClient.error(RemoteReplicationPair.class, rrPair.getId(), taskId, e);
         }
 
-        auditOp(OperationTypeEnum.CHANGE_REMOTE_REPLICATION_MODE, true, AuditLogManager.AUDITOP_BEGIN,
+        auditOp(OperationTypeEnum.MOVE_REMOTE_REPLICATION_PAIR, true, AuditLogManager.AUDITOP_BEGIN,
                 rrPair.getNativeId(), rrPair.getSourceElement(), rrPair.getTargetElement());
 
         return toTask(rrPair, taskId, op);
@@ -940,11 +901,7 @@ public class RemoteReplicationPairService extends TaskResourceService {
         Volume sourceVolume = _dbClient.queryObject(Volume.class, sourceElementURI);
         if (!sourceVolume.checkForSRDF()) {
             // not srdf volume --- not supported
-            BadRequestException ex = APIException.badRequests.volumeMustBeSRDFProtected(sourceVolume.getId());
-            _log.error("Bad request --- VMAX volume is not SRDF volume.", ex);
-            taskList = new TaskList();
-            taskList.addTask(processSrdfAPIError(sourceVolume, taskId, operationType, ex));
-            return taskList;
+            throw APIException.badRequests.volumeMustBeSRDFProtected(sourceVolume.getId());
         }
 
         Volume targetVolume = _dbClient.queryObject(Volume.class, targetElementURI);
@@ -963,30 +920,23 @@ public class RemoteReplicationPairService extends TaskResourceService {
         CopiesParam param = new CopiesParam();
         param.getCopies().add(copy);
         URI cgURI = sourceVolume.getConsistencyGroup();
-        try {
-            switch (operationType) {
-                case FAILOVER_REMOTE_REPLICATION_CG_LINK:
-                    taskList = blockConsistencyGroupService.failoverProtection(cgURI, param);
-                    break;
-
-                case FAILBACK_REMOTE_REPLICATION_CG_LINK:
-                    taskList = blockConsistencyGroupService.failoverCancel(cgURI, param);
-                    break;
-                case SWAP_REMOTE_REPLICATION_PAIR_LINK:
-                    taskList = blockService.swap(cgURI, param);
-                    break;
-                case SWAP_REMOTE_REPLICATION_CG_LINK:
-                    taskList = blockConsistencyGroupService.swap(cgURI, param);
-                    break;
-                default:
-                    throw APIException.badRequests.operationNotSupportedForSystemType(operationType.toString(), StorageSystem.Type.vmax.toString());
-            }
-            return taskList;
-        } catch (APIException ex) {
-            taskList = new TaskList();
-            taskList.addTask(processSrdfAPIError(sourceVolume, taskId, operationType, ex));
-            return taskList;
+        switch (operationType) {
+            case FAILOVER_REMOTE_REPLICATION_CG_LINK:
+                taskList = blockConsistencyGroupService.failoverProtection(cgURI, param);
+                break;
+            case FAILBACK_REMOTE_REPLICATION_CG_LINK:
+                taskList = blockConsistencyGroupService.failoverCancel(cgURI, param);
+                break;
+            case SWAP_REMOTE_REPLICATION_PAIR_LINK:
+                taskList = blockService.swap(cgURI, param);
+                break;
+            case SWAP_REMOTE_REPLICATION_CG_LINK:
+                taskList = blockConsistencyGroupService.swap(cgURI, param);
+                break;
+            default:
+                throw APIException.badRequests.operationNotSupportedForSystemType(operationType.toString(), StorageSystem.Type.vmax.toString());
         }
+        return taskList;
     }
 
 
@@ -1005,11 +955,8 @@ public class RemoteReplicationPairService extends TaskResourceService {
         Volume sourceVolume = _dbClient.queryObject(Volume.class, systemPair.getSourceElement());
         if (!sourceVolume.checkForSRDF()) {
             // not srdf volume --- not supported
-            BadRequestException ex = APIException.badRequests.volumeMustBeSRDFProtected(sourceVolume.getId());
-            _log.error("Bad request --- VMAX volume is not SRDF volume.", ex);
-            taskList = new TaskList();
-            taskList.addTask(processSrdfAPIError(sourceVolume, taskId, operationType, ex));
-            return taskList;
+            _log.error("Bad request --- VMAX volume is not SRDF volume.");
+            throw  APIException.badRequests.volumeMustBeSRDFProtected(sourceVolume.getId());
         }
 
         String type = BlockSnapshot.TechnologyType.SRDF.toString();
@@ -1031,27 +978,21 @@ public class RemoteReplicationPairService extends TaskResourceService {
         CopiesParam param = new CopiesParam();
         param.getCopies().add(copy);
         URI sourceVolumeURI = sourceElement.getURI();
-        try {
-            switch (operationType) {
-                case FAILOVER_REMOTE_REPLICATION_PAIR_LINK:
-                    taskList = blockService.failoverProtection(sourceVolumeURI, param);
-                    break;
+        switch (operationType) {
+            case FAILOVER_REMOTE_REPLICATION_PAIR_LINK:
+                taskList = blockService.failoverProtection(sourceVolumeURI, param);
+                break;
 
-                case FAILBACK_REMOTE_REPLICATION_PAIR_LINK:
-                    taskList = blockService.failoverCancel(sourceVolumeURI, param);
-                    break;
-                case SWAP_REMOTE_REPLICATION_PAIR_LINK:
-                    taskList = blockService.swap(sourceVolumeURI, param);
-                    break;
-                default:
-                    throw APIException.badRequests.operationNotSupportedForSystemType(operationType.toString(), StorageSystem.Type.vmax.toString());
-            }
-            return taskList;
-        } catch (APIException ex) {
-            taskList = new TaskList();
-            taskList.addTask(processSrdfAPIError(sourceVolume, taskId, operationType, ex));
-            return taskList;
+            case FAILBACK_REMOTE_REPLICATION_PAIR_LINK:
+                taskList = blockService.failoverCancel(sourceVolumeURI, param);
+                break;
+            case SWAP_REMOTE_REPLICATION_PAIR_LINK:
+                taskList = blockService.swap(sourceVolumeURI, param);
+                break;
+            default:
+                throw APIException.badRequests.operationNotSupportedForSystemType(operationType.toString(), StorageSystem.Type.vmax.toString());
         }
+        return taskList;
     }
 
 
@@ -1059,9 +1000,6 @@ public class RemoteReplicationPairService extends TaskResourceService {
         _log.info("Processing srdf api error: resource: {}, taskId: {}", sourceVolume.getLabel(), taskId);
         Operation op = _dbClient.createTaskOpStatus(Volume.class, sourceVolume.getId(), taskId, operationType);
         _dbClient.error(Volume.class, sourceVolume.getId(), taskId,  ex);
-        //op.error(ex);
-        //sourceVolume.getOpStatus().updateTaskStatus(taskId, op);
-        //_dbClient.updateObject(sourceVolume);
         return toTask(sourceVolume, taskId, op);
     }
 

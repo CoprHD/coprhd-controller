@@ -348,11 +348,7 @@ public class RemoteReplicationGroupService extends TaskResourceService {
             rrServiceApi.createRemoteReplicationGroup(rrGroup.getId(), sourcePortIds, targetPortIds, taskId);
         } catch (final ControllerException e) {
             _log.error("Controller Error", e);
-            op = rrGroup.getOpStatus().get(taskId);
-            op.error(e);
-            rrGroup.getOpStatus().updateTaskStatus(taskId, op);
-            rrGroup.setInactive(true);
-            _dbClient.updateObject(rrGroup);
+            _dbClient.error(RemoteReplicationGroup.class, rrGroup.getId(), taskId, e);
         }
 
         auditOp(OperationTypeEnum.CREATE_REMOTE_REPLICATION_GROUP, true, AuditLogManager.AUDITOP_BEGIN,
@@ -385,10 +381,7 @@ public class RemoteReplicationGroupService extends TaskResourceService {
             rrServiceApi.failoverRemoteReplicationElementLink(rrElement, taskId);
         } catch (final ControllerException e) {
             _log.error("Controller Error", e);
-            op = rrGroup.getOpStatus().get(taskId);
-            op.error(e);
-            rrGroup.getOpStatus().updateTaskStatus(taskId, op);
-            _dbClient.updateObject(rrGroup);
+            _dbClient.error(RemoteReplicationGroup.class, rrGroup.getId(), taskId, e);
         }
 
         auditOp(OperationTypeEnum.FAILOVER_REMOTE_REPLICATION_GROUP_LINK, true, AuditLogManager.AUDITOP_BEGIN,
@@ -420,10 +413,7 @@ public class RemoteReplicationGroupService extends TaskResourceService {
             rrServiceApi.failbackRemoteReplicationElementLink(rrElement, taskId);
         } catch (final ControllerException e) {
             _log.error("Controller Error", e);
-            op = rrGroup.getOpStatus().get(taskId);
-            op.error(e);
-            rrGroup.getOpStatus().updateTaskStatus(taskId, op);
-            _dbClient.updateObject(rrGroup);
+            _dbClient.error(RemoteReplicationGroup.class, rrGroup.getId(), taskId, e);
         }
 
         auditOp(OperationTypeEnum.FAILBACK_REMOTE_REPLICATION_GROUP_LINK, true, AuditLogManager.AUDITOP_BEGIN,
@@ -454,10 +444,7 @@ public class RemoteReplicationGroupService extends TaskResourceService {
             rrServiceApi.establishRemoteReplicationElementLink(rrElement, taskId);
         } catch (final ControllerException e) {
             _log.error("Controller Error", e);
-            op = rrGroup.getOpStatus().get(taskId);
-            op.error(e);
-            rrGroup.getOpStatus().updateTaskStatus(taskId, op);
-            _dbClient.updateObject(rrGroup);
+            _dbClient.error(RemoteReplicationGroup.class, rrGroup.getId(), taskId, e);
         }
 
         auditOp(OperationTypeEnum.ESTABLISH_REMOTE_REPLICATION_GROUP_LINK, true, AuditLogManager.AUDITOP_BEGIN,
@@ -489,10 +476,7 @@ public class RemoteReplicationGroupService extends TaskResourceService {
             rrServiceApi.splitRemoteReplicationElementLink(rrElement, taskId);
         } catch (final ControllerException e) {
             _log.error("Controller Error", e);
-            op = rrGroup.getOpStatus().get(taskId);
-            op.error(e);
-            rrGroup.getOpStatus().updateTaskStatus(taskId, op);
-            _dbClient.updateObject(rrGroup);
+            _dbClient.error(RemoteReplicationGroup.class, rrGroup.getId(), taskId, e);
         }
 
         auditOp(OperationTypeEnum.SPLIT_REMOTE_REPLICATION_GROUP_LINK, true, AuditLogManager.AUDITOP_BEGIN,
@@ -523,10 +507,7 @@ public class RemoteReplicationGroupService extends TaskResourceService {
             rrServiceApi.suspendRemoteReplicationElementLink(rrElement, taskId);
         } catch (final ControllerException e) {
             _log.error("Controller Error", e);
-            op = rrGroup.getOpStatus().get(taskId);
-            op.error(e);
-            rrGroup.getOpStatus().updateTaskStatus(taskId, op);
-            _dbClient.updateObject(rrGroup);
+            _dbClient.error(RemoteReplicationGroup.class, rrGroup.getId(), taskId, e);
         }
 
         auditOp(OperationTypeEnum.SUSPEND_REMOTE_REPLICATION_GROUP_LINK, true, AuditLogManager.AUDITOP_BEGIN,
@@ -558,10 +539,7 @@ public class RemoteReplicationGroupService extends TaskResourceService {
             rrServiceApi.resumeRemoteReplicationElementLink(rrElement, taskId);
         } catch (final ControllerException e) {
             _log.error("Controller Error", e);
-            op = rrGroup.getOpStatus().get(taskId);
-            op.error(e);
-            rrGroup.getOpStatus().updateTaskStatus(taskId, op);
-            _dbClient.updateObject(rrGroup);
+            _dbClient.error(RemoteReplicationGroup.class, rrGroup.getId(), taskId, e);
         }
 
         auditOp(OperationTypeEnum.RESUME_REMOTE_REPLICATION_GROUP_LINK, true, AuditLogManager.AUDITOP_BEGIN,
@@ -593,10 +571,7 @@ public class RemoteReplicationGroupService extends TaskResourceService {
             rrServiceApi.swapRemoteReplicationElementLink(rrElement, taskId);
         } catch (final ControllerException e) {
             _log.error("Controller Error", e);
-            op = rrGroup.getOpStatus().get(taskId);
-            op.error(e);
-            rrGroup.getOpStatus().updateTaskStatus(taskId, op);
-            _dbClient.updateObject(rrGroup);
+            _dbClient.error(RemoteReplicationGroup.class, rrGroup.getId(), taskId, e);
         }
 
         auditOp(OperationTypeEnum.SWAP_REMOTE_REPLICATION_GROUP_LINK, true, AuditLogManager.AUDITOP_BEGIN,
@@ -630,11 +605,7 @@ public class RemoteReplicationGroupService extends TaskResourceService {
             rrServiceApi.changeRemoteReplicationMode(rrElement, newMode, taskId);
         } catch (final ControllerException e) {
             _log.error("Controller Error", e);
-            _log.error("Controller Error", e);
-            op = rrGroup.getOpStatus().get(taskId);
-            op.error(e);
-            rrGroup.getOpStatus().updateTaskStatus(taskId, op);
-            _dbClient.updateObject(rrGroup);
+            _dbClient.error(RemoteReplicationGroup.class, rrGroup.getId(), taskId, e);
         }
 
         auditOp(OperationTypeEnum.CHANGE_REMOTE_REPLICATION_MODE, true, AuditLogManager.AUDITOP_BEGIN,

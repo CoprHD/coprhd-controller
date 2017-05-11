@@ -247,7 +247,7 @@ public final class RESTHelper {
         String prefix = "?";
         for (final InputParameter a : queries) {
             if (input.get(a.getName()) == null) {
-                logger.warn("Query parameter value is not set for:{}", a.getName());
+                logger.debug("Query parameter value is not set for:{}", a.getName());
                 continue;
             }
             final String value = input.get(a.getName()).get(0);

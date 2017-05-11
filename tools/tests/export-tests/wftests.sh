@@ -2099,7 +2099,7 @@ test_4() {
     storage_failure_injections=""
     if [ "${SS}" = "vplex" ]
     then
-	storage_failure_injections="failure_004:failure_083_VPlexDeviceController.deleteStorageView_before_delete"
+	storage_failure_injections="failure_004:failure_084_VPlexDeviceController.deleteStorageView_before_delete"
     fi 
 
     if [ "${SS}" = "vnx" ]
@@ -2121,7 +2121,7 @@ test_4() {
     failure_injections="${common_failure_injections} ${storage_failure_injections} ${network_failure_injections}"
 
     # Placeholder when a specific failure case is being worked...
-    #failure_injections="failure_004:failure_083_VPlexDeviceController.deleteStorageView_before_delete"
+    #failure_injections="failure_004:failure_084_VPlexDeviceController.deleteStorageView_before_delete"
 
     for failure in ${failure_injections}
     do
@@ -2203,7 +2203,7 @@ test_5() {
     storage_failure_injections=""
     if [ "${SS}" = "vplex" ]
     then
-	storage_failure_injections="failure_083_VPlexDeviceController.deleteStorageView_before_delete"
+	storage_failure_injections="failure_084_VPlexDeviceController.deleteStorageView_before_delete"
     fi
 
     if [ "${SS}" = "vmax2" ]

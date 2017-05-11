@@ -43,7 +43,7 @@ public class CustomServicesShellScriptExecution extends ViPRExecutionTask<Custom
     private static final org.slf4j.Logger logger = LoggerFactory.getLogger(CustomServicesShellScriptExecution.class);
     private final CustomServicesWorkflowDocument.Step step;
     private final Map<String, List<String>> input;
-    private  String orderDir = String.format("%s%s/", CustomServicesConstants.ORDER_DIR_PATH,
+    private  String orderDir = String.format("%s%s/", CustomServicesConstants.CHROOT_ORDER_DIR_PATH,
             ExecutionUtils.currentContext().getOrder().getOrderNumber());
     private final long timeout;
 
@@ -101,7 +101,7 @@ public class CustomServicesShellScriptExecution extends ViPRExecutionTask<Custom
             throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed("Script/Ansible execution Failed");
         }
 
-        logger.info("CustomScript Execution result:output{} error{} exitValue:{}", result.getStdOutput(), result.getStdError(),
+        logger.info("CustomScript Execution result:output{} error{} exitValue:{} ", result.getStdOutput(), result.getStdError(),
                 result.getExitValue());
 
         return new CustomServicesTaskResult(result.getStdOutput(), result.getStdError(), result.getExitValue(), null);

@@ -135,7 +135,7 @@ public class CustomServicesLocalAnsibleExecution extends ViPRExecutionTask<Custo
             AnsibleHelper.writeResourceToFile(inventoryResourceBytes, inventoryFileName);
 
             final String user = ExecutionUtils.currentContext().getOrder().getSubmittedByUserId();
-            result = executeLocal(inventoryFileName, AnsibleHelper.makeExtraArg(input), String.format("%s%s", orderDir, playbook), user);
+            result = executeLocal(inventoryFileName, AnsibleHelper.makeExtraArg(input,step), String.format("%s%s", orderDir, playbook), user);
 
         } catch (final Exception e) {
             throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed("Custom Service Task Failed" + e);

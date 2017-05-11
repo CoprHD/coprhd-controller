@@ -17,6 +17,13 @@
 
 package com.emc.sa.service.vipr.customservices.tasks;
 
+import java.net.URI;
+import java.util.List;
+import java.util.Map;
+
+import org.apache.commons.codec.binary.Base64;
+import org.slf4j.LoggerFactory;
+
 import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.service.vipr.tasks.ViPRExecutionTask;
 import com.emc.storageos.db.client.DbClient;
@@ -27,16 +34,6 @@ import com.emc.storageos.model.customservices.CustomServicesWorkflowDocument;
 import com.emc.storageos.primitives.CustomServicesConstants;
 import com.emc.storageos.services.util.Exec;
 import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorException;
-
-import org.apache.commons.codec.binary.Base64;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.net.URI;
-import java.util.List;
-import java.util.Map;
 
 public class CustomServicesShellScriptExecution extends ViPRExecutionTask<CustomServicesTaskResult> {
 
@@ -119,10 +116,15 @@ public class CustomServicesShellScriptExecution extends ViPRExecutionTask<Custom
 
     private String makeParam(final Map<String, List<String>> input) throws Exception {
         final StringBuilder sb = new StringBuilder();
-        for (List<String> value : input.values()) {
-            // TODO find a better way to fix this
-            sb.append(value.get(0).replace("\"", "")).append(" ");
+        for (final List<String> value : input.values()) {
+            String prefix = "";
+            for (final String eachVal : value) {
+                sb.append(prefix);
+                prefix = ",";
+                sb.append(eachVal.replace("\"", ""));
+            }
+            sb.append(" ");
         }
-        return sb.toString();
+        return sb.toString().trim();
     }
 }

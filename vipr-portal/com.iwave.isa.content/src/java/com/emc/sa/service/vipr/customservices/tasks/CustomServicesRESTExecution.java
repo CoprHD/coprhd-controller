@@ -20,14 +20,9 @@ package com.emc.sa.service.vipr.customservices.tasks;
 import java.util.List;
 import java.util.Map;
 
-import com.sun.jersey.api.client.Client;
-import com.sun.jersey.api.client.ClientResponse;
-import com.sun.jersey.api.client.config.DefaultClientConfig;
-import com.sun.jersey.api.client.WebResource;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 
 import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.service.vipr.tasks.ViPRExecutionTask;
@@ -35,6 +30,10 @@ import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.model.customservices.CustomServicesWorkflowDocument;
 import com.emc.storageos.primitives.CustomServicesConstants;
 import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorException;
+import com.sun.jersey.api.client.Client;
+import com.sun.jersey.api.client.ClientResponse;
+import com.sun.jersey.api.client.WebResource;
+import com.sun.jersey.api.client.config.DefaultClientConfig;
 
 public class CustomServicesRESTExecution extends ViPRExecutionTask<CustomServicesTaskResult> {
     private static final org.slf4j.Logger logger = LoggerFactory.getLogger(CustomServicesRESTExecution.class);
@@ -56,25 +55,26 @@ public class CustomServicesRESTExecution extends ViPRExecutionTask<CustomService
         try {
             ExecutionUtils.currentContext().logInfo("customServicesRESTExecution.startInfo", step.getId());
 
-            //TODO get it from primitive which are not runtime variable
+            // TODO get it from primitive which are not runtime variable
             final String authType = getOptions(CustomServicesConstants.AUTH_TYPE, input);
             if (StringUtils.isEmpty(authType)) {
                 logger.error("Auth type cannot be undefined");
                 throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed("Cannot find Auth type");
             }
 
-            final Client client = BuildRestRequest.makeClient(new DefaultClientConfig(), coordinator, authType, getOptions(CustomServicesConstants.PROTOCOL, input),
+            final Client client = BuildRestRequest.makeClient(new DefaultClientConfig(), coordinator, authType,
+                    getOptions(CustomServicesConstants.PROTOCOL, input),
                     getOptions(CustomServicesConstants.USER, input), getOptions(CustomServicesConstants.PASSWORD, input));
             final WebResource webResource = BuildRestRequest.makeWebResource(client, getUrl(), null);
             final WebResource.Builder builder = BuildRestRequest.makeRequestBuilder(webResource, step, input);
 
-            final CustomServicesConstants.RestMethods method =
-                    CustomServicesConstants.RestMethods.valueOf(getOptions(CustomServicesConstants.METHOD, input));
+            final CustomServicesConstants.RestMethods method = CustomServicesConstants.RestMethods
+                    .valueOf(getOptions(CustomServicesConstants.METHOD, input));
             final CustomServicesTaskResult result;
             switch (method) {
                 case PUT:
                 case POST:
-                    final String body = RESTHelper.makePostBody(getOptions(CustomServicesConstants.BODY, input), input);
+                    final String body = RESTHelper.makePostBody(getOptions(CustomServicesConstants.BODY, input), 0, input);
                     result = executeRest(method, body, builder);
                     break;
                 default:
@@ -84,12 +84,13 @@ public class CustomServicesRESTExecution extends ViPRExecutionTask<CustomService
             ExecutionUtils.currentContext().logInfo("customServicesRESTExecution.doneInfo", step.getId());
             return result;
         } catch (final Exception e) {
-            ExecutionUtils.currentContext().logError("customServicesRESTExecution.doneInfo","Custom Service Task Failed" + e);
+            ExecutionUtils.currentContext().logError("customServicesRESTExecution.doneInfo", "Custom Service Task Failed" + e);
             throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed("Custom Service Task Failed" + e);
         }
     }
 
-    private CustomServicesRestTaskResult executeRest(final CustomServicesConstants.RestMethods method, final String input, final WebResource.Builder builder) throws Exception {
+    private CustomServicesRestTaskResult executeRest(final CustomServicesConstants.RestMethods method, final String input,
+            final WebResource.Builder builder) throws Exception {
         final ClientResponse response;
         switch (method) {
             case GET:
@@ -106,8 +107,8 @@ public class CustomServicesRESTExecution extends ViPRExecutionTask<CustomService
                 break;
             default:
                 logger.error("Rest method:{} type not supported", method.toString());
-                throw InternalServerErrorException.internalServerErrors.
-                        customServiceExecutionFailed("Rest method type not supported. Method:" + method.toString());
+                throw InternalServerErrorException.internalServerErrors
+                        .customServiceExecutionFailed("Rest method type not supported. Method:" + method.toString());
         }
         final String output = IOUtils.toString(response.getEntityInputStream(), "UTF-8");
 
@@ -117,11 +118,11 @@ public class CustomServicesRESTExecution extends ViPRExecutionTask<CustomService
     }
 
     public String getUrl() {
-        //TODO get from primitive.
+        // TODO get from primitive.
         final String target = getOptions(CustomServicesConstants.TARGET, input);
         final String path = getOptions(CustomServicesConstants.PATH, input);
         final String port = getOptions(CustomServicesConstants.PORT, input);
-        final String protocol =  getOptions(CustomServicesConstants.PROTOCOL, input);
+        final String protocol = getOptions(CustomServicesConstants.PROTOCOL, input);
 
         if (StringUtils.isEmpty(target) || StringUtils.isEmpty(path) || StringUtils.isEmpty(port) || StringUtils.isEmpty(protocol)) {
             logger.error("target/path/port is not defined. target:{}, path:{}, port:{}", target, path, port);
@@ -129,7 +130,7 @@ public class CustomServicesRESTExecution extends ViPRExecutionTask<CustomService
             throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed("Cannot build URL");
         }
 
-        return String.format("%s://%s:%s/%s", protocol, target,port, RESTHelper.makePath(path, input));
+        return String.format("%s://%s:%s/%s", protocol, target, port, RESTHelper.makePath(path, input));
     }
 
     private String getOptions(final String key, final Map<String, List<String>> input) {

@@ -16,7 +16,6 @@ import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.hds.api.HDSApiClient;
 import com.emc.storageos.hds.api.HDSApiExportManager;
-import com.emc.storageos.hds.api.HDSApiFactory;
 import com.emc.storageos.hds.model.HostStorageDomain;
 import com.emc.storageos.volumecontroller.impl.hds.prov.utils.HDSUtils;
 import com.emc.storageos.volumecontroller.impl.validators.ValidatorLogger;
@@ -35,14 +34,13 @@ public class HDSExportMaskValidator extends AbstractHDSValidator {
 
     @Override
     public boolean validate() throws Exception {
-        log.info("Initiating initiators validation of XtremIO ExportMask: {}", id);
+        log.info("Initiating validation of HDS ExportMask: {}", id);
 
         try {
             ExportMask exportMask = getExportMask();
             StorageSystem system = getStorage();
             if (exportMask != null && !CollectionUtils.isEmpty(exportMask.getDeviceDataMap())) {
                 Set<String> hsdList = exportMask.getDeviceDataMap().keySet();
-                HDSApiFactory hdsApiFactory = getClientFactory();
                 HDSApiClient client = getClientFactory().getClient(HDSUtils.getHDSServerManagementServerInfo(system),
                         system.getSmisUserName(), system.getSmisPassword());
                 HDSApiExportManager exportManager = client.getHDSApiExportManager();
@@ -60,6 +58,9 @@ public class HDSExportMaskValidator extends AbstractHDSValidator {
                     initiatorsInExportMask.addAll(exportMask.getUserAddedInitiators().keySet());
                 }
 
+                log.info("Volumes {} in Export Mask {}", volumesInExportMask, exportMask.forDisplay());
+                log.info("Initiators {} in Export Mask {}", initiatorsInExportMask, exportMask.forDisplay());
+
                 for (String hsdObjectIdFromDb : hsdList) {
                     Set<String> discoveredInitiators = new HashSet<>();
                     Set<String> discoveredVolumes = new HashSet<>();
@@ -73,6 +74,9 @@ public class HDSExportMaskValidator extends AbstractHDSValidator {
                     // Get volumes and initiators from storage system
                     discoveredVolumes.addAll(HDSUtils.getVolumesFromHSD(hsd, system).keySet());
                     discoveredInitiators.addAll(HDSUtils.getInitiatorsFromHSD(hsd));
+
+                    log.info("Volumes {} discovered from array for the HSD {}", discoveredVolumes, maskName);
+                    log.info("Initiators {} discovered from array for the HSD {}", discoveredInitiators, maskName);
                     Set<String> additionalVolumesOnArray = Sets.difference(discoveredVolumes, volumesInExportMask);
                     Set<String> additionalInitiatorsOnArray = Sets.difference(discoveredInitiators, initiatorsInExportMask);
                     if (!CollectionUtils.isEmpty(additionalVolumesOnArray)) {

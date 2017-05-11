@@ -28,7 +28,7 @@ public abstract class AbstractHDSValidator implements Validator {
         this.exportMask = exportMask;
         this.factory = factory;
         this.exceptionContext = exceptionContext;
-        id = String.format("%s (%s)(%s)", exportMask.getMaskName(), exportMask.getNativeId(), exportMask.getId().toString());
+        id = exportMask.forDisplay();
     }
 
     /**

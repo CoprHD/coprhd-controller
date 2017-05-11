@@ -1758,7 +1758,7 @@
         <property name="cimPath" ref="vnxCIMObjectPathFactoryAdapter"/>
     </bean>
     
-    <bean id="hdsValidatorFactory" class="com.emc.storageos.volumecontroller.impl.validators.smis.vnx.HDSSystemValidatorFactory">
+    <bean id="hdsValidatorFactory" class="com.emc.storageos.volumecontroller.impl.validators.hds.HDSSystemValidatorFactory">
         <property name="dbClient" ref="dbclient"/>
         <property name="config" ref="validatorConfig"/>
         <property name="clientFactory" ref="hdsApiFactory"/>

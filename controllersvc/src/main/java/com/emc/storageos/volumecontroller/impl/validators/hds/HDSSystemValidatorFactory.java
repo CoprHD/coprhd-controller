@@ -38,7 +38,6 @@ public class HDSSystemValidatorFactory implements StorageSystemValidatorFactory 
     @Override
     public Validator exportMaskDelete(ExportMaskValidationContext ctx) {
         logger = new ValidatorLogger(log, ctx.getExportMask().forDisplay(), ctx.getStorage().forDisplay());
-
         HDSExportMaskValidator validator = new HDSExportMaskValidator(ctx.getStorage(), ctx.getExportMask(), this, ctx);
 
         return validator;
@@ -47,15 +46,8 @@ public class HDSSystemValidatorFactory implements StorageSystemValidatorFactory 
     @Override
     public Validator removeVolumes(ExportMaskValidationContext ctx) {
         logger = new ValidatorLogger(log, ctx.getExportMask().forDisplay(), ctx.getStorage().forDisplay());
+        HDSExportMaskVolumesValidator validator = new HDSExportMaskVolumesValidator(ctx.getStorage(), ctx.getExportMask(), this, ctx);
 
-        HDSExportMaskValidator validator = new HDSExportMaskValidator(ctx.getStorage(), ctx.getExportMask(), this, ctx);
-
-        /*
-         * HDSApiClient hdsApiClient = null;
-         * hdsApiClient = clientFactory.getClient(
-         * getHDSServerManagementServerInfo(storage), storage.getSmisUserName(),
-         * storage.getSmisPassword());
-         */
         return validator;
     }
 
@@ -67,8 +59,10 @@ public class HDSSystemValidatorFactory implements StorageSystemValidatorFactory 
 
     @Override
     public Validator removeInitiators(ExportMaskValidationContext ctx) {
-        // TODO Auto-generated method stub
-        return null;
+        logger = new ValidatorLogger(log, ctx.getExportMask().forDisplay(), ctx.getStorage().forDisplay());
+        HDSExportMaskInitiatorsValidator validator = new HDSExportMaskInitiatorsValidator(ctx.getStorage(), ctx.getExportMask(), this, ctx);
+
+        return validator;
     }
 
     @Override

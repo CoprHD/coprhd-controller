@@ -82,4 +82,6 @@ public class PathConstants {
     public static final String CUSTOM_SERVICES_WORKFLOW_PUBLISH = "/workflows/{id}/publish";
     public static final String CUSTOM_SERVICES_WORKFLOW_UNPUBLISH = "/workflows/{id}/unpublish";
     public static final String CUSTOM_SERVICES_WORKFLOW = "/workflows/{id}";
+    public static final String CUSTOM_SERVICES_WORKFLOW_EXPORT = "/workflows/{id}/export";
+    public static final String CUSTOM_SERVICES_WORKFLOW_IMPORT = "/workflows/import";
 }

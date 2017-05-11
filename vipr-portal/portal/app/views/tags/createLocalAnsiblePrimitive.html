@@ -3,7 +3,6 @@ nameDescTabID = 'nameDescLAContent';
 packageTabID = 'packageTabContent';
 hostFileTabID = 'hostFileContent';
 inputOutputTabID = 'inputOutputLAContent';
-ansibleResourceNames = _arg;
 }%
 
 <div ng-controller="localAnsiblePrimitiveController" id="localAnsibleModal">
@@ -32,10 +31,10 @@ ansibleResourceNames = _arg;
                 <div class="tab-pane active" id="${nameDescTabID}">
                     #{Modal.body}
                         <control-group v-field='localAnsible.name' labelWidth="1" required >
-                            <input-text class="initialFocus"></input-text>
+                            <input-text class="initialFocus" maxlength="50"></input-text>
                         </control-group>
                         <control-group v-field='localAnsible.description' labelWidth="1" >
-                            <input-text></input-text>
+                            <input-text maxlength="200"></input-text>
                         </control-group>
                     #{/Modal.body}
 

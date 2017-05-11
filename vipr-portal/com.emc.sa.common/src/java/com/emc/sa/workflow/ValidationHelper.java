@@ -19,12 +19,14 @@ package com.emc.sa.workflow;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.collections.MapUtils;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.LoggerFactory;
@@ -35,6 +37,7 @@ import com.emc.storageos.model.customservices.CustomServicesWorkflowDocument;
 import com.emc.storageos.model.customservices.CustomServicesWorkflowDocument.Input;
 import com.emc.storageos.model.customservices.CustomServicesWorkflowDocument.Step;
 import com.emc.storageos.primitives.CustomServicesConstants;
+import com.emc.storageos.primitives.CustomServicesConstants.InputFieldType;
 import com.emc.storageos.primitives.CustomServicesPrimitive.StepType;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Sets;
@@ -45,6 +48,7 @@ public class ValidationHelper {
     final private Set<String> childSteps = new HashSet<>();
     final private Set<String> uniqueFriendlyInputNames = new HashSet<>();
     final private ImmutableMap<String, Step> stepsHash;
+    final private String EMPTY_STRING = "";
 
     public ValidationHelper(final CustomServicesWorkflowDocument wfDocument) {
         final List<Step> steps = wfDocument.getSteps();
@@ -56,7 +60,8 @@ public class ValidationHelper {
         this.stepsHash = builder.build();
     }
 
-    private static boolean isInputEmpty(final Map<String, CustomServicesWorkflowDocument.InputGroup> inputGroups, final String inputGroupName) {
+    private static boolean isInputEmpty(final Map<String, CustomServicesWorkflowDocument.InputGroup> inputGroups,
+            final String inputGroupName) {
         if (inputGroups == null) {
             // This is a valid case. Not error. The input can be empty for a step. eg., Show / get primitives
             logger.debug("No Input is defined");
@@ -137,18 +142,25 @@ public class ValidationHelper {
     }
 
     // For the steps which does not have parent, add the error to response
-    private Map<String, CustomServicesValidationResponse.ErrorStep> addErrorStepsWithoutParent(final Map<String, CustomServicesValidationResponse.ErrorStep> errorSteps){
+    private Map<String, CustomServicesValidationResponse.ErrorStep>
+            addErrorStepsWithoutParent(final Map<String, CustomServicesValidationResponse.ErrorStep> errorSteps) {
         final Set<String> stepWithoutParent = Sets.difference(stepsHash.keySet(), childSteps);
         for (final String stepId : stepWithoutParent) {
             if (errorSteps.containsKey(stepId)) {
                 final List<String> errorMsgs = errorSteps.get(stepId).getErrorMessages();
-                errorMsgs.add(CustomServicesConstants.ERROR_MSG_WORKFLOW_PREVIOUS_STEP_NOT_DEFINED);
+                if (CollectionUtils.isNotEmpty(errorMsgs)) {
+                    errorMsgs.add(CustomServicesConstants.ERROR_MSG_WORKFLOW_PREVIOUS_STEP_NOT_DEFINED);
+                } else {
+                    errorSteps.get(stepId).setErrorMessages(
+                            new ArrayList<>(Arrays.asList(CustomServicesConstants.ERROR_MSG_WORKFLOW_PREVIOUS_STEP_NOT_DEFINED)));
+                }
             } else {
                 final CustomServicesValidationResponse.ErrorStep errorStep = new CustomServicesValidationResponse.ErrorStep();
                 errorStep.setErrorMessages(
                         new ArrayList<>(Arrays.asList(CustomServicesConstants.ERROR_MSG_WORKFLOW_PREVIOUS_STEP_NOT_DEFINED)));
                 errorSteps.put(stepId, errorStep);
             }
+
         }
         return errorSteps;
     }
@@ -186,7 +198,7 @@ public class ValidationHelper {
         if (inputGroups != null) {
             for (final String inputGroupKey : step.getInputGroups().keySet()) {
                 if (!isInputEmpty(inputGroups, inputGroupKey)) {
-                    final Map<String,CustomServicesValidationResponse.ErrorInput> errorInputMap = validateInput(
+                    final Map<String, CustomServicesValidationResponse.ErrorInput> errorInputMap = validateInput(
                             inputGroups.get(inputGroupKey).getInputGroup());
                     addErrorInputGroup(errorInputMap, errorInputGroup, inputGroupKey);
                 }
@@ -197,7 +209,7 @@ public class ValidationHelper {
     }
 
     private Map<String, CustomServicesValidationResponse.ErrorInputGroup> addErrorInputGroup(
-            final Map<String,CustomServicesValidationResponse.ErrorInput> errorInputMap,
+            final Map<String, CustomServicesValidationResponse.ErrorInput> errorInputMap,
             final Map<String, CustomServicesValidationResponse.ErrorInputGroup> errorInputGroup, final String inputGroupKey) {
         if (!errorInputMap.isEmpty()) {
             CustomServicesValidationResponse.ErrorInputGroup inputGroup = new CustomServicesValidationResponse.ErrorInputGroup();
@@ -209,37 +221,39 @@ public class ValidationHelper {
 
     // Todo: Revisit this piece of code. Currently only the input field name being present and unique are enforced. This piece will be
     // revisited in COP-28892
-    private Map<String,CustomServicesValidationResponse.ErrorInput> validateInput(final List<Input> stepInputList) {
-        final Map<String,CustomServicesValidationResponse.ErrorInput> errorInputMap = new HashMap<>();
+    private Map<String, CustomServicesValidationResponse.ErrorInput> validateInput(final List<Input> stepInputList) {
+        final Map<String, CustomServicesValidationResponse.ErrorInput> errorInputMap = new HashMap<>();
         final Set<String> uniqueInputNames = new HashSet<>();
-        final List<String> errorMessages = new ArrayList<>();
+
         for (final Input input : stepInputList) {
             final CustomServicesValidationResponse.ErrorInput errorInput = new CustomServicesValidationResponse.ErrorInput();
-            if (StringUtils.isNotBlank(input.getType()) && !(input.getType().equals(CustomServicesConstants.InputType.FROM_STEP_INPUT.toString())
-                    || input.getType().equals(CustomServicesConstants.InputType.FROM_STEP_OUTPUT.toString()))) {
-                // Enforce uniqueness only for those input that will be displayed in the order page and need user input/ selection.
-                if (StringUtils.isBlank(input.getFriendlyName())) {
-                    errorMessages.add(CustomServicesConstants.ERROR_MSG_DISPLAY_IS_EMPTY);
-                } else {
-                    final String addtoSetStr = input.getFriendlyName().toLowerCase().replaceAll("\\s", "");
-                    if (uniqueFriendlyInputNames.contains(addtoSetStr)) {
-                        errorMessages.add(CustomServicesConstants.ERROR_MSG_DISPLAY_NAME_NOT_UNIQUE);
-                    } else {
-                        uniqueFriendlyInputNames.add(input.getFriendlyName().toLowerCase());
-                    }
+            final List<String> errorMessages = new ArrayList<>();
+
+            final String inputTypeErrorMessage = checkInputType(input);
+
+            if (!inputTypeErrorMessage.isEmpty()) {
+                errorMessages.add(inputTypeErrorMessage);
+            }
+
+            // Enforce friendly name uniqueness only for those input that will be displayed in the order page and need user input selection.
+            if (StringUtils.isNotBlank(input.getType())
+                    && !(input.getType().equals(CustomServicesConstants.InputType.FROM_STEP_INPUT.toString())
+                            || input.getType().equals(CustomServicesConstants.InputType.FROM_STEP_OUTPUT.toString())
+                            || input.getType().equals(CustomServicesConstants.InputType.DISABLED.toString()))) {
+                final String uniqueFriendlyNameErrorMessage = checkUniqueNames(true, input.getFriendlyName(), uniqueFriendlyInputNames);
+
+                if (!uniqueFriendlyNameErrorMessage.isEmpty()) {
+                    errorMessages.add(uniqueFriendlyNameErrorMessage);
                 }
             }
-            // Enforce uniqueness for all input names in the step to be present and unique
-            if (StringUtils.isBlank(input.getName())) {
-                errorMessages.add(CustomServicesConstants.ERROR_MSG_INPUT_NAME_IS_EMPTY);
-            } else {
-                final String addtoSetStr = input.getName().toLowerCase().replaceAll("\\s", "");
-                if (uniqueInputNames.contains(addtoSetStr)) {
-                    errorMessages.add(CustomServicesConstants.ERROR_MSG_INPUT_NAME_NOT_UNIQUE_IN_STEP);
-                } else {
-                    uniqueInputNames.add(input.getName().toLowerCase());
-                }
+
+            // Enforce uniqueness for all input names in the step
+            final String uniqueInputNameErrorMessage = checkUniqueNames(false, input.getName(), uniqueInputNames);
+
+            if (!uniqueInputNameErrorMessage.isEmpty()) {
+                errorMessages.add(uniqueInputNameErrorMessage);
             }
+
             if (!errorMessages.isEmpty()) {
                 errorInput.setErrorMessages(errorMessages);
                 errorInputMap.put(input.getName(), errorInput);
@@ -248,4 +262,75 @@ public class ValidationHelper {
         return errorInputMap;
     }
 
+    private String checkInputType(final Input input) {
+        String errorMessage = EMPTY_STRING;
+        if (StringUtils.isBlank(input.getType())
+                || CustomServicesConstants.InputType.fromString(input.getType()).equals(CustomServicesConstants.InputType.INVALID)) {
+            // Input type is required and should be one of valid values. if user does not want to set type, set it to "Disabled"
+            errorMessage = String.format("%s - Valid Input Types %s", CustomServicesConstants.ERROR_MSG_INPUT_TYPE_IS_NOT_DEFINED,
+                    EnumSet.allOf(CustomServicesConstants.InputType.class));
+        } else if (input.getRequired() && input.getType().equals(CustomServicesConstants.InputType.DISABLED.toString())) {
+            // Input type is required if the input is marked required
+            errorMessage = CustomServicesConstants.ERROR_MSG_INPUT_TYPE_IS_REQUIRED;
+        } else if (input.getType().equals(CustomServicesConstants.InputType.FROM_USER.toString())) {
+            final EnumSet<InputFieldType> inputFieldTypes = EnumSet.allOf(InputFieldType.class);
+            if (StringUtils.isBlank(input.getInputFieldType())
+                    || !inputFieldTypes.contains(InputFieldType.valueOf(input.getInputFieldType().toUpperCase()))) {
+                errorMessage = String.format("%s - Valid Input Field Types %s",
+                        CustomServicesConstants.ERROR_MSG_INPUT_FIELD_TYPE_IS_REQUIRED,
+                        inputFieldTypes);
+            } else if (StringUtils.isNotBlank(input.getDefaultValue())) {
+                final String defaultValueErrorMessage = checkDefaultvalues(input.getDefaultValue(), input.getInputFieldType());
+                if (!defaultValueErrorMessage.isEmpty()) {
+                    errorMessage = defaultValueErrorMessage;
+                }
+            }
+        } else if ((input.getType().equals(CustomServicesConstants.InputType.ASSET_OPTION_MULTI.toString()) ||
+                input.getType().equals(CustomServicesConstants.InputType.ASSET_OPTION_SINGLE.toString()))
+                && StringUtils.isNotBlank(input.getDefaultValue())) {
+            errorMessage = CustomServicesConstants.ERROR_MSG_NO_DEFAULTVALUE_FOR_ASSET_INPUT_TYPE;
+        }
+
+        return errorMessage;
+    }
+
+    private String checkUniqueNames(final boolean checkFriendlyName, final String name, final Set<String> uniqueNames) {
+        if (StringUtils.isBlank(name)) {
+            if (checkFriendlyName) {
+                return CustomServicesConstants.ERROR_MSG_DISPLAY_IS_EMPTY;
+            } else {
+                return CustomServicesConstants.ERROR_MSG_INPUT_NAME_IS_EMPTY;
+            }
+        } else {
+            final String addtoSetStr = name.toLowerCase().replaceAll("\\s", "");
+            if (uniqueNames.contains(addtoSetStr)) {
+                if (checkFriendlyName) {
+                    return CustomServicesConstants.ERROR_MSG_DISPLAY_NAME_NOT_UNIQUE;
+                } else {
+                    return CustomServicesConstants.ERROR_MSG_INPUT_NAME_NOT_UNIQUE_IN_STEP;
+                }
+            } else {
+                uniqueNames.add(name.toLowerCase());
+                return EMPTY_STRING;
+            }
+        }
+    }
+
+    private String checkDefaultvalues(final String defaultValue, final String inputFieldType) {
+        if (inputFieldType.toUpperCase().equals(CustomServicesConstants.InputFieldType.BOOLEAN.toString())) {
+            boolean error = defaultValue.toLowerCase().equals("true") || defaultValue.toLowerCase().equals("false") ? true : false;
+            if (!error) {
+                return CustomServicesConstants.ERROR_MSG_INVALID_BOOLEAN_INPUT_FIELD_TYPE;
+            }
+        }
+
+        if (inputFieldType.toUpperCase().equals(InputFieldType.NUMBER.toString())) {
+            boolean error = StringUtils.isNumeric(defaultValue) ? true : false;
+            if (!error) {
+                return CustomServicesConstants.ERROR_MSG_INVALID_NUMBER_INPUT_FIELD_TYPE;
+            }
+        }
+
+        return EMPTY_STRING;
+    }
 }

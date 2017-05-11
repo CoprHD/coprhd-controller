@@ -2135,7 +2135,9 @@ storageArray.type=Type
 storageArray.actions=Edit
 storageArray.version=Version
 storageArray.ipAddress=IP Address
+storageArray.fqdnIpAddress=IP Address / FQDN											
 storageArray.ipAddress.help=Enter the IP address of the system.
+storageArray.fqdnIpAddress.help=Enter the fully qualified domain name or IP address of the system.
 storageArray.smisProvider=Storage Provider
 storageArray.smisProviderIpAddress=Storage Provider Host
 storageArray.xtremProviderIpAddress=XtremIO Management Server IP/Hostname
@@ -2485,7 +2487,7 @@ replicationCopy.title=Replication Copy
 
 # Recoverpoint
 vpool.rpJournalSize=RecoverPoint Source Journal Size
-vpool.rpJournalSize.help=Valid value is "Min", "min", or a number >= 10GB
+vpool.rpJournalSize.help=Valid value is "Min", "min", or a number >= 10GB. It is recommended to use a consistent size for all RecoverPoint journals.
 vpool.rpRemoteCopyMode=Replication Mode
 vpool.rpRpoValue=RPO
 vpool.rpCopies=RecoverPoint Copies
@@ -2503,7 +2505,7 @@ rpCopy.journalVArray.help=Optionally select a virtual array for this RecoverPoin
 rpCopy.journalVPool=Journal Virtual Pool
 rpCopy.journalVPool.help=Optionally select a virtual pool for this RecoverPoint copy's journal volume (defaults to same Virtual pool as the RecoverPoint copy)
 rpCopy.journalSize=Journal Size
-rpCopy.journalSize.help=Valid value is "Min", "min", or a number >= 10GB
+rpCopy.journalSize.help=Valid value is "Min", "min", or a number >= 10GB. It is recommended to use a consistent size for all RecoverPoint journals.
 
 # SRDF
 vpool.srdf.error.notSupported=Must be EMC VMAX when SRDF copy protection is used
@@ -3032,6 +3034,7 @@ computeSystemElements.computeSystem=Vblock Compute System
 computeSystemElements.model=Model
 computeSystemElements.numberOfCores=Cores
 computeSystemElements.numberOfProcessors=Processors
+computeSystemElements.hostName=Host
 computeSystemElements.numberOfThreads=Threads
 computeSystemElements.processorSpeed=Processor Speed (GHz)
 computeSystemElements.ram=Memory (MB)
@@ -3175,6 +3178,7 @@ computeVirtualPool.min.nics=Minimum Nics
 computeVirtualPool.max.nics=Maximum Nics
 computeVirtualPool.min.hbas=Minimum HBAs
 computeVirtualPool.max.hbas=Maximum HBAs
+computeVirtualPool.selected.SPTs=Selected Service Profile Templates
 computeVirtualPool.group.type=System Type
 computeVirtualPool.systemType=System Type
 computeVirtualPool.group.spts=Service Profile Templates
@@ -3212,6 +3216,7 @@ computeElements.model=Model
 computeElements.computeSystem=Name
 computeElements.numberOfCores=Cores
 computeElements.numberOfProcessors=Processors
+computeElements.hostName=Host
 computeElements.numberOfThreads=Threads
 computeElements.processorSpeed=Processor Speed (GHz)
 computeElements.ram=Memory (MB)
@@ -3315,6 +3320,7 @@ order.rollbackTasks=Rollback Steps
 order.executionWindow=Execution Window
 order.resubmit=Resubmit
 order.affectedResources=Affected Resources
+order.taskWarningMessages=Task Warning Messages
 order.breadcrumbs.root=Service Catalog
 
 order.executionLogs=Logs
@@ -4071,6 +4077,7 @@ tasks.errorCodeDetails=Error Details
 tasks.actions=Actions
 tasks.orderId=Order
 tasks.viewOrder=View Order
+tasks.warningMessages=Warning Messages
 
 taskLogs.time=Time
 taskLogs.severity=Level
@@ -4844,6 +4851,7 @@ boolean.false=False
 rule.security=Security
 rule.anon=Root User Mapping
 rule.subDir=Sub Directory
+rule.bypassDnsCheck=Bypass DNS Check
 
 shareACL.permission=Permission
 shareACL.name=Name

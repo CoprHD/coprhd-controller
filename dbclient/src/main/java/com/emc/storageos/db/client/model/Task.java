@@ -43,6 +43,7 @@ public class Task extends DataObject {
     private URI workflow;
     private Calendar queuedStartTime;
     private String queueName;
+    private StringSet warningMessages;
 
     // enumeration of status value
     public enum Status {
@@ -386,5 +387,25 @@ public class Task extends DataObject {
             }
         }
         return valid;
+    }
+
+    @Name("warningMessages")
+    public StringSet getWarningMessages() {
+    	if (warningMessages == null) {
+    		return new StringSet();
+    	}
+    	return warningMessages;
+    }
+
+    public void setWarningMessages(StringSet warningMessages) {
+    	this.warningMessages = warningMessages;
+    	setChanged("warningMessages");
+    }
+
+    public void addWarningMessage(String warningMessage) {
+    	if (warningMessages == null) {
+    		warningMessages = new StringSet();
+    	}
+    	warningMessages.add(warningMessage);
     }
 }

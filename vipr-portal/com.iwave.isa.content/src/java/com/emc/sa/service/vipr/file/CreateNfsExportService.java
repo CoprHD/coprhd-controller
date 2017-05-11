@@ -5,6 +5,7 @@
 package com.emc.sa.service.vipr.file;
 
 import static com.emc.sa.service.ServiceParams.ADVISORY_LIMIT;
+import static com.emc.sa.service.ServiceParams.BYPASS_DNS_CHECK;
 import static com.emc.sa.service.ServiceParams.COMMENT;
 import static com.emc.sa.service.ServiceParams.GRACE_PERIOD;
 import static com.emc.sa.service.ServiceParams.PROJECT;
@@ -47,6 +48,9 @@ public class CreateNfsExportService extends ViPRService {
     @Bindable(itemType = FileStorageUtils.FileExportRule.class)
     protected FileStorageUtils.FileExportRule[] exportRules;
 
+    @Param(BYPASS_DNS_CHECK)
+    protected boolean bypassDnsCheck;
+
     @Override
     public void precheck() throws Exception {
         if (exportRules == null || exportRules.length == 0) {
@@ -63,9 +67,9 @@ public class CreateNfsExportService extends ViPRService {
         URI fileSystemId = FileStorageUtils.createFileSystem(project, virtualArray, virtualPool, exportName, sizeInGb, tempAdvisoryLimit,
                 tempSoftLimit, tempGracePeriod);
         if (exportRules != null) {
-            FileStorageUtils.createFileSystemExport(fileSystemId, comment, exportRules[0], null);
+            FileStorageUtils.createFileSystemExport(fileSystemId, comment, exportRules[0], null, bypassDnsCheck);
             if (exportRules.length > 1) {
-                FileStorageUtils.updateFileSystemExport(fileSystemId, null, exportRules);
+                FileStorageUtils.updateFileSystemExport(fileSystemId, null, exportRules, bypassDnsCheck);
             }
         }
     }

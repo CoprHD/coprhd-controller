@@ -3253,10 +3253,11 @@ test_vpool_change_add_srdf() {
     item=${RANDOM}
     volname="test-add_srdf-${item}"
     mkdir -p results/${item}
-    snap_db_esc=" | grep -Ev \"^Volume:|srdfLinkStatus|personality\""
+    snap_db_esc=" | grep -Ev \"^Volume:|srdfLinkStatus = OTHER|personality = null\""
 
     # Failures
     failure_injections="failure_004_final_step_in_workflow_complete \
+        failure_015_SmisCommandHelper.invokeMethod_* \
         failure_015_SmisCommandHelper.invokeMethod_EMCCreateMultipleTypeElementsFromStoragePool \
         failure_015_SmisCommandHelper.invokeMethod_GetDefaultReplicationSettingData \
         failure_015_SmisCommandHelper.invokeMethod_CreateElementReplica \
@@ -3264,7 +3265,7 @@ test_vpool_change_add_srdf() {
         failure_004_final_step_in_workflow_complete:failure_015_SmisCommandHelper.invokeMethod_RemoveMembers"
 
     # Placeholder when a specific failure case is being worked...
-    #failure_injections="failure_004_final_step_in_workflow_complete:failure_015_SmisCommandHelper.invokeMethod_RemoveMembers"
+    # failure_injections="failure_015_SmisCommandHelper.invokeMethod_*"
 
     for failure in ${failure_injections}
     do

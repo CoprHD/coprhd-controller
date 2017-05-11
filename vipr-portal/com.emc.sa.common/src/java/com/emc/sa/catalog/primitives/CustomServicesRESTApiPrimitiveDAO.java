@@ -18,6 +18,7 @@ package com.emc.sa.catalog.primitives;
 
 import java.net.URI;
 import java.util.Collection;
+import java.util.EnumSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -25,13 +26,16 @@ import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.apache.commons.lang.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.util.UriTemplate;
 
 import com.emc.sa.catalog.CustomServicesPrimitiveManager;
 import com.emc.sa.catalog.primitives.CustomServicesDBHelper.UpdatePrimitive;
 import com.emc.sa.model.dao.ModelClient;
+import com.emc.storageos.api.service.impl.resource.ArgValidator;
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.StringSetMap;
 import com.emc.storageos.db.client.model.uimodels.CustomServicesDBAnsiblePrimitive;
@@ -44,6 +48,7 @@ import com.emc.storageos.primitives.db.restapi.CustomServicesRESTApiPrimitive;
 import com.emc.storageos.primitives.input.BasicInputParameter;
 import com.emc.storageos.primitives.input.InputParameter;
 import com.emc.storageos.primitives.output.OutputParameter;
+import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -59,17 +64,16 @@ public class CustomServicesRESTApiPrimitiveDAO implements CustomServicesPrimitiv
     private DbClient dbClient;
     
     private static final Set<String> ATTRIBUTES = ImmutableSet.<String>builder()
-            .add(CustomServicesConstants.BODY)
             .add(CustomServicesConstants.PROTOCOL)
             .add(CustomServicesConstants.METHOD)
             .add(CustomServicesConstants.AUTH_TYPE)
             .add(CustomServicesConstants.PATH)
+            .add(CustomServicesConstants.BODY)
             .build();
     
     private static final Set<String> REQUEST_INPUT_TYPES = ImmutableSet.<String>builder()
             .add(CustomServicesConstants.QUERY_PARAMS)
             .add(CustomServicesConstants.HEADERS)
-            .add(CustomServicesConstants.CREDENTIALS)
             .build();
     
     private static final Set<String> RESPONSE_INPUT_TYPES = ImmutableSet.<String>builder()
@@ -84,20 +88,29 @@ public class CustomServicesRESTApiPrimitiveDAO implements CustomServicesPrimitiv
                     .build())
             .build();
     
+    private static final ImmutableMap<String, List<InputParameter>> BASIC_CREDENTIALS = ImmutableMap.<String, List<InputParameter>>builder()
+            .put(CustomServicesConstants.CREDENTIALS, ImmutableList.<InputParameter>builder()
+                    .add(new BasicInputParameter.StringParameter(CustomServicesConstants.USER, true, null))
+                    .add(new BasicInputParameter.StringParameter(CustomServicesConstants.PASSWORD, true, null))
+                    .build())
+            .build();
+    
     private static Function<CustomServicesDBRESTApiPrimitive, CustomServicesRESTApiPrimitive> MAPPER = 
             new Function<CustomServicesDBRESTApiPrimitive, CustomServicesRESTApiPrimitive>() {
 
         @Override
         public CustomServicesRESTApiPrimitive apply(CustomServicesDBRESTApiPrimitive primitive) {
-            final Map<String, List<InputParameter>> input = ImmutableMap.<String, List<InputParameter>>builder()
+            final ImmutableMap.Builder<String, List<InputParameter>> input = ImmutableMap.<String, List<InputParameter>>builder()
                     .putAll(CustomServicesDBHelper.mapInput(RESPONSE_INPUT_TYPES, primitive.getInput()))
-                    .putAll(CONNECTION_OPTIONS)
-                    .build();
+                    .putAll(CONNECTION_OPTIONS);
+            if( null != primitive.getAttributes().get(CustomServicesConstants.AUTH_TYPE)
+                    && primitive.getAttributes().get(CustomServicesConstants.AUTH_TYPE).toUpperCase().equals(CustomServicesConstants.AuthType.BASIC.name())) {
+                input.putAll(BASIC_CREDENTIALS);
+            }
                             
-            
             final List<OutputParameter> output = CustomServicesDBHelper.mapOutput(primitive.getOutput());
             final Map<String, String> attributes = CustomServicesDBHelper.mapAttributes(ATTRIBUTES, primitive.getAttributes()); 
-            return new CustomServicesRESTApiPrimitive(primitive, input, attributes, output);
+            return new CustomServicesRESTApiPrimitive(primitive, input.build(), attributes, output);
         }
         
     };
@@ -127,7 +140,12 @@ public class CustomServicesRESTApiPrimitiveDAO implements CustomServicesPrimitiv
                         return createInput(param);
                     }
                 },
-                CustomServicesDBHelper.createAttributesFunction(ATTRIBUTES),
+                new Function<CustomServicesPrimitiveCreateParam, StringMap>() {
+                    @Override
+                    public StringMap apply(CustomServicesPrimitiveCreateParam param) {
+                        return createAttributes(param);
+                    }
+                },
                 param);
     }
 
@@ -146,7 +164,13 @@ public class CustomServicesRESTApiPrimitiveDAO implements CustomServicesPrimitiv
                         return updateInput(update);
                     }
                 },
-                CustomServicesDBHelper.updateAttributesFunction(ATTRIBUTES),
+                new Function<UpdatePrimitive<CustomServicesDBRESTApiPrimitive>, StringMap>() {
+
+                    @Override
+                    public StringMap apply(final UpdatePrimitive<CustomServicesDBRESTApiPrimitive> update) {
+                        return updateAttributes(update);
+                    }
+                },
                 id, null);
     }
 
@@ -180,6 +204,25 @@ public class CustomServicesRESTApiPrimitiveDAO implements CustomServicesPrimitiv
     @Override
     public boolean hasResource() {
         return false;
+    }
+    
+    private StringMap createAttributes(final CustomServicesPrimitiveCreateParam param) {
+        final CustomServicesConstants.RestMethods method = CustomServicesConstants.RestMethods.valueOf(param.getAttributes().get(CustomServicesConstants.METHOD).toUpperCase());
+        
+        ArgValidator.checkFieldForValueFromEnum(method, CustomServicesConstants.METHOD, EnumSet.allOf(CustomServicesConstants.RestMethods.class));
+        
+        final ImmutableMap.Builder<String, String> builder = ImmutableMap.<String, String>builder().putAll(param.getAttributes());
+        
+        if( !StringUtils.isEmpty(param.getAttributes().get(CustomServicesConstants.BODY))) {
+            switch(method) {
+                case GET:
+                    throw APIException.badRequests.invalidParameterValueWithExpected(CustomServicesConstants.BODY, param.getAttributes().get(CustomServicesConstants.BODY), "");
+                default:
+            }
+        } else {
+            builder.put(CustomServicesConstants.BODY, StringUtils.EMPTY);
+        }
+        return CustomServicesDBHelper.createAttributes(ATTRIBUTES, builder.build());
     }
     
     private StringSetMap createInput(final CustomServicesPrimitiveCreateParam param) {
@@ -216,6 +259,36 @@ public class CustomServicesRESTApiPrimitiveDAO implements CustomServicesPrimitiv
         return input;
     }
     
+    public static StringMap updateAttributes(final UpdatePrimitive<CustomServicesDBRESTApiPrimitive> update) {
+        final Map<String, String> param = update.param().getAttributes();
+        if( null == param ) {
+            return update.primitive().getAttributes();
+        }
+        
+        //If trying to change the body or the method validate that the combination makes sense
+        if(param.containsKey(CustomServicesConstants.METHOD) || param.containsKey(CustomServicesConstants.BODY)) {
+            final String methodStr = param.containsKey(CustomServicesConstants.METHOD) ? 
+                    param.get(CustomServicesConstants.METHOD) : update.primitive().getAttributes().get(CustomServicesConstants.METHOD);
+            final CustomServicesConstants.RestMethods method = 
+                    CustomServicesConstants.RestMethods.valueOf(methodStr.toUpperCase());
+            final String body = param.containsKey(CustomServicesConstants.BODY) ? 
+                    param.get(CustomServicesConstants.BODY) : update.primitive().getAttributes().get(CustomServicesConstants.BODY);
+            
+            ArgValidator.checkFieldForValueFromEnum(method, CustomServicesConstants.METHOD, EnumSet.allOf(CustomServicesConstants.RestMethods.class));
+                    
+            switch(method) {
+                case GET:
+                    if(!StringUtils.isEmpty(body)) {
+                        throw APIException.badRequests.invalidParameterValueWithExpected(CustomServicesConstants.BODY, body, ""); 
+                    }
+                    break;
+                default:
+            }
+        }
+  
+        return CustomServicesDBHelper.updateAttributes(ATTRIBUTES, update.param().getAttributes(), update.primitive());
+    }
+    
     private static StringSet updateInputParams( final Map<String, String> attributes, final CustomServicesDBRESTApiPrimitive primitive) {
         final StringSet inputParams = new StringSet();
         final String path = (null == attributes.get(CustomServicesConstants.PATH)) ? primitive.getAttributes().get(CustomServicesConstants.PATH) : attributes.get(CustomServicesConstants.PATH);
@@ -244,8 +317,11 @@ public class CustomServicesRESTApiPrimitiveDAO implements CustomServicesPrimitiv
     }
 
     private static Set<String> getBodyParams(final String body) {
-        final Matcher m = Pattern.compile("\\$(\\w+)").matcher(body);
         final Set<String> params = new StringSet();
+        if(StringUtils.isEmpty(body)) {
+            return params;
+        }
+        final Matcher m = Pattern.compile("\\$(\\w+)").matcher(body);
         while (m.find()) {
             params.add(m.group(1));     
         }

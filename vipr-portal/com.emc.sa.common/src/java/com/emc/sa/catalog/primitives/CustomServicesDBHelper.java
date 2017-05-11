@@ -266,26 +266,32 @@ public final class CustomServicesDBHelper {
 
     private static void addInput(final Set<String> keys, final Map<String, InputUpdateList> map,
             final StringSetMap update) {
+        if(null == map) {
+            return;
+        }
+        
         for (final Entry<String, InputUpdateList> entry : map.entrySet()) {
             if (!keys.contains(entry.getKey())) {
                 throw APIException.badRequests.invalidParameter("input", entry.getKey());
             }
             if (null != entry.getValue().getInput()) {
-                final StringSet group = null == update.get(entry.getKey()) ? new StringSet() : update.get(entry.getKey());
-                group.addAll(entry.getValue().getInput());
-                update.put(entry.getKey(), group);
+                final StringSet add = new StringSet();
+                add.addAll(entry.getValue().getInput());
+                update.put(entry.getKey(), add);
             }
         }
     }
 
     private static void removeInput(final Set<String> keys, final Map<String, InputUpdateList> remove,
             final StringSetMap update) {
+        if( null == remove ) {
+            return;
+        }
         for (final Entry<String, InputUpdateList> entry : remove.entrySet()) {
-            final StringSet group = update.get(entry.getKey());
-
-            if (null != group && null != entry.getValue().getInput()) {
-                group.removeAll(entry.getValue().getInput());
-                update.put(entry.getKey(), group);
+            if (null != entry.getValue().getInput()) {
+                for(final String param : entry.getValue().getInput()) {
+                    update.remove(entry.getKey(), param);
+                }
             }
         }
     }

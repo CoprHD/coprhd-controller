@@ -5128,7 +5128,7 @@ wfBuilder.menu.addRestAPI=Add REST API
 wfBuilder.menu.edit=Edit
 wfBuilder.menu.rename=Rename
 wfBuilder.menu.delete=Delete
-wfBuilder.menu.import=Import
+wfBuilder.menu.import=Import Workflow
 wfBuilder.menu.export=Export
 
 # Workflow Builder

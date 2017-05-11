@@ -349,6 +349,7 @@ public class RemoteReplicationGroupService extends TaskResourceService {
         } catch (final ControllerException e) {
             _log.error("Controller Error", e);
             _dbClient.error(RemoteReplicationGroup.class, rrGroup.getId(), taskId, e);
+            _dbClient.markForDeletion(rrGroup);
         }
 
         auditOp(OperationTypeEnum.CREATE_REMOTE_REPLICATION_GROUP, true, AuditLogManager.AUDITOP_BEGIN,

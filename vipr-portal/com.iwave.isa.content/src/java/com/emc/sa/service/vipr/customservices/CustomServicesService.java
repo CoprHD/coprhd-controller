@@ -266,8 +266,10 @@ public class CustomServicesService extends ViPRService {
         try {
             final File file = new File(orderDir);
             if (file.exists()) {
+                // ALIK
+                logger.error("Cleanup OrderDir directory" + orderDir);
                 final String[] cmd = { CustomServicesConstants.REMOVE, CustomServicesConstants.REMOVE_OPTION, orderDir };
-                Exec.exec(Exec.DEFAULT_CMD_TIMEOUT, cmd);
+                //Exec.exec(Exec.DEFAULT_CMD_TIMEOUT, cmd);
             }
         } catch (final Exception e) {
             logger.error("Failed to cleanup OrderDir directory" + e);

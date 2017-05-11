@@ -82,10 +82,10 @@ public class CustomServicesShellScriptExecution extends ViPRExecutionTask<Custom
                 throw InternalServerErrorException.internalServerErrors
                         .customServiceExecutionFailed(primitive.getResource() + " not found in DB");
             }
-            logger.error("Order directory: ", exeOrderDir);
+            logger.error("Order directory: " + exeOrderDir);
 
             final String scriptFileName = String.format("%s%s.sh", exeOrderDir, URIUtil.parseUUIDFromURI(scriptid).replace("-", ""));
-            logger.error("File name with path: ", scriptFileName);
+            logger.error("File name with path: " + scriptFileName);
 
             final byte[] bytes = Base64.decodeBase64(script.getResource());
             AnsibleHelper.writeResourceToFile(bytes, scriptFileName);

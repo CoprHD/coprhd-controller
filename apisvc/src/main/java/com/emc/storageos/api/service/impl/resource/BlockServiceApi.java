@@ -93,7 +93,7 @@ public interface BlockServiceApi {
      * @param project -- Project object
      * @param varray -- VirtualArray object
      * @param vpool -- VirtualPool object
-     * @param performanceParamsURI The URI of a PerformanceParams to associate with the volume, or null.
+     * @param performanceParamsURI The URI of a PerformanceParams to associate with the primary source volume, or null.
      * @param recommendations -- List of Recommendations describing StoragePools to be used
      * @param taskList -- A TaskList to which tasks can be added
      * @param task-- The String task identifier for the overall operation

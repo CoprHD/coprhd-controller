@@ -436,8 +436,7 @@ public class SRDFScheduler implements Scheduler {
             long requiredPoolCapacity = resourceSize * currentCount;
             _log.info("Required pool capacity: " + requiredPoolCapacity);
             StoragePool poolWithRequiredCapacity = _blockScheduler.getPoolMatchingCapacity(requiredPoolCapacity,
-                    resourceSize, currentCount, sourcePoolList, VirtualPool.ProvisioningType.Thin
-                            .toString().equalsIgnoreCase(vpool.getSupportedProvisioningType()), null);
+                    resourceSize, currentCount, sourcePoolList, capabilities.getThinProvisioning(), null);
 
             // When we find a pool capable of handling a specific number
             // of resources, we pick one, remove that pool from the list
@@ -500,6 +499,10 @@ public class SRDFScheduler implements Scheduler {
                         Target target = new Target();
                         target.setTargetPool(destinationPool.getId());
                         target.setTargetStorageDevice(destinationPool.getStorageDevice());
+                        
+                        // Store the copy performance parameters used when matching the target
+                        // storage pool in this virtual array in the target recommendation.
+                        target.setPerformanceParams(varrayCopyPerformanceParamsMap.get(targetVarray1));
 
                         // Set the copy mode
                         Map<URI, VpoolRemoteCopyProtectionSettings> settingsMap = VirtualPool

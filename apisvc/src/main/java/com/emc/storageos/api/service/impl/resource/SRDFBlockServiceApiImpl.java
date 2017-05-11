@@ -176,19 +176,20 @@ public class SRDFBlockServiceApiImpl extends AbstractBlockServiceApiImpl<SRDFSch
      *            varray from request
      * @param vpool
      *            vpool from request
-     * @param volumeCount
-     *            volume count from the request
+     * @param performanceParamsURI
+     *            The performance parameters for the source volumes.
+     * @param capabilities
+     *            The virtual pool capabilities.
      * @param recommendations
      *            list of resulting recommendations from placement
      * @param consistencyGroup
      *            consistency group ID
      * @return list of volume URIs created
      */
-    private List<URI> prepareRecommendedVolumes(final String task,
-            final TaskList taskList, final Project project, final VirtualArray varray,
-            final VirtualPool vpool, final Integer volumeCount,
-            final List<Recommendation> recommendations,
-            final BlockConsistencyGroup consistencyGroup,
+    private List<URI> prepareRecommendedVolumes(final String task, final TaskList taskList, 
+            final Project project, final VirtualArray varray, final VirtualPool vpool,
+            final URI performanceParamsURI, final VirtualPoolCapabilityValuesWrapper capabilities,
+            final List<Recommendation> recommendations, final BlockConsistencyGroup consistencyGroup,
             final String volumeLabel, final String size) {
         List<URI> volumeURIs = new ArrayList<URI>();
         try {
@@ -212,6 +213,7 @@ public class SRDFBlockServiceApiImpl extends AbstractBlockServiceApiImpl<SRDFSch
                 // a BlockTaskList containing the list of task resources to be
                 // returned for the purpose of monitoring the volume creation
                 // operation for each volume to be created.
+                int volumeCount = capabilities.getResourceCount();
                 for (int i = 0; i < volumeCount; i++) {
                     // get generated volume name
                     String newVolumeLabel = generateDefaultVolumeLabel(volumeLabel, i, volumeCount);
@@ -226,9 +228,9 @@ public class SRDFBlockServiceApiImpl extends AbstractBlockServiceApiImpl<SRDFSch
                     // Assemble a Replication Set; A Collection of volumes. One production, and any
                     // number of targets.
                     if (recommendation.getVpoolChangeVolume() == null) {
-                        srcVolume = prepareVolume(srcVolume, project, varray, vpool,
-                                size, recommendation, newVolumeLabel, consistencyGroup,
-                                task, false, Volume.PersonalityTypes.SOURCE, null, null, null);
+                        srcVolume = prepareVolume(srcVolume, project, varray, vpool, performanceParamsURI,
+                                capabilities, size, recommendation, newVolumeLabel, consistencyGroup, task,
+                                false, Volume.PersonalityTypes.SOURCE, null, null, null);
                         volumeURIs.add(srcVolume.getId());
                         if (!volumePrecreated) {
                             taskList.getTaskList().add(toTask(srcVolume, task));
@@ -261,8 +263,8 @@ public class SRDFBlockServiceApiImpl extends AbstractBlockServiceApiImpl<SRDFSch
 
                         
                         // Prepare and populate CG request for the SRDF targets
-                        volumeURIs.addAll(prepareTargetVolumes(project, vpool, recommendation,
-                                new StringBuilder(newVolumeLabel), protectionVirtualArray,
+                        volumeURIs.addAll(prepareTargetVolumes(project, vpool, capabilities,
+                                recommendation, new StringBuilder(newVolumeLabel), protectionVirtualArray,
                                 settings, srcVolume, task, taskList, size));
                     }
                 }
@@ -375,6 +377,10 @@ public class SRDFBlockServiceApiImpl extends AbstractBlockServiceApiImpl<SRDFSch
      *            varray requested
      * @param vpool
      *            vpool requested
+     * @param performanceParamsURI
+     *            The performance parameters for the source volumes.
+     * @param capabilities
+     *            The virtual pool capabilities.
      * @param size
      *            size of the volume
      * @param placement
@@ -399,11 +405,10 @@ public class SRDFBlockServiceApiImpl extends AbstractBlockServiceApiImpl<SRDFSch
      * @return a persisted volume
      */
     private Volume prepareVolume(Volume volume, 
-            final Project project, final VirtualArray varray, final VirtualPool vpool,
-            final String size, final Recommendation placement,
-            final String label, final BlockConsistencyGroup consistencyGroup, final String token,
-            final boolean remote, final Volume.PersonalityTypes personality, final URI srcVolumeId,
-            final URI raGroupURI, final String copyMode) {
+            final Project project, final VirtualArray varray, final VirtualPool vpool, final URI performanceParamsURI,
+            final VirtualPoolCapabilityValuesWrapper capabilities, final String size, final Recommendation placement,
+            final String label, final BlockConsistencyGroup consistencyGroup, final String token, final boolean remote,
+            final Volume.PersonalityTypes personality, final URI srcVolumeId, final URI raGroupURI, final String copyMode) {
         boolean newVolume = false;
 
         if (volume == null) {
@@ -420,9 +425,13 @@ public class SRDFBlockServiceApiImpl extends AbstractBlockServiceApiImpl<SRDFSch
 
         volume.setLabel(label);
         volume.setCapacity(SizeUtil.translateSize(size));
-        volume.setThinlyProvisioned(VirtualPool.ProvisioningType.Thin.toString().equalsIgnoreCase(
-                vpool.getSupportedProvisioningType()));
+        volume.setThinlyProvisioned(capabilities.getThinProvisioning());
+        volume.setIsDeduplicated(capabilities.getDedupCapable());
+        if (0 != capabilities.getThinVolumePreAllocateSize()) {
+            volume.setThinVolumePreAllocationSize(capabilities.getThinVolumePreAllocateSize());
+        }
         volume.setVirtualPool(vpool.getId());
+        volume.setPerformanceParams(performanceParamsURI);
         volume.setProject(new NamedURI(project.getId(), volume.getLabel()));
         volume.setTenant(new NamedURI(project.getTenantOrg().getURI(), volume.getLabel()));
         volume.setVirtualArray(varray.getId());
@@ -471,8 +480,8 @@ public class SRDFBlockServiceApiImpl extends AbstractBlockServiceApiImpl<SRDFSch
             volume.setConsistencyGroup(consistencyGroup.getId());
             volume.setReplicationGroupInstance(consistencyGroup.getLabel());
         }
-
-        if (null != vpool.getAutoTierPolicyName()) {
+        
+        if (null != capabilities.getAutoTierPolicyName()) {
             URI autoTierPolicyUri = StorageScheduler.getAutoTierPolicy(volume.getPool(),
                     vpool.getAutoTierPolicyName(), _dbClient);
             if (null != autoTierPolicyUri) {
@@ -490,7 +499,7 @@ public class SRDFBlockServiceApiImpl extends AbstractBlockServiceApiImpl<SRDFSch
             // go through that process.
             srcVolume.setPersonality(Volume.PersonalityTypes.SOURCE.toString());
             srcVolume.getSrdfTargets().add(volume.getId().toString());
-            _dbClient.persistObject(srcVolume);
+            _dbClient.updateObject(srcVolume);
 
             volume.setSrdfParent(new NamedURI(srcVolume.getId(), srcVolume.getLabel()));
             computeCapacityforSRDFV3ToV2(volume, vpool);
@@ -499,7 +508,7 @@ public class SRDFBlockServiceApiImpl extends AbstractBlockServiceApiImpl<SRDFSch
         if (newVolume) {
             _dbClient.createObject(volume);
         } else {
-            _dbClient.updateAndReindexObject(volume);
+            _dbClient.updateObject(volume);
         }
 
         return volume;
@@ -515,6 +524,8 @@ public class SRDFBlockServiceApiImpl extends AbstractBlockServiceApiImpl<SRDFSch
      *            project requested
      * @param vpool
      *            class of service requested
+     * @param capabilities
+     *            The virtual pool capabilities.
      * @param recommendation
      *            recommendation placement object
      * @param volumeLabelBuilder
@@ -527,8 +538,8 @@ public class SRDFBlockServiceApiImpl extends AbstractBlockServiceApiImpl<SRDFSch
      *            task id
      * @return list of volume IDs
      */
-    private List<URI> prepareTargetVolumes(final Project project,
-            final VirtualPool vpool, final SRDFRecommendation recommendation,
+    private List<URI> prepareTargetVolumes(final Project project, final VirtualPool vpool, 
+            final VirtualPoolCapabilityValuesWrapper capabilities, final SRDFRecommendation recommendation,
             final StringBuilder volumeLabelBuilder, final VirtualArray targetVirtualArray,
             final VpoolRemoteCopyProtectionSettings settings, final Volume srcVolume,
             final String task, final TaskList taskList, final String size) {
@@ -541,23 +552,25 @@ public class SRDFBlockServiceApiImpl extends AbstractBlockServiceApiImpl<SRDFSch
         if (settings.getVirtualPool() != null) {
             targetVpool = _dbClient.queryObject(VirtualPool.class, settings.getVirtualPool());
         }
+        
+        // Override the source capabilities so they specify those for the target vpool
+        // and target performance parameters.
+        SRDFRecommendation.Target target = recommendation.getVirtualArrayTargetMap().get(targetVirtualArray.getId());
+        Map<VolumeTopologyRole, URI> targetPerformanceParamsMap = target.getPerformanceParams();
+        VirtualPoolCapabilityValuesWrapper copyCapabilities = PerformanceParamsUtils.overrideCapabilitiesForVolumePlacement(
+                targetVpool, targetPerformanceParamsMap, VolumeTopologyRole.PRIMARY, capabilities, _dbClient);
+
+        // We need the performance parameters, if any, used when placing the target.
+        URI copyPerformanceParamsURI = (targetPerformanceParamsMap == null ? null :
+                PerformanceParamsUtils.getPerformanceParamsIdForRole(targetPerformanceParamsMap, VolumeTopologyRole.PRIMARY, _dbClient));
 
         // Target volume in a varray
-        volume = prepareVolume(
-                null,
-                project,
-                targetVirtualArray,
-                targetVpool,
-                size,
-                recommendation,
-                new StringBuilder(volumeLabelBuilder.toString()).append(
-                        "-target-" + targetVirtualArray.getLabel()).toString(),
-                null,
-                task, true, Volume.PersonalityTypes.TARGET, srcVolume.getId(), recommendation
-                        .getVirtualArrayTargetMap().get(targetVirtualArray.getId())
-                        .getSourceRAGroup(),
-                settings.getCopyMode());
+        volume = prepareVolume(null, project, targetVirtualArray, targetVpool, copyPerformanceParamsURI, copyCapabilities,
+                size, recommendation, new StringBuilder(volumeLabelBuilder.toString()).append("-target-" + targetVirtualArray.getLabel()).toString(),
+                null, task, true, Volume.PersonalityTypes.TARGET, srcVolume.getId(), recommendation.getVirtualArrayTargetMap().get(targetVirtualArray.getId())
+                        .getSourceRAGroup(), settings.getCopyMode());
         volumeURIs.add(volume.getId());
+        
         // add target only during vpool change.
         if (recommendation.getVpoolChangeVolume() != null) {
             taskList.getTaskList().add(toTask(volume, task));
@@ -660,11 +673,19 @@ public class SRDFBlockServiceApiImpl extends AbstractBlockServiceApiImpl<SRDFSch
         BlockOrchestrationController controller = getController(
                 BlockOrchestrationController.class,
                 BlockOrchestrationController.BLOCK_ORCHESTRATION_DEVICE);
+        
+        // Get the performance parameters for the source volume.
+        URI performanceParamsURI = null;
+        List<Map<VolumeTopologyRole, URI>> sourcePerformanceParams = performanceParams.get(VolumeTopologySite.SOURCE);
+        if (!CollectionUtils.isEmpty(sourcePerformanceParams)) {
+            performanceParamsURI = PerformanceParamsUtils.getPerformanceParamsIdForRole(
+                    sourcePerformanceParams.get(0), VolumeTopologyRole.PRIMARY, _dbClient);
+        }
 
         for (Recommendation volRecommendation : volRecommendations) {
             List<VolumeDescriptor> existingDescriptors = new ArrayList<VolumeDescriptor>();
             List<VolumeDescriptor> volumeDescriptors = createVolumesAndDescriptors(existingDescriptors,
-                    param.getName(), size, project, varray, vpool, null, volRecommendations, taskList, task, capabilities);
+                    param.getName(), size, project, varray, vpool, performanceParamsURI, volRecommendations, taskList, task, capabilities);
             List<URI> volumeURIs = VolumeDescriptor.getVolumeURIs(volumeDescriptors);
 
             try {
@@ -715,8 +736,8 @@ public class SRDFBlockServiceApiImpl extends AbstractBlockServiceApiImpl<SRDFSch
                                         .get(recommendation.getVirtualArray());
                 if (target.getDescriptors() != null) {
                     volumeDescriptors.addAll(target.getDescriptors());
+                }
             }
-        }
             // We never mix recommendation types SRDFCopyRecommendation and SRDFRecommendation,
             // so if we had SRDFCopyRecommendations, just return their descriptors now.
             if (!volumeDescriptors.isEmpty()) {
@@ -731,7 +752,7 @@ public class SRDFBlockServiceApiImpl extends AbstractBlockServiceApiImpl<SRDFSch
         // operation for each volume to be created.
         if (taskList == null) {
             taskList = new TaskList();
-    }
+        }
 
         Iterator<Recommendation> recommendationsIter;
 
@@ -741,7 +762,7 @@ public class SRDFBlockServiceApiImpl extends AbstractBlockServiceApiImpl<SRDFSch
 
         // prepare the volumes
         List<URI> volumeURIs = prepareRecommendedVolumes(task, taskList, project, varray,
-                vpool, capabilities.getResourceCount(), recommendations, consistencyGroup,
+                vpool, performanceParamsURI, capabilities, recommendations, consistencyGroup,
                 volumeLabel, size.toString());
 
         // Execute the volume creations requests for each recommendation.
@@ -1036,8 +1057,9 @@ public class SRDFBlockServiceApiImpl extends AbstractBlockServiceApiImpl<SRDFSch
                         capabilities.getBlockConsistencyGroup());
 
         // prepare the volumes
+        // TBD Heg revisit when vpool changes addressed.
         List<URI> volumeURIs = prepareRecommendedVolumes(taskId, taskList, project, varray,
-                vpool, capabilities.getResourceCount(), recommendations, consistencyGroup,
+                vpool, null, capabilities, recommendations, consistencyGroup,
                 volumeLabel, param.getSize());
         List<VolumeDescriptor> resultListVolumeDescriptors = new ArrayList<>();
         // Execute the volume creations requests for each recommendation.

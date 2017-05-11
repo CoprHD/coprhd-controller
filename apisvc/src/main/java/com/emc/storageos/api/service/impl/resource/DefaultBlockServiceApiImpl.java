@@ -22,6 +22,7 @@ import java.util.Set;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.util.CollectionUtils;
 
 import com.emc.storageos.api.mapper.TaskMapper;
 import com.emc.storageos.api.service.impl.placement.StorageScheduler;
@@ -97,14 +98,22 @@ public class DefaultBlockServiceApiImpl extends AbstractBlockServiceApiImpl<Stor
 
     @Override
     public TaskList createVolumes(VolumeCreate param, Project project, VirtualArray neighborhood, VirtualPool cos,
-            Map<VolumeTopologySite, List<Map<VolumeTopologyRole, URI>>> performanceParam,
+            Map<VolumeTopologySite, List<Map<VolumeTopologyRole, URI>>> performanceParams,
             Map<VpoolUse, List<Recommendation>> recommendationMap, TaskList taskList,
             String task, VirtualPoolCapabilityValuesWrapper cosCapabilities) throws InternalException {
         
         Long size = SizeUtil.translateSize(param.getSize());
         List<VolumeDescriptor> existingDescriptors = new ArrayList<VolumeDescriptor>();
-        URI performanceParamsURI = PerformanceParamsUtils.getPerformanceParamsIdForSourceRole(
-                param.getPerformanceParams(), VolumeTopologyRole.PRIMARY, _dbClient);
+        
+        // Get the performance parameters for the source volume.
+        URI performanceParamsURI = null;
+        List<Map<VolumeTopologyRole, URI>> sourcePerformanceParams = performanceParams.get(VolumeTopologySite.SOURCE);
+        if (!CollectionUtils.isEmpty(sourcePerformanceParams)) {
+            // Always one for the source site.
+            performanceParamsURI = PerformanceParamsUtils.getPerformanceParamsIdForRole(
+                    sourcePerformanceParams.get(0), VolumeTopologyRole.PRIMARY, _dbClient);
+        }
+
         List<VolumeDescriptor> volumeDescriptors = createVolumesAndDescriptors(
                 existingDescriptors, param.getName(), size, project, neighborhood, cos, 
                 performanceParamsURI, recommendationMap.get(VpoolUse.ROOT), taskList, task,

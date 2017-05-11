@@ -26,27 +26,6 @@ import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValues
  * PerformanceParams utility class.
  */
 public class PerformanceParamsUtils {
-    
-    /**
-     * Get the performance parameters for the passed role.
-     * 
-     * @param performanceParams The performance parameter overrides.
-     * @param role A VolumeTopologyRole.
-     * @param dbClient A reference to a DbClient.
-     * 
-     * @return The URI of a PerformanceParams instance or null.
-     */
-    public static URI getPerformanceParamsIdForSourceRole(VolumeCreatePerformanceParams performanceParams,
-            VolumeTopologyRole role, DbClient dbClient) {
-        URI performanceParamsURI = null;
-        if (performanceParams != null) {
-            BlockPerformanceParamsMap sourceParams = performanceParams.getSourceParams();
-            if (sourceParams != null) {
-                performanceParamsURI = sourceParams.findPerformanceParamsForRole(role.name());
-            }
-        }
-        return performanceParamsURI;
-    }
 
     /**
      * Transform the performance params to a Java map.
@@ -390,56 +369,56 @@ public class PerformanceParamsUtils {
     }    
     
     /**
-     * Override the passed primary side capabilities to take into account the values in
-     * the HA virtual pool and the performance parameters for the HA side of a VPLEX
-     * volume.
+     * Override the passed source, primary side capabilities to get the capabilities used when
+     * placing ha side of a distributed volume or an SRDF/RP copy. Used the passed virtual pool
+     * and performance parameters.
      *  
-     * @param haVpool The HA virtual pool.
+     * @param vpool The virtual pool.
      * @param performanceParams The performance parameters.
-     * @param haRole The HA role.
-     * @param primaryCapabilities The capabilities for the primary side of the VPLEX volume.
+     * @param role The site role.
+     * @param primaryCapabilities The capabilities for the source, primary volume.
      * @param dbClient A reference to a db client.
      * 
-     * @return The capabilities to use when matching pools for the HA side of the volume.
+     * @return The overridden capabilities.
      */
     public static VirtualPoolCapabilityValuesWrapper overrideCapabilitiesForVolumePlacement(
-            VirtualPool haVpool, Map<VolumeTopologyRole, URI> performanceParams,
-            VolumeTopologyRole haRole, VirtualPoolCapabilityValuesWrapper primaryCapabilities, DbClient dbClient) {
+            VirtualPool vpool, Map<VolumeTopologyRole, URI> performanceParams, VolumeTopologyRole role,
+            VirtualPoolCapabilityValuesWrapper primaryCapabilities, DbClient dbClient) {
         
-        // Initialize HA capabilities.
-        VirtualPoolCapabilityValuesWrapper haCapabilities = new VirtualPoolCapabilityValuesWrapper(primaryCapabilities);
+        // Initialize override capabilities.
+        VirtualPoolCapabilityValuesWrapper overrideCapabilities = new VirtualPoolCapabilityValuesWrapper(primaryCapabilities);
 
-        // Set the auto tiering policy name for the HA side into the HA capabilities.
+        // Override the auto tiering policy name.
         String autoTierPolicyName = getAutoTierinigPolicyName(
-                performanceParams, haRole, haVpool, dbClient);
+                performanceParams, role, vpool, dbClient);
         if (NullColumnValueGetter.isNotNullValue(autoTierPolicyName)) {
-            haCapabilities.put(VirtualPoolCapabilityValuesWrapper.AUTO_TIER__POLICY_NAME, autoTierPolicyName);
+            overrideCapabilities.put(VirtualPoolCapabilityValuesWrapper.AUTO_TIER__POLICY_NAME, autoTierPolicyName);
         } else {
-            haCapabilities.removeCapabilityEntry(VirtualPoolCapabilityValuesWrapper.AUTO_TIER__POLICY_NAME);            
+            overrideCapabilities.removeCapabilityEntry(VirtualPoolCapabilityValuesWrapper.AUTO_TIER__POLICY_NAME);            
         }
 
-        // Set is thin provisioning for the HA side.
+        // Override thin provisioning.
         if (VirtualPool.ProvisioningType.Thin.toString().equalsIgnoreCase(
-                haVpool.getSupportedProvisioningType())) {
-            haCapabilities.put(VirtualPoolCapabilityValuesWrapper.THIN_PROVISIONING, Boolean.TRUE);
+                vpool.getSupportedProvisioningType())) {
+            overrideCapabilities.put(VirtualPoolCapabilityValuesWrapper.THIN_PROVISIONING, Boolean.TRUE);
         }
 
-        // Set the thin volume pre-allocation size for the HA side into the HA capabilities.
+        // Override the thin volume pre-allocation size.
         Integer thinVolumePreAllocPercentage = getThinVolumePreAllocPercentage(
-                performanceParams, haRole, haVpool, dbClient);
+                performanceParams, role, vpool, dbClient);
         if (null != thinVolumePreAllocPercentage && 0 < thinVolumePreAllocPercentage) {
-            haCapabilities.put(VirtualPoolCapabilityValuesWrapper.THIN_VOLUME_PRE_ALLOCATE_SIZE, VirtualPoolUtil
-                    .getThinVolumePreAllocationSize(thinVolumePreAllocPercentage, haCapabilities.getSize()));
+            overrideCapabilities.put(VirtualPoolCapabilityValuesWrapper.THIN_VOLUME_PRE_ALLOCATE_SIZE, VirtualPoolUtil
+                    .getThinVolumePreAllocationSize(thinVolumePreAllocPercentage, overrideCapabilities.getSize()));
         }
 
-        // Set the dedup capable for the HA side into the HA capabilities.
-        Boolean dedupCapable = getIsDedupCapable(performanceParams, haRole, haVpool, dbClient);
+        // Override the dedup capable setting.
+        Boolean dedupCapable = getIsDedupCapable(performanceParams, role, vpool, dbClient);
         if (dedupCapable) {
-            haCapabilities.put(VirtualPoolCapabilityValuesWrapper.DEDUP, dedupCapable);
+            overrideCapabilities.put(VirtualPoolCapabilityValuesWrapper.DEDUP, dedupCapable);
         } else {
-            haCapabilities.removeCapabilityEntry(VirtualPoolCapabilityValuesWrapper.DEDUP);
+            overrideCapabilities.removeCapabilityEntry(VirtualPoolCapabilityValuesWrapper.DEDUP);
         }
 
-        return haCapabilities;
+        return overrideCapabilities;
     }
 }

@@ -129,7 +129,9 @@ public class CustomServicesShellScriptExecution extends ViPRExecutionTask<Custom
 
     private Map<String,String> makeParam(final Map<String, List<String>> input) throws Exception {
         final Map<String,String> environment = new HashMap<String,String>();
-
+        if (input == null) {
+            return environment;
+        }
 
         for(Map.Entry<String, List<String>> e : input.entrySet()) {
             if (StringUtils.isEmpty(e.getKey()) || e.getValue().isEmpty()) {

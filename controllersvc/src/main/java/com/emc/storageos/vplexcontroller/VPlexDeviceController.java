@@ -336,6 +336,8 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
     private static final String STORAGE_VIEW_ADD_INITS_ROLLBACK_METHOD = "storageViewAddInitiatorsRollback";
     private static final String STORAGE_VIEW_ADD_VOLS_ROLLBACK_METHOD = "storageViewAddVolumesRollback";
     private static final String STORAGE_VIEW_ADD_STORAGE_PORTS_ROLLBACK_METHOD = "storageViewAddStoragePortsRollback";
+    private static final String STORAGE_VIEW_ADD_STORAGE_PORTS_METHOD = "storageViewAddStoragePorts";
+    private static final String STORAGE_VIEW_ADD_INITS_METHOD = "storageViewAddInitiators";
 
     // Constants used for creating a migration name.
     private static final String MIGRATION_NAME_PREFIX = "M_";
@@ -4562,7 +4564,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
      */
     public Workflow.Method storageViewAddInitiatorsMethod(URI vplexURI, URI exportURI, URI maskURI,
             List<URI> initiatorURIs, List<URI> targetURIs, boolean sharedExportMask, ExportMaskAddInitiatorCompleter completer) {
-        return new Workflow.Method("storageViewAddInitiators", vplexURI, exportURI, maskURI, initiatorURIs, targetURIs, sharedExportMask,
+        return new Workflow.Method(STORAGE_VIEW_ADD_INITS_METHOD, vplexURI, exportURI, maskURI, initiatorURIs, targetURIs, sharedExportMask,
                 completer);
     }
 
@@ -4807,7 +4809,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
      */
     public Workflow.Method storageViewAddStoragePortsMethod(URI vplexURI, URI exportURI, URI maskURI,
             List<URI> targetURIs, ExportMaskAddInitiatorCompleter completer) {
-        return new Workflow.Method("storageViewAddStoragePorts", vplexURI, exportURI, maskURI, targetURIs, completer);
+        return new Workflow.Method(STORAGE_VIEW_ADD_STORAGE_PORTS_METHOD, vplexURI, exportURI, maskURI, targetURIs, completer);
     }
 
     /**
@@ -4969,7 +4971,6 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
         }
 
         storageViewRemoveStoragePorts(vplexURI, exportURI, maskURI, targetURIs, rollbackContextKey, stepId);
-
     }
 
 
@@ -5048,7 +5049,9 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
                                     && VplexExportOperationContext.OPERATION_ADD_TARGETS_TO_STORAGE_VIEW
                                             .equals(operation.getOperation())) {
                                 addedTargets = (List<URI>) operation.getArgs().get(0);
-                                _log.info("Removing target {} as part of rollback", Joiner.on(',').join(addedTargets));
+                                _log.info(
+                                        String.format("Removing target port(s) %s from storage view %s as part of rollback",
+                                                Joiner.on(',').join(addedTargets), exportMask.getMaskName()));
                             }
                         }
                     }
@@ -9999,7 +10002,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
                     storageViewInitiators, null, shared, completer);
             Workflow.Method addToViewRollbackMethod = storageViewAddInitiatorsRollbackMethod(vplex.getId(),
                     exportGroup.getId(), exportMask.getId(), storageViewInitiators, null, addInitStep);
-            workflow.createStep("storageView", "Add " + message,
+            workflow.createStep(STORAGE_VIEW_ADD_INITS_METHOD, message,
                     null, vplex.getId(), vplex.getSystemType(), this.getClass(),
                     addToViewMethod, addToViewRollbackMethod, addInitStep);
 
@@ -10013,9 +10016,9 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
             Workflow.Method addPortsToViewRollbackMethod = storageViewAddStoragePortsRollbackMethod(vplex.getId(), exportGroup.getId(),
                     exportMask.getId(), newTargets, addPortStep);
 
-            workflow.createStep("storageView",
-                    String.format("Updating VPLEX Storage View StoragePorts for ExportGroup %s Mask %s", exportGroup.getId(),
-                            exportMask.getMaskName()),
+            workflow.createStep(STORAGE_VIEW_ADD_STORAGE_PORTS_METHOD,
+                    String.format("Adding storage ports %s to VPLEX storage View %s", Joiner.on(", ").join(newTargets),
+                            exportGroup.getGeneratedName()),
                     addInitStep, vplex.getId(), vplex.getSystemType(),
                     this.getClass(), addPortsToViewMethod, addPortsToViewRollbackMethod, addPortStep);
 

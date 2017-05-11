@@ -223,8 +223,6 @@ public class ValidationHelper {
         return errorInputGroup;
     }
 
-    // Todo: Revisit this piece of code. Currently only the input field name being present and unique are enforced. This piece will be
-    // revisited in COP-28892
     private Map<String, CustomServicesValidationResponse.ErrorInput> validateInput(final List<Input> stepInputList) {
         final Map<String, CustomServicesValidationResponse.ErrorInput> errorInputMap = new HashMap<>();
         final Set<String> uniqueInputNames = new HashSet<>();
@@ -251,7 +249,8 @@ public class ValidationHelper {
                 }
             }
 
-            // Enforce uniqueness for all input names in the step
+            // Enforce uniqueness for all input names in the input group
+            //TODO: This might be revisited based on the discussion of unique names in step vs step input group
             final String uniqueInputNameErrorMessage = checkUniqueNames(false, input.getName(), uniqueInputNames);
 
             if (!uniqueInputNameErrorMessage.isEmpty()) {
@@ -322,15 +321,13 @@ public class ValidationHelper {
 
     private String checkDefaultvalues(final String defaultValue, final String inputFieldType) {
         if (inputFieldType.toUpperCase().equals(CustomServicesConstants.InputFieldType.BOOLEAN.toString())) {
-            boolean error = defaultValue.toLowerCase().equals("true") || defaultValue.toLowerCase().equals("false") ? true : false;
-            if (!error) {
+            if (defaultValue.toLowerCase().equals("true") || defaultValue.toLowerCase().equals("false")) {
                 return CustomServicesConstants.ERROR_MSG_INVALID_BOOLEAN_INPUT_FIELD_TYPE;
             }
         }
 
         if (inputFieldType.toUpperCase().equals(InputFieldType.NUMBER.toString())) {
-            boolean error = StringUtils.isNumeric(defaultValue) ? true : false;
-            if (!error) {
+            if (StringUtils.isNumeric(defaultValue)) {
                 return CustomServicesConstants.ERROR_MSG_INVALID_NUMBER_INPUT_FIELD_TYPE;
             }
         }

@@ -250,7 +250,7 @@ public class ValidationHelper {
             }
 
             // Enforce uniqueness for all input names in the input group
-            //TODO: This might be revisited based on the discussion of unique names in step vs step input group
+            // TODO: This might be revisited based on the discussion of unique names in step vs step input group
             final String uniqueInputNameErrorMessage = checkUniqueNames(false, input.getName(), uniqueInputNames);
 
             if (!uniqueInputNameErrorMessage.isEmpty()) {
@@ -321,13 +321,13 @@ public class ValidationHelper {
 
     private String checkDefaultvalues(final String defaultValue, final String inputFieldType) {
         if (inputFieldType.toUpperCase().equals(CustomServicesConstants.InputFieldType.BOOLEAN.toString())) {
-            if (defaultValue.toLowerCase().equals("true") || defaultValue.toLowerCase().equals("false")) {
+            if (!(defaultValue.toLowerCase().equals("true") || defaultValue.toLowerCase().equals("false"))) {
                 return CustomServicesConstants.ERROR_MSG_INVALID_BOOLEAN_INPUT_FIELD_TYPE;
             }
         }
 
-        if (inputFieldType.toUpperCase().equals(InputFieldType.NUMBER.toString())) {
-            if (StringUtils.isNumeric(defaultValue)) {
+        if (inputFieldType.toUpperCase().equals(InputFieldType.INTEGER.toString())) {
+            if (!StringUtils.isNumeric(defaultValue)) {
                 return CustomServicesConstants.ERROR_MSG_INVALID_NUMBER_INPUT_FIELD_TYPE;
             }
         }

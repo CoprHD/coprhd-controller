@@ -2072,7 +2072,7 @@ test_7() {
 
       # Verify the zone names, as we know them, are on the switch
       zone1=`get_zone_name ${HOST1} ${H1PI1}`
-      verify_zone ${zone1} ${FC_ZONE_A:7} exists
+      verify_zone ${zone1} ${FC_ZONE_A} exists
       
       # Snsp the DB so we can validate after failures later
       snap_db 2 "${cfs[@]}"
@@ -2110,7 +2110,7 @@ test_7() {
 
       # Verify the zone names, as we know them, are on the switch
       zone2=`get_zone_name ${HOST1} ${H1PI2}`
-      verify_zone ${zone2} ${FC_ZONE_A:7} exists
+      verify_zone ${zone2} ${FC_ZONE_A} exists
 
       # Perform any DB validation in here
       snap_db 4 "${cfs[@]}"
@@ -2120,12 +2120,12 @@ test_7() {
 
       # Only verify the zone has been removed if it is a newly created zone
       if newly_created_zone_for_host $zone1 $HOST1; then
-        verify_zone ${zone1} ${FC_ZONE_A:7} gone    
+        verify_zone ${zone1} ${FC_ZONE_A} gone    
       fi
 
       # Only verify the zone has been removed if it is a newly created zone
       if newly_created_zone_for_host $zone2 $HOST1; then
-        verify_zone ${zone2} ${FC_ZONE_A:7} gone    
+        verify_zone ${zone2} ${FC_ZONE_A} gone    
       fi      
 
       # Verify the DB is back to the original state

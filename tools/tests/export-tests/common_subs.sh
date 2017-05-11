@@ -575,12 +575,16 @@ get_zone_name() {
 verify_zone() {
     zone=$1
     fabricid=$2
-    check=$3 
+    check=$3    
     
     if [ "${SIM}" = "1" ]; then
-        network=$FABRIC_SIMULATOR
+        network=fabric-sim
+        # Remove the FABRIC_ prefix for sim fabric
+        fabricid=${fabricid:5} 
     else
         network=$BROCADE_NETWORK
+        # Remove the FABRIC_ prefix for non sim fabric
+        fabricid=${fabricid:7}
     fi
     
     recho "zone list $network --fabricid ${fabricid} --zone_name ${zone}"

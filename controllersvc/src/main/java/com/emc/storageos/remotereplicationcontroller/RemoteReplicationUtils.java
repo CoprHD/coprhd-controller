@@ -546,7 +546,7 @@ public class RemoteReplicationUtils {
             Volume source = dbClient.queryObject(Volume.class, sourceUri);
             Volume target = dbClient.queryObject(Volume.class, targetUri);
             
-            _log.info(String.format("Processing srdf pair: %s/%s -> %s/%s", source.getLabel(), sourceUri, target.getLabel(), targetUri));
+            _log.info(String.format("Processing srdf pair: %s/%s -> %s/%s, isSwapped: %s", source.getLabel(), sourceUri, target.getLabel(), targetUri, swapped));
             StorageSystem sourceSystem = dbClient.queryObject(StorageSystem.class, source.getStorageController());
             StorageSystem targetSystem = dbClient.queryObject(StorageSystem.class, target.getStorageController());
 

@@ -530,6 +530,7 @@ public enum OperationTypeEnum {
     RESUME_REMOTE_REPLICATION_GROUP_LINK("RESUME REMOTE REPLICATION GROUP LINK", "ResumeRemoteReplicationGroupLinkFailed", "resume remote replication group link"),
     SWAP_REMOTE_REPLICATION_GROUP_LINK("SWAP REMOTE REPLICATION GROUP LINK", "SwapRemoteReplicationGroupLinkFailed", "swap remote replication group link"),
     CHANGE_REMOTE_REPLICATION_MODE("CHANGE REMOTE REPLICATION MODE", "ChangeRemoteReplicationModeFailed", "change remote replication mode"),
+    MOVE_REMOTE_REPLICATION_PAIR("MOVE_REMOTE_REPLICATION_PAIR", "Move remote replication pair failed", "move remote replication pair"),
     CHANGE_REMOTE_REPLICATION_GROUP("CHANGE REMOTE REPLICATION GROUP", "ChangeRemoteReplicationGroupFailed", "change remote replication group"),
     //
     FAILOVER_REMOTE_REPLICATION_SET_LINK("FAILOVER REMOTE REPLICATION SET LINK", "FailoverRemoteReplicationSetLinkFailed", "failover remote replication set link"),
@@ -547,6 +548,7 @@ public enum OperationTypeEnum {
     SUSPEND_REMOTE_REPLICATION_PAIR_LINK("SUSPEND REMOTE REPLICATION PAIR LINK", "SuspendRemoteReplicationPairLinkFailed", "suspend remote replication pair link"),
     RESUME_REMOTE_REPLICATION_PAIR_LINK("RESUME REMOTE REPLICATION PAIR LINK", "ResumeRemoteReplicationPairLinkFailed", "resume remote replication pair link"),
     SWAP_REMOTE_REPLICATION_PAIR_LINK("SWAP REMOTE REPLICATION PAIR LINK", "SwapRemoteReplicationPairLinkFailed", "swap remote replication pair link"),
+    SWAP_REMOTE_REPLICATION_CG_LINK("SWAP REMOTE REPLICATION CG LINK", "SwapRemoteReplicationCGLinkFailed", "swap remote replication cg link"),
     //
     FAILOVER_REMOTE_REPLICATION_CG_LINK("FAILOVER REMOTE REPLICATION CG LINK", "FailoverRemoteReplicationCGLinkFailed", "failover remote replication cg link"),
     ESTABLISH_REMOTE_REPLICATION_CG_LINK("ESTABLISH REMOTE REPLICATION CG LINK", "EstablishRemoteReplicationCGLinkFailed", "establish remote replication cg link"),

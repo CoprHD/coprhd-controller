@@ -13,5 +13,6 @@ public class VplexExportOperationContext extends ExportOperationContext {
     public static final String OPERATION_ADD_INITIATORS_TO_STORAGE_VIEW = "Add initiators to storage view";
     public static final String OPERATION_CREATE_STORAGE_VIEW = "Create storage view";
     public static final String OPERATION_ADD_VOLUMES_TO_STORAGE_VIEW = "Add volumes to storage view";
+    public static final String OPERATION_ADD_TARGETS_TO_STORAGE_VIEW = "Add targets to storage view";
 
 }

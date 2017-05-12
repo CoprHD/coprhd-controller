@@ -9,6 +9,7 @@ import com.emc.sa.engine.ExecutionUtils;
 
 import com.emc.sa.engine.bind.Bindable;
 import com.emc.sa.engine.service.Service;
+import com.emc.sa.service.ArtificialFailures;
 import com.emc.sa.service.vipr.block.CreateBlockVolumeForHostHelper;
 import com.emc.storageos.model.block.BlockObjectRestRep;
 import com.google.common.collect.Lists;
@@ -38,6 +39,7 @@ public class CreateAndMountVolumeService extends LinuxService {
         BlockObjectRestRep volume = createVolume();
         acquireHostsLock();
         refreshStorage(volume);
+        artificialFailure(ArtificialFailures.ARTIFICIAL_FAILURE_LINUX_MOUNT_VOLUME);
         mountVolume(volume);
     }
 

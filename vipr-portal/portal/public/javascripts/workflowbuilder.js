@@ -238,7 +238,7 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
         if(!showOptions(nodeId, parents)) return;
 
         //find anchor with this id and append "more options"
-        $('[id="'+nodeId+'"]').children('a').after(optionsHTML);
+        $('[id="'+nodeId+'"]').children('a').before(optionsHTML);
 
         // If current node is vipr library or its parent is vipr library, disable all
         if(workflowNodeType === nodeType){
@@ -300,7 +300,7 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
                 </div>
             `;
 
-            $('[id="'+nodeId+'"]').children('a').after(optionsHoverHTML);
+            $('[id="'+nodeId+'"]').children('a').before(optionsHoverHTML);
             var generated = jstreeContainer.jstree(true).get_node(nodeId, true);
             $compile(generated.contents())($scope);
         }

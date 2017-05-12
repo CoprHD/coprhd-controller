@@ -553,9 +553,6 @@ verify_zones() {
 get_zone_name() {
     host=$1
     initiator=$2
-    # if anything is passed in for this param, we will increment the failure count
-    # if no zone is found
-    increment_failure=$3
 
     # Remove the ':' characters
     initiator=${initiator//:}

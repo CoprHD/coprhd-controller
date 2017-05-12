@@ -82,7 +82,6 @@ public class ExportProcessor extends Processor {
     private List<UnManagedExportMask> _unManagedExportMasksToUpdate = null;
 
     private PartitionManager _partitionManager;
-    private CustomConfigHandler customConfigHandler;
 
     /**
      * Method for setting the partition manager via injection.
@@ -91,10 +90,6 @@ public class ExportProcessor extends Processor {
      */
     public void setPartitionManager(PartitionManager partitionManager) {
         _partitionManager = partitionManager;
-    }
-    
-    public void setCustomConfigHandler (CustomConfigHandler handler) {
-        this.customConfigHandler = handler; 
     }
 
     /**
@@ -181,25 +176,16 @@ public class ExportProcessor extends Processor {
             // set storage system id
             URI systemId = (URI) keyMap.get(Constants.SYSTEMID);
             mask.setStorageSystemUri(systemId);
-            boolean setPortGroup = false;
-            StorageSystem storage = _dbClient.queryObject(StorageSystem.class, systemId);
-            if (Type.vmax.name().equals(storage.getSystemType())) {
-                setPortGroup = Boolean.valueOf(
-                        customConfigHandler.getComputedCustomConfigValue(
-                                CustomConfigConstants.VMAX_USE_PORT_GROUP_ENABLED,
-                                storage.getSystemType(), null));
-                
-            }
             response = (EnumerateResponse<CIMInstance>) resultObj;
             processVolumesAndInitiatorsPaths(response.getResponses(), mask, matchedInitiators, matchedPorts, knownIniSet,
-                    knownNetworkIdSet, knownPortSet, knownVolumeSet, setPortGroup);
+                    knownNetworkIdSet, knownPortSet, knownVolumeSet);
 
             while (!response.isEnd()) {
                 _logger.info("Processing next Chunk");
                 response = client.getInstancesWithPath(Constants.MASKING_PATH, response.getContext(),
                         new UnsignedInteger32(BATCH_SIZE));
                 processVolumesAndInitiatorsPaths(response.getResponses(), mask, matchedInitiators, matchedPorts, knownIniSet,
-                        knownNetworkIdSet, knownPortSet, knownVolumeSet, setPortGroup);
+                        knownNetworkIdSet, knownPortSet, knownVolumeSet);
             }
 
             // CTRL - 8918 - always update the mask with new initiators and volumes.
@@ -512,8 +498,7 @@ public class ExportProcessor extends Processor {
 
     private void processVolumesAndInitiatorsPaths(CloseableIterator<CIMInstance> it, UnManagedExportMask mask,
             List<Initiator> matchedInitiators, List<StoragePort> matchedPorts, Set<String> knownIniSet,
-            Set<String> knownNetworkIdSet, Set<String> knownPortSet, Set<String> knownVolumeSet,
-            boolean setPortGroup) {
+            Set<String> knownNetworkIdSet, Set<String> knownPortSet, Set<String> knownVolumeSet) {
         while (it.hasNext()) {
             CIMInstance cimi = it.next();
 
@@ -647,18 +632,12 @@ public class ExportProcessor extends Processor {
                     break;
 
                 case SmisConstants.CP_SE_TARGET_MASKING_GROUP:
-                    if (setPortGroup) {
-                        String portGroupName = this.getCIMPropertyValue(cimi, SmisConstants.CP_ELEMENT_NAME);
-                        if (portGroupName == null) {
-                            portGroupName = this.getCIMPropertyValue(cimi, SmisConstants.CP_NAME);
-                        }
-                        mask.setPortGroup(portGroupName);
-                        _logger.info("Set the port group " + portGroupName);
-                    } else {
-                        if (NullColumnValueGetter.isNotNullValue(mask.getPortGroup())) {
-                            mask.setPortGroup(NullColumnValueGetter.getNullStr());
-                        }
+                    String portGroupName = this.getCIMPropertyValue(cimi, SmisConstants.CP_ELEMENT_NAME);
+                    if (portGroupName == null) {
+                        portGroupName = this.getCIMPropertyValue(cimi, SmisConstants.CP_NAME);
                     }
+                    mask.setPortGroup(portGroupName);
+                    _logger.info("Set the port group " + portGroupName);
                     break;
                     
                 default:

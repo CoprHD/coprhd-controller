@@ -103,19 +103,16 @@ public class VNXeCreateFileSystemJob extends VNXeJob {
             StringBuilder logMsgBuilder, VNXeApiClient vnxeApiClient) {
         try {
             fsObj.setCreationTime(Calendar.getInstance());
-            // TODO: currently, KH API does not return resourceId in the job. get around it for now.
-            // String resourceId = job.getResourceId();
             VNXeFileSystem vnxeFS = null;
-            /*
-             * if (resourceId == null || resourceId.isEmpty()) {
-             * _logger.info("The job did not return the resourceId for created file system.");
-             * _logger.info("Getting the fs info by its name: " + fsObj.getName());
-             * vnxeFS = vnxeApiClient.getFileSystemByFSName(fsObj.getName());
-             * } else {
-             * vnxeFS = vnxeApiClient.getFileSystemByStorageResourceId(resourceId);
-             * }
-             */
-            vnxeFS = vnxeApiClient.getFileSystemByFSName(fsObj.getName());
+            String resourceId = job.getParametersOut().getStorageResource().getId();
+            if (resourceId == null || resourceId.isEmpty()) {
+                _logger.info("The job did not return the resourceId for created file system.");
+                _logger.info("Getting the fs info by its name: " + fsObj.getName());
+                vnxeFS = vnxeApiClient.getFileSystemByFSName(fsObj.getName());
+            } else {
+                vnxeFS = vnxeApiClient.getFileSystemByStorageResourceId(resourceId);
+            }
+
             if (vnxeFS != null) {
                 fsObj.setNativeId(vnxeFS.getId());
                 fsObj.setNativeGuid(NativeGUIDGenerator.generateNativeGuid(dbClient, fsObj));

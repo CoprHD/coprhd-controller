@@ -32,10 +32,13 @@ import java.util.Set;
 import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.engine.bind.Param;
 import com.emc.sa.service.vipr.ViPRService;
+import com.emc.sa.service.vipr.block.tasks.FindExportByHost;
+import com.emc.sa.util.ResourceType;
 import com.emc.storageos.db.client.model.Cluster;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.model.block.BlockObjectRestRep;
 import com.emc.storageos.model.block.export.ExportGroupRestRep;
+import com.emc.vipr.client.core.util.ResourceUtils;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
@@ -96,6 +99,8 @@ public class ExportBlockVolumeHelper {
             volumeIds = Collections.singletonList(volumeId);
         }
 
+        precheckPortGroupParameter(ResourceUtils.uri(volumeIds.get(0)), hostId, projectId, virtualArrayId, portGroup);
+
         if (BlockStorageUtils.isHost(hostId)) {
             host = BlockStorageUtils.getHost(hostId);
         }
@@ -146,20 +151,33 @@ public class ExportBlockVolumeHelper {
         List<BlockObjectRestRep> blockResources = BlockStorageUtils.getBlockResources(resourceIds, parentId);
         URI virtualArrayId = null;
         String exportName = cluster != null ? cluster.getLabel() : host.getHostName();
+        // Flag to indicate an empty ExportGroup object in ViPR, i.e., ExportGroup without any volumes and initiators in it.
         boolean isEmptyExport = true;
         ExportGroupRestRep export = null;
+        // For every block object, 
+        // 1) check if there are existing ExportGroup object corresponding to the host/cluster.
+        //    If yes, add the block object to the ExportGroup.
+        // 2) If there are no existing ViPR ExportGroup for the host/cluster, check if there is an 
+        //    ExportGroup object with name matching the host/cluster name.
+        //	  a) If the ExportGroup object is empty, add the block object and host/cluster to the ExportGroup.
+        //    b) If the ExportGroup object is not empty, then create a new ExportGroup by appending a time stamp
+        //       to the host/cluster name
+        // 3) If there is no ExportGroup found, create a new ExportGroup.        
+        
         for (BlockObjectRestRep blockResource : blockResources) {
             virtualArrayId = getVirtualArrayId(blockResource);
             // see if we can find an export that uses this block resource
             export = findExistingExportGroup(blockResource, virtualArrayId);
-            isEmptyExport = true;
+            boolean createExport = export == null;
+            isEmptyExport = export != null && BlockStorageUtils.isEmptyExport(export);
             // If did not find export group for the host/cluster, try find existing empty export with
             // host/cluster name
             if (export == null) {
                 export = BlockStorageUtils.findExportsByName(exportName, projectId, virtualArrayId);
                 isEmptyExport = export != null && BlockStorageUtils.isEmptyExport(export);
+                createExport = export == null || !isEmptyExport;
             }
-            if (export == null || !isEmptyExport) {
+            if (createExport) {
                 newVolumes.add(blockResource.getId());
             }
             // Export exists, check if volume belongs to it
@@ -311,6 +329,25 @@ public class ExportBlockVolumeHelper {
             } else if (pathsPerInitiator > maxPaths) {
                 ExecutionUtils.fail("failTask.exportPathParameters.pathsPerInitiator", new Object[] {}, new Object[] {});
             }
+        }
+    }
+    
+    public static void precheckPortGroupParameter(URI resourceId, URI hostOrClusterId, URI projectId, URI vArrayId, URI portGroup) {
+        boolean exportExist = false;
+        if (BlockStorageUtils.isHost(hostOrClusterId)) {
+            List<ExportGroupRestRep> exportGroups = BlockStorageUtils.findExportsContainingHost(hostOrClusterId, projectId, vArrayId);
+            if (exportGroups != null && !exportGroups.isEmpty()) {
+                exportExist = true;
+            }
+        } else if (BlockStorageUtils.isCluster(hostOrClusterId)) {
+            List<ExportGroupRestRep> exportGroups = BlockStorageUtils.findExportsContainingCluster(hostOrClusterId, projectId, vArrayId);
+            if (exportGroups != null && !exportGroups.isEmpty()) {
+                exportExist = true;
+            }
+        }
+
+        if (!exportExist && BlockStorageUtils.isVMAXUsePortGroupEnabled(resourceId) && portGroup == null) {
+            ExecutionUtils.fail("failTask.exportPortGroupParameters.precheck", new Object[] {}, new Object[] {});
         }
     }
 }

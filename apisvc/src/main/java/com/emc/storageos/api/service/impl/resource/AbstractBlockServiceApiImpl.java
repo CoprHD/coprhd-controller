@@ -51,6 +51,7 @@ import com.emc.storageos.db.client.model.BlockSnapshotSession;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.ExportGroup;
+import com.emc.storageos.db.client.model.FCZoneReference;
 import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.OpStatusMap;
 import com.emc.storageos.db.client.model.Operation;
@@ -479,6 +480,17 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
                     volumeDescriptors, null, new VolumeDescriptor.Type[] { VolumeDescriptor.Type.BLOCK_MIRROR });
             _dbClient.markForDeletion(_dbClient.queryObject(Volume.class,
                     VolumeDescriptor.getVolumeURIs(descriptorsForVolumes)));
+            
+            // Delete the corresponding FCZoneReferences
+            for (URI volumeURI : volumeURIs) {
+                List<FCZoneReference> zoneReferences = CustomQueryUtility.queryActiveResourcesByAltId(_dbClient, 
+                        FCZoneReference.class, "volumeUri", volumeURI.toString());
+                for (FCZoneReference zoneReference : zoneReferences) {
+                    if (zoneReference != null) {
+                        _dbClient.markForDeletion(zoneReference);
+                    }
+                }
+            }
 
             // Update the task status for each volume
             for (URI volumeURI : volumeURIs) {
@@ -1968,6 +1980,7 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
             allRPSourceVolumesInCG.remove(volume.getId());
 
             if (VirtualPool.vPoolSpecifiesRPVPlex(currentVpool)
+                    && !VirtualPool.vPoolSpecifiesMetroPoint(currentVpool)
                     && VirtualPool.vPoolSpecifiesMetroPoint(vpool)) {
                 // For an upgrade to MetroPoint (moving from RP+VPLEX vpool to MetroPoint vpool), even though the user
                 // would have chosen 1 volume to update but we need to update ALL the RSets/volumes in the CG.

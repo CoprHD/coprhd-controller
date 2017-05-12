@@ -178,4 +178,7 @@ public interface ServiceParams {
     public String FILESYSTEM_NAME = "fileSystemName";
     public String MOUNT_LIST = "mountList";
     public String FS_TYPE = "fsType";
+ 
+    public String ARTIFICIAL_FAILURE = "artificialFailure";
+    public String BYPASS_DNS_CHECK = "bypassDnsCheck";
 }

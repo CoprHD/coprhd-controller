@@ -21,6 +21,7 @@ import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 
 import org.apache.commons.collections.MapUtils;
 
@@ -88,19 +89,20 @@ import com.vmware.vim25.HostSystemConnectionState;
 import com.vmware.vim25.mo.ClusterComputeResource;
 import com.vmware.vim25.mo.HostSystem;
 
-// VBDU TODO COP-28437: In general, this module needs javadoc.  Many methods are using List objects and returning List objects that correspond to the incoming list that
-// require the indexing in the list to be retained or use of "indexOf()" to find the right map entry, both of which is poor programming practice, so that needs
-// to be fixed as well.  It does not need to be fixed if the calling object literally doesn't care about the mapping between the incoming arg and the return object,
-// so each case needs to be investigated separately.  Good hints are when you see use of "indexOf()" that Maps should've been used.
-//
-// Then Javadoc all of the methods so future readers know what the intentions are.  Be clear about return types.
 public class ComputeUtils {
 
     public static final URI nullConsistencyGroup = null;
 
 
-    // VBDU TODO: COP-28437, These methods need to be rewritten to use maps. Assuming stable indexing of
-    // hostNamesIn->return List is poor programming practice.
+   /**
+    * Creates tasks to provision specified hosts to the given cluster.
+    *  @param Cluster
+    *  @param URI of computeVirtualPool to pick blades from
+    *  @param List of hostNames
+    *  @param URI of varray
+    *  @return list of successfully created hosts
+    *
+    */
     public static List<Host> createHosts(Cluster cluster, URI vcp, List<String> hostNamesIn,
             URI varray) throws Exception {
 
@@ -119,12 +121,6 @@ public class ComputeUtils {
                     e.getMessage());
         }
         // Some tasks could succeed while others could error out.
-        // VBDU TODO: COP-28453, We will not be adding the host to the cluster until after the host is booted. The line
-        // below will need to be removed and we should only rely on the returned task ids to determine which hosts were
-        // successful.
-
-        // VBDU TODO: COP-28453, We should only rely on the task resource id and not base it on the hostname. We should
-        // not delete a host just based on the hostname in case there are duplicates.
         Map<URI,String> hostDeactivateMap = new HashMap<URI, String>();
         if ((tasks != null) && (tasks.getTasks() != null)) {
             List<Task<HostRestRep>> tasklist = tasks.getTasks();
@@ -163,8 +159,11 @@ public class ComputeUtils {
         return createdHosts;
     }
 
-    // VBDU TODO: COP-28437, These methods need to be rewritten to use maps. Assuming stable indexing of
-    // names->return List is poor programming practice.
+   /**
+    * This method checks if the given host names already exist.
+    * @param list of host names to check
+    * @return list of host names in given list that already exist
+    */  
     public static List<String> getHostNamesByName(ViPRCoreClient client,
             List<String> names) {
         List<String> hostNames = Lists.newArrayList();
@@ -183,6 +182,11 @@ public class ComputeUtils {
         return hostNames;
     }
 
+   /**
+    * Creates a new cluster by the given name.
+    * @param clusterName
+    * @return Cluster
+    */
     public static Cluster createCluster(String clusterName) {
         ClusterRestRep clusterRestRep = execute(new CreateCluster(clusterName));
         return (clusterRestRep == null) ? null : BlockStorageUtils
@@ -201,7 +205,11 @@ public class ComputeUtils {
         }
         return BlockStorageUtils.getCluster(clusters.get(0).getId());
     }
-
+   /**
+    * Returns  list of hostNames already in this cluster
+    * @param Cluster
+    * @return list of hostNames
+    */
     public static List<String> findHostNamesInCluster(Cluster cluster) {
         if (cluster == null) {
             return Collections.emptyList();
@@ -216,6 +224,12 @@ public class ComputeUtils {
         return hostNames;
     }
 
+   /**
+    * Adds the specified hosts to the given cluster.  This operation will add the hosts to the cluster's Export Groups.
+    * @param List of Hosts to add
+    * @param Cluster to ad hosts to
+    * @return Cluster
+    */
     public static Cluster addHostsToCluster(List<Host> hosts, Cluster cluster) {
         if ((hosts != null) && (cluster != null)) {
             for (Host host : hosts) {
@@ -239,8 +253,14 @@ public class ComputeUtils {
         }
         return cluster;
     }
-
-    //validate that hosts are in the cluster export groups, else deactivate the host
+ 
+   /**
+    * validate that specified hosts are in the cluster export groups, else deactivate the host
+    * @param List to hosts to check
+    * @param Cluster
+    * @return list of goodHosts ie hosts that are in the cluster EGs.
+    * 
+    */
     public static List<Host> deactivateHostsNotAddedToCluster(List<Host> hosts, Cluster cluster){
        List<Host> hostsToRemove = new ArrayList<Host>();
        List<Host> goodHosts = new ArrayList<Host>();
@@ -701,8 +721,11 @@ public class ComputeUtils {
         return hostsDeactivated;
     }
 
-    // VBDU TODO: COP-28437, These methods need to be rewritten to use maps. Assuming stable indexing of
-    // hostURIs->return List is poor programming practice.
+   /**
+    * Deactivates the specified hosts
+    * @param Map of hostURI to hostName (hostName is only for showing the correct hostNamefor task in UI)
+    * @return list of host URIs that were successfully deactivated
+    */
     public static List<URI> deactivateHostURIs(Map<URI,String> hostURIs) {
         List<Task<HostRestRep>> tasks = new ArrayList<>();
         ExecutionUtils.currentContext().logInfo("computeutils.deactivatehost.inprogress", hostURIs.values());
@@ -735,27 +758,26 @@ public class ComputeUtils {
         return successfulHostIds;
     }
 
-    // VBDU TODO: COP-28437, These methods need to be rewritten to use maps. Assuming stable indexing of
-    // hosts->osInstallParams and hosts/osInstallParams->return List is poor programming practice.
-    public static void installOsOnHosts(List<Host> hosts, List<OsInstallParam> osInstallParams) {
+   /**
+    * Install OS image on the specified hosts
+    * @param map of Host to OsInstallParam -- this param has the details of which image to use, the netmask, ip address, etc required for installing os
+    */
+    public static void installOsOnHosts(Map<Host,OsInstallParam> osInstallParamMap) {
 
-        if ((hosts == null) || hosts.isEmpty()) {
+        if ((osInstallParamMap == null) || osInstallParamMap.isEmpty()) {
             return;
         }
+        Set<Host> hosts = osInstallParamMap.keySet();
 
         // execute all tasks (no waiting)
         List<Task<HostRestRep>> tasks = Lists.newArrayList();
         for (Host host : hosts) {
             if (host != null) {
-                int hostIndex = hosts.indexOf(host);
-                if (hostIndex > (osInstallParams.size() - 1)) {
-                    continue;
-                }
-                if (osInstallParams.get(hostIndex) == null) {
+                if (osInstallParamMap.get(host) == null) {
                     continue;
                 }
                 try {
-                    tasks.add(execute(new InstallOs(host, osInstallParams.get(hostIndex))));
+                    tasks.add(execute(new InstallOs(host, osInstallParamMap.get(host))));
                 } catch (Exception e) {
                     ExecutionUtils.currentContext().logError("computeutils.installOs.failure",
                             host.getId() + "  " + e.getMessage());
@@ -835,8 +857,14 @@ public class ComputeUtils {
         return objectListToReturn;
     }
 
-    // VBDU TODO: COP-28437, These methods need to be rewritten to use maps. Assuming stable indexing of
-    // hostNames->return List is poor programming practice.
+    // VBDU DONE: COP-28437- Verified that there is no dependence on the indexing of the return list.
+    // It is just a list of names that do not already exist in the cluster
+   /**
+    * From the list of hostNames give, removes the host names that already exist in the specified cluster
+    * @param list of hostNames
+    * @param Cluster
+    * @return list of host names that do not exist in the cluster yet
+    */
     static List<String> removeExistingHosts(List<String> hostNames, Cluster cluster) {
         for (String hostNameFound : ComputeUtils.findHostNamesInCluster(cluster)) {
             for (int i = 0; i < hostNames.size(); i++) {
@@ -939,7 +967,16 @@ public class ComputeUtils {
         }
         return ips;
     }
-
+   
+    /**
+     * This method calculates whether there were any errors during the order or whether everything succeeded
+     * Determines the order status - success, failure or partial success
+     * @param Cluster
+     * @param List of hostNames
+     * @param computeImage
+     * @param vcenterURI
+     * @return orderError message if any to be displayed on UI
+     */
     public static String getOrderErrors(Cluster cluster,
             List<String> hostNames, URI computeImage, URI vcenterId) {
         StringBuilder orderErrors = new StringBuilder();
@@ -1028,6 +1065,14 @@ public class ComputeUtils {
         }
     }
 
+    /** 
+     * Sets the specified host's boot volume association; Optionally also sets the UCS service profile's san boot targets
+     * Any hosts for which boot volume association could not be set are deactivated.
+     *
+     * @param Map of Host to bootVolume URI
+     * @param boolean set to true to update the UCS service profile's san boot targets
+     * @return list of hosts for which boot volume association was successfully set.
+     */
     public static List<Host> setHostBootVolumes(Map<Host, URI> hostToVolumeIdMap, boolean updateSanBootTargets) {
         List<Task<HostRestRep>> tasks = new ArrayList<>();
         Map<URI, URI> volumeIdToHostIdMap = new HashMap<>();

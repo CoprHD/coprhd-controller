@@ -83,7 +83,7 @@ public class ExportMask extends DataObject {
     // as a convenience.
     private String _resource;
 
-    // port group uri to identify if use port group in the array
+    // port group uri
     private URI _portGroup;
     
     // Captures the Device Specific information that are created for this export mask.
@@ -936,6 +936,7 @@ public class ExportMask extends DataObject {
                         "\tVolumes             : %s\n" +
                         "\tInitiators          : %s\n" +
                         "\tStoragePorts        : %s\n" +
+                        "\tPortGroup           : %s\n" +
                         "\tUserAddedVolumes    : %s\n" +
                         "\tExistingVolumes     : %s\n" +
                         "\tUserAddedInitiators : %s\n" +
@@ -948,6 +949,7 @@ public class ExportMask extends DataObject {
                 collectionString(_volumes),
                 collectionString(_initiators),
                 collectionString(_storagePorts),
+                _portGroup,
                 collectionString(_userAddedVolumes),
                 collectionString(_existingVolumes),
                 collectionString(_userAddedInitiators),

@@ -165,6 +165,8 @@ public class ExportGroupService extends TaskResourceService {
     private static final String OLD_INITIATOR_TYPE_NAME = "Exclusive";
     private static final String PATH_ADJUST_REQUIRE_SUSPEND = "controller_pathadjust_require_suspend";
 
+    private static final String STORAGE_SYSTEM_CLUSTER = "-cluster-";
+
     private static volatile BlockStorageScheduler _blockStorageScheduler;
 
     // From KnownMachineTypes, which is upstream so re-defining here.
@@ -3162,6 +3164,13 @@ public class ExportGroupService extends TaskResourceService {
         
         // Get the initiators and validate the ExportMasks are usable.
         ExportPathsAdjustmentPreviewRestRep response = new ExportPathsAdjustmentPreviewRestRep();
+        String storageSystem = system.getNativeGuid();
+        if (Type.vplex.equals(Type.valueOf(system.getSystemType()))) {
+            String vplexCluster = ConnectivityUtil.getVplexClusterForVarray(varray, system.getId(), _dbClient);
+            storageSystem = storageSystem + STORAGE_SYSTEM_CLUSTER + vplexCluster;
+        }
+        response.setStorageSystem(storageSystem);
+        
         List<Initiator> initiators = getInitiators(exportGroup);
         StringSetMap existingPathMap = new StringSetMap();
         validatePathAdjustment(exportGroup, initiators, system, varray, param.getHosts(), response, existingPathMap,

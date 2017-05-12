@@ -20,7 +20,8 @@ public class VPlexConsistencyGroupInfo extends VPlexResourceInfo {
     public static enum CGAttribute {
         VOLUMES("virtual-volumes"),
         VISIBILITY("visibility"),
-        STORAGE_AT_CLUSTER("storage-at-clusters");
+        STORAGE_AT_CLUSTER("storage-at-clusters"),
+        DETACH_RULE("detach-rule");
 
         // The VPlex name for the attribute.
         private String _name;

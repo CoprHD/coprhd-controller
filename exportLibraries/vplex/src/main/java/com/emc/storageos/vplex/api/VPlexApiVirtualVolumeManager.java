@@ -16,6 +16,7 @@ import java.util.Map.Entry;
 import java.util.StringTokenizer;
 
 import org.codehaus.jettison.json.JSONObject;
+import org.jsoup.helper.StringUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -151,7 +152,7 @@ public class VPlexApiVirtualVolumeManager {
                 String distributedDeviceName = createDistributedDevice(localDevices, winningClusterId);
                 s_logger.info("Created distributed device on local devices");
                 VPlexDistributedDeviceInfo distDeviceInfo = discoveryMgr
-                        .findDistributedDevice(distributedDeviceName, true);
+                        .findDistributedDevice(distributedDeviceName, true, true);
                 if (distDeviceInfo == null) {
                     s_logger.error("Distributed device {} was successfully created but not returned by the VPLEX system", distributedDeviceName); 
                     throw VPlexApiException.exceptions.failedGettingDistributedDevice(distributedDeviceName);
@@ -2178,19 +2179,17 @@ public class VPlexApiVirtualVolumeManager {
      * Detaches the mirror on the specified cluster from the distributed VPLEX
      * volume with the passed name.
      *
-     * @param virtualVolumeName The name of the VPLEX distributed volume.
      * @param clusterId The cluster of the mirror to detach.
      *
-     * @return The name of the detached mirror for use when reattaching the mirror.
+     * @return The name of the detached mirror for use when re-attaching the mirror.
      *
      * @throws VPlexApiException When an error occurs detaching the mirror from the volume.
      */
-    public String detachMirrorFromDistributedVolume(String virtualVolumeName,
-            String clusterId) throws VPlexApiException {
-        s_logger.info("Request to detach mirror on cluster {} from a distributed volume {}",
-                clusterId, virtualVolumeName);
+    public String detachMirrorFromDistributedVolume(String virtualVolumeName) throws VPlexApiException {
+        s_logger.info("Request to detach mirror from a distributed volume {}", virtualVolumeName);
 
         ClientResponse response = null;
+        String clusterId = "";
         try {
             // Find the virtual volume to make sure it exists.
             VPlexApiDiscoveryManager discoveryMgr = _vplexApiClient.getDiscoveryManager();
@@ -2198,11 +2197,34 @@ public class VPlexApiVirtualVolumeManager {
 
             // Find the distributed device for the virtual volume.
             String ddName = virtualVolumeInfo.getSupportingDevice();
-            VPlexDistributedDeviceInfo ddInfo = discoveryMgr.findDistributedDevice(ddName);
+            VPlexDistributedDeviceInfo ddInfo = discoveryMgr.findDistributedDevice(ddName, false, true);
             if (ddInfo == null) {
                 throw VPlexApiException.exceptions
                         .cantFindDistributedDeviceForVolume(virtualVolumeName);
             }
+            
+            s_logger.info("ddInfo value ==> " + ddInfo.getRuleSetName());
+            
+            if (!StringUtil.isBlank(ddInfo.getRuleSetName())) {
+                if (VPlexApiConstants.CLUSTER_1_DETACHES.equals(ddInfo.getRuleSetName())) {
+                    // This means that cluster-1 is the winner, detach cluster-2.
+                    clusterId = VPlexApiConstants.CLUSTER_2;
+                    s_logger.info("ddInfo RuleSetName 2");
+                }
+                if (VPlexApiConstants.CLUSTER_2_DETACHES.equals(ddInfo.getRuleSetName())) {
+                    // This means that cluster-2 is the winner, detach cluster-1.
+                    clusterId = VPlexApiConstants.CLUSTER_1;
+                    s_logger.info("ddInfo RuleSetName 1");
+                }
+            }
+            
+            if (StringUtil.isBlank(clusterId)) {
+                // Detach cluster-2 in the event there is no detach rule defined.
+                clusterId = VPlexApiConstants.CLUSTER_2;
+                s_logger.info("ddInfo RuleSetName default");
+            }
+            
+            s_logger.info("clusterId value ==> " + clusterId);
 
             // Get the distributed device components. These are the local devices
             // that were used to build the distributed device. Then find the

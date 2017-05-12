@@ -22,6 +22,8 @@ public class VPlexDistributedDeviceInfo extends VPlexResourceInfo {
     private String serviceStatus = null;
     
     private String virtualVolume = null;
+    
+    private String ruleSetName = null;
 
     // The local devices which comprise the distributed device.
     private List<VPlexDeviceInfo> localDeviceInfoList = new ArrayList<VPlexDeviceInfo>();
@@ -86,6 +88,11 @@ public class VPlexDistributedDeviceInfo extends VPlexResourceInfo {
         str.append("DistributedDeviceInfo ( ");
         str.append(super.toString());
         str.append(", geometry: ").append(geometry);
+        str.append(", health-state: ").append(healthState);
+        str.append(", operational-status: ").append(operationalStatus);
+        str.append(", service-status: ").append(serviceStatus);
+        str.append(", virtual-volume: ").append(virtualVolume);
+        str.append(", rule-set-name: ").append(ruleSetName);
         for (VPlexDeviceInfo localDeviceInfo : localDeviceInfoList) {
             str.append(", ");
             str.append(localDeviceInfo.toString());
@@ -93,6 +100,19 @@ public class VPlexDistributedDeviceInfo extends VPlexResourceInfo {
         str.append(" )");
 
         return str.toString();
+    }
+    
+    @Override
+    public List<String> getAttributeFilters() {
+        List<String> relevantAttributes = new ArrayList<String>();
+        relevantAttributes.add("name");
+        relevantAttributes.add("geometry");
+        relevantAttributes.add("health-state");
+        relevantAttributes.add("operational-status");
+        relevantAttributes.add("service-status");
+        relevantAttributes.add("virtual-volume");
+        relevantAttributes.add("rule-set-name");
+        return relevantAttributes;
     }
 
     public String getHealthState() {
@@ -125,5 +145,13 @@ public class VPlexDistributedDeviceInfo extends VPlexResourceInfo {
 
     public void setVirtualVolume(String virtualVolume) {
         this.virtualVolume = virtualVolume;
+    }
+
+    public String getRuleSetName() {
+        return ruleSetName;
+    }
+
+    public void setRuleSetName(String ruleSetName) {
+        this.ruleSetName = ruleSetName;
     }
 }

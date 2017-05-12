@@ -832,7 +832,7 @@ public class VPlexApiDiscoveryManager {
      */
     VPlexDistributedDeviceInfo findDistributedDevice(String deviceName)
             throws VPlexApiException {
-        return findDistributedDevice(deviceName, false);
+        return findDistributedDevice(deviceName, false, false);
     }
 
     /**
@@ -840,13 +840,16 @@ public class VPlexApiDiscoveryManager {
      * 
      * @param deviceName The name of the distributed device to find.
      * @param retry Indicates retry should occur if the first attempt to find
-     *            the distributed device fails.
+     *              the distributed device fails.
+     * @param directSearch Indicates whether a direct search for the device name 
+     *                     should be done or a blanket search for all distributed 
+     *                     devices.            
      * 
      * @return A reference to the distributed device info or null if not found.
      * 
      * @throws VPlexApiException When an error occurs finding the device.
      */
-    VPlexDistributedDeviceInfo findDistributedDevice(String deviceName, boolean retry)
+    VPlexDistributedDeviceInfo findDistributedDevice(String deviceName, boolean retry, boolean directSearch)
             throws VPlexApiException {
 
         s_logger.info("Find distributed device with name {}", deviceName);
@@ -854,14 +857,27 @@ public class VPlexApiDiscoveryManager {
         int retryCount = 0;
         VPlexDistributedDeviceInfo distributedDeviceInfo = null;
         while (++retryCount <= VPlexApiConstants.FIND_NEW_ARTIFACT_MAX_TRIES) {
-            try {
-                List<VPlexDistributedDeviceInfo> deviceInfoList = getDistributedDeviceInfo();
-                for (VPlexDistributedDeviceInfo deviceInfo : deviceInfoList) {
-                    s_logger.debug("Distributed Device Info: {}", deviceInfo.toString());
-                    if (deviceInfo.getName().equals(deviceName)) {
+            try {                
+                if (directSearch) {
+                    // Perform a direct search for the distributed device
+                    VPlexDistributedDeviceInfo deviceInfo = getDistributedDeviceInfo(deviceName);
+                    if (deviceInfo != null) {                    
                         s_logger.info("Found distributed device {}", deviceName);
                         distributedDeviceInfo = deviceInfo;
-                        break;
+                    }
+                }
+                
+                if (distributedDeviceInfo == null) {
+                    // Perform a blanket search for all distributed devices and attempt to find the 
+                    // one we're looking for.
+                    List<VPlexDistributedDeviceInfo> deviceInfoList = getDistributedDeviceInfo();
+                    for (VPlexDistributedDeviceInfo deviceInfo : deviceInfoList) {
+                        s_logger.info("Distributed Device Info: {}", deviceInfo.toString());
+                        if (deviceInfo.getName().equals(deviceName)) {
+                            s_logger.info("Found distributed device {}", deviceName);
+                            distributedDeviceInfo = deviceInfo;
+                            break;
+                        }
                     }
                 }
 
@@ -2512,6 +2528,8 @@ public class VPlexApiDiscoveryManager {
         String responseStr = response.getEntity(String.class);
         int status = response.getStatus();
         response.close();
+        
+        s_logger.info("Raw CG response: {}", responseStr);
 
         if (status == VPlexApiConstants.SUCCESS_STATUS) {
             try {
@@ -3007,7 +3025,7 @@ public class VPlexApiDiscoveryManager {
         s_logger.info("Distributed devices Request URI is {}", requestURI.toString());
         ClientResponse response = _vplexApiClient.get(requestURI);
         String responseStr = response.getEntity(String.class);
-        s_logger.debug("Response is {}", responseStr);
+        s_logger.info("Distributed devices Response is {}", responseStr);
         int status = response.getStatus();
         response.close();
         if (status != VPlexApiConstants.SUCCESS_STATUS) {
@@ -3025,7 +3043,54 @@ public class VPlexApiDiscoveryManager {
             throw VPlexApiException.exceptions.failedGettingDistributedDevices(e);
         }
     }
+    
+    /**
+     * Gets the distributed device for the VPLEX.
+     * 
+     * @param distributedDeviceName Is the name of the distributed device to find on the VPLEX
+     * @return A VPlexDistributedDeviceInfo representing the distributed
+     *         device or null if not found.
+     * 
+     * @throws VPlexApiException When an error occurs getting the distributed
+     *             device information.
+     */
+    VPlexDistributedDeviceInfo getDistributedDeviceInfo(String distributedDeviceName)
+            throws VPlexApiException {
+        
+        StringBuilder uriBuilder = new StringBuilder();
+        uriBuilder.append(VPlexApiConstants.URI_DISTRIBUTED_DEVICES);
+        uriBuilder.append(distributedDeviceName);
+        
+        URI requestURI = _vplexApiClient.getBaseURI().resolve(URI.create(uriBuilder.toString()));
+        s_logger.info("Distributed devices Request URI is {}", requestURI.toString());
+        ClientResponse response = _vplexApiClient.get(requestURI);
+        String responseStr = response.getEntity(String.class);
+        s_logger.debug("Distributed devices Response is {}", responseStr);
+        int status = response.getStatus();
+        response.close();
+        if (status != VPlexApiConstants.SUCCESS_STATUS) {
+            throw VPlexApiException.exceptions
+                    .failureGettingDistributedDevicesStatus(String.valueOf(status));
+        }
 
+        try {
+            VPlexDistributedDeviceInfo distributedDeviceInfo = new VPlexDistributedDeviceInfo();
+            // Set path context from request
+            distributedDeviceInfo.setPath(uriBuilder.toString().substring(VPlexApiConstants.VPLEX_PATH
+                    .length()));
+            // Populate attributes from response
+            VPlexApiUtils.setAttributeValues(responseStr, distributedDeviceInfo);
+            if (distributedDeviceInfo.getName() == null) {
+                // Name attribute was not populated from response so the device
+                // was not actually found.
+                return null;
+            }            
+            return distributedDeviceInfo;
+        } catch (Exception e) {
+            throw VPlexApiException.exceptions.failedGettingDistributedDevices(e);
+        }
+    }
+    
     /**
      * Discovers and sets the supporting components (i.e., top level local
      * devices) for the passed distributed device.

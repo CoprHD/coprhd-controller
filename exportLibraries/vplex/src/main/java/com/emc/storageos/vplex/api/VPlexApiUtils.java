@@ -184,6 +184,11 @@ public class VPlexApiUtils {
     static void setAttributeValues(String responseStr, VPlexResourceInfo resourceInfo)
             throws VPlexApiException {
         try {
+            if (resourceInfo instanceof VPlexDistributedDeviceInfo) {
+                s_logger.info("BBB instanceof VPlexDistributedDeviceInfo!");
+                resourceInfo = (VPlexDistributedDeviceInfo) resourceInfo; 
+            }
+            
             Map<String, Object> resourceAtts = getAttributesFromResponse(responseStr);
             List<String> attributeFilters = resourceInfo.getAttributeFilters();
             Iterator<Entry<String, Object>> attsIter = resourceAtts.entrySet().iterator();

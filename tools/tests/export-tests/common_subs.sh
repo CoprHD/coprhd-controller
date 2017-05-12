@@ -812,17 +812,33 @@ setup_yaml() {
     # create the yml file to be used for tooling
     touch $tools_file
 
-    # Append the vcenter attributes 
-    printf 'vcenter:\n  - ip: %s:%s\n    username: %s\n    password: %s\n' "${VCENTER_IP}" "${VCENTER_PORT}" "${VCENTER_USERNAME}" "${VCENTER_PASSWORD}" >> $tools_file
+    if [ "${VCENTER_IP}" != "" ]; then
+	# Append the vcenter attributes 
+	printf 'vcenter:\n  - ip: %s:%s\n    username: %s\n    password: %s\n' "${VCENTER_IP}" "${VCENTER_PORT}" "${VCENTER_USERNAME}" "${VCENTER_PASSWORD}" >> $tools_file
+    else
+	echo "WARNING: VCENTER_IP not set, vcenter verification operations will not work!"
+    fi
 
-    # Append Windows host attributes
-    printf 'hosts:\n  windows:\n  - ip: %s:%s:false\n    username: %s\n    password: %s\n' "${WINDOWS_HOST_IP}" "${WINDOWS_HOST_PORT}" "${WINDOWS_HOST_USERNAME}" "${WINDOWS_HOST_PASSWORD}" >> $tools_file
+    if [ "${WINDOWS_HOST_IP}" != "" ]; then
+	# Append Windows host attributes
+	printf 'hosts:\n  windows:\n  - ip: %s:%s:false\n    username: %s\n    password: %s\n' "${WINDOWS_HOST_IP}" "${WINDOWS_HOST_PORT}" "${WINDOWS_HOST_USERNAME}" "${WINDOWS_HOST_PASSWORD}" >> $tools_file
+    else
+	echo "WARNING: WINDOWS_HOST_IP not set.  host verification oeprations will not work!"
+    fi
 
-    # Append HP-UX host attributes
-    printf '  hpux:\n  - ip: %s:%s\n    username: %s\n    password: %s\n' "${HPUX_HOST_IP}" "${HPUX_HOST_PORT}" "${HPUX_HOST_USERNAME}" "${HPUX_HOST_PASSWORD}" >> $tools_file
+    if [ "${HPUX_HOST_IP}" != "" ]; then
+	# Append HP-UX host attributes
+	printf '  hpux:\n  - ip: %s:%s\n    username: %s\n    password: %s\n' "${HPUX_HOST_IP}" "${HPUX_HOST_PORT}" "${HPUX_HOST_USERNAME}" "${HPUX_HOST_PASSWORD}" >> $tools_file
+    else
+	echo "WARNING: HPUX_HOST_IP not set.  host verification oeprations will not work!"
+    fi
 
-    # Append Linux host attributes
-    printf '  linux:\n  - ip: %s:%s\n    username: %s\n    password: %s\n' "${LINUX_HOST_IP}" "${LINUX_HOST_PORT}" "${LINUX_HOST_USERNAME}" "${LINUX_HOST_PASSWORD}" >> $tools_file
+    if [ "${HPUX_HOST_IP}" != "" ]; then
+	# Append Linux host attributes
+	printf '  linux:\n  - ip: %s:%s\n    username: %s\n    password: %s\n' "${LINUX_HOST_IP}" "${LINUX_HOST_PORT}" "${LINUX_HOST_USERNAME}" "${LINUX_HOST_PASSWORD}" >> $tools_file
+    else
+	echo "WARNING: LINUX_HOST_IP not set.  host verification oeprations will not work!"
+    fi
 
     if [ "$SS" = "xio" -o "$SS" = "vplex" -o "$SS" = "unity" ]; then
     	if [ "${SS}" = "unity" ]; then

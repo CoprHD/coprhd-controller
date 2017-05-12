@@ -4503,16 +4503,17 @@ public class VmaxExportOperations implements ExportMaskOperations {
                     Map<String, List<URI>> volumesByStorageGroup = _helper
                             .groupVolumesBasedOnExistingGroups(storage,
                                     storageGroupName, volumeURIs);
-                    _log.info("Group Volumes by Storage Group size : {}",
-                            volumesByStorageGroup.size());
+                    _log.info("Group Volumes by Storage Group size : {}", volumesByStorageGroup.size());
 
-                    _log.info("Checking if there are phantom Storage groups for volumes in MV {}", exportMask.getMaskName());
                     Set<String> phantomSGNames = null;
                     if (!isVmax3) {
+                        _log.info("Checking if there are phantom Storage groups for volumes in MV {}",
+                                exportMask.getMaskName());
                         phantomSGNames = _helper.getPhantomStorageGroupsForGivenMaskingView(exportMask.getMaskName(),
                                 storage);
+                        _log.info("Phantom Storage groups {} found for volumes in MV {}",
+                                phantomSGNames, exportMask.getMaskName());
                     }
-                    _log.info("Phantom Storage groups {} found for volumes in MV {}", phantomSGNames, exportMask.getMaskName());
                     for (Entry<String, List<URI>> entry : volumesByStorageGroup.entrySet()) {
                         String childGroupName = entry.getKey();
                         List<URI> volumeURIList = entry.getValue();
@@ -4520,7 +4521,6 @@ public class VmaxExportOperations implements ExportMaskOperations {
                                 storage, exportMask, childGroupName, volumeURIList,
                                 newVirtualPool, phantomSGNames, taskCompleter);
                     }
-
                 } else {
                     /**
                      * not ViPR managed
@@ -4538,14 +4538,14 @@ public class VmaxExportOperations implements ExportMaskOperations {
             String errMsg = null;
             if (exportMask != null) {
                 errMsg = String
-                        .format("An error occurred while updating FAST policy for Storage Groups on ExportMask %s",
+                        .format("An error occurred while updating FAST policy for Storage Groups on ExportMask %s. ",
                                 exportMask.getMaskName());
             } else {
                 errMsg = "An error occurred while updating fast policy for the VMAX3 volumes. ";
             }
             _log.error(errMsg, e);
             ServiceError serviceError = DeviceControllerException.errors
-                    .jobFailedMsg(errMsg, e);
+                    .jobFailedMsg(errMsg + e.getMessage(), e);
             taskCompleter.error(_dbClient, serviceError);
         } finally {
             if (!exceptionOccurred) {
@@ -4657,6 +4657,33 @@ public class VmaxExportOperations implements ExportMaskOperations {
         CIMObjectPath childGroupPath = _cimPath.getMaskingGroupPath(storage,
                 childGroupName,
                 SmisCommandHelper.MASKING_GROUP_TYPE.SE_DeviceMaskingGroup);
+
+        if (isVmax3) {
+            /**
+             * VMAX3 part of multiple exports: volumes will be part of multiple SGs
+             * One as FAST SG and others as non-FAST SG.
+             * If the requested SG is non FAST, do nothing. Other export mask's call
+             * will take care of updating FAST setting.
+             */
+            BlockObject bo = BlockObject.fetch(_dbClient, volumeURIs.get(0));
+            if (_helper.isVolumePartOfMoreThanOneExport(storage, bo)) {
+                String currentPolicyName = _helper.getVMAX3FastSettingAssociatedWithVolumeGroup(storage, childGroupPath);
+                if (Constants.NONE.equalsIgnoreCase(currentPolicyName)
+                        && _helper.checkVolumeAssociatedWithAnyFASTSG(bo.getNativeId(), storage)) {
+                    Map<ExportMask, ExportGroup> maskToGroupMap = ExportUtils.getExportMasks(bo, _dbClient);
+                    if (maskToGroupMap.size() > 1) {
+                        _log.info("Volumes {} are part of multiple storage groups. "
+                                + "FAST Policy will be (or might already be) changed during other export mask's call.",
+                                Joiner.on("\t").join(volumeURIs));
+                        return true;
+                    } else {
+                        _log.error("FAST Policy cannot be updated on this storage group"
+                                + " since volumes are already part of another FAST managed storage group.");
+                        return false;
+                    }
+                }
+            }
+        }
 
         if (!isVmax3 && !phantomSGNames.isEmpty()
                 && !_helper.isFastPolicy(_helper.getAutoTieringPolicyNameAssociatedWithVolumeGroup(storage, childGroupPath))

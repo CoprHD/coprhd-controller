@@ -1625,6 +1625,9 @@ public class SmisCommandHelper implements SmisConstants {
     }
 
     public CIMProperty[] getV3FastSettingProperties(String fastSetting) {
+        if (fastSetting != null && Constants.NONE.equalsIgnoreCase(fastSetting)) {
+            fastSetting = SmisConstants.EMPTY_STRING;
+        }
         return new CIMProperty[] {
                 _cimProperty.string(CP_FAST_SETTING, fastSetting)
         };
@@ -1732,6 +1735,34 @@ public class SmisCommandHelper implements SmisConstants {
         }
 
         return policies;
+    }
+
+    /**
+     * Check if volume is part of more than one masking view.
+     *
+     * @param storage the storage system
+     * @param bo the block object
+     * @return true, if successful
+     */
+    public boolean isVolumePartOfMoreThanOneExport(StorageSystem storage, BlockObject bo) {
+        CloseableIterator<CIMObjectPath> mvPathItr = null;
+        try {
+            CIMObjectPath volumePath = _cimPath.getBlockObjectPath(storage, bo);
+            // get masking view associations
+            mvPathItr = getAssociatorNames(storage, volumePath, null, SYMM_LUN_MASKING_VIEW,
+                    null, null);
+            if (mvPathItr.hasNext()) {
+                mvPathItr.next();
+                if (mvPathItr.hasNext()) {
+                    return true;
+                }
+            }
+        } catch (Exception e) {
+            _log.warn("Exception while trying to check if volumes are part of multiple Masking Views", e);
+        } finally {
+            closeCIMIterator(mvPathItr);
+        }
+        return false;
     }
 
     /**

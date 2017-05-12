@@ -306,13 +306,19 @@ public class ValidationHelper {
 
     private String checkUserInputType(final Input input) {
         final EnumSet<InputFieldType> inputFieldTypes = EnumSet.allOf(InputFieldType.class);
-        if (StringUtils.isBlank(input.getInputFieldType())
-                || !inputFieldTypes.contains(InputFieldType.valueOf(input.getInputFieldType().toUpperCase()))) {
-            return String.format("%s - Valid Input Field Types %s",
-                    CustomServicesConstants.ERROR_MSG_INPUT_FIELD_TYPE_IS_REQUIRED,
-                    inputFieldTypes);
-        } else if (StringUtils.isNotBlank(input.getDefaultValue())) {
-            return checkDefaultvalues(input.getDefaultValue(), input.getInputFieldType());
+        final String error = String.format("%s - Valid Input Field Types %s",
+                CustomServicesConstants.ERROR_MSG_INPUT_FIELD_TYPE_IS_REQUIRED,
+                inputFieldTypes);
+        try {
+            if (StringUtils.isBlank(input.getInputFieldType())
+                    || !inputFieldTypes.contains(InputFieldType.valueOf(input.getInputFieldType().toUpperCase()))) {
+                return error;
+            } else if (StringUtils.isNotBlank(input.getDefaultValue())) {
+                return checkDefaultvalues(input.getDefaultValue(), input.getInputFieldType());
+            }
+
+        } catch (final IllegalArgumentException e) {
+            return error;
         }
 
         return EMPTY_STRING;

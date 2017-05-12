@@ -938,7 +938,7 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
             trimmedStepName = stepName.substring(0,65)+'...';
         var stepHTML = `
         <div id="${stepDivID}" class="example-item-card-wrapper" ng-class="{\'highlighted\':(selectedId == '${stepId}' && menuOpen)}">
-            <div ng-if="alert.error.errorSteps.${stepId} && alert.error.errorSteps.${stepId}.visible" ng-init="checkStepErrorMessage('${stepId}')" ng-class="{'visible':alert.error.errorSteps.${stepId}.visible}" class="custom-error-popover custom-error-step-popover top">
+            <div ng-if="alert.error.errorSteps.${stepId}" ng-init="checkStepErrorMessage('${stepId}')" ng-class="{'visible':alert.error.errorSteps.${stepId}.visible}" class="custom-error-popover custom-error-step-popover top">
                 <div class="arrow"></div><div ng-repeat="message in alert.error.errorSteps.${stepId}.errorMessages" class="custom-popover-content">{{message}}</div>
             </div>
             <span id="${stepId}-error"  class="glyphicon item-card-error-icon failure-icon" ng-if="alert.error.errorSteps.${stepId}" ng-mouseover="hoverErrorIn('${stepId}')" ng-mouseleave="hoverErrorOut('${stepId}')"></span>

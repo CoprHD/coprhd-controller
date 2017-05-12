@@ -2287,6 +2287,9 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException invalidConfigType(final String configType);
+    
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException invalidConfigValueType(final String configType);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException invalidScopeFomart(final String scope);

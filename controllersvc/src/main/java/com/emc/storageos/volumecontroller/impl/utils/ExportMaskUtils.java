@@ -68,7 +68,6 @@ import com.emc.storageos.db.joiner.Joiner;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.networkcontroller.impl.NetworkScheduler;
 import com.emc.storageos.util.ExportUtils;
-import com.emc.storageos.volumecontroller.impl.ControllerServiceImpl;
 import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.emc.storageos.volumecontroller.impl.block.ExportMaskPolicy;
 import com.google.common.base.Strings;

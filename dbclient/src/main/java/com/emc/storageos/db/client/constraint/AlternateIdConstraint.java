@@ -23,7 +23,6 @@ import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DecommissionedResource;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportMask;
-import com.emc.storageos.db.client.model.ExportPathParams;
 import com.emc.storageos.db.client.model.FCEndpoint;
 import com.emc.storageos.db.client.model.FCZoneReference;
 import com.emc.storageos.db.client.model.FileExportRule;

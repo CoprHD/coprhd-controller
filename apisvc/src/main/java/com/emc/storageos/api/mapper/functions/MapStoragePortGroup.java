@@ -20,7 +20,7 @@ import com.google.common.base.Function;
 public class MapStoragePortGroup implements Function<StoragePortGroup, StoragePortGroupRestRep> {
     public static final MapStoragePortGroup instance = new MapStoragePortGroup();
 
-    // The DB client is required to query the FCEndpoint
+    // The DB client is required to query the storage ports
     private DbClient dbClient;
 
     public static MapStoragePortGroup getInstance(DbClient dbClient) {
@@ -39,20 +39,26 @@ public class MapStoragePortGroup implements Function<StoragePortGroup, StoragePo
     public StoragePortGroupRestRep apply(StoragePortGroup resource) {
         StoragePortGroupRestRep storagePortGroupRestRep = SystemsMapper.map(resource);
         applyPortsToStoragePortGroupRestRep(storagePortGroupRestRep, resource);
-        
+
         return storagePortGroupRestRep;
     }
 
     /**
-     * Translate <code>StoragePortGroup</code> object to <code>StoragePortGroupRestRep</code>
+     * Translate StoragePortGroup object to StoragePortGroupRestRep
      * 
-     * @param storagePort
-     * @return
+     * @param storagePortGroup StoragePortGroup instance
+     * @return StoragePortGroupRestRep
      */
     public StoragePortGroupRestRep toStoragePortGroupRestRep(StoragePortGroup storagePortGroup) {
         return apply(storagePortGroup);
     }
-    
+
+    /**
+     * Update the storagePortGrouprestRep instance with the storage ports information
+     * 
+     * @param storagePortGroupRep The StoragePortGroupRestRep instance to be updated
+     * @param portGroup The StoragePortGroup instance
+     */
     private void applyPortsToStoragePortGroupRestRep(StoragePortGroupRestRep storagePortGroupRep,
             StoragePortGroup portGroup) {
         StringSet ports = portGroup.getStoragePorts();

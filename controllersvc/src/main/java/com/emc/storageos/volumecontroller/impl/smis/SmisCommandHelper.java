@@ -100,9 +100,7 @@ import com.emc.storageos.volumecontroller.impl.VolumeURIHLU;
 import com.emc.storageos.volumecontroller.impl.block.ExportMaskPolicy;
 import com.emc.storageos.volumecontroller.impl.block.ExportMaskPolicy.IG_TYPE;
 import com.emc.storageos.volumecontroller.impl.smis.job.SmisJob;
-import com.emc.storageos.volumecontroller.impl.smis.vmax.VmaxExportOperationContext;
 import com.emc.storageos.volumecontroller.impl.utils.ConsistencyGroupUtils;
-import com.emc.storageos.volumecontroller.impl.utils.ExportOperationContext;
 import com.google.common.base.Joiner;
 import com.google.common.base.Strings;
 import com.google.common.collect.ListMultimap;
@@ -7814,11 +7812,11 @@ public class SmisCommandHelper implements SmisConstants {
     /**
      * Create port group
      * 
-     * @param storage
-     * @param portGroupName
-     * @param targetURIList
+     * @param storage The storage ystem
+     * @param portGroupName The port group name
+     * @param targetURIList The list of storage ports
      * @param taskCompleter
-     * @return
+     * @return The created port group CIMObjectPath
      * @throws Exception
      */
     public CIMObjectPath createTargetPortGroup(StorageSystem storage,
@@ -7956,5 +7954,28 @@ public class SmisCommandHelper implements SmisConstants {
         }
 
         return discoveredGroupName;
+    }
+    
+    /**
+     * Get storage ports in the port group
+     * 
+     * @param storage The storage system
+     * @param portGroupPath The port group CIMObjectPath
+     * @return The list of storage ports URIs
+     * @throws Exception
+     */
+    public List<URI> getPortGroupMembers(StorageSystem storage, CIMObjectPath portGroupPath) throws Exception{
+        if (storage.getSystemType().equals(Type.vnxblock)) {
+            return null;
+        }
+        CIMInstance instance = getInstance(storage, portGroupPath, false, false, null);
+        WBEMClient client = getConnection(storage).getCimClient();
+        List<String> storagePorts = getStoragePortsFromLunMaskingInstance(client,
+                instance);
+        _log.info("port group members : {}", Joiner.on(',').join(storagePorts));
+        List<URI> storagePortURIs = new ArrayList<URI>();
+        storagePortURIs.addAll(transform(ExportUtils.storagePortNamesToURIs(_dbClient, storagePorts),
+                CommonTransformerFunctions.FCTN_STRING_TO_URI));
+        return storagePortURIs;
     }
 }

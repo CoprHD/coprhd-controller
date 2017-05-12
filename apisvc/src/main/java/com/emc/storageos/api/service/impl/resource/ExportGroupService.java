@@ -341,29 +341,22 @@ public class ExportGroupService extends TaskResourceService {
         // If ExportPathParameter block is present, and volumes are present, validate have permissions.
         // Processing will be in the aysnc. task.
         ExportPathParameters pathParam = param.getExportPathParameters();
-        if (pathParam != null ) {
+        if (pathParam != null && !volumeMap.keySet().isEmpty()) {
             // Only [RESTRICTED_]SYSTEM_ADMIN may override the Vpool export parameters
             if ((pathParam.getMaxPaths() != null || 
                     pathParam.getMaxPaths() != null ||
                     pathParam.getPathsPerInitiator() != null) &&
-                    !_permissionsHelper.userHasGivenRole(getUserFromContext(),
+                    !_permissionsHelper.userHasGivenRole(user,
                             null, Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN)) {
                 throw APIException.forbidden.onlySystemAdminsCanOverrideVpoolPathParameters(exportGroup.getLabel());
             }
         }
 
         
-        List<VolumeParam> volParams = param.getVolumes();
-        if (!volParams.isEmpty()) {
-            Set<URI> addingVolumes = new HashSet<URI>();
-            for (VolumeParam volParm : volParams) {
-                addingVolumes.add(volParm.getId());
-            }
-            if (pathParam == null) {
-                validatePortGroupWhenAddVolumesForExportGroup(addingVolumes, null, null);
-            } else {
-                validatePortGroupWhenAddVolumesForExportGroup(addingVolumes, pathParam.getPortGroup(), null);
-            }
+        if (pathParam == null) {
+            validatePortGroupWhenAddVolumesForExportGroup(volumeMap.keySet(), null, null);
+        } else {
+            validatePortGroupWhenAddVolumesForExportGroup(volumeMap.keySet(), pathParam.getPortGroup(), null);
         }
         
         // COP-14028
@@ -3771,7 +3764,7 @@ public class ExportGroupService extends TaskResourceService {
     
     
     /**
-     * Validate port group to be specified if the volumes to be exported are from VMAX, and the port group setting
+     * Validate port group, if the volumes to be exported are from VMAX, and the port group setting
      * is on.
      * 
      * @param addVolumes - Volume params to be exported

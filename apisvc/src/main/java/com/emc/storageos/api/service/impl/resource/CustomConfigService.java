@@ -631,7 +631,7 @@ public class CustomConfigService extends ResourceService {
     }
     
     /**
-     * Show config type.
+     * Get the custom config value set in ViPR. This is valid for simple value config type only
      * 
      * @brief Show config type details
      * @return The config type data.
@@ -643,6 +643,10 @@ public class CustomConfigService extends ResourceService {
         @QueryParam("scope") String scope ) {
         ArgValidator.checkFieldNotEmpty(configName, "configName");
         CustomConfigType item = customConfigHandler.getCustomConfigType(configName);
+        String simpleValueType = "SimpleValue";
+        if (!simpleValueType.equals(item.getConfigType())) {
+            throw APIException.badRequests.invalidConfigValueType(configName);
+        }
         SimpleValueRep result = new SimpleValueRep();
         if (item != null) {
             String value = customConfigHandler.getComputedCustomConfigValue(configName, scope, null);

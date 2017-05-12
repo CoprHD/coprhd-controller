@@ -332,7 +332,15 @@ public class VmaxExportOperations implements ExportMaskOperations {
                 targetPortGroupPath = _cimPath.getMaskingGroupPath(storage, portGroupName,
                         SmisConstants.MASKING_GROUP_TYPE.SE_TargetMaskingGroup);
 
-                _helper.getInstance(storage, targetPortGroupPath, false, false, null);
+                List<URI> ports = _helper.getPortGroupMembers(storage, targetPortGroupPath);
+                if (!ports.containsAll(targetURIList)) {
+                    String targets = Joiner.on(',').join(targetURIList);
+                    _log.error(String.format("The port group %s does not contain all the storage ports in the target list %s", 
+                            pg.getNativeGuid(), targets));
+
+                    taskCompleter.error(_dbClient, 
+                            DeviceControllerException.exceptions.portGroupNotUptodate(pg.getNativeGuid(), targets));
+                }
                 
             } else {
                 DataSource portGroupDataSource = ExportMaskUtils.getExportDatasource(storage, initiatorList, dataSourceFactory,
@@ -2704,7 +2712,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
                 targetPortGroupPath = _cimPath.getCimObjectPathFromOutputArgs(outArgs, "MaskingGroup");
                 ExportOperationContext.insertContextOperation(taskCompleter, VmaxExportOperationContext.OPERATION_CREATE_PORT_GROUP,
                         portGroupName, targetURIList);
-                // Create internal port group
+                // Create port group
                 StoragePortGroup portGroup = new StoragePortGroup();
                 String guid = String.format("%s+%s" , storage.getNativeGuid(), portGroupName);
                 portGroup.setId(URIUtil.createId(StoragePortGroup.class));

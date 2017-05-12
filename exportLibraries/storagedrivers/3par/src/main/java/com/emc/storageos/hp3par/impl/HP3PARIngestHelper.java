@@ -259,9 +259,11 @@ public class HP3PARIngestHelper {
 	
 					driverSnapshot.setWwn(resultSnap.getWwn());
 	
-					// TODO: We need to have more clarity on provisioned and
-					// allocated sizes
-					driverSnapshot.setAllocatedCapacity(resultSnap.getSizeMiB() * HP3PARConstants.MEGA_BYTE);
+					// Allocated capacity is the sum of user, snapshot and admin reserved space
+					Long allocatedCapacity = resultSnap.getUserSpace().getReservedMiB();
+					allocatedCapacity += resultSnap.getSnapshotSpace().getReservedMiB();
+					allocatedCapacity += resultSnap.getAdminSpace().getReservedMiB();
+					driverSnapshot.setAllocatedCapacity(allocatedCapacity * HP3PARConstants.MEGA_BYTE);
 					driverSnapshot.setProvisionedCapacity(resultSnap.getSizeMiB() * HP3PARConstants.MEGA_BYTE);
 					snapshots.add(driverSnapshot);
 				}

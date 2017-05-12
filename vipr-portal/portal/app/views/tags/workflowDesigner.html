@@ -1,5 +1,5 @@
 <div ng-controller="tabController" ng-repeat="workflowTab in workflowTabs" class="tab-pane" id="{{workflowTab.elementid}}" ng-init="initializeWorkflowData(workflowTab)">
-    <div class="button-bar">
+    <div class="builder-button-bar">
         <div class="button-bar-container">
             <button ng-disabled="!modified|| workflowData.state == 'PUBLISHED'" id="Save" type="button" class="btn btn-default" value="Save" ng-click="saveWorkflow();" />
                 <span ng-class="{'glyphicon-ok-sign success-icon':!modified,

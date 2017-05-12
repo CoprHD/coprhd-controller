@@ -5107,6 +5107,7 @@ input.type.FromOtherStepOutput=Other Step Output
 input.assetType.vipr.blockVirtualPool=Block Virtual Pool
 input.assetType.vipr.virtualArray=Virtual Array
 input.assetType.vipr.project=Project
+input.assetType.vipr.host=Host
 input.fieldType.number=Number
 input.fieldType.table=Table
 input.fieldType.boolean=Boolean

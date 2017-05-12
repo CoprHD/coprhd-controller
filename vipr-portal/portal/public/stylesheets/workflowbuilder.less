@@ -55,7 +55,7 @@
     z-index: 3;
     width: 20px;
     height: 20px;
-    left: 44px;
+    left: 37px;
     top: 10px;
 }
 
@@ -67,8 +67,8 @@
 
 .custom-error-step-popover {
     position: absolute;
-    left: -58px;
-    bottom: 99px;
+    left: -51px;
+    bottom: 74px;
 }
 
 .custom-error-popover {
@@ -99,7 +99,7 @@
 
 .custom-error-popover.top > .arrow {
     //left: 50%;
-    left: 58px;
+    left: 51px;
     margin-left: -11px;
     border-bottom-width: 0;
     border-top-color: #be1e2d;
@@ -138,6 +138,16 @@
 
 .example-item-card-wrapper a {
     text-decoration: none;
+    display: inline-block;
+    float: right;
+    top: 0px;
+    margin: 0px;
+    padding: 7px;
+}
+
+.example-item-card-wrapper a:hover {
+    background-color:#f1f2f2;
+    color: #a7a9ac;
 }
 
 .item-card-error-icon {
@@ -148,16 +158,14 @@
 }
 
 .item {
-    margin-top: 2px;
+    display: inline-block;
+    vertical-align: middle;
     margin-bottom: 0;
-    padding-top:10px;
     background-color: white;
-    border-color: #357ebd;
-    border-radius: 3px;
     pointer-events:none;
-    border: 2px solid grey;
-    height: 75px;
-    width: 175px;
+    box-shadow: 2px 2px 2px #939598;
+    height: 54px !important;
+    width: 210px;
     text-overflow: ellipsis;
     word-wrap: break-word;
 	
@@ -166,9 +174,9 @@
 .item-start-end {
     height:40px;
     width:70px;
-    border: 2px solid #428bca;
+    border: 2px solid #0286c3;
     border-radius:50%;
-    background-color: #428bca;
+    background-color: #0286c3;
 }
 
 .sidebar {
@@ -191,7 +199,7 @@
     width: 408px;
 }
 
-.button-bar {
+.builder-button-bar {
     overflow: hidden;
 }
 
@@ -282,11 +290,20 @@
 }
 
 .itemText {
+    display: block;
+    display: -webkit-box;
+    width: 126px;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
     color: black;
     font-size: 13px;
-    pointer-events:none;
-    width: inherit;
-    padding: 5px;
+    height: 48px;
+    pointer-events: none;
+    padding: 10px 0px;
+    position: relative;
+    text-overflow: ellipsis;
+    vertical-align: middle;
 }
 
 .itemTextStartEnd {
@@ -328,17 +345,34 @@
 
 .button-step-close {
     margin: 5px;
-    color: black;
+    color: #a7a9ac;
 }
 
 .button-container {
     position: absolute;
     right: 0px;
+    width: 25px;
+    height: 100%;
 }
 
-.highlighted {
-    border: 2px solid #67bbe0;
-	background-color: #beebff;
+.highlighted .item {
+	background-color: #0286c3;
+}
+
+.highlighted .item .itemText{
+	color: white;
+}
+
+.highlighted .button-container a{
+	color: white;
+}
+
+.highlighted .button-container a:hover {
+    background-color: #4794cd;
+}
+
+.highlighted .button-container .glyphicon-pencil{
+	display: none;
 }
 
 table, th , td {
@@ -358,7 +392,7 @@ table, th , td {
     position: absolute; /* Stay in place */
     z-index: 2; /* Stay on top */
     right: 0px;
-    background-color: #eee; /* Black*/
+    background-color: white;
     overflow-x: hidden; /* Disable horizontal scroll */
     overflow-y: scroll;
     padding-top: 20px; /* Place content 60px from the top */
@@ -367,9 +401,30 @@ table, th , td {
 }
 
 .sidenav-open {
-    width: 600px;
-    padding-left: 20px;
-    padding-right: 20px;
+    width: 400px;
+}
+
+.sidenav h3{
+    padding-left: 15px;
+    font-weight: normal;
+    font-size: 20px;
+}
+
+.sidenav p{
+    padding-left: 15px;
+}
+
+.sidenav .full-width{
+    padding-left: 0px;
+    padding-right: 0px;
+}
+
+
+.sidenav .panel-default > .tab-panel-heading {
+    background-color: transparent;
+    border-bottom: 1px solid #dddddd;
+    padding: 10px 15px;
+    padding-bottom: 0px;
 }
 
 .sidenav a:hover, .offcanvas a:focus{
@@ -387,11 +442,42 @@ table, th , td {
     margin-left: 50px;
 }
 
+.sidenav .panel {
+    margin-bottom: 10px;
+    background-color: transparent;
+    border: 0;
+    border-radius: 0px;
+    -webkit-box-shadow: none;
+    box-shadow: none;
+}
+
+.sidenav .panel-default > .panel-heading {
+    color: #333333;
+    background-color: #f5f5f5;
+    border: 1px solid #dddddd;
+    border-radius: 0;
+}
+
+.sidenav .step-image {
+    height: 28px;
+    width: 22px;
+    float: left;
+    margin-left: 15px;
+    margin-right: 10px;
+    margin-top: 2px;
+    background-size: contain;
+    background-repeat: no-repeat;
+}
+
+.sidenav .panel-title .glyphicon, .panel-title .vipricon {
+    margin-right: 3px;
+}
+
 .lib-slider-button {
     padding: 1px;
     height: 100%;
     position: absolute;
-    z-index: 1;
+    z-index: 2;
     margin-left: 408px;
 }
 
@@ -560,14 +646,32 @@ table, th , td {
     background-image: url(/public/img/customServices/TreeFolder.svg) !important;
 }
 
+.builder-step-icon {
+    background-image: url(/public/img/customServices/TreeNodeStep.svg) !important;
+}
+
+.highlighted .builder-rest-icon {
+    background-image: url(/public/img/customServices/RestApiSelected.svg) !important;
+}
+
+.highlighted .builder-vipr-icon {
+    background-image: url(/public/img/customServices/ViPRestSelected.svg) !important;
+}
+
+.highlighted .builder-ansible-icon {
+    background-image: url(/public/img/customServices/LocalAnsibleSelected.svg) !important;
+}
+
+.highlighted .builder-script-icon {
+    background-image: url(/public/img/customServices/ScriptSelected.svg) !important;
+}
+
 .step-type-image {
-    height: 80%;
-    width: 20%;
+    height: 30px;
+    width: 30px;
     float: left;
-    text-align: center;
-    margin: 5px;
+    margin: 13px 7px;
     background-size: contain;
-    background-image: url(/public/img/customServices/LocalAnsible.svg);
     background-repeat: no-repeat
 }
 
@@ -591,4 +695,12 @@ table, th , td {
 
 .input-panel .nav-tabs {
     border-bottom: 0px;
+}
+
+.glow-pass {
+    box-shadow: 0 0 19px #3fac49;
+}
+
+.glow-fail {
+    box-shadow: 0 0 19px #ee3825;
 }

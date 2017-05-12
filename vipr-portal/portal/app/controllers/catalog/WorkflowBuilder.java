@@ -321,23 +321,18 @@ public class WorkflowBuilder extends Controller {
 
     public static void saveWorkflow(final URI workflowId,
             final CustomServicesWorkflowDocument workflowDoc) {
-        try {
-            final CustomServicesWorkflowUpdateParam param = new CustomServicesWorkflowUpdateParam();
-            for (final CustomServicesWorkflowDocument.Step step : workflowDoc.getSteps()) {
-                final String success_criteria = ESAPI.encoder().decodeForHTML(step.getSuccessCriteria());
-                step.setSuccessCriteria(success_criteria);
+        final CustomServicesWorkflowUpdateParam param = new CustomServicesWorkflowUpdateParam();
+        for (final CustomServicesWorkflowDocument.Step step : workflowDoc.getSteps()) {
+            final String success_criteria = ESAPI.encoder().decodeForHTML(step.getSuccessCriteria());
+            step.setSuccessCriteria(success_criteria);
 
-                // If this workflow has any ansible steps add host_file input
-                addInventoryFileInputs(step);
-            }
-
-            param.setDocument(workflowDoc);
-            final CustomServicesWorkflowRestRep customServicesWorkflowRestRep = getCatalogClient()
-                    .customServicesPrimitives().editWorkflow(workflowId, param);
-        } catch (final Exception e) {
-            Logger.error(e.getMessage());
-            flash.error("Error saving workflow");
+            // If this workflow has any ansible steps add host_file input
+            addInventoryFileInputs(step);
         }
+
+        param.setDocument(workflowDoc);
+        final CustomServicesWorkflowRestRep customServicesWorkflowRestRep = getCatalogClient()
+                .customServicesPrimitives().editWorkflow(workflowId, param);
     }
 
     public static void getWorkflow(final URI workflowId) {

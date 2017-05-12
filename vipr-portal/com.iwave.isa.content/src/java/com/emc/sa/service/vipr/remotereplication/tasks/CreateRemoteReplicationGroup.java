@@ -20,7 +20,11 @@ public class CreateRemoteReplicationGroup extends ViPRExecutionTask<TaskResource
 
     @Override
     public TaskResourceRep executeTask() throws Exception {
-      
+
+        // API expects name for storage type
+        params.setStorageSystemType(getClient().storageSystemType().
+                getStorageSystemTypeRestRep(params.getStorageSystemType()).getStorageTypeName());
+
         TaskResourceRep task = getClient().remoteReplicationGroups().createRemoteReplicationGroup(params);
 
         if ((task != null) && (task.getResource() != null) ) {

@@ -17,11 +17,14 @@
 
 package com.emc.sa.service.vipr.customservices.tasks;
 
+import java.io.File;
 import java.net.URI;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import org.apache.commons.codec.binary.Base64;
+import org.apache.commons.lang.StringUtils;
 import org.slf4j.LoggerFactory;
 
 import com.emc.sa.engine.ExecutionUtils;
@@ -42,11 +45,11 @@ public class CustomServicesShellScriptExecution extends ViPRExecutionTask<Custom
     private final Map<String, List<String>> input;
     private  String orderDir = String.format("%s%s/", CustomServicesConstants.ORDER_DIR_PATH,
             ExecutionUtils.currentContext().getOrder().getOrderNumber());
-    private String exeOrderDir = String.format("%s%s/", CustomServicesConstants.CHROOT_ORDER_DIR_PATH,
+    private String chrootOrderDir = String.format("%s%s/", CustomServicesConstants.CHROOT_ORDER_DIR_PATH,
             ExecutionUtils.currentContext().getOrder().getOrderNumber());
     private final long timeout;
 
-    private DbClient dbClient;
+    private final DbClient dbClient;
 
     public CustomServicesShellScriptExecution(final Map<String, List<String>> input,final CustomServicesWorkflowDocument.Step step,final DbClient dbClient) {
         this.input = input;
@@ -57,6 +60,7 @@ public class CustomServicesShellScriptExecution extends ViPRExecutionTask<Custom
             this.timeout = step.getAttributes().getTimeout();
         }
         this.dbClient = dbClient;
+        provideDetailArgs(step.getId());
     }
 
 
@@ -66,69 +70,90 @@ public class CustomServicesShellScriptExecution extends ViPRExecutionTask<Custom
         final Exec.Result result;
         try {
             final URI scriptid = step.getOperation();
-            // get the resource database
+
+            logger.debug("CS: Get the resources for script execution");
             final CustomServicesDBScriptPrimitive primitive = dbClient.queryObject(CustomServicesDBScriptPrimitive.class, scriptid);
             if (null == primitive) {
-                logger.error("Error retrieving the script primitive from DB. {} not found in DB", scriptid);
+                logger.error("Error retrieving script primitive from DB. {} not found in DB", scriptid);
+                ExecutionUtils.currentContext().logError("customServicesOperationExecution.logStatus", step.getId(), "Error retrieving script primitive from DB.");
                 throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed(scriptid + " not found in DB");
             }
 
             final CustomServicesDBScriptResource script = dbClient.queryObject(CustomServicesDBScriptResource.class,
                     primitive.getResource());
             if (null == script) {
-                logger.error("Error retrieving the resource for the script primitive from DB. {} not found in DB",
+                logger.error("Error retrieving resource for the script primitive from DB. {} not found in DB",
                         primitive.getResource());
 
+                ExecutionUtils.currentContext().logError("customServicesOperationExecution.logStatus", step.getId(),"Error retrieving resource for the script primitive from DB.");
                 throw InternalServerErrorException.internalServerErrors
                         .customServiceExecutionFailed(primitive.getResource() + " not found in DB");
             }
+
+            logger.debug("CS: Execute primitive:{} with script:{}", primitive.getId(), script.getId());
 
             final String scriptFileName = String.format("%s%s.sh", orderDir, URIUtil.parseUUIDFromURI(scriptid).replace("-", ""));
 
             final byte[] bytes = Base64.decodeBase64(script.getResource());
             AnsibleHelper.writeResourceToFile(bytes, scriptFileName);
-            final String inputToScript = makeParam(input);
 
-            final String exeScriptFileName = String.format("%s%s.sh", exeOrderDir, URIUtil.parseUUIDFromURI(scriptid).replace("-", ""));
-            result = executeCmd(exeScriptFileName, inputToScript);
+            final String exeScriptFileName = String.format("%s%s.sh", chrootOrderDir, URIUtil.parseUUIDFromURI(scriptid).replace("-", ""));
+            result = executeCmd(exeScriptFileName);
 
         } catch (final Exception e) {
+            logger.error("CS: Could not execute shell script step:{}. Exception:{}", step.getId(), e);
+            ExecutionUtils.currentContext().logError("customServicesOperationExecution.logStatus", step.getId(), "Could not execute shell script step"+e);
             throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed("Custom Service Task Failed" + e);
         }
 
         ExecutionUtils.currentContext().logInfo("customServicesScriptExecution.doneInfo", step.getId());
 
         if (result == null) {
+            logger.error("CS: Script Execution result is null for step:{}", step.getId());
+            ExecutionUtils.currentContext().logError("customServicesOperationExecution.logStatus", step.getId()," Script Execution result is null");
             throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed("Script/Ansible execution Failed");
         }
 
         logger.info("CustomScript Execution result:output{} error{} exitValue:{} ", result.getStdOutput(), result.getStdError(),
                 result.getExitValue());
 
-        return new CustomServicesTaskResult(result.getStdOutput(), result.getStdError(), result.getExitValue(), null);
+        return new CustomServicesScriptTaskResult(AnsibleHelper.parseOut(result.getStdOutput()), result.getStdOutput(), result.getStdError(), result.getExitValue());
     }
 
     // Execute Shell Script resource
-    private Exec.Result executeCmd(final String playbook, final String extraVars) {
-        final AnsibleCommandLine cmd = new AnsibleCommandLine(CustomServicesConstants.SHELL_BIN, playbook);
+
+    private Exec.Result executeCmd(final String shellScript) throws Exception {
+        final AnsibleCommandLine cmd = new AnsibleCommandLine(CustomServicesConstants.SHELL_BIN, shellScript);
         cmd.setChrootCmd(CustomServicesConstants.CHROOT_CMD);
-        cmd.setShellArgs(extraVars);
         final String[] cmds = cmd.build();
 
-        return Exec.sudo(timeout, cmds);
+        //default to no host key checking
+        final Map<String,String> environment = makeParam(input);
+
+        return Exec.sudo(new File(chrootOrderDir), timeout, null, environment, cmds);
     }
 
-    private String makeParam(final Map<String, List<String>> input) throws Exception {
-        final StringBuilder sb = new StringBuilder();
-        for (final List<String> value : input.values()) {
+    private Map<String,String> makeParam(final Map<String, List<String>> input) throws Exception {
+        final Map<String,String> environment = new HashMap<String,String>();
+        if (input == null) {
+            return environment;
+        }
+
+        for(Map.Entry<String, List<String>> e : input.entrySet()) {
+            if (StringUtils.isEmpty(e.getKey()) || e.getValue().isEmpty()) {
+                continue;
+            }
+            final List<String> listVal = e.getValue();
+            final StringBuilder sb = new StringBuilder();
             String prefix = "";
-            for (final String eachVal : value) {
+            for (final String val : listVal) {
                 sb.append(prefix);
                 prefix = ",";
-                sb.append(eachVal.replace("\"", ""));
+                sb.append(val.replace("\"", ""));
             }
-            sb.append(" ");
+            environment.put(e.getKey(), sb.toString().trim());
         }
-        return sb.toString().trim();
+
+        return environment;
     }
 }

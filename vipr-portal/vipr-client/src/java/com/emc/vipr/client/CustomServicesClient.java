@@ -88,7 +88,7 @@ public class CustomServicesClient extends AbstractCatalogBulkResources<CustomSer
     }
 
     public CustomServicesPrimitiveResourceRestRep createPrimitiveResource(final String resourceType, final File resource,
-                                                                          final String resourceName) throws IOException {
+            final String resourceName) throws IOException {
         return createPrimitiveResource(resourceType, resource, resourceName, null);
     }
 
@@ -168,5 +168,17 @@ public class CustomServicesClient extends AbstractCatalogBulkResources<CustomSer
 
     public CustomServicesPrimitiveResourceRestRep getPrimitiveResource(final URI id) {
         return client.get(CustomServicesPrimitiveResourceRestRep.class, PathConstants.CUSTOM_SERVICES_PRIMITIVE_RESOURCE, id);
+    }
+
+    public ClientResponse exportWorkflow(final URI workflowId) {
+        return client.get(ClientResponse.class, PathConstants.CUSTOM_SERVICES_WORKFLOW_EXPORT, workflowId);
+    }
+
+    public CustomServicesWorkflowRestRep importWorkflow(final URI directoryId, final File workflow) throws IOException {
+        final UriBuilder builder = client.uriBuilder(PathConstants.CUSTOM_SERVICES_WORKFLOW_IMPORT);
+        if (null != directoryId) {
+            builder.queryParam("directory", directoryId);
+        }
+        return client.postURIOctet(CustomServicesWorkflowRestRep.class, new FileInputStream(workflow), builder.build());
     }
 }

@@ -24,7 +24,7 @@ import org.apache.commons.lang.StringUtils;
  * This creates the Ansible command line as per the given parameter provided by the user
  */
 
-///usr/bin/ansible-playbook -i "localhost," -u "root" -l "" -t "" playbook.yml --extra-vars " "
+///chroot /opt/customroot /usr/bin/ansible-playbook -i "localhost," -u "root" -l "" -t "" playbook.yml --extra-vars " "
 
 public class AnsibleCommandLine {
     private final String ansiblePath;
@@ -138,18 +138,20 @@ public class AnsibleCommandLine {
             builder.add(ssh).add(node);
         }
 
-        final ImmutableList<String> opt = optionalParam.build();
-        builder.add(ansiblePath).add(opt.toArray(new String[opt.size()])).add(playbook);
-
-        if (!StringUtils.isEmpty(extraVars))
-            builder.add("--extra-vars").add(extraVars);
-
         if (!StringUtils.isEmpty(shellArgs)) {
             final String[] splited = shellArgs.split("\\s+");
 
             for (final String part : splited)
                 builder.add(part);
         }
+
+        final ImmutableList<String> opt = optionalParam.build();
+        builder.add(ansiblePath).add(opt.toArray(new String[opt.size()])).add(playbook);
+
+        if (!StringUtils.isEmpty(extraVars))
+            builder.add("--extra-vars").add(extraVars);
+
+
 
         final ImmutableList<String> cmdList = builder.build();
 

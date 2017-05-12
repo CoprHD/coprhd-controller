@@ -424,23 +424,23 @@ _genconfig_system_init() {
 	
     # revert ZK snapshot in case last ZK mode is participant
     if [ "${_GENCONFIG_site_is_standby}" == "true" ]; then
-	/etc/datatool --revert-minor-version /data/zk/version-2
+		/etc/datatool --revert-minor-version /data/zk/version-2
     fi
 
     #Create chroot directory for chroot-jail
-    if [ ! -d "/opt/customroot" ]; then
-       _genconfig_mkdir 755 storageos:storageos /opt/customroot
-       _genconfig_mkdir 755 storageos:storageos /opt/customroot/proc
-       _genconfig_mkdir 755 storageos:storageos /opt/customroot/sys
-       _genconfig_mkdir 755 storageos:storageos /opt/customroot/dev
-       _genconfig_mkdir 755 storageos:storageos /opt/customroot/dev/shm
-       _genconfig_mkdir 755 storageos:storageos /opt/customroot/dev/pts
-       _genconfig_mkdir 755 storageos:storageos /opt/customroot/etc
-       _genconfig_mkdir 755 storageos:storageos /opt/customroot/usr
-       _genconfig_mkdir 755 storageos:storageos /opt/customroot/lib
-       _genconfig_mkdir 755 storageos:storageos /opt/customroot/lib64
-	   _genconfig_mkdir 755 storageos:storageos /opt/customroot/sbin
-	   _genconfig_mkdir 755 storageos:storageos /opt/customroot/bin
+    if [ ! -d "/opt/storageos/customroot" ]; then
+       _genconfig_mkdir 755 storageos:storageos /opt/storageos/customroot
+       _genconfig_mkdir 755 storageos:storageos /opt/storageos/customroot/proc
+       _genconfig_mkdir 755 storageos:storageos /opt/storageos/customroot/sys
+       _genconfig_mkdir 755 storageos:storageos /opt/storageos/customroot/dev
+       _genconfig_mkdir 755 storageos:storageos /opt/storageos/customroot/dev/shm
+       _genconfig_mkdir 755 storageos:storageos /opt/storageos/customroot/dev/pts
+       _genconfig_mkdir 755 storageos:storageos /opt/storageos/customroot/etc
+       _genconfig_mkdir 755 storageos:storageos /opt/storageos/customroot/usr
+       _genconfig_mkdir 755 storageos:storageos /opt/storageos/customroot/lib
+       _genconfig_mkdir 755 storageos:storageos /opt/storageos/customroot/lib64
+	   _genconfig_mkdir 755 storageos:storageos /opt/storageos/customroot/sbin
+	   _genconfig_mkdir 755 storageos:storageos /opt/storageos/customroot/bin
 
        _genconfig_custom_mount
     fi

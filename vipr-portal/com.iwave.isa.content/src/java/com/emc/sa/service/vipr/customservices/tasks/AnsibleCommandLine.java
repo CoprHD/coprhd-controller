@@ -24,7 +24,7 @@ import org.apache.commons.lang.StringUtils;
  * This creates the Ansible command line as per the given parameter provided by the user
  */
 
-///chroot /opt/customroot /usr/bin/ansible-playbook -i "localhost," -u "root" -l "" -t "" playbook.yml --extra-vars " "
+///chroot /opt/storageos/customroot /usr/bin/ansible-playbook -i "localhost," -u "root" -l "" -t "" playbook.yml --extra-vars " "
 
 public class AnsibleCommandLine {
     private final String ansiblePath;

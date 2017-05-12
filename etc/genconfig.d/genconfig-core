@@ -291,23 +291,23 @@ _get_all_nodes_in_my_vdc() {
 
 # mount custom chroot jail director
 _genconfig_custom_mount() {
-   mount -t proc -o ro proc /opt/customroot/proc
-   mount -t sysfs -o ro sysfs /opt/customroot/sys
-   mount -t devtmpfs -o ro devtmpfs /opt/customroot/dev
-   mount -t tmpfs -o ro tmpfs /opt/customroot/dev/shm
-   mount -t devpts -o ro devpts /opt/customroot/dev/pts
+   mount -t proc -o ro proc /opt/storageos/customroot/proc
+   mount -t sysfs -o ro sysfs /opt/storageos/customroot/sys
+   mount -t devtmpfs -o ro devtmpfs /opt/storageos/customroot/dev
+   mount -t tmpfs -o ro tmpfs /opt/storageos/customroot/dev/shm
+   mount -t devpts -o ro devpts /opt/storageos/customroot/dev/pts
 
-   mount --bind /usr /opt/customroot/usr
-   mount --bind /lib /opt/customroot/lib
-   mount --bind /lib64 /opt/customroot/lib64
-   mount --bind /sbin /opt/customroot/sbin
-   mount --bind /bin /opt/customroot/bin
-   mount --bind /etc /opt/customroot/etc
+   mount --bind /usr /opt/storageos/customroot/usr
+   mount --bind /lib /opt/storageos/customroot/lib
+   mount --bind /lib64 /opt/storageos/customroot/lib64
+   mount --bind /sbin /opt/storageos/customroot/sbin
+   mount --bind /bin /opt/storageos/customroot/bin
+   mount --bind /etc /opt/storageos/customroot/etc
    
-   mount -o bind,remount,ro /opt/customroot/usr
-   mount -o bind,remount,ro /opt/customroot/lib
-   mount -o bind,remount,ro /opt/customroot/lib64
-   mount -o bind,remount,ro /opt/customroot/sbin
-   mount -o bind,remount,ro /opt/customroot/bin
-   mount -o bind,remount,ro /opt/customroot/etc
+   mount -o bind,remount,ro /opt/storageos/customroot/usr
+   mount -o bind,remount,ro /opt/storageos/customroot/lib
+   mount -o bind,remount,ro /opt/storageos/customroot/lib64
+   mount -o bind,remount,ro /opt/storageos/customroot/sbin
+   mount -o bind,remount,ro /opt/storageos/customroot/bin
+   mount -o bind,remount,ro /opt/storageos/customroot/etc
 }

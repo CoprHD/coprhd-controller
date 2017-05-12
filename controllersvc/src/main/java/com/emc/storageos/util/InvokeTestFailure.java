@@ -110,6 +110,7 @@ public final class InvokeTestFailure {
     public static final String ARTIFICIAL_FAILURE_074 = "failure_074_VPlexDeviceController_deleteStorageView_before_delete";
     public static final String ARTIFICIAL_FAILURE_080 = "failure_080_BlockDeviceController.expandVolume_before_device_expand";
     public static final String ARTIFICIAL_FAILURE_082 = "failure_082_set_resource_tag";
+    public static final String ARTIFICIAL_FAILURE_083 = "failure_083_VPlexDeviceController_late_in_add_targets_to_view";
 
     private static final int FAILURE_SUBSTRING_LENGTH = 11;
 

@@ -2557,7 +2557,8 @@ test_11() {
     storage_failure_injections=""
     if [ "${SS}" = "vplex" ]
     then
-	storage_failure_injections=""
+	storage_failure_injections="failure_003_late_in_add_initiator_to_mask \
+                                    failure_083_VPlexDeviceController_late_in_add_targets_to_view"
     fi
 
     if [ "${SS}" = "unity" -o "${SS}" = "xio" ]
@@ -2573,7 +2574,7 @@ test_11() {
     failure_injections="${common_failure_injections} ${storage_failure_injections}"
 
     # Placeholder when a specific failure case is being worked...
-    # failure_injections="failure_004_final_step_in_workflow_complete"
+    # failure_injections="failure_083_VPlexDeviceController_late_in_add_targets_to_view"
 
     for failure in ${failure_injections}
     do

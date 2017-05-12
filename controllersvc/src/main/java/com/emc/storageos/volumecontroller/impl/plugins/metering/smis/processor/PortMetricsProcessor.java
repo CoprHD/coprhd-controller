@@ -740,7 +740,7 @@ public class PortMetricsProcessor {
                 Long usage = 0L;
                 Long volumeCount = MetricsKeys.getLong(MetricsKeys.volumeCount, sp.getMetrics());
                 if (metricsValid) {
-                    // If metrics vald, the metric is the sum of:
+                    // If metrics valid, the metric is the sum of:
                     // 1) the port metric (which includes port and cpu percent busy terms if applicable)
                     // 2) the volumeCoefficient * volumeCount * 100.0 / 2048 (volumes expressed as percent of 2048)
                     // At standard settings, about 21 volumes is equivalent to a 1% difference in port busy.
@@ -1561,7 +1561,7 @@ public class PortMetricsProcessor {
                     customConfigHandler.getComputedCustomConfigValue(
                             CustomConfigConstants.PORT_ALLOCATION_VOLUME_COEFFICIENT,
                             getStorageSystemTypeName(systemType), null));
-            if (volumeCoefficient < 0.0 || volumeCoefficient > 2.0) {
+            if (volumeCoefficient < 0.0 || volumeCoefficient > 5.0) {
                 volumeCoefficient = DEFAULT_VOLUME_COEFFICIENT;
             }
         } catch (Exception e) {

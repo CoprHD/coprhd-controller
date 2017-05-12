@@ -809,33 +809,48 @@ setup_yaml() {
 	rm $tools_file
     fi
 
-    if [ "${SS}" = "unity" ]; then
-        echo "Creating ${tools_file}"
-        touch $tools_file
-        printf 'array:\n  %s:\n  - ip: %s:%s\n    username: %s\n    password: %s' "${SS}" "$UNITY_IP" "$UNITY_PORT" "$UNITY_USER" "$UNITY_PW" >> $tools_file
-        return
-    fi
-
-    if [ "${storage_password}" = "" ]; then
-	echo "storage_password is not set.  Cannot make a valid tools.yml file without a storage_password"
-	exit;
-    fi
-
-    sstype=${SS:0:3}
-    if [ "${SS}" = "xio" ]; then
-	sstype="xtremio"
-    fi
-
-    # create the yml file to be used for array tooling
+    # create the yml file to be used for tooling
     touch $tools_file
-    storage_type=`storagedevice list | grep COMPLETE | grep ${sstype} | awk '{print $1}'`
-    storage_name=`storagedevice list | grep COMPLETE | grep ${sstype} | awk '{print $2}'`
-    storage_version=`storagedevice show ${storage_name} | grep firmware_version | awk '{print $2}' | cut -d '"' -f2`
-    storage_ip=`storagedevice show ${storage_name} | grep smis_provider_ip | awk '{print $2}' | cut -d '"' -f2`
-    storage_port=`storagedevice show ${storage_name} | grep smis_port_number | awk '{print $2}' | cut -d ',' -f1`
-    storage_user=`storagedevice show ${storage_name} | grep smis_user_name | awk '{print $2}' | cut -d '"' -f2`
-    ##update tools.yml file with the array details
-    printf 'array:\n  %s:\n  - ip: %s:%s\n    id: %s\n    username: %s\n    password: %s\n    version: %s' "$storage_type" "$storage_ip" "$storage_port" "$SERIAL_NUMBER" "$storage_user" "$storage_password" "$storage_version" >> $tools_file
+
+    # Append the vcenter attributes 
+    printf 'vcenter:\n  - ip: %s:%s\n    username: %s\n    password: %s\n' "${VCENTER_IP}" "${VCENTER_PORT}" "${VCENTER_USERNAME}" "${VCENTER_PASSWORD}" >> $tools_file
+
+    # Append Windows host attributes
+    printf 'hosts:\n  windows:\n  - ip: %s:%s:false\n    username: %s\n    password: %s\n' "${WINDOWS_HOST_IP}" "${WINDOWS_HOST_PORT}" "${WINDOWS_HOST_USERNAME}" "${WINDOWS_HOST_PASSWORD}" >> $tools_file
+
+    # Append HP-UX host attributes
+    printf '  hpux:\n  - ip: %s:%s\n    username: %s\n    password: %s\n' "${HPUX_HOST_IP}" "${HPUX_HOST_PORT}" "${HPUX_HOST_USERNAME}" "${HPUX_HOST_PASSWORD}" >> $tools_file
+
+    # Append Linux host attributes
+    printf '  linux:\n  - ip: %s:%s\n    username: %s\n    password: %s\n' "${LINUX_HOST_IP}" "${LINUX_HOST_PORT}" "${LINUX_HOST_USERNAME}" "${LINUX_HOST_PASSWORD}" >> $tools_file
+
+    if [ "$SS" = "xio" -o "$SS" = "vplex" -o "$SS" = "unity" ]; then
+    	if [ "${SS}" = "unity" ]; then
+            echo "Creating ${tools_file}"
+       	    touch $tools_file
+            printf 'array:\n  %s:\n  - ip: %s:%s\n    username: %s\n    password: %s' "${SS}" "$UNITY_IP" "$UNITY_PORT" "$UNITY_USER" "$UNITY_PW" >> $tools_file
+            return
+    	fi
+
+    	if [ "${storage_password}" = "" ]; then
+	    echo "storage_password is not set.  Cannot make a valid tools.yml file without a storage_password"
+	    exit;
+    	fi
+
+    	sstype=${SS:0:3}
+    	if [ "${SS}" = "xio" ]; then
+	    sstype="xtremio"
+    	fi
+
+    	storage_type=`storagedevice list | grep COMPLETE | grep ${sstype} | awk '{print $1}'`
+    	storage_name=`storagedevice list | grep COMPLETE | grep ${sstype} | awk '{print $2}'`
+    	storage_version=`storagedevice show ${storage_name} | grep firmware_version | awk '{print $2}' | cut -d '"' -f2`
+    	storage_ip=`storagedevice show ${storage_name} | grep smis_provider_ip | awk '{print $2}' | cut -d '"' -f2`
+    	storage_port=`storagedevice show ${storage_name} | grep smis_port_number | awk '{print $2}' | cut -d ',' -f1`
+    	storage_user=`storagedevice show ${storage_name} | grep smis_user_name | awk '{print $2}' | cut -d '"' -f2`
+    	##update tools.yml file with the array details
+    	printf 'array:\n  %s:\n  - ip: %s:%s\n    id: %s\n    username: %s\n    password: %s\n    version: %s' "$storage_type" "$storage_ip" "$storage_port" "$SERIAL_NUMBER" "$storage_user" "$storage_password" "$storage_version" >> $tools_file
+    fi
 }
 
 setup_provider() {
@@ -954,3 +969,44 @@ cleanup_previous_run_artifacts() {
     fi
 }
 
+verify_mount_point() {
+    ostype=$1
+    mountpoint=$2
+    size=$3
+    wwn=$4
+    
+    runcmd hosthelper.sh verify_mount_point $ostype $mountpoint $size $wwn $*
+    return_status=$?
+    return $return_status
+}
+
+verify_datastore() {
+    runcmd vcenterhelper.sh verify_datastore $*
+    return_status=$?
+    return $return_status
+}
+
+verify_datastore_capacity() {
+    runcmd vcenterhelper.sh verify_datastore_capacity $*
+    return_status=$?
+    return $return_status
+}
+
+verify_datastore_lun_count() {
+    datacenter=$1
+    datastore=$2
+    host=$3
+    count=$4
+
+    runcmd vcenterhelper.sh verify_datastore_lun_count $datacenter $datastore $host $count
+    return_status=$?
+    return $return_status
+}
+
+add_tag() {
+    resource_type=$1
+    resource_id=$2
+    tag=$3
+    runcmd tag --resource_type $resource_type --id $resource_id $tag
+    return $?
+}

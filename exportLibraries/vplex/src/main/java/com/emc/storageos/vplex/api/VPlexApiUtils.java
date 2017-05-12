@@ -175,17 +175,17 @@ public class VPlexApiUtils {
      * the values from the passed resource request response.
      * 
      * @param responseStr The response for a resource GET request.
-     * @param resourceInfo The resource whose attribute value is set.
+     * @param vplexResourceInfo The resource whose attribute value is set.
      * 
      * @throws VPlexApiException If an error occurs setting the attribute
      *             values.
      */
     @SuppressWarnings("rawtypes")
-    static void setAttributeValues(String responseStr, VPlexResourceInfo resourceInfo)
+    static void setAttributeValues(String responseStr, VPlexResourceInfo vplexResourceInfo)
             throws VPlexApiException {
-        try {
+        VPlexResourceInfo resourceInfo = vplexResourceInfo;
+        try {            
             if (resourceInfo instanceof VPlexDistributedDeviceInfo) {
-                s_logger.info("BBB instanceof VPlexDistributedDeviceInfo!");
                 resourceInfo = (VPlexDistributedDeviceInfo) resourceInfo; 
             }
             

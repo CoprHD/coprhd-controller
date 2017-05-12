@@ -11,6 +11,61 @@ import java.util.List;
  * Info for a VPlex distributed device.
  */
 public class VPlexDistributedDeviceInfo extends VPlexResourceInfo {
+    
+    // Enumerates the distributed device attributes we are interested in and
+    // parse from the VPlex response. There must be a setter
+    // method for each attribute specified. The format of the setter
+    // method must be as specified by the base class method
+    // getAttributeSetterMethodName.
+    public static enum DistributedDeviceAttribute {        
+        DEVICE_NAME("name"),
+        GEOMETRY("geometry"),
+        HEALTH_STATE("health-state"),
+        OPERATIONAL_STATUS("operational-status"),
+        SERVICE_STATUS("service-status"),
+        VIRTUAL_VOLUME("virtual-volume"),
+        RULE_SET_NAME("rule-set-name");
+
+        // The VPlex name for the attribute.
+        private String _name;
+
+        /**
+         * Constructor.
+         * 
+         * @param name The VPlex attribute name.
+         */
+        DistributedDeviceAttribute(String name) {
+            _name = name;
+        }
+
+        /**
+         * Getter for the VPlex name for the attribute.
+         * 
+         * @return The VPlex name for the attribute.
+         */
+        public String getAttributeName() {
+            return _name;
+        }
+
+        /**
+         * Returns the enum whose name matches the passed name, else null when
+         * not found.
+         * 
+         * @param name The name to match.
+         * 
+         * @return The enum whose name matches the passed name, else null when
+         *         not found.
+         */
+        public static DistributedDeviceAttribute valueOfAttribute(String name) {
+            DistributedDeviceAttribute[] ddAtts = values();
+            for (int i = 0; i < ddAtts.length; i++) {
+                if (ddAtts[i].getAttributeName().equals(name)) {
+                    return ddAtts[i];
+                }
+            }
+            return null;
+        }
+    };
 
     // The device geometry (RAID level).
     private String geometry = null;
@@ -104,15 +159,11 @@ public class VPlexDistributedDeviceInfo extends VPlexResourceInfo {
     
     @Override
     public List<String> getAttributeFilters() {
-        List<String> relevantAttributes = new ArrayList<String>();
-        relevantAttributes.add("name");
-        relevantAttributes.add("geometry");
-        relevantAttributes.add("health-state");
-        relevantAttributes.add("operational-status");
-        relevantAttributes.add("service-status");
-        relevantAttributes.add("virtual-volume");
-        relevantAttributes.add("rule-set-name");
-        return relevantAttributes;
+        List<String> attFilters = new ArrayList<String>();
+        for (DistributedDeviceAttribute att : DistributedDeviceAttribute.values()) {
+            attFilters.add(att.getAttributeName());
+        }
+        return attFilters;                
     }
 
     public String getHealthState() {

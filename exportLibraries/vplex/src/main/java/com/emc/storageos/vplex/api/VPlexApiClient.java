@@ -1331,7 +1331,7 @@ public class VPlexApiClient {
      * @param virtualVolumeName The name of the VPLEX distributed volume.
      * @param detachedDeviceName The local device name of the mirror previously detached.
      * 
-     * @throws VPlexApiException When an error occurs reattaching the mirror to
+     * @throws VPlexApiException When an error occurs re-attaching the mirror to
      *             the volume.
      */
     public void reattachMirrorToDistributedVolume(String virtualVolumeName,

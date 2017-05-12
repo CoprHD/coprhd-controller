@@ -2524,12 +2524,10 @@ public class VPlexApiDiscoveryManager {
                 URI.create(uriBuilder.toString()));
         s_logger.info("Get consistency groups request URI is {}", requestURI.toString());
         ClientResponse response = _vplexApiClient.get(requestURI, VPlexApiConstants.ACCEPT_JSON_FORMAT_1);
-
+        s_logger.debug("Get consistency groups response is {}", response);
         String responseStr = response.getEntity(String.class);
         int status = response.getStatus();
         response.close();
-        
-        s_logger.info("Raw CG response: {}", responseStr);
 
         if (status == VPlexApiConstants.SUCCESS_STATUS) {
             try {
@@ -3025,7 +3023,7 @@ public class VPlexApiDiscoveryManager {
         s_logger.info("Distributed devices Request URI is {}", requestURI.toString());
         ClientResponse response = _vplexApiClient.get(requestURI);
         String responseStr = response.getEntity(String.class);
-        s_logger.info("Distributed devices Response is {}", responseStr);
+        s_logger.debug("Distributed devices Response is {}", responseStr);
         int status = response.getStatus();
         response.close();
         if (status != VPlexApiConstants.SUCCESS_STATUS) {
@@ -3045,27 +3043,27 @@ public class VPlexApiDiscoveryManager {
     }
     
     /**
-     * Gets the distributed device for the VPLEX.
+     * Directly gets the distributed device for the VPLEX using the devive name.
      * 
-     * @param distributedDeviceName Is the name of the distributed device to find on the VPLEX
-     * @return A VPlexDistributedDeviceInfo representing the distributed
-     *         device or null if not found.
+     * @param distributedDeviceName Is the name of the distributed device to find 
+     *                              on the VPLEX.
+     * @return VPlexDistributedDeviceInfo representing the distributed device
+     *         or null if not found.
      * 
      * @throws VPlexApiException When an error occurs getting the distributed
      *             device information.
      */
     VPlexDistributedDeviceInfo getDistributedDeviceInfo(String distributedDeviceName)
             throws VPlexApiException {
-        
         StringBuilder uriBuilder = new StringBuilder();
         uriBuilder.append(VPlexApiConstants.URI_DISTRIBUTED_DEVICES);
         uriBuilder.append(distributedDeviceName);
         
         URI requestURI = _vplexApiClient.getBaseURI().resolve(URI.create(uriBuilder.toString()));
-        s_logger.info("Distributed devices Request URI is {}", requestURI.toString());
+        s_logger.info("Distributed device request URI is {}", requestURI.toString());
         ClientResponse response = _vplexApiClient.get(requestURI);
         String responseStr = response.getEntity(String.class);
-        s_logger.debug("Distributed devices Response is {}", responseStr);
+        s_logger.debug("Distributed devic response is {}", responseStr);
         int status = response.getStatus();
         response.close();
         if (status != VPlexApiConstants.SUCCESS_STATUS) {

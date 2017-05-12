@@ -76,31 +76,31 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
                     "valid_children": ["default"]
                 },
                 "FOLDER": {
-                    "icon": "builder-jstree-icon builder-folder-icon",
+                    "icon": false,
                     "valid_children": ["Workflow","FOLDER", "script", "ansible", "rest"]
                 },
                 "Workflow": {
-                    "icon": "builder-jstree-icon builder-workflow-icon",
+                    "icon": "builder-jstree-icon builder-jstree-workflow-icon",
                     "valid_children": [],
                     "li_attr": {"class": "draggable-card"}
                 },
                 "script": {
-                    "icon": "builder-jstree-icon builder-script-icon",
+                    "icon": "builder-jstree-icon builder-jstree-script-icon",
                     "valid_children": [],
                     "li_attr": {"class": "draggable-card"}
                 },
                 "ansible": {
-                    "icon": "builder-jstree-icon builder-ansible-icon",
+                    "icon": "builder-jstree-icon builder-jstree-ansible-icon",
                     "valid_children": [],
                     "li_attr": {"class": "draggable-card"}
                 },
                 "vipr": {
-                    "icon": "builder-jstree-icon builder-vipr-icon",
+                    "icon": "builder-jstree-icon builder-jstree-vipr-icon",
                     "valid_children": [],
                     "li_attr": {"class": "draggable-card"}
                 },
                 "rest": {
-                    "icon": "builder-jstree-icon builder-rest-icon",
+                    "icon": "builder-jstree-icon builder-jstree-rest-icon",
                     "valid_children": [],
                     "li_attr": {"class": "draggable-card"}
                 }
@@ -415,8 +415,8 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
     var ASSET_TYPE_OPTIONS = ['assetType.vipr.blockVirtualPool','assetType.vipr.virtualArray','assetType.vipr.project','assetType.vipr.host'];
 
     $scope.workflowData = {};
-    $scope.stepInputOptions = [];
-    $scope.stepOutputOptions = [];
+    $scope.stepInputOptions = {};
+    $scope.stepOutputOptions = {};
     var DEFAULT_OUTPUT_PARAMS = ["operation_output","operation_error","operation_returncode"];
 
     $scope.modified = false;
@@ -588,16 +588,21 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
         loadStep(stepData);
 
     }
+
+    $scope.getInputOptions=function(){
+        return Object.values($scope.stepInputOptions);
+    }
+
+    $scope.getOutputOptions=function(){
+        return Object.values($scope.stepOutputOptions);
+    }
+
     function setBindings() {
         jspInstance.bind("connection", function(connection) {
             var source=$(connection.source);
             var sourceEndpoint=$(connection.sourceEndpoint.canvas);
             var sourceData = source.data("oeData");
             var sourceNext = {};
-            var firstConnection = false;
-            if (!sourceData.next || (!sourceData.next.hasOwnProperty("defaultStep") && !sourceData.next.hasOwnProperty("failedStep"))){
-                 firstConnection = true;
-            }
 
             if (sourceData.next) {
                 sourceNext = sourceData.next;
@@ -610,7 +615,7 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
             }
             // Populate array for input and output from previous steps
 
-            if (sourceData.id !== 'Start' && sourceData.id !== 'End' && firstConnection){
+            if (sourceData.id !== 'Start' && sourceData.id !== 'End' ){
                 if("inputGroups" in sourceData) {
                     for(var inputGroupEntry in sourceData.inputGroups) {
                         if(sourceData.inputGroups.hasOwnProperty(inputGroupEntry)) {
@@ -620,8 +625,8 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
                                     var inparam_name = inparams[inputparam].name;
                                     var stepidconcate = sourceData.id + "." + inparam_name;
                                     var stepnameconcate = sourceData.friendlyName + " " + inparam_name
-
-                                    $scope.stepInputOptions.push({id:stepidconcate, name:stepnameconcate});
+                                    //prevents duplicates by using key
+                                    $scope.stepInputOptions[stepidconcate]={id:stepidconcate, name:stepnameconcate};
                                 }
                             }
                         }
@@ -633,7 +638,7 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
                         var outparam_name = outparams[outputparam].name;
                         var stepidconcate = sourceData.id + "." + outparam_name;
                         var stepnameconcate = sourceData.friendlyName + " " + outparam_name
-                        $scope.stepOutputOptions.push({id:stepidconcate, name:stepnameconcate});
+                        $scope.stepOutputOptions[stepidconcate]={id:stepidconcate, name:stepnameconcate};
                     }
                 }
 
@@ -642,7 +647,7 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
                         var outparam_name = DEFAULT_OUTPUT_PARAMS[outputparam];
                         var stepidconcate = sourceData.id + "." + outparam_name;
                         var stepnameconcate = sourceData.friendlyName + " " + outparam_name
-                        $scope.stepOutputOptions.push({id:stepidconcate, name:stepnameconcate});
+                        $scope.stepOutputOptions[stepidconcate]={id:stepidconcate, name:stepnameconcate};
                     }
                 }
             }
@@ -668,15 +673,19 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
             sourceData.next=sourceNext;
             // Remove source data after unbind array for input and output from previous steps
             if (!sourceData.next.hasOwnProperty("defaultStep") && !sourceData.next.hasOwnProperty("failedStep")){
-                for (var i =$scope.stepInputOptions.length-1; i >= 0; i--) {
-                    if ($scope.stepInputOptions[i].id.startsWith(sourceData.id + ".")) {
-                        $scope.stepInputOptions.splice(i,1);
-                     }
+                 for (var k in $scope.stepInputOptions){
+                    if ($scope.stepInputOptions.hasOwnProperty(k)) {
+                        if (k.startsWith(sourceData.id + ".")) {
+                            delete $scope.stepInputOptions[k];
+                        }
+                    }
                 }
-                for (var i =$scope.stepOutputOptions.length-1; i >= 0; i--) {
-                    if ($scope.stepOutputOptions[i].id.startsWith(sourceData.id + ".")) {
-                        $scope.stepOutputOptions.splice(i,1);
-                     }
+                 for (var k in $scope.stepOutputOptions){
+                    if ($scope.stepOutputOptions.hasOwnProperty(k)) {
+                        if (k.startsWith(sourceData.id + ".")) {
+                            delete $scope.stepOutputOptions[k];
+                        }
+                    }
                 }
             }
             $scope.modified = true;

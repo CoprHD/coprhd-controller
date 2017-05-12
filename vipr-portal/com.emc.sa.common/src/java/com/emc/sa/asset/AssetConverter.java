@@ -33,8 +33,17 @@ public class AssetConverter {
         @Override
         public Object convert(Class type, Object value) {
             final String string = value.toString();
-            if (StringUtils.isNotBlank(string) && URIUtil.isValid(string)) {
-                return URI.create(string);
+            if (StringUtils.isNotBlank(string)) {
+                // the uri can be wrapped in quotes when coming from an order due to how we prepare the
+                // orderparameters, so we need to handle this case.
+                String substring = StringUtils.substringBetween(string, "\"");
+                if (URIUtil.isValid(string)) {
+                    return URI.create(string);
+                } else if (substring != null && URIUtil.isValid(substring)) {
+                    return URI.create(substring);
+                } else {
+                    return null;
+                }
             }
             else {
                 return null;

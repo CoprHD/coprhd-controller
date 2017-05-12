@@ -199,7 +199,7 @@ public class CIMConnectionFactory {
             StorageSystem storageSystem = allStorageSystemItr.next();
             if (null != storageSystem &&
                     Type.vnxfile.toString().equals(storageSystem.getSystemType())) {
-                // before calling getConnection check if storage System have valid SMIS connection during discovery
+                // Before calling getConnection check if storage System have valid SMIS connection during discovery
                 if (null != storageSystem.getSmisConnectionStatus() &&
                         ConnectionStatus.CONNECTED.toString().equalsIgnoreCase(
                                 storageSystem.getSmisConnectionStatus())) {

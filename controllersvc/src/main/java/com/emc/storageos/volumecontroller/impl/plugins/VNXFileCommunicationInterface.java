@@ -202,20 +202,19 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
      * @return boolean : true if connection can be establish
      */
     private boolean getVnxFileSMISConnection(AccessProfile accessProfile, StorageSystem system) {
-        boolean connectionStatus = false;
         try {
             final CIMConnectionFactory connectionFactory = (CIMConnectionFactory) accessProfile
                     .getCimConnectionFactory();
-            CimConnection cxn = connectionFactory.getConnection(system);
             // getConnection method also add the valid connection to connection manager.
-            if (cxn != null) {
-                return connectionStatus = true;
+            CimConnection cxn = connectionFactory.getConnection(system);
+            if (cxn != null && connectionFactory.checkConnectionliveness(cxn)) {
+                return true;
             }
         } catch (final Exception ex) {
             _logger.error("Not able to get CIMOM Client instance for provider ip {} due to ",
                     system.getSmisProviderIP(), ex);
         }
-        return connectionStatus;
+        return false;
     }
 
     /**

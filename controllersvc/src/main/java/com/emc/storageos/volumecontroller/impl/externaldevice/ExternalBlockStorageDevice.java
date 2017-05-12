@@ -2112,7 +2112,7 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice implem
                             com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationSet.ElementType.REPLICATION_SET);
                     break;
                 default:
-                    // todo this is an error
+                    throw new RuntimeException(String.format("Undefined element type: %s", elementType.toString()));
             }
 
             if (systemRRPairs != null && !systemRRPairs.isEmpty()) {

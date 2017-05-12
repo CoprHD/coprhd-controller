@@ -1320,7 +1320,8 @@ public class VPlexApiClient {
      * @throws VPlexApiException When an error occurs detaching the mirror from
      *             the volume.
      */
-    public String detachSpecificMirrorFromDistributedVolume(String virtualVolumeName, String clusterId) {
+    public String detachSpecificMirrorFromDistributedVolume(String virtualVolumeName, 
+            String clusterId) {
         s_logger.info("Request to detach a mirror from a distributed volume at {}",
                 _baseURI);
         return _virtualVolumeMgr.detachMirrorFromDistributedVolume(virtualVolumeName, clusterId);

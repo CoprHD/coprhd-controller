@@ -17,7 +17,6 @@ import java.util.StringTokenizer;
 
 import org.apache.commons.lang.StringUtils;
 import org.codehaus.jettison.json.JSONObject;
-import org.jsoup.helper.StringUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -2180,7 +2179,7 @@ public class VPlexApiVirtualVolumeManager {
      * Detaches the mirror on the specified cluster from the distributed VPLEX
      * volume with the passed name.
      *
-     * @param virtualVolumeName The name of the distributed virtual volume to detach the mirror from.
+     * @param virtualVolumeName The name of the VPLEX distributed volume.
      * @param clusterId The cluster of the mirror to detach.
      *
      * @return The name of the detached mirror for use when reattaching the mirror.

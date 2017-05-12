@@ -1292,12 +1292,12 @@ public class VPlexApiClient {
     }
 
     /**
-     * Detaches the mirror specified by the passed mirror info from the
-     * distributed VPLEX volume with the passed name.
+     * Detaches the mirror from the distributed VPLEX volume with the passed name. The mirror to detach
+     * is derived from the distributed device info from the VPLEX.
      * 
      * @param virtualVolumeName The name of the VPLEX distributed volume.     
      * 
-     * @return The name of the detached mirror for use when re-attaching the mirror.
+     * @return The name of the detached mirror for use when reattaching the mirror.
      * 
      * @throws VPlexApiException When an error occurs detaching the mirror from
      *             the volume.
@@ -1305,7 +1305,25 @@ public class VPlexApiClient {
     public String detachMirrorFromDistributedVolume(String virtualVolumeName) throws VPlexApiException {
         s_logger.info("Request to detach a mirror from a distributed volume at {}",
                 _baseURI);
-        return _virtualVolumeMgr.detachMirrorFromDistributedVolume(virtualVolumeName);
+        return _virtualVolumeMgr.detachMirrorFromDistributedVolume(virtualVolumeName, null);
+    }
+    
+    /**
+     * Detaches a specific mirror (indicated by the passed in clusterId) from the distributed 
+     * VPLEX volume with the passed name.
+     * 
+     * @param virtualVolumeName The name of the VPLEX distributed volume.
+     * @param clusterId The cluster to detach the mirror from. 
+     * 
+     * @return The name of the detached mirror for use when reattaching the mirror.
+     * 
+     * @throws VPlexApiException When an error occurs detaching the mirror from
+     *             the volume.
+     */
+    public String detachSpecificMirrorFromDistributedVolume(String virtualVolumeName, String clusterId) {
+        s_logger.info("Request to detach a mirror from a distributed volume at {}",
+                _baseURI);
+        return _virtualVolumeMgr.detachMirrorFromDistributedVolume(virtualVolumeName, clusterId);
     }
     
     /**
@@ -1331,7 +1349,7 @@ public class VPlexApiClient {
      * @param virtualVolumeName The name of the VPLEX distributed volume.
      * @param detachedDeviceName The local device name of the mirror previously detached.
      * 
-     * @throws VPlexApiException When an error occurs re-attaching the mirror to
+     * @throws VPlexApiException When an error occurs reattaching the mirror to
      *             the volume.
      */
     public void reattachMirrorToDistributedVolume(String virtualVolumeName,
@@ -2143,5 +2161,4 @@ public class VPlexApiClient {
             _discoveryMgr.getInitiatorWwnToNameMap(clusterName, true);
         }
     }
-
 }

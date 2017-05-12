@@ -15,6 +15,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.StringTokenizer;
 
+import org.apache.commons.lang.StringUtils;
 import org.codehaus.jettison.json.JSONObject;
 import org.jsoup.helper.StringUtil;
 import org.slf4j.Logger;
@@ -2179,17 +2180,17 @@ public class VPlexApiVirtualVolumeManager {
      * Detaches the mirror on the specified cluster from the distributed VPLEX
      * volume with the passed name.
      *
+     * @param virtualVolumeName The name of the distributed virtual volume to detach the mirror from.
      * @param clusterId The cluster of the mirror to detach.
      *
-     * @return The name of the detached mirror for use when re-attaching the mirror.
+     * @return The name of the detached mirror for use when reattaching the mirror.
      *
      * @throws VPlexApiException When an error occurs detaching the mirror from the volume.
      */
-    public String detachMirrorFromDistributedVolume(String virtualVolumeName) throws VPlexApiException {
-        s_logger.info("Request to detach mirror from a distributed volume {}", virtualVolumeName);
+    public String detachMirrorFromDistributedVolume(String virtualVolumeName, String clusterId) throws VPlexApiException {
+        s_logger.info("Request to detach mirror from distributed volume {}", virtualVolumeName);
 
-        ClientResponse response = null;
-        String clusterId = "";
+        ClientResponse response = null;        
         try {
             // Find the virtual volume to make sure it exists.
             VPlexApiDiscoveryManager discoveryMgr = _vplexApiClient.getDiscoveryManager();
@@ -2203,9 +2204,11 @@ public class VPlexApiVirtualVolumeManager {
                         .cantFindDistributedDeviceForVolume(virtualVolumeName);
             }
             
-            // Find the cluster to detach
-            clusterId = findClusterToDetach(ddInfo);
-            s_logger.info(String.format("Cluster to detach is: %s", clusterId));
+            if (StringUtils.isEmpty(clusterId)) {
+                // Find the cluster to detach
+                clusterId = VPlexApiUtils.findClusterToDetach(ddInfo);
+                s_logger.info(String.format("Cluster to detach is: %s", clusterId));
+            }
 
             // Get the distributed device components. These are the local devices
             // that were used to build the distributed device. Then find the
@@ -2251,7 +2254,7 @@ public class VPlexApiVirtualVolumeManager {
                 } else {
                     String cause = VPlexApiUtils.getCauseOfFailureFromResponse(responseStr);
                     throw VPlexApiException.exceptions.detachMirrorFailureStatus(
-                            clusterId, virtualVolumeName,
+                            detachedDeviceName, virtualVolumeName,
                             String.valueOf(response.getStatus()), cause);
                 }
             }
@@ -2578,35 +2581,5 @@ public class VPlexApiVirtualVolumeManager {
                 response.close();
             }
         }
-    }
-    
-    /**
-     * Find the losing cluster to detach.
-     * 
-     * @param ddInfo Distributed Device info which has the ruleset to determine which 
-     *               cluster to detach. 
-     * @return clusterId The losing cluster to detach.
-     */
-    private String findClusterToDetach(VPlexDistributedDeviceInfo ddInfo) {
-        String clusterToDetach = "";
-        if (!StringUtil.isBlank(ddInfo.getRuleSetName())) {
-            if (VPlexApiConstants.CLUSTER_1_DETACHES.equals(ddInfo.getRuleSetName())) {
-                // This means that cluster-1 is the winner, detach cluster-2.
-                clusterToDetach = VPlexApiConstants.CLUSTER_2;
-            }
-            if (VPlexApiConstants.CLUSTER_2_DETACHES.equals(ddInfo.getRuleSetName())) {
-                // This means that cluster-2 is the winner, detach cluster-1.
-                clusterToDetach = VPlexApiConstants.CLUSTER_1;
-            }
-        }
-        
-        if (StringUtil.isBlank(clusterToDetach)) {
-            // Default to detaching the cluster returned from getClusterId() in the event 
-            // there is "no-automatic-winner" since it doesn't matter which cluster detaches 
-            // in this case.
-            clusterToDetach = ddInfo.getClusterId();
-        }
-        
-        return clusterToDetach;
     }
 }

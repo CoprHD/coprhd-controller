@@ -872,7 +872,7 @@ public class VPlexApiDiscoveryManager {
                     // one we're looking for.
                     List<VPlexDistributedDeviceInfo> deviceInfoList = getDistributedDeviceInfo();
                     for (VPlexDistributedDeviceInfo deviceInfo : deviceInfoList) {
-                        s_logger.info("Distributed Device Info: {}", deviceInfo.toString());
+                        s_logger.debug("Distributed Device Info: {}", deviceInfo.toString());
                         if (deviceInfo.getName().equals(deviceName)) {
                             s_logger.info("Found distributed device {}", deviceName);
                             distributedDeviceInfo = deviceInfo;
@@ -3020,10 +3020,10 @@ public class VPlexApiDiscoveryManager {
             throws VPlexApiException {
         URI requestURI = _vplexApiClient.getBaseURI().resolve(
                 VPlexApiConstants.URI_DISTRIBUTED_DEVICES);
-        s_logger.info("Distributed devices Request URI is {}", requestURI.toString());
+        s_logger.info("Distributed devices request URI is {}", requestURI.toString());
         ClientResponse response = _vplexApiClient.get(requestURI);
         String responseStr = response.getEntity(String.class);
-        s_logger.debug("Distributed devices Response is {}", responseStr);
+        s_logger.debug("Distributed devices response is {}", responseStr);
         int status = response.getStatus();
         response.close();
         if (status != VPlexApiConstants.SUCCESS_STATUS) {
@@ -3043,7 +3043,8 @@ public class VPlexApiDiscoveryManager {
     }
     
     /**
-     * Directly gets the distributed device for the VPLEX using the devive name.
+     * Gets the distributed device for the VPLEX using the distributed device name
+     * and populates all relevant attributes from the response.
      * 
      * @param distributedDeviceName Is the name of the distributed device to find 
      *                              on the VPLEX.

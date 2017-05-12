@@ -7524,7 +7524,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
 
                 try {
                     // Try to detach mirror that might have been added.
-                    //BBB client.detachMirrorFromDistributedVolume(virtualVolumeName, clusterId);
+                    client.detachSpecificMirrorFromDistributedVolume(virtualVolumeName, clusterId);
 
                     // Find virtual volume and its supporting device
                     VPlexVirtualVolumeInfo virtualVolumeInfo = client.findVirtualVolume(virtualVolumeName, virtualVolumePath);
@@ -9309,10 +9309,10 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
      *            The workflow step identifier.
      */
     public void detachMirror(URI vplexURI, URI vplexVolumeURI, URI cgURI, String stepId) {
-
         _log.info("Executing detach mirror of VPLEX volume {} on VPLEX {}",
                 new Object[] { vplexVolumeURI, vplexURI });
-
+        
+        String detachedDeviceName = "";
         try {
             // Initialize the data that will tell RB what to do in
             // case of failure.
@@ -9368,7 +9368,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
             }
 
             // Detach the mirror.
-            String detachedDeviceName = client.detachMirrorFromDistributedVolume(vplexVolumeName);
+            detachedDeviceName = client.detachMirrorFromDistributedVolume(vplexVolumeName);
             stepData.put(DETACHED_DEVICE, detachedDeviceName);
             stepData.put(REATTACH_MIRROR, Boolean.TRUE.toString());
             _workflowService.storeStepData(stepId, stepData);
@@ -9385,12 +9385,12 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
         } catch (Exception e) {
             _log.error("Exception detaching mirror for VPLEX distributed volume " + e.getMessage(), e);
             WorkflowStepCompleter.stepFailed(stepId, VPlexApiException.exceptions
-                    .failedDetachingVPlexVolumeMirror("BBB-FIX-THIS", vplexVolumeURI.toString(), e));
+                    .failedDetachingVPlexVolumeMirror(detachedDeviceName, vplexVolumeURI.toString(), e));
         }
     }
 
     /**
-     * Creates a workflow step to re-attach a mirror that was previously
+     * Creates a workflow step to reattach a mirror that was previously
      * detached to the passed distributed vplex volume.
      *
      * @param workflow
@@ -9399,8 +9399,6 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
      *            A reference to a VPLEX storage system.
      * @param vplexVolume
      *            A reference to the virtual volume.
-     * @param mirrorVolumeURI
-     *            The URI of the mirror volume to detach.
      * @param detachStepId
      *            The step id for the step that detached the mirror.
      * @param waitFor
@@ -9411,21 +9409,21 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
      * @return ATTACH_MIRROR_STEP
      */
     private String createWorkflowStepForAttachMirror(Workflow workflow,
-            StorageSystem vplexSystem, Volume vplexVolume, URI mirrorVolumeURI,
+            StorageSystem vplexSystem, Volume vplexVolume,
             String detachStepId, String waitFor, Workflow.Method rollbackMethod) {
         URI vplexURI = vplexSystem.getId();
         URI vplexVolumeURI = vplexVolume.getId();
         Workflow.Method attachMirrorMethod = createAttachMirrorMethod(vplexURI,
-                vplexVolumeURI, mirrorVolumeURI, vplexVolume.getConsistencyGroup(),
+                vplexVolumeURI, vplexVolume.getConsistencyGroup(),
                 detachStepId);
         workflow.createStep(ATTACH_MIRROR_STEP, String.format(
-                "Attach mirror %s for VPLEX volume %s on system %s", mirrorVolumeURI,
+                "Attach mirror for VPLEX volume %s on system %s",
                 vplexVolumeURI, vplexURI), waitFor, vplexURI, vplexSystem
                         .getSystemType(),
                 this.getClass(), attachMirrorMethod,
                 rollbackMethod, null);
-        _log.info("Created workflow step to reattach mirror {} to volume {}",
-                rollbackMethod, vplexVolumeURI);
+        _log.info("Created workflow step to reattach mirror to volume {}", 
+                vplexVolumeURI);
 
         return ATTACH_MIRROR_STEP;
     }
@@ -9438,8 +9436,6 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
      *            The URI of the VPLEX system.
      * @param vplexVolumeURI
      *            The URI of the distributed VPLEX volume.
-     * @param mirrorVolumeURI
-     *            The URI of the remote backend volume.
      * @param cgURI
      *            The URI of the volume's CG or null.
      * @param detachStepId
@@ -9448,9 +9444,9 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
      * @return A reference to the attach mirror workflow method.
      */
     private Workflow.Method createAttachMirrorMethod(URI vplexURI, URI vplexVolumeURI,
-            URI mirrorVolumeURI, URI cgURI, String detachStepId) {
+            URI cgURI, String detachStepId) {
         return new Workflow.Method(ATTACH_MIRROR_METHOD_NAME, vplexURI, vplexVolumeURI,
-                mirrorVolumeURI, cgURI, detachStepId);
+                cgURI, detachStepId);
     }
 
     /**
@@ -9461,8 +9457,6 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
      *            The URI of the VPLEX system.
      * @param vplexVolumeURI
      *            The URI of the distributed VPLEX volume.
-     * @param mirrorVolumeURI
-     *            The URI of the remote backend volume.
      * @param cgURI
      *            The URI of the volume's CG or null.
      * @param detachStepId
@@ -9470,11 +9464,11 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
      * @param stepId
      *            The workflow step identifier.
      */
-    public void attachMirror(URI vplexURI, URI vplexVolumeURI, URI mirrorVolumeURI,
-            URI cgURI, String detachStepId, String stepId) {
-        _log.info("Executing attach mirror {} to VPLEX volume {} on VPLEX {}",
-                new Object[] { mirrorVolumeURI, vplexVolumeURI, vplexURI });
-
+    public void attachMirror(URI vplexURI, URI vplexVolumeURI, URI cgURI, 
+            String detachStepId, String stepId) {
+        _log.info("Executing attach mirror to VPLEX volume {} on VPLEX {}",
+                new Object[] { vplexVolumeURI, vplexURI });
+        String mirrorDeviceName = "";
         try {
             // Update workflow step.
             WorkflowStepCompleter.stepExecuting(stepId);
@@ -9492,7 +9486,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
             // Attach the mirror.
             @SuppressWarnings("unchecked")
             Map<String, String> detachStepData = (Map<String, String>) _workflowService.loadStepData(detachStepId);
-            String mirrorDeviceName = detachStepData.get(DETACHED_DEVICE);
+            mirrorDeviceName = detachStepData.get(DETACHED_DEVICE);
             client.reattachMirrorToDistributedVolume(vplexVolumeName, mirrorDeviceName);
             _log.info("Attached the mirror");
 
@@ -9552,7 +9546,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
         } catch (Exception e) {
             _log.error("Exception attaching mirror for VPLEX distributed volume " + e.getMessage(), e);
             WorkflowStepCompleter.stepFailed(stepId, VPlexApiException.exceptions
-                    .failedAttachingVPlexVolumeMirror(mirrorVolumeURI.toString(), vplexVolumeURI.toString(), e));
+                    .failedAttachingVPlexVolumeMirror(mirrorDeviceName, vplexVolumeURI.toString(), e));
         }
     }
 
@@ -10085,12 +10079,10 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
                             vplexVolumeURI, waitFor, rollbackMethodNullMethod());
 
                     // Now create a workflow step to reattach the mirror to initiate
-                    // a rebuild of the HA mirror for the distributed volume. Note that
+                    // a rebuild of the mirror for the distributed volume. Note that
                     // these steps will not run until after the native restore, which
                     // only gets executed once, not for every VPLEX volume.
-                    
-                    // BBB fix
-                    createWorkflowStepForAttachMirror(workflow, vplexSystem, vplexVolume, vplexVolume.getId(),
+                    createWorkflowStepForAttachMirror(workflow, vplexSystem, vplexVolume,
                             detachStepId, RESTORE_VOLUME_STEP,
                             rollbackMethodNullMethod());
                 }
@@ -13271,20 +13263,13 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
             }
 
             // Fire off steps for re-attaching the mirror on distributed volumes.
-            for (Volume distributedVolume : distributedVolumes) {
-                // Determine the leg to be attached.
-                URI legToAttachURI = null;
-                for (String associatedVolume : distributedVolume.getAssociatedVolumes()) {
-                    if (!associatedVolume.equals(vplexToArrayVolumes.get(distributedVolume).getId().toString())) {
-                        legToAttachURI = URI.create(associatedVolume);
-                    }
-                }
+            for (Volume distributedVolume : distributedVolumes) {                
                 // Now create a workflow step to reattach the mirror to initiate
                 // a rebuild of the HA mirror for the full copy source volume.
                 // Note that these steps will not run until after the native
                 // restore, which only gets executed once.
                 String rebuildStep = createWorkflowStepForAttachMirror(workflow, vplexSystem,
-                        distributedVolume, legToAttachURI, vplexVolumeIdToDetachStep.get(distributedVolume.getId()),
+                        distributedVolume, vplexVolumeIdToDetachStep.get(distributedVolume.getId()),
                         inputWaitFor, rollbackMethodNullMethod());
 
                 // Create a step to wait for rebuild of the HA volume to
@@ -13296,6 +13281,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
             }
 
         }
+        
         return WAIT_ON_REBUILD_STEP;
     }
 

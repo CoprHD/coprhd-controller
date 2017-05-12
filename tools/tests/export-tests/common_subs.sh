@@ -553,29 +553,26 @@ verify_zones() {
 get_zone_name() {
     host=$1
     initiator=$2
+    # if anything is passed in for this param, we will increment the failure count
+    # if no zone is found
+    increment_failure=$3
 
     # Remove the ':' characters
     initiator=${initiator//:}
 
     zone=`/opt/storageos/bin/dbutils list FCZoneReference | grep zoneName | grep ${host} | grep ${initiator:4} | awk -F= '{print $2}'`
-    if [[ $zone = "" ]]; then
+    if [[ -z $zone ]]; then
         # Try to find the zone based on the initiator only - might be a pre-existing zone
         zone=`/opt/storageos/bin/dbutils list FCZoneReference | grep zoneName | grep ${initiator:4} | awk -F= '{print $2}'`
-        if [[ $zone = "" ]]; then      
-            echo -e "\e[91mERROR\e[0m: Could not find a zone corresponding to initiator ${initiator}"
-        else
-            echo $zone
-        fi
-    else
-        echo $zone
     fi  
+    echo $zone
 }
 
 # Verify that a given zone exists or has been removed
 verify_zone() {
     zone=$1
     fabricid=$2
-    check=$3    
+    check=$3  
     
     if [ "${SIM}" = "1" ]; then
         network=fabric-sim
@@ -592,10 +589,10 @@ verify_zone() {
     returncode=$?
     if [ $returncode -ne 0 -a "${check}" = "exists" ]; then
         echo -e "\e[91mERROR\e[0m: Expected to find zone ${zone}, but did not."
-        incr_fail_count
+        incr_fail_count           
     elif [ $returncode -eq 0 -a "${check}" = "gone" ]; then
         echo -e "\e[91mERROR\e[0m: Expected to not find zone ${zone}, but it is there."
-        incr_fail_count
+        incr_fail_count           
     fi    
 }
 

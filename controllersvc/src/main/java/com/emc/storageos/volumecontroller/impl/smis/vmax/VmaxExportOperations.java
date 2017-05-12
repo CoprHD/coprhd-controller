@@ -4863,17 +4863,24 @@ public class VmaxExportOperations implements ExportMaskOperations {
                 policyUpdated = true;
 
                 // Update the compression attributes if it needs to be
-                boolean newCompressionSetting = newVirtualPoolPolicyLimits.getCompression();
-                if (currentStorageGroupPolicyLimits.getCompression() != newCompressionSetting) {
-                    // If we are here, we are pretty up dealing with a VMAX3 and SMI-S 8.3 version or greater provider.
-                    CIMInstance toUpdate = new CIMInstance(childGroupInstance.getObjectPath(),
-                            _helper.getV3CompressionProperties(newCompressionSetting));
-                    _helper.modifyInstance(storage, toUpdate, SmisConstants.PS_EMC_COMPRESSION);
-                    _log.info("Modified Storage Group {} Compression setting to {}",
-                            childGroupName, newCompressionSetting);
-                } else {
-                    _log.info("Current and new compression values are same '{}'." +
-                            " No need to update it on Storage Group.", newCompressionSetting);
+                if (isVmax3) {
+                    // refresh the SG instance since compression property is enabled by default
+                    // when SG becomes FAST managed.
+                    childGroupInstance = _helper.getInstance(storage, childGroupPath, false,
+                            false, SmisConstants.PS_EMC_COMPRESSION);
+                    boolean currentCompressionSetting = SmisUtils.
+                            getEMCCompressionForStorageGroup(childGroupInstance);
+                    boolean newCompressionSetting = newVirtualPoolPolicyLimits.getCompression();
+                    if (currentCompressionSetting != newCompressionSetting) {
+                        CIMInstance toUpdate = new CIMInstance(childGroupInstance.getObjectPath(),
+                                _helper.getV3CompressionProperties(newCompressionSetting));
+                        _helper.modifyInstance(storage, toUpdate, SmisConstants.PS_EMC_COMPRESSION);
+                        _log.info("Modified Storage Group {} Compression setting to {}",
+                                childGroupName, newCompressionSetting);
+                    } else {
+                        _log.info("Current and new compression values are same '{}'." +
+                                " No need to update it on Storage Group.", newCompressionSetting);
+                    }
                 }
 
                 // update host io limits if need be

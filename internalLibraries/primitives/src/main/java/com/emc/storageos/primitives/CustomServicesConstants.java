@@ -33,13 +33,15 @@ public final class CustomServicesConstants {
     public static final String ERROR_MSG_INPUT_TYPE_IS_NOT_DEFINED = "InputType is not defined";
     public static final String ERROR_MSG_INPUT_TYPE_IS_REQUIRED = "InputType is mandated for required fields";
     public static final String ERROR_MSG_INPUT_FIELD_TYPE_IS_REQUIRED = "InputFieldType is mandated for InputFromUser type";
-    public static final String ERROR_MSG_INVALID_BOOLEAN_INPUT_FIELD_TYPE = "Invalid value for boolean InputFieldType - Valid boolean values are 'true' / 'false'";
-    public static final String ERROR_MSG_INVALID_NUMBER_INPUT_FIELD_TYPE = "Invalid value for integer InputFieldType";
+    public static final String ERROR_MSG_INVALID_DEFAULT_BOOLEAN_INPUT_FIELD_TYPE = "Invalid default value for boolean InputFieldType - Valid boolean values are 'true' / 'false'";
+    public static final String ERROR_MSG_INVALID_DEFAULT_NUMBER_INPUT_FIELD_TYPE = "Invalid default value for integer InputFieldType";
     public static final String ERROR_MSG_DISPLAY_IS_EMPTY = "Display Name is empty";
     public static final String ERROR_MSG_DISPLAY_NAME_NOT_UNIQUE = "Display Name is not unique";
     public static final String ERROR_MSG_INPUT_NAME_IS_EMPTY = "Input Name is empty";
     public static final String ERROR_MSG_INPUT_NAME_NOT_UNIQUE_IN_STEP = "Input Name is not unique in the step";
-    public static final String ERROR_MSG_NO_DEFAULTVALUE_FOR_ASSET_INPUT_TYPE = "No default value for Asset Input Type";
+    public static final String ERROR_MSG_DEFAULT_VALUE_REQUIRED_FOR_INPUT_TYPE = "No default value for Input Type";
+    public static final String ERROR_MSG_NO_INPUTVALUE_FOR_INPUT_TYPE = "No input value for Input Type";
+    public static final String ERROR_MSG_DEFAULTVALUE_PASSED_FOR_INPUT_TYPE = "Default value passed for Input Type";
 
     public static final int STEP_ID = 0;
     public static final int INPUT_FIELD = 1;
@@ -116,7 +118,7 @@ public final class CustomServicesConstants {
     }
 
     public enum InputFieldType {
-        INTEGER, BOOLEAN, TEXT, PASSWORD;
+        NUMBER, BOOLEAN, TEXT, PASSWORD;
     }
 
     public enum InputType {

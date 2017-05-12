@@ -166,7 +166,7 @@ public class ValidationHelper {
     }
 
     private String validateCurrentStep(final Step step) {
-        String errorString = null;
+        String errorString = EMPTY_STRING;
         if (step == null || StringUtils.isBlank(step.getId())) {
             return CustomServicesConstants.ERROR_MSG_WORKFLOW_STEP_NULL;
         }
@@ -266,35 +266,56 @@ public class ValidationHelper {
     }
 
     private String checkInputType(final Input input) {
-        String errorMessage = EMPTY_STRING;
+        String errorMessage;
         if (StringUtils.isBlank(input.getType())
                 || CustomServicesConstants.InputType.fromString(input.getType()).equals(CustomServicesConstants.InputType.INVALID)) {
             // Input type is required and should be one of valid values. if user does not want to set type, set it to "Disabled"
+            EnumSet<CustomServicesConstants.InputType> validInputTypes = EnumSet.allOf(CustomServicesConstants.InputType.class);
+            validInputTypes.remove(CustomServicesConstants.InputType.INVALID);
             errorMessage = String.format("%s - Valid Input Types %s", CustomServicesConstants.ERROR_MSG_INPUT_TYPE_IS_NOT_DEFINED,
-                    EnumSet.allOf(CustomServicesConstants.InputType.class));
+                    validInputTypes);
         } else if (input.getRequired() && input.getType().equals(CustomServicesConstants.InputType.DISABLED.toString())) {
             // Input type is required if the input is marked required
             errorMessage = CustomServicesConstants.ERROR_MSG_INPUT_TYPE_IS_REQUIRED;
         } else if (input.getType().equals(CustomServicesConstants.InputType.FROM_USER.toString())) {
-            final EnumSet<InputFieldType> inputFieldTypes = EnumSet.allOf(InputFieldType.class);
-            if (StringUtils.isBlank(input.getInputFieldType())
-                    || !inputFieldTypes.contains(InputFieldType.valueOf(input.getInputFieldType().toUpperCase()))) {
-                errorMessage = String.format("%s - Valid Input Field Types %s",
-                        CustomServicesConstants.ERROR_MSG_INPUT_FIELD_TYPE_IS_REQUIRED,
-                        inputFieldTypes);
+            errorMessage = checkUserInputType(input);
+        } else if (input.getType().equals(CustomServicesConstants.InputType.FROM_USER_MULTI.toString())
+                && StringUtils.isBlank(input.getDefaultValue())) {
+            errorMessage = String.format("%s - %s", CustomServicesConstants.ERROR_MSG_DEFAULT_VALUE_REQUIRED_FOR_INPUT_TYPE,
+                    input.getType());
+        } else {
+            errorMessage = checkOtherInputType(input);
+        }
+        return errorMessage;
+    }
+
+    private String checkOtherInputType(final Input input) {
+        if (!(input.getType().equals(CustomServicesConstants.InputType.FROM_USER.toString()) ||
+                input.getType().equals(CustomServicesConstants.InputType.FROM_USER_MULTI.toString())
+                || input.getType().equals(CustomServicesConstants.InputType.DISABLED.toString()))) {
+
+            if (!StringUtils.isNotBlank(input.getValue())) {
+                return String.format("%s - %s", CustomServicesConstants.ERROR_MSG_NO_INPUTVALUE_FOR_INPUT_TYPE, input.getType());
             } else if (StringUtils.isNotBlank(input.getDefaultValue())) {
-                final String defaultValueErrorMessage = checkDefaultvalues(input.getDefaultValue(), input.getInputFieldType());
-                if (!defaultValueErrorMessage.isEmpty()) {
-                    errorMessage = defaultValueErrorMessage;
-                }
+                // no default value for asset options and step input/ output
+                return String.format("%s %s", CustomServicesConstants.ERROR_MSG_DEFAULTVALUE_PASSED_FOR_INPUT_TYPE, input.getType());
             }
-        } else if ((input.getType().equals(CustomServicesConstants.InputType.ASSET_OPTION_MULTI.toString()) ||
-                input.getType().equals(CustomServicesConstants.InputType.ASSET_OPTION_SINGLE.toString()))
-                && StringUtils.isNotBlank(input.getDefaultValue())) {
-            errorMessage = CustomServicesConstants.ERROR_MSG_NO_DEFAULTVALUE_FOR_ASSET_INPUT_TYPE;
+        }
+        return EMPTY_STRING;
+    }
+
+    private String checkUserInputType(final Input input) {
+        final EnumSet<InputFieldType> inputFieldTypes = EnumSet.allOf(InputFieldType.class);
+        if (StringUtils.isBlank(input.getInputFieldType())
+                || !inputFieldTypes.contains(InputFieldType.valueOf(input.getInputFieldType().toUpperCase()))) {
+            return String.format("%s - Valid Input Field Types %s",
+                    CustomServicesConstants.ERROR_MSG_INPUT_FIELD_TYPE_IS_REQUIRED,
+                    inputFieldTypes);
+        } else if (StringUtils.isNotBlank(input.getDefaultValue())) {
+            return checkDefaultvalues(input.getDefaultValue(), input.getInputFieldType());
         }
 
-        return errorMessage;
+        return EMPTY_STRING;
     }
 
     private String checkUniqueNames(final boolean checkFriendlyName, final String name, final Set<String> uniqueNames) {
@@ -322,13 +343,13 @@ public class ValidationHelper {
     private String checkDefaultvalues(final String defaultValue, final String inputFieldType) {
         if (inputFieldType.toUpperCase().equals(CustomServicesConstants.InputFieldType.BOOLEAN.toString())) {
             if (!(defaultValue.toLowerCase().equals("true") || defaultValue.toLowerCase().equals("false"))) {
-                return CustomServicesConstants.ERROR_MSG_INVALID_BOOLEAN_INPUT_FIELD_TYPE;
+                return CustomServicesConstants.ERROR_MSG_INVALID_DEFAULT_BOOLEAN_INPUT_FIELD_TYPE;
             }
         }
 
-        if (inputFieldType.toUpperCase().equals(InputFieldType.INTEGER.toString())) {
+        if (inputFieldType.toUpperCase().equals(InputFieldType.NUMBER.toString())) {
             if (!StringUtils.isNumeric(defaultValue)) {
-                return CustomServicesConstants.ERROR_MSG_INVALID_NUMBER_INPUT_FIELD_TYPE;
+                return CustomServicesConstants.ERROR_MSG_INVALID_DEFAULT_NUMBER_INPUT_FIELD_TYPE;
             }
         }
 

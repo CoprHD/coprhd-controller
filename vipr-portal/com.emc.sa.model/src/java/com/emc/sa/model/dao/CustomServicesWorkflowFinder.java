@@ -29,11 +29,13 @@ import com.google.common.collect.Lists;
 
 public class CustomServicesWorkflowFinder extends ModelFinder<CustomServicesWorkflow> {
 
-    private final static ImmutableList<String> SUMMARY_FIELDS = ImmutableList.<String>builder().add("label", CustomServicesWorkflow.NAME, CustomServicesWorkflow.DESCRIPTION).build();
+    private final static ImmutableList<String> SUMMARY_FIELDS = ImmutableList.<String> builder()
+            .add("label", CustomServicesWorkflow.NAME, CustomServicesWorkflow.DESCRIPTION).build();
+
     public CustomServicesWorkflowFinder(DBClientWrapper client) {
         super(CustomServicesWorkflow.class, client);
     }
-    
+
     public List<CustomServicesWorkflow> findByName(final String name) {
 
         List<CustomServicesWorkflow> results = Lists.newArrayList();
@@ -45,11 +47,11 @@ public class CustomServicesWorkflowFinder extends ModelFinder<CustomServicesWork
 
         return results;
     }
-    
+
     public Iterator<CustomServicesWorkflow> findSummaries(final List<URI> ids) {
-        return client.findAllFields(clazz, ids, SUMMARY_FIELDS); 
+        return client.findAllFields(clazz, ids, SUMMARY_FIELDS);
     }
-    
+
     public List<NamedElement> findAllNames() {
         return prepareNamedElementFromURI(client.findAllIds(clazz));
     }
@@ -72,18 +74,22 @@ public class CustomServicesWorkflowFinder extends ModelFinder<CustomServicesWork
     }
 
     private List<NamedElement> prepareNamedElementFromURI(final List<URI> ids) {
-        final Iterator<CustomServicesWorkflow> it = client.findAllFields(clazz, ids, ImmutableList.<String>builder().add("label").build());
+        final Iterator<CustomServicesWorkflow> it = client.findAllFields(clazz, ids, ImmutableList.<String> builder().add("label").build());
         final List<NamedElement> results = new ArrayList<NamedElement>();
 
-        while(it.hasNext()) {
+        while (it.hasNext()) {
             final CustomServicesWorkflow element = it.next();
             results.add(NamedElement.createElement(element.getId(), element.getLabel()));
         }
 
         return results;
     }
-    
+
     public List<NamedElement> getByPrimitive(final URI id) {
-        return client.findBy(CustomServicesWorkflow.class, CustomServicesWorkflow.PRIMITIVES, id);
+        final List<URI> wfURIs = new ArrayList<>();
+        for (final NamedElement eachWf : client.findBy(CustomServicesWorkflow.class, CustomServicesWorkflow.PRIMITIVES, id)) {
+            wfURIs.add(eachWf.getId());
+        }
+        return prepareNamedElementFromURI(wfURIs);
     }
 }

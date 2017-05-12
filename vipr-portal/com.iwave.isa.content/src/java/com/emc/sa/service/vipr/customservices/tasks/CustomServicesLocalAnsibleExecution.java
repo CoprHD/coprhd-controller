@@ -71,6 +71,7 @@ public class CustomServicesLocalAnsibleExecution extends ViPRExecutionTask<Custo
             this.timeout = step.getAttributes().getTimeout();
         }
         this.dbClient = dbClient;
+        provideDetailArgs(step.getId());
         this.orderDir = orderDir;
     }
 
@@ -87,6 +88,7 @@ public class CustomServicesLocalAnsibleExecution extends ViPRExecutionTask<Custo
                     scriptid);
             if (null == ansiblePrimitive) {
                 logger.error("Error retrieving the ansible primitive from DB. {} not found in DB", scriptid);
+                ExecutionUtils.currentContext().logError("customServicesOperationExecution.logStatus", step.getId(), "\"Error retrieving the ansible primitive from DB.");
                 throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed(scriptid + " not found in DB");
             }
             final CustomServicesDBAnsibleResource ansiblePackageId = dbClient.queryObject(CustomServicesDBAnsibleResource.class,
@@ -94,6 +96,7 @@ public class CustomServicesLocalAnsibleExecution extends ViPRExecutionTask<Custo
             if (null == ansiblePackageId) {
                 logger.error("Error retrieving the resource for the ansible primitive from DB. {} not found in DB",
                         ansiblePrimitive.getResource());
+                ExecutionUtils.currentContext().logError("customServicesOperationExecution.logStatus", step.getId(),"Error retrieving the resource for the ansible primitive from DB. ");
 
                 throw InternalServerErrorException.internalServerErrors
                         .customServiceExecutionFailed(ansiblePrimitive.getResource() + " not found in DB");
@@ -111,10 +114,10 @@ public class CustomServicesLocalAnsibleExecution extends ViPRExecutionTask<Custo
             final String hostFileFromStep = AnsibleHelper.getOptions(CustomServicesConstants.ANSIBLE_HOST_FILE, input);
 
             if (StringUtils.isBlank(hostFileFromStep)) {
-                logger.error("Error retrieving the inventory resource from the ansible primitive step");
-
+                logger.error("CS: Inventory file not set in operation:{}", step.getId());
+                ExecutionUtils.currentContext().logError("customServicesOperationExecution.logStatus", step.getId(),"Inventory file not set");
                 throw InternalServerErrorException.internalServerErrors
-                        .customServiceExecutionFailed("Inventory resource not found in step input");
+                        .customServiceExecutionFailed("Inventory file not set");
             }
 
             final CustomServicesDBAnsibleInventoryResource inventoryResource = dbClient
@@ -123,7 +126,7 @@ public class CustomServicesLocalAnsibleExecution extends ViPRExecutionTask<Custo
             if (null == inventoryResource) {
                 logger.error("Error retrieving the inventory resource for the ansible primitive from DB. {} not found in DB",
                         hostFileFromStep);
-
+                ExecutionUtils.currentContext().logError("customServicesOperationExecution.logStatus", step.getId(),"Error retrieving the inventory resource  from DB");
                 throw InternalServerErrorException.internalServerErrors
                         .customServiceExecutionFailed(hostFileFromStep + " not found in DB");
             }
@@ -138,19 +141,21 @@ public class CustomServicesLocalAnsibleExecution extends ViPRExecutionTask<Custo
             result = executeLocal(inventoryFileName, AnsibleHelper.makeExtraArg(input,step), String.format("%s%s", orderDir, playbook), user);
 
         } catch (final Exception e) {
+            ExecutionUtils.currentContext().logError("customServicesOperationExecution.logStatus", step.getId(),"Custom Service Task Failed" + e);
             throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed("Custom Service Task Failed" + e);
         }
 
         ExecutionUtils.currentContext().logInfo("customServicesScriptExecution.doneInfo", step.getId());
 
         if (result == null) {
-            throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed("Script/Ansible execution Failed");
+            ExecutionUtils.currentContext().logError("customServicesOperationExecution.logStatus", step.getId(),"Local Ansible execution Failed");
+            throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed("Local Ansible execution Failed");
         }
 
         logger.info("CustomScript Execution result:output{} error{} exitValue:{}", result.getStdOutput(), result.getStdError(),
                 result.getExitValue());
 
-        return new CustomServicesTaskResult(AnsibleHelper.parseOut(result.getStdOutput()), result.getStdError(), result.getExitValue(), null);
+        return new CustomServicesScriptTaskResult(AnsibleHelper.parseOut(result.getStdOutput()), result.getStdOutput(), result.getStdError(), result.getExitValue());
     }
 
     private void uncompressArchive(final byte[] ansibleArchive) {
@@ -174,6 +179,7 @@ public class CustomServicesLocalAnsibleExecution extends ViPRExecutionTask<Custo
                 entry = tarIn.getNextTarEntry();
             }
         } catch (final IOException e) {
+            ExecutionUtils.currentContext().logError("customServicesOperationExecution.logStatus", step.getId(),"Invalid ansible archive");
             throw InternalServerErrorException.internalServerErrors.genericApisvcError("Invalid ansible archive", e);
         }
     }
@@ -188,8 +194,9 @@ public class CustomServicesLocalAnsibleExecution extends ViPRExecutionTask<Custo
                 .setCommandLine(AnsibleHelper.getOptions(CustomServicesConstants.ANSIBLE_COMMAND_LINE, input))
                 .build();
         //default to no host key checking
-        final Map<String,String> environment = new HashMap<>();
+        final Map<String,String> environment = new HashMap<String,String>();
         environment.put("ANSIBLE_HOST_KEY_CHECKING", "false");
-        return Exec.exec(timeout, null, environment, cmds);
+
+        return Exec.exec(new File(orderDir), timeout, null, environment, cmds);
     }
 }

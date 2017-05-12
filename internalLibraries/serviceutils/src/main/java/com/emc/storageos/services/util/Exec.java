@@ -5,6 +5,7 @@
 
 package com.emc.storageos.services.util;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
@@ -182,10 +183,10 @@ public class Exec {
         return exec(timeout, null, args);
     }
     public static Result exec(long timeout, Pattern maskFilter, String... args) {
-        return exec(timeout,maskFilter,new HashMap<String,String>(),args);
+        return exec(null, timeout,maskFilter,new HashMap<String,String>(),args);
     }
 
-    public static Result exec(long timeout, Pattern maskFilter, Map<String,String> env, String... args) {
+    public static Result exec(File file, long timeout, Pattern maskFilter, Map<String,String> env, String... args) {
         List<String> cmdList = new ArrayList(Arrays.asList(args));
 
         final String[] cmd = cmdList.toArray(new String[cmdList.size()]);
@@ -203,6 +204,7 @@ public class Exec {
             boolean destroyed = false;
             ProcessBuilder pb = new ProcessBuilder(cmd);
             pb.environment().putAll(env);
+            pb.directory(file);
             Process p = pb.start();
             stdOutputStream = new InputStreamReader(p.getInputStream());
             stdErrorStream = new InputStreamReader(p.getErrorStream());

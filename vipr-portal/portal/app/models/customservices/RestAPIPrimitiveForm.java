@@ -36,7 +36,6 @@ public class RestAPIPrimitiveForm {
     private String method; // get, post,..
     private String requestURL;
     private String authType;
-    private String restOptions = "target,port";
     private String headers;
     private String rawBody;
     private String queryParams;
@@ -125,14 +124,6 @@ public class RestAPIPrimitiveForm {
 
     public String getQueryParams() {
         return queryParams;
-    }
-
-    public String getRestOptions() {
-        return restOptions;
-    }
-
-    public void setRestOptions(String restOptions) {
-        this.restOptions = restOptions;
     }
 
     public void setQueryParams(String queryParams) {

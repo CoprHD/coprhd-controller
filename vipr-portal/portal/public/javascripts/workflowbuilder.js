@@ -211,15 +211,16 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
             <li id="editMenu" style="display:none;"><a  href="#" ng-click="editNode();">${translate('wfBuilder.menu.edit')}</a></li>
             <li id="editWFMenu" style="display:none;"><a  href="#" ng-click="openWorkflow();">${translate('wfBuilder.menu.edit')}</a></li>
             <li id="renameMenu" style="display:none;"><a  href="#" ng-click="renameNode();">${translate('wfBuilder.menu.rename')}</a></li>
-            <li role="separator" class="divider"></li>
             <li id="deleteMenu" style="display:none;"><a  href="#" ng-click="deleteNode();">${translate('wfBuilder.menu.delete')}</a></li>
+            <li id="importExportSeparator" role="separator" class="divider" style="display:none;"></li>
+            <li id="exportMenu" style="display:none;"><a  href="#" ng-click="exportWorkflow();">${translate('wfBuilder.menu.export')}</a></li>
        </ul>
     </div>
     `;
 
     var validActionsOnMyLib = ["addWorkflowMenu", "addShellMenu", "addLAMenu", "addRestMenu", "addFolderDivider", "addFolderMenu"]
     var validActionsOnFolder = ["editDivider", "renameMenu", "deleteMenu"]
-    var validActionsOnWorkflow = ["renameMenu", "editWFMenu", "deleteMenu"]
+    var validActionsOnWorkflow = ["renameMenu", "editWFMenu", "deleteMenu", "exportMenu", "importExportSeparator"]
     var validActionsOnMyPrimitives = ["renameMenu", "deleteMenu", "editMenu"]
 
     function showOptions(nodeId, parents) {
@@ -400,6 +401,17 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
     $scope.openWorkflow = function() {
         var selectedNode = jstreeContainer.jstree(true).get_selected(true)[0];
         $rootScope.$emit("addWorkflowTab", selectedNode.id ,selectedNode.text);
+    }
+
+    $scope.exportWorkflow = function() {
+        var selectedNode = jstreeContainer.jstree(true).get_selected(true)[0];
+        $('#exportWorkflowId').val(selectedNode.id);
+        $('#exportWorkflowForm').submit();
+    }
+
+    $scope.importWorkflow = function() {
+        $('#importWorkflow_wfDirID').val(jstreeContainer.jstree(true).get_selected()[0]);
+        $('#importWorkflowDialog').modal('show');
     }
 })
 

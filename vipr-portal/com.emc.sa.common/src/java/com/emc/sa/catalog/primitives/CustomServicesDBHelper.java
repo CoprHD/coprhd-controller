@@ -79,9 +79,9 @@ import com.google.common.collect.Sets;
  */
 public final class CustomServicesDBHelper {
 
+    public static final List<NamedElement> EMPTY_ELEMENT_LIST = Collections.emptyList();
     @SuppressWarnings("rawtypes")
     private static final Class<Map> RESOURCE_ATTRIBUTES_ARG = Map.class;
-    public static final List<NamedElement> EMPTY_ELEMENT_LIST = Collections.emptyList();
 
     private CustomServicesDBHelper() {
     }
@@ -193,9 +193,9 @@ public final class CustomServicesDBHelper {
 
         final NamedURI oldResourceId = primitive.getResource();
         final CustomServicesDBResource resource;
-        if(param.getResource() == null) {
+        if (param.getResource() == null) {
             resource = null;
-        } else if(!resourceType.isAssignableFrom(CustomServicesDBNoResource.class)){
+        } else if (!resourceType.isAssignableFrom(CustomServicesDBNoResource.class)) {
             resource = primitiveManager.findResource(resourceType, param.getResource());
             if (null == resource) {
                 throw APIException.notFound.unableToFindEntityInURL(param.getResource());
@@ -204,7 +204,6 @@ public final class CustomServicesDBHelper {
         } else {
             throw APIException.badRequests.invalidParameter("resource", param.getResource().toString());
         }
-
 
         final UpdatePrimitive<DBModel> updatePrimitive = new UpdatePrimitive<DBModel>(param, primitive);
 
@@ -217,13 +216,14 @@ public final class CustomServicesDBHelper {
 
         // check and delete the old resource if there are no primitives referencing it
         // check that the resource is not referenced by other primitives
-        if (null != resource && null != oldResourceId && null == checkResourceNotReferenced(dbModel, CustomServicesDBPrimitive.RESOURCE, client,
-                oldResourceId.getURI(), resource)) {
+        if (null != resource && null != oldResourceId
+                && null == checkResourceNotReferenced(dbModel, CustomServicesDBPrimitive.RESOURCE, client,
+                        oldResourceId.getURI(), resource)) {
 
             // Find all the associated inventory files if exist for the old resource and delete the associated inventory files if exist
             deleteReferencedInventoryResources(oldResourceId.getURI(), primitiveManager, client, referencedByresourceType);
 
-            //delete old resource (after updating the inventory, if any exists)
+            // delete old resource (after updating the inventory, if any exists)
             client.delete(primitiveManager.findResource(resourceType, oldResourceId.getURI()));
         }
 
@@ -266,26 +266,32 @@ public final class CustomServicesDBHelper {
 
     private static void addInput(final Set<String> keys, final Map<String, InputUpdateList> map,
             final StringSetMap update) {
+        if(null == map) {
+            return;
+        }
+        
         for (final Entry<String, InputUpdateList> entry : map.entrySet()) {
             if (!keys.contains(entry.getKey())) {
                 throw APIException.badRequests.invalidParameter("input", entry.getKey());
             }
             if (null != entry.getValue().getInput()) {
-                final StringSet group = null == update.get(entry.getKey()) ? new StringSet() : update.get(entry.getKey());
-                group.addAll(entry.getValue().getInput());
-                update.put(entry.getKey(), group);
+                final StringSet add = new StringSet();
+                add.addAll(entry.getValue().getInput());
+                update.put(entry.getKey(), add);
             }
         }
     }
 
     private static void removeInput(final Set<String> keys, final Map<String, InputUpdateList> remove,
             final StringSetMap update) {
+        if( null == remove ) {
+            return;
+        }
         for (final Entry<String, InputUpdateList> entry : remove.entrySet()) {
-            final StringSet group = update.get(entry.getKey());
-
-            if (null != group && null != entry.getValue().getInput()) {
-                group.removeAll(entry.getValue().getInput());
-                update.put(entry.getKey(), group);
+            if (null != entry.getValue().getInput()) {
+                for(final String param : entry.getValue().getInput()) {
+                    update.remove(entry.getKey(), param);
+                }
             }
         }
     }
@@ -463,20 +469,20 @@ public final class CustomServicesDBHelper {
         }
         return input.build();
     }
-    
+
     /**
      * @param inputGroups
      * @return
      */
     private static StringSetMap mapInput(Map<String, InputGroup> inputGroups) {
         final StringSetMap input = new StringSetMap();
-        if( null != inputGroups ) {
-            for(  final Entry<String, InputGroup> inputGroup : inputGroups.entrySet() ) {
+        if (null != inputGroups) {
+            for (final Entry<String, InputGroup> inputGroup : inputGroups.entrySet()) {
                 final StringSet set = new StringSet();
-                for( final InputParameterRestRep param : inputGroup.getValue().getInputGroup()) {
+                for (final InputParameterRestRep param : inputGroup.getValue().getInputGroup()) {
                     set.add(param.getName());
                 }
-               input.put(inputGroup.getKey(), set);
+                input.put(inputGroup.getKey(), set);
             }
         }
         return input;
@@ -527,16 +533,17 @@ public final class CustomServicesDBHelper {
         }
         return output.build();
     }
-    
+
     /**
      * Convert a list of output parameters to a StringSet
+     * 
      * @param output
      * @return
      */
     private static StringSet mapOutput(List<OutputParameterRestRep> output) {
         final StringSet set = new StringSet();
-        if( null != output ) {
-            for(final OutputParameterRestRep param : output) {
+        if (null != output) {
+            for (final OutputParameterRestRep param : output) {
                 set.add(param.getName());
             }
         }
@@ -565,17 +572,18 @@ public final class CustomServicesDBHelper {
 
     /**
      * Convert a given map of attributes to a StringMap
+     * 
      * @param attributes
      * @return
      */
     private static StringMap mapAttributes(final Map<String, String> attributes) {
         final StringMap map = new StringMap();
-        if( null != map ) {
+        if (null != map) {
             map.putAll(attributes);
         }
         return map;
     }
-    
+
     /**
      * Make a string key into an InputParameter object
      * 
@@ -662,8 +670,16 @@ public final class CustomServicesDBHelper {
             final ModelClient client, final URI id, final T primitive) {
         final List<NamedElement> workflows = client.customServicesWorkflows().getByPrimitive(id);
         if (null != workflows && !workflows.isEmpty()) {
-            throw APIException.badRequests.resourceHasActiveReferencesWithType(primitive.getClass().getSimpleName(), id,
-                    CustomServicesWorkflow.class.getSimpleName());
+            final StringBuilder wfName = new StringBuilder();
+            String prefix = ". Workflows used : \"";
+            for (final NamedElement eachWf : workflows) {
+                wfName.append(prefix);
+                prefix = ", \"";
+                wfName.append(eachWf.getName()).append("\"");
+            }
+
+            throw APIException.badRequests.resourceHasActiveReferencesWithType(primitive.getClass().getSimpleName(), primitive.getLabel(),
+                    CustomServicesWorkflow.class.getSimpleName() + wfName.toString());
         }
     }
 
@@ -706,16 +722,17 @@ public final class CustomServicesDBHelper {
         }
         return attributes.build();
     }
-    
+
     /**
      * Given a List of attributes create a StringSetMap
+     * 
      * @param attributes list of Attribute
      * @return StringSetMap representation of the attributes
      */
     private static StringSetMap mapResourceAttributes(List<Attribute> attributes) {
         final StringSetMap map = new StringSetMap();
-        if( null != attributes && !attributes.isEmpty()) {
-            for( final Attribute attribute : attributes) {
+        if (null != attributes && !attributes.isEmpty()) {
+            for (final Attribute attribute : attributes) {
                 final StringSet set = new StringSet();
                 set.addAll(attribute.getValues());
                 map.put(attribute.getName(), set);
@@ -776,7 +793,8 @@ public final class CustomServicesDBHelper {
             final URI id,
             final String name,
             final byte[] stream,
-            final StringSetMap attributes, final URI parentId, final ModelClient client, final Class<? extends CustomServicesDBResource> referencedByResource,
+            final StringSetMap attributes, final URI parentId, final ModelClient client,
+            final Class<? extends CustomServicesDBResource> referencedByResource,
             final String referencedByResourceColumnName,
             final Class<? extends CustomServicesDBPrimitive> referencedByPrimitive, final String referencedByPrimitiveColumnName) {
         final CustomServicesDBResource resource = primitiveManager.findResource(dbModel, id);
@@ -791,7 +809,6 @@ public final class CustomServicesDBHelper {
         if (null != parentId) {
             resource.setParentId(parentId);
         }
-
 
         if (null != attributes || null != stream) {
             BadRequestException resourceReferencedexception = checkResourceNotReferenced(referencedByPrimitive,
@@ -945,7 +962,7 @@ public final class CustomServicesDBHelper {
 
         };
     }
-    
+
     /**
      * Make a DB resource of a given type given the resource REST model and file bytes
      * 
@@ -955,7 +972,7 @@ public final class CustomServicesDBHelper {
      * 
      * @return An instance of the DB model given the REST model
      */
-    public static <T extends CustomServicesDBResource> T makeDBResource(final Class<T> clazz, 
+    public static <T extends CustomServicesDBResource> T makeDBResource(final Class<T> clazz,
             final CustomServicesPrimitiveResourceRestRep resource,
             final byte[] bytes) {
         try {
@@ -993,13 +1010,13 @@ public final class CustomServicesDBHelper {
             model.setInput(mapInput(operation.getInputGroups()));
             model.setOutput(mapOutput(operation.getOutput()));
             model.setAttributes(mapAttributes(operation.getAttributes()));
-            model.setResource(new NamedURI(operation.getResource().getId(), 
+            model.setResource(new NamedURI(operation.getResource().getId(),
                     operation.getResource().getName()));
             model.setSuccessCriteria(operation.getSuccessCriteria());
         } catch (final InstantiationException | IllegalAccessException e) {
-            throw new RuntimeException("Invalid DB model "+ clazz, e);
+            throw new RuntimeException("Invalid DB model " + clazz, e);
         }
-        
+
         return model;
     }
 

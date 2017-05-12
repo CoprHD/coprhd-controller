@@ -28,7 +28,10 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
+import models.customservices.ImportWorkflowForm;
 import models.customservices.LocalAnsiblePrimitiveForm;
 import models.customservices.RestAPIPrimitiveForm;
 import models.customservices.ShellScriptPrimitiveForm;
@@ -73,7 +76,6 @@ import com.emc.vipr.model.catalog.WFDirectoryRestRep;
 import com.emc.vipr.model.catalog.WFDirectoryUpdateParam;
 import com.emc.vipr.model.catalog.WFDirectoryWorkflowsUpdateParam;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Maps;
 import com.google.gson.annotations.SerializedName;
 import com.sun.jersey.api.client.ClientResponse;
 
@@ -96,18 +98,8 @@ public class WorkflowBuilder extends Controller {
 
     public static void view() {
         setAnsibleResources();
-
-        StringOption[] restCallMethodOptions = {
-                new StringOption("GET", "GET"),
-                new StringOption("POST", "POST"),
-                new StringOption("PUT", "PUT"), };
-        renderArgs.put("restCallMethodOptions", Arrays.asList(restCallMethodOptions));
-
-        Map<String, String> restCallAuthTypes = Maps.newHashMap();
-        restCallAuthTypes.put(AuthType.NONE.toString(), Messages.get("rest.authType.noAuth"));
-        restCallAuthTypes.put(AuthType.BASIC.toString(), Messages.get("rest.authType.basicAuth"));
-        renderArgs.put("restCallAuthTypes", restCallAuthTypes);
-
+        setRestCallResources();
+        Common.copyRenderArgsToAngular();
         render();
     }
 
@@ -121,7 +113,13 @@ public class WorkflowBuilder extends Controller {
             }
         }
         renderArgs.put("ansibleResourceNames", ansibleResourceNames);
-        Common.copyRenderArgsToAngular();
+    }
+
+    private static void setRestCallResources() {
+        final List<StringOption> restCallAuthTypes = new ArrayList<StringOption>();
+        restCallAuthTypes.add(new StringOption(AuthType.NONE.toString(), Messages.get("rest.authType.noAuth")));
+        restCallAuthTypes.add(new StringOption(AuthType.BASIC.toString(), Messages.get("rest.authType.basicAuth")));
+        renderArgs.put("restCallAuthTypes", restCallAuthTypes);
     }
 
     private static enum WFBuilderNodeTypes {
@@ -547,6 +545,39 @@ public class WorkflowBuilder extends Controller {
         renderJSON(inventoryFileNames);
     }
 
+    public static void exportWorkflow(final URI workflowId) {
+        try {
+            final ClientResponse response = getCatalogClient().customServicesPrimitives().exportWorkflow(workflowId);
+            if (response != null) {
+                String fileName = null;
+                // Extract filename from headers
+                final Pattern regex = Pattern.compile("(?<=filename=).*");
+                final Matcher regexMatcher = regex.matcher(response.getHeaders().get("Content-Disposition").get(0));
+                if (regexMatcher.find()) {
+                    fileName = regexMatcher.group();
+                }
+                renderBinary(response.getEntityInputStream(), fileName);
+            }
+
+        } catch (Exception e) {
+            Logger.error(e.getMessage());
+            flash.error(e.getMessage());
+            view();
+        }
+    }
+
+    public static void importWorkflow(final ImportWorkflowForm importWorkflow) {
+        try {
+            final URI workflowDirectoryID = StringUtils.equals(MY_LIBRARY_ROOT, importWorkflow.getWfDirID()) ? null
+                    : new URI(importWorkflow.getWfDirID());
+            getCatalogClient().customServicesPrimitives().importWorkflow(workflowDirectoryID, importWorkflow.getWorkflowFile());
+        } catch (final Exception e) {
+            Logger.error(e.getMessage());
+            flash.error(e.getMessage());
+        }
+        view();
+    }
+
     private static void createShellScriptPrimitive(final ShellScriptPrimitiveForm shellPrimitive) {
         try {
 
@@ -555,7 +586,6 @@ public class WorkflowBuilder extends Controller {
                     .createPrimitiveResource("SCRIPT", shellPrimitive.getScript(), filename);
             if (null != primitiveResourceRestRep) {
                 final CustomServicesPrimitiveCreateParam primitiveCreateParam = new CustomServicesPrimitiveCreateParam();
-                // TODO - remove this hardcoded string once the enum is available
                 primitiveCreateParam.setType(StepType.SHELL_SCRIPT.toString());
                 primitiveCreateParam.setName(shellPrimitive.getName());
                 primitiveCreateParam.setFriendlyName(shellPrimitive.getName());
@@ -666,20 +696,14 @@ public class WorkflowBuilder extends Controller {
             primitiveCreateParam.getAttributes().put(CustomServicesConstants.PROTOCOL.toString(), "https");
             primitiveCreateParam.getAttributes().put(CustomServicesConstants.METHOD.toString(), restAPIPrimitive.getMethod());
             primitiveCreateParam.getAttributes().put(CustomServicesConstants.AUTH_TYPE.toString(), restAPIPrimitive.getAuthType());
-            if (AuthType.BASIC.toString().equals(restAPIPrimitive.getAuthType())) {
-                // Adding user, password to inputs if its "BASIC" auth type
-                restAPIPrimitive.setRestOptions(restAPIPrimitive.getRestOptions() + "user,password");
-            }
 
             final ImmutableMap.Builder<String, InputCreateList> builder = ImmutableMap.<String, InputCreateList> builder();
             // Add Input Groups
-            addInputs(restAPIPrimitive.getInputs(), builder, CustomServicesConstants.INPUT_PARAMS);
             addInputs(restAPIPrimitive.getHeaders(), builder, CustomServicesConstants.HEADERS);
             addInputs(restAPIPrimitive.getQueryParams(), builder, CustomServicesConstants.QUERY_PARAMS);
-            // TODO: REST_OPTIONS is currently not allowed in API. After fix, uncomment this line
-            // addInputs(restAPIPrimitive.getRestOptions(), builder, CustomServicesConstants.REST_OPTIONS);
             primitiveCreateParam.setInput(builder.build());
 
+            // Add Outputs
             if (StringUtils.isNotEmpty(restAPIPrimitive.getOutputs())) {
                 primitiveCreateParam.setOutput(getListFromInputOutputString(restAPIPrimitive.getOutputs()));
             }
@@ -786,7 +810,8 @@ public class WorkflowBuilder extends Controller {
                 if (!localAnsible.isExisting()) {
                     // NEW RESOURCE
                     // Before creating resource check if this primitive is not used
-                    final CustomServicesWorkflowList customServicesWorkflowList = getCatalogClient().customServicesPrimitives().getWorkflows(localAnsible.getId());
+                    final CustomServicesWorkflowList customServicesWorkflowList = getCatalogClient().customServicesPrimitives()
+                            .getWorkflows(localAnsible.getId());
                     if (customServicesWorkflowList != null && customServicesWorkflowList.getWorkflows() != null) {
                         if (!customServicesWorkflowList.getWorkflows().isEmpty()) {
                             flash.error("Primitive %s is being used in Workflow", localAnsible.getName());
@@ -852,7 +877,6 @@ public class WorkflowBuilder extends Controller {
 
                 // Create Primitive
                 final CustomServicesPrimitiveCreateParam primitiveCreateParam = new CustomServicesPrimitiveCreateParam();
-                // TODO - remove this hardcoded string once the enum is available
                 primitiveCreateParam.setType(StepType.LOCAL_ANSIBLE.toString());
                 primitiveCreateParam.setName(localAnsible.getName());
                 primitiveCreateParam.setDescription(localAnsible.getDescription());
@@ -897,8 +921,7 @@ public class WorkflowBuilder extends Controller {
             shellPrimitive.setDescription(primitiveRestRep.getDescription());
             shellPrimitive.setInputs(convertListToString(convertInputParamsGroupsToList(primitiveRestRep.getInputGroups())));
             shellPrimitive.setOutputs(convertListToString(convertOutputGroupsToList(primitiveRestRep.getOutput())));
-            // TODO: get script name from API
-            shellPrimitive.setScriptName("SAMPLE NAME");
+            shellPrimitive.setScriptName(primitiveRestRep.getResource().getName());
         }
         return shellPrimitive;
     }

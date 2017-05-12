@@ -27,6 +27,9 @@ import org.apache.commons.lang.StringUtils;
 import org.slf4j.LoggerFactory;
 import org.springframework.web.util.UriTemplate;
 
+import com.emc.storageos.primitives.CustomServicesConstants;
+import com.emc.storageos.primitives.input.InputParameter;
+import com.emc.storageos.primitives.java.vipr.CustomServicesViPRPrimitive;
 import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorException;
 
 public final class RESTHelper {
@@ -210,22 +213,21 @@ public final class RESTHelper {
     }
 
     /**
-     * Example uri: "/block/volumes/{id}/findname/{name}";
-     * 
+     * Example uri: "/block/volumes/{id}/findname/{name}?query1=value1";
      * @param templatePath
      * @return
      */
-    public static String makePath(final String templatePath, final Map<String, List<String>> input) {
+    public static String makePath(final String templatePath,final Map<String, List<String>> input,final CustomServicesViPRPrimitive primitive) {
         final UriTemplate template = new UriTemplate(templatePath);
         final List<String> pathParameters = template.getVariableNames();
         final Map<String, Object> pathParameterMap = new HashMap<String, Object>();
 
-        for (final String key : pathParameters) {
+        for(final String key : pathParameters) {
             List<String> value = input.get(key);
             if (null == value) {
                 throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed("Unfulfilled path parameter: " + key);
             }
-            // TODO find a better fix
+            //TODO find a better fix
             pathParameterMap.put(key, value.get(0).replace("\"", ""));
         }
 
@@ -233,6 +235,30 @@ public final class RESTHelper {
 
         logger.info("URI string is: {}", path);
 
-        return path;
+        final StringBuilder fullPath = new StringBuilder(path);
+
+        if (primitive == null || primitive.input() == null) {
+            return fullPath.toString();
+        }
+
+        final Map<String, List<InputParameter>> viprInputs = primitive.input();
+        final List<InputParameter> queries = viprInputs.get(CustomServicesConstants.QUERY_PARAMS);
+
+        String prefix = "?";
+        for (final InputParameter a : queries) {
+            if (input.get(a.getName()) == null) {
+                logger.debug("Query parameter value is not set for:{}", a.getName());
+                continue;
+            }
+            final String value = input.get(a.getName()).get(0);
+            if (!StringUtils.isEmpty(value)) {
+                fullPath.append(prefix).append(a.getName()).append("=").append(value);
+                prefix = "&";
+            }
+        }
+
+        logger.info("URI string with query:{}", fullPath.toString());
+
+        return fullPath.toString();
     }
 }

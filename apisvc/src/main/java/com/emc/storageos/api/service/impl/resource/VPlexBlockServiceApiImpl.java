@@ -313,10 +313,22 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                             taskList, allVolumes, true);
                     param.setName(name);
                 } else {
+                    // Get the performance parameters for the copy.
+                    SRDFRecommendation srdfRecommendation = (SRDFRecommendation)((SRDFCopyRecommendation)srdfCopyRecommendation).getRecommendation();
+                    SRDFRecommendation.Target target = srdfRecommendation.getVirtualArrayTargetMap().get(vArray);
+                    Map<VolumeTopologyRole, URI> copyPerformanceParams = target.getPerformanceParams();
+                    URI performanceParamsURI = copyPerformanceParams.get(VolumeTopologyRole.PRIMARY);
+                    
+                    // Override the source capabilities with the copy vpool and performance parameters
+                    // so that the capabilities reflect the same values used to place the copy volume.
+                    // In this way the descriptor and prepared volume reflect what was place.
+                    VirtualPoolCapabilityValuesWrapper copyCapabilities = PerformanceParamsUtils.overrideCapabilitiesForVolumePlacement(
+                            srdfCopyRecommendation.getVirtualPool(), copyPerformanceParams, VolumeTopologyRole.PRIMARY, vPoolCapabilities, _dbClient);
+                    
                     srdfCopyDescriptors = super.createVolumesAndDescriptors(srdfCopyDescriptors,
                             param.getName() + "_srdf_copy", vPoolCapabilities.getSize(), project,
-                            vArray, vPool, null, copyRecommendations,
-                            taskList, task, vPoolCapabilities);
+                            vArray, vPool, performanceParamsURI, copyRecommendations,
+                            taskList, task, copyCapabilities);
                 }
                 for (VolumeDescriptor desc : srdfCopyDescriptors) {
                     s_logger.info("SRDF Copy: " + desc.toString());

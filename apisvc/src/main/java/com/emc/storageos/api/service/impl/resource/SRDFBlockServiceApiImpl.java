@@ -330,13 +330,21 @@ public class SRDFBlockServiceApiImpl extends AbstractBlockServiceApiImpl<SRDFSch
                     throw APIException.badRequests.srdfVolumeMissingPersonalityAttribute(volume
                             .getId());
                 }
+                
+                VirtualPoolCapabilityValuesWrapper volCapabilities = capabilities;
                 if (volume.getPersonality().equals(Volume.PersonalityTypes.TARGET.toString())) {
                     volumeType = VolumeDescriptor.Type.SRDF_TARGET;
+                    
+                    // Make sure target capabilities are passed.
+                    SRDFRecommendation.Target target = recommendation.getVirtualArrayTargetMap().get(volume.getVirtualArray());
+                    VirtualPool targetVpool = _dbClient.queryObject(VirtualPool.class, volume.getVirtualPool());
+                    volCapabilities = PerformanceParamsUtils.overrideCapabilitiesForVolumePlacement(targetVpool,
+                            target.getPerformanceParams(), VolumeTopologyRole.PRIMARY, capabilities, _dbClient);
                 }
 
                 VolumeDescriptor desc = new VolumeDescriptor(volumeType,
                         volume.getStorageController(), volume.getId(), volume.getPool(), null,
-                        capabilities, volume.getCapacity());
+                        volCapabilities, volume.getCapacity());
 
                 descriptors.add(desc);
 

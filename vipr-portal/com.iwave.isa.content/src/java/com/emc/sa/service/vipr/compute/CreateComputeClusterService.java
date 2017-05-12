@@ -41,7 +41,6 @@ import com.emc.storageos.model.compute.OsInstallParam;
 import com.emc.storageos.model.host.cluster.ClusterRestRep;
 import com.emc.storageos.model.vpool.ComputeVirtualPoolRestRep;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
 
 @Service("CreateComputeCluster")
 public class CreateComputeClusterService extends ViPRService {
@@ -264,8 +263,12 @@ public class CreateComputeClusterService extends ViPRService {
             // If the hostName already exists, we remove it from the hostnames list.
             hostNames = ComputeUtils.removeExistingHosts(hostNames, cluster);
         }
+        acquireClusterLock(cluster);
 
         List<Host> hosts = ComputeUtils.createHosts(cluster, computeVirtualPool, hostNames, virtualArray);
+        for (Host host : hosts) {
+            acquireHostLock(host, cluster);
+        }
 
         logInfo("compute.cluster.hosts.created", ComputeUtils.nonNull(hosts).size());
 

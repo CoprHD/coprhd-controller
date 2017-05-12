@@ -150,6 +150,7 @@ import com.emc.storageos.volumecontroller.ArrayAffinityAsyncTask;
 import com.emc.storageos.volumecontroller.AsyncTask;
 import com.emc.storageos.volumecontroller.BlockController;
 import com.emc.storageos.volumecontroller.ControllerException;
+import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.google.common.base.Function;
 
 /**
@@ -704,7 +705,7 @@ public class HostService extends TaskResourceService {
         }
         Collection<URI> hostIds = _dbClient.queryByType(Host.class, true);
         Collection<Host> hosts = _dbClient.queryObjectFields(Host.class,
-                Arrays.asList("label", "uuid", "serviceProfile", "computeElement","registrationStatus", "inactive"), getFullyImplementedCollection(hostIds));
+                Arrays.asList("label", "uuid", "serviceProfile", "computeElement","registrationStatus", "inactive"), ControllerUtils.getFullyImplementedCollection(hostIds));
         for (Host tempHost : hosts){
             if (!tempHost.getId().equals(host.getId()) && !tempHost.getInactive()){
                 if (tempHost.getUuid()!=null && tempHost.getUuid().equals(host.getUuid())) {
@@ -759,17 +760,6 @@ public class HostService extends TaskResourceService {
         auditOp(OperationTypeEnum.DELETE_HOST, true, op.getStatus(),
                 host.auditParameters());
         return toTask(host, taskId, op);
-    }
-
-    private static <T> Collection<T> getFullyImplementedCollection(Collection<T> collectionIn) {
-        // Convert objects (like URIQueryResultList) that only implement iterator to
-        // fully implemented Collection
-        Collection<T> collectionOut = new ArrayList<>();
-        Iterator<T> iter = collectionIn.iterator();
-        while (iter.hasNext()) {
-            collectionOut.add(iter.next());
-        }
-        return collectionOut;
     }
 
     /**
@@ -2358,25 +2348,27 @@ public class HostService extends TaskResourceService {
 
         Collection<URI> ipInterfaceURIS = _dbClient.queryByType(IpInterface.class, true);
         Collection<IpInterface> ipInterfaces = _dbClient.queryObjectFields(IpInterface.class,
-                Arrays.asList("ipAddress", "host"), getFullyImplementedCollection(ipInterfaceURIS));
+                Arrays.asList("ipAddress", "host"), ControllerUtils.getFullyImplementedCollection(ipInterfaceURIS));
 
         if (CollectionUtils.isNotEmpty(ipInterfaces) && StringUtils.isNotEmpty(param.getHostIp())) {
             _log.info("Validating host {} for duplicate IPs.", host.getLabel());
             for (IpInterface ipInterface : ipInterfaces) {
                 if (ipInterface.getIpAddress() != null && ipInterface.getIpAddress().equals(param.getHostIp())) {
                     if (!NullColumnValueGetter.isNullURI(ipInterface.getHost())) {
-                        Host hostWithSameIp = queryObject(Host.class, ipInterface.getHost(), true);
+                        Host hostWithSameIp = _dbClient.queryObject(Host.class, ipInterface.getHost());
                         if (hostWithSameIp != null) {
                             _log.error("Found duplicate IP {} for existing host {}.  Host with same IP exists already.",
                                     param.getHostIp(), hostWithSameIp.getLabel());
                             throw APIException.badRequests.hostWithDuplicateIP(host.getLabel(), param.getHostIp(),
                                     hostWithSameIp.getLabel());
                         } else {
-                            _log.error(
-                                    "Found duplicate IP {} for existing host URI {}.  Host with same IP exists already.",
+                            // If there is a valid IpInterface object, but the host inside it is no longer in the 
+                            // database, then we take this opportunity to clear out the object before it causes more
+                            // issues.
+                            _log.warn(
+                                    "Found duplicate IP {} for non-existent host URI {}.  Deleting IP Interface.",
                                     param.getHostIp(), ipInterface.getHost().toString());
-                            throw APIException.badRequests.hostWithDuplicateIP(host.getLabel(), param.getHostIp(),
-                                    ipInterface.getHost().toString());
+                            _dbClient.markForDeletion(ipInterface);
                         }
                     } else {
                         _log.error(

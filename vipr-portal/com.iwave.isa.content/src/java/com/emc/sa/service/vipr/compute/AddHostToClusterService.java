@@ -219,7 +219,8 @@ public class AddHostToClusterService extends ViPRService {
         }
 
         if (preCheckErrors.length() > 0) {
-            throw new IllegalStateException(preCheckErrors.toString());
+            throw new IllegalStateException(preCheckErrors.toString() + 
+                    ComputeUtils.getContextErrors(getModelClient()));
         }
     }
 
@@ -322,7 +323,7 @@ public class AddHostToClusterService extends ViPRService {
     }
 
     private void installOSForHosts(Map<String, String> hostToIps, Map<String, URI> hostNameToBootVolumeMap, List<Host> createdHosts) {
-        List<OsInstallParam> osInstallParams = Lists.newArrayList();
+        Map<Host,OsInstallParam> osInstallParamMap = new HashMap<Host,OsInstallParam>();
 
         for (Host host : createdHosts) {
             if ((host != null) && (
@@ -342,17 +343,17 @@ public class AddHostToClusterService extends ViPRService {
                 param.setManagementNetwork(managementNetwork);
                 param.setNtpServer(ntpServer);
                 param.setRootPassword(rootPassword);
-                osInstallParams.add(param);
+                osInstallParamMap.put(host,param);
             }
             else {
-                osInstallParams.add(null);
+                osInstallParamMap.put(host,null);
             }
         }
 
         try {
             // Attempt an OS Install only on the list of hosts that are a part of the order
             // This does check if the hosts already have a OS before attempting the install
-            ComputeUtils.installOsOnHosts(createdHosts, osInstallParams);
+            ComputeUtils.installOsOnHosts(osInstallParamMap);
         } catch (Exception e) {
             logError(e.getMessage());
         }

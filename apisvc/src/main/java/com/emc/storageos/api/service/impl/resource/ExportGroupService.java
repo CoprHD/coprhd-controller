@@ -2062,7 +2062,7 @@ public class ExportGroupService extends TaskResourceService {
                 Map<URI, Set<URI>> varrayToVolumes = VPlexUtil.mapBlockObjectsToVarrays(_dbClient,
                         volumes, storageSystemURI, exportGroup);
                 varrays.addAll(varrayToVolumes.keySet());
-                Map<URI, List<URI>> varrayToInitiatorsMap = VPlexUtil.partitionInitiatorsByVarray(_dbClient, _blockStorageScheduler,
+                Map<URI, List<URI>> varrayToInitiatorsMap = VPlexUtil.partitionInitiatorsByVarray(_dbClient,
                         initiatorURIs, varrays, storageSystem);
                 int nValidations = 0;
                 for (URI varrayKey : varrays) {

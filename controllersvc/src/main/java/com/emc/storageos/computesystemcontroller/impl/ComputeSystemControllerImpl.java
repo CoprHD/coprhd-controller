@@ -52,7 +52,6 @@ import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.IpInterface;
 import com.emc.storageos.db.client.model.Operation;
-import com.emc.storageos.db.client.model.ScopedLabel;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.Vcenter;
 import com.emc.storageos.db.client.model.VcenterDataCenter;
@@ -97,7 +96,6 @@ import com.google.common.collect.Maps;
 import com.iwave.ext.linux.util.VolumeWWNUtils;
 import com.iwave.ext.vmware.HostStorageAPI;
 import com.iwave.ext.vmware.VCenterAPI;
-import com.iwave.ext.vmware.VMWareException;
 import com.iwave.ext.vmware.VMwareUtils;
 import com.vmware.vim25.HostScsiDisk;
 import com.vmware.vim25.InvalidProperty;
@@ -414,14 +412,11 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
 
             waitFor = unmountHostStorage(workflow, waitFor, host);
 
-            String unassociateStepId = workflow.createStepId();
-
             waitFor = addStepsForExportGroups(workflow, waitFor, host);
 
             waitFor = addStepsForFileShares(workflow, waitFor, host);
 
             if (deactivateOnComplete) {
-                waitFor = addStepsForRemoveHostFromCluster(workflow, waitFor, host, unassociateStepId);
                 waitFor = computeDeviceController.addStepsDeactivateHost(workflow, waitFor, host, deactivateBootVolume,
                         volumeDescriptors);
             }
@@ -1208,112 +1203,6 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
         return false;
     }
 
-    /**
-     * Returns stepId to waitFor
-     *
-     * @param workflow
-     * @param stepId of previous step
-     * @param hostURI
-     * @param stepId to use for this step
-     * @return stepId
-     */
-    public String addStepsForRemoveHostFromCluster(Workflow workflow, String waitFor, URI hostId, String unassociateStepId) {
-        Host host = _dbClient.queryObject(Host.class, hostId);
-        String newWaitFor = null;
-        if (host != null){
-            newWaitFor = workflow.createStep(REMOVE_HOST_FROM_CLUSTER_STEP,
-                    String.format("Removing host %s from cluster ", host.getLabel()), waitFor,
-                    hostId, host.getLabel(), this.getClass(), new Workflow.Method("removeHostFromClusterStep",hostId),
-                    new Workflow.Method("rollbackRemoveHostFromClusterStep",hostId, unassociateStepId),
-                    unassociateStepId);
-        }
-        return (newWaitFor!=null? newWaitFor : waitFor);
-    }
-
-    /**
-     * Clears the cluster association of the host being decommissioned.
-     *
-     * @param hostId
-     * @param stepId
-     * @return
-     */
-    public void removeHostFromClusterStep(URI hostId, String stepId){
-        _log.info("removeHostFromClusterStep {}", hostId);
-        Host host = null;
-        try {
-            WorkflowStepCompleter.stepExecuting(stepId);
-
-            host = _dbClient.queryObject(Host.class, hostId);
-            if (host == null) {
-                throw ComputeSystemControllerException.exceptions.hostNotFound(hostId.toString());
-            }
-
-            if (NullColumnValueGetter.isNullURI(host.getCluster())) {
-                _log.info("cluster is null, nothing to do");
-                WorkflowStepCompleter.stepSucceded(stepId);
-                return;
-            }
-            _workflowService.storeStepData(stepId, host.getCluster());
-
-            host.setCluster(NullColumnValueGetter.getNullURI());
-            _dbClient.persistObject(host);
-            _log.info("Removed cluster association for host: "+ host.getLabel());
-            WorkflowStepCompleter.stepSucceded(stepId);
-        } catch (Exception e){
-            _log.error("unexpected exception: " + e.getMessage(), e);
-            ServiceCoded serviceCoded = ComputeSystemControllerException.exceptions.unableToRemoveHostFromCluster(
-                    host != null ? host.getHostName() : hostId.toString(), e);
-            WorkflowStepCompleter.stepFailed(stepId, serviceCoded);
-        }
-
-    }
-
-    /**
-     * Re-associates the host that failed decommissioning to the cluster as part of rollback
-     *
-     * @param hostId
-     * @param stepId of the removeHostFromClusterStep
-     * @param stepId of this rollback step
-     * @return
-     */
-    public void rollbackRemoveHostFromClusterStep(URI hostId, String unassociateStepId,String stepId){
-        _log.info("rollbackRemoveHostFromClusterStep {}", hostId);
-        Host host = null;
-        try {
-            WorkflowStepCompleter.stepExecuting(stepId);
-
-            host = _dbClient.queryObject(Host.class, hostId);
-
-            if (host == null) {
-                throw ComputeSystemControllerException.exceptions.hostNotFound(hostId.toString());
-            }
-
-            URI clusterURI = (URI)_workflowService.loadStepData(unassociateStepId);
-
-            if (NullColumnValueGetter.isNullURI(clusterURI)){
-                _log.info("cluster is null, nothing to do");
-                WorkflowStepCompleter.stepSucceded(stepId);
-                return;
-            }
-
-            Cluster cluster = _dbClient.queryObject(Cluster.class, clusterURI);
-            if (cluster == null){
-                throw ComputeSystemControllerException.exceptions.clusterNotFound(clusterURI.toString());
-            }
-
-            host.setCluster(cluster.getId());
-            _dbClient.persistObject(host);
-            _log.info("Re-associated host to cluster as part of rollback");
-            WorkflowStepCompleter.stepSucceded(stepId);
-        } catch (Exception e){
-            _log.error("unexpected exception: " + e.getMessage(), e);
-            ServiceCoded serviceCoded = ComputeSystemControllerException.exceptions.unableToReAddHostToCluster(
-                    host != null ? host.getHostName() : hostId.toString(), e);
-            WorkflowStepCompleter.stepFailed(stepId, serviceCoded);
-        }
-
-    }
-
     public String addStepsForExportGroups(Workflow workflow, String waitFor, URI hostId) {
 
         List<Initiator> hostInitiators = ComputeSystemHelper.queryInitiators(_dbClient, hostId);
@@ -1514,18 +1403,16 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                 storageAPI.refreshStorage();
                 for (String volume : exportGroup.getVolumes().keySet()) {
                     BlockObject blockObject = BlockObject.fetch(_dbClient, URI.create(volume));
-                    try {
-                        for (HostScsiDisk entry : storageAPI.listScsiDisks()) {
-                            if (VolumeWWNUtils.wwnMatches(VMwareUtils.getDiskWwn(entry), blockObject.getWWN())) {
+                    for (HostScsiDisk entry : storageAPI.listScsiDisks()) {
+                        if (VolumeWWNUtils.wwnMatches(VMwareUtils.getDiskWwn(entry), blockObject.getWWN())) {
+                            if (VMwareUtils.isDiskOff(entry)) {
                                 _log.info("Attach SCSI Lun " + entry.getCanonicalName() + " on host " + esxHost.getLabel());
                                 storageAPI.attachScsiLun(entry);
-
-                                // Test mechanism to invoke a failure. No-op on production systems.
-                                InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_055);
                             }
+                            // Test mechanism to invoke a failure. No-op on production systems.
+                            InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_055);
+                            break;
                         }
-                    } catch (VMWareException ex) {
-                        _log.warn(ex.getMessage(), ex);
                     }
 
                     storageAPI.getStorageSystem().rescanVmfs();
@@ -1534,17 +1421,13 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
 
                     if (blockObject != null) {
 
-                        try {
-                            Datastore datastore = getDatastoreByWwn(wwnDatastores, blockObject.getWWN());
-                            if (datastore != null) {
-                                _log.info("Mounting datastore " + datastore.getName() + " on host " + esxHost.getLabel());
-                                storageAPI.mountDatastore(datastore);
+                        Datastore datastore = getDatastoreByWwn(wwnDatastores, blockObject.getWWN());
+                        if (datastore != null && !VMwareUtils.isDatastoreMountedOnHost(datastore, hostSystem)) {
+                            _log.info("Mounting datastore " + datastore.getName() + " on host " + esxHost.getLabel());
+                            storageAPI.mountDatastore(datastore);
 
-                                // Test mechanism to invoke a failure. No-op on production systems.
-                                InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_056);
-                            }
-                        } catch (VMWareException ex) {
-                            _log.warn(ex.getMessage(), ex);
+                            // Test mechanism to invoke a failure. No-op on production systems.
+                            InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_056);
                         }
                     }
 
@@ -1713,14 +1596,19 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                     if (blockObject != null) {
                         Datastore datastore = getDatastoreByWwn(wwnDatastores, blockObject.getWWN());
                         if (datastore != null) {
-                            boolean storageIOControlEnabled = datastore.getIormConfiguration().isEnabled();
-                            if (storageIOControlEnabled) {
-                                setStorageIOControl(api, datastore, false);
-                            }
-                            _log.info("Unmount datastore " + datastore.getName() + " from host " + esxHost.getLabel());
-                            storageAPI.unmountVmfsDatastore(datastore);
-                            if (storageIOControlEnabled) {
-                                setStorageIOControl(api, datastore, true);
+                            if (VMwareUtils.isDatastoreMountedOnHost(datastore, hostSystem)) {
+                                boolean storageIOControlEnabled = datastore.getIormConfiguration().isEnabled();
+                                if (storageIOControlEnabled) {
+                                    setStorageIOControl(api, datastore, false);
+                                }
+                                _log.info("Unmount datastore " + datastore.getName() + " from host " + esxHost.getLabel());
+                                storageAPI.unmountVmfsDatastore(datastore);
+                                if (storageIOControlEnabled) {
+                                    setStorageIOControl(api, datastore, true);
+                                }
+                            } else {
+                                _log.info("Datastore " + datastore.getName() + " is not mounted on host " + esxHost.getLabel()
+                                        + ". Skipping unmounting of datastore.");
                             }
                         }
                     }
@@ -1729,8 +1617,12 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                     InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_030);
                     for (HostScsiDisk entry : storageAPI.listScsiDisks()) {
                         if (VolumeWWNUtils.wwnMatches(VMwareUtils.getDiskWwn(entry), blockObject.getWWN())) {
-                            _log.info("Detach SCSI Lun " + entry.getCanonicalName() + " from host " + esxHost.getLabel());
-                            storageAPI.detachScsiLun(entry);
+                            if (!VMwareUtils.isDiskOff(entry)) {
+                                _log.info("Detach SCSI Lun " + entry.getCanonicalName() + " from host " + esxHost.getLabel());
+                                storageAPI.detachScsiLun(entry);
+                            } else {
+                                _log.info("SCSI Lun " + entry.getCanonicalName() + " is not in a valid state to detach");
+                            }
                         }
                     }
                     storageAPI.refreshStorage();

@@ -48,7 +48,7 @@ public class RemoveHostFromClusterService extends ViPRService {
         hostIds = uris(ids);
         cluster = BlockStorageUtils.getCluster(clusterId);
         if (cluster == null) {
-            preCheckErrors.append("Cluster doesn't exist for ID " + clusterId);
+            preCheckErrors.append("Cluster doesn't exist for ID " + clusterId + " ");
         }
         List<String> nonVblockhosts = new ArrayList<>();
         for (URI hostId : hostIds) {
@@ -56,7 +56,7 @@ public class RemoveHostFromClusterService extends ViPRService {
             if (host == null) {
                 preCheckErrors.append("Host doesn't exist for ID " + hostId);
             } else if (!host.getCluster().equals(clusterId)) {
-                preCheckErrors.append("Host " + host.getLabel() + " is not associated with cluster: " + cluster.getLabel());
+                preCheckErrors.append("Host " + host.getLabel() + " is not associated with cluster: " + cluster.getLabel() + " ");
             } else if (NullColumnValueGetter.isNullURI(host.getComputeElement()) && NullColumnValueGetter.isNullURI(host.getServiceProfile())) {
                 nonVblockhosts.add(host.getLabel());
             }
@@ -67,7 +67,7 @@ public class RemoveHostFromClusterService extends ViPRService {
             logError("computeutils.deactivatecluster.deactivate.nonvblockhosts", nonVblockhosts);
             preCheckErrors.append("Cannot decommission the following non-vBlock hosts - ");
             preCheckErrors.append(nonVblockhosts);
-            preCheckErrors.append(".  Non-vblock hosts cannot be decommissioned from VCE Vblock catalog services.");
+            preCheckErrors.append(".  Non-vblock hosts cannot be decommissioned from VCE Vblock catalog services. ");
         }
 
         preCheckErrors = ComputeUtils.verifyClusterInVcenter(cluster, preCheckErrors);
@@ -76,7 +76,7 @@ public class RemoveHostFromClusterService extends ViPRService {
         if (!validateBootVolumes(hostURIMap)) {
             logError("computeutils.deactivatecluster.deactivate.bootvolumes", cluster.getLabel());
             preCheckErrors.append("Cluster ").append(cluster.getLabel())
-            .append(" has different boot volumes than what controller provisioned.  Cannot delete original boot volume in case it was re-purposed.");
+            .append(" has different boot volumes than what controller provisioned.  Cannot delete original boot volume in case it was re-purposed. ");
         }
 
         // Verify the hosts are still part of the cluster we have reported for it on ESX.
@@ -84,12 +84,13 @@ public class RemoveHostFromClusterService extends ViPRService {
             logError("computeutils.deactivatecluster.deactivate.hostmovedcluster", cluster.getLabel(),
                     Joiner.on(',').join(hostURIMap.values()));
             preCheckErrors.append("Cluster ").append(cluster.getLabel())
-            .append(" no longer contains one or more of the hosts requesting decommission.  Cannot decomission in current state.  Recommended " +
-            "to run vCenter discovery and address actionable events before attempting decomission of hosts in this cluster.");
+            .append(" no longer contains one or more of the hosts requesting decommission.  Cannot decommission in current state.  Recommended " +
+            "to run vCenter discovery and address actionable events before attempting decommission of hosts in this cluster. ");
         }
-        
+
         if (preCheckErrors.length() > 0) {
-            throw new IllegalStateException(preCheckErrors.toString());
+            throw new IllegalStateException(preCheckErrors.toString() + 
+                    ComputeUtils.getContextErrors(getModelClient()));
         }
     }
 

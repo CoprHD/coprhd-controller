@@ -61,8 +61,8 @@ public class CreateVmfsDatastoreService extends VMwareHostService {
         exportBlockVolumeHelper.exportVolumes();
         volume = BlockStorageUtils.getVolume(volumeId);
         connectAndInitializeHost();
-        Datastore datastore = vmware.createVmfsDatastore(host, cluster, hostId, volume, datastoreName);
         vmware.refreshStorage(host, cluster);
+        Datastore datastore = vmware.createVmfsDatastore(host, cluster, hostId, volume, datastoreName);
         vmware.setMultipathPolicy(host, cluster, multipathPolicy, volume);
         vmware.setStorageIOControl(datastore, storageIOControl);
     }

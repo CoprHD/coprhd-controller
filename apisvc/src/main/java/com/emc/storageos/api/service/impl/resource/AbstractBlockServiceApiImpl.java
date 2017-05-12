@@ -51,6 +51,7 @@ import com.emc.storageos.db.client.model.BlockSnapshotSession;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.ExportGroup;
+import com.emc.storageos.db.client.model.FCZoneReference;
 import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.OpStatusMap;
 import com.emc.storageos.db.client.model.Operation;
@@ -479,6 +480,17 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
                     volumeDescriptors, null, new VolumeDescriptor.Type[] { VolumeDescriptor.Type.BLOCK_MIRROR });
             _dbClient.markForDeletion(_dbClient.queryObject(Volume.class,
                     VolumeDescriptor.getVolumeURIs(descriptorsForVolumes)));
+            
+            // Delete the corresponding FCZoneReferences
+            for (URI volumeURI : volumeURIs) {
+                List<FCZoneReference> zoneReferences = CustomQueryUtility.queryActiveResourcesByAltId(_dbClient, 
+                        FCZoneReference.class, "volumeUri", volumeURI.toString());
+                for (FCZoneReference zoneReference : zoneReferences) {
+                    if (zoneReference != null) {
+                        _dbClient.markForDeletion(zoneReference);
+                    }
+                }
+            }
 
             // Update the task status for each volume
             for (URI volumeURI : volumeURIs) {
@@ -1150,7 +1162,7 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
      */
     @Override
     public void validateCreateSnapshot(Volume reqVolume, List<Volume> volumesToSnap,
-            String snapshotType, String snapshotName, BlockFullCopyManager fcManager) {
+            String snapshotType, String snapshotName, Boolean readOnly, BlockFullCopyManager fcManager) {
         // Make sure a name was specified.
         ArgValidator.checkFieldNotEmpty(snapshotName, "name");
 
@@ -1178,7 +1190,13 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
         }
         StorageSystem system = _dbClient.queryObject(StorageSystem.class, reqVolume.getStorageController());
         Boolean is8xProvider = system.getUsingSmis80();
-
+        
+        Boolean isXtremIO = StorageSystem.Type.xtremio.toString().equals(system.getSystemType());
+        Boolean isVplexXtremIO = StorageSystem.Type.vplex.toString().equals(system.getSystemType()) 
+        		&& VPlexUtil.isXtremIOBackend(reqVolume, _dbClient);
+        if (readOnly && !(isXtremIO || isVplexXtremIO)) {
+        	throw APIException.badRequests.cannotCreateReadOnlySnapshotForNonXIOVolumes();
+        }
         // We should validate this for 4.x provider as it doesn't support snaps for SRDF meta volumes.
         if (!is8xProvider) {
             // Check that if the volume is a member of vmax consistency group all volumes in the group are regular
@@ -1962,6 +1980,7 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
             allRPSourceVolumesInCG.remove(volume.getId());
 
             if (VirtualPool.vPoolSpecifiesRPVPlex(currentVpool)
+                    && !VirtualPool.vPoolSpecifiesMetroPoint(currentVpool)
                     && VirtualPool.vPoolSpecifiesMetroPoint(vpool)) {
                 // For an upgrade to MetroPoint (moving from RP+VPLEX vpool to MetroPoint vpool), even though the user
                 // would have chosen 1 volume to update but we need to update ALL the RSets/volumes in the CG.

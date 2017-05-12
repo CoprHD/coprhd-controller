@@ -130,7 +130,8 @@ public class AddBareMetalHostToClusterService extends ViPRService {
         // e.g. the blades can be from multiple UCS clusters
 
         if (preCheckErrors.length() > 0) {
-            throw new IllegalStateException(preCheckErrors.toString());
+            throw new IllegalStateException(preCheckErrors.toString() + 
+                    ComputeUtils.getContextErrors(getModelClient()));
         }
     }
 

@@ -1041,10 +1041,10 @@ public class BlockService extends TaskResourceService {
     }
 
     /**
-     * returns the types (RP, VPLEX, SRDF or LOCAL) that will be created based on the vpool
+     * Returns the types (RP, VPLEX, SRDF or LOCAL) that will be created based on the vpool
      *
-     * @param vpool
-     * @param requestedTypes
+     * @param vpool The vpool to find requested types
+     * @return All requested types for the vpool
      */
     private ArrayList<String> getRequestedTypes(VirtualPool vpool) {
 
@@ -2423,7 +2423,7 @@ public class BlockService extends TaskResourceService {
         String snapshotNamePattern = param.getName();
         String snapshotName = TimeUtils.formatDateForCurrent(snapshotNamePattern);
         blockServiceApiImpl.validateCreateSnapshot(requestedVolume, volumesToSnap,
-                snapshotType, snapshotName, getFullCopyManager());
+                snapshotType, snapshotName, readOnly, getFullCopyManager());
 
         // Create the snapshots for the volume(s) being snapped and
         // initialize the task list.

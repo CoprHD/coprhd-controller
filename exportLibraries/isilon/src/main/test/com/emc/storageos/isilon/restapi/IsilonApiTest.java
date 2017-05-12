@@ -5,25 +5,27 @@
 
 package com.emc.storageos.isilon.restapi;
 
-import com.emc.storageos.services.util.EnvConfig;
+import java.net.URI;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
+
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.net.URI;
-import java.util.*;
+import com.emc.storageos.services.util.EnvConfig;
 
 /*
  * Test client for IsilonRESTClient
  */
 public class IsilonApiTest {
     private static final Logger _log = LoggerFactory.getLogger(IsilonApiTest.class);
-    private String _test_path = "/ifs/ER201";
-    // private String _test_path = "/ifs/testDirNew";
-    private String _test_snapshot_path = "/ifs/.snapshot/testDir";
-    private String _test_path10 = "/ifs/testDir10";
+    private static String dateSuffix = new SimpleDateFormat("yyyyMMddHHmm").format(new Date());
+    private String testPath = "/ifs/junitTestDir/" + dateSuffix;
     private static String uri = EnvConfig.get("sanity", "isilon.uri");
     private static String userName = EnvConfig.get("sanity", "isilon.username");
     private static String password = EnvConfig.get("sanity", "isilon.password");
@@ -66,30 +68,31 @@ public class IsilonApiTest {
     @Test
     public void testSMBShares() throws Exception {
 
-        String clusterName = _client.getClusterConfig().getName();
-        // Create directory for SMB shares
-        String testSMBDir = _test_path + "/testSMB01";
-        _client.createDir(testSMBDir, true);
+        // Step 1: Create directory
+        String testSMBDirPath = testPath + "/testSMBDir01";
+        String testSMBDirShareName = "testSMBShare" + dateSuffix;
+        _client.createDir(testSMBDirPath, true);
 
-        if (!_client.existsDir(testSMBDir)) {
-            throw new Exception("existsDir for " + testSMBDir + ": failed");
+        if (!_client.existsDir(testSMBDirPath)) {
+            throw new Exception("existsDir for " + testSMBDirPath + ": failed");
         }
 
-        // SMB share tests
-        String mapableShareName = (clusterName != null) ? "\\\\" + clusterName + "\\" + "smbShareTestER10" : "smbShareTestER10";
-        System.out.println("SMB Share name: " + mapableShareName);
-        String shareId = _client.createShare(new IsilonSMBShare("smbShareTestER10", testSMBDir, "smb test share", "allow", "full"));
+        // Step 2: Create the SMB share for directory
+        String shareId = _client
+                .createShare(new IsilonSMBShare(testSMBDirShareName, testSMBDirPath, "smb test share", "allow", "full"));
         Assert.assertTrue("SMB share create failed.", (shareId != null && !shareId.isEmpty()));
         System.out.println("SMB Share created: id: " + shareId);
 
         IsilonSMBShare share = _client.getShare(shareId);
         Assert.assertTrue("SMB share create failed.", share != null);
 
-        // modify share
-        _client.modifyShare(shareId, new IsilonSMBShare("smbShareTestER10", testSMBDir, "smb test share modify", "allow", "read"));
+        // Step 2: modify SMB share
+        _client.modifyShare(shareId, new IsilonSMBShare(testSMBDirShareName, testSMBDirPath, "smb test share modify", "allow", "read"));
 
         List<IsilonSMBShare> lShares = _client.listShares(null).getList();
         System.out.println("listShares: count: " + lShares.size() + " : " + lShares.toString());
+
+        // Step 3: delete the SMB share
 
         _client.deleteShare(shareId);
         try {
@@ -99,154 +102,135 @@ public class IsilonApiTest {
             _log.error(e.getMessage(), e);
         }
 
-        // Test smb share for snapshots
-        // String dir = "/ifs/testDir";
-        // String snapPath = "/ifs/.snapshot/test_snap/testDir";
-        String snapPath = "/ifs/.snapshot/test_snap/ER201/testSMB01";
-        String snap_id = _client.createSnapshot("test_snap", testSMBDir);
+        // Step 3: delete the directory.
 
-        String snapShareId = _client.createShare(new IsilonSMBShare("smbShareTestER20", snapPath, "smb test snap share", "allow", "full"));
-        Assert.assertTrue("SMB share create failed.", (snapShareId != null && !snapShareId.isEmpty()));
-        System.out.println("SMB Share created: id: " + snapShareId);
-
-        IsilonSMBShare snapShare = _client.getShare(snapShareId);
-        Assert.assertTrue("SMB share create failed.", snapShare != null);
-
-        // modify share
-        _client.modifyShare(snapShareId, new IsilonSMBShare("smbShareTestER20", snapPath, "smb test share modify", "allow", "read"));
-
-        lShares = _client.listShares(null).getList();
-        System.out.println("listShares: count: " + lShares.size() + " : " + lShares.toString());
-
-        _client.deleteShare(snapShareId);
-
-        try {
-            share = _client.getShare(snapShareId);
-            if (share != null) {
-                System.out.println("SMB Share name: " + share.getName());
-            }
-            Assert.assertTrue("Deleted SMB share still gettable.", false);
-        } catch (IsilonException e) {
-            _log.error(e.getMessage(), e);
-        }
-
-        _client.deleteSnapshot(snap_id);
-        /* try to get deleted snapshot */
-        try {
-            IsilonSnapshot snap3 = _client.getSnapshot(snap_id);
-            Assert.assertTrue("deleted snapshot still exists", false);
-        } catch (IsilonException ie) {
-            _log.error(ie.getMessage(), ie);
-        }
-        _client.deleteDir(_test_path, true);
+        _client.deleteDir(testSMBDirPath, true);
+        Assert.assertFalse("Directory delete failed.", _client.existsDir(testSMBDirPath));
     }
 
     @Test
     public void testDirectoriesAndSnapshots() throws Exception {
 
-        /* directory for api tests - start */
-        // System.out.println("Start: " + System.currentTimeMillis());
-        _client.createDir(_test_path);
-        // System.out.println("End: " + System.currentTimeMillis());
-        if (!_client.existsDir(_test_path)) {
-            throw new Exception("Create directory --- " + _test_path + ": failed");
-        }
-        System.out.println("Created directory: " + _test_path);
-        _client.deleteDir(_test_path, true);
+        // Step 1: Create directory
+        String testDirPath = testPath + "/testDir01";
 
-        String dir = _test_path + "/test2";
-        String dir1 = dir + "/dir1/dir2";
-        _client.createDir(dir1, true);
-        if (!_client.existsDir(dir1)) {
-            throw new Exception("Create directory --- " + dir1 + ": failed");
+        _client.createDir(testDirPath, true);
+        if (!_client.existsDir(testDirPath)) {
+            throw new Exception("Create directory --- " + testDirPath + ": failed");
         }
-        _client.deleteDir(dir, true);
-        // _client.deleteDir("/ifs/sos/urn:storageos:FileShare:2ab41fb8-c6e3-4b7c-b990-bd9a6b3ae365:", true);
-        // System.out.println("End: " + System.currentTimeMillis());
-        Assert.assertFalse("Directory delete failed.", _client.existsDir(dir));
+        System.out.println("Created directory: " + testDirPath);
+
+        // Step 2 create a sub directory inside directory
+
+        String subDir1 = testDirPath + "/dir1/dir2";
+        _client.createDir(subDir1, true);
+        if (!_client.existsDir(subDir1)) {
+            throw new Exception("Createa sub directory --- " + subDir1 + ": failed");
+        }
+
 
         /* snapshot tests - start */
-        // - create
-        String snap_id = _client.createSnapshot("test_snap", _test_path);
-        // - list/get
+
+        // Step 3 create a Snapshot with unique name
+        String testSnapName = "testSnap01" + dateSuffix;
+        String snapId = _client.createSnapshot(testSnapName, testDirPath);
+        
+        
         List<IsilonSnapshot> snaps = _client.listSnapshots(null).getList();
         System.out.println("listSnaps: count: " + snaps.size() + " : " + snaps.toString());
-        IsilonSnapshot snap = _client.getSnapshot(snap_id);
-        Assert.assertTrue(snap.getId().compareTo(snap_id) == 0
-                && snap.getPath().compareTo(_test_path) == 0
-                && snap.getName().compareTo("test_snap") == 0);
+        IsilonSnapshot snap = _client.getSnapshot(snapId);
+        Assert.assertTrue(snap.getId().compareTo(snapId) == 0 && snap.getPath().compareTo(testDirPath) == 0
+                && snap.getName().compareTo(testSnapName) == 0);
 
-        // - modify
+        // Step 4 Modify the snapshot
         IsilonSnapshot renamed = new IsilonSnapshot();
-        renamed.setName("test_snap_renamed");
-        _client.modifySnapshot(snap_id, renamed);
-        IsilonSnapshot snap2 = _client.getSnapshot(snap_id);
-        Assert.assertTrue(snap2.getId().compareTo(snap_id) == 0
-                && snap2.getPath().compareTo(_test_path) == 0
-                && snap2.getName().compareTo("test_snap_renamed") == 0);
+        renamed.setName("testSnap01_Renamed_" + dateSuffix);
+        _client.modifySnapshot(snapId, renamed);
+        IsilonSnapshot snap2 = _client.getSnapshot(snapId);
+        Assert.assertTrue(snap2.getId().compareTo(snapId) == 0
+                && snap2.getPath().compareTo(testDirPath) == 0
+                && snap2.getName().compareTo("testSnap01_Renamed_" + dateSuffix) == 0);
 
-        // - delete
-        _client.deleteSnapshot(snap_id);
+        // Step 5 delete the snapshot
+        _client.deleteSnapshot(snapId);
 
-        /* try to get deleted snapshot */
         try {
-            IsilonSnapshot snap3 = _client.getSnapshot(snap_id);
+            _client.getSnapshot(snapId);
             Assert.assertTrue("deleted snapshot still exists", false);
         } catch (IsilonException ie) {
             // success
+            Assert.assertTrue("Getting Deleted snapshot result in excpetion ", true);
         }
 
         try {
             snaps.clear();
             snaps = _client.listSnapshots(null).getList();
             for (int i = 0; i < snaps.size(); i++) {
-                if (snaps.get(i).getId().compareTo(snap_id) == 0) {
+                if (snaps.get(i).getId().compareTo(snapId) == 0) {
                     Assert.assertTrue("deleted snapshot still exists", false);
                 }
             }
         } catch (IsilonException ex) {
             Assert.assertTrue("deleted snapshot still exists is failed", false);
         }
-        /* snapshot tests - done */
 
-        // existsDir - negative
+        // negative test case
+
+        // Step 6 create a directory where no isilon is runnning -
         try {
             IsilonApi clientError = _factory.getRESTClient(URI.create("https://10.0.0.0:8080"), "root", "sos");
-            clientError.existsDir(_test_path);  // expected to throw
+            clientError.existsDir(testDirPath);  // expected to throw
             Assert.assertTrue("Attempt to use dummy client succeeded.", false);
         } catch (Exception ex) {
-            Assert.assertTrue("Attempt to use dummy client is failed", false);
+            // wea are expecting this exception as there is no isilon at 10.0.0.0:
+            Assert.assertTrue("Attempt to use dummy client is failed", true);
         }
 
-        _client.deleteDir(_test_path, true);
-        Assert.assertFalse("Directory delete failed.", _client.existsDir(_test_path));
-
+        // Step 7: Delete the directory with wrong path.
         try {
             _client.deleteDir("/ifs/dummy_delete");
         } catch (Exception ex) {
             Assert.assertTrue("Attempt to delete non existing directory failed.", false);
         }
+
+        // Step 8 Delete the directory with sub dir without recursive flag
+
+        try {
+            _client.deleteDir(testDirPath, false);
+        } catch (Exception e) {
+            // TODO Auto-generated catch block
+            Assert.assertTrue("Deleted dir without recursive flag result in exception", true);
+        }
+
+        // Step 8 Positive case delete the directory with recursive flag
+        _client.deleteDir(testDirPath, true);
+        Assert.assertFalse("Directory delete failed.", _client.existsDir(testDirPath));
+
     }
 
     @Test
     public void testQuotas() throws Exception {
 
-        _client.createDir(_test_path);
-        if (!_client.existsDir(_test_path)) {
-            throw new Exception("Create directory --- " + _test_path + ": failed");
+        // Step 1: Create directory
+        String testQuotasDirPath = testPath + "/testQuotaDir01";
+        String testQuotasDirPath2 = testPath + "/testQuotaDir02";
+
+        _client.createDir(testQuotasDirPath);
+        if (!_client.existsDir(testQuotasDirPath)) {
+            throw new Exception("Create directory --- " + testQuotasDirPath + ": failed");
         }
-        System.out.println("Created directory: " + _test_path);
+        System.out.println("Created directory: " + testQuotasDirPath);
 
         /* SmartQuota tests - start */
         // test limit quota
         // - create
-        String qid = _client.createQuota(_test_path, 404800000000L); // quota in bytes --- 20MB
+        String qid = _client.createQuota(testQuotasDirPath, 404800000000L); // quota in bytes --- 20MB
         System.out.println("Quota created: id: " + qid);
 
         // - get
         IsilonSmartQuota quota = _client.getQuota(qid);
         Assert.assertTrue(qid.compareTo(quota.getId()) == 0
-                && _test_path.compareTo(quota.getPath()) == 0
+                && testQuotasDirPath.compareTo(quota.getPath()) == 0
                 && quota.getThresholds().getHard() == 404800000000L); // 20480000);
         Assert.assertTrue("Usage Physical is greater than hard quota", quota.getUsagePhysical() <= quota.getThresholds().getHard());
 
@@ -265,26 +249,26 @@ public class IsilonApiTest {
         quota = _client.getQuota(qid);
         System.out.println("Modified quota: " + quota);
         Assert.assertTrue(qid.compareTo(quota.getId()) == 0
-                && _test_path.compareTo(quota.getPath()) == 0
+                && testQuotasDirPath.compareTo(quota.getPath()) == 0
                 && quota.getThresholds().getHard() == 10240000
                 && quota.getThresholds().getAdvisory() == 1024000
                 && quota.getThresholds().getSoft() == 3072000
                 && quota.getThresholds().getSoftGrace() == 86400);
 
         // test accounting quota
-        _client.createDir(_test_path10);
-        if (!_client.existsDir(_test_path10)) {
-            throw new Exception("Create directory --- " + _test_path10 + ": failed");
+        _client.createDir(testQuotasDirPath2);
+        if (!_client.existsDir(testQuotasDirPath2)) {
+            throw new Exception("Create directory --- " + testQuotasDirPath2 + ": failed");
         }
-        System.out.println("Created directory: " + _test_path10);
+        System.out.println("Created directory: " + testQuotasDirPath2);
         // - create
-        String qid_acc = _client.createQuota(_test_path10); // no limit --- accounting quota
+        String qid_acc = _client.createQuota(testQuotasDirPath2); // no limit --- accounting quota
         System.out.println("Quota created: id: " + qid_acc);
 
         // - get
         quota = _client.getQuota(qid_acc);
         Assert.assertTrue(qid_acc.compareTo(quota.getId()) == 0
-                && _test_path10.compareTo(quota.getPath()) == 0
+                && testQuotasDirPath2.compareTo(quota.getPath()) == 0
                 && quota.getThresholds().getHard() == null);
 
         // end of accounting quota test
@@ -295,7 +279,8 @@ public class IsilonApiTest {
             quota = _client.getQuota(qid);
             Assert.assertTrue("deleted quota still gettable", false);
         } catch (IsilonException ex) {
-            Assert.assertTrue("deleted quota still gettable is failed", false);
+            // if exception mean quota already deleted.
+            Assert.assertTrue("exception in getting deleted quota  ", true);
         }
 
         _client.deleteQuota(qid_acc);
@@ -303,70 +288,45 @@ public class IsilonApiTest {
             quota = _client.getQuota(qid_acc);
             Assert.assertTrue("deleted quota still gettable", false);
         } catch (IsilonException ex) {
-            Assert.assertTrue("deleted quota still gettable failed", false);
+            // if exception mean quota already deleted.
+            Assert.assertTrue("exception in getting deleted quota  ", true);
         }
 
-        _client.deleteDir(_test_path, true);
-        Assert.assertFalse("Directory delete failed.", _client.existsDir(_test_path));
+        _client.deleteDir(testQuotasDirPath, true);
+        Assert.assertFalse("Directory delete failed.", _client.existsDir(testQuotasDirPath));
 
-        _client.deleteDir(_test_path10, true);
-        Assert.assertFalse("Directory delete failed.", _client.existsDir(_test_path10));
+        _client.deleteDir(testQuotasDirPath2, true);
+        Assert.assertFalse("Directory delete failed.", _client.existsDir(testQuotasDirPath2));
 
     }
 
-    // ER.
-    /**
-     * Small function to clean exports form cluster.
-     * Do not run as a test.
-     * 
-     * @throws Exception
-     */
-    // @Test
-    public void testExportDelete() throws Exception {
 
-        String parentDirectory = "/ifs/";
-        int dirCount = _client.listDir(parentDirectory, null).size();
-        System.out.println("Directories count in " + parentDirectory + " is: " + dirCount);
-
-        // String exportId = null;
-        //
-        // for (int i = 1039; i < 1080; i++) {
-        // exportId = String.valueOf(i);
-        // try {
-        // _client.deleteExport(exportId);
-        // System.out.println("Deleted export: " + exportId);
-        // } catch (Exception ex) {
-        // System.out.println("Exception when deleting export: " + exportId);
-        // }
-        // }
-    }
-
-    //
 
     @Test
     public void testNFSExports() throws Exception {
 
-        _client.createDir(_test_path);
-        if (!_client.existsDir(_test_path)) {
-            throw new Exception("Create directory --- " + _test_path + ": failed");
+        // Step 1: Create directory
+        String testExportDirPath = testPath + "/testExportDir01";
+        _client.createDir(testExportDirPath, true);
+        if (!_client.existsDir(testExportDirPath)) {
+            throw new Exception("Create directory --- " + testExportDirPath + ": failed");
         }
-        System.out.println("Created directory: " + _test_path);
+        System.out.println("Created directory: " + testExportDirPath);
 
-        // create snapshot
-        String snapName = "test_snap";
-        String snap_id = _client.createSnapshot(snapName, _test_path);
+        // Step 2 create snapshot
+        String snapName = "test_snap_" + dateSuffix;
+        String snap_id = _client.createSnapshot(snapName, testExportDirPath);
         // - list/get
         List<IsilonSnapshot> snaps = _client.listSnapshots(null).getList();
         System.out.println("listSnaps: count: " + snaps.size() + " : " + snaps.toString());
         IsilonSnapshot snap = _client.getSnapshot(snap_id);
         Assert.assertTrue(snap.getId().compareTo(snap_id) == 0
-                && snap.getPath().compareTo(_test_path) == 0
+                && snap.getPath().compareTo(testExportDirPath) == 0
                 && snap.getName().compareTo(snapName) == 0);
 
-        /* nfs exports tests - start */
-        // Create export with default settings: sys.rw.nobody
+        // Step 3 Create export with default settings: sys.rw.nobody
         IsilonExport e1 = new IsilonExport();
-        e1.addPath(_test_path);
+        e1.addPath(testExportDirPath);
         e1.addClient("www.amazon.com");
         e1.addClient("www.ford.com");
         ArrayList<String> securityFlavors1 = new ArrayList<String>();
@@ -375,26 +335,35 @@ public class IsilonApiTest {
         e1.setReadOnly();
         e1.setComment("New export: unix.rw.nobody");
 
-        String export1Id = _client.createExport(e1);
+        String export1Id = _client.createExport(e1, false);
         Assert.assertTrue(Integer.parseInt(export1Id) > 0);
+        // Step 4 verify the created export
+
         IsilonExport exp1 = _client.getExport(export1Id);
         Assert.assertTrue(exp1.getId().toString().equals(export1Id));
-        // Assert.assertFalse(exp1.getReadOnly());
         Assert.assertTrue(exp1.getSecurityFlavors().get(0).equals("unix"));
         Assert.assertTrue(exp1.getMap_root().getUser().equals("nobody"));
         System.out.println("Export created: " + exp1);
 
-        // Create snap export with default settings: sys.rw.nobody
+        // Step 5 modify file system export
+        IsilonExport exp_modified = new IsilonExport();
+        exp_modified.setComment("modified");
+        _client.modifyExport(export1Id, exp_modified, false);
+        Assert.assertTrue(_client.getExport(export1Id).getComment().equals("modified"));
+
+        // Step 6 Create snap export with default settings: sys.rw.nobody
         IsilonExport snapEx1 = new IsilonExport();
         // build snap mount path
-        snapEx1.addPath("/ifs/.snapshot/" + snapName + _test_path.substring("/ifs".length()));
+        snapEx1.addPath("/ifs/.snapshot/" + snapName + testExportDirPath.substring("/ifs".length()));
         snapEx1.addClient("www.emc.com");
         snapEx1.addClient("www.honda.com");
         snapEx1.setSecurityFlavors(securityFlavors1);
         snapEx1.setComment("New snapshot export: unix.rw.nobody");
         System.out.println("Request to create snap export: " + snapEx1);
 
-        String snapExport1Id = _client.createExport(snapEx1);
+        String snapExport1Id = _client.createExport(snapEx1, false);
+
+        // Step 7 verify the created export
         Assert.assertTrue(Integer.parseInt(snapExport1Id) > 0);
         IsilonExport sExp1 = _client.getExport(snapExport1Id);
         Assert.assertTrue(sExp1.getId().toString().equals(snapExport1Id));
@@ -403,24 +372,9 @@ public class IsilonApiTest {
         Assert.assertTrue(sExp1.getMap_root().getUser().equals("nobody"));
         System.out.println("Snap Export created: " + sExp1);
 
-        // delete snap export
-        _client.deleteExport(snapExport1Id);
-        try {
-            _client.getExport(snapExport1Id);
-            Assert.assertTrue("Deleted snap export still gettable", false);
-        } catch (IsilonException ex) {
-            _log.error(ex.getMessage(), ex);
-        }
-
-        // modify file system export
-        IsilonExport exp_modified = new IsilonExport();
-        exp_modified.setComment("modified");
-        _client.modifyExport(export1Id, exp_modified);
-        Assert.assertTrue(_client.getExport(export1Id).getComment().equals("modified"));
-
-        // Create export with custom settings: krb5.root.root
+        // Step 8 Create export with custom settings: krb5.root.root
         IsilonExport e2 = new IsilonExport();
-        e2.addPath(_test_path);
+        e2.addPath(testExportDirPath);
         e2.addClient("www.emc.com");
         e2.addClient("www.gmc.com");
         ArrayList<String> securityFlavors = new ArrayList<String>();
@@ -428,8 +382,9 @@ public class IsilonApiTest {
         e2.setSecurityFlavors(securityFlavors);
         e2.setMapAll("root"); // to indicate that this export has root permissions (required by PAPI)
         e2.setComment("New export: krb5.root.root");
+        String export2Id = _client.createExport(e2, false);
 
-        String export2Id = _client.createExport(e2);
+        // Step 9 verify the created export
         Assert.assertTrue(Integer.parseInt(export2Id) > 0);
         IsilonExport exp2 = _client.getExport(export2Id);
         Assert.assertTrue(exp2.getId().toString().equals(export2Id));
@@ -438,46 +393,87 @@ public class IsilonApiTest {
         Assert.assertTrue(exp2.getMap_all().getUser().equals("root"));
         System.out.println("Export created: " + exp2);
 
-        // modify export
+        // Step 10 modify export
         exp_modified = new IsilonExport();
         exp_modified.setComment("modified export");
-        _client.modifyExport(export2Id, exp_modified);
+        _client.modifyExport(export2Id, exp_modified, false);
         Assert.assertTrue(_client.getExport(export2Id).getComment().equals("modified export"));
 
-        // list exports
-        List<IsilonExport> exports = _client.listExports(null).getList();
-        Assert.assertTrue("List exports failed.", exports.size() >= 2);
 
-        // delete export
+
+        // Step 11 Create nfs exports tests - with fqdn bypass
+        IsilonExport ie3 = new IsilonExport();
+        ie3.addPath(testExportDirPath);
+        // Add a client which doses not exit
+        ie3.addClient("abcd" + dateSuffix);
+        ArrayList<String> securityFlavors3 = new ArrayList<String>();
+        securityFlavors3.add("krb5i");
+        ie3.setSecurityFlavors(securityFlavors3);
+        ie3.setReadOnly();
+        ie3.setComment("New export: unix.rw.nobody");
+
+        String export3Id = _client.createExport(ie3, true);
+
+        // Step 12 verify the created export
+        Assert.assertTrue(Integer.parseInt(export3Id) > 0);
+        IsilonExport exp3 = _client.getExport(export3Id);
+        Assert.assertTrue(exp3.getId().toString().equals(export3Id));
+        Assert.assertTrue(exp3.getSecurityFlavors().get(0).equals("krb5i"));
+        Assert.assertTrue(exp3.getMap_root().getUser().equals("nobody"));
+        Assert.assertTrue(exp3.getClients().get(0).equals("abcd" + dateSuffix));
+        System.out.println("Export created: " + exp3);
+
+
+        // Step 13 clean up export and other resource
         _client.deleteExport(export1Id);
         try {
             _client.getExport(export1Id);
             Assert.assertTrue("Deleted export still gettable", false);
         } catch (IsilonException ex) {
-            Assert.assertTrue("Deleted export still gettable is failed", false);
+            // if we get exception means export is not available.
+            Assert.assertTrue("Getting Deleted export result in excpetion ", true);
         }
 
-        // delete export
+
+        _client.deleteExport(snapExport1Id);
+        try {
+            _client.getExport(snapExport1Id);
+            Assert.assertTrue("Deleted snap export still gettable", false);
+        } catch (IsilonException ex) {
+            _log.error(ex.getMessage(), ex);
+        }
+
+
         _client.deleteExport(export2Id);
         try {
             _client.getExport(export2Id);
             Assert.assertTrue("Deleted export still gettable", false);
 
         } catch (IsilonException ex) {
-            Assert.assertTrue("Deleted export still gettable is failed", false);
+            // if we get exception means export is not available.
+            Assert.assertTrue("Getting Deleted export result in  excpetion", true);
         }
 
-        // - delete snap
-        _client.deleteSnapshot(snap_id);
 
-        _client.deleteDir(_test_path, true);
-        Assert.assertFalse("Directory delete failed.", _client.existsDir(_test_path));
-        /* nfs exports tests - done */
+        _client.deleteExport(export3Id);
+        try {
+            _client.getExport(export3Id);
+            Assert.assertTrue("Deleted export still gettable", false);
+        } catch (IsilonException ex) {
+            // if we get exception means export is not available.
+            Assert.assertTrue("Getting Deleted export result in excpetion ", true);
+        }
+
+
+        _client.deleteSnapshot(snap_id);
+        _client.deleteDir(testExportDirPath, true);
+        Assert.assertFalse("Directory delete failed.", _client.existsDir(testExportDirPath));
 
     }
 
     @Test
     public void testEvents() throws Exception {
+        // list
         List<IsilonEvent> events = _client.listEvents(null).getList();
         for (IsilonEvent e : events) {
             _log.info(e.toString());
@@ -497,83 +493,5 @@ public class IsilonApiTest {
         ArrayList<IsilonStats.Protocol> protocols = _client.getStatsProtocols();
         Assert.assertTrue("Get stat protocols failed", protocols != null && protocols.isEmpty() == false);
 
-        /*
-         * // TODO: commented out. Need to rewrite to work with new Isilon statistics API
-         * // get "node.clientstats.proto.nfs" stat
-         * HashMap<String, IsilonStats.StatValueCurrent<ArrayList<IsilonStats.StatsClientProto>>> currentAll =
-         * _client.getStatsCurrent("node.clientstats.proto.nfs",
-         * new TypeToken<ArrayList<IsilonStats.StatsClientProto>>() {}.getType());
-         * ArrayList<IsilonStats.StatsClientProto> values = currentAll.get("1").getValue();
-         * for (IsilonStats.StatsClientProto value: values) {
-         * String client = value.getClientAddr();
-         * float outBw = value.getOutBW();
-         * float inBw = value.getInBW();
-         * long readOps = value.getReadOps();
-         * long writeOps = value.getWriteOps();
-         * _log.info(String.format("%s: outBW(%s), inBW(%s), ops(%s)",
-         * client, outBw, inBw, readOps+writeOps));
-         * }
-         * // To Do - set begin as last polled time
-         * HashMap<String, IsilonStats.StatValueHistory<ArrayList<IsilonStats.StatsClientProto>>> hist =
-         * _client.getStatsHistory("node.clientstats.proto.nfs", 0,
-         * new TypeToken<ArrayList<IsilonStats.StatsClientProto>>() {}.getType());
-         * if (!hist.isEmpty()) {
-         * HashMap<Long, ArrayList<IsilonStats.StatsClientProto>> hValues = hist.get("1").getValues();
-         * // add up the last hr
-         * class HostStat {
-         * public long reads = 0;
-         * public long writes = 0;
-         * ArrayList<Float> outBw = new ArrayList<Float>();
-         * ArrayList<Float> inBw = new ArrayList<Float>();
-         * private float getAvg(ArrayList<Float> inArray) {
-         * float sum = 0;
-         * for (int i = 0; i < inArray.size(); i++) {
-         * sum += inArray.get(i);
-         * }
-         * return sum/inArray.size();
-         * }
-         * public float getOutBWAvg() {
-         * return getAvg(outBw);
-         * }
-         * public float getInBWAvg() {
-         * return getAvg(inBw);
-         * }
-         * }
-         * HashMap<String, HostStat> hostStats = new HashMap<String, HostStat>();
-         * Iterator<Map.Entry<Long, ArrayList<IsilonStats.StatsClientProto>>> it =
-         * hValues.entrySet().iterator();
-         * while(it.hasNext()) {
-         * Map.Entry <Long, ArrayList<IsilonStats.StatsClientProto>> entry = it.next();
-         * // To Do - check timestamp
-         * ArrayList<IsilonStats.StatsClientProto> entryValues = entry.getValue();
-         * for (IsilonStats.StatsClientProto value: entryValues) {
-         * String client = value.getClientAddr();
-         * float outBw = value.getOutBW();
-         * float inBw = value.getInBW();
-         * if (!hostStats.containsKey(client)) {
-         * hostStats.put(client, new HostStat());
-         * }
-         * HostStat stat = hostStats.get(client);
-         * if (outBw > 0)
-         * stat.outBw.add(outBw);
-         * if (inBw > 0)
-         * stat.inBw.add(inBw);
-         * stat.reads += value.getReadOps();
-         * stat.writes += value.getWriteOps();
-         * }
-         * }
-         * Iterator<Map.Entry <String, HostStat>> resultsIt = hostStats.entrySet().iterator();
-         * while(it.hasNext()){
-         * Map.Entry <String, HostStat> result = resultsIt.next();
-         * _log.info(String.format("%s: OutBW(%s), InBW(%s), ops(%s)",
-         * result.getKey(), result.getValue().getOutBWAvg(), result.getValue().getInBWAvg(),
-         * result.getValue().reads + result.getValue().writes));
-         * }
-         * }
-         * // generic stats queries
-         * _log.info("Current stats detail: " + _client.getStatsCurrent("node.uptime",
-         * new TypeToken<Integer>() {}.getType()).toString());
-         */
-        _log.info("Done");
     }
 }

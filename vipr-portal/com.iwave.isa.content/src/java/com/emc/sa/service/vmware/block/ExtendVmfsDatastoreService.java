@@ -13,6 +13,7 @@ import java.net.URI;
 import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.engine.bind.Param;
 import com.emc.sa.engine.service.Service;
+import com.emc.sa.service.ArtificialFailures;
 import com.emc.sa.service.vipr.block.BlockStorageUtils;
 import com.emc.sa.service.vmware.VMwareHostService;
 import com.emc.storageos.model.block.BlockObjectRestRep;
@@ -58,6 +59,7 @@ public class ExtendVmfsDatastoreService extends VMwareHostService {
     public void execute() throws Exception {
         connectAndInitializeHost();
         datastore = vmware.getDatastore(datacenter.getLabel(), datastoreName);
+        artificialFailure(ArtificialFailures.ARTIFICIAL_FAILURE_VMWARE_EXTEND_DATASTORE);
         vmware.extendVmfsDatastore(host, cluster, hostId, volume, datastore);
         if (hostId != null) {
             ExecutionUtils.addAffectedResource(hostId.toString());

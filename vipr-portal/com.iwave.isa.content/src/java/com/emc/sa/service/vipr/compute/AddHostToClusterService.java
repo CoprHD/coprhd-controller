@@ -116,6 +116,7 @@ public class AddHostToClusterService extends ViPRService {
         if (cluster == null) {
             preCheckErrors.append(ExecutionUtils.getMessage("compute.cluster.no.cluster.exists"));
         }
+        acquireClusterLock(cluster);
 
         preCheckErrors = verifyClusterInVcenter(cluster, preCheckErrors);
 
@@ -246,6 +247,9 @@ public class AddHostToClusterService extends ViPRService {
 
         List<Host> hosts = ComputeUtils.createHosts(cluster, computeVirtualPool, hostNames, virtualArray);
         logInfo("compute.cluster.hosts.created", ComputeUtils.nonNull(hosts).size());
+        for (Host host : hosts) {
+            acquireHostLock(host, cluster);
+        }
 
         Map<Host, URI> hostToBootVolumeIdMap = ComputeUtils.makeBootVolumes(project, virtualArray, virtualPool, size, hosts,
                 getClient());
@@ -323,7 +327,7 @@ public class AddHostToClusterService extends ViPRService {
     }
 
     private void installOSForHosts(Map<String, String> hostToIps, Map<String, URI> hostNameToBootVolumeMap, List<Host> createdHosts) {
-        List<OsInstallParam> osInstallParams = Lists.newArrayList();
+        Map<Host,OsInstallParam> osInstallParamMap = new HashMap<Host,OsInstallParam>();
 
         for (Host host : createdHosts) {
             if ((host != null) && (
@@ -343,17 +347,17 @@ public class AddHostToClusterService extends ViPRService {
                 param.setManagementNetwork(managementNetwork);
                 param.setNtpServer(ntpServer);
                 param.setRootPassword(rootPassword);
-                osInstallParams.add(param);
+                osInstallParamMap.put(host,param);
             }
             else {
-                osInstallParams.add(null);
+                osInstallParamMap.put(host,null);
             }
         }
 
         try {
             // Attempt an OS Install only on the list of hosts that are a part of the order
             // This does check if the hosts already have a OS before attempting the install
-            ComputeUtils.installOsOnHosts(createdHosts, osInstallParams);
+            ComputeUtils.installOsOnHosts(osInstallParamMap);
         } catch (Exception e) {
             logError(e.getMessage());
         }

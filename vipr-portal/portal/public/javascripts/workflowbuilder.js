@@ -978,7 +978,10 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
         if (stepId === "Start" || stepId === "End"){
             var stepSEHTML = `
             <div id="${stepDivID}" class="example-item-card-wrapper">
-                <span class="glyphicon glyphicon-remove-sign item-card-error-icon failure-icon" ng-if="alert.error.errorSteps.${stepId}"></span>
+            <div ng-if="alert.error.errorSteps.${stepId}" style="bottom: 60px;" ng-init="checkStepErrorMessage('${stepId}')" ng-class="{'visible':alert.error.errorSteps.${stepId}.visible}" class="custom-error-popover custom-error-step-popover top">
+                <div class="arrow"></div><div ng-repeat="message in alert.error.errorSteps.${stepId}.errorMessages" class="custom-popover-content">{{message}}</div>
+            </div>
+            <span id="${stepId}-error"  class="glyphicon glyphicon-remove-sign item-card-error-icon failure-icon" ng-if="alert.error.errorSteps.${stepId}" ng-mouseover="hoverErrorIn('${stepId}')" ng-mouseleave="hoverErrorOut('${stepId}')"></span>
                 <div id="${stepId}"  class="item-start-end" ng-class="{\'highlighted\':selectedId == '${stepId}'}">
                     <div class="itemTextStartEnd">${stepName}</div>
                 </div>

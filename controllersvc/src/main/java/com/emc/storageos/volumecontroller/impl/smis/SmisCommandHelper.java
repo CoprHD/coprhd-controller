@@ -1625,9 +1625,6 @@ public class SmisCommandHelper implements SmisConstants {
     }
 
     public CIMProperty[] getV3FastSettingProperties(String fastSetting) {
-        if (fastSetting != null && Constants.NONE.equalsIgnoreCase(fastSetting)) {
-            fastSetting = SmisConstants.EMPTY_STRING;
-        }
         return new CIMProperty[] {
                 _cimProperty.string(CP_FAST_SETTING, fastSetting)
         };

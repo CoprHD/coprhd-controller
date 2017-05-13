@@ -38,7 +38,7 @@ public class DbRepairRunnable implements Runnable {
     public static final int INTERVAL_TIME_IN_MINUTES = 1 * 3 * 60; // 3 hours
 
     // Minutes to sleep for next retry after db repair failure
-    private int repairRetryMin = 10;
+    private int repairRetryMin = 60;
 
     public static enum StartStatus {
         STARTED, ALREADY_RUNNING, NOT_THE_TIME, NOTHING_TO_RESUME

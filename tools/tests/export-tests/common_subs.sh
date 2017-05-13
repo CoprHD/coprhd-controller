@@ -812,8 +812,12 @@ setup_yaml() {
     # create the yml file to be used for tooling
     touch $tools_file
 
-    # Append the vcenter attributes 
-    printf 'vcenter:\n  - ip: %s:%s\n    username: %s\n    password: %s\n' "${VCENTER_IP}" "${VCENTER_PORT}" "${VCENTER_USERNAME}" "${VCENTER_PASSWORD}" >> $tools_file
+    # Append the vcenter attributes
+    if [ "${VCENTER_IP}" = "" ]; then
+        echo "Skip vcenter section since VCENTER_IP is not set"
+    else
+        printf 'vcenter:\n  - ip: %s:%s\n    username: %s\n    password: %s\n' "${VCENTER_IP}" "${VCENTER_PORT}" "${VCENTER_USERNAME}" "${VCENTER_PASSWORD}" >> $tools_file
+    fi
 
     # Append Windows host attributes
     printf 'hosts:\n  windows:\n  - ip: %s:%s:false\n    username: %s\n    password: %s\n' "${WINDOWS_HOST_IP}" "${WINDOWS_HOST_PORT}" "${WINDOWS_HOST_USERNAME}" "${WINDOWS_HOST_PASSWORD}" >> $tools_file

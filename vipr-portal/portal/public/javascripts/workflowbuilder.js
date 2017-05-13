@@ -76,7 +76,7 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
                     "valid_children": ["default"]
                 },
                 "FOLDER": {
-                    "icon": false,
+                    "icon": "builder-jstree-icon builder-folder-icon",
                     "valid_children": ["Workflow","FOLDER", "script", "ansible", "rest"]
                 },
                 "Workflow": {

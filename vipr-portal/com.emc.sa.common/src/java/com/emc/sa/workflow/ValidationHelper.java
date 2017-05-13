@@ -280,7 +280,7 @@ public class ValidationHelper {
         } else if (input.getType().equals(CustomServicesConstants.InputType.FROM_USER.toString())) {
             errorMessage = checkUserInputType(input);
         } else if (input.getType().equals(CustomServicesConstants.InputType.FROM_USER_MULTI.toString())
-                && StringUtils.isBlank(input.getDefaultValue())) {
+                && StringUtils.isBlank(input.getDefaultValue()) && MapUtils.isEmpty(input.getOptions())) {
             errorMessage = String.format("%s - %s", CustomServicesConstants.ERROR_MSG_DEFAULT_VALUE_REQUIRED_FOR_INPUT_TYPE,
                     input.getType());
         } else {
@@ -306,13 +306,19 @@ public class ValidationHelper {
 
     private String checkUserInputType(final Input input) {
         final EnumSet<InputFieldType> inputFieldTypes = EnumSet.allOf(InputFieldType.class);
-        if (StringUtils.isBlank(input.getInputFieldType())
-                || !inputFieldTypes.contains(InputFieldType.valueOf(input.getInputFieldType().toUpperCase()))) {
-            return String.format("%s - Valid Input Field Types %s",
-                    CustomServicesConstants.ERROR_MSG_INPUT_FIELD_TYPE_IS_REQUIRED,
-                    inputFieldTypes);
-        } else if (StringUtils.isNotBlank(input.getDefaultValue())) {
-            return checkDefaultvalues(input.getDefaultValue(), input.getInputFieldType());
+        final String error = String.format("%s - Valid Input Field Types %s",
+                CustomServicesConstants.ERROR_MSG_INPUT_FIELD_TYPE_IS_REQUIRED,
+                inputFieldTypes);
+        try {
+            if (StringUtils.isBlank(input.getInputFieldType())
+                    || !inputFieldTypes.contains(InputFieldType.valueOf(input.getInputFieldType().toUpperCase()))) {
+                return error;
+            } else if (StringUtils.isNotBlank(input.getDefaultValue())) {
+                return checkDefaultvalues(input.getDefaultValue(), input.getInputFieldType());
+            }
+
+        } catch (final IllegalArgumentException e) {
+            return error;
         }
 
         return EMPTY_STRING;
@@ -326,7 +332,7 @@ public class ValidationHelper {
                 return CustomServicesConstants.ERROR_MSG_INPUT_NAME_IS_EMPTY;
             }
         } else {
-            final String addtoSetStr = name.toLowerCase().replaceAll("\\s", "");
+            final String addtoSetStr = name.toLowerCase().replaceAll("\\s+", "");
             if (uniqueNames.contains(addtoSetStr)) {
                 if (checkFriendlyName) {
                     return CustomServicesConstants.ERROR_MSG_DISPLAY_NAME_NOT_UNIQUE;
@@ -334,7 +340,7 @@ public class ValidationHelper {
                     return CustomServicesConstants.ERROR_MSG_INPUT_NAME_NOT_UNIQUE_IN_STEP;
                 }
             } else {
-                uniqueNames.add(name.toLowerCase());
+                uniqueNames.add(addtoSetStr);
                 return EMPTY_STRING;
             }
         }

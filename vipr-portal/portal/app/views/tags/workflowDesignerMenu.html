@@ -30,10 +30,10 @@
 											<control-group class="col-xs-12" label-width="12" width="12" v-field="input.type">
 												<select-one v-default-value="Disabled" options="getUserInputTypeOption(input.required)" ng-change="setWorkflowModified('true')"></select-one>
 											</control-group>
-											<control-group class="col-xs-12" label-width="12" width="12" v-field='input.friendlyName' ng-if="input.type=='InputFromUser' || input.type=='AssetOptionSingle'|| input.type=='AssetOptionMulti'">
+											<control-group class="col-xs-12" label-width="12" width="12" v-field='input.friendlyName' ng-if="input.type=='InputFromUser' || input.type=='AssetOptionSingle'|| input.type=='AssetOptionMulti' || input.type=='InputFromUserMulti'">
 												<input-text ng-change="setWorkflowModified('true')"></input-text>
 											</control-group>
-											<control-group class="col-xs-12" label-width="12" width="12" v-field='input.decription' ng-if="input.type=='InputFromUser' || input.type=='AssetOptionSingle'|| input.type=='AssetOptionMulti'" width="9">
+											<control-group class="col-xs-12" label-width="12" width="12" v-field='input.decription' ng-if="input.type=='InputFromUser' || input.type=='AssetOptionSingle'|| input.type=='AssetOptionMulti' || input.type=='InputFromUserMulti'">
 												<input-text ng-change="setWorkflowModified('true')"></input-text>
 											</control-group>
 											<control-group class="col-xs-12" label-width="12" width="12" v-field="input.required" ng-if="stepData.type!=='vipr'" >
@@ -48,7 +48,7 @@
 											<control-group class="col-xs-12" label-width="12" width="12" label-key="input.assetOption" v-field="input.value" ng-if="input.type=='AssetOptionSingle'|| input.type=='AssetOptionMulti'" >
 												<select-one options="AssetOptionTypes" auto-default v-disabled='locked' ng-change="setWorkflowModified('true')"></select-one>
 											</control-group>
-											<control-group class="col-xs-12" label-width="12" width="12" v-field="input.defaultValue" ng-if="input.type=='InputFromUser'">
+											<control-group class="col-xs-12" label-width="12" width="12" v-field="input.defaultValue" ng-if="input.type=='InputFromUser' || input.type=='InputFromUserMulti'">
 												<input-text ng-change="setWorkflowModified('true')"></input-text>
 											</control-group>
 											<control-group class="col-xs-12" label-width="12" width="12" v-field='input.inputFieldType' ng-if="input.type=='InputFromUser'">

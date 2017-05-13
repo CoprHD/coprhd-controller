@@ -422,7 +422,7 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
     var jspInstance;
 
     var INPUT_FIELD_OPTIONS = ['number','boolean','text','password'];
-    var INPUT_TYPE_OPTIONS_REQUIRED = ['AssetOptionMulti','AssetOptionSingle','InputFromUser','InputFromUserMulti''FromOtherStepOutput','FromOtherStepInput'];
+    var INPUT_TYPE_OPTIONS_REQUIRED = ['AssetOptionMulti','AssetOptionSingle','InputFromUser','InputFromUserMulti','FromOtherStepOutput','FromOtherStepInput'];
     var INPUT_TYPE_OPTIONS = ['Disabled'];
     var ASSET_TYPE_OPTIONS = ['assetType.vipr.blockVirtualPool','assetType.vipr.virtualArray','assetType.vipr.project','assetType.vipr.host'];
 
@@ -715,7 +715,7 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
                     });
 
                 //Glow logic
-                if($(connection.getAttachedElements()[0].canvas).hasClass('passEndpoint')){
+                /*if($(connection.getAttachedElements()[0].canvas).hasClass('passEndpoint')){
                     $( '.item , #End' ).each(function( index, item ) {
                         if (item.id !== connection.getAttachedElements()[0].id){
                             if (item.id !== connection.sourceId){
@@ -730,7 +730,7 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
                             $(item).addClass('glow-fail');
                         }
                     });
-                }
+                }*/
             }
         });
 
@@ -741,11 +741,10 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
             });
 
             //Glow logic
-            $( '.item , #End' ).each(function( index, item ) {
+            /*$( '.item , #End' ).each(function( index, item ) {
                 $(item).removeClass('glow-pass');
                 $(item).removeClass('glow-fail');
-            });
-            $scope.$apply();
+            });*/
         });
 
         jspInstance.bind("beforeDrop", function (info) {

@@ -317,6 +317,8 @@ public class UnManagedVolumeService extends TaskResourceService {
     }
 
     /**
+     * Ingest Exported Volumes
+     * 
      * For each UnManaged Volume Find the list of masking views this volume
      * is exposed to.
      *
@@ -333,7 +335,10 @@ public class UnManagedVolumeService extends TaskResourceService {
      * the storage Ports, initiators from ViPr. Else, add volume to export
      * mask.
      *
-     *
+     * @param exportIngestParam
+     * @brief Add volumes to new or existing export masks; create masks when needed
+     * @return TaskList
+     * @throws InternalException
      */
     @POST
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })

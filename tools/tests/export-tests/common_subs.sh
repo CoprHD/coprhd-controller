@@ -549,7 +549,63 @@ verify_zones() {
     done
 }
 
-# Cleans zones and zone referencese ($1=fabricId, $2=host)
+# Gets the zone name corresponding to a host and initiator
+get_zone_name() {
+    host=$1
+    initiator=$2
+
+    # Remove the ':' characters
+    initiator=${initiator//:}
+
+    zone=`/opt/storageos/bin/dbutils list FCZoneReference | grep zoneName | grep ${host} | grep ${initiator:4} | awk -F= '{print $2}'`
+    if [[ -z $zone ]]; then
+        # Try to find the zone based on the initiator only - might be a pre-existing zone
+        zone=`/opt/storageos/bin/dbutils list FCZoneReference | grep zoneName | grep ${initiator:4} | awk -F= '{print $2}'`
+    fi  
+    echo $zone
+}
+
+# Verify that a given zone exists or has been removed
+verify_zone() {
+    zone=$1
+    fabricid=$2
+    check=$3  
+    
+    if [ "${SIM}" = "1" ]; then
+        network=fabric-sim
+        # Remove the FABRIC_ prefix for sim fabric
+        fabricid=${fabricid:5} 
+    else
+        network=$BROCADE_NETWORK
+        # Remove the FABRIC_ prefix for non sim fabric
+        fabricid=${fabricid:7}
+    fi
+    
+    recho "zone list $network --fabricid ${fabricid} --zone_name ${zone}"
+    zone list $network --fabricid ${fabricid} --zone_name ${zone} | grep ${zone} > /dev/null
+    returncode=$?
+    if [ $returncode -ne 0 -a "${check}" = "exists" ]; then
+        echo -e "\e[91mERROR\e[0m: Expected to find zone ${zone}, but did not."
+        incr_fail_count           
+    elif [ $returncode -eq 0 -a "${check}" = "gone" ]; then
+        echo -e "\e[91mERROR\e[0m: Expected to not find zone ${zone}, but it is there."
+        incr_fail_count           
+    fi    
+}
+
+# Determines if a zone is newly created.  A newly created zone is one
+# where the specified host name from the test occurrence is contained 
+# within the zone name.
+newly_created_zone_for_host() {
+    zone=$1
+    host=$2
+    if [[ "$zone" != *${host}* ]]; then
+        return 1
+    fi    
+    return 0
+}    
+
+# Cleans zones and zone references ($1=fabricId, $2=host)
 clean_zones() {
     fabricid=$1
 
@@ -809,33 +865,64 @@ setup_yaml() {
 	rm $tools_file
     fi
 
-    if [ "${SS}" = "unity" ]; then
-        echo "Creating ${tools_file}"
-        touch $tools_file
-        printf 'array:\n  %s:\n  - ip: %s:%s\n    username: %s\n    password: %s' "${SS}" "$UNITY_IP" "$UNITY_PORT" "$UNITY_USER" "$UNITY_PW" >> $tools_file
-        return
-    fi
-
-    if [ "${storage_password}" = "" ]; then
-	echo "storage_password is not set.  Cannot make a valid tools.yml file without a storage_password"
-	exit;
-    fi
-
-    sstype=${SS:0:3}
-    if [ "${SS}" = "xio" ]; then
-	sstype="xtremio"
-    fi
-
-    # create the yml file to be used for array tooling
+    # create the yml file to be used for tooling
     touch $tools_file
-    storage_type=`storagedevice list | grep COMPLETE | grep ${sstype} | awk '{print $1}'`
-    storage_name=`storagedevice list | grep COMPLETE | grep ${sstype} | awk '{print $2}'`
-    storage_version=`storagedevice show ${storage_name} | grep firmware_version | awk '{print $2}' | cut -d '"' -f2`
-    storage_ip=`storagedevice show ${storage_name} | grep smis_provider_ip | awk '{print $2}' | cut -d '"' -f2`
-    storage_port=`storagedevice show ${storage_name} | grep smis_port_number | awk '{print $2}' | cut -d ',' -f1`
-    storage_user=`storagedevice show ${storage_name} | grep smis_user_name | awk '{print $2}' | cut -d '"' -f2`
-    ##update tools.yml file with the array details
-    printf 'array:\n  %s:\n  - ip: %s:%s\n    id: %s\n    username: %s\n    password: %s\n    version: %s' "$storage_type" "$storage_ip" "$storage_port" "$SERIAL_NUMBER" "$storage_user" "$storage_password" "$storage_version" >> $tools_file
+
+    if [ "${VCENTER_IP}" != "" ]; then
+	# Append the vcenter attributes 
+	printf 'vcenter:\n  - ip: %s:%s\n    username: %s\n    password: %s\n' "${VCENTER_IP}" "${VCENTER_PORT}" "${VCENTER_USERNAME}" "${VCENTER_PASSWORD}" >> $tools_file
+    else
+	echo "WARNING: VCENTER_IP not set, vcenter verification operations will not work!"
+    fi
+
+    if [ "${WINDOWS_HOST_IP}" != "" ]; then
+	# Append Windows host attributes
+	printf 'hosts:\n  windows:\n  - ip: %s:%s:false\n    username: %s\n    password: %s\n' "${WINDOWS_HOST_IP}" "${WINDOWS_HOST_PORT}" "${WINDOWS_HOST_USERNAME}" "${WINDOWS_HOST_PASSWORD}" >> $tools_file
+    else
+	echo "WARNING: WINDOWS_HOST_IP not set.  host verification operations will not work!"
+    fi
+
+    if [ "${HPUX_HOST_IP}" != "" ]; then
+	# Append HP-UX host attributes
+	printf '  hpux:\n  - ip: %s:%s\n    username: %s\n    password: %s\n' "${HPUX_HOST_IP}" "${HPUX_HOST_PORT}" "${HPUX_HOST_USERNAME}" "${HPUX_HOST_PASSWORD}" >> $tools_file
+    else
+	echo "WARNING: HPUX_HOST_IP not set.  host verification operations will not work!"
+    fi
+
+    if [ "${HPUX_HOST_IP}" != "" ]; then
+	# Append Linux host attributes
+	printf '  linux:\n  - ip: %s:%s\n    username: %s\n    password: %s\n' "${LINUX_HOST_IP}" "${LINUX_HOST_PORT}" "${LINUX_HOST_USERNAME}" "${LINUX_HOST_PASSWORD}" >> $tools_file
+    else
+	echo "WARNING: LINUX_HOST_IP not set.  host verification operations will not work!"
+    fi
+
+    if [ "$SS" = "xio" -o "$SS" = "vplex" -o "$SS" = "unity" ]; then
+    	if [ "${SS}" = "unity" ]; then
+            echo "Creating ${tools_file}"
+       	    touch $tools_file
+            printf 'array:\n  %s:\n  - ip: %s:%s\n    username: %s\n    password: %s' "${SS}" "$UNITY_IP" "$UNITY_PORT" "$UNITY_USER" "$UNITY_PW" >> $tools_file
+            return
+    	fi
+
+    	if [ "${storage_password}" = "" ]; then
+	    echo "storage_password is not set.  Cannot make a valid tools.yml file without a storage_password"
+	    exit;
+    	fi
+
+    	sstype=${SS:0:3}
+    	if [ "${SS}" = "xio" ]; then
+	    sstype="xtremio"
+    	fi
+
+    	storage_type=`storagedevice list | grep COMPLETE | grep ${sstype} | awk '{print $1}'`
+    	storage_name=`storagedevice list | grep COMPLETE | grep ${sstype} | awk '{print $2}'`
+    	storage_version=`storagedevice show ${storage_name} | grep firmware_version | awk '{print $2}' | cut -d '"' -f2`
+    	storage_ip=`storagedevice show ${storage_name} | grep smis_provider_ip | awk '{print $2}' | cut -d '"' -f2`
+    	storage_port=`storagedevice show ${storage_name} | grep smis_port_number | awk '{print $2}' | cut -d ',' -f1`
+    	storage_user=`storagedevice show ${storage_name} | grep smis_user_name | awk '{print $2}' | cut -d '"' -f2`
+    	##update tools.yml file with the array details
+    	printf 'array:\n  %s:\n  - ip: %s:%s\n    id: %s\n    username: %s\n    password: %s\n    version: %s' "$storage_type" "$storage_ip" "$storage_port" "$SERIAL_NUMBER" "$storage_user" "$storage_password" "$storage_version" >> $tools_file
+    fi
 }
 
 setup_provider() {
@@ -954,3 +1041,44 @@ cleanup_previous_run_artifacts() {
     fi
 }
 
+verify_mount_point() {
+    ostype=$1
+    mountpoint=$2
+    size=$3
+    wwn=$4
+    
+    runcmd hosthelper.sh verify_mount_point $ostype $mountpoint $size $wwn $*
+    return_status=$?
+    return $return_status
+}
+
+verify_datastore() {
+    runcmd vcenterhelper.sh verify_datastore $*
+    return_status=$?
+    return $return_status
+}
+
+verify_datastore_capacity() {
+    runcmd vcenterhelper.sh verify_datastore_capacity $*
+    return_status=$?
+    return $return_status
+}
+
+verify_datastore_lun_count() {
+    datacenter=$1
+    datastore=$2
+    host=$3
+    count=$4
+
+    runcmd vcenterhelper.sh verify_datastore_lun_count $datacenter $datastore $host $count
+    return_status=$?
+    return $return_status
+}
+
+add_tag() {
+    resource_type=$1
+    resource_id=$2
+    tag=$3
+    runcmd tag --resource_type $resource_type --id $resource_id $tag
+    return $?
+}

@@ -130,7 +130,7 @@ public class CustomServicesShellScriptExecution extends ViPRExecutionTask<Custom
         //default to no host key checking
         final Map<String,String> environment = makeParam(input);
 
-        return Exec.sudo(new File(chrootOrderDir), timeout, null, environment, cmds);
+        return Exec.sudo(new File(orderDir), timeout, null, environment, cmds);
     }
 
     private Map<String,String> makeParam(final Map<String, List<String>> input) throws Exception {

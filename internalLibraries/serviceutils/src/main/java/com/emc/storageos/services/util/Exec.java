@@ -219,6 +219,7 @@ public class Exec {
             boolean destroyed = false;
             ProcessBuilder pb = new ProcessBuilder(cmd);
             pb.environment().putAll(env);
+            pb.directory(file);
             Process p = pb.start();
             stdOutputStream = new InputStreamReader(p.getInputStream());
             stdErrorStream = new InputStreamReader(p.getErrorStream());

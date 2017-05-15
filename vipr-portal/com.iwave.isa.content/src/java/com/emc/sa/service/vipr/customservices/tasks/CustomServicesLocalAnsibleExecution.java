@@ -206,6 +206,6 @@ public class CustomServicesLocalAnsibleExecution extends ViPRExecutionTask<Custo
         final Map<String,String> environment = new HashMap<String,String>();
         environment.put("ANSIBLE_HOST_KEY_CHECKING", "false");
 
-        return Exec.sudo(new File(chrootOrderDir), timeout, null, environment, cmds);
+        return Exec.sudo(new File(orderDir), timeout, null, environment, cmds);
     }
 }

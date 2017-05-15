@@ -850,7 +850,9 @@ public class VPlexApiDiscoveryManager {
     }
 
     /**
-     * Finds the distributed device with the passed name.
+     * Finds the distributed device with the passed name. Called mainly to find newly
+     * created distributed devices as the VPLEX will not always return the new 
+     * device the first time it is asked, so a retry loop is used.
      * 
      * @param deviceName The name of the distributed device to find.
      * 
@@ -858,7 +860,7 @@ public class VPlexApiDiscoveryManager {
      * 
      * @throws VPlexApiException When an error occurs finding the device.
      */
-    VPlexDistributedDeviceInfo findDistributedDeviceWithRetry(String deviceName)
+    VPlexDistributedDeviceInfo findNewDistributedDevice(String deviceName)
             throws VPlexApiException {
 
         s_logger.info("Find distributed device with name {}", deviceName);
@@ -3060,7 +3062,7 @@ public class VPlexApiDiscoveryManager {
         s_logger.info("Distributed device request URI is {}", requestURI.toString());
         ClientResponse response = _vplexApiClient.get(requestURI);
         String responseStr = response.getEntity(String.class);
-        s_logger.debug("Distributed devic response is {}", responseStr);
+        s_logger.debug("Distributed device response is {}", responseStr);
         int status = response.getStatus();
         response.close();
         if (status != VPlexApiConstants.SUCCESS_STATUS) {

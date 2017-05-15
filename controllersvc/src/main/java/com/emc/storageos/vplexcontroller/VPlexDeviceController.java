@@ -10188,8 +10188,6 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
      *            The URI of the VPLEX system.
      * @param vplexVolumeURI
      *            The URI of the distributed VPLEX volume.
-     * @param mirrorVolumeURI
-     *            The URI of the remote backend volume.
      * @param cgURI
      *            The URI of the volume's CG or null.
      * @param detachStepId
@@ -10198,7 +10196,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
      *            The workflow step identifier.
      */
     public void rollbackRestoreResync(URI vplexURI, URI vplexVolumeURI,
-            URI mirrorVolumeURI, URI cgURI, String detachStepId, String stepId) {
+            URI cgURI, String detachStepId, String stepId) {
         _log.info("Executing rollback of restore/resync volume {} on VPLEX {}",
                 new Object[] { vplexVolumeURI, vplexURI });
 

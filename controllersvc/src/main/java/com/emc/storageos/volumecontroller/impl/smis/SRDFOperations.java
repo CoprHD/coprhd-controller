@@ -200,6 +200,8 @@ public class SRDFOperations implements SmisConstants {
                 helper.invokeMethodSynchronously(systemWithCg, srcRepSvcPath,
                         SmisConstants.CREATE_GROUP_REPLICA, inArgs, outArgs,
                         new SmisSRDFCreateMirrorJob(null, systemWithCg.getId(), completer));
+
+                completer.ready(dbClient);
             }
 
         } catch (WBEMException wbeme) {
@@ -280,6 +282,8 @@ public class SRDFOperations implements SmisConstants {
             helper.invokeMethodSynchronously(sourceSystem, srcRepSvcPath,
                     SmisConstants.CREATE_GROUP_REPLICA, inArgs, outArgs,
                     new SmisSRDFCreateMirrorJob(null, sourceSystem.getId(), completer));
+
+            completer.ready(dbClient);
         } catch (WBEMException wbeme) {
             log.error("SMI-S error resynching mirror for {}", sourceURI, wbeme);
             if (verifyGroupSynchronizationCreatedinArray(srcCGPath, tgtCGPath, sourceSystem)) {
@@ -735,6 +739,8 @@ public class SRDFOperations implements SmisConstants {
         helper.invokeMethodSynchronously(sourceSystem, srcRepSvcPath,
                 SmisConstants.CREATE_ELEMENT_REPLICA, inArgs, outArgs,
                 new SmisSRDFCreateMirrorJob(null, sourceSystem.getId(), completer));
+
+        completer.ready(dbClient);
     }
 
     public void createListReplicas(StorageSystem system, List<URI> sources, List<URI> targets, boolean addWaitForCopyState,
@@ -780,6 +786,8 @@ public class SRDFOperations implements SmisConstants {
             helper.invokeMethodSynchronously(system, srcRepSvcPath,
                     SmisConstants.CREATE_LIST_REPLICA, inArgs, outArgs,
                     new SmisSRDFCreateMirrorJob(null, system.getId(), completer));
+
+            completer.ready(dbClient);
         } catch (WBEMException wbeme) {
             log.error("SMI-S error creating mirrors for {}", Joiner.on(',').join(sources), wbeme);
             ServiceError error = SmisException.errors.jobFailed(wbeme.getMessage());
@@ -1899,6 +1907,8 @@ public class SRDFOperations implements SmisConstants {
             helper.invokeMethodSynchronously(sourceSystem, srcRepSvcPath,
                     SmisConstants.CREATE_GROUP_REPLICA, inArgs, outArgs,
                     new SmisSRDFCreateMirrorJob(null, sourceSystem.getId(), completer));
+
+            completer.ready(dbClient);
         } catch (WBEMException wbeme) {
             String msg = format("SMI-S error creating mirror for Sources:%s Targets:%s", sourceURIs, targetURIs);
             log.error(msg, wbeme);

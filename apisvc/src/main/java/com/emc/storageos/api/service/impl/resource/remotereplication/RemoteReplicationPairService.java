@@ -658,10 +658,7 @@ public class RemoteReplicationPairService extends TaskResourceService {
             rrServiceApi.resumeRemoteReplicationElementLink(rrElement, taskId);
         } catch (final ControllerException e) {
             _log.error("Controller Error", e);
-                op = cg.getOpStatus().get(taskId);
-                op.error(e);
-                cg.getOpStatus().updateTaskStatus(taskId, op);
-                _dbClient.updateObject(cg);
+            _dbClient.error(BlockConsistencyGroup.class, cg.getId(), taskId, e);
         }
 
         auditOp(OperationTypeEnum.RESUME_REMOTE_REPLICATION_CG_LINK, true, AuditLogManager.AUDITOP_BEGIN,

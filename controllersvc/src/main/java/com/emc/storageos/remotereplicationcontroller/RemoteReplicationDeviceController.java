@@ -30,6 +30,7 @@ import com.emc.storageos.volumecontroller.impl.externaldevice.taskcompleters.Rem
 import com.emc.storageos.volumecontroller.impl.externaldevice.taskcompleters.RemoteReplicationFailoverCompleter;
 import com.emc.storageos.volumecontroller.impl.externaldevice.taskcompleters.RemoteReplicationGroupCompleter;
 import com.emc.storageos.volumecontroller.impl.externaldevice.taskcompleters.RemoteReplicationPairCompleter;
+import com.emc.storageos.volumecontroller.impl.externaldevice.taskcompleters.RemoteReplicationResumeCompleter;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
 import com.emc.storageos.workflow.Workflow;
 import com.emc.storageos.workflow.WorkflowService;
@@ -130,7 +131,7 @@ public class RemoteReplicationDeviceController implements RemoteReplicationContr
 
     @Override
     public void resume(RemoteReplicationElement replicationElement, String opId) {
-        RemoteReplicationFailoverCompleter taskCompleter = new RemoteReplicationFailoverCompleter(replicationElement, opId);
+        RemoteReplicationResumeCompleter taskCompleter = new RemoteReplicationResumeCompleter(replicationElement, opId);
 
         RemoteReplicationDevice rrDevice = getRemoteReplicationDevice();
         rrDevice.resume(replicationElement, taskCompleter);

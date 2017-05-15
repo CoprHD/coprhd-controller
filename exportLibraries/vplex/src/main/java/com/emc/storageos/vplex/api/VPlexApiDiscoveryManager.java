@@ -832,24 +832,33 @@ public class VPlexApiDiscoveryManager {
      */
     VPlexDistributedDeviceInfo findDistributedDevice(String deviceName)
             throws VPlexApiException {
-        return findDistributedDevice(deviceName, false, false);
+        s_logger.info(String.format("Find distributed device with name %s", deviceName));
+        VPlexDistributedDeviceInfo distributedDeviceInfo = null;       
+        try {                
+            // Perform a direct search for the distributed device
+            VPlexDistributedDeviceInfo deviceInfo = getDistributedDeviceInfo(deviceName);
+            if (deviceInfo != null) {                    
+                s_logger.info(String.format("Found distributed device %s", deviceName));
+                distributedDeviceInfo = deviceInfo;
+            }                                               
+        } catch (Exception e) {                
+            s_logger.error(String.format("Exception finding distributed device %s", deviceName), e);
+            throw e;                
+        } 
+
+        return distributedDeviceInfo;
     }
 
     /**
      * Finds the distributed device with the passed name.
      * 
      * @param deviceName The name of the distributed device to find.
-     * @param retry Indicates retry should occur if the first attempt to find
-     *              the distributed device fails.
-     * @param directSearch Indicates whether a direct search for the device name 
-     *                     should be done or a blanket search for all distributed 
-     *                     devices.            
      * 
      * @return A reference to the distributed device info or null if not found.
      * 
      * @throws VPlexApiException When an error occurs finding the device.
      */
-    VPlexDistributedDeviceInfo findDistributedDevice(String deviceName, boolean retry, boolean directSearch)
+    VPlexDistributedDeviceInfo findDistributedDeviceWithRetry(String deviceName)
             throws VPlexApiException {
 
         s_logger.info("Find distributed device with name {}", deviceName);
@@ -857,31 +866,18 @@ public class VPlexApiDiscoveryManager {
         int retryCount = 0;
         VPlexDistributedDeviceInfo distributedDeviceInfo = null;
         while (++retryCount <= VPlexApiConstants.FIND_NEW_ARTIFACT_MAX_TRIES) {
-            try {                
-                if (directSearch) {
-                    // Perform a direct search for the distributed device
-                    VPlexDistributedDeviceInfo deviceInfo = getDistributedDeviceInfo(deviceName);
-                    if (deviceInfo != null) {                    
+            try {
+                List<VPlexDistributedDeviceInfo> deviceInfoList = getDistributedDeviceInfo();
+                for (VPlexDistributedDeviceInfo deviceInfo : deviceInfoList) {
+                    s_logger.debug("Distributed Device Info: {}", deviceInfo.toString());
+                    if (deviceInfo.getName().equals(deviceName)) {
                         s_logger.info("Found distributed device {}", deviceName);
                         distributedDeviceInfo = deviceInfo;
-                    }
-                }
-                
-                if (distributedDeviceInfo == null) {
-                    // Perform a blanket search for all distributed devices and attempt to find the 
-                    // one we're looking for.
-                    List<VPlexDistributedDeviceInfo> deviceInfoList = getDistributedDeviceInfo();
-                    for (VPlexDistributedDeviceInfo deviceInfo : deviceInfoList) {
-                        s_logger.debug("Distributed Device Info: {}", deviceInfo.toString());
-                        if (deviceInfo.getName().equals(deviceName)) {
-                            s_logger.info("Found distributed device {}", deviceName);
-                            distributedDeviceInfo = deviceInfo;
-                            break;
-                        }
+                        break;
                     }
                 }
 
-                if ((distributedDeviceInfo != null) || (!retry) ||
+                if ((distributedDeviceInfo != null) ||
                         (retryCount >= VPlexApiConstants.FIND_NEW_ARTIFACT_MAX_TRIES)) {
                     break;
                 } else {
@@ -890,7 +886,7 @@ public class VPlexApiDiscoveryManager {
                     VPlexApiUtils.pauseThread(VPlexApiConstants.FIND_NEW_ARTIFACT_SLEEP_TIME_MS);
                 }
             } catch (VPlexApiException vae) {
-                if ((retry) && (retryCount < VPlexApiConstants.FIND_NEW_ARTIFACT_MAX_TRIES)) {
+                if (retryCount < VPlexApiConstants.FIND_NEW_ARTIFACT_MAX_TRIES) {
                     s_logger.error(String.format("Exception finding distributed device on try %d of %d",
                             retryCount, VPlexApiConstants.FIND_NEW_ARTIFACT_MAX_TRIES), vae);
                     VPlexApiUtils.pauseThread(VPlexApiConstants.FIND_NEW_ARTIFACT_SLEEP_TIME_MS);
@@ -898,7 +894,7 @@ public class VPlexApiDiscoveryManager {
                     throw vae;
                 }
             } catch (Exception e) {
-                if ((retry) && (retryCount < VPlexApiConstants.FIND_NEW_ARTIFACT_MAX_TRIES)) {
+                if (retryCount < VPlexApiConstants.FIND_NEW_ARTIFACT_MAX_TRIES) {
                     s_logger.error(String.format("Exception finding distributed device on try %d of %d",
                             retryCount, VPlexApiConstants.FIND_NEW_ARTIFACT_MAX_TRIES), e);
                     VPlexApiUtils.pauseThread(VPlexApiConstants.FIND_NEW_ARTIFACT_SLEEP_TIME_MS);

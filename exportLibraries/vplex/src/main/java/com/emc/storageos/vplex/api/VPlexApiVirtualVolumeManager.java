@@ -153,7 +153,7 @@ public class VPlexApiVirtualVolumeManager {
                 String distributedDeviceName = createDistributedDevice(localDevices, winningClusterId);
                 s_logger.info("Created distributed device on local devices");
                 VPlexDistributedDeviceInfo distDeviceInfo = discoveryMgr
-                        .findDistributedDevice(distributedDeviceName, true, false);
+                        .findDistributedDeviceWithRetry(distributedDeviceName);
                 if (distDeviceInfo == null) {
                     s_logger.error("Distributed device {} was successfully created but not returned by the VPLEX system", distributedDeviceName); 
                     throw VPlexApiException.exceptions.failedGettingDistributedDevice(distributedDeviceName);
@@ -2198,7 +2198,7 @@ public class VPlexApiVirtualVolumeManager {
 
             // Find the distributed device for the virtual volume.
             String ddName = virtualVolumeInfo.getSupportingDevice();
-            VPlexDistributedDeviceInfo ddInfo = discoveryMgr.findDistributedDevice(ddName, false, true);
+            VPlexDistributedDeviceInfo ddInfo = discoveryMgr.findDistributedDevice(ddName);
             if (ddInfo == null) {
                 throw VPlexApiException.exceptions
                         .cantFindDistributedDeviceForVolume(virtualVolumeName);

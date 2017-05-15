@@ -524,34 +524,4 @@ public class VPlexApiUtils {
         
         return true;
     }
-    
-    /**
-     * Find the losing cluster to detach.
-     * 
-     * @param ddInfo Distributed Device info which has the ruleset to determine which 
-     *               cluster to detach. 
-     * @return clusterId The losing cluster to detach.
-     */
-    public static String findClusterToDetach(VPlexDistributedDeviceInfo ddInfo) {
-        String clusterToDetach = "";
-        if (!StringUtil.isBlank(ddInfo.getRuleSetName())) {
-            if (VPlexApiConstants.CLUSTER_1_DETACHES.equals(ddInfo.getRuleSetName())) {
-                // This means that cluster-1 is the winner, detach cluster-2.
-                clusterToDetach = VPlexApiConstants.CLUSTER_2;
-            }
-            if (VPlexApiConstants.CLUSTER_2_DETACHES.equals(ddInfo.getRuleSetName())) {
-                // This means that cluster-2 is the winner, detach cluster-1.
-                clusterToDetach = VPlexApiConstants.CLUSTER_1;
-            }
-        }
-        
-        if (StringUtil.isBlank(clusterToDetach)) {
-            // Default to detaching the cluster returned from getClusterId() in the event 
-            // there is "no-automatic-winner" since it doesn't matter which cluster detaches 
-            // in this case.
-            clusterToDetach = ddInfo.getClusterId();
-        }
-        
-        return clusterToDetach;
-    }
 }

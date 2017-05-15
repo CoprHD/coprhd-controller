@@ -17,6 +17,7 @@ import java.util.StringTokenizer;
 
 import org.apache.commons.lang.StringUtils;
 import org.codehaus.jettison.json.JSONObject;
+import org.jsoup.helper.StringUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -2205,7 +2206,7 @@ public class VPlexApiVirtualVolumeManager {
             
             if (StringUtils.isEmpty(clusterId)) {
                 // Find the cluster to detach
-                clusterId = VPlexApiUtils.findClusterToDetach(ddInfo);
+                clusterId = findClusterToDetach(ddInfo);
                 s_logger.info(String.format("Cluster to detach is: %s", clusterId));
             }
 
@@ -2580,5 +2581,35 @@ public class VPlexApiVirtualVolumeManager {
                 response.close();
             }
         }
+    }
+    
+    /**
+     * Find the losing cluster to detach.
+     * 
+     * @param ddInfo Distributed Device info which has the ruleset to determine which
+     *            cluster to detach.
+     * @return clusterId The losing cluster to detach.
+     */
+    private String findClusterToDetach(VPlexDistributedDeviceInfo ddInfo) {
+        String clusterToDetach = "";
+        if (!StringUtil.isBlank(ddInfo.getRuleSetName())) {
+            if (VPlexApiConstants.CLUSTER_1_DETACHES.equals(ddInfo.getRuleSetName())) {
+                // This means that cluster-1 is the winner, detach cluster-2.
+                clusterToDetach = _vplexApiClient.getClusterNameForId(VPlexApiConstants.CLUSTER_2_ID);
+            }
+            if (VPlexApiConstants.CLUSTER_2_DETACHES.equals(ddInfo.getRuleSetName())) {
+                // This means that cluster-2 is the winner, detach cluster-1.
+                clusterToDetach = _vplexApiClient.getClusterNameForId(VPlexApiConstants.CLUSTER_1_ID);
+            }
+        }
+
+        if (StringUtil.isBlank(clusterToDetach)) {
+            // Default to detaching the cluster returned from getClusterId() in the event
+            // there is "no-automatic-winner" since it doesn't matter which cluster detaches
+            // in this case.
+            clusterToDetach = ddInfo.getClusterId();
+        }
+
+        return clusterToDetach;
     }
 }

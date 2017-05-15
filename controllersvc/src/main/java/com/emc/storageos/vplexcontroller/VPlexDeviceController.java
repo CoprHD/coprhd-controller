@@ -10200,6 +10200,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
         _log.info("Executing rollback of restore/resync volume {} on VPLEX {}",
                 new Object[] { vplexVolumeURI, vplexURI });
 
+        String mirrorDeviceName = "";
         try {
             // Update workflow step.
             WorkflowStepCompleter.stepExecuting(stepId);
@@ -10228,7 +10229,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
                     // the remote mirror, do this first.
                     if (reattachMirror) {
                         // Attach the mirror.
-                        String mirrorDeviceName = rollbackData.get(DETACHED_DEVICE);
+                        mirrorDeviceName = rollbackData.get(DETACHED_DEVICE);
                         client.reattachMirrorToDistributedVolume(vplexVolumeName, mirrorDeviceName);
                         _log.info("Reattached the mirror");
                     }
@@ -10275,7 +10276,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
         } catch (Exception e) {
             _log.error("Exception in restore/resync volume rollback for VPLEX distributed volume " + e.getMessage(), e);
             WorkflowStepCompleter.stepFailed(stepId, VPlexApiException.exceptions
-                    .failedAttachingVPlexVolumeMirror(mirrorVolumeURI.toString(), vplexVolumeURI.toString(), e));
+                    .failedAttachingVPlexVolumeMirror(mirrorDeviceName, vplexVolumeURI.toString(), e));
         }
     }
 

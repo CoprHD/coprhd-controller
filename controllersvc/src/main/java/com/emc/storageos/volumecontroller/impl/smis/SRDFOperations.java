@@ -2422,7 +2422,7 @@ public class SRDFOperations implements SmisConstants {
     }
 
     /**
-     * Update/create remote replication pairs for SRDF volumes.
+     * Update remote replication pairs for SRDF volumes.
      */
     private void updateRemoteReplicationPairs(Set<String> srdfVolumes) {
         if (srdfVolumes != null && !srdfVolumes.isEmpty()) {
@@ -2433,7 +2433,6 @@ public class SRDFOperations implements SmisConstants {
                 try {
                     if (v.getSrdfTargets() != null) {
                         for (String targetId : v.getSrdfTargets()) {
-                            // call updateOrCreate... to cover link create case
                             RemoteReplicationUtils.updateOrCreateReplicationPairForSrdfPair(v.getId(), URI.create(targetId), dbClient);
                         }
                     }

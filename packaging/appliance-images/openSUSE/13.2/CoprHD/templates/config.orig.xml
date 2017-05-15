@@ -177,7 +177,7 @@
         <package name="libboost_thread1_63_0"/>
         <package name="librados2"/>
         <package name="librbd1"/>
-        <package name="ansible"/>
+		<package name="ansible"/>
     </packages>
     <packages type="bootstrap">
         <package name="udev"/>

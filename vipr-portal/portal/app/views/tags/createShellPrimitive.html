@@ -13,7 +13,7 @@ inputOutputTabID = 'inputOutputContent';
         <input type="hidden" name="shellPrimitive.id" id="shellPrimitive_id" ng-value="shellPrimitive.id"/>
 
         <div class="col-md-3 tabbable scriptTabbable">
-            <ul class="nav nav-pills nav-stacked">
+            <ul class="nav nav-pills nav-stacked primitivesNav">
                 <li role="presentation" class="active"><a href="${'#'+nameDescTabID}" data-toggle="tab"><span class="badge">1</span>
                     &{'primitive.menu.nameDescription'}</a></li>
                 <li class=""><a href="${'#'+uploadFileTabID}" data-toggle="tab"><span class="badge">2</span>
@@ -28,10 +28,10 @@ inputOutputTabID = 'inputOutputContent';
                 <div class="tab-pane active" id="${nameDescTabID}">
                     #{Modal.body}
                         <control-group v-field='shellPrimitive.name' labelWidth="1" required >
-                            <input-text class="initialFocus"></input-text>
+                            <input-text class="initialFocus" maxlength="50"></input-text>
                         </control-group>
                         <control-group v-field='shellPrimitive.description' labelWidth="1" >
-                            <input-text></input-text>
+                            <input-text maxlength="200"></input-text>
                         </control-group>
                     #{/Modal.body}
                 </div>
@@ -50,12 +50,11 @@ inputOutputTabID = 'inputOutputContent';
                             #{/field}
                         </div>
 
-                        <control-group v-field='shellPrimitive.scriptName' labelWidth="1" required >
+                        <control-group v-field='shellPrimitive.scriptName' labelWidth="1" ng-if="!shellPrimitive.newScript">
                             <input-text></input-text>
                         </control-group>
 
                     #{/Modal.body}
-
                 </div>
                 <div class="tab-pane" id="${inputOutputTabID}">
                     #{Modal.body}
@@ -133,10 +132,6 @@ inputOutputTabID = 'inputOutputContent';
         if (isBlank($('#shellPrimitive_name').val())) {
             complete = false;
         }
-        else if (isBlank($('#shellPrimitive_scriptName').val())) {
-            complete = false;
-        }
-
         // If form is complete, enable FINISH button
         if (complete) {
             $('#finishButton').prop('disabled', false);

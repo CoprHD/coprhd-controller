@@ -736,8 +736,8 @@ public abstract class AbstractDiscoveryAdapter implements ComputeSystemDiscovery
     }
 
     // TODO: move to AbstractHostDiscoveryAdapter once EsxHostDiscoveryAdatper is moved to extend it
-    public void matchHostsToComputeElements(URI hostId) {
-        log.warn("Matching host to compute element not supported for this host type.");
+    public void matchHostToComputeElements(Host host) {
+        log.warn("Matching host to compute elements not supported for this host type.");
     }
 
 }

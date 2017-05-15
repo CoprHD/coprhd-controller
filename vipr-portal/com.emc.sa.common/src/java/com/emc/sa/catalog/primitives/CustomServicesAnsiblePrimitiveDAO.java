@@ -16,75 +16,101 @@
  */
 package com.emc.sa.catalog.primitives;
 
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
 import java.net.URI;
-import java.nio.file.FileSystems;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
-import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
-import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
-import org.apache.commons.compress.compressors.gzip.GzipCompressorInputStream;
+import com.emc.storageos.db.client.model.uimodels.CustomServicesDBAnsibleInventoryResource;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.emc.sa.catalog.CustomServicesPrimitiveManager;
 import com.emc.sa.model.dao.ModelClient;
 import com.emc.storageos.db.client.DbClient;
-import com.emc.storageos.db.client.constraint.NamedElementQueryResultList.NamedElement;
-import com.emc.storageos.db.client.model.StringSet;
-import com.emc.storageos.db.client.model.StringSetMap;
 import com.emc.storageos.db.client.model.uimodels.CustomServicesDBAnsiblePrimitive;
 import com.emc.storageos.db.client.model.uimodels.CustomServicesDBAnsibleResource;
 import com.emc.storageos.model.customservices.CustomServicesPrimitiveCreateParam;
 import com.emc.storageos.model.customservices.CustomServicesPrimitiveRestRep;
 import com.emc.storageos.model.customservices.CustomServicesPrimitiveUpdateParam;
+import com.emc.storageos.primitives.CustomServicesConstants;
 import com.emc.storageos.primitives.db.ansible.CustomServicesAnsiblePrimitive;
-import com.emc.storageos.primitives.db.ansible.CustomServicesAnsibleResource;
-import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorException;
-
+import com.emc.storageos.primitives.input.InputParameter;
+import com.emc.storageos.primitives.output.OutputParameter;
+import com.google.common.base.Function;
 
 /**
  * Data access object for Ansible primitives
  *
  */
 public class CustomServicesAnsiblePrimitiveDAO implements
-        CustomServicesPrimitiveDAO<CustomServicesAnsiblePrimitive, CustomServicesAnsibleResource> {
-    
+        CustomServicesPrimitiveDAO<CustomServicesAnsiblePrimitive> {
+
     @Autowired
     private CustomServicesPrimitiveManager primitiveManager;
     @Autowired
     private ModelClient client;
-    @Autowired 
+    @Autowired
     private DbClient dbClient;
+
+    private static final Set<String> INPUT_TYPES = Collections.singleton(CustomServicesConstants.INPUT_PARAMS);
+    private static final Set<String> ATTRIBUTES = Collections.singleton(CustomServicesConstants.ANSIBLE_PLAYBOOK);
     
-    @Override 
+    private static final Function<CustomServicesDBAnsiblePrimitive, CustomServicesAnsiblePrimitive> MAPPER = 
+            new Function<CustomServicesDBAnsiblePrimitive, CustomServicesAnsiblePrimitive>() {
+        @Override
+        public CustomServicesAnsiblePrimitive apply(final CustomServicesDBAnsiblePrimitive primitive) {
+            final Map<String, List<InputParameter>> input = CustomServicesDBHelper.mapInput(INPUT_TYPES, primitive.getInput());
+            final List<OutputParameter> output = CustomServicesDBHelper.mapOutput(primitive.getOutput());
+            final Map<String, String> attributes = CustomServicesDBHelper.mapAttributes(ATTRIBUTES, primitive.getAttributes()); 
+            return new CustomServicesAnsiblePrimitive(primitive, input, attributes, output);
+        }
+
+    };
+    
+    @Override
     public String getType() {
         return CustomServicesAnsiblePrimitive.TYPE;
     }
-    
+
     @Override
     public CustomServicesAnsiblePrimitive get(final URI id) {
-        return CustomServicesDBHelper.get(CustomServicesAnsiblePrimitive.class, CustomServicesDBAnsiblePrimitive.class, primitiveManager, id);
+        return CustomServicesDBHelper.get(MAPPER, CustomServicesDBAnsiblePrimitive.class, primitiveManager,
+                id);
     }
 
     @Override
     public CustomServicesAnsiblePrimitive create(
             CustomServicesPrimitiveCreateParam param) {
-        return CustomServicesDBHelper.create(CustomServicesAnsiblePrimitive.class, CustomServicesDBAnsiblePrimitive.class, 
-                CustomServicesDBAnsibleResource.class, primitiveManager, param);
+        return CustomServicesDBHelper.create(
+                MAPPER, 
+                CustomServicesDBAnsiblePrimitive.class,
+                CustomServicesDBAnsibleResource.class, 
+                primitiveManager,
+                CustomServicesDBHelper.createInputFunction(INPUT_TYPES),
+                CustomServicesDBHelper.createAttributesFunction(ATTRIBUTES),
+                param);
     }
 
     @Override
     public CustomServicesAnsiblePrimitive update(URI id,
             CustomServicesPrimitiveUpdateParam param) {
-        return CustomServicesDBHelper.update(CustomServicesAnsiblePrimitive.class, CustomServicesDBAnsiblePrimitive.class, CustomServicesDBAnsibleResource.class, primitiveManager, client, param, id);
+        return CustomServicesDBHelper.update(MAPPER, 
+                CustomServicesDBAnsiblePrimitive.class,
+                CustomServicesDBAnsibleResource.class, 
+                primitiveManager, 
+                client, 
+                param, 
+                CustomServicesDBHelper.updateInputFunction(INPUT_TYPES),
+                CustomServicesDBHelper.updateAttributesFunction(ATTRIBUTES),
+                id, CustomServicesDBAnsibleInventoryResource.class);
     }
 
     @Override
     public void deactivate(URI id) {
-        CustomServicesDBHelper.deactivate(CustomServicesDBAnsiblePrimitive.class, primitiveManager, client, id);
+        CustomServicesDBHelper.deactivate(CustomServicesDBAnsiblePrimitive.class, primitiveManager, client, id, CustomServicesDBAnsibleResource.class,CustomServicesDBAnsibleInventoryResource.class);
     }
 
     @Override
@@ -98,80 +124,19 @@ public class CustomServicesAnsiblePrimitiveDAO implements
     }
 
     @Override
-    public CustomServicesAnsibleResource getResource(URI id) {
-        return CustomServicesDBHelper.getResource(CustomServicesAnsibleResource.class, CustomServicesDBAnsibleResource.class, primitiveManager, id);
-    }
-
-    @Override
-    public CustomServicesAnsibleResource createResource(final String name,
-            final byte[] stream) {
-        final StringSetMap attributes = new StringSetMap();
-        attributes.put("playbooks", getPlaybooks(stream));
-        return CustomServicesDBHelper.createResource(CustomServicesAnsibleResource.class, CustomServicesDBAnsibleResource.class, 
-                primitiveManager, name, stream, attributes);
-    }
-
-    @Override
-    public CustomServicesAnsibleResource updateResource(final URI id, final String name,final byte[] stream) {
-        final StringSet playbooks = stream == null ? null : getPlaybooks(stream);
-        
-        final StringSetMap attributes;
-        if(playbooks != null) {
-            attributes = new StringSetMap();
-            attributes.put("playbooks", getPlaybooks(stream));
-        } else {
-            attributes = null;
-        }
-        
-        return CustomServicesDBHelper.updateResource(CustomServicesAnsibleResource.class, CustomServicesDBAnsibleResource.class, 
-                primitiveManager, id, name, stream, attributes);
-    }
-
-    @Override
-    public void deactivateResource(URI id) {
-        CustomServicesDBHelper.deactivateResource(CustomServicesDBAnsibleResource.class, primitiveManager, client, id);
-    }
-
-    @Override
-    public List<NamedElement> listResources() {
-        return client.customServicesPrimitiveResources().list(CustomServicesDBAnsibleResource.class);
-    }
-
-    @Override
-    public Class<CustomServicesAnsibleResource> getResourceType() {
-        return CustomServicesAnsibleResource.class;
+    public Iterator<CustomServicesPrimitiveRestRep> bulk(final Collection<URI> ids) {
+        return CustomServicesDBHelper.bulk(ids, CustomServicesAnsiblePrimitive.class, 
+                CustomServicesDBAnsiblePrimitive.class, dbClient, MAPPER);
     }
 
     @Override
     public boolean hasResource() {
         return true;
     }
-    
-    private StringSet getPlaybooks(final byte[] archive) {
-        try (final TarArchiveInputStream tarIn = new TarArchiveInputStream(
-                new GzipCompressorInputStream(new ByteArrayInputStream(
-                        archive)))) {
-            TarArchiveEntry entry = tarIn.getNextTarEntry();
-            final StringSet playbooks = new StringSet();
-
-            while (entry != null) {
-                if (entry.isFile()
-                        && entry.getName().toLowerCase().endsWith(".yml")) {
-                    final java.nio.file.Path playbookPath = FileSystems
-                            .getDefault().getPath(entry.getName()).normalize();
-                    if (null != playbookPath && playbookPath.getNameCount() >= 0)
-                        playbooks.add(playbookPath.toString());
-                }
-                entry = tarIn.getNextTarEntry();
-            }
-            return playbooks;
-        } catch (final IOException e) {
-            throw InternalServerErrorException.internalServerErrors.genericApisvcError("Invalid ansible archive", e);
-        }
-    }
 
     @Override
-    public Iterator<CustomServicesPrimitiveRestRep> bulk(Collection<URI> ids) { 
-        return CustomServicesDBHelper.bulk(ids, CustomServicesAnsiblePrimitive.class, CustomServicesDBAnsiblePrimitive.class, dbClient);
-        }
+    public void importPrimitive(final CustomServicesPrimitiveRestRep operation) {
+        final CustomServicesDBAnsiblePrimitive primitive = CustomServicesDBHelper.makeDBPrimitive(CustomServicesDBAnsiblePrimitive.class, operation);
+        client.save(primitive);
+    }
 }

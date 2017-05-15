@@ -173,6 +173,12 @@ public class BlockDeviceExportController implements BlockExportController {
             if (exportGroup != null && exportGroup.getExportMasks() != null) {
                 workflow = _wfUtils.newWorkflow("exportGroupDelete", false, opId);
 
+                if (NullColumnValueGetter.isNullValue(exportGroup.getType())) {
+                    // if the group type is null, it cannot be deleted 
+                    // (VPLEX backend groups have a null export group type, for instance)
+                    throw DeviceControllerException.exceptions.exportGroupDeleteUnsupported(exportGroup.forDisplay());
+                }
+
                 Set<URI> storageSystemURIs = new HashSet<URI>();
                 // Use temp set to prevent ConcurrentModificationException
                 List<ExportMask> tempExportMasks = ExportMaskUtils.getExportMasks(_dbClient, exportGroup);
@@ -955,11 +961,6 @@ public class BlockDeviceExportController implements BlockExportController {
             Map<URI, Map<URI, List<URI>>> maskRemovePathMap = new HashMap<URI, Map<URI, List<URI>>>();
             List<ExportMask> affectedMasks = new ArrayList<ExportMask>();
             for (ExportMask mask : exportMasks) {
-                if (!mask.getCreatedBySystem() || mask.getInactive() || mask.getZoningMap() == null) {
-                    _log.info(String.format("The export mask %s either is not created by ViPR, or is not active. Skip. ", 
-                            mask.getId().toString()));
-                    continue;
-                }
                 if (!ExportMaskUtils.exportMaskInVarray(_dbClient, mask, varray)) {
                 	_log.info(String.format("Export mask %s (%s, args) is not in the designated varray %s ... skipping", 
                 			mask.getMaskName(), mask.getId(), varray));

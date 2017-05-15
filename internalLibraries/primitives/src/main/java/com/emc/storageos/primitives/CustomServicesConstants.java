@@ -28,15 +28,32 @@ public final class CustomServicesConstants {
     public static final String ERROR_MSG_START_END_NOT_DEFINED = "Start or End Step not defined";
     public static final String ERROR_MSG_WORKFLOW_STEP_NULL = "Workflow Step is null";
     public static final String ERROR_MSG_WORKFLOW_NEXT_STEP_NOT_DEFINED = "Next step not defined for the step";
+    public static final String ERROR_MSG_WORKFLOW_START_END_CONNECTED = "Start is connected to End.";
     public static final String ERROR_MSG_WORKFLOW_PREVIOUS_STEP_NOT_DEFINED = "Previous step not defined for the step";
+    public static final String ERROR_MSG_INPUT_TYPE_IS_NOT_DEFINED = "InputType is not defined";
+    public static final String ERROR_MSG_INPUT_TYPE_IS_REQUIRED = "InputType is mandated for required fields";
+    public static final String ERROR_MSG_INPUT_FIELD_TYPE_IS_REQUIRED = "InputFieldType is mandated for InputFromUser type";
+    public static final String ERROR_MSG_INVALID_DEFAULT_BOOLEAN_INPUT_FIELD_TYPE = "Invalid default value for boolean InputFieldType - Valid boolean values are 'true' / 'false'";
+    public static final String ERROR_MSG_INVALID_DEFAULT_NUMBER_INPUT_FIELD_TYPE = "Invalid default value for integer InputFieldType";
     public static final String ERROR_MSG_DISPLAY_IS_EMPTY = "Display Name is empty";
     public static final String ERROR_MSG_DISPLAY_NAME_NOT_UNIQUE = "Display Name is not unique";
     public static final String ERROR_MSG_INPUT_NAME_IS_EMPTY = "Input Name is empty";
     public static final String ERROR_MSG_INPUT_NAME_NOT_UNIQUE_IN_STEP = "Input Name is not unique in the step";
+    public static final String ERROR_MSG_DEFAULT_VALUE_REQUIRED_FOR_INPUT_TYPE = "No default value for Input Type";
+    public static final String ERROR_MSG_NO_INPUTVALUE_FOR_INPUT_TYPE = "No input value for Input Type";
+    public static final String ERROR_MSG_DEFAULTVALUE_PASSED_FOR_INPUT_TYPE = "Default value passed for Input Type";
 
     public static final int STEP_ID = 0;
     public static final int INPUT_FIELD = 1;
     public static final String WF_ID = "WorkflowId";
+
+    // Primitive/resource types
+    public static final String VIPR_PRIMITIVE_TYPE = "vipr";
+    public static final String SCRIPT_PRIMITIVE_TYPE = "script";
+    public static final String ANSIBLE_PRIMITIVE_TYPE = "ansible";
+    public static final String REST_API_PRIMITIVE_TYPE = "rest";
+    public static final String REMOTE_ANSIBLE_PRIMTIVE_TYPE = "remote_ansible";
+    public static final String ANSIBLE_INVENTORY_TYPE = "ansible_inventory";
 
     // SuccessCriteria Constants
     public static final String RETURN_CODE = "code";
@@ -56,31 +73,63 @@ public final class CustomServicesConstants {
     public static final String REMOVE_OPTION = "-rf";
     // Ansible Options
     public static final String ANSIBLE_BIN = "remote_ansible_bin";
-    public static final String ANSIBLE_PLAYBOOK = "remote_node_playbook";
-    public static final String ANSIBLE_HOST_FILE = "remote_host_file";
+    public static final String ANSIBLE_PLAYBOOK = "playbook";
+    public static final String ANSIBLE_HOST_FILE = "host_file";
     public static final String ANSIBLE_USER = "remote_ansible_user";
     public static final String ANSIBLE_COMMAND_LINE = "ansible_command_line_arg";
     // Remote ansible connection
     public static final String REMOTE_USER = "remote_node_user";
     public static final String REMOTE_NODE = "remote_node_ip";
     // Keys for Step.InputGroup
+    public static final String PATH_PARAMS = "path_params";
     public static final String INPUT_PARAMS = "input_params";
     public static final String CONNECTION_DETAILS = "connection_details";
     public static final String ANSIBLE_OPTIONS = "ansible_options";
+    public static final String REST_OPTIONS = "rest_options";
+    public static final String QUERY_PARAMS = "query_params";
+    public static final String CREDENTIALS = "credentials";
+    public static final String HEADERS = "headers";
 
-    public enum restMethods {
+    // REST options
+    public static final String PROTOCOL = "protocol";
+    public static final String AUTH_TYPE = "auth";
+    public static final String USER = "user";
+    public static final String PASSWORD = "password";
+    public static final String ACCEPT_TYPE = "Accept-Type";
+    public static final String CONTENT_TYPE = "Content-Type";
+    public static final String BODY = "body";
+    public static final String METHOD = "method";
+    public static final String TARGET = "target";
+    public static final String PATH = "path";
+    public static final String PORT = "port";
+
+    // Execution Result
+    public static final String OPERATION_OUTPUT = "operation_output";
+    public static final String OPERATION_ERROR = "operation_error";
+    public static final String OPERATION_RETURNCODE = "operation_returncode";
+
+    // Supported REST methods for Custom Service
+    public enum RestMethods {
         GET, POST, PUT, DELETE;
+    }
+
+    public enum AuthType {
+        NONE, BASIC, TOKEN;
+    }
+
+    public enum InputFieldType {
+        NUMBER, BOOLEAN, TEXT, PASSWORD;
     }
 
     public enum InputType {
         FROM_USER("InputFromUser"),
-        // ASSET_OPTION_SINGLE_VALUE("AssetOptionSingleValue"),
-        // ASSET_OPTION_MULTI_VALUE("AssetOptionMultiValue"),
-        ASSET_OPTION("AssetOption"), // TODO: Change this to the above values.
-        HARDCODEDVALUE("HardcodedValue"),
+        FROM_USER_MULTI("InputFromUserMulti"),
+        ASSET_OPTION_SINGLE("AssetOptionSingle"),
+        ASSET_OPTION_MULTI("AssetOptionMulti"),
         FROM_STEP_INPUT("FromOtherStepInput"),
         FROM_STEP_OUTPUT("FromOtherStepOutput"),
-        INVALID("Invalid");
+        INVALID("Invalid"),
+        DISABLED("Disabled");
 
         private final String inputType;
 

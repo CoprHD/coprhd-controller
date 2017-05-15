@@ -72,11 +72,16 @@ public class PathConstants {
     public static final String WF_DIRECTORY_DELETE = "/workflow/directory/{id}/deactivate";
     public static final String CUSTOM_SERVICES_PRIMITIVES = "/primitives";
     public static final String CUSTOM_SERVICES_PRIMITIVE = "/primitives/{id}";
-    public static final String CUSTOM_SERVICES_PRIMITIVE_RESOURCE = "/primitives/resource/{type}";
+    public static final String CUSTOM_SERVICES_PRIMITIVE_DELETE = "/primitives/{id}/deactivate";
+    public static final String CUSTOM_SERVICES_PRIMITIVE_RESOURCES = "/primitives/resource";
+    public static final String CUSTOM_SERVICES_PRIMITIVE_RESOURCE = "/primitives/resource/{id}";
+    public static final String CUSTOM_SERVICES_PRIMITIVE_RESOURCE_DELETE = "/primitives/resource/{id}/deactivate";
     public static final String CUSTOM_SERVICES_WORKFLOWS = "/workflows";
     public static final String CUSTOM_SERVICES_WORKFLOW_DELETE = "/workflows/{id}/deactivate";
-    public static final String CUSTOM_SERVICES_WORKFLOW_VALIDATE = "/workflows/{id}/validate";
+    public static final String CUSTOM_SERVICES_WORKFLOW_VALIDATE = "/workflows/{id}/validate.json";
     public static final String CUSTOM_SERVICES_WORKFLOW_PUBLISH = "/workflows/{id}/publish";
     public static final String CUSTOM_SERVICES_WORKFLOW_UNPUBLISH = "/workflows/{id}/unpublish";
     public static final String CUSTOM_SERVICES_WORKFLOW = "/workflows/{id}";
+    public static final String CUSTOM_SERVICES_WORKFLOW_EXPORT = "/workflows/{id}/export";
+    public static final String CUSTOM_SERVICES_WORKFLOW_IMPORT = "/workflows/import";
 }

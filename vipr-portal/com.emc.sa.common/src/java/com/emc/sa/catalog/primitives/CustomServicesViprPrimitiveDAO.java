@@ -20,10 +20,6 @@ import java.net.URI;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Set;
-
-import org.reflections.Reflections;
-import org.reflections.scanners.SubTypesScanner;
 
 import com.emc.storageos.api.service.impl.resource.ArgValidator;
 import com.emc.storageos.db.client.constraint.NamedElementQueryResultList.NamedElement;
@@ -31,7 +27,6 @@ import com.emc.storageos.db.client.model.ModelObject;
 import com.emc.storageos.model.customservices.CustomServicesPrimitiveCreateParam;
 import com.emc.storageos.model.customservices.CustomServicesPrimitiveRestRep;
 import com.emc.storageos.model.customservices.CustomServicesPrimitiveUpdateParam;
-import com.emc.storageos.primitives.java.CustomServicesNoResourceType;
 import com.emc.storageos.primitives.java.vipr.CustomServicesViPRPrimitive;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.google.common.collect.ImmutableList;
@@ -43,39 +38,47 @@ import com.google.common.collect.ImmutableMap.Builder;
  *
  */
 public class CustomServicesViprPrimitiveDAO implements
-        CustomServicesPrimitiveDAO<CustomServicesViPRPrimitive, CustomServicesNoResourceType> {
+        CustomServicesPrimitiveDAO<CustomServicesViPRPrimitive> {
 
-    private static final List<NamedElement> EMPTY_RESOURCE_LIST = ImmutableList.<NamedElement>builder().build();
+    private static final List<NamedElement> EMPTY_RESOURCE_LIST = ImmutableList.<NamedElement> builder().build();
     private final ImmutableMap<URI, CustomServicesViPRPrimitive> PRIMITIVES_MAP;
-    
-    public CustomServicesViprPrimitiveDAO() {
-     
-        final Set<Class<? extends CustomServicesViPRPrimitive>> primitives = 
-                new Reflections("com.emc.storageos", new SubTypesScanner()).getSubTypesOf(CustomServicesViPRPrimitive.class);
-        final Builder<URI, CustomServicesViPRPrimitive> builder = ImmutableMap.<URI, CustomServicesViPRPrimitive>builder();
-        for( final Class<? extends CustomServicesViPRPrimitive> primitive : primitives) {
+
+    public CustomServicesViprPrimitiveDAO(final List<String> viprOperations) {
+        final Builder<URI, CustomServicesViPRPrimitive> builder = ImmutableMap.<URI, CustomServicesViPRPrimitive> builder();
+        for (final String primitiveClass : viprOperations) {
+            Class<?> primitive;
+            
+            try {
+                primitive = Class.forName(primitiveClass);
+            } catch (final ClassNotFoundException e1) {
+                throw new RuntimeException("Class " + primitiveClass + " not found.", e1);
+            }
+            
+            if(!CustomServicesViPRPrimitive.class.isAssignableFrom(primitive)) {
+                throw new RuntimeException("Class " + primitiveClass + " is not a vipr primitive.");
+            }
+            
             final CustomServicesViPRPrimitive instance;
             try {
-                instance = primitive.newInstance();
+                instance = (CustomServicesViPRPrimitive)primitive.newInstance();
             } catch (final IllegalAccessException | InstantiationException e) {
-                throw new RuntimeException("Failed to create instance of primitive: "+primitive.getName(), e);
+                throw new RuntimeException("Failed to create instance of primitive: " + primitive.getName(), e);
             }
 
             builder.put(instance.id(), instance);
         }
         PRIMITIVES_MAP = builder.build();
     }
-  
-    @Override 
+
+    @Override
     public String getType() {
         return CustomServicesViPRPrimitive.TYPE;
     }
-    
+
     @Override
     public CustomServicesViPRPrimitive get(URI id) {
         return PRIMITIVES_MAP.get(id);
     }
-
 
     @Override
     public CustomServicesViPRPrimitive create(CustomServicesPrimitiveCreateParam param) {
@@ -93,6 +96,11 @@ public class CustomServicesViprPrimitiveDAO implements
     }
 
     @Override
+    public void importPrimitive(CustomServicesPrimitiveRestRep operation) {
+        throw APIException.methodNotAllowed.notSupported();
+    }
+    
+    @Override
     public List<URI> list() {
         return PRIMITIVES_MAP.keySet().asList();
     }
@@ -104,54 +112,19 @@ public class CustomServicesViprPrimitiveDAO implements
 
     @Override
     public Iterator<CustomServicesPrimitiveRestRep> bulk(final Collection<URI> ids) {
-        ImmutableList.Builder<CustomServicesPrimitiveRestRep> primitives = ImmutableList.<CustomServicesPrimitiveRestRep>builder();
-        for(final URI id : ids ) {
+        ImmutableList.Builder<CustomServicesPrimitiveRestRep> primitives = ImmutableList.<CustomServicesPrimitiveRestRep> builder();
+        for (final URI id : ids) {
             final CustomServicesViPRPrimitive primitive = PRIMITIVES_MAP.get(id);
-            final ModelObject model = primitive == null ? null : primitive.asModelObject(); 
+            final ModelObject model = primitive == null ? null : primitive.asModelObject();
             ArgValidator.checkEntityNotNull(model, id, false);
             primitives.add(CustomServicesPrimitiveMapper.map(primitive));
         }
-        
+
         return primitives.build().iterator();
-    }
-
-    @Override
-    public CustomServicesNoResourceType getResource(URI id) {
-        return null;
-    }
-
-    @Override
-    public CustomServicesNoResourceType createResource(String name,
-            byte[] stream) {
-        throw APIException.methodNotAllowed.notSupported();
-    }
-
-    @Override
-    public CustomServicesNoResourceType updateResource(URI id, String name,
-            byte[] stream) {
-        throw APIException.methodNotAllowed.notSupported();
-    }
-
-
-    @Override
-    public void deactivateResource(URI id) {
-        throw APIException.methodNotAllowed.notSupported();
-        
-    }
-
-    @Override
-    public List<NamedElement> listResources() {
-        return EMPTY_RESOURCE_LIST;
-    }
-
-    @Override
-    public Class<CustomServicesNoResourceType> getResourceType() {
-        return CustomServicesNoResourceType.class;
     }
 
     @Override
     public boolean hasResource() {
         return false;
     }
-    
 }

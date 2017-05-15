@@ -1,18 +1,44 @@
 <div ng-controller="tabController" ng-repeat="workflowTab in workflowTabs" class="tab-pane" id="{{workflowTab.elementid}}" ng-init="initializeWorkflowData(workflowTab)">
-    <div class="buttonbar">
-
-        <button ng-disabled="!modified|| workflowData.state == 'PUBLISHED'" id="Save" type="button" class="btn btn-default" value="Save" ng-click="saveWorkflow();" />
-        <span ng-class="{'glyphicon-ok-sign success-icon':!modified,'glyphicon-exclamation-sign warning-icon':modified}" class="glyphicon "></span> Save</button>
-        <button ng-disabled="modified || workflowData.state == 'VALID' || workflowData.state == 'PUBLISHED'" id="Validate" type="button" class="btn btn-default" value="Validate" ng-click="validateWorkflow();" />
-        <span ng-hide="(workflowData.state != 'VALID' && workflowData.state != 'PUBLISHED')" class="glyphicon glyphicon-ok-sign success-icon"></span> Validate</button>
-        <button ng-disabled="modified || workflowData.state != 'VALID'" id="Publish" type="button" class="btn btn-default" value="Publish" ng-click="publishorkflow();" />
-        <span ng-hide="workflowData.state != 'PUBLISHED'" class="glyphicon glyphicon-ok-sign success-icon"></span> Publish</button>
-        <button ng-disabled="workflowData.state != 'PUBLISHED'" id="Unpublish" type="button" class="btn btn-default" value="Unpublish" ng-click="unpublishWorkflow();" />Unpublish</button>
-
+    <div class="builder-button-bar">
+        <div class="button-bar-container">
+            <button ng-disabled="!modified|| workflowData.state == 'PUBLISHED'" id="Save" type="button" class="btn btn-default" value="Save" ng-click="saveWorkflow();" />
+                <span ng-class="{'glyphicon-ok-sign success-icon':!modified,
+                'glyphicon-exclamation-sign warning-icon':modified && workflowData.state != 'SAVING',
+                'glyphicon-refresh rotate':workflowData.state == 'SAVING'}" class="glyphicon "></span>
+                Save
+            </button>
+            <button ng-disabled="modified || workflowData.state == 'VALID' || workflowData.state == 'PUBLISHED'" id="Validate" type="button" class="btn btn-default" value="Validate" ng-click="validateWorkflow();" />
+                <span ng-class="{'failure-icon button-icon':workflowData.state == 'INVALID',
+                'glyphicon-ok-sign success-icon':workflowData.state == 'VALID' || workflowData.state == 'PUBLISHED',
+                'glyphicon-refresh rotate':workflowData.state == 'VALIDATING'}" class="glyphicon"></span>
+                Validate
+            </button>
+            <button ng-disabled="modified || workflowData.state != 'VALID'" id="Publish" type="button" class="btn btn-default" value="Publish" ng-click="publishorkflow();" />
+                <span ng-class="{'glyphicon-ok-sign success-icon':workflowData.state == 'PUBLISHED',
+                'glyphicon-refresh rotate':workflowData.state == 'PUBLISHING'}" class="glyphicon"></span>
+                Publish
+            </button>
+            <button ng-disabled="workflowData.state != 'PUBLISHED'" id="Unpublish" type="button" class="btn btn-default" value="Unpublish" ng-click="unpublishWorkflow();" />
+                <span ng-class="{'glyphicon-refresh rotate':workflowData.state == 'UNPUBLISHING'}" class="glyphicon"></span>
+                Unpublish
+            </button>
+        </div>
+    </div>
+    <div class="message-bar">
+        <div class="message-bar-success" ng-if="alert.status=='SUCCESS' && showAlert">
+            <span class="glyphicon glyphicon-ok-sign" style="padding-right: 10px;"></span>
+            <a class="glyphicon glyphicon-remove message-bar-closebtn" ng-click="closeAlert()"></a>
+            Success Message!
+        </div>
+        <div class="message-bar-failure" ng-if="alert.status=='INVALID' && showAlert">
+            <span class="message-bar-icon message-failure-icon" style="padding-right: 10px;"></span>
+            <a class="glyphicon glyphicon-remove message-bar-closebtn" ng-click="closeAlert()"></a>
+            {{alert.error.errorMessage}}
+        </div>
     </div>
     <div class="builder-container">
         #{workflowDesignerMenu/}
-        <div id="sb-site" class="exampleEditor">
+        <div id="sb-site" >
             <div class="row">
                 <div class="col s12" style="padding: 0 !important;">
                     <div class="parent">

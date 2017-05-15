@@ -16,14 +16,17 @@
  */
 package com.emc.sa.api;
 
-import static com.emc.sa.api.mapper.CustomServicesWorkflowMapper.map;
-import static com.emc.sa.api.mapper.CustomServicesWorkflowMapper.mapList;
+import static com.emc.sa.workflow.CustomServicesWorkflowMapper.map;
+import static com.emc.sa.workflow.CustomServicesWorkflowMapper.mapList;
 
 import java.io.IOException;
 import java.net.URI;
 import java.util.Iterator;
 import java.util.List;
 
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.PUT;
@@ -31,14 +34,22 @@ import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
+import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.emc.sa.api.mapper.CustomServicesWorkflowFilter;
-import com.emc.sa.api.mapper.CustomServicesWorkflowMapper;
+import com.emc.sa.api.utils.UploadHelper;
 import com.emc.sa.catalog.CustomServicesWorkflowManager;
+import com.emc.sa.catalog.WorkflowDirectoryManager;
+import com.emc.sa.catalog.primitives.CustomServicesPrimitiveDAOs;
+import com.emc.sa.catalog.primitives.CustomServicesResourceDAOs;
+import com.emc.sa.model.dao.ModelClient;
+import com.emc.sa.workflow.CustomServicesWorkflowMapper;
 import com.emc.sa.workflow.ValidationHelper;
 import com.emc.sa.workflow.WorkflowHelper;
 import com.emc.storageos.api.service.impl.resource.ArgValidator;
@@ -47,6 +58,7 @@ import com.emc.storageos.api.service.impl.response.BulkList.ResourceFilter;
 import com.emc.storageos.db.client.constraint.NamedElementQueryResultList.NamedElement;
 import com.emc.storageos.db.client.model.uimodels.CustomServicesWorkflow;
 import com.emc.storageos.db.client.model.uimodels.CustomServicesWorkflow.CustomServicesWorkflowStatus;
+import com.emc.storageos.db.client.model.uimodels.WFDirectory;
 import com.emc.storageos.model.BulkIdParam;
 import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.model.customservices.CustomServicesValidationResponse;
@@ -66,16 +78,35 @@ import com.emc.storageos.svcs.errorhandling.resources.APIException;
 @Path("/workflows")
 public class CustomServicesWorkflowService extends CatalogTaggedResourceService {
 
+    private static final Logger log = LoggerFactory.getLogger(CustomServicesWorkflowService.class);
+    
+    @Autowired
+    private ModelClient client;
     @Autowired
     private CustomServicesWorkflowManager customServicesWorkflowManager;
+    @Autowired
+    private WorkflowDirectoryManager wfDirectoryManager;
+    @Autowired
+    private CustomServicesPrimitiveDAOs daos;
+    @Autowired
+    private CustomServicesResourceDAOs resourceDAOs;
 
+    private static final WFDirectory NO_DIR = new WFDirectory();
+    private static final String EXPORT_EXTENSION = ".wf"; 
+    
     @GET
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    public CustomServicesWorkflowList getWorkflows(@QueryParam("status") String status) {
+    public CustomServicesWorkflowList getWorkflows(@QueryParam("status") String status, @QueryParam("primitiveId") String primitiveId) {
         List<NamedElement> elements;
+        if(null != status && null != primitiveId){
+            //TODO: currently throwing exception. Implement if both status and primitive id are passed, get the workflows that are in the requested status state and that uses the primitiveId
+            throw APIException.methodNotAllowed.notSupportedWithReason("Querying workflow by both status and primitives are not supported currently.");
+        }
         if (null != status) {
             ArgValidator.checkFieldValueFromEnum(status, "status", CustomServicesWorkflowStatus.class);
             elements = customServicesWorkflowManager.listByStatus(CustomServicesWorkflowStatus.valueOf(status));
+        } else if (null != primitiveId) {
+            elements = customServicesWorkflowManager.listByPrimitiveUsed(URI.create(primitiveId));
         } else {
             elements = customServicesWorkflowManager.list();
         }
@@ -220,6 +251,48 @@ public class CustomServicesWorkflowService extends CatalogTaggedResourceService 
         return (CustomServicesWorkflowBulkRep) super.getBulkResources(ids);
     }
 
+    @POST
+    @Consumes({ MediaType.APPLICATION_OCTET_STREAM })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/import")
+    public CustomServicesWorkflowRestRep importWorkflow(
+            @Context final HttpServletRequest request,
+            @QueryParam("directory") final URI directory) {
+        final WFDirectory wfDirectory;
+        if( null != directory ) {
+            wfDirectory = wfDirectoryManager.getWFDirectoryById(directory);
+        } else {
+            wfDirectory = NO_DIR;
+        }
+        final byte[] stream = UploadHelper.read(request);
+        return map(WorkflowHelper.importWorkflow(stream, wfDirectory, client, daos, resourceDAOs));
+    }
+    
+    /**
+     * Download the resource and set it in the response header
+     * 
+     * @param id The ID of the resource to download
+     * @param response HttpServletResponse the servlet response to update with the file octet stream
+     * @return Response containing the octet stream of the primitive resource
+     */
+    @GET
+    @Path("{id}/export")
+    public Response download(@PathParam("id") final URI id,
+            @Context final HttpServletResponse response) {
+        final CustomServicesWorkflow customServicesWorkflow = getCustomServicesWorkflow(id);
+        switch (CustomServicesWorkflowStatus.valueOf(customServicesWorkflow.getState())) {
+            case PUBLISHED:
+                final byte[] bytes = WorkflowHelper.exportWorkflow(id, client, daos, resourceDAOs);
+                response.setContentLength(bytes.length);
+
+                response.setHeader("Content-Disposition", "attachment; filename="+
+                        id.toString() + EXPORT_EXTENSION);
+                return Response.ok(bytes).build();
+            default:
+                throw APIException.methodNotAllowed.notSupportedForUnpublishedWorkflow(customServicesWorkflow.getState());
+        }
+    }
+    
     @Override
     protected CustomServicesWorkflow queryResource(URI id) {
         return customServicesWorkflowManager.getById(id);
@@ -262,5 +335,4 @@ public class CustomServicesWorkflowService extends CatalogTaggedResourceService 
 
         return workflow;
     }
-
 }

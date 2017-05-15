@@ -18,13 +18,16 @@ package com.emc.sa.catalog.primitives;
 
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 
 import com.emc.storageos.api.mapper.DbObjectMapper;
 import com.emc.storageos.api.service.impl.response.ResourceTypeMapping;
 import com.emc.storageos.db.client.constraint.NamedElementQueryResultList.NamedElement;
+import com.emc.storageos.db.client.model.AbstractChangeTrackingSet;
 import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.uimodels.CustomServicesDBResource;
 import com.emc.storageos.db.client.model.uimodels.CustomServicesPrimitiveResourceModel;
@@ -35,10 +38,10 @@ import com.emc.storageos.model.customservices.CustomServicesPrimitiveResourceLis
 import com.emc.storageos.model.customservices.CustomServicesPrimitiveResourceRestRep;
 import com.emc.storageos.model.customservices.CustomServicesPrimitiveRestRep;
 import com.emc.storageos.model.customservices.CustomServicesPrimitiveRestRep.InputGroup;
+import com.emc.storageos.model.customservices.CustomServicesValidationResponse;
 import com.emc.storageos.model.customservices.InputParameterRestRep;
 import com.emc.storageos.model.customservices.OutputParameterRestRep;
 import com.emc.storageos.primitives.CustomServicesPrimitive;
-import com.emc.storageos.primitives.CustomServicesPrimitive.InputType;
 import com.emc.storageos.primitives.CustomServicesPrimitiveResourceType;
 import com.emc.storageos.primitives.CustomServicesPrimitiveType;
 import com.emc.storageos.primitives.input.BasicInputParameter;
@@ -52,7 +55,7 @@ import com.google.common.collect.ImmutableMap;
  * Class that can map primitive java objects to the REST response entity
  *
  */
-public final class  CustomServicesPrimitiveMapper extends DbObjectMapper {
+public final class CustomServicesPrimitiveMapper extends DbObjectMapper {
     public final static CustomServicesPrimitiveMapper instance = new CustomServicesPrimitiveMapper();
 
     private CustomServicesPrimitiveMapper() {
@@ -61,10 +64,26 @@ public final class  CustomServicesPrimitiveMapper extends DbObjectMapper {
     public static CustomServicesPrimitiveMapper getInstance() {
         return instance;
     }
-    
-    public static CustomServicesPrimitiveResourceRestRep map(final CustomServicesPrimitiveResourceType from ) {
+
+    public static CustomServicesPrimitiveResourceRestRep map(final CustomServicesPrimitiveResourceType from) {
         final CustomServicesPrimitiveResourceRestRep to = new CustomServicesPrimitiveResourceRestRep();
         mapDataObjectFields(from.asModelObject(), to);
+        final List<CustomServicesPrimitiveResourceRestRep.Attribute> attributes = new ArrayList<CustomServicesPrimitiveResourceRestRep.Attribute>();
+        for (final Entry<String, Set<String>> entry : from.attributes().entrySet()) {
+            final CustomServicesPrimitiveResourceRestRep.Attribute attribute = new CustomServicesPrimitiveResourceRestRep.Attribute() {
+                {
+                    setName(entry.getKey());
+                    setValues(new ArrayList<>(entry.getValue()));
+                }
+            };
+            attributes.add(attribute);
+        }
+        to.setAttributes(attributes);
+
+        if(from.parentId() != null){
+            to.setParentId(from.parentId());
+        }
+
         return to;
     }
 
@@ -83,23 +102,21 @@ public final class  CustomServicesPrimitiveMapper extends DbObjectMapper {
     }
 
     private static NamedRelatedResourceRep makeResourceLink(CustomServicesPrimitiveType primitiveType) throws URISyntaxException {
-        if(null == primitiveType.resource()) {
+        if (null == primitiveType.resource()) {
             return null;
         }
-        
+
         final ResourceTypeEnum type = ResourceTypeMapping.getResourceType(CustomServicesPrimitiveResourceModel.class);
 
-        return makeResourceLink(type.getService(), primitiveType.type(), primitiveType.resource());
+        return makeResourceLink(type.getService(), primitiveType.resource());
     }
 
-
-    private static NamedRelatedResourceRep makeResourceLink(final String service, final String type, final NamedURI id) throws URISyntaxException {
+    private static NamedRelatedResourceRep makeResourceLink(final String service, final NamedURI id)
+            throws URISyntaxException {
         StringBuilder builder = new StringBuilder(service)
-                .append(type).append("/").append(id.getURI());
+                .append("/").append(id.getURI());
         return new NamedRelatedResourceRep(id.getURI(), new RestLinkRep("resource", new URI(builder.toString())), id.getName());
     }
-    
-
 
     public static void mapPrimitiveFields(final CustomServicesPrimitive from,
             CustomServicesPrimitiveRestRep to) {
@@ -110,34 +127,34 @@ public final class  CustomServicesPrimitiveMapper extends DbObjectMapper {
         to.setAttributes(from.attributes());
         to.setInputGroups(mapInput(from.input()));
         to.setOutput(mapOutput(from.output()));
-        
+
     }
 
     public static <T extends CustomServicesDBResource> CustomServicesPrimitiveResourceList toCustomServicesPrimitiveResourceList(
             final String type, final List<NamedElement> fromList) {
         final ImmutableList.Builder<NamedRelatedResourceRep> builder = ImmutableList.builder();
-        for( final NamedElement resource : fromList) {
-            builder.add(toNamedRelatedResource(ResourceTypeMapping.getResourceType(CustomServicesDBResource.class), resource.getId(), resource.getName()));
+        for (final NamedElement resource : fromList) {
+            builder.add(toNamedRelatedResource(ResourceTypeMapping.getResourceType(CustomServicesDBResource.class), resource.getId(),
+                    resource.getName()));
         }
         return new CustomServicesPrimitiveResourceList(builder.build());
     }
-    
+
     private static Map<String, InputGroup> mapInput(
-            final Map<InputType, List<InputParameter>> input) {
+            final Map<String, List<InputParameter>> input) {
         final ImmutableMap.Builder<String, InputGroup> builder = ImmutableMap.<String, InputGroup>builder();
-        
-        for(final Entry<InputType, List<InputParameter>> entry : input.entrySet()) {
+
+        for(final Entry<String, List<InputParameter>> entry : input.entrySet()) {
             builder.put(entry.getKey().toString(), mapInputGroup(entry.getValue()));
         }
         
         return builder.build();
     }
 
-
     private static InputGroup mapInputGroup(final List<InputParameter> list) {
-        final ImmutableList.Builder<InputParameterRestRep> builder = ImmutableList.<InputParameterRestRep>builder();
-        if( list != null ) {
-            for( final InputParameter param : list ) {
+        final ImmutableList.Builder<InputParameterRestRep> builder = ImmutableList.<InputParameterRestRep> builder();
+        if (list != null) {
+            for (final InputParameter param : list) {
                 builder.add(mapInputParameter(param.asBasicInputParameter()));
             }
         }
@@ -145,7 +162,6 @@ public final class  CustomServicesPrimitiveMapper extends DbObjectMapper {
         inputGroup.setInputGroup(builder.build());
         return inputGroup;
     }
-
 
     private static InputParameterRestRep mapInputParameter(final BasicInputParameter<?> param) {
         InputParameterRestRep restRep = new InputParameterRestRep();

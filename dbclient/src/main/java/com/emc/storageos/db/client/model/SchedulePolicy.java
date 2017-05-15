@@ -25,7 +25,7 @@ public class SchedulePolicy extends DiscoveredDataObject {
     // Name of the policy
     private String policyName;
 
-    // Type of schedule policy e.g days, weeks or months
+    // Type of schedule policy e.g days, weeks or months, hours, minutes
     private String scheduleFrequency;
 
     // Policy run on every
@@ -54,7 +54,7 @@ public class SchedulePolicy extends DiscoveredDataObject {
     }
 
     public static enum ScheduleFrequency {
-        DAYS, WEEKS, MONTHS
+        MINUTES, HOURS, DAYS, WEEKS, MONTHS
     }
 
     public static enum SnapshotExpireType {

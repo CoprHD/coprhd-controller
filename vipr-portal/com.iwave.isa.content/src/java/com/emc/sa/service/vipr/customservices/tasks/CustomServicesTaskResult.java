@@ -20,7 +20,7 @@ package com.emc.sa.service.vipr.customservices.tasks;
 import java.net.URI;
 import java.util.Map;
 
-public final class CustomServicesTaskResult {
+public class CustomServicesTaskResult {
 
     private final String out;
     private final String err;

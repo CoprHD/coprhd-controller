@@ -47,8 +47,6 @@ public class DeleteVmfsDatastoreService extends VMwareHostService {
             datastores.put(datastore, volumes);
         }
 
-        vmware.disconnect();
-
         if (preCheckErrors.length() > 0) {
             throw new IllegalStateException(preCheckErrors.toString());
         }

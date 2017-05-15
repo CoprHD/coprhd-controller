@@ -16,10 +16,6 @@
  */
 package com.emc.sa.api;
 
-
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -47,10 +43,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 
+import com.emc.sa.api.utils.UploadHelper;
 import com.emc.sa.catalog.CustomServicesPrimitiveManager;
 import com.emc.sa.catalog.primitives.CustomServicesPrimitiveDAO;
 import com.emc.sa.catalog.primitives.CustomServicesPrimitiveDAOs;
 import com.emc.sa.catalog.primitives.CustomServicesPrimitiveMapper;
+import com.emc.sa.catalog.primitives.CustomServicesResourceDAO;
+import com.emc.sa.catalog.primitives.CustomServicesResourceDAOs;
 import com.emc.storageos.api.service.impl.resource.ArgValidator;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.NamedElementQueryResultList.NamedElement;
@@ -73,7 +72,6 @@ import com.emc.storageos.security.authorization.DefaultPermissions;
 import com.emc.storageos.security.authorization.Role;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.BadRequestException;
-import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorException;
 import com.emc.storageos.svcs.errorhandling.resources.NotFoundException;
 import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
@@ -83,18 +81,19 @@ import com.google.common.collect.Multimaps;
 @Path("/primitives")
 @DefaultPermissions(readRoles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, readAcls = {
         ACL.OWN, ACL.ALL }, writeRoles = { Role.TENANT_ADMIN }, writeAcls = {
-        ACL.OWN, ACL.ALL })
+                ACL.OWN, ACL.ALL })
 public class CustomServicesPrimitiveService extends CatalogTaggedResourceService {
+    private static final Logger _log = LoggerFactory
+            .getLogger(CustomServicesPrimitiveManager.class);
     @Autowired
     private CustomServicesPrimitiveManager primitiveManager;
     @Autowired
     private CustomServicesPrimitiveDAOs daos;
-    
-    private static final Logger _log = LoggerFactory
-            .getLogger(CustomServicesPrimitiveManager.class);
+    @Autowired
+    private CustomServicesResourceDAOs resourceDAOs;
 
     /**
-     * Get the list of primitives that can be used for creating 
+     * Get the list of primitives that can be used for creating
      * custom services workflows
      *
      * @prereq none
@@ -112,14 +111,14 @@ public class CustomServicesPrimitiveService extends CatalogTaggedResourceService
         final Set<String> types = (type == null) ? daos.getTypes() : Collections.singleton(type);
 
         final List<URI> list = new ArrayList<URI>();
-        for( final String primitiveType : types ) {
-            final CustomServicesPrimitiveDAO<?,?> dao = getDAO(primitiveType, false);
+        for (final String primitiveType : types) {
+            final CustomServicesPrimitiveDAO<?> dao = getDAO(primitiveType, false);
             final List<URI> ids = dao.list();
-            for(final URI id : ids) {
+            for (final URI id : ids) {
                 list.add(id);
             }
         }
-        
+
         return new CustomServicesPrimitiveList(list);
     }
 
@@ -132,12 +131,12 @@ public class CustomServicesPrimitiveService extends CatalogTaggedResourceService
      * 
      * @param param a primitive creation parameter
      * 
-     * @return PrimitiveRestRep 
+     * @return PrimitiveRestRep
      */
     @POST
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     public CustomServicesPrimitiveRestRep makePrimitive(CustomServicesPrimitiveCreateParam param) {
-        final CustomServicesPrimitiveDAO<?,?> dao = getDAO(param.getType(), false);
+        final CustomServicesPrimitiveDAO<?> dao = getDAO(param.getType(), false);
         return CustomServicesPrimitiveMapper.map(dao.create(param));
     }
 
@@ -160,50 +159,8 @@ public class CustomServicesPrimitiveService extends CatalogTaggedResourceService
     }
 
     /**
-     * Get a list of resources of a given type
-     * 
-     * @brief Get a list of Custom Services resources
-     * 
-     * @param type The type of the custom services resource to list
-     * 
-     * @return a list of resources of the given type
-     */
-    @GET
-    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @Path("/resource/{type}")
-    public CustomServicesPrimitiveResourceList getResources(@PathParam("type") final String type) {
-        
-        final CustomServicesPrimitiveDAO<?, ?> dao = daos.get(type);
-        final List<NamedElement> resources = dao.listResources();
-        
-        return CustomServicesPrimitiveMapper.toCustomServicesPrimitiveResourceList(type, resources);
-    }
-    
-    /**
-     * Upload a resource
-     * @param request HttpServletRequest containing the file octet stream
-     * @param type The type of the primitive file resource
-     * @param name The user defined name of the resource
-     * @return A rest response containing details of the resource that was created
-     */
-    @POST
-    @Consumes({ MediaType.APPLICATION_OCTET_STREAM })
-    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @Path("/resource/{type}")
-    public CustomServicesPrimitiveResourceRestRep upload(
-            @Context HttpServletRequest request,
-            @PathParam("type") String type, @QueryParam("name") String name) {
-
-        ArgValidator.checkFieldNotNull(name, "name");
-        CustomServicesPrimitiveDAO<?,?> dao = getDAO(type, true);
-
-        final byte[] stream = read(request);
-        CustomServicesPrimitiveResourceType resource = dao.createResource(name, stream);
-        return CustomServicesPrimitiveMapper.map(resource);
-    }
-
-    /**
      * Update a primitive
+     *
      * @param id the ID of the primitivie to be updated
      * @param param Primitive update request entity
      * @return
@@ -214,80 +171,158 @@ public class CustomServicesPrimitiveService extends CatalogTaggedResourceService
     @Path("/{id}")
     public CustomServicesPrimitiveRestRep updatePrimitive(@PathParam("id") final URI id,
             final CustomServicesPrimitiveUpdateParam param) {
-        final CustomServicesPrimitiveDAO<?,?> dao = daos.getByModel(URIUtil.getTypeName(id));
-        if(null == dao) {
+        final CustomServicesPrimitiveDAO<?> dao = daos.getByModel(URIUtil.getTypeName(id));
+        if (null == dao) {
             throw APIException.notFound.unableToFindEntityInURL(id);
         }
         return CustomServicesPrimitiveMapper.map(dao.update(id, param));
     }
 
-    /**
-     * Download a primitive file resource
-     * @param type The type of the primitive resource
-     * @param id The ID of the resource to download
-     * @param response HttpServletResponse the servlet response to update with the file octet stream
-     * @return Response containing the octet stream of the primitive file resource
-     */
-    @GET
-    @Path("resource/{type}/{id}")
-    public Response download(@PathParam("type") final String type,
-            @PathParam("id") final URI id,
-            @Context final HttpServletResponse response) {
-
-        CustomServicesPrimitiveDAO<?,?> dao = getDAO(type, true);
-
-        CustomServicesPrimitiveResourceType resource = getResourceNullSafe(id, dao);
-        final ModelObject model = toModelObject(resource);
-        ArgValidator.checkEntity(model, id, true);
-
-   
-        
-        final byte[] bytes = Base64.decodeBase64(resource.resource());
-        response.setContentLength(bytes.length);
-        
-        
-        response.setHeader("Content-Disposition", "attachment; filename="
-                + resource.name() + resource.suffix());
-        return Response.ok(bytes).build();
-    }
-    
     @POST
     @Path("/bulk")
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     public CustomServicesPrimitiveBulkRestRep bulkGetPrimitives(final BulkIdParam ids) {
         return (CustomServicesPrimitiveBulkRestRep) super.getBulkResources(ids);
     }
-    
+
     @POST
     @Path("/{id}/deactivate")
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     public Response deactivatePrimitive(@PathParam("id") final URI id) {
-        CustomServicesPrimitiveDAO<?,?> dao = getDAOFromID(id);
-        if(null == dao ) {
+        final CustomServicesPrimitiveDAO<?> dao = getDAOFromID(id);
+        if (null == dao) {
             throw APIException.notFound.unableToFindEntityInURL(id);
         }
         dao.deactivate(id);
         return Response.ok().build();
     }
 
-    private byte[] read(final HttpServletRequest request) {
-        try {
-            final ByteArrayOutputStream file = new ByteArrayOutputStream();
-            final byte buffer[] = new byte[2048];
-            final InputStream in = request.getInputStream();
-            int nRead = 0;
-            while ((nRead = in.read(buffer)) > 0) {
-                file.write(buffer, 0, nRead);
-            }
-            return file.toByteArray();
-        } catch (IOException e) {
-            throw InternalServerErrorException.internalServerErrors.genericApisvcError("failed to read octet stream", e);
+    /**
+     * Get a list of resources of a given type
+     *
+     * @brief Get a list of Custom Services resources
+     *
+     * @param type The type of the custom services resource to list
+     * @param parentId The parentId of the resource to filter by
+     *
+     * @return a list of resources of the given type
+     */
+    @GET
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/resource")
+    public CustomServicesPrimitiveResourceList getResources(@QueryParam("type") final String type,
+            @QueryParam("parentId") final String parentId) {
+        ArgValidator.checkFieldNotNull(type, "type");
+        final CustomServicesResourceDAO<?> dao = getResourceDAO(type, true);
+        final List<NamedElement> resources = dao.listResources(parentId);
+
+        return CustomServicesPrimitiveMapper.toCustomServicesPrimitiveResourceList(type, resources);
+    }
+
+    /**
+     * Upload a resource
+     * 
+     * @param request HttpServletRequest containing the file octet stream
+     * @param type The type of the primitive file resource
+     * @param name The user defined name of the resource
+     * @return A rest response containing details of the resource that was created
+     */
+    @POST
+    @Consumes({ MediaType.APPLICATION_OCTET_STREAM })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/resource")
+    public CustomServicesPrimitiveResourceRestRep upload(
+            @Context final HttpServletRequest request,
+            @QueryParam("type") final String type, @QueryParam("name") final String name, @QueryParam("parentId") final String parentId) {
+
+        ArgValidator.checkFieldNotNull(type, "type");
+        ArgValidator.checkFieldNotNull(name, "name");
+        final CustomServicesResourceDAO<?> dao = getResourceDAO(type, true);
+        final byte[] stream = UploadHelper.read(request);
+        final CustomServicesPrimitiveResourceType resource = dao.createResource(name, stream, parentId);
+        return CustomServicesPrimitiveMapper.map(resource);
+    }
+
+    @POST
+    @Path("resource/{id}/deactivate")
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    public Response deactivateResource(@PathParam("id") final URI id) {
+        final CustomServicesResourceDAO<?> dao = getResourceDAOFromID(id);
+        if (null == dao) {
+            throw APIException.notFound.unableToFindEntityInURL(id);
         }
+        dao.deactivateResource(id);
+        return Response.ok().build();
+    }
+
+    /**
+     * Update a primitive resource
+     *
+     * @param id the ID of the primitivie to be updated
+     * @param name The user defined name of the resource to be updated
+     * @return
+     */
+    @PUT
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("resource/{id}")
+    public CustomServicesPrimitiveResourceRestRep updateResource(@Context final HttpServletRequest request, @PathParam("id") final URI id,
+            @QueryParam("name") final String name, @QueryParam("parentId") final String parentId) {
+        final CustomServicesResourceDAO<?> dao = getResourceDAOFromID(id);
+        if (null == dao) {
+            throw APIException.notFound.unableToFindEntityInURL(id);
+        }
+        final byte[] stream = UploadHelper.read(request);
+        final CustomServicesPrimitiveResourceType resource = dao.updateResource(id, name,
+                (stream == null || stream.length == 0) ? null : stream, parentId);
+        return CustomServicesPrimitiveMapper.map(resource);
+    }
+
+    /**
+     * Get the primitive resource details
+     * 
+     * @param id The ID of the resource
+     * @return A rest response containing details of the requested resource
+     */
+    @GET
+    @Path("resource/{id}")
+    public CustomServicesPrimitiveResourceRestRep getResource(@PathParam("id") final URI id) {
+        final CustomServicesResourceDAO<?> dao = getResourceDAOFromID(id);
+        if (null == dao) {
+            throw BadRequestException.badRequests.unableToFindEntity(id);
+        }
+        return CustomServicesPrimitiveMapper.map(getResourceNullSafe(id, dao));
+    }
+
+    /**
+     * Download the resource and set it in the response header
+     * 
+     * @param id The ID of the resource to download
+     * @param response HttpServletResponse the servlet response to update with the file octet stream
+     * @return Response containing the octet stream of the primitive resource
+     */
+    @GET
+    @Path("resource/{id}/download")
+    public Response download(@PathParam("id") final URI id,
+            @Context final HttpServletResponse response) {
+        final CustomServicesResourceDAO<?> dao = getResourceDAOFromID(id);
+        if (null == dao) {
+            throw BadRequestException.badRequests.unableToFindEntity(id);
+        }
+        final CustomServicesPrimitiveResourceType resource = getResourceNullSafe(id, dao);
+        final ModelObject model = toModelObject(resource);
+        ArgValidator.checkEntity(model, id, true);
+
+        final byte[] bytes = Base64.decodeBase64(resource.resource());
+        response.setContentLength(bytes.length);
+
+        response.setHeader("Content-Disposition", "attachment; filename="
+                + resource.name() + resource.suffix());
+        return Response.ok(bytes).build();
     }
 
     @Override
     protected DataObject queryResource(URI id) {
-        final CustomServicesPrimitiveDAO<?, ?> dao = getDAOFromID(id);
+        final CustomServicesPrimitiveDAO<?> dao = getDAOFromID(id);
         return dao == null ? null : asModelObjectNullSafe(dao.get(id));
     }
 
@@ -299,85 +334,107 @@ public class CustomServicesPrimitiveService extends CatalogTaggedResourceService
     @Override
     protected ResourceTypeEnum getResourceType() {
         return ResourceTypeEnum.CUSTOM_SERVICES_PRIMTIVES;
-        
+
     }
-    
+
     @Override
     public Class<CustomServicesDBPrimitive> getResourceClass() {
         return CustomServicesDBPrimitive.class;
     }
-    
+
     @Override
     public CustomServicesPrimitiveBulkRestRep queryBulkResourceReps(final List<URI> ids) {
         return new CustomServicesPrimitiveBulkRestRep(getPrimitiveRestReps(ids));
     }
-    
+
     @Override
-    public CustomServicesPrimitiveBulkRestRep queryFilteredBulkResourceReps(final List<URI> ids) { 
-        //TODO do we need any filtering?
+    public CustomServicesPrimitiveBulkRestRep queryFilteredBulkResourceReps(final List<URI> ids) {
+        // TODO do we need any filtering?
         return new CustomServicesPrimitiveBulkRestRep(getPrimitiveRestReps(ids));
     }
-    
+
     private List<CustomServicesPrimitiveRestRep> getPrimitiveRestReps(final List<URI> ids) {
-        final ImmutableListMultimap<CustomServicesPrimitiveDAO<?,?>, URI> idGroups = Multimaps.index(ids, new Function<URI, CustomServicesPrimitiveDAO<?,?>>() {
-            @Override
-            public CustomServicesPrimitiveDAO<?,?> apply(final URI id) {
-                CustomServicesPrimitiveDAO<?,?> dao = getDAOFromID(id);
-                if( null == dao) {
-                    throw BadRequestException.badRequests.invalidParameter("id", id.toString());
-                }
-                return dao;
-            }
-        });
-        
-        final ImmutableList.Builder<CustomServicesPrimitiveRestRep> builder = ImmutableList.<CustomServicesPrimitiveRestRep>builder();
-        for( final Entry<CustomServicesPrimitiveDAO<?,?>, Collection<URI>> entry : idGroups.asMap().entrySet()) {
+        final ImmutableListMultimap<CustomServicesPrimitiveDAO<?>, URI> idGroups = Multimaps.index(ids,
+                new Function<URI, CustomServicesPrimitiveDAO<?>>() {
+                    @Override
+                    public CustomServicesPrimitiveDAO<?> apply(final URI id) {
+                        CustomServicesPrimitiveDAO<?> dao = getDAOFromID(id);
+                        if (null == dao) {
+                            throw BadRequestException.badRequests.invalidParameter("id", id.toString());
+                        }
+                        return dao;
+                    }
+                });
+
+        final ImmutableList.Builder<CustomServicesPrimitiveRestRep> builder = ImmutableList.<CustomServicesPrimitiveRestRep> builder();
+        for (final Entry<CustomServicesPrimitiveDAO<?>, Collection<URI>> entry : idGroups.asMap().entrySet()) {
             builder.addAll(entry.getKey().bulk(entry.getValue()));
         }
         return builder.build();
     }
-    
-    private CustomServicesPrimitiveDAO<?,?> getDAO(final String type, final boolean embedded) {
-        final CustomServicesPrimitiveDAO<?,?> dao = daos.get(type);
-        
-        if( null == dao) {
-            if(embedded) {
+
+    private CustomServicesPrimitiveDAO<?> getDAO(final String type, final boolean embedded) {
+        final CustomServicesPrimitiveDAO<?> dao = daos.get(type);
+
+        if (null == dao) {
+            if (embedded) {
                 throw NotFoundException.notFound.unableToFindEntityInURL(URIUtil.uri(type));
             } else {
                 throw BadRequestException.badRequests.unableToFindEntity(URIUtil.uri(type));
             }
         }
-        
+
         return dao;
     }
-    
+
+    private CustomServicesResourceDAO<?> getResourceDAO(final String type, final boolean embedded) {
+        final CustomServicesResourceDAO<?> dao = resourceDAOs.get(type);
+
+        if (null == dao) {
+            if (embedded) {
+                throw NotFoundException.notFound.unableToFindEntityInURL(URIUtil.uri(type));
+            } else {
+                throw BadRequestException.badRequests.unableToFindEntity(URIUtil.uri(type));
+            }
+        }
+
+        return dao;
+    }
+
     private CustomServicesPrimitiveType getPrimitiveType(final URI id) {
-        final CustomServicesPrimitiveDAO<?,?> dao = getDAOFromID(id);
+        final CustomServicesPrimitiveDAO<?> dao = getDAOFromID(id);
         final CustomServicesPrimitiveType primitive = (null == dao) ? null : dao.get(id);
         ArgValidator.checkEntityNotNull(asModelObjectNullSafe(primitive), id, true);
         return primitive;
     }
-    
 
-    private CustomServicesPrimitiveDAO<?, ?> getDAOFromID(final URI id) {
-        return  daos.getByModel(URIUtil.getTypeName(id));
+    private CustomServicesPrimitiveDAO<?> getDAOFromID(final URI id) {
+        return daos.getByModel(URIUtil.getTypeName(id));
     }
-    
+
+    private CustomServicesResourceDAO<?> getResourceDAOFromID(final URI id) {
+        return resourceDAOs.getByModel(URIUtil.getTypeName(id));
+    }
+
     private ModelObject toModelObject(
             CustomServicesPrimitiveResourceType resource) {
         return (resource == null) ? null : resource.asModelObject();
     }
-    
+
     private CustomServicesPrimitiveType getNullSafe(final URI id,
-            final CustomServicesPrimitiveDAO<?, ?> dao) {
+            final CustomServicesPrimitiveDAO<?> dao) {
         return dao == null ? null : dao.get(id);
     }
-    
+
     private CustomServicesPrimitiveResourceType getResourceNullSafe(final URI id,
-            final CustomServicesPrimitiveDAO<?, ?> dao) {
-        return dao == null ? null : dao.getResource(id);
+            final CustomServicesResourceDAO<?> dao) {
+        final CustomServicesPrimitiveResourceType resource = dao.getResource(id);
+        if (null == resource) {
+            throw BadRequestException.badRequests.unableToFindEntity(id);
+        }
+        return resource;
     }
-    
+
     private DataObject asModelObjectNullSafe(
             final CustomServicesPrimitiveType primitive) {
         return primitive == null ? null : primitive.asModelObject();

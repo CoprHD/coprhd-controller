@@ -19,17 +19,20 @@ package com.emc.vipr.primitives;
 import java.net.URI;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 
 import javax.lang.model.element.Modifier;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.emc.apidocs.KnownPaths;
+import com.emc.apidocs.generating.ApiReferenceTocOrganizer;
 import com.emc.apidocs.model.ApiClass;
 import com.emc.apidocs.model.ApiField;
 import com.emc.apidocs.model.ApiMethod;
 import com.emc.apidocs.model.ApiService;
-import com.emc.storageos.primitives.CustomServicesPrimitive.InputType;
+import com.emc.storageos.primitives.CustomServicesConstants;
 import com.emc.storageos.primitives.input.BasicInputParameter;
 import com.emc.storageos.primitives.input.InputParameter;
 import com.emc.storageos.primitives.java.vipr.CustomServicesViPRPrimitive;
@@ -77,7 +80,7 @@ public final class ApiPrimitiveMaker {
     private static final MethodSpec INPUT_METHOD = MethodSpec
             .methodBuilder("input").addAnnotation(Override.class)
             .addModifiers(Modifier.PUBLIC).addStatement("return INPUT")
-            .returns(ParameterizedTypeName.get(ClassName.get(Map.class), TypeName.get(InputType.class), 
+            .returns(ParameterizedTypeName.get(ClassName.get(Map.class), TypeName.get(String.class), 
                     ParameterizedTypeName.get(List.class, InputParameter.class))).build();
     
     private static final MethodSpec OUTPUT_METHOD = MethodSpec
@@ -104,20 +107,25 @@ public final class ApiPrimitiveMaker {
             .methodBuilder("body").addAnnotation(Override.class)
             .addModifiers(Modifier.PUBLIC).addStatement("return BODY")
             .returns(String.class).build();
+    
+    private static final MethodSpec RESPONSE_METHOD = MethodSpec
+            .methodBuilder("response").addAnnotation(Override.class)
+            .addModifiers(Modifier.PUBLIC).addStatement("return RESPONSE")
+            .returns(String.class).build();
 
     private static final ImmutableList<MethodSpec> METHODS = ImmutableList
             .<MethodSpec> builder()
             .add(FRIENDLY_NAME_METHOD, DESCRIPTION_METHOD, SUCCESS_CRITERIA_METHOD,
                     INPUT_METHOD, OUTPUT_METHOD, ATTRIBUTES_METHOD,
-                    PATH_METHOD, METHOD_METHOD, BODY_METHOD).build();
+                    PATH_METHOD, METHOD_METHOD, BODY_METHOD, RESPONSE_METHOD).build();
 
-    private static ImmutableList<String> METHOD_BLACK_LIST = ImmutableList
+    private static final ImmutableList<String> METHOD_BLACK_LIST = ImmutableList
             .<String> builder().add("assignTags").add("getTags").add("search")
             .add("getBulkIds").add("getBulkResources").add("getTasks").build();
 
-    final private static Logger _log = LoggerFactory
+    private static final Logger _log = LoggerFactory
             .getLogger(ApiPrimitiveMaker.class);
-
+    
     private ApiPrimitiveMaker() {
     }
 
@@ -134,23 +142,27 @@ public final class ApiPrimitiveMaker {
             final List<ApiService> services) {
 
         final Builder<JavaFile> builder = ImmutableList.<JavaFile> builder();
-
-        for (ApiService service : services) {
-            for (ApiMethod method : service.methods) {
-                if (blackListed(method)) {
-                    _log.info("Method "
-                            + method.apiService.getFqJavaClassName() + "::"
-                            + method.javaMethodName + " is black listed");
-                } else if (method.isDeprecated) {
-                    _log.info("Method "
-                            + method.apiService.getFqJavaClassName() + "::"
-                            + method.javaMethodName + " is deprecated");
-                } else {
-                    builder.add(makePrimitive(method));
+        final ApiReferenceTocOrganizer grouping = new ApiReferenceTocOrganizer(KnownPaths.getReferenceFile("ApiReferenceGrouping.txt"));
+        final Map<String, List<ApiService>> groups = grouping.organizeServices(services);
+        
+        for( final Entry<String, List<ApiService>> groupEntry : groups.entrySet() ) {
+            for (final ApiService service : groupEntry.getValue()) {
+                for (final ApiMethod method : service.methods) {
+                    if (blackListed(method)) {
+                        _log.info("Method "
+                                + method.apiService.getFqJavaClassName() + "::"
+                                + method.javaMethodName + " is black listed");
+                    } else if (method.isDeprecated) {
+                        _log.info("Method "
+                                + method.apiService.getFqJavaClassName() + "::"
+                                + method.javaMethodName + " is deprecated");
+                    } else {
+                        builder.add(makePrimitive(groupEntry.getKey(), method));
+                    }
                 }
             }
         }
-
+        
         return builder.build();
     }
 
@@ -163,14 +175,15 @@ public final class ApiPrimitiveMaker {
     /**
      * Make the primitive class for this method
      */
-    private static JavaFile makePrimitive(final ApiMethod method) {
-        final String name = makePrimitiveName(method);
-        final String friendlyName = makeFriendlyName(name, method);
-
-        TypeSpec primitive = TypeSpec.classBuilder(name)
+    private static JavaFile makePrimitive(final String group, final ApiMethod method) {
+        final String name = makePrimitiveName(group, method);
+        final String id = makePrimitiveID(method);
+        final String friendlyName = makeFriendlyName(method);
+        
+        final TypeSpec primitive = TypeSpec.classBuilder(id)
                 .addModifiers(Modifier.PUBLIC, Modifier.FINAL)
                 .superclass(CustomServicesViPRPrimitive.class).addMethods(METHODS)
-                .addMethod(makeConstructor(name))
+                .addMethod(makeConstructor(id, name))
                 .addFields(makeFields(method, friendlyName)).build();
 
         return JavaFile.builder(PACKAGE, primitive).build();
@@ -187,17 +200,20 @@ public final class ApiPrimitiveMaker {
      */
     private static Iterable<FieldSpec> makeFields(final ApiMethod method,
             final String friendlyName) {
-
+        final ImmutableMap.Builder<String, FieldSpec> requestFields = ImmutableMap.<String, FieldSpec>builder();
+        final String body = makeBody(method.input, requestFields);
+        
         return ImmutableList
                 .<FieldSpec> builder()
                 .add(makeStringConstant("FRIENDLY_NAME", friendlyName))
-                .add(makeStringConstant("DESCRIPTION", method.description))
+                .add(makeStringConstant("DESCRIPTION", method.brief == null ? "" : method.brief))
                 .add(makeStringConstant("SUCCESS_CRITERIA",
                         makeSuccessCriteria(method)))
                 .add(makeStringConstant("PATH", method.path))
                 .add(makeStringConstant("METHOD", method.httpMethod))
-                .add(makeStringConstant("BODY", makeBody(method.input)))
-                .addAll(makeInput(method)).addAll(makeOutput(method))
+                .add(makeStringConstant("BODY", body))
+                .addAll(makeInput(method, requestFields.build()))
+                .addAll(makeOutput(method))
                 .add(makeAttributes()).build();
     }
 
@@ -209,18 +225,23 @@ public final class ApiPrimitiveMaker {
      * 
      * @return JSON template for the request entity
      */
-    private static String makeBody(final ApiClass input) {
-        // If there is no request body just return an empty string;
+    private static String makeBody(final ApiClass input, final ImmutableMap.Builder<String, FieldSpec> requestFields) {
+     // If there is no request body just return an empty string;
         if (null == input) {
             return "";
         }
 
+        return makeBody(new ParameterFieldName.Request(), input.name, input, requestFields );
+    }
+    private static String makeBody(final ParameterFieldName.Request fieldName,
+            final String parameterNamePrefix, 
+            final ApiClass input, 
+            final ImmutableMap.Builder<String, FieldSpec> requestFields ) {
         // If the input was not empty but there are no fields
         // throw an exception
         if (null == input.fields) {
             throw new RuntimeException("input with no fields!!");
         }
-
         final StringBuilder body = new StringBuilder();
         String separator = "{\n";
         if (null != input.fields) {
@@ -245,10 +266,14 @@ public final class ApiPrimitiveMaker {
                 }
 
                 body.append(separator + "\"" + name + "\": " + prefix);
+                final String parameterName = makeInputParameterName(parameterNamePrefix, field);
                 if (field.isPrimitive()) {
-                    body.append("$" + field.name);
+                    final FieldSpec param = makeInputParameter(fieldName, parameterName, field,
+                            field.required);
+                    requestFields.put(param.name, param);
+                    body.append("$"+parameterName);
                 } else {
-                    body.append(makeBody(field.type));
+                    body.append(makeBody(fieldName, parameterName, field.type, requestFields));
                 }
                 body.append(suffix);
                 separator = ",\n";
@@ -277,16 +302,16 @@ public final class ApiPrimitiveMaker {
         return method.isTaskResponse ? TASK_SUCCESS : HTTP_SUCCESS;
     }
 
-    private static MethodSpec makeConstructor(final String name) {
-        final String id = URI.create(
+    private static MethodSpec makeConstructor(final String id, final String name) {
+        final String urn = URI.create(
                 String.format("urn:storageos:%1$s:%2$s:",
-                        CustomServicesViPRPrimitive.class.getSimpleName(), name)).toString();
+                        CustomServicesViPRPrimitive.class.getSimpleName(), id)).toString();
         return MethodSpec
                 .constructorBuilder()
                 .addModifiers(Modifier.PUBLIC)
                 .addStatement(
-                        "super($T.create($S), $L.class.getName())",
-                        URI.class, id, name).build();
+                        "super($T.create($S), $S)",
+                        URI.class, urn, name).build();
     }
 
     private static FieldSpec makeStringConstant(final String name,
@@ -303,52 +328,64 @@ public final class ApiPrimitiveMaker {
      * 
      * @param method
      *            ApiMethod that is used to generate the primitive
+     * @param requestFields 
+     *            The fields built from the request
      * 
      * @return the List of input fields
      */
-    private static Iterable<FieldSpec> makeInput(final ApiMethod method) {
+    private static Iterable<FieldSpec> makeInput(final ApiMethod method, ImmutableMap<String, FieldSpec> requestFields) {
         final ImmutableList.Builder<FieldSpec> builder = ImmutableList
                 .<FieldSpec> builder();
-        final ImmutableList.Builder<String> parameters = new ImmutableList.Builder<String>();
+        final ImmutableList.Builder<String> path_parameters = new ImmutableList.Builder<String>();
+        final ImmutableList.Builder<String> query_parameters = new ImmutableList.Builder<String>();
+        final ImmutableList.Builder<String> body_parameters = new ImmutableList.Builder<String>();
         final ParameterFieldName.Input name = new ParameterFieldName.Input();
 
+        body_parameters.addAll(requestFields.keySet());
+        builder.addAll(requestFields.values());
+        
         for (ApiField pathParameter : method.pathParameters) {
             FieldSpec param = makeInputParameter(name, pathParameter, true);
-            parameters.add(param.name);
+            path_parameters.add(param.name);
             builder.add(param);
         }
 
         for (ApiField queryParameter : method.queryParameters) {
             FieldSpec param = makeInputParameter(name, queryParameter,
                     queryParameter.required);
-            parameters.add(param.name);
+            query_parameters.add(param.name);
             builder.add(param);
         }
 
-        if (null != method.input && null != method.input.fields) {
-            for (final ApiField field : method.input.fields) {
-                final ImmutableList<FieldSpec> requestParameters = makeRequestParameters(
-                        name, "", field);
-                for (final FieldSpec requestParameter : requestParameters) {
-                    parameters.add(requestParameter.name);
-                }
-                builder.addAll(requestParameters);
-            }
-        }
-
         builder.add(FieldSpec.builder(
-                ParameterizedTypeName.get(ImmutableList.class, InputParameter.class), "INPUT_LIST")
+                ParameterizedTypeName.get(ImmutableList.class, InputParameter.class), "PATH_INPUT")
                 .addModifiers(Modifier.PRIVATE, Modifier.FINAL,Modifier.STATIC)
                 .initializer("new $T().add($L).build()", 
                         ParameterizedTypeName.get(ImmutableList.Builder.class,InputParameter.class),
-                        Joiner.on(",").join(parameters.build())).build());
+                        Joiner.on(",").join(path_parameters.build())).build());
+        builder.add(FieldSpec.builder(
+                ParameterizedTypeName.get(ImmutableList.class, InputParameter.class), "QUERY_INPUT")
+                .addModifiers(Modifier.PRIVATE, Modifier.FINAL,Modifier.STATIC)
+                .initializer("new $T().add($L).build()", 
+                        ParameterizedTypeName.get(ImmutableList.Builder.class,InputParameter.class),
+                        Joiner.on(",").join(query_parameters.build())).build());
+        builder.add(FieldSpec.builder(
+                ParameterizedTypeName.get(ImmutableList.class, InputParameter.class), "BODY_INPUT")
+                .addModifiers(Modifier.PRIVATE, Modifier.FINAL,Modifier.STATIC)
+                .initializer("new $T().add($L).build()", 
+                        ParameterizedTypeName.get(ImmutableList.Builder.class,InputParameter.class),
+                        Joiner.on(",").join(body_parameters.build())).build());
         
         return builder.add(
                 FieldSpec
-                        .builder(ParameterizedTypeName.get(ClassName.get(Map.class), ClassName.get(InputType.class), 
+                        .builder(ParameterizedTypeName.get(ClassName.get(Map.class), ClassName.get(String.class), 
                                 ParameterizedTypeName.get(List.class, InputParameter.class)), "INPUT")
                         .addModifiers(Modifier.PRIVATE, Modifier.FINAL,Modifier.STATIC)
-                        .initializer("$T.of($T.$L, $L)", ImmutableMap.class, InputType.class, InputType.INPUT_PARAMS.name(), "INPUT_LIST")
+                        .initializer("$T.of($T.INPUT_PARAMS, $L, $T.PATH_PARAMS, $L, $T.QUERY_PARAMS, $L)", 
+                                ImmutableMap.class, 
+                                CustomServicesConstants.class, "BODY_INPUT",
+                                CustomServicesConstants.class, "PATH_INPUT",
+                                CustomServicesConstants.class, "QUERY_INPUT")
                         .build()).build();
     }
 
@@ -367,8 +404,9 @@ public final class ApiPrimitiveMaker {
         final ImmutableList.Builder<String> parameters = new ImmutableList.Builder<String>();
 
         final ParameterFieldName.Output fieldName = new ParameterFieldName.Output();
-
+        
         if (null != method.output && null != method.output.fields) {
+            builder.add(makeStringConstant("RESPONSE", method.getFqReturnType()));
             for (final ApiField field : method.output.fields) {
                 final ImmutableList<FieldSpec> responseParameters = makeResponseParameters(
                         fieldName, method.output.name, field);
@@ -377,6 +415,8 @@ public final class ApiPrimitiveMaker {
                 }
                 builder.addAll(responseParameters);
             }
+        } else {
+            builder.add(makeStringConstant("RESPONSE", ""));
         }
 
         return builder.add(
@@ -395,40 +435,6 @@ public final class ApiPrimitiveMaker {
                 ParameterizedTypeName.get(Map.class, String.class, String.class), "ATTRIBUTES")
                 .initializer("$T.of()", ImmutableMap.class).build();
     }
-    /**
-     * Make a list of request parameters in this request
-     * 
-     * @param fieldName
-     *            field name generator
-     * @param prefix
-     *            prefix for the parameter name
-     * @param field
-     *            The ApiField in the request
-     * @return The list of fields in this request
-     */
-    private static ImmutableList<FieldSpec> makeRequestParameters(
-            final ParameterFieldName.Input fieldName, final String prefix,
-            final ApiField field) {
-        final ImmutableList.Builder<FieldSpec> builder = ImmutableList
-                .<FieldSpec> builder();
-        final String parameterName = makeParameterName(prefix, field);
-        if (field.isPrimitive()) {
-            builder.add(makeInputParameter(fieldName, parameterName, field,
-                    field.required));
-        } else {
-            for (ApiField subField : field.type.fields) {
-                final String subPrefix;
-                if (subField.hasChildElements()) {
-                    subPrefix = makeParameterName(parameterName, subField);
-                } else {
-                    subPrefix = parameterName;
-                }
-                builder.addAll(makeRequestParameters(fieldName, subPrefix,
-                        subField));
-            }
-        }
-        return builder.build();
-    }
 
     /**
      * Make the parameters in this response entity
@@ -446,14 +452,16 @@ public final class ApiPrimitiveMaker {
             final ApiField field) {
         final ImmutableList.Builder<FieldSpec> builder = ImmutableList
                 .<FieldSpec> builder();
-        final String parameterName = makeParameterName(prefix, field);
+
+        final String parameterName = makeOutputParameterName(prefix, field);
+        
         if (field.isPrimitive()) {
             builder.add(makeOutputParameter(fieldName, parameterName, field));
         } else {
             for (ApiField subField : field.type.fields) {
                 final String subPrefix;
-                if (subField.hasChildElements()) {
-                    subPrefix = makeParameterName(parameterName, subField);
+                if (!field.collection && subField.hasChildElements()) {
+                    subPrefix = makeOutputParameterName(parameterName, subField);
                 } else {
                     subPrefix = parameterName;
                 }
@@ -471,7 +479,7 @@ public final class ApiPrimitiveMaker {
     }
 
     private static FieldSpec makeInputParameter(
-            final ParameterFieldName.Input fieldName,
+            final ParameterFieldName fieldName,
             final String parameterName, final ApiField field,
             final boolean required) {
         return FieldSpec
@@ -585,23 +593,22 @@ public final class ApiPrimitiveMaker {
         }
     }
 
-    private static String makePrimitiveName(ApiMethod method) {
+    private static String makePrimitiveID(final ApiMethod method) {
         return method.apiService.javaClassName
                 + StringUtils
                         .toUpperCase(method.javaMethodName.substring(0, 1))
                 + method.javaMethodName.substring(1);
     }
-
-    private static String makeFriendlyName(final String name,
-            final ApiMethod method) {
-        if (null == method.brief || method.brief.isEmpty()) {
-            return name;
-        } else {
-            return method.brief;
-        }
+    
+    private static String makePrimitiveName(final String group, final ApiMethod method) {
+        return group + "/" + method.apiService.getTitle() +"/" + method.javaMethodName;
     }
 
-    private static String makeParameterName(final String prefix,
+    private static String makeFriendlyName(final ApiMethod method) {
+        return method.getTitle();
+    }
+
+    private static String makeInputParameterName(final String prefix,
             final ApiField field) {
         final StringBuilder name = new StringBuilder();
 
@@ -618,6 +625,19 @@ public final class ApiPrimitiveMaker {
             name.append('@');
         }
 
+        name.append(field.name);
+
+        return name.toString();
+    }
+    
+    private static String makeOutputParameterName(final String prefix,
+            final ApiField field) {
+        final StringBuilder name = new StringBuilder();
+
+        if (!prefix.isEmpty()) {
+            name.append(prefix + ".");
+        }
+        
         name.append(field.name);
 
         return name.toString();
@@ -643,7 +663,12 @@ public final class ApiPrimitiveMaker {
                 super("INPUT_");
             }
         }
+        private static class Request extends ParameterFieldName {
 
+            Request() {
+                super("REQUEST_");
+            }
+        }
         private static class Output extends ParameterFieldName {
 
             Output() {
@@ -651,5 +676,4 @@ public final class ApiPrimitiveMaker {
             }
         }
     }
-
 }

@@ -16,6 +16,7 @@
  */
 package com.emc.storageos.primitives;
 
+import java.net.URI;
 import java.util.Map;
 import java.util.Set;
 
@@ -54,6 +55,12 @@ public interface CustomServicesPrimitiveResourceType {
      * @return The name of the resource
      */
     public String name();
+
+    /**
+     * ParentId of the resource
+     * @return The parentId of the resource (Eg., for ansible_inventory, the ansible package URI)
+     */
+    public URI parentId();
     
     
     /**

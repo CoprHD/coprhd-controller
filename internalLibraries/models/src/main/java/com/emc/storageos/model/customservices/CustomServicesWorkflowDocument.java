@@ -82,13 +82,20 @@ public class CustomServicesWorkflowDocument {
     public static class Input {
 
         private String name;
+        //type of CustomServicesConstants.InputType
         private String type;
         private String friendlyName;
         private String defaultValue;
         private String value;
         private String group;
+        private String description;
+        //type of the value e.g (STRING, INTEGER ...etc)
+        private String inputFieldType;
+        private String tableName;
         private boolean required = true;
         private boolean locked = false;
+        // Use this to set "key,value" pairs for type "InputFromUserMulti"
+        private Map<String, String> options;
 
         @XmlElement(name = "name")
         public String getName() {
@@ -152,6 +159,39 @@ public class CustomServicesWorkflowDocument {
         }
         public void setLocked(boolean locked) {
             this.locked = locked;
+        }
+
+        @XmlElement(name = "description")
+        public String getDescription() {
+            return description;
+        }
+        public void setDescription(String description) {
+            this.description = description;
+        }
+
+        @XmlElement(name = "input_field_type")
+        public String getInputFieldType() {
+            return inputFieldType;
+        }
+        public void setInputFieldType(String inputfieldtype) {
+            this.inputFieldType = inputfieldtype;
+        }
+
+        @XmlElement(name = "table_name")
+        public String getTableName() {
+            return tableName;
+        }
+        public void setTableName(String tablename) {
+            this.tableName = tablename;
+        }
+
+        @XmlElement(name = "options")
+        public Map<String, String> getOptions() {
+            return options;
+        }
+
+        public void setOptions(Map<String, String> options) {
+            this.options = options;
         }
     }
 

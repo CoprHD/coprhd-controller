@@ -27,11 +27,12 @@ import com.emc.storageos.primitives.output.OutputParameter;
 public interface CustomServicesPrimitive {
 
     public enum StepType {
-        VIPR_REST("ViPR REST API"),
-        REST("REST API"),
-        LOCAL_ANSIBLE("Local Ansible"),
-        REMOTE_ANSIBLE("Remote Ansible"),
-        SHELL_SCRIPT("Shell Script"),
+        VIPR_REST("vipr"),
+        REST("rest"),
+        LOCAL_ANSIBLE("ansible"),
+        REMOTE_ANSIBLE("remote_ansible"),
+        SHELL_SCRIPT("script"),
+        WORKFLOW("Workflow"),
         START("Start"),
         END("End");
 
@@ -55,32 +56,6 @@ public interface CustomServicesPrimitive {
             return null;
         }
     }
-
-    public enum InputType {
-        INPUT_PARAMS("input_params"),
-        CONNECTION_DETAILS("connection_details"),
-        ANSIBLE_OPTIONS("ansible_options");
-
-        private final String inputType;
-        private InputType(final String inputType)
-        {
-            this.inputType = inputType;
-        }
-
-        @Override
-        public String toString() {
-            return inputType;
-        }
-        public static InputType fromString(String v) {
-            for (InputType e : InputType.values())
-            {
-                if (v.equals(e.inputType))
-                    return e;
-            }
-
-            return null;
-        }
-    }
     
     public URI id();
     public String name();
@@ -88,7 +63,7 @@ public interface CustomServicesPrimitive {
     public String description();
     public String successCriteria();
     public StepType stepType();
-    public Map<InputType, List<InputParameter>> input();
+    public Map<String, List<InputParameter>> input();
     public List<OutputParameter> output();
     public Map<String, String> attributes();
     public NamedURI resource();

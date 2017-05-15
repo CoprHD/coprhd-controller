@@ -92,15 +92,14 @@ public class NetworkAssociationHelper {
             // update the network implicitly connected varrays based on added ports
             updateConnectedVirtualArrays(network, addPorts, true, dbClient);
         }
-        
+
         // now I need to handle pools
         StoragePoolAssociationHelper.handleNetworkUpdated(network, addVarrays, remVarray, createdAndUpdatedPorts, remPorts, dbClient,
                 coordinator);
-        
+
         // Update the virtual nas with network changes!!!
-        StoragePortAssociationHelper.runUpdateVirtualNasAssociationsProcess(addPorts, remPorts, dbClient);
+        StoragePortAssociationHelper.runUpdateVirtualNasAssociationsProcess(network, addPorts, remPorts, dbClient);
     }
-    
 
     /**
      * Updates the implicitly connected virtual arrays for the passed
@@ -175,8 +174,7 @@ public class NetworkAssociationHelper {
 
             if (cascade) {
                 // now update the routed networks
-                List<Network> routednetworks =
-                        getNetworkRoutedNetworksForUpdate(network, dbClient);
+                List<Network> routednetworks = getNetworkRoutedNetworksForUpdate(network, dbClient);
                 for (Network routedNetwork : routednetworks) {
                     NetworkLite lite = NetworkUtil.getNetworkLite(routedNetwork.getId(), dbClient);
                     newSet = getNetworkConnectedVirtualArrays(routedNetwork.getId(), lite.getRoutedNetworks(),
@@ -271,8 +269,7 @@ public class NetworkAssociationHelper {
      * @param dbClient an instance of the DB client
      */
     public static void updatePortAssociations(Network network, List<StoragePort> ports, DbClient dbClient) {
-        Set<String> varraySet = network.getAssignedVirtualArrays() == null ? null :
-                new HashSet<String>(network.getAssignedVirtualArrays());
+        Set<String> varraySet = network.getAssignedVirtualArrays() == null ? null : new HashSet<String>(network.getAssignedVirtualArrays());
         for (StoragePort port : ports) {
             if (!network.getId().equals(port.getNetwork())) {
                 port.setNetwork(network.getId());

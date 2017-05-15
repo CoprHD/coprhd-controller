@@ -2,10 +2,6 @@
 nameDescTabID = 'nameDescRestContent';
 callDetailsTabID = 'callContent';
 inputOutputTabID = 'inputOutputRestContent';
-//restCallMethodOptions = _restCallMethodOptions;
-//restCallAuthTypes = _restCallAuthTypes;
-restCallMethodOptions = _arg1;
-restCallAuthTypes = _arg2;
 }%
 
 <div ng-controller="restAPIPrimitiveController" id="restAPIModal">
@@ -17,14 +13,14 @@ restCallAuthTypes = _arg2;
         <input type="hidden" name="restAPIPrimitive.id" id="restAPIPrimitive_id" ng-value="restAPIPrimitive.id"/>
 
         <div class="col-md-3 tabbable restTabbable">
-            <ul class="nav nav-pills nav-stacked">
+            <ul class="nav nav-pills nav-stacked primitivesNav">
                 <li role="presentation" class="active"><a href="${'#'+nameDescTabID}" data-toggle="tab"><span class="badge">1</span>
                     &{'primitive.menu.nameDescription'}</a></li>
                 <li class=""><a href="${'#'+callDetailsTabID}" data-toggle="tab"><span class="badge">2</span>
                     &{'primitive.menu.restCallDetails'}</a>
                 </li>
                 <li class=""><a href="${'#'+inputOutputTabID}" data-toggle="tab"><span class="badge">3</span>
-                    &{'primitive.menu.inputsOutputs'}</a></li>
+                    &{'restAPIPrimitive.menu.inputsOutputs'}</a></li>
             </ul>
         </div>
         <div class="col-md-9">
@@ -32,10 +28,10 @@ restCallAuthTypes = _arg2;
                 <div class="tab-pane active" id="${nameDescTabID}">
                     #{Modal.body}
                     <control-group v-field='restAPIPrimitive.name' labelWidth="1" required >
-                        <input-text class="initialFocus"></input-text>
+                        <input-text class="initialFocus" maxlength="50"></input-text>
                     </control-group>
                     <control-group v-field='restAPIPrimitive.description' labelWidth="1" >
-                        <input-text></input-text>
+                        <input-text maxlength="200"></input-text>
                     </control-group>
                     #{/Modal.body}
                 </div>
@@ -43,14 +39,15 @@ restCallAuthTypes = _arg2;
                     #{Modal.body}
                     <div>
                         <div class="input-group">
-                            <span class="input-group-btn" ng-model="restAPIPrimitive.method">
-                                <select class="btn" title="Method">
+                            <span class="input-group-btn">
+                                <select id="restAPIPrimitive.method" name="restAPIPrimitive.method" class="btn" title="Method" ng-model="restAPIPrimitive.method">
                                   <option>GET</option>
                                   <option>POST</option>
                                   <option>PUT</option>
+                                    <option>DELETE</option>
                                 </select>
                             </span>
-                            <input type="text" class="form-control" placeholder="Enter request URL" ng-model="restAPIPrimitive.requestURL">
+                            <input id="restAPIPrimitive_requestURL" name="restAPIPrimitive.requestURL" type="text" class="form-control" placeholder="Enter path" ng-model="restAPIPrimitive.requestURL">
                         </div>
 
                         <ul id="" class="nav nav-tabs" role="tablist" style="padding-top:15px;">
@@ -60,28 +57,15 @@ restCallAuthTypes = _arg2;
                             </li>
                             <li><a href="#queryParamsContent" role="tab" data-toggle="tab">&nbsp;&{'restAPIPrimitive.tabs.queryParams'}</a>
                             </li>
-                            <li><a href="#requestBodyContent" role="tab" data-toggle="tab">&nbsp;&{'restAPIPrimitive.tabs.requestBody'}</a>
+                            <li ng-if="restAPIPrimitive.method != 'GET'"><a href="#requestBodyContent" role="tab" data-toggle="tab">&nbsp;&{'restAPIPrimitive.tabs.requestBody'}</a>
                             </li>
                         </ul>
                         <div class="tab-content">
                             <!--Authorization-->
-                            <div class="tab-pane active" id="authContent" style="width: 300px;">
-                                #{field 'restAPIPrimitive.authType'}
-                                    %{
-                                    field.options = restCallAuthTypes
-                                    field.cssClass = 'span6 initialFocus'
-                                    }%
-                                    #{Form.selectOneControlGroup field:field /}
-                                #{/field}
-                                <!--TODO: ng-if is not working-->
-                                <div id="authCredentials" style="display: none;">
-                                    <control-group v-field='restAPIPrimitive.username' labelWidth="1" required >
-                                        <input-text class="initialFocus"></input-text>
-                                    </control-group>
-                                    <control-group v-field='restAPIPrimitive.password' labelWidth="1" required>
-                                        <input-text></input-text>
-                                    </control-group>
-                                </div>
+                            <div class="tab-pane active" id="authContent">
+                                <control-group v-field='restAPIPrimitive.authType'>
+                                    <select-one options="restCallAuthTypes" auto-default v-disabled='locked'></select-one>
+                                </control-group>
                             </div>
                             <!--Query Params-->
                             <div class="tab-pane" id="queryParamsContent" style="width: 300px;">
@@ -104,7 +88,7 @@ restCallAuthTypes = _arg2;
                             <!--Headers-->
                             <div class="tab-pane" id="headersContent" style="width: 300px;">
                                 <div class="row" ng-repeat="info in scriptIOs.headers" style="margin-bottom:5px;">
-                                    <div class="pull-left col-sm-11" v-field="info.queryParam">
+                                    <div class="pull-left col-sm-11" v-field="info.header">
                                         <input-text></input-text>
                                     </div>
                                     <div class="pull-left col-sm-1" style="padding-left:0px; margin-top:5px;">
@@ -121,10 +105,7 @@ restCallAuthTypes = _arg2;
                             </div>
                             <!--Request Body-->
                             <div class="tab-pane" id="requestBodyContent" >
-                                <textarea class="form-control input-sm" rows="5" ng-model="restAPIPrimitive.body"></textarea>
-                                <!--<control-group v-field='restAPIPrimitive.body'>
-                                    <textarea></textarea>
-                                </control-group>-->
+                                <textarea id="restAPIPrimitive_rawBody" name="restAPIPrimitive.rawBody" class="form-control input-sm" rows="5" ng-model="restAPIPrimitive.rawBody"></textarea>
                             </div>
                             <input type="hidden" name="restAPIPrimitive.queryParams" ng-value="queryParams"/>
                             <input type="hidden" name="restAPIPrimitive.headers" ng-value="headers"/>
@@ -138,33 +119,13 @@ restCallAuthTypes = _arg2;
                     #{Modal.body}
                     <div>
                         <ul class="nav nav-tabs" role="tablist">
-                            <li class="active"><a href="#inputRestContent" role="tab" data-toggle="tab">&nbsp;&{'primitive.tabs.input'}</a>
-                            </li>
-                            <li><a href="#outputRestContent" role="tab" data-toggle="tab">&nbsp;&{'primitive.tabs.output'}</a>
+                            <li class="active"><a href="#outputRestContent" role="tab" data-toggle="tab">&nbsp;&{'restAPIPrimitive.tabs.output'}</a>
                             </li>
                         </ul>
                         <div class="tab-content">
-                            <div class="tab-pane active" id="inputRestContent" style="width: 300px;">
-                                <!-- Input Tab -->
-                                <div class="row" ng-repeat="info in scriptIOs.inputs" style="margin-bottom:5px;">
-                                    <div class="pull-left col-sm-11" v-field="info.input">
-                                        <input-text></input-text>
-                                    </div>
-                                    <div class="pull-left col-sm-1" style="padding-left:0px; margin-top:5px;">
-                                        <button type="button" ng-click="deleteInput($index)" class="close">&times;</button>
-                                    </div>
-                                </div>
-                                <div class="row">
-                                    <div class="pull-left col-sm-11">
-                                        <button type="button" ng-click="addInput()" class="btn btn-sm btn-success"><i
-                                                v-icon=plus></i> &{'button.add'}
-                                        </button>
-                                    </div>
-                                </div>
-
-                            </div>
-                            <div class="tab-pane" id="outputRestContent" style="width: 300px;">
+                            <div class="tab-pane active" id="outputRestContent" style="width: 300px;">
                                 <!-- Output Tab -->
+                                <span class="help-block">&{'restAPIPrimitive.output.help'}</span>
                                 <div class="row" ng-repeat="info in scriptIOs.outputs" style="margin-bottom:5px;">
                                     <div class="pull-left col-sm-11" v-field="info.output">
                                         <input-text></input-text>
@@ -181,7 +142,6 @@ restCallAuthTypes = _arg2;
                                     </div>
                                 </div>
                             </div>
-                            <input type="hidden" name="restAPIPrimitive.inputs" ng-value="inputs"/>
                             <input type="hidden" name="restAPIPrimitive.outputs" ng-value="outputs"/>
                         </div>
                     </div>
@@ -210,7 +170,7 @@ restCallAuthTypes = _arg2;
         if (isBlank($('#restAPIPrimitive_name').val())) {
             complete = false;
         }
-        else if (isBlank($('#restAPIPrimitive_scriptName').val())) {
+        else if (isBlank($('#restAPIPrimitive_requestURL').val())) {
             complete = false;
         }
 
@@ -224,15 +184,6 @@ restCallAuthTypes = _arg2;
     }
 
     $(function() {
-        $("#restAPIPrimitive_authType").change(function(){
-          if($(this).val() === "BasicAuth"){
-            $('#authCredentials').show();
-          }
-          else{
-            $('#authCredentials').hide();
-          }
-        });
-
         //on start hiding finish and back buttons
         $('#finishButtonRest').hide();
         $('#backButtonRest').hide();
@@ -276,23 +227,17 @@ restCallAuthTypes = _arg2;
     });
 
     angular.module("portalApp").controller('restAPIPrimitiveController', function($element, $scope, $compile, $http, translate) {
-
         var resetVars = function(){
             $scope.restAPIPrimitive = {};
+            $scope.restAPIPrimitive.method="GET";
+            $scope.restAPIPrimitive.authType="NONE";
             $scope.scriptIOs = {};
-            $scope.scriptIOs.inputs = [];
             $scope.scriptIOs.outputs = [];
             $scope.scriptIOs.queryParams = [];
+            $scope.scriptIOs.headers = [];
         }
 
         resetVars();
-        $scope.addI = {input:''};
-        $scope.deleteInput = function(idx) {
-            $scope.scriptIOs.inputs.splice(idx, 1);
-        }
-        $scope.addInput = function() {
-            $scope.scriptIOs.inputs.push(angular.copy($scope.addI));
-        }
 
         $scope.addO = {output:''};
         $scope.deleteOutput = function(idx) {
@@ -310,46 +255,56 @@ restCallAuthTypes = _arg2;
             $scope.scriptIOs.queryParams.push(angular.copy($scope.addQP));
         }
 
+        $scope.addH = {header:''};
+        $scope.deleteHeader = function(idx) {
+            $scope.scriptIOs.headers.splice(idx, 1);
+        }
+        $scope.addHeader = function() {
+            $scope.scriptIOs.headers.push(angular.copy($scope.addH));
+        }
+
         $scope.$watch('scriptIOs', function(newVal) {
-            var inputs = [], outputs = [], queryParams = [];
-            angular.forEach($scope.scriptIOs.inputs, function(obj) {
-                if (obj.input !== '') inputs.push(obj.input);
-            });
+            var outputs = [], queryParams = [], headers = [];
             angular.forEach($scope.scriptIOs.outputs, function(obj) {
                 if (obj.output !== '') outputs.push(obj.output);
             });
             angular.forEach($scope.scriptIOs.queryParams, function(obj) {
                 if (obj.queryParam !== '') queryParams.push(obj.queryParam);
             });
+            angular.forEach($scope.scriptIOs.headers, function(obj) {
+                if (obj.queryParam !== '') headers.push(obj.header);
+            });
 
-            $scope.inputs = inputs.toString();
             $scope.outputs = outputs.toString();
             $scope.queryParams = queryParams.toString();
+            $scope.headers = headers.toString();
        }, true);
+
+
+        function populateLocalVars(copyFrom, copyTo, key){
+            if(copyFrom){
+                    var arr = copyFrom.split(',');
+                    $.each( arr, function( index, value ){
+                        var temp = {};
+                        temp[key] = $.trim(value);
+                        copyTo.push(temp);
+                    });
+                }
+        }
 
        // for edit functionality
        $scope.populateModal = function(edit, id, type) {
             resetVars();
             if (edit) {
                 $scope.modalTitle=translate('restAPI.primitive.edit.title');
-                $('#restAPIPrimitive_newScriptControlGroup').show();
 
                 $http.get(routes.Primitive_get({primitiveId: id, primitiveType: type})).then(function (resp) {
                     if (resp.status == 200) {
                         $scope.restAPIPrimitive = resp.data;
-                        // converting inputs/outputs to local format
-                        if($scope.restAPIPrimitive.inputs){
-                            var arr = $scope.restAPIPrimitive.inputs.split(',');
-                            $.each( arr, function( index, value ){
-                                $scope.scriptIOs.inputs.push({input:$.trim(value)})
-                            });
-                        }
-                        if($scope.restAPIPrimitive.outputs){
-                            var arr = $scope.restAPIPrimitive.outputs.split(',');
-                            $.each( arr, function( index, value ){
-                                $scope.scriptIOs.outputs.push({output:$.trim(value)})
-                            });
-                        }
+                        // converting outputs/headers to local format
+                        populateLocalVars($scope.restAPIPrimitive.outputs, $scope.scriptIOs.outputs, 'output');
+                        populateLocalVars($scope.restAPIPrimitive.headers, $scope.scriptIOs.headers, 'header');
+                        populateLocalVars($scope.restAPIPrimitive.queryParams, $scope.scriptIOs.queryParams, 'queryParam');
                     }
                 });
 

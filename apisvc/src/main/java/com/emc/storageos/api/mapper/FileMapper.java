@@ -88,6 +88,7 @@ public class FileMapper {
             replication.setAccessState(from.getAccessState());
         }
         to.setProtection(replication);
+        to.setFilePolicies(from.getFilePolicies());
         return to;
     }
 

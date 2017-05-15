@@ -1230,7 +1230,7 @@ public class StorageDriverSimulator extends DefaultStorageDriver implements Bloc
             pair.setReplicationState("active");
             nativeIds.add(pair.getNativeId());
         }
-        String msg = String.format("%s: %s --- resumed replication pairs %s.", driverName, "failover", nativeIds);
+        String msg = String.format("%s: %s --- resumed replication pairs %s.", driverName, "resume", nativeIds);
         _log.info(msg);
         task.setMessage(msg);
         return task;

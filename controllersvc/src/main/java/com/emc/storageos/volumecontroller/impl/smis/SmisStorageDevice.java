@@ -593,6 +593,22 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
 
             for (Volume volume : volumes) {
                 logMsgBuilder.append(String.format("%nVolume:%s", volume.getLabel()));
+
+                // check if the volume is on array, if not, no operation on array side
+                CIMInstance volumeInstance = _helper.checkExists(storageSystem,
+                        _cimPath.getBlockObjectPath(storageSystem, volume), false, false);
+                if (volumeInstance == null) {
+                    // related volume state (if any) has been deleted. skip processing, if already
+                    // deleted from array.
+                    _log.info(String.format("Volume %s already deleted: ", volume.getNativeId()));
+                    volume.setInactive(true);
+                    _dbClient.updateObject(volume);
+                    VolumeTaskCompleter deleteTaskCompleter = multiVolumeTaskCompleter
+                            .skipTaskCompleter(volume.getId());
+                    deleteTaskCompleter.ready(_dbClient);
+                    continue;
+                }
+
                 if (storageSystem.checkIfVmax3()) {
                     // Flag to indicate whether or not we need to use the EMCForce flag on this operation.
                     // We currently use this flag when dealing with RP Volumes as they are tagged for RP and the
@@ -631,20 +647,8 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
                     _helper.removeVolumeFromStorageGroupsIfVolumeIsNotInAnyMV(storageSystem, volume);
                 }
 
-                CIMInstance volumeInstance = _helper.checkExists(storageSystem,
-                        _cimPath.getBlockObjectPath(storageSystem, volume), false, false);
                 _helper.doApplyRecoverPointTag(storageSystem, volume, false);
-                if (volumeInstance == null) {
-                    // related volume state (if any) has been deleted. skip processing, if already
-                    // deleted from array.
-                    _log.info(String.format("Volume %s already deleted: ", volume.getNativeId()));
-                    volume.setInactive(true);
-                    _dbClient.updateObject(volume);
-                    VolumeTaskCompleter deleteTaskCompleter = multiVolumeTaskCompleter
-                            .skipTaskCompleter(volume.getId());
-                    deleteTaskCompleter.ready(_dbClient);
-                    continue;
-                }
+
                 // Compare the volume labels of the to-be-deleted and existing volumes
                 /**
                  * This will fail in the case when the user just changes the label of the

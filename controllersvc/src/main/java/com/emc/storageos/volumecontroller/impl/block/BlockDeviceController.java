@@ -1714,6 +1714,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                 }
             } else {
                 // expand as regular volume
+                InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_080);
                 getDevice(storageObj.getSystemType()).doExpandVolume(storageObj, poolObj,
                         volumeObj, size, completer);
             }

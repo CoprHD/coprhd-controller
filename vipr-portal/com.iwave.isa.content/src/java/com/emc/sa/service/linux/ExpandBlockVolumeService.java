@@ -7,11 +7,14 @@ package com.emc.sa.service.linux;
 import static com.emc.sa.service.ServiceParams.SIZE_IN_GB;
 import static com.emc.sa.service.ServiceParams.VOLUME;
 
+import java.net.URI;
+
 import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.engine.bind.Param;
 import com.emc.sa.engine.service.Service;
 import com.emc.sa.service.vipr.block.BlockStorageUtils;
 import com.emc.storageos.model.block.BlockObjectRestRep;
+import com.emc.storageos.model.block.VolumeRestRep;
 
 @Service("Linux-ExpandBlockVolume")
 public class ExpandBlockVolumeService extends LinuxService {
@@ -43,7 +46,13 @@ public class ExpandBlockVolumeService extends LinuxService {
 
     @Override
     public void execute() throws Exception {
-        expandBlockVolumeHelper.expandVolume(volume, newSizeInGB);
+    	// Skip the expand if the current volume capacity is larger than the requested expand size
+    	if (BlockStorageUtils.isVolumeExpanded(volume, newSizeInGB)) {
+    		logInfo("linux.expand.skip", volumeId, BlockStorageUtils.getCapacity(volume));
+    	} else {
+    		expandBlockVolumeHelper.expandVolume(volume, newSizeInGB);
+    	}
+    	
         if (hostId != null) {
             ExecutionUtils.addAffectedResource(hostId.toString());
         }

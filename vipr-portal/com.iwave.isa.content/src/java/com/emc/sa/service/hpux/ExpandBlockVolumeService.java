@@ -7,11 +7,14 @@ package com.emc.sa.service.hpux;
 import static com.emc.sa.service.ServiceParams.SIZE_IN_GB;
 import static com.emc.sa.service.ServiceParams.VOLUME;
 
+import java.net.URI;
+
 import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.engine.bind.Param;
 import com.emc.sa.engine.service.Service;
 import com.emc.sa.service.vipr.block.BlockStorageUtils;
 import com.emc.storageos.model.block.BlockObjectRestRep;
+import com.emc.storageos.model.block.VolumeRestRep;
 
 @Service("Hpux-ExpandBlockVolume")
 public class ExpandBlockVolumeService extends HpuxService {
@@ -44,7 +47,14 @@ public class ExpandBlockVolumeService extends HpuxService {
     @Override
     public void execute() throws Exception {
         volume = BlockStorageUtils.getVolume(uri(volumeId));
-        expandBlockVolumeHelper.expandVolume(volume, newSizeInGB);
+        
+    	// Skip the expand if the current volume capacity is larger than the requested expand size
+    	if (BlockStorageUtils.isVolumeExpanded(volume, newSizeInGB)) {
+    		logInfo("hpux.expand.skip", volumeId, BlockStorageUtils.getCapacity(volume));
+    	} else {
+    		expandBlockVolumeHelper.expandVolume(volume, newSizeInGB);
+    	}
+
         if (hostId != null) {
             ExecutionUtils.addAffectedResource(hostId.toString());
         }

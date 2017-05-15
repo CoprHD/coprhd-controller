@@ -7,6 +7,7 @@ package com.emc.sa.service.windows;
 import static com.emc.sa.service.ServiceParams.SIZE_IN_GB;
 import static com.emc.sa.service.ServiceParams.VOLUMES;
 
+import java.net.URI;
 import java.util.List;
 
 import com.emc.sa.engine.ExecutionUtils;
@@ -51,7 +52,18 @@ public class ExtendBlockVolumeService extends WindowsService {
 
     @Override
     public void execute() throws Exception {
-        BlockStorageUtils.expandVolumes(uris(volumeIds), sizeInGb);
+        for (String uriStr : volumeIds) {
+        	URI uri = uri(uriStr);
+        	BlockObjectRestRep volume = BlockStorageUtils.getVolume(uri);
+        	
+        	// Skip the expand if the current volume capacity is larger than the requested expand size
+        	if (BlockStorageUtils.isVolumeExpanded(volume, sizeInGb)) {
+        		logInfo("windows.expand.skip", uriStr, BlockStorageUtils.getCapacity(volume));
+        	} else {
+        		BlockStorageUtils.expandVolume(uri, sizeInGb);
+        	}
+        }
+        
         acquireHostAndClusterLock();
         for (ExtendDriveHelper extendDriveHelper : extendDriveHelpers) {
             extendDriveHelper.extendDrives();

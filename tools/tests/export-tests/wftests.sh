@@ -2026,7 +2026,8 @@ test_7() {
     echot "Test 7 Begins"
     expname=${EXPORT_GROUP_NAME}t7
 
-    common_failure_injections="failure_004:failure_016_Export_doRemoveInitiator"
+    common_failure_injections="failure_004_final_step_in_workflow_complete \
+                               failure_004:failure_016_Export_doRemoveInitiator"
 
     network_failure_injections="failure_058_NetworkDeviceController.zoneExportAddInitiators_before_zone"
     if [ "${BROCADE}" = "1" ]
@@ -2048,7 +2049,7 @@ test_7() {
                                     failure_004:failure_025_Export_zone_removeInitiator_after_delete"
     fi
 
-    failure_injections="${common_failure_injections}"
+    failure_injections="${common_failure_injections} ${storage_failure_injections} ${network_failure_injections}"
 
     # Placeholder when a specific failure case is being worked...
     # failure_injections="failure_004:failure_016_Export_doRemoveInitiator"

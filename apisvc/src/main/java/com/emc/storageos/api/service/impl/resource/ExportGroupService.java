@@ -3108,6 +3108,8 @@ public class ExportGroupService extends TaskResourceService {
     }
     
     /**
+     * Paths Adjustment Preview
+     * 
      * This call does a PORT Allocation which is used for a path adjustment preview operation.
      * If the user is satisfied with the ports that are selected, they will invoke the provisioning through a
      * separate API.
@@ -3117,6 +3119,8 @@ public class ExportGroupService extends TaskResourceService {
      *
      * @param id the URN of a ViPR export group to be updated; ports will be allocated in this context
      * @param param -- ExportPortAllocateParam block containing Storage System URI, Varray URI, ExportPathParameters
+     * 
+     * @brief Preview port allocation paths for export
      * @return a PortAllocatePreviewRestRep rest response which contains the new or existing paths that will be provisioned
      * or kept; the removed paths; and any other Export Groups that will be affected.
      * @throws ControllerException
@@ -3509,6 +3513,7 @@ public class ExportGroupService extends TaskResourceService {
      * @param id The export group id
      * @param param The parameters including addedPaths, removedPaths, storage system URI, exportPathParameters, 
      *                  and waitBeforeRemovePaths
+     * @brief Initiate port allocations for export
      * @return The pending task
      * @throws ControllerException
      */

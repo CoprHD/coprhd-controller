@@ -174,7 +174,6 @@ import com.emc.storageos.vplex.api.VPlexApiConstants;
 import com.emc.storageos.vplex.api.VPlexApiException;
 import com.emc.storageos.vplex.api.VPlexApiFactory;
 import com.emc.storageos.vplex.api.VPlexClusterInfo;
-import com.emc.storageos.vplex.api.VPlexConsistencyGroupInfo;
 import com.emc.storageos.vplex.api.VPlexDeviceInfo;
 import com.emc.storageos.vplex.api.VPlexDistributedDeviceInfo;
 import com.emc.storageos.vplex.api.VPlexInitiatorInfo.Initiator_Type;
@@ -7524,7 +7523,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
 
                 try {
                     // Try to detach mirror that might have been added.
-                    client.detachSpecificMirrorFromDistributedVolume(virtualVolumeName, clusterId);
+                    client.detachMirrorFromDistributedVolume(virtualVolumeName, clusterId);
 
                     // Find virtual volume and its supporting device
                     VPlexVirtualVolumeInfo virtualVolumeInfo = client.findVirtualVolume(virtualVolumeName, virtualVolumePath);
@@ -9368,7 +9367,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
             }
 
             // Detach the mirror.
-            detachedDeviceName = client.detachMirrorFromDistributedVolume(vplexVolumeName);
+            detachedDeviceName = client.detachMirrorFromDistributedVolume(vplexVolumeName, null);
             stepData.put(DETACHED_DEVICE, detachedDeviceName);
             stepData.put(REATTACH_MIRROR, Boolean.TRUE.toString());
             _workflowService.storeStepData(stepId, stepData);

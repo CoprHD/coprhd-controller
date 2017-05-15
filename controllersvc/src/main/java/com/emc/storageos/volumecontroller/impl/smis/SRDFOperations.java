@@ -2433,7 +2433,7 @@ public class SRDFOperations implements SmisConstants {
                 try {
                     if (v.getSrdfTargets() != null) {
                         for (String targetId : v.getSrdfTargets()) {
-                            RemoteReplicationUtils.updateOrCreateReplicationPairForSrdfPair(v.getId(), URI.create(targetId), dbClient);
+                            RemoteReplicationUtils.updateRemoteReplicationPairForSrdfPair(v.getId(), URI.create(targetId), dbClient);
                         }
                     }
                 } catch (Exception ex) {

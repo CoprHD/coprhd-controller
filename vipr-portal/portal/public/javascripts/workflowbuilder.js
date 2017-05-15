@@ -910,19 +910,19 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
         $scope.alert.error.errorSteps[id].visible = false;
     }
 
-    $scope.hoverInputErrorIn = function(step,input) {
-        $scope.alert.error.errorSteps[step].errorInputGroups.input_params.errorInputs[input].visible = true;
+    $scope.hoverInputErrorIn = function(step,inputGroup,input) {
+        $scope.alert.error.errorSteps[step].errorInputGroups[inputGroup].errorInputs[input].visible = true;
     }
 
-    $scope.hoverInputErrorOut = function(step,input) {
-        $scope.alert.error.errorSteps[step].errorInputGroups.input_params.errorInputs[input].visible = false;
+    $scope.hoverInputErrorOut = function(step,inputGroup,input) {
+        $scope.alert.error.errorSteps[step].errorInputGroups[inputGroup].errorInputs[input].visible = false;
     }
 
-    $scope.getInputError = function(step,input) {
+    $scope.getInputError = function(step,inputGroup,input) {
         if ('alert' in $scope && 'error' in $scope.alert && 'errorSteps' in $scope.alert.error && step in $scope.alert.error.errorSteps){
             var stepError = $scope.alert.error.errorSteps[step];
-            if ('errorInputGroups' in stepError && 'input_params' in stepError.errorInputGroups && 'errorInputs' in stepError.errorInputGroups.input_params && input in stepError.errorInputGroups.input_params.errorInputs) {
-                var inputError = stepError.errorInputGroups.input_params.errorInputs[input];
+            if ('errorInputGroups' in stepError && inputGroup in stepError.errorInputGroups && 'errorInputs' in stepError.errorInputGroups[inputGroup] && input in stepError.errorInputGroups[inputGroup].errorInputs) {
+                var inputError = stepError.errorInputGroups[inputGroup].errorInputs[input];
                 return inputError;
             }
         }
@@ -930,8 +930,15 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
 
     $scope.checkStepErrorMessage = function(id) {
         var stepError = $scope.alert.error.errorSteps[id];
-        if ('errorInputGroups' in stepError && 'input_params' in stepError.errorInputGroups && 'errorInputs' in stepError.errorInputGroups.input_params) {
-            var inputErrorCount = Object.keys(stepError.errorInputGroups.input_params.errorInputs).length;
+        if ('errorInputGroups' in stepError){
+            var inputErrorCount = 0;
+            for(var inputGroup in stepError.errorInputGroups) {
+                if(stepError.errorInputGroups.hasOwnProperty(inputGroup)) {
+                    if('errorInputs' in stepError.errorInputGroups[inputGroup]) {
+                        inputErrorCount += Object.keys(stepError.errorInputGroups[inputGroup].errorInputs).length;
+                    }
+                }
+            }
             if (inputErrorCount > 0){
                 if (stepError.errorMessages) {
                     $scope.alert.error.errorSteps[id].errorMessages.push("Step has "+inputErrorCount+" input errors");
@@ -939,7 +946,6 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
                     $scope.alert.error.errorSteps[id].errorMessages = ["Step has "+inputErrorCount+" input errors"];
                 }
             }
-
         }
     }
 

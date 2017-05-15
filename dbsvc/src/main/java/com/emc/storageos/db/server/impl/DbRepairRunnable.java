@@ -23,6 +23,9 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.Callable;
 
 public class DbRepairRunnable implements Runnable {
     private static final Logger log = LoggerFactory.getLogger(DbRepairRunnable.class);
@@ -34,12 +37,12 @@ public class DbRepairRunnable implements Runnable {
 
     public static final int INTERVAL_TIME_IN_MINUTES = 1 * 3 * 60; // 3 hours
 
+    // Minutes to sleep for next retry after db repair failure
+    private int repairRetryMin = 60;
+
     public static enum StartStatus {
         STARTED, ALREADY_RUNNING, NOT_THE_TIME, NOTHING_TO_RESUME
     }
-
-    // Minutes to sleep for next retry after db repair failure
-    private int repairRetryMin = 3;
 
     private ScheduledExecutorService executor;
     private CoordinatorClient coordinator;
@@ -218,35 +221,32 @@ public class DbRepairRunnable implements Runnable {
                     log.info("Repair started, notifying the triggering thread to return.");
                     notifier.close(); // Notify the thread triggering the repair before we finish
 
+                    int repairDelay = 0;
                     while (true) {
-                        if (runner.runRepair()) {
-                            log.info("Repair keyspace {} at cluster state {} completed successfully", keySpaceName,
-                                    state.getCurrentDigest());
-
-                            // Repair succeeded, update state info in ZK
-                            if (!this.state.success(getClusterStateDigest())) {
-                                this.state.fail(this.maxRetryTimes);
+                        ScheduledFuture<Boolean> repairTask = executor.schedule(new Callable<Boolean>() {
+                            @Override
+                            public Boolean call() {
+                                boolean needRetry = false;
+                                try {
+                                    RepairJobRunner.RepairJobStatus repairJobStatus = runner.runRepair();
+                                    needRetry = checkRepairStatus(repairJobStatus);
+                                } catch (IOException | InterruptedException ex) {
+                                    log.error("Repair job failed with exception", ex);
+                                }
+                                return needRetry;
                             }
+                        }, repairDelay, TimeUnit.MINUTES);
 
-                            saveStates();
-
+                        while (!repairTask.isDone()) {
+                            log.debug("Waiting repair task finish...");
+                            Thread.sleep(60 * 1000L);
+                        }
+                        log.info("Repair need retry: {}", repairTask.get());
+                        if (!repairTask.get()) {
                             break;
                         }
-
-                        if (!this.state.retry(this.maxRetryTimes)) {
-                            log.error("Repair job {} for keyspace {} failed due to reach max retry times.", this.state.getCurrentDigest(),
-                                    keySpaceName);
-                            saveStates();
-                            break;
-                        }
-                        saveStates();
-
-                        log.error("Repair run failed for #{} times. Will retry after {} minutes",
-                                this.state.getCurrentRetry(), this.repairRetryMin);
-                        Thread.sleep(this.repairRetryMin * 60 * 1000L);
+                        repairDelay = repairRetryMin;
                     }
-
-                    return;
                 } catch (ListenerNotFoundException ex) {
                     this.threadException = ex;
                     log.error("Failed to remove notification listener", ex);
@@ -259,6 +259,44 @@ public class DbRepairRunnable implements Runnable {
             this.threadException = ex;
             log.error("Exception starting", ex);
         }
+    }
+
+    private boolean checkRepairStatus(RepairJobRunner.RepairJobStatus repairJobStatus) {
+        boolean needRetry = true;
+
+        while (true) {
+            if (repairJobStatus == RepairJobRunner.RepairJobStatus.SUCCESS) {
+                log.info("Repair keyspace {} at cluster state {} completed successfully",
+                        keySpaceName, state.getCurrentDigest());
+                // Repair succeeded, update state info in ZK
+                if (!state.success(getClusterStateDigest())) {
+                    state.fail(maxRetryTimes);
+                }
+                needRetry = false;
+                break;
+            }
+
+            if (repairJobStatus == RepairJobRunner.RepairJobStatus.FAILED) {
+                log.error("Repair job {} for keyspace {} failed due to force abortion.",
+                        state.getCurrentDigest(), keySpaceName);
+                needRetry = false;
+                break;
+            }
+
+            if (!state.retry(maxRetryTimes)) {
+                log.error("Repair job {} for keyspace {} failed due to reach max retry times.",
+                        state.getCurrentDigest(), keySpaceName);
+                needRetry = false;
+                break;
+            }
+
+            log.error("Repair run failed for #{} times. Will retry after {} minutes",
+                    state.getCurrentRetry(), repairRetryMin);
+            break;
+        }
+
+        saveStates();
+        return needRetry;
     }
 
     public StartStatus getRepairStatus(String clusterDigest, int maxRetryTimes) {

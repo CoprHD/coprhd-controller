@@ -79,7 +79,7 @@ public class CreateNfsExportAndDatastoreService extends VMwareHostService {
         }
 
         for (Datastore datastore : datastores) {
-            vmware.setStorageIOControl(datastore, storageIOControl);
+            vmware.setStorageIOControl(datastore, storageIOControl, true);
         }
     }
 }

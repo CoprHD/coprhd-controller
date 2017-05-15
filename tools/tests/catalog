@@ -1,6 +1,6 @@
 #!/usr/bin/python
 #
-# Copyright (c) 2015 EMC Corporation
+# Copyright (c) 2017 Dell Corporation
 # All Rights Reserved
 #
 
@@ -15,7 +15,7 @@ from bourne import *
 
 def catalog_order(args):
     bourne.connect(args.ip)
-    order = bourne.catalog_order(args.service, args.tenant, args.parameters) 
+    order = bourne.catalog_order(args.service, args.tenant, args.parameters, args.category, args.failOnError) 
     print order
 
 #----------------------------------------------------------------------
@@ -28,16 +28,17 @@ except:
     bourne_ip = 'localhost'
 
 # catalog <cmd> <cmd_args>  [--ip ipaddr]
-parser = argparse.ArgumentParser(description = 'Bourne catalog cli usage.')
-parser.add_argument('cmd', help = 'cmd = (create | delete | show | list )')
+parser = argparse.ArgumentParser(description = 'ViPR catalog cli usage.')
+parser.add_argument('cmd', help = 'cmd = (order list)')
 parser.add_argument('--ip',	metavar = 'ipaddr',	help = 'IP address of bourne', default=bourne_ip)
 
 # catalog order service tenant parameters
 order = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
-order.add_argument('service',            help = 'label for the catalog service')
-order.add_argument('tenant', help = 'tenant for the catalog service')
-order.add_argument('parameters',           help = 'parameters for executing the catalog service')
-
+order.add_argument('service',    help = 'label for the catalog service')
+order.add_argument('tenant',     help = 'tenant for the catalog service')
+order.add_argument('parameters', help = 'parameters for executing the catalog service')
+order.add_argument('category',   help = 'category of the catalog service')
+order.add_argument('--failOnError', metavar = 'failOnError',     help = 'if true, fail the command on order failure', default=None)
 
 #----------------------------------------------------------------------
 # Main script
@@ -51,7 +52,7 @@ try:
 
     bourne = Bourne()
 
-    if   (cmd == "order"):
+    if (cmd == "order"):
         args = order.parse_args()
         catalog_order(args)
     else:

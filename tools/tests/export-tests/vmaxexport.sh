@@ -2172,6 +2172,11 @@ test_37() {
     runcmd blocksnapshot delete ${PROJECT}/${VOLNAME}-2/${snap}-2
     runcmd blocksnapshot delete ${PROJECT}/${VOLNAME}-3/${snap}-3
     runcmd blocksnapshot delete ${PROJECT}/${VOLNAME}-4/${snap}-4
+
+    runcmd snapshotsession delete ${PROJECT}/${VOLNAME}-1/${snap}-1
+    runcmd snapshotsession delete ${PROJECT}/${VOLNAME}-2/${snap}-2
+    runcmd snapshotsession delete ${PROJECT}/${VOLNAME}-3/${snap}-3
+    runcmd snapshotsession delete ${PROJECT}/${VOLNAME}-4/${snap}-4
 }
 
 # Export Test 38

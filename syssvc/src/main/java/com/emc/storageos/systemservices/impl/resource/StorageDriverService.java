@@ -754,7 +754,7 @@ public class StorageDriverService {
         URIQueryResultList result = new URIQueryResultList();
         for (OrderStatus status : BLOCKING_STATES) {
             dbClient.queryByConstraint(AlternateIdConstraint.Factory.getOrderStatusConstraint(status.toString()), result);
-            if (!result.isEmpty()) {
+            if (!result.iterator().hasNext()) {
                 return true;
             }
         }

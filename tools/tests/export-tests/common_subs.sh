@@ -7,6 +7,18 @@
 # ===================================
 #
 
+# Reset the simulator
+# You need plow-through access to the simulator via ssh, which is usually granted
+# thanks to the AIO settings and the cisco simulator.
+# For an example of /root/reset.sh, look at lglw1045.
+reset_simulator() {
+    if [ "${SIM}" = "1" ]; then
+	ssh ${HW_SIMULATOR_IP} /root/reset.sh
+    else
+	echo "No simulator set, not resetting simulator"
+    fi
+}
+
 # Method to retrieve all of the tools needed that do not get stored directly in the git repo
 retrieve_tooling() {
     if [ "${TOOLING_AT_JAR_NAME}" = "" ]

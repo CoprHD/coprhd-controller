@@ -477,7 +477,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
             // The performance parameters for the SRDF copy are stored in the target.
             SRDFCopyRecommendation srdfCopyRecommendation = (SRDFCopyRecommendation)recommendations.get(0).getRecommendation();         
             SRDFRecommendation srdfRecommendation = (SRDFRecommendation) srdfCopyRecommendation.getRecommendation();
-            SRDFRecommendation.Target target = srdfRecommendation.getVirtualArrayTargetMap().get(vArray);
+            SRDFRecommendation.Target target = srdfRecommendation.getVirtualArrayTargetMap().get(srdfCopyRecommendation.getVirtualArray());
             performanceParams = target.getPerformanceParams();
         }
 

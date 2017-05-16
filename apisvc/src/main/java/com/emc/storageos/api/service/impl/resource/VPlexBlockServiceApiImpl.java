@@ -27,6 +27,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.regex.Pattern;
 
+import org.apache.commons.collections.CollectionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -317,7 +318,10 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                     SRDFRecommendation srdfRecommendation = (SRDFRecommendation)((SRDFCopyRecommendation)srdfCopyRecommendation).getRecommendation();
                     SRDFRecommendation.Target target = srdfRecommendation.getVirtualArrayTargetMap().get(srdfCopyRecommendation.getVirtualArray());
                     Map<VolumeTopologyRole, URI> copyPerformanceParams = target.getPerformanceParams();
-                    URI performanceParamsURI = copyPerformanceParams.get(VolumeTopologyRole.PRIMARY);
+                    URI performanceParamsURI = null;
+                    if (copyPerformanceParams != null) {
+                        performanceParamsURI = copyPerformanceParams.get(VolumeTopologyRole.PRIMARY);
+                    }
                     
                     // Override the source capabilities with the copy vpool and performance parameters
                     // so that the capabilities reflect the same values used to place the copy volume.

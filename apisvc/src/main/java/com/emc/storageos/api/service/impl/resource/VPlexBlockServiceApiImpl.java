@@ -315,7 +315,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                 } else {
                     // Get the performance parameters for the copy.
                     SRDFRecommendation srdfRecommendation = (SRDFRecommendation)((SRDFCopyRecommendation)srdfCopyRecommendation).getRecommendation();
-                    SRDFRecommendation.Target target = srdfRecommendation.getVirtualArrayTargetMap().get(vArray);
+                    SRDFRecommendation.Target target = srdfRecommendation.getVirtualArrayTargetMap().get(srdfCopyRecommendation.getVirtualArray());
                     Map<VolumeTopologyRole, URI> copyPerformanceParams = target.getPerformanceParams();
                     URI performanceParamsURI = copyPerformanceParams.get(VolumeTopologyRole.PRIMARY);
                     

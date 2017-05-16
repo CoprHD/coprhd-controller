@@ -54,10 +54,10 @@ import com.emc.storageos.db.client.model.RemoteDirectorGroup;
 import com.emc.storageos.db.client.model.RemoteDirectorGroup.SupportedCopyModes;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
-import com.emc.storageos.db.client.model.StringSetMap;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.Volume.LinkStatus;
+import com.emc.storageos.db.client.model.util.BlockConsistencyGroupUtils;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.exceptions.DeviceControllerException;
@@ -494,22 +494,11 @@ public class SRDFOperations implements SmisConstants {
 
                     if (null != sourceCG.getTypes()) {
                         sourceCG.getTypes().remove(Types.SRDF.name());
+                        sourceCG.getRequestedTypes().remove(Types.SRDF.name());
                     }
-                    sourceCG.addConsistencyGroupTypes(Types.LOCAL.name());
+                    // sourceCG.addConsistencyGroupTypes(Types.LOCAL.name());
 
-                    // Remove the source storage system from the consistency group mappings
-                    StringSetMap systemConsistencyGroups = sourceCG.getSystemConsistencyGroups();
-                    if (systemConsistencyGroups != null) {
-                        // CTRL-11467. For 8.0.3 provider (Add SRDF protection for local CG volume), there will be 2 RGs created.
-                        StringSet systemCGNames = systemConsistencyGroups.get(system.getId().toString());
-                        if (systemCGNames != null && systemCGNames.size() > 1) {
-                            // remove the SRDF CG entry
-                            systemCGNames.remove(sourceCG.getLabel());
-                        } else {
-                            systemConsistencyGroups.remove(system.getId().toString());
-                        }
-                    }
-                    dbClient.persistObject(sourceCG);
+                    BlockConsistencyGroupUtils.cleanUpCGAndUpdate(sourceCG, system.getId(), sourceCG.getLabel(), false, dbClient);
                 }
             }
 

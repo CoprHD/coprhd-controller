@@ -635,6 +635,7 @@ public class RemoteReplicationGroupService extends TaskResourceService {
                 queryActiveResourcesByAltId(_dbClient, com.emc.storageos.db.client.model.remotereplication.RemoteReplicationSet.class,
                         "storageSystemType", param.getStorageSystemType());
         if (!rrSets.isEmpty()) {
+            // supported replication modes and group consistency properties for all rr sets of the same storage type are the same
             com.emc.storageos.db.client.model.remotereplication.RemoteReplicationSet rrSet = rrSets.get(0);
             StringSet rrSetSupportedReplicationModes = rrSet.getSupportedReplicationModes();
             String rrGroupReplicationMode = param.getReplicationMode();
@@ -655,6 +656,9 @@ public class RemoteReplicationGroupService extends TaskResourceService {
                     throw APIException.badRequests.invalidIsGroupConsistencyEnforced(param.getIsGroupConsistencyEnforced().toString());
                 }
             }
+        } else {
+            // this is error condition
+            throw APIException.badRequests.noRRSetsForStorageType(param.getStorageSystemType());
         }
 
         remoteReplicationGroup.setStorageSystemType(param.getStorageSystemType());

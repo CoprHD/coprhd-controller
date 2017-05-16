@@ -56,7 +56,7 @@ public class StorageSystemTypeService extends TaskResourceService {
      *
      * @param id
      *            the URN of Storage System Type
-     * @brief Show StorageSystemType
+     * @brief Show storage system type of storage 
      * @return Storage System Type details
      */
     @GET
@@ -77,7 +77,7 @@ public class StorageSystemTypeService extends TaskResourceService {
      * file, object or all. Valid input parameters are block, file, object and
      * all
      * 
-     * @brief Show list of storage system types base of type or all
+     * @brief List storage system types
      * @return List of all storage system types.
      */
     @GET

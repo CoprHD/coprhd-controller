@@ -2070,6 +2070,15 @@ test_7() {
       # prime the export
       runcmd export_group create $PROJECT ${expname}1 $NH --type Exclusive --volspec ${PROJECT}/${VOLNAME}-1 --inits "${HOST1}/${H1PI1}"
 
+      # Verify the zone names, as we know them, are on the switch
+      zone1=`get_zone_name ${HOST1} ${H1PI1}`
+      if [[ -z $zone1 ]]; then
+        echo -e "\e[91mERROR\e[0m: Could not find a zone corresponding to host ${HOST1} and initiator ${initiator}"
+        incr_fail_count
+      else
+        verify_zone ${zone1} ${FC_ZONE_A} exists  
+      fi    
+      
       # Snsp the DB so we can validate after failures later
       snap_db 2 "${cfs[@]}"
 
@@ -2104,11 +2113,34 @@ test_7() {
       set_artificial_failure none
       runcmd export_group update ${PROJECT}/${expname}1 --addInits ${HOST1}/${H1PI2}
 
+      # Verify the zone names, as we know them, are on the switch
+      zone2=`get_zone_name ${HOST1} ${H1PI2}`
+      if [[ -z $zone2 ]]; then
+        echo -e "\e[91mERROR\e[0m: Could not find a ViPR zone corresponding to host ${HOST1} and initiator ${H1PI2}"
+        incr_fail_count
+      else
+        verify_zone ${zone2} ${FC_ZONE_A} exists  
+      fi
+
       # Perform any DB validation in here
       snap_db 4 "${cfs[@]}"
 
       # Delete the export
       runcmd export_group delete ${PROJECT}/${expname}1
+
+      # Only verify the zone has been removed if it is a newly created zone
+      if [ "${zone1}" != "" ]; then
+        if newly_created_zone_for_host $zone1 $HOST1; then
+            verify_zone ${zone1} ${FC_ZONE_A} gone    
+        fi          
+      fi
+
+      # Only verify the zone has been removed if it is a newly created zone
+      if [ "${zone2}" != "" ]; then
+        if newly_created_zone_for_host $zone2 $HOST1; then
+            verify_zone ${zone2} ${FC_ZONE_A} gone    
+        fi          
+      fi   
 
       # Verify the DB is back to the original state
       snap_db 5 "${cfs[@]}"

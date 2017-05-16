@@ -78,7 +78,7 @@ public class ObjectVirtualPoolService extends VirtualPoolService {
      * Create Object Store VirtualPool
      * 
      * @param param VirtualPool parameters
-     * @brief Create VirtualPool for a Object store
+     * @brief Create VirtualPool for Object store
      * @return VirtualPool details
      */
     @POST
@@ -105,7 +105,7 @@ public class ObjectVirtualPoolService extends VirtualPoolService {
     /**
      * List VirtualPool for Object Store
      * 
-     * @brief List classes of service for a Object store
+     * @brief List classes of service for Object store
      * @return Returns the VirtualPool user is authorized to see
      */
     @GET
@@ -412,7 +412,7 @@ public class ObjectVirtualPoolService extends VirtualPoolService {
      * 
      * @param id the URN of a ViPR VirtualPool.
      * @param param new values for the quota
-     * @brief Updates quota and available capacity before quota is exhausted
+     * @brief Update quota and available capacity before quota is exhausted
      * @return QuotaInfo Quota metrics.
      */
     @PUT

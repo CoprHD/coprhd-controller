@@ -16,6 +16,8 @@ test_expand_host_filesystem() {
 
     supported_os="windows linux hpux" 
 
+    run syssvc $SANITY_CONFIG_FILE localhost set_prop system_proxyuser_encpassword $SYSADMIN_PASSWORD
+
     for os in ${supported_os[@]}
     do
         echo "Running test for ${os}"

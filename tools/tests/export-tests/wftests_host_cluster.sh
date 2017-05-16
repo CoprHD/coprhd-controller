@@ -2832,8 +2832,9 @@ test_extend_datastore_with_new_volume() {
     run syssvc $SANITY_CONFIG_FILE localhost set_prop system_proxyuser_encpassword $SYSADMIN_PASSWORD
 
     catalog_failure_injections="extend_vmfs_datastore"
-    common_failure_injections="failure_082_set_resource_tag"
-            
+    common_failure_injections="failure_082_set_resource_tag&5 \
+                               failure_004_final_step_in_workflow_complete"
+        
     item=${RANDOM}
     mkdir -p results/${item}
 
@@ -2869,6 +2870,11 @@ test_extend_datastore_with_new_volume() {
             # Request an extend order with new volume
             fail extend_datastore_with_new_volume_for_host ${TENANT} ${PROJECT} ${NH} ${VPOOL_BASE} ${new_extent} ${datastore1} ${vcenter} ${VCENTER_DATACENTER} ${VCENTER_HOST} "Default" ${failure}
 
+            # This failure is only on the datastore tag. The datastore will still have the extent created for it
+            if [ "$failure" = "failure_082_set_resource_tag&5" ]; then
+                expected_lun_count=`expr $expected_lun_count + 1`
+            fi
+
             # Wait for Vcenter to update.
             sleep 10
             # Verify the datastore LUN count remains the same
@@ -2876,7 +2882,6 @@ test_extend_datastore_with_new_volume() {
             if [ $? -ne 0 ]; then
                 echo "Datastore LUN count verification failed (1)"
                 expected_lun_count=`expr $expected_lun_count + 1`
-                continue
             fi
 
             verify_failures ${failure}
@@ -2891,20 +2896,32 @@ test_extend_datastore_with_new_volume() {
 
         # Rerun the expand operation
         set_artificial_failure none
-        
+
         if [ "${failure}" = "extend_vmfs_datastore" ]; then
             runcmd extend_datastore_for_host ${TENANT} ${new_extent} ${datastore1} ${PROJECT} ${vcenter} ${VCENTER_DATACENTER} ${VCENTER_HOST} "Default"
-        else
+        elif [ ! "${failure}" = "failure_082_set_resource_tag&5" ]; then
             runcmd extend_datastore_with_new_volume_for_host ${TENANT} ${PROJECT} ${NH} ${VPOOL_BASE} ${new_extent} ${datastore1} ${vcenter} ${VCENTER_DATACENTER} ${VCENTER_HOST} "Default"
         fi
 
-        # Increase expected LUN count
-        expected_lun_count=`expr $expected_lun_count + 1`
+        if [ ! "${failure}" = "failure_082_set_resource_tag&5" ]; then
+            expected_lun_count=`expr $expected_lun_count + 1`
+        fi
+
         # Verify the datastore LUN count has increased by 1
         verify_datastore_lun_count ${VCENTER_DATACENTER} ${datastore1} ${VCENTER_HOST} ${expected_lun_count}
         if [ $? -ne 0 ]; then
             echo "Datastore LUN count verification failed (2)"
             expected_lun_count=`expr $expected_lun_count - 1`
+        fi
+
+        # If failing during add datastore tag, add the tag here so that delete datastore will be successful
+        # vipr:vmfsDatastore-urn:storageos:Host:dafe219c-b70a-4d60-a41f-00d10361d3fb:vdc1=testds1-20461
+        if [ "${failure}" = "failure_082_set_resource_tag&5" ]; then
+            echo "Setting tag"
+            volume_id=`volume list ${PROJECT} | grep "${new_extent} " | awk '{print $7}'`
+            host_id=`hosts list ${TENANT} | grep "${VCENTER_HOST} " | awk '{print $4}'`
+            tag="vipr:vmfsDatastore-${host_id}=${datastore1}"
+            add_tag "volume" ${volume_id} ${tag}
         fi
 
         # Report results

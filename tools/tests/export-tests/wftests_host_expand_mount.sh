@@ -81,7 +81,7 @@ test_expand_host_filesystem() {
                 fail expand_volume $TENANT ${hostname} ${volume} ${PROJECT} ${size} ${os} ${failure}
 
                 # Verify injected failures were hit
-                # verify_failures ${failure}
+                verify_failures ${failure}
 
                 # Snap DB
                 snap_db 2 "${column_family[@]}"
@@ -192,7 +192,7 @@ expand_volume() {
 
     # expand_volume $TENANT ${hostname} ${volume} ${PROJECT} "5" ${os}
 
-    runcmd catalog order ${service_catalog} ${tenant_arg} host=${host_id},size=${size},${volume_parameter_name}=${volume_id},artificialFailure=${catalog_failure} ${service_category} --failOnError true
+    catalog order ${service_catalog} ${tenant_arg} host=${host_id},size=${size},${volume_parameter_name}=${volume_id},artificialFailure=${catalog_failure} ${service_category} --failOnError true
     return $?
 }
 

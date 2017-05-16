@@ -106,8 +106,6 @@ import com.netflix.astyanax.util.TimeUUIDUtils;
  */
 public class DbClientImpl implements DbClient {
     private static final int COMPLETED_PROGRESS = 100;
-    private static final int SUSPENDED_NO_ERROR_PROGRESS = 25;
-    private static final int SUSPENDED_ERROR_PROGRESS = 33;
     public static final String DB_STAT_OPTIMIZE_DISK_SPACE = "DB_STAT_OPTIMIZE_DISK_SPACE";
     public static final String DB_LOG_MINIMAL_TTL = "DB_LOG_MINIMAL_TTL";
     public static final String DB_CASSANDRA_OPTIMIZED_COMPACTION_STRATEGY = "DB_CASSANDRA_OPTIMIZED_COMPACTION_STRATEGY";
@@ -1588,8 +1586,29 @@ public class DbClientImpl implements DbClient {
             idList.add(it.next().toString());
         }
         if (idList.size() > DEFAULT_PAGE_SIZE) {
+            int MAX_STACK_SIZE = 10; // Maximum stack we'll search in our thread.
+            int MAX_STACK_PRINT = 2; // Maximum number of frames we'll print.  (really the first frame is the most important)
+            
             _log.warn("Unbounded database query, request size is over allowed limit({}), " +
                     "please use corresponding iterative API.", DEFAULT_PAGE_SIZE);
+            _log.warn("It is recommended to file a Jira improvement request for this inefficiency.  Please verify it has not already been resolved in an upcoming version first.");
+            StackTraceElement[] element = new Throwable().getStackTrace();
+            int i=0, j=0;
+            while (i < MAX_STACK_SIZE && j < MAX_STACK_PRINT) {
+                // Print the stacktrace of this inefficiency.  Avoid printing anything in DbClientImpl since that's a given.
+                if (element[i] != null && element[i].getMethodName() != null && !element[i].getClassName().contains("DbClientImpl")) {
+                    _log.warn("Stack position " + i + ": " + 
+                            element[i].getClassName().substring(element[i].getClassName().lastIndexOf(".") + 1) + 
+                            "." + 
+                            element[i].getMethodName() + 
+                            ", " + 
+                            element[i].getFileName() + 
+                            ":" + 
+                            element[i].getLineNumber());
+                    j++;
+                }
+                i++;
+            }
         }
 
         return idList;

@@ -678,7 +678,7 @@ public class ProjectService extends TaggedResource {
      * @param id the URN of a ViPR Project.
      * @param param new values for the quota
      * @prereq none
-     * @brief Updates quota and available capacity
+     * @brief Update quota and available capacity
      * @return QuotaInfo Quota metrics.
      */
     @PUT
@@ -1041,7 +1041,7 @@ public class ProjectService extends TaggedResource {
      * @param id the URN of a ViPR Project
      * @param param Assign virtual NAS server parameters
      * @prereq none
-     * @brief Unassigns VNAS servers from project
+     * @brief Unassign VNAS servers from project
      * @return No data returned in response body
      * @throws BadRequestException
      */

@@ -20,12 +20,14 @@ package com.emc.sa.service.vipr.customservices.tasks;
 import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.service.vipr.tasks.ViPRExecutionTask;
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.model.customservices.CustomServicesWorkflowDocument;
 import com.emc.storageos.primitives.CustomServicesConstants;
 import com.emc.storageos.primitives.CustomServicesPrimitive;
 import com.emc.storageos.services.util.Exec;
 import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorException;
 
+import org.apache.commons.codec.binary.Base64;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -93,11 +95,18 @@ public class CustomServicesRemoteAnsibleExecution extends ViPRExecutionTask<Cust
             return null;
         }
 
+        //Get Private key of the remote node
+        final String privateKey = AnsibleHelper.getOptions(CustomServicesConstants.PRIVATE_KEY, input);
+        final String authFileName = String.format("%s%s", orderDir, URIUtil.parseUUIDFromURI(step.getOperation()).replace("-", ""));
+        final byte[] bytes = privateKey.getBytes();
+        AnsibleHelper.writeResourceToFile(bytes, authFileName);
+
         final AnsibleCommandLine cmd = new AnsibleCommandLine(
                 AnsibleHelper.getOptions(CustomServicesConstants.ANSIBLE_BIN, input),
                 AnsibleHelper.getOptions(CustomServicesConstants.ANSIBLE_PLAYBOOK, input));
 
         final String[] cmds = cmd.setSsh(CustomServicesConstants.SHELL_LOCAL_BIN)
+                .setAuthFile(authFileName)
                 .setUserAndIp(AnsibleHelper.getOptions(CustomServicesConstants.REMOTE_USER, input),
                         AnsibleHelper.getOptions(CustomServicesConstants.REMOTE_NODE, input))
                 .setHostFile(AnsibleHelper.getOptions(CustomServicesConstants.ANSIBLE_HOST_FILE, input))

@@ -33,6 +33,7 @@ public class AnsibleCommandLine {
     private String node;
     private String extraVars;
     private String shellArgs;
+    private String authFile;
     private final ImmutableList.Builder<String> optionalParam = ImmutableList.builder();
 
     public AnsibleCommandLine(final String ansiblePath, final String playbook) {
@@ -113,20 +114,31 @@ public class AnsibleCommandLine {
         return this;
     }
 
+
+    public AnsibleCommandLine setAuthFile(final String authFile) {
+        if (!StringUtils.isEmpty(authFile)) {
+            this.authFile = authFile;
+        }
+
+        return this;
+    }
+
     public String[] build() {
         final ImmutableList.Builder<String> builder = ImmutableList.builder();
-        if (!StringUtils.isEmpty(prefix))
+        if (!StringUtils.isEmpty(prefix)) {
             builder.add(prefix);
+        }
 
         if (!StringUtils.isEmpty(ssh) && !StringUtils.isEmpty(node)) {
-            builder.add(ssh).add(node);
+            builder.add(ssh).add("-i").add(authFile).add(node);
         }
 
         if (!StringUtils.isEmpty(shellArgs)) {
             final String[] splited = shellArgs.split("\\s+");
 
-            for (final String part : splited)
+            for (final String part : splited) {
                 builder.add(part);
+            }
         }
 
         final ImmutableList<String> opt = optionalParam.build();
@@ -141,5 +153,4 @@ public class AnsibleCommandLine {
 
         return cmdList.toArray(new String[cmdList.size()]);
     }
-
 }

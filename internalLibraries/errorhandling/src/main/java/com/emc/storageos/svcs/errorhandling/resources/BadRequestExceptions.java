@@ -3313,6 +3313,9 @@ public interface BadRequestExceptions {
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException remoteReplicationPairMoveOperationIsNotAllowed(final String rrPair, final String rrGroup, final String cause);
 
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException noRRSetsForStorageType(final String storageSystemType);
+
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException notSupportedForBootVolumes();
 

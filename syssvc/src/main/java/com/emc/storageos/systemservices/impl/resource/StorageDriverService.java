@@ -746,7 +746,7 @@ public class StorageDriverService {
         // driver operations and order executions to avoid impact on each other.
         if (hasOngoingQueuedOrders()) {
             throw APIException.internalServerErrors.driverOpeartionEnvPrecheckFailed(
-                    "There are ongoing or queue orders, please wait until these orders completed");
+                    "There are ongoing or queued orders now, please wait until these orders complete");
         }
     }
 
@@ -754,7 +754,7 @@ public class StorageDriverService {
         URIQueryResultList result = new URIQueryResultList();
         for (OrderStatus status : BLOCKING_STATES) {
             dbClient.queryByConstraint(AlternateIdConstraint.Factory.getOrderStatusConstraint(status.toString()), result);
-            if (!result.iterator().hasNext()) {
+            if (result.iterator().hasNext()) {
                 return true;
             }
         }

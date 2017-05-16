@@ -562,7 +562,7 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
                     targetVolume.setSrdfGroup(NullColumnValueGetter.getNullURI());
                     targetVolume.setConsistencyGroup(NullColumnValueGetter.getNullURI());
                     targetVolume.setInactive(true);
-                    dbClient.updateAndReindexObject(targetVolume);
+                    dbClient.updateObject(targetVolume);
                 }
 
             }
@@ -571,7 +571,7 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
 
         }
         group.getVolumes().replace(volumes);
-        dbClient.persistObject(group);
+        dbClient.updateObject(group);
 
         if (volumes.isEmpty() && SupportedCopyModes.ALL.toString().equalsIgnoreCase(group.getSupportedCopyMode())) {
             log.info("RA Group {} was empty", group.getId());
@@ -1883,6 +1883,8 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
             InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_078);
             getRemoteMirrorDevice().doCreateCgPairs(system, sourceURIs, targetURIs, completer);
             InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_079);
+
+            completer.ready(dbClient);
         } catch (Exception e) {
             ServiceError error = DeviceControllerException.errors.jobFailed(e);
             if (null != completer) {

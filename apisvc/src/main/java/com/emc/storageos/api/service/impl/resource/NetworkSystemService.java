@@ -350,7 +350,7 @@ public class NetworkSystemService extends TaskResourceService {
             device.setSmisUseSSL(param.getSmisUseSsl());
         }
         device.setNativeGuid(NativeGUIDGenerator.generateNativeGuid(device));
-        _dbClient.persistObject(device);
+        _dbClient.updateObject(device);
         startNetworkSystem(device);
         auditOp(OperationTypeEnum.UPDATE_NETWORK_SYSTEM, true, null,
                 device.getId().toString(), device.getLabel(), device.getPortNumber(), device.getUsername(),
@@ -445,7 +445,7 @@ public class NetworkSystemService extends TaskResourceService {
                     for (FCZoneReference zone : zones) {
                         zone.setNetworkSystemUri(nsUri);
                     }
-                    _dbClient.persistObject(zones);
+                    _dbClient.updateObject(zones);
                 }
             }
         }
@@ -507,7 +507,7 @@ public class NetworkSystemService extends TaskResourceService {
         }
         zone.setNetworkSystemUri(networkSystemURI);
 
-        _dbClient.persistObject(zone);
+        _dbClient.updateObject(zone);
     }
 
     /**
@@ -646,7 +646,7 @@ public class NetworkSystemService extends TaskResourceService {
                 }
             }
             networkSystem.setRegistrationStatus(RegistrationStatus.UNREGISTERED.toString());
-            _dbClient.persistObject(networkSystem);
+            _dbClient.updateObject(networkSystem);
             auditOp(OperationTypeEnum.DEREGISTER_NETWORK_SYSTEM, true, null,
                     networkSystem.getId().toString(), networkSystem.getLabel(), networkSystem.getPortNumber(), networkSystem.getUsername(),
                     networkSystem.getSmisProviderIP(), networkSystem.getSmisPortNumber(), networkSystem.getSmisUserName(),

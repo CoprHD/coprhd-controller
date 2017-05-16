@@ -1980,13 +1980,13 @@ public class MdsNetworkSystemDevice extends NetworkSystemDeviceImpl implements N
 					
 		// 1. Build a map of switchWWN to NetworkSystem for all the discovered NetworkSystems
 		Map<String, NetworkSystem> switchWWNToNetworkSystemMap = new HashMap<String, NetworkSystem>();
-		for (URI discoveredNetworkSystem : NetworkUtil.getDiscoveredNetworkSystems(_dbClient)) {
+		for (URI discoveredNetworkSystemUri : NetworkUtil.getDiscoveredNetworkSystems(_dbClient)) {
 			try {
-			NetworkSystem ns=_dbClient.queryObject(NetworkSystem.class, discoveredNetworkSystem);
-			if (ns.getSystemType().equalsIgnoreCase(NetworkSystem.Type.mds.toString())) {
-				dialog = setUpDialog(ns);			
+			NetworkSystem discoveredNetworkSystem =_dbClient.queryObject(NetworkSystem.class, discoveredNetworkSystemUri);
+			if (discoveredNetworkSystem.getSystemType().equalsIgnoreCase(NetworkSystem.Type.mds.toString())) {
+				dialog = setUpDialog(discoveredNetworkSystem);			
 				String switchWWN = dialog.showSwitchWwn();
-				switchWWNToNetworkSystemMap.put(switchWWN, ns);
+				switchWWNToNetworkSystemMap.put(switchWWN, discoveredNetworkSystem);
 				_log.info(String.format("NetworkSystem : %s - WWN : %s", switchWWN, switchWWNToNetworkSystemMap.get(switchWWN)));			
 				}	
 			} finally {
@@ -2000,15 +2000,17 @@ public class MdsNetworkSystemDevice extends NetworkSystemDeviceImpl implements N
             dialog = setUpDialog(networkSystem);
             String currentNetworkSytemWWN = dialog.showSwitchWwn();
          
-            Map<String, Set<Integer>> switchWWNToVsans = new HashMap<String, Set<Integer>>();
+            Map<String, Set<Integer>> switchWWNToVsans = new HashMap<String, Set<Integer>>();            
              List<IvrVsanConfiguration> ivrVsansList = dialog.showIvrVsanTopology();
              for (IvrVsanConfiguration ivrVsan : ivrVsansList) {
-                     Set<Integer> vsans = new HashSet<Integer>();
-                     vsans.addAll(ivrVsan.getVsans());
-                     for (IntRange ivrVsanRange : ivrVsan.getVsansRanges()) {
-                            vsans.add(ivrVsanRange.getMinimumInteger());
-                     }
-                     switchWWNToVsans.put(ivrVsan.getSwitchWwn(), vsans);
+                 Set<Integer> vsans = new HashSet<Integer>();
+                 vsans.addAll(ivrVsan.getVsans());
+                 for (IntRange ivrVsanRange : ivrVsan.getVsansRanges()) {                    	 
+                	 for (int range = ivrVsanRange.getMinimumInteger(); range <= ivrVsanRange.getMaximumInteger(); range++) {
+                        vsans.add(range);
+                	 }
+                 }
+                 switchWWNToVsans.put(ivrVsan.getSwitchWwn(), vsans);
              }     
                                       
              //3. Check to make sure that the current Network system (that is being discovered) is in the ivr vsan-topology map.
@@ -2022,7 +2024,7 @@ public class MdsNetworkSystemDevice extends NetworkSystemDeviceImpl implements N
              //Since this map is constructed from the output of "show ivr vsan-topology", the switch WWNs listed in that output are 
              //all routable to each others for the networks that belong to them. 
              //The assumption here is that there exists a transit VSAN between the switches that are on the IVR path. 
-             List<Network> routedNetworks = null;
+             List<Network> routedNetworks = new ArrayList<Network>();
              for (Entry<String, Set<Integer>> switchWWNToVsan : switchWWNToVsans.entrySet()) {
             	 String switchKey = switchWWNToVsan.getKey();
             	 Set<Integer> vsanValues = switchWWNToVsan.getValue();
@@ -2037,10 +2039,7 @@ public class MdsNetworkSystemDevice extends NetworkSystemDeviceImpl implements N
                      for (URI networkSystemNetworkUri : networkSystemNetworkUriList) {
                          Network networkSystemNetwork = _dbClient.queryObject(Network.class, networkSystemNetworkUri);
                     	 if (vsanValues.contains(Integer.parseInt(networkSystemNetwork.getNativeId()))) {
-                    		 _log.info("Routable Network : " +  networkSystemNetwork.getLabel());
-                    		 if (routedNetworks == null) {
-                    			 routedNetworks = new ArrayList<Network>();
-                    		 }
+                    		 _log.info("Routable Network : " +  networkSystemNetwork.getLabel());                    	
                     		 routedNetworks.add(networkSystemNetwork);
                     	 }                         
                      }            		

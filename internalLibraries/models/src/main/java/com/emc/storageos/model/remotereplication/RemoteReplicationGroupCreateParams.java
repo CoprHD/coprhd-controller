@@ -11,7 +11,7 @@ import java.util.List;
  * Remote replication group create parameters
  */
 @XmlRootElement(name = "remote_replication_group_create")
-public class RemoteReplicationGroupCreate {
+public class RemoteReplicationGroupCreateParams {
 
     // Type of storage systems in this replication group.
     private String storageSystemType;

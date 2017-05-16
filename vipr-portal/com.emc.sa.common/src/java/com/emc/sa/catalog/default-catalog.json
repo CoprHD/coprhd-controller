@@ -269,6 +269,19 @@
           "image": "icon_CreateVplexVolumeSnapshot.png",
           "baseService": "CreateVplexVolumeFromSnapshot"
         }
+      ],
+      "categories": [
+        {
+          "title": "remotereplicationservices.title",
+          "image": "icon_remotereplicationservices.png",
+          "description": "remotereplicationservices.description",
+          "services": [
+            {
+              "image": "icon_CreateRemoteReplicationGroup.png",
+              "baseService": "CreateRemoteReplicationGroup"
+            }
+          ]
+        }
       ]
     },
     {

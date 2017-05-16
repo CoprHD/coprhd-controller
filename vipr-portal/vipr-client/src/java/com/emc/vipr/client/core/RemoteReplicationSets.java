@@ -5,6 +5,8 @@
 package com.emc.vipr.client.core;
 
 import java.net.URI;
+import javax.ws.rs.core.UriBuilder;
+
 import com.emc.storageos.model.remotereplication.RemoteReplicationGroupList;
 import com.emc.storageos.model.remotereplication.RemoteReplicationGroupRestRep;
 import com.emc.storageos.model.remotereplication.RemoteReplicationSetList;
@@ -41,6 +43,15 @@ public class RemoteReplicationSets {
         return client.get(RemoteReplicationSetList.class,
                 PathConstants.BLOCK_REMOTE_REPLICATION_SET_URL +
                 "/varray/" + varray + "/vpool/" + vpool);
+    }
+
+    public RemoteReplicationSetList listRemoteReplicationSets(URI storageTypeURI) {
+        UriBuilder uriBuilder = client.uriBuilder(PathConstants.BLOCK_REMOTE_REPLICATION_SET_URL +
+                "/storage-type/sets");
+        if (storageTypeURI != null) {
+            uriBuilder.queryParam("storageType", storageTypeURI);
+        }
+        return client.getURI(RemoteReplicationSetList.class,uriBuilder.build());
     }
 
     public RemoteReplicationGroupList getGroupsForSet(URI setId) {

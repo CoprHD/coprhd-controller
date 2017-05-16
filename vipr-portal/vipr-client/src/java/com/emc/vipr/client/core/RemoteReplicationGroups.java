@@ -4,9 +4,14 @@
  */
 package com.emc.vipr.client.core;
 
+import javax.ws.rs.core.UriBuilder;
+
+import com.emc.storageos.model.TaskResourceRep;
+import com.emc.storageos.model.remotereplication.RemoteReplicationGroupCreateParams;
 import com.emc.storageos.model.remotereplication.RemoteReplicationGroupList;
 import com.emc.storageos.model.remotereplication.RemoteReplicationGroupRestRep;
 import com.emc.vipr.client.core.impl.PathConstants;
+import com.emc.vipr.client.core.impl.TaskUtil;
 import com.emc.vipr.client.impl.RestClient;
 
 /**
@@ -25,7 +30,8 @@ public class RemoteReplicationGroups {
     }
 
     public RemoteReplicationGroupRestRep getRemoteReplicationGroupsRestRep(String uuid) {
-        return client.get(RemoteReplicationGroupRestRep.class, PathConstants.BLOCK_REMOTE_REPLICATION_GROUP_URL + "/" + uuid);
+        return client.get(RemoteReplicationGroupRestRep.class,
+                PathConstants.BLOCK_REMOTE_REPLICATION_GROUP_URL + "/" + uuid);
     }
 
     public RemoteReplicationGroupList listRemoteReplicationGroups() {
@@ -39,4 +45,11 @@ public class RemoteReplicationGroups {
                 PathConstants.BLOCK_REMOTE_REPLICATION_GROUP_URL + "/valid");
     }
 
+    public TaskResourceRep createRemoteReplicationGroup(RemoteReplicationGroupCreateParams params) {
+        UriBuilder uriBuilder = client.uriBuilder(PathConstants.BLOCK_REMOTE_REPLICATION_GROUP_URL +
+                "/create-group");
+        TaskResourceRep task = client.postURI(TaskResourceRep.class, params, uriBuilder.build());
+        task = TaskUtil.waitForTask(client, task, 0);
+        return task;
+    }
 }

@@ -38,6 +38,12 @@ public class RemoteReplicationSetRestRep extends DataObjectRestRep {
     // Supported replication link granularities
     private Set<String> supportedReplicationLinkGranularity;
 
+    // Source storage systems
+    private Set<String> sourceSystems;
+
+    // Target storage systems
+    private Set<String> targetSystems;
+
     @XmlElement(name = "native_id")
     public String getNativeId() {
         return nativeId;
@@ -119,4 +125,25 @@ public class RemoteReplicationSetRestRep extends DataObjectRestRep {
     public void setReplicationState(String replicationState) {
         this.replicationState = replicationState;
     }
+
+    @XmlElementWrapper(name = "source_systems")
+    @XmlElement(name = "source_system")
+    public Set<String> getSourceSystems() {
+        return sourceSystems;
+    }
+
+    public void setSourceSystems(Set<String> sourceSystems) {
+        this.sourceSystems = sourceSystems;
+    }
+
+    @XmlElementWrapper(name = "target_systems")
+    @XmlElement(name = "target_system")
+    public Set<String> getTargetSystems() {
+        return targetSystems;
+    }
+
+    public void setTargetSystems(Set<String> targetSystems) {
+        this.targetSystems = targetSystems;
+    }
+
 }

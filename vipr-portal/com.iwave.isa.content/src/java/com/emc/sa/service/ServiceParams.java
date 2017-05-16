@@ -79,9 +79,15 @@ public interface ServiceParams {
     public String SNAPSHOT_SESSION = "snapshotSession";
     public String EXPORT = "export";
     public String CONSISTENCY_GROUP = "consistencyGroup";
+    public String CONSISTENCY_GROUP_ENFORCED = "groupConsistencyEnforced";
     public String REMOTE_REPLICATION_SET = "remoteReplicationSet";
     public String REMOTE_REPLICATION_MODE = "remoteReplicationMode";
     public String REMOTE_REPLICATION_GROUP = "remoteReplicationGroup";
+    public String REMOTE_REPLICATION_STATE = "remoteReplicationState";
+    public String SRC_SYSTEM = "sourceSystem";
+    public String TGT_SYSTEM = "targetSystem";
+    public String SOURCE_STORAGE_PORTS = "sourcePorts";
+    public String TARGET_STORAGE_PORTS = "targetPorts";
     public String HLU = "hlu";
     public String MIN_PATHS = "minPaths";
     public String MAX_PATHS = "maxPaths";
@@ -180,4 +186,7 @@ public interface ServiceParams {
     public String FILESYSTEM_NAME = "fileSystemName";
     public String MOUNT_LIST = "mountList";
     public String FS_TYPE = "fsType";
+ 
+    public String ARTIFICIAL_FAILURE = "artificialFailure";
+    public String BYPASS_DNS_CHECK = "bypassDnsCheck";
 }

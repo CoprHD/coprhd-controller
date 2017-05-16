@@ -39,6 +39,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.emc.storageos.api.mapper.RemoteReplicationMapper;
 import com.emc.storageos.api.service.impl.resource.ArgValidator;
 import com.emc.storageos.api.service.impl.resource.TaskResourceService;
 import com.emc.storageos.db.client.URIUtil;
@@ -177,11 +178,6 @@ public class RemoteReplicationSetService extends TaskResourceService {
                     continue outloop; 
                     // filter out rr sets whose target systems have no overlap with target devices of current pair
                 }
-            }
-
-            if ( (rrSet.getStorageSystemType() == null) || rrSet.getStorageSystemType().isEmpty()) {
-                throw new RuntimeException("No StorageType defined for RemoteReplicationSet '" +
-                        rrSet.getLabel() + "' (" + rrSet.getId() + ")");
             }
 
             /* Finally, a rr set is qualified and put in result collection only if it meets following conditions:
@@ -405,10 +401,7 @@ public class RemoteReplicationSetService extends TaskResourceService {
             rrServiceApi.failoverRemoteReplicationElementLink(rrElement, taskId);
         } catch (final ControllerException e) {
             _log.error("Controller Error", e);
-            op = rrSet.getOpStatus().get(taskId);
-            op.error(e);
-            rrSet.getOpStatus().updateTaskStatus(taskId, op);
-            _dbClient.updateObject(rrSet);
+            _dbClient.error(RemoteReplicationSet.class, rrSet.getId(), taskId, e);
         }
 
         auditOp(OperationTypeEnum.FAILOVER_REMOTE_REPLICATION_SET_LINK, true, AuditLogManager.AUDITOP_BEGIN,
@@ -440,10 +433,7 @@ public class RemoteReplicationSetService extends TaskResourceService {
             rrServiceApi.failbackRemoteReplicationElementLink(rrElement, taskId);
         } catch (final ControllerException e) {
             _log.error("Controller Error", e);
-            op = rrSet.getOpStatus().get(taskId);
-            op.error(e);
-            rrSet.getOpStatus().updateTaskStatus(taskId, op);
-            _dbClient.updateObject(rrSet);
+            _dbClient.error(RemoteReplicationSet.class, rrSet.getId(), taskId, e);
         }
 
         auditOp(OperationTypeEnum.FAILBACK_REMOTE_REPLICATION_SET_LINK, true, AuditLogManager.AUDITOP_BEGIN,
@@ -475,10 +465,7 @@ public class RemoteReplicationSetService extends TaskResourceService {
             rrServiceApi.establishRemoteReplicationElementLink(rrElement, taskId);
         } catch (final ControllerException e) {
             _log.error("Controller Error", e);
-            op = rrSet.getOpStatus().get(taskId);
-            op.error(e);
-            rrSet.getOpStatus().updateTaskStatus(taskId, op);
-            _dbClient.updateObject(rrSet);
+            _dbClient.error(RemoteReplicationSet.class, rrSet.getId(), taskId, e);
         }
 
         auditOp(OperationTypeEnum.ESTABLISH_REMOTE_REPLICATION_SET_LINK, true, AuditLogManager.AUDITOP_BEGIN,
@@ -510,10 +497,7 @@ public class RemoteReplicationSetService extends TaskResourceService {
             rrServiceApi.splitRemoteReplicationElementLink(rrElement, taskId);
         } catch (final ControllerException e) {
             _log.error("Controller Error", e);
-            op = rrSet.getOpStatus().get(taskId);
-            op.error(e);
-            rrSet.getOpStatus().updateTaskStatus(taskId, op);
-            _dbClient.updateObject(rrSet);
+            _dbClient.error(RemoteReplicationSet.class, rrSet.getId(), taskId, e);
         }
 
         auditOp(OperationTypeEnum.SPLIT_REMOTE_REPLICATION_SET_LINK, true, AuditLogManager.AUDITOP_BEGIN,
@@ -545,10 +529,7 @@ public class RemoteReplicationSetService extends TaskResourceService {
             rrServiceApi.suspendRemoteReplicationElementLink(rrElement, taskId);
         } catch (final ControllerException e) {
             _log.error("Controller Error", e);
-            op = rrSet.getOpStatus().get(taskId);
-            op.error(e);
-            rrSet.getOpStatus().updateTaskStatus(taskId, op);
-            _dbClient.updateObject(rrSet);
+            _dbClient.error(RemoteReplicationSet.class, rrSet.getId(), taskId, e);
         }
 
         auditOp(OperationTypeEnum.SUSPEND_REMOTE_REPLICATION_SET_LINK, true, AuditLogManager.AUDITOP_BEGIN,
@@ -581,10 +562,7 @@ public class RemoteReplicationSetService extends TaskResourceService {
             rrServiceApi.resumeRemoteReplicationElementLink(rrElement, taskId);
         } catch (final ControllerException e) {
             _log.error("Controller Error", e);
-            op = rrSet.getOpStatus().get(taskId);
-            op.error(e);
-            rrSet.getOpStatus().updateTaskStatus(taskId, op);
-            _dbClient.updateObject(rrSet);
+            _dbClient.error(RemoteReplicationSet.class, rrSet.getId(), taskId, e);
         }
 
         auditOp(OperationTypeEnum.RESUME_REMOTE_REPLICATION_SET_LINK, true, AuditLogManager.AUDITOP_BEGIN,
@@ -616,10 +594,7 @@ public class RemoteReplicationSetService extends TaskResourceService {
             rrServiceApi.swapRemoteReplicationElementLink(rrElement, taskId);
         } catch (final ControllerException e) {
             _log.error("Controller Error", e);
-            op = rrSet.getOpStatus().get(taskId);
-            op.error(e);
-            rrSet.getOpStatus().updateTaskStatus(taskId, op);
-            _dbClient.updateObject(rrSet);
+            _dbClient.error(RemoteReplicationSet.class, rrSet.getId(), taskId, e);
         }
 
         auditOp(OperationTypeEnum.SWAP_REMOTE_REPLICATION_SET_LINK, true, AuditLogManager.AUDITOP_BEGIN,
@@ -653,10 +628,7 @@ public class RemoteReplicationSetService extends TaskResourceService {
             rrServiceApi.changeRemoteReplicationMode(rrElement, newMode, taskId);
         } catch (final ControllerException e) {
             _log.error("Controller Error", e);
-            op = rrSet.getOpStatus().get(taskId);
-            op.error(e);
-            rrSet.getOpStatus().updateTaskStatus(taskId, op);
-            _dbClient.updateObject(rrSet);
+            _dbClient.error(RemoteReplicationSet.class, rrSet.getId(), taskId, e);
         }
 
         auditOp(OperationTypeEnum.CHANGE_REMOTE_REPLICATION_MODE, true, AuditLogManager.AUDITOP_BEGIN,

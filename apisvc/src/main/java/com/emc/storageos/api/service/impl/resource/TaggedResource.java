@@ -22,7 +22,7 @@ import javax.ws.rs.core.MediaType;
 
 
 import com.emc.storageos.db.client.model.TenantOrg;
-import com.emc.storageos.svcs.errorhandling.resources.BadRequestExceptions;
+import com.emc.storageos.util.InvokeTestFailure;
 import org.apache.commons.lang.StringUtils;
 
 import org.slf4j.Logger;
@@ -90,6 +90,9 @@ public abstract class TaggedResource extends ResourceService {
     public Tags assignTags(@PathParam("id") URI id, TagAssignment assignment) {
         DataObject object = queryResource(id);
         ArgValidator.checkEntityNotNull(object, id, isIdEmbeddedInURL(id));
+
+        InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_082);
+
         ScopedLabelSet tagSet = object.getTag();
         if (tagSet == null) {
             tagSet = new ScopedLabelSet();

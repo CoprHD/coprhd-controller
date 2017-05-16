@@ -57,7 +57,7 @@ import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.model.TaskResourceRep;
-import com.emc.storageos.model.remotereplication.RemoteReplicationGroupCreate;
+import com.emc.storageos.model.remotereplication.RemoteReplicationGroupCreateParams;
 import com.emc.storageos.model.remotereplication.RemoteReplicationGroupList;
 import com.emc.storageos.model.remotereplication.RemoteReplicationGroupRestRep;
 import com.emc.storageos.model.remotereplication.RemoteReplicationModeChangeParam;
@@ -212,10 +212,6 @@ public class RemoteReplicationGroupService extends TaskResourceService {
                 continue;
             }
 
-            if (StringUtils.isEmpty(rrGroup.getStorageSystemType())) {
-                throw new RuntimeException("No StorageType defined for RemoteReplicationGroup '" +
-                        rrGroup.getLabel() + "' (" + rrGroup.getId() + ")");
-            }
             result.getRemoteReplicationGroups().add(toNamedRelatedResource(rrGroup));
         }
         return result;
@@ -311,7 +307,7 @@ public class RemoteReplicationGroupService extends TaskResourceService {
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/create-group")
-    public TaskResourceRep createRemoteReplicationGroup(final RemoteReplicationGroupCreate param) throws InternalException {
+    public TaskResourceRep createRemoteReplicationGroup(final RemoteReplicationGroupCreateParams param) throws InternalException {
 
         _log.info("Called: createRemoteReplicationGroup()");
         URI sourceSystem = param.getSourceSystem();
@@ -348,11 +344,8 @@ public class RemoteReplicationGroupService extends TaskResourceService {
             rrServiceApi.createRemoteReplicationGroup(rrGroup.getId(), sourcePortIds, targetPortIds, taskId);
         } catch (final ControllerException e) {
             _log.error("Controller Error", e);
-            op = rrGroup.getOpStatus().get(taskId);
-            op.error(e);
-            rrGroup.getOpStatus().updateTaskStatus(taskId, op);
-            rrGroup.setInactive(true);
-            _dbClient.updateObject(rrGroup);
+            _dbClient.error(RemoteReplicationGroup.class, rrGroup.getId(), taskId, e);
+            _dbClient.markForDeletion(rrGroup);
         }
 
         auditOp(OperationTypeEnum.CREATE_REMOTE_REPLICATION_GROUP, true, AuditLogManager.AUDITOP_BEGIN,
@@ -385,10 +378,7 @@ public class RemoteReplicationGroupService extends TaskResourceService {
             rrServiceApi.failoverRemoteReplicationElementLink(rrElement, taskId);
         } catch (final ControllerException e) {
             _log.error("Controller Error", e);
-            op = rrGroup.getOpStatus().get(taskId);
-            op.error(e);
-            rrGroup.getOpStatus().updateTaskStatus(taskId, op);
-            _dbClient.updateObject(rrGroup);
+            _dbClient.error(RemoteReplicationGroup.class, rrGroup.getId(), taskId, e);
         }
 
         auditOp(OperationTypeEnum.FAILOVER_REMOTE_REPLICATION_GROUP_LINK, true, AuditLogManager.AUDITOP_BEGIN,
@@ -420,10 +410,7 @@ public class RemoteReplicationGroupService extends TaskResourceService {
             rrServiceApi.failbackRemoteReplicationElementLink(rrElement, taskId);
         } catch (final ControllerException e) {
             _log.error("Controller Error", e);
-            op = rrGroup.getOpStatus().get(taskId);
-            op.error(e);
-            rrGroup.getOpStatus().updateTaskStatus(taskId, op);
-            _dbClient.updateObject(rrGroup);
+            _dbClient.error(RemoteReplicationGroup.class, rrGroup.getId(), taskId, e);
         }
 
         auditOp(OperationTypeEnum.FAILBACK_REMOTE_REPLICATION_GROUP_LINK, true, AuditLogManager.AUDITOP_BEGIN,
@@ -454,10 +441,7 @@ public class RemoteReplicationGroupService extends TaskResourceService {
             rrServiceApi.establishRemoteReplicationElementLink(rrElement, taskId);
         } catch (final ControllerException e) {
             _log.error("Controller Error", e);
-            op = rrGroup.getOpStatus().get(taskId);
-            op.error(e);
-            rrGroup.getOpStatus().updateTaskStatus(taskId, op);
-            _dbClient.updateObject(rrGroup);
+            _dbClient.error(RemoteReplicationGroup.class, rrGroup.getId(), taskId, e);
         }
 
         auditOp(OperationTypeEnum.ESTABLISH_REMOTE_REPLICATION_GROUP_LINK, true, AuditLogManager.AUDITOP_BEGIN,
@@ -489,10 +473,7 @@ public class RemoteReplicationGroupService extends TaskResourceService {
             rrServiceApi.splitRemoteReplicationElementLink(rrElement, taskId);
         } catch (final ControllerException e) {
             _log.error("Controller Error", e);
-            op = rrGroup.getOpStatus().get(taskId);
-            op.error(e);
-            rrGroup.getOpStatus().updateTaskStatus(taskId, op);
-            _dbClient.updateObject(rrGroup);
+            _dbClient.error(RemoteReplicationGroup.class, rrGroup.getId(), taskId, e);
         }
 
         auditOp(OperationTypeEnum.SPLIT_REMOTE_REPLICATION_GROUP_LINK, true, AuditLogManager.AUDITOP_BEGIN,
@@ -523,10 +504,7 @@ public class RemoteReplicationGroupService extends TaskResourceService {
             rrServiceApi.suspendRemoteReplicationElementLink(rrElement, taskId);
         } catch (final ControllerException e) {
             _log.error("Controller Error", e);
-            op = rrGroup.getOpStatus().get(taskId);
-            op.error(e);
-            rrGroup.getOpStatus().updateTaskStatus(taskId, op);
-            _dbClient.updateObject(rrGroup);
+            _dbClient.error(RemoteReplicationGroup.class, rrGroup.getId(), taskId, e);
         }
 
         auditOp(OperationTypeEnum.SUSPEND_REMOTE_REPLICATION_GROUP_LINK, true, AuditLogManager.AUDITOP_BEGIN,
@@ -558,10 +536,7 @@ public class RemoteReplicationGroupService extends TaskResourceService {
             rrServiceApi.resumeRemoteReplicationElementLink(rrElement, taskId);
         } catch (final ControllerException e) {
             _log.error("Controller Error", e);
-            op = rrGroup.getOpStatus().get(taskId);
-            op.error(e);
-            rrGroup.getOpStatus().updateTaskStatus(taskId, op);
-            _dbClient.updateObject(rrGroup);
+            _dbClient.error(RemoteReplicationGroup.class, rrGroup.getId(), taskId, e);
         }
 
         auditOp(OperationTypeEnum.RESUME_REMOTE_REPLICATION_GROUP_LINK, true, AuditLogManager.AUDITOP_BEGIN,
@@ -593,10 +568,7 @@ public class RemoteReplicationGroupService extends TaskResourceService {
             rrServiceApi.swapRemoteReplicationElementLink(rrElement, taskId);
         } catch (final ControllerException e) {
             _log.error("Controller Error", e);
-            op = rrGroup.getOpStatus().get(taskId);
-            op.error(e);
-            rrGroup.getOpStatus().updateTaskStatus(taskId, op);
-            _dbClient.updateObject(rrGroup);
+            _dbClient.error(RemoteReplicationGroup.class, rrGroup.getId(), taskId, e);
         }
 
         auditOp(OperationTypeEnum.SWAP_REMOTE_REPLICATION_GROUP_LINK, true, AuditLogManager.AUDITOP_BEGIN,
@@ -630,11 +602,7 @@ public class RemoteReplicationGroupService extends TaskResourceService {
             rrServiceApi.changeRemoteReplicationMode(rrElement, newMode, taskId);
         } catch (final ControllerException e) {
             _log.error("Controller Error", e);
-            _log.error("Controller Error", e);
-            op = rrGroup.getOpStatus().get(taskId);
-            op.error(e);
-            rrGroup.getOpStatus().updateTaskStatus(taskId, op);
-            _dbClient.updateObject(rrGroup);
+            _dbClient.error(RemoteReplicationGroup.class, rrGroup.getId(), taskId, e);
         }
 
         auditOp(OperationTypeEnum.CHANGE_REMOTE_REPLICATION_MODE, true, AuditLogManager.AUDITOP_BEGIN,
@@ -643,7 +611,7 @@ public class RemoteReplicationGroupService extends TaskResourceService {
         return toTask(rrGroup, taskId, op);
     }
 
-    private RemoteReplicationGroup prepareRRGroup(RemoteReplicationGroupCreate param) {
+    private RemoteReplicationGroup prepareRRGroup(RemoteReplicationGroupCreateParams param) {
 
         RemoteReplicationGroup remoteReplicationGroup = new RemoteReplicationGroup();
         remoteReplicationGroup.setId(URIUtil.createId(RemoteReplicationGroup.class));
@@ -672,14 +640,16 @@ public class RemoteReplicationGroupService extends TaskResourceService {
                 throw APIException.badRequests.invalidReplicationMode(param.getReplicationMode());
             }
             // verify that isGroupConsistencyEnforced settings for this group comply with parent set settings
-            StringSet rrModesNoGroupConsistency = rrSet.getReplicationModesNoGroupConsistency();
-            StringSet rrModeGroupConsistencyEnforced = rrSet.getReplicationModesGroupConsistencyEnforced();
-            if (param.getIsGroupConsistencyEnforced() != null && rrModeGroupConsistencyEnforced.contains(rrGroupReplicationMode) &&
-                    !param.getIsGroupConsistencyEnforced()) {
-                throw APIException.badRequests.invalidIsGroupConsistencyEnforced(param.getIsGroupConsistencyEnforced().toString());
-            } else if (param.getIsGroupConsistencyEnforced() != null && rrModesNoGroupConsistency.contains(rrGroupReplicationMode) &&
-                    param.getIsGroupConsistencyEnforced()) {
-                throw APIException.badRequests.invalidIsGroupConsistencyEnforced(param.getIsGroupConsistencyEnforced().toString());
+            if (param.getIsGroupConsistencyEnforced() != null) {
+                StringSet rrModesNoGroupConsistency = rrSet.getReplicationModesNoGroupConsistency();
+                StringSet rrModeGroupConsistencyEnforced = rrSet.getReplicationModesGroupConsistencyEnforced();
+                if (!param.getIsGroupConsistencyEnforced() && (rrModeGroupConsistencyEnforced != null) &&
+                        rrModeGroupConsistencyEnforced.contains(rrGroupReplicationMode)) {
+                    throw APIException.badRequests.invalidIsGroupConsistencyEnforced(param.getIsGroupConsistencyEnforced().toString());
+                } else if (param.getIsGroupConsistencyEnforced() && (rrModesNoGroupConsistency != null) &&
+                        rrModesNoGroupConsistency.contains(rrGroupReplicationMode)) {
+                    throw APIException.badRequests.invalidIsGroupConsistencyEnforced(param.getIsGroupConsistencyEnforced().toString());
+                }
             }
         }
 

@@ -4,12 +4,12 @@
  */
 package com.emc.storageos.model.file;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlElementWrapper;
 import javax.xml.bind.annotation.XmlRootElement;
-
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * Attributes associated with a file system export.
@@ -25,8 +25,9 @@ public class FileSystemExportParam {
     private String subDirectory;
     private String mountPoint;
     private String comments;
-
+    private Boolean bypassDnsCheck;
     private List<String> endpoints;
+
 
     public FileSystemExportParam() {
     }
@@ -176,6 +177,15 @@ public class FileSystemExportParam {
 
     public void setSubDirectory(String subDirectory) {
         this.subDirectory = subDirectory;
+    }
+
+    @XmlElement(name = "bypass_dns_check", required = false, defaultValue = "false")
+    public Boolean getBypassDnsCheck() {
+        return bypassDnsCheck;
+    }
+
+    public void setBypassDnsCheck(Boolean bypassDnsCheck) {
+        this.bypassDnsCheck = bypassDnsCheck;
     }
 
 }

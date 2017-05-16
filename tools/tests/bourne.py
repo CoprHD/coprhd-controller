@@ -527,12 +527,14 @@ URI_REMOTEREPLICATIONSET_LIST            = URI_SERVICES_BASE   + '/vdc/block/rem
 URI_REMOTEREPLICATIONSET_INSTANCE        = URI_SERVICES_BASE   + '/vdc/block/remotereplicationsets/{0}'
 URI_REMOTEREPLICATIONSET_FAILOVER        = URI_SERVICES_BASE   + '/vdc/block/remotereplicationsets/{0}/failover'
 URI_REMOTEREPLICATIONSET_RESUME        = URI_SERVICES_BASE   + '/vdc/block/remotereplicationsets/{0}/resume'
+URI_REMOTEREPLICATIONSET_FAILBACK        = URI_SERVICES_BASE   + '/vdc/block/remotereplicationsets/{0}/failback'
 URI_REMOTEREPLICATIONSET_TASK            = URI_SERVICES_BASE   + '/vdc/block/remotereplicationsets/{0}/tasks/{1}'
 URI_REMOTEREPLICATIONGROUP_LIST            = URI_SERVICES_BASE   + '/vdc/block/remotereplicationgroups'
 URI_REMOTEREPLICATIONGROUP_INSTANCE        = URI_SERVICES_BASE   + '/vdc/block/remotereplicationgroups/{0}'
 URI_REMOTEREPLICATIONGROUP_CREATE        = URI_SERVICES_BASE   + '/vdc/block/remotereplicationgroups/create-group'
 URI_REMOTEREPLICATIONGROUP_FAILOVER        = URI_SERVICES_BASE   + '/vdc/block/remotereplicationgroups/{0}/failover'
 URI_REMOTEREPLICATIONGROUP_RESUME        = URI_SERVICES_BASE   + '/vdc/block/remotereplicationgroups/{0}/resume'
+URI_REMOTEREPLICATIONGROUP_FAILBACK        = URI_SERVICES_BASE   + '/vdc/block/remotereplicationgroups/{0}/failback'
 URI_REMOTEREPLICATIONGROUP_TASK          = URI_SERVICES_BASE   + '/vdc/block/remotereplicationgroups/{0}/tasks/{1}'
 URI_STORAGE_SYSTEM_TYPE_CREATE           = URI_SERVICES_BASE   + '/vdc/storage-system-types/internal'
 URI_REMOTEREPLICATIONPAIR_LIST            = URI_SERVICES_BASE   + '/vdc/block/remotereplicationpairs'
@@ -8483,14 +8485,14 @@ class Bourne:
 
    
     # Service Catalog 
-    def catalog_search(self, servicename, tenant):
+    def catalog_search(self, servicename, tenant, categoryName=None):
         catalog_services = self.api('GET', URI_CATALOG_SERVICE_SEARCH_NAME.format(servicename))
         for catalog_service in catalog_services['resource']:
             service = self.catalog_service_query(catalog_service['id'])
             category = self.catalog_category_query(service['catalog_category']['id'])
-            if category['tenant']['id'] == tenant and service['name'] == servicename:
+            if category['tenant']['id'] == tenant and service['name'] == servicename and (categoryName is None or categoryName == category['name']):
                 return service 
-        raise Exception('unable to find service ' + servicename + ' in tenant ' + tenant)
+        raise Exception('unable to find service ' + servicename + ' in tenant ' + tenant + ' in category ' + categoryName)
 
     def catalog_category_query(self, id):
         return self.api('GET', URI_CATALOG_CATEGORY.format(id))
@@ -8517,10 +8519,10 @@ class Bourne:
         tenant = self.__tenant_id_from_label(tenant)
         return self.api('POST', URI_CATALOG_CATEGORY_UPGRADE.format(tenant))
  
-    def catalog_order(self, servicename, tenant, parameters):
+    def catalog_order(self, servicename, tenant, parameters, category=None, failOnError=None):
         tenant = self.__tenant_id_from_label(tenant)
         self.catalog_upgrade(tenant)
-        service = self.catalog_search(servicename, tenant)
+        service = self.catalog_search(servicename, tenant, category)
         parms = { 'tenantId': tenant,
                   'catalog_service': service['id']
                 }
@@ -8535,7 +8537,10 @@ class Bourne:
 
         parms['parameters'] = ordervalues
         order = self.api('POST', URI_CATALOG_ORDERS, parms)
-        return self.__catalog_poll(order['id'])
+        completedOrder = self.__catalog_poll(order['id'])
+        if (failOnError == "true" and completedOrder['order_status'] == 'ERROR'):
+            raise Exception('error during catalog order: ' + completedOrder['id'] + " " + completedOrder['message'])
+        return completedOrder
 
     #
     # Compute Resources - Host
@@ -9462,6 +9467,13 @@ class Bourne:
         s = self.api_sync_2(o['resource']['id'], o['op_id'], self.replicationgroup_show_task)
         return s
 
+    def replicationgroup_failback(self, replicationgroup_uri):
+        o = self.api('POST', URI_REMOTEREPLICATIONGROUP_FAILBACK.format(replicationgroup_uri))
+        self.assert_is_dict(o)
+        print '@@@@: ' + str(o) + ' :@@@@'
+        s = self.api_sync_2(o['resource']['id'], o['op_id'], self.replicationgroup_show_task)
+        return s
+
     def replicationset_failover(self, replicationset_uri):
         o = self.api('POST', URI_REMOTEREPLICATIONSET_FAILOVER.format(replicationset_uri))
         self.assert_is_dict(o)
@@ -9471,6 +9483,13 @@ class Bourne:
 
     def replicationset_resume(self, replicationset_uri):
         o = self.api('POST', URI_REMOTEREPLICATIONSET_RESUME.format(replicationset_uri))
+        self.assert_is_dict(o)
+        print '@@@@: ' + str(o) + ' :@@@@'
+        s = self.api_sync_2(o['resource']['id'], o['op_id'], self.replicationset_show_task)
+        return s
+
+    def replicationset_failback(self, replicationset_uri):
+        o = self.api('POST', URI_REMOTEREPLICATIONSET_FAILBACK.format(replicationset_uri))
         self.assert_is_dict(o)
         print '@@@@: ' + str(o) + ' :@@@@'
         s = self.api_sync_2(o['resource']['id'], o['op_id'], self.replicationset_show_task)

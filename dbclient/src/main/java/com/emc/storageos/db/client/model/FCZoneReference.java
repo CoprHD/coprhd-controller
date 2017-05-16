@@ -46,6 +46,7 @@ public class FCZoneReference extends DataObject {
     }
 
     @Name("volumeUri")
+    @AlternateId("FCZoneRefVolumeIndex")
     public URI getVolumeUri() {
         return volumeUri;
     }

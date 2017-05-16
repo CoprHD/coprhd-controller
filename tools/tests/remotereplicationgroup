@@ -71,6 +71,19 @@ def remotereplicationgroup_failover(args):
         print 'Failed to failover remote replication group.'
 
 
+# Failback remote replication group.
+def remotereplicationgroup_failback(args):
+    bourne.connect(args.ip)
+
+    replicationgroup_uri = bourne.replicationgroup_query(args.replicationgroup_name)
+    print 'Replication group uri: ' + replicationgroup_uri
+
+    s = bourne.replicationgroup_failback(replicationgroup_uri)
+    if (s['state'] == 'ready'):
+        print 'Failed back remote replication group with id ' + s['resource']['id']
+    else:
+        print 'Failed to failback remote replication group.'
+
 #----------------------------------------------------------------------
 # command-line parsing
 #----------------------------------------------------------------------
@@ -113,6 +126,10 @@ create.add_argument('--target_ports', help = 'The names of target ports')
 operation = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
 operation.add_argument('replicationgroup_name', help = 'The name of the replication group.')
 
+# remotereplicationgroup failback
+failback = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+failback.add_argument('replicationgroup_name', help = 'The name of the replication group.')
+
 #----------------------------------------------------------------------
 # Main script
 #----------------------------------------------------------------------
@@ -141,6 +158,9 @@ try:
     elif (cmd == "resume"):
         args = operation.parse_args()
         remotereplicationgroup_resume(args)
+    elif (cmd == "failback"):
+        args = failback.parse_args()
+        remotereplicationgroup_failback(args)
     else:
         parser.print_help()
 

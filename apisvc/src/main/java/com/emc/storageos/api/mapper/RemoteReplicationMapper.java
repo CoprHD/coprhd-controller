@@ -2,6 +2,9 @@ package com.emc.storageos.api.mapper;
 
 import static com.emc.storageos.api.mapper.DbObjectMapper.toRelatedResource;
 
+import java.util.HashSet;
+import java.util.Set;
+
 import com.emc.storageos.db.client.model.remotereplication.RemoteReplicationGroup;
 import com.emc.storageos.db.client.model.remotereplication.RemoteReplicationPair;
 import com.emc.storageos.db.client.model.remotereplication.RemoteReplicationSet;
@@ -9,7 +12,6 @@ import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.model.remotereplication.RemoteReplicationGroupRestRep;
 import com.emc.storageos.model.remotereplication.RemoteReplicationPairRestRep;
 import com.emc.storageos.model.remotereplication.RemoteReplicationSetRestRep;
-
 
 public class RemoteReplicationMapper {
 
@@ -34,6 +36,24 @@ public class RemoteReplicationMapper {
 
         if (from.getSupportedReplicationLinkGranularity() != null) {
             to.setSupportedReplicationLinkGranularity(from.getSupportedReplicationLinkGranularity());
+        }
+
+        if (from.getSystemToRolesMap() != null) {
+            Set<String> sourceSystems = new HashSet<>();
+            Set<String> targetSystems = new HashSet<>();
+            for (String storageSystemName : from.getSystemToRolesMap().keySet()) {
+                for (String role:from.getSystemToRolesMap().get(storageSystemName)) {
+                    if (com.emc.storageos.storagedriver.model.remotereplication.
+                            RemoteReplicationSet.ReplicationRole.TARGET.name().equals(role)) {
+                        targetSystems.add(storageSystemName);
+                    } else if (com.emc.storageos.storagedriver.model.remotereplication.
+                            RemoteReplicationSet.ReplicationRole.SOURCE.name().equals(role)) {
+                        sourceSystems.add(storageSystemName);
+                    }
+                }
+            }
+            to.setSourceSystems(sourceSystems);
+            to.setTargetSystems(targetSystems);
         }
 
         return to;

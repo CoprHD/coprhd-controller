@@ -9248,8 +9248,6 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
      *            A reference to a VPLEX storage system.
      * @param vplexVolume
      *            A reference to the virtual volume.
-     * @param mirrorVolumeURI
-     *            The URI of the mirror volume to detach.
      * @param stepId
      *            The step id for this step or null.
      * @param waitFor
@@ -10073,7 +10071,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
 
                     // We now create a step to invalidate the cache for the
                     // VPLEX volume. Note that if this step fails we need to
-                    // rollback and reattach the HA mirror.
+                    // rollback and reattach the mirror.
                     createWorkflowStepForInvalidateCache(workflow, vplexSystem,
                             vplexVolumeURI, waitFor, rollbackMethodNullMethod());
 
@@ -10096,7 +10094,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
                 // the invalidate cache fails, but the restore succeeds, the
                 // cache now has invalid data and a cache read hit could return
                 // invalid data. If this step fails, then again, we need to
-                // be sure and rollback and reattach the HA mirror. There is
+                // be sure and rollback and reattach the mirror. There is
                 // nothing to rollback for the cache invalidate step. It just
                 // means there will be no read cache hits on the volume for a
                 // while until the cache is repopulated.
@@ -11359,7 +11357,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
      * This method will detach mirror device from the vplex volume source device.
      * If discard is true it will leave the device and the underlying structure on VPlex.
      * True is used when this method is used in the context of deleting mirror.
-     * If discared is false it will convert the detached mirror into virtual volume with
+     * If discarded is false it will convert the detached mirror into virtual volume with
      * the same name as the mirror device. False is used in the context of promoting mirror
      * to a vplex volume.
      *

@@ -13,7 +13,7 @@
 # For an example of /root/reset.sh, look at lglw1045.
 reset_simulator() {
     if [ "${SIM}" = "1" ]; then
-	ssh ${HW_SIMULATOR_IP} /root/reset.sh
+	/usr/bin/sshpass -p ${HW_SIMULATOR_DEFAULT_PASSWORD} ssh -q -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null root@${HW_SIMULATOR_IP} /root/reset.sh
     else
 	echo "No simulator set, not resetting simulator"
     fi

@@ -754,7 +754,10 @@ public class MigrationService extends TaskResourceService {
     }
 
     /**
+     * Get Bulk Resources
+     * 
      * {@inheritDoc}
+     * @brief List data of specified migrations
      */
     @POST
     @Path("/bulk")

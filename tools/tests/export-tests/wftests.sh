@@ -1815,6 +1815,9 @@ test_2() {
 
     if [ "${SS}" = "srdf" ]
     then
+    # Ensure empty RDF groups
+    volume delete --project ${PROJECT}
+
 	common_failure_injections="failure_004_final_step_in_workflow_complete \
 			       failure_005_BlockDeviceController.createVolumes_before_device_create \
                                failure_006_BlockDeviceController.createVolumes_after_device_create \

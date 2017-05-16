@@ -2190,7 +2190,8 @@ public class VPlexApiVirtualVolumeManager {
     public String detachMirrorFromDistributedVolume(String virtualVolumeName, String clusterId) throws VPlexApiException {
         s_logger.info("Request to detach mirror from distributed volume {}", virtualVolumeName);
 
-        ClientResponse response = null;        
+        ClientResponse response = null;
+        String detachedDeviceName = "";
         try {
             // Find the virtual volume to make sure it exists.
             VPlexApiDiscoveryManager discoveryMgr = _vplexApiClient.getDiscoveryManager();
@@ -2209,21 +2210,20 @@ public class VPlexApiVirtualVolumeManager {
                 // Find the cluster to detach
                 clusterToDetach = findClusterToDetach(ddInfo);                
             }
-            s_logger.info(String.format("Cluster to detach is: %s", clusterToDetach));
+            s_logger.info(String.format("Cluster to detach from is: %s", clusterToDetach));
 
             // Get the distributed device components. These are the local devices
             // that were used to build the distributed device. Then find the
             // component corresponding to the mirror to be detached.
-            String mirrorDevicePath = null;
-            String detachedDeviceName = null;
+            String mirrorDevicePath = null;            
             List<VPlexDistributedDeviceComponentInfo> ddComponents = discoveryMgr
                     .getDistributedDeviceComponents(ddInfo);
             for (VPlexDistributedDeviceComponentInfo ddComponent : ddComponents) {
                 discoveryMgr.updateDistributedDeviceComponent(ddComponent);
-                if (ddComponent.getCluster().equals(clusterId)) {
+                if (ddComponent.getCluster().equals(clusterToDetach)) {
                     mirrorDevicePath = ddComponent.getPath();
                     detachedDeviceName = ddComponent.getName();
-                    s_logger.info("Detached device is {}", detachedDeviceName);
+                    s_logger.info("Device to detach is {}", detachedDeviceName);
                     break;
                 }
             }
@@ -2231,7 +2231,7 @@ public class VPlexApiVirtualVolumeManager {
             // Throw an exception if we can't find distributed device component
             // corresponding to the mirror to be updated.
             if (mirrorDevicePath == null) {
-                throw VPlexApiException.exceptions.cantFindMirrorForDetach(clusterId,
+                throw VPlexApiException.exceptions.cantFindMirrorForDetach(clusterToDetach,
                         virtualVolumeName);
             }
 
@@ -2260,13 +2260,13 @@ public class VPlexApiVirtualVolumeManager {
                 }
             }
 
-            s_logger.info("Detached device is {}", detachedDeviceName);
+            s_logger.info("Device {} is now detached.", detachedDeviceName);
             return detachedDeviceName;
         } catch (VPlexApiException vae) {
             throw vae;
         } catch (Exception e) {
             throw VPlexApiException.exceptions.failedDetachingVPlexVolumeMirror(
-                    clusterId, virtualVolumeName, e);
+                    detachedDeviceName, virtualVolumeName, e);
         } finally {
             if (response != null) {
                 response.close();
@@ -2587,30 +2587,35 @@ public class VPlexApiVirtualVolumeManager {
     /**
      * Find the losing cluster to detach.
      * 
-     * @param ddInfo Distributed Device info which has the ruleset to determine which
-     *            cluster to detach.
-     * @return clusterId The losing cluster to detach.
+     * @param ddInfo Distributed Device info which has the ruleset to
+     *            determine which cluster to detach.
+     * 
+     * @return The name of losing cluster to detach.
      */
     private String findClusterToDetach(VPlexDistributedDeviceInfo ddInfo) {
-        String clusterToDetach = "";
+        // Id of the cluster to detach.
+        String clusterId = "";
+
+        // Use the rule-set-name from the distributed device info to determine 
+        // the cluster to detach.
         if (!StringUtils.isBlank(ddInfo.getRuleSetName())) {
             if (VPlexApiConstants.CLUSTER_1_DETACHES.equals(ddInfo.getRuleSetName())) {
                 // This means that cluster-1 is the winner, detach cluster-2.
-                clusterToDetach = _vplexApiClient.getClusterNameForId(VPlexApiConstants.CLUSTER_2_ID);
+                clusterId = VPlexApiConstants.CLUSTER_2_ID;
             }
             if (VPlexApiConstants.CLUSTER_2_DETACHES.equals(ddInfo.getRuleSetName())) {
                 // This means that cluster-2 is the winner, detach cluster-1.
-                clusterToDetach = _vplexApiClient.getClusterNameForId(VPlexApiConstants.CLUSTER_1_ID);
+                clusterId = VPlexApiConstants.CLUSTER_1_ID;
             }
         }
-
-        if (StringUtils.isBlank(clusterToDetach)) {
-            // Default to detaching the cluster returned from getClusterId() in the event
-            // there is "no-automatic-winner" since it doesn't matter which cluster detaches
-            // in this case.
-            clusterToDetach = ddInfo.getClusterId();
+        
+        if (StringUtils.isEmpty(clusterId)) {
+            // If clusterId hasn't been set then default it to cluster-2. This 
+            // can occur when there is "no-automatic-winner" or the rule-set-name is 
+            // not found. In this case it doesn't matter which cluster detaches.
+            clusterId = VPlexApiConstants.CLUSTER_2_ID;
         }
 
-        return clusterToDetach;
+        return _vplexApiClient.getClusterNameForId(clusterId);
     }
 }

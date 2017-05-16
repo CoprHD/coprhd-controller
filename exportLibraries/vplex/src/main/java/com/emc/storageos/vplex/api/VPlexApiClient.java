@@ -1434,7 +1434,7 @@ public class VPlexApiClient {
     public String getClusterNameForId(String clusterId) {
         String clusterName = getClusterIdToNameMap().get(clusterId);
         if (clusterName != null && !clusterName.isEmpty()) {
-            s_logger.info("found cluster name {} for cluster id {}", clusterName, clusterId);
+            s_logger.info("Found cluster name {} for cluster id {}", clusterName, clusterId);
             return clusterName;
         }
 

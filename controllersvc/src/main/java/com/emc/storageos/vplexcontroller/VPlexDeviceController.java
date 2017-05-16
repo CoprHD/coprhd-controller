@@ -9379,10 +9379,10 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
             WorkflowStepCompleter.stepSucceded(stepId);
             _log.info("Updated workflow step state to success");
         } catch (VPlexApiException vae) {
-            _log.error("Exception detaching mirror for VPLEX distributed volume" + vae.getMessage(), vae);
+            _log.error("Exception detaching mirror for VPLEX distributed volume: " + vae.getMessage(), vae);
             WorkflowStepCompleter.stepFailed(stepId, vae);
         } catch (Exception e) {
-            _log.error("Exception detaching mirror for VPLEX distributed volume " + e.getMessage(), e);
+            _log.error("Exception detaching mirror for VPLEX distributed volume: " + e.getMessage(), e);
             WorkflowStepCompleter.stepFailed(stepId, VPlexApiException.exceptions
                     .failedDetachingVPlexVolumeMirror(detachedDeviceName, vplexVolumeURI.toString(), e));
         }

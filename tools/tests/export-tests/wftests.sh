@@ -28,15 +28,17 @@
 #set -x
 
 source $(dirname $0)/wftests_host_cluster.sh
+source $(dirname $0)/wftests_host_expand_mount.sh
 source $(dirname $0)/common_subs.sh
 
 Usage()
 {
-    echo 'Usage: wftests.sh <sanity conf file path> (vmax2 | vmax3 | vnx | vplex [local | distributed] | xio | unity | vblock] [-setuphw|-setupsim) [-report] [-cleanup]  [test1 test2 ...]'
+    echo 'Usage: wftests.sh <sanity conf file path> (vmax2 | vmax3 | vnx | vplex [local | distributed] | xio | unity | vblock] [-setuphw|-setupsim) [-report] [-cleanup] [-resetsim]  [test1 test2 ...]'
     echo ' (vmax 2 | vmax3 ...: Storage platform to run on.'
     echo ' [-setup(hw) | setupsim]: Run on a new ViPR database, creates SMIS, host, initiators, vpools, varray, volumes (Required to run first, can be used with tests'
     echo ' [-report]: Report results to reporting server: http://lglw1046.lss.emc.com:8081/index.html (Optional)'
     echo ' [-cleanup]: Clean up the pre-created volumes and exports associated with -setup operation (Optional)'
+    echo ' [-resetsim]: Resets the simulator as part of setup (Optional)'
     echo ' test names: Space-delimited list of tests to run.  Use + to start at a specific test.  (Optional, default will run all tests in suite)'
     echo ' Example:  ./wftests.sh sanity.conf vmax3 -setupsim -report -cleanup test_7+'
     echo '           Will start from clean DB, report results to reporting server, clean-up when done, and start on test_7 (and run all tests after test_7'
@@ -183,12 +185,27 @@ prerun_setup() {
     fi
 
     storageprovider list | grep SIM > /dev/null
-    if [ $? -eq 0 ];
+    if [ $? -eq 0 -o "${SIM}" = "1" ];
     then
-	   ZONE_CHECK=0
-	   SIM=1;
-	   echo "Shutting off zone check for simulator environment"
-    fi
+        ZONE_CHECK=0
+        SIM=1;
+        echo "Shutting off zone check for simulator environment"
+        VCENTER_IP=${VCENTER_SIMULATOR_IP}
+        VCENTER_PORT=${VCENTER_SIMULATOR_PORT}
+        VCENTER_USERNAME=${VCENTER_SIMULATOR_USERNAME}
+        VCENTER_PASSWORD=${VCENTER_SIMULATOR_PASSWORD}
+        VCENTER_DATACENTER=${VCENTER_SIMULATOR_DATACENTER}
+        VCENTER_CLUSTER=${VCENTER_SIMULATOR_CLUSTER}
+        VCENTER_HOST=${VCENTER_SIMULATOR_HOST}
+    else
+        VCENTER_IP=${VCENTER_HW_IP}
+        VCENTER_PORT=${VCENTER_HW_PORT}
+        VCENTER_USERNAME=${VCENTER_HW_USERNAME}
+        VCENTER_PASSWORD=${VCENTER_HW_PASSWORD}
+        VCENTER_DATACENTER=${VCENTER_HW_DATACENTER}
+        VCENTER_CLUSTER=${VCENTER_HW_CLUSTER} 
+        VCENTER_HOST=${VCENTER_HW_HOST}
+    fi  
 
     if [ "${SS}" = "vnx" ]
     then
@@ -333,6 +350,7 @@ vnx_setup() {
 	--multiVolumeConsistency \
 	--provisionType 'Thick'	${driveType}		        \
 	--max_snapshots 10                      \
+	--expandable true \
 	--neighborhoods $NH  
 
     run cos create block ${VPOOL_CHANGE}	\
@@ -342,6 +360,7 @@ vnx_setup() {
 	--multiVolumeConsistency \
 	--provisionType 'Thick'	${driveType}		        \
 	--max_snapshots 10                      \
+	--expandable true \
 	--neighborhoods $NH                    
 
     run cos update block $VPOOL_BASE --storage ${VNXB_NATIVEGUID}
@@ -370,6 +389,7 @@ unity_setup()
 	--multiVolumeConsistency \
 	--provisionType 'Thin'			        \
 	--max_snapshots 10                      \
+	--expandable true \
 	--neighborhoods $NH                    
 
     run cos create block ${VPOOL_CHANGE}	\
@@ -379,6 +399,7 @@ unity_setup()
 	--multiVolumeConsistency \
 	--provisionType 'Thin'			        \
 	--max_snapshots 10                      \
+	--expandable true \
 	--neighborhoods $NH 
 
     run cos update block $VPOOL_BASE --storage ${UNITY_NATIVEGUID}
@@ -492,6 +513,10 @@ vmax3_setup() {
 
     run storagepool update $VMAX_NATIVEGUID --type block --volume_type THIN_ONLY
     run storagepool update $VMAX_NATIVEGUID --type block --volume_type THICK_ONLY
+
+    if [ "${SIM}" = "1" ]; then
+	run storageport update $VMAX_NATIVEGUID --tzone ${NH}/${FC_ZONE_A} FC
+    fi
 
     setup_varray
 
@@ -878,6 +903,10 @@ xio_setup() {
 
     run storagepool update $XTREMIO_NATIVEGUID --type block --volume_type THIN_ONLY
 
+    if [ "${SIM}" = "1" ]; then
+	run storageport update $XTREMIO_NATIVEGUID --tzone ${NH}/${FC_ZONE_A} FC
+    fi
+
     setup_varray
 
     run storagepool update $XTREMIO_NATIVEGUID --nhadd $NH --type block
@@ -893,6 +922,7 @@ xio_setup() {
         --provisionType 'Thin'			        \
         --max_snapshots 10                      \
         --multiVolumeConsistency        \
+	--expandable true                       \
         --neighborhoods $NH                    
 
     run cos create block ${VPOOL_CHANGE}	\
@@ -902,6 +932,7 @@ xio_setup() {
 	--provisionType 'Thin'			        \
 	--max_snapshots 10                      \
         --multiVolumeConsistency        \
+	--expandable true                       \
 	--neighborhoods $NH                    
 
     run cos update block $VPOOL_BASE --storage ${XTREMIO_NATIVEGUID}
@@ -954,8 +985,52 @@ host_setup() {
     fi
 }
 
+linux_setup() {
+    if [ "${SIM}" != "1" ]; then
+        secho "Setting up Linux hardware host"
+        run hosts create linuxhost1 $TENANT Linux ${LINUX_HOST_IP} --port ${LINUX_HOST_PORT} --username ${LINUX_HOST_USERNAME} --password ${LINUX_HOST_PASSWORD} --discoverable true
+    fi
+}
+
+windows_setup() {
+    if [ "${SIM}" == "1" ]; then
+        secho "Setting up Windows simulator host"
+        WINDOWS_HOST_IP=winhost1
+        WINDOWS_HOST_PORT=$WINDOWS_SIMULATOR_PORT
+        WINDOWS_HOST_USERNAME=$WINDOWS_SIMULATOR_USERNAME
+        WINDOWS_HOST_PASSWORD=$WINDOWS_SIMULATOR_PASSWORD 
+    fi
+
+    run hosts create winhost1 $TENANT Windows ${WINDOWS_HOST_IP} --port ${WINDOWS_HOST_PORT} --username ${WINDOWS_HOST_USERNAME} --password ${WINDOWS_HOST_PASSWORD} --discoverable true 
+
+    if [ "${SIM}" == "1" ]; then
+        run transportzone add $NH/${FC_ZONE_A} "00:00:00:00:00:00:00:11"
+        run transportzone add $NH/${FC_ZONE_A} "00:00:00:00:00:00:00:12"
+        run transportzone add $NH/${FC_ZONE_A} "00:00:00:00:00:00:00:13"
+        run transportzone add $NH/${FC_ZONE_A} "00:00:00:00:00:00:00:14"
+    fi 
+}
+
+hpux_setup() {
+    if [ "${SIM}" != "1" ]; then
+        secho "Setting up HP-UX hardware host"
+        run hosts create hpuxhost1 $TENANT HPUX ${HPUX_HOST_IP} --port ${HPUX_HOST_PORT} --username ${HPUX_HOST_USERNAME} --password ${HPUX_HOST_PASSWORD} --discoverable true 
+    else
+        secho "HP-UX simulator does not exist!  Failing."
+    fi 
+}
+
 vcenter_setup() {
-    secho "Setup virtual center..."
+    if [ "${SIM}" = "1" ]; then
+        vcenter_sim_setup
+    else    
+        secho "Setup virtual center real hardware..."
+        runcmd vcenter create vcenter1 ${TENANT} ${VCENTER_HW_IP} ${VCENTER_HW_PORT} ${VCENTER_HW_USERNAME} ${VCENTER_HW_PASSWORD}                
+    fi
+}
+
+vcenter_sim_setup() {
+    secho "Setup virtual center sim..."
     runcmd vcenter create vcenter1 ${TENANT} ${VCENTER_SIMULATOR_IP} ${VCENTER_SIMULATOR_PORT} ${VCENTER_SIMULATOR_USERNAME} ${VCENTER_SIMULATOR_PASSWORD}
 
     # TODO need discovery to run
@@ -978,6 +1053,9 @@ vcenter_setup() {
 common_setup() {
     host_setup;
     vcenter_setup;
+    windows_setup;
+    hpux_setup;
+    linux_setup;
 }
 
 setup_varray() {
@@ -987,6 +1065,11 @@ setup_varray() {
 
 setup() {
     storage_type=$1;
+
+    # Reset the simulator if requested.
+    if [ ${RESET_SIM} = "1" ]; then
+	reset_simulator;
+    fi
 
     syssvc $SANITY_CONFIG_FILE localhost setup
     security add_authn_provider ldap ldap://${LOCAL_LDAP_SERVER_IP} cn=manager,dc=viprsanity,dc=com secret ou=ViPR,dc=viprsanity,dc=com uid=%U CN Local_Ldap_Provider VIPRSANITY.COM ldapViPR* SUBTREE --group_object_classes groupOfNames,groupOfUniqueNames,posixGroup,organizationalRole --group_member_attributes member,uniqueMember,memberUid,roleOccupant
@@ -1129,7 +1212,7 @@ snap_db() {
     column_families=$2
     escape_seq=$3
 
-    base_filter="| sed -r '/6[0]{29}[A-Z0-9]{2}=/s/\=-?[0-9][0-9]?[0-9]?/=XX/g' | sed -r 's/vdc1=-?[0-9][0-9]?[0-9]?/vdc1=XX/g' | grep -v \"status = OpStatusMap\" | grep -v \"lastDiscoveryRunTime = \" | grep -v \"successDiscoveryTime = \" | grep -v \"storageDevice = URI: null\" | grep -v \"StringSet \[\]\" | grep -v \"varray = URI: null\" | grep -v \"Description:\" | grep -v \"Additional\" | grep -v -e '^$' | grep -v \"Rollback encountered problems\" | grep -v \"clustername = null\" | grep -v \"cluster = URI: null\" | grep -v \"vcenterDataCenter = \" $escape_seq"
+    base_filter="| sed -r '/6[0]{29}[A-Z0-9]{2}=/s/\=-?[0-9][0-9]?[0-9]?/=XX/g' | sed -r 's/vdc1=-?[0-9][0-9]?[0-9]?/vdc1=XX/g' | grep -v \"status = OpStatusMap\" | grep -v \"lastDiscoveryRunTime = \" | grep -v \"allocatedCapacity = \" | grep -v \"capacity = \" | grep -v \"provisionedCapacity = \" | grep -v \"successDiscoveryTime = \" | grep -v \"storageDevice = URI: null\" | grep -v \"StringSet \[\]\" | grep -v \"varray = URI: null\" | grep -v \"Description:\" | grep -v \"Additional\" | grep -v -e '^$' | grep -v \"Rollback encountered problems\" | grep -v \"clustername = null\" | grep -v \"cluster = URI: null\" | grep -v \"vcenterDataCenter = \" $escape_seq"
     
     secho "snapping column families [set $slot]: ${column_families}"
 
@@ -1993,6 +2076,15 @@ test_7() {
       # prime the export
       runcmd export_group create $PROJECT ${expname}1 $NH --type Exclusive --volspec ${PROJECT}/${VOLNAME}-1 --inits "${HOST1}/${H1PI1}"
 
+      # Verify the zone names, as we know them, are on the switch
+      zone1=`get_zone_name ${HOST1} ${H1PI1}`
+      if [[ -z $zone1 ]]; then
+        echo -e "\e[91mERROR\e[0m: Could not find a zone corresponding to host ${HOST1} and initiator ${initiator}"
+        incr_fail_count
+      else
+        verify_zone ${zone1} ${FC_ZONE_A} exists  
+      fi    
+      
       # Snsp the DB so we can validate after failures later
       snap_db 2 "${cfs[@]}"
 
@@ -2027,11 +2119,34 @@ test_7() {
       set_artificial_failure none
       runcmd export_group update ${PROJECT}/${expname}1 --addInits ${HOST1}/${H1PI2}
 
+      # Verify the zone names, as we know them, are on the switch
+      zone2=`get_zone_name ${HOST1} ${H1PI2}`
+      if [[ -z $zone2 ]]; then
+        echo -e "\e[91mERROR\e[0m: Could not find a ViPR zone corresponding to host ${HOST1} and initiator ${H1PI2}"
+        incr_fail_count
+      else
+        verify_zone ${zone2} ${FC_ZONE_A} exists  
+      fi
+
       # Perform any DB validation in here
       snap_db 4 "${cfs[@]}"
 
       # Delete the export
       runcmd export_group delete ${PROJECT}/${expname}1
+
+      # Only verify the zone has been removed if it is a newly created zone
+      if [ "${zone1}" != "" ]; then
+        if newly_created_zone_for_host $zone1 $HOST1; then
+            verify_zone ${zone1} ${FC_ZONE_A} gone    
+        fi          
+      fi
+
+      # Only verify the zone has been removed if it is a newly created zone
+      if [ "${zone2}" != "" ]; then
+        if newly_created_zone_for_host $zone2 $HOST1; then
+            verify_zone ${zone2} ${FC_ZONE_A} gone    
+        fi          
+      fi   
 
       # Verify the DB is back to the original state
       snap_db 5 "${cfs[@]}"
@@ -2462,7 +2577,8 @@ test_11() {
     storage_failure_injections=""
     if [ "${SS}" = "vplex" ]
     then
-	storage_failure_injections=""
+	storage_failure_injections="failure_003_late_in_add_initiator_to_mask \
+                                    failure_083_VPlexDeviceController_late_in_add_targets_to_view"
     fi
 
     if [ "${SS}" = "unity" -o "${SS}" = "xio" ]
@@ -2478,7 +2594,7 @@ test_11() {
     failure_injections="${common_failure_injections} ${storage_failure_injections}"
 
     # Placeholder when a specific failure case is being worked...
-    # failure_injections="failure_004_final_step_in_workflow_complete"
+    # failure_injections="failure_083_VPlexDeviceController_late_in_add_targets_to_view"
 
     for failure in ${failure_injections}
     do
@@ -3053,6 +3169,7 @@ esac
 ZONE_CHECK=${ZONE_CHECK:-1}
 REPORT=0
 DO_CLEANUP=0;
+RESET_SIM=0;
 while [ "${1:0:1}" = "-" ]
 do
     if [ "${1}" = "setuphw" -o "${1}" = "setup" -o "${1}" = "-setuphw" -o "${1}" = "-setup" ]
@@ -3064,7 +3181,7 @@ do
     elif [ "${1}" = "setupsim" -o "${1}" = "-setupsim" ]; then
     	if [ "$SS" = "xio" -o "$SS" = "vmax3" -o "$SS" = "vmax2" -o "$SS" = "vnx" -o "$SS" = "vplex" ]; then
     	    echo "Setting up testing based on simulators"
-    	    SIM=1;
+    	    SIM=1;	    
     	    ZONE_CHECK=0;
     	    setup=1;
     	    shift 1;
@@ -3083,8 +3200,19 @@ do
 
     if [ "$1" = "-cleanup" ]
     then
-	   DO_CLEANUP=1;
-	   shift
+	DO_CLEANUP=1;
+	shift
+    fi
+
+    if [ "$1" = "-resetsim" ]
+    then
+	if [ ${setup} -ne 1 ]; then
+	    echo "FAILURE: Setup not specified.  Not recommended to reset simulator in the middle of an active configuration.  Or put -resetsim after your -setup param"
+	    exit;
+	else
+	    RESET_SIM=1;
+	    shift
+	fi
     fi
 done
 
@@ -3096,9 +3224,7 @@ prerun_setup;
 if [ ${setup} -eq 1 ]
 then
     setup
-    if [ "$SS" = "xio" -o "$SS" = "vplex" ]; then
-	   setup_yaml;
-    fi
+    setup_yaml;
     if [ "$SS" = "vmax2" -o "$SS" = "vmax3" -o "$SS" = "vnx" ]; then
 	   setup_provider;
     fi

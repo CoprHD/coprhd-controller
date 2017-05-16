@@ -103,6 +103,7 @@ public final class WorkflowHelper {
     private static final WorkflowVersion CURRENT_VERSION = new WorkflowVersion(1,0,0,0);
     private static final ImmutableList<String> SUPPORTED_VERSIONS = ImmutableList.<String>builder()
             .add(CURRENT_VERSION.toString()).build();
+    private static final int MAX_IMPORT_NAME_INDEX = 100;
     
     private WorkflowHelper() {}
     
@@ -117,7 +118,6 @@ public final class WorkflowHelper {
         
         workflow.setId(URIUtil.createId(CustomServicesWorkflow.class));
         workflow.setLabel(document.getName());
-        workflow.setName(document.getName());
         workflow.setDescription(document.getDescription());
         workflow.setSteps(toStepsJson(document.getSteps()));
         workflow.setPrimitives(getPrimitives(document));
@@ -137,7 +137,6 @@ public final class WorkflowHelper {
         }
 
         if(document.getName() != null) {
-            oeWorkflow.setName(document.getName());
             oeWorkflow.setLabel(document.getName());
         }
         
@@ -156,7 +155,7 @@ public final class WorkflowHelper {
     
     public static CustomServicesWorkflowDocument toWorkflowDocument(final CustomServicesWorkflow workflow) throws JsonParseException, JsonMappingException, IOException {
         final CustomServicesWorkflowDocument document = new CustomServicesWorkflowDocument();
-        document.setName(workflow.getName());
+        document.setName(workflow.getLabel());
         document.setDescription(workflow.getDescription());
         document.setSteps(toDocumentSteps(workflow.getSteps()));
         
@@ -328,25 +327,25 @@ public final class WorkflowHelper {
         //       item and import it again.  We should support update of an item as will as import of new items.
         
         for( final Entry<URI, ResourcePackage> resource : workflowPackage.resources().entrySet()) {
-            if( null == client.findById(URIUtil.getModelClass(resource.getKey()), resource.getKey())) {
-                final CustomServicesPrimitiveResourceRestRep metadata = resource.getValue().metadata();
-                final CustomServicesResourceDAO<?> dao = resourceDAOs.getByModel(URIUtil.getTypeName(metadata.getId()));
-                if( null == dao ) {
-                    throw new RuntimeException("Type not found for ID " + metadata.getId());
-                }
-                dao.importResource(metadata, resource.getValue().bytes());
-                
-            } else {
+            final CustomServicesResourceDAO<?> dao = resourceDAOs.getByModel(URIUtil.getTypeName(resource.getKey()));
+            final CustomServicesPrimitiveResourceRestRep metadata = resource.getValue().metadata();
+            if( null == dao ) {
+                throw new RuntimeException("Type not found for ID " + metadata.getId());
+            }
+            
+            if( !dao.importResource(metadata, resource.getValue().bytes())) {
                 log.info("Resource " + resource.getKey() + " previously imported");
             }
         }
         
         for( final Entry<URI, CustomServicesPrimitiveRestRep> operation : workflowPackage.operations().entrySet()) {
-            if( null == client.findById(URIUtil.getModelClass(operation.getKey()), operation.getKey())) {
-                final CustomServicesPrimitiveDAO<?> dao = daos.getByModel(URIUtil.getTypeName(operation.getKey()));
-                if( null == dao ) {
-                    throw new RuntimeException("Type not found for ID " + operation.getKey());
-                }
+            final CustomServicesPrimitiveDAO<?> dao = daos.getByModel(URIUtil.getTypeName(operation.getKey()));
+            if( null == dao ) {
+                throw new RuntimeException("Type not found for ID " + operation.getKey());
+            }
+            final CustomServicesPrimitiveType model = dao.get(operation.getKey());
+            if( null == model || model.asModelObject().getInactive()) {
+                
                 dao.importPrimitive(operation.getValue());
                 if( null != wfDirectory.getId()) {
                     wfDirectory.addWorkflows(Collections.singleton(operation.getKey()));
@@ -359,7 +358,8 @@ public final class WorkflowHelper {
         }
         
         for(final  Entry<URI, CustomServicesWorkflowRestRep> workflow : workflowPackage.workflows().entrySet()) {
-            if( null == client.customServicesWorkflows().findById(workflow.getKey())) {
+            final CustomServicesWorkflow model = client.customServicesWorkflows().findById(workflow.getKey());
+            if( null == model || model.getInactive()) {
                 importWorkflow(workflow.getValue(), client, wfDirectory);
             } else {
                 log.info("Workflow " + workflow.getKey() + " previously imported");
@@ -377,10 +377,10 @@ public final class WorkflowHelper {
      * @throws JsonGenerationException 
      */
     private static void importWorkflow(final CustomServicesWorkflowRestRep workflow, final ModelClient client, final WFDirectory wfDirectory) throws JsonGenerationException, JsonMappingException, IOException {
+        
         final CustomServicesWorkflow dbWorkflow = new CustomServicesWorkflow();
         dbWorkflow.setId(workflow.getId());
-        dbWorkflow.setLabel(workflow.getName());
-        dbWorkflow.setName(workflow.getName());
+        dbWorkflow.setLabel(findImportName(workflow.getName(), client));
         dbWorkflow.setInactive(false);
         dbWorkflow.setDescription(workflow.getDocument().getDescription());
         dbWorkflow.setSteps(toStepsJson(workflow.getDocument().getSteps()));
@@ -658,15 +658,6 @@ public final class WorkflowHelper {
         builder.addWorkflow(MAPPER.readValue(bytes, CustomServicesWorkflowRestRep.class));
     }
 
-    private static void addMetadata(final CustomServicesWorkflowPackage.Builder builder, final byte[] bytes) throws IOException,
-            JsonParseException, JsonMappingException {
-        final WorkflowMetadata workflowMetadata = MAPPER.readValue(bytes, WorkflowMetadata.class);
-        if( !SUPPORTED_VERSIONS.contains(workflowMetadata.getVersion().toString())) {
-            throw APIException.badRequests.workflowVersionNotSupported(workflowMetadata.getVersion().toString(), SUPPORTED_VERSIONS);
-        }
-        builder.metadata(workflowMetadata);
-    }
-    
     private static byte[] read(final TarArchiveInputStream tarIn) throws IOException {
         try(final ByteArrayOutputStream out = new ByteArrayOutputStream() ) {
             IOUtils.copy(tarIn, out);
@@ -681,4 +672,26 @@ public final class WorkflowHelper {
         }
         return path.normalize();
     }
+    
+    private static String findImportName(final String name, final ModelClient client ) {
+        return isNameAvailable(name, client) ? name : findImportName(name, client, 1);
+    }
+    
+    private static String findImportName( final String baseName, final ModelClient client, final int index) {
+        if( index < 1 ) {
+            throw new RuntimeException("Import name index cannot be negative");
+        } else if(index > MAX_IMPORT_NAME_INDEX) {
+            // Throw an exception if we cannot find a suitable import name
+            // After many tries
+            throw APIException.badRequests.workflowArchiveCannotBeImported("Too many duplicate names: "+baseName+ " please rename an existing workflow.");
+        }
+        final String name = String.format("%s (%d)", baseName, index);
+        return isNameAvailable(name, client) ? name : findImportName(baseName, client, index+1); 
+    }
+    
+    private static boolean isNameAvailable(final String name, final ModelClient client ) {
+        final List<NamedElement> existing = client.findByLabel(CustomServicesWorkflow.class, name);
+        return (null == existing || existing.isEmpty());
+    }
+
 }

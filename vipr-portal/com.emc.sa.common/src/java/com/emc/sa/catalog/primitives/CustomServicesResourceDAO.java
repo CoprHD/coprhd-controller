@@ -104,5 +104,6 @@ public interface CustomServicesResourceDAO<Resource extends CustomServicesPrimit
      * @param bytes the file bytes
      * 
      */
-    public void importResource(CustomServicesPrimitiveResourceRestRep resource, byte[] bytes);
+    public boolean importResource(CustomServicesPrimitiveResourceRestRep resource, byte[] bytes);
+
 }

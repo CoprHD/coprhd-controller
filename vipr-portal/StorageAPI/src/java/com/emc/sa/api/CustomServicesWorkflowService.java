@@ -216,7 +216,7 @@ public class CustomServicesWorkflowService extends CatalogTaggedResourceService 
                 return map(customServicesWorkflow);
             case PUBLISHED:
                 // Check if there are any existing services created from this WF
-                if (customServicesWorkflowManager.hasCatalogServices(customServicesWorkflow.getName())) {
+                if (customServicesWorkflowManager.hasCatalogServices(customServicesWorkflow.getLabel())) {
                     throw APIException.methodNotAllowed
                             .notSupportedWithReason("Cannot unpublish workflow. It has associated catalog services");
                 }
@@ -303,7 +303,7 @@ public class CustomServicesWorkflowService extends CatalogTaggedResourceService 
                 response.setContentLength(bytes.length);
 
                 response.setHeader("Content-Disposition", "attachment; filename="+
-                        id.toString() + EXPORT_EXTENSION);
+                        customServicesWorkflow.getLabel().toString() + EXPORT_EXTENSION);
                 return Response.ok(bytes).build();
  
             default:

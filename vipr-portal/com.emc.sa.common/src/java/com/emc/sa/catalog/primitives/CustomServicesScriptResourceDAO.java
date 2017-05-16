@@ -107,8 +107,7 @@ public class CustomServicesScriptResourceDAO implements CustomServicesResourceDA
     }
     
     @Override
-    public void importResource(final CustomServicesPrimitiveResourceRestRep resource, final byte[] bytes) {
-        final CustomServicesDBScriptResource model = CustomServicesDBHelper.makeDBResource(CustomServicesDBScriptResource.class, resource, bytes);
-        client.save(model);
+    public boolean importResource(final CustomServicesPrimitiveResourceRestRep resource, final byte[] bytes) {
+        return CustomServicesDBHelper.importResource(CustomServicesDBScriptResource.class, resource, bytes, client);
     }
 }

@@ -24,12 +24,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import com.emc.storageos.db.client.model.uimodels.CustomServicesDBAnsibleInventoryResource;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.emc.sa.catalog.CustomServicesPrimitiveManager;
 import com.emc.sa.model.dao.ModelClient;
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.model.uimodels.CustomServicesDBAnsibleInventoryResource;
 import com.emc.storageos.db.client.model.uimodels.CustomServicesDBAnsiblePrimitive;
 import com.emc.storageos.db.client.model.uimodels.CustomServicesDBAnsibleResource;
 import com.emc.storageos.model.customservices.CustomServicesPrimitiveCreateParam;
@@ -135,8 +135,7 @@ public class CustomServicesAnsiblePrimitiveDAO implements
     }
 
     @Override
-    public void importPrimitive(final CustomServicesPrimitiveRestRep operation) {
-        final CustomServicesDBAnsiblePrimitive primitive = CustomServicesDBHelper.makeDBPrimitive(CustomServicesDBAnsiblePrimitive.class, operation);
-        client.save(primitive);
+    public boolean importPrimitive(final CustomServicesPrimitiveRestRep operation) {
+        return CustomServicesDBHelper.importDBPrimitive(CustomServicesDBAnsiblePrimitive.class, operation, client);
     }
 }

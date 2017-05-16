@@ -1601,7 +1601,7 @@ public class DbClientImpl implements DbClient {
                             element[i].getClassName().substring(element[i].getClassName().lastIndexOf(".") + 1) + 
                             "." + 
                             element[i].getMethodName() + 
-                            ", " + 
+                            "(), " + 
                             element[i].getFileName() + 
                             ":" + 
                             element[i].getLineNumber());

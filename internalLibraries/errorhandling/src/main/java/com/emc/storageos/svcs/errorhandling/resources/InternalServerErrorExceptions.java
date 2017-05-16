@@ -379,6 +379,9 @@ public interface InternalServerErrorExceptions {
     @DeclareServiceCode(ServiceCode.SYS_INSTALL_DRIVER_PRECHECK_FAILED)
     public InternalServerErrorException installDriverPrecheckFailed(String errMsg);
 
+    @DeclareServiceCode(ServiceCode.SYS_DRIVER_OPERATION_ENV_PRECHECK_FAILED)
+    public InternalServerErrorException driverOpeartionEnvPrecheckFailed(String errMsg);
+
     @DeclareServiceCode(ServiceCode.SYS_INSTALL_DRIVER_FAILED)
     public InternalServerErrorException installDriverFailed(String errMsg);
 

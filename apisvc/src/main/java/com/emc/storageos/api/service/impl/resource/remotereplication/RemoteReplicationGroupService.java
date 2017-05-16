@@ -212,10 +212,6 @@ public class RemoteReplicationGroupService extends TaskResourceService {
                 continue;
             }
 
-            if (StringUtils.isEmpty(rrGroup.getStorageSystemType())) {
-                throw new RuntimeException("No StorageType defined for RemoteReplicationGroup '" +
-                        rrGroup.getLabel() + "' (" + rrGroup.getId() + ")");
-            }
             result.getRemoteReplicationGroups().add(toNamedRelatedResource(rrGroup));
         }
         return result;

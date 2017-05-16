@@ -84,6 +84,8 @@ public interface ServiceParams {
     public String REMOTE_REPLICATION_MODE = "remoteReplicationMode";
     public String REMOTE_REPLICATION_GROUP = "remoteReplicationGroup";
     public String REMOTE_REPLICATION_STATE = "remoteReplicationState";
+    public String REMOTE_REPLICATION_PAIR = "remoteReplicationPair";
+    public String REMOTE_REPLICATION_OPERATION = "remoteReplicationOperation";
     public String SRC_SYSTEM = "sourceSystem";
     public String TGT_SYSTEM = "targetSystem";
     public String SOURCE_STORAGE_PORTS = "sourcePorts";

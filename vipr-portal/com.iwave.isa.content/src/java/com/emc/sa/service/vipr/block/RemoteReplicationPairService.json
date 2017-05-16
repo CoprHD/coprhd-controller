@@ -1,0 +1,30 @@
+{
+  baseKey:"RemoteReplicationPair.RemoteReplication",
+  serviceId:"RemoteReplicationPair",
+  fields:{
+    storageType: {
+      type:"assetType.vipr.storageSystemType",
+      lockable:true,
+      required: true
+    },
+    remoteReplicationSet:{
+      type:"assetType.vipr.remoteReplicationSetsForArrayType",
+      lockable:true,
+      required: true
+    },
+    remoteReplicationPairGrouping:{
+      type:"assetType.vipr.remoteReplicationPairGrouping",
+      lockable:true,
+      required: true
+    },
+    remoteReplicationPairGroup:{
+      type:"assetType.vipr.remoteReplicationPairGroup",
+      lockable:true,
+      required: true
+    },
+    remoteReplicationPair:{
+      type:"text",
+      initialValue:"list of Pairs in Set, Group, or CG"
+    }
+  }
+}

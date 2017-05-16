@@ -7,6 +7,7 @@ package com.emc.vipr.client.core;
 import java.net.URI;
 import javax.ws.rs.core.UriBuilder;
 
+import com.emc.storageos.model.block.BlockConsistencyGroupList;
 import com.emc.storageos.model.remotereplication.RemoteReplicationGroupList;
 import com.emc.storageos.model.remotereplication.RemoteReplicationGroupRestRep;
 import com.emc.storageos.model.remotereplication.RemoteReplicationSetList;
@@ -57,5 +58,10 @@ public class RemoteReplicationSets {
     public RemoteReplicationGroupList getGroupsForSet(URI setId) {
         return client.get(RemoteReplicationGroupList.class,
                 PathConstants.BLOCK_REMOTE_REPLICATION_SET_URL + "/" + setId + "/groups");
+    }
+
+    public BlockConsistencyGroupList listRemoteReplicationSetCGs(URI setId) {
+        return client.get(BlockConsistencyGroupList.class,
+                PathConstants.BLOCK_REMOTE_REPLICATION_SET_URL + "/" + setId + "/consistency-groups");
     }
 }

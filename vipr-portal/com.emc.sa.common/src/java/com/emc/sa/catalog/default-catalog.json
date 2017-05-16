@@ -279,6 +279,10 @@
             {
               "image": "icon_CreateRemoteReplicationGroup.png",
               "baseService": "CreateRemoteReplicationGroup"
+            },
+            {
+              "image": "icon_RemoteReplicationPair.png",
+              "baseService": "RemoteReplicationPair"
             }
           ]
         }

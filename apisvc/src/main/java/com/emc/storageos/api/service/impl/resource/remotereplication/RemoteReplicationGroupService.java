@@ -237,7 +237,7 @@ public class RemoteReplicationGroupService extends TaskResourceService {
             return result;
         }
         Set<String> targetCGSystemsSet = ConsistencyGroupUtils
-                .findAllRRConsistencyGrroupSystemsByAlternateLabel(cGroup.getLabel(), _dbClient);
+                .findAllRRConsistencyGroupSystemsByAlternateLabel(cGroup.getLabel(), _dbClient);
         Iterator<RemoteReplicationGroup> groups = RemoteReplicationUtils.findAllRemoteRepliationGroupsIteratively(_dbClient);
         while (groups.hasNext()) {
             RemoteReplicationGroup rrGroup = groups.next();

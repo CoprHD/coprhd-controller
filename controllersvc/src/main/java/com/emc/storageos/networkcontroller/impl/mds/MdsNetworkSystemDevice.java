@@ -17,13 +17,18 @@ import java.util.Map.Entry;
 import java.util.Set;
 
 import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang.math.IntRange;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.constraint.ContainmentConstraint;
+import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.FCEndpoint;
+import com.emc.storageos.db.client.model.Network;
 import com.emc.storageos.db.client.model.NetworkSystem;
+import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.networkcontroller.SSHSession;
 import com.emc.storageos.networkcontroller.exceptions.NetworkDeviceControllerException;
 import com.emc.storageos.networkcontroller.impl.NetworkSystemDevice;
@@ -48,14 +53,14 @@ public class MdsNetworkSystemDevice extends NetworkSystemDeviceImpl implements N
     /**
      * Sets up a session. Gets session parameters from the NetworkSystem.
      * 
-     * @param network NetworkSystem
+     * @param networkSystem NetworkSystem
      * @return MDSDialog representing the session
      * @throws NetworkDeviceControllerException
      */
-    private MDSDialog setUpDialog(NetworkSystem network) throws NetworkDeviceControllerException {
+    private MDSDialog setUpDialog(NetworkSystem networkSystem) throws NetworkDeviceControllerException {
         try {
             SSHSession session = new SSHSession();
-            session.connect(network.getIpAddress(), network.getPortNumber(), network.getUsername(), network.getPassword());
+            session.connect(networkSystem.getIpAddress(), networkSystem.getPortNumber(), networkSystem.getUsername(), networkSystem.getPassword());
             MDSDialog dialog = new MDSDialog(session, getDefaultTimeout());
             dialog.initialize();
             return dialog;
@@ -67,9 +72,9 @@ public class MdsNetworkSystemDevice extends NetworkSystemDeviceImpl implements N
             if (exMsg.equals("timeout: socket is not established")) {
                 exMsg = "Connection Failed";
             }
-            String msg = MessageFormat.format("Could not connect to device {0}: {1}", network.getLabel(), exMsg);
+            String msg = MessageFormat.format("Could not connect to device {0}: {1}", networkSystem.getLabel(), exMsg);
             _log.error(msg);
-            throw NetworkDeviceControllerException.exceptions.setUpDialogFailed(network.getLabel(), exMsg, ex);
+            throw NetworkDeviceControllerException.exceptions.setUpDialogFailed(networkSystem.getLabel(), exMsg, ex);
         }
     }
 
@@ -1967,5 +1972,110 @@ public class MdsNetworkSystemDevice extends NetworkSystemDeviceImpl implements N
     @Override
 	public boolean isCapableOfRouting(NetworkSystem networkSystem) {
 		return this.isIvrEnabled(networkSystem);
+	}
+
+	@Override
+	public void determineRoutedNetworks(NetworkSystem networkSystem) throws NetworkDeviceControllerException {		
+		MDSDialog dialog = null;
+					
+		// 1. Build a map of switchWWN to NetworkSystem for all the discovered NetworkSystems
+		Map<String, NetworkSystem> switchWWNToNetworkSystemMap = new HashMap<String, NetworkSystem>();
+		for (URI discoveredNetworkSystem : NetworkUtil.getDiscoveredNetworkSystems(_dbClient)) {
+			try {
+			NetworkSystem ns=_dbClient.queryObject(NetworkSystem.class, discoveredNetworkSystem);
+			if (ns.getSystemType().equalsIgnoreCase(NetworkSystem.Type.mds.toString())) {
+				dialog = setUpDialog(ns);			
+				String switchWWN = dialog.showSwitchWwn();
+				switchWWNToNetworkSystemMap.put(switchWWN, ns);
+				_log.info(String.format("NetworkSystem : %s - WWN : %s", switchWWN, switchWWNToNetworkSystemMap.get(switchWWN)));			
+				}	
+			} finally {
+				disconnect(dialog);
+			}
+		}
+				
+		//2. Get ouput from "show ivr vsan-topology" using the current network system. 
+        //Build a map of Switch WWN to their VSANs from the topology map
+        try {
+            dialog = setUpDialog(networkSystem);
+            String currentNetworkSytemWWN = dialog.showSwitchWwn();
+         
+            Map<String, Set<Integer>> switchWWNToVsans = new HashMap<String, Set<Integer>>();
+             List<IvrVsanConfiguration> ivrVsansList = dialog.showIvrVsanTopology();
+             for (IvrVsanConfiguration ivrVsan : ivrVsansList) {
+                     Set<Integer> vsans = new HashSet<Integer>();
+                     vsans.addAll(ivrVsan.getVsans());
+                     for (IntRange ivrVsanRange : ivrVsan.getVsansRanges()) {
+                            vsans.add(ivrVsanRange.getMinimumInteger());
+                     }
+                     switchWWNToVsans.put(ivrVsan.getSwitchWwn(), vsans);
+             }     
+                                      
+             //3. Check to make sure that the current Network system (that is being discovered) is in the ivr vsan-topology map.
+             if (!switchWWNToVsans.containsKey(currentNetworkSytemWWN)) {            
+            	 _log.info(String.format("Currently discovered NetworkSystem with WWN %s is not part of the ivr vsan-topology, returning.", currentNetworkSytemWWN));
+            	 return;
+             }             
+             
+             //4. Loop through all the switch WWNs from the topology map and check if they are discovered.
+             //If yes, then all the networks of that network-system are routable to all the other networks from other discovered switches that are also in the vsan-topology map. 
+             //Since this map is constructed from the output of "show ivr vsan-topology", the switch WWNs listed in that output are 
+             //all routable to each others for the networks that belong to them. 
+             //The assumption here is that there exists a transit VSAN between the switches that are on the IVR path. 
+             List<Network> routedNetworks = null;
+             for (Entry<String, Set<Integer>> switchWWNToVsan : switchWWNToVsans.entrySet()) {
+            	 String switchKey = switchWWNToVsan.getKey();
+            	 Set<Integer> vsanValues = switchWWNToVsan.getValue();
+            	            	
+            	 if (switchWWNToNetworkSystemMap.containsKey(switchKey)) {     
+            		 NetworkSystem ns = switchWWNToNetworkSystemMap.get(switchKey);
+            		 URIQueryResultList networkSystemNetworkUriList = new URIQueryResultList();
+            		//Fetch all the networks of this networkSystem
+                     _dbClient.queryByConstraint(ContainmentConstraint.Factory.
+                                     getNetworkSystemNetworkConstraint(ns.getId()), networkSystemNetworkUriList);
+                     
+                     for (URI networkSystemNetworkUri : networkSystemNetworkUriList) {
+                         Network networkSystemNetwork = _dbClient.queryObject(Network.class, networkSystemNetworkUri);
+                    	 if (vsanValues.contains(Integer.parseInt(networkSystemNetwork.getNativeId()))) {
+                    		 _log.info("Routable Network : " +  networkSystemNetwork.getLabel());
+                    		 if (routedNetworks == null) {
+                    			 routedNetworks = new ArrayList<Network>();
+                    		 }
+                    		 routedNetworks.add(networkSystemNetwork);
+                    	 }                         
+                     }            		
+            	 }            	            	             
+             }                   
+             
+             //5. update routed networks
+             URIQueryResultList networkSystemNetworkUriList = new URIQueryResultList();
+             _dbClient.queryByConstraint(ContainmentConstraint.Factory.
+                             getNetworkSystemNetworkConstraint(networkSystem.getId()), networkSystemNetworkUriList);
+             for (URI networkSystemNetworkUri : networkSystemNetworkUriList) {
+            	 Network networkSystemNetwork = _dbClient.queryObject(Network.class, networkSystemNetworkUri);
+            	 for (Network routedNetwork : routedNetworks) {     
+            		 if (networkSystemNetwork.getRoutedNetworks() == null) {
+            			 networkSystemNetwork.setRoutedNetworks(new StringSet());
+            		 }
+            		 _log.info(String.format("Network %s can route to Network %s", networkSystemNetwork.getLabel(), routedNetwork.getLabel()));
+            		 networkSystemNetwork.getRoutedNetworks().add(routedNetwork.getId().toString());
+            		 
+            		 //Make the reverse association as well. 
+            		 if (routedNetwork.getRoutedNetworks() == null) {
+            			 routedNetwork.setRoutedNetworks(new StringSet());            			 
+            		 }
+            		 _log.info(String.format("Network %s can route to Network %s", routedNetwork.getLabel(), networkSystemNetwork.getLabel()));
+            		 routedNetwork.getRoutedNetworks().add(networkSystemNetwork.getId().toString());
+            	 }
+            	 _dbClient.updateObject(networkSystemNetwork);
+            	 _dbClient.updateObject(routedNetworks);
+             }
+         
+        } catch (Exception ex) {
+            _log.error("Cannot determine routable networks for networks on  " + networkSystem.getLabel() + " : " + ex.getLocalizedMessage());
+            throw ex;
+        } finally {
+            disconnect(dialog);
+        }			
 	}
 }

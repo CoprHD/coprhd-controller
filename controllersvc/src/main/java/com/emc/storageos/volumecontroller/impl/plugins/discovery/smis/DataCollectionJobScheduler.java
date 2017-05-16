@@ -115,11 +115,12 @@ public class DataCollectionJobScheduler {
 
         SCAN_INTERVALS("scan-interval", "scan-refresh-interval", initialScanDelay),
         DISCOVER_INTERVALS("discovery-interval", "discovery-refresh-interval", initialDiscoveryDelay),
-        ARRAYAFFINITY_DISCOVER_INTERVALS("arrayaffinity-discovery-interval", "arrayaffinity-discovery-refresh-interval", initialArrayAffinityDiscoveryDelay),       
-        CS_DISCOVER_INTERVALS("cs-discovery-interval", "cs-discovery-refresh-interval", initialDiscoveryDelay),
-        NS_DISCOVER_INTERVALS("ns-discovery-interval", "ns-discovery-refresh-interval", initialDiscoveryDelay),
-        COMPUTE_DISCOVER_INTERVALS("compute-discovery-interval", "compute-discovery-refresh-interval", initialDiscoveryDelay),
-        METERING_INTERVALS("metering-interval", "metering-refresh-interval", initialMeteringDelay);
+        ARRAYAFFINITY_DISCOVER_INTERVALS("arrayaffinity-discovery-interval", "arrayaffinity-discovery-refresh-interval",
+                initialArrayAffinityDiscoveryDelay),
+                CS_DISCOVER_INTERVALS("cs-discovery-interval", "cs-discovery-refresh-interval", initialDiscoveryDelay),
+                NS_DISCOVER_INTERVALS("ns-discovery-interval", "ns-discovery-refresh-interval", initialDiscoveryDelay),
+                COMPUTE_DISCOVER_INTERVALS("compute-discovery-interval", "compute-discovery-refresh-interval", initialDiscoveryDelay),
+                METERING_INTERVALS("metering-interval", "metering-refresh-interval", initialMeteringDelay);
 
         private final String _interval;
         private volatile long _intervalValue;
@@ -208,7 +209,7 @@ public class DataCollectionJobScheduler {
         boolean enableAutoMetering = Boolean.parseBoolean(_configInfo.get(ENABLE_METERING));
 
         // Override auto discovery, scan, and metering if this is one node deployment, such as devkit,
-        // standalone, or 1+0.  CoprHD are single-node deployments typically, so ignore this variable in CoprHD.
+        // standalone, or 1+0. CoprHD are single-node deployments typically, so ignore this variable in CoprHD.
         if (!PlatformUtils.isOssBuild() && (enableAutoScan || enableAutoDiscovery || enableAutoMetering)) {
             String numOfNodesString = _coordinator.getPropertyInfo().getProperty(PropertyConstants.NODE_COUNT_KEY);
             if (numOfNodesString != null && numOfNodesString.equals("1")) {
@@ -224,7 +225,7 @@ public class DataCollectionJobScheduler {
                 }
             }
         }
-        
+
         LeaderSelectorListenerForPeriodicTask schedulingProcessor = new LeaderSelectorListenerForPeriodicTask(
                 _dataCollectionExecutorService);
 
@@ -236,7 +237,7 @@ public class DataCollectionJobScheduler {
         } else {
             _logger.info("Auto scan is disabled.");
         }
-        
+
         if (enableAutoDiscovery) {
             JobIntervals intervals = JobIntervals.get(ControllerServiceImpl.DISCOVERY);
             schedulingProcessor.addScheduledTask(new DiscoveryScheduler(ControllerServiceImpl.DISCOVERY),
@@ -325,7 +326,7 @@ public class DataCollectionJobScheduler {
         computePortMetricsSelector.start();
 
     }
-    
+
     private class RefreshProviderConnectionsThread implements Runnable {
 
         @Override
@@ -372,7 +373,7 @@ public class DataCollectionJobScheduler {
             }
         }
     }
-    
+
     /**
      * Core method, responsible for loading StorageProviders from DB and do scanning.
      * 
@@ -388,7 +389,8 @@ public class DataCollectionJobScheduler {
                 scanJobByInterfaceType.put(provider.getInterfaceType(), new DataCollectionScanJob(DataCollectionJob.JobOrigin.SCHEDULER));
             }
             String taskId = UUID.randomUUID().toString();
-            scanJobByInterfaceType.get(provider.getInterfaceType()).addCompleter(new ScanTaskCompleter(StorageProvider.class, provider.getId(), taskId));
+            scanJobByInterfaceType.get(provider.getInterfaceType()).addCompleter(
+                    new ScanTaskCompleter(StorageProvider.class, provider.getId(), taskId));
         }
         for (DataCollectionScanJob scanJob : scanJobByInterfaceType.values()) {
             scheduleScannerJobs(scanJob);
@@ -407,7 +409,7 @@ public class DataCollectionJobScheduler {
             _logger.info("No scanning needed: provider list is empty");
             return;
         }
-        
+
         _logger.info("Starting scan of providers of type {}", providers.iterator().next().getInterfaceType());
 
         long lastScanTime = 0;
@@ -417,24 +419,27 @@ public class DataCollectionJobScheduler {
             ControllerServiceImpl.Lock lock = ControllerServiceImpl.Lock.getLock(ControllerServiceImpl.SCANNER);
             if (lock.acquire(lock.getRecommendedTimeout())) {
                 try {
-                    _logger.info("Acquired a lock {} to schedule {} scanner Jobs", providers.iterator().next().getInterfaceType(), lock.toString());
-                    
-                    boolean inProgress = ControllerServiceImpl.isDataCollectionJobInProgress(scanJob) || ControllerServiceImpl.isDataCollectionJobQueued(scanJob);
+                    _logger.info("Acquired a lock {} to schedule {} scanner Jobs", providers.iterator().next().getInterfaceType(),
+                            lock.toString());
+
+                    boolean inProgress = ControllerServiceImpl.isDataCollectionJobInProgress(scanJob)
+                            || ControllerServiceImpl.isDataCollectionJobQueued(scanJob);
 
                     // Find the last scan time from the provider whose scan status is not in progress or scheduled
                     if (!inProgress) {
                         lastScanTime = providers.iterator().next().getLastScanTime();
-                        
-                        // if there are any pending tasks clear them; look for pending tasks more than an hour old. That will exclude the 
+
+                        // if there are any pending tasks clear them; look for pending tasks more than an hour old. That will exclude the
                         // tasks created for the jobs currently being scheduled
-                        for (StorageProvider provider: providers) {
+                        for (StorageProvider provider : providers) {
                             Calendar oneHourAgo = Calendar.getInstance();
                             oneHourAgo.setTime(Date.from(LocalDateTime.now().minusHours(1).atZone(ZoneId.systemDefault()).toInstant()));
-                            TaskUtils.cleanupPendingTasks(_dbClient, provider.getId(), ResourceOperationTypeEnum.SCAN_STORAGEPROVIDER.getName(), URI.create(SYSTEM_TENANT_ID),
+                            TaskUtils.cleanupPendingTasks(_dbClient, provider.getId(),
+                                    ResourceOperationTypeEnum.SCAN_STORAGEPROVIDER.getName(), URI.create(SYSTEM_TENANT_ID),
                                     oneHourAgo);
                         }
                     }
-                    
+
                     if (isDataCollectionScanJobSchedulingNeeded(lastScanTime, inProgress)) {
                         for (StorageProvider provider : providers) {
                             provider.setScanStatus(DataCollectionJobStatus.SCHEDULED.toString());
@@ -502,10 +507,11 @@ public class DataCollectionJobScheduler {
             // Sort systems by last array affinity time, so that system with the earliest last array affinity time will be used
             // when checking if job should be scheduled
             Collections.sort(systems, new Comparator<StorageSystem>() {
+                @Override
                 public int compare(StorageSystem system1, StorageSystem system2) {
                     return Long.compare(system1.getLastArrayAffinityRunTime(), system2.getLastArrayAffinityRunTime());
                 }
-             });
+            });
 
             for (StorageSystem system : systems) {
                 if (system.deviceIsType(Type.unity)) {
@@ -534,8 +540,10 @@ public class DataCollectionJobScheduler {
             for (Map.Entry<URI, List<URI>> entry : providerToSystemsMap.entrySet()) {
                 String taskId = UUID.randomUUID().toString();
                 List<URI> systemIds = entry.getValue();
-                ArrayAffinityDataCollectionTaskCompleter completer = new ArrayAffinityDataCollectionTaskCompleter(StorageSystem.class, systemIds, taskId, jobType);
-                DataCollectionArrayAffinityJob job = new DataCollectionArrayAffinityJob(null, systemIds, completer, DataCollectionJob.JobOrigin.SCHEDULER, Discovery_Namespaces.ARRAY_AFFINITY.name());
+                ArrayAffinityDataCollectionTaskCompleter completer = new ArrayAffinityDataCollectionTaskCompleter(StorageSystem.class,
+                        systemIds, taskId, jobType);
+                DataCollectionArrayAffinityJob job = new DataCollectionArrayAffinityJob(null, systemIds, completer,
+                        DataCollectionJob.JobOrigin.SCHEDULER, Discovery_Namespaces.ARRAY_AFFINITY.name());
                 jobs.add(job);
             }
 
@@ -550,7 +558,8 @@ public class DataCollectionJobScheduler {
                 if (URIUtil.isType(systemURI, StorageSystem.class)) {
                     StorageSystem systemObj = _dbClient.queryObject(StorageSystem.class, systemURI);
                     if (systemObj == null || systemObj.getInactive()) {
-                        _logger.warn(String.format("StorageSystem %s is no longer in the DB or is inactive. It could have been deleted or decommissioned",
+                        _logger.warn(String.format(
+                                "StorageSystem %s is no longer in the DB or is inactive. It could have been deleted or decommissioned",
                                 systemURI));
                         continue;
                     }
@@ -578,6 +587,10 @@ public class DataCollectionJobScheduler {
                             continue;
                         } else if (CompatibilityStatus.INCOMPATIBLE.name().equalsIgnoreCase(systemObj.getCompatibilityStatus())) {
                             _logger.info("Skipping {} Job : StorageSystem {} has incompatible version",
+                                    jobType, systemURI);
+                            continue;
+                        } else if (!systemObj.getEnableMetering()) {
+                            _logger.info("Skipping {} Job : StorageSystem {} has disabled metering",
                                     jobType, systemURI);
                             continue;
                         }
@@ -707,7 +720,7 @@ public class DataCollectionJobScheduler {
     private boolean isInProgress(StorageProvider provider) {
         // if inprogress,
         return DiscoveredDataObject.DataCollectionJobStatus.IN_PROGRESS.toString()
-                        .equalsIgnoreCase(provider.getScanStatus());
+                .equalsIgnoreCase(provider.getScanStatus());
     }
 
     private <T extends DiscoveredSystemObject> boolean isError(
@@ -805,7 +818,7 @@ public class DataCollectionJobScheduler {
                 (system instanceof Host || system instanceof Vcenter)) {
             type = ControllerServiceImpl.CS_DISCOVERY;
         }
-        
+
         // check directly on the queue to determine if the job is in progress
         boolean inProgress = ControllerServiceImpl.isDataCollectionJobInProgress(job);
         boolean queued = ControllerServiceImpl.isDataCollectionJobQueued(job);
@@ -819,16 +832,18 @@ public class DataCollectionJobScheduler {
                 _logger.warn(type + " job for " + system.getLabel() + " is not queued or in progress; correcting the ViPR DB status");
                 updateDataCollectionStatus(system, type, DiscoveredDataObject.DataCollectionJobStatus.ERROR);
             }
-            
+
             // check for any pending tasks; if there are any, they're orphaned and should be cleaned up
             // look for tasks older than one hour; this will exclude the discovery job currently being scheduled
             Calendar oneHourAgo = Calendar.getInstance();
             oneHourAgo.setTime(Date.from(LocalDateTime.now().minusDays(1).atZone(ZoneId.systemDefault()).toInstant()));
             if (ControllerServiceImpl.DISCOVERY.equalsIgnoreCase(type)) {
-                TaskUtils.cleanupPendingTasks(_dbClient, system.getId(), ResourceOperationTypeEnum.DISCOVER_STORAGE_SYSTEM.getName(), URI.create(SYSTEM_TENANT_ID),
+                TaskUtils.cleanupPendingTasks(_dbClient, system.getId(), ResourceOperationTypeEnum.DISCOVER_STORAGE_SYSTEM.getName(),
+                        URI.create(SYSTEM_TENANT_ID),
                         oneHourAgo);
             } else if (ControllerServiceImpl.METERING.equalsIgnoreCase(type)) {
-                TaskUtils.cleanupPendingTasks(_dbClient, system.getId(), ResourceOperationTypeEnum.METERING_STORAGE_SYSTEM.getName(), URI.create(SYSTEM_TENANT_ID),
+                TaskUtils.cleanupPendingTasks(_dbClient, system.getId(), ResourceOperationTypeEnum.METERING_STORAGE_SYSTEM.getName(),
+                        URI.create(SYSTEM_TENANT_ID),
                         oneHourAgo);
             }
         } else {
@@ -841,10 +856,10 @@ public class DataCollectionJobScheduler {
             // the running time of the currently running job is current time - next time - job interval
             boolean longRunningDiscovery = inProgress && (currentTime - nextTime - jobInterval >= maxIdleTime);
             if (longRunningDiscovery) {
-                _logger.warn(type + " job for " + system.getLabel() + 
+                _logger.warn(type + " job for " + system.getLabel() +
                         " has been running for longer than expected; this could indicate a problem with the storage system");
             }
-         }
+        }
 
         return isJobSchedulingNeeded(system.getId(), type, (queued || inProgress), isError(system, type), scheduler, lastTime, nextTime);
     }
@@ -856,7 +871,8 @@ public class DataCollectionJobScheduler {
      * @param type
      * @param status
      */
-    private <T extends DiscoveredSystemObject> void updateDataCollectionStatus(T system, String type, DiscoveredDataObject.DataCollectionJobStatus status) {
+    private <T extends DiscoveredSystemObject> void updateDataCollectionStatus(T system, String type,
+            DiscoveredDataObject.DataCollectionJobStatus status) {
         if (ControllerServiceImpl.METERING.equalsIgnoreCase(type)) {
             system.setMeteringStatus(status.toString());
         } else if (ControllerServiceImpl.ARRAYAFFINITY_DISCOVERY.equalsIgnoreCase(type)) {
@@ -889,8 +905,9 @@ public class DataCollectionJobScheduler {
      * @param scheduler indicates if the job is initiated automatically by scheduler or if it is
      *            requested by a user.
      */
-    private boolean isJobSchedulingNeeded(URI id, String type, boolean inProgress, boolean isError, boolean scheduler, long lastTime, long nextTime) {
-        
+    private boolean isJobSchedulingNeeded(URI id, String type, boolean inProgress, boolean isError, boolean scheduler, long lastTime,
+            long nextTime) {
+
         long systemTime = System.currentTimeMillis();
         long tolerance = Long.parseLong(_configInfo.get(TOLERANCE)) * 1000;
         _logger.info("Next Run Time {} , Last Run Time {}", nextTime, lastTime);
@@ -1021,7 +1038,7 @@ public class DataCollectionJobScheduler {
     public void setConnectionFactory(CIMConnectionFactory cimConnectionFactory) {
         _connectionFactory = cimConnectionFactory;
     }
-    
+
     /**
      * refresh all provider connections for an interface type
      * 
@@ -1066,7 +1083,7 @@ public class DataCollectionJobScheduler {
                     CustomQueryUtility.getActiveStorageProvidersByInterfaceType(
                             _dbClient, StorageProvider.InterfaceType.ceph.name()),
                     _dbClient));
-        } else  {
+        } else {
             activeProviderURIs.addAll(ExternalDeviceUtils.refreshProviderConnections(_dbClient));
         }
         return activeProviderURIs;

@@ -41,12 +41,13 @@ import org.springframework.beans.factory.annotation.Autowired;
 import com.emc.storageos.api.mapper.functions.MapStoragePort;
 import com.emc.storageos.api.service.impl.resource.utils.AsyncTaskExecutorIntf;
 import com.emc.storageos.api.service.impl.resource.utils.DiscoveredObjectTaskScheduler;
-import com.emc.storageos.api.service.impl.resource.utils.PropertySetterUtil;
 import com.emc.storageos.api.service.impl.resource.utils.PurgeRunnable;
 import com.emc.storageos.api.service.impl.resource.utils.VolumeIngestionUtil;
 import com.emc.storageos.api.service.impl.response.BulkList;
 import com.emc.storageos.cinder.CinderConstants;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
+import com.emc.storageos.coordinator.common.Service;
+import com.emc.storageos.coordinator.exceptions.CoordinatorException;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
@@ -82,7 +83,6 @@ import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFil
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFileSystem.SupportedFileSystemCharacterstics;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume.SupportedVolumeCharacterstics;
-import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume.SupportedVolumeInformation;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.exceptions.DatabaseException;
@@ -120,9 +120,8 @@ import com.emc.storageos.security.authorization.Role;
 import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
+import com.emc.storageos.svcs.errorhandling.resources.ServiceCodeException;
 import com.emc.storageos.util.ConnectivityUtil;
-import com.emc.storageos.coordinator.common.Service;
-import com.emc.storageos.coordinator.exceptions.CoordinatorException;
 import com.emc.storageos.volumecontroller.ArrayAffinityAsyncTask;
 import com.emc.storageos.volumecontroller.AsyncTask;
 import com.emc.storageos.volumecontroller.BlockController;
@@ -143,7 +142,7 @@ import com.google.common.base.Function;
 
 @Path("/vdc/storage-systems")
 @DefaultPermissions(readRoles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR },
-        writeRoles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
+writeRoles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
 public class StorageSystemService extends TaskResourceService {
 
     private static final Logger _log = LoggerFactory.getLogger(StorageSystemService.class);
@@ -300,7 +299,7 @@ public class StorageSystemService extends TaskResourceService {
         }
         ArgValidator.checkFieldNotEmpty(param.getName(), "name");
         checkForDuplicateName(param.getName(), StorageSystem.class);
-        
+
         if (systemType.equals(StorageSystem.Type.isilon) || systemType.equals(StorageSystem.Type.unity)
                 || systemType.equals(StorageSystem.Type.vnxfile)) {
             ArgValidator.checkFieldValidInetAddress(param.getIpAddress(), "ip_address");
@@ -525,7 +524,7 @@ public class StorageSystemService extends TaskResourceService {
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
     public TaskResourceRep updateStorageSystem(@PathParam("id") URI id,
             StorageSystemUpdateRequestParam param)
-            throws ControllerException {
+                    throws ControllerException {
         StorageSystem system = _dbClient.queryObject(StorageSystem.class, id);
         ArgValidator.checkEntity(system, id, isIdEmbeddedInURL(id));
 
@@ -641,6 +640,7 @@ public class StorageSystemService extends TaskResourceService {
         system.setSmisUserName(param.getSmisUserName());
         system.setSmisPassword(param.getSmisPassword());
         system.setSmisUseSSL(param.getSmisUseSSL());
+        system.setEnableMetering(param.getEnableMetering());
 
         _dbClient.createObject(system);
         _log.info("Created Storage System with Native Guid:" + system.getNativeGuid());
@@ -765,7 +765,8 @@ public class StorageSystemService extends TaskResourceService {
         ArrayList<AsyncTask> tasks = new ArrayList<AsyncTask>(1);
         String taskId = UUID.randomUUID().toString();
         if (Discovery_Namespaces.ARRAY_AFFINITY.name().equalsIgnoreCase(namespace)) {
-            if (!storageSystem.deviceIsType(Type.vmax) && !storageSystem.deviceIsType(Type.vnxblock) && !storageSystem.deviceIsType(Type.xtremio) &&
+            if (!storageSystem.deviceIsType(Type.vmax) && !storageSystem.deviceIsType(Type.vnxblock)
+                    && !storageSystem.deviceIsType(Type.xtremio) &&
                     !storageSystem.deviceIsType(Type.unity)) {
                 throw APIException.badRequests.cannotDiscoverArrayAffinityForUnsupportedSystem(storageSystem.getSystemType());
             }
@@ -776,8 +777,10 @@ public class StorageSystemService extends TaskResourceService {
             List<URI> systemIds = new ArrayList<URI>();
             systemIds.add(id);
 
-            if (!NullColumnValueGetter.isNullURI(providerURI) && 
-                    (storageSystem.deviceIsType(Type.vmax) || storageSystem.deviceIsType(Type.vnxblock) || storageSystem.deviceIsType(Type.xtremio))) {
+            if (!NullColumnValueGetter.isNullURI(providerURI)
+                    &&
+                    (storageSystem.deviceIsType(Type.vmax) || storageSystem.deviceIsType(Type.vnxblock) || storageSystem
+                            .deviceIsType(Type.xtremio))) {
                 List<URI> sysURIs = _dbClient.queryByType(StorageSystem.class, true);
                 Iterator<StorageSystem> storageSystems = _dbClient.queryIterativeObjects(StorageSystem.class, sysURIs);
                 while (storageSystems.hasNext()) {
@@ -1226,7 +1229,7 @@ public class StorageSystemService extends TaskResourceService {
      * Get All RA Groups
      * 
      * @param id
-     * @brief List RDF groups names in a storage system 
+     * @brief List RDF groups names in a storage system
      * @return
      */
     @GET
@@ -1338,7 +1341,7 @@ public class StorageSystemService extends TaskResourceService {
         }
         return objNamespaceList;
     }
-    
+
     /**
      * Get information about the storage pool with the passed id on the
      * registered storage system with the passed id.
@@ -1372,7 +1375,7 @@ public class StorageSystemService extends TaskResourceService {
      * Get details of the object namespace associated with a particular storage system
      * 
      * @param id storage system URN ID
-     * @param nsId namespace id 
+     * @param nsId namespace id
      * @brief Show details for a namespace
      * @return details of namespace
      */
@@ -1393,16 +1396,16 @@ public class StorageSystemService extends TaskResourceService {
         ArgValidator.checkFieldUriType(nsId, ObjectNamespace.class, "nativeId");
         ObjectNamespace ecsNamespace = _dbClient.queryObject(ObjectNamespace.class, nsId);
         ArgValidator.checkEntity(ecsNamespace, nsId, isIdEmbeddedInURL(nsId));
-        
+
         return toObjectNamespaceRestRep(ecsNamespace, _dbClient, _coordinator);
     }
-    
+
     private ObjectNamespaceRestRep toObjectNamespaceRestRep(ObjectNamespace ecsNamespace, DbClient dbClient,
             CoordinatorClient coordinator) {
 
         return map(ecsNamespace);
     }
-    
+
     /**
      * Create a secret key for an object storage array
      * 
@@ -1417,7 +1420,7 @@ public class StorageSystemService extends TaskResourceService {
     @Path("/{id}/object-user/{userId}/secret-keys")
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR })
     public ObjectUserSecretKeyAddRestRep addUserSecretKey(ObjectUserSecretKeyRequestParam param, @PathParam("id") URI id,
-            @PathParam("userId") String userId) throws InternalException{
+            @PathParam("userId") String userId) throws InternalException {
         // Make sure storage system is registered and object storage
         ArgValidator.checkFieldUriType(id, StorageSystem.class, "id");
         StorageSystem system = queryResource(id);
@@ -1425,19 +1428,19 @@ public class StorageSystemService extends TaskResourceService {
         if (!StorageSystem.Type.ecs.toString().equals(system.getSystemType())) {
             throw APIException.badRequests.invalidParameterURIInvalid("id", id);
         }
-        
+
         ObjectController controller = getController(ObjectController.class, system.getSystemType());
         String secretKey = null;
-        if (param != null && !StringUtil.isBlank( param.getSecretkey() )){
+        if (param != null && !StringUtil.isBlank(param.getSecretkey())) {
             secretKey = param.getSecretkey();
         }
         ObjectUserSecretKey secretKeyRes = controller.addUserSecretKey(id, userId, secretKey);
-        //Return key details as this is synchronous call
+        // Return key details as this is synchronous call
         return map(secretKeyRes, true);
     }
 
     /**
-     * Get RDF Group 
+     * Get RDF Group
      * 
      * @param id
      * @param rdfGroupId
@@ -1782,7 +1785,7 @@ public class StorageSystemService extends TaskResourceService {
         while (result.iterator().hasNext()) {
             URI unManagedVolumeUri = result.iterator().next();
             unManagedVolumeList.getUnManagedVolumes()
-                    .add(toRelatedResource(ResourceTypeEnum.UNMANAGED_VOLUMES, unManagedVolumeUri));
+            .add(toRelatedResource(ResourceTypeEnum.UNMANAGED_VOLUMES, unManagedVolumeUri));
         }
         return unManagedVolumeList;
     }
@@ -1838,13 +1841,13 @@ public class StorageSystemService extends TaskResourceService {
             UnManagedVolume umv = unmanagedVolumeItr.next();
             String umvExportStatus = umv.getVolumeCharacterstics().get(
                     SupportedVolumeCharacterstics.IS_NONRP_EXPORTED.toString());
-            // In some cases, this flag isn't set at all, in which case we need to fall back to 
+            // In some cases, this flag isn't set at all, in which case we need to fall back to
             // checking the IS_VOLUME_EXPORTED flag instead.
             if (umvExportStatus == null) {
                 umvExportStatus = umv.getVolumeCharacterstics().get(
                         SupportedVolumeCharacterstics.IS_VOLUME_EXPORTED.toString());
             }
-            boolean exportStatusMatch = (null != umvExportStatus) && umvExportStatus.equalsIgnoreCase(isExportedSelected); 
+            boolean exportStatusMatch = (null != umvExportStatus) && umvExportStatus.equalsIgnoreCase(isExportedSelected);
             boolean systemMatch = umv.getStorageSystemUri().equals(id);
             // allow backend snapshots for vplex vpool ingestion - must check parent virtual volume for system match
             boolean isVplexSnapshot = false;
@@ -1947,16 +1950,16 @@ public class StorageSystemService extends TaskResourceService {
         UnManagedFileSystemList unManagedFileSystemList = new UnManagedFileSystemList();
         URIQueryResultList result = new URIQueryResultList();
         _dbClient.queryByConstraint(ContainmentConstraint.Factory.getStorageDeviceUnManagedFileSystemConstraint(id), result);
-        
+
         Iterator<UnManagedFileSystem> unmanagedFileSystemItr = _dbClient.queryIterativeObjects(
                 UnManagedFileSystem.class, result, true);
-        
-        while(unmanagedFileSystemItr.hasNext()){
+
+        while (unmanagedFileSystemItr.hasNext()) {
             UnManagedFileSystem umfs = unmanagedFileSystemItr.next();
             unManagedFileSystemList.getUnManagedFileSystem()
-            .add(toRelatedResource(ResourceTypeEnum.UNMANAGED_FILESYSTEMS, umfs.getId()));
+                    .add(toRelatedResource(ResourceTypeEnum.UNMANAGED_FILESYSTEMS, umfs.getId()));
         }
-        
+
         return unManagedFileSystemList;
     }
 

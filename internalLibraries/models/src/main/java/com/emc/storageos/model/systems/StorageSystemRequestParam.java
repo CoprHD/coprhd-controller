@@ -24,6 +24,7 @@ public class StorageSystemRequestParam {
     private String smisUserName;
     private String smisPassword;
     private Boolean smisUseSSL;
+    private Boolean enableMetering;
 
     public StorageSystemRequestParam() {
     }
@@ -44,13 +45,13 @@ public class StorageSystemRequestParam {
 
     /**
      * Type of the storage system allowed on POST
-     * Valid values: 
-     *  isilon
-     *  vnxfile
-     *  netapp
-     *  vnxe
-     *  netappc
-     *  ecs
+     * Valid values:
+     * isilon
+     * vnxfile
+     * netapp
+     * vnxe
+     * netappc
+     * ecs
      * 
      */
     @XmlElement(required = true, name = "system_type")
@@ -202,6 +203,15 @@ public class StorageSystemRequestParam {
 
     public void setSmisUseSSL(Boolean smisUseSSL) {
         this.smisUseSSL = smisUseSSL;
+    }
+
+    @XmlElement(name = "enable_metering")
+    public Boolean getEnableMetering() {
+        return enableMetering;
+    }
+
+    public void setEnableMetering(Boolean enableMetering) {
+        this.enableMetering = enableMetering;
     }
 
 }

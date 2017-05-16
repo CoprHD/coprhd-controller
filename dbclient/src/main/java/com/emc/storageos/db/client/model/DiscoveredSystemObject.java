@@ -52,6 +52,8 @@ public class DiscoveredSystemObject extends DiscoveredDataObject {
      */
     private String _registrationStatus = RegistrationStatus.REGISTERED.name();
 
+    private Boolean enableMetering;
+
     @Name("systemType")
     public String getSystemType() {
         return _systemType;
@@ -190,4 +192,15 @@ public class DiscoveredSystemObject extends DiscoveredDataObject {
         final String type = getSystemType();
         return !Strings.isNullOrEmpty(type) && type.equals(thisType.name());
     }
+
+    @Name("enableMetering")
+    public Boolean getEnableMetering() {
+        return enableMetering;
+    }
+
+    public void setEnableMetering(Boolean enableMetering) {
+        this.enableMetering = enableMetering;
+        setChanged("enableMetering");
+    }
+
 }

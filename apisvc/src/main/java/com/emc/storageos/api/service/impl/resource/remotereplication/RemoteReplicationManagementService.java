@@ -198,10 +198,12 @@ public class RemoteReplicationManagementService extends TaskResourceService {
                     taskList.addTask(rrPairTaskResourceRep);
                 }
                 break;
+
             case RR_GROUP_CG:
             case RR_SET_CG:
                 taskList =  rrPairService.resumeRemoteReplicationCGLink(operationParam.getIds());
                 break;
+
             case RR_GROUP:
                 // For VMAX we do not support group context. We align with current support for SRDF operations --- single volume or CG.
                 sourceVolume = _dbClient.queryObject(Volume.class, rrPair.getSourceElement());

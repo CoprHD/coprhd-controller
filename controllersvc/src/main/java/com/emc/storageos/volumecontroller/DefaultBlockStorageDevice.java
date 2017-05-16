@@ -539,7 +539,7 @@ public abstract class DefaultBlockStorageDevice implements BlockStorageDevice, R
     }
 
     @Override
-    public void doCreateLink(StorageSystem system, URI source, URI target, TaskCompleter completer) {
+    public void doCreateLink(StorageSystem system, URI source, URI target, TaskCompleter completer) throws Exception {
         throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
     }
 

@@ -194,6 +194,13 @@ public class VirtualDataCenterService extends TaskResourceService {
         return vdc;
     }
 
+    /**
+     * Add Virtual Data Center
+     * 
+     * @param param
+     * @brief Define a new VDC
+     * @return TaskResourceRep
+     */
     @POST
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
@@ -225,6 +232,11 @@ public class VirtualDataCenterService extends TaskResourceService {
         return enqueueJob(localVDC, JobType.VDC_CONNECT_JOB, Arrays.asList(new Object[] { vdcInfo }));
     }
 
+    /**
+     * Get Virtual Data Centers
+     * @brief List VDC names and IDs
+     * @return
+     */
     @GET
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     public VirtualDataCenterList getVirtualDataCenters() {
@@ -238,6 +250,12 @@ public class VirtualDataCenterService extends TaskResourceService {
         return vdcList;
     }
 
+    /**
+     * Get Virtual Data Center
+     * @param id
+     * @brief Show details for a VDC
+     * @return
+     */
     @GET
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}")
@@ -249,6 +267,14 @@ public class VirtualDataCenterService extends TaskResourceService {
         return restRep;
     }
 
+    /**
+     * Update Virtual Data Center
+     * 
+     * @param id
+     * @param param
+     * @brief Change properties of a VDC
+     * @return TaskResourceRep
+     */
     @PUT
     @Path("/{id}")
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
@@ -291,6 +317,13 @@ public class VirtualDataCenterService extends TaskResourceService {
         return enqueueJob(vdc, JobType.VDC_UPDATE_JOB, params);
     }
 
+    /**
+     * Remove Virtual Data Center
+     * 
+     * @param id
+     * @brief Delete a VDC
+     * @return TaskResourceRep
+     */
     @DELETE
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}")
@@ -316,6 +349,13 @@ public class VirtualDataCenterService extends TaskResourceService {
         return enqueueJob(vdc, JobType.VDC_REMOVE_JOB);
     }
 
+    /**
+     * Disconnect Virtual Data Center
+     * 
+     * @param id
+     * @brief Disconnect a VDC
+     * @return TaskResourceRep
+     */
     @POST
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/disconnect")
@@ -335,6 +375,13 @@ public class VirtualDataCenterService extends TaskResourceService {
         return enqueueJob(vdc, JobType.VDC_DISCONNECT_JOB);
     }
 
+    /**
+     * Reconnect Virtual Data Center
+     * 
+     * @param id
+     * @brief Reconnect a VDC
+     * @return TaskResourceRep
+     */
     @POST
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/reconnect")
@@ -356,10 +403,10 @@ public class VirtualDataCenterService extends TaskResourceService {
     }
 
     /**
-     * Get vdc role assignments
+     * Get VDC role assignments
      * 
      * @return Role assignment details
-     * @brief List vdc role assignments
+     * @brief List VDC role assignments
      */
     @Path("/role-assignments")
     @GET
@@ -374,8 +421,8 @@ public class VirtualDataCenterService extends TaskResourceService {
      * Retrieves the vdc's secret key. If it doesn't exist,
      * it gets generated
      * 
+     * @brief Retrieve or generate a VDC secret key
      * @return VDC secret key
-     * @brief Retrieves the vdc's secret key
      */
     @Path("/secret-key")
     @GET
@@ -446,13 +493,13 @@ public class VirtualDataCenterService extends TaskResourceService {
     }
 
     /**
-     * prepare the vdc to fulfill the requirement of being able to add other vdc in this one.
+     * Prepare the VDC to fulfill the requirement of being able to add other VDC in this one.
      * tasks are:
      * 1. remove root's roles from all tenants
      * 2. remove root's ownership from all projects
      * 
+     * @brief Prepare VDC by removing root's tenant roles and project ownerships
      * @return http response
-     * @brief prepare vdc by removing root's tenant roles and project ownerships
      */
     @Path("/prepare-vdc")
     @POST
@@ -624,11 +671,14 @@ public class VirtualDataCenterService extends TaskResourceService {
     }
 
     /***
+     * Check Geo Version Compatibility
+     * 
      * Checks if the all the VDCs in the federation are in the
      * same expected version or not.
      * 
      * @usage \vdc\admin\check-compatibility?expect_verion=2.3
      * @param expectVersion
+     * @brief Return true if all VDCs match the queried version
      * @return true if all the VDCs in the federation are in
      *         the expect_version otherwise false.
      */
@@ -646,9 +696,12 @@ public class VirtualDataCenterService extends TaskResourceService {
     }
 
     /**
+     * Check Geo Setup
+     * 
      * Check if the setup is geo-distributed multi-VDC
      * 
      * @usage \vdc\admin\check-geo-distributed
+     * @brief Return true if setup is geo-distributed, multi-VDC
      * @return true if the setup is geo-distributed VDC
      */
     @GET

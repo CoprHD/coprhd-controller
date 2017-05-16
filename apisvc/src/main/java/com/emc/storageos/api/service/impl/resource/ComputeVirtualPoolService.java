@@ -334,11 +334,11 @@ public class ComputeVirtualPoolService extends TaggedResource {
     }
 
     /**
-     * Get compute elements that match the Compute Virtual Pool criteria
+     * Get compute elements that match the compute virtual pool criteria
      * 
-     * @brief Get compute elements that match the Compute Virtual Pool criteria
-     * @param param The Compute Virtual Pool create spec containing the criteria
-     * @return ComputeElementListRestRep collection of Compute Elements
+     * @brief Get compute elements that match the compute virtual pool criteria
+     * @param The compute virtual pool create spec containing the criteria
+     * @return ComputeElementListRestRep collection of compute Elements
      */
     @POST
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
@@ -1664,8 +1664,8 @@ public class ComputeVirtualPoolService extends TaggedResource {
     /**
      * Assign Compute Elements to the Compute Virtual Pool
      * 
-     * @brief Assign Compute Elements to the compute virtual pool
      * @param param The Compute Virtual Pool Compute Elements to be added and removed
+     * @brief Assign compute elements to the compute virtual pool
      * @return ComputeVirtualPoolRestRep The updated Compute Virtual Pool
      */
     @PUT

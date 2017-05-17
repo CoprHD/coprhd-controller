@@ -3664,6 +3664,64 @@ public class SmisCommandHelper implements SmisConstants {
     }
 
     /**
+     * Group volumes by storage group which has host IO limit set.
+     *
+     * @param storage the storage
+     * @param volumeURIs the volume uris
+     * @return the sgToVolumesMap storage group to volumes map
+     * @throws WBEMException the WBEM exception
+     */
+    public Map<String, List<URI>> groupVolumesByStorageGroupWithHostIOLimit(StorageSystem storage,
+            Set<URI> volumeURIs) throws Exception {
+        CloseableIterator<CIMObjectPath> mvPathItr = null;
+        CloseableIterator<CIMObjectPath> sgItr = null;
+        Map<String, List<URI>> sgToVolumesMap = new HashMap<String, List<URI>>();
+        List<String> processedGroups = new ArrayList<String>();
+        try {
+            _log.info("Trying to find existing Storage groups for given volumes which have Host IO Limit set..");
+            List<? extends BlockObject> blockObjects = BlockObject.fetchAll(_dbClient, volumeURIs);
+            for (BlockObject bo : blockObjects) {
+                CIMObjectPath volumePath = _cimPath.getBlockObjectPath(storage, bo);
+                // See if Volume is associated with MV
+                mvPathItr = getAssociatorNames(storage, volumePath, null, SYMM_LUN_MASKING_VIEW, null, null);
+                if (mvPathItr.hasNext()) {
+                    sgItr = getAssociatorNames(storage, volumePath, null, SE_DEVICE_MASKING_GROUP, null, null);
+                    while (sgItr.hasNext()) {
+                        CIMObjectPath sgPath = sgItr.next();
+                        String instanceId = sgPath.getKey(CP_INSTANCE_ID).getValue().toString();
+                        if (!processedGroups.contains(instanceId)) {
+                            CIMInstance sgInstance = getInstance(storage, sgPath, false, false,
+                                    new String[] { CP_ELEMENT_NAME, EMC_MAX_BANDWIDTH, EMC_MAX_IO });
+
+                            String groupName = CIMPropertyFactory.getPropertyValue(sgInstance, CP_ELEMENT_NAME);
+                            String hostIOLimitBandwidth = CIMPropertyFactory.getPropertyValue(sgInstance, EMC_MAX_BANDWIDTH);
+                            String hostIOLimitIOPs = CIMPropertyFactory.getPropertyValue(sgInstance, EMC_MAX_IO);
+                            if ((!StringUtils.isEmpty(hostIOLimitBandwidth) && Integer.parseInt(hostIOLimitBandwidth) > 0)
+                                    || (!StringUtils.isEmpty(hostIOLimitIOPs) && Integer.parseInt(hostIOLimitIOPs) > 0)) {
+                                // SG has Host IO Limit set
+                                List<URI> sgVolumes = sgToVolumesMap.get(groupName);
+                                if (sgVolumes == null) {
+                                    sgVolumes = new ArrayList<URI>();
+                                    sgToVolumesMap.put(groupName, sgVolumes);
+                                }
+                                sgVolumes.add(bo.getId());
+                            }
+                            processedGroups.add(instanceId);
+                        }
+                    }
+                }
+            }
+        } catch (Exception ex) {
+            _log.error("Error occurred while looking for volumes' storage groups for Host IO Limit", ex);
+            throw ex;
+        } finally {
+            closeCIMIterator(mvPathItr);
+            closeCIMIterator(sgItr);
+        }
+        return sgToVolumesMap;
+    }
+
+    /**
      * Use case : Group volumes based on existing child Storage Groups they belong to Algo : Loop
      * through each Child Storage Group { Loop through each Volume in child Group ,if given volume
      * found, then the volume gets landed in child Group bucket } Result : Volumes gets landed in

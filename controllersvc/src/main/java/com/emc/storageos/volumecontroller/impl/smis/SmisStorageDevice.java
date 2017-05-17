@@ -3118,6 +3118,12 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
         }
     }
 
+    @Override
+    public Map<String, List<URI>> groupVolumesByStorageGroupWithHostIOLimit(StorageSystem storage, Set<URI> volumeURIs)
+            throws Exception {
+        return _helper.groupVolumesByStorageGroupWithHostIOLimit(storage, volumeURIs);
+    }
+
     /**
      * This method will be used to set the Initiator Alias for a given initiator.
      * The SMI-S version that supports this operation is Version 8.2 onwards.

@@ -2,15 +2,13 @@
   baseKey:"RemoteReplicationPair.RemoteReplication",
   serviceId:"RemoteReplicationPair",
   fields:{
-    storageType: {
-      type:"assetType.vipr.storageSystemType",
-      lockable:true,
-      required: true
+    virtualArray:{
+      type:"assetType.vipr.blockVirtualArray",
+      lockable: true
     },
-    remoteReplicationSet:{
-      type:"assetType.vipr.remoteReplicationSetsForArrayType",
-      lockable:true,
-      required: true
+    virtualPool:{
+      type:"assetType.vipr.blockVirtualPool",
+      lockable: true
     },
     remoteReplicationPairGrouping:{
       type:"assetType.vipr.remoteReplicationPairGrouping",

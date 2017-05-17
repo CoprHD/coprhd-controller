@@ -283,6 +283,40 @@ public class LinuxSupport {
         execute(new VerifyMountPoint(path));
     }
 
+    /**
+     * Verifies that the volumes are mounted on the expected paths on the host. If validation fails, the order is marked as failed.
+     * 
+     * @param volumes list of volumes to verify
+     * @param usePowerPath true if using powerpath, otherwise false for multipath
+     */
+    public void verifyVolumeMount(List<VolumeSpec> volumes, boolean usePowerPath) {
+        for (VolumeSpec volume : volumes) {
+            verifyVolumeMount(volume.viprVolume, volume.mountPoint.getPath(), usePowerPath);
+        }
+    }
+
+    /**
+     * Verifies that the volume is mounted on the expected path on the host. If validation fails, the order is marked as failed.
+     * 
+     * @param volume the volume to verify
+     * @param mountPointPath the path where the volume should be mounted
+     * @param usePowerPath true if using powerpath, otherwise false for multipath
+     */
+    public void verifyVolumeMount(BlockObjectRestRep volume, String mountPointPath, boolean usePowerPath) {
+        Map<String, MountPoint> mountPoints = getMountPoints();
+        String device = getDevice(volume, usePowerPath);
+        String partitionDevice = getPrimaryPartitionDevice(volume, mountPointPath, device, usePowerPath);
+
+        if (mountPoints == null) {
+            ExecutionUtils.fail("failTask.verifyVolumeMount.noMountPointsFound", new Object[] {}, new Object[] {});
+        } else if (!mountPoints.containsKey(mountPointPath)) {
+            ExecutionUtils.fail("failTask.verifyVolumeMount.mountPointNotFound", new Object[] {}, mountPointPath);
+        } else if (!mountPoints.get(mountPointPath).getDevice().equals(partitionDevice)) {
+            ExecutionUtils.fail("failTask.verifyVolumeMount.mountDevicesDoNotMatch", new Object[] {},
+                    mountPoints.get(mountPointPath).getDevice(), partitionDevice, volume.getWwn(), mountPointPath);
+        }
+    }
+
     public MountPoint findMountPoint(BlockObjectRestRep volume) {
         return LinuxUtils.getMountPoint(targetSystem.getHostId(), getMountPoints(), volume);
     }

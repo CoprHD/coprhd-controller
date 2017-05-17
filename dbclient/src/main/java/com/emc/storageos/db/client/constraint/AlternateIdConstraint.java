@@ -790,7 +790,7 @@ public interface AlternateIdConstraint extends Constraint {
             return new AlternateIdConstraintImpl(doType.getColumnField(ExecutionWindow.TENANT), altId);
         }
         
-        public static AlternateIdConstraint getPortGroupNativeGUIdConstraint(String altId) {
+        public static AlternateIdConstraint getPortGroupNativeGuidConstraint(String altId) {
             DataObjectType doType = TypeMap.getDoType(StoragePortGroup.class);
             return new AlternateIdConstraintImpl(doType.getColumnField(NATIVE_GUID), altId);
         }

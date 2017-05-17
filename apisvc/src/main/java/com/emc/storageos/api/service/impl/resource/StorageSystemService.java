@@ -2322,10 +2322,6 @@ public class StorageSystemService extends TaskResourceService {
                     task, ResourceOperationTypeEnum.DELETE_STORAGE_PORT_GROUP);
             op.ready();
         } else {
-            // Check if the port group is vipr internal
-            if (portGroup.checkInternalFlags(Flag.INTERNAL_OBJECT)) {
-                APIException.badRequests.internalPortGroup(portGroup.getNativeGuid());
-            }
             // Check if the port group is used by any export mask
             URIQueryResultList queryResult = new URIQueryResultList();
             _dbClient.queryByConstraint(AlternateIdConstraint.Factory

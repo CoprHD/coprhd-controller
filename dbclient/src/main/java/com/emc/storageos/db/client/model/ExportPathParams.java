@@ -13,7 +13,7 @@ import com.emc.storageos.db.client.util.StringSetUtil;
 import com.emc.storageos.model.block.export.ExportPathParameters;
 
 @Cf("ExportPathParams")
-public class ExportPathParams extends DiscoveredDataObject {
+public class ExportPathParams extends DataObject {
     private Integer maxPaths;
     private Integer minPaths;
     private Integer pathsPerInitiator;
@@ -27,8 +27,6 @@ public class ExportPathParams extends DiscoveredDataObject {
     private Boolean explicitlyCreated;
     // port group URI
     private URI portGroup;
-    
-    private URI storageDevice;
     
     /*
      * If allowFewerPorts is true, may allocate fewer than the calculated port requirement
@@ -196,16 +194,4 @@ public class ExportPathParams extends DiscoveredDataObject {
     public void setMaxInitiatorsPerPort(Integer maxInitiatorsPerPort) {
         this.maxInitiatorsPerPort = maxInitiatorsPerPort;
     }
-    
-    @RelationIndex(cf = "ExportPathToStorageDevice", type = StorageSystem.class)
-    @Name("storageDevice")
-    public URI getStorageDevice() {
-        return storageDevice;
-    }
-
-    public void setStorageDevice(URI storageDevice) {
-        this.storageDevice = storageDevice;
-        setChanged("storageDevice");
-    }
-
 }

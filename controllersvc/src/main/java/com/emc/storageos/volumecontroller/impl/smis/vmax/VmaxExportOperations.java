@@ -327,7 +327,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
                     isUsePortGroupEnabled()) {
                 StoragePortGroup pg = _dbClient.queryObject(StoragePortGroup.class, portGroupURI);
                 portGroupName = pg.getLabel();
-                _log.info("port group name: " + portGroupName);
+                _log.info(String.format("port group name: %s", portGroupName));
                 //Check if the port group existing in the array
                 targetPortGroupPath = _cimPath.getMaskingGroupPath(storage, portGroupName,
                         SmisConstants.MASKING_GROUP_TYPE.SE_TargetMaskingGroup);
@@ -2010,7 +2010,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
                             String guid = String.format("%s+%s" , storage.getNativeGuid(), portGroupName);
                             URIQueryResultList result = new URIQueryResultList();
                             _dbClient.queryByConstraint(AlternateIdConstraint.Factory
-                                    .getPortGroupNativeGUIdConstraint(guid), result);
+                                    .getPortGroupNativeGuidConstraint(guid), result);
                             Iterator<URI> it = result.iterator();
                             if (it.hasNext()) {
                                 URI pgURI = it.next();

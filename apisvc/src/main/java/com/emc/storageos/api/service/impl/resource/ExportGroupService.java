@@ -2923,7 +2923,7 @@ public class ExportGroupService extends TaskResourceService {
         if (!NullColumnValueGetter.isNullURI(param.getPortGroup())) {
             // Check if the use port group config setting is on
             String value = customConfigHandler.getComputedCustomConfigValue(CustomConfigConstants.VMAX_USE_PORT_GROUP_ENABLED,
-                    "vmax", null);
+                    Type.vmax.name(), null);
             if (Boolean.FALSE.toString().equalsIgnoreCase(value)) {
                 throw APIException.badRequests.portGroupSettingIsOff();
             }

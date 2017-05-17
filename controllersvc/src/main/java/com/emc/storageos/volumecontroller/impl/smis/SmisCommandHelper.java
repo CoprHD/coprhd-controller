@@ -7812,7 +7812,7 @@ public class SmisCommandHelper implements SmisConstants {
     /**
      * Create port group
      * 
-     * @param storage The storage ystem
+     * @param storage The storage system
      * @param portGroupName The port group name
      * @param targetURIList The list of storage ports
      * @param taskCompleter
@@ -7821,7 +7821,7 @@ public class SmisCommandHelper implements SmisConstants {
      */
     public CIMObjectPath createTargetPortGroup(StorageSystem storage,
             String portGroupName,
-            List<URI> targetURIList, TaskCompleter taskCompleter) throws Exception {
+            List<URI> targetURIList) throws Exception {
         _log.debug("{} createTargetPortGroup {} START...", storage.getSerialNumber(), portGroupName);
         CIMObjectPath targetPortGroupPath = null;
 
@@ -7862,7 +7862,7 @@ public class SmisCommandHelper implements SmisConstants {
                 isSame = false;
             }
             if (!isSame) {
-                _log.error("The port group exists, but the port memebers are different");
+                _log.error("The port group exists, but the port members are different");
                 throw DeviceControllerException.exceptions.portGroupNameInvalid(portGroupName);
             }
         }

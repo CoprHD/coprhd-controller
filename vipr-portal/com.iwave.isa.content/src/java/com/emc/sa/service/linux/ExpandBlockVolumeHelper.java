@@ -45,11 +45,9 @@ public class ExpandBlockVolumeHelper {
         logInfo("expand.block.volume.unmounting", linuxSupport.getHostName(), mountPoint.getPath());
         linuxSupport.unmountPath(mountPoint.getPath());
         ViPRService.artificialFailure(ArtificialFailures.ARTIFICIAL_FAILURE_LINUX_EXPAND_VOLUME_AFTER_UNMOUNT);
-        linuxSupport.removeFromFSTab(mountPoint.getPath());
+        linuxSupport.removeFromFSTab(mountPoint);
         linuxSupport.removeVolumeMountPointTag(volume);
         ViPRService.artificialFailure(ArtificialFailures.ARTIFICIAL_FAILURE_LINUX_EXPAND_VOLUME_AFTER_REMOVE_TAG);
-
-        linuxSupport.addMountExpandRollback(volume, mountPoint);
 
         logInfo("expand.block.volume.resize.volume", volume.getName(), newSizeInGB.toString());
         linuxSupport.resizeVolume(volume, newSizeInGB);

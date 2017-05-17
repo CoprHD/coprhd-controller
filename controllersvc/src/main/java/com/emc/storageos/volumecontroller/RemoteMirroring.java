@@ -40,7 +40,7 @@ public interface RemoteMirroring {
      * @param target
      * @param completer
      */
-    void doCreateLink(StorageSystem system, URI source, URI target, TaskCompleter completer);
+    void doCreateLink(StorageSystem system, URI source, URI target, TaskCompleter completer) throws Exception;
 
     /**
      * Create and establish replication links from a list of source and target volumes.

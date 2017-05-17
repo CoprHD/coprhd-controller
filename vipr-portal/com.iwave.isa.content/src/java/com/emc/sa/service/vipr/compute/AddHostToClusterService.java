@@ -116,6 +116,7 @@ public class AddHostToClusterService extends ViPRService {
         if (cluster == null) {
             preCheckErrors.append(ExecutionUtils.getMessage("compute.cluster.no.cluster.exists"));
         }
+        acquireClusterLock(cluster);
 
         preCheckErrors = ComputeUtils.verifyClusterInVcenter(cluster, preCheckErrors);
 
@@ -246,6 +247,9 @@ public class AddHostToClusterService extends ViPRService {
 
         List<Host> hosts = ComputeUtils.createHosts(cluster, computeVirtualPool, hostNames, virtualArray);
         logInfo("compute.cluster.hosts.created", ComputeUtils.nonNull(hosts).size());
+        for (Host host : hosts) {
+            acquireHostLock(host, cluster);
+        }
 
         Map<Host, URI> hostToBootVolumeIdMap = ComputeUtils.makeBootVolumes(project, virtualArray, virtualPool, size, hosts,
                 getClient());

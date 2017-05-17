@@ -574,16 +574,17 @@ public class UcsComputeDevice implements ComputeDevice {
                 + callSimpleReadOnlyMethodOnMO(pulledManagedObject, "assocState"));
 
         Calendar timeOutTime = Calendar.getInstance();
-        timeOutTime.add(Calendar.SECOND, getDeviceOperationTimeOut());
+        int deviceOperationTimeout = getDeviceOperationTimeOut();
+        timeOutTime.add(Calendar.SECOND, deviceOperationTimeout);
 
         do {
             if (Calendar.getInstance().after(timeOutTime)) {
 
                 LOGGER.warn("Time out occured waiting for operation to finish on the LsServer : " + managedObjectDn
-                        + "Waited for " + getDeviceOperationTimeOut() + "seconds...");
+                        + "Waited for " + deviceOperationTimeout + "seconds...");
                 throw ComputeSystemControllerException.exceptions.timeoutWaitingForMOTerminalState(
                         callSimpleReadOnlyMethodOnMO(pulledManagedObject, "dn"),
-                        callSimpleReadOnlyMethodOnMO(pulledManagedObject, "operState"), getDeviceOperationTimeOut());
+                        callSimpleReadOnlyMethodOnMO(pulledManagedObject, "operState"), deviceOperationTimeout);
 
             }
 
@@ -752,6 +753,7 @@ public class UcsComputeDevice implements ComputeDevice {
                      ComputeElement computeElement = _dbClient.queryObject(ComputeElement.class, host.getComputeElement());
                      if (computeElement!=null){
                          computeElement.setAvailable(true);
+                         computeElement.setUuid(null);
                          _dbClient.updateObject(computeElement);
                      }
                      host.setComputeElement(NullColumnValueGetter.getNullURI());
@@ -1129,7 +1131,7 @@ public class UcsComputeDevice implements ComputeDevice {
           unbindHostFromComputeElement(cs,host);
           deleteServiceProfile(cs,host);
        }catch (ClientGeneralException e){
-           LOGGER.warn("Unable to deactivate host : ", e);
+           LOGGER.error("Unable to deactivate host : ", e);
            throw e;
        }catch (Exception ex) {
             LOGGER.error("Error while deactivating host {} check stacktrace", host.getLabel(), ex);
@@ -1173,7 +1175,7 @@ public class UcsComputeDevice implements ComputeDevice {
                 LOGGER.info("Unbinding service profile with dn: "+ spDn);
                 LsServer unboundServiceProfile = ucsmService.unbindServiceProfile(getUcsmURL(cs).toString(),
                      cs.getUsername(), cs.getPassword(), spDn);
-                LOGGER.debug("Operational state of Deleted Service Profile : " + unboundServiceProfile.getOperState());
+                LOGGER.info("Operational state of Deleted Service Profile : " + unboundServiceProfile.getOperState());
                 ComputeBlade computeBlade = pullAndPollManagedObject(getUcsmURL(cs).toString(), cs.getUsername(), cs.getPassword(),
                         computeElement.getLabel(), ComputeBlade.class);
                 if (computeBlade == null){
@@ -1182,7 +1184,8 @@ public class UcsComputeDevice implements ComputeDevice {
                     // Release the computeElement back into the pool as soon as we have unbound it from the service profile
                     if (LsServerOperStates.UNASSOCIATED.equals(LsServerOperStates.fromString(computeBlade.getOperState()))) {
                          computeElement.setAvailable(true);
-                         _dbClient.persistObject(computeElement);
+                         computeElement.setUuid(null);
+                         _dbClient.updateObject(computeElement);
                     }
                 }
 
@@ -1224,7 +1227,8 @@ public class UcsComputeDevice implements ComputeDevice {
                 LOGGER.info("Deleting serviceProfile " + spDn );
                 ucsmService.deleteServiceProfile(getUcsmURL(cs).toString(), cs.getUsername(), cs.getPassword(),spDn);
                 host.setServiceProfile(NullColumnValueGetter.getNullURI());
-                _dbClient.persistObject(host);
+                host.setComputeElement(NullColumnValueGetter.getNullURI());
+                _dbClient.updateObject(host);
                 if (serviceProfile!=null){
                     _dbClient.markForDeletion(serviceProfile);
                 }
@@ -1291,5 +1295,27 @@ public class UcsComputeDevice implements ComputeDevice {
         WorkflowStepCompleter.stepSucceded(stepId);
     }
 
+    /**
+     * initialize timeout defaults for UCS operations.
+     */
+    public void initializeDefaults() {
+        int deviceTimeout = -1;
+        int pollfrequency = -1;
+        try {
+            deviceTimeout = Integer.valueOf(ControllerUtils.getPropertyValueFromCoordinator(_coordinator,
+                    "controller_ucs_communication_timeout"));
+            pollfrequency = Integer.valueOf(ControllerUtils.getPropertyValueFromCoordinator(_coordinator,
+                    "controller_ucs_device_operation_pollfrequency"));
+        } catch (Exception e) {
+            LOGGER.warn(
+                    "Exception while retriving ucs device operation timeout or poll frequency values from coordinator.",
+                    e);
+        }
+        if(deviceTimeout > -1) {
+            deviceOperationTimeOut = deviceTimeout;
+        }
+        if(pollfrequency > -1) {
+            deviceOperationPollFrequency = pollfrequency;
+        }
+    }
 }
-

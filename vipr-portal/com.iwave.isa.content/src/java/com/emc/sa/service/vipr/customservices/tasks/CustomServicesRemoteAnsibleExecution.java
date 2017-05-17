@@ -145,13 +145,13 @@ public class CustomServicesRemoteAnsibleExecution extends ViPRExecutionTask<Cust
                     AnsibleHelper.getOptions(CustomServicesConstants.ANSIBLE_BIN, input),
                     AnsibleHelper.getOptions(CustomServicesConstants.ANSIBLE_PLAYBOOK, input));
 
-            final String[] cmds = cmd.setSsh(CustomServicesConstants.SHELL_LOCAL_BIN)
+            final String[] cmds = //cmd.setSsh(CustomServicesConstants.SHELL_LOCAL_BIN)
                     //.setAuthFile(authFileName)
-                    .setUserAndIp(AnsibleHelper.getOptions(CustomServicesConstants.REMOTE_USER, input),
-                            AnsibleHelper.getOptions(CustomServicesConstants.REMOTE_NODE, input))
-                    .setHostFile(AnsibleHelper.getOptions(CustomServicesConstants.ANSIBLE_HOST_FILE, input))
-                    .setUser(AnsibleHelper.getOptions(CustomServicesConstants.ANSIBLE_USER, input))
-                    .setCommandLine(AnsibleHelper.getOptions(CustomServicesConstants.ANSIBLE_COMMAND_LINE, input))
+                    //cmd.setUserAndIp(AnsibleHelper.getOptions(CustomServicesConstants.REMOTE_USER, input),
+                      //      AnsibleHelper.getOptions(CustomServicesConstants.REMOTE_NODE, input))
+                    cmd.setHostFile(AnsibleHelper.getOptions(CustomServicesConstants.ANSIBLE_HOST_FILE, input))
+                    //.setUser(AnsibleHelper.getOptions(CustomServicesConstants.ANSIBLE_USER, input))
+                    //.setCommandLine(AnsibleHelper.getOptions(CustomServicesConstants.ANSIBLE_COMMAND_LINE, input))
                     //.setExtraVars(extraVars)
                     .build();
 

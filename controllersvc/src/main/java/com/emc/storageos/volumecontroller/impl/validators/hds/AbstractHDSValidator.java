@@ -4,6 +4,8 @@
  */
 package com.emc.storageos.volumecontroller.impl.validators.hds;
 
+import org.slf4j.Logger;
+
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.StorageSystem;
@@ -21,14 +23,16 @@ public abstract class AbstractHDSValidator implements Validator {
     private ExceptionContext exceptionContext;
     protected boolean errorOnMismatch = true;
     protected String id = null; // identifying string for ExportMask
+    private ValidatorLogger validatorLogger;
 
-    public AbstractHDSValidator(StorageSystem storage, ExportMask exportMask, HDSSystemValidatorFactory factory,
+    public AbstractHDSValidator(Logger logger, StorageSystem storage, ExportMask exportMask, HDSSystemValidatorFactory factory,
             ExceptionContext exceptionContext) {
         this.storage = storage;
         this.exportMask = exportMask;
         this.factory = factory;
         this.exceptionContext = exceptionContext;
         id = exportMask.forDisplay();
+        validatorLogger = new ValidatorLogger(logger, exportMask.forDisplay(), storage.forDisplay());
     }
 
     /**
@@ -55,7 +59,7 @@ public abstract class AbstractHDSValidator implements Validator {
      * @return the validator logger object
      */
     public ValidatorLogger getValidatorLogger() {
-        return factory.getLogger();
+        return validatorLogger;
     }
 
 

@@ -29,7 +29,7 @@ public class HDSExportMaskVolumesValidator extends AbstractHDSValidator {
 
     public HDSExportMaskVolumesValidator(StorageSystem storage, ExportMask exportMask, HDSSystemValidatorFactory factory,
             ExceptionContext exceptionContext) {
-        super(storage, exportMask, factory, exceptionContext);
+        super(log, storage, exportMask, factory, exceptionContext);
     }
 
     @Override

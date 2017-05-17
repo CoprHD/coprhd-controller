@@ -22,7 +22,6 @@ import com.emc.storageos.volumecontroller.impl.validators.StorageSystemValidator
 import com.emc.storageos.volumecontroller.impl.validators.ValCk;
 import com.emc.storageos.volumecontroller.impl.validators.Validator;
 import com.emc.storageos.volumecontroller.impl.validators.ValidatorConfig;
-import com.emc.storageos.volumecontroller.impl.validators.ValidatorLogger;
 import com.emc.storageos.volumecontroller.impl.validators.contexts.ExportMaskValidationContext;
 
 public class HDSSystemValidatorFactory implements StorageSystemValidatorFactory {
@@ -31,23 +30,18 @@ public class HDSSystemValidatorFactory implements StorageSystemValidatorFactory 
 
     private DbClient dbClient;
     private HDSApiFactory clientFactory;
-    private ValidatorLogger logger;
     private ValidatorConfig config;
 
 
     @Override
     public Validator exportMaskDelete(ExportMaskValidationContext ctx) {
-        logger = new ValidatorLogger(log, ctx.getExportMask().forDisplay(), ctx.getStorage().forDisplay());
         HDSExportMaskValidator validator = new HDSExportMaskValidator(ctx.getStorage(), ctx.getExportMask(), this, ctx);
-
         return validator;
     }
 
     @Override
     public Validator removeVolumes(ExportMaskValidationContext ctx) {
-        logger = new ValidatorLogger(log, ctx.getExportMask().forDisplay(), ctx.getStorage().forDisplay());
         HDSExportMaskVolumesValidator validator = new HDSExportMaskVolumesValidator(ctx.getStorage(), ctx.getExportMask(), this, ctx);
-
         return validator;
     }
 
@@ -59,9 +53,7 @@ public class HDSSystemValidatorFactory implements StorageSystemValidatorFactory 
 
     @Override
     public Validator removeInitiators(ExportMaskValidationContext ctx) {
-        logger = new ValidatorLogger(log, ctx.getExportMask().forDisplay(), ctx.getStorage().forDisplay());
         HDSExportMaskInitiatorsValidator validator = new HDSExportMaskInitiatorsValidator(ctx.getStorage(), ctx.getExportMask(), this, ctx);
-
         return validator;
     }
 
@@ -103,15 +95,6 @@ public class HDSSystemValidatorFactory implements StorageSystemValidatorFactory 
         this.dbClient = dbClient;
     }
 
-
-    public ValidatorLogger getLogger() {
-        return logger;
-    }
-
-    public void setLogger(ValidatorLogger logger) {
-        this.logger = logger;
-    }
-
     public ValidatorConfig getConfig() {
         return config;
     }
@@ -127,5 +110,4 @@ public class HDSSystemValidatorFactory implements StorageSystemValidatorFactory 
     public void setClientFactory(HDSApiFactory clientFactory) {
         this.clientFactory = clientFactory;
     }
-
 }

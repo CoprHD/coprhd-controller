@@ -1880,7 +1880,7 @@ public class SRDFOperations implements SmisConstants {
 
             if (verifyGroupSynchronizationCreatedinArray(srcCGPath, tgtCGPath, sourceSystem)) {
                 log.info("SRDF Link already established.");
-                completer.ready(dbClient);
+                return;
             }
             CIMObjectPath repCollectionPath = cimPath.getRemoteReplicationCollection(sourceSystem,
                     raGroup);

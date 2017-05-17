@@ -820,12 +820,14 @@ public class VMwareSupport {
                 // VBDU: Check to ensure the correct datastore tag is in the volume returned
                 String tagValue = KnownMachineTags.getBlockVolumeVMFSDatastore(hostId, volume);
                 if (tagValue == null || !tagValue.equalsIgnoreCase(datastore.getName())) {
-                    ExecutionUtils.fail("vmware.support.datastore.doesntmatchvolume", volume.getName(), volume.getWwn(),
-                            datastore.getName());
+                    throw new IllegalStateException(
+                            ExecutionUtils.getMessage("vmware.support.datastore.doesntmatchvolume", volume.getName(), volume.getWwn(),
+                                    datastore.getName()));
                 }
                 volumes.add(volume);
             } else {
-                ExecutionUtils.fail("vmware.support.datastore.volumenotfound", lun, datastore.getName());
+                throw new IllegalStateException(
+                        ExecutionUtils.getMessage("vmware.support.datastore.volumenotfound", lun, datastore.getName()));
             }
         }
         return volumes;

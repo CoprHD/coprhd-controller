@@ -34,6 +34,7 @@ public class AnsibleCommandLine {
     private String extraVars;
     private String shellArgs;
     private String authFile;
+    private boolean isRemoteAnsible = false;
     private final ImmutableList.Builder<String> optionalParam = ImmutableList.builder();
 
     public AnsibleCommandLine(final String ansiblePath, final String playbook) {
@@ -123,6 +124,12 @@ public class AnsibleCommandLine {
         return this;
     }
 
+    public AnsibleCommandLine setIsRemoteAnsible(final boolean isRemoteAnsible) {
+        this.isRemoteAnsible = isRemoteAnsible;
+
+        return this;
+    }
+
     public String[] build() {
         final ImmutableList.Builder<String> builder = ImmutableList.builder();
         if (!StringUtils.isEmpty(prefix)) {
@@ -144,10 +151,13 @@ public class AnsibleCommandLine {
         final ImmutableList<String> opt = optionalParam.build();
         builder.add(ansiblePath).add(opt.toArray(new String[opt.size()])).add(playbook);
 
-        if (!StringUtils.isEmpty(extraVars))
-            builder.add("--extra-vars").add(extraVars);
-
-
+        if (!StringUtils.isEmpty(extraVars)) {
+            if (isRemoteAnsible) {
+                builder.add("--extra-vars").add("\"").add(extraVars).add("\"");
+            } else {
+                builder.add("--extra-vars").add(extraVars);
+            }
+        }
 
         final ImmutableList<String> cmdList = builder.build();
 

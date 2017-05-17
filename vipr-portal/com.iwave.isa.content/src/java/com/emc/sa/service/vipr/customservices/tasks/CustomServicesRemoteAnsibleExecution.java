@@ -106,7 +106,7 @@ public class CustomServicesRemoteAnsibleExecution extends ViPRExecutionTask<Cust
         logger.info("got executor");
         executor.setCommandTimeout((int)timeout);
         logger.info("set timeout:{}", timeout);
-        final Command command = new RemoteCommand();
+        final Command command = new RemoteCommand(extraVars);
         command.setCommandExecutor(executor);
         logger.info("set executor done");
         command.execute();
@@ -140,19 +140,21 @@ public class CustomServicesRemoteAnsibleExecution extends ViPRExecutionTask<Cust
     }
 
     public class RemoteCommand extends Command {
-        public RemoteCommand() {
+        public RemoteCommand(final String extraVars) {
+
             final AnsibleCommandLine cmd = new AnsibleCommandLine(
                     AnsibleHelper.getOptions(CustomServicesConstants.ANSIBLE_BIN, input),
                     AnsibleHelper.getOptions(CustomServicesConstants.ANSIBLE_PLAYBOOK, input));
 
-            final String[] cmds = cmd.setSsh(CustomServicesConstants.SHELL_LOCAL_BIN)
+            final String[] cmds = //cmd.setSsh(CustomServicesConstants.SHELL_LOCAL_BIN)
                     //.setAuthFile(authFileName)
-                    .setUserAndIp(AnsibleHelper.getOptions(CustomServicesConstants.REMOTE_USER, input),
-                            AnsibleHelper.getOptions(CustomServicesConstants.REMOTE_NODE, input))
-                    .setHostFile(AnsibleHelper.getOptions(CustomServicesConstants.ANSIBLE_HOST_FILE, input))
-                    .setUser(AnsibleHelper.getOptions(CustomServicesConstants.ANSIBLE_USER, input))
-                    .setCommandLine(AnsibleHelper.getOptions(CustomServicesConstants.ANSIBLE_COMMAND_LINE, input))
-                    //.setExtraVars(extraVars)
+                    //cmd.setUserAndIp(AnsibleHelper.getOptions(CustomServicesConstants.REMOTE_USER, input),
+                      //      AnsibleHelper.getOptions(CustomServicesConstants.REMOTE_NODE, input))
+                    cmd.setHostFile(AnsibleHelper.getOptions(CustomServicesConstants.ANSIBLE_HOST_FILE, input))
+                    //.setUser(AnsibleHelper.getOptions(CustomServicesConstants.ANSIBLE_USER, input))
+                    //.setCommandLine(AnsibleHelper.getOptions(CustomServicesConstants.ANSIBLE_COMMAND_LINE, input))
+                    .setIsRemoteAnsible(true)
+                    .setExtraVars(extraVars)
                     .build();
 
             logger.info("cmd is:{}", Arrays.toString(cmds));

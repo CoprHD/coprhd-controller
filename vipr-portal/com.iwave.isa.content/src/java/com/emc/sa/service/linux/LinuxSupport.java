@@ -337,6 +337,7 @@ public class LinuxSupport {
 
     public void unmountPath(String path) {
         execute(new UnmountPath(path));
+        addRollback(new MountPath(path));
     }
 
     public void setVolumeMountPointTag(BlockObjectRestRep volume, String mountPoint) {

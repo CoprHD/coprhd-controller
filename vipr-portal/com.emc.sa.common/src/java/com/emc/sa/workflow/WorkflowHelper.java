@@ -343,14 +343,8 @@ public final class WorkflowHelper {
             if( null == dao ) {
                 throw new RuntimeException("Type not found for ID " + operation.getKey());
             }
-            final CustomServicesPrimitiveType model = dao.get(operation.getKey());
-            if( null == model || model.asModelObject().getInactive()) {
-                
-                dao.importPrimitive(operation.getValue());
-                if( null != wfDirectory.getId()) {
-                    wfDirectory.addWorkflows(Collections.singleton(operation.getKey()));
-                    client.save(wfDirectory);
-                }
+            if( dao.importPrimitive(operation.getValue())) {
+                wfDirectory.addWorkflows(Collections.singleton(operation.getKey()));
             }else {
                 log.info("Primitive " + operation.getKey() + " previously imported");
             }

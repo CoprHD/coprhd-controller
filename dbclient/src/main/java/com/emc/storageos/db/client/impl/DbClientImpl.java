@@ -1591,20 +1591,16 @@ public class DbClientImpl implements DbClient {
             
             _log.warn("Unbounded database query, request size is over allowed limit({}), " +
                     "please use corresponding iterative API.", DEFAULT_PAGE_SIZE);
-            _log.warn("It is recommended to file a Jira improvement request for this inefficiency.  Please verify it has not already been resolved in an upcoming version first.");
-            StackTraceElement[] element = new Throwable().getStackTrace();
+            StackTraceElement[] elements = new Throwable().getStackTrace();
             int i=0, j=0;
             while (i < MAX_STACK_SIZE && j < MAX_STACK_PRINT) {
                 // Print the stacktrace of this inefficiency.  Avoid printing anything in DbClientImpl since that's a given.
-                if (element[i] != null && element[i].getMethodName() != null && !element[i].getClassName().contains("DbClientImpl")) {
-                    _log.warn("Stack position " + i + ": " + 
-                            element[i].getClassName().substring(element[i].getClassName().lastIndexOf(".") + 1) + 
-                            "." + 
-                            element[i].getMethodName() + 
-                            "(), " + 
-                            element[i].getFileName() + 
-                            ":" + 
-                            element[i].getLineNumber());
+                if (i < elements.length && elements[i] != null && elements[i].getMethodName() != null && !elements[i].getClassName().contains("DbClientImpl")) {
+                    _log.warn(String.format("Stack position %d: %s.%s(), %s:%s", i, 
+                            elements[i].getClassName().substring(elements[i].getClassName().lastIndexOf(".") + 1), 
+                            elements[i].getMethodName(), 
+                            elements[i].getFileName(), 
+                            elements[i].getLineNumber()));
                     j++;
                 }
                 i++;

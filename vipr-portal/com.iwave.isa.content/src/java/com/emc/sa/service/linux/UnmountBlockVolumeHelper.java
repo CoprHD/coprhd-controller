@@ -131,7 +131,7 @@ public class UnmountBlockVolumeHelper {
             linux.unmountPath(volume.mountPoint.getPath());
 
             // remove from fstab
-            linux.removeFromFSTab(volume.mountPoint.getPath());
+            linux.removeFromFSTab(volume.mountPoint);
 
             // remove mount point tag from all volumes for this mount point
             for (BlockObjectRestRep mountedVolume : volume.relatedVolumes) {

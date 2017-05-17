@@ -17,6 +17,7 @@ import org.apache.commons.lang.StringUtils;
 
 import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.machinetags.KnownMachineTags;
+import com.emc.sa.machinetags.MachineTagUtils;
 import com.emc.sa.service.linux.UnmountBlockVolumeHelper.VolumeSpec;
 import com.emc.sa.service.linux.tasks.AddToFSTab;
 import com.emc.sa.service.linux.tasks.CheckFileSystem;
@@ -360,8 +361,9 @@ public class LinuxSupport {
         addRollback(new RemoveFromFSTab(path));
     }
 
-    public void removeFromFSTab(String path) {
-        execute(new RemoveFromFSTab(path));
+    public void removeFromFSTab(MountPoint mountPoint) {
+        execute(new RemoveFromFSTab(mountPoint.getPath()));
+        addRollback(new AddToFSTab(mountPoint.getDevice(), mountPoint.getPath(), mountPoint.getFsType(), mountPoint.getOptions()));
     }
 
     public void mountPath(String path) {
@@ -387,7 +389,9 @@ public class LinuxSupport {
     }
 
     public void removeVolumeMountPointTag(BlockObjectRestRep volume) {
+    	String tagValue = MachineTagUtils.getBlockVolumeTag(volume, getMountPointTagName());
         ExecutionUtils.execute(new RemoveBlockVolumeMachineTag(volume.getId(), getMountPointTagName()));
+        ExecutionUtils.addRollback(new SetBlockVolumeMachineTag(volume.getId(), getMountPointTagName(), tagValue));
         addAffectedResource(volume.getId());
     }
 

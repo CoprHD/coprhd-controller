@@ -1335,7 +1335,7 @@ public class FileService extends TaskResourceService {
                     	
                         if (qdsize < MIN_EXPAND_SIZE) {
                         	String msg = String
-                                    .format("In Reduction Isilon FS requested capacity is less than any sub quota size. Quota Path: %s, current capacity: %d",
+                                    .format("filesystem is reduced to a size lesser than sub quota. Quota Path: %s, current capacity: %d",
                                             quotaDir.getPath(), quotaDir.getSize());
                         	throw APIException.badRequests.reduceFileSystemNotSupported(id, msg);
                         }

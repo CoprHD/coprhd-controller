@@ -24,6 +24,7 @@ import org.apache.commons.lang.StringUtils;
 import com.emc.sa.engine.ExecutionException;
 import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.machinetags.KnownMachineTags;
+import com.emc.sa.service.vipr.block.BlockStorageUtils;
 import com.emc.sa.service.vipr.block.tasks.GetBlockVolumeByWWN;
 import com.emc.sa.service.vipr.block.tasks.RemoveBlockVolumeMachineTag;
 import com.emc.sa.service.vipr.block.tasks.SetBlockVolumeMachineTag;
@@ -820,9 +821,12 @@ public class VMwareSupport {
                 // VBDU: Check to ensure the correct datastore tag is in the volume returned
                 String tagValue = KnownMachineTags.getBlockVolumeVMFSDatastore(hostId, volume);
                 if (tagValue == null || !tagValue.equalsIgnoreCase(datastore.getName())) {
+                    String viprcliCommand = BlockStorageUtils.getVolumeTagCommand(volume.getId(),
+                            KnownMachineTags.getVMFSDatastoreTagName(hostId), datastore.getName());
                     throw new IllegalStateException(
                             ExecutionUtils.getMessage("vmware.support.datastore.doesntmatchvolume", volume.getName(), volume.getWwn(),
-                                    datastore.getName()));
+                                    datastore.getName(), viprcliCommand));
+
                 }
                 volumes.add(volume);
             } else {

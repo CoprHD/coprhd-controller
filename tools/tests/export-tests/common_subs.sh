@@ -1010,3 +1010,11 @@ add_tag() {
     runcmd tag --resource_type $resource_type --id $resource_id $tag
     return $?
 }
+
+remove_tag() {
+    resource_type=$1
+    resource_id=$2
+    tag=$3
+    runcmd tag --remove --resource_type $resource_type --id $resource_id $tag
+    return $?
+}

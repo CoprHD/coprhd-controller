@@ -115,6 +115,78 @@ test_expand_host_filesystem() {
     done 
 }
 
+test_swap_mounted_volume() {
+    test_name="test_swap_mounted_volume"
+    echot "Test ${test_name} Begins"
+
+    supported_os="linux"
+    #supported_os="windows linux hpux" 
+
+    run syssvc $SANITY_CONFIG_FILE localhost set_prop system_proxyuser_encpassword $SYSADMIN_PASSWORD
+
+    for os in ${supported_os[@]}
+    do
+        echo "Running test for ${os}"
+
+	random_number=${RANDOM}
+	volume1="FS-${random_number}-1"
+        volume2="FS-${random_number}-2"
+
+        reset_counts
+
+        if [ "${os}" = "hpux" ]
+        then
+            hostname=hpuxhost1
+        elif [ "${os}" = "linux" ]
+        then
+            hostname=linuxhost1
+        elif [ "${os}" = "windows" ]
+        then
+            hostname=winhost1
+        fi
+
+        if [ "${os}" = "windows" ]
+        then
+            run windows_create_and_mount_volume $TENANT ${hostname} "${volume1}" ${NH} ${VPOOL_BASE} ${PROJECT}
+            run windows_create_and_mount_volume $TENANT ${hostname} "${volume2}" ${NH} ${VPOOL_BASE} ${PROJECT}
+        else
+            run unix_create_volume_and_mount $TENANT ${hostname} "${volume1}" "/${volume1}" ${NH} ${VPOOL_BASE} ${PROJECT} ${os}
+            run unix_create_volume_and_mount $TENANT ${hostname} "${volume2}" "/${volume2}" ${NH} ${VPOOL_BASE} ${PROJECT} ${os}
+        fi
+
+        size=1
+
+        volume1_id=`volume list ${PROJECT} | grep "${volume1} " | awk '{print $7}'`
+        volume2_id=`volume list ${PROJECT} | grep "${volume2} " | awk '{print $7}'`
+        host_id=`hosts list ${TENANT} | grep "${hostname} " | awk '{print $4}'`
+        volume1_tag="vipr:mountPoint-${host_id}=/${volume1}"
+        volume2_tag="vipr:mountPoint-${host_id}=/${volume2}"
+
+        echo "Swapping tags" 
+        remove_tag "volume" ${volume1_id} ${volume1_tag}
+        remove_tag "volume" ${volume2_id} ${volume2_tag}
+        add_tag "volume" ${volume1_id} ${volume2_tag}
+        add_tag "volume" ${volume2_id} ${volume1_tag}
+
+        fail expand_volume $TENANT ${hostname} ${volume1} ${PROJECT} ${size} ${os} ${failure}
+        fail expand_volume $TENANT ${hostname} ${volume2} ${PROJECT} ${size} ${os} ${failure}
+
+        echo "Fixing the tags"
+        remove_tag "volume" ${volume1_id} ${volume2_tag}
+        remove_tag "volume" ${volume2_id} ${volume1_tag}
+        add_tag "volume" ${volume1_id} ${volume1_tag}
+        add_tag "volume" ${volume2_id} ${volume2_tag}
+
+        runcmd expand_volume $TENANT ${hostname} ${volume1} ${PROJECT} ${size} ${os} ${failure}
+        runcmd expand_volume $TENANT ${hostname} ${volume2} ${PROJECT} ${size} ${os} ${failure}
+
+        report_results "${test_name}_${os}" ${failure}
+
+	run unmount_and_delete_volume $TENANT ${hostname} "${volume1}" ${PROJECT} ${os}
+	run unmount_and_delete_volume $TENANT ${hostname} "${volume2}" ${PROJECT} ${os}
+    done 
+}
+
 #### Service Catalog methods are below ####
 
 windows_create_and_mount_volume() {

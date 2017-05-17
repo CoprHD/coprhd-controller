@@ -811,7 +811,7 @@ public class VMwareSupport {
      *            the datastore.
      * @return the volumes backing the host system.
      */
-    public List<VolumeRestRep> findVolumesBackingDatastore(HostSystem host, URI hostId, Datastore datastore) {
+    public List<VolumeRestRep> verifyVolumesBackingDatastore(HostSystem host, URI hostId, Datastore datastore) {
         Set<String> luns = execute(new FindLunsBackingDatastore(host, datastore));
         List<VolumeRestRep> volumes = Lists.newArrayList();
         for (String lun : luns) {
@@ -820,15 +820,12 @@ public class VMwareSupport {
                 // VBDU: Check to ensure the correct datastore tag is in the volume returned
                 String tagValue = KnownMachineTags.getBlockVolumeVMFSDatastore(hostId, volume);
                 if (tagValue == null || !tagValue.equalsIgnoreCase(datastore.getName())) {
-                    logError("vmware.support.datastore.doesntmatchvolume", volume.getName(), datastore.getName());
-                    return null;
+                    ExecutionUtils.fail("vmware.support.datastore.doesntmatchvolume", volume.getName(), volume.getWwn(),
+                            datastore.getName());
                 }
-
                 volumes.add(volume);
             } else {
-                logError("vmware.support.datastore.volumenotfound", datastore.getName());
-                // Don't return any volume objects to quickly report there's an issue to the caller.
-                return null;
+                ExecutionUtils.fail("vmware.support.datastore.volumenotfound", lun, datastore.getName());
             }
         }
         return volumes;

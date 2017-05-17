@@ -32,24 +32,12 @@ public class CreateVolumeAndExtendVmfsDatastoreService extends VMwareHostService
 
     @Override
     public void precheck() throws Exception {
-        StringBuilder preCheckErrors = new StringBuilder();
-
         super.precheck();
         createBlockVolumeHelper.precheck();
         acquireHostLock();
         datastore = vmware.getDatastore(datacenter.getLabel(), datastoreName);
-
-        // If no volumes were found (or not all the volumes were found in our DB), indicate an error
-        if (vmware.findVolumesBackingDatastore(host, hostId, datastore) == null) {
-            preCheckErrors.append(
-                    ExecutionUtils.getMessage("extend.vmfs.datastore.notsamewwn", datastoreName) + " ");
-        }
-
+        vmware.verifyVolumesBackingDatastore(host, hostId, datastore);
         vmware.disconnect();
-
-        if (preCheckErrors.length() > 0) {
-            throw new IllegalStateException(preCheckErrors.toString());
-        }
     }
 
     @Override

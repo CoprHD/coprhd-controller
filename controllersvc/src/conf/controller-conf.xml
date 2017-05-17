@@ -1446,6 +1446,7 @@
                 <property name="localContext" ref="dbclientcontext"/>
                 <property name="geoContext" ref="geodbclientcontext"/>
                 <property name="drUtil" ref="drUtil"/>
+                <property name="logInterval" ref="PerformanceLoggingInSeconds"/>
             </bean>
         </property>
         <property name="coordinator" ref="coordinator" />

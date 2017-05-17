@@ -1239,33 +1239,6 @@ public class VmaxExportOperations implements ExportMaskOperations {
                     return;
                 }
 
-                // Validate all user added volumes are in the mask, throw exception if there are mismatch between ViPR DB and array
-                StringMap maskVolumes = exportMask.getUserAddedVolumes();
-                if (!CollectionUtils.isEmpty(maskVolumes)) {
-                    List<URI> remainingVolumeURIList = new ArrayList<URI>();
-                    for (String volId : maskVolumes.values()) {
-                        URI uri = URI.create(volId);
-                        if (!volumeURIList.contains(uri)) {
-                            remainingVolumeURIList.add(uri);
-                        }
-                    }
-
-                    Map<String, List<URI>> remainingVolumesByGroup = _helper.groupVolumesBasedOnExistingGroups(storage, parentGroupName, remainingVolumeURIList);
-                    Set<URI> remainingVolumeURISet = new HashSet<URI>(remainingVolumeURIList);
-                    for (Collection<URI> volumes : remainingVolumesByGroup.values()) {
-                        remainingVolumeURISet.removeAll(volumes);
-                    }
-
-                    if (!remainingVolumeURISet.isEmpty()) {
-                        String errMsg = String.format("Volumes %s are not found in the masking view %s. Attempt to remove volumes from the mask would lead to an empty storage group. This is not allowed on the array. Please remove the dangling volumes from the export first.",
-                                Joiner.on(',').join(remainingVolumeURISet), maskingViewName);
-                        _log.error(errMsg);
-                        ServiceError serviceError = DeviceControllerException.errors.jobFailedMsg(errMsg, null);
-                        taskCompleter.error(_dbClient, serviceError);
-                        return;
-                    }
-                }
-
                 /**
                  * For each child Group bucket, remove the volumes from those bucket
                  *

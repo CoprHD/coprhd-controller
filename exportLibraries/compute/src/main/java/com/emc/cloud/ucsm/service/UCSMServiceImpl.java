@@ -681,7 +681,11 @@ public class UCSMServiceImpl implements UCSMService {
 
         LsServer pushedObject = pushLsServer(computeSession, factory, unbindSPFromSPTConfigConfMo);
 
-        if( (pushedObject == null) || !ASSOC_STATE_UNASSOCIATED.equals(pushedObject.getAssocState()) ) { // COP-26669
+        String pushedObjectTemplateName = null;
+        if (pushedObject!=null) { 
+            pushedObjectTemplateName = pushedObject.getSrcTemplName();
+        }
+        if( (pushedObject == null) || (pushedObjectTemplateName!=null && !pushedObjectTemplateName.equals(""))) { // COP-26669
             throw new ClientGeneralException(ClientMessageKeys.UNEXPECTED_FAILURE,
                     new String[] { "ServiceProfile failed to disassociate : " + serviceProfileDn });
         }

@@ -152,7 +152,7 @@ public class CustomServicesRemoteAnsibleExecution extends ViPRExecutionTask<Cust
                       //      AnsibleHelper.getOptions(CustomServicesConstants.REMOTE_NODE, input))
                     cmd.setHostFile(AnsibleHelper.getOptions(CustomServicesConstants.ANSIBLE_HOST_FILE, input))
                     //.setUser(AnsibleHelper.getOptions(CustomServicesConstants.ANSIBLE_USER, input))
-                    //.setCommandLine(AnsibleHelper.getOptions(CustomServicesConstants.ANSIBLE_COMMAND_LINE, input))
+                    .setCommandLine(AnsibleHelper.getOptions(CustomServicesConstants.ANSIBLE_COMMAND_LINE, input))
                     .setIsRemoteAnsible(true)
                     .setExtraVars(extraVars)
                     .build();

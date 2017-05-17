@@ -14,8 +14,6 @@ import java.util.ListIterator;
 import java.util.Map;
 import java.util.Set;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import com.emc.sa.asset.AssetOptionsContext;
@@ -37,8 +35,6 @@ import com.google.common.collect.Lists;
 @Component
 @AssetNamespace("vipr")
 public class RemoteReplicationProvider extends BaseAssetOptionsProvider {
-
-    private static final Logger log = LoggerFactory.getLogger(RemoteReplicationProvider.class);
 
     private final static String RR_GROUP = "RR_GROUP";
     private final static String CONSISTENCY_GROUP = "CONSISTENCY_GROUP";
@@ -282,6 +278,21 @@ public class RemoteReplicationProvider extends BaseAssetOptionsProvider {
     }
 
     /**
+     * Return menu options for all remote replication sets
+     *  with the selected storage system type (VMAX, VNX, etc)
+     *
+     * @param storageSystemTypeUri The URI of the storage system type (VMAX, VNX, etc.)
+     * @return list of asset options for catalog service order form
+     */
+    @Asset("remoteReplicationSetsForArrayType")
+    @AssetDependencies("storageSystemType")
+    public List<AssetOption> getRemoteReplicationSetsForArrayType(AssetOptionsContext ctx,
+            URI storageSystemTypeUri) {
+        List<NamedRelatedResourceRep> rrSets = getRrSets(ctx,storageSystemTypeUri);
+        return createNamedResourceOptions(rrSets);
+    }
+
+    /**
      * Return menu options for all groupings of pairs
      *
      * @return list of asset options for catalog service order form
@@ -301,21 +312,18 @@ public class RemoteReplicationProvider extends BaseAssetOptionsProvider {
      * @return list of asset options for catalog service order form
      */
     @Asset("remoteReplicationPairGroup")
-    @AssetDependencies({"remoteReplicationPairGrouping","blockVirtualArray", "blockVirtualPool"})
+    @AssetDependencies({"remoteReplicationPairGrouping",
+        "remoteReplicationSetsForArrayType"})
     public List<AssetOption> getRemoteReplicationPairGroup(AssetOptionsContext ctx,
-            String groupType, URI virtualArrayId, URI virtualPoolId) {
+            String groupType, URI rrSetId) {
 
-        NamedRelatedResourceRep rrSet = getRrSet(ctx,virtualArrayId, virtualPoolId);
-
-        if(rrSet != null) {
-            if (groupType.equals(RR_GROUP)) {
-                return createNamedResourceOptions(setClient.getGroupsForSet(rrSet.getId()).
-                        getRemoteReplicationGroups());
-            }
-            if (groupType.equals(CONSISTENCY_GROUP)) {
-                return createNamedResourceOptions(api(ctx).remoteReplicationSets().
-                        listRemoteReplicationSetCGs(rrSet.getId()).getConsistencyGroupList());
-            }
+        if (groupType.equals(RR_GROUP)) {
+            return createNamedResourceOptions(setClient.getGroupsForSet(rrSetId).
+                    getRemoteReplicationGroups());
+        }
+        if (groupType.equals(CONSISTENCY_GROUP)) {
+            return createNamedResourceOptions(api(ctx).remoteReplicationSets().
+                    listRemoteReplicationSetCGs(rrSetId).getConsistencyGroupList());
         }
         return Collections.emptyList();
     }
@@ -411,7 +419,6 @@ public class RemoteReplicationProvider extends BaseAssetOptionsProvider {
 
         BlockVirtualPoolRestRep vpool = api(ctx).blockVpools().get(virtualPoolId);
         if ((vpool == null) || (vpool.getProtection().getRemoteReplicationParam() == null)) {
-            log.info("VirtualPool '" + vpool.getName() + "' [" + vpool.getId() + "] does not support Remote Replication");
             return null;
         }
 
@@ -421,7 +428,7 @@ public class RemoteReplicationProvider extends BaseAssetOptionsProvider {
         removeUnreachableSets(rrSets,ctx);
 
         if ((rrSets == null) || rrSets.isEmpty()) {
-            throw new IllegalStateException("No reachable RemoteReplicationSet was found for the selected " +
+            throw new IllegalStateException("No RemoteReplicationSet was found for the selected " +
                     "VirtualArray and VirtualPool");
         }
 

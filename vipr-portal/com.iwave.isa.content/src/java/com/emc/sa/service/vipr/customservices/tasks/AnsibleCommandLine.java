@@ -130,7 +130,7 @@ public class AnsibleCommandLine {
         }
 
         if (!StringUtils.isEmpty(ssh) && !StringUtils.isEmpty(node)) {
-            builder.add(ssh).add("-i").add(authFile).add(node);
+            builder.add(ssh).add("-i").add(authFile).add("-o").add("StrictHostKeyChecking=no").add(node);
         }
 
         if (!StringUtils.isEmpty(shellArgs)) {

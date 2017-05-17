@@ -17,6 +17,7 @@
 
 package com.emc.sa.service.vipr.customservices.tasks;
 
+import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.List;
@@ -134,6 +135,18 @@ public final class AnsibleHelper {
         return result.toString();
     }
 
+    public static void writeResourceToFile(final byte[] bytes, final String fileName, final boolean changePerm) {
+        writeResourceToFile(bytes, fileName);
+
+        if (changePerm) {
+            File f = new File(fileName);
+            f.setReadable(false, false);
+            f.setReadable(true, true);
+
+            f.setWritable(true, true);
+            f.setExecutable(false, false);
+        }
+    }
     public static void writeResourceToFile(final byte[] bytes, final String fileName) {
         try (FileOutputStream fileOuputStream = new FileOutputStream(fileName)) {
             fileOuputStream.write(bytes);

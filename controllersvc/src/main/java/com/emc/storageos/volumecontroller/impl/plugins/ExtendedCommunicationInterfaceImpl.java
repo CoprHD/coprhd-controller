@@ -118,23 +118,29 @@ public abstract class ExtendedCommunicationInterfaceImpl implements ExtendedComm
         List<Stat> stats = (List<Stat>) _keyMap.get(Constants._Stats);
         @SuppressWarnings("unchecked")
         Map<String, String> props = (Map<String, String>) _keyMap.get(Constants.PROPS);
-        // insert in batches
-        int size = Constants.DEFAULT_PARTITION_SIZE;
-        if (null != props.get(Constants.METERING_RECORDS_PARTITION_SIZE)) {
-            size = Integer.parseInt(props.get(Constants.METERING_RECORDS_PARTITION_SIZE));
-        }
+        String collectionType = props.get(Constants.METERING_COLLECTION_TYPE);
+        if (collectionType != null && Constants.METERING_COLLECTION_TYPE_FULL.equalsIgnoreCase(collectionType)) {
+            _logger.info("Started Injection of Stats to Cassandra");
+            // insert in batches
+            int size = Constants.DEFAULT_PARTITION_SIZE;
+            if (null != props.get(Constants.METERING_RECORDS_PARTITION_SIZE)) {
+                size = Integer.parseInt(props.get(Constants.METERING_RECORDS_PARTITION_SIZE));
+            }
 
-        if (null == _partitionManager) {
-            Stat[] statBatch = new Stat[stats.size()];
-            statBatch = stats.toArray(statBatch);
-            try {
-                client.insertTimeSeries(StatTimeSeries.class, statBatch);
-                _logger.info("{} Stat records persisted to DB", statBatch.length);
-            } catch (DatabaseException e) {
-                _logger.error("Error inserting records into the database", e);
+            if (null == _partitionManager) {
+                Stat[] statBatch = new Stat[stats.size()];
+                statBatch = stats.toArray(statBatch);
+                try {
+                    client.insertTimeSeries(StatTimeSeries.class, statBatch);
+                    _logger.info("{} Stat records persisted to DB", statBatch.length);
+                } catch (DatabaseException e) {
+                    _logger.error("Error inserting records into the database", e);
+                }
+            } else {
+                _partitionManager.insertInBatches(stats, size, client);
             }
         } else {
-            _partitionManager.insertInBatches(stats, size, client);
+            _logger.info("Stat records not persisted to DB");
         }
     }
 

@@ -33,11 +33,12 @@ source $(dirname $0)/common_subs.sh
 
 Usage()
 {
-    echo 'Usage: wftests.sh <sanity conf file path> [vmax2 | vmax3 | vnx | vplex [local | distributed] | xio | unity | vblock | srdf [sync | async]] [-setup(hw) | -setupsim] [-report] [-cleanup]  [test1 test2 ...]'
+    echo 'Usage: wftests.sh <sanity conf file path> [vmax2 | vmax3 | vnx | vplex [local | distributed] | xio | unity | vblock | srdf [sync | async]] [-setup(hw) | -setupsim] [-report] [-cleanup] [-resetsim]  [test1 test2 ...]'
     echo ' (vmax 2 | vmax3 ...: Storage platform to run on.'
     echo ' [-setup(hw) | setupsim]: Run on a new ViPR database, creates SMIS, host, initiators, vpools, varray, volumes (Required to run first, can be used with tests'
     echo ' [-report]: Report results to reporting server: http://lglw1046.lss.emc.com:8081/index.html (Optional)'
     echo ' [-cleanup]: Clean up the pre-created volumes and exports associated with -setup operation (Optional)'
+    echo ' [-resetsim]: Resets the simulator as part of setup (Optional)'
     echo ' test names: Space-delimited list of tests to run.  Use + to start at a specific test.  (Optional, default will run all tests in suite)'
     echo ' Example:  ./wftests.sh sanity.conf vmax3 -setupsim -report -cleanup test_7+'
     echo '           Will start from clean DB, report results to reporting server, clean-up when done, and start on test_7 (and run all tests after test_7'
@@ -1372,6 +1373,11 @@ setup() {
     fi
 
 
+    # Reset the simulator if requested.
+    if [ ${RESET_SIM} = "1" ]; then
+	reset_simulator;
+    fi
+
     syssvc $SANITY_CONFIG_FILE localhost setup
     security add_authn_provider ldap ldap://${LOCAL_LDAP_SERVER_IP} cn=manager,dc=viprsanity,dc=com secret ou=ViPR,dc=viprsanity,dc=com uid=%U CN Local_Ldap_Provider VIPRSANITY.COM ldapViPR* SUBTREE --group_object_classes groupOfNames,groupOfUniqueNames,posixGroup,organizationalRole --group_member_attributes member,uniqueMember,memberUid,roleOccupant
     tenant create $TENANT VIPRSANITY.COM OU VIPRSANITY.COM
@@ -2446,6 +2452,15 @@ test_7() {
       # prime the export
       runcmd export_group create $PROJECT ${expname}1 $NH --type Exclusive --volspec ${PROJECT}/${VOLNAME}-1 --inits "${HOST1}/${H1PI1}"
 
+      # Verify the zone names, as we know them, are on the switch
+      zone1=`get_zone_name ${HOST1} ${H1PI1}`
+      if [[ -z $zone1 ]]; then
+        echo -e "\e[91mERROR\e[0m: Could not find a zone corresponding to host ${HOST1} and initiator ${initiator}"
+        incr_fail_count
+      else
+        verify_zone ${zone1} ${FC_ZONE_A} exists  
+      fi    
+      
       # Snsp the DB so we can validate after failures later
       snap_db 2 "${cfs[@]}"
 
@@ -2480,11 +2495,34 @@ test_7() {
       set_artificial_failure none
       runcmd export_group update ${PROJECT}/${expname}1 --addInits ${HOST1}/${H1PI2}
 
+      # Verify the zone names, as we know them, are on the switch
+      zone2=`get_zone_name ${HOST1} ${H1PI2}`
+      if [[ -z $zone2 ]]; then
+        echo -e "\e[91mERROR\e[0m: Could not find a ViPR zone corresponding to host ${HOST1} and initiator ${H1PI2}"
+        incr_fail_count
+      else
+        verify_zone ${zone2} ${FC_ZONE_A} exists  
+      fi
+
       # Perform any DB validation in here
       snap_db 4 "${cfs[@]}"
 
       # Delete the export
       runcmd export_group delete ${PROJECT}/${expname}1
+
+      # Only verify the zone has been removed if it is a newly created zone
+      if [ "${zone1}" != "" ]; then
+        if newly_created_zone_for_host $zone1 $HOST1; then
+            verify_zone ${zone1} ${FC_ZONE_A} gone    
+        fi          
+      fi
+
+      # Only verify the zone has been removed if it is a newly created zone
+      if [ "${zone2}" != "" ]; then
+        if newly_created_zone_for_host $zone2 $HOST1; then
+            verify_zone ${zone2} ${FC_ZONE_A} gone    
+        fi          
+      fi   
 
       # Verify the DB is back to the original state
       snap_db 5 "${cfs[@]}"
@@ -3572,6 +3610,7 @@ esac
 ZONE_CHECK=${ZONE_CHECK:-1}
 REPORT=0
 DO_CLEANUP=0;
+RESET_SIM=0;
 while [ "${1:0:1}" = "-" ]
 do
     if [ "${1}" = "setuphw" -o "${1}" = "setup" -o "${1}" = "-setuphw" -o "${1}" = "-setup" ]
@@ -3602,8 +3641,19 @@ do
 
     if [ "$1" = "-cleanup" ]
     then
-	   DO_CLEANUP=1;
-	   shift
+	DO_CLEANUP=1;
+	shift
+    fi
+
+    if [ "$1" = "-resetsim" ]
+    then
+	if [ ${setup} -ne 1 ]; then
+	    echo "FAILURE: Setup not specified.  Not recommended to reset simulator in the middle of an active configuration.  Or put -resetsim after your -setup param"
+	    exit;
+	else
+	    RESET_SIM=1;
+	    shift
+	fi
     fi
 done
 

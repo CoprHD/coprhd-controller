@@ -23,8 +23,9 @@
       required: true
     },
     remoteReplicationPair:{
-      type:"text",
-      initialValue:"list of Pairs in Set, Group, or CG"
+      type:"assetType.vipr.remoteReplicationPair",
+      lockable:true,
+      required: true
     }
   }
 }

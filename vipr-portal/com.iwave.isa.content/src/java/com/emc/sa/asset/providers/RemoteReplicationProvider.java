@@ -4,8 +4,10 @@
  */
 package com.emc.sa.asset.providers;
 
+import java.lang.reflect.InvocationTargetException;
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -14,6 +16,8 @@ import java.util.ListIterator;
 import java.util.Map;
 import java.util.Set;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import com.emc.sa.asset.AssetOptionsContext;
@@ -21,13 +25,17 @@ import com.emc.sa.asset.BaseAssetOptionsProvider;
 import com.emc.sa.asset.annotation.Asset;
 import com.emc.sa.asset.annotation.AssetDependencies;
 import com.emc.sa.asset.annotation.AssetNamespace;
+import com.emc.storageos.db.client.model.remotereplication.RemoteReplicationPair;
 import com.emc.storageos.model.NamedRelatedResourceRep;
+import com.emc.storageos.model.block.BlockConsistencyGroupRestRep;
 import com.emc.storageos.model.ports.StoragePortRestRep;
+import com.emc.storageos.model.remotereplication.RemoteReplicationGroupRestRep;
 import com.emc.storageos.model.remotereplication.RemoteReplicationSetRestRep;
 import com.emc.storageos.model.storagesystem.type.StorageSystemTypeRestRep;
 import com.emc.storageos.model.systems.StorageSystemRestRep;
 import com.emc.storageos.model.vpool.BlockVirtualPoolRestRep;
 import com.emc.vipr.client.ViPRCoreClient;
+import com.emc.vipr.client.core.RemoteReplicationGroups;
 import com.emc.vipr.client.core.RemoteReplicationSets;
 import com.emc.vipr.model.catalog.AssetOption;
 import com.google.common.collect.Lists;
@@ -35,6 +43,8 @@ import com.google.common.collect.Lists;
 @Component
 @AssetNamespace("vipr")
 public class RemoteReplicationProvider extends BaseAssetOptionsProvider {
+
+    private static final Logger log = LoggerFactory.getLogger(RemoteReplicationGroups.class);
 
     private final static String RR_GROUP = "RR_GROUP";
     private final static String CONSISTENCY_GROUP = "CONSISTENCY_GROUP";
@@ -315,17 +325,57 @@ public class RemoteReplicationProvider extends BaseAssetOptionsProvider {
     @AssetDependencies({"remoteReplicationPairGrouping",
         "remoteReplicationSetsForArrayType"})
     public List<AssetOption> getRemoteReplicationPairGroup(AssetOptionsContext ctx,
-            String groupType, URI rrSetId) {
+            String groupType, URI rrSet) {
 
         if (groupType.equals(RR_GROUP)) {
-            return createNamedResourceOptions(setClient.getGroupsForSet(rrSetId).
+            return createNamedResourceOptions(setClient.getGroupsForSet(rrSet).
                     getRemoteReplicationGroups());
         }
         if (groupType.equals(CONSISTENCY_GROUP)) {
             return createNamedResourceOptions(api(ctx).remoteReplicationSets().
-                    listRemoteReplicationSetCGs(rrSetId).getConsistencyGroupList());
+                    listRemoteReplicationSetCGs(rrSet).getConsistencyGroupList());
         }
+        if (groupType.equals(UNGROUPED)) {
+            return new ArrayList<>(Arrays.asList(new AssetOption(UNGROUPED,"None")));
+        }
+
         return Collections.emptyList();
+    }
+
+    /**
+     * Return menu options for remote replication pairs
+     *
+     * @return list of asset options for catalog service order form
+     */
+    @Asset("remoteReplicationPair")
+    @AssetDependencies({"remoteReplicationPairGroup"})
+    public List<AssetOption> getRemoteReplicationPair(AssetOptionsContext ctx, URI groupId) {
+        List<AssetOption> options = Lists.newArrayList();
+
+        if (groupId.equals(UNGROUPED)) {
+            // get pairs in set (in no group)
+            return options;
+        }
+
+        try {
+            BlockConsistencyGroupRestRep cg = api(ctx).blockConsistencyGroups().get(groupId);
+            // get pairs in CG
+            return options;
+        } catch(Exception e) {
+            // not a CG
+            log.info("not a CG");
+        }
+        
+        try {
+            RemoteReplicationGroupRestRep rrGrp = api(ctx).remoteReplicationGroups().getRemoteReplicationGroupsRestRep(groupId.toString());        
+            // get pairs in RR Group
+            return options;
+        } catch(Exception e) {
+            // not a RR Group
+            log.info("not a RR Group");
+        }
+        
+        return options;
     }
 
     /*

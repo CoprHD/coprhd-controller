@@ -1241,7 +1241,7 @@
         <property name="vcenterController" ref="vcenterController"/>
     </bean>
 
-    <bean id="ucsDevice" class="com.emc.storageos.computecontroller.impl.ucs.UcsComputeDevice" depends-on="coordinator" init-method="initializeDefaults">
+    <bean id="ucsDevice" class="com.emc.storageos.computecontroller.impl.ucs.UcsComputeDevice">
     	<property name="dbClient" ref="dbclient"/>
     	<!-- Device Operation TimeOut in Seconds -->
     	<property name="deviceOperationTimeOut" value="600"/>

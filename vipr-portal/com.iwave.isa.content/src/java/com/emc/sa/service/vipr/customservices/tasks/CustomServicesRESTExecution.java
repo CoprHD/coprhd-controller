@@ -46,17 +46,15 @@ public class CustomServicesRESTExecution extends ViPRExecutionTask<CustomService
     private final Map<String, List<String>> input;
     private final CustomServicesWorkflowDocument.Step step;
 
-
+    private final DbClient dbClient;
     private final CoordinatorClient coordinator;
 
-    @Autowired
-    private DbClient dbClient;
-
     public CustomServicesRESTExecution(final Map<String, List<String>> input,
-            final CustomServicesWorkflowDocument.Step step, final CoordinatorClient coordinator) {
+            final CustomServicesWorkflowDocument.Step step, final CoordinatorClient coordinator,final DbClient dbClient) {
         this.input = input;
         this.step = step;
         this.coordinator = coordinator;
+        this.dbClient = dbClient;
         provideDetailArgs(step.getId());
     }
 

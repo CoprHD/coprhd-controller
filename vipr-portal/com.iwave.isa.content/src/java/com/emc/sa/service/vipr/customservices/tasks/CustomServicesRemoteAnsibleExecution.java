@@ -42,11 +42,10 @@ public class CustomServicesRemoteAnsibleExecution extends ViPRExecutionTask<Cust
     private final CustomServicesWorkflowDocument.Step step;
     private final Map<String, List<String>> input;
     private final long timeout;
+    private final DbClient dbClient;
 
-    @Autowired
-    private DbClient dbClient;
 
-    public CustomServicesRemoteAnsibleExecution(final Map<String, List<String>> input, final CustomServicesWorkflowDocument.Step step) {
+    public CustomServicesRemoteAnsibleExecution(final Map<String, List<String>> input, final CustomServicesWorkflowDocument.Step step,final DbClient dbClient) {
         this.input = input;
         this.step = step;
         if (step.getAttributes() == null || step.getAttributes().getTimeout() == -1) {
@@ -54,6 +53,7 @@ public class CustomServicesRemoteAnsibleExecution extends ViPRExecutionTask<Cust
         } else {
             this.timeout = step.getAttributes().getTimeout();
         }
+        this.dbClient = dbClient;
         provideDetailArgs(step.getId());
     }
 

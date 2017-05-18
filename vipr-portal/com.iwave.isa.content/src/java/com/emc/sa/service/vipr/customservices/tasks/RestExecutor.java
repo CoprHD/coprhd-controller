@@ -20,6 +20,7 @@ package com.emc.sa.service.vipr.customservices.tasks;
 import java.util.List;
 import java.util.Map;
 
+import com.emc.storageos.db.client.DbClient;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.emc.sa.service.vipr.tasks.ViPRExecutionTask;
@@ -32,9 +33,11 @@ public class RestExecutor implements MakeCustomServicesExecutor {
     private final static String TYPE = CustomServicesConstants.REST_API_PRIMITIVE_TYPE;
     @Autowired
     private CoordinatorClient coordinator;
+    @Autowired
+    private DbClient dbClient;
 
     @Override public ViPRExecutionTask<CustomServicesTaskResult> makeCustomServicesExecutor(final Map<String, List<String>> input, final CustomServicesWorkflowDocument.Step step) {
-        return new CustomServicesRESTExecution(input, step, coordinator);
+        return new CustomServicesRESTExecution(input, step, coordinator, dbClient);
     }
 
     @Override public String getType() {

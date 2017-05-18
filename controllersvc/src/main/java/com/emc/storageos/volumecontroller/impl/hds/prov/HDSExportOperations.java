@@ -1314,12 +1314,25 @@ public class HDSExportOperations implements ExportMaskOperations {
                 taskCompleter.ready(dbClient);
                 return;
             }
+            ExportMask exportMask = dbClient.queryObject(ExportMask.class, exportMaskURI);
+            // Get the context from the task completer, in case this is a rollback.
+            boolean isRollback = WorkflowService.getInstance().isStepInRollbackState(taskCompleter.getOpId());
+
+            ExportMaskValidationContext ctx = new ExportMaskValidationContext();
+            ctx.setStorage(storage);
+            ctx.setExportMask(exportMask);
+            ctx.setBlockObjects(volumeURIList, dbClient);
+            ctx.setInitiators(initiators);
+            // Allow exceptions to be thrown when not rolling back
+            ctx.setAllowExceptions(!isRollback);
+            AbstractHDSValidator removeInitiatorFromMaskValidator = (AbstractHDSValidator) validator.removeInitiators(ctx);
+            removeInitiatorFromMaskValidator.validate();
             HDSApiClient hdsApiClient = hdsApiFactory.getClient(
                     HDSUtils.getHDSServerManagementServerInfo(storage), storage.getSmisUserName(),
                     storage.getSmisPassword());
             HDSApiExportManager exportMgr = hdsApiClient.getHDSApiExportManager();
             String systemObjectID = HDSUtils.getSystemObjectID(storage);
-            ExportMask exportMask = dbClient.queryObject(ExportMask.class, exportMaskURI);
+
             StringSetMap deviceDataMap = exportMask.getDeviceDataMap();
             if (null != deviceDataMap && !deviceDataMap.isEmpty()) {
                 Set<String> hsdObjectIDSet = deviceDataMap.keySet();

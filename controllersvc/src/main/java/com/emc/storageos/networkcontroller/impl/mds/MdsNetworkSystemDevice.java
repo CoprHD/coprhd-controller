@@ -225,7 +225,7 @@ public class MdsNetworkSystemDevice extends NetworkSystemDeviceImpl implements N
                 Integer vsanId = new Integer(fabricId);
                 vsanWwnMap = dialog.getVsanWwns(new Integer(fabricId));
                 String vsanwwn = vsanWwnMap.get(vsanId);
-                if (null != vsanwwn && vsanwwn.equals(fabricWwn)) {
+                if (null != vsanwwn && vsanwwn.equalsIgnoreCase(fabricWwn)) {
                     return vsanId;
                 }
             } catch (Exception ex) {
@@ -249,20 +249,20 @@ public class MdsNetworkSystemDevice extends NetworkSystemDeviceImpl implements N
     }
 
     @Override
-    public BiosCommandResult addZones(NetworkSystem network, List<Zone> zones, String fabricId, String fabricWwn,
+    public BiosCommandResult addZones(NetworkSystem networkSystem, List<Zone> zones, String fabricId, String fabricWwn,
             boolean activateZones) throws NetworkDeviceControllerException {
         BiosCommandResult result = null;
         MDSDialog dialog = null;
         Map<String, String> addedZoneNames = new HashMap<String, String>();
         try {
-            dialog = setUpDialog(network);
+            dialog = setUpDialog(networkSystem);
             Integer vsanId = checkVsanFabric(dialog, fabricId, fabricWwn);
 
             List<IvrZone> addingIvrZones = new ArrayList<IvrZone>();
             List<Zone> addingZones = new ArrayList<Zone>();
 
             for (Zone zone : zones) {
-                IvrZone routedZone = getRoutedZone(dialog, zone, network);
+                IvrZone routedZone = getRoutedZone(dialog, zone, networkSystem);
 
                 // if zone is routed, handle it as routed network. Otherwise, handle it
                 // as normal zone

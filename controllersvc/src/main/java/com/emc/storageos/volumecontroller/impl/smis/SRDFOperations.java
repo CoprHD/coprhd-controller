@@ -442,6 +442,11 @@ public class SRDFOperations implements SmisConstants {
             String msg = format(FAILURE_MSG_FMT, "rollback", source.getId(),
                     target.getId());
             log.warn(msg, e);
+            // Clean up target and source CGs since this is a rollback
+            BlockConsistencyGroup targetCG = dbClient.queryObject(BlockConsistencyGroup.class, target.getConsistencyGroup());
+            BlockConsistencyGroup sourceCG = dbClient.queryObject(BlockConsistencyGroup.class, source.getConsistencyGroup());
+            cleanUpSourceAndTargetCGs(sourceCG, targetCG, system.getId());
+
         }
     }
 
@@ -482,24 +487,7 @@ public class SRDFOperations implements SmisConstants {
 
             // after volumes are deleted .group gets removed
             if (cgSourceCleanUpRequired || cgTargetCleanUpRequired) {
-                if (null != targetCG) {
-                    log.info("Set target {}-->{} as inactive", targetCG.getLabel(), targetCG.getId());
-                    targetCG.setInactive(true);
-                    dbClient.persistObject(targetCG);
-                }
-
-                if (null != sourceCG) {
-                    log.info("Clearing properties of source CG {}-->{}", sourceCG.getLabel(), sourceCG.getId());
-                    // Clear the CG types and add the LOCAL types
-
-                    if (null != sourceCG.getTypes()) {
-                        sourceCG.getTypes().remove(Types.SRDF.name());
-                        sourceCG.getRequestedTypes().remove(Types.SRDF.name());
-                    }
-                    // sourceCG.addConsistencyGroupTypes(Types.LOCAL.name());
-
-                    BlockConsistencyGroupUtils.cleanUpCGAndUpdate(sourceCG, system.getId(), sourceCG.getLabel(), false, dbClient);
-                }
+                cleanUpSourceAndTargetCGs(sourceCG, targetCG, system.getId());
             }
 
         } catch (Exception e) {
@@ -532,6 +520,27 @@ public class SRDFOperations implements SmisConstants {
             dbClient.updateAndReindexObject(group);
 
             completer.ready(dbClient);
+        }
+    }
+
+    private void cleanUpSourceAndTargetCGs(BlockConsistencyGroup sourceCG, BlockConsistencyGroup targetCG, URI storageId) {
+        if (null != targetCG) {
+            log.info("Set target {}-->{} as inactive", targetCG.getLabel(), targetCG.getId());
+            targetCG.setInactive(true);
+            dbClient.updateObject(targetCG);
+        }
+
+        if (null != sourceCG) {
+            log.info("Clearing properties of source CG {}-->{}", sourceCG.getLabel(), sourceCG.getId());
+            // Clear the CG types and add the LOCAL types
+
+            if (null != sourceCG.getTypes()) {
+                sourceCG.getTypes().remove(Types.SRDF.name());
+                sourceCG.getRequestedTypes().remove(Types.SRDF.name());
+            }
+            // sourceCG.addConsistencyGroupTypes(Types.LOCAL.name());
+
+            BlockConsistencyGroupUtils.cleanUpCGAndUpdate(sourceCG, storageId, sourceCG.getLabel(), false, dbClient);
         }
     }
 

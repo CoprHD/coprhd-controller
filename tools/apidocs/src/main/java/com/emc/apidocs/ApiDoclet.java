@@ -259,7 +259,7 @@ public class ApiDoclet {
         TemporaryCleanup.applyCleanups(apiService);
 
         // Process ALL methods on EMC classes, including super classes
-        List<String> methodsAdded = Lists.newArrayList();
+        Set<String> methodsAdded = new HashSet<>();
         ClassDoc currentClass = classDoc;
         while (currentClass != null && currentClass.containingPackage().name().startsWith("com.emc")) {
             for (MethodDoc method : currentClass.methods()) {
@@ -272,7 +272,12 @@ public class ApiDoclet {
 
                     // Some methods are marked internal via brief comments, but we only know that after processing it
                     if (!apiMethod.brief.toLowerCase().startsWith("internal")) {
-                        apiService.addMethod(apiMethod);
+                        // Add method to service only if it is not overridden by subclass
+                        if (methodsAdded.add(apiMethod.javaMethodName + ":" + apiMethod.httpMethod + ":" + apiMethod.path)) {
+                            apiService.addMethod(apiMethod);
+                        } else {
+                            System.out.println("Service " + classDoc.name() + ": skip overridden method " + currentClass.name() + "::" + method.name());
+                        }
                     }
                 }
 

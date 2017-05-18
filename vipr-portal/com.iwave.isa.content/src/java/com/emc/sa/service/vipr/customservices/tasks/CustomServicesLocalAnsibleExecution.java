@@ -146,7 +146,14 @@ public class CustomServicesLocalAnsibleExecution extends ViPRExecutionTask<Custo
             final String chrootInventoryFileName = String.format("%s%s", chrootOrderDir,
                     URIUtil.parseUUIDFromURI(URI.create(hostFileFromStep)).replace("-", ""));
 
+            //For Test ALIK
+            final String[] mountOrderdir = mountCmd(orderDir);
+            Process p = Runtime.getRuntime().exec(mountOrderdir);
+
             result = executeLocal(chrootInventoryFileName, AnsibleHelper.makeExtraArg(input,step), String.format("%s%s", chrootOrderDir, playbook), user);
+
+            final String[] unMountOrder = umountCmd(orderDir);
+            //p = Runtime.getRuntime().exec(unMountOrder); //For testing, don't unmount to check
 
         } catch (final Exception e) {
             ExecutionUtils.currentContext().logError("customServicesOperationExecution.logStatus", step.getId(),"Custom Service Task Failed" + e);
@@ -207,5 +214,13 @@ public class CustomServicesLocalAnsibleExecution extends ViPRExecutionTask<Custo
         environment.put("ANSIBLE_HOST_KEY_CHECKING", "false");
 
         return Exec.sudo(new File(orderDir), timeout, null, environment, cmds);
+    }
+
+    private String[] mountCmd(String orderpath) {
+        return new String[] { "sudo", "mount", "--bind", orderpath, CustomServicesConstants.CHROOT_DIR};
+    }
+
+    private String[] umountCmd(String orderpath) {
+        return new String[] { "sudo", "umount", orderpath};
     }
 }

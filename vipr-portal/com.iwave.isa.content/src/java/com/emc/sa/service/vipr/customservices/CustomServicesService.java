@@ -127,7 +127,7 @@ public class CustomServicesService extends ViPRService {
 
             throw e;
         } finally {
-            orderDirCleanup(orderDir);
+            //orderDirCleanup(orderDir);
         }
     }
 

@@ -1303,7 +1303,8 @@ windows_setup() {
         WINDOWS_HOST_IP=winhost1
         WINDOWS_HOST_PORT=$WINDOWS_SIMULATOR_PORT
         WINDOWS_HOST_USERNAME=$WINDOWS_SIMULATOR_USERNAME
-        WINDOWS_HOST_PASSWORD=$WINDOWS_SIMULATOR_PASSWORD 
+        WINDOWS_HOST_PASSWORD=$WINDOWS_SIMULATOR_PASSWORD
+        grep -q -F "${WINDOWS_HOST_IP} winhost1" /etc/hosts || echo "${WINDOWS_HOST_IP} winhost1" >> /etc/hosts
     fi
 
     run hosts create winhost1 $TENANT Windows ${WINDOWS_HOST_IP} --port ${WINDOWS_HOST_PORT} --username ${WINDOWS_HOST_USERNAME} --password ${WINDOWS_HOST_PASSWORD} --discoverable true 

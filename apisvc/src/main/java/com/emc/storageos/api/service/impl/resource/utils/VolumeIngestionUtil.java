@@ -1674,7 +1674,6 @@ public class VolumeIngestionUtil {
                         if (!unManagedExportMaskPortsNotInHaVarray.isEmpty()) {
                             int unfoundPortCount = unManagedExportMaskPortsNotInSourceVarray.size() - unManagedExportMaskPortsNotInHaVarray.size();
                             if (unfoundPortCount < portsInUnManagedMask.size()) {
-                                _logger.info("ZZZZZZZZ unfoundPortCount is " + unfoundPortCount);
                                 _logger.warn("Storage Ports {} in unmanaged mask {} were not found in VPLEX source of high availability varray, "
                                         + "but at least one port was found in either, so this mask is okay for further processing...", 
                                         new Object[] { Joiner.on(",").join(getStoragePortNames(Collections2.transform(unManagedExportMaskPortsNotInHaVarray,

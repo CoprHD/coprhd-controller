@@ -131,12 +131,22 @@ public final class CustomServicesDBHelper {
             throw new RuntimeException("Failed to create custom services primitive: " + dbModel.getSimpleName());
         }
         primitive.setId(URIUtil.createId(primitive.getClass()));
-        primitive.setLabel(param.getName());
+
+        if (null != param.getName()) {
+            checkDuplicateLabel(param.getName(), primitiveManager, dbModel);
+            primitive.setLabel(param.getName());
+        }
         primitive.setFriendlyName(param.getFriendlyName());
         primitive.setDescription(param.getDescription());
 
         if (!resourceType.isAssignableFrom(CustomServicesDBNoResource.class)) {
+            if(param.getResource() == null){
+                throw APIException.badRequests.requiredParameterMissingOrEmpty("resource");
+            }
             final CustomServicesDBResource resource = primitiveManager.findResource(resourceType, param.getResource());
+            if (null == resource) {
+                throw APIException.notFound.unableToFindEntityInURL(param.getResource());
+            }
             primitive.setResource(new NamedURI(resource.getId(), resource.getLabel()));
         } else if (null != param.getResource()) {
             throw APIException.badRequests.invalidParameter("resource", param.getResource().toString());
@@ -181,9 +191,14 @@ public final class CustomServicesDBHelper {
 
         checkNotInUse(client, id, primitive);
 
-        if (null != param.getName()) {
-            primitive.setLabel(param.getName());
+        if (StringUtils.isNotBlank(param.getName())) {
+            final String label = param.getName().trim();
+            if (!label.equalsIgnoreCase(primitive.getLabel())) {
+                checkDuplicateLabel(label, primitiveManager, dbModel);
+                primitive.setLabel(label);
+            }
         }
+
         if (null != param.getFriendlyName()) {
             primitive.setFriendlyName(param.getFriendlyName());
         }
@@ -266,10 +281,10 @@ public final class CustomServicesDBHelper {
 
     private static void addInput(final Set<String> keys, final Map<String, InputUpdateList> map,
             final StringSetMap update) {
-        if(null == map) {
+        if (null == map) {
             return;
         }
-        
+
         for (final Entry<String, InputUpdateList> entry : map.entrySet()) {
             if (!keys.contains(entry.getKey())) {
                 throw APIException.badRequests.invalidParameter("input", entry.getKey());
@@ -284,12 +299,12 @@ public final class CustomServicesDBHelper {
 
     private static void removeInput(final Set<String> keys, final Map<String, InputUpdateList> remove,
             final StringSetMap update) {
-        if( null == remove ) {
+        if (null == remove) {
             return;
         }
         for (final Entry<String, InputUpdateList> entry : remove.entrySet()) {
             if (null != entry.getValue().getInput()) {
-                for(final String param : entry.getValue().getInput()) {
+                for (final String param : entry.getValue().getInput()) {
                     update.remove(entry.getKey(), param);
                 }
             }
@@ -683,6 +698,14 @@ public final class CustomServicesDBHelper {
         }
     }
 
+    private static void checkDuplicateLabel(final String name, final CustomServicesPrimitiveManager client,
+            final Class<? extends ModelObject> clazz) {
+        final List<NamedElement> ids = client.getResourcesByLabel(clazz, name);
+        if (null != ids && !ids.isEmpty()) {
+            throw APIException.badRequests.duplicateLabel(name);
+        }
+    }
+
     /**
      * Given a primitive resource type java class and the database column family instance
      * 
@@ -768,6 +791,10 @@ public final class CustomServicesDBHelper {
         }
         resource.setId(URIUtil.createId(dbModel));
         resource.setLabel(name);
+        if (null != name) {
+            checkDuplicateLabel(name, primitiveManager, dbModel);
+            resource.setLabel(name);
+        }
         resource.setAttributes(attributes);
         resource.setParentId(parentId);
         resource.setResource(Base64.encodeBase64(stream));
@@ -804,6 +831,13 @@ public final class CustomServicesDBHelper {
 
         if (null != name) {
             resource.setLabel(name);
+        }
+        if (null != name) {
+            final String label = name.trim();
+            if (!label.equalsIgnoreCase(resource.getLabel())) {
+                checkDuplicateLabel(label, primitiveManager, dbModel);
+                resource.setLabel(label);
+            }
         }
 
         if (null != parentId) {

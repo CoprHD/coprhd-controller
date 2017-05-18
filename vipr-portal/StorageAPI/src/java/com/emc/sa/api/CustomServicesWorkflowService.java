@@ -38,6 +38,7 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
+import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -79,7 +80,8 @@ import com.emc.storageos.svcs.errorhandling.resources.APIException;
 public class CustomServicesWorkflowService extends CatalogTaggedResourceService {
 
     private static final Logger log = LoggerFactory.getLogger(CustomServicesWorkflowService.class);
-    
+    private static final WFDirectory NO_DIR = new WFDirectory();
+    private static final String EXPORT_EXTENSION = ".wf";
     @Autowired
     private ModelClient client;
     @Autowired
@@ -91,16 +93,15 @@ public class CustomServicesWorkflowService extends CatalogTaggedResourceService 
     @Autowired
     private CustomServicesResourceDAOs resourceDAOs;
 
-    private static final WFDirectory NO_DIR = new WFDirectory();
-    private static final String EXPORT_EXTENSION = ".wf"; 
-    
     @GET
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     public CustomServicesWorkflowList getWorkflows(@QueryParam("status") String status, @QueryParam("primitiveId") String primitiveId) {
         List<NamedElement> elements;
-        if(null != status && null != primitiveId){
-            //TODO: currently throwing exception. Implement if both status and primitive id are passed, get the workflows that are in the requested status state and that uses the primitiveId
-            throw APIException.methodNotAllowed.notSupportedWithReason("Querying workflow by both status and primitives are not supported currently.");
+        if (null != status && null != primitiveId) {
+            // TODO: currently throwing exception. Implement if both status and primitive id are passed, get the workflows that are in the
+            // requested status state and that uses the primitiveId
+            throw APIException.methodNotAllowed
+                    .notSupportedWithReason("Querying workflow by both status and primitives are not supported currently.");
         }
         if (null != status) {
             ArgValidator.checkFieldValueFromEnum(status, "status", CustomServicesWorkflowStatus.class);
@@ -123,7 +124,7 @@ public class CustomServicesWorkflowService extends CatalogTaggedResourceService 
     @POST
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     public CustomServicesWorkflowRestRep addWorkflow(final CustomServicesWorkflowCreateParam workflow) {
-        checkForDuplicateName(workflow.getDocument().getName(), CustomServicesWorkflow.class);
+        checkForDuplicateName(workflow.getDocument().getName().trim(), CustomServicesWorkflow.class);
         final CustomServicesWorkflow newWorkflow;
         try {
             newWorkflow = WorkflowHelper.create(workflow.getDocument());
@@ -147,6 +148,13 @@ public class CustomServicesWorkflowService extends CatalogTaggedResourceService 
                 case PUBLISHED:
                     throw APIException.methodNotAllowed.notSupportedWithReason("Published workflow cannot be edited.");
                 default:
+                    if (StringUtils.isNotBlank(workflow.getDocument().getName())) {
+                        final String label = workflow.getDocument().getName().trim();
+                        if (!label.equalsIgnoreCase(customServicesWorkflow.getName())) {
+                            checkForDuplicateName(label, CustomServicesWorkflow.class);
+                        }
+                    }
+
                     updated = WorkflowHelper.update(customServicesWorkflow, workflow.getDocument());
 
                     // On update, if there is any change to steps, resetting workflow status to initial state -NONE
@@ -259,7 +267,7 @@ public class CustomServicesWorkflowService extends CatalogTaggedResourceService 
             @Context final HttpServletRequest request,
             @QueryParam("directory") final URI directory) {
         final WFDirectory wfDirectory;
-        if( null != directory ) {
+        if (null != directory) {
             wfDirectory = wfDirectoryManager.getWFDirectoryById(directory);
         } else {
             wfDirectory = NO_DIR;
@@ -267,7 +275,7 @@ public class CustomServicesWorkflowService extends CatalogTaggedResourceService 
         final byte[] stream = UploadHelper.read(request);
         return map(WorkflowHelper.importWorkflow(stream, wfDirectory, client, daos, resourceDAOs));
     }
-    
+
     /**
      * Download the resource and set it in the response header
      * 
@@ -285,14 +293,14 @@ public class CustomServicesWorkflowService extends CatalogTaggedResourceService 
                 final byte[] bytes = WorkflowHelper.exportWorkflow(id, client, daos, resourceDAOs);
                 response.setContentLength(bytes.length);
 
-                response.setHeader("Content-Disposition", "attachment; filename="+
+                response.setHeader("Content-Disposition", "attachment; filename=" +
                         id.toString() + EXPORT_EXTENSION);
                 return Response.ok(bytes).build();
             default:
                 throw APIException.methodNotAllowed.notSupportedForUnpublishedWorkflow(customServicesWorkflow.getState());
         }
     }
-    
+
     @Override
     protected CustomServicesWorkflow queryResource(URI id) {
         return customServicesWorkflowManager.getById(id);

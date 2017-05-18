@@ -3198,18 +3198,19 @@ test_13() {
 
     if [ "${SS}" = "unity" -o "${SS}" = "xio" ]
     then
-	storage_failure_injections="failure_016_Export_doRemoveInitiator"
+	storage_failure_injections="failure_018_Export_doRollbackExportCreate_before_delete"
     fi
 
     if [ "${SS}" = "vnx" -o "${SS}" = "vmax2" -o "${SS}" = "vmax3" ]
     then
-	storage_failure_injections="failure_015_SmisCommandHelper.invokeMethod_*"
+	storage_failure_injections="failure_015_SmisCommandHelper.invokeMethod_* \
+                                    failure_018_Export_doRollbackExportCreate_before_delete"
     fi
 
     failure_injections="${common_failure_injections} ${storage_failure_injections}"
 
     # Placeholder when a specific failure case is being worked...
-    # failure_injections="failure_016_Export_doRemoveInitiator"
+    # failure_injections="failure_018_Export_doRollbackExportCreate_before_delete"
 
     for failure in ${failure_injections}
     do

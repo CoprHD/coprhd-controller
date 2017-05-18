@@ -109,6 +109,7 @@ public class VirtualNAS extends NASServer {
         MOUNTED("mounted"),
         TEMP_LOADED("tempunloaded"),
         PERM_UNLOADED("permunloaded"),
+        FAILOVER_TARGET("failovertarget"),
         UNKNOWN("N/A");
 
         private final String vNasState;

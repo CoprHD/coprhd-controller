@@ -30,6 +30,7 @@ import com.emc.storageos.db.client.model.uimodels.CatalogCategory;
 import com.emc.storageos.db.client.model.uimodels.CatalogService;
 import com.emc.storageos.db.client.model.uimodels.CustomServicesWorkflow;
 import com.emc.storageos.db.client.model.uimodels.CustomServicesWorkflow.CustomServicesWorkflowStatus;
+import com.google.common.collect.ImmutableList;
 
 
 
@@ -53,8 +54,12 @@ public class CustomServicesWorkflowManagerImpl implements
         if( null == name) {
             return null;
         }
-        
-        return client.customServicesWorkflows().findByName(name);
+        final List<NamedElement> workflows = client.findByLabel(CustomServicesWorkflow.class, name);
+        final ImmutableList.Builder<URI> ids = ImmutableList.<URI>builder();
+        for( final NamedElement workflow : workflows ) {
+            ids.add(workflow.getId());
+        }
+        return client.findByIds(CustomServicesWorkflow.class, ids.build());
     }
     
     @Override

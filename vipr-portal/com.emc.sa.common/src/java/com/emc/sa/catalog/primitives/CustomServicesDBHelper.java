@@ -997,6 +997,29 @@ public final class CustomServicesDBHelper {
         };
     }
 
+
+    /**
+     * Import a resource to the database
+     * @param clazz the DB model class
+     * @param resource The REST representation of the resource
+     * @param bytes The file bytes of the resource
+     * @param client The ModelClient to access the database
+     * @return true if the resource was imported, false if it already exists
+     */
+    public static <T extends CustomServicesDBResource> boolean importResource(Class<T> clazz,
+            CustomServicesPrimitiveResourceRestRep resource, byte[] bytes, final ModelClient client) {
+        final T existing = client.findById(resource.getId());
+        if( null == existing ) {
+            client.save(makeDBResource(clazz, resource, bytes));
+            return true;
+        } else if(existing.getInactive()){
+            client.save(updateDBResource(resource, bytes, existing));
+            return true;
+        } else {
+            return false;
+        }
+    }
+    
     /**
      * Make a DB resource of a given type given the resource REST model and file bytes
      * 
@@ -1010,19 +1033,58 @@ public final class CustomServicesDBHelper {
             final CustomServicesPrimitiveResourceRestRep resource,
             final byte[] bytes) {
         try {
-            final T dbResource = clazz.newInstance();
-            dbResource.setId(resource.getId());
-            dbResource.setLabel(resource.getName());
-            dbResource.setInactive(false);
-            dbResource.setParentId(resource.getParentId());
-            dbResource.setAttributes(mapResourceAttributes(resource.getAttributes()));
-            dbResource.setResource(bytes);
-            return dbResource;
+            return updateDBResource(resource, bytes, clazz.newInstance());  
         } catch (final InstantiationException | IllegalAccessException e) {
             throw new RuntimeException("Invalid DB model: " + clazz, e);
         }
     }
+    
+    
+    /**
+     * Update the given DB resource with fields from the REST model
+     * 
+     * @param resource the REST representation of the resource
+     * @param bytes the file bytes of the resource
+     * @param dbResource the DB instance to modify 
+     * @return
+     */
+    private static <T extends CustomServicesDBResource> T updateDBResource(
+            final CustomServicesPrimitiveResourceRestRep resource,
+            final byte[] bytes,
+            final T dbResource) {
+        dbResource.setId(resource.getId());
+        dbResource.setLabel(resource.getName());
+        dbResource.setInactive(false);
+        dbResource.setParentId(resource.getParentId());
+        dbResource.setAttributes(mapResourceAttributes(resource.getAttributes()));
+        dbResource.setResource(bytes);
+        return dbResource;
+    }
 
+
+    /**
+     * Import a primitive to the database
+     * 
+     * @param clazz the DB model class
+     * @param operation The REST representation of the primitive
+     * @param client the ModelClient instance
+     * @return true if the primitive was imported, false if it already exists
+     */
+    public static <T extends CustomServicesDBPrimitive> boolean importDBPrimitive(final Class<T> clazz, 
+            final CustomServicesPrimitiveRestRep operation,
+            final ModelClient client) {
+        final T existing = client.findById(operation.getId());
+        if( null == existing ) {
+            client.save(makeDBPrimitive(clazz, operation));
+            return true;
+        } else if(existing.getInactive()){
+            client.save(updateDBPrimitive(operation, existing));
+            return true;
+        } else {
+            return false;
+        }
+    }
+    
     /**
      * Make a DB primitive of the given type given the REST model
      * 
@@ -1033,9 +1095,22 @@ public final class CustomServicesDBHelper {
      */
     public static <T extends CustomServicesDBPrimitive> T makeDBPrimitive(final Class<T> clazz,
             final CustomServicesPrimitiveRestRep operation) {
-        T model;
         try {
-            model = clazz.newInstance();
+            return updateDBPrimitive(operation, clazz.newInstance());
+        } catch (final InstantiationException | IllegalAccessException e) {
+            throw new RuntimeException("Invalid DB model " + clazz, e);
+        }
+    }
+
+    /**
+     * Update a DB primitive given the REST representation and the db model instance
+     * 
+     * @param REST representation of the primitive
+     * @param model DB model instance
+     * @return updated DB model instance
+     */
+    public static <T extends CustomServicesDBPrimitive> T updateDBPrimitive(final CustomServicesPrimitiveRestRep operation,
+            final T model) {
             model.setId(operation.getId());
             model.setLabel(operation.getName());
             model.setInactive(false);
@@ -1047,13 +1122,10 @@ public final class CustomServicesDBHelper {
             model.setResource(new NamedURI(operation.getResource().getId(),
                     operation.getResource().getName()));
             model.setSuccessCriteria(operation.getSuccessCriteria());
-        } catch (final InstantiationException | IllegalAccessException e) {
-            throw new RuntimeException("Invalid DB model " + clazz, e);
-        }
 
         return model;
     }
-
+    
     public static class UpdatePrimitive<DBModel extends CustomServicesDBPrimitive> {
         private final CustomServicesPrimitiveUpdateParam param;
         private final DBModel primitive;
@@ -1071,5 +1143,4 @@ public final class CustomServicesDBHelper {
             return primitive;
         }
     }
-
 }

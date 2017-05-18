@@ -20,7 +20,9 @@ import static com.emc.sa.workflow.CustomServicesWorkflowMapper.map;
 import static com.emc.sa.workflow.CustomServicesWorkflowMapper.mapList;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.URI;
+import java.security.GeneralSecurityException;
 import java.util.Iterator;
 import java.util.List;
 
@@ -44,7 +46,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.emc.sa.api.mapper.CustomServicesWorkflowFilter;
-import com.emc.sa.api.utils.UploadHelper;
 import com.emc.sa.catalog.CustomServicesWorkflowManager;
 import com.emc.sa.catalog.WorkflowDirectoryManager;
 import com.emc.sa.catalog.primitives.CustomServicesPrimitiveDAOs;
@@ -56,6 +57,7 @@ import com.emc.sa.workflow.WorkflowHelper;
 import com.emc.storageos.api.service.impl.resource.ArgValidator;
 import com.emc.storageos.api.service.impl.response.BulkList;
 import com.emc.storageos.api.service.impl.response.BulkList.ResourceFilter;
+import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.constraint.NamedElementQueryResultList.NamedElement;
 import com.emc.storageos.db.client.model.uimodels.CustomServicesWorkflow;
 import com.emc.storageos.db.client.model.uimodels.CustomServicesWorkflow.CustomServicesWorkflowStatus;
@@ -72,6 +74,7 @@ import com.emc.storageos.model.customservices.CustomServicesWorkflowUpdateParam;
 import com.emc.storageos.security.authorization.ACL;
 import com.emc.storageos.security.authorization.DefaultPermissions;
 import com.emc.storageos.security.authorization.Role;
+import com.emc.storageos.security.keystore.impl.KeyStoreUtil;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 
 @DefaultPermissions(readRoles = { Role.TENANT_ADMIN, Role.SYSTEM_MONITOR, Role.SYSTEM_ADMIN }, writeRoles = {
@@ -80,8 +83,7 @@ import com.emc.storageos.svcs.errorhandling.resources.APIException;
 public class CustomServicesWorkflowService extends CatalogTaggedResourceService {
 
     private static final Logger log = LoggerFactory.getLogger(CustomServicesWorkflowService.class);
-    private static final WFDirectory NO_DIR = new WFDirectory();
-    private static final String EXPORT_EXTENSION = ".wf";
+    
     @Autowired
     private ModelClient client;
     @Autowired
@@ -92,16 +94,19 @@ public class CustomServicesWorkflowService extends CatalogTaggedResourceService 
     private CustomServicesPrimitiveDAOs daos;
     @Autowired
     private CustomServicesResourceDAOs resourceDAOs;
+    @Autowired
+    private CoordinatorClient coordinator;
 
+    private static final WFDirectory NO_DIR = new WFDirectory();
+    private static final String EXPORT_EXTENSION = ".wf"; 
+    
     @GET
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     public CustomServicesWorkflowList getWorkflows(@QueryParam("status") String status, @QueryParam("primitiveId") String primitiveId) {
         List<NamedElement> elements;
-        if (null != status && null != primitiveId) {
-            // TODO: currently throwing exception. Implement if both status and primitive id are passed, get the workflows that are in the
-            // requested status state and that uses the primitiveId
-            throw APIException.methodNotAllowed
-                    .notSupportedWithReason("Querying workflow by both status and primitives are not supported currently.");
+        if(null != status && null != primitiveId){
+            //TODO: currently throwing exception. Implement if both status and primitive id are passed, get the workflows that are in the requested status state and that uses the primitiveId
+            throw APIException.methodNotAllowed.notSupportedWithReason("Querying workflow by both status and primitives are not supported currently.");
         }
         if (null != status) {
             ArgValidator.checkFieldValueFromEnum(status, "status", CustomServicesWorkflowStatus.class);
@@ -219,7 +224,7 @@ public class CustomServicesWorkflowService extends CatalogTaggedResourceService 
                 return map(customServicesWorkflow);
             case PUBLISHED:
                 // Check if there are any existing services created from this WF
-                if (customServicesWorkflowManager.hasCatalogServices(customServicesWorkflow.getName())) {
+                if (customServicesWorkflowManager.hasCatalogServices(customServicesWorkflow.getLabel())) {
                     throw APIException.methodNotAllowed
                             .notSupportedWithReason("Cannot unpublish workflow. It has associated catalog services");
                 }
@@ -267,15 +272,21 @@ public class CustomServicesWorkflowService extends CatalogTaggedResourceService 
             @Context final HttpServletRequest request,
             @QueryParam("directory") final URI directory) {
         final WFDirectory wfDirectory;
-        if (null != directory) {
+        if( null != directory ) {
             wfDirectory = wfDirectoryManager.getWFDirectoryById(directory);
         } else {
             wfDirectory = NO_DIR;
         }
-        final byte[] stream = UploadHelper.read(request);
-        return map(WorkflowHelper.importWorkflow(stream, wfDirectory, client, daos, resourceDAOs));
-    }
+        final InputStream in;
+        try {
+            in = request.getInputStream();
+        } catch(final IOException e) {
+            throw APIException.internalServerErrors.genericApisvcError("Failed to open servlet input stream", e);
+        }
+        return map(WorkflowHelper.importWorkflow(in, wfDirectory, client, daos, resourceDAOs));
 
+    }
+    
     /**
      * Download the resource and set it in the response header
      * 
@@ -290,17 +301,24 @@ public class CustomServicesWorkflowService extends CatalogTaggedResourceService 
         final CustomServicesWorkflow customServicesWorkflow = getCustomServicesWorkflow(id);
         switch (CustomServicesWorkflowStatus.valueOf(customServicesWorkflow.getState())) {
             case PUBLISHED:
-                final byte[] bytes = WorkflowHelper.exportWorkflow(id, client, daos, resourceDAOs);
+                final byte[] bytes;
+                try {
+                    bytes = WorkflowHelper.exportWorkflow(id, client, daos, resourceDAOs, KeyStoreUtil.getViPRKeystore(coordinator));
+                } catch (final GeneralSecurityException | IOException | InterruptedException e ) {
+                    throw APIException.internalServerErrors.genericApisvcError("Failed to open keystore ", e);
+                }
+
                 response.setContentLength(bytes.length);
 
-                response.setHeader("Content-Disposition", "attachment; filename=" +
-                        id.toString() + EXPORT_EXTENSION);
+                response.setHeader("Content-Disposition", "attachment; filename="+
+                        customServicesWorkflow.getLabel().toString() + EXPORT_EXTENSION);
                 return Response.ok(bytes).build();
+
             default:
                 throw APIException.methodNotAllowed.notSupportedForUnpublishedWorkflow(customServicesWorkflow.getState());
         }
     }
-
+    
     @Override
     protected CustomServicesWorkflow queryResource(URI id) {
         return customServicesWorkflowManager.getById(id);

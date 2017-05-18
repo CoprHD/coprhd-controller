@@ -37,12 +37,12 @@ public class CustomServicesWorkflow extends ModelObjectWithACLs {
 
     public static final String ID_PREFIX = "urn:storageos:CustomServicesWorkflow:";
 
-    public static final String NAME = "name";
+    public static final String NAME = "label";
     public static final String DESCRIPTION = "description";
     public static final String STEPS = "steps";
     public static final String STATE = "state";
     public static final String PRIMITIVES = "primitives";
-
+    
     private String name;
     private String description;
     private String steps;
@@ -55,19 +55,6 @@ public class CustomServicesWorkflow extends ModelObjectWithACLs {
         INVALID,
         PUBLISHED
     }
-
-
-    @Name(NAME)
-    @AlternateId("CustomServicesWorkflowNameIndex")
-    public String getName() {
-        return name;
-    }
-
-    public void setName(final String name) {
-        this.name = name;
-        setChanged(NAME);
-    }
-
 
     @Name(DESCRIPTION)
     public String getDescription() {
@@ -106,14 +93,14 @@ public class CustomServicesWorkflow extends ModelObjectWithACLs {
         this.state = state;
         setChanged(STATE);
     }
-
+    
     @RelationIndex(cf = "CustomServicesWorkflowPrimitives", type = CustomServicesDBPrimitive.class)
     @IndexByKey
     @Name(PRIMITIVES)
     public StringSet getPrimitives() {
         return primitives;
     }
-
+    
     public void setPrimitives(final StringSet primitives) {
         this.primitives = primitives;
         setChanged(PRIMITIVES);

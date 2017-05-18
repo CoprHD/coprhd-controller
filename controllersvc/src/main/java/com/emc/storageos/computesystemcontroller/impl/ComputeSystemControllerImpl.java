@@ -93,6 +93,7 @@ import com.emc.storageos.workflow.WorkflowStepCompleter;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 import com.iwave.ext.linux.util.VolumeWWNUtils;
 import com.iwave.ext.vmware.HostStorageAPI;
 import com.iwave.ext.vmware.VCenterAPI;
@@ -153,6 +154,10 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
     private BlockStorageScheduler _blockScheduler;
 
     private Map<String, HostMountAdapter> _mountAdapters;
+
+    private int MAXIMUM_RESCAN_ATTEMPTS = 5;
+
+    private long RESCAN_DELAY_MS = 10 * 1000;
 
     public void setComputeDeviceController(ComputeDeviceController computeDeviceController) {
         this.computeDeviceController = computeDeviceController;
@@ -1401,8 +1406,10 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
             if (exportGroup != null && exportGroup.getVolumes() != null) {
                 _log.info("Refreshing storage");
                 storageAPI.refreshStorage();
+                Set<BlockObject> blockObjects = Sets.newHashSet();
                 for (String volume : exportGroup.getVolumes().keySet()) {
                     BlockObject blockObject = BlockObject.fetch(_dbClient, URI.create(volume));
+                    blockObjects.add(blockObject);
                     for (HostScsiDisk entry : storageAPI.listScsiDisks()) {
                         if (VolumeWWNUtils.wwnMatches(VMwareUtils.getDiskWwn(entry), blockObject.getWWN())) {
                             if (VMwareUtils.isDiskOff(entry)) {
@@ -1414,23 +1421,44 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                             break;
                         }
                     }
+                }
+
+                int retries = 0;
+
+                while (retries++ < MAXIMUM_RESCAN_ATTEMPTS && !blockObjects.isEmpty()) {
+
+                    _log.info("Rescanning VMFS for host " + esxHost.getLabel());
 
                     storageAPI.getStorageSystem().rescanVmfs();
 
+                    _log.info("Waiting for " + RESCAN_DELAY_MS + " milliseconds before checking for datastores");
+
+                    Thread.sleep(RESCAN_DELAY_MS);
+
+                    _log.info("Looking for datastores for " + blockObjects.size() + " volumes");
+
                     Map<String, Datastore> wwnDatastores = getWwnDatastoreMap(hostSystem);
 
-                    if (blockObject != null) {
+                    Iterator<BlockObject> objectIterator = blockObjects.iterator();
+                    while (objectIterator.hasNext()) {
+                        BlockObject blockObject = objectIterator.next();
+                        if (blockObject != null) {
 
-                        Datastore datastore = getDatastoreByWwn(wwnDatastores, blockObject.getWWN());
-                        if (datastore != null && !VMwareUtils.isDatastoreMountedOnHost(datastore, hostSystem)) {
-                            _log.info("Mounting datastore " + datastore.getName() + " on host " + esxHost.getLabel());
-                            storageAPI.mountDatastore(datastore);
+                            Datastore datastore = getDatastoreByWwn(wwnDatastores, blockObject.getWWN());
+                            if (datastore != null && VMwareUtils.isDatastoreMountedOnHost(datastore, hostSystem)) {
+                                _log.info("Datastore " + datastore.getName() + " is already mounted on " + esxHost.getLabel());
+                                objectIterator.remove();
+                            }
 
-                            // Test mechanism to invoke a failure. No-op on production systems.
-                            InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_056);
+                            if (datastore != null && !VMwareUtils.isDatastoreMountedOnHost(datastore, hostSystem)) {
+                                _log.info("Mounting datastore " + datastore.getName() + " on host " + esxHost.getLabel());
+                                storageAPI.mountDatastore(datastore);
+                                objectIterator.remove();
+                                // Test mechanism to invoke a failure. No-op on production systems.
+                                InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_056);
+                            }
                         }
                     }
-
                 }
             }
             WorkflowStepCompleter.stepSucceded(stepId);

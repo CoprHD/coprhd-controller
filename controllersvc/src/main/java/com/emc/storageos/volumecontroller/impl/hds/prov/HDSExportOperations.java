@@ -936,28 +936,29 @@ public class HDSExportOperations implements ExportMaskOperations {
                         }
                     }
                 }
-
-                List<Path> pathResponseList = hdsApiClient
-                        .getHDSBatchApiExportManager().addLUNPathsToHSDs(
-                                systemObjectID, pathList, storage.getModel());
-                if (null != pathResponseList && !pathResponseList.isEmpty()) {
-                    // update volume-lun relationship to exportmask.
-                    updateVolumeHLUInfo(volumeURIHLUs, pathResponseList,
-                            exportMask);
-                    dbClient.updateObject(exportMask);
-                } else {
-                    log.error(
-                            String.format("addVolumes failed - maskURI: %s",
-                                    exportMaskURI.toString()),
-                            new Exception(
-                                    "Not able to parse the response of addLUN from server"));
-                    ServiceError serviceError = DeviceControllerException.errors
-                            .jobFailedOpMsg(
-                                    ResourceOperationTypeEnum.ADD_EXPORT_VOLUME
-                                            .getName(),
-                                    "Not able to parse the response of addLUN from server");
-                    taskCompleter.error(dbClient, serviceError);
-                    return;
+                if (!pathList.isEmpty()) {
+                    List<Path> pathResponseList = hdsApiClient
+                            .getHDSBatchApiExportManager().addLUNPathsToHSDs(
+                                    systemObjectID, pathList, storage.getModel());
+                    if (null != pathResponseList && !pathResponseList.isEmpty()) {
+                        // update volume-lun relationship to exportmask.
+                        updateVolumeHLUInfo(volumeURIHLUs, pathResponseList,
+                                exportMask);
+                        dbClient.updateObject(exportMask);
+                    } else {
+                        log.error(
+                                String.format("addVolumes failed - maskURI: %s",
+                                        exportMaskURI.toString()),
+                                new Exception(
+                                        "Not able to parse the response of addLUN from server"));
+                        ServiceError serviceError = DeviceControllerException.errors
+                                .jobFailedOpMsg(
+                                        ResourceOperationTypeEnum.ADD_EXPORT_VOLUME
+                                                .getName(),
+                                        "Not able to parse the response of addLUN from server");
+                        taskCompleter.error(dbClient, serviceError);
+                        return;
+                    }
                 }
                 taskCompleter.ready(dbClient);
             }

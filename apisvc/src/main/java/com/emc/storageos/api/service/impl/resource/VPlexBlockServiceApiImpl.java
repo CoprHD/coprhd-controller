@@ -27,7 +27,6 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.regex.Pattern;
 
-import org.apache.commons.collections.CollectionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -2854,7 +2853,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
             if (backendVolumeVarrayURI.equals(vplexVolume.getVirtualArray())) {
                 backendVolumeToPerformanceParamsMap.put(backendVolume, PerformanceParamsUtils.getPerformanceParamsIdForRole(
                         performanceParamsMap, VolumeTopologyRole.PRIMARY_MIRROR, _dbClient));
-                backendvolumeToCapabilitiesMap.put(backendVolume, capabilities);               
+                backendvolumeToCapabilitiesMap.put(backendVolume, beCapabilities);               
             } else {
                 // The passed capabilities are already setup for a source side mirror in the
                 // BlockService, however if the mirror is on the HA side, which is the backend

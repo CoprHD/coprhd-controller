@@ -274,7 +274,8 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
         container.setSrcVpool(originalVpool);
         container.setHaVarray(haVarray);
         container.setHaVpool(haVpool);
-        container = RecoverPointScheduler.initializeSwapContainer(container, _dbClient);
+        // TBD heg revisit when volumes are prepared.
+        container = RecoverPointScheduler.initializeSwapContainer(container, null, _dbClient);
 
         // Use the new references post swap
         VirtualArray varray = container.getSrcVarray();
@@ -3591,8 +3592,9 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
         RPProtectionRecommendation rpProtectionRecommendation = new RPProtectionRecommendation();
         rpProtectionRecommendation.setProtectionDevice(protectionSystem.getId());
 
+        // TBD Heg vpool change
         RPRecommendation journalRecommendation = getBlockScheduler().buildJournalRecommendation(rpProtectionRecommendation,
-                internalSiteName, new Long(capabilities.getSize()).toString(), journalVarray, journalVpool, protectionSystem, capabilities,
+                internalSiteName, new Long(capabilities.getSize()).toString(), journalVarray, journalVpool, null, protectionSystem, capabilities,
                 capabilities.getResourceCount(), null, false);
         if (journalRecommendation == null) {
             throw APIException.badRequests.unableToFindSuitableJournalRecommendation();

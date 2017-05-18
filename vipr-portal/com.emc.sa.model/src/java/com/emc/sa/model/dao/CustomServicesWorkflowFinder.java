@@ -36,18 +36,6 @@ public class CustomServicesWorkflowFinder extends ModelFinder<CustomServicesWork
         super(CustomServicesWorkflow.class, client);
     }
 
-    public List<CustomServicesWorkflow> findByName(final String name) {
-
-        List<CustomServicesWorkflow> results = Lists.newArrayList();
-
-        List<NamedElement> workflows = client.findByAlternateId(CustomServicesWorkflow.class, CustomServicesWorkflow.NAME, name);
-        if (workflows != null) {
-            results.addAll(findByIds(toURIs(workflows)));
-        }
-
-        return results;
-    }
-
     public Iterator<CustomServicesWorkflow> findSummaries(final List<URI> ids) {
         return client.findAllFields(clazz, ids, SUMMARY_FIELDS);
     }

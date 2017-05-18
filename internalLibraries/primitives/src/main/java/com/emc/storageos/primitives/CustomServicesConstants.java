@@ -77,7 +77,6 @@ public final class CustomServicesConstants {
     public static final String ANSIBLE_HOST_FILE = "host_file";
     public static final String ANSIBLE_USER = "remote_ansible_user";
     public static final String ANSIBLE_COMMAND_LINE = "ansible_command_line_arg";
-    public static final String PRIVATE_KEY = "private_key";
     // Remote ansible connection
     public static final String REMOTE_USER = "remote_node_user";
     public static final String REMOTE_PASSWORD = "remote_node_password";

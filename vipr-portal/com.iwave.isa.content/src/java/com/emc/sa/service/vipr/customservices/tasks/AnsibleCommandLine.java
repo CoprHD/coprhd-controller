@@ -29,11 +29,8 @@ public class AnsibleCommandLine {
     private final String ansiblePath;
     private final String playbook;
     private String prefix;
-    private String ssh;
-    private String node;
     private String extraVars;
     private String shellArgs;
-    private String authFile;
     private boolean isRemoteAnsible = false;
     private final ImmutableList.Builder<String> optionalParam = ImmutableList.builder();
 
@@ -52,22 +49,6 @@ public class AnsibleCommandLine {
     public AnsibleCommandLine setUser(final String user) {
         if (!StringUtils.isEmpty(user))
             optionalParam.add("-u").add(user);
-
-        return this;
-    }
-
-    public AnsibleCommandLine setSsh(final String ssh) {
-        if (!StringUtils.isEmpty(ssh)) {
-            this.ssh = ssh;
-        }
-
-        return this;
-    }
-
-    public AnsibleCommandLine setUserAndIp(final String user, final String ip) {
-        if (!StringUtils.isEmpty(user) && !StringUtils.isEmpty(ip)) {
-            this.node = user + "@" + ip;
-        }
 
         return this;
     }
@@ -115,15 +96,6 @@ public class AnsibleCommandLine {
         return this;
     }
 
-
-    public AnsibleCommandLine setAuthFile(final String authFile) {
-        if (!StringUtils.isEmpty(authFile)) {
-            this.authFile = authFile;
-        }
-
-        return this;
-    }
-
     public AnsibleCommandLine setIsRemoteAnsible(final boolean isRemoteAnsible) {
         this.isRemoteAnsible = isRemoteAnsible;
 
@@ -134,10 +106,6 @@ public class AnsibleCommandLine {
         final ImmutableList.Builder<String> builder = ImmutableList.builder();
         if (!StringUtils.isEmpty(prefix)) {
             builder.add(prefix);
-        }
-
-        if (!StringUtils.isEmpty(ssh) && !StringUtils.isEmpty(node)) {
-            builder.add(ssh).add("-i").add(authFile).add("-o").add("StrictHostKeyChecking=no").add(node);
         }
 
         if (!StringUtils.isEmpty(shellArgs)) {

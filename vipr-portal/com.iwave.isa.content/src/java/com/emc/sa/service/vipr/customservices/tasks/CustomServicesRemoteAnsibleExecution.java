@@ -20,23 +20,18 @@ package com.emc.sa.service.vipr.customservices.tasks;
 import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.service.vipr.tasks.ViPRExecutionTask;
 import com.emc.storageos.db.client.DbClient;
-import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.model.customservices.CustomServicesWorkflowDocument;
 import com.emc.storageos.primitives.CustomServicesConstants;
-import com.emc.storageos.primitives.CustomServicesPrimitive;
 import com.emc.storageos.services.util.Exec;
 import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorException;
-
 import com.iwave.ext.command.Command;
 import com.iwave.ext.command.CommandOutput;
 import com.iwave.utility.ssh.SSHCommandExecutor;
-import org.apache.commons.codec.binary.Base64;
+
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import java.net.URI;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
@@ -45,8 +40,6 @@ public class CustomServicesRemoteAnsibleExecution extends ViPRExecutionTask<Cust
     private static final org.slf4j.Logger logger = LoggerFactory.getLogger(CustomServicesRemoteAnsibleExecution.class);
     private final CustomServicesWorkflowDocument.Step step;
     private final Map<String, List<String>> input;
-    private  String orderDir = String.format("%s%s/", CustomServicesConstants.ORDER_DIR_PATH,
-            ExecutionUtils.currentContext().getOrder().getOrderNumber());
     private final long timeout;
 
     @Autowired
@@ -101,67 +94,32 @@ public class CustomServicesRemoteAnsibleExecution extends ViPRExecutionTask<Cust
             return null;
         }
 
-        SSHCommandExecutor executor = new SSHCommandExecutor(AnsibleHelper.getOptions(CustomServicesConstants.REMOTE_NODE, input), 22, AnsibleHelper.getOptions(
+        final SSHCommandExecutor executor = new SSHCommandExecutor(AnsibleHelper.getOptions(CustomServicesConstants.REMOTE_NODE, input), 22, AnsibleHelper.getOptions(
                 CustomServicesConstants.REMOTE_USER, input), AnsibleHelper.getOptions(CustomServicesConstants.REMOTE_PASSWORD, input));
-        logger.info("got executor");
         executor.setCommandTimeout((int)timeout);
-        logger.info("set timeout:{}", timeout);
-        final Command command = new RemoteCommand(extraVars);
+        final Command command = new RemoteCommand(extraVars, input);
         command.setCommandExecutor(executor);
-        logger.info("set executor done");
         command.execute();
-        logger.info("executed done");
 
         return command.getOutput();
-
-        //Get Private key of the remote node
-       /* final String privateKey = AnsibleHelper.getOptions(CustomServicesConstants.PRIVATE_KEY, input);
-
-        final String authFileName = String.format("%s%s", orderDir, URIUtil.parseUUIDFromURI(step.getOperation()).replace("-", ""));
-        final byte[] bytes = privateKey.getBytes();
-        AnsibleHelper.writeResourceToFile(bytes, authFileName, true);
-
-        final AnsibleCommandLine cmd = new AnsibleCommandLine(
-                AnsibleHelper.getOptions(CustomServicesConstants.ANSIBLE_BIN, input),
-                AnsibleHelper.getOptions(CustomServicesConstants.ANSIBLE_PLAYBOOK, input));
-
-        final String[] cmds = cmd.setSsh(CustomServicesConstants.SHELL_LOCAL_BIN)
-                .setAuthFile(authFileName)
-                .setUserAndIp(AnsibleHelper.getOptions(CustomServicesConstants.REMOTE_USER, input),
-                        AnsibleHelper.getOptions(CustomServicesConstants.REMOTE_NODE, input))
-                .setHostFile(AnsibleHelper.getOptions(CustomServicesConstants.ANSIBLE_HOST_FILE, input))
-                .setUser(AnsibleHelper.getOptions(CustomServicesConstants.ANSIBLE_USER, input))
-                .setCommandLine(AnsibleHelper.getOptions(CustomServicesConstants.ANSIBLE_COMMAND_LINE, input))
-                .setExtraVars(extraVars)
-                .build();
-
-        logger.info("cmd is:{}", Arrays.toString(cmds));
-        return Exec.exec(timeout, cmds);*/
     }
 
-    public class RemoteCommand extends Command {
-        public RemoteCommand(final String extraVars) {
+    public static final class RemoteCommand extends Command {
+        public RemoteCommand(final String extraVars, final Map<String, List<String>> input) {
 
             final AnsibleCommandLine cmd = new AnsibleCommandLine(
                     AnsibleHelper.getOptions(CustomServicesConstants.ANSIBLE_BIN, input),
                     AnsibleHelper.getOptions(CustomServicesConstants.ANSIBLE_PLAYBOOK, input));
 
-            final String[] cmds = //cmd.setSsh(CustomServicesConstants.SHELL_LOCAL_BIN)
-                    //.setAuthFile(authFileName)
-                    //cmd.setUserAndIp(AnsibleHelper.getOptions(CustomServicesConstants.REMOTE_USER, input),
-                      //      AnsibleHelper.getOptions(CustomServicesConstants.REMOTE_NODE, input))
-                    cmd.setHostFile(AnsibleHelper.getOptions(CustomServicesConstants.ANSIBLE_HOST_FILE, input))
-                    //.setUser(AnsibleHelper.getOptions(CustomServicesConstants.ANSIBLE_USER, input))
+            final String[] cmds = cmd.setHostFile(AnsibleHelper.getOptions(CustomServicesConstants.ANSIBLE_HOST_FILE, input))
                     .setCommandLine(AnsibleHelper.getOptions(CustomServicesConstants.ANSIBLE_COMMAND_LINE, input))
                     .setIsRemoteAnsible(true)
                     .setExtraVars(extraVars)
                     .build();
 
-            logger.info("cmd is:{}", Arrays.toString(cmds));
             final String cmdToRun = StringUtils.join(cmds, ' ');
-            logger.info("cmdtorun is:{}", cmdToRun);
+            logger.info("cmd is:{}", cmdToRun);
             setCommand(cmdToRun);
         }
     }
 }
-

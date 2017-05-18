@@ -117,10 +117,10 @@ public class DataCollectionJobScheduler {
         DISCOVER_INTERVALS("discovery-interval", "discovery-refresh-interval", initialDiscoveryDelay),
         ARRAYAFFINITY_DISCOVER_INTERVALS("arrayaffinity-discovery-interval", "arrayaffinity-discovery-refresh-interval",
                 initialArrayAffinityDiscoveryDelay),
-        CS_DISCOVER_INTERVALS("cs-discovery-interval", "cs-discovery-refresh-interval", initialDiscoveryDelay),
-        NS_DISCOVER_INTERVALS("ns-discovery-interval", "ns-discovery-refresh-interval", initialDiscoveryDelay),
-        COMPUTE_DISCOVER_INTERVALS("compute-discovery-interval", "compute-discovery-refresh-interval", initialDiscoveryDelay),
-        METERING_INTERVALS("metering-interval", "metering-refresh-interval", initialMeteringDelay);
+                CS_DISCOVER_INTERVALS("cs-discovery-interval", "cs-discovery-refresh-interval", initialDiscoveryDelay),
+                NS_DISCOVER_INTERVALS("ns-discovery-interval", "ns-discovery-refresh-interval", initialDiscoveryDelay),
+                COMPUTE_DISCOVER_INTERVALS("compute-discovery-interval", "compute-discovery-refresh-interval", initialDiscoveryDelay),
+                METERING_INTERVALS("metering-interval", "metering-refresh-interval", initialMeteringDelay);
 
         private final String _interval;
         private volatile long _intervalValue;
@@ -214,15 +214,18 @@ public class DataCollectionJobScheduler {
             String numOfNodesString = _coordinator.getPropertyInfo().getProperty(PropertyConstants.NODE_COUNT_KEY);
             if (numOfNodesString != null && numOfNodesString.equals("1")) {
 
-                boolean enableAutoOpsSingleNodeString = false;
-                String enableAutoOpsSingleNode = _configInfo.get(ENABLE_AUTO_OPS_SINGLENODE);
+                boolean enableAutoOpsSingleNode = false;
+                String enableAutoOpsSingleNodeString = _configInfo.get(ENABLE_AUTO_OPS_SINGLENODE);
 
-                _logger.info("Enable aouto discovery and metering on single node deployments?:  {}", enableAutoOpsSingleNode);
-                if (enableAutoOpsSingleNode != null) {
-                    enableAutoOpsSingleNodeString = Boolean.parseBoolean(enableAutoOpsSingleNode);
+                _logger.info("Enable auto discovery and metering on single node deployments?:  {}", enableAutoOpsSingleNodeString);
+                if (enableAutoOpsSingleNodeString != null) {
+                    enableAutoOpsSingleNode = Boolean.parseBoolean(enableAutoOpsSingleNodeString);
                 }
 
-                if (!enableAutoOpsSingleNodeString) {
+                // TODO Remove this line
+                enableAutoOpsSingleNode = true;
+
+                if (!enableAutoOpsSingleNode) {
                     enableAutoScan = enableAutoDiscovery = enableAutoMetering = false;
                 }
             }
@@ -716,7 +719,7 @@ public class DataCollectionJobScheduler {
         return DiscoveredDataObject.DataCollectionJobStatus.IN_PROGRESS.toString()
                 .equalsIgnoreCase(progressStatus) ||
                 DiscoveredDataObject.DataCollectionJobStatus.SCHEDULED.toString()
-                .equalsIgnoreCase(progressStatus);
+                        .equalsIgnoreCase(progressStatus);
     }
 
     private boolean isInProgress(StorageProvider provider) {
@@ -783,14 +786,14 @@ public class DataCollectionJobScheduler {
                 (Discovery_Namespaces.UNMANAGED_VOLUMES.name().equalsIgnoreCase(namespace) ||
                         Discovery_Namespaces.BLOCK_SNAPSHOTS.name().equalsIgnoreCase(namespace) ||
                         Discovery_Namespaces.UNMANAGED_FILESYSTEMS.name().equalsIgnoreCase(namespace) ||
-                        Discovery_Namespaces.UNMANAGED_CGS.name().equalsIgnoreCase(namespace))) {
+                Discovery_Namespaces.UNMANAGED_CGS.name().equalsIgnoreCase(namespace))) {
             _logger.info(namespace + " discovery has been requested by the user, scheduling now...");
             return true;
         }
 
         if (ControllerServiceImpl.METERING.equalsIgnoreCase(type) &&
                 !DiscoveredDataObject.RegistrationStatus.REGISTERED.toString()
-                .equalsIgnoreCase(system.getRegistrationStatus())) {
+                        .equalsIgnoreCase(system.getRegistrationStatus())) {
             return false;
         }
 
@@ -1064,27 +1067,27 @@ public class DataCollectionJobScheduler {
             activeProviderURIs.addAll(HDSUtils.refreshHDSConnections(
                     CustomQueryUtility.getActiveStorageProvidersByInterfaceType(
                             _dbClient, StorageProvider.InterfaceType.hicommand.name()),
-                            _dbClient, hdsApiFactory));
+                    _dbClient, hdsApiFactory));
         } else if (StorageProvider.InterfaceType.cinder.name().equalsIgnoreCase(interfaceType)) {
             activeProviderURIs.addAll(CinderUtils.refreshCinderConnections(
                     CustomQueryUtility.getActiveStorageProvidersByInterfaceType(
                             _dbClient, StorageProvider.InterfaceType.cinder.name()),
-                            _dbClient));
+                    _dbClient));
         } else if (StorageProvider.InterfaceType.ddmc.name().equalsIgnoreCase(interfaceType)) {
             activeProviderURIs.addAll(DataDomainUtils.refreshDDConnections(
                     CustomQueryUtility.getActiveStorageProvidersByInterfaceType(
                             _dbClient, StorageProvider.InterfaceType.ddmc.name()),
-                            _dbClient, ddClientFactory));
+                    _dbClient, ddClientFactory));
         } else if (StorageProvider.InterfaceType.xtremio.name().equalsIgnoreCase(interfaceType)) {
             activeProviderURIs.addAll(XtremIOProvUtils.refreshXtremeIOConnections(
                     CustomQueryUtility.getActiveStorageProvidersByInterfaceType(
                             _dbClient, StorageProvider.InterfaceType.xtremio.name()),
-                            _dbClient, xioClientFactory));
+                    _dbClient, xioClientFactory));
         } else if (StorageProvider.InterfaceType.ceph.name().equalsIgnoreCase(interfaceType)) {
             activeProviderURIs.addAll(CephUtils.refreshCephConnections(
                     CustomQueryUtility.getActiveStorageProvidersByInterfaceType(
                             _dbClient, StorageProvider.InterfaceType.ceph.name()),
-                            _dbClient));
+                    _dbClient));
         } else {
             activeProviderURIs.addAll(ExternalDeviceUtils.refreshProviderConnections(_dbClient));
         }
@@ -1109,29 +1112,29 @@ public class DataCollectionJobScheduler {
         activeProviderURIs.addAll(HDSUtils.refreshHDSConnections(
                 CustomQueryUtility.getActiveStorageProvidersByInterfaceType(
                         _dbClient, StorageProvider.InterfaceType.hicommand.name()),
-                        _dbClient, hdsApiFactory));
+                _dbClient, hdsApiFactory));
 
         activeProviderURIs.addAll(CinderUtils.refreshCinderConnections(
                 CustomQueryUtility.getActiveStorageProvidersByInterfaceType(
                         _dbClient, StorageProvider.InterfaceType.cinder.name()),
-                        _dbClient));
+                _dbClient));
 
         activeProviderURIs.addAll(DataDomainUtils.refreshDDConnections(
                 CustomQueryUtility.getActiveStorageProvidersByInterfaceType(
                         _dbClient, StorageProvider.InterfaceType.ddmc.name()),
-                        _dbClient, ddClientFactory));
+                _dbClient, ddClientFactory));
 
         activeProviderURIs.addAll(XtremIOProvUtils.refreshXtremeIOConnections(
                 CustomQueryUtility.getActiveStorageProvidersByInterfaceType(
                         _dbClient, StorageProvider.InterfaceType.xtremio.name()),
-                        _dbClient, xioClientFactory));
+                _dbClient, xioClientFactory));
 
         activeProviderURIs.addAll(ScaleIOStorageDevice.getInstance().refreshConnectionStatusForAllSIOProviders());
 
         activeProviderURIs.addAll(CephUtils.refreshCephConnections(
                 CustomQueryUtility.getActiveStorageProvidersByInterfaceType(
                         _dbClient, StorageProvider.InterfaceType.ceph.name()),
-                        _dbClient));
+                _dbClient));
 
         // process providers managed by SB SDK drivers
         activeProviderURIs.addAll(ExternalDeviceUtils.refreshProviderConnections(_dbClient));

@@ -79,7 +79,7 @@ public class CustomServicesRESTExecution extends ViPRExecutionTask<CustomService
                 throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed("Cannot find Auth type");
             }
 
-            final Client client = BuildRestRequest.makeClient(new DefaultClientConfig(), coordinator, authType, AnsibleHelper.getOptions(CustomServicesConstants.PROTOCOL, input),
+            final Client client = BuildRestRequest.makeClient(new DefaultClientConfig(), coordinator, authType, restPrimitive.getAttributes().get(CustomServicesConstants.PROTOCOL),
                     AnsibleHelper.getOptions(CustomServicesConstants.USER, input), AnsibleHelper.getOptions(CustomServicesConstants.PASSWORD, input));
             final WebResource webResource = BuildRestRequest.makeWebResource(client, getUrl(restPrimitive), null);
             final WebResource.Builder builder = BuildRestRequest.makeRequestBuilder(webResource, step, input);
@@ -91,7 +91,7 @@ public class CustomServicesRESTExecution extends ViPRExecutionTask<CustomService
             switch (method) {
                 case PUT:
                 case POST:
-                    final String body = RESTHelper.makePostBody(AnsibleHelper.getOptions(CustomServicesConstants.BODY, input),0, input);
+                    final String body = RESTHelper.makePostBody(restPrimitive.getAttributes().get(CustomServicesConstants.BODY),0, input);
 
                     result = executeRest(method, body, builder);
                     break;

@@ -45,6 +45,8 @@ Usage()
     exit 2
 }
 
+cd $(dirname $0)
+
 # Extra debug output
 DUTEST_DEBUG=${DUTEST_DEBUG:-0}
 

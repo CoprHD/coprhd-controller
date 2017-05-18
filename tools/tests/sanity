@@ -7266,8 +7266,15 @@ sbsdk_remote_replication_tests()
                     --remote_replication "${SBSDK_DRIVER_REPLICATION_SET1}::SYNCHRONOUS"
 
     #Execute remote replication link operations
+
+    echo "**** Resume replication group: ${SBSDK_DRIVER_REPLICATION_SET1_GROUP1} *******"
+    run remotereplicationgroup resume ${SBSDK_DRIVER_REPLICATION_SET1_GROUP1}
+
     echo "**** Failover replication group: ${SBSDK_DRIVER_REPLICATION_SET1_GROUP1} *******"
     run remotereplicationgroup failover ${SBSDK_DRIVER_REPLICATION_SET1_GROUP1}
+
+    echo "**** Resume replication set: ${SBSDK_DRIVER_REPLICATION_SET1} *******"
+    run remotereplicationset resume ${SBSDK_DRIVER_REPLICATION_SET1}
 
     echo "**** Failback replication group: ${SBSDK_DRIVER_REPLICATION_SET1_GROUP1} *******"
     run remotereplicationgroup failback ${SBSDK_DRIVER_REPLICATION_SET1_GROUP1}

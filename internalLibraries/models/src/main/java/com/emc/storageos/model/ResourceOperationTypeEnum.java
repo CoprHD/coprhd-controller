@@ -389,6 +389,7 @@ public enum ResourceOperationTypeEnum {
     ESTABLISH_REMOTE_REPLICATION_CG_LINK("ESTABLISH REMOTE REPLICATION CG LINK", "establish remote replication cg link"),
     FAILBACK_REMOTE_REPLICATION_CG_LINK("FAILBACK REMOTE REPLICATION CG LINK", "failback remote replication cg link"),
     SPLIT_REMOTE_REPLICATION_CG_LINK("SPLIT REMOTE REPLICATION CG LINK", "split remote replication cg link"),
+    RESUME_REMOTE_REPLICATION_CG_LINK("RESUME REMOTE REPLICATION CG LINK", "resume remote replication cg link"),
     LIST_MOUNTED_EXPORTS("LIST MOUNTED EXPORTS", "list mounted exports operation"),
     EXPORT_PATHS_ADJUSTMENT("EXPORT PATHS ADJUSTMENT", "export paths adjustment operation"),
     ASSIGN_FILE_POLICY("ASSIGN FILE POLICY", "assign file policy to resource"),

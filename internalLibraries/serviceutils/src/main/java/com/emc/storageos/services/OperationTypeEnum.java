@@ -554,6 +554,7 @@ public enum OperationTypeEnum {
     ESTABLISH_REMOTE_REPLICATION_CG_LINK("ESTABLISH REMOTE REPLICATION CG LINK", "EstablishRemoteReplicationCGLinkFailed", "establish remote replication cg link"),
     FAILBACK_REMOTE_REPLICATION_CG_LINK("FAILBACK REMOTE REPLICATION CG LINK", "FailbackRemoteReplicationCGLinkFailed", "failback remote replication cg link"),
     SPLIT_REMOTE_REPLICATION_CG_LINK("SPLIT REMOTE REPLICATION CG LINK", "SplitRemoteReplicationCGLinkFailed", "split remote replication cg link"),
+    RESUME_REMOTE_REPLICATION_CG_LINK("RESUME REMOTE REPLICATION CG LINK", "ResumeRemoteReplicationCGLinkFailed", "resume remote replication cg link"),
     //
     
     /* Filesystem Mount Operations*/

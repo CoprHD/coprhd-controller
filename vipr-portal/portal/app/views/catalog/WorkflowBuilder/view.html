@@ -51,7 +51,17 @@
         padding-bottom: 7px;
     }
 
-
+    /* modify contentArea element only on this page */
+    /* this cannot be added to workflowbuilder.less or it will be added to all pages */
+    #contentArea {
+        position: absolute;
+        overflow: scroll;
+        top: 0px;
+        margin-top: 40px;
+        left: 0;
+        bottom: 0;
+        right: 0;
+    }
 
 </style>
 <div id="row-main" class="row">

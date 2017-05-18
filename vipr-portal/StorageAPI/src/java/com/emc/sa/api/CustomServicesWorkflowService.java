@@ -20,7 +20,9 @@ import static com.emc.sa.workflow.CustomServicesWorkflowMapper.map;
 import static com.emc.sa.workflow.CustomServicesWorkflowMapper.mapList;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.URI;
+import java.security.GeneralSecurityException;
 import java.util.Iterator;
 import java.util.List;
 
@@ -43,7 +45,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.emc.sa.api.mapper.CustomServicesWorkflowFilter;
-import com.emc.sa.api.utils.UploadHelper;
 import com.emc.sa.catalog.CustomServicesWorkflowManager;
 import com.emc.sa.catalog.WorkflowDirectoryManager;
 import com.emc.sa.catalog.primitives.CustomServicesPrimitiveDAOs;
@@ -55,6 +56,7 @@ import com.emc.sa.workflow.WorkflowHelper;
 import com.emc.storageos.api.service.impl.resource.ArgValidator;
 import com.emc.storageos.api.service.impl.response.BulkList;
 import com.emc.storageos.api.service.impl.response.BulkList.ResourceFilter;
+import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.constraint.NamedElementQueryResultList.NamedElement;
 import com.emc.storageos.db.client.model.uimodels.CustomServicesWorkflow;
 import com.emc.storageos.db.client.model.uimodels.CustomServicesWorkflow.CustomServicesWorkflowStatus;
@@ -71,6 +73,7 @@ import com.emc.storageos.model.customservices.CustomServicesWorkflowUpdateParam;
 import com.emc.storageos.security.authorization.ACL;
 import com.emc.storageos.security.authorization.DefaultPermissions;
 import com.emc.storageos.security.authorization.Role;
+import com.emc.storageos.security.keystore.impl.KeyStoreUtil;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 
 @DefaultPermissions(readRoles = { Role.TENANT_ADMIN, Role.SYSTEM_MONITOR, Role.SYSTEM_ADMIN }, writeRoles = {
@@ -90,6 +93,8 @@ public class CustomServicesWorkflowService extends CatalogTaggedResourceService 
     private CustomServicesPrimitiveDAOs daos;
     @Autowired
     private CustomServicesResourceDAOs resourceDAOs;
+    @Autowired
+    private CoordinatorClient coordinator;
 
     private static final WFDirectory NO_DIR = new WFDirectory();
     private static final String EXPORT_EXTENSION = ".wf"; 
@@ -211,7 +216,7 @@ public class CustomServicesWorkflowService extends CatalogTaggedResourceService 
                 return map(customServicesWorkflow);
             case PUBLISHED:
                 // Check if there are any existing services created from this WF
-                if (customServicesWorkflowManager.hasCatalogServices(customServicesWorkflow.getName())) {
+                if (customServicesWorkflowManager.hasCatalogServices(customServicesWorkflow.getLabel())) {
                     throw APIException.methodNotAllowed
                             .notSupportedWithReason("Cannot unpublish workflow. It has associated catalog services");
                 }
@@ -264,8 +269,14 @@ public class CustomServicesWorkflowService extends CatalogTaggedResourceService 
         } else {
             wfDirectory = NO_DIR;
         }
-        final byte[] stream = UploadHelper.read(request);
-        return map(WorkflowHelper.importWorkflow(stream, wfDirectory, client, daos, resourceDAOs));
+        final InputStream in;
+        try {
+            in = request.getInputStream();
+        } catch(final IOException e) {
+            throw APIException.internalServerErrors.genericApisvcError("Failed to open servlet input stream", e);
+        }
+        return map(WorkflowHelper.importWorkflow(in, wfDirectory, client, daos, resourceDAOs));
+
     }
     
     /**
@@ -282,12 +293,19 @@ public class CustomServicesWorkflowService extends CatalogTaggedResourceService 
         final CustomServicesWorkflow customServicesWorkflow = getCustomServicesWorkflow(id);
         switch (CustomServicesWorkflowStatus.valueOf(customServicesWorkflow.getState())) {
             case PUBLISHED:
-                final byte[] bytes = WorkflowHelper.exportWorkflow(id, client, daos, resourceDAOs);
+                final byte[] bytes;
+                try {
+                    bytes = WorkflowHelper.exportWorkflow(id, client, daos, resourceDAOs, KeyStoreUtil.getViPRKeystore(coordinator));
+                } catch (final GeneralSecurityException | IOException | InterruptedException e ) {
+                    throw APIException.internalServerErrors.genericApisvcError("Failed to open keystore ", e);
+                }
+               
                 response.setContentLength(bytes.length);
 
                 response.setHeader("Content-Disposition", "attachment; filename="+
-                        id.toString() + EXPORT_EXTENSION);
+                        customServicesWorkflow.getLabel().toString() + EXPORT_EXTENSION);
                 return Response.ok(bytes).build();
+ 
             default:
                 throw APIException.methodNotAllowed.notSupportedForUnpublishedWorkflow(customServicesWorkflow.getState());
         }

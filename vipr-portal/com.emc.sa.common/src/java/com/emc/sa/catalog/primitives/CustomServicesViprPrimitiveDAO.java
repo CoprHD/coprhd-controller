@@ -96,7 +96,7 @@ public class CustomServicesViprPrimitiveDAO implements
     }
 
     @Override
-    public void importPrimitive(CustomServicesPrimitiveRestRep operation) {
+    public boolean importPrimitive(CustomServicesPrimitiveRestRep operation) {
         throw APIException.methodNotAllowed.notSupported();
     }
     

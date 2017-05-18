@@ -143,9 +143,8 @@ public class CustomServicesRemoteAnsiblePrimitiveDAO implements CustomServicesPr
     }
 
     @Override
-    public void importPrimitive(final CustomServicesPrimitiveRestRep operation) {
-        final CustomServicesDBRemoteAnsiblePrimitive primitive = CustomServicesDBHelper.makeDBPrimitive(CustomServicesDBRemoteAnsiblePrimitive.class, operation);
-        client.save(primitive);
+    public boolean importPrimitive(final CustomServicesPrimitiveRestRep operation) {
+        return CustomServicesDBHelper.importDBPrimitive(CustomServicesDBRemoteAnsiblePrimitive.class, operation, client);
     }
     
     @Override

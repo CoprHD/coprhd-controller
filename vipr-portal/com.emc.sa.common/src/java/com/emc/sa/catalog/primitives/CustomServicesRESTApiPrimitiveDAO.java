@@ -196,9 +196,8 @@ public class CustomServicesRESTApiPrimitiveDAO implements CustomServicesPrimitiv
     }
     
     @Override
-    public void importPrimitive(final CustomServicesPrimitiveRestRep operation) {
-        final CustomServicesDBAnsiblePrimitive primitive = CustomServicesDBHelper.makeDBPrimitive(CustomServicesDBAnsiblePrimitive.class, operation);
-        client.save(primitive);
+    public boolean importPrimitive(final CustomServicesPrimitiveRestRep operation) {
+        return CustomServicesDBHelper.importDBPrimitive(CustomServicesDBAnsiblePrimitive.class, operation, client);
     }
     
     @Override

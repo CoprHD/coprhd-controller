@@ -544,7 +544,7 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
                     if (null != sourceVolume.getSrdfTargets()) {
                         sourceVolume.getSrdfTargets().clear();
                     }
-                    dbClient.updateAndReindexObject(sourceVolume);
+                    dbClient.updateObject(sourceVolume);
                 }
 
             }
@@ -1884,7 +1884,9 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
             getRemoteMirrorDevice().doCreateCgPairs(system, sourceURIs, targetURIs, completer);
             InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_079);
 
-            completer.ready(dbClient);
+            if (!completer.isCompleted()) {
+                completer.ready(dbClient);
+            }
         } catch (Exception e) {
             ServiceError error = DeviceControllerException.errors.jobFailed(e);
             if (null != completer) {

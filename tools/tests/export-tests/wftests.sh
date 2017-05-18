@@ -1822,7 +1822,7 @@ test_2() {
     if [ "${SS}" = "srdf" ]
     then
     # Ensure empty RDF groups
-    volume delete --project ${PROJECT}
+    volume delete --project ${PROJECT} --wait
 
 	common_failure_injections="failure_004_final_step_in_workflow_complete \
 			       failure_005_BlockDeviceController.createVolumes_before_device_create \
@@ -1849,7 +1849,7 @@ test_2() {
     failure_injections="${common_failure_injections} ${storage_failure_injections}"
 
     # Placeholder when a specific failure case is being worked...
-    # failure_injections="failure_015_SmisCommandHelper.invokeMethod_CreateGroup"
+    # failure_injections="failure_004:failure_076_SRDFDeviceController.rollbackSRDFLinksStep_before_link_rollback"
 
     if [ "${SS}" = "vplex" ]
     then
@@ -1904,6 +1904,12 @@ test_2() {
         # Verify injected failures were hit
         verify_failures ${failure}
 
+        if [ "${SS}" = "srdf" ]
+        then
+            # run discovery to update RemoteDirectorGroups
+            runcmd storagedevice discover_all
+        fi
+
         # Let the async jobs calm down
         sleep 5
       fi
@@ -1914,6 +1920,9 @@ test_2() {
       # Validate nothing was left behind
       validate_db 1 2 ${cfs}
 
+      # Rerun the command
+      set_artificial_failure none
+
       # Should be able to delete the CG and recreate it.
       runcmd blockconsistencygroup delete ${CGNAME}
 
@@ -1922,9 +1931,6 @@ test_2() {
 
       # Perform any DB validation in here
       snap_db 3 "${cfs[@]}"
-
-      # Rerun the command
-      set_artificial_failure none
 
       # Determine if re-running the command under certain failure scenario's is expected to fail (like Unity) or succeed.
       if [ "${SS}" = "unity" ] && [ "${failure}" = "failure_004:failure_013_BlockDeviceController.rollbackCreateVolumes_before_device_delete"  -o "${failure}" = "failure_006_BlockDeviceController.createVolumes_after_device_create" ]

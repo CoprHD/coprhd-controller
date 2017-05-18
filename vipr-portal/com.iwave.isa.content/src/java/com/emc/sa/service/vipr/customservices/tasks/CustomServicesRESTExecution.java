@@ -20,6 +20,8 @@ package com.emc.sa.service.vipr.customservices.tasks;
 import java.util.List;
 import java.util.Map;
 
+import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.model.uimodels.CustomServicesDBRESTApiPrimitive;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.LoggerFactory;
@@ -34,6 +36,9 @@ import com.sun.jersey.api.client.Client;
 import com.sun.jersey.api.client.ClientResponse;
 import com.sun.jersey.api.client.WebResource;
 import com.sun.jersey.api.client.config.DefaultClientConfig;
+import org.springframework.beans.factory.annotation.Autowired;
+
+
 
 public class CustomServicesRESTExecution extends ViPRExecutionTask<CustomServicesTaskResult> {
     private static final org.slf4j.Logger logger = LoggerFactory.getLogger(CustomServicesRESTExecution.class);
@@ -41,7 +46,11 @@ public class CustomServicesRESTExecution extends ViPRExecutionTask<CustomService
     private final Map<String, List<String>> input;
     private final CustomServicesWorkflowDocument.Step step;
 
+
     private final CoordinatorClient coordinator;
+
+    @Autowired
+    private DbClient dbClient;
 
     public CustomServicesRESTExecution(final Map<String, List<String>> input,
             final CustomServicesWorkflowDocument.Step step, final CoordinatorClient coordinator) {
@@ -56,8 +65,16 @@ public class CustomServicesRESTExecution extends ViPRExecutionTask<CustomService
         try {
             ExecutionUtils.currentContext().logInfo("customServicesRESTExecution.startInfo", step.getId());
 
-            //TODO get it from primitive which are not runtime variable
-            final String authType = AnsibleHelper.getOptions(CustomServicesConstants.AUTH_TYPE, input);
+            final CustomServicesDBRESTApiPrimitive restPrimitive = dbClient.queryObject(CustomServicesDBRESTApiPrimitive.class,
+                    step.getOperation());
+            if (null == restPrimitive) {
+                logger.error("Error retrieving the ansible primitive from DB. {} not found in DB", step.getOperation());
+                ExecutionUtils.currentContext().logError("customServicesOperationExecution.logStatus", step.getId(), "\"Error retrieving the REST primitive from DB.");
+                throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed(step.getOperation() + " not found in DB");
+            }
+            Map<String, String> attrs = restPrimitive.getAttributes();
+
+            final String authType = attrs.get(CustomServicesConstants.AUTH_TYPE);
             if (StringUtils.isEmpty(authType)) {
                 logger.error("Auth type cannot be undefined");
                 ExecutionUtils.currentContext().logError("customServicesOperationExecution.logStatus", step.getId(),"Auth type cannot be undefined");
@@ -66,11 +83,11 @@ public class CustomServicesRESTExecution extends ViPRExecutionTask<CustomService
 
             final Client client = BuildRestRequest.makeClient(new DefaultClientConfig(), coordinator, authType, AnsibleHelper.getOptions(CustomServicesConstants.PROTOCOL, input),
                     AnsibleHelper.getOptions(CustomServicesConstants.USER, input), AnsibleHelper.getOptions(CustomServicesConstants.PASSWORD, input));
-            final WebResource webResource = BuildRestRequest.makeWebResource(client, getUrl(), null);
+            final WebResource webResource = BuildRestRequest.makeWebResource(client, getUrl(restPrimitive), null);
             final WebResource.Builder builder = BuildRestRequest.makeRequestBuilder(webResource, step, input);
 
             final CustomServicesConstants.RestMethods method =
-                    CustomServicesConstants.RestMethods.valueOf(AnsibleHelper.getOptions(CustomServicesConstants.METHOD, input));
+                    CustomServicesConstants.RestMethods.valueOf(attrs.get(CustomServicesConstants.METHOD));
 
             final CustomServicesTaskResult result;
             switch (method) {
@@ -120,12 +137,12 @@ public class CustomServicesRESTExecution extends ViPRExecutionTask<CustomService
         return new CustomServicesRestTaskResult(response.getHeaders().entrySet(), output, output, response.getStatus());
     }
 
-    public String getUrl() {
-        //TODO get from primitive.
+    public String getUrl(final CustomServicesDBRESTApiPrimitive primitive) {
+
         final String target = AnsibleHelper.getOptions(CustomServicesConstants.TARGET, input);
-        final String path = AnsibleHelper.getOptions(CustomServicesConstants.PATH, input);
+        final String path = primitive.getAttributes().get(CustomServicesConstants.PATH);
         final String port = AnsibleHelper.getOptions(CustomServicesConstants.PORT, input);
-        final String protocol =  AnsibleHelper.getOptions(CustomServicesConstants.PROTOCOL, input);
+        final String protocol =  primitive.getAttributes().get(CustomServicesConstants.PROTOCOL);
 
 
         if (StringUtils.isEmpty(target) || StringUtils.isEmpty(path) || StringUtils.isEmpty(port) || StringUtils.isEmpty(protocol)) {

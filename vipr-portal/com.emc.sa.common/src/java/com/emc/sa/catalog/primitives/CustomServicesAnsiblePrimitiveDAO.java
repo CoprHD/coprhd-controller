@@ -24,12 +24,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import com.emc.storageos.db.client.model.uimodels.CustomServicesDBAnsibleInventoryResource;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.emc.sa.catalog.CustomServicesPrimitiveManager;
 import com.emc.sa.model.dao.ModelClient;
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.model.uimodels.CustomServicesDBAnsibleInventoryResource;
 import com.emc.storageos.db.client.model.uimodels.CustomServicesDBAnsiblePrimitive;
 import com.emc.storageos.db.client.model.uimodels.CustomServicesDBAnsibleResource;
 import com.emc.storageos.model.customservices.CustomServicesPrimitiveCreateParam;
@@ -37,9 +37,12 @@ import com.emc.storageos.model.customservices.CustomServicesPrimitiveRestRep;
 import com.emc.storageos.model.customservices.CustomServicesPrimitiveUpdateParam;
 import com.emc.storageos.primitives.CustomServicesConstants;
 import com.emc.storageos.primitives.db.ansible.CustomServicesAnsiblePrimitive;
+import com.emc.storageos.primitives.input.BasicInputParameter;
 import com.emc.storageos.primitives.input.InputParameter;
 import com.emc.storageos.primitives.output.OutputParameter;
 import com.google.common.base.Function;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 
 /**
  * Data access object for Ansible primitives
@@ -57,12 +60,19 @@ public class CustomServicesAnsiblePrimitiveDAO implements
 
     private static final Set<String> INPUT_TYPES = Collections.singleton(CustomServicesConstants.INPUT_PARAMS);
     private static final Set<String> ATTRIBUTES = Collections.singleton(CustomServicesConstants.ANSIBLE_PLAYBOOK);
-    
+    private static final ImmutableMap<String, List<InputParameter>> STATIC_INPUT =  ImmutableMap.<String, List<InputParameter>>builder()
+            .put(CustomServicesConstants.ANSIBLE_OPTIONS, ImmutableList.<InputParameter>builder()
+            .add(new BasicInputParameter.StringParameter(CustomServicesConstants.ANSIBLE_COMMAND_LINE, false, null)).build())
+            .build();
+            
     private static final Function<CustomServicesDBAnsiblePrimitive, CustomServicesAnsiblePrimitive> MAPPER = 
             new Function<CustomServicesDBAnsiblePrimitive, CustomServicesAnsiblePrimitive>() {
         @Override
         public CustomServicesAnsiblePrimitive apply(final CustomServicesDBAnsiblePrimitive primitive) {
-            final Map<String, List<InputParameter>> input = CustomServicesDBHelper.mapInput(INPUT_TYPES, primitive.getInput());
+            final Map<String, List<InputParameter>> input = ImmutableMap.<String, List<InputParameter>>builder()
+                    .putAll(CustomServicesDBHelper.mapInput(INPUT_TYPES, primitive.getInput()))
+                    .putAll(STATIC_INPUT)
+                    .build();
             final List<OutputParameter> output = CustomServicesDBHelper.mapOutput(primitive.getOutput());
             final Map<String, String> attributes = CustomServicesDBHelper.mapAttributes(ATTRIBUTES, primitive.getAttributes()); 
             return new CustomServicesAnsiblePrimitive(primitive, input, attributes, output);

@@ -62,11 +62,11 @@ public class CustomServicesRemoteAnsiblePrimitiveDAO implements CustomServicesPr
             .put(CustomServicesConstants.CONNECTION_DETAILS, ImmutableList.<InputParameter>builder()
                     .add(new BasicInputParameter.StringParameter(CustomServicesConstants.REMOTE_NODE, true, null))
                     .add(new BasicInputParameter.StringParameter(CustomServicesConstants.REMOTE_USER, true, null))
+                    .add(new BasicInputParameter.StringParameter(CustomServicesConstants.REMOTE_PASSWORD, true, null))
                     .build())
             .put(CustomServicesConstants.ANSIBLE_OPTIONS, ImmutableList.<InputParameter>builder()
                     .add(new BasicInputParameter.StringParameter(CustomServicesConstants.ANSIBLE_HOST_FILE, true, null))
-                    .add(new BasicInputParameter.StringParameter(CustomServicesConstants.ANSIBLE_USER, true, null))
-                    .add(new BasicInputParameter.StringParameter(CustomServicesConstants.ANSIBLE_COMMAND_LINE, true, null))
+                    .add(new BasicInputParameter.StringParameter(CustomServicesConstants.ANSIBLE_COMMAND_LINE, false, null))
                     .build())
             .build();
     

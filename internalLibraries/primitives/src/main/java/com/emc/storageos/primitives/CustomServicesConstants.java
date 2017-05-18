@@ -79,6 +79,7 @@ public final class CustomServicesConstants {
     public static final String ANSIBLE_COMMAND_LINE = "ansible_command_line_arg";
     // Remote ansible connection
     public static final String REMOTE_USER = "remote_node_user";
+    public static final String REMOTE_PASSWORD = "remote_node_password";
     public static final String REMOTE_NODE = "remote_node_ip";
     // Keys for Step.InputGroup
     public static final String PATH_PARAMS = "path_params";

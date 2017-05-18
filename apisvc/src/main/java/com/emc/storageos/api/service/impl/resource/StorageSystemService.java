@@ -640,7 +640,12 @@ public class StorageSystemService extends TaskResourceService {
         system.setSmisUserName(param.getSmisUserName());
         system.setSmisPassword(param.getSmisPassword());
         system.setSmisUseSSL(param.getSmisUseSSL());
-        system.setEnableMetering(param.getEnableMetering());
+        Boolean enableMetering = param.getEnableMetering();
+        if (enableMetering == null) {
+            system.setEnableMetering(true);
+        } else {
+            system.setEnableMetering(enableMetering);
+        }
 
         _dbClient.createObject(system);
         _log.info("Created Storage System with Native Guid:" + system.getNativeGuid());

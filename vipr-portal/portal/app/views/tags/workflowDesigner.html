@@ -31,14 +31,20 @@
     </div>
     <div class="message-bar">
         <div class="message-bar-success" ng-if="alert.status=='SUCCESS' && showAlert">
-            <span class="glyphicon glyphicon-ok-sign" style="padding-right: 10px;"></span>
             <a class="glyphicon glyphicon-remove message-bar-closebtn" ng-click="closeAlert()"></a>
-            Success Message!
+            <span class="message-bar-icon glyphicon glyphicon-ok-sign" style="padding-right: 10px;"></span>
+            <div style="display:table-cell">
+                <div>{{alert.success.successMessage}}</div>
+                <div>{{alert.success.details}}</div>
+            </div>
         </div>
         <div class="message-bar-failure" ng-if="alert.status=='INVALID' && showAlert">
-            <span class="message-bar-icon message-failure-icon" style="padding-right: 10px;"></span>
             <a class="glyphicon glyphicon-remove message-bar-closebtn" ng-click="closeAlert()"></a>
-            {{alert.error.errorMessage}}
+            <span class="message-bar-icon message-failure-icon" style="padding-right: 10px;"></span>
+            <div style="display:table-cell">
+                <div>{{alert.error.errorMessage}}</div>
+                <div>{{alert.error.details}}</div>
+            </div>
         </div>
     </div>
     <div class="builder-container">

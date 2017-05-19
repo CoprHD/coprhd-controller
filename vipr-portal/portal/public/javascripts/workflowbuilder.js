@@ -790,9 +790,12 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
                 $scope.modified = false;
             });
         },
-        function(){
+        function(resp){
             $scope.showAlert = true;
             $scope.alert = {status : "INVALID", error : {errorMessage : "An unexpected error occurred while saving the workflow."}};
+            if (resp.data.details){
+                $scope.alert.error.details = resp.data.details;
+            }
             $scope.workflowData.state = 'INVALID';
         });
     }
@@ -815,6 +818,9 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
                         $scope.alert.error.errorMessage='Workflow validation failed. There are '+Object.keys(resp.data.error.errorSteps).length+' steps with errors.';
                     }
                 }
+            } else {
+                $scope.showAlert = true;
+                $scope.alert = {status : "SUCCESS",success : {successMessage : "Workflow Validated Successfully."}};
             }
         },
         function(){
@@ -834,7 +840,9 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
     $scope.publishorkflow = function() {
         $scope.workflowData.state = 'PUBLISHING';
         $http.post(routes.Workflow_publish({workflowId : $scope.workflowData.id})).then(function (resp) {
-            updateWorkflowData(resp);
+            //redirect automatically on success
+            var url = routes.ServiceCatalog_createServiceFromBase({baseService: resp.data.name});
+            window.location.href = url;
         });
     }
 

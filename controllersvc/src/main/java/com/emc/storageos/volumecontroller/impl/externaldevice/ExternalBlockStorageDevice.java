@@ -2052,7 +2052,7 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice implem
                     "suspend -- Failed suspend operation for remote replication element %s with system id %s .",
                     elementType, elementURI);
             _log.error(errorMsg, e);
-            ServiceError serviceError = ExternalDeviceException.errors.remoteReplicationLinkOperationFailed("resume",
+            ServiceError serviceError = ExternalDeviceException.errors.remoteReplicationLinkOperationFailed("suspend",
                     Strings.repr(elementType), Strings.repr(elementURI), errorMsg);
             taskCompleter.error(dbClient, serviceError);
         }

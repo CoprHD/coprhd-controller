@@ -235,7 +235,6 @@ public class AutoTieringPolicyMatcher extends AttributeMatcher {
      */
     private List<StoragePool> getAutoTieringPoolsOnHDS(String policyName, Map<String, Object> attributeMap,
             List<StoragePool> pools) {
-        boolean uniquePolicyNames = (boolean) attributeMap.get(Attributes.unique_policy_names.toString());
         List<StoragePool> filteredPools = new ArrayList<StoragePool>();
         List<URI> systemURIs = new ArrayList<URI>();
         URIQueryResultList result = getAutoTierPolicies(attributeMap, policyName);

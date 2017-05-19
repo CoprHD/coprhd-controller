@@ -938,8 +938,6 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             StoragePool storagePool = _dbClient.queryObject(StoragePool.class, poolURI);
             MultiVolumeTaskCompleter completer = new MultiVolumeTaskCompleter(volumeURIs, volumeCompleters, opId);
 
-            Volume volume = volumes.get(0);
-            VirtualPool vpool = _dbClient.queryObject(VirtualPool.class, volume.getVirtualPool());
             WorkflowStepCompleter.stepExecuting(completer.getOpId());
             getDevice(storageSystem.getSystemType()).doModifyVolumes(storageSystem,
                     storagePool, opId, volumes, completer);
@@ -1011,7 +1009,6 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             StoragePool storagePool = _dbClient.queryObject(StoragePool.class, poolURI);
             MultiVolumeTaskCompleter completer = new MultiVolumeTaskCompleter(volumeURIs, volumeCompleters, opId);
 
-            Volume volume = volumes.get(0);
             WorkflowStepCompleter.stepExecuting(completer.getOpId());
             InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_005);
             getDevice(storageSystem.getSystemType()).doCreateVolumes(storageSystem,
@@ -3024,20 +3021,6 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
         return stepId;
     }
 
-    private String addStepsToRemoveMirrorFromGroup(Workflow workflow,
-            String waitFor, String stepGroup, List<URI> mirrorList) {
-        List<BlockMirror> mirrors = _dbClient.queryObject(BlockMirror.class, mirrorList);
-        URI controller = mirrors.get(0).getStorageController();
-        String stepId = workflow.createStep(stepGroup,
-                String.format("Remove mirror from DeviceMaskingGroup: %s", mirrorList.get(0)),
-                waitFor, controller, getDeviceType(controller),
-                this.getClass(),
-                removeMirrorFromGroupMethod(controller, mirrorList),
-                null, null);
-
-        return stepId;
-    }
-
     public static final String PROMOTE_MIRROR_STEP_GROUP = "BlockDevicePromoteMirror";
 
     /**
@@ -4303,21 +4286,6 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             }
         }
         return false;
-    }
-
-    /**
-     * Check if a mirror exists in ViPR as an active model and is pending creation on the
-     * storage array.
-     *
-     * @param mirror
-     * @return true if the mirror is pending creation
-     */
-    private boolean isPending(BlockMirror mirror) {
-        return !isInactive(mirror) && isNullOrEmpty(mirror.getSynchronizedInstance());
-    }
-
-    private boolean isInactive(BlockMirror mirror) {
-        return mirror == null || (mirror.getInactive() != null && mirror.getInactive());
     }
 
     @Override

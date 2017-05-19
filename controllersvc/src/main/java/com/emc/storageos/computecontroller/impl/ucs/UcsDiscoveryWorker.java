@@ -21,8 +21,6 @@ import java.util.Set;
 
 import javax.xml.bind.JAXBElement;
 
-import com.google.common.base.Predicate;
-import com.google.common.collect.Collections2;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -91,7 +89,10 @@ import com.emc.storageos.db.client.model.UCSVnicTemplate;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.util.VersionChecker;
+import com.emc.storageos.volumecontroller.ControllerLockingService;
 import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
+import com.google.common.base.Predicate;
+import com.google.common.collect.Collections2;
 import com.google.common.collect.Lists;
 
 public class UcsDiscoveryWorker {
@@ -108,10 +109,24 @@ public class UcsDiscoveryWorker {
 
     private UCSMService ucsmService;
     private DbClient _dbClient;
+    protected ControllerLockingService _locker;
+    private static final int LOCK_WAIT_SECONDS = 300;
 
     public UcsDiscoveryWorker(UCSMService ucsmService, DbClient _dbClient) {
         this.ucsmService = ucsmService;
         this._dbClient = _dbClient;
+    }
+
+    /**
+     * Ucs Discovery Worker Constructor
+     * @param ucsmService {@link UCSMService}
+     * @param _dbClient {@link DbClient}
+     * @param locker {@link ControllerLockingService}
+     */
+    public UcsDiscoveryWorker(UCSMService ucsmService, DbClient _dbClient, ControllerLockingService locker) {
+        this.ucsmService = ucsmService;
+        this._dbClient = _dbClient;
+        this._locker = locker;
     }
 
     public enum ServiceProfileTemplateType {
@@ -145,6 +160,12 @@ public class UcsDiscoveryWorker {
     public void discoverComputeSystem(URI computeSystemURI) {
         String ucsmVersion;
         ComputeSystem cs = _dbClient.queryObject(ComputeSystem.class, computeSystemURI);
+        boolean lockAcquired = false;
+        //COP-29834 - do not proceed with discovery until we have the lock on the computesystem.
+        // can cause stale references if we provisioning is in progress and discovery executes.
+        do {
+            lockAcquired = _locker.acquireLock(cs.getId().toString(), LOCK_WAIT_SECONDS);
+        } while (!lockAcquired);
         _log.info("Inside discoverComputeSystems of class : " + getClass().toString());
 
         URL ucsmURL = getUcsmURL(cs);
@@ -218,7 +239,8 @@ public class UcsDiscoveryWorker {
             cs.setLastDiscoveryStatusMessage(e.getMessage());
             throw ComputeSystemControllerException.exceptions.discoverFailed(cs.getId().toString(), e);
         } finally {
-           _dbClient.persistObject(cs);
+            _dbClient.updateObject(cs);
+            _locker.releaseLock(cs.getId().toString());
         }
     }
 

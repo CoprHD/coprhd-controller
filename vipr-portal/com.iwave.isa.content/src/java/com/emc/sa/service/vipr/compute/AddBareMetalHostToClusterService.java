@@ -15,6 +15,8 @@ import static com.emc.sa.service.ServiceParams.VIRTUAL_POOL;
 import java.net.URI;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
 
 import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.engine.bind.Bindable;
@@ -25,6 +27,7 @@ import com.emc.sa.service.vipr.block.BlockStorageUtils;
 import com.emc.sa.service.vipr.compute.ComputeUtils.FqdnTable;
 import com.emc.storageos.db.client.model.Cluster;
 import com.emc.storageos.db.client.model.Host;
+import com.emc.storageos.model.compute.ComputeSystemRestRep;
 import com.emc.storageos.model.vpool.ComputeVirtualPoolRestRep;
 import com.google.common.collect.ImmutableList;
 
@@ -138,6 +141,12 @@ public class AddBareMetalHostToClusterService extends ViPRService {
 
     @Override
     public void execute() throws Exception {
+        // acquire lock on compute system before start of provisioning.
+        Map<URI, ComputeSystemRestRep> computeSystemMap = ComputeUtils.getComputeSystemsFromCVP(getClient(), computeVirtualPool);
+        Set<Entry<URI, ComputeSystemRestRep>> entrySet = computeSystemMap.entrySet();
+        for (Entry<URI, ComputeSystemRestRep> entry : entrySet) {
+            acquireComputeSystemLock(entry.getValue());
+        }
 
         hostNames = ComputeUtils.removeExistingHosts(hostNames, cluster);
 
@@ -146,6 +155,11 @@ public class AddBareMetalHostToClusterService extends ViPRService {
             acquireHostLock(host, cluster);
         }
         logInfo("compute.cluster.hosts.created", ComputeUtils.nonNull(hosts).size());
+
+        // release all locks on compute systems once host creation is done.
+        for (Entry<URI, ComputeSystemRestRep> entry : entrySet) {
+            releaseComputeSystemLock(entry.getValue());
+        }
 
         Map<Host, URI> hostToBootVolumeIdMap = ComputeUtils.makeBootVolumes(project, virtualArray, virtualPool, size, hosts,
                 getClient());

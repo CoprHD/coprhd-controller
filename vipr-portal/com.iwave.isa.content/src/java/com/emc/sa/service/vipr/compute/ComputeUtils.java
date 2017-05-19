@@ -23,6 +23,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.collections.MapUtils;
 
 import com.emc.sa.engine.ExecutionException;
@@ -70,6 +71,9 @@ import com.emc.storageos.model.block.BlockObjectRestRep;
 import com.emc.storageos.model.block.VolumeDeleteTypeEnum;
 import com.emc.storageos.model.block.VolumeRestRep;
 import com.emc.storageos.model.block.export.ExportGroupRestRep;
+import com.emc.storageos.model.compute.ComputeElementListRestRep;
+import com.emc.storageos.model.compute.ComputeElementRestRep;
+import com.emc.storageos.model.compute.ComputeSystemRestRep;
 import com.emc.storageos.model.compute.OsInstallParam;
 import com.emc.storageos.model.host.HostRestRep;
 import com.emc.storageos.model.host.cluster.ClusterRestRep;
@@ -1752,5 +1756,47 @@ public class ComputeUtils {
             }
         }
         return errBuff.toString();
+    }
+
+    /**
+     * Get matched compute elements from given CVP uri
+     * @param client {@link ViPRCoreClient} instance
+     * @param cvp {@link URI} compute virtual pool uri
+     * @return {@link ComputeElementListRestRep}
+     */
+    public static ComputeElementListRestRep getMatchedComputeElements(ViPRCoreClient client, URI cvp) {
+        return client.computeVpools().getMatchedComputeElements(cvp);
+    }
+
+    /**
+     * Fetch compute system details
+     * @param client {@link ViPRCoreClient} instance
+     * @param computeSystemURI {@link URI} compute system uri
+     * @return {@link ComputeSystemRestRep}
+     */
+    public static ComputeSystemRestRep getComputeSystem(ViPRCoreClient client, URI computeSystemURI) {
+        return client.computeSystems().getComputeSystem(computeSystemURI);
+    }
+
+    /**
+     * For a given compute virtual pool, find and return compute system details to which the matched
+     * compute elements belong to.
+     * @param client {@link ViPRCoreClient} instance
+     * @param computeVirtualPool {@link URI} compute virtual pool uri
+     * @return {@link Map} of comupte system URI and corresponding compute system details.
+     */
+    public static Map<URI, ComputeSystemRestRep> getComputeSystemsFromCVP(ViPRCoreClient client, URI computeVirtualPool) {
+        ComputeElementListRestRep computeElementsListRep = ComputeUtils.getMatchedComputeElements(client, computeVirtualPool);
+        Map<URI, ComputeSystemRestRep> computeSystemMap = new HashMap<URI,ComputeSystemRestRep>();
+        if (null != computeElementsListRep && CollectionUtils.isNotEmpty(computeElementsListRep.getList())) {
+            for (ComputeElementRestRep computeElement : computeElementsListRep.getList()) {
+                URI csURI = computeElement.getComputeSystem().getId();
+                if(!computeSystemMap.containsKey(csURI)) {
+                    ComputeSystemRestRep csRestRep = ComputeUtils.getComputeSystem(client, csURI);
+                    computeSystemMap.put(csURI, csRestRep);
+                }
+            }
+        }
+        return computeSystemMap;
     }
 }

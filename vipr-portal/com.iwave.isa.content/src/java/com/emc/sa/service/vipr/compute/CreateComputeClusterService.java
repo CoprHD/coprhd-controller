@@ -26,6 +26,8 @@ import java.net.URI;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
 
 import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.engine.bind.Bindable;
@@ -37,6 +39,7 @@ import com.emc.storageos.db.client.model.Cluster;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Vcenter;
 import com.emc.storageos.db.client.model.VcenterDataCenter;
+import com.emc.storageos.model.compute.ComputeSystemRestRep;
 import com.emc.storageos.model.compute.OsInstallParam;
 import com.emc.storageos.model.host.cluster.ClusterRestRep;
 import com.emc.storageos.model.vpool.ComputeVirtualPoolRestRep;
@@ -238,6 +241,12 @@ public class CreateComputeClusterService extends ViPRService {
 
     @Override
     public void execute() throws Exception {
+        // acquire lock on compute system before start of provisioning.
+        Map<URI, ComputeSystemRestRep> computeSystemMap = ComputeUtils.getComputeSystemsFromCVP(getClient(), computeVirtualPool);
+        Set<Entry<URI, ComputeSystemRestRep>> entrySet = computeSystemMap.entrySet();
+        for (Entry<URI, ComputeSystemRestRep> entry : entrySet) {
+            acquireComputeSystemLock(entry.getValue());
+        }
 
         // Note: creates ordered lists of hosts, bootVolumes & exports
         // host[0] goes with bootVolume[0] and export[0], etc
@@ -268,6 +277,10 @@ public class CreateComputeClusterService extends ViPRService {
         List<Host> hosts = ComputeUtils.createHosts(cluster, computeVirtualPool, hostNames, virtualArray);
         for (Host host : hosts) {
             acquireHostLock(host, cluster);
+        }
+        // release all locks on compute systems once host creation is done.
+        for (Entry<URI, ComputeSystemRestRep> entry : entrySet) {
+            releaseComputeSystemLock(entry.getValue());
         }
 
         logInfo("compute.cluster.hosts.created", ComputeUtils.nonNull(hosts).size());
@@ -307,8 +320,7 @@ public class CreateComputeClusterService extends ViPRService {
                 ComputeUtils.deactivateCluster(cluster);
             } else {
                 if (!ComputeUtils.nonNull(hosts).isEmpty()) {
-                    pushToVcenter();
-                    ComputeUtils.discoverHosts(hosts);
+                    pushToVcenter(hosts);
                 } else {
                     logWarn("compute.cluster.newly.provisioned.hosts.none");
                 }
@@ -373,7 +385,7 @@ public class CreateComputeClusterService extends ViPRService {
         }
     }
 
-    private void pushToVcenter() {
+    private void pushToVcenter(List<Host> hosts) {
         if (vcenterId != null) {
             boolean isVCenterUpdate = false;
             List<ClusterRestRep> clusters = getClient().clusters().getByDataCenter(datacenterId);
@@ -425,6 +437,7 @@ public class CreateComputeClusterService extends ViPRService {
                 logError("compute.cluster.vcenter.push.failed", e.getMessage());
                 throw e;
             }
+            ComputeUtils.discoverHosts(hosts);
         }
     }
 

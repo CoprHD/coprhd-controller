@@ -230,7 +230,7 @@ public class CustomServicesLocalAnsibleExecution extends ViPRExecutionTask<Custo
         final ImmutableList.Builder<String> builder = ImmutableList.builder();
 
         // ln -s with full path
-        builder.add("/usr/bin/ls -s");
+        builder.add("/usr/bin/ln -s");
         // Add all files with absolute path
         for(String absoluteDir: fileAbsolutePath) {
             builder.add(absoluteDir);

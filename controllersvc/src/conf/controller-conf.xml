@@ -22,6 +22,7 @@
     <import resource="classpath:controller-xtremio-prov.xml"/>
     <import resource="classpath:controller-custom-config-info.xml"/>
     <import resource="classpath:controller-unity.xml"/>
+    <import resource="classpath:controller-vpool-templates.xml"/>
 
 	<context:property-placeholder location="classpath:isilon.properties" ignore-unresolvable="true"/>
 
@@ -1818,6 +1819,11 @@
     <bean id="vplexVarrayGenerator" class="com.emc.storageos.varraygenerators.VplexVarrayGenerator">
         <property name="coordinator" ref="coordinator"/>
         <property name="dbClient" ref="dbclient"/>
+        <property name="vpoolTemplates">
+            <set>
+                <ref bean="vpoolTemplateVplexLocal1"/>
+            </set>
+        </property>
     </bean>
 </beans>
 

@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  ~ Copyright (c) 2017 EMC Corporation
+  ~ All Rights Reserved
+  -->
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
+
+       <bean id="vpoolTemplateVplexLocal1" class="com.emc.storageos.varraygenerators.VpoolTemplate"	>
+          <property name="attrMap">
+            <map>
+                <entry key="label" value="VPLEX LOCAL"/>
+                <entry key="driveType" value="NONE"/>
+                <entry key="expandable" value="true"/>
+                <entry key="highAvailability" value="vplex_local"/>
+                <entry key="maxNativeSnapshots" value="4"/>
+                <entry key="minPaths" value="1"/>
+                <entry key="numPaths" value="4"/>
+                <entry key="pathsPerInitiator" value="1"/>
+                <entry key="placementPolicy" value="default_policy"/>
+                <entry key="protocols" value="FC"/>
+                <entry key="supportedProvisioningType" value="Thin"/>
+                <entry key="type" value="block"/>
+                <entry key="useMatchedPools" value="true"/>
+            </map>
+          </property>
+	</bean>
+</beans>

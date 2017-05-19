@@ -18,11 +18,14 @@ import com.emc.storageos.db.client.model.Network;
 import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.VirtualArray;
+import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.networkcontroller.impl.NetworkAssociationHelper;
+import com.emc.storageos.util.CinderQosUtil;
 import com.emc.storageos.util.ConnectivityUtil;
 import com.emc.storageos.util.NetworkLite;
 import com.emc.storageos.util.NetworkUtil;
 import com.emc.storageos.volumecontroller.impl.StoragePortAssociationHelper;
+import com.emc.storageos.volumecontroller.impl.utils.ImplicitPoolMatcher;
 
 public class VplexVarrayGenerator extends VarrayGenerator implements VarrayGeneratorInterface {
     private static Logger log = LoggerFactory.getLogger(VplexVarrayGenerator.class);
@@ -91,23 +94,25 @@ public class VplexVarrayGenerator extends VarrayGenerator implements VarrayGener
             addVarrayToNetwork(varray1.getId(), networkURI, networksToUpdate);
             List<StoragePort> portsInNetwork = NetworkAssociationHelper.getNetworkStoragePorts(networkURI.toString(), null, dbClient);
             for (StoragePort port : portsInNetwork) {
-               connectVarrayToPort(varray1.getId(), port.getId(), portsToUpdate); 
+               connectVarrayToPort(varray1.getId(), port, portsToUpdate); 
             }
         }
         for (URI networkURI : cluster2Nets) {
             addVarrayToNetwork(varray2.getId(), networkURI, networksToUpdate);
             List<StoragePort> portsInNetwork = NetworkAssociationHelper.getNetworkStoragePorts(networkURI.toString(), null, dbClient);
             for (StoragePort port : portsInNetwork) {
-               connectVarrayToPort(varray2.getId(), port.getId(), portsToUpdate); 
+               connectVarrayToPort(varray2.getId(), port, portsToUpdate); 
             }
         }
         
         // Loop through the VPLEX ports, assigning each to the appropriate virtual array
         for (StoragePort port : cluster1Ports) {
-            assignVarrayToPort(varray1.getId(), port.getId(), portsToUpdate);
+            assignVarrayToPort(varray1.getId(), port, portsToUpdate);
+            unassignVarrayFromPort(varray2.getId(), port, portsToUpdate);
         }
         for (StoragePort port : cluster2Ports) {
-            assignVarrayToPort(varray2.getId(), port.getId(), portsToUpdate);
+            assignVarrayToPort(varray2.getId(), port, portsToUpdate);
+            unassignVarrayFromPort(varray1.getId(), port, portsToUpdate);
         }
         
         // Persist things.
@@ -125,19 +130,48 @@ public class VplexVarrayGenerator extends VarrayGenerator implements VarrayGener
             dbClient.createObject(varray2);
             log.info("Created virtual array: " + varray2.getLabel());
         }
-        updateNetworks(networksToUpdate);
         updatePorts(portsToUpdate);
-        for (StoragePort port : portsToUpdate.values()) {
-            buf.append(port.getNativeGuid() + " ");
+        updateNetworks(networksToUpdate);
+        
+        if (!portsToUpdate.keySet().isEmpty()) {
+            // Update the storage pool associations.
+            updateStoragePoolsFromPorts(varray1.getId(), cluster1Ports, null);
+            updateStoragePoolsFromPorts(varray2.getId(), cluster2Ports, null);
         }
-        log.info("Ports updated: " + buf.toString());
-
-        // Update the storage pool associations.
-        List<StoragePort> allPorts = new ArrayList<StoragePort>();
-        allPorts.addAll(cluster1Ports);
-        allPorts.addAll(cluster2Ports);
-        updateStoragePoolsFromPorts(varray1.getId(), cluster1Ports, new ArrayList<StoragePort>());
-        updateStoragePoolsFromPorts(varray2.getId(), cluster2Ports, new ArrayList<StoragePort>());
+        
+        VpoolGenerator vpoolGenerator = new VpoolGenerator(dbClient, coordinator);
+        Set<String> varrayURIs = new HashSet<String>();
+        if (varray1 != null) {
+            varrayURIs.add(varray1.getId().toString());
+        }
+        if (varray2 != null) {
+            varrayURIs.add(varray2.getId().toString());
+        }
+        // Create local Virtual Pools
+        for (VpoolTemplate template : getVpoolTemplates()) {
+            if (template.getAttribute("highAvailability").equals("vplex_local")) {
+                VirtualPool vpool = vpoolGenerator.getVpoolByName(template.getAttribute("label"));
+                if (vpool != null) {
+                    vpool.setDescription("automatically generated");
+                    vpool.addVirtualArrays(varrayURIs);
+                    CinderQosUtil.createOrUpdateQos(vpool, dbClient);
+                    dbClient.updateObject(vpool);
+                } else {
+                    vpool = vpoolGenerator.makeVpoolFromTemplate("", template);
+                    vpool.setDescription("automatically generated");
+                    vpool.addVirtualArrays(varrayURIs);
+                    CinderQosUtil.createOrUpdateQos(vpool, dbClient);
+                    dbClient.createObject(vpool);
+                }
+                StringBuffer errorMessage = new StringBuffer();
+                // update the implicit pools matching with this VirtualPool.
+                ImplicitPoolMatcher.matchVirtualPoolWithAllStoragePools(vpool, dbClient, coordinator, errorMessage);
+                dbClient.updateObject(vpool);
+                if (errorMessage.length() > 0) {
+                   log.info("Error matching: " + vpool.getLabel() + " " + errorMessage.toString()); 
+                }
+            }
+        }
     }
 
 }

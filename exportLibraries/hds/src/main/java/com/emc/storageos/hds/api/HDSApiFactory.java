@@ -125,6 +125,7 @@ public class HDSApiFactory {
         // execution.
         HttpClient client = new HttpClient(mgr);
         client.getParams().setConnectionManagerTimeout(connManagerTimeout);
+        client.getParams().setSoTimeout(socketConnectionTimeoutMs);
         client.getParams().setParameter(HttpMethodParams.RETRY_HANDLER,
                 new HttpMethodRetryHandler() {
                     @Override

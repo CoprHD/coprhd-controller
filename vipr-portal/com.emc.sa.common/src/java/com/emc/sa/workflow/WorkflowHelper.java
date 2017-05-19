@@ -24,7 +24,6 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
-import java.net.URISyntaxException;
 import java.nio.file.FileSystems;
 import java.nio.file.Path;
 import java.security.GeneralSecurityException;
@@ -40,15 +39,12 @@ import java.security.spec.X509EncodedKeySpec;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Set;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
-import com.emc.storageos.db.client.util.StringSetUtil;
 import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
 import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
 import org.apache.commons.compress.archivers.tar.TarArchiveOutputStream;
@@ -77,6 +73,7 @@ import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.uimodels.CustomServicesWorkflow;
 import com.emc.storageos.db.client.model.uimodels.WFDirectory;
+import com.emc.storageos.db.client.util.StringSetUtil;
 import com.emc.storageos.model.customservices.CustomServicesPrimitiveResourceRestRep;
 import com.emc.storageos.model.customservices.CustomServicesPrimitiveRestRep;
 import com.emc.storageos.model.customservices.CustomServicesWorkflowDocument;
@@ -97,29 +94,32 @@ import com.google.common.collect.ImmutableList;
 public final class WorkflowHelper {
 
     private static final org.slf4j.Logger log = LoggerFactory.getLogger(WorkflowHelper.class);
-    
+
     private static final ObjectMapper MAPPER = new ObjectMapper();
     private static final String WORKFLOWS_FOLDER = "workflows";
     private static final String OPERATIONS_FOLDER = "operations";
     private static final String RESOURCES_FOLDER = "resources";
     private static final String ROOT = "";
     private static final String METADATA_FILE = "workflow.md";
-    private static final WorkflowVersion CURRENT_VERSION = new WorkflowVersion(1,0,0,0);
-    private static final ImmutableList<String> SUPPORTED_VERSIONS = ImmutableList.<String>builder()
+    private static final WorkflowVersion CURRENT_VERSION = new WorkflowVersion(1, 0, 0, 0);
+    private static final ImmutableList<String> SUPPORTED_VERSIONS = ImmutableList.<String> builder()
             .add(CURRENT_VERSION.toString()).build();
     private static final int MAX_IMPORT_NAME_INDEX = 100;
-    
-    private WorkflowHelper() {}
-    
+
+    private WorkflowHelper() {
+    }
+
     /**
      * Create a workflow definition
-     * @throws IOException 
-     * @throws JsonMappingException 
-     * @throws JsonGenerationException 
+     * 
+     * @throws IOException
+     * @throws JsonMappingException
+     * @throws JsonGenerationException
      */
-    public static CustomServicesWorkflow create(final CustomServicesWorkflowDocument document) throws JsonGenerationException, JsonMappingException, IOException {
+    public static CustomServicesWorkflow create(final CustomServicesWorkflowDocument document)
+            throws JsonGenerationException, JsonMappingException, IOException {
         final CustomServicesWorkflow workflow = new CustomServicesWorkflow();
-        
+
         workflow.setId(URIUtil.createId(CustomServicesWorkflow.class));
         if (document.getName() != null) {
             workflow.setLabel(document.getName().trim());
@@ -129,40 +129,31 @@ public final class WorkflowHelper {
         workflow.setPrimitives(getPrimitives(document));
         return workflow;
     }
-    
+
     /**
      * Update a workflow definition
-     * @throws IOException 
-     * @throws JsonMappingException 
-     * @throws JsonGenerationException 
+     * 
+     * @throws IOException
+     * @throws JsonMappingException
+     * @throws JsonGenerationException
      */
-    public static CustomServicesWorkflow update(final CustomServicesWorkflow oeWorkflow, final CustomServicesWorkflowDocument document) throws JsonGenerationException, JsonMappingException, IOException {
+    public static CustomServicesWorkflow update(final CustomServicesWorkflow oeWorkflow, final CustomServicesWorkflowDocument document)
+            throws JsonGenerationException, JsonMappingException, IOException {
 
         if (document.getDescription() != null) {
             oeWorkflow.setDescription(document.getDescription().trim());
         }
 
-        if(document.getName() != null) {
+        if (document.getName() != null) {
             oeWorkflow.setLabel(document.getName().trim());
         }
-        
-        if( null != document.getSteps()  ) {
+
+        if (null != document.getSteps()) {
             oeWorkflow.setSteps(toStepsJson(document.getSteps()));
-            try {
-                List<URI> priya_test = StringSetUtil.stringSetToUriList(oeWorkflow.getPrimitives());
-//                priya_test.add(new URI("urn:storageos:CustomServicesDBAnsiblePrimitive:4768aa4a-4e0b-48e3-a81b-f70d5db95a54:vdc1"));
-                oeWorkflow.removePrimitives(priya_test);
-
-                oeWorkflow.addPrimitives(StringSetUtil.stringSetToUriList(getPrimitives(document)));
-            } catch (Exception e) {
-                log.error("Exception: ", e);
+            oeWorkflow.removePrimitives(StringSetUtil.stringSetToUriList(oeWorkflow.getPrimitives()));
+            oeWorkflow.addPrimitives(StringSetUtil.stringSetToUriList(getPrimitives(document)));
         }
 
-
-
-//            oeWorkflow.addPrimitives(getPrimitives(document));
-        }
-        
         return oeWorkflow;
     }
 
@@ -170,56 +161,63 @@ public final class WorkflowHelper {
         oeWorkflow.setState(state);
         return oeWorkflow;
     }
-    
-    public static CustomServicesWorkflowDocument toWorkflowDocument(final CustomServicesWorkflow workflow) throws JsonParseException, JsonMappingException, IOException {
+
+    public static CustomServicesWorkflowDocument toWorkflowDocument(final CustomServicesWorkflow workflow)
+            throws JsonParseException, JsonMappingException, IOException {
         final CustomServicesWorkflowDocument document = new CustomServicesWorkflowDocument();
         document.setName(workflow.getLabel());
         document.setDescription(workflow.getDescription());
         document.setSteps(toDocumentSteps(workflow.getSteps()));
-        
+
         return document;
     }
-    
-    public static CustomServicesWorkflowDocument toWorkflowDocument(final String workflow) throws JsonParseException, JsonMappingException, IOException {
+
+    public static CustomServicesWorkflowDocument toWorkflowDocument(final String workflow)
+            throws JsonParseException, JsonMappingException, IOException {
         return MAPPER.readValue(workflow, CustomServicesWorkflowDocument.class);
     }
-    
-    public static String toWorkflowDocumentJson( CustomServicesWorkflow workflow) throws JsonGenerationException, JsonMappingException, JsonParseException, IOException {
+
+    public static String toWorkflowDocumentJson(CustomServicesWorkflow workflow)
+            throws JsonGenerationException, JsonMappingException, JsonParseException, IOException {
         return MAPPER.writeValueAsString(toWorkflowDocument(workflow));
     }
-    
-    private static List<CustomServicesWorkflowDocument.Step> toDocumentSteps(final String steps) throws JsonParseException, JsonMappingException, IOException {
-        return steps == null ? null :  MAPPER.readValue(steps, MAPPER.getTypeFactory().constructCollectionType(List.class, CustomServicesWorkflowDocument.Step.class));
+
+    private static List<CustomServicesWorkflowDocument.Step> toDocumentSteps(final String steps)
+            throws JsonParseException, JsonMappingException, IOException {
+        return steps == null ? null
+                : MAPPER.readValue(steps,
+                        MAPPER.getTypeFactory().constructCollectionType(List.class, CustomServicesWorkflowDocument.Step.class));
     }
-    
-    private static String toStepsJson(final List<CustomServicesWorkflowDocument.Step> steps) throws JsonGenerationException, JsonMappingException, IOException {
+
+    private static String toStepsJson(final List<CustomServicesWorkflowDocument.Step> steps)
+            throws JsonGenerationException, JsonMappingException, IOException {
         return MAPPER.writeValueAsString(steps);
     }
-    
+
     private static StringSet getPrimitives(
             final CustomServicesWorkflowDocument document) {
         final StringSet primitives = new StringSet();
-        for(final Step step : document.getSteps()) {
+        for (final Step step : document.getSteps()) {
             final StepType stepType = (null == step.getType()) ? null : StepType.fromString(step.getType());
-            if(null != stepType ) {
-                switch(stepType) {
-                case VIPR_REST:
-                    break;
-                default:
-                    primitives.add(step.getOperation().toString());
+            if (null != stepType) {
+                switch (stepType) {
+                    case VIPR_REST:
+                        break;
+                    default:
+                        primitives.add(step.getOperation().toString());
                 }
             }
         }
         return primitives;
     }
 
-    public static CustomServicesWorkflow importWorkflow( final InputStream stream,
+    public static CustomServicesWorkflow importWorkflow(final InputStream stream,
             final WFDirectory wfDirectory, final ModelClient client,
             final CustomServicesPrimitiveDAOs daos,
             final CustomServicesResourceDAOs resourceDAOs) {
-        try( final DataInputStream dis = new DataInputStream(stream)) {
+        try (final DataInputStream dis = new DataInputStream(stream)) {
             final WorkflowMetadata metadata = readMetadata(dis);
-            if( !SUPPORTED_VERSIONS.contains(metadata.getVersion().toString())) {
+            if (!SUPPORTED_VERSIONS.contains(metadata.getVersion().toString())) {
                 throw APIException.badRequests.workflowVersionNotSupported(metadata.getVersion().toString(), SUPPORTED_VERSIONS);
             }
 
@@ -229,43 +227,40 @@ public final class WorkflowHelper {
             final byte[] data = readBytes(dis);
 
             // We should have read all of the bytes if there are any left in the stream throw an error
-            if(dis.read(new byte[1]) > 0) {
+            if (dis.read(new byte[1]) > 0) {
                 throw APIException.badRequests.workflowArchiveCannotBeImported("Corrupt data too many bytes");
             }
 
-            final Signature signatureFactory =
-                    Signature.getInstance(algo);
-            final KeyFactory keyFactory =
-                    KeyFactory.getInstance(KeyCertificateAlgorithmValuesHolder.DEFAULT_KEY_ALGORITHM);
+            final Signature signatureFactory = Signature.getInstance(algo);
+            final KeyFactory keyFactory = KeyFactory.getInstance(KeyCertificateAlgorithmValuesHolder.DEFAULT_KEY_ALGORITHM);
             final PublicKey key = keyFactory.generatePublic(new X509EncodedKeySpec(Base64.decode(encodedKey)));
             signatureFactory.initVerify(key);
             signatureFactory.update(metadata.toBytes());
             signatureFactory.update(data);
-            if(!signatureFactory.verify(sig) ) {
+            if (!signatureFactory.verify(sig)) {
                 throw APIException.badRequests.workflowArchiveCannotBeImported("Corrupted data unable to verify signature");
             }
 
             return importWorkflow(metadata, data, wfDirectory, client, daos, resourceDAOs);
 
-        } catch (final IOException | GeneralSecurityException e ) {
+        } catch (final IOException | GeneralSecurityException e) {
             log.error("Failed to import the archive: ", e);
             throw APIException.badRequests.workflowArchiveCannotBeImported(e.getMessage());
         }
     }
 
-
     private static byte[] readBytes(final DataInputStream dis) throws IOException {
         final int length = dis.readInt();
-        if(length < 0 ) {
+        if (length < 0) {
             throw new IOException("Invalid workflow package");
         }
 
-        try( final ByteArrayOutputStream baos = new ByteArrayOutputStream() ) {
+        try (final ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
             int remaining = length;
-            while(remaining > 0) {
+            while (remaining > 0) {
                 final byte[] bytes = new byte[remaining < 2048 ? remaining : 2048];
                 final int nRead = dis.read(bytes);
-                if( nRead < 0 ) {
+                if (nRead < 0) {
                     throw new IOException("Unexpected end of stream");
                 }
                 baos.write(bytes);
@@ -283,7 +278,7 @@ public final class WorkflowHelper {
                 dis.readInt(),
                 dis.readInt());
 
-        //Next bytes are a UTF string containing the workflow ID
+        // Next bytes are a UTF string containing the workflow ID
         final URI id = URI.create(dis.readUTF());
 
         return new WorkflowMetadata(id, version);
@@ -301,7 +296,7 @@ public final class WorkflowHelper {
      */
     public static CustomServicesWorkflow importWorkflow(final WorkflowMetadata metadata,
             final byte[] archive,
-            final WFDirectory wfDirectory, final ModelClient client, 
+            final WFDirectory wfDirectory, final ModelClient client,
             final CustomServicesPrimitiveDAOs daos,
             final CustomServicesResourceDAOs resourceDAOs) {
 
@@ -313,22 +308,21 @@ public final class WorkflowHelper {
             TarArchiveEntry entry = tarIn.getNextTarEntry();
             final Map<URI, ResourceBuilder> resourceMap = new HashMap<URI, ResourceBuilder>();
             while (entry != null) {
-                if( !entry.isDirectory()) {
+                if (!entry.isDirectory()) {
                     final Path path = getPath(entry);
                     final byte[] bytes = read(tarIn);
-                    addEntry(builder, resourceMap, path, bytes); 
-                    
+                    addEntry(builder, resourceMap, path, bytes);
+
                 }
                 entry = tarIn.getNextTarEntry();
             }
-            
-            for( final ResourceBuilder resourceBuilder : resourceMap.values()) {
+
+            for (final ResourceBuilder resourceBuilder : resourceMap.values()) {
                 builder.addResource(resourceBuilder.build());
             }
-            
 
             return importWorkflow(builder.build(), wfDirectory, client, daos, resourceDAOs);
-            
+
         } catch (final IOException e) {
             log.error("Failed to import the archive: ", e);
             throw APIException.badRequests.workflowArchiveCannotBeImported(e.getMessage());
@@ -340,38 +334,38 @@ public final class WorkflowHelper {
             final ModelClient client,
             final CustomServicesPrimitiveDAOs daos,
             final CustomServicesResourceDAOs resourceDAOs) throws JsonGenerationException, JsonMappingException, IOException {
-       
-        // TODO: This will only import new items.  If hte user wants to update an existing item they'll need to delete the 
-        //       item and import it again.  We should support update of an item as will as import of new items.
-        
-        for( final Entry<URI, ResourcePackage> resource : workflowPackage.resources().entrySet()) {
+
+        // TODO: This will only import new items. If hte user wants to update an existing item they'll need to delete the
+        // item and import it again. We should support update of an item as will as import of new items.
+
+        for (final Entry<URI, ResourcePackage> resource : workflowPackage.resources().entrySet()) {
             final CustomServicesResourceDAO<?> dao = resourceDAOs.getByModel(URIUtil.getTypeName(resource.getKey()));
             final CustomServicesPrimitiveResourceRestRep metadata = resource.getValue().metadata();
-            if( null == dao ) {
+            if (null == dao) {
                 throw new RuntimeException("Type not found for ID " + metadata.getId());
             }
 
-            if( !dao.importResource(metadata, resource.getValue().bytes())) {
+            if (!dao.importResource(metadata, resource.getValue().bytes())) {
                 log.info("Resource " + resource.getKey() + " previously imported");
             }
         }
-        
-        for( final Entry<URI, CustomServicesPrimitiveRestRep> operation : workflowPackage.operations().entrySet()) {
+
+        for (final Entry<URI, CustomServicesPrimitiveRestRep> operation : workflowPackage.operations().entrySet()) {
             final CustomServicesPrimitiveDAO<?> dao = daos.getByModel(URIUtil.getTypeName(operation.getKey()));
-            if( null == dao ) {
+            if (null == dao) {
                 throw new RuntimeException("Type not found for ID " + operation.getKey());
             }
-            if( dao.importPrimitive(operation.getValue())) {
+            if (dao.importPrimitive(operation.getValue())) {
                 wfDirectory.addWorkflows(Collections.singleton(operation.getKey()));
-            }else {
+            } else {
                 log.info("Primitive " + operation.getKey() + " previously imported");
             }
-            
+
         }
-        
-        for(final  Entry<URI, CustomServicesWorkflowRestRep> workflow : workflowPackage.workflows().entrySet()) {
+
+        for (final Entry<URI, CustomServicesWorkflowRestRep> workflow : workflowPackage.workflows().entrySet()) {
             final CustomServicesWorkflow model = client.customServicesWorkflows().findById(workflow.getKey());
-            if( null == model || model.getInactive()) {
+            if (null == model || model.getInactive()) {
                 importWorkflow(workflow.getValue(), client, wfDirectory);
             } else {
                 log.info("Workflow " + workflow.getKey() + " previously imported");
@@ -381,14 +375,15 @@ public final class WorkflowHelper {
     }
 
     /**
-     * @param client 
-     * @param wfDirectory 
+     * @param client
+     * @param wfDirectory
      * @param value
-     * @throws IOException 
-     * @throws JsonMappingException 
-     * @throws JsonGenerationException 
+     * @throws IOException
+     * @throws JsonMappingException
+     * @throws JsonGenerationException
      */
-    private static void importWorkflow(final CustomServicesWorkflowRestRep workflow, final ModelClient client, final WFDirectory wfDirectory) throws JsonGenerationException, JsonMappingException, IOException {
+    private static void importWorkflow(final CustomServicesWorkflowRestRep workflow, final ModelClient client,
+            final WFDirectory wfDirectory) throws JsonGenerationException, JsonMappingException, IOException {
 
         final CustomServicesWorkflow dbWorkflow = new CustomServicesWorkflow();
         dbWorkflow.setId(workflow.getId());
@@ -398,19 +393,19 @@ public final class WorkflowHelper {
         dbWorkflow.setSteps(toStepsJson(workflow.getDocument().getSteps()));
         dbWorkflow.setPrimitives(getPrimitives(workflow.getDocument()));
         client.save(dbWorkflow);
-        if( null != wfDirectory.getId()) {
+        if (null != wfDirectory.getId()) {
             wfDirectory.addWorkflows(Collections.singleton(workflow.getId()));
             client.save(wfDirectory);
         }
     }
 
     public static byte[] exportWorkflow(final URI id,
-    final ModelClient client,
-    final CustomServicesPrimitiveDAOs daos,
-    final CustomServicesResourceDAOs resourceDAOs,
-    final KeyStore keystore) {
-        try( final ByteArrayOutputStream baos = new ByteArrayOutputStream() ) {
-            try(final DataOutputStream dos = new DataOutputStream(baos)) {
+            final ModelClient client,
+            final CustomServicesPrimitiveDAOs daos,
+            final CustomServicesResourceDAOs resourceDAOs,
+            final KeyStore keystore) {
+        try (final ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
+            try (final DataOutputStream dos = new DataOutputStream(baos)) {
                 final CustomServicesWorkflowPackage workflowPackage = makeCustomServicesWorkflowPackage(id, client, daos, resourceDAOs);
                 // make the compressed archive
                 final byte[] archiveBytes = makeArchive(workflowPackage, client, daos, resourceDAOs);
@@ -446,8 +441,7 @@ public final class WorkflowHelper {
                     KeystoreEngine.ViPR_KEY_AND_CERTIFICATE_ALIAS);
             final PublicKey pub = certificate.getPublicKey();
             final String algo = ((X509Certificate) certificate).getSigAlgName();
-            final Signature signatureFactory =
-                    Signature.getInstance(algo);
+            final Signature signatureFactory = Signature.getInstance(algo);
             signatureFactory.initSign((PrivateKey) priv);
             signatureFactory.update(metadataBytes);
             signatureFactory.update(archiveBytes);
@@ -479,7 +473,7 @@ public final class WorkflowHelper {
             final CustomServicesPrimitiveDAOs daos,
             final CustomServicesResourceDAOs resourceDAOs) {
 
-        try(final ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+        try (final ByteArrayOutputStream out = new ByteArrayOutputStream()) {
             makeArchive(out, workflowPackage);
             return out.toByteArray();
         } catch (IOException e) {
@@ -490,31 +484,32 @@ public final class WorkflowHelper {
     /**
      * @param out
      * @param workflowPackage
-     * @throws IOException 
-     * @throws JsonMappingException 
-     * @throws JsonGenerationException 
+     * @throws IOException
+     * @throws JsonMappingException
+     * @throws JsonGenerationException
      */
-    private static void makeArchive(final ByteArrayOutputStream out, final CustomServicesWorkflowPackage workflowPackage) throws IOException {
-        try(final TarArchiveOutputStream tarOut = new TarArchiveOutputStream(new GZIPOutputStream(new BufferedOutputStream(out)))) {
+    private static void makeArchive(final ByteArrayOutputStream out, final CustomServicesWorkflowPackage workflowPackage)
+            throws IOException {
+        try (final TarArchiveOutputStream tarOut = new TarArchiveOutputStream(new GZIPOutputStream(new BufferedOutputStream(out)))) {
             tarOut.setLongFileMode(TarArchiveOutputStream.LONGFILE_GNU);
 
-            for(  final Entry<URI, CustomServicesWorkflowRestRep> workflow : workflowPackage.workflows().entrySet()) {
-                final String name = WORKFLOWS_FOLDER+"/"+workflow.getKey().toString();
+            for (final Entry<URI, CustomServicesWorkflowRestRep> workflow : workflowPackage.workflows().entrySet()) {
+                final String name = WORKFLOWS_FOLDER + "/" + workflow.getKey().toString();
                 final byte[] content = MAPPER.writeValueAsBytes(workflow.getValue());
                 final Date modTime = workflow.getValue().getCreationTime().getTime();
                 addArchiveEntry(tarOut, name, modTime, content);
             }
-            
-            for( final Entry<URI, CustomServicesPrimitiveRestRep> operation : workflowPackage.operations().entrySet()) {
-                final String name = OPERATIONS_FOLDER+"/"+operation.getKey().toString();
+
+            for (final Entry<URI, CustomServicesPrimitiveRestRep> operation : workflowPackage.operations().entrySet()) {
+                final String name = OPERATIONS_FOLDER + "/" + operation.getKey().toString();
                 final byte[] content = MAPPER.writeValueAsBytes(operation.getValue());
                 final Date modTime = operation.getValue().getCreationTime().getTime();
                 addArchiveEntry(tarOut, name, modTime, content);
             }
 
-            for( final Entry<URI, ResourcePackage> resource : workflowPackage.resources().entrySet()) {
-                final String name = RESOURCES_FOLDER+"/"+resource.getKey().toString()+".md";
-                final String resourceFile = RESOURCES_FOLDER+"/"+resource.getKey().toString();
+            for (final Entry<URI, ResourcePackage> resource : workflowPackage.resources().entrySet()) {
+                final String name = RESOURCES_FOLDER + "/" + resource.getKey().toString() + ".md";
+                final String resourceFile = RESOURCES_FOLDER + "/" + resource.getKey().toString();
                 final byte[] metadata = MAPPER.writeValueAsBytes(resource.getValue().metadata());
                 final Date modTime = resource.getValue().metadata().getCreationTime().getTime();
                 addArchiveEntry(tarOut, name, modTime, metadata);
@@ -527,79 +522,83 @@ public final class WorkflowHelper {
     /**
      * @param id
      * @param client
-     * @param resourceDAOs 
+     * @param resourceDAOs
      * @return
      */
-    private static CustomServicesWorkflowPackage makeCustomServicesWorkflowPackage(final URI id, final ModelClient client, final CustomServicesPrimitiveDAOs daos, final CustomServicesResourceDAOs resourceDAOs) {
+    private static CustomServicesWorkflowPackage makeCustomServicesWorkflowPackage(final URI id, final ModelClient client,
+            final CustomServicesPrimitiveDAOs daos, final CustomServicesResourceDAOs resourceDAOs) {
         final CustomServicesWorkflowPackage.Builder builder = new CustomServicesWorkflowPackage.Builder();
         builder.metadata(new WorkflowMetadata(id, CURRENT_VERSION));
         addWorkflow(builder, id, client, daos, resourceDAOs);
         return builder.build();
-        
+
     }
 
-    private static void addWorkflow(final Builder builder, final URI id, final ModelClient client, final CustomServicesPrimitiveDAOs daos, final CustomServicesResourceDAOs resourceDAOs) {
+    private static void addWorkflow(final Builder builder, final URI id, final ModelClient client, final CustomServicesPrimitiveDAOs daos,
+            final CustomServicesResourceDAOs resourceDAOs) {
         final CustomServicesWorkflow dbWorkflow = client.customServicesWorkflows().findById(id);
-        if( null == dbWorkflow ) {
+        if (null == dbWorkflow) {
             throw APIException.notFound.unableToFindEntityInURL(id);
         }
         final CustomServicesWorkflowRestRep workflow = CustomServicesWorkflowMapper.map(dbWorkflow);
         builder.addWorkflow(workflow);
-        for( final Step step : workflow.getDocument().getSteps()) {
+        for (final Step step : workflow.getDocument().getSteps()) {
             final String stepId = step.getId();
-            if( !StepType.END.toString().equalsIgnoreCase(stepId) &&
-                    !StepType.START.toString().equalsIgnoreCase(stepId) ) {
+            if (!StepType.END.toString().equalsIgnoreCase(stepId) &&
+                    !StepType.START.toString().equalsIgnoreCase(stepId)) {
                 final URI operation = step.getOperation();
                 final String type = URIUtil.getTypeName(operation);
-                if(type.equals(CustomServicesWorkflow.class.getSimpleName())) {
+                if (type.equals(CustomServicesWorkflow.class.getSimpleName())) {
                     addWorkflow(builder, operation, client, daos, resourceDAOs);
-                } else if( !type.equals(CustomServicesViPRPrimitive.class.getSimpleName())) {
+                } else if (!type.equals(CustomServicesViPRPrimitive.class.getSimpleName())) {
                     addOperation(builder, operation, daos, resourceDAOs);
                 }
             }
         }
     }
 
-    private static void addOperation(final Builder builder, final URI id, final CustomServicesPrimitiveDAOs daos, final CustomServicesResourceDAOs resourceDAOs) {
+    private static void addOperation(final Builder builder, final URI id, final CustomServicesPrimitiveDAOs daos,
+            final CustomServicesResourceDAOs resourceDAOs) {
         final CustomServicesPrimitiveDAO<?> dao = daos.getByModel(URIUtil.getTypeName(id));
-        if( null == dao ) {
+        if (null == dao) {
             throw new RuntimeException("Operation type for " + id + " not found");
         }
-        
+
         final CustomServicesPrimitiveType primitive = dao.get(id);
-        
-        if( null == primitive ) {
+
+        if (null == primitive) {
             throw new RuntimeException("Operation with ID " + id + " not found");
         }
-        
-        if( null != primitive.resource() ) {
+
+        if (null != primitive.resource()) {
             addResource(builder, primitive.resource(), resourceDAOs);
         }
-        
+
         builder.addOperation(CustomServicesPrimitiveMapper.map(primitive));
     }
 
     private static void addResource(Builder builder, NamedURI id, CustomServicesResourceDAOs resourceDAOs) {
-        
+
         final CustomServicesResourceDAO<?> dao = resourceDAOs.getByModel(URIUtil.getTypeName(id.getURI()));
-        
-        if( null == dao ) {
+
+        if (null == dao) {
             throw new RuntimeException("Resource type for " + id + " not found");
         }
-        
+
         final CustomServicesPrimitiveResourceType resource = dao.getResource(id.getURI());
-         
-        if( null == resource ) {
+
+        if (null == resource) {
             throw new RuntimeException("Resource " + id + " not found");
         }
         builder.addResource(new ResourcePackage(CustomServicesPrimitiveMapper.map(resource), resource.resource()));
-        
-        for( final NamedElement related : dao.listRelatedResources(id.getURI())) {
+
+        for (final NamedElement related : dao.listRelatedResources(id.getURI())) {
             addResource(builder, new NamedURI(related.getId(), related.getName()), resourceDAOs);
         }
     }
 
-    private static void addArchiveEntry(final TarArchiveOutputStream tarOut, final String name, final Date modTime, final byte[] bytes) throws IOException {
+    private static void addArchiveEntry(final TarArchiveOutputStream tarOut, final String name, final Date modTime, final byte[] bytes)
+            throws IOException {
         tarOut.putArchiveEntry(makeArchiveEntry(name, modTime, bytes));
         IOUtils.copy(new ByteArrayInputStream(bytes), tarOut);
         tarOut.closeArchiveEntry();
@@ -614,11 +613,11 @@ public final class WorkflowHelper {
         entry.setGroupName("storageos");
         return entry;
     }
-    
+
     private static void addEntry(final CustomServicesWorkflowPackage.Builder builder, final Map<URI, ResourceBuilder> resourceMap,
             final Path path, final byte[] bytes) throws IOException, JsonParseException, JsonMappingException {
-        final String parent = path.getParent() == null ? ROOT : path.getParent().getFileName().toString(); 
-        switch(parent) {
+        final String parent = path.getParent() == null ? ROOT : path.getParent().getFileName().toString();
+        switch (parent) {
             case WORKFLOWS_FOLDER:
                 addWorkflow(builder, bytes);
                 return;
@@ -638,7 +637,7 @@ public final class WorkflowHelper {
         final boolean isMetadata;
         final URI id;
         final String filename = path.getFileName().toString();
-        if(filename.endsWith(".md")) {
+        if (filename.endsWith(".md")) {
             id = URI.create(filename.substring(0, filename.indexOf('.')));
             isMetadata = true;
         } else {
@@ -646,14 +645,14 @@ public final class WorkflowHelper {
             isMetadata = false;
         }
         final ResourceBuilder resourceBuilder;
-        if(!resourceMap.containsKey(id)) {
+        if (!resourceMap.containsKey(id)) {
             resourceBuilder = new ResourceBuilder();
             resourceMap.put(id, resourceBuilder);
         } else {
             resourceBuilder = resourceMap.get(id);
         }
-        
-        if( isMetadata ) {
+
+        if (isMetadata) {
             resourceBuilder.metadata(MAPPER.readValue(bytes, CustomServicesPrimitiveResourceRestRep.class));
         } else {
             resourceBuilder.bytes(bytes);
@@ -671,7 +670,7 @@ public final class WorkflowHelper {
     }
 
     private static byte[] read(final TarArchiveInputStream tarIn) throws IOException {
-        try(final ByteArrayOutputStream out = new ByteArrayOutputStream() ) {
+        try (final ByteArrayOutputStream out = new ByteArrayOutputStream()) {
             IOUtils.copy(tarIn, out);
             return out.toByteArray();
         }
@@ -679,29 +678,30 @@ public final class WorkflowHelper {
 
     private static Path getPath(final TarArchiveEntry entry) {
         final Path path = FileSystems.getDefault().getPath(entry.getName());
-        if(null == path) {
+        if (null == path) {
             throw APIException.badRequests.workflowArchiveCannotBeImported("Uknown file: " + entry.getName());
         }
         return path.normalize();
     }
 
-    private static String findImportName(final String name, final ModelClient client ) {
+    private static String findImportName(final String name, final ModelClient client) {
         return isNameAvailable(name, client) ? name : findImportName(name, client, 1);
     }
 
-    private static String findImportName( final String baseName, final ModelClient client, final int index) {
-        if( index < 1 ) {
+    private static String findImportName(final String baseName, final ModelClient client, final int index) {
+        if (index < 1) {
             throw new RuntimeException("Import name index cannot be negative");
-        } else if(index > MAX_IMPORT_NAME_INDEX) {
+        } else if (index > MAX_IMPORT_NAME_INDEX) {
             // Throw an exception if we cannot find a suitable import name
             // After many tries
-            throw APIException.badRequests.workflowArchiveCannotBeImported("Too many duplicate names: "+baseName+ " please rename an existing workflow.");
+            throw APIException.badRequests
+                    .workflowArchiveCannotBeImported("Too many duplicate names: " + baseName + " please rename an existing workflow.");
         }
         final String name = String.format("%s (%d)", baseName, index);
-        return isNameAvailable(name, client) ? name : findImportName(baseName, client, index+1);
+        return isNameAvailable(name, client) ? name : findImportName(baseName, client, index + 1);
     }
 
-    private static boolean isNameAvailable(final String name, final ModelClient client ) {
+    private static boolean isNameAvailable(final String name, final ModelClient client) {
         final List<NamedElement> existing = client.findByLabel(CustomServicesWorkflow.class, name);
         return (null == existing || existing.isEmpty());
     }

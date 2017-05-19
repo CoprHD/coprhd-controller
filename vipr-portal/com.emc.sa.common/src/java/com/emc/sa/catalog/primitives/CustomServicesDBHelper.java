@@ -140,7 +140,7 @@ public final class CustomServicesDBHelper {
         primitive.setDescription(param.getDescription());
 
         if (!resourceType.isAssignableFrom(CustomServicesDBNoResource.class)) {
-            if(param.getResource() == null){
+            if (param.getResource() == null) {
                 throw APIException.badRequests.requiredParameterMissingOrEmpty("resource");
             }
             final CustomServicesDBResource resource = primitiveManager.findResource(resourceType, param.getResource());
@@ -187,6 +187,8 @@ public final class CustomServicesDBHelper {
 
         if (null == primitive) {
             throw APIException.notFound.unableToFindEntityInURL(id);
+        } else if (primitive.getInactive()) {
+            throw APIException.notFound.entityInURLIsInactive(id);
         }
 
         checkNotInUse(client, id, primitive);
@@ -827,11 +829,10 @@ public final class CustomServicesDBHelper {
         final CustomServicesDBResource resource = primitiveManager.findResource(dbModel, id);
         if (null == resource) {
             throw APIException.notFound.unableToFindEntityInURL(id);
+        } else if (resource.getInactive()) {
+            throw APIException.notFound.entityInURLIsInactive(id);
         }
 
-        if (null != name) {
-            resource.setLabel(name);
-        }
         if (null != name) {
             final String label = name.trim();
             if (!label.equalsIgnoreCase(resource.getLabel())) {
@@ -997,9 +998,9 @@ public final class CustomServicesDBHelper {
         };
     }
 
-
     /**
      * Import a resource to the database
+     * 
      * @param clazz the DB model class
      * @param resource The REST representation of the resource
      * @param bytes The file bytes of the resource
@@ -1009,17 +1010,17 @@ public final class CustomServicesDBHelper {
     public static <T extends CustomServicesDBResource> boolean importResource(Class<T> clazz,
             CustomServicesPrimitiveResourceRestRep resource, byte[] bytes, final ModelClient client) {
         final T existing = client.findById(resource.getId());
-        if( null == existing ) {
+        if (null == existing) {
             client.save(makeDBResource(clazz, resource, bytes));
             return true;
-        } else if(existing.getInactive()){
+        } else if (existing.getInactive()) {
             client.save(updateDBResource(resource, bytes, existing));
             return true;
         } else {
             return false;
         }
     }
-    
+
     /**
      * Make a DB resource of a given type given the resource REST model and file bytes
      * 
@@ -1033,19 +1034,18 @@ public final class CustomServicesDBHelper {
             final CustomServicesPrimitiveResourceRestRep resource,
             final byte[] bytes) {
         try {
-            return updateDBResource(resource, bytes, clazz.newInstance());  
+            return updateDBResource(resource, bytes, clazz.newInstance());
         } catch (final InstantiationException | IllegalAccessException e) {
             throw new RuntimeException("Invalid DB model: " + clazz, e);
         }
     }
-    
-    
+
     /**
      * Update the given DB resource with fields from the REST model
      * 
      * @param resource the REST representation of the resource
      * @param bytes the file bytes of the resource
-     * @param dbResource the DB instance to modify 
+     * @param dbResource the DB instance to modify
      * @return
      */
     private static <T extends CustomServicesDBResource> T updateDBResource(
@@ -1061,7 +1061,6 @@ public final class CustomServicesDBHelper {
         return dbResource;
     }
 
-
     /**
      * Import a primitive to the database
      * 
@@ -1070,21 +1069,21 @@ public final class CustomServicesDBHelper {
      * @param client the ModelClient instance
      * @return true if the primitive was imported, false if it already exists
      */
-    public static <T extends CustomServicesDBPrimitive> boolean importDBPrimitive(final Class<T> clazz, 
+    public static <T extends CustomServicesDBPrimitive> boolean importDBPrimitive(final Class<T> clazz,
             final CustomServicesPrimitiveRestRep operation,
             final ModelClient client) {
         final T existing = client.findById(operation.getId());
-        if( null == existing ) {
+        if (null == existing) {
             client.save(makeDBPrimitive(clazz, operation));
             return true;
-        } else if(existing.getInactive()){
+        } else if (existing.getInactive()) {
             client.save(updateDBPrimitive(operation, existing));
             return true;
         } else {
             return false;
         }
     }
-    
+
     /**
      * Make a DB primitive of the given type given the REST model
      * 
@@ -1105,27 +1104,27 @@ public final class CustomServicesDBHelper {
     /**
      * Update a DB primitive given the REST representation and the db model instance
      * 
-     * @param REST representation of the primitive
+     * @param operation REST representation of the primitive
      * @param model DB model instance
      * @return updated DB model instance
      */
     public static <T extends CustomServicesDBPrimitive> T updateDBPrimitive(final CustomServicesPrimitiveRestRep operation,
             final T model) {
-            model.setId(operation.getId());
-            model.setLabel(operation.getName());
-            model.setInactive(false);
-            model.setDescription(operation.getDescription());
-            model.setFriendlyName(operation.getFriendlyName());
-            model.setInput(mapInput(operation.getInputGroups()));
-            model.setOutput(mapOutput(operation.getOutput()));
-            model.setAttributes(mapAttributes(operation.getAttributes()));
-            model.setResource(new NamedURI(operation.getResource().getId(),
-                    operation.getResource().getName()));
-            model.setSuccessCriteria(operation.getSuccessCriteria());
+        model.setId(operation.getId());
+        model.setLabel(operation.getName());
+        model.setInactive(false);
+        model.setDescription(operation.getDescription());
+        model.setFriendlyName(operation.getFriendlyName());
+        model.setInput(mapInput(operation.getInputGroups()));
+        model.setOutput(mapOutput(operation.getOutput()));
+        model.setAttributes(mapAttributes(operation.getAttributes()));
+        model.setResource(new NamedURI(operation.getResource().getId(),
+                operation.getResource().getName()));
+        model.setSuccessCriteria(operation.getSuccessCriteria());
 
         return model;
     }
-    
+
     public static class UpdatePrimitive<DBModel extends CustomServicesDBPrimitive> {
         private final CustomServicesPrimitiveUpdateParam param;
         private final DBModel primitive;

@@ -148,6 +148,9 @@ public class CustomServicesWorkflowService extends CatalogTaggedResourceService 
         final CustomServicesWorkflow updated;
         try {
             CustomServicesWorkflow customServicesWorkflow = getCustomServicesWorkflow(id);
+            if(customServicesWorkflow.getInactive()){
+                throw APIException.notFound.entityInURLIsInactive(id);
+            }
 
             switch (CustomServicesWorkflowStatus.valueOf(customServicesWorkflow.getState())) {
                 case PUBLISHED:
@@ -155,7 +158,7 @@ public class CustomServicesWorkflowService extends CatalogTaggedResourceService 
                 default:
                     if (StringUtils.isNotBlank(workflow.getDocument().getName())) {
                         final String label = workflow.getDocument().getName().trim();
-                        if (!label.equalsIgnoreCase(customServicesWorkflow.getName())) {
+                        if (!label.equalsIgnoreCase(customServicesWorkflow.getLabel())) {
                             checkForDuplicateName(label, CustomServicesWorkflow.class);
                         }
                     }

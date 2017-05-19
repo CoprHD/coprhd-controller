@@ -482,7 +482,10 @@ public class SRDFOperations implements SmisConstants {
             BlockConsistencyGroup sourceCG = dbClient.queryObject(
                     BlockConsistencyGroup.class, source.getConsistencyGroup());
 
-            boolean cgSourceCleanUpRequired = removeFromDeviceGroups(system, system, source, sourceCG);
+            boolean cgSourceCleanUpRequired = false;
+            if (!isVpoolChange) {
+                cgSourceCleanUpRequired = removeFromDeviceGroups(system, system, source, sourceCG);
+            }
             boolean cgTargetCleanUpRequired = removeFromDeviceGroups(targetSystem, system, target, targetCG);
 
             // after volumes are deleted .group gets removed

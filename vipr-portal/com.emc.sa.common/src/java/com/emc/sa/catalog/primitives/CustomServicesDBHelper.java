@@ -702,7 +702,7 @@ public final class CustomServicesDBHelper {
 
     private static void checkDuplicateLabel(final String name, final CustomServicesPrimitiveManager client,
             final Class<? extends ModelObject> clazz) {
-        final List<NamedElement> ids = client.getResourcesByLabel(clazz, name);
+        final List<NamedElement> ids = client.getByLabel(clazz, name);
         if (null != ids && !ids.isEmpty()) {
             throw APIException.badRequests.duplicateLabel(name);
         }

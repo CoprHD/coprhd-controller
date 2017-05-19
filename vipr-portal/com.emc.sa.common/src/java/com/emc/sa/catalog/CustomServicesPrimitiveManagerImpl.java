@@ -78,7 +78,7 @@ public class CustomServicesPrimitiveManagerImpl implements CustomServicesPrimiti
     }
 
     @Override
-    public <T extends ModelObject> List<NamedElement> getResourcesByLabel(Class<T> clazz, final String label) {
+    public <T extends ModelObject> List<NamedElement> getByLabel(Class<T> clazz, final String label) {
         return client.findByLabel(clazz, label);
     }
 }

@@ -39,5 +39,5 @@ public interface CustomServicesPrimitiveManager {
     public <T extends CustomServicesDBResource> List<NamedElement> getResources(
             Class<T> type);
 
-    public <T extends ModelObject> List<NamedElement> getResourcesByLabel(final Class<T> clazz, final String label);
+    public <T extends ModelObject> List<NamedElement> getByLabel(final Class<T> clazz, final String label);
 }

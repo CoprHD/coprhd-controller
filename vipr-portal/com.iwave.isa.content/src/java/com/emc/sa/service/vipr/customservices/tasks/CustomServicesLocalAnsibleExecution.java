@@ -155,11 +155,13 @@ public class CustomServicesLocalAnsibleExecution extends ViPRExecutionTask<Custo
             final String[] softLinkFiles = softLinkCmd(fileAbsolutePath);
             Process p = Runtime.getRuntime().exec(softLinkFiles);
 
-            result = executeLocal(chrootInventoryFileName, AnsibleHelper.makeExtraArg(input,step), String.format("%s%s", chrootOrderDir, playbook), user);
+            //result = executeLocal(chrootInventoryFileName, AnsibleHelper.makeExtraArg(input,step), String.format("%s%s", chrootOrderDir, playbook), user);
+            result = null;
 
-            final String[] unMountOrder = umountCmd(orderDir);
-            //p = Runtime.getRuntime().exec(unMountOrder); //For testing, don't unmount to check
-
+            for(String filename: fileSoftLink) {
+                final String[] unlinkFiles = unlinkCmd(filename);
+                p = Runtime.getRuntime().exec(unlinkFiles);
+            }
         } catch (final Exception e) {
             ExecutionUtils.currentContext().logError("customServicesOperationExecution.logStatus", step.getId(),"Custom Service Task Failed" + e);
             throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed("Custom Service Task Failed" + e);
@@ -230,7 +232,8 @@ public class CustomServicesLocalAnsibleExecution extends ViPRExecutionTask<Custo
         final ImmutableList.Builder<String> builder = ImmutableList.builder();
 
         // ln -s with full path
-        builder.add("/usr/bin/ln -s");
+        builder.add("/usr/bin/ln");
+        builder.add("-s");
         // Add all files with absolute path
         for(String absoluteDir: fileAbsolutePath) {
             builder.add(absoluteDir);
@@ -244,9 +247,9 @@ public class CustomServicesLocalAnsibleExecution extends ViPRExecutionTask<Custo
         return cmdList.toArray(new String[cmdList.size()]);
     }
 
-    private String[] umountCmd(String orderpath) {
-        return new String[] { "sudo", "umount", orderpath};
+    private String[] unlinkCmd(String filename) {
+        String orderFile = CustomServicesConstants.CHROOT_DIR + "/" + filename;
+        logger.info("Alik Unlinking: " + orderFile);
+        return new String[] { "/usr/bin/unlink", orderFile};
     }
-
-
 }

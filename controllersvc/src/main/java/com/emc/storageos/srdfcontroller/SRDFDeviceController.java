@@ -22,6 +22,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import com.emc.storageos.db.client.model.BlockConsistencyGroup;
+import com.emc.storageos.db.client.model.util.BlockConsistencyGroupUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -665,7 +667,8 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
         List<URI> targetURIs = VolumeDescriptor.getVolumeURIs(targetDescriptors);
 
         Workflow.Method createGroupsMethod = createSrdfCgPairsMethod(system.getId(), sourceURIs, targetURIs, vpoolChangeUri);
-        Workflow.Method rollbackGroupsMethod = rollbackSRDFLinksMethod(system.getId(), sourceURIs, targetURIs, true);
+        Workflow.Method rollbackGroupsMethod = rollbackSRDFLinksMethod(system.getId(), sourceURIs, targetURIs, true,
+                vpoolChangeUri != null);
         return workflow.createStep(CREATE_SRDF_MIRRORS_STEP_GROUP, CREATE_SRDF_MIRRORS_STEP_DESC, waitFor,
                 system.getId(), system.getSystemType(), getClass(), createGroupsMethod, rollbackGroupsMethod, null);
     }
@@ -712,7 +715,7 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
          */
         Method createListMethod = createListReplicasMethod(system.getId(), sourceURIs, targetURIs, vpoolChangeUri, false);
         // false here because we want to rollback individual links not the entire (pre-existing) group.
-        Method rollbackMethod = rollbackSRDFLinksMethod(system.getId(), sourceURIs, targetURIs, false);
+        Method rollbackMethod = rollbackSRDFLinksMethod(system.getId(), sourceURIs, targetURIs, false, vpoolChangeUri != null);
 
         workflow.createStep(CREATE_SRDF_SYNC_VOLUME_PAIR_STEP_GROUP,
                 CREATE_SRDF_SYNC_VOLUME_PAIR_STEP_DESC, stepId, system.getId(),
@@ -1422,18 +1425,18 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
     }
 
     private Workflow.Method rollbackSRDFLinksMethod(final URI systemURI, final List<URI> sourceURIs,
-            final List<URI> targetURIs, final boolean isGroupRollback) {
-        return new Workflow.Method(ROLLBACK_SRDF_LINKS_METHOD, systemURI, sourceURIs, targetURIs, isGroupRollback);
+            final List<URI> targetURIs, final boolean isGroupRollback, final boolean isVpoolChange) {
+        return new Workflow.Method(ROLLBACK_SRDF_LINKS_METHOD, systemURI, sourceURIs, targetURIs, isGroupRollback, isVpoolChange);
     }
 
     // Convenience method for singular usage of #rollbackSRDFLinksMethod
     private Workflow.Method rollbackSRDFLinkMethod(final URI systemURI, final URI sourceURI,
             final URI targetURI, final boolean isGroupRollback) {
-        return rollbackSRDFLinksMethod(systemURI, asList(sourceURI), asList(targetURI), isGroupRollback);
+        return rollbackSRDFLinksMethod(systemURI, asList(sourceURI), asList(targetURI), isGroupRollback, false);
     }
 
     public boolean rollbackSRDFLinksStep(URI systemURI, List<URI> sourceURIs,
-            List<URI> targetURIs, boolean isGroupRollback, String opId) {
+            List<URI> targetURIs, boolean isGroupRollback, boolean isVpoolChange, String opId) {
         log.info("START rollback multiple SRDF links");
         TaskCompleter completer = null;
         try {
@@ -1441,11 +1444,12 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
             StorageSystem system = getStorageSystem(systemURI);
             completer = new SRDFMirrorRollbackCompleter(sourceURIs, opId);
             InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_076);
-            getRemoteMirrorDevice().doRollbackLinks(system, sourceURIs, targetURIs, isGroupRollback, completer);
+            getRemoteMirrorDevice().doRollbackLinks(system, sourceURIs, targetURIs, isGroupRollback, isVpoolChange, completer);
             InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_077);
         } catch (Exception e) {
             log.error("Ignoring exception while rolling back SRDF sources: {}", sourceURIs, e);
             // Succeed here, to allow other rollbacks to run
+            cleanUpConsistencyGroups(sourceURIs, targetURIs, systemURI);
             if (null != completer) {
                 completer.ready(dbClient);
             } else {
@@ -1454,6 +1458,39 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
             return false;
         }
         return true;
+    }
+
+    /*
+     * TODO Move this logic to a utility class and add cleanup for RemoteDirectorGroup
+     */
+    private void cleanUpConsistencyGroups(List<URI> sourceURIs, List<URI> targetURIs, URI systemURI) {
+        try {
+            Volume srcVol = dbClient.queryObject(Volume.class, sourceURIs.get(0));
+            Volume tgtVol = dbClient.queryObject(Volume.class, targetURIs.get(0));
+            // Clean up target and source CGs since this is a rollback
+            BlockConsistencyGroup targetCG = dbClient.queryObject(BlockConsistencyGroup.class, tgtVol.getConsistencyGroup());
+            BlockConsistencyGroup sourceCG = dbClient.queryObject(BlockConsistencyGroup.class, srcVol.getConsistencyGroup());
+            if (null != targetCG) {
+                log.info("Set target {}-->{} as inactive", targetCG.getLabel(), targetCG.getId());
+                targetCG.setInactive(true);
+                dbClient.updateObject(targetCG);
+            }
+
+            if (null != sourceCG) {
+                log.info("Clearing properties of source CG {}-->{}", sourceCG.getLabel(), sourceCG.getId());
+                // Clear the CG types and add the LOCAL types
+
+                if (null != sourceCG.getTypes()) {
+                    sourceCG.getTypes().remove(BlockConsistencyGroup.Types.SRDF.name());
+                    sourceCG.getRequestedTypes().remove(BlockConsistencyGroup.Types.SRDF.name());
+                }
+                // sourceCG.addConsistencyGroupTypes(Types.LOCAL.name());
+
+                BlockConsistencyGroupUtils.cleanUpCGAndUpdate(sourceCG, systemURI, sourceCG.getLabel(), false, dbClient);
+            }
+        } catch (Exception e) {
+            log.warn("Exception whilst cleaning CGs", e);
+        }
     }
 
     private Workflow.Method
@@ -1598,7 +1635,7 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
          */
         Method createListMethod = createListReplicasMethod(system.getId(), sourceURIs, targetURIs, vpoolChangeUri, true);
         // false here because we want to rollback individual links not the entire (pre-existing) group.
-        Method rollbackMethod = rollbackSRDFLinksMethod(system.getId(), sourceURIs, targetURIs, false);
+        Method rollbackMethod = rollbackSRDFLinksMethod(system.getId(), sourceURIs, targetURIs, false, vpoolChangeUri != null);
 
         String stepId = workflow.createStep(CREATE_SRDF_ACTIVE_VOLUME_PAIR_STEP_GROUP,
                 CREATE_SRDF_ACTIVE_VOLUME_PAIR_STEP_DESC, waitFor, system.getId(),
@@ -1662,7 +1699,7 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
          */
         Method createListMethod = createListReplicasMethod(system.getId(), sourceURIs, targetURIs, vpoolChangeUri, false);
         // false here because we want to rollback individual links not the entire (pre-existing) group.
-        Method rollbackMethod = rollbackSRDFLinksMethod(system.getId(), sourceURIs, targetURIs, false);
+        Method rollbackMethod = rollbackSRDFLinksMethod(system.getId(), sourceURIs, targetURIs, false, vpoolChangeUri != null);
 
         String createListReplicaStep = workflow.createStep(CREATE_SRDF_ACTIVE_VOLUME_PAIR_STEP_GROUP,
                 CREATE_SRDF_ACTIVE_VOLUME_PAIR_STEP_DESC, suspendGroupStep, system.getId(),

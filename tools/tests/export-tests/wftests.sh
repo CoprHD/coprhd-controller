@@ -3424,6 +3424,117 @@ test_vpool_change_add_srdf_cg() {
     done
 }
 
+test_add_to_existing_cg_srdf() {
+    _add_to_cg_srdf "existing"
+}
+
+test_add_to_empty_cg_srdf() {
+    # Ensure empty RDF groups
+    volume delete --project ${PROJECT} --wait
+    _add_to_cg_srdf "empty"
+}
+
+# Main logic for add_to_[empty|existing]_cg_srdf
+_add_to_cg_srdf() {
+    srdf_cg_test=$1
+    echot "Test add_to_${srdf_cg_test}_cg_srdf Begins"
+
+    if [ "${SS}" != "srdf" ]
+    then
+        echo "Skipping non-srdf system"
+        return
+    fi
+
+    common_failure_injections="failure_004:failure_076_SRDFDeviceController.rollbackSRDFLinksStep_before_link_rollback"
+
+    # Test specific failures (empty or existing)
+    empty_failure_injections=""
+    existing_failure_injections=""
+
+    failure_injections="${common_failure_injections}"
+    [ "${srdf_cg_test}" = "empty" ] && failure_injections="${failure_injections} ${empty_failure_injections}"
+    [ "${srdf_cg_test}" = "existing" ] && failure_injections="${failure_injections} ${existing_failure_injections}"
+
+    cfs=("Volume BlockConsistencyGroup RemoteDirectorGroup")
+
+    # Placeholder when a specific failure case is being worked...
+    failure_injections="failure_004:failure_076_SRDFDeviceController.rollbackSRDFLinksStep_before_link_rollback"
+
+    for failure in ${failure_injections}
+    do
+      item=${RANDOM}
+      TEST_OUTPUT_FILE=test_output_${item}.log
+      secho "Running Test add_to_cg_srdf with failure scenario: ${failure}..."
+      reset_counts
+      mkdir -p results/${item}
+      volname=${VOLNAME}-${item}
+      # Create a new CG
+      CGNAME=cg${item}
+
+      runcmd blockconsistencygroup create ${PROJECT} ${CGNAME}
+
+      # Turn on failure at a specific point
+      set_artificial_failure ${failure}
+
+      # Check the state of the volume that doesn't exist
+      snap_db 1 "${cfs[@]}"
+
+      # If this is a rollback inject, make sure we get the "additional message"
+      echo ${failure} | grep failure_004 | grep ":" > /dev/null
+
+      if [ $? -eq 0 ]
+      then
+        # Make sure it fails with additional errors accounted for in the error message
+        fail -with_error "Additional errors occurred" volume create ${volname} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB --consistencyGroup=${CGNAME}
+      else
+        # Create the volume
+        fail volume create ${volname} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB --consistencyGroup=${CGNAME}
+      fi
+
+      # Verify injected failures were hit
+      verify_failures ${failure}
+
+      # run discovery to update RemoteDirectorGroups
+      runcmd storagedevice discover_all
+
+      # Perform any DB validation in here
+      snap_db 2 "${cfs[@]}"
+
+      # Validate nothing was left behind
+      validate_db 1 2 ${cfs}
+
+      # Rerun the command
+      set_artificial_failure none
+
+      # Should be able to delete the CG and recreate it.
+      runcmd blockconsistencygroup delete ${CGNAME}
+
+      # Re-create the consistency group
+      runcmd blockconsistencygroup create ${PROJECT} ${CGNAME}
+
+      # Perform any DB validation in here
+      snap_db 3 "${cfs[@]}"
+
+      runcmd volume create ${volname} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB --consistencyGroup=${CGNAME}
+      # Remove the volume
+      runcmd volume delete ${PROJECT}/${volname} --wait
+
+      # Remove the target CG
+      runcmd blockconsistencygroup delete ${CGNAME}-Target-${NH}
+
+      # Perform any DB validation in here
+      snap_db 4 "${cfs[@]}"
+
+      # Validate nothing was left behind
+      validate_db 3 4 ${cfs}
+
+      runcmd blockconsistencygroup delete ${CGNAME}
+
+      # Report results
+      report_results "test_add_to_${srdf_cg_test}_cg_srdf" ${failure}
+    done
+}
+
 cleanup() {
     if [ "${DO_CLEANUP}" = "1" ]; then
 	for id in `export_group list $PROJECT | grep YES | awk '{print $5}'`

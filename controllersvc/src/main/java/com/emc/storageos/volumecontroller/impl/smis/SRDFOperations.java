@@ -405,7 +405,7 @@ public class SRDFOperations implements SmisConstants {
 
     public void rollbackSRDFMirrors(final StorageSystem system,
             final List<URI> sourceURIs, final List<URI> targetURIs,
-            final boolean isGrouprollback, final TaskCompleter completer) {
+            final boolean isGrouprollback, final boolean isVpoolChange, final TaskCompleter completer) {
         log.info("START Rolling back SRDF mirror");
         List<Volume> sources = dbClient.queryObject(Volume.class, sourceURIs);
 
@@ -418,7 +418,7 @@ public class SRDFOperations implements SmisConstants {
                         continue;
                     }
                     Volume target = dbClient.queryObject(Volume.class, targetURI);
-                    rollbackSRDFMirror(system, source, target, isGrouprollback);
+                    rollbackSRDFMirror(system, source, target, isGrouprollback, isVpoolChange);
                 }
             }
         } finally {
@@ -429,19 +429,24 @@ public class SRDFOperations implements SmisConstants {
     }
 
     private void rollbackSRDFMirror(StorageSystem system, Volume source,
-            Volume target, boolean isGrouprollback) {
+            Volume target, boolean isGrouprollback, boolean isVpoolChange) {
         log.info("START Rolling back SRDF mirror");
         try {
             performDetach(system, target, isGrouprollback, new NullTaskCompleter());
 
             if (target.hasConsistencyGroup()) {
                 log.info("Removing Volume from device Group on roll back");
-                removeDeviceGroups(system, source.getId(), target.getId(), null);
+                removeDeviceGroups(system, source.getId(), target.getId(), isVpoolChange, null);
             }
         } catch (Exception e) {
             String msg = format(FAILURE_MSG_FMT, "rollback", source.getId(),
                     target.getId());
             log.warn(msg, e);
+            // Clean up target and source CGs since this is a rollback
+            BlockConsistencyGroup targetCG = dbClient.queryObject(BlockConsistencyGroup.class, target.getConsistencyGroup());
+            BlockConsistencyGroup sourceCG = dbClient.queryObject(BlockConsistencyGroup.class, source.getConsistencyGroup());
+            cleanUpSourceAndTargetCGs(sourceCG, targetCG, system.getId(), isVpoolChange);
+
         }
     }
 
@@ -455,7 +460,7 @@ public class SRDFOperations implements SmisConstants {
      * @param completer
      */
     public void removeDeviceGroups(final StorageSystem system, final URI sourceURI,
-            final URI targetURI, TaskCompleter completer) {
+            final URI targetURI, final boolean isVpoolChange, TaskCompleter completer) {
         log.info("START removing device groups");
         RemoteDirectorGroup group = null;
         StorageSystem targetSystem = null;
@@ -482,24 +487,7 @@ public class SRDFOperations implements SmisConstants {
 
             // after volumes are deleted .group gets removed
             if (cgSourceCleanUpRequired || cgTargetCleanUpRequired) {
-                if (null != targetCG) {
-                    log.info("Set target {}-->{} as inactive", targetCG.getLabel(), targetCG.getId());
-                    targetCG.setInactive(true);
-                    dbClient.persistObject(targetCG);
-                }
-
-                if (null != sourceCG) {
-                    log.info("Clearing properties of source CG {}-->{}", sourceCG.getLabel(), sourceCG.getId());
-                    // Clear the CG types and add the LOCAL types
-
-                    if (null != sourceCG.getTypes()) {
-                        sourceCG.getTypes().remove(Types.SRDF.name());
-                        sourceCG.getRequestedTypes().remove(Types.SRDF.name());
-                    }
-                    // sourceCG.addConsistencyGroupTypes(Types.LOCAL.name());
-
-                    BlockConsistencyGroupUtils.cleanUpCGAndUpdate(sourceCG, system.getId(), sourceCG.getLabel(), false, dbClient);
-                }
+                cleanUpSourceAndTargetCGs(sourceCG, targetCG, system.getId(), isVpoolChange);
             }
 
         } catch (Exception e) {
@@ -532,6 +520,27 @@ public class SRDFOperations implements SmisConstants {
             dbClient.updateAndReindexObject(group);
 
             completer.ready(dbClient);
+        }
+    }
+
+    private void cleanUpSourceAndTargetCGs(BlockConsistencyGroup sourceCG, BlockConsistencyGroup targetCG, URI storageId,
+            boolean isVpoolChange) {
+        if (null != targetCG) {
+            log.info("Set target {}-->{} as inactive", targetCG.getLabel(), targetCG.getId());
+            targetCG.setInactive(true);
+            dbClient.updateObject(targetCG);
+        }
+
+        if (null != sourceCG) {
+            log.info("Clearing properties of source CG {}-->{}", sourceCG.getLabel(), sourceCG.getId());
+            if (null != sourceCG.getTypes()) {
+                sourceCG.getTypes().remove(Types.SRDF.name());
+                sourceCG.getRequestedTypes().remove(Types.SRDF.name());
+            }
+            if (!isVpoolChange) {
+                BlockConsistencyGroupUtils.cleanUpCG(sourceCG, storageId, sourceCG.getLabel(), false, dbClient);
+            }
+            dbClient.updateObject(sourceCG);
         }
     }
 
@@ -1675,7 +1684,7 @@ public class SRDFOperations implements SmisConstants {
 
     private void cleanAllCgVolumesFromDeviceGroups(Collection<Volume> tgtVolumes, StorageSystem sourceSystem) {
         for (Volume target : tgtVolumes) {
-            removeDeviceGroups(sourceSystem, target.getSrdfParent().getURI(), target.getId(), null);
+            removeDeviceGroups(sourceSystem, target.getSrdfParent().getURI(), target.getId(), false, null);
         }
     }
 

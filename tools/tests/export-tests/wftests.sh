@@ -1234,8 +1234,9 @@ srdf_setup() {
          --protocols FC 		        \
          --numpaths 1				\
          --max_snapshots 10			\
-                 --provisionType 'Thin'	        \
-                     --system_type vmax                     \
+         --provisionType 'Thin'	        \
+         --system_type vmax                     \
+         --multiVolumeConsistency		\
          --neighborhoods $NH
 
     run cos update block ${VPOOL_CHANGE} --storage ${SRDF_V3_VMAXA_NATIVEGUID}
@@ -1836,10 +1837,8 @@ test_2() {
 
 	storage_failure_injections="failure_015_SmisCommandHelper.invokeMethod_CreateGroup \
                                     failure_015_SmisCommandHelper.invokeMethod_EMCCreateMultipleTypeElementsFromStoragePool \
-                                    failure_015_SmisCommandHelper.invokeMethod_AddMembers \
                                     failure_015_SmisCommandHelper.invokeMethod_GetDefaultReplicationSettingData \
 	                            failure_015_SmisCommandHelper.invokeMethod_CreateGroupReplica \
-                                    failure_015_SmisCommandHelper.invokeMethod_EMCRefreshSystem\
                                     failure_004:failure_015_SmisCommandHelper.invokeMethod_RemoveMembers \
                                     failure_004:failure_015_SmisCommandHelper.invokeMethod_DeleteGroup \
                                     failure_004:failure_015_SmisCommandHelper.invokeMethod_ReturnElementsToStoragePool"    
@@ -1849,7 +1848,7 @@ test_2() {
     failure_injections="${common_failure_injections} ${storage_failure_injections}"
 
     # Placeholder when a specific failure case is being worked...
-    # failure_injections="failure_004:failure_076_SRDFDeviceController.rollbackSRDFLinksStep_before_link_rollback"
+    # failure_injections="failure_015_SmisCommandHelper.invokeMethod_EMCCreateMultipleTypeElementsFromStoragePool"
 
     if [ "${SS}" = "vplex" ]
     then
@@ -3348,6 +3347,82 @@ test_vpool_change_add_srdf() {
     done
 }
 
+test_vpool_change_add_srdf_cg() {
+    echot "Test VPool Change for Adding SRDF in CG Begins"
+    # Ensure empty RDF groups
+    volume delete --project ${PROJECT} --wait
+    # Setup
+    cfs=("Volume BlockConsistencyGroup RemoteDirectorGroup")
+    item=${RANDOM}
+    volname="test-add_srdf-${item}"
+    mkdir -p results/${item}
+    snap_db_esc=" | grep -Ev \"^Volume:|srdfLinkStatus = OTHER|personality = null\""
+
+    # Create a new CG
+    CGNAME=cg${item}
+
+    runcmd blockconsistencygroup create ${PROJECT} ${CGNAME}
+
+    # Failures
+    failure_injections="failure_004_final_step_in_workflow_complete \
+        failure_015_SmisCommandHelper.invokeMethod_CreateGroup \
+        failure_015_SmisCommandHelper.invokeMethod_* \
+        failure_015_SmisCommandHelper.invokeMethod_EMCCreateMultipleTypeElementsFromStoragePool \
+        failure_015_SmisCommandHelper.invokeMethod_GetDefaultReplicationSettingData \
+        failure_015_SmisCommandHelper.invokeMethod_CreateGroupReplica \
+        failure_004_final_step_in_workflow_complete:failure_015_SmisCommandHelper.invokeMethod_ModifyReplicaSynchronization"
+
+    # Placeholder when a specific failure case is being worked...
+    # failure_injections="failure_004:failure_015_SmisCommandHelper.invokeMethod_ModifyReplicaSynchronization"
+
+    for failure in ${failure_injections}
+    do
+        secho "Running Test with failure scenario: ${failure}..."
+        item=${RANDOM}
+        volname="test-add_srdf-${item}"
+        mkdir -p results/${item}
+
+        # Create a new CG
+        CGNAME=cg${item}
+        runcmd blockconsistencygroup create ${PROJECT} ${CGNAME}
+
+        #Create a non SRDF volume in CG
+        runcmd volume create ${volname} ${PROJECT} ${NH} ${VPOOL_CHANGE} 1GB --consistencyGroup=${CGNAME}
+
+        # Turn on failure at a specific point
+        set_artificial_failure ${failure}
+
+        # Snap the state before the vpool change
+        snap_db 1 "${cfs[@]}" "${snap_db_esc}"
+
+        fail volume change_cos ${PROJECT}/${volname} ${VPOOL_BASE}
+
+        # Verify injected failures were hit
+	verify_failures ${failure}
+
+        # Validate the DB is back to the original state
+        snap_db 2 "${cfs[@]}" "${snap_db_esc}"
+        validate_db 1 2 "${cfs[@]}"
+
+        # Turn off failures
+        set_artificial_failure none
+
+        # run discovery to update RemoteDirectorGroups
+        runcmd storagedevice discover_all
+
+        # Rerun the command
+        runcmd volume change_cos ${PROJECT}/${volname} ${VPOOL_BASE}
+
+        # Remove the volume
+        runcmd volume delete ${PROJECT}/${volname} --wait
+
+        #Remove the CG
+        runcmd blockconsistencygroup delete ${CGNAME}
+
+        # Report results
+        report_results test_vpool_change_add_srdf_cg ${failure}
+    done
+}
 
 cleanup() {
     if [ "${DO_CLEANUP}" = "1" ]; then

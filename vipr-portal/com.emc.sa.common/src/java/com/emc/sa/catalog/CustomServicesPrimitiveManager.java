@@ -20,16 +20,24 @@ import java.net.URI;
 import java.util.List;
 
 import com.emc.storageos.db.client.constraint.NamedElementQueryResultList.NamedElement;
+import com.emc.storageos.db.client.model.ModelObject;
 import com.emc.storageos.db.client.model.uimodels.CustomServicesDBPrimitive;
 import com.emc.storageos.db.client.model.uimodels.CustomServicesDBResource;
 
 public interface CustomServicesPrimitiveManager {
 
     public void save(final CustomServicesDBPrimitive primitive);
+
     public void save(final CustomServicesDBResource resource);
-    public  <T extends CustomServicesDBPrimitive> void deactivate(final Class<T> clazz, final URI id);
+
+    public <T extends CustomServicesDBPrimitive> void deactivate(final Class<T> clazz, final URI id);
+
     public <T extends CustomServicesDBPrimitive> T findById(final Class<T> clazz, final URI id);
+
     public <T extends CustomServicesDBResource> T findResource(final Class<T> clazz, final URI id);
+
     public <T extends CustomServicesDBResource> List<NamedElement> getResources(
             Class<T> type);
+
+    public <T extends ModelObject> List<NamedElement> getByLabel(final Class<T> clazz, final String label);
 }

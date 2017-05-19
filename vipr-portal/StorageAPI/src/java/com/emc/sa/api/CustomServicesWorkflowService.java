@@ -40,6 +40,7 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
+import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -82,7 +83,8 @@ import com.emc.storageos.svcs.errorhandling.resources.APIException;
 public class CustomServicesWorkflowService extends CatalogTaggedResourceService {
 
     private static final Logger log = LoggerFactory.getLogger(CustomServicesWorkflowService.class);
-    
+    private static final WFDirectory NO_DIR = new WFDirectory();
+    private static final String EXPORT_EXTENSION = ".wf";
     @Autowired
     private ModelClient client;
     @Autowired
@@ -96,16 +98,15 @@ public class CustomServicesWorkflowService extends CatalogTaggedResourceService 
     @Autowired
     private CoordinatorClient coordinator;
 
-    private static final WFDirectory NO_DIR = new WFDirectory();
-    private static final String EXPORT_EXTENSION = ".wf"; 
-    
     @GET
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     public CustomServicesWorkflowList getWorkflows(@QueryParam("status") String status, @QueryParam("primitiveId") String primitiveId) {
         List<NamedElement> elements;
-        if(null != status && null != primitiveId){
-            //TODO: currently throwing exception. Implement if both status and primitive id are passed, get the workflows that are in the requested status state and that uses the primitiveId
-            throw APIException.methodNotAllowed.notSupportedWithReason("Querying workflow by both status and primitives are not supported currently.");
+        if (null != status && null != primitiveId) {
+            // TODO: currently throwing exception. Implement if both status and primitive id are passed, get the workflows that are in the
+            // requested status state and that uses the primitiveId
+            throw APIException.methodNotAllowed
+                    .notSupportedWithReason("Querying workflow by both status and primitives are not supported currently.");
         }
         if (null != status) {
             ArgValidator.checkFieldValueFromEnum(status, "status", CustomServicesWorkflowStatus.class);
@@ -128,7 +129,12 @@ public class CustomServicesWorkflowService extends CatalogTaggedResourceService 
     @POST
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     public CustomServicesWorkflowRestRep addWorkflow(final CustomServicesWorkflowCreateParam workflow) {
-        checkForDuplicateName(workflow.getDocument().getName(), CustomServicesWorkflow.class);
+        if (StringUtils.isNotBlank(workflow.getDocument().getName())) {
+            checkForDuplicateName(workflow.getDocument().getName().trim(), CustomServicesWorkflow.class);
+        } else {
+            throw APIException.badRequests.requiredParameterMissingOrEmpty("name");
+        }
+
         final CustomServicesWorkflow newWorkflow;
         try {
             newWorkflow = WorkflowHelper.create(workflow.getDocument());
@@ -147,11 +153,23 @@ public class CustomServicesWorkflowService extends CatalogTaggedResourceService 
         final CustomServicesWorkflow updated;
         try {
             CustomServicesWorkflow customServicesWorkflow = getCustomServicesWorkflow(id);
+            if (null == customServicesWorkflow) {
+                throw APIException.notFound.unableToFindEntityInURL(id);
+            } else if (customServicesWorkflow.getInactive()) {
+                throw APIException.notFound.entityInURLIsInactive(id);
+            }
 
             switch (CustomServicesWorkflowStatus.valueOf(customServicesWorkflow.getState())) {
                 case PUBLISHED:
                     throw APIException.methodNotAllowed.notSupportedWithReason("Published workflow cannot be edited.");
                 default:
+                    if (StringUtils.isNotBlank(workflow.getDocument().getName())) {
+                        final String label = workflow.getDocument().getName().trim();
+                        if (!label.equalsIgnoreCase(customServicesWorkflow.getLabel())) {
+                            checkForDuplicateName(label, CustomServicesWorkflow.class);
+                        }
+                    }
+
                     updated = WorkflowHelper.update(customServicesWorkflow, workflow.getDocument());
 
                     // On update, if there is any change to steps, resetting workflow status to initial state -NONE
@@ -264,7 +282,7 @@ public class CustomServicesWorkflowService extends CatalogTaggedResourceService 
             @Context final HttpServletRequest request,
             @QueryParam("directory") final URI directory) {
         final WFDirectory wfDirectory;
-        if( null != directory ) {
+        if (null != directory) {
             wfDirectory = wfDirectoryManager.getWFDirectoryById(directory);
         } else {
             wfDirectory = NO_DIR;
@@ -272,13 +290,13 @@ public class CustomServicesWorkflowService extends CatalogTaggedResourceService 
         final InputStream in;
         try {
             in = request.getInputStream();
-        } catch(final IOException e) {
+        } catch (final IOException e) {
             throw APIException.internalServerErrors.genericApisvcError("Failed to open servlet input stream", e);
         }
         return map(WorkflowHelper.importWorkflow(in, wfDirectory, client, daos, resourceDAOs));
 
     }
-    
+
     /**
      * Download the resource and set it in the response header
      * 
@@ -296,21 +314,21 @@ public class CustomServicesWorkflowService extends CatalogTaggedResourceService 
                 final byte[] bytes;
                 try {
                     bytes = WorkflowHelper.exportWorkflow(id, client, daos, resourceDAOs, KeyStoreUtil.getViPRKeystore(coordinator));
-                } catch (final GeneralSecurityException | IOException | InterruptedException e ) {
+                } catch (final GeneralSecurityException | IOException | InterruptedException e) {
                     throw APIException.internalServerErrors.genericApisvcError("Failed to open keystore ", e);
                 }
-               
+
                 response.setContentLength(bytes.length);
 
-                response.setHeader("Content-Disposition", "attachment; filename="+
+                response.setHeader("Content-Disposition", "attachment; filename=" +
                         customServicesWorkflow.getLabel().toString() + EXPORT_EXTENSION);
                 return Response.ok(bytes).build();
- 
+
             default:
                 throw APIException.methodNotAllowed.notSupportedForUnpublishedWorkflow(customServicesWorkflow.getState());
         }
     }
-    
+
     @Override
     protected CustomServicesWorkflow queryResource(URI id) {
         return customServicesWorkflowManager.getById(id);

@@ -806,18 +806,15 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
         $scope.workflowData.state = 'VALIDATING';
         delete $scope.alert;
         $http.post(routes.Workflow_validate({workflowId : $scope.workflowData.id})).then(function (resp) {
+            $scope.workflowData.state = resp.data.status;
             if (resp.data.status == "INVALID") {
                 $scope.showAlert = true;
                 $scope.alert = resp.data;
-                $scope.workflowData.state = resp.data.status;
                 if ($scope.alert.error) {
                     if (!$scope.alert.error.errorMessage) {
                         $scope.alert.error.errorMessage='Workflow validation failed. There are '+Object.keys(resp.data.error.errorSteps).length+' steps with errors.';
                     }
                 }
-            } else {
-                var url = routes.ServiceCatalog_showService({serviceId: $scope.workflowData.id});
-                window.location.href = url;
             }
         },
         function(){
@@ -825,6 +822,13 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
             $scope.alert = {status : "INVALID", error : {errorMessage : "An unexpected error occurred while validating the workflow."}};
             $scope.workflowData.state = 'INVALID';
         });
+    }
+
+    $scope.testWorkflow = function() {
+        $scope.workflowData.state = 'TESTING';
+        delete $scope.alert;
+        var url = routes.ServiceCatalog_showService({serviceId: $scope.workflowData.id});
+        window.location.href = url;
     }
 
     $scope.publishorkflow = function() {
@@ -847,6 +851,7 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
             $scope.closeMenu();
         }
         jspInstance.remove(diagramContainer.find('#' + stepId+'-wrapper'));
+        $scope.modified = true;
     }
 
     $scope.select = function(stepId) {

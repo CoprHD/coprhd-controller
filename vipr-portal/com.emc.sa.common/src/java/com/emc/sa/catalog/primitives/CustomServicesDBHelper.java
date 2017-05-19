@@ -28,6 +28,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 
 import org.apache.commons.codec.binary.Base64;
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 
 import com.emc.sa.catalog.CustomServicesPrimitiveManager;
@@ -132,9 +133,11 @@ public final class CustomServicesDBHelper {
         }
         primitive.setId(URIUtil.createId(primitive.getClass()));
 
-        if (null != param.getName()) {
-            checkDuplicateLabel(param.getName(), primitiveManager, dbModel);
-            primitive.setLabel(param.getName());
+        if (StringUtils.isNotBlank(param.getName())) {
+            checkDuplicateLabel(param.getName().trim(), primitiveManager, dbModel);
+            primitive.setLabel(param.getName().trim());
+        } else {
+            throw APIException.badRequests.requiredParameterMissingOrEmpty("name");
         }
         primitive.setFriendlyName(param.getFriendlyName());
         primitive.setDescription(param.getDescription());
@@ -686,7 +689,7 @@ public final class CustomServicesDBHelper {
     private static <T extends CustomServicesDBPrimitive> void checkNotInUse(
             final ModelClient client, final URI id, final T primitive) {
         final List<NamedElement> workflows = client.customServicesWorkflows().getByPrimitive(id);
-        if (null != workflows && !workflows.isEmpty()) {
+        if (CollectionUtils.isNotEmpty(workflows)) {
             final StringBuilder wfName = new StringBuilder();
             String prefix = ". Workflows used : \"";
             for (final NamedElement eachWf : workflows) {
@@ -703,7 +706,7 @@ public final class CustomServicesDBHelper {
     private static void checkDuplicateLabel(final String name, final CustomServicesPrimitiveManager client,
             final Class<? extends ModelObject> clazz) {
         final List<NamedElement> ids = client.getByLabel(clazz, name);
-        if (null != ids && !ids.isEmpty()) {
+        if (CollectionUtils.isNotEmpty(ids)) {
             throw APIException.badRequests.duplicateLabel(name);
         }
     }
@@ -792,10 +795,11 @@ public final class CustomServicesDBHelper {
             throw new RuntimeException("Failed to create custom services primitive: " + dbModel.getSimpleName());
         }
         resource.setId(URIUtil.createId(dbModel));
-        resource.setLabel(name);
-        if (null != name) {
-            checkDuplicateLabel(name, primitiveManager, dbModel);
-            resource.setLabel(name);
+        if (StringUtils.isNotBlank(name)) {
+            checkDuplicateLabel(name.trim(), primitiveManager, dbModel);
+            resource.setLabel(name.trim());
+        } else {
+            throw APIException.badRequests.requiredParameterMissingOrEmpty("name");
         }
         resource.setAttributes(attributes);
         resource.setParentId(parentId);
@@ -833,7 +837,7 @@ public final class CustomServicesDBHelper {
             throw APIException.notFound.entityInURLIsInactive(id);
         }
 
-        if (null != name) {
+        if (StringUtils.isNotBlank(name)) {
             final String label = name.trim();
             if (!label.equalsIgnoreCase(resource.getLabel())) {
                 checkDuplicateLabel(label, primitiveManager, dbModel);

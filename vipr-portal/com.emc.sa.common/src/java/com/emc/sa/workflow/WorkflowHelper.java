@@ -45,10 +45,12 @@ import java.util.Map.Entry;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
 import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
 import org.apache.commons.compress.archivers.tar.TarArchiveOutputStream;
 import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang.StringUtils;
 import org.bouncycastle.util.encoders.Base64;
 import org.codehaus.jackson.JsonGenerationException;
 import org.codehaus.jackson.JsonParseException;
@@ -121,8 +123,10 @@ public final class WorkflowHelper {
         final CustomServicesWorkflow workflow = new CustomServicesWorkflow();
 
         workflow.setId(URIUtil.createId(CustomServicesWorkflow.class));
-        if (document.getName() != null) {
+        if (StringUtils.isNotBlank(document.getName())) {
             workflow.setLabel(document.getName().trim());
+        } else {
+            throw APIException.badRequests.requiredParameterMissingOrEmpty("name");
         }
         workflow.setDescription(document.getDescription());
         workflow.setSteps(toStepsJson(document.getSteps()));
@@ -197,6 +201,9 @@ public final class WorkflowHelper {
     private static StringSet getPrimitives(
             final CustomServicesWorkflowDocument document) {
         final StringSet primitives = new StringSet();
+        if(CollectionUtils.isEmpty(document.getSteps())){
+            return primitives;
+        }
         for (final Step step : document.getSteps()) {
             final StepType stepType = (null == step.getType()) ? null : StepType.fromString(step.getType());
             if (null != stepType) {

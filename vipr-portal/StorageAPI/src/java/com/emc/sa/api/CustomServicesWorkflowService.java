@@ -129,7 +129,12 @@ public class CustomServicesWorkflowService extends CatalogTaggedResourceService 
     @POST
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     public CustomServicesWorkflowRestRep addWorkflow(final CustomServicesWorkflowCreateParam workflow) {
-        checkForDuplicateName(workflow.getDocument().getName().trim(), CustomServicesWorkflow.class);
+        if (StringUtils.isNotBlank(workflow.getDocument().getName())) {
+            checkForDuplicateName(workflow.getDocument().getName().trim(), CustomServicesWorkflow.class);
+        } else {
+            throw APIException.badRequests.requiredParameterMissingOrEmpty("name");
+        }
+
         final CustomServicesWorkflow newWorkflow;
         try {
             newWorkflow = WorkflowHelper.create(workflow.getDocument());

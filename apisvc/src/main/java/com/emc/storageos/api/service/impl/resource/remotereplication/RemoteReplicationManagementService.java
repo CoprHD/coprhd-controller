@@ -546,6 +546,12 @@ public class RemoteReplicationManagementService extends TaskResourceService {
         ArgValidator.checkFieldNotNull(param, "remote replication operation parameter");
         ArgValidator.checkFieldNotNull(param.getOperationContext(), "remote replication operation context");
         ArgValidator.checkFieldNotEmpty(param.getIds(), "remote replication operation pair ids");
+        for (URI id : param.getIds()) {
+            ArgValidator.checkFieldUriType(id, RemoteReplicationPair.class, "id");
+            if (_dbClient.queryObject(id) == null) {
+                throw APIException.badRequests.invalidURI(id);
+            }
+        }
     }
 
     private boolean isVmaxPair(RemoteReplicationPair pair) {

@@ -824,7 +824,7 @@ public class HDSMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
             List<URI> volumes, List<URI> initiatorsToRemove, boolean removeTargets) throws Exception {
 
         String exportMaskRemoveInitiatorsStepId = generateExportMaskRemoveInitiatorsWorkflow(
-                workflow, previousStep, storage, exportGroup, mask, null, initiatorsToRemove, removeTargets);
+                workflow, previousStep, storage, exportGroup, mask, volumes, initiatorsToRemove, removeTargets);
 
         return generateZoningRemoveInitiatorsWorkflow(workflow,
                 exportMaskRemoveInitiatorsStepId, exportGroup, maskToInitiatorsMap);

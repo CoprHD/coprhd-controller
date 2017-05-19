@@ -25,7 +25,7 @@ public class InputParameterRestRep {
     private String name;
     private boolean required;
     private List<String> defaultValue;
-    private String type;
+    private String fieldType;
 
     @XmlElement(name = "name")
     public String getName() {
@@ -54,12 +54,12 @@ public class InputParameterRestRep {
         this.defaultValue = defaultValue;
     }
 
-    @XmlElement(name = "type")
-    public String getType() {
-        return type;
+    @XmlElement(name = "field_type")
+    public String getFieldType() {
+        return fieldType;
     }
 
-    public void setType(final String type) {
-        this.type = type;
+    public void setFieldType(final String fieldType) {
+        this.fieldType = fieldType;
     }
 }

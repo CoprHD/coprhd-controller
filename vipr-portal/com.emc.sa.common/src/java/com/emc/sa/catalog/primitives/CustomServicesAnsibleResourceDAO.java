@@ -155,9 +155,7 @@ public class CustomServicesAnsibleResourceDAO implements CustomServicesResourceD
     }
 
     @Override
-    public void importResource(final CustomServicesPrimitiveResourceRestRep resource, final byte[] bytes) {
-        final CustomServicesDBAnsibleResource model = CustomServicesDBHelper.makeDBResource(CustomServicesDBAnsibleResource.class, resource, bytes);
-        client.save(model);
+    public boolean importResource(final CustomServicesPrimitiveResourceRestRep resource, final byte[] bytes) {
+        return CustomServicesDBHelper.importResource(CustomServicesDBAnsibleResource.class, resource, bytes, client);
     }
-
 }

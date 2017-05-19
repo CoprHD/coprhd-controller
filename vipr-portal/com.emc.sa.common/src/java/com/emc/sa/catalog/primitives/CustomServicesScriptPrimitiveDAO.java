@@ -126,9 +126,8 @@ public class CustomServicesScriptPrimitiveDAO implements CustomServicesPrimitive
     }
 
     @Override
-    public void importPrimitive(final CustomServicesPrimitiveRestRep operation) {
-        final CustomServicesDBScriptPrimitive primitive = CustomServicesDBHelper.makeDBPrimitive(CustomServicesDBScriptPrimitive.class, operation);
-        client.save(primitive);
+    public boolean importPrimitive(final CustomServicesPrimitiveRestRep operation) {
+        return CustomServicesDBHelper.importDBPrimitive(CustomServicesDBScriptPrimitive.class, operation, client);
     }
     
     @Override

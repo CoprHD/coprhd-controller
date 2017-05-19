@@ -182,9 +182,9 @@ public class WorkflowServiceDescriptor {
 
         } catch (final IOException io) {
             log.error("Error deserializing workflow", io);
-            throw new IllegalStateException(String.format("Error deserializing workflow %s", from.getName()));
+            throw new IllegalStateException(String.format("Error deserializing workflow %s", from.getLabel()));
         }
-        log.debug("Mapped workflow service descriptor for {}", from.getName());
+        log.debug("Mapped workflow service descriptor for {}", from.getLabel());
         return to;
     }
 }

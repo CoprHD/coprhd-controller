@@ -24,6 +24,7 @@ import java.util.Map;
 import com.emc.storageos.model.customservices.CustomServicesPrimitiveResourceRestRep;
 import com.emc.storageos.model.customservices.CustomServicesPrimitiveRestRep;
 import com.emc.storageos.model.customservices.CustomServicesWorkflowRestRep;
+import com.google.common.base.Charsets;
 import com.google.common.collect.ImmutableMap;
 
 
@@ -91,13 +92,49 @@ public final class CustomServicesWorkflowPackage {
 
     }
     
+    public static class WorkflowVersion {
+        
+        private final int major;
+        private final int minor;
+        private final int servicePack;
+        private final int patch;
+        
+        public WorkflowVersion(final int major, final int minor, final int servicePack, final int patch) {
+            this.major = major;
+            this.minor = minor;
+            this.servicePack = servicePack;
+            this.patch = patch;
+        }
+        
+        public int major() {
+            return major;
+        }
+        
+        public int minor() {
+            return minor;
+        }
+        
+        public int servicePack() {
+            return servicePack;
+        }
+        
+        public int patch() {
+            return patch;
+        }
+        
+        @Override
+        public String toString() {
+            return major + "." + minor + "." + servicePack + "." + patch;
+        }
+    }
+
     public static class WorkflowMetadata {
         private URI id;
-        private String version;
+        private WorkflowVersion version;
         
         public WorkflowMetadata() {}
         
-        public WorkflowMetadata(final URI id, final String version) {
+        public WorkflowMetadata(final URI id, final WorkflowVersion version) {
             this.id = id;
             this.version = version;
         }
@@ -110,12 +147,16 @@ public final class CustomServicesWorkflowPackage {
             this.id = id;
         }
         
-        public void setVersion(final String version) {
+        public void setVersion(final WorkflowVersion version) {
             this.version = version;
         }
         
-        public String getVersion() {
+        public WorkflowVersion getVersion() {
             return version;
+        }
+
+        public byte[] toBytes() {
+            return (version.toString()+id.toString()).getBytes(Charsets.UTF_8);
         }
     }
     

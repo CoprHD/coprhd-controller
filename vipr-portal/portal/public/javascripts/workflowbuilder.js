@@ -421,8 +421,8 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
     var sbSite = $element.find('#sb-site');
     var jspInstance;
 
-    var INPUT_FIELD_OPTIONS = ['number','boolean','text','password'];
-    var INPUT_TYPE_OPTIONS_REQUIRED = ['AssetOptionMulti','AssetOptionSingle','InputFromUser','InputFromUserMulti','FromOtherStepOutput','FromOtherStepInput'];
+    var INPUT_FIELD_OPTIONS = ['text','number','boolean','password'];
+    var INPUT_TYPE_OPTIONS_REQUIRED = ['InputFromUser','AssetOptionMulti','AssetOptionSingle','InputFromUserMulti','FromOtherStepOutput','FromOtherStepInput'];
     var INPUT_TYPE_OPTIONS = ['Disabled'];
     var ASSET_TYPE_OPTIONS = ['assetType.vipr.blockVirtualPool','assetType.vipr.virtualArray','assetType.vipr.project','assetType.vipr.host'];
 
@@ -602,11 +602,15 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
     }
 
     $scope.getInputOptions=function(){
-        return Object.values($scope.stepInputOptions);
+        return Object.keys($scope.stepInputOptions).map(function(key) {
+               return $scope.stepInputOptions[key];
+           });
     }
 
     $scope.getOutputOptions=function(){
-        return Object.values($scope.stepOutputOptions);
+        return Object.keys($scope.stepOutputOptions).map(function(key) {
+               return $scope.stepOutputOptions[key];
+           });
     }
 
     function setBindings() {

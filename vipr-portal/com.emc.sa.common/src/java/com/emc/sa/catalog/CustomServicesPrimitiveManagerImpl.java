@@ -24,6 +24,7 @@ import org.springframework.stereotype.Component;
 
 import com.emc.sa.model.dao.ModelClient;
 import com.emc.storageos.db.client.constraint.NamedElementQueryResultList.NamedElement;
+import com.emc.storageos.db.client.model.ModelObject;
 import com.emc.storageos.db.client.model.uimodels.CustomServicesDBPrimitive;
 import com.emc.storageos.db.client.model.uimodels.CustomServicesDBResource;
 import com.emc.storageos.db.client.model.uimodels.CustomServicesWorkflow;
@@ -35,7 +36,6 @@ public class CustomServicesPrimitiveManagerImpl implements CustomServicesPrimiti
     @Autowired
     private ModelClient client;
 
-    
     @Override
     public void save(final CustomServicesDBResource resource) {
         client.save(resource);
@@ -43,7 +43,7 @@ public class CustomServicesPrimitiveManagerImpl implements CustomServicesPrimiti
 
     @Override
     public <T extends CustomServicesDBPrimitive> T findById(final Class<T> clazz, final URI id) {
-        return client.findById(clazz, id);  
+        return client.findById(clazz, id);
     }
 
     @Override
@@ -54,25 +54,31 @@ public class CustomServicesPrimitiveManagerImpl implements CustomServicesPrimiti
     @Override
     public <T extends CustomServicesDBPrimitive> void deactivate(final Class<T> clazz, final URI id) {
         final CustomServicesDBPrimitive primitive = findById(clazz, id);
-        if( null == primitive ) {
+        if (null == primitive) {
             throw APIException.notFound.unableToFindEntityInURL(id);
         }
-        
+
         List<NamedElement> workflows = client.customServicesWorkflows().getByPrimitive(id);
-        if( null != workflows && !workflows.isEmpty()) {
-            throw APIException.badRequests.resourceHasActiveReferencesWithType(primitive.getClass().getSimpleName(), id, CustomServicesWorkflow.class.getSimpleName());
+        if (null != workflows && !workflows.isEmpty()) {
+            throw APIException.badRequests.resourceHasActiveReferencesWithType(primitive.getClass().getSimpleName(), id,
+                    CustomServicesWorkflow.class.getSimpleName());
         }
-        
+
         client.delete(primitive);
     }
 
     @Override
     public <T extends CustomServicesDBResource> T findResource(final Class<T> clazz, final URI id) {
-            return client.findById(clazz, id);  
+        return client.findById(clazz, id);
     }
-    
+
     @Override
     public <T extends CustomServicesDBResource> List<NamedElement> getResources(Class<T> type) {
         return client.customServicesPrimitiveResources().list(type);
+    }
+
+    @Override
+    public <T extends ModelObject> List<NamedElement> getByLabel(Class<T> clazz, final String label) {
+        return client.findByLabel(clazz, label);
     }
 }

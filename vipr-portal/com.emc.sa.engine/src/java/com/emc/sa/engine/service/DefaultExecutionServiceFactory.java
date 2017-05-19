@@ -62,7 +62,7 @@ public class DefaultExecutionServiceFactory implements ExecutionServiceFactory, 
             // This is case of "Test Orders".
             // Getting service name from workflow (as there is no catalog service)
             final CustomServicesWorkflow customServicesWorkflow = customServicesWorkflowManager.getById(order.getCatalogServiceId());
-            serviceName = customServicesWorkflow.getName();
+            serviceName = customServicesWorkflow.getLabel();
         }
         else {
             serviceName = catalogService.getBaseService();

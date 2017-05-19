@@ -13,7 +13,7 @@
 # For an example of /root/reset.sh, look at lglw1045.
 reset_simulator() {
     if [ "${SIM}" = "1" ]; then
-	ssh ${HW_SIMULATOR_IP} /root/reset.sh
+	/usr/bin/sshpass -p ${HW_SIMULATOR_DEFAULT_PASSWORD} ssh -q -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null root@${HW_SIMULATOR_IP} /root/reset.sh
     else
 	echo "No simulator set, not resetting simulator"
     fi
@@ -84,6 +84,10 @@ retrieve_preexistingconfig() {
 #
 # But maybe we crawl before we run.
 report_results() {
+    if [ "${REPORT}" != "1" ]; then
+	return;
+    fi
+
     testname=${1}
     failure_scenario=${2}
     branch=`git rev-parse --abbrev-ref HEAD`
@@ -114,10 +118,8 @@ report_results() {
 
     echo -e "${result}\n$(cat ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE})" > ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
 
-    if [ "${REPORT}" = "1" ]; then
-	cat /tmp/report-result.txt | sshpass -p $SYSADMIN_PASSWORD ssh -o StrictHostKeyChecking=no root@${GLOBAL_RESULTS_IP} "cat >> ${GLOBAL_RESULTS_PATH}/${RESULTS_SET_FILE}" > /dev/null 2> /dev/null
-	cat ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE} | sshpass -p $SYSADMIN_PASSWORD ssh -o StrictHostKeyChecking=no root@${GLOBAL_RESULTS_IP} "cat > ${GLOBAL_RESULTS_PATH}/${GLOBAL_RESULTS_OUTPUT_FILES_SUBDIR}/${TEST_OUTPUT_FILE} ; chmod 777 ${GLOBAL_RESULTS_PATH}/${GLOBAL_RESULTS_OUTPUT_FILES_SUBDIR}/${TEST_OUTPUT_FILE}" > /dev/null 2> /dev/null
-    fi
+    cat /tmp/report-result.txt | sshpass -p $SYSADMIN_PASSWORD ssh -o StrictHostKeyChecking=no root@${GLOBAL_RESULTS_IP} "cat >> ${GLOBAL_RESULTS_PATH}/${RESULTS_SET_FILE}" > /dev/null 2> /dev/null
+    cat ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE} | sshpass -p $SYSADMIN_PASSWORD ssh -o StrictHostKeyChecking=no root@${GLOBAL_RESULTS_IP} "cat > ${GLOBAL_RESULTS_PATH}/${GLOBAL_RESULTS_OUTPUT_FILES_SUBDIR}/${TEST_OUTPUT_FILE} ; chmod 777 ${GLOBAL_RESULTS_PATH}/${GLOBAL_RESULTS_OUTPUT_FILES_SUBDIR}/${TEST_OUTPUT_FILE}" > /dev/null 2> /dev/null
 }
 
 # Helper method to increment the failure counts

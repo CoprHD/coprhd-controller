@@ -1845,6 +1845,9 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                 entryLogMsgBuilder.append(String.format("%nPool:%s Volume:%s", poolId, volumeURI.toString()));
                 exitLogMsgBuilder.append(String.format("%nPool:%s Volume:%s", poolId, volumeURI.toString()));
                 VolumeDeleteCompleter volumeCompleter = new VolumeDeleteCompleter(volumeURI, opId);
+                // Do not notify workflow if a child (single volume) completer gives status.  The MultiVolumeTaskCompleter will 
+                // take care of that.
+                volumeCompleter.setNotifyWorkflow(false);
                 if (volume.getInactive() == false) {
                     // It is possible that there is a BlockSnaphot instance that references the
                     // same device Volume if a VPLEX virtual volume has been created from the

@@ -4002,7 +4002,7 @@ storageDrivers.installButton=Install
 storageDrivers.upgradeButton=Upgrade
 storageDrivers.upgradeButton=Upgrade
 storageDrivers.deleteButton=Delete
-storageDrivers.operation.confirm=This operation will concurrently restart all controller services, thus orders that are queued or being executed WILL fail. Please make sure there is no ongoing or queued order, and wait until this operation finished to create a new order. Still willing to proceed?
+storageDrivers.operation.confirm=This operation will restart all controller services. This will impact all new orders submitted after driver installation was started. Please make sure there is no ongoing or queued order, and wait until this operation finishes to create a new order. Do you want to proceed?
 
 storageDrivers.install.init.success=Install request initiated ...
 storageDrivers.delete.init.success=Uninstall request initiated ...

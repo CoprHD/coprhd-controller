@@ -723,20 +723,20 @@ public class StorageDriverService {
 
         if (!drUtil.isActiveSite()) {
             throw APIException.internalServerErrors
-                    .driverOpeartionEnvPrecheckFailed("This operation is not allowed on standby site");
+                    .driverOperationEnvPrecheckFailed("This operation is not allowed on standby site");
         }
 
         for (Site site : drUtil.listSites()) {
             SiteState siteState = site.getState();
             if (!siteState.equals(SiteState.ACTIVE) && !siteState.equals(SiteState.STANDBY_SYNCED)) {
-                throw APIException.internalServerErrors.driverOpeartionEnvPrecheckFailed(
+                throw APIException.internalServerErrors.driverOperationEnvPrecheckFailed(
                         String.format("Site %s is in %s state,not active or synced", site.getName(), siteState));
             }
 
             ClusterInfo.ClusterState state = coordinator.getControlNodesState(site.getUuid());
             if (state != ClusterInfo.ClusterState.STABLE) {
                 throw APIException.internalServerErrors
-                        .driverOpeartionEnvPrecheckFailed(String.format("Currently site %s is not stable", site.getName()));
+                        .driverOperationEnvPrecheckFailed(String.format("Currently site %s is not stable", site.getName()));
             }
         }
 
@@ -745,7 +745,7 @@ public class StorageDriverService {
         // For long-term consideration, we need to implement a serialization mechanism among
         // driver operations and order executions to avoid impact on each other.
         if (hasOngoingQueuedOrders()) {
-            throw APIException.internalServerErrors.driverOpeartionEnvPrecheckFailed(
+            throw APIException.internalServerErrors.driverOperationEnvPrecheckFailed(
                     "There are ongoing or queued orders now, please wait until these orders complete");
         }
     }

@@ -380,7 +380,7 @@ public interface InternalServerErrorExceptions {
     public InternalServerErrorException installDriverPrecheckFailed(String errMsg);
 
     @DeclareServiceCode(ServiceCode.SYS_DRIVER_OPERATION_ENV_PRECHECK_FAILED)
-    public InternalServerErrorException driverOpeartionEnvPrecheckFailed(String errMsg);
+    public InternalServerErrorException driverOperationEnvPrecheckFailed(String errMsg);
 
     @DeclareServiceCode(ServiceCode.SYS_INSTALL_DRIVER_FAILED)
     public InternalServerErrorException installDriverFailed(String errMsg);

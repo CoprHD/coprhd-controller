@@ -4,7 +4,6 @@
  */
 package com.emc.sa.asset.providers;
 
-import java.lang.reflect.InvocationTargetException;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -25,11 +24,13 @@ import com.emc.sa.asset.BaseAssetOptionsProvider;
 import com.emc.sa.asset.annotation.Asset;
 import com.emc.sa.asset.annotation.AssetDependencies;
 import com.emc.sa.asset.annotation.AssetNamespace;
-import com.emc.storageos.db.client.model.remotereplication.RemoteReplicationPair;
+import com.emc.storageos.db.client.URIUtil;
+import com.emc.storageos.db.client.model.BlockConsistencyGroup;
+import com.emc.storageos.db.client.model.remotereplication.RemoteReplicationGroup;
 import com.emc.storageos.model.NamedRelatedResourceRep;
+import com.emc.storageos.model.RelatedResourceRep;
 import com.emc.storageos.model.block.BlockConsistencyGroupRestRep;
 import com.emc.storageos.model.ports.StoragePortRestRep;
-import com.emc.storageos.model.remotereplication.RemoteReplicationGroupRestRep;
 import com.emc.storageos.model.remotereplication.RemoteReplicationSetRestRep;
 import com.emc.storageos.model.storagesystem.type.StorageSystemTypeRestRep;
 import com.emc.storageos.model.systems.StorageSystemRestRep;
@@ -348,34 +349,41 @@ public class RemoteReplicationProvider extends BaseAssetOptionsProvider {
      * @return list of asset options for catalog service order form
      */
     @Asset("remoteReplicationPair")
-    @AssetDependencies({"remoteReplicationPairGroup"})
-    public List<AssetOption> getRemoteReplicationPair(AssetOptionsContext ctx, URI groupId) {
+    @AssetDependencies({"remoteReplicationPairGroup","remoteReplicationSetsForArrayType"})
+    public List<AssetOption> getRemoteReplicationPair(AssetOptionsContext ctx,
+            URI groupId, URI setId) {
         List<AssetOption> options = Lists.newArrayList();
 
         if (groupId.equals(UNGROUPED)) {
-            // get pairs in set (in no group)
+            // get pairs in set (include pairs in groups in this set)
+            //List<NamedRelatedResourceRep> pairs = api(ctx).remoteReplicationSets().getGroupsForSet(setId)
+            //        listRelatedRemoteReplicationPairs(groupId).getRemoteReplicationPairs();
+
+            // TODO: did this get the pairs in subgroups?!
+
+            return null; //createNamedResourceOptions(pairs);
+        }
+
+        if (URIUtil.isType(groupId, BlockConsistencyGroup.class)) {
+            BlockConsistencyGroupRestRep cg =
+                    api(ctx).blockConsistencyGroups().get(groupId);
+            for(RelatedResourceRep v : cg.getVolumes()) {
+                List<NamedRelatedResourceRep> pairs = api(ctx).remoteReplicationPairs().
+                        listRelatedRemoteReplicationPairs(v.getId()).getRemoteReplicationPairs();
+                log.info("working...");
+                options.addAll(createNamedResourceOptions(pairs));
+            }
             return options;
         }
 
-        try {
-            BlockConsistencyGroupRestRep cg = api(ctx).blockConsistencyGroups().get(groupId);
-            // get pairs in CG
-            return options;
-        } catch(Exception e) {
-            // not a CG
-            log.info("not a CG");
+        if (URIUtil.isType(groupId, RemoteReplicationGroup.class)) {
+            List<NamedRelatedResourceRep> pairs = api(ctx).remoteReplicationGroups().
+                    listRemoteReplicationPairs(groupId.toString()).getRemoteReplicationPairs();
+            return createNamedResourceOptions(pairs);
         }
-        
-        try {
-            RemoteReplicationGroupRestRep rrGrp = api(ctx).remoteReplicationGroups().getRemoteReplicationGroupsRestRep(groupId.toString());        
-            // get pairs in RR Group
-            return options;
-        } catch(Exception e) {
-            // not a RR Group
-            log.info("not a RR Group");
-        }
-        
-        return options;
+
+        throw new IllegalStateException("Invalid Grouping option selected.  Failed to get Remote Replication Groups, " +
+                "Consistency Groups, or Remote Replication Pairs from database");
     }
 
     /*

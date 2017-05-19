@@ -10,6 +10,7 @@ import com.emc.storageos.model.TaskResourceRep;
 import com.emc.storageos.model.remotereplication.RemoteReplicationGroupCreateParams;
 import com.emc.storageos.model.remotereplication.RemoteReplicationGroupList;
 import com.emc.storageos.model.remotereplication.RemoteReplicationGroupRestRep;
+import com.emc.storageos.model.remotereplication.RemoteReplicationPairList;
 import com.emc.vipr.client.core.impl.PathConstants;
 import com.emc.vipr.client.core.impl.TaskUtil;
 import com.emc.vipr.client.impl.RestClient;
@@ -43,6 +44,11 @@ public class RemoteReplicationGroups {
         // valid groups are: reachable, have source & target systems
         return client.get(RemoteReplicationGroupList.class,
                 PathConstants.BLOCK_REMOTE_REPLICATION_GROUP_URL + "/valid");
+    }
+
+    public RemoteReplicationPairList listRemoteReplicationPairs(String uuid) {
+        return client.get(RemoteReplicationPairList.class,
+                PathConstants.BLOCK_REMOTE_REPLICATION_GROUP_URL + "/" + uuid + "/pairs");
     }
 
     public TaskResourceRep createRemoteReplicationGroup(RemoteReplicationGroupCreateParams params) {

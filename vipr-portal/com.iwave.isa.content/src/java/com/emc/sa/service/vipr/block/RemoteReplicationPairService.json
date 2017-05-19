@@ -24,7 +24,8 @@
     },
     remoteReplicationPair:{
       type:"assetType.vipr.remoteReplicationPair",
-      lockable:true,
+      lockable:false,
+      select:"many",
       required: true
     }
   }

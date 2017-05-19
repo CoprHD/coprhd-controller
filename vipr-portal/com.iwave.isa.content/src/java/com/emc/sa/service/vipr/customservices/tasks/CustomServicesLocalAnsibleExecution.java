@@ -151,13 +151,13 @@ public class CustomServicesLocalAnsibleExecution extends ViPRExecutionTask<Custo
             final String chrootInventoryFileName = String.format("%s%s", chrootOrderDir,
                     URIUtil.parseUUIDFromURI(URI.create(hostFileFromStep)).replace("-", ""));
 
-            //For Test ALIK
+            // Soft link all files from ansible tar
             final String[] softLinkFiles = softLinkCmd(fileAbsolutePath);
             Process p = Runtime.getRuntime().exec(softLinkFiles);
 
-            //result = executeLocal(chrootInventoryFileName, AnsibleHelper.makeExtraArg(input,step), String.format("%s%s", chrootOrderDir, playbook), user);
-            result = null;
+            result = executeLocal(chrootInventoryFileName, AnsibleHelper.makeExtraArg(input,step), String.format("%s%s", chrootOrderDir, playbook), user);
 
+            // unlink all ansible package files for cleanup
             for(String filename: fileSoftLink) {
                 final String[] unlinkFiles = unlinkCmd(filename);
                 p = Runtime.getRuntime().exec(unlinkFiles);
@@ -200,8 +200,6 @@ public class CustomServicesLocalAnsibleExecution extends ViPRExecutionTask<Custo
                     // Add file name and file path for softlinks
                     fileList.add(curTarget.getName());
                     pathList.add(curTarget.getAbsolutePath());
-                    logger.info("Alik File name: " + curTarget.getName());
-                    logger.info("Alik absolutepath: " + curTarget.getAbsolutePath());
                 }
                 entry = tarIn.getNextTarEntry();
             }
@@ -249,7 +247,6 @@ public class CustomServicesLocalAnsibleExecution extends ViPRExecutionTask<Custo
 
     private String[] unlinkCmd(String filename) {
         String orderFile = CustomServicesConstants.CHROOT_DIR + "/" + filename;
-        logger.info("Alik Unlinking: " + orderFile);
         return new String[] { "/usr/bin/unlink", orderFile};
     }
 }

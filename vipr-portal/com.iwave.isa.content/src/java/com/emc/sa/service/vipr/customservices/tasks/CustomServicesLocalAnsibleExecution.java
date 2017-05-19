@@ -23,10 +23,12 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.URI;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import com.google.common.collect.ImmutableList;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
 import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
@@ -84,6 +86,8 @@ public class CustomServicesLocalAnsibleExecution extends ViPRExecutionTask<Custo
 
         ExecutionUtils.currentContext().logInfo("customServicesScriptExecution.statusInfo", step.getId());
         final URI scriptid = step.getOperation();
+        final List<String> fileSoftLink = new ArrayList<String>();
+        final List<String> fileAbsolutePath = new ArrayList<String>();
 
         final Exec.Result result;
         try {
@@ -113,7 +117,8 @@ public class CustomServicesLocalAnsibleExecution extends ViPRExecutionTask<Custo
             final byte[] ansibleArchive = Base64.decodeBase64(ansiblePackageId.getResource());
 
             // uncompress Ansible archive to orderDir
-            uncompressArchive(ansibleArchive);
+            // Supply two list that will hold file name and absolute path for soft links
+            uncompressArchive(ansibleArchive, fileSoftLink, fileAbsolutePath);
 
             final String hostFileFromStep = AnsibleHelper.getOptions(CustomServicesConstants.ANSIBLE_HOST_FILE, input);
 
@@ -147,8 +152,8 @@ public class CustomServicesLocalAnsibleExecution extends ViPRExecutionTask<Custo
                     URIUtil.parseUUIDFromURI(URI.create(hostFileFromStep)).replace("-", ""));
 
             //For Test ALIK
-            final String[] mountOrderdir = mountCmd(orderDir);
-            Process p = Runtime.getRuntime().exec(mountOrderdir);
+            final String[] softLinkFiles = softLinkCmd(fileAbsolutePath);
+            Process p = Runtime.getRuntime().exec(softLinkFiles);
 
             result = executeLocal(chrootInventoryFileName, AnsibleHelper.makeExtraArg(input,step), String.format("%s%s", chrootOrderDir, playbook), user);
 
@@ -173,7 +178,7 @@ public class CustomServicesLocalAnsibleExecution extends ViPRExecutionTask<Custo
         return new CustomServicesScriptTaskResult(AnsibleHelper.parseOut(result.getStdOutput()), result.getStdOutput(), result.getStdError(), result.getExitValue());
     }
 
-    private void uncompressArchive(final byte[] ansibleArchive) {
+    private void uncompressArchive(final byte[] ansibleArchive, final List<String> fileList, final List<String> pathList) {
         try (final TarArchiveInputStream tarIn = new TarArchiveInputStream(
                 new GzipCompressorInputStream(new ByteArrayInputStream(
                         ansibleArchive)))) {
@@ -190,6 +195,11 @@ public class CustomServicesLocalAnsibleExecution extends ViPRExecutionTask<Custo
                     try (final OutputStream out = new FileOutputStream(curTarget)) {
                         IOUtils.copy(tarIn, out);
                     }
+                    // Add file name and file path for softlinks
+                    fileList.add(curTarget.getName());
+                    pathList.add(curTarget.getAbsolutePath());
+                    logger.info("Alik File name: " + curTarget.getName());
+                    logger.info("Alik absolutepath: " + curTarget.getAbsolutePath());
                 }
                 entry = tarIn.getNextTarEntry();
             }
@@ -216,11 +226,27 @@ public class CustomServicesLocalAnsibleExecution extends ViPRExecutionTask<Custo
         return Exec.sudo(new File(orderDir), timeout, null, environment, cmds);
     }
 
-    private String[] mountCmd(String orderpath) {
-        return new String[] { "sudo", "mount", "--bind", orderpath, CustomServicesConstants.CHROOT_DIR};
+    private String[] softLinkCmd(final List <String> fileAbsolutePath) {
+        final ImmutableList.Builder<String> builder = ImmutableList.builder();
+
+        // ln -s with full path
+        builder.add("/usr/bin/ls -s");
+        // Add all files with absolute path
+        for(String absoluteDir: fileAbsolutePath) {
+            builder.add(absoluteDir);
+        }
+
+        // Added the chroot path
+        builder.add(CustomServicesConstants.CHROOT_DIR);
+
+        final ImmutableList<String> cmdList = builder.build();
+
+        return cmdList.toArray(new String[cmdList.size()]);
     }
 
     private String[] umountCmd(String orderpath) {
         return new String[] { "sudo", "umount", orderpath};
     }
+
+
 }

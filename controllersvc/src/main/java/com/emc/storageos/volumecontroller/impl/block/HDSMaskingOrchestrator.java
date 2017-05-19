@@ -751,7 +751,7 @@ public class HDSMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
             List<URI> initiatorsURIs, Map<URI, List<URI>> maskToInitiatorsMap, String token) throws Exception {
 
         String maskingStep = generateExportMaskAddInitiatorsWorkflow(workflow, previousStep,
-                storage, exportGroup, mask, initiatorsURIs, null, token);
+                storage, exportGroup, mask, initiatorsURIs, volumeURIs != null ? new HashSet<URI>(volumeURIs) : new HashSet<>(), token);
 
         return generateZoningAddInitiatorsWorkflow(workflow, maskingStep, exportGroup,
                 maskToInitiatorsMap);
@@ -790,7 +790,7 @@ public class HDSMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
             String zoningGroupId, StorageSystem storage, ExportGroup exportGroup,
             ExportMask mask, List<URI> volumes, List<URI> newInitiators, String token) throws Exception {
         return generateExportMaskAddInitiatorsWorkflow(workflow, zoningGroupId, storage,
-                exportGroup, mask, newInitiators, null, token);
+                exportGroup, mask, newInitiators, volumes != null ? new HashSet<URI>(volumes) : new HashSet<>(), token);
     }
 
     @Override
@@ -810,7 +810,7 @@ public class HDSMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
         ExportTaskCompleter hdsExportMaskDeleteCompleter = new HDSExportMaskDeleteCompleter(
                 exportGroup.getId(), mask.getId(), previousStep);
         String exportMaskDeleteStepId = generateExportMaskDeleteWorkflow(workflow, null,
-                storage, exportGroup, mask, null, null, hdsExportMaskDeleteCompleter);
+                storage, exportGroup, mask, volumes, initiators, hdsExportMaskDeleteCompleter);
         String zoningStepId = generateZoningDeleteWorkflow(workflow, exportMaskDeleteStepId, exportGroup, masks);
         generateWorkflowStepToMarkExportMaskInActive(workflow, zoningStepId, exportGroup,
                 mask, null);

@@ -42,6 +42,10 @@ import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.remotereplicationcontroller.RemoteReplicationController.RemoteReplicationOperations;
 import com.emc.storageos.plugins.common.Constants;
 import com.emc.storageos.storagedriver.model.StorageVolume;
+import static com.emc.storageos.svcs.errorhandling.model.ValidationResult.VALID_RESULT;
+import static com.emc.storageos.svcs.errorhandling.model.ValidationResult.getInvalidResult;
+
+import com.emc.storageos.svcs.errorhandling.model.ValidationResult;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.volumecontroller.impl.externaldevice.RemoteReplicationDataClient;
 import com.emc.storageos.volumecontroller.impl.externaldevice.RemoteReplicationDataClientImpl;
@@ -205,7 +209,7 @@ public class RemoteReplicationUtils {
      */
     public static void validateRemoteReplicationOperation(DbClient dbClient, RemoteReplicationElement rrElement,
             RemoteReplicationOperations operation) {
-        boolean isOperationValid = true;
+        ValidationResult validationResult = VALID_RESULT;
         // todo: validate that this operation is valid (operational validity):
         //   For rr pairs:
         //     parent set supports operations on pairs;
@@ -221,14 +225,14 @@ public class RemoteReplicationUtils {
         switch (rrElement.getType()) {
             case REPLICATION_PAIR:
                 RemoteReplicationPair rrPair = dbClient.queryObject(RemoteReplicationPair.class, rrElement.getElementUri());
-                isOperationValid = supportOperationOnRrPair(rrPair, dbClient);
+                validationResult = supportOperationOnRrPair(rrPair, dbClient);
                 break;
             case CONSISTENCY_GROUP:
                 BlockConsistencyGroup cg = dbClient.queryObject(BlockConsistencyGroup.class, rrElement.getElementUri());
                 List<RemoteReplicationPair> rrPairs = getRemoteReplicationPairsForCG(cg, dbClient);
                 for (RemoteReplicationPair pair : rrPairs) {
-                    if (!supportOperationOnRrCGPair(pair, dbClient)) {
-                        isOperationValid = false;
+                    validationResult = supportOperationOnRrCGPair(pair, dbClient);
+                    if (!validationResult.isValid()) {
                         break;
                     }
                 }
@@ -236,17 +240,23 @@ public class RemoteReplicationUtils {
             case REPLICATION_GROUP:
                 RemoteReplicationGroup rrGroup = dbClient.queryObject(RemoteReplicationGroup.class, rrElement.getElementUri());
                 RemoteReplicationSet rrSet = getRemoteReplicationSetForRrGroup(dbClient, rrGroup);
-                isOperationValid = (rrSet != null && rrSet.supportRemoteReplicationGroupOperation());
+                if (rrSet == null || !rrSet.supportRemoteReplicationGroupOperation()) {
+                    validationResult = getInvalidResult(
+                            String.format("remote repliation set % does not support this operation", rrSet.getNativeId()));
+                }
                 break;
             case REPLICATION_SET:
                 rrSet = dbClient.queryObject(RemoteReplicationSet.class, rrElement.getElementUri());
-                isOperationValid = rrSet.supportRemoteReplicationSetOperation();
+                if (!rrSet.supportRemoteReplicationSetOperation()) {
+                    validationResult = getInvalidResult(
+                            String.format("remote repliation set % does not support this operation", rrSet.getNativeId()));
+                }
                 break;
         }
 
-        if (!isOperationValid) { // bad request
+        if (!validationResult.isValid()) { // bad request
             throw APIException.badRequests.remoteReplicationLinkOperationIsNotAllowed(rrElement.getType().toString(),
-                    rrElement.getElementUri().toString(), operation.toString());
+                    rrElement.getElementUri().toString(), operation.toString(), validationResult.getErrorMessage());
         }
     }
 
@@ -269,57 +279,61 @@ public class RemoteReplicationUtils {
     }
 
     /**
-     * @return true if rr pair is in cg and if rr set of given rr pair support rr pair granularity
+     * @return valid result if rr pair is in cg and if rr set of given rr pair support rr pair granularity
      *         operation, and if this rr pair is in a rr group, the rr group
      *         should not enforce group consistency, which means it allows
      *         operations on subset of pairs
      */
-    private static boolean supportOperationOnRrCGPair(RemoteReplicationPair rrPair, DbClient dbClient) {
+    private static ValidationResult supportOperationOnRrCGPair(RemoteReplicationPair rrPair, DbClient dbClient) {
         if (!rrPair.isInCG(dbClient)) {
             _log.info("RR pair {} has source/target elements outside of consistency group.", rrPair.getNativeId());
-            return false;
+            return getInvalidResult(String.format("remote replicaiton pair %s is in a consistency group", rrPair.getNativeId()));
         }
 
         RemoteReplicationSet rrSet = dbClient.queryObject(RemoteReplicationSet.class, rrPair.getReplicationSet());
         if (!rrSet.supportRemoteReplicationPairOperation()) {
-            return false;
+            return getInvalidResult(String.format("remote repliation set % does not support this operation", rrSet.getNativeId()));
         }
 
         if (!rrPair.isGroupPair()) {
-            return true;
+            return VALID_RESULT;
         }
         RemoteReplicationGroup rrGroup = dbClient.queryObject(RemoteReplicationGroup.class, rrPair.getReplicationGroup());
         if (rrGroup.getIsGroupConsistencyEnforced() == Boolean.TRUE) {
             // No pair operation is allowed if consistency is to be enforced on group level
-            return false;
+            return getInvalidResult(
+                    String.format("remote replication group %s enforces consistency", rrGroup.getNativeId()));
         }
-        return true;
+        return VALID_RESULT;
     }
 
     /**
-     * @return true if rr set of given rr pair support rr pair granularity
+     * @return valid result if rr set of given rr pair support rr pair granularity
      *         operation, and if pair is not in CG, and if this rr pair is in a rr group, the rr group
      *         should not enforce group consistency, which means it allows
      *         operations on subset of pairs
      */
-    private static boolean supportOperationOnRrPair(RemoteReplicationPair rrPair, DbClient dbClient) {
+    private static ValidationResult supportOperationOnRrPair(RemoteReplicationPair rrPair, DbClient dbClient) {
         RemoteReplicationSet rrSet = dbClient.queryObject(RemoteReplicationSet.class, rrPair.getReplicationSet());
         if (!rrSet.supportRemoteReplicationPairOperation()) {
-            return false;
+            return getInvalidResult(
+                    String.format("remote replication set %s does not support this operation", rrSet.getNativeId()));
         }
         if (rrPair.isInCG(dbClient)) {
             _log.info("RR pair {} has source/target elements in CG.", rrPair.getNativeId());
-            return false;
+            return getInvalidResult(
+                    String.format("remote replication pair %s is in a consistency group", rrPair.getNativeId()));
         }
         if (!rrPair.isGroupPair()) {
-            return true;
+            return VALID_RESULT;
         }
         RemoteReplicationGroup rrGroup = dbClient.queryObject(RemoteReplicationGroup.class, rrPair.getReplicationGroup());
         if (rrGroup.getIsGroupConsistencyEnforced() == Boolean.TRUE) {
             // No pair operation is allowed if consistency is to be enforced on group level
-            return false;
+            return getInvalidResult(
+                    String.format("remote replication group %s enforces consistency", rrGroup.getNativeId()));
         }
-        return true;
+        return VALID_RESULT;
     }
 
 

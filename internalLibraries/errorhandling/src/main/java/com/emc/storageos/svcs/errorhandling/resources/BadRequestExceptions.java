@@ -3305,7 +3305,7 @@ public interface BadRequestExceptions {
     public BadRequestException remoteReplicationOperationPrecheckFailed(final String details);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
-    public BadRequestException remoteReplicationLinkOperationIsNotAllowed(final String elementType, final String elementId, final String operation);
+    public BadRequestException remoteReplicationLinkOperationIsNotAllowed(final String elementType, final String elementId, final String operation, final String details);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException remoteReplicationModeChangeIsNotAllowed(final String elementType, final String elementId, final String newMode);

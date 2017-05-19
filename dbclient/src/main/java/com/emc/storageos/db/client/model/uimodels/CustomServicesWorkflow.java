@@ -98,6 +98,9 @@ public class CustomServicesWorkflow extends ModelObjectWithACLs {
     @IndexByKey
     @Name(PRIMITIVES)
     public StringSet getPrimitives() {
+        if (primitives == null) {
+            primitives = new StringSet();
+        }
         return primitives;
     }
     
@@ -107,14 +110,14 @@ public class CustomServicesWorkflow extends ModelObjectWithACLs {
     }
 
     public void addPrimitives(final List<URI> primitives) {
-        for (URI u : primitives) {
-            getPrimitives().add(u.toString());
+        for (URI primitiveUri : primitives) {
+            getPrimitives().add(primitiveUri.toString());
         }
     }
 
     public void removePrimitives(final List<URI> primitives) {
-        for (URI u : primitives) {
-            getPrimitives().remove(u.toString());
+        for (URI primitiveUri : primitives) {
+            getPrimitives().remove(primitiveUri.toString());
         }
     }
 }

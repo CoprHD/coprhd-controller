@@ -864,14 +864,9 @@ public final class CustomServicesDBHelper {
             }
             resource.setAttributes(attributes);
             resource.setResource(Base64.encodeBase64(stream));
-
-            primitiveManager.save(resource);
-
-        } else {
-            // update the name (which is label of the CF). This has no issue with being referenced.
-            primitiveManager.save(resource);
-
         }
+
+        primitiveManager.save(resource);
 
         return makeResourceType(type, resource);
     }

@@ -230,6 +230,7 @@ public class CustomServicesLocalAnsibleExecution extends ViPRExecutionTask<Custo
         final ImmutableList.Builder<String> builder = ImmutableList.builder();
 
         // ln -s with full path
+        builder.add("sudo");
         builder.add("/usr/bin/ln");
         builder.add("-s");
         // Add all files with absolute path

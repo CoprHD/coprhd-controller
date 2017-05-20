@@ -381,7 +381,7 @@ public class WorkflowBuilder extends Controller {
         ClientResponse response = getCatalogClient().customServicesPrimitives().deletePrimitive(primitiveURI);
 
         // Delete this reference in WFDirectory
-        if(!StringUtils.equals(MY_LIBRARY_ROOT, dirID)) {
+        if (!StringUtils.equals(MY_LIBRARY_ROOT, dirID)) {
             final WFDirectoryUpdateParam param = new WFDirectoryUpdateParam();
             final Set<URI> removeWorkflows = new HashSet<URI>();
             removeWorkflows.add(primitiveURI);
@@ -554,11 +554,11 @@ public class WorkflowBuilder extends Controller {
             final URI workflowDirectoryID = StringUtils.equals(MY_LIBRARY_ROOT, importWorkflow.getWfDirID()) ? null
                     : new URI(importWorkflow.getWfDirID());
             getCatalogClient().customServicesPrimitives().importWorkflow(workflowDirectoryID, importWorkflow.getWorkflowFile());
+            flash.success(MessagesUtils.get("wfBuilder.import.workflow.success"));
         } catch (final Exception e) {
             Logger.error(e.getMessage());
             flash.error(e.getMessage());
         }
-        flash.success(MessagesUtils.get("wfBuilder.import.workflow.success"));
         view();
     }
 

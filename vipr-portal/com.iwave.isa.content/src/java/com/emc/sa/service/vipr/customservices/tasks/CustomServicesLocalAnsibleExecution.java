@@ -152,15 +152,16 @@ public class CustomServicesLocalAnsibleExecution extends ViPRExecutionTask<Custo
                     URIUtil.parseUUIDFromURI(URI.create(hostFileFromStep)).replace("-", ""));
 
             // Soft link all files from ansible tar
-            final String[] softLinkFiles = softLinkCmd(fileAbsolutePath);
-            Process p = Runtime.getRuntime().exec(softLinkFiles);
+            Exec.exec(new File(CustomServicesConstants.CHROOT_DIR),timeout,null,new HashMap<String,String>(), softLinkCmd(fileAbsolutePath));
+            // Make sure we have all permission for soft link files
+            Exec.exec(new File(CustomServicesConstants.CHROOT_DIR),timeout,null,new HashMap<String,String>(), chmodCmd(fileSoftLink));
 
             result = executeLocal(chrootInventoryFileName, AnsibleHelper.makeExtraArg(input,step), String.format("%s%s", chrootOrderDir, playbook), user);
 
             // unlink all ansible package files for cleanup
             for(String filename: fileSoftLink) {
                 final String[] unlinkFiles = unlinkCmd(filename);
-                p = Runtime.getRuntime().exec(unlinkFiles);
+                Exec.exec(timeout, unlinkFiles);
             }
         } catch (final Exception e) {
             ExecutionUtils.currentContext().logError("customServicesOperationExecution.logStatus", step.getId(),"Custom Service Task Failed" + e);
@@ -199,7 +200,7 @@ public class CustomServicesLocalAnsibleExecution extends ViPRExecutionTask<Custo
                     }
                     // Add file name and file path for softlinks
                     fileList.add(curTarget.getName());
-                    pathList.add(curTarget.getAbsolutePath());
+                    pathList.add(curTarget.getAbsolutePath().replaceFirst(CustomServicesConstants.CHROOT_DIR + "/", ""));
                 }
                 entry = tarIn.getNextTarEntry();
             }
@@ -242,7 +243,21 @@ public class CustomServicesLocalAnsibleExecution extends ViPRExecutionTask<Custo
         builder.add(CustomServicesConstants.CHROOT_DIR);
 
         final ImmutableList<String> cmdList = builder.build();
+        return cmdList.toArray(new String[cmdList.size()]);
+    }
 
+    private String[] chmodCmd(final List <String> fileList) {
+        final ImmutableList.Builder<String> builder = ImmutableList.builder();
+
+        builder.add("sudo");
+        builder.add("/usr/bin/chmod");
+        builder.add("777");
+        // Add all files for chmod 777
+        for(String filename: fileList) {
+            builder.add(filename);
+        }
+
+        final ImmutableList<String> cmdList = builder.build();
         return cmdList.toArray(new String[cmdList.size()]);
     }
 

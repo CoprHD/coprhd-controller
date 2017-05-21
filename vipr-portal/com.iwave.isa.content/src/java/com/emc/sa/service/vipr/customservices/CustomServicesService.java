@@ -216,7 +216,6 @@ public class CustomServicesService extends ViPRService {
     private void orderDirCleanup(final String orderDir) {
         try {
             final File file = new File(orderDir);
-            file.listFiles();
             if (file.exists()) {
                 final String[] cmd = { CustomServicesConstants.REMOVE, CustomServicesConstants.REMOVE_OPTION, orderDir };
                 Exec.exec(Exec.DEFAULT_CMD_TIMEOUT, cmd);

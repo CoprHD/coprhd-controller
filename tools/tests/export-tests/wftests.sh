@@ -3436,7 +3436,8 @@ test_add_to_empty_cg_srdf() {
     _add_to_cg_srdf "empty"
 }
 
-# Main logic for add_to_[empty|existing]_cg_srdf
+# Main logic for add_to_[empty|existing]_cg_srdf.
+# Used by test_add_to_existing_cg_srdf, test_add_to_empty_cg_srdf
 _add_to_cg_srdf() {
     srdf_cg_test=$1
     echot "Test add_to_${srdf_cg_test}_cg_srdf Begins"
@@ -3447,7 +3448,8 @@ _add_to_cg_srdf() {
         return
     fi
 
-    common_failure_injections="failure_004:failure_076_SRDFDeviceController.rollbackSRDFLinksStep_before_link_rollback"
+    common_failure_injections="failure_004_final_step_in_workflow_complete \
+        failure_004:failure_076_SRDFDeviceController.rollbackSRDFLinksStep_before_link_rollback"
 
     # Test specific failures (empty or existing)
     empty_failure_injections=""
@@ -3458,9 +3460,13 @@ _add_to_cg_srdf() {
     [ "${srdf_cg_test}" = "existing" ] && failure_injections="${failure_injections} ${existing_failure_injections}"
 
     cfs=("Volume BlockConsistencyGroup RemoteDirectorGroup")
+    snap_db_esc=" | grep -Ev \"^sourceGroup = null|targetGroup = null\""
 
     # Placeholder when a specific failure case is being worked...
-    failure_injections="failure_004:failure_076_SRDFDeviceController.rollbackSRDFLinksStep_before_link_rollback"
+    failure_injections="failure_004_final_step_in_workflow_complete"
+
+    # run discovery to update RemoteDirectorGroups
+    runcmd storagedevice discover_all
 
     for failure in ${failure_injections}
     do
@@ -3479,7 +3485,7 @@ _add_to_cg_srdf() {
       set_artificial_failure ${failure}
 
       # Check the state of the volume that doesn't exist
-      snap_db 1 "${cfs[@]}"
+      snap_db 1 "${cfs[@]}" "${snap_db_esc}"
 
       # If this is a rollback inject, make sure we get the "additional message"
       echo ${failure} | grep failure_004 | grep ":" > /dev/null
@@ -3500,7 +3506,7 @@ _add_to_cg_srdf() {
       runcmd storagedevice discover_all
 
       # Perform any DB validation in here
-      snap_db 2 "${cfs[@]}"
+      snap_db 2 "${cfs[@]}" "${snap_db_esc}"
 
       # Validate nothing was left behind
       validate_db 1 2 ${cfs}
@@ -3511,21 +3517,34 @@ _add_to_cg_srdf() {
       # Should be able to delete the CG and recreate it.
       runcmd blockconsistencygroup delete ${CGNAME}
 
+      if [ "${failure}" = "failure_004:failure_076_SRDFDeviceController.rollbackSRDFLinksStep_before_link_rollback" ]
+      then
+        # At this point, the volumes have been created in their respective CGs.  Instead of simply retrying, the
+        # user must instead discover & ingest the volumes (target first).  Then add the source volume into the source
+        # CG; ViPR will know to place the source volume into the source CG and recreate the target CG for the target
+        # volume.
+        echo "failure_076 requires ingestion as the retry method, so skipping automated recreation steps"
+
+        # Report results
+        report_results "test_add_to_${srdf_cg_test}_cg_srdf" ${failure}
+        continue
+      fi
+
+      # Let providers sync up...
+      sleep 60
+
       # Re-create the consistency group
       runcmd blockconsistencygroup create ${PROJECT} ${CGNAME}
 
       # Perform any DB validation in here
-      snap_db 3 "${cfs[@]}"
+      snap_db 3 "${cfs[@]}" "${snap_db_esc}"
 
       runcmd volume create ${volname} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB --consistencyGroup=${CGNAME}
       # Remove the volume
       runcmd volume delete ${PROJECT}/${volname} --wait
 
-      # Remove the target CG
-      runcmd blockconsistencygroup delete ${CGNAME}-Target-${NH}
-
       # Perform any DB validation in here
-      snap_db 4 "${cfs[@]}"
+      snap_db 4 "${cfs[@]}" "${snap_db_esc}"
 
       # Validate nothing was left behind
       validate_db 3 4 ${cfs}

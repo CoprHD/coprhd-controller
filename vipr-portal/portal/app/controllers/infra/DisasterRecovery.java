@@ -394,6 +394,10 @@ public class DisasterRecovery extends ViprResourceController {
     public static boolean hasActiveDegradedSite() {
         return DisasterRecoveryUtils.hasActiveDegradedSite();
     }
+
+    public static boolean isCustomService() {
+        return DisasterRecoveryUtils.isCustomService();
+    }
     
     private static void itemsJson(List<String> uuids) {
         List<SiteRestRep> standbySites = new ArrayList<SiteRestRep>();

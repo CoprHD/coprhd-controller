@@ -913,7 +913,7 @@ class Fileshare(object):
         current_size = float(fileshare_detail["capacity_gb"])
         current_size = (current_size * 1073741824.0)
         # in quota reduction the new size should be less than current size
-		if(new_size  >= current_size ):
+	if(new_size  >= current_size ):
             raise SOSError(
                 SOSError.VALUE_ERR,
                 "error: Incorrect value of new size: " + str(new_size) +

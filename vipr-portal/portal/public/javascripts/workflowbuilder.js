@@ -197,13 +197,12 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
     };
 
     function createDir(event, data) {
-        var ref = jstreeContainer.jstree(true);
         if (folderNodeType === data.node.type) {
             $http.get(routes.WF_directory_create({"name": data.node.text,"parent": data.node.parent})).success(function(resp) {
                 data.instance.set_id(data.node, resp.id);
                 displaySuccessMessage(translate("node.create.success"));
             })
-            .error(function (error, status){
+            .error(function (error){
                 deleteNodeFromJSTreeAndDisplayErrorMsg(data.node, error.details);
             });
         }
@@ -212,7 +211,7 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
                 data.instance.set_id(data.node, resp.id);
                 displaySuccessMessage(translate("node.create.success"));
             })
-            .error(function (error, status){
+            .error(function (error){
                 deleteNodeFromJSTreeAndDisplayErrorMsg(data.node, error.details);
             });
         }
@@ -240,26 +239,26 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
         var nodeType = sel[0].type;
         var nodeParent = sel[0].parent;
         if (folderNodeType === nodeType) {
-            $http.get(routes.WF_directory_delete({"id": nodeId})).success(function(data) {
+            $http.get(routes.WF_directory_delete({"id": nodeId})).success(function() {
                 deleteNodeFromJSTreeAndDisplaySuccessMsg(ref, sel);
             })
-            .error(function (error, status){
+            .error(function (error){
                 displayErrorMessage(error.details);
             });
         }
         else if($.inArray(nodeType, primitiveNodeTypes) > -1) {
-        	$http.get(routes.Primitive_delete({"primitiveId": nodeId, "dirID": nodeParent})).success(function(data) {
+        	$http.get(routes.Primitive_delete({"primitiveId": nodeId, "dirID": nodeParent})).success(function() {
                 deleteNodeFromJSTreeAndDisplaySuccessMsg(ref, sel);
             })
-            .error(function (error, status){
+            .error(function (error){
                 displayErrorMessage(error.details);
             });
         }
         else {
-            $http.get(routes.Workflow_delete({"workflowID": nodeId, "dirID": nodeParent})).success(function(data) {
+            $http.get(routes.Workflow_delete({"workflowID": nodeId, "dirID": nodeParent})).success(function() {
                 deleteNodeFromJSTreeAndDisplaySuccessMsg(ref, sel);
             })
-            .error(function (error, status){
+            .error(function (error){
                 displayErrorMessage(error.details);
             });
         }
@@ -282,26 +281,26 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
             // if Old text is not equal to new text, then rename
             if (data.old !== data.text) {
                 if (folderNodeType === data.node.type) {
-                    $http.get(routes.WF_directory_edit_name({"id": data.node.id, "newName": data.text})).success(function(data) {
+                    $http.get(routes.WF_directory_edit_name({"id": data.node.id, "newName": data.text})).success(function() {
                         displaySuccessMessage(translate("node.rename.success"));
                     })
-                    .error(function (error, status){
+                    .error(function (error){
                         revertRename(data.node, data.old, error.details)
                     });
                 }
                 else if($.inArray(data.node.type, primitiveNodeTypes) > -1) {
-                    $http.get(routes.Primitive_edit_name({"primitiveID": data.node.id, "newName": data.text})).success(function(data) {
+                    $http.get(routes.Primitive_edit_name({"primitiveID": data.node.id, "newName": data.text})).success(function() {
                         displaySuccessMessage(translate("node.rename.success"));
                     })
-                    .error(function (error, status){
+                    .error(function (error){
                         revertRename(data.node, data.old, error.details)
                     });
                 }
                 else if (workflowNodeType === data.node.type){
-                    $http.get(routes.Workflow_edit_name({"id": data.node.id, "newName": data.text})).success(function(data) {
+                    $http.get(routes.Workflow_edit_name({"id": data.node.id, "newName": data.text})).success(function() {
                         displaySuccessMessage(translate("node.rename.success"));
                     })
-                    .error(function (error, status){
+                    .error(function (error){
                         revertRename(data.node, data.old, error.details)
                     });
                 }

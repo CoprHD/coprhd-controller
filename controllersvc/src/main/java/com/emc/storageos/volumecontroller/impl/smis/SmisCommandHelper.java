@@ -7815,7 +7815,6 @@ public class SmisCommandHelper implements SmisConstants {
      * @param storage The storage system
      * @param portGroupName The port group name
      * @param targetURIList The list of storage ports
-     * @param taskCompleter
      * @return The created port group CIMObjectPath
      * @throws Exception
      */

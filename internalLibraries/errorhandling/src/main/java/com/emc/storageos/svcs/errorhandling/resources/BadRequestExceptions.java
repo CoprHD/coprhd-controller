@@ -2220,6 +2220,15 @@ public interface BadRequestExceptions {
             final String volumeName, final String replicaType);
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_MISSING)
+    public BadRequestException missingParameterSystemTypeforCompression();
+
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException invalidParameterSystemTypeforCompression();
+
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException invalidParameterAutoTieringPolicyforCompression();
+
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_MISSING)
     public BadRequestException missingParameterSystemTypeforHostIOLimits();
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)

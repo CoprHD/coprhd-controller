@@ -560,10 +560,7 @@ public class WorkflowService extends TaskResourceService {
                     break;
                 }
             }
-        } else {
-            throw APIException.internalServerErrors.cannotFindTaskForWorkflow(
-                    topLevelWorkflow.getLabel(), topLevelWorkflow.getId().toString(), wfOrchTaskId);
-        }
+        } 
         
         return workflowForTenant;
 	}

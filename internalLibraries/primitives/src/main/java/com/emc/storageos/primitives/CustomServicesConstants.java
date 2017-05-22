@@ -19,6 +19,11 @@ package com.emc.storageos.primitives;
 import java.util.Arrays;
 import java.util.List;
 
+import com.emc.storageos.primitives.input.BasicInputParameter;
+import com.emc.storageos.primitives.input.InputParameter;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+
 /**
  * Custom Services Constants
  */
@@ -79,6 +84,7 @@ public final class CustomServicesConstants {
     public static final String ANSIBLE_COMMAND_LINE = "ansible_command_line_arg";
     // Remote ansible connection
     public static final String REMOTE_USER = "remote_node_user";
+    public static final String REMOTE_PASSWORD = "remote_node_password";
     public static final String REMOTE_NODE = "remote_node_ip";
     // Keys for Step.InputGroup
     public static final String PATH_PARAMS = "path_params";
@@ -89,6 +95,13 @@ public final class CustomServicesConstants {
     public static final String QUERY_PARAMS = "query_params";
     public static final String CREDENTIALS = "credentials";
     public static final String HEADERS = "headers";
+    // Common ansible_options group
+    public static final ImmutableMap<String, ImmutableList<InputParameter>> ANSIBLE_OPTIONS_INPUT_GROUP = 
+            ImmutableMap.<String, ImmutableList<InputParameter>>of(
+                    CustomServicesConstants.ANSIBLE_OPTIONS, ImmutableList.<InputParameter>builder()
+                    .add(new BasicInputParameter.StringParameter(CustomServicesConstants.ANSIBLE_HOST_FILE, true, null))
+                    .add(new BasicInputParameter.StringParameter(CustomServicesConstants.ANSIBLE_COMMAND_LINE, false, null))
+                    .build());
 
     // REST options
     public static final String PROTOCOL = "protocol";

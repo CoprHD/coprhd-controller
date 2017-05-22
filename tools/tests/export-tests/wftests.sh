@@ -3632,22 +3632,16 @@ do
     	    echo "Simulator-based testing of this suite is not supported on ${SS} due to lack of CLI/arraytools support to ${SS} provider/simulator"
     	    exit 1
     	fi
-    fi
-
     # Whether to report results to the master data collector of all things
-    if [ "${1}" = "-report" ]; then
+    elif [ "${1}" = "-report" ]; then
         echo "Reporting is ON"
         REPORT=1
         shift;
-    fi
-
-    if [ "$1" = "-cleanup" ]
+    elif [ "$1" = "-cleanup" ]
     then
 	DO_CLEANUP=1;
 	shift
-    fi
-
-    if [ "$1" = "-resetsim" ]
+    elif [ "$1" = "-resetsim" ]
     then
 	if [ ${setup} -ne 1 ]; then
 	    echo "FAILURE: Setup not specified.  Not recommended to reset simulator in the middle of an active configuration.  Or put -resetsim after your -setup param"
@@ -3656,6 +3650,9 @@ do
 	    RESET_SIM=1;
 	    shift
 	fi
+    else
+	echo "Bad option specified: ${1}"
+	Usage
     fi
 done
 

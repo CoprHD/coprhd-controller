@@ -45,6 +45,8 @@ public class CustomServicesShellScriptExecution extends ViPRExecutionTask<Custom
     private final Map<String, List<String>> input;
     private  String orderDir = String.format("%s%s/", CustomServicesConstants.ORDER_DIR_PATH,
             ExecutionUtils.currentContext().getOrder().getOrderNumber());
+    private String chrootOrderDir = String.format("%s%s/", CustomServicesConstants.CHROOT_ORDER_DIR_PATH,
+            ExecutionUtils.currentContext().getOrder().getOrderNumber());
     private final long timeout;
 
     private final DbClient dbClient;
@@ -91,10 +93,12 @@ public class CustomServicesShellScriptExecution extends ViPRExecutionTask<Custom
             logger.debug("CS: Execute primitive:{} with script:{}", primitive.getId(), script.getId());
 
             final String scriptFileName = String.format("%s%s.sh", orderDir, URIUtil.parseUUIDFromURI(scriptid).replace("-", ""));
+
             final byte[] bytes = Base64.decodeBase64(script.getResource());
             AnsibleHelper.writeResourceToFile(bytes, scriptFileName);
 
-            result = executeCmd(scriptFileName);
+            final String exeScriptFileName = String.format("%s%s.sh", chrootOrderDir, URIUtil.parseUUIDFromURI(scriptid).replace("-", ""));
+            result = executeCmd(exeScriptFileName);
 
         } catch (final Exception e) {
             logger.error("CS: Could not execute shell script step:{}. Exception:{}", step.getId(), e);
@@ -110,21 +114,23 @@ public class CustomServicesShellScriptExecution extends ViPRExecutionTask<Custom
             throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed("Script/Ansible execution Failed");
         }
 
-        logger.info("CustomScript Execution result:output{} error{} exitValue:{}", result.getStdOutput(), result.getStdError(),
+        logger.info("CustomScript Execution result:output{} error{} exitValue:{} ", result.getStdOutput(), result.getStdError(),
                 result.getExitValue());
 
         return new CustomServicesScriptTaskResult(AnsibleHelper.parseOut(result.getStdOutput()), result.getStdOutput(), result.getStdError(), result.getExitValue());
     }
 
     // Execute Shell Script resource
+
     private Exec.Result executeCmd(final String shellScript) throws Exception {
         final AnsibleCommandLine cmd = new AnsibleCommandLine(CustomServicesConstants.SHELL_BIN, shellScript);
+        cmd.setChrootCmd(CustomServicesConstants.CHROOT_CMD);
         final String[] cmds = cmd.build();
 
         //default to no host key checking
         final Map<String,String> environment = makeParam(input);
 
-        return Exec.exec(new File(orderDir), timeout, null, environment, cmds);
+        return Exec.sudo(new File(orderDir), timeout, null, environment, cmds);
     }
 
     private Map<String,String> makeParam(final Map<String, List<String>> input) throws Exception {

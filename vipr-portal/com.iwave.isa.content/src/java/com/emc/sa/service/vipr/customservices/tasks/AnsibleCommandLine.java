@@ -16,6 +16,7 @@
  */
 package com.emc.sa.service.vipr.customservices.tasks;
 
+import com.emc.storageos.primitives.CustomServicesConstants;
 import com.google.common.collect.ImmutableList;
 import org.apache.commons.lang.StringUtils;
 
@@ -23,7 +24,7 @@ import org.apache.commons.lang.StringUtils;
  * This creates the Ansible command line as per the given parameter provided by the user
  */
 
-///chroot /opt/customroot /usr/bin/ansible-playbook -i "localhost," -u "root" -l "" -t "" playbook.yml --extra-vars " "
+///chroot /opt/storageos/customroot /usr/bin/ansible-playbook -i "localhost," -u "root" -l "" -t "" playbook.yml --extra-vars " "
 
 public class AnsibleCommandLine {
     private final String ansiblePath;
@@ -32,6 +33,7 @@ public class AnsibleCommandLine {
     private String extraVars;
     private String shellArgs;
     private boolean isRemoteAnsible = false;
+    private String chrootCmd;
     private final ImmutableList.Builder<String> optionalParam = ImmutableList.builder();
 
     public AnsibleCommandLine(final String ansiblePath, final String playbook) {
@@ -98,6 +100,12 @@ public class AnsibleCommandLine {
 
     public AnsibleCommandLine setIsRemoteAnsible(final boolean isRemoteAnsible) {
         this.isRemoteAnsible = isRemoteAnsible;
+    }
+
+    public AnsibleCommandLine setChrootCmd(final String chrootcmd) {
+        if (!StringUtils.isEmpty(chrootcmd)) {
+            this.chrootCmd = chrootcmd;
+        }
 
         return this;
     }
@@ -106,6 +114,11 @@ public class AnsibleCommandLine {
         final ImmutableList.Builder<String> builder = ImmutableList.builder();
         if (!StringUtils.isEmpty(prefix)) {
             builder.add(prefix);
+        }
+
+        if (!StringUtils.isEmpty(chrootCmd)) {
+            builder.add(chrootCmd);
+            builder.add(CustomServicesConstants.CHROOT_DIR);
         }
 
         if (!StringUtils.isEmpty(shellArgs)) {

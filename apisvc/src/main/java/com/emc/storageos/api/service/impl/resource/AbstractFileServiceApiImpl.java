@@ -231,7 +231,12 @@ public abstract class AbstractFileServiceApiImpl<T> implements FileServiceApi {
     
     /**
      * Reduce fileshare provision capacity
+     * @param fileshare file share object
+     * @param newSize - new fileshare size
+     * @param taskId - task id
+     * return 
      */
+   
     @Override
     public void  reduceFileShareQuota(FileShare fileshare, Long newSize, String taskId)
             throws InternalException {

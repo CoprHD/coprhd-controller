@@ -4143,7 +4143,7 @@ rpmp_crr()
         --neighborhoods $RECOVERPOINT_VARRAY1 \
         --multiVolumeConsistency \
         --expandable true \
-        --protectionCoS $RECOVERPOINT_VARRAY3':rp_targets'$1'-migrate:min' \
+        --protectionCoS $RECOVERPOINT_VARRAY3':rp_targets'$1':min' \
         --max_snapshots 10 \
         --rp_copy_mode ASYNCHRONOUS \
         --rp_rpo_value 5 \

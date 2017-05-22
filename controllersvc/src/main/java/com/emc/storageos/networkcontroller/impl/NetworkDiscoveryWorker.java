@@ -583,27 +583,6 @@ public class NetworkDiscoveryWorker {
     }
 
     /**
-     * Generate logging output for given network details.
-     *
-     * @param prefix
-     * @param network
-     */
-    private void printRoutedNetworks(String prefix, Network network) {
-        StringBuffer sb = new StringBuffer();
-        sb.append(prefix + ":");
-        sb.append("label = " + network.getLabel() + ", ");
-        if (network.getRoutedNetworks() != null) {
-            for (String str : network.getRoutedNetworks()) {
-                sb.append(", routed = " + str);
-            }
-        } else {
-            sb.append(", routed = null");
-        }
-        _log.info(sb.toString());
-    }
-
-
-    /**
      * Finds the network in the list that has this endpoint.
      * 
      * @param networks a list of networks

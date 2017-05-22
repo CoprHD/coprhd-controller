@@ -588,11 +588,11 @@ public class NetworkSystemService extends TaskResourceService {
                     continue;
                 }
                 network.setRegistrationStatus(RegistrationStatus.REGISTERED.toString());
-                _dbClient.persistObject(network);
+                _dbClient.updateObject(network);
                 auditOp(OperationTypeEnum.REGISTER_NETWORK, true, null, network.getId().toString());
             }
             networkSystem.setRegistrationStatus(RegistrationStatus.REGISTERED.toString());
-            _dbClient.persistObject(networkSystem);
+            _dbClient.updateObject(networkSystem);
             auditOp(OperationTypeEnum.REGISTER_NETWORK_SYSTEM, true, null,
                     networkSystem.getId().toString(), networkSystem.getLabel(), networkSystem.getPortNumber(), networkSystem.getUsername(),
                     networkSystem.getSmisProviderIP(), networkSystem.getSmisPortNumber(), networkSystem.getSmisUserName(),
@@ -641,7 +641,7 @@ public class NetworkSystemService extends TaskResourceService {
                 // Only unregister Network if it is not managed by other registered NetworkSystems
                 if (registeredNetworkSystems.isEmpty()) {
                     network.setRegistrationStatus(RegistrationStatus.UNREGISTERED.toString());
-                    _dbClient.persistObject(network);
+                    _dbClient.updateObject(network);
                     auditOp(OperationTypeEnum.DEREGISTER_NETWORK, true, null, id.toString());
                 }
             }
@@ -810,19 +810,6 @@ public class NetworkSystemService extends TaskResourceService {
 
     /**
      * Returns true if valid zone name.
-     * 
-     * @param name
-     * @return
-     */
-    private void validateZoneName(String name) {
-        if (name.matches("[a-zA-Z0-9_]+")) {
-            return;
-        }
-        throw APIException.badRequests.illegalZoneName(name);
-    }
-
-    /**
-     * Returns true if valid zone name.
      * Throw exception if zone name is invalid based on device type
      *
      * @param name
@@ -867,7 +854,6 @@ public class NetworkSystemService extends TaskResourceService {
         }
 
         validateWWNAlias(alias.getName());
-
     }
 
     /**

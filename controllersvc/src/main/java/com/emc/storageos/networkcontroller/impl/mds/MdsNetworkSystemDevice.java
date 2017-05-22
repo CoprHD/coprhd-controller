@@ -606,7 +606,7 @@ public class MdsNetworkSystemDevice extends NetworkSystemDeviceImpl implements N
             dialog.zonesetNameVsan(activeZoneset.getName(), vsanId, false);
             for (Zone zone : zonesToBeDeleted) {            	
                 String zoneName = zone.getName();
-                _log.info("Removing zone: " + zoneName + "zoneset: " + activeZoneset.getName() +  "vsan: " + vsanId);
+                _log.info("Removing zone: " + zoneName + " zoneset: " + activeZoneset.getName() +  "vsan: " + vsanId);
                 try {
                 	dialog.zonesetMember(zone.getName(), true);
                     removedZoneNames.put(zoneName, SUCCESS);
@@ -673,7 +673,7 @@ public class MdsNetworkSystemDevice extends NetworkSystemDeviceImpl implements N
     private boolean isInZonesets(IvrZone ivrZone, List<IvrZoneset> ivrZonesetInFabric) {
         boolean inZoneset = false;
         for (IvrZoneset ivrZoneset : ivrZonesetInFabric) {
-            inZoneset = ivrZoneset.getZones().contains(ivrZone);
+            inZoneset = ivrZoneset.contains(ivrZone);
             if (inZoneset) {
                 break;
             }

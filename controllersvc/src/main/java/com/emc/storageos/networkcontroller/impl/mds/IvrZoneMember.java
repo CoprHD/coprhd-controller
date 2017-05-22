@@ -54,5 +54,14 @@ public class IvrZoneMember implements Serializable {
         }
         return false;
     }
+    
+    public boolean contains(Object obj) {
+    	if (obj instanceof IvrZoneMember) {
+    		IvrZoneMember zoneMember = (IvrZoneMember)obj;
+    		 return zoneMember != null && pwwn != null && // vsanId != null &&
+                     getPwwn().equalsIgnoreCase(zoneMember.getPwwn()); // && getVsanId().equals(zoneMember.getVsanId());
+    	}
+    	return false;
+    }
 
 }

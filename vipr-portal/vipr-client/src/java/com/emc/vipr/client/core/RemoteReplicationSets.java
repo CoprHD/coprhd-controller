@@ -10,6 +10,7 @@ import javax.ws.rs.core.UriBuilder;
 import com.emc.storageos.model.block.BlockConsistencyGroupList;
 import com.emc.storageos.model.remotereplication.RemoteReplicationGroupList;
 import com.emc.storageos.model.remotereplication.RemoteReplicationGroupRestRep;
+import com.emc.storageos.model.remotereplication.RemoteReplicationPairList;
 import com.emc.storageos.model.remotereplication.RemoteReplicationSetList;
 import com.emc.storageos.model.remotereplication.RemoteReplicationSetRestRep;
 import com.emc.vipr.client.core.impl.PathConstants;
@@ -63,5 +64,10 @@ public class RemoteReplicationSets {
     public BlockConsistencyGroupList listRemoteReplicationSetCGs(URI setId) {
         return client.get(BlockConsistencyGroupList.class,
                 PathConstants.BLOCK_REMOTE_REPLICATION_SET_URL + "/" + setId + "/consistency-groups");
+    }
+
+    public RemoteReplicationPairList listRemoteReplicationPairs(URI setId) {
+        return client.get(RemoteReplicationPairList.class,
+                PathConstants.BLOCK_REMOTE_REPLICATION_SET_URL + "/" + setId + "/set-pairs");
     }
 }

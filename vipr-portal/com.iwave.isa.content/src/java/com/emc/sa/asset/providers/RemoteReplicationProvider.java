@@ -15,8 +15,6 @@ import java.util.ListIterator;
 import java.util.Map;
 import java.util.Set;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import com.emc.sa.asset.AssetOptionsContext;
@@ -27,6 +25,7 @@ import com.emc.sa.asset.annotation.AssetNamespace;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.remotereplication.RemoteReplicationGroup;
+import com.emc.storageos.db.client.model.remotereplication.RemoteReplicationSet;
 import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.RelatedResourceRep;
 import com.emc.storageos.model.block.BlockConsistencyGroupRestRep;
@@ -36,7 +35,6 @@ import com.emc.storageos.model.storagesystem.type.StorageSystemTypeRestRep;
 import com.emc.storageos.model.systems.StorageSystemRestRep;
 import com.emc.storageos.model.vpool.BlockVirtualPoolRestRep;
 import com.emc.vipr.client.ViPRCoreClient;
-import com.emc.vipr.client.core.RemoteReplicationGroups;
 import com.emc.vipr.client.core.RemoteReplicationSets;
 import com.emc.vipr.model.catalog.AssetOption;
 import com.google.common.collect.Lists;
@@ -45,11 +43,9 @@ import com.google.common.collect.Lists;
 @AssetNamespace("vipr")
 public class RemoteReplicationProvider extends BaseAssetOptionsProvider {
 
-    private static final Logger log = LoggerFactory.getLogger(RemoteReplicationGroups.class);
-
-    private final static String RR_GROUP = "RR_GROUP";
-    private final static String CONSISTENCY_GROUP = "CONSISTENCY_GROUP";
-    private final static String UNGROUPED = "UNGROUPED";
+    private final static String RR_GROUP = "Remote Replication Group";
+    private final static String CONSISTENCY_GROUP = "Consistency Group";
+    private final static String RR_SET = "Remote Replication Set";
 
     RemoteReplicationSets setClient = null;
 
@@ -311,9 +307,9 @@ public class RemoteReplicationProvider extends BaseAssetOptionsProvider {
     @Asset("remoteReplicationPairGrouping")
     public List<AssetOption> getRemoteReplicationPairGrouping(AssetOptionsContext ctx) {
         List<AssetOption> options = Lists.newArrayList();
-        options.add(new AssetOption(RR_GROUP,"Remote Replication Group"));
-        options.add(new AssetOption(CONSISTENCY_GROUP,"Consistency Group"));
-        options.add(new AssetOption(UNGROUPED,"Ungrouped"));
+        options.add(new AssetOption(RR_GROUP,RR_GROUP));
+        options.add(new AssetOption(CONSISTENCY_GROUP,CONSISTENCY_GROUP));
+        options.add(new AssetOption(RR_SET,RR_SET));
         return options;
     }
 
@@ -336,8 +332,8 @@ public class RemoteReplicationProvider extends BaseAssetOptionsProvider {
             return createNamedResourceOptions(api(ctx).remoteReplicationSets().
                     listRemoteReplicationSetCGs(rrSet).getConsistencyGroupList());
         }
-        if (groupType.equals(UNGROUPED)) {
-            return new ArrayList<>(Arrays.asList(new AssetOption(UNGROUPED,"None")));
+        if (groupType.equals(RR_SET)) {
+            return new ArrayList<>(Arrays.asList(new AssetOption(rrSet,"(all pairs and groups in set)")));
         }
 
         return Collections.emptyList();
@@ -354,14 +350,20 @@ public class RemoteReplicationProvider extends BaseAssetOptionsProvider {
             URI groupId, URI setId) {
         List<AssetOption> options = Lists.newArrayList();
 
-        if (groupId.equals(UNGROUPED)) {
-            // get pairs in set (include pairs in groups in this set)
-            //List<NamedRelatedResourceRep> pairs = api(ctx).remoteReplicationSets().getGroupsForSet(setId)
-            //        listRelatedRemoteReplicationPairs(groupId).getRemoteReplicationPairs();
+        if (URIUtil.isType(groupId, RemoteReplicationSet.class)) {
+            // add pairs in set
+            List<NamedRelatedResourceRep> pairsInSet = api(ctx).remoteReplicationSets().
+                    listRemoteReplicationPairs(setId).getRemoteReplicationPairs();
+            options.addAll(createNamedResourceOptions(pairsInSet));
 
-            // TODO: did this get the pairs in subgroups?!
+            // add pairs in groups that are in set
+            List<NamedRelatedResourceRep> groupsInSet = api(ctx).remoteReplicationSets().
+                    getGroupsForSet(setId).getRemoteReplicationGroups();
+            for (NamedRelatedResourceRep groupInSet : groupsInSet) {
+                options.addAll(createNamedResourceOptions(getPairsInGroup(ctx,groupInSet.getId())));
+            }
 
-            return null; //createNamedResourceOptions(pairs);
+            return options;
         }
 
         if (URIUtil.isType(groupId, BlockConsistencyGroup.class)) {
@@ -370,20 +372,22 @@ public class RemoteReplicationProvider extends BaseAssetOptionsProvider {
             for(RelatedResourceRep v : cg.getVolumes()) {
                 List<NamedRelatedResourceRep> pairs = api(ctx).remoteReplicationPairs().
                         listRelatedRemoteReplicationPairs(v.getId()).getRemoteReplicationPairs();
-                log.info("working...");
                 options.addAll(createNamedResourceOptions(pairs));
             }
             return options;
         }
 
         if (URIUtil.isType(groupId, RemoteReplicationGroup.class)) {
-            List<NamedRelatedResourceRep> pairs = api(ctx).remoteReplicationGroups().
-                    listRemoteReplicationPairs(groupId.toString()).getRemoteReplicationPairs();
-            return createNamedResourceOptions(pairs);
+            return createNamedResourceOptions(getPairsInGroup(ctx,groupId));
         }
 
         throw new IllegalStateException("Invalid Grouping option selected.  Failed to get Remote Replication Groups, " +
                 "Consistency Groups, or Remote Replication Pairs from database");
+    }
+
+    private List<NamedRelatedResourceRep> getPairsInGroup(AssetOptionsContext ctx, URI groupId) {
+        return api(ctx).remoteReplicationGroups().
+                listRemoteReplicationPairs(groupId.toString()).getRemoteReplicationPairs();
     }
 
     /*

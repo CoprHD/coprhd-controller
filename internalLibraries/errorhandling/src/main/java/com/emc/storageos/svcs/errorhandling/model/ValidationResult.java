@@ -4,9 +4,9 @@
  */
 package com.emc.storageos.svcs.errorhandling.model;
 
-public class ValidationResult {
-    boolean valid;
-    String errorMessage;
+public final class ValidationResult {
+    private boolean valid;
+    private String errorMessage;
 
     public static final ValidationResult VALID_RESULT = new ValidationResult(true);
 

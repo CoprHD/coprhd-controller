@@ -9,6 +9,8 @@
         <property name="connectionTimeoutMs" value="30000"/>
         <property name="connManagerTimeout" value="60000"/>
         <property name="socketConnectionTimeoutMs" value="7200000" />
+        <property name="maxConnections" value="300"/>
+        <property name="maxConnectionsPerHost" value="100"/>
      </bean>
           
     <bean id="hdsStorageDevice" class="com.emc.storageos.volumecontroller.impl.hds.prov.HDSStorageDevice">

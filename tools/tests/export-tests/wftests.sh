@@ -3448,12 +3448,20 @@ _add_to_cg_srdf() {
         return
     fi
 
+    # FIXME: 076 requires manual cleanup of the RDF groups, so run this last.
     common_failure_injections="failure_004_final_step_in_workflow_complete \
-        failure_004:failure_076_SRDFDeviceController.rollbackSRDFLinksStep_before_link_rollback"
+                               failure_005_BlockDeviceController.createVolumes_before_device_create \
+                               failure_006_BlockDeviceController.createVolumes_after_device_create \
+                               failure_004:failure_013_BlockDeviceController.rollbackCreateVolumes_before_device_delete \
+                               failure_004:failure_014_BlockDeviceController.rollbackCreateVolumes_after_device_delete
+                               failure_078_SRDFDeviceController.createSrdfCgPairsStep_before_cg_pairs_create \
+                               failure_079_SRDFDeviceController.createSrdfCgPairsStep_after_cg_pairs_create \
+                               failure_004:failure_077_SRDFDeviceController.rollbackSRDFLinksStep_after_link_rollback \
+                               failure_004:failure_076_SRDFDeviceController.rollbackSRDFLinksStep_before_link_rollback"
 
     # Test specific failures (empty or existing)
-    empty_failure_injections=""
-    existing_failure_injections=""
+    empty_failure_injections="failure_015_SmisCommandHelper.invokeMethod_CreateGroupReplica"
+    existing_failure_injections="failure_015_SmisCommandHelper.invokeMethod_CreateListReplica"
 
     failure_injections="${common_failure_injections}"
     [ "${srdf_cg_test}" = "empty" ] && failure_injections="${failure_injections} ${empty_failure_injections}"
@@ -3463,7 +3471,7 @@ _add_to_cg_srdf() {
     snap_db_esc=" | grep -Ev \"^sourceGroup = null|targetGroup = null\""
 
     # Placeholder when a specific failure case is being worked...
-    failure_injections="failure_004_final_step_in_workflow_complete"
+    #failure_injections="failure_015_SmisCommandHelper.invokeMethod_CreateListReplica"
 
     # run discovery to update RemoteDirectorGroups
     runcmd storagedevice discover_all
@@ -3480,6 +3488,13 @@ _add_to_cg_srdf() {
       CGNAME=cg${item}
 
       runcmd blockconsistencygroup create ${PROJECT} ${CGNAME}
+
+      if [ "${srdf_cg_test}" = "existing" ]
+      then
+        runcmd volume create ${volname}-existing ${PROJECT} ${NH} ${VPOOL_BASE} 1GB --consistencyGroup=${CGNAME}
+        # run discovery to update RemoteDirectorGroups
+        runcmd storagedevice discover_all
+      fi
 
       # Turn on failure at a specific point
       set_artificial_failure ${failure}
@@ -3514,6 +3529,11 @@ _add_to_cg_srdf() {
       # Rerun the command
       set_artificial_failure none
 
+      if [ "${srdf_cg_test}" = "existing" ]
+      then
+        runcmd volume delete ${PROJECT}/${volname}-existing --wait
+      fi
+
       # Should be able to delete the CG and recreate it.
       runcmd blockconsistencygroup delete ${CGNAME}
 
@@ -3536,6 +3556,13 @@ _add_to_cg_srdf() {
       # Re-create the consistency group
       runcmd blockconsistencygroup create ${PROJECT} ${CGNAME}
 
+      if [ "${srdf_cg_test}" = "existing" ]
+      then
+        runcmd volume create ${volname}-existing ${PROJECT} ${NH} ${VPOOL_BASE} 1GB --consistencyGroup=${CGNAME}
+        # run discovery to update RemoteDirectorGroups
+        runcmd storagedevice discover_all
+      fi
+
       # Perform any DB validation in here
       snap_db 3 "${cfs[@]}" "${snap_db_esc}"
 
@@ -3543,11 +3570,19 @@ _add_to_cg_srdf() {
       # Remove the volume
       runcmd volume delete ${PROJECT}/${volname} --wait
 
+      # run discovery to update RemoteDirectorGroups
+      runcmd storagedevice discover_all
+
       # Perform any DB validation in here
       snap_db 4 "${cfs[@]}" "${snap_db_esc}"
 
       # Validate nothing was left behind
       validate_db 3 4 ${cfs}
+
+      if [ "${srdf_cg_test}" = "existing" ]
+      then
+        runcmd volume delete ${PROJECT}/${volname}-existing --wait
+      fi
 
       runcmd blockconsistencygroup delete ${CGNAME}
 

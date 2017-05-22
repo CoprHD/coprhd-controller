@@ -3058,7 +3058,7 @@ test_12() {
 
     if [ "${SS}" = "unity" -o "${SS}" = "xio" ]
     then
-	storage_failure_injections="failure_017_Export_doRemoveInitiator"
+	storage_failure_injections="failure_016_Export_doRemoveInitiator"
     fi
 
     if [ "${SS}" = "vnx" -o "${SS}" = "vmax2" -o "${SS}" = "vmax3" ]
@@ -3072,8 +3072,7 @@ test_12() {
     failure_injections="${common_failure_injections} ${storage_failure_injections}"
 
     # Placeholder when a specific failure case is being worked...
-    # failure_injections="failure_firewall"
-    # failure_injections="failure_004_final_step_in_workflow_complete"
+    # failure_injections="failure_016_Export_doRemoveInitiator"
 
     for failure in ${failure_injections}
     do
@@ -3199,18 +3198,19 @@ test_13() {
 
     if [ "${SS}" = "unity" -o "${SS}" = "xio" ]
     then
-	storage_failure_injections="failure_017_Export_doRemoveInitiator"
+	storage_failure_injections="failure_018_Export_doRollbackExportCreate_before_delete"
     fi
 
     if [ "${SS}" = "vnx" -o "${SS}" = "vmax2" -o "${SS}" = "vmax3" ]
     then
-	storage_failure_injections="failure_015_SmisCommandHelper.invokeMethod_*"
+	storage_failure_injections="failure_015_SmisCommandHelper.invokeMethod_* \
+                                    failure_018_Export_doRollbackExportCreate_before_delete"
     fi
 
     failure_injections="${common_failure_injections} ${storage_failure_injections}"
 
     # Placeholder when a specific failure case is being worked...
-    #failure_injections="failure_015_SmisCommandHelper.invokeMethod_DeleteGroup"
+    # failure_injections="failure_018_Export_doRollbackExportCreate_before_delete"
 
     for failure in ${failure_injections}
     do
@@ -3632,22 +3632,16 @@ do
     	    echo "Simulator-based testing of this suite is not supported on ${SS} due to lack of CLI/arraytools support to ${SS} provider/simulator"
     	    exit 1
     	fi
-    fi
-
     # Whether to report results to the master data collector of all things
-    if [ "${1}" = "-report" ]; then
+    elif [ "${1}" = "-report" ]; then
         echo "Reporting is ON"
         REPORT=1
         shift;
-    fi
-
-    if [ "$1" = "-cleanup" ]
+    elif [ "$1" = "-cleanup" ]
     then
 	DO_CLEANUP=1;
 	shift
-    fi
-
-    if [ "$1" = "-resetsim" ]
+    elif [ "$1" = "-resetsim" ]
     then
 	if [ ${setup} -ne 1 ]; then
 	    echo "FAILURE: Setup not specified.  Not recommended to reset simulator in the middle of an active configuration.  Or put -resetsim after your -setup param"
@@ -3656,6 +3650,9 @@ do
 	    RESET_SIM=1;
 	    shift
 	fi
+    else
+	echo "Bad option specified: ${1}"
+	Usage
     fi
 done
 

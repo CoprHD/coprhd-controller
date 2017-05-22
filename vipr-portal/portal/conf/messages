@@ -4002,8 +4002,7 @@ storageDrivers.installButton=Install
 storageDrivers.upgradeButton=Upgrade
 storageDrivers.upgradeButton=Upgrade
 storageDrivers.deleteButton=Delete
-storageDrivers.upgrade.confirm=Controller services will be restarted, unfinished orders may fail. Are you still willing to proceed?
-storageDrivers.delete.confirm=Controller service will be restarted, unfinished orders may fail. Are you still willing to proceed?
+storageDrivers.operation.confirm=This operation will restart all controller services. This will impact all new orders submitted after driver installation was started. Please make sure there is no ongoing or queued order, and wait until this operation finishes to create a new order. Do you want to proceed?
 
 storageDrivers.install.init.success=Install request initiated ...
 storageDrivers.delete.init.success=Uninstall request initiated ...
